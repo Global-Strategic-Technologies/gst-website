@@ -128,7 +128,10 @@ describe('parseIrlArticle — grammar acceptance', () => {
     expect(a.intro).toBe('Intro paragraph one.');
     expect(a.sections).toHaveLength(2);
     expect(a.sections[0]).toMatchObject({ number: '00', title: 'Alpha' });
-    expect(a.sections[0].bullets).toEqual([{ text: 'First' }, { text: 'Second' }]);
+    expect(a.sections[0].bullets).toEqual([
+      { text: 'First', ordinal: 1 },
+      { text: 'Second', ordinal: 2 },
+    ]);
     expect(a.sections[1]).toMatchObject({ number: '01', title: 'Beta' });
     expect(a.footer).toBe('_Trailing._');
   });

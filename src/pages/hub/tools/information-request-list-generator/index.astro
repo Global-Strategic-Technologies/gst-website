@@ -12,9 +12,15 @@ import { parseIrlArticle } from '../../../../utils/irl/parse-article';
 const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
   number: s.number,
   title: s.title,
-  // Canonical request texts — rendered into the per-section hover panel so a
-  // user can preview what each section includes before choosing it.
-  bullets: s.bullets.map((b) => b.text),
+  // Canonical requests — rendered into the per-section context pane. Each row
+  // carries its `NN-II` removal key (two-digit section + two-digit canonical
+  // ordinal — the same key the MCP tool's `excludeRequests` takes) and the
+  // contexts whose skip-if directive auto-removes it (BL-044.5).
+  bullets: s.bullets.map((b, i) => ({
+    text: b.text,
+    key: `${s.number}-${String(b.ordinal ?? i + 1).padStart(2, '0')}`,
+    skipContext: b.skipIf?.context?.join(' ') ?? '',
+  })),
 }));
 ---
 
@@ -147,8 +153,9 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
                       <button
                         type="button"
                         class="irl-gen__section-info-btn"
-                        aria-label={`Requests included in section ${s.number} ${s.title}`}
-                        aria-describedby={`irl-sec-panel-${s.number}`}
+                        aria-label={`Requests included in section ${s.number} ${s.title} — click to pin and edit`}
+                        aria-expanded="false"
+                        aria-controls={`irl-sec-panel-${s.number}`}
                       >
                         <svg
                           viewBox="0 0 16 16"
@@ -172,17 +179,44 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
                       </button>
                       <div
                         class="irl-gen__section-panel"
-                        role="tooltip"
                         id={`irl-sec-panel-${s.number}`}
+                        aria-labelledby={`irl-sec-panel-head-${s.number}`}
                       >
-                        <span class="irl-gen__section-panel-head">
-                          Requests in {s.number} — {s.title}
-                        </span>
+                        <div class="irl-gen__section-panel-top">
+                          <span
+                            class="irl-gen__section-panel-head"
+                            id={`irl-sec-panel-head-${s.number}`}
+                          >
+                            Requests in {s.number} — {s.title}
+                          </span>
+                          <button
+                            type="button"
+                            class="irl-gen__section-panel-close"
+                            aria-label="Close request panel"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <p class="irl-gen__section-panel-hint">
+                          Click a delta to exclude a request from the workbook.
+                        </p>
                         <ul class="irl-gen__section-panel-list">
                           {s.bullets.map((b) => (
-                            <li>
-                              <DeltaIcon class="bullet-icon" />
-                              {b}
+                            <li
+                              class="irl-gen__q"
+                              data-question={b.key}
+                              data-skip-context={b.skipContext || undefined}
+                            >
+                              <button
+                                type="button"
+                                class="irl-gen__q-toggle"
+                                aria-pressed="false"
+                                aria-label={`Exclude request ${b.key}: ${b.text}`}
+                              >
+                                <DeltaIcon class="delta-chevron" />
+                              </button>
+                              <span class="irl-gen__q-text">{b.text}</span>
+                              <span class="irl-gen__q-auto-label" />
                             </li>
                           ))}
                         </ul>
@@ -302,6 +336,116 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
     if (section) btn.addEventListener('click', () => addCustomRow(section));
   });
 
+  // ── Context panes: click-to-pin + per-question removal ──────────────────
+  //
+  // Hover remains a passive preview (CSS-only, pointer-events: none).
+  // Clicking the ⓘ PINS the pane open and interactive; click-away, the ×
+  // button, or Escape unpins. Keyboard path: Enter/Space on the ⓘ (a native
+  // button) pins — there is deliberately no focus-triggered preview, so no
+  // ghost-panel states.
+
+  const infoWrappers = Array.from(
+    document.querySelectorAll<HTMLSpanElement>('.irl-gen__section-info')
+  );
+
+  function unpin(wrapper: HTMLSpanElement): void {
+    wrapper.classList.remove('is-pinned');
+    wrapper
+      .querySelector<HTMLButtonElement>('.irl-gen__section-info-btn')
+      ?.setAttribute('aria-expanded', 'false');
+  }
+
+  infoWrappers.forEach((wrapper) => {
+    const infoBtn = wrapper.querySelector<HTMLButtonElement>('.irl-gen__section-info-btn');
+    infoBtn?.addEventListener('click', () => {
+      const pinned = wrapper.classList.toggle('is-pinned');
+      infoBtn.setAttribute('aria-expanded', String(pinned));
+      // Single-open: pinning one pane unpins any other.
+      if (pinned) infoWrappers.forEach((other) => other !== wrapper && unpin(other));
+    });
+    wrapper
+      .querySelector<HTMLButtonElement>('.irl-gen__section-panel-close')
+      ?.addEventListener('click', () => {
+        unpin(wrapper);
+        infoBtn?.focus();
+      });
+  });
+
+  // Click-away: containment check rather than stopPropagation, so a click on
+  // (say) a section checkbox both unpins the pane AND toggles the checkbox.
+  document.addEventListener('click', (event) => {
+    const target = event.target as Node;
+    infoWrappers.forEach((wrapper) => {
+      if (wrapper.classList.contains('is-pinned') && !wrapper.contains(target)) unpin(wrapper);
+    });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const pinned = infoWrappers.find((w) => w.classList.contains('is-pinned'));
+    if (pinned) {
+      unpin(pinned);
+      pinned.querySelector<HTMLButtonElement>('.irl-gen__section-info-btn')?.focus();
+    }
+  });
+
+  // Per-question removal toggles. Manual state = `.is-collapsed` on the row
+  // (the global delta-chevron rule flips the icon for free). Rows auto-skipped
+  // by a directive are inert (aria-disabled) until the context is deselected.
+  document.querySelectorAll<HTMLButtonElement>('.irl-gen__q-toggle').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('.irl-gen__q');
+      if (!row || row.classList.contains('is-auto-skipped')) return;
+      const removed = row.classList.toggle('is-collapsed');
+      btn.setAttribute('aria-pressed', String(removed));
+    });
+  });
+
+  /** The currently selected engagement context, or undefined for Unspecified. */
+  function selectedContext(): IRLTransactionContext | undefined {
+    const raw = (form?.elements.namedItem('transactionContext') as RadioNodeList | null)?.value;
+    return raw && TRANSACTION_CONTEXT_VALUES.has(raw as IRLTransactionContext)
+      ? (raw as IRLTransactionContext)
+      : undefined;
+  }
+
+  /**
+   * Mark/unmark rows auto-skipped by the selected context's skip-if
+   * directives (BL-044.5). Auto-skip is visually distinct from manual removal
+   * (labeled, inert toggle) and is NOT sent at submit — the shared layer
+   * derives it from `context`, keeping one source of truth. A pre-existing
+   * manual `.is-collapsed` persists underneath and re-emerges on deselect.
+   */
+  function renderAutoSkips(): void {
+    const context = selectedContext();
+    document.querySelectorAll<HTMLLIElement>('.irl-gen__q[data-skip-context]').forEach((row) => {
+      const contexts = (row.dataset.skipContext ?? '').split(' ').filter(Boolean);
+      const auto = context !== undefined && contexts.includes(context);
+      row.classList.toggle('is-auto-skipped', auto);
+      const toggle = row.querySelector<HTMLButtonElement>('.irl-gen__q-toggle');
+      const label = row.querySelector<HTMLSpanElement>('.irl-gen__q-auto-label');
+      if (toggle) {
+        toggle.setAttribute('aria-disabled', String(auto));
+        // Fold the auto reason into the accessible name so non-visual users
+        // learn why the row is inert.
+        if (!toggle.dataset.baseLabel) {
+          toggle.dataset.baseLabel = toggle.getAttribute('aria-label') ?? '';
+        }
+        toggle.setAttribute(
+          'aria-label',
+          auto
+            ? `${toggle.dataset.baseLabel} — auto-skipped for ${context}`
+            : toggle.dataset.baseLabel
+        );
+      }
+      if (label) label.textContent = auto ? `auto · ${context}` : '';
+    });
+  }
+
+  form
+    ?.querySelectorAll<HTMLInputElement>('input[name="transactionContext"]')
+    .forEach((radio) => radio.addEventListener('change', renderAutoSkips));
+
   // Select all / Clear all.
   document.getElementById('irl-gen-select-all')?.addEventListener('click', () => {
     sectionsList
@@ -372,7 +516,30 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
         /* malformed custom param — ignore, form still usable */
       }
     }
+
+    // `exclude` = comma-separated NN-II keys → pre-mark those question rows
+    // as manually removed. Unknown keys are skipped (stale deeplinks must not
+    // break the form).
+    const excludeParam = params.get('exclude');
+    if (excludeParam) {
+      for (const key of excludeParam
+        .split(',')
+        .map((k) => k.trim())
+        .filter(Boolean)) {
+        const row = document.querySelector<HTMLLIElement>(
+          `.irl-gen__q[data-question="${CSS.escape(key)}"]`
+        );
+        if (row) {
+          row.classList.add('is-collapsed');
+          row.querySelector('.irl-gen__q-toggle')?.setAttribute('aria-pressed', 'true');
+        }
+      }
+    }
   }
+
+  // Initial auto-skip render — covers both the `context` deeplink hydration
+  // above and the default (Unspecified) state.
+  renderAutoSkips();
 
   if (form && status) {
     form.addEventListener('submit', (event) => {
@@ -382,11 +549,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
       const projectName = textValue('projectName');
       const targetName = textValue('targetName');
 
-      const ctxRaw = (form.elements.namedItem('transactionContext') as RadioNodeList | null)?.value;
-      const transactionContext =
-        ctxRaw && TRANSACTION_CONTEXT_VALUES.has(ctxRaw as IRLTransactionContext)
-          ? (ctxRaw as IRLTransactionContext)
-          : undefined;
+      const transactionContext = selectedContext();
 
       const showCanonicalReference =
         (document.getElementById('showCanonicalReference') as HTMLInputElement | null)?.checked ??
@@ -413,13 +576,27 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
         });
       });
 
-      // All sections included + no custom requests → the universal article,
-      // byte-identical to the un-configured download. Otherwise customize.
-      const allSelected = includeSections.length === article.sections.length;
-      const built =
-        allSelected && customRequests.length === 0
-          ? article
-          : customizeIrlArticle(article, { includeSections, customRequests });
+      // Manually removed questions (delta toggled in a pinned pane). Auto-skips
+      // are NOT collected — the shared layer derives them from `context`, so
+      // the deeplink + MCP payload stay one-source-of-truth.
+      const excludeRequests = Array.from(
+        document.querySelectorAll<HTMLLIElement>('.irl-gen__q.is-collapsed[data-question]')
+      ).map((row) => row.dataset.question as string);
+
+      // Single composed customization — same shared entry point the MCP tool
+      // calls. Self-short-circuits (and stays value-identical to the universal
+      // artifact) when nothing effective was configured.
+      const built = customizeIrlArticle(article, {
+        context: transactionContext,
+        includeSections,
+        customRequests,
+        excludeRequests,
+      });
+
+      if (built.sections.length === 0) {
+        status.textContent = 'Every remaining request is excluded — restore at least one request.';
+        return;
+      }
 
       const generatedAt = new Date();
       const buffer = generateIrlXlsxBuffer(built, {
@@ -645,7 +822,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
     background: none;
     border: 0;
     color: var(--text-muted);
-    cursor: help;
+    cursor: pointer;
     transition: color var(--transition-fast);
     -webkit-tap-highlight-color: transparent;
   }
@@ -661,9 +838,16 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
     border-radius: 50%;
   }
 
-  /* Floating request-preview panel — mirrors the .brutal-map-tooltip language
+  /* Floating request panel — mirrors the .brutal-map-tooltip language
      (solid surface, 2px square border, mono head). Positioned to the right of
-     the icon on desktop; repositioned below on mobile (see media query). */
+     the icon on desktop; repositioned below on mobile (see media query).
+
+     Two visibility states:
+       - HOVER: passive preview (pointer-events: none — read-only glance).
+       - PINNED (.is-pinned via ⓘ click / Enter): interactive — the delta
+         toggles inside become clickable. There is deliberately NO
+         focus-triggered preview: keyboard users pin via the ⓘ button, which
+         avoids ghost-panel states on unpin/Escape/close. */
   .irl-gen__section-panel {
     position: absolute;
     top: 50%;
@@ -671,7 +855,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
     transform: translateY(-50%);
     z-index: 30;
     width: max-content;
-    max-width: 340px;
+    max-width: 380px;
     padding: var(--spacing-sm) var(--spacing-md);
     background: light-dark(var(--bg-light), var(--bg-dark-secondary));
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
@@ -685,19 +869,65 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
       visibility var(--transition-fast);
   }
 
-  .irl-gen__section-info:hover .irl-gen__section-panel,
-  .irl-gen__section-info:focus-within .irl-gen__section-panel {
+  .irl-gen__section-info:hover .irl-gen__section-panel {
     opacity: 1;
     visibility: visible;
   }
 
+  .irl-gen__section-info.is-pinned .irl-gen__section-panel {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    border-color: var(--color-primary);
+  }
+
+  .irl-gen__section-info.is-pinned .irl-gen__section-info-btn {
+    color: var(--color-primary);
+  }
+
+  .irl-gen__section-panel-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
   .irl-gen__section-panel-head {
     display: block;
-    margin-bottom: var(--spacing-xs);
     font-family: var(--font-family-mono);
     font-size: var(--text-sm);
     font-weight: var(--font-weight-bold);
     color: var(--text-primary);
+  }
+
+  .irl-gen__section-panel-close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    line-height: 1;
+    font-size: var(--text-base);
+    background: transparent;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    color: var(--text-muted);
+    cursor: pointer;
+    transition:
+      color var(--transition-fast),
+      border-color var(--transition-fast);
+  }
+
+  .irl-gen__section-panel-close:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .irl-gen__section-panel-hint {
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
   }
 
   .irl-gen__section-panel-list {
@@ -709,15 +939,88 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
     list-style: none;
   }
 
-  /* Delta-symbol bullets — the site-wide `.bullet-icon` convention (see
-     /brand and .brutal-gateway-card__features): flex row, delta glyph + text. */
-  .irl-gen__section-panel-list li {
+  /* Question rows: delta-chevron toggle + request text (+ auto-skip label).
+     The delta flips upside-down via the GLOBAL `.is-collapsed .delta-chevron`
+     rule (interactions.css) when the row is manually removed. */
+  .irl-gen__q {
     display: flex;
     align-items: flex-start;
     gap: var(--spacing-sm);
     font-size: var(--text-sm);
     line-height: 1.45;
     color: var(--text-secondary);
+  }
+
+  .irl-gen__q-toggle {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    margin-top: 1px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .irl-gen__q-toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+  }
+
+  /* The global .delta-chevron carries margin-left: auto (its list-toggle
+     habitat); inside the question toggle it must sit left-aligned. */
+  .irl-gen__q-toggle :global(.delta-chevron) {
+    margin-left: 0;
+  }
+
+  .irl-gen__q-text {
+    transition:
+      opacity var(--transition-fast),
+      color var(--transition-fast);
+  }
+
+  /* Manual removal: dim + strike the text (the ICG is-dismissed treatment,
+     adapted — that class is scoped to .brutal-rec-card and can't be reused
+     directly). The delta flip itself comes from the global rule. */
+  .irl-gen__q.is-collapsed .irl-gen__q-text {
+    opacity: 0.45;
+    text-decoration: line-through;
+  }
+
+  /* Directive auto-skip (BL-044.5): same visual grammar as manual removal
+     (flipped, muted delta + dimmed text — mirror the global .is-collapsed
+     rule) plus a labeled reason; the toggle is inert while auto-skipped. */
+  .irl-gen__q.is-auto-skipped :global(.delta-chevron) {
+    transform: rotate(0deg);
+    color: var(--text-muted);
+  }
+
+  .irl-gen__q.is-auto-skipped .irl-gen__q-text {
+    opacity: 0.45;
+    text-decoration: line-through;
+  }
+
+  .irl-gen__q.is-auto-skipped .irl-gen__q-toggle {
+    cursor: not-allowed;
+  }
+
+  .irl-gen__q-auto-label {
+    flex: 0 0 auto;
+    display: none;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    border: 1px dashed light-dark(var(--border-light), var(--border-dark-default));
+    padding: 1px var(--spacing-xs);
+    margin-top: 2px;
+  }
+
+  .irl-gen__q.is-auto-skipped .irl-gen__q-auto-label {
+    display: inline-block;
   }
 
   /* "Add custom request" uses the global .brutal-btn--secondary brand class;
@@ -802,7 +1105,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
     }
 
     /* No hover on touch and no room to the side — anchor the panel below the
-       icon (tapping the button focuses it, so :focus-within still reveals it). */
+       icon (a tap on the ⓘ fires click → pins the pane open + interactive). */
     .irl-gen__section-panel {
       top: calc(100% + var(--spacing-xs));
       left: auto;

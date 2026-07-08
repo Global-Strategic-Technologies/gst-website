@@ -151,14 +151,19 @@ export function generateIrlXlsxBuffer(article: IRLArticle, metadata: IRLXlsxMeta
  * Section numbers in the canonical article are zero-padded to two digits
  * (`"00"` through `"09"`). The Reference column uses the section's leading
  * digit dropped — so Basics (section `"00"`) → `0-01`, Product (`"01"`)
- * → `1-01`, Governance (`"09"`) → `9-01`. Bullet index is one-based and
- * zero-padded to two digits. The pattern collapses cleanly back to the
+ * → `1-01`, Governance (`"09"`) → `9-01`. The bullet ordinal is one-based
+ * and zero-padded to two digits. The pattern collapses cleanly back to the
  * section structure when a recipient quotes a Reference back ("we'll
  * cover 3-05 in tomorrow's call").
+ *
+ * The ordinal is the bullet's position AS AUTHORED (`IRLBullet.ordinal`),
+ * so a customized artifact with removed questions shows intentional GAPS —
+ * `2-01, 2-02, 2-04` — signalling deliberate omission and keeping quoted
+ * refs stable across differently-configured engagements.
  */
-function buildReferenceId(sectionNumber: string, bulletIndex: number): string {
+function buildReferenceId(sectionNumber: string, bulletOrdinal: number): string {
   const sectionDigit = sectionNumber.replace(/^0+/, '') || '0';
-  const bulletSlug = String(bulletIndex).padStart(2, '0');
+  const bulletSlug = String(bulletOrdinal).padStart(2, '0');
   return `${sectionDigit}-${bulletSlug}`;
 }
 
@@ -254,13 +259,24 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimaryS
       rowIdx += 1;
     }
 
-    let bulletIndex = 0;
+    let denseIndex = 0;
     for (const bullet of section.bullets) {
-      bulletIndex += 1;
+      denseIndex += 1;
       // Pre-fill Status column with "OPEN" so the cell is non-empty (Excel
       // hides the row's status when blank) and the recipient sees the
       // workflow shape immediately.
-      rows.push([buildReferenceId(section.number, bulletIndex), bullet.text, 'OPEN']);
+      //
+      // Reference IDs render the bullet's parser-assigned ORDINAL (its
+      // position as authored), not its live array position — so removing a
+      // question (manual exclusion or skip-if directive) leaves a GAP
+      // (2-01, 2-02, 2-04…) instead of silently renumbering. Hand-built
+      // articles without ordinals fall back to the dense counter,
+      // preserving the original behavior byte-for-byte.
+      rows.push([
+        buildReferenceId(section.number, bullet.ordinal ?? denseIndex),
+        bullet.text,
+        'OPEN',
+      ]);
       statusCellRefs.push(XLSX.utils.encode_cell({ r: rowIdx, c: 2 }));
       rowIdx += 1;
     }

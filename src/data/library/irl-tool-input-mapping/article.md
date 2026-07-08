@@ -196,17 +196,28 @@ After picking a row above, the universal closure steps:
 - **Don't reach for a new MCP tool reflexively**. For qualitative dimensions, narrative-only is the highest-fidelity output the dossier can produce; a structured score would hide the nuance.
 - **Don't skip the mapping-doc update** when adding a bullet. The discipline is what keeps canonical drift bounded over a 6-12 month horizon.
 
-### Future evolution lanes (not yet implemented)
+### Filter directives (BL-044.5 — shipped 2026-07-07)
 
-- **[BL-044.5 candidate](../../../../src/docs/development/BACKLOG.md) — subtractive content-filter directives**: tag bullets and sections in `article.md` with hidden HTML comments like `<!-- skip-if: productType=b2c -->`. The parser would filter at AST-construction time; every downstream surface (XLSX, prompt, Hub page) consumes the filtered output from one source. Lets a single canonical article serve many engagement types without per-project forking.
+The subtractive content-filter directive engine is live. Directives are authored in the **IRL generator source** (`src/data/irl/information-request-list.md` — NOT this mapping doc, and NOT the library article) as `<!-- skip-if: <dimension>=<value>[,<value>…] -->` comments; the shared `applyDirectives` (`src/utils/irl/customize-article.ts`) is the single filter engine every surface consumes. Authoring + extension guide: `src/data/irl/README.md`.
+
+**Directive dictionary + currently-tagged questions** (maintenance rule: every new tag adds a row here in the same PR):
+
+| Dimension | Values                                      | Fired by                                                                                          |
+| --------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `context` | `sell-side` · `buy-side` · `value-creation` | Hub context radio · MCP `transactionContext` arg · `?context=` deeplink. `unknown` fires nothing. |
+
+| Tagged question (key)                                                                                       | Directive                                            | Rationale                                                                                                                    |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `00-02` — "Engagement context: sell-side preparation, buy-side review, post-close value creation, or other" | `skip-if: context=sell-side,buy-side,value-creation` | The question asks the recipient to state the engagement context; redundant once any context was supplied at generation time. |
+
+### Other evolution lanes
+
 - **[BL-045 PR B — shipped](../../../../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) — `gst_irl_ingestion`**: BL-032.6's `gst_diligence_sweep` was renamed to `gst_irl_ingestion` under BL-045 PR B and hardened with explicit inclusion gates + tool-input audit schemas. The IRL → tool-input mapping is now enforced at the MCP tool-schema boundary (audit-bearing `_audit` siblings with cross-field calibration refinements) rather than relying solely on prompt prose, closing the "implicit-inside-sweep" gap this stanza originally flagged.
 
-When either lane ships, this section should be updated to reference the new mechanism.
+### Generator custom requests and manual exclusions are NOT canonical (2026-07)
 
-### Generator custom requests are NOT canonical (2026-07)
-
-The BL-044 generator now lets a partner **filter sections** and **append ad-hoc `customRequests`** to individual sections at generation time (both surfaces, via `src/utils/irl/customize-article.ts`). These custom requests are **section-scoped and engagement-local** — they do not add rows to `article.md` and therefore carry no entry in this mapping. They are exactly the "keep the per-engagement IRL as a local copy if it's truly one-off" path in the operator checklist above; if a custom request recurs across 3+ engagements, promote it to canonical via the row-3 path (which _does_ update this doc). The generator cannot mint a brand-new ad-hoc section (e.g., "10 — Marketing Operations") — that still requires the canonical-article edit described in the decision table.
+The BL-044 generator lets a partner **filter sections**, **remove individual questions** (`excludeRequests` `NN-II` keys — via the Hub context panes' delta toggles or the MCP tool/prompt; keys discoverable via the `list_irl_requests` MCP tool), and **append ad-hoc `customRequests`** at generation time (all surfaces, via `src/utils/irl/customize-article.ts`). These choices are **engagement-local** — they change neither the generator source nor this mapping. They are exactly the "keep the per-engagement IRL as a local copy if it's truly one-off" path in the operator checklist above; if a custom request recurs across 3+ engagements, promote it to canonical via the row-3 path (which _does_ update this doc), and if a question is _routinely excluded_ for one engagement type, promote that pattern to an authored skip-if directive (which adds a row to the filter-directives table above). The generator cannot mint a brand-new ad-hoc section (e.g., "10 — Marketing Operations") — that still requires the canonical-article edit described in the decision table.
 
 ---
 
-_Last updated: 2026-07-02 (added "Generator custom requests are NOT canonical" note under Future evolution lanes for the BL-044 configurability follow-up)._
+_Last updated: 2026-07-07 (BL-044.5 shipped — added the "Filter directives" dictionary + tagged-question table; extended the engagement-local note to cover per-question exclusions)._

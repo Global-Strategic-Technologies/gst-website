@@ -21,6 +21,7 @@ import { registerTechDebtTool } from './tools/tech-debt';
 import { registerRegulationsTool } from './tools/regulations';
 import { registerRadarLiveTools } from './tools/radar-live';
 import { registerGenerateIrlXlsxTool } from './tools/generate-information-request-list-xlsx';
+import { registerListIrlRequestsTool } from './tools/list-irl-requests';
 import { registerValidateIrlProvenanceTool } from './tools/validate-irl-provenance';
 import { registerComposeDossierEnvelopeTool } from './tools/compose-dossier-envelope';
 import { registerPrepareIrlBodyTool } from './tools/prepare-irl-body';
@@ -183,6 +184,7 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
   registerRegulationsTool(server, metrics);
   registerRadarLiveTools(server, env, metrics);
   registerGenerateIrlXlsxTool(server, metrics);
+  registerListIrlRequestsTool(server, metrics);
   registerValidateIrlProvenanceTool(server, metrics);
   registerPrepareIrlBodyTool(server, metrics);
   registerComposeDossierEnvelopeTool(server, metrics);

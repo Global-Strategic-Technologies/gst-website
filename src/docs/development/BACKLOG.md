@@ -429,30 +429,17 @@ Recommend: **option 1**, verify library compatibility before authoring the tool.
 - **Multi-language IRL** — internationalization of the canonical article. Out of scope; if/when prioritized, file separately.
 - **Fillable PDF / DOCX variants** — v2+ if recipient feedback indicates spreadsheet isn't preferred.
 
-**Scope expansion (post-v1)** — content-filtering directives
+**Scope expansion — content-filtering directives (BL-044.5)** — ✅ **SHIPPED 2026-07-07** (`mcp-server@0.37.0`, alongside per-question manual removal)
 
-The current `gst_information_request_list` prompt (shipped under BL-043) has no way to include or exclude content based on input args. Every recipient gets the same 10 sections and ~63 bullets regardless of `productSummary` / `transactionContext`. The only personalization-of-content lever today is **annotation-based compression** — the prompt may add inline `_(already noted: …)_` next to a bullet `productSummary` answers, but never deletes (additive only).
+The directive engine originally sketched here is live, adapted to the post-#291 decoupled architecture (directives are authored in the **generator source** `src/data/irl/information-request-list.md`, not the library article, which is no longer machine-parsed):
 
-A post-v1 expansion of BL-044 can add **subtractive filtering** by tagging bullets and sections in `article.md` with hidden directives:
+- **Grammar**: `<!-- skip-if: <dim>=<v1>[,<v2>…] -->` on its own line, applying to the next non-blank bullet or `##` heading. Registry-enforced (`IRL_DIRECTIVE_DIMENSIONS` in `parse-article.ts`) — unknown dimensions/values and any non-directive comment are loud parse errors.
+- **v1 dictionary**: `context` (sell-side · buy-side · value-creation) — the one structured dimension already on every surface, so directives fire with zero new args. One tag ships (the `00` "Engagement context" question — objectively redundant once context is supplied); broader tagging is senior-consultant content work, guided by the authoring + extension guide at [`src/data/irl/README.md`](../../data/irl/README.md).
+- **Single filter engine** (the anti-pattern below is enforced by construction): `applyDirectives` in the shared `customize-article.ts` is the only implementation; the Hub page, the MCP tool, and the prompt's server-computed omission clause all consume it. The prompt embeds a directive-stripped source (`embedIrlGeneratorSource`) and never applies filter logic itself.
+- **Sibling feature — manual per-question removal**: `excludeRequests` (`"NN-II"` keys) on the tool + prompt + Hub context panes (delta-chevron toggles in the pinned ⓘ pane; `?exclude=` deeplink). Key discovery via the new `list_irl_requests` tool. Every removal mechanism preserves Reference-ID **gaps** (parser-assigned ordinals) — never renumbering.
+- **Behavior change (intended)**: `transactionContext` was cosmetic; it now filters. Documented in the tool describe, prompt body, and BREAKING_CHANGES 0.37.0.
 
-```markdown
-<!-- skip-if: productType=b2c -->
-
-- Customer profile: typical contract size, contract length, top concentration risk
-```
-
-BL-044's parser (already a v1 deliverable — required for XLS generation) is the natural home for this logic. Both the XLS generator AND the prompt's `build()` would consume the parser's filtered output, so the agent-emitted version, the downloaded spreadsheet, and the Hub library page (with optional `?productType=b2c-saas` query params) all apply the same filter from the same source. The article remains the single source of truth — directives change _which_ bullets render, never duplicate the bullet text.
-
-**Why post-v1, not bundled into BL-044 v1**:
-
-- Directive syntax design + tag taxonomy + partner-facing docs for "which filters are available" adds ~1-1.5 days to the v1 estimate.
-- v1's annotation-based compression (the lever that already exists under BL-043) covers a substantial portion of the use case without the parser-complexity tax.
-- Subtractive filtering needs partner-validated use cases to design the right tag dictionary — premature without v1 usage signals.
-- v1 ships the universal artifact + tool surface; v1.5 / v2 adds directives once recipient feedback shows the gap is real.
-
-**Drift mitigation** when added: the Hub library page (`/hub/library/information-request-list/`) would gain optional query params that apply the same filter. Without those, the page shows the full universal version (preserves current behavior). The internal `irl-tool-input-mapping.md` doc (a BL-043 deliverable) would gain a "filter directives" section enumerating which input dimensions can be skipped — keeps directives disciplined rather than proliferating.
-
-**Anti-pattern to avoid**: bullet-level removal authored only in the prompt body (and not propagated through the parser to other surfaces) violates BL-043's "single source of truth, no drift" principle. If we ship filtering in BL-044, the parser is the single filter engine — no surface authors its own filter logic in isolation.
+**Anti-pattern avoided (as designed)**: bullet-level removal authored only in the prompt body violates the "single source of truth, no drift" principle — the parser/shared layer is the single filter engine; no surface authors its own filter logic in isolation.
 
 **Risks & mitigations**
 

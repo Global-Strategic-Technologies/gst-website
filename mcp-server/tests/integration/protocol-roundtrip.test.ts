@@ -179,6 +179,7 @@ describe('protocol roundtrip', () => {
           'generate_diligence_agenda',
           'generate_information_request_list_xlsx', // BL-044 fillable-form generator
           'get_latest_insights', // BL-032 Phase 4c live FYI tier
+          'list_irl_requests', // per-question removal key discovery (NN-II ↔ question text)
           'list_portfolio_facets',
           'list_regulation_facets',
           'search_portfolio',
@@ -339,8 +340,7 @@ describe('protocol roundtrip', () => {
       if (isErrorResponse(res)) return;
       const payload = res.result as unknown as ListToolsResultPayload;
       const tool = payload.tools.find((t) => t.name === 'prepare_irl_body') as
-        | { annotations?: { readOnlyHint?: boolean; idempotentHint?: boolean } }
-        | undefined;
+        { annotations?: { readOnlyHint?: boolean; idempotentHint?: boolean } } | undefined;
       expect(tool, 'prepare_irl_body must be registered').toBeDefined();
       expect(tool!.annotations?.readOnlyHint).toBe(false);
       expect(tool!.annotations?.idempotentHint).toBe(true);
