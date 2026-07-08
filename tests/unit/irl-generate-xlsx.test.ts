@@ -316,13 +316,44 @@ describe('generateIrlXlsxBuffer — header + cell content', () => {
     const cells = Object.entries(sheet).filter(([k]) => /^A\d+$/.test(k));
     const values = cells.map(([, cell]) => (cell as XLSX.CellObject).v).filter(Boolean);
     // Section 00 → digit 0, sections 01 / 09 → digits 1 / 9. Bullet
-    // indices are 1-based + zero-padded to two digits.
+    // indices are 1-based + zero-padded to two digits. (FIXTURE_ARTICLE has
+    // no ordinals — this also pins the dense-counter fallback.)
     expect(values).toContain('0-01');
     expect(values).toContain('0-02');
     expect(values).toContain('1-01');
     expect(values).toContain('9-01');
     expect(values).toContain('9-02');
     expect(values).toContain('9-03');
+  });
+
+  it('renders bullet ordinals (not live positions) so removals leave Reference-ID gaps', () => {
+    const gapped: IRLArticle = {
+      title: 'Information Request List',
+      intro: 'Intro.',
+      sections: [
+        {
+          number: '00',
+          title: 'Basics',
+          canonicalBulletCount: 5,
+          bullets: [
+            { text: 'First', ordinal: 1 },
+            { text: 'Second', ordinal: 2 },
+            { text: 'Fourth', ordinal: 4 },
+            { text: 'Fifth', ordinal: 5 },
+          ],
+        },
+      ],
+    };
+    const buf = generateIrlXlsxBuffer(gapped, FIXTURE_METADATA);
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    const cells = Object.entries(sheet).filter(([k]) => /^A\d+$/.test(k));
+    const values = cells.map(([, cell]) => (cell as XLSX.CellObject).v).filter(Boolean);
+    expect(values).toContain('0-01');
+    expect(values).toContain('0-02');
+    expect(values).toContain('0-04');
+    expect(values).toContain('0-05');
+    expect(values).not.toContain('0-03'); // the gap signals deliberate omission
   });
 });
 

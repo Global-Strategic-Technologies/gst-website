@@ -37,7 +37,10 @@ describe('gst_information_request_list', () => {
     // showCanonicalReference) — forwarded as the exact XLSX tool payload.
     // v0.0.6 = IRL decoupling: embed + section catalog moved off the library
     // article Resource onto the dedicated generator source (gst://irl/source).
-    expect(informationRequestListPrompt.version).toBe('0.0.6');
+    // v0.0.7 = per-question removal (excludeRequests NN-II keys) + BL-044.5
+    // directives: transactionContext fires authored skip-if tags; the one-shot
+    // body server-computes the combined omission list.
+    expect(informationRequestListPrompt.version).toBe('0.0.7');
     expect(informationRequestListPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(informationRequestListPrompt.orchestrates).toEqual([
       IRL_SOURCE_EMBED_URI,
@@ -175,6 +178,22 @@ describe('gst_information_request_list', () => {
           expect(second.resource.uri).toBe(IRL_SOURCE_EMBED_URI);
           expect(typeof second.resource.text).toBe('string');
           expect(second.resource.text.length).toBeGreaterThan(500);
+        }
+      }
+    });
+
+    it('strips skip-if directive comment lines from the embed (both modes)', () => {
+      // The source is tagged (BL-044.5), but directives are machine
+      // annotations — a model reproducing the embed verbatim must never see
+      // them. embedIrlGeneratorSource strips them at the boundary, covering
+      // one-shot AND interactive without per-body instructions.
+      for (const args of [{}, { targetName: 'Acme' }]) {
+        const second = informationRequestListPrompt.build(args).messages[1].content;
+        expect(second.type).toBe('resource');
+        if (second.type === 'resource' && 'text' in second.resource) {
+          expect(second.resource.text).not.toContain('<!--');
+          // The tagged question itself remains — only the comment is stripped.
+          expect(second.resource.text).toContain('Engagement context: sell-side preparation');
         }
       }
     });
@@ -321,6 +340,71 @@ describe('gst_information_request_list', () => {
       expect(payload).toEqual({ targetName: 'Acme' });
       expect(payload.includeSections).toBeUndefined();
       expect(payload.showCanonicalReference).toBeUndefined();
+    });
+  });
+
+  describe('build() — per-question removal + directives (v0.0.7)', () => {
+    it('coerces a comma-separated excludeRequests wire string into a key array in the tool payload', () => {
+      const text = bodyText(informationRequestListPrompt, { excludeRequests: '02-03,05-01' });
+      const jsonBlock = text.match(/```json\n([\s\S]*?)\n```/);
+      const payload = JSON.parse(jsonBlock![1]);
+      expect(payload.excludeRequests).toEqual(['02-03', '05-01']);
+    });
+
+    it('excludeRequests alone triggers one-shot mode', () => {
+      const text = bodyText(informationRequestListPrompt, { excludeRequests: '02-03' });
+      expect(text).toContain('Step 1.');
+      expect(text).toContain(XLSX_TOOL_NAME);
+    });
+
+    it('lists manually-excluded keys in the omission clause with resolved question text, without renumbering', () => {
+      const text = bodyText(informationRequestListPrompt, { excludeRequests: '02-03' });
+      expect(text).toContain('Omit these canonical requests');
+      expect(text).toMatch(/02-03 \(manually excluded\): .+/);
+      expect(text).toContain('DO NOT renumber');
+    });
+
+    it('lists directive-skipped questions when transactionContext fires the shipped tag', () => {
+      const text = bodyText(informationRequestListPrompt, { transactionContext: 'buy-side' });
+      expect(text).toContain('Omit these canonical requests');
+      expect(text).toMatch(/00-02 \(auto — skip-if directive for buy-side\)/);
+      expect(text).toContain('Engagement context: sell-side preparation');
+      // The directive keys are NOT in the tool payload — the tool derives
+      // them from transactionContext itself (single filter engine).
+      const jsonBlock = text.match(/```json\n([\s\S]*?)\n```/);
+      const payload = JSON.parse(jsonBlock![1]);
+      expect(payload.excludeRequests).toBeUndefined();
+      expect(payload.transactionContext).toBe('buy-side');
+    });
+
+    it('combines directive-skipped + manual keys in one clause', () => {
+      const text = bodyText(informationRequestListPrompt, {
+        transactionContext: 'value-creation',
+        excludeRequests: '02-03',
+      });
+      expect(text).toMatch(/00-02 \(auto — skip-if directive for value-creation\)/);
+      expect(text).toMatch(/02-03 \(manually excluded\)/);
+      // Exactly one omission clause header.
+      expect(text.match(/Omit these canonical requests/g)).toHaveLength(1);
+    });
+
+    it('emits NO omission clause when nothing is omitted (no phantom text)', () => {
+      const text = bodyText(informationRequestListPrompt, { targetName: 'Acme' });
+      expect(text).not.toContain('Omit these canonical requests');
+    });
+
+    it("the 'unknown' context produces no directive omissions", () => {
+      const text = bodyText(informationRequestListPrompt, { transactionContext: 'unknown' });
+      expect(text).not.toContain('Omit these canonical requests');
+    });
+
+    it('rejects malformed excludeRequests keys at the schema boundary', () => {
+      expect(
+        informationRequestListPrompt.argsSchema.safeParse({ excludeRequests: '2-3' }).success
+      ).toBe(false);
+      expect(
+        informationRequestListPrompt.argsSchema.safeParse({ excludeRequests: '' }).success
+      ).toBe(true); // empty wire string → unsupplied
     });
   });
 

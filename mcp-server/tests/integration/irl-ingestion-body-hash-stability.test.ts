@@ -232,16 +232,24 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // — the embedded resource block (URI + body hash) is present in every body shape,
 // and the "embedded for taxonomy reference" provenance sentence was reworded in
 // both the one-shot and interactive bodies. (The VDR embed is unchanged.)
+// Rebaselined 2026-07-08 (per-question removal / BL-044.5 branch): the prior
+// committed generator-source bundle was a stale Windows regen carrying CRLF
+// escapes in the embedded body; CI regenerates deterministically to LF (the
+// codegen normalizes, `generate-regulations-index.mjs:226,267`). The clean
+// LF bundle is now committed and these hashes match what CI produces. The
+// gst_information_request_list embed-strip means the new skip-if tag itself
+// does NOT change the tag-free bytes (the prompt embed-strip unit test locks
+// that) — this rebaseline is line-ending hygiene, not a body-semantics change.
 const EXPECTED_HASH_INTERACTIVE =
-  '918d3d23da1eacc39180c9c7d15d27e1b0dfbcf0532b158bd133295aaff3f745';
+  'de70481c9ef59babc8bd2282c2d0867d25833e944fb42547771b3c66132e881c';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'dd166bccb6dd6fcc42253c440acbb76beeab2c8d01b7f84aabf8dbabff9e1457';
+  'fd1e8482c7c96108326bfe766889210bc100d6face379c83e540d55e053bc326';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'f9591285a721a05aa7a7e2b74e143e748ac29ae9aa3965065e7f85ea3705b9ba';
+  '6c20f9831df56dc480eab53f00da68c745fb424d11898bb7b52c60a0264bdccb';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '2d0401522103b26e470873b74df160535cc6f5d55cb0fbe5a0d1dd840bda1453';
+  'a959d2f1053749d43657030f0c66942d84c1c081b0cfc5b9eaee71fc03964f39';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'cf3b318be86dc4f4257d2a7c00f36b04eb8ff5137fa714c895d716a6f6165401';
+  '1c9b50b0aa0e7ede77ba7021fd8bd7109d3c25ed136cc2350c30045504e1dc7f';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -251,9 +259,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'ddac8ef2d06467cdd8776b1546b4bf6d81ea7618e61fbc3c628fdd7e69e855b0';
+  'b1aefd91392bb2cc128ba171fb3d887906d8eb7ccfd7a25348fbabba7427fe7c';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '02618fb43ed2e8bcb30988a3eced42f5db914949b5dd8d93e2f60c5e8dd38e05';
+  '6fe7d56c06071a781476b7d90021a029a892d2b5b7c18686ecd112f69f55d6d6';
 
 interface Scenario {
   name: string;

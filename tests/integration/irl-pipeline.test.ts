@@ -138,6 +138,63 @@ describe('IRL pipeline — canonical article.md → AST → .xlsx', () => {
     expect(openStatusCells).toHaveLength(selectedBullets);
   });
 
+  it('directive pipeline: a supplied context auto-drops the tagged question with a Reference-ID gap', () => {
+    // The source tags exactly one bullet today — 00's "Engagement context"
+    // question (ordinal 2), skip-if for all three real contexts. Verifies the
+    // BL-044.5 engine end-to-end on the real source: bullet absent, its
+    // Reference ID absent (gap), neighbors' refs unchanged, count down one.
+    const article = parseIrlArticle(ARTICLE_BODY);
+    const totalBullets = article.sections.reduce((sum, s) => sum + s.bullets.length, 0);
+    const built = customizeIrlArticle(article, { context: 'buy-side' });
+
+    const buf = generateIrlXlsxBuffer(built, METADATA);
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    const cellValues = Object.entries(sheet)
+      .filter(([k]) => /^[A-Z]+\d+$/.test(k))
+      .map(([, cell]) => (cell as XLSX.CellObject).v);
+
+    expect(cellValues.join('\n')).not.toContain('Engagement context: sell-side preparation');
+    expect(cellValues).toContain('0-01');
+    expect(cellValues).not.toContain('0-02'); // the gap
+    expect(cellValues).toContain('0-03');
+
+    const openStatusCells = Object.entries(sheet).filter(
+      ([k, cell]) => /^C\d+$/.test(k) && (cell as XLSX.CellObject).v === 'OPEN'
+    );
+    expect(openStatusCells).toHaveLength(totalBullets - 1);
+  });
+
+  it('combined pipeline: directive + manual exclusion + custom request compose correctly', () => {
+    const article = parseIrlArticle(ARTICLE_BODY);
+    const totalBullets = article.sections.reduce((sum, s) => sum + s.bullets.length, 0);
+    const built = customizeIrlArticle(article, {
+      context: 'value-creation', // drops 00 ordinal 2 (directive)
+      excludeRequests: ['02-03'], // drops Architecture question 3 (manual)
+      customRequests: [{ section: '02', text: 'Bespoke architecture ask.' }],
+    });
+
+    const buf = generateIrlXlsxBuffer(built, METADATA);
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    const cellValues = Object.entries(sheet)
+      .filter(([k]) => /^[A-Z]+\d+$/.test(k))
+      .map(([, cell]) => (cell as XLSX.CellObject).v);
+
+    // Both gaps present…
+    expect(cellValues).not.toContain('0-02');
+    expect(cellValues).not.toContain('2-03');
+    // …the custom appended with the section's next canonical ordinal…
+    expect(cellValues).toContain('Bespoke architecture ask.');
+    const section02Count = article.sections.find((s) => s.number === '02')!.bullets.length;
+    expect(cellValues).toContain(`2-${String(section02Count + 1).padStart(2, '0')}`);
+    // …and the total reflects −2 canonical +1 custom.
+    const openStatusCells = Object.entries(sheet).filter(
+      ([k, cell]) => /^C\d+$/.test(k) && (cell as XLSX.CellObject).v === 'OPEN'
+    );
+    expect(openStatusCells).toHaveLength(totalBullets - 2 + 1);
+  });
+
   it('canonical article has the expected 10 sections (regression guard against unexpected restructuring)', () => {
     // Lower bound rather than exact count — adding a new section is a
     // routine authoring change. But ≥10 ensures none of the existing

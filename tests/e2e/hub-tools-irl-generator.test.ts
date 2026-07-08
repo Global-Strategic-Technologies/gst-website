@@ -14,12 +14,47 @@ const PAGE_URL = '/hub/tools/information-request-list-generator/';
  * the page is ready to interact with. See src/docs/testing/TEST_BEST_PRACTICES.md
  * § 25.
  */
-async function gotoTool(page: Page): Promise<void> {
-  await page.goto(PAGE_URL, { waitUntil: 'domcontentloaded' });
+async function gotoTool(page: Page, query = ''): Promise<void> {
+  await page.goto(`${PAGE_URL}${query}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('button.irl-gen__cta', { timeout: 10000 });
-  // Section checkboxes are rendered client-side from the parsed article; wait
-  // for them so tests that interact with sections aren't racing hydration.
+  // Section rows (checkboxes + context panes) are SSR-rendered; this confirms
+  // the static DOM is in place…
   await page.waitForSelector('#irl-gen-sections-list input[name="sections"]', { timeout: 10000 });
+  // …and this confirms the client module has finished wiring: the script's
+  // LAST statement (renderAutoSkips) stamps aria-disabled onto the toggles of
+  // directive-tagged rows, so its presence means every handler above it —
+  // pin/unpin, question toggles, hydration — is attached (per
+  // TEST_BEST_PRACTICES § 26, the readiness signal fires after all wiring).
+  // state: 'attached' — the toggle lives inside the (visibility: hidden)
+  // unpinned panel, so the default visible-state wait would never resolve.
+  await page.waitForSelector('.irl-gen__q[data-skip-context] .irl-gen__q-toggle[aria-disabled]', {
+    state: 'attached',
+    timeout: 10000,
+  });
+}
+
+/** Pin a section's context pane via its ⓘ button and wait for the pinned state. */
+async function pinPane(page: Page, section: string): Promise<void> {
+  const wrapper = page.locator(
+    `.irl-gen__section[data-section="${section}"] .irl-gen__section-info`
+  );
+  await wrapper.locator('.irl-gen__section-info-btn').click();
+  await expect(wrapper).toHaveClass(/is-pinned/);
+}
+
+/** Download the workbook and return the primary sheet's cell values. */
+async function downloadCellValues(page: Page): Promise<string[]> {
+  const downloadPromise = page.waitForEvent('download', { timeout: 10000 });
+  await page.locator('button.irl-gen__cta').click();
+  const download = await downloadPromise;
+  const path = await download.path();
+  expect(path).toBeTruthy();
+  const wb = XLSX.read(readFileSync(path!), { type: 'buffer' });
+  const sheet = wb.Sheets['Information Request List'];
+  return XLSX.utils
+    .sheet_to_json<string[]>(sheet, { header: 1, defval: '' })
+    .flat()
+    .map((v) => String(v));
 }
 
 test.describe('Hub Tools — Information Request List Generator', () => {
@@ -256,5 +291,169 @@ test.describe('Hub Tools — Information Request List Generator', () => {
       .flat()
       .join('\n');
     expect(flat).toContain(CUSTOM_TEXT);
+  });
+});
+
+test.describe('Hub Tools — IRL per-question removal + directives', () => {
+  test('clicking the ⓘ pins the pane; clicking outside unpins', async ({ page }) => {
+    await gotoTool(page);
+    const wrapper = page.locator('.irl-gen__section[data-section="02"] .irl-gen__section-info');
+    const infoBtn = wrapper.locator('.irl-gen__section-info-btn');
+
+    await infoBtn.click();
+    await expect(wrapper).toHaveClass(/is-pinned/);
+    await expect(infoBtn).toHaveAttribute('aria-expanded', 'true');
+
+    // Click-away (containment check in the handler) — the intro is outside.
+    await page.locator('.irl-gen__intro p').first().click();
+    await expect(wrapper).not.toHaveClass(/is-pinned/);
+    await expect(infoBtn).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('Escape unpins the pane and returns focus to the ⓘ button', async ({ page }) => {
+    await gotoTool(page);
+    await pinPane(page, '02');
+    await page.keyboard.press('Escape');
+
+    const wrapper = page.locator('.irl-gen__section[data-section="02"] .irl-gen__section-info');
+    await expect(wrapper).not.toHaveClass(/is-pinned/);
+    await expect(wrapper.locator('.irl-gen__section-info-btn')).toBeFocused();
+  });
+
+  test('the × close button unpins the pane', async ({ page }) => {
+    await gotoTool(page);
+    await pinPane(page, '02');
+    const wrapper = page.locator('.irl-gen__section[data-section="02"] .irl-gen__section-info');
+    await wrapper.locator('.irl-gen__section-panel-close').click();
+    await expect(wrapper).not.toHaveClass(/is-pinned/);
+  });
+
+  test('pinning one pane unpins any other (single-open)', async ({ page }) => {
+    await gotoTool(page);
+    await pinPane(page, '02');
+    // Section 02's pinned panel physically overlaps section 03's ⓘ, so a
+    // coordinate-based click would be intercepted (TEST_BEST_PRACTICES § 7 /
+    // § 14) — dispatch the click directly to the button instead, then wait
+    // for the DOM reaction (§ 17: evaluate-click and wait are a pair).
+    await page.evaluate(() => {
+      document
+        .querySelector('.irl-gen__section[data-section="03"] .irl-gen__section-info-btn')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await expect(
+      page.locator('.irl-gen__section[data-section="03"] .irl-gen__section-info')
+    ).toHaveClass(/is-pinned/);
+    await expect(
+      page.locator('.irl-gen__section[data-section="02"] .irl-gen__section-info')
+    ).not.toHaveClass(/is-pinned/);
+  });
+
+  test('the delta toggle marks a question removed (flip + aria-pressed) and toggling twice restores', async ({
+    page,
+  }) => {
+    await gotoTool(page);
+    await pinPane(page, '02');
+    const row = page.locator('.irl-gen__q[data-question="02-03"]');
+    const toggle = row.locator('.irl-gen__q-toggle');
+
+    await toggle.click();
+    await expect(row).toHaveClass(/is-collapsed/);
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    await toggle.click();
+    await expect(row).not.toHaveClass(/is-collapsed/);
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('a manually removed question is absent from the download, leaving a Reference-ID gap', async ({
+    page,
+  }) => {
+    await gotoTool(page);
+    await pinPane(page, '02');
+    const row = page.locator('.irl-gen__q[data-question="02-03"]');
+    const removedText = (await row.locator('.irl-gen__q-text').textContent())?.trim() ?? '';
+    expect(removedText.length).toBeGreaterThan(10);
+    await row.locator('.irl-gen__q-toggle').click();
+    await expect(row).toHaveClass(/is-collapsed/);
+
+    const values = await downloadCellValues(page);
+    expect(values).toContain('2-02');
+    expect(values).not.toContain('2-03'); // the gap signals deliberate omission
+    expect(values).toContain('2-04');
+    expect(values.join('\n')).not.toContain(removedText);
+  });
+
+  test('selecting Value Creation auto-marks the directive-tagged question and the download drops it', async ({
+    page,
+  }) => {
+    await gotoTool(page);
+    const taggedRow = page.locator('.irl-gen__q[data-question="00-02"]');
+    await expect(taggedRow).not.toHaveClass(/is-auto-skipped/);
+
+    await page.locator('input[name="transactionContext"][value="value-creation"]').check();
+    await expect(taggedRow).toHaveClass(/is-auto-skipped/);
+    await expect(taggedRow.locator('.irl-gen__q-auto-label')).toHaveText('auto · value-creation');
+    await expect(taggedRow.locator('.irl-gen__q-toggle')).toHaveAttribute('aria-disabled', 'true');
+
+    const values = await downloadCellValues(page);
+    expect(values).toContain('0-01');
+    expect(values).not.toContain('0-02'); // directive-removed, gap preserved
+    expect(values).toContain('0-03');
+    expect(values.join('\n')).not.toContain('Engagement context: sell-side preparation');
+  });
+
+  test('manual mark persists under an auto-skip and re-emerges when the context is deselected', async ({
+    page,
+  }) => {
+    await gotoTool(page);
+    await pinPane(page, '00');
+    const row = page.locator('.irl-gen__q[data-question="00-02"]');
+
+    // Manual removal first…
+    await row.locator('.irl-gen__q-toggle').click();
+    await expect(row).toHaveClass(/is-collapsed/);
+
+    // …then the directive fires on top (auto wins visually, toggle inert).
+    await page.locator('input[name="transactionContext"][value="value-creation"]').check();
+    await expect(row).toHaveClass(/is-auto-skipped/);
+
+    // Deselecting the context restores the manual mark untouched.
+    await page.locator('input[name="transactionContext"][value=""]').check();
+    await expect(row).not.toHaveClass(/is-auto-skipped/);
+    await expect(row).toHaveClass(/is-collapsed/);
+  });
+
+  test('?exclude= deeplink pre-marks the question and the download reflects it', async ({
+    page,
+  }) => {
+    await gotoTool(page, '?exclude=00-01');
+    const row = page.locator('.irl-gen__q[data-question="00-01"]');
+    await expect(row).toHaveClass(/is-collapsed/);
+    await expect(row.locator('.irl-gen__q-toggle')).toHaveAttribute('aria-pressed', 'true');
+
+    const values = await downloadCellValues(page);
+    expect(values).not.toContain('0-01');
+    expect(values).toContain('0-02');
+  });
+
+  test('?context= deeplink triggers the auto-skip render on load', async ({ page }) => {
+    await gotoTool(page, '?context=buy-side');
+    const taggedRow = page.locator('.irl-gen__q[data-question="00-02"]');
+    await expect(taggedRow).toHaveClass(/is-auto-skipped/);
+    await expect(taggedRow.locator('.irl-gen__q-auto-label')).toHaveText('auto · buy-side');
+  });
+
+  test('excluding every question blocks the download with a status message', async ({ page }) => {
+    // Harvest every NN-II key from the SSR'd rows, then reload with them all
+    // pre-excluded via the deeplink param.
+    await gotoTool(page);
+    const allKeys = await page.$$eval('.irl-gen__q[data-question]', (rows) =>
+      rows.map((r) => (r as HTMLElement).dataset.question)
+    );
+    expect(allKeys.length).toBeGreaterThanOrEqual(60);
+
+    await gotoTool(page, `?exclude=${allKeys.join(',')}`);
+    await page.locator('button.irl-gen__cta').click();
+    await expect(page.locator('#irl-gen-status')).toContainText(/restore at least one request/i);
   });
 });

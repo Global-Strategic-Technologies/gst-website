@@ -305,6 +305,113 @@ describe('generate_information_request_list_xlsx — handler', () => {
   });
 });
 
+describe('generate_information_request_list_xlsx — per-question removal + directives', () => {
+  it('schema accepts NN-II excludeRequests keys and rejects malformed forms', () => {
+    expect(
+      GenerateIrlXlsxInputSchema.safeParse({ excludeRequests: ['02-03', '05-01'] }).success
+    ).toBe(true);
+    expect(GenerateIrlXlsxInputSchema.safeParse({ excludeRequests: [] }).success).toBe(false);
+    expect(GenerateIrlXlsxInputSchema.safeParse({ excludeRequests: ['2-3'] }).success).toBe(false);
+    expect(GenerateIrlXlsxInputSchema.safeParse({ excludeRequests: ['02:03'] }).success).toBe(
+      false
+    );
+  });
+
+  it('excludeRequests drops the question and leaves a Reference-ID gap in the sheet', async () => {
+    const base = await handleGenerateIrlXlsxTool({});
+    const result = await handleGenerateIrlXlsxTool({ excludeRequests: ['02-03'] });
+    const basePayload = base.structuredContent as { bulletCount: number };
+    const payload = result.structuredContent as { bulletCount: number; base64: string };
+    expect(payload.bulletCount).toBe(basePayload.bulletCount - 1);
+
+    const wb = XLSX.read(decodeBase64(payload.base64), { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    const refIds = Object.entries(sheet)
+      .filter(([k]) => /^A\d+$/.test(k))
+      .map(([, cell]) => (cell as XLSX.CellObject).v);
+    expect(refIds).toContain('2-02');
+    expect(refIds).not.toContain('2-03'); // the gap
+    expect(refIds).toContain('2-04');
+  });
+
+  it('transactionContext fires the shipped skip-if directive (bulletCount 67 → 66)', async () => {
+    const result = await handleGenerateIrlXlsxTool({ transactionContext: 'buy-side' });
+    const payload = result.structuredContent as { bulletCount: number; base64: string };
+    expect(payload.bulletCount).toBe(66);
+
+    const wb = XLSX.read(decodeBase64(payload.base64), { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
+    const flat = rows.flat().join('\n');
+    expect(flat).not.toContain('Engagement context: sell-side preparation');
+    // The directive-removed question's Reference ID is a gap, not renumbered.
+    const refIds = Object.entries(sheet)
+      .filter(([k]) => /^A\d+$/.test(k))
+      .map(([, cell]) => (cell as XLSX.CellObject).v);
+    expect(refIds).toContain('0-01');
+    expect(refIds).not.toContain('0-02');
+    expect(refIds).toContain('0-03');
+  });
+
+  it("the 'unknown' context fires no directives (stays 67)", async () => {
+    const result = await handleGenerateIrlXlsxTool({ transactionContext: 'unknown' });
+    const payload = result.structuredContent as { bulletCount: number };
+    expect(payload.bulletCount).toBe(67);
+  });
+
+  it('deeplink encodes excludeRequests as a percent-encoded comma list', async () => {
+    const result = await handleGenerateIrlXlsxTool({ excludeRequests: ['00-01', '02-03'] });
+    const text = (result.content[0] as { text: string }).text;
+    // URLSearchParams percent-encodes the comma → %2C (mirror the sections= assertion).
+    expect(text).toMatch(/[?&]exclude=00-01%2C02-03(&|\s|$)/);
+  });
+
+  it('throws the exclusion-specific guard (no TypeError) when excludeRequests removes everything', async () => {
+    // Exclude every question of every section: harvest keys from the article
+    // via a full run first.
+    const base = await handleGenerateIrlXlsxTool({});
+    const { bulletCount } = base.structuredContent as { bulletCount: number };
+    expect(bulletCount).toBe(67);
+    // Build the complete key list from the known per-section counts by asking
+    // the sheet for its Reference IDs and converting back to NN-II keys.
+    const { base64 } = base.structuredContent as { base64: string };
+    const wb = XLSX.read(decodeBase64(base64), { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    const allKeys = Object.entries(sheet)
+      .filter(
+        ([k, cell]) =>
+          /^A\d+$/.test(k) && /^\d{1,2}-\d{2}$/.test(String((cell as XLSX.CellObject).v))
+      )
+      .map(([, cell]) => {
+        const [sec, ord] = String((cell as XLSX.CellObject).v).split('-');
+        return `${sec.padStart(2, '0')}-${ord}`;
+      });
+    expect(allKeys).toHaveLength(67);
+
+    await expect(handleGenerateIrlXlsxTool({ excludeRequests: allKeys })).rejects.toThrow(
+      /Every request was excluded/
+    );
+    await expect(handleGenerateIrlXlsxTool({ excludeRequests: allKeys })).rejects.toThrow(
+      /list_irl_requests/
+    );
+  });
+
+  it('a section fully excluded by keys is dropped from the workbook (sectionCount shrinks)', async () => {
+    // Section 08 (Corporate IT) has exactly 3 questions.
+    const result = await handleGenerateIrlXlsxTool({
+      excludeRequests: ['08-01', '08-02', '08-03'],
+    });
+    const payload = result.structuredContent as { sectionCount: number; base64: string };
+    expect(payload.sectionCount).toBe(9);
+    const wb = XLSX.read(decodeBase64(payload.base64), { type: 'array' });
+    const rows = XLSX.utils.sheet_to_json<string[]>(wb.Sheets['Information Request List'], {
+      header: 1,
+      defval: '',
+    });
+    expect(rows.flat().join('\n')).not.toContain('08 — CORPORATE IT');
+  });
+});
+
 describe('generate_information_request_list_xlsx — error paths', () => {
   it('propagates the prebuild remediation message when the IRL source is missing', async () => {
     // Simulate a stale / un-regenerated irl-source-data.generated.ts (the

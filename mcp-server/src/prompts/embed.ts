@@ -63,8 +63,27 @@ export function embedLibraryArticle(uri: string): EmbedResult {
 export const IRL_SOURCE_EMBED_URI = 'gst://irl/source';
 
 /**
+ * Strip full-line HTML comments (the BL-044.5 `<!-- skip-if: … -->`
+ * directives) from the IRL generator source before embedding.
+ *
+ * The directives are machine annotations for the parser/filter engine, not
+ * content — a model reproducing the embedded list verbatim must never render
+ * them. Stripping at the embed boundary is deterministic and covers every
+ * consumer (`gst_information_request_list` one-shot AND interactive bodies,
+ * plus `gst_irl_ingestion`'s taxonomy embed), with no reliance on
+ * per-prompt "don't render comments" instructions.
+ */
+function stripDirectiveLines(body: string): string {
+  return body
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*<!--/.test(line))
+    .join('\n');
+}
+
+/**
  * Embed the IRL generator source (`src/data/irl/information-request-list.md`,
- * bundled via `loadIrlSourceBody()`) as an `EmbeddedResource` content block.
+ * bundled via `loadIrlSourceBody()`) as an `EmbeddedResource` content block,
+ * with directive comment lines stripped (see {@link stripDirectiveLines}).
  *
  * Used by `gst_information_request_list` so the in-chat artifact the model
  * reproduces is the SAME content `generate_information_request_list_xlsx`
@@ -79,7 +98,7 @@ export function embedIrlGeneratorSource(): EmbedResult {
       resource: {
         uri: IRL_SOURCE_EMBED_URI,
         mimeType: 'text/markdown',
-        text: loadIrlSourceBody(),
+        text: stripDirectiveLines(loadIrlSourceBody()),
       },
     };
   } catch {

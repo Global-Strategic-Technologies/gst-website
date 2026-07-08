@@ -121,7 +121,15 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // IRL taxonomy embed also moved onto gst://irl/source so the library page's
 // prose/promo no longer leaks into the filled-IRL reconciliation taxonomy).
 // Again drifts solely from that one prompt name@version tuple.
-const EXPECTED_MANIFEST_HASH = '0b6868c27ce744ec4fc6527590f2d6257f8cf9430b693fd17c61b44316b9cfc5';
+// Per-question removal + BL-044.5 directives rebaseline:
+// gst_information_request_list v0.0.6 → v0.0.7 (excludeRequests wire arg +
+// server-computed omission clause; transactionContext now fires authored
+// skip-if directives). Drifts solely from that one prompt name@version tuple —
+// the new `list_irl_requests` TOOL is not a manifest input (tools aren't
+// hashed), and the tagged source .md does NOT drift the irl-ingestion body
+// hashes because embedIrlGeneratorSource strips directive comment lines
+// (the embedded bytes are unchanged).
+const EXPECTED_MANIFEST_HASH = '6105444438c74a283764949e0c85066c7d239c3ee6d05974369e8e1e44d5943c';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
