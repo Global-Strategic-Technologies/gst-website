@@ -18,9 +18,10 @@
  *   3. `companyName` / `projectName` — compose the artifact title.
  *   4. `transactionContext` — light voice tuning per engagement type.
  *   5. `includeSections` — section pick-list (comma-separated numbers).
- *   6. `customRequests` — extra per-section requests ("NN: text" lines).
- *   7. `showCanonicalReference` — canonical-row toggle.
- *   8. `productSummary` — the model may compress answerable questions.
+ *   6. `excludeRequests` — per-question removal (comma-separated NN-II keys).
+ *   7. `customRequests` — extra per-section requests ("NN: text" lines).
+ *   8. `showCanonicalReference` — canonical-row toggle.
+ *   9. `productSummary` — the model may compress answerable questions.
  *
  * Pair with `gst_diligence_kickoff` once the IRL has been filled.
  *
@@ -45,6 +46,16 @@
  * dedicated generator source (`gst://irl/source` → `src/data/irl/…`), so the
  * library article can vary independently of the generated list. No arg/output
  * shape change; the seed content is identical, so behavior is unchanged at cutover.
+ *
+ * **v0.0.7 (per-question removal + BL-044.5 directives)**: new `excludeRequests`
+ * wire arg (comma-separated `NN-II` keys) removes individual canonical
+ * questions; `transactionContext` now ALSO fires the source's authored
+ * skip-if directives (auto-removal). The one-shot body SERVER-computes the
+ * full omission list (directive diff via the shared `applyDirectives` +
+ * manual keys) and instructs the model to omit exactly those requests
+ * without renumbering — the prompt applies no filter logic itself, honoring
+ * the BL-044.5 single-filter-engine rule. Directive comment lines are
+ * stripped from the embed at the `embedIrlGeneratorSource` boundary.
  */
 
 import { z } from 'zod';
@@ -52,6 +63,9 @@ import type { GstPrompt } from './types';
 import { authorialIntentLine, embedIrlGeneratorSource, IRL_SOURCE_EMBED_URI } from './embed';
 import { arrayFromWire, booleanFromWire } from './wire-shape';
 import { irlSectionCatalog } from '../content/irl-section-catalog';
+import { loadIrlSourceBody } from '../content/irl-source-loader';
+import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
+import { applyDirectives } from '../../../src/utils/irl/customize-article';
 
 const XLSX_TOOL_NAME = 'generate_information_request_list_xlsx';
 
@@ -104,6 +118,16 @@ const argsSchema = z.object({
     .describe(
       `Extra engagement-specific requests to append, one per line as 'NN: request text' (NN = two-digit section number), e.g. '01: Describe your top 3 competitors by ARR'. Sections: ${SECTION_CATALOG}.`
     ),
+  excludeRequests: arrayFromWire(
+    z
+      .array(z.string().regex(/^\d{2}-\d{2}$/))
+      .min(1)
+      .optional()
+  )
+    .optional()
+    .describe(
+      "Comma-separated 'NN-II' keys of individual canonical questions to REMOVE, e.g. '02-03,05-01' (two-digit section + two-digit position in the canonical source; the workbook Reference shows '2-03'). Surviving questions keep their Reference IDs — gaps are intentional. Use the list_irl_requests tool to map question text to keys."
+    ),
   showCanonicalReference: booleanFromWire(z.boolean().optional())
     .optional()
     .describe(
@@ -138,6 +162,61 @@ function parseCustomRequests(raw: string | undefined): { section: string; text: 
     .filter((entry): entry is { section: string; text: string } => entry !== null);
 }
 
+/** `NN-II` key for a bullet (dense fallback mirrors the shared layer). */
+function keyOf(sectionNumber: string, ordinal: number | undefined, denseIndex: number): string {
+  return `${sectionNumber}-${String(ordinal ?? denseIndex).padStart(2, '0')}`;
+}
+
+/**
+ * Server-computed omission list: which canonical requests the generated
+ * workbook will NOT contain, and why. Directive-skipped entries come from
+ * diffing the article against `applyDirectives` output (the SAME shared
+ * filter the tool runs — the prompt authors no filter logic of its own);
+ * manual entries come from the `excludeRequests` arg, resolved to their
+ * question text where the key matches. The model reproduces the artifact by
+ * omitting exactly these — so the in-chat text and the .xlsx stay identical.
+ */
+function computeOmissions(
+  context: string | undefined,
+  manualKeys: readonly string[]
+): { key: string; text: string; reason: string }[] {
+  try {
+    const article = parseIrlArticle(loadIrlSourceBody());
+    const filtered = applyDirectives(article, { context });
+    const surviving = new Set(
+      filtered.sections.flatMap((s) => s.bullets.map((b, i) => keyOf(s.number, b.ordinal, i + 1)))
+    );
+    const textByKey = new Map<string, string>();
+    const omissions: { key: string; text: string; reason: string }[] = [];
+    for (const section of article.sections) {
+      section.bullets.forEach((bullet, i) => {
+        const key = keyOf(section.number, bullet.ordinal, i + 1);
+        textByKey.set(key, bullet.text);
+        if (!surviving.has(key)) {
+          omissions.push({
+            key,
+            text: bullet.text,
+            reason: `auto — skip-if directive for ${context}`,
+          });
+        }
+      });
+    }
+    for (const key of manualKeys) {
+      if (omissions.some((o) => o.key === key)) continue; // directive already dropped it
+      omissions.push({
+        key,
+        text: textByKey.get(key) ?? '(unknown key — the tool ignores it)',
+        reason: 'manually excluded',
+      });
+    }
+    return omissions;
+  } catch {
+    // Source unavailable at build time (prebuild not run) — degrade to the
+    // manual keys without resolved text; the embed itself surfaces the error.
+    return manualKeys.map((key) => ({ key, text: '', reason: 'manually excluded' }));
+  }
+}
+
 const PROMPT_NAME = 'gst_information_request_list';
 
 const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
@@ -154,11 +233,15 @@ const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
 function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
   const sections = args.includeSections ?? [];
   const customRequests = parseCustomRequests(args.customRequests);
+  const excludeRequests = args.excludeRequests ?? [];
   const showCanonical = args.showCanonicalReference === true;
+  const omissions = computeOmissions(args.transactionContext, excludeRequests);
 
   // Compute the EXACT tool payload here so the model copies it verbatim into
   // the tool call — the generated .xlsx (and its Hub download link) then
   // matches the requested configuration with no model-side translation drift.
+  // NOTE: directive auto-skips are NOT in the payload — the tool derives them
+  // from transactionContext itself (single filter engine).
   const toolArgs: Record<string, unknown> = {};
   if (args.targetName) toolArgs.targetName = args.targetName;
   if (args.transactionContext) toolArgs.transactionContext = args.transactionContext;
@@ -166,6 +249,7 @@ function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
   if (args.projectName) toolArgs.projectName = args.projectName;
   if (args.productSummary) toolArgs.productSummary = args.productSummary;
   if (sections.length > 0) toolArgs.includeSections = sections;
+  if (excludeRequests.length > 0) toolArgs.excludeRequests = excludeRequests;
   if (customRequests.length > 0) toolArgs.customRequests = customRequests;
   if (showCanonical) toolArgs.showCanonicalReference = true;
 
@@ -196,6 +280,14 @@ function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
   const canonicalClause = showCanonical
     ? 'Include a "Canonical reference" line in the artifact header pointing at the live article.'
     : 'Do not include a canonical reference line (the workbook omits it by default).';
+  // Server-computed omission list — rendered ONLY when non-empty (no phantom
+  // "omit nothing" text on unconfigured invocations).
+  const omissionClause =
+    omissions.length > 0
+      ? `\n\nOmit these canonical requests from the reproduced artifact — keep every other bullet and DO NOT renumber the remaining requests (their reference positions keep intentional gaps, matching the workbook):\n${omissions
+          .map((o) => `  - ${o.key} (${o.reason})${o.text ? `: ${o.text}` : ''}`)
+          .join('\n')}`
+      : '';
 
   return [
     authorialIntentLine(PROMPT_NAME),
@@ -210,7 +302,7 @@ function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
     '',
     'Step 1. Add a one-line greeting addressed to the recipient (use their name if supplied). Mention the engagement context (transaction, kickoff, value-creation cadence) in the same line. The article body that follows already opens with the universal recipient instructions ("respond per bullet, mark n/a rather than skip…") — do not duplicate them.',
     '',
-    `Step 2. Reproduce the IRL from the next message as the deliverable — do not summarize, restructure, or annotate the canonical bullets inline. ${sectionsClause} Keep the bullet ordering within each section. ${customClause} ${canonicalClause}`,
+    `Step 2. Reproduce the IRL from the next message as the deliverable — do not summarize, restructure, or annotate the canonical bullets inline. ${sectionsClause} Keep the bullet ordering within each section. ${customClause} ${canonicalClause}${omissionClause}`,
     '',
     'Step 3. Close with a single-line ask covering turnaround, point of contact, and preferred return format (filled markdown, attached PDFs, or VDR upload). Match the voice cue above.',
     '',
@@ -248,9 +340,9 @@ const INTERACTIVE_BODY = [
 export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
-    'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Configurable per engagement — company/project title, section pick-list, custom per-section requests, canonical-row toggle — with the same options as the Hub generator. When called with args, also calls generate_information_request_list_xlsx (forwarding the full configuration) and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
-  version: '0.0.6',
-  lastReviewedAt: '2026-07-04',
+    'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Configurable per engagement — company/project title, section pick-list, per-question removal (NN-II keys via excludeRequests; see list_irl_requests), custom per-section requests, canonical-row toggle — with the same options as the Hub generator. transactionContext also fires the authored skip-if directives (auto-removing tagged questions). When called with args, also calls generate_information_request_list_xlsx (forwarding the full configuration) and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
+  version: '0.0.7',
+  lastReviewedAt: '2026-07-07',
   orchestrates: [IRL_SOURCE_EMBED_URI, XLSX_TOOL_NAME] as const,
   argsSchema,
   build: (args) => {
@@ -260,6 +352,7 @@ export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
       args.projectName !== undefined ||
       args.transactionContext !== undefined ||
       (args.includeSections !== undefined && args.includeSections.length > 0) ||
+      (args.excludeRequests !== undefined && args.excludeRequests.length > 0) ||
       args.customRequests !== undefined ||
       args.showCanonicalReference !== undefined ||
       args.productSummary !== undefined;

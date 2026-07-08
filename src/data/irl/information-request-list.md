@@ -5,6 +5,9 @@ Below is information useful to size and execute a client engagement. Per-bullet,
 ## 00 — Basics
 
 - Company name (legal entity + brand if different)
+
+<!-- skip-if: context=sell-side,buy-side,value-creation -->
+
 - Engagement context: sell-side preparation, buy-side review, post-close value creation, or other
 - Annual recurring revenue (most recent quarter, plus prior 12 months if available)
 - If applicable, funding stage and most recent round details (date, lead investor, headline valuation)

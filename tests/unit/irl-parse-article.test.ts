@@ -75,7 +75,7 @@ Per-section context paragraph.
 `;
     const article = parseIrlArticle(body);
     expect(article.sections[0].intro).toBe('Per-section context paragraph.');
-    expect(article.sections[0].bullets).toEqual([{ text: 'First bullet.' }]);
+    expect(article.sections[0].bullets).toEqual([{ text: 'First bullet.', ordinal: 1 }]);
   });
 
   it('omits the section intro field when no per-section prose exists', () => {
@@ -313,6 +313,95 @@ describe('parseIrlArticle — grammar edge cases', () => {
     const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\nSection intro.\n   \n- A.\n`;
     const article = parseIrlArticle(body);
     expect(article.sections[0].intro).toBe('Section intro.');
-    expect(article.sections[0].bullets).toEqual([{ text: 'A.' }]);
+    expect(article.sections[0].bullets).toEqual([{ text: 'A.', ordinal: 1 }]);
+  });
+});
+
+describe('parseIrlArticle — ordinals + canonical counts', () => {
+  it('assigns 1-based ordinals in authored order', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n- A.\n- B.\n- C.\n`;
+    const article = parseIrlArticle(body);
+    expect(article.sections[0].bullets.map((b) => b.ordinal)).toEqual([1, 2, 3]);
+  });
+
+  it('records canonicalBulletCount per section', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n- A.\n- B.\n\n## 01 — Product\n\n- C.\n`;
+    const article = parseIrlArticle(body);
+    expect(article.sections.map((s) => s.canonicalBulletCount)).toEqual([2, 1]);
+  });
+});
+
+describe('parseIrlArticle — skip-if directives (BL-044.5)', () => {
+  it('attaches a directive to the next bullet', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n- A.\n<!-- skip-if: context=sell-side -->\n- B.\n`;
+    const article = parseIrlArticle(body);
+    expect(article.sections[0].bullets[0]).not.toHaveProperty('skipIf');
+    expect(article.sections[0].bullets[1].skipIf).toEqual({ context: ['sell-side'] });
+  });
+
+  it('attaches a directive to the next section heading through blank lines', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n- A.\n\n<!-- skip-if: context=value-creation -->\n\n## 01 — Product\n\n- B.\n`;
+    const article = parseIrlArticle(body);
+    expect(article.sections[0]).not.toHaveProperty('skipIf');
+    expect(article.sections[1].skipIf).toEqual({ context: ['value-creation'] });
+  });
+
+  it('parses multi-value directives', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n<!-- skip-if: context=sell-side,buy-side -->\n- A.\n- B.\n`;
+    const article = parseIrlArticle(body);
+    expect(article.sections[0].bullets[0].skipIf).toEqual({
+      context: ['sell-side', 'buy-side'],
+    });
+  });
+
+  it('rejects a duplicate dimension across consecutive directives before one target', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n<!-- skip-if: context=sell-side -->\n<!-- skip-if: context=buy-side -->\n- A.\n`;
+    expect(() => parseIrlArticle(body)).toThrow(/appears twice/);
+  });
+
+  it('rejects an unknown directive dimension', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n<!-- skip-if: productType=b2c -->\n- A.\n`;
+    expect(() => parseIrlArticle(body)).toThrow(/unknown directive dimension "productType"/);
+  });
+
+  it('rejects an unknown dimension value', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n<!-- skip-if: context=carve-out -->\n- A.\n`;
+    expect(() => parseIrlArticle(body)).toThrow(/unknown value "carve-out"/);
+  });
+
+  it('rejects a non-directive comment anywhere', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n<!-- authoring note -->\n- A.\n`;
+    expect(() => parseIrlArticle(body)).toThrow(/malformed or unknown directive/);
+  });
+
+  it('rejects an unterminated comment instead of absorbing it as prose', () => {
+    const body = `# IRL\n\n<!-- skip-if: context=sell-side\n\nIntro.\n\n## 00 — Basics\n\n- A.\n`;
+    expect(() => parseIrlArticle(body)).toThrow(/malformed or unknown directive/);
+  });
+
+  it('rejects a comment in the footer (uniform comment discipline)', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n- A.\n\n---\n\n<!-- note -->\n`;
+    expect(() => parseIrlArticle(body)).toThrow(/malformed or unknown directive/);
+  });
+
+  it('rejects a directive followed by prose (not a valid target)', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n<!-- skip-if: context=sell-side -->\nSection intro prose.\n\n- A.\n`;
+    expect(() => parseIrlArticle(body)).toThrow(
+      /must immediately precede a bullet or a section heading/
+    );
+  });
+
+  it('rejects a dangling directive at end of document', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n- A.\n\n<!-- skip-if: context=sell-side -->\n`;
+    expect(() => parseIrlArticle(body)).toThrow(
+      /must immediately precede a bullet or a section heading/
+    );
+  });
+
+  it('rejects a directive followed by the horizontal rule', () => {
+    const body = `# IRL\n\nIntro.\n\n## 00 — Basics\n\n- A.\n\n<!-- skip-if: context=sell-side -->\n\n---\n`;
+    expect(() => parseIrlArticle(body)).toThrow(
+      /must immediately precede a bullet or a section heading/
+    );
   });
 });

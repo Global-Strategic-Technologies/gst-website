@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-0b6868c27ce744ec4fc6527590f2d6257f8cf9430b693fd17c61b44316b9cfc5
+6105444438c74a283764949e0c85066c7d239c3ee6d05974369e8e1e44d5943c
 ```
 
 Computed over (sorted):
@@ -19,8 +19,8 @@ Computed over (sorted):
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
-- **15** tool names (BL-049's `extract_irl_from_xlsx` partial-reverted at v0.13.1; BL-076 keeps the tool roster intact — `compose_dossier_envelope` schema changes do NOT affect the manifest tool list).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.6` (IRL generator source decoupled from the library article — see the 0.35.0 stanza below) + `gst_irl_ingestion` at `0.21.0` (its IRL taxonomy embed also decoupled onto the generator source — see the 0.36.0 stanza below).
+- **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below) + `gst_irl_ingestion` at `0.21.0` (its IRL taxonomy embed decoupled onto the generator source — see the 0.36.0 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
@@ -28,6 +28,23 @@ the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
 
 ---
+
+## 0.37.0 — 2026-07-07 — Per-question removal + BL-044.5 directive engine (`gst_information_request_list` v0.0.6 → v0.0.7; new tool `list_irl_requests`)
+
+**Theme**: the IRL generator surfaces gained bullet-level configurability, twice over. (1) **Manual per-question removal** — `excludeRequests` (`"NN-II"` keys: two-digit section + two-digit canonical ordinal) on the `generate_information_request_list_xlsx` tool, the `gst_information_request_list` prompt (comma-separated wire string), and the Hub generator's context panes (delta-chevron toggles in the pinned ⓘ pane; `?exclude=` deeplink param). (2) **BL-044.5 directive engine, shipped** — authored `<!-- skip-if: context=… -->` comments in the generator source auto-remove tagged questions when the matching `transactionContext` is supplied. One tag ships (the `00` "Engagement context" question — redundant once context is a known input); the dictionary is registry-enforced (`context` only in v1).
+
+**Behavioral change (intended)**: `transactionContext` was previously cosmetic (header label only). It now ALSO fires skip-if directives — a context-supplied generation differs from the universal artifact (today by exactly one question: bulletCount 67 → 66). No-context calls remain byte-identical universal. Pinned workflows supplying a context will observe the count change.
+
+**Reference-ID stability**: every removal mechanism (manual keys, directives, and the existing section pick-list) preserves surviving questions' Reference IDs — removals leave intentional GAPS (`2-01, 2-02, 2-04…`) instead of renumbering, keeping recipient-quoted refs and the filled-IRL ingestion round-trip stable. Custom requests number from the section's canonical count, so they can never collide with a removed question's ID.
+
+**What changed**
+
+- `gst_information_request_list` **v0.0.6 → v0.0.7**: new `excludeRequests` wire arg; the one-shot body server-computes the combined omission list (directive diff via the shared `applyDirectives` + manual keys) and instructs the model to omit exactly those without renumbering. The prompt authors no filter logic (BL-044.5 single-filter-engine rule).
+- **New tool `list_irl_requests`** (16th tool): read-only key-discovery — every canonical question as `{ key, section, sectionTitle, text, skipIf? }`, so a model maps natural language to exclusion keys without hand-counting the source. Not a manifest-hash input (tools aren't hashed).
+- `embedIrlGeneratorSource` **strips directive comment lines** at the embed boundary — both prompts (`gst_information_request_list`, `gst_irl_ingestion`) and both modes receive a comment-free body. The strip restores the pre-tag bytes, so the new skip-if tag itself does not change the ingestion body (locked by the prompt's embed-strip unit test) and `gst_irl_ingestion` needs no version bump. **However**, this change also cleaned up a stale, CRLF-contaminated committed generator-source bundle (a prior Windows regen; CI regenerates deterministic LF via the codegen's `\r\n`→`\n` normalization). Committing the clean LF bundle rebaselined all 7 `irl-ingestion-body-hash-stability` hashes to the values CI produces — line-ending hygiene, not a body-semantics change.
+- Parser grammar extension: `<!-- skip-if: <dim>=<v1>[,<v2>…] -->` directive lines (registry-validated; any other comment anywhere, including the footer, is a parse error); bullets carry `ordinal`, sections carry `canonicalBulletCount`. Authoring + extension guide at `src/data/irl/README.md`.
+
+**Manifest-hash impact**: hash changes from `0b6868c2…` to `61054444…` — solely the `gst_information_request_list` name@version tuple. Updated in `tests/integration/manifest-stability.test.ts` and the "Current manifest hash" section above.
 
 ## 0.36.0 — 2026-07-04 — `gst_irl_ingestion` IRL taxonomy embed decoupled onto the generator source (v0.20.0 → v0.21.0)
 

@@ -78,11 +78,40 @@ The generator gained four **manual** configuration axes, added once in the share
 
 - **Hub page** — form fields (checkboxes + inputs).
 - **MCP tool** `generate_information_request_list_xlsx` — structured Zod args.
-- **MCP prompt** `gst_information_request_list@0.0.5` — wire-string args (comma-list sections, `NN: text` custom lines, `true`/`false` canonical) coerced via `arrayFromWire` / `booleanFromWire`. The one-shot body computes the **exact** tool payload and instructs the model to pass it verbatim, so the in-chat artifact and the downloadable file honor the same configuration.
-
-**Distinct from BL-044.5** (directive-based subtractive filter, `<!-- skip-if -->` tags authored _in the article_): this is a manual, user-driven pick-list. BL-044.5 remains future work.
+- **MCP prompt** `gst_information_request_list` (v0.0.5+; v0.0.7 adds `excludeRequests`) — wire-string args (comma-list sections, `NN: text` custom lines, `NN-II` exclusion keys, `true`/`false` canonical) coerced via `arrayFromWire` / `booleanFromWire`. The one-shot body computes the **exact** tool payload and instructs the model to pass it verbatim, so the in-chat artifact and the downloadable file honor the same configuration.
 
 **Byte-identical caveat**: the "byte-identical to the printed article" property holds only on the **un-configured** path (no args). Once any configuration is supplied — via the Hub page, the tool, or the prompt — the prompt's in-chat preview and the generated file diverge from the universal article by design, but stay consistent **with each other** (the prompt reproduces the same filtered/augmented shape it hands the tool). (Note: the [BL-049 extractor](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) derives its reconstructed H1 from cell A1 — when company/project are set, that H1 embeds them; benign for provenance since the title is non-citation.)
+
+---
+
+## Per-question removal + BL-044.5 directive engine (2026-07-07, `mcp-server@0.37.0`)
+
+Two bullet-level capabilities, sharing one mechanism (**ordinal-stable removal**):
+
+### Reference-ID gaps (the load-bearing decision)
+
+The parser stamps every bullet with its authored 1-based `ordinal` (and every section with `canonicalBulletCount`); `buildReferenceId` renders `bullet.ordinal ?? denseIndex`. Removing a question — by any mechanism — therefore leaves a **gap** (`2-01, 2-02, 2-04…`) instead of silently renumbering: recipient-quoted refs stay stable across differently-configured engagements, the filled-IRL ingestion round-trip (`extract-irl-markdown` parses `\d{1,2}-\d{2}` gap-tolerantly) is unaffected, and the gap itself signals deliberate omission. Custom requests number from `canonicalBulletCount`, so a custom's ID can never collide with a removed question's. Hand-built (ordinal-less) fixture articles keep the original dense behavior.
+
+### Manual per-question removal (`excludeRequests`)
+
+- **Key grammar**: `"NN-II"` — two-digit section + two-digit canonical ordinal (`"02-03"` = question 3 of section 02; the workbook Reference shows `2-03` with the section's leading zero dropped — the key keeps it, matching the `includeSections` wire convention).
+- **Hub UX**: clicking a section's ⓘ **pins** its context pane open + interactive (hover remains a passive preview; keyboard pins via Enter/Space; ×, click-away, or Escape unpins; single-open across sections). Each question row carries the ICG **delta-chevron** toggle — click flips the delta upside-down (global `.is-collapsed` pattern) and dims/strikes the row; removed rows are collected as `excludeRequests` at submit. Deeplink param: `?exclude=00-01,02-03`.
+- **MCP**: `excludeRequests` on the tool (array) + prompt (comma-separated wire string). **Key discovery** via the new read-only `list_irl_requests` tool (`{ key, section, sectionTitle, text, skipIf? }` per question) — a model maps "drop the competitive-landscape question" → `["01-06"]` without hand-counting the source.
+- **Empty-result guards** on both surfaces (branched in the tool so the exclusion-only path never touches `includeSections`).
+
+### BL-044.5 directive engine (shipped)
+
+- **Grammar**: `<!-- skip-if: <dim>=<v1>[,<v2>…] -->` on its own line, applying to the next non-blank bullet or `##` heading; registry-enforced (`IRL_DIRECTIVE_DIMENSIONS`, `parse-article.ts`); any other comment anywhere (including the footer) is a loud parse error. Full authoring + extension guide: [`src/data/irl/README.md`](../../data/irl/README.md).
+- **v1 dictionary**: `context` only. One tag ships — the `00` "Engagement context" question, skipped whenever any real context is supplied (the answer is already known). `'unknown'` fires nothing.
+- **Behavior change (intended)**: `transactionContext` was cosmetic; it now auto-removes tagged questions (today: bulletCount 67 → 66 on any real context). Universal (no-context) output is byte-identical to before.
+- **Hub display**: directive-skipped questions stay **visible** in the pane — delta flipped, dimmed, labeled `auto · {context}`, toggle inert (`aria-disabled`) — clearly distinct from manual removals; a manual mark persists underneath and re-emerges if the context is deselected. Auto-skips are NOT sent in `excludeRequests`/deeplinks — the shared layer derives them from `context` (single source of truth).
+- **Prompt**: the one-shot body **server-computes** the combined omission list (directive diff via the shared `applyDirectives` + manual keys) — the prompt authors no filter logic. `embedIrlGeneratorSource` strips directive comment lines at the embed boundary (covers `gst_irl_ingestion` too); because the strip restores the pre-tag bytes, the ingestion body hashes did not drift.
+
+### Compose order (all pinned by tests)
+
+`customizeIrlArticle`: **applyDirectives → filterIrlArticle → excludeBullets → addCustomRequests → drop zero-bullet sections LAST.** Directives before manual controls; exclusion before customs (a key can never hit a custom's ordinal); drop-last so a custom request keeps an otherwise-emptied section alive.
+
+**`context=unknown` deeplink nit** (pre-existing, documented): an MCP call with `transactionContext: 'unknown'` prints "Unspecified" in the header and emits `context=unknown`, but the Hub radios carry no `unknown` value, so the landing falls back to Unspecified — harmless (unknown fires no directives), but the header label technically differs.
 
 ---
 

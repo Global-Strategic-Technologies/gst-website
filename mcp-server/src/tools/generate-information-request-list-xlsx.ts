@@ -75,7 +75,7 @@ export const GenerateIrlXlsxInputSchema = z.object({
     .enum(transactionContextValues)
     .optional()
     .describe(
-      'Engagement context label. One of: sell-side · buy-side · value-creation · unknown. Cosmetic only at this layer — the artifact body is universal; the label appears in the header to remind the recipient how to frame their answers.'
+      "Engagement context. One of: sell-side · buy-side · value-creation · unknown. Labels the engagement in the workbook header AND fires the source's authored skip-if directives (BL-044.5) — questions tagged for the supplied context are auto-removed, leaving Reference-ID gaps. 'unknown' fires nothing. Call `list_irl_requests` to see which questions carry directives."
     ),
   productSummary: z
     .string()
@@ -83,7 +83,7 @@ export const GenerateIrlXlsxInputSchema = z.object({
     .max(500)
     .optional()
     .describe(
-      'One-paragraph product description if known. Currently informational — accepted for shape parity with `gst_information_request_list` prompt args and to seed the future BL-044.5 subtractive-filter directives. Has no effect on the generated XLSX in v1.'
+      'One-paragraph product description if known. Informational only — accepted for shape parity with `gst_information_request_list` prompt args. Has no effect on the generated XLSX. (Content-conditioned filtering is driven by `transactionContext` via authored skip-if directives, not by this field.)'
     ),
   companyName: z
     .string()
@@ -123,6 +123,14 @@ export const GenerateIrlXlsxInputSchema = z.object({
     .describe(
       `Ad-hoc engagement-specific requests appended to individual sections. Each becomes a new row under its section with the next Reference ID. Each 'section' is one of: ${SECTION_CATALOG}. Requests for a section not included/present are dropped.`
     ),
+  excludeRequests: z
+    .array(z.string().regex(/^\d{2}-\d{2}$/))
+    .min(1)
+    .max(100)
+    .optional()
+    .describe(
+      `Canonical questions to REMOVE, as 'NN-II' keys — two-digit section number + two-digit 1-based position in the canonical source (e.g. '02-03' = question 3 of section 02, shown in the workbook Reference column as '2-03'; the key keeps the leading zero, the Reference drops it). Surviving questions KEEP their Reference IDs, leaving intentional gaps that signal deliberate omission. Unknown/malformed keys are ignored; a section whose every question is removed is dropped. Call \`list_irl_requests\` first to map question text to keys. Sections: ${SECTION_CATALOG}.`
+    ),
   showCanonicalReference: z
     .boolean()
     .optional()
@@ -142,11 +150,12 @@ Returns \`{ filename, base64, mimeType }\` — Claude Desktop and other MCP clie
 **Optional inputs** all degrade gracefully:
   - \`targetName\` → the company being diligenced; personalizes the "Target" header row + filename slug.
   - \`companyName\` / \`projectName\` → composed into the title cell as \`{companyName} {projectName} Information Request List\` (title only; distinct from \`targetName\`).
-  - \`transactionContext\` → labels the engagement (sell-side / buy-side / value-creation) in the header.
+  - \`transactionContext\` → labels the engagement in the header AND fires the source's authored skip-if directives (BL-044.5): questions tagged for the supplied context are auto-removed with Reference-ID gaps.
   - \`includeSections\` → two-digit section numbers to keep (e.g. \`["00","03","09"]\`); omit for all.
+  - \`excludeRequests\` → \`'NN-II'\` keys of individual questions to remove (e.g. \`["02-03"]\`); surviving Reference IDs keep intentional gaps. Discover keys via \`list_irl_requests\`.
   - \`customRequests\` → ad-hoc \`{ section, text }\` rows appended to individual sections.
   - \`showCanonicalReference\` → show the canonical-URL header row (default hidden).
-  - \`productSummary\` → informational only; reserved for the future subtractive-filter directives (BL-044.5).
+  - \`productSummary\` → informational only.
 
 **Sections** (valid \`includeSections\` / \`customRequests[].section\` values): ${SECTION_CATALOG}.
 
@@ -169,20 +178,30 @@ function uint8ToBase64(buf: Uint8Array): string {
 export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   const article = parseIrlArticle(loadIrlSourceBody());
 
-  // Apply per-engagement customization (section filter + custom requests)
-  // through the single shared entry point — same code path the Hub page
-  // uses, so both surfaces produce identical output for identical inputs.
+  // Apply per-engagement customization (directives + section filter +
+  // question exclusion + custom requests) through the single shared entry
+  // point — same code path the Hub page uses, so both surfaces produce
+  // identical output for identical inputs.
   const built = customizeIrlArticle(article, {
+    context: input.transactionContext,
     includeSections: input.includeSections,
+    excludeRequests: input.excludeRequests,
     customRequests: input.customRequests,
   });
 
-  // Guard: an includeSections set that matches no real section would yield a
-  // zero-section (empty) workbook. Fail loudly with the valid numbers instead.
-  if (input.includeSections && built.sections.length === 0) {
-    const valid = article.sections.map((s) => s.number).join(', ');
+  // Guard: a configuration that removes everything would yield a zero-section
+  // (empty) workbook. Fail loudly with an actionable message. Branched so the
+  // exclusion-only path never touches includeSections (which may be
+  // undefined).
+  if (built.sections.length === 0 && (input.includeSections || input.excludeRequests)) {
+    if (input.includeSections) {
+      const valid = article.sections.map((s) => s.number).join(', ');
+      throw new Error(
+        `No sections matched includeSections=[${input.includeSections.join(', ')}]. Valid section numbers: ${valid}.`
+      );
+    }
     throw new Error(
-      `No sections matched includeSections=[${input.includeSections.join(', ')}]. Valid section numbers: ${valid}.`
+      `Every request was excluded — the configuration (excludeRequests${input.transactionContext ? ' + directive-fired transactionContext' : ''}) removed all questions. Remove some excludeRequests keys (see list_irl_requests) so at least one question remains.`
     );
   }
 
@@ -221,6 +240,7 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   if (input.companyName) hubUrl.searchParams.set('company', input.companyName);
   if (input.projectName) hubUrl.searchParams.set('project', input.projectName);
   if (input.includeSections) hubUrl.searchParams.set('sections', input.includeSections.join(','));
+  if (input.excludeRequests) hubUrl.searchParams.set('exclude', input.excludeRequests.join(','));
   if (input.showCanonicalReference) hubUrl.searchParams.set('canonical', '1');
   if (input.customRequests && input.customRequests.length > 0) {
     hubUrl.searchParams.set('custom', JSON.stringify(input.customRequests));
