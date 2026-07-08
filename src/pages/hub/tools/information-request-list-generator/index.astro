@@ -940,8 +940,11 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
   }
 
   /* Question rows: delta-chevron toggle + request text (+ auto-skip label).
-     The delta flips upside-down via the GLOBAL `.is-collapsed .delta-chevron`
-     rule (interactions.css) when the row is manually removed. */
+     INVERTED rotation vs the global habitat: as a request bullet the delta
+     RESTS upright (△, the brand delta) and flips upside-down (▽) only when the
+     question is REMOVED — the opposite of the global `.delta-chevron`
+     expand/collapse default (which rests at rotate(180deg)). See the override
+     rules below. */
   .irl-gen__q {
     display: flex;
     align-items: flex-start;
@@ -969,10 +972,12 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
     outline-offset: 1px;
   }
 
-  /* The global .delta-chevron carries margin-left: auto (its list-toggle
-     habitat); inside the question toggle it must sit left-aligned. */
+  /* Resting bullet = upright brand delta (△). Overrides BOTH the global
+     `.delta-chevron` rotate(180deg) default AND its margin-left:auto (which
+     belongs to its list-toggle habitat, not this icon-then-text row). */
   .irl-gen__q-toggle :global(.delta-chevron) {
     margin-left: 0;
+    transform: rotate(0deg);
   }
 
   .irl-gen__q-text {
@@ -981,19 +986,25 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
       color var(--transition-fast);
   }
 
-  /* Manual removal: dim + strike the text (the ICG is-dismissed treatment,
-     adapted — that class is scoped to .brutal-rec-card and can't be reused
-     directly). The delta flip itself comes from the global rule. */
+  /* Manual removal: flip the delta upside-down (▽) + dim/strike the text (the
+     ICG is-dismissed treatment, adapted — that class is scoped to
+     .brutal-rec-card and can't be reused directly). The scoped selector beats
+     the global `.is-collapsed .delta-chevron { rotate(0deg) }`. */
+  .irl-gen__q.is-collapsed :global(.delta-chevron) {
+    transform: rotate(180deg);
+    color: var(--text-muted);
+  }
+
   .irl-gen__q.is-collapsed .irl-gen__q-text {
     opacity: 0.45;
     text-decoration: line-through;
   }
 
   /* Directive auto-skip (BL-044.5): same visual grammar as manual removal
-     (flipped, muted delta + dimmed text — mirror the global .is-collapsed
-     rule) plus a labeled reason; the toggle is inert while auto-skipped. */
+     (flipped-down muted delta + dimmed text) plus a labeled reason; the toggle
+     is inert while auto-skipped. */
   .irl-gen__q.is-auto-skipped :global(.delta-chevron) {
-    transform: rotate(0deg);
+    transform: rotate(180deg);
     color: var(--text-muted);
   }
 
