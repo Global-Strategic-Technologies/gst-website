@@ -170,13 +170,20 @@ export interface ValidateIrlProvenanceResult {
  * the fuzzy-run logic can use. Before this, `cad/mo` survived intact as
  * a single token, which made `cad/mo` in citation vs `cad / mo` in body
  * fail substring AND fuzzy.
+ *
+ * BL-049 closeout hardening (2026-07-09): curly quotes (U+2018 U+2019
+ * U+201C U+201D) flatten to space alongside their straight equivalents,
+ * so `don’t` in a citation matches `don't` in the body and vice versa —
+ * the last encoding-drift class from the BL-049 problem statement
+ * (em-dashes were already flattened; NBSP variants are already covered
+ * because JS `\s` matches all Unicode space separators).
  */
 export function normalizeForMatching(s: string): string {
   return s
     .toLowerCase()
     .replace(/[*`_~]+/g, '')
     .replace(/[—–-]+/g, ' ')
-    .replace(/[,;:.?!()[\]{}'"/+]+/g, ' ')
+    .replace(/[,;:.?!()[\]{}'"‘’“”/+]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

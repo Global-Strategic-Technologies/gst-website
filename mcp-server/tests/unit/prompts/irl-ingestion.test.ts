@@ -92,7 +92,9 @@ describe('gst_irl_ingestion', () => {
     // rescope (rename, scenario-neutral framing, mode/verbosity/forceTools args,
     // inclusion gates, JSON fences, provenance footer, gap list).
     // v0.21.0: IRL taxonomy embed decoupled onto the generator source (gst://irl/source).
-    expect(irlIngestionPrompt.version).toBe('0.21.0');
+    // v0.21.1: stale promptVersion literal in META_JSON_FENCE_DIRECTIVE replaced
+    // with a server-derived placeholder (BL-049 closeout).
+    expect(irlIngestionPrompt.version).toBe('0.21.1');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });

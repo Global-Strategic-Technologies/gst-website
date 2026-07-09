@@ -1,6 +1,6 @@
 # MCP Server — Prompt-Arg Cache Pre-Population + Body-by-Hash on Validate (BL-079)
 
-> **Backlog initiative**: [BL-079: Server-side body delivery via prompt-arg + body-by-hash on `validate_irl_provenance`](BACKLOG.md#bl-079-server-side-body-delivery-via-prompt-arg--body-by-hash-on-validate_irl_provenance--open-2026-06-07)
+> **Backlog initiative**: [BL-079: Server-side body delivery via prompt-arg + body-by-hash on `validate_irl_provenance`](BACKLOG.md#bl-079-server-side-body-delivery-via-prompt-arg--body-by-hash-on-validate_irl_provenance--closed--part-a-shipped-2026-06-07-0305-part-b-shipped-2026-06-07-0310)
 >
 > **Companion docs**:
 >
