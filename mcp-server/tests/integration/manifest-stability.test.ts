@@ -129,7 +129,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // hashed), and the tagged source .md does NOT drift the irl-ingestion body
 // hashes because embedIrlGeneratorSource strips directive comment lines
 // (the embedded bytes are unchanged).
-const EXPECTED_MANIFEST_HASH = '6105444438c74a283764949e0c85066c7d239c3ee6d05974369e8e1e44d5943c';
+// BL-049 closeout rebaseline: gst_irl_ingestion v0.21.0 → v0.21.1 (stale
+// promptVersion literal in META_JSON_FENCE_DIRECTIVE replaced with a
+// server-derived placeholder). Drifts solely from that one prompt
+// name@version tuple.
+const EXPECTED_MANIFEST_HASH = '26dce144d2cc433b045f088869c66896e28fe62fb1ba10b660e1d96eb3724b6f';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

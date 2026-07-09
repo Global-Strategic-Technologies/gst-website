@@ -261,7 +261,7 @@ const META_JSON_FENCE_DIRECTIVE = [
   '```json',
   '{',
   '  "promptName": "gst_irl_ingestion",',
-  '  "promptVersion": "0.4.0",',
+  '  "promptVersion": "<server-derived — compose_dossier_envelope overrides this with the prompt-registry version>",',
   '  "modelVersion": "<your model id at invocation time, e.g. claude-opus-4-7>",',
   '  "mode": "full | extract-only",',
   '  "verbosity": "verbose | compact",',
@@ -1068,8 +1068,8 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.21.0',
-  lastReviewedAt: '2026-07-04',
+  version: '0.21.1',
+  lastReviewedAt: '2026-07-09',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   build: (args) => {

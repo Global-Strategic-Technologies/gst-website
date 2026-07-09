@@ -11,7 +11,7 @@
 ## Current manifest hash
 
 ```
-6105444438c74a283764949e0c85066c7d239c3ee6d05974369e8e1e44d5943c
+26dce144d2cc433b045f088869c66896e28fe62fb1ba10b660e1d96eb3724b6f
 ```
 
 Computed over (sorted):
@@ -20,12 +20,27 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below) + `gst_irl_ingestion` at `0.21.0` (its IRL taxonomy embed decoupled onto the generator source — see the 0.36.0 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below) + `gst_irl_ingestion` at `0.21.1` (meta-fence stale version literal replaced with a server-derived placeholder — see the 0.38.0 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.38.0 — 2026-07-09 — BL-049 closeout hardening — `normalizeForMatching` curly-quote flattening + meta-fence stale version literal (`gst_irl_ingestion` v0.21.0 → v0.21.1)
+
+**Theme**: closes out BL-049 (BACKLOG truth-pass landed in the same PR — the stanza's "Open" status was a month stale; the server-side xlsx path stays deferred indefinitely per the [revisit blueprint](../src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md)). Two code remnants ship:
+
+**1. Curly-quote flattening in `normalizeForMatching`** (`src/schemas/validate-irl-provenance.ts`): U+2018 U+2019 U+201C U+201D join the punctuation-to-space class, symmetric with the existing straight-quote handling. This closes the last encoding-drift class from BL-049's original problem statement — em-dashes were already flattened, and NBSP variants (U+00A0/U+202F) were already covered because JS `\s` matches all Unicode space separators (now locked with regression tests).
+
+- **Dossier impact (verdict-widening only)**: citations that previously landed `unverified` purely on curly-vs-straight quote drift between citation and body now verify. The transform is symmetric on needle and haystack, so nothing previously verified can regress. `compose_dossier_envelope` inherits transitively via `runIrlProvenanceCheck`.
+- No contract shape change: no tool/prompt/Resource names or schemas touched by this part.
+
+**2. Meta-fence stale version literal** (`gst_irl_ingestion` **v0.21.0 → v0.21.1**): the `META_JSON_FENCE_DIRECTIVE` example JSON hardcoded `"promptVersion": "0.4.0"` (five months stale). Replaced with a self-explaining placeholder — `compose_dossier_envelope` server-derives `promptVersion` from the prompt registry and overrides whatever the model emits, so the literal was cosmetic; the placeholder now says so. Deliberately NOT interpolating the live version constant: that would drift the body hashes on every future version bump and destroy the hash-stability test's attribution value.
+
+- **Hash fan-out**: the directive appears only in the one-shot and extract-only bodies, so **6 of 7** `irl-ingestion-body-hash-stability` hashes rebaseline (interactive unchanged). Manifest hash rebaselines from the single `gst_irl_ingestion@0.21.1` tuple: `6105444438c74a28…` → `26dce144d2cc433b…`.
 
 ---
 
