@@ -1,6 +1,6 @@
 # MCP Server — `compose_dossier_envelope` Body-by-Hash Latency Reduction (BL-076)
 
-> **Backlog initiative**: [BL-076: `compose_dossier_envelope` body-by-hash latency reduction](BACKLOG.md#bl-076-compose_dossier_envelope-body-by-hash-latency-reduction--open-2026-06-07)
+> **Backlog initiative**: [BL-076: `compose_dossier_envelope` body-by-hash latency reduction](BACKLOG.md#bl-076-compose_dossier_envelope-body-by-hash-latency-reduction--closed-2026-06-07-shipped-at-mcp-server-0300)
 >
 > **Companion docs**:
 >

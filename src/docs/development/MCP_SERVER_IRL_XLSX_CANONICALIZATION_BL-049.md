@@ -1,6 +1,6 @@
 # MCP Server — IRL xlsx Canonicalization for Hash-Bind Authority (BL-049)
 
-> **Backlog initiative**: BL-049 filed June 3, 2026; BL-054 (revisit ticket) retired from BACKLOG June 4, 2026. This document is now the **canonical revisit blueprint** — there is no live BACKLOG entry. Re-engage by re-reading this doc when one of the trigger conditions below materializes; no backlog ping will arrive.
+> **Backlog initiative**: BL-049 filed June 3, 2026; BL-054 (revisit ticket) retired from BACKLOG June 4, 2026. This document is now the **canonical revisit blueprint** — no open BACKLOG entry exists; the BL-049 stanza is closed (2026-07-09 truth-pass) with a pointer here. Re-engage by re-reading this doc when one of the trigger conditions below materializes; no backlog ping will arrive.
 >
 > **Companion docs**:
 >
@@ -634,7 +634,7 @@ A v12+ StoreForce live exercise against the same `PRAXIS-IRL-StoreForce_JLIVET.x
 ### Phase 4 — Doc updates + close (~15 min)
 
 - Update this design doc's Status to "Shipped".
-- Update [BL-049 BACKLOG entry](BACKLOG.md#bl-049-gst_irl_ingestion--server-side-xlsx-canonicalization-for-hash-bind-authority) → Done.
+- Update [BL-049 BACKLOG entry](BACKLOG.md#bl-049-gst_irl_ingestion--server-side-xlsx-canonicalization-for-hash-bind-authority--closed-2026-07-09-subset-shipped-at-0131-xlsx-path-deferred-indefinitely--design-doc) → Done. _(Anchor updated 2026-07-09: the stanza is closed; this Phase 4 step applies only if the blueprint is ever re-engaged.)_
 - Close the post-merge sequel checkbox on BL-045 PR B's PR description (if PR #212 is still open at merge time) — otherwise comment on the merged PR with the v12 dossier as architectural-closure evidence.
 
 ---
