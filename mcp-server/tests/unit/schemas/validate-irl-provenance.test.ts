@@ -55,6 +55,22 @@ describe('normalizeForMatching', () => {
     const twice = normalizeForMatching(once);
     expect(twice).toBe(once);
   });
+  it('flattens curly quotes into spaces (BL-049 closeout hardening)', () => {
+    expect(normalizeForMatching('“smart” ‘quotes’')).toBe('smart quotes');
+  });
+  it('normalizes curly and straight quotes identically', () => {
+    expect(normalizeForMatching('don’t “quote” me')).toBe(
+      normalizeForMatching('don\'t "quote" me')
+    );
+  });
+  it('collapses NBSP variants like regular whitespace (regression lock — JS \\s covers Zs)', () => {
+    expect(normalizeForMatching('a\u00A0b\u202Fc')).toBe('a b c');
+  });
+  it('is idempotent over curly-quote + NBSP input', () => {
+    const sample = 'the CTO said “we can’t\u00A0migrate” — twice';
+    const once = normalizeForMatching(sample);
+    expect(normalizeForMatching(once)).toBe(once);
+  });
 });
 
 describe('extractExcerpt', () => {
@@ -100,6 +116,89 @@ describe('runIrlProvenanceCheck — verbatim verification', () => {
         {
           path: '_audit.revenueRange.citation',
           citation: 'Section 00 — annual RECURRING revenue: $45.2M Q1-FY26 annualized',
+        },
+      ],
+    });
+    expect(result.verified).toBe(1);
+    expect(result.verdicts[0].status).toBe('verified');
+  });
+});
+
+describe('runIrlProvenanceCheck — encoding drift (BL-049 closeout hardening)', () => {
+  // The v11 StoreForce false-positive class: body and citation carry the
+  // same content but drift on quote style, NBSP, or dash flavor because
+  // they were produced by different text pipelines. NBSP is injected
+  // via \u00A0 escapes so the drift under test stays visible here.
+  const STRAIGHT_QUOTE_IRL = `# Information Request List — Acme (returned)
+
+## 03 — Vendor Lock-In
+
+- Migration posture: the CTO said "we cannot migrate off Aurora before FY27" per the diligence call
+- Failover topology: Redis – Aurora failover is exercised quarterly in us-east-1
+`;
+
+  const CURLY_QUOTE_IRL = `# Information Request List — Acme (returned)
+
+## 03 — Vendor Lock-In
+
+- Migration posture: the CTO said “we cannot migrate off Aurora before FY27” per the diligence call
+`;
+
+  it('verifies a curly-quote citation against a straight-quote body', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: STRAIGHT_QUOTE_IRL,
+      citations: [
+        {
+          path: '_audit.lockIn.citation',
+          citation:
+            'Section 03 — the CTO said “we cannot migrate off Aurora before FY27” per the diligence call',
+        },
+      ],
+    });
+    expect(result.verified).toBe(1);
+    expect(result.verdicts[0].status).toBe('verified');
+  });
+
+  it('verifies a straight-quote citation against a curly-quote body', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: CURLY_QUOTE_IRL,
+      citations: [
+        {
+          path: '_audit.lockIn.citation',
+          citation:
+            'Section 03 — the CTO said "we cannot migrate off Aurora before FY27" per the diligence call',
+        },
+      ],
+    });
+    expect(result.verified).toBe(1);
+    expect(result.verdicts[0].status).toBe('verified');
+  });
+
+  it('verifies a plain-space citation against an NBSP-bearing body (regression lock)', () => {
+    const nbspBody = STRAIGHT_QUOTE_IRL.replace('exercised quarterly', 'exercised\u00A0quarterly');
+    const result = runIrlProvenanceCheck({
+      filledIrl: nbspBody,
+      citations: [
+        {
+          path: '_audit.failover.citation',
+          citation: 'Section 03 — Redis – Aurora failover is exercised quarterly in us-east-1',
+        },
+      ],
+    });
+    expect(result.verified).toBe(1);
+    expect(result.verdicts[0].status).toBe('verified');
+  });
+
+  it('verifies under combined drift: curly quotes + NBSP in the same excerpt', () => {
+    const driftedBody = CURLY_QUOTE_IRL.replace('per the', 'per\u00A0the');
+    const result = runIrlProvenanceCheck({
+      filledIrl: driftedBody,
+      citations: [
+        {
+          path: '_audit.lockIn.citation',
+          // straight quotes + plain spaces vs the body's curly quotes + NBSP
+          citation:
+            'Section 03 — the CTO said "we cannot migrate off Aurora before FY27" per the diligence call',
         },
       ],
     });
