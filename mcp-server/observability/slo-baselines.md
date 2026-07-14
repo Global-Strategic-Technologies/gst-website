@@ -2,7 +2,7 @@
 
 > **Source initiative**: [BL-032.75 Phase 2](../../src/docs/development/MCP_SERVER_OBSERVABILITY_BL-032_75.md#phase-2--baselining-7-days-calendar-wait--1-day-engineering)
 >
-> **Status**: 🟡 **Baselining window started 2026-05-31** — Phase 1 instrumentation ✅ shipped + AE emission live across all 10 tools, 5 resources, all prompts, and the `inoreader_call` chokepoint. This document is populated at the close of the 7-day baselining window (next-action 2026-06-07).
+> **Status**: ✅ **FILLED + SIGNED OFF 2026-07-14** — Phase 2 closed. The original 2026-06-07 data-pull deadline was missed (~5 weeks stalled); the pull was re-run 2026-07-14 on a fresh trailing-7-day window via the scripted `npm run ae:baseline` procedure below (preferable anyway — the AE stream now includes the BL-045/071/076 instrumentation added since the original window). Baselines + calibrated SLO targets below carry operator sign-off; Phase 3 alert thresholds derive from them.
 >
 > **What this doc becomes**: measured p50/p95/p99 latency per Tool/Resource/Prompt, Inoreader spend by category, sustained error rates per scope, plus the **calibrated SLO targets** derived from those baselines via the per-metric-kind rules documented in the design doc § "What good observability looks like."
 
@@ -13,8 +13,9 @@
 | Field                    | Value                                                                                                                                 |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Started                  | 2026-05-31 (with the Phase 1 honest-closure PR)                                                                                       |
-| First data-pull deadline | 2026-06-07                                                                                                                            |
-| Window length            | 7 calendar days (revised from 10-14; internal-only traffic captures weekly seasonality in 7 days)                                     |
+| First data-pull deadline | 2026-06-07 — **missed**; no pull ran                                                                                                  |
+| Actual pull window       | trailing 7 days at re-run (2026-07-10 procedure) — dates recorded in the generated comment above the filled tables below              |
+| Window length            | 7 calendar days (revised from the backlog AC's 10-14; internal-only traffic captures weekly seasonality in 7 days)                    |
 | Traffic profile          | Normal team usage — no synthetic load injection. The point is to observe what production actually does, not what a benchmark might do |
 
 ## Data-pull procedure (run 2026-06-07)
@@ -28,74 +29,94 @@
    ```powershell
    .\mcp-server\scripts\Verify-AeEmission.ps1 -Env production -WindowHours 168
    ```
-3. For each `event_type` × `name` × `outcome` combination, pull p50/p95/p99 latency from `mcp_events`:
-   ```sql
-   SELECT blob1 AS event_type,
-          blob2 AS name,
-          blob4 AS outcome,
-          quantileWeighted(0.5, double1, _sample_interval) AS p50_ms,
-          quantileWeighted(0.95, double1, _sample_interval) AS p95_ms,
-          quantileWeighted(0.99, double1, _sample_interval) AS p99_ms,
-          sum(_sample_interval) AS event_count
-   FROM mcp_events
-   WHERE timestamp >= NOW() - INTERVAL '7' DAY
-   GROUP BY event_type, name, outcome
-   ORDER BY event_count DESC
+3. Run the scripted pull — it executes both baselining queries and prints paste-ready
+   markdown for the three tables below:
+
+   ```powershell
+   npm -w @gst/mcp-server run ae:baseline -- --env production --window-days 7
    ```
-4. For Inoreader spend by category, filter on `event_type='inoreader_call'`:
-   ```sql
-   SELECT blob3 AS category,
-          blob7 AS zone1,
-          blob5 AS status_code,
-          sum(_sample_interval) AS call_count
-   FROM mcp_events
-   WHERE blob1 = 'inoreader_call'
-     AND timestamp >= NOW() - INTERVAL '7' DAY
-   GROUP BY category, zone1, status_code
-   ORDER BY call_count DESC
-   ```
-5. Calibrate SLO targets per the per-metric-kind rules in the design doc:
+
+   The queries live in [`scripts/invoke-ae-baseline.mjs`](../scripts/invoke-ae-baseline.mjs)
+   (`buildBaselineQueries`, unit-tested). Column map per `src/metrics/_schema.ts`:
+   latency groups by raw `blob1/blob2/blob4` (event_type/name/outcome) with
+   `quantileWeighted(p, double1, _sample_interval)`; Inoreader spend reads
+   `blob2 AS category, blob7 AS zone1, blob6 AS status_code`.
+
+   > **2026-07-10 correction**: this doc's original inline Query 2 predated the
+   > finalized AE schema and read `blob3 AS category` / `blob5 AS status_code`
+   > (blob3 is `keyOwner`; blob5 is `correlation_id`). The script carries the
+   > corrected column map and a regression test locks it.
+
+4. Calibrate SLO targets per the per-metric-kind rules in the design doc (the script
+   pre-applies these and emits a proposed-targets table for review):
    - **Latency**: target = `p95_baseline × 1.5`
    - **Availability**: error-budget floor (0.5% sustained, 5% spike-tolerable for 5 min)
    - **Throughput**: target = `peak_observed × 1.3` (30% headroom)
    - **Freshness**: target = `2 × cron-interval` (BL-032.7 cron is 6h, so freshness SLO = 12h)
-6. Senior-engineer review of the proposed targets; record sign-off below.
-7. Replace this whole "Baselining window" section with the **filled-in baselines table** and the **SLO targets table**.
+5. Senior-engineer review of the proposed targets; record sign-off below.
+6. Replace this whole "Baselining window" section with the **filled-in baselines table** and the **SLO targets table**.
 
-## Filled baselines (populate 2026-06-07)
+## Filled baselines (pulled 2026-07-14)
 
-> Empty until the window closes. Schema preview below so the future fill-in is structured consistently.
+<!-- generated by scripts/invoke-ae-baseline.mjs on 2026-07-14 — window: last 7 days (2026-07-07 → 2026-07-14), dataset: mcp_events -->
 
 ### Latency baselines (per tool/resource/prompt)
 
-| event_type | name | outcome | event_count | p50_ms | p95_ms | p99_ms |
-| ---------- | ---- | ------- | ----------- | ------ | ------ | ------ |
-| _(TBD)_    |      |         |             |        |        |        |
+| event_type     | name          | outcome      | event_count | p50_ms | p95_ms  | p99_ms  |
+| -------------- | ------------- | ------------ | ----------- | ------ | ------- | ------- |
+| inoreader_call | cron-radar    | success      | 99          | 288.0  | 599.0   | 1086.0  |
+| cron_outcome   | radar-refresh | success      | 18          | 5280.0 | 24635.0 | 24635.0 |
+| cron_outcome   | radar-refresh | deduplicated | 11          | 126.0  | 491.0   | 491.0   |
+| inoreader_call | oauth-refresh | success      | 6           | 0.0    | 0.0     | 0.0     |
+
+**Window findings** (load-bearing for target calibration):
+
+1. **Production traffic is 100% cron-driven.** Zero `tool_invocation`, `resource_read`, or `prompt_invocation` events landed in the window — day-to-day team usage runs against the LOCAL stdio server (`.mcp.json` → `mcp-server/dist/index.js`), not the production Worker. Tool/resource/prompt latency SLOs therefore have **no baseline yet** and are deferred until real client traffic exists (external pilot BL-033, or a deliberate team cutover to the remote Worker). The alert layer covers this gap differently: the traffic-spike rule uses a rolling baseline with a minimum-sample floor, and availability is a rate, not a latency, so both remain meaningful at near-zero traffic.
+2. **Zero errors in window** — every `inoreader_call` and `cron_outcome` event carries `outcome: success` (or `deduplicated`). The availability floor (0.5%) starts from a clean slate.
+3. **The BL-032.77 double-fire dedup is visibly working**: 11 `deduplicated` cron outcomes alongside 18 successes (Cloudflare double-fires the scheduled handler; the single-flight lock absorbs it, ~126ms median for the no-op path).
+4. **`oauth-refresh` duration is counter-only** (0.0ms across the board) — that emission path doesn't time the call. Expected per the schema (duration optional); no SLO derivable or needed.
+5. **Radar refresh cron p95 ≈ 24.6s** — the full Inoreader fan-out. Well under Worker cron limits; the derived 37s target leaves honest headroom without masking degradation.
 
 ### Inoreader spend by category
 
-| category | zone1 | status_code | call_count | notes |
-| -------- | ----- | ----------- | ---------- | ----- |
-| _(TBD)_  |       |             |            |       |
+| category      | zone1 | status_code | call_count | notes                              |
+| ------------- | ----- | ----------- | ---------- | ---------------------------------- |
+| cron-radar    | 1     | 200         | 99         | Zone-1 (counts toward 100/day cap) |
+| oauth-refresh | 0     | 200         | 6          | non-Zone-1                         |
+
+Zone-1 spend averages **~14 calls/day against the 100/day cap** (~14% utilization) — the 70% ticket / 90% page thresholds on the budget alert sit far above normal operation, so any firing is a real anomaly (cron runaway or a new caller), not noise.
 
 ### Proposed SLO targets (post-calibration)
 
-| Surface | Metric | Baseline | Target | Justification |
-| ------- | ------ | -------- | ------ | ------------- |
-| _(TBD)_ |        |          |        |               |
+| Surface                      | Metric                    | Baseline     | Target                               | Justification                                                                                                 |
+| ---------------------------- | ------------------------- | ------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| inoreader_call/cron-radar    | latency p95               | 599.0 ms     | 899 ms                               | p95 × 1.5 (design-doc latency rule; n=99)                                                                     |
+| cron_outcome/radar-refresh   | latency p95               | 24635.0 ms   | 36953 ms                             | p95 × 1.5 (design-doc latency rule; n=18)                                                                     |
+| all surfaces                 | availability (error rate) | 0% in window | < 0.5% sustained; < 5% spike ≤ 5 min | error-budget floor (design-doc availability rule)                                                             |
+| radar snapshot               | freshness                 | —            | age ≤ 43200 s (12h)                  | 2 × 6h cron interval (design-doc freshness rule)                                                              |
+| Inoreader Zone-1 budget      | daily spend               | ~14/day      | ticket > 70/day; page > 90/day       | 70% / 90% of the 100/day hard cap (design-doc budget rule); baseline sits at ~14% utilization                 |
+| tool/resource/prompt latency | latency p95               | no traffic   | **deferred**                         | zero client events in window (local-stdio usage pattern); calibrate when BL-033 pilot or remote cutover lands |
+| all surfaces                 | throughput                | —            | n/a as fixed SLO                     | traffic-spike alert uses 10× rolling hourly baseline instead (aggregate window counts carry no per-hour peak) |
 
 ### Sign-off
 
-| Reviewer | Date | Decision |
-| -------- | ---- | -------- |
-| _(TBD)_  |      |          |
+| Reviewer              | Date       | Decision                                                                                                    |
+| --------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| Operator (reidperyam) | 2026-07-14 | **Approved as proposed** — targets above are the calibrated SLOs; Phase 3 alert thresholds derive from them |
 
 ---
 
 ## Phase 3 unblock criteria
 
-Once this doc is filled and signed off, Phase 3 (dashboards + alerts) can begin:
+Once this doc is filled and signed off, Phase 3 (alerts + status surface; dashboards deferred) can begin:
 
-- Grafana Infinity datasource pointed at `POST /accounts/{id}/analytics_engine/sql`
-- 7 canonical alert rules per design doc § "Alerts" (latency p95 over target × 1.2; error rate over budget floor; scope-mismatch 403 rate; OAuth refresh failure rate; Sentry envelope POST failure rate; cron drift > 2× cron-interval; AE freshness lag)
-- Each alert routed via existing Sentry alert infra; thresholds derived from the SLO targets above
+- **7 canonical alert rules** per the design doc § "Alerts" table (the authoritative set —
+  an earlier revision of this list here had drifted from it): `inoreader-budget-exhausted`,
+  `radar-snapshot-stale`, `health-check-failing`, `traffic-spike-detected`,
+  `scope-mismatch-403-rate`, `oauth-refresh-failure-rate`, `sentry-envelope-post-failure-rate`
+- Alerts evaluated by a scheduled Worker cron querying AE + Upstash directly and routed
+  through the existing Sentry envelope infra (fingerprinted issue events → email rules);
+  thresholds derived from the signed-off SLO targets above
+- Grafana Infinity datasource pointed at `POST /accounts/{id}/analytics_engine/sql` —
+  **deferred** until a Grafana Cloud account exists (recorded in the design doc as the
+  remaining Phase 3 item)
