@@ -70,6 +70,22 @@ describe('Worker roundtrip — Phase 1 transport spike', () => {
     expect(typeof body.gitSha).toBe('string');
   });
 
+  it('GET /status returns public HTML without auth (BL-032.75 Phase 3)', async () => {
+    const res = await worker.fetch('/status');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/html');
+    expect(res.headers.get('cache-control')).toContain('max-age=60');
+    // Unauthenticated by design — same posture as /health; no bearer
+    // challenge may leak onto this surface.
+    expect(res.headers.get('www-authenticate')).toBeNull();
+
+    const html = await res.text();
+    expect(html).toContain('GST MCP Worker — status');
+    // Pre-first-evaluation state under unstable_dev (no Upstash creds, no
+    // evaluator cron run): the alert table renders the graceful placeholder.
+    expect(html).toContain('SLO alerts');
+  });
+
   it('non-routed paths return 404 without invoking auth', async () => {
     // The discriminating signal: a 404 from the route allowlist carries
     // NO `WWW-Authenticate` header. A 401 envelope (the alternative if

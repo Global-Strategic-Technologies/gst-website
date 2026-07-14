@@ -226,12 +226,24 @@ dataset = "mcp_events"
 # runs no cron (see staging block above).
 # Second cron (`0 14 * * 1`) is the BL-047 T1 alert-rule synthetic:
 # Mondays 14:00 UTC, a single Sentry event tagged `alert-rule-synthetic: 1`
-# is emitted. Its presence in Slack `#mcp-alerts` is the operator's weekly
-# proof that the BL-047 T1 alert rules + Slack integration are wired
-# end-to-end. Without it, a silently-broken integration would first
-# surface on a real OAuth incident.
+# is emitted. Its arrival via the Sentry email rule is the operator's
+# weekly proof that the BL-047 T1 alert rules + notification channel are
+# wired end-to-end (email-only on the free Sentry tier — no Slack
+# workspace is configured; see SENTRY_ALERT_RULES.md § 2 pre-flight).
+# Without it, a silently-broken integration would first surface on a
+# real OAuth incident.
+#
+# Third cron (`*/15 * * * *`) is the BL-032.75 Phase 3 SLO alert
+# evaluator: every 15 minutes it evaluates the 7 canonical alert rules
+# (AE SQL + Upstash + in-process health) and posts fingerprinted Sentry
+# issue events for un-suppressed breaches. Requires the CF_AE_TOKEN +
+# CF_ACCOUNT_ID secrets for the AE-backed rules; fails open without them.
+# Note the :00-of-hours-0/6/12/18 overlap with the radar cron is safe —
+# Cloudflare fires one invocation per expression with event.cron set,
+# and each path's dedup-lock key includes the cron string.
 #
 # Synthetic dispatcher: src/observability/alert-rule-synthetic.ts
-# Operator runbook:    src/docs/operations/SENTRY_ALERT_RULES.md § Synthetic
+# Alert evaluator:      src/observability/alert-evaluator.ts (+ alert-rules.ts)
+# Operator runbook:     src/docs/operations/SENTRY_ALERT_RULES.md
 [env.production.triggers]
-crons = ["0 */6 * * *", "0 14 * * 1"]
+crons = ["0 */6 * * *", "0 14 * * 1", "*/15 * * * *"]
