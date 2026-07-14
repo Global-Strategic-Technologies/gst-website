@@ -2,7 +2,7 @@
 
 > **Source initiative**: [BL-032.75 Phase 2](../../src/docs/development/MCP_SERVER_OBSERVABILITY_BL-032_75.md#phase-2--baselining-7-days-calendar-wait--1-day-engineering)
 >
-> **Status**: 🟡 **Fill in progress (2026-07-10)** — Phase 1 instrumentation ✅ shipped + AE emission live across all 10 tools, 5 resources, all prompts, and the `inoreader_call` chokepoint. The original 2026-06-07 data-pull deadline was **missed** (this doc sat untouched for ~5 weeks); the pull is being re-run on a fresh trailing-7-day window, which is preferable anyway — the AE stream now includes the BL-045/071/076 instrumentation added since the original window and reflects current traffic shape.
+> **Status**: ✅ **FILLED + SIGNED OFF 2026-07-14** — Phase 2 closed. The original 2026-06-07 data-pull deadline was missed (~5 weeks stalled); the pull was re-run 2026-07-14 on a fresh trailing-7-day window via the scripted `npm run ae:baseline` procedure below (preferable anyway — the AE stream now includes the BL-045/071/076 instrumentation added since the original window). Baselines + calibrated SLO targets below carry operator sign-off; Phase 3 alert thresholds derive from them.
 >
 > **What this doc becomes**: measured p50/p95/p99 latency per Tool/Resource/Prompt, Inoreader spend by category, sustained error rates per scope, plus the **calibrated SLO targets** derived from those baselines via the per-metric-kind rules documented in the design doc § "What good observability looks like."
 
@@ -100,9 +100,9 @@ Zone-1 spend averages **~14 calls/day against the 100/day cap** (~14% utilizatio
 
 ### Sign-off
 
-| Reviewer                             | Date | Decision |
-| ------------------------------------ | ---- | -------- |
-| _(pending operator review — Gate B)_ |      |          |
+| Reviewer              | Date       | Decision                                                                                                    |
+| --------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| Operator (reidperyam) | 2026-07-14 | **Approved as proposed** — targets above are the calibrated SLOs; Phase 3 alert thresholds derive from them |
 
 ---
 
