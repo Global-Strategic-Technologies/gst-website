@@ -166,7 +166,25 @@ Document the first verified firing date here once complete:
 
 > **First verified evaluator firing**: **2026-07-14T13:45:19Z** — the first natural `*/15` tick after the 0.39.0 production deploy (no force-fire needed). Verified via `/status`: all 7 rules evaluated healthy, and the AE-backed rules returned REAL query results ("0 scope-mismatch 403s in 15 min", "no per-key traffic spike") rather than the fail-open "AE unavailable" marker — proving the `CF_AE_TOKEN`/`CF_ACCOUNT_ID` Worker secrets and the Worker's first `api.cloudflare.com` egress work end-to-end. The email leg was NOT exercised (nothing was breached — correctly); it rides the identical tag-filtered new-issue → email mechanics the synthetic proved on 2026-05-30, and Rules 5-6's stored configs were read back and verified via the Sentry MCP after API creation. First genuine breach will complete the empirical chain.
 
-## 6. Provenance
+## 6. Audit record — 2026-07-14 full-org rule audit
+
+Every alert rule + cron monitor in `gst-7o` was audited against live emit sites at master `8add54d5` (via the Sentry MCP integration for reads; legacy REST API for fixes — resolve rules **by name** on `/projects/{org}/{project}/rules/`, since the MCP reports new-alerts-surface IDs that don't resolve on the legacy endpoint).
+
+**Verified correct, no changes**: Rules 1–6 of this doc, the weekly synthetic, the `radar-refresh` cron monitor (schedule matches wrangler.toml), and gst-website's `New issue — all` / `High-volume error spike` / `Github Issue Created`. Note: Rules 1–3's live display names are the tag values themselves (`oauth-refresh-invalid-refresh-token` etc.), not the § 3 table's prescribed display names — accepted as-is; the tag filters are what matter.
+
+**Fixed (gst-mcp-server)**:
+
+| Rule                                                                                 | Defect                                                                                                                                                                                                                                                                                | Fix                                                                                          |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `Bearer auth failure burst`                                                          | Filter required tag `event` to _contain_ `auth.failed bearer-rejected` — but the emission sets tag `event=auth.failed` (the long string is the MESSAGE). **The rule had never been able to fire.**                                                                                    | Filter → tag `event` equals `auth.failed`                                                    |
+| `Inoreader budget breach` → renamed **`MCP — Inoreader 429 / circuit breaker open`** | First-seen-only trigger + stable-grouped message (`inoreader-rate-limit`) = fired once (2026-05-15), silent forever after — the § 3 dual-trigger trap. Name also misleading: it fires on 429/circuit-open; daily budget is owned by the SLO evaluator's `inoreader-budget-exhausted`. | Regression trigger added; renamed. Same resolve-after-recovery workflow as Rules 1–3 applies |
+| `MCP unhandled exception`                                                            | `level=error OR fatal` (any-match) also matched every `slo-alert` page event → duplicate email on top of Rule 5                                                                                                                                                                       | Filters → all-match: `level >= error` AND tag `event` != `slo-alert`                         |
+
+**Deleted (gst-website — emit sites no longer exist in the codebase)**: `BL-039 Inoreader auto-refresh FAILED` + `Inoreader auto-refresh fired (success)` (the `/api/inoreader/refresh` endpoint they matched was deleted 2026-05-27, BL-032.8 Phase B) and `Inoreader API failure` + `Redis connection failure` (the `area:inoreader-api` / `area:redis-connection` captureException sites were removed with the website's Inoreader client + Redis usage in the same phase). Retirement recorded in `src/docs/development/SENTRY_MANUAL_SETUP.md`; the website's live `area` tags are now `portfolio-data` / `regulatory-map` / `techpar-calculation` (see DEVELOPER_TOOLING.md).
+
+All changes applied via the REST API with a short-lived personal token and re-verified by reading the rules back through the Sentry MCP integration.
+
+## 7. Provenance
 
 - Worker emit sites verified 2026-05-30 against [`inoreader-oauth.ts`](../../lib/inoreader-oauth.ts) HEAD on `feature/bl-047-backlog-cleanup`
 - Sentry UI semantics verified 2026-05-30 against `/getsentry/sentry-docs` via Context7 — trigger menu is issue-lifecycle-only; "tag match" lives under IF/filters; "any of the following" OR's multiple triggers

@@ -490,9 +490,9 @@ The site uses [@sentry/astro](https://docs.sentry.io/platforms/javascript/guides
 - `PUBLIC_SENTRY_DSN` — declared in env schema, set in Vercel (Production + Preview)
 - `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` — optional, for source map upload
 
-**Error tags used in `captureException`**: `area:inoreader-api`, `area:redis-connection`, `area:file-cache`, `area:palette-manager`, `area:techpar-calculation`
+**Error tags used in `captureException`**: `area:portfolio-data`, `area:regulatory-map`, `area:techpar-calculation` _(2026-07-14 audit: `area:inoreader-api` and `area:redis-connection` emit sites were deleted with the website's Inoreader client + Redis usage in BL-032.8 Phase B; `area:file-cache` / `area:palette-manager` no longer exist in source either — the list now matches a live grep of `src/`)_
 
-**Viewing errors**: Log in to [sentry.io](https://sentry.io), select the `gst-website` project. Filter by tag (`area:inoreader-api`) to see specific subsystem failures.
+**Viewing errors**: Log in to [sentry.io](https://sentry.io), select the `gst-website` project. Filter by tag (`area:regulatory-map`) to see specific subsystem failures.
 
 ### Alert rules
 

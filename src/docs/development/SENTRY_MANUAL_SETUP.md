@@ -87,6 +87,10 @@ Alert rules notify you when errors occur. The error tags (`area:inoreader-api`, 
    - **Then**: Send notification to your email
    - **Action interval**: 30 minutes
    - **Name**: `Inoreader API failure`
+   - **🪦 RETIRED 2026-07-14**: rule deleted in the Sentry audit — the emitting code
+     (the website's Inoreader client, `area:inoreader-api`) was removed in BL-032.8
+     Phase B (2026-05-27); Inoreader observability now lives on the MCP Worker
+     (see `mcp-server/src/docs/operations/SENTRY_ALERT_RULES.md`)
 
    #### Rule 4: Redis Connection Failures
    - **When**: A new issue is created
@@ -94,6 +98,10 @@ Alert rules notify you when errors occur. The error tags (`area:inoreader-api`, 
    - **Then**: Send notification to your email
    - **Action interval**: 30 minutes
    - **Name**: `Redis connection failure`
+   - **🪦 RETIRED 2026-07-14**: rule deleted in the Sentry audit — the website's
+     Redis/KV usage (and the `area:redis-connection` emit site) was retired in
+     BL-032.8 Phase B; Upstash health for the MCP Worker is covered by the
+     `health-check-failing` SLO alert
 
 3. **Test the alerts**
    - After creating the rules, you can verify by triggering a test error:
@@ -155,8 +163,8 @@ Sentry can automatically create GitHub issues from alerts. Configure via Sentry 
 - [x] GitHub code mapping configured for stack trace linking
 - [ ] "New issue" alert rule created
 - [ ] "High-volume error spike" alert rule created
-- [ ] "Inoreader API failure" alert rule created
-- [ ] "Redis connection failure" alert rule created
+- [x] ~~"Inoreader API failure" alert rule created~~ — retired 2026-07-14 (emit site deleted in BL-032.8 Phase B; rule removed in the Sentry audit)
+- [x] ~~"Redis connection failure" alert rule created~~ — retired 2026-07-14 (same audit)
 - [ ] Test error triggers email notification
 
 **MCP Worker project (`gst-mcp-server`)** — completed 2026-05-12:
