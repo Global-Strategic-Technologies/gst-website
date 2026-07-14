@@ -124,12 +124,25 @@ For Rules 1-3, the cheapest production-safe verification is: open `mcp-server/sc
 
 The `*/15 * * * *` alert-evaluator cron ([`alert-evaluator.ts`](../../observability/alert-evaluator.ts)) posts fingerprinted issue events (tag `event: slo-alert`) for breaches of the 7 canonical rules in [`alert-rules.ts`](../../observability/alert-rules.ts). Thresholds derive from the signed-off [`slo-baselines.md`](../../../observability/slo-baselines.md) targets. Runbooks live at [`observability/runbooks/`](../../../observability/runbooks/).
 
-**Two new UI email rules to create** (same skeleton as § 3; free-tier email channel):
+**The two email rules** (✅ created 2026-07-14 — **via the REST API, not the UI**; see the as-built note below):
 
-| #   | Name                 | IF (filters)                                                      | Trigger                                                                                                                                                                     | Action frequency |
-| --- | -------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| 5   | `slo-alert — page`   | tag `event` equals `slo-alert` AND tag `severity` equals `page`   | "A new issue is created" (single trigger — per-day fingerprints make each day's first breach a NEW issue, per the synthetic's precedent; no manual-resolve workflow needed) | 60 min           |
-| 6   | `slo-alert — ticket` | tag `event` equals `slo-alert` AND tag `severity` equals `ticket` | "A new issue is created"                                                                                                                                                    | 60 min           |
+| #   | Name                                | Rule ID | IF (filters)                                                      | Trigger                                                                                                                                                                     | Action frequency |
+| --- | ----------------------------------- | ------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 5   | `MCP — SLO alert (page severity)`   | 3706338 | tag `event` equals `slo-alert` AND tag `severity` equals `page`   | "A new issue is created" (single trigger — per-day fingerprints make each day's first breach a NEW issue, per the synthetic's precedent; no manual-resolve workflow needed) | 60 min           |
+| 6   | `MCP — SLO alert (ticket severity)` | 3706339 | tag `event` equals `slo-alert` AND tag `severity` equals `ticket` | "A new issue is created"                                                                                                                                                    | 60 min           |
+
+> **As-built note (2026-07-14) — the UI cannot create these rules; use the script.** The
+> UI's `Tagged event` tag-key field is now a strict combobox constrained to tag keys the
+> project's indexer has already seen (§ 3 skeleton's "the field accepts arbitrary text"
+> no longer holds — it snaps to `message` on blur). Since `severity` is only emitted by
+> slo-alert breaches, the key can't be selected before the first breach ever fires — a
+> bootstrap deadlock. The REST API has no such constraint, so the rules were created via
+> [`scripts/create-slo-alert-rules.mjs`](../../../scripts/create-slo-alert-rules.mjs)
+> (payload shapes mirrored from Rule 4's stored config) and verified by reading them back
+> through the Sentry MCP integration. To recreate or modify them, prefer re-running the
+> script with a freshly-minted **personal token** (Permissions: Alerts = Admin,
+> Project = Read, Organization = Read; **revoke after use**) — this also gives Rules 5-6
+> an in-repo source of truth that the § "Status" header disclaims for Rules 1-4.
 
 **Issue-churn expectation**: a multi-day incident opens one issue per rule per UTC day (fingerprint includes the date). That's intended — each day's email is a re-page. Cooldowns (page 2h / ticket 6h, Upstash `SET NX EX`) bound intra-day volume; worst case across all 7 rules is ≈840 events/month against the 5k free-tier budget.
 
@@ -151,7 +164,7 @@ curl "http://localhost:8787/__scheduled?cron=*/15+*+*+*+*"
 
 Document the first verified firing date here once complete:
 
-> **First verified evaluator firing**: _(pending — record after PR 2 deploys with the CF_AE_TOKEN / CF_ACCOUNT_ID secrets bound and Rules 5-6 exist)_
+> **First verified evaluator firing**: **2026-07-14T13:45:19Z** — the first natural `*/15` tick after the 0.39.0 production deploy (no force-fire needed). Verified via `/status`: all 7 rules evaluated healthy, and the AE-backed rules returned REAL query results ("0 scope-mismatch 403s in 15 min", "no per-key traffic spike") rather than the fail-open "AE unavailable" marker — proving the `CF_AE_TOKEN`/`CF_ACCOUNT_ID` Worker secrets and the Worker's first `api.cloudflare.com` egress work end-to-end. The email leg was NOT exercised (nothing was breached — correctly); it rides the identical tag-filtered new-issue → email mechanics the synthetic proved on 2026-05-30, and Rules 5-6's stored configs were read back and verified via the Sentry MCP after API creation. First genuine breach will complete the empirical chain.
 
 ## 6. Provenance
 
