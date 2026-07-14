@@ -13,7 +13,17 @@ import {
   postSentryCheckIn,
   captureMessageEnvelope,
 } from '../../../src/observability/sentry-envelope';
+import { createMcpClient } from '../../../src/lib/upstash-clients';
 import type { Env } from '../../../src/worker';
+
+// The BL-032.75 envelope day-counters route through createMcpClient. Mock
+// the factory so counter writes never share the global fetch mock the
+// envelope-shape assertions inspect; the counter-specific describe block
+// below swaps in a stub client per-test.
+vi.mock('../../../src/lib/upstash-clients', () => ({
+  createMcpClient: vi.fn(() => null),
+}));
+const createMcpClientMock = vi.mocked(createMcpClient);
 
 const FAKE_DSN =
   'https://18b0d78cb4cbff2cbee5da2ae86c3e5e@o4511195716386816.ingest.us.sentry.io/4511343962357760';
@@ -255,6 +265,79 @@ describe('captureMessageEnvelope (shim for shared-module callers)', () => {
   it('does NOT POST when SENTRY_DSN is unbound', async () => {
     await captureMessageEnvelope({} as Env, 'm', 'info');
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('postSentryEvent fingerprint (BL-032.75 Phase 3)', () => {
+  it('includes fingerprint in the event body when supplied', async () => {
+    await postSentryEvent(env, {
+      level: 'error',
+      message: 'SLO breach',
+      fingerprint: ['slo-alert', 'radar-snapshot-stale', 'page', '2026-07-14'],
+    });
+    const payload = JSON.parse((fetchSpy.mock.calls[0]![1].body as string).split('\n')[2]);
+    expect(payload.fingerprint).toEqual([
+      'slo-alert',
+      'radar-snapshot-stale',
+      'page',
+      '2026-07-14',
+    ]);
+  });
+
+  it('omits fingerprint when absent or empty (default Sentry grouping preserved)', async () => {
+    await postSentryEvent(env, { level: 'info', message: 'no fp' });
+    await postSentryEvent(env, { level: 'info', message: 'empty fp', fingerprint: [] });
+    for (const call of fetchSpy.mock.calls) {
+      const payload = JSON.parse((call[1].body as string).split('\n')[2]);
+      expect(payload).not.toHaveProperty('fingerprint');
+    }
+  });
+});
+
+describe('envelope delivery day-counters (BL-032.75 Phase 3)', () => {
+  const stubRedis = () => {
+    const incr = vi.fn().mockResolvedValue(1);
+    const expire = vi.fn().mockResolvedValue(1);
+    createMcpClientMock.mockReturnValue({ incr, expire } as never);
+    return { incr, expire };
+  };
+
+  afterEach(() => {
+    createMcpClientMock.mockReturnValue(null);
+  });
+
+  it('bumps the ok counter on a 2xx envelope response', async () => {
+    const { incr, expire } = stubRedis();
+    await postSentryEvent(env, { level: 'info', message: 'ok path' });
+    expect(incr).toHaveBeenCalledTimes(1);
+    expect(incr.mock.calls[0][0]).toMatch(/^mcp:sentry-envelope:ok:\d{4}-\d{2}-\d{2}$/);
+    expect(expire).toHaveBeenCalledWith(incr.mock.calls[0][0], 48 * 3600);
+  });
+
+  it('bumps the fail counter on a non-2xx envelope response', async () => {
+    const { incr } = stubRedis();
+    fetchSpy.mockResolvedValue(new Response('', { status: 429 }));
+    await postSentryEvent(env, { level: 'info', message: 'rejected' });
+    expect(incr.mock.calls[0][0]).toMatch(/^mcp:sentry-envelope:fail:/);
+  });
+
+  it('bumps the fail counter when the envelope fetch throws', async () => {
+    const { incr } = stubRedis();
+    fetchSpy.mockRejectedValue(new Error('network down'));
+    await expect(
+      postSentryEvent(env, { level: 'info', message: 'network' })
+    ).resolves.toBeUndefined();
+    expect(incr.mock.calls[0][0]).toMatch(/^mcp:sentry-envelope:fail:/);
+  });
+
+  it('counter failures never propagate (best-effort contract preserved)', async () => {
+    createMcpClientMock.mockReturnValue({
+      incr: vi.fn().mockRejectedValue(new Error('upstash down')),
+      expire: vi.fn(),
+    } as never);
+    await expect(
+      postSentryEvent(env, { level: 'info', message: 'counter blows up' })
+    ).resolves.toBeUndefined();
   });
 });
 

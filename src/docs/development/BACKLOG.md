@@ -1649,7 +1649,7 @@ Two end-state options were considered:
 
 ### BL-032.75: MCP Server — Production Observability Maturity
 
-**Source**: BL-032.75 — extends Phase 2 substrate | **Architecture & plan**: [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) | **Effort**: 1 sprint engineering + 7 day baselining window | **Status**: 🟢 **Phase 0 ✅ SHIPPED 2026-05-26** (spend accounting + drift detection); **Phase 1 ✅ SHIPPED 2026-05-31** (AE schema + sinks + guard + `withMetrics` HOF + 10 tools / 5 resources / all prompts wrapped + `inoreader_call` chokepoint emit + AE binding in wrangler.toml + 76/76 metrics tests passing — formally closed 2026-05-31 after audit found the BACKLOG status had drifted from code reality); **Phase 2 ✅ DATA-PULL COMPLETE 2026-07-14** — the original 2026-06-07 pull deadline was missed (~5 weeks stalled); re-run on a fresh trailing-7-day window via the new scripted pull (`npm -w @gst/mcp-server run ae:baseline`, unit-tested, with the Query-2 column-map correction). Baselines + proposed SLO targets filled in [`mcp-server/observability/slo-baselines.md`](../../../mcp-server/observability/slo-baselines.md); key finding: production traffic is 100% cron-driven (team uses local stdio day-to-day), so tool/resource/prompt latency SLOs are deferred until client traffic exists (BL-033 pilot or remote cutover). Window used 7 days per the slo-baselines.md revision (AC said ≥10 — deviation recorded). Operator sign-off recorded 2026-07-14 — **Phase 2 ✅ CLOSED**; **Phase 3 alerts + /status in flight** (Worker-cron evaluator + Sentry free-tier email; Grafana dashboards deferred until a Grafana Cloud account exists). | **Depends on**: BL-032 (closed); BL-032.5 substrate (closed)
+**Source**: BL-032.75 — extends Phase 2 substrate | **Architecture & plan**: [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) | **Effort**: 1 sprint engineering + 7 day baselining window | **Status**: 🟢 **Phase 0 ✅ SHIPPED 2026-05-26** (spend accounting + drift detection); **Phase 1 ✅ SHIPPED 2026-05-31** (AE schema + sinks + guard + `withMetrics` HOF + 10 tools / 5 resources / all prompts wrapped + `inoreader_call` chokepoint emit + AE binding in wrangler.toml + 76/76 metrics tests passing — formally closed 2026-05-31 after audit found the BACKLOG status had drifted from code reality); **Phase 2 ✅ DATA-PULL COMPLETE 2026-07-14** — the original 2026-06-07 pull deadline was missed (~5 weeks stalled); re-run on a fresh trailing-7-day window via the new scripted pull (`npm -w @gst/mcp-server run ae:baseline`, unit-tested, with the Query-2 column-map correction). Baselines + proposed SLO targets filled in [`mcp-server/observability/slo-baselines.md`](../../../mcp-server/observability/slo-baselines.md); key finding: production traffic is 100% cron-driven (team uses local stdio day-to-day), so tool/resource/prompt latency SLOs are deferred until client traffic exists (BL-033 pilot or remote cutover). Window used 7 days per the slo-baselines.md revision (AC said ≥10 — deviation recorded). Operator sign-off recorded 2026-07-14 — **Phase 2 ✅ CLOSED**; **Phase 3 ✅ account-free scope SHIPPED 2026-07-14 (mcp-server 0.39.0)** — `*/15` Worker-cron alert evaluator (7 canonical rules, Sentry free-tier email issue events), 7 runbooks + CI freshness guard, `GET /status` page. Sole remaining item: `grafana-dashboard.json`, **deferred with explicit trigger = Grafana Cloud account creation**. Deviations recorded in the design doc. | **Depends on**: BL-032 (closed); BL-032.5 substrate (closed)
 
 **As a** GST engineering lead approaching BL-033's contractual SLA commitments, **I want** SLO dashboards, alerting, and error-budget tracking against measured production baselines **so that** the SLAs we commit to in pilot legal paper are defensible operational reality, not aspirational numbers.
 
@@ -1779,28 +1779,28 @@ BL-032's Section K soak (31 of 40 tests recorded as of 2026-05-12) surfaced a ti
 - [ ] Vitest test asserts every registered Tool / Resource / Prompt emits at least one metric event in a representative invocation
 - [ ] Cardinality budget per metric documented in `metrics/_index.ts`; CI test caps emission cardinality to prevent dimension explosion
 
-**Phase 2 — Baselining**
+**Phase 2 — Baselining** _(✅ CLOSED 2026-07-14)_
 
-- [ ] Instrumented build deployed to production; runs with normal team usage for ≥10 days
-- [ ] Weekly traffic data extracts produce `mcp-server/observability/slo-baselines.md` documenting measured p50/p95/p99 latency and error rate per Tool / Resource / Prompt
-- [ ] Initial SLO targets set at p95-baseline × 1.5 buffer; senior-engineer review and sign-off recorded in `slo-baselines.md`
-- [ ] All SLO definitions captured: non-radar Tool availability, non-radar Tool latency p95, radar latency cold/warm, Resource latency, health-endpoint availability, Inoreader budget consumption, radar snapshot freshness
+- [x] Instrumented build deployed to production; ran with normal team usage — window revised to 7 days (deliberate slo-baselines.md revision of this AC's ≥10; recorded there) and actually pulled 2026-07-07 → 07-14 after the original 2026-06-07 deadline was missed
+- [x] Scripted data extract (`npm -w @gst/mcp-server run ae:baseline`, PR 1) produced `mcp-server/observability/slo-baselines.md` with measured p50/p95/p99 + spend. **Deviation recorded honestly**: production traffic was 100% cron-driven (zero client Tool/Resource/Prompt events — team uses local stdio), so per-tool latency baselines are the cron surfaces only; client-surface SLOs deferred until BL-033 pilot traffic or a remote cutover
+- [x] Initial SLO targets set at p95 × 1.5; operator review + sign-off recorded in `slo-baselines.md` (2026-07-14)
+- [x] SLO definitions captured for every surface with data: availability floor (all surfaces), cron latency p95s, health availability, Inoreader budget (70%/90% of the 100/day hard cap), radar snapshot freshness (12h). Client-surface latency rows marked **deferred** with the calibration trigger named
 
-**Phase 3 — Dashboards & Alerts**
+**Phase 3 — Dashboards & Alerts** _(✅ account-free scope SHIPPED 2026-07-14 at mcp-server 0.39.0; Grafana items deferred with explicit trigger)_
 
-- [ ] `mcp-server/observability/grafana-dashboard.json` covers traffic, latency histograms, error rates, rate-limit pressure, Inoreader budget burn-down, radar snapshot age, cache hit rate
-- [ ] `mcp-server/observability/alert-rules.yaml` covers every SLO from the baselining phase
-- [ ] Slack webhook + PagerDuty integration wired; test-fired with a synthetic SLO breach (5% injected error rate); alert lands in correct channel within 5 min
-- [ ] Runbooks authored for the four canonical alerts under `mcp-server/observability/runbooks/`: `inoreader-budget-exhausted.md`, `radar-snapshot-stale.md`, `health-check-failing.md`, `traffic-spike-detected.md`
-- [ ] Status page deployed at `https://status.mcp.globalstrategic.tech` (Cloudflare Pages, signed query against Analytics Engine); initially internal-IP-restricted; BL-033 reviews and chooses what becomes externally visible
-- [ ] Each runbook has a `lastReviewedAt` field; CI test fails if any runbook is over 6 months stale OR the alert that links to it has changed since last review
+- [ ] `mcp-server/observability/grafana-dashboard.json` — **DEFERRED**: requires a Grafana Cloud account (Infinity datasource against the AE SQL API). Explicit re-engagement trigger: account creation. The only remaining Phase 3 item
+- [x] Alert rules cover every signed-off SLO — shipped as **`src/observability/alert-rules.ts`** (TS config-as-code, not `alert-rules.yaml`; deviation recorded in the design doc: rules execute in the Worker, TS gives types + tests). All 7 canonical rules, thresholds citing signed-off slo-baselines.md rows, evaluated by the `*/15` Worker cron (`alert-evaluator.ts`)
+- [x] Alert channel wired — **deviation**: Sentry email issue-alert rules (free tier verified 2026-07-10: email-only, no Slack/webhooks, 1 Crons monitor already owned by radar-refresh → evaluator posts fingerprinted issue events, never check-ins). Slack/PagerDuty re-enter with the Team-plan decision at BL-033. Force-fire acceptance procedure documented in SENTRY_ALERT_RULES.md § 5
+- [x] Runbooks authored for ALL SEVEN canonical alerts (superset of this AC's four) under `mcp-server/observability/runbooks/`
+- [x] Status page — shipped as **`GET /status` on the Worker** at `mcp.globalstrategic.tech/status` (per the design doc's own revision away from Cloudflare Pages; a `status.` subdomain would just CNAME here). Public rather than IP-restricted: it renders a subset of the already-public `/health`
+- [x] Every runbook carries `lastReviewedAt`; `runbook-freshness.test.ts` fails CI when any runbook is >6 months stale or a rule lacks its runbook file
 
 **Verification & docs**
 
-- [ ] [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) updated with any deviations made during implementation
-- [ ] `mcp-server/README.md` extended with: how to import the dashboard JSON, how to test-fire an alert, how to rotate Slack webhooks
-- [ ] Two-week post-deploy review: SLO compliance, alert noise rate (target: <1 false-positive/week), dashboard usefulness (engineer survey)
-- [ ] Test page through PagerDuty receives a synthetic page within 5 min; runbook link in the alert resolves to the correct markdown file
+- [x] [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) updated with the deviations (status header + § Alerting as-shipped revision, 2026-07-14)
+- [x] `mcp-server/README.md` extended: force-fire an alert, where runbooks live (dashboard-import + Slack-webhook rotation guidance deferred with the Grafana/Slack items)
+- [ ] Two-week post-deploy review (due ~2026-07-28): SLO compliance, alert noise rate (target <1 false-positive/week), /status usefulness
+- [ ] ~~PagerDuty synthetic page~~ — deferred with the channel deviation; the evaluator force-fire + Sentry email arrival (SENTRY_ALERT_RULES.md § 5 acceptance) is the equivalent check
 
 #### Technical Context
 

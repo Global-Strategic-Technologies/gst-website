@@ -84,6 +84,16 @@ const CATEGORIES = {
 
 export type InoreaderEgressCategory = keyof typeof CATEGORIES;
 
+/**
+ * Inoreader's Zone-1 daily hard cap (API calls/day on the current plan).
+ * Single exported source of truth (BL-032.75 Phase 3): the
+ * `inoreader-budget-exhausted` alert rule tickets at 70% / pages at 90%
+ * of THIS value. Distinct from `cron/radar-refresh.ts`'s internal
+ * `DAILY_SOFT_CAP` (a self-imposed cron budget that intentionally sits
+ * ABOVE the hard cap so the cron isn't the enforcement point).
+ */
+export const ZONE1_DAILY_HARD_CAP = 100;
+
 /** All categories. Derived from the source-of-truth map. */
 export const INOREADER_EGRESS_CATEGORIES = Object.keys(CATEGORIES) as InoreaderEgressCategory[];
 

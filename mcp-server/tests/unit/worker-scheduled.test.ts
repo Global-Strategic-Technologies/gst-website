@@ -29,18 +29,25 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // `@sentry/cloudflare` + `agents/mcp` use the `cloudflare:workers` URL
 // scheme internally — Node's default ESM loader rejects it. Mock both
 // at the package boundary so importing worker.ts doesn't crash.
-const { withSentryMock, mockPostCheckIn, mockPostEvent, mockSafeLog, mockAcquire } = vi.hoisted(
-  () => ({
-    withSentryMock: vi.fn(<T>(_opts: unknown, handler: T) => handler),
-    mockPostCheckIn: vi.fn(),
-    mockPostEvent: vi.fn(),
-    mockSafeLog: vi.fn(),
-    // BL-032.77 dedup mock — default to `true` (lock acquired) so existing
-    // happy-path tests run the full handler. Tests that need to exercise
-    // the loser path override via `mockAcquire.mockResolvedValueOnce(false)`.
-    mockAcquire: vi.fn().mockResolvedValue(true),
-  })
-);
+const {
+  withSentryMock,
+  mockPostCheckIn,
+  mockPostEvent,
+  mockSafeLog,
+  mockAcquire,
+  mockRunAlertEvaluation,
+} = vi.hoisted(() => ({
+  withSentryMock: vi.fn(<T>(_opts: unknown, handler: T) => handler),
+  mockPostCheckIn: vi.fn(),
+  mockPostEvent: vi.fn(),
+  mockSafeLog: vi.fn(),
+  // BL-032.77 dedup mock — default to `true` (lock acquired) so existing
+  // happy-path tests run the full handler. Tests that need to exercise
+  // the loser path override via `mockAcquire.mockResolvedValueOnce(false)`.
+  mockAcquire: vi.fn().mockResolvedValue(true),
+  // BL-032.75 Phase 3 — evaluator dispatch mock.
+  mockRunAlertEvaluation: vi.fn().mockResolvedValue({ evaluatedAt: '', env: 'test', rules: [] }),
+}));
 
 vi.mock('@sentry/cloudflare', () => ({
   init: vi.fn(),
@@ -77,6 +84,15 @@ vi.mock('../../src/lib/single-flight-lock', () => ({
   acquire: mockAcquire,
   pollForChange: vi.fn(),
   release: vi.fn(),
+}));
+
+// BL-032.75 Phase 3 — mock the evaluator module (worker.ts imports it for
+// dispatch; status-page.ts imports LAST_EVAL_KEY, so the mock must carry
+// both named exports the real module provides to importers in this graph).
+vi.mock('../../src/observability/alert-evaluator', () => ({
+  runAlertEvaluation: mockRunAlertEvaluation,
+  ALERT_EVALUATOR_CRON: '*/15 * * * *',
+  LAST_EVAL_KEY: 'mcp:alerts:last-eval',
 }));
 
 // Imports MUST come after vi.mock so the mocked modules are wired in.
@@ -676,5 +692,87 @@ describe('worker.ts scheduled handler — single-flight dedup (BL-032.77 cron-fi
 
     expect(cron.refreshRadarSnapshot).toHaveBeenCalledTimes(1);
     expect(mockPostCheckIn).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('worker.ts scheduled handler — BL-032.75 Phase 3 alert-evaluator dispatch', () => {
+  // The dispatch restructure (else-radar → explicit per-cron matching) is
+  // the highest-risk edit in the Phase 3 PR: a mis-route sends the 15-min
+  // evaluator cron into radar-refresh — 96 Inoreader-budget-burning
+  // firings/day. These tests pin the routing contract.
+  const EVALUATOR_CRON = '*/15 * * * *';
+
+  const makeEvent = (cronExpr: string): ScheduledController =>
+    ({
+      cron: cronExpr,
+      scheduledTime: FAKE_SCHEDULED_TIME,
+      type: 'scheduled',
+      noRetry: () => {},
+    }) as unknown as ScheduledController;
+
+  beforeEach(() => {
+    mockPostCheckIn.mockReset();
+    mockPostEvent.mockReset();
+    mockSafeLog.mockReset();
+    mockRunAlertEvaluation.mockClear();
+    vi.mocked(cron.refreshRadarSnapshot).mockReset();
+    vi.mocked(cron.refreshRadarSnapshot).mockResolvedValue({
+      kind: 'success',
+      wireItems: 0,
+      fyiItems: 0,
+      callsConsumed: 0,
+    });
+    mockAcquire.mockReset();
+    mockAcquire.mockResolvedValue(true);
+  });
+
+  it('evaluator cron runs runAlertEvaluation and NEVER calls refreshRadarSnapshot', async () => {
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeEvent(EVALUATOR_CRON), FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    expect(mockRunAlertEvaluation).toHaveBeenCalledTimes(1);
+    expect(mockRunAlertEvaluation).toHaveBeenCalledWith(FAKE_ENV);
+    expect(cron.refreshRadarSnapshot).not.toHaveBeenCalled();
+    // The evaluator posts issue events internally (mocked away here) but
+    // the DISPATCH layer must never post Crons check-ins for this cron —
+    // the free-tier monitor budget belongs to radar-refresh.
+    expect(mockPostCheckIn).not.toHaveBeenCalled();
+  });
+
+  it('evaluator cron acquires its own dedup lock (distinct key prefix) and the loser path skips evaluation', async () => {
+    mockAcquire.mockResolvedValueOnce(false);
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeEvent(EVALUATOR_CRON), FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    expect(mockAcquire).toHaveBeenCalledWith(
+      FAKE_ENV,
+      `mcp:lock:cron-alert-evaluator:${EVALUATOR_CRON}:${FAKE_SCHEDULED_TIME}`,
+      300
+    );
+    expect(mockRunAlertEvaluation).not.toHaveBeenCalled();
+    expect(cron.refreshRadarSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('unknown cron expressions run NOTHING (no silent fall-through to radar)', async () => {
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeEvent('30 3 * * 5'), FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    expect(cron.refreshRadarSnapshot).not.toHaveBeenCalled();
+    expect(mockRunAlertEvaluation).not.toHaveBeenCalled();
+    expect(mockSafeLog).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'cron.scheduled.unknown-cron' })
+    );
+  });
+
+  it('radar cron still routes to refreshRadarSnapshot (dispatch restructure preserves the legacy path)', async () => {
+    const { ctx, waitUntilPromises } = makeCtx();
+    handler.scheduled!(makeEvent('0 */6 * * *'), FAKE_ENV, ctx);
+    await Promise.all(waitUntilPromises);
+
+    expect(cron.refreshRadarSnapshot).toHaveBeenCalledTimes(1);
+    expect(mockRunAlertEvaluation).not.toHaveBeenCalled();
   });
 });

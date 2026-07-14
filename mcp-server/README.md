@@ -401,6 +401,16 @@ The `src/` layout is additive — sibling work drops in alongside `tools/` witho
 
 ---
 
+## Observability (BL-032.75)
+
+- **Live status**: `https://mcp.globalstrategic.tech/status` — health substrate + last SLO alert evaluation, refreshed by the `*/15` evaluator cron. JSON detail on `/health`.
+- **Alert rules**: [`src/observability/alert-rules.ts`](src/observability/alert-rules.ts) (7 canonical rules; thresholds cite the signed-off [`observability/slo-baselines.md`](observability/slo-baselines.md)). Breaches → fingerprinted Sentry issue events → email (rules per [`SENTRY_ALERT_RULES.md § 5`](src/docs/operations/SENTRY_ALERT_RULES.md)).
+- **Runbooks**: [`observability/runbooks/`](observability/runbooks/) — one per rule; `runbook-freshness.test.ts` fails CI when one goes >6 months unreviewed.
+- **Test-fire an alert**: `npx wrangler dev --env production --remote --test-scheduled` then `curl "http://localhost:8787/__scheduled?cron=*/15+*+*+*+*"` — full procedure + expectations in SENTRY_ALERT_RULES.md § 5.
+- **Re-pull SLO baselines**: `npm run ae:baseline -- --env production` (needs `CF_AE_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` env vars; DEPLOY.md § C.X).
+
+---
+
 ## Build pipeline
 
 `npm run build` runs two steps:

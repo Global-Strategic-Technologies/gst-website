@@ -34,6 +34,7 @@
  */
 
 import { safeLog } from '../auth/safe-logger';
+import { createMcpClient } from '../lib/upstash-clients';
 import type { Env } from '../worker';
 
 interface ParsedDsn {
@@ -64,7 +65,32 @@ function randomEventId(): string {
   return crypto.randomUUID().replace(/-/g, '');
 }
 
-async function postEnvelope(dsn: ParsedDsn, body: string): Promise<void> {
+/**
+ * BL-032.75 Phase 3 — best-effort delivery day-counters. The
+ * `sentry-envelope-post-failure-rate` alert rule needs an ok/fail ratio;
+ * before these counters the failure paths only surfaced in `safeLog`
+ * (Workers Logs), which the alert evaluator cannot query. Keys:
+ * `mcp:sentry-envelope:{ok|fail}:<YYYY-MM-DD>` (UTC day), TTL 48h so the
+ * evaluator can always read today's pair while yesterday's ages out.
+ * NEVER throws — envelope delivery must not depend on Upstash health
+ * (and vice versa: this is exactly the self-referential caveat the
+ * rule's runbook documents).
+ */
+async function bumpEnvelopeCounter(env: Env, outcome: 'ok' | 'fail'): Promise<void> {
+  try {
+    const redis = createMcpClient(env);
+    if (!redis) return;
+    const day = new Date().toISOString().slice(0, 10);
+    const key = `mcp:sentry-envelope:${outcome}:${day}`;
+    await redis.incr(key);
+    await redis.expire(key, 48 * 3600);
+  } catch {
+    // Best-effort by contract — a counter miss must never affect
+    // envelope delivery or the caller's ctx.waitUntil.
+  }
+}
+
+async function postEnvelope(env: Env, dsn: ParsedDsn, body: string): Promise<void> {
   // BL-032.77 — diagnose Sentry-side envelope failures (missing-check-in
   // alerts that don't match Cloudflare-side success). Three failure modes
   // get distinct `safeLog` lines so a `wrangler tail` filter can attribute
@@ -103,6 +129,9 @@ async function postEnvelope(dsn: ParsedDsn, body: string): Promise<void> {
         errorCode: 'sentry-envelope-non-2xx',
         reason: `host=${dsn.host} project=${dsn.projectId}`,
       });
+      await bumpEnvelopeCounter(env, 'fail');
+    } else {
+      await bumpEnvelopeCounter(env, 'ok');
     }
   } catch (err) {
     // AbortError when the controller fires; everything else is a genuine
@@ -115,6 +144,7 @@ async function postEnvelope(dsn: ParsedDsn, body: string): Promise<void> {
       errorCode: isAbort ? 'sentry-envelope-abort' : 'sentry-envelope-network',
       reason: err instanceof Error ? err.message.slice(0, 200) : 'unknown',
     });
+    await bumpEnvelopeCounter(env, 'fail');
   } finally {
     clearTimeout(timer);
   }
@@ -130,6 +160,15 @@ export async function postSentryEvent(
     message: string;
     tags?: Record<string, string | number | boolean>;
     extra?: Record<string, unknown>;
+    /**
+     * BL-032.75 Phase 3 — explicit issue-grouping control. The alert
+     * evaluator fingerprints per `['slo-alert', ruleId, severity, utcDate]`
+     * so each day's first breach of a rule creates a NEW Sentry issue
+     * (firing the "new issue" email rule) instead of accumulating on a
+     * long-resolved one — same per-period bucketing rationale as the
+     * weekly alert-rule synthetic.
+     */
+    fingerprint?: string[];
   }
 ): Promise<void> {
   const dsn = parseDsn(env.SENTRY_DSN);
@@ -146,6 +185,7 @@ export async function postSentryEvent(
   };
   if (event.tags && Object.keys(event.tags).length > 0) eventBody.tags = event.tags;
   if (event.extra && Object.keys(event.extra).length > 0) eventBody.extra = event.extra;
+  if (event.fingerprint && event.fingerprint.length > 0) eventBody.fingerprint = event.fingerprint;
   if (env.SENTRY_RELEASE) eventBody.release = env.SENTRY_RELEASE;
 
   const envelope = [
@@ -154,7 +194,7 @@ export async function postSentryEvent(
     JSON.stringify(eventBody),
   ].join('\n');
 
-  await postEnvelope(dsn, envelope);
+  await postEnvelope(env, dsn, envelope);
 }
 
 /**
@@ -238,6 +278,6 @@ export async function postSentryCheckIn(
     JSON.stringify(checkInBody),
   ].join('\n');
 
-  await postEnvelope(dsn, envelope);
+  await postEnvelope(env, dsn, envelope);
   return id;
 }

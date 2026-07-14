@@ -42,6 +42,8 @@ import { AnalyticsEngineSink, emit } from './metrics/_index';
 import type { RefreshOutcome } from './cron/radar-refresh';
 import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
 import { dispatchAlertRuleSynthetic, SYNTHETIC_CRON } from './observability/alert-rule-synthetic';
+import { runAlertEvaluation, ALERT_EVALUATOR_CRON } from './observability/alert-evaluator';
+import { buildStatusHtml } from './observability/status-page';
 import { buildHealthPayload } from './observability/health';
 import { runAclSelfCheckOnce } from './observability/acl-selfcheck';
 import {
@@ -113,6 +115,18 @@ export interface Env {
   // Sentry — new project for service:mcp-server (Q6).
   SENTRY_DSN?: string;
 
+  // BL-032.75 Phase 3 — Analytics Engine SQL read access for the alert
+  // evaluator cron. `CF_AE_TOKEN` is a Cloudflare API token scoped to
+  // `Account | Account Analytics | Read` ONLY (mint per DEPLOY.md § C.X;
+  // recommend a dedicated Worker mint, tracked as `gst-mcp-ae-read-worker`,
+  // so operator + Worker tokens rotate independently). `CF_ACCOUNT_ID` is
+  // the Cloudflare account id — treated as a secret to keep it out of the
+  // repo. Both optional: when unbound, AE-backed alert rules fail open
+  // (evaluate as non-breach with the gap recorded) and the Upstash/health
+  // rules still run. Set via `wrangler secret put <NAME> --env production`.
+  CF_AE_TOKEN?: string;
+  CF_ACCOUNT_ID?: string;
+
   // Build provenance — short SHA injected by `scripts/deploy.mjs` via
   // `wrangler deploy --var GIT_SHA:<sha>`. Surfaced on /health so operators
   // can verify which commit is running on the edge after a deploy.
@@ -176,6 +190,13 @@ function isRoutedPath(pathname: string): boolean {
   if (pathname === '/radar/snapshot') return true;
   return false;
 }
+
+// Radar-refresh cron expression — mirrored in wrangler.toml
+// [env.production] triggers. Hoisted (BL-032.75 Phase 3) so the scheduled
+// dispatch matches each registered cron explicitly instead of treating
+// radar as the unconditional else-branch. (Line comment because the
+// expression contains the block-comment terminator sequence.)
+const RADAR_CRON = '0 */6 * * *';
 
 // Exported for direct unit-testing of the scheduled handler's error-capture
 // path (see `tests/unit/worker-scheduled.test.ts`). The default export
@@ -249,6 +270,55 @@ export const handler: ExportedHandler<Env> = {
           // the synthetic itself is idempotent (one fire-and-forget POST).
           if (event.cron === SYNTHETIC_CRON) {
             await dispatchAlertRuleSynthetic(env);
+            return;
+          }
+
+          // BL-032.75 Phase 3 — SLO alert evaluator (15-min cadence).
+          // Same double-fire dedup discipline as the radar path below;
+          // distinct lock-key prefix so the two crons can never collide
+          // even at the :00 overlap (event.cron disambiguates). The
+          // evaluator itself never throws and emits its own cron_outcome
+          // AE event; the dedup loser emits `deduplicated` here so
+          // double-fire frequency stays observable for this cron too.
+          if (event.cron === ALERT_EVALUATOR_CRON) {
+            const evalLockKey = `mcp:lock:cron-alert-evaluator:${event.cron}:${event.scheduledTime}`;
+            const evalAcquired = await acquire(env, evalLockKey, 300);
+            if (!evalAcquired) {
+              safeLog({
+                event: 'cron.scheduled.deduplicated',
+                reason: 'peer-holds-lock',
+                success: true,
+                durationMs: Date.now() - startedAt,
+                cron: event.cron,
+                scheduledTime: event.scheduledTime,
+              });
+              if (env.METRICS) {
+                emit(new AnalyticsEngineSink(env.METRICS), {
+                  event_type: 'cron_outcome',
+                  name: 'alert-evaluator',
+                  outcome: 'deduplicated',
+                  duration_ms: Date.now() - startedAt,
+                });
+              }
+              return;
+            }
+            await runAlertEvaluation(env);
+            return;
+          }
+
+          // Explicit-dispatch guard (BL-032.75 Phase 3 restructure): the
+          // radar path below historically ran as the unconditional `else`.
+          // With three registered crons, an unrecognized expression (e.g.
+          // a wrangler.toml edit that didn't update the matching constant)
+          // must NOT silently burn Inoreader budget on the radar path.
+          if (event.cron !== RADAR_CRON) {
+            safeLog({
+              event: 'cron.scheduled.unknown-cron',
+              success: false,
+              errorCode: 'unknown-cron-expression',
+              reason: `no handler registered for cron: ${event.cron}`,
+              cron: event.cron,
+            });
             return;
           }
 
@@ -393,6 +463,24 @@ export const handler: ExportedHandler<Env> = {
     if (url.pathname === '/health' && request.method === 'GET') {
       const payload = await buildHealthPayload(env);
       return withCors(Response.json(payload), origin);
+    }
+
+    // 2.1. Status page (BL-032.75 Phase 3) — public HTML over the same
+    //      health payload /health already exposes, plus the alert
+    //      evaluator's last-run summary. No auth (health is already
+    //      unauthenticated and shows strictly more); 60s edge cache
+    //      keeps uptime-monitor pollers off the Upstash probes.
+    if (url.pathname === '/status' && request.method === 'GET') {
+      const html = await buildStatusHtml(env);
+      return withCors(
+        new Response(html, {
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'public, max-age=60',
+          },
+        }),
+        origin
+      );
     }
 
     // 2.5. BL-047 T2 — Inoreader OAuth re-auth flow. Admin-gated browser

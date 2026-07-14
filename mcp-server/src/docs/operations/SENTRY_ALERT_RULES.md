@@ -120,7 +120,40 @@ Document the first verified firing date in this section once complete:
 
 For Rules 1-3, the cheapest production-safe verification is: open `mcp-server/scripts/inoreader-auth.mjs`, intentionally bind an invalid `INOREADER_REFRESH_TOKEN` on **staging only**, observe `oauth-refresh-invalid-refresh-token` event in Sentry → Slack page in `#mcp-alerts`. Then restore the real token. (Staging has no cron so this requires manually invoking the refresh path — `npx wrangler dev --env staging --remote` + the equivalent of a radar tool call. Out of scope for this PR; treat as the BL-047 T2 endpoint-arrival validation moment.)
 
-## 5. Provenance
+## 5. SLO alert rules (BL-032.75 Phase 3)
+
+The `*/15 * * * *` alert-evaluator cron ([`alert-evaluator.ts`](../../observability/alert-evaluator.ts)) posts fingerprinted issue events (tag `event: slo-alert`) for breaches of the 7 canonical rules in [`alert-rules.ts`](../../observability/alert-rules.ts). Thresholds derive from the signed-off [`slo-baselines.md`](../../../observability/slo-baselines.md) targets. Runbooks live at [`observability/runbooks/`](../../../observability/runbooks/).
+
+**Two new UI email rules to create** (same skeleton as § 3; free-tier email channel):
+
+| #   | Name                 | IF (filters)                                                      | Trigger                                                                                                                                                                     | Action frequency |
+| --- | -------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 5   | `slo-alert — page`   | tag `event` equals `slo-alert` AND tag `severity` equals `page`   | "A new issue is created" (single trigger — per-day fingerprints make each day's first breach a NEW issue, per the synthetic's precedent; no manual-resolve workflow needed) | 60 min           |
+| 6   | `slo-alert — ticket` | tag `event` equals `slo-alert` AND tag `severity` equals `ticket` | "A new issue is created"                                                                                                                                                    | 60 min           |
+
+**Issue-churn expectation**: a multi-day incident opens one issue per rule per UTC day (fingerprint includes the date). That's intended — each day's email is a re-page. Cooldowns (page 2h / ticket 6h, Upstash `SET NX EX`) bound intra-day volume; worst case across all 7 rules is ≈840 events/month against the 5k free-tier budget.
+
+**Free-tier constraints honored** (verified 2026-07-10): the evaluator posts issue EVENTS only — never Crons check-ins (the single free-tier monitor belongs to radar-refresh); notifications are email-only until a Team-plan Slack integration exists.
+
+### Acceptance test — force-fire the evaluator
+
+```powershell
+cd c:\Code\gst-website\mcp-server
+npx wrangler dev --env production --remote --test-scheduled
+# In a second terminal:
+curl "http://localhost:8787/__scheduled?cron=*/15+*+*+*+*"
+# Expected:
+#   - Worker Logs: { event: 'alert-evaluator.completed', success: true, reason: 'breached=... suppressed=... errors=...' }
+#   - https://localhost:8787/status (or production /status after deploy) shows the evaluation summary table
+#   - If any rule is genuinely breached: Sentry issue titled "slo-alert.<rule-id>: ..." with tags event=slo-alert, rule, severity + email within ~1-5 min
+#   - AE (a minute later): Verify-AeEmission.ps1 -Env production -WindowHours 1 shows a cron_outcome / alert-evaluator row
+```
+
+Document the first verified firing date here once complete:
+
+> **First verified evaluator firing**: _(pending — record after PR 2 deploys with the CF_AE_TOKEN / CF_ACCOUNT_ID secrets bound and Rules 5-6 exist)_
+
+## 6. Provenance
 
 - Worker emit sites verified 2026-05-30 against [`inoreader-oauth.ts`](../../lib/inoreader-oauth.ts) HEAD on `feature/bl-047-backlog-cleanup`
 - Sentry UI semantics verified 2026-05-30 against `/getsentry/sentry-docs` via Context7 — trigger menu is issue-lifecycle-only; "tag match" lives under IF/filters; "any of the following" OR's multiple triggers

@@ -242,7 +242,8 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
  */
 export const NAME_VALUES: Partial<Record<EventType, readonly string[]>> = {
   inoreader_call: ['cron-radar', 'live-radar', 'http-radar-snapshot', 'oauth-refresh', '401-retry'],
-  cron_outcome: ['radar-refresh'],
+  // 'alert-evaluator' — BL-032.75 Phase 3 SLO alert evaluator cron
+  cron_outcome: ['radar-refresh', 'alert-evaluator'],
 };
 
 /**

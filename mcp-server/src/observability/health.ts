@@ -66,9 +66,12 @@ import {
 } from '../lib/inoreader-refresh-health';
 import type { Env } from '../worker';
 
-const VERSION = '0.1.0'; // bumped in lockstep with mcp-server/package.json (see BREAKING_CHANGES.md)
+// Bumped in lockstep with mcp-server/package.json (see BREAKING_CHANGES.md).
+// Sat stale at '0.1.0' from BL-032 Phase 4b until the BL-032.75 Phase 3
+// closeout (2026-07-14) re-synced it — if you bump package.json, bump this.
+const VERSION = '0.39.0';
 
-/** Upstash key written by `radar-live-store.ts` (and refreshed hourly by `cron/radar-refresh.ts`). */
+/** Upstash key written by `radar-live-store.ts` (and refreshed every 6h by `cron/radar-refresh.ts`). */
 const RADAR_FYI_CACHE_KEY = 'mcp:radar:cache:fyi';
 
 interface HealthResponse {
@@ -99,8 +102,9 @@ interface HealthResponse {
    * Age of the FYI radar snapshot in seconds (BL-032.5 Phase 4). `null` when
    * the snapshot has never been populated or when MCP DB is unreachable.
    * BL-032.75 alert rules trip when this exceeds 2× the Cron interval
-   * (~7200 s = 2 h). Picked FYI (not Wire) because it's the more
-   * user-visible tier and refreshes from the same Cron tick.
+   * (2 × 6h = 43,200 s = 12h — the signed-off freshness SLO in
+   * `observability/slo-baselines.md`). Picked FYI (not Wire) because it's
+   * the more user-visible tier and refreshes from the same Cron tick.
    */
   radarSnapshotAgeSeconds: number | null;
   /**
@@ -218,7 +222,7 @@ async function probeMcp(env: Env): Promise<'ok' | 'degraded'> {
  * the same shape and pull `data.fetchedAt`. Falls back to `storedAt` if
  * `fetchedAt` is missing for any reason. The cost is one cheap GET.
  */
-async function probeRadarSnapshotAge(env: Env): Promise<number | null> {
+export async function probeRadarSnapshotAge(env: Env): Promise<number | null> {
   const redis = createMcpClient(env);
   if (!redis) return null;
   try {
