@@ -151,7 +151,7 @@ When Phases 2 + 3 are both complete (both initiatives' acceptance criteria green
 - ✅ Dashboards + alerts + runbooks operational
 - ✅ Status page live
 - ✅ One-week post-deploy review of BL-032 closed
-- ✅ BL-032.25 P1 items either resolved, re-filed under BL-034 doc cleanup, or formally cancelled (§ 1 schema normalization has a clean revisit-criteria path; § 2-4 are bundle-able)
+- ✅ BL-032.25 P1 items either resolved, re-filed under BL-034 doc cleanup, or formally cancelled (fully satisfied 2026-07-14: §§ 2-5 closed May 2026; § 1 closed rejected via benchmark-audit finding A — bucket empty, initiative closed)
 
 This is the gate to begin BL-033 design discussions. Until this point, BL-033 is on hold — its SLA paper can't be defended without baselines, and its use cases can't be served without Resources on remote.
 
@@ -175,13 +175,13 @@ The big initiative. From [BL-033 in BACKLOG.md](./BACKLOG.md):
 
 ## Cross-cutting open items along the way
 
-| Item                                          | When it surfaces                       | Notes                                                                                                                                                                                                                  |
-| --------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **BL-031.87 benchmark-audit spike**           | Post-deploy (BL-032.25 § 1 recommends) | 2-4 hours. Determines whether `pre-series-b` / `series_bc` collapses are by-design or lazy modeling. Outcome drives whether schema normalization happens (cancel § 1 if by-design; graduate to scheduled work if lazy) |
-| **BL-038 radar rate-limit tier enforcement**  | Before BL-033 ships                    | Ensures per-key radar tier enforcement (5/min, 50/day separate from non-radar). Already filed in BACKLOG                                                                                                               |
-| **BL-039 Worker as Inoreader refresh-writer** | Anytime; nice-to-have for BL-032.5     | Eliminates the website-side ISR dependency for radar token refresh. Filed 2026-05-12                                                                                                                                   |
-| **BL-034 MCP doc cleanup**                    | End of the BL-031.x → BL-033 sequence  | Rolling consolidation of transitional scaffolding. BL-032.25 § 4 (T.X.1 polish) bundles cleanly here                                                                                                                   |
-| **BL-032.25 P1 items closure**                | Anytime during baselining window       | § 2 (T.A.4 empty-bearer) and § 3 (T.K.2.b.3 stdio timeout) are small enough to bundle into Phase 2c work; § 4 (T.X.1) bundles with BL-034; § 1 (schema norm) follows benchmark-audit outcome                           |
+| Item                                          | When it surfaces                        | Notes                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **BL-031.87 benchmark-audit spike**           | ✅ Executed 2026-07-14                  | Returned **finding A** — all three collapses (`pre-series-b`, ICG + TechPar `series_bc`) are by-design; the curated bands have no finer-grained source data. § 1 closed rejected; adapter stays. See [BL-032.25 § 1 closure stanza](./MCP_SERVER_REMOTE_BL-032_25.md#closure-stanza-2026-07-14) |
+| **BL-038 radar rate-limit tier enforcement**  | Before BL-033 ships                     | Ensures per-key radar tier enforcement (5/min, 50/day separate from non-radar). Already filed in BACKLOG                                                                                                                                                                                        |
+| **BL-039 Worker as Inoreader refresh-writer** | Anytime; nice-to-have for BL-032.5      | Eliminates the website-side ISR dependency for radar token refresh. Filed 2026-05-12                                                                                                                                                                                                            |
+| **BL-034 MCP doc cleanup**                    | End of the BL-031.x → BL-033 sequence   | Rolling consolidation of transitional scaffolding. BL-032.25 § 4 (T.X.1 polish) bundles cleanly here                                                                                                                                                                                            |
+| **BL-032.25 P1 items closure**                | ✅ All closed (bucket empty 2026-07-14) | §§ 2-4 closed 2026-05-13; § 5 risk-accepted 2026-05-12; § 1 closed rejected 2026-07-14 (benchmark-audit finding A). BL-032.25 is closed                                                                                                                                                         |
 
 ---
 
@@ -193,10 +193,10 @@ These are the choices that gate the next move:
 2. **Re-run T.E.11 + T.E.12** against the deployed Worker with `SENTRY_DSN` bound — closes the last two literal FAILs in the soak
 3. **Timing of Phase 2a instrumentation** — start now while soak experience is fresh, or wait until BL-032's one-week post-deploy review closes (~2026-05-13)?
 4. **Phase 2 + Phase 3 ordering** — parallel cuts overall calendar time roughly in half; sequential is lower context-switching cost
-5. **Schedule the BL-031.87 benchmark-audit spike** — 2-4 hours of someone with ICG/TechPar dataset expertise. Outcome unblocks BL-032.25 § 1 closure either way
+5. ~~**Schedule the BL-031.87 benchmark-audit spike**~~ — ✅ resolved 2026-07-14: spike executed (operator-judged, Claude-prepared dossier); finding A closed BL-032.25 § 1 rejected
 
 **Recommendation**: start Phase 2a (instrumentation) in parallel with the BL-032 one-week post-deploy review so the team is collecting baseline data from day 1 of post-deploy traffic. The instrumentation work doesn't need the review to close — it ships independently and starts paying dividends immediately.
 
 ---
 
-_Last updated: 2026-05-12 — initial authoring at end of BL-032 staging soak + pre-production-gate closure. Update or supersede as phases close._
+_Last updated: 2026-07-14 — BL-032.25 fully closed (§ 1 benchmark-audit spike executed, finding A; bucket empty); cross-cutting table + decision point 5 resolved accordingly. Originally authored 2026-05-12 at end of BL-032 staging soak. Update or supersede as phases close._
