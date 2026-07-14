@@ -66,7 +66,10 @@ import {
 } from '../lib/inoreader-refresh-health';
 import type { Env } from '../worker';
 
-const VERSION = '0.1.0'; // bumped in lockstep with mcp-server/package.json (see BREAKING_CHANGES.md)
+// Bumped in lockstep with mcp-server/package.json (see BREAKING_CHANGES.md).
+// Sat stale at '0.1.0' from BL-032 Phase 4b until the BL-032.75 Phase 3
+// closeout (2026-07-14) re-synced it — if you bump package.json, bump this.
+const VERSION = '0.39.0';
 
 /** Upstash key written by `radar-live-store.ts` (and refreshed every 6h by `cron/radar-refresh.ts`). */
 const RADAR_FYI_CACHE_KEY = 'mcp:radar:cache:fyi';

@@ -14,7 +14,7 @@
 >
 > **Scope**: this document covers [BL-032.75](BACKLOG.md#bl-03275-mcp-server--production-observability-maturity) — extending the structured-logs + `/health` baseline from BL-032 into a full observability surface (SLO dashboards, alerting, anomaly detection, error-budget tracking) that lets GST commit to the contractual uptime/latency SLAs BL-033 requires.
 >
-> **Status**: In progress (~25% shipped). Phase 0 (spend-accounting), K-section mitigations, and BL-032.76 cron Sentry repair are all ✅ shipped (see Predecessors + § "What's already in place"). Remaining work: typed metric emitters → Cloudflare Analytics Engine → Grafana dashboards → alert wiring + runbooks (Phases 1-3 below). The Phase 1-3 plan was rewritten 2026-05-27 after an adversarial audit surfaced three substrate-fit blockers and six maintainability concerns — see § "2026-05-27 Phase 1-3 plan revision" near the foot of this doc for the changelog. Phase 1 design + scaffolding can start NOW in parallel with the Phase 0 soak (2026-05-26 → ~2026-06-02); only the `inoreader_calls_total` emitter is gated on soak reconciliation.
+> **Status**: ~90% shipped (2026-07-14). Phase 0 ✅, Phase 1 ✅, **Phase 2 ✅ CLOSED 2026-07-14** — the original 2026-06-07 data-pull was missed (~5 weeks stalled); re-run via the scripted `npm run ae:baseline` pull on a fresh window, baselines + SLO targets filled and operator-signed-off in [`slo-baselines.md`](../../../mcp-server/observability/slo-baselines.md). **Phase 3 ✅ shipped in its account-free form** (mcp-server 0.39.0): the 7 canonical alerts run as a `*/15` **Worker-cron evaluator** posting fingerprinted Sentry issue events on the FREE Sentry tier (email rules; never Crons check-ins — the single free monitor belongs to radar-refresh), 7 runbooks with a CI freshness guard, and the `/status` page on the Worker. **Recorded deviations**: alert rules are TypeScript config-as-code (`src/observability/alert-rules.ts`), not `alert-rules.yaml` — they execute in the Worker and TS gives types + tests; alert routing is Sentry email, not Grafana→Slack/PagerDuty — no Slack workspace or Grafana account exists (free-tier verification 2026-07-10). **Remaining (deferred, explicit trigger = Grafana Cloud account creation)**: `grafana-dashboard.json` via the Infinity datasource against the AE SQL API, plus external-observer 5xx coverage for `health-check-failing` (in-process evaluation ships now; a Worker cannot HTTP-probe its own hostname).
 
 ---
 
@@ -168,12 +168,14 @@ These targets are **placeholders** — the first deliverable of Phase 2 is to ru
 
 ### 3. Alerting — who gets paged when
 
-| Channel                              | Purpose                                                                | Routing                                                 |
-| ------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------- |
-| `#mcp-alerts` (Slack)                | Tickets, low-urgency breaches, daily digest                            | All eng                                                 |
-| Email digest (daily)                 | Yesterday's traffic by tool, top users by `keyOwner`, any SLO breaches | All eng + senior consultants                            |
-| PagerDuty (or equivalent)            | Hard pages — see canonical alert list below                            | On-call rotation (single eng for now; expand at BL-033) |
-| Email to compliance contact (BL-033) | Audit log integrity check failures                                     | Quarterly automated                                     |
+> **2026-07-14 as-shipped revision**: the channel table below was aspirational — no Slack workspace or PagerDuty account exists, and the free Sentry tier is email-only (verified 2026-07-10). As shipped, BOTH severities route via **Sentry email issue-alert rules** (`slo-alert — page` / `slo-alert — ticket`, SENTRY_ALERT_RULES.md § 5); severity is carried as a tag + event level (page→error, ticket→warning). Slack/PagerDuty upgrade re-enters with the Team-plan decision at BL-033.
+
+| Channel                                | Purpose                                                                | Routing                                                 |
+| -------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| `#mcp-alerts` (Slack) _(deferred)_     | Tickets, low-urgency breaches, daily digest                            | All eng                                                 |
+| Email digest (daily)                   | Yesterday's traffic by tool, top users by `keyOwner`, any SLO breaches | All eng + senior consultants                            |
+| PagerDuty (or equivalent) _(deferred)_ | Hard pages — see canonical alert list below                            | On-call rotation (single eng for now; expand at BL-033) |
+| Email to compliance contact (BL-033)   | Audit log integrity check failures                                     | Quarterly automated                                     |
 
 **Canonical alert set (7 alerts, expanded from 4 post-audit)**:
 

@@ -1205,7 +1205,7 @@ The MCP server's blast radius is bounded — it's an internal tool, BL-033 hasn'
 
 ## C.X — Analytics Engine SQL query (BL-032.75 Phase 3)
 
-> **Audience**: operator wiring Grafana Cloud (or any external tool) to read AE events for dashboards / alerts / the `/status` page. **Phase 3 task** — file this here now so the procedure isn't rediscovered cold when Phase 3 lands.
+> **Audience**: operator minting AE read tokens. Three consumers exist: (1) the operator baselining pull (`npm run ae:baseline`, env vars in-session), (2) the **Worker's alert-evaluator cron** (Worker secrets — see the variant below), (3) future Grafana Cloud dashboards (deferred until that account exists).
 
 ### What you need
 
@@ -1231,6 +1231,26 @@ The MCP server's blast radius is bounded — it's an internal tool, BL-033 hasn'
    ```
 
    Expect `{"data":[{"total":<n>}],...}` with `n` ≥ 0.
+
+### Worker-secret variant — alert-evaluator cron (BL-032.75 Phase 3)
+
+The `*/15` alert-evaluator cron runs AE SQL queries at runtime and consumes the
+token as **Worker secrets** (not env vars):
+
+```powershell
+npx wrangler secret put CF_AE_TOKEN --env production      # paste at the prompt
+npx wrangler secret put CF_ACCOUNT_ID --env production    # account id (treated as secret — kept out of the repo)
+```
+
+- **Mint a SEPARATE token for the Worker** (same `Account | Account Analytics | Read`
+  scope; track as `gst-mcp-ae-read-worker` in the password manager +
+  [SECRETS_INVENTORY.md](../../../../src/docs/operations/SECRETS_INVENTORY.md)) so the
+  operator's pull token and the Worker's runtime token rotate independently.
+- Both secrets are OPTIONAL by design: when unbound, the AE-backed alert rules
+  (traffic-spike, scope-403, oauth-failure-rate) fail open with the gap recorded in
+  the evaluation summary; the Upstash/health-backed rules still run.
+- Set BEFORE merging a PR that registers the evaluator cron — production
+  auto-deploys on merge.
 
 ### Per-env dataset names (from `wrangler.toml`)
 

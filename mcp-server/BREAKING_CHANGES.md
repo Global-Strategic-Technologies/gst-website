@@ -29,6 +29,25 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.39.0 — 2026-07-14 — BL-032.75 Phase 3 — SLO alert evaluator cron + `/status` page (new route, new cron, new optional secrets)
+
+**Theme**: the account-free half of BL-032.75 Phase 3 ships — a scheduled SLO alert evaluator + public status surface, calibrated from the Phase 2 baselines signed off 2026-07-14 (`observability/slo-baselines.md`). Grafana dashboards remain deferred (Grafana Cloud account is the explicit trigger).
+
+**New public surface**:
+
+- **`GET /status`** — unauthenticated server-rendered HTML (health payload + last alert-evaluation summary). Same auth posture as `/health` (which exposes strictly more); 60s edge cache. NOT a manifest-hash input (routes aren't hashed).
+- **Third production cron `*/15 * * * *`** — the alert evaluator (`src/observability/alert-evaluator.ts`): evaluates the 7 canonical rules (`alert-rules.ts`, config-as-code in TS — recorded deviation from the design doc's YAML, since the rules execute in the Worker), posts fingerprinted Sentry issue events (`event: slo-alert`, fingerprint `['slo-alert', ruleId, severity, utcDate]`, cooldowns page 2h / ticket 6h), writes the summary for `/status`, and emits its own `cron_outcome` AE event (`NAME_VALUES.cron_outcome` gains `'alert-evaluator'`). Worker scheduled dispatch restructured to explicit per-cron matching with an unknown-cron fall-through.
+- **New OPTIONAL Worker secrets `CF_AE_TOKEN` + `CF_ACCOUNT_ID`** (AE SQL reads for the traffic-spike / scope-403 / oauth-failure-rate rules; mint per DEPLOY.md § C.X Worker-secret variant). Unbound → those rules fail open; Upstash/health rules still run. **Set before deploying this version** or accept the reduced rule set.
+- `postSentryEvent` gains optional `fingerprint`; `postEnvelope` now records ok/fail delivery day-counters (`mcp:sentry-envelope:{ok,fail}:<date>`, TTL 48h) — the `sentry-envelope-post-failure-rate` rule's data source.
+
+**Operator actions** (see SENTRY_ALERT_RULES.md § 5): create the two `slo-alert` email rules (page/ticket), set the two Worker secrets, run the force-fire acceptance test, record the first verified firing.
+
+**Free-tier constraints honored**: evaluator never posts Crons check-ins (the single free monitor belongs to radar-refresh); email-only notifications; worst-case ≈840 events/mo vs the 5k budget.
+
+**Manifest hash: UNCHANGED** — no Resource URIs or prompt versions touched. `/health.version` re-synced to package.json (was stale at `0.1.0` since BL-032 Phase 4b).
+
+---
+
 ## 0.38.0 — 2026-07-09 — BL-049 closeout hardening — `normalizeForMatching` curly-quote flattening + meta-fence stale version literal (`gst_irl_ingestion` v0.21.0 → v0.21.1)
 
 **Theme**: closes out BL-049 (BACKLOG truth-pass landed in the same PR — the stanza's "Open" status was a month stale; the server-side xlsx path stays deferred indefinitely per the [revisit blueprint](../src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md)). Two code remnants ship:
