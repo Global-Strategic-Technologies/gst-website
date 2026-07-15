@@ -73,7 +73,7 @@
     "browserslist": "^4.28.5",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-astro": "^2.1.1",
+    "eslint-plugin-astro": "^3.0.0",
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "lightningcss": "^1.32.0",
