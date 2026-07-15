@@ -14,7 +14,13 @@ on:
     # pull_request below to avoid double-firing on feat/fix/feature PRs (push
     # already covers those); the push trigger is the single source of per-commit
     # validation for all branch families.
-    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**']
+    # 'docs/**' + 'chore/**' added 2026-07-15 for the same mechanism via a
+    # different door: GitHub's "Update branch" button pushes a merge commit to
+    # the PR branch, which arrives as `synchronize` (ignored) — on a branch
+    # family absent from this push list, the new head gets zero check runs and
+    # the PR is BLOCKED by the strict up-to-date ruleset (observed on PR #316).
+    branches:
+      [master, dev, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**', 'docs/**', 'chore/**']
   pull_request:
     branches: [master]
     # Deliberately NOT listening to `synchronize` — push covers every commit
