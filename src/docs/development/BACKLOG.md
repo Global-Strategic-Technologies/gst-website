@@ -463,13 +463,24 @@ The directive engine originally sketched here is live, adapted to the post-#291 
 
 ---
 
-### BL-045: Sweep IRL-Ingestion Hardening + Rename (`gst_diligence_sweep` → `gst_irl_ingestion`)
+### BL-045: Sweep IRL-Ingestion Hardening + Rename (`gst_diligence_sweep` → `gst_irl_ingestion`) ✅ SHIPPED 2026-06-03
 
-**Source**: Sequel work scoped out of BL-044, rescoped 2026-06-01 from "ship a second prompt" to "harden + rename the existing ingestion surface" so one prompt cleanly serves buy-side, sell-side, value-creation, and unknown engagement scenarios with IRL-content-aware tool selection. Strategic-audit additions bundled 2026-06-01: meta JSON fence + schema self-check + BL-032.75 instrumentation + SOP-as-Resource + fill-ratio surfacing + derived `forceTools` enum + four robustness stretches (tool-error degradation, provenance self-check, deterministic dispatch test, build-time schema test) | **Architecture & plan**: [MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md](MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) | **Effort**: ~0.5 day (PR A, refactor) + 5-7 days (PR B, rename + harden + bundled enhancements + senior-consultant 9×4 review) | **Status**: Candidate — design doc landed 2026-06-01 after four audit cycles (three correctness + one strategic), awaits senior-consultant content review scheduling to promote Candidate → Committed | **Depends on**: BL-031.95 (deeplink contract reused via existing tool wrappers), BL-031.75 (registered-prompt maturity bar), BL-044 (parent IRL generator), BL-032.75 (instrumentation hooks emit into Phase 1's AE schema)
+**Source**: Sequel work scoped out of BL-044, rescoped 2026-06-01 from "ship a second prompt" to "harden + rename the existing ingestion surface" so one prompt cleanly serves buy-side, sell-side, value-creation, and unknown engagement scenarios with IRL-content-aware tool selection. Strategic-audit additions bundled 2026-06-01: meta JSON fence + schema self-check + BL-032.75 instrumentation + SOP-as-Resource + fill-ratio surfacing + derived `forceTools` enum + four robustness stretches (tool-error degradation, provenance self-check, deterministic dispatch test, build-time schema test) | **Architecture & plan**: [MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md](MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) | **Effort**: ~0.5 day (PR A, refactor) + 5-7 days (PR B, rename + harden + bundled enhancements + senior-consultant 9×4 review) | **Status**: ✅ **SHIPPED 2026-06-03** (stanza truth-passed 2026-07-15) — PR A (extraction-rules refactor) landed 2026-06-01 at mcp-server 0.3.16; PR B (rename + args + body rewrite + fill-ratio pre-flight + `forceTools` + meta JSON fence + tool-schema enforcement) merged 2026-06-03 via [PR #212](https://github.com/Global-Strategic-Technologies/gst-website/pull/212) at mcp-server 0.13.1. The prompt has since iterated to v0.21.1 (mcp-server 0.39.0) through the BL-05x/06x/07x/08x + BL-086 cascade, which all built on this surface. **Honest deviation note**: the formal senior-consultant 36-cell (9×4) sign-off gating Candidate → Committed was never delivered as scoped (no sign-off comment exists on PR #212); validation happened empirically instead — live client-IRL exercise (StoreForce, 2026-06-02) drove the 0.4.0 tool-schema enforcement pivot, the BL-058/059/060/061/062 retest cascade exercised the full surface, and BL-074 (2026-06-30) shipped the client-ready gates + operator runbook. The [review packet](MCP_SERVER_FILLED_IRL_INGESTION_BL-045_REVIEW_PACKET.md) remains available if a formal content review is ever scheduled. | **Depends on**: BL-031.95 (deeplink contract reused via existing tool wrappers), BL-031.75 (registered-prompt maturity bar), BL-044 (parent IRL generator), BL-032.75 (instrumentation hooks emit into Phase 1's AE schema)
 
 **As a** GST partner receiving a filled IRL `.xlsx` back from a target/client, **I want** to invoke `/gst_intake_filled_irl` in Claude Desktop with the filled workbook attached **so that** the model parses the answer cells into structured inputs for every relevant Hub tool — `compute_techpar`, `assess_infrastructure_cost_governance`, `estimate_tech_debt_cost`, `generate_diligence_agenda`, `search_regulations` — in one assistant turn, instead of manually re-typing each value across multiple wizards.
 
 Closes the request → response loop BL-043 and BL-044 deliberately scoped out. Today the IRL is a structured _request_ artifact (BL-043 article + BL-044 generator); BL-045 makes the filled response equally structured on the consumption side.
+
+#### As shipped (2026-06-03, PR #212; supersedes the pre-rescope sections below)
+
+- **One ingestion surface**: `gst_irl_ingestion` (renamed from BL-032.6's `gst_diligence_sweep`) — takes the filled IRL as a `filledIrl` markdown arg, plus `mode` (full / extract-only), `verbosity`, `transactionContext` (buy / sell / value-creation / unknown), and `forceTools` (gate override). For `.xlsx` responses, `npm run irl:extract` converts the workbook to canonical markdown (partner-paste runbook, PR #248).
+- **Fill-ratio pre-flight**: halts on <15% filled (wrong-artifact guard), partial-IRL framing for 15–40%, normal above.
+- **Per-tool inclusion gates** with (J) gap-list elision reporting; **meta JSON fence** on every dossier (promptVersion, mode, fillRatio, gatesPassed/Elided, forceToolsApplied); provenance footers + Hub deeplinks per section.
+- **Tool-schema enforcement** (0.4.0): calibration rules (currency normalization, headcount scope, dataSensitivity buckets, MTTR-OPEN) moved from prompt-body prose to `_audit` fields on `generate_diligence_agenda` / `estimate_tech_debt_cost` Zod schemas after live testing showed body directives alone don't bind.
+- Extraction rules live in the shared `extraction-rules.ts` module (PR A) — single source of truth interpolated into the prompt body, lock-tested.
+
+<details>
+<summary>Historical: pre-rescope concept + candidate gating (superseded 2026-06-01; retained for the record)</summary>
 
 #### Likely shape (to refine during scoping)
 
@@ -481,17 +492,21 @@ Closes the request → response loop BL-043 and BL-044 deliberately scoped out. 
 
 The BL-044 v1 generator + Hub page just shipped (2026-05-25). Real partner usage of the request side should accumulate before designing the response side — v1 evidence on filled-IRL formats, common drift patterns, and which tools partners actually want auto-populated will dramatically improve BL-045's scope. Premature design risks shipping a parser optimized for hypothetical inputs.
 
+_(Outcome: the 2026-06-01 rescope collapsed this into hardening the existing sweep prompt rather than shipping a sibling; the operator elected to ship without waiting for the ≥3-engagement trigger, per the design doc's recorded decisions.)_
+
 #### Triggers to promote from candidate → committed
 
 - ≥3 engagements have run the BL-044 generator end-to-end and partners have actually received filled IRLs back
 - Common drift patterns surface across those engagements (informs whether the parser needs structured arg-mapping or a freeform model-mediated path)
 - A specific partner request for "automate the IRL → tool-inputs hop" arrives — currently the hop is unautomated but small (partner copies the answer cells manually into wizards)
 
-#### Out of scope (likely)
+</details>
+
+#### Out of scope (as shipped)
 
 - Multi-version IRL ingestion (parser supports v0 article structure only; later IRL revisions need their own parser updates)
-- Field-level validation against tool Zod schemas (rejection → loop back; bigger scope)
-- DOCX / PDF input variants (start with .xlsx since BL-044 generated that; expand later)
+- Field-level validation of _extraction payloads_ against every tool's Zod schema (the 0.4.0 `_audit` enforcement covers diligence + tech-debt; broader coverage remains out of scope)
+- DOCX / PDF input variants (`.xlsx` via `npm run irl:extract`; markdown paste is canonical)
 
 ---
 
