@@ -1,5 +1,7 @@
 # BL-045 PR B — Senior-consultant review packet
 
+> **⚠️ Disposition (2026-07-15)**: PR #212 merged 2026-06-03 **without this sign-off being delivered** — no review comment exists on the PR. The gate was overtaken by empirical validation: the live StoreForce client-IRL exercise (2026-06-02) drove the 0.4.0 tool-schema enforcement pivot, the BL-058→062 retest cascade exercised the gate/voice-cue matrix in practice, and BL-074 (2026-06-30) shipped the client-ready gates + operator runbook. This packet is retained as-is: the 36-cell matrix remains valid review surface (updated for prompt ≥v0.21.x drift) should a formal content review ever be scheduled. The delivery instructions below (PR review comment on #212) are historical — a future review would deliver against a fresh issue or PR.
+
 > **Purpose**: hand this file to the reviewer so they can complete the BLOCKING 36-cell sign-off without re-deriving the review surface from the design doc.
 >
 > **PR under review**: [#212](https://github.com/Global-Strategic-Technologies/gst-website/pull/212) — `feature/bl-045-pr-b-irl-ingestion`
