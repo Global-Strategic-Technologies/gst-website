@@ -613,11 +613,12 @@ Moved here from the main Test Suite (2026-05-31): the audit result is a function
 
 **Why `--omit=dev`**: dev-only advisories (e.g., `@astrojs/check` → `yaml-language-server` → `yaml`) affect local development tooling but never reach users. Production dependencies must stay at zero advisories; dev-only moderate advisories are tolerated and revisited case-by-case.
 
-**Current production state**: zero vulnerabilities (verified post-Phase-2).
+**Current production state**: zero vulnerabilities (verified post-Phase-2). As of 2026-07-15 the **full tree (dev included) is also at zero** — `npm audit fix` cleared the undici/ws/yaml-chain advisories and the scoped `@lhci/cli` override (below) cleared the rest.
 
 **Package overrides** — see [package.json](../../../package.json) `overrides` block:
 
 - `path-to-regexp: 6.3.0` — forces the patched version across the dependency tree to close `GHSA-9wv6-86v2-598j` without a destructive `@astrojs/vercel` downgrade. Re-evaluate when `@vercel/routing-utils` ships a clean upgrade path.
+- `@lhci/cli → { tmp: 0.2.7, uuid: 11.1.1 }` (scoped, added 2026-07-15) — `@lhci/cli@0.15.1` (latest) still pins `tmp@0.1.0`/`0.0.33` (`GHSA-52f5-9888-hmc6` + `GHSA-ph9p-34f9-6g65`, high) and `uuid@8.3.2` (`GHSA-w5hq-g745-h8pq`, moderate); npm audit's only suggested "fix" is a destructive downgrade to `@lhci/cli@0.1.0`. The scoped override forces the patched transitive versions inside lhci's subtree only, which also clears the dependent `external-editor`/`inquirer` advisories. Verified via `npx lhci healthcheck` + the CI lighthouse job. Remove when `@lhci/cli` ships with `tmp >=0.2.6` and `uuid >=11.1.1` (check with `npm ls tmp uuid --all` after a Dependabot lhci bump, then delete the override and re-run `npm audit`).
 
 **Automated dependency updates** — [Dependabot](../../../.github/dependabot.yml) opens PRs weekly for npm and GitHub Actions version bumps. When reviewing Dependabot PRs that update `@astrojs/vercel` or `@vercel/routing-utils`, check whether the `path-to-regexp` override can be removed by running `npm audit --omit=dev` after deleting the `overrides` block.
 
