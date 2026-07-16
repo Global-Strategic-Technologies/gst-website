@@ -9,7 +9,7 @@ import type {
  *
  * `@modelcontextprotocol/sdk@1.29.0` does not export an in-memory test
  * transport. The architecture decision lives in
- * `src/docs/development/MCP_SERVER_ARCHITECTURE_BL-031_tests.md`.
+ * `src/docs/development/_archive/MCP_SERVER_ARCHITECTURE_BL-031_tests.md`.
  *
  * Two halves hold references to each other; `send()` on one side enqueues
  * the message into the other's `onmessage` callback via `queueMicrotask`.

@@ -246,7 +246,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 - [ ] Access tokens are short-lived (1h) with refresh-token rotation; expired tokens return `401` with the spec-compliant `WWW-Authenticate: Bearer error="invalid_token"` challenge
 - [ ] Token introspection endpoint protected behind a separate admin scope so support engineers can debug client issues without seeing tokens
 - [ ] All OAuth endpoints documented in a `.well-known/oauth-authorization-server` metadata document (RFC 8414)
-- [ ] **Bearer-comparison constant-time hardening** — replace `bearer.ts:81`'s plain `value === token` with `crypto.timingSafeEqual` (or equivalent constant-time byte comparison). BL-032 soak verified empirically that WAN-noise dwarfs the timing leak at internal-scope (T.A.15 PASS, 880,000 ns of WAN noise vs ~40-80 ns leak), but the formal contract is plain-`===` which is not defensible at external-pilot scope. Estimated effort: half-day including a unit test that asserts comparison time is independent of mismatch position. Evidence: [T.A.15](./BL-032_TESTING_FINDINGS.md#ta15--token-comparison-timing-safe), [T.I.5](./BL-032_TESTING_FINDINGS.md#ti5--token-comparison-is-constant-time).
+- [ ] **Bearer-comparison constant-time hardening** — replace `bearer.ts:81`'s plain `value === token` with `crypto.timingSafeEqual` (or equivalent constant-time byte comparison). BL-032 soak verified empirically that WAN-noise dwarfs the timing leak at internal-scope (T.A.15 PASS, 880,000 ns of WAN noise vs ~40-80 ns leak), but the formal contract is plain-`===` which is not defensible at external-pilot scope. Estimated effort: half-day including a unit test that asserts comparison time is independent of mismatch position. Evidence: [T.A.15](./_archive/BL-032_TESTING_FINDINGS.md#ta15--token-comparison-timing-safe), [T.I.5](./_archive/BL-032_TESTING_FINDINGS.md#ti5--token-comparison-is-constant-time).
 
 **Rate limiting (per-client, contractual)**
 
@@ -276,7 +276,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 - [ ] **Onboarding playbook** documented: legal sign-off, NDA + DPA execution, client_id provisioning, scope assignment, sandbox environment access, joint kickoff call, success metrics
 - [ ] Sandbox environment with synthetic projects.json (zero real client data) for client engineers to integrate against before touching production
-- [ ] **Regional latency assessment + remediation** — BL-032 soak measured Upstash REST RTT from a GRU-region operator at ~250ms, which means non-radar warm calls land at p95 ~930ms (vs the playbook's <200ms target) and `/health` at p95 ~414ms (vs <150ms target). Code is fine; transcontinental Upstash hops dominate. Before the SLA below is contractually committed, measure latency from each pilot client's region and choose remediation: (a) move the MCP Upstash DB to a region closer to the pilot consumer base, (b) add a Cloudflare KV layer that replicates globally and reduces Upstash hits to once per region per TTL window, or (c) set the SLA region-aware ("p95 <500ms when Worker and Upstash are co-regional; <1.2s otherwise"). Evidence: [T.H.4](./BL-032_TESTING_FINDINGS.md#th4--radar-warm-cache-hit), [T.H.6](./BL-032_TESTING_FINDINGS.md#th6--health-latency-budget).
+- [ ] **Regional latency assessment + remediation** — BL-032 soak measured Upstash REST RTT from a GRU-region operator at ~250ms, which means non-radar warm calls land at p95 ~930ms (vs the playbook's <200ms target) and `/health` at p95 ~414ms (vs <150ms target). Code is fine; transcontinental Upstash hops dominate. Before the SLA below is contractually committed, measure latency from each pilot client's region and choose remediation: (a) move the MCP Upstash DB to a region closer to the pilot consumer base, (b) add a Cloudflare KV layer that replicates globally and reduces Upstash hits to once per region per TTL window, or (c) set the SLA region-aware ("p95 <500ms when Worker and Upstash are co-regional; <1.2s otherwise"). Evidence: [T.H.4](./_archive/BL-032_TESTING_FINDINGS.md#th4--radar-warm-cache-hit), [T.H.6](./_archive/BL-032_TESTING_FINDINGS.md#th6--health-latency-budget).
 - [ ] Status page published at `https://status.mcp.globalstrategic.tech` showing uptime, p50/p95 latency, and rate-limit-availability per tool
 - [ ] Pilot SLA defined and contractually committed: 99.5% monthly uptime, p95 latency <500ms for non-radar tools, support response <1 business day
 - [ ] At least 2 design-partner PE firms onboarded to the pilot
@@ -363,6 +363,22 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 ---
 
+### BL-088: Development-Docs Distillation & Cleanse
+
+**Source**: operator directive 2026-07-15 — `src/docs/development/` had accumulated 39 flat files (~2.4 MB) where 32 closed-initiative narratives drowned the 7 living reference docs, while load-bearing design rationale existed only inside those frozen narratives (cited by ~100 path-bearing references from live code/config/tests/docs) | **Architecture & plan**: [MCP_DOCS_DISTILLATION_BL-088.md](MCP_DOCS_DISTILLATION_BL-088.md) — disposition table, link policies, PR ledger | **Effort**: ~7-9 days across 5 PR waves | **Status**: **In progress** — PR 1 (archive wave: `_archive/` scaffolding + 16 archive-only docs moved + ~30 living refs repointed + lifecycle convention codified) landed 2026-07-15; PRs 2-5 (ARCHITECTURE.md distillation, 7 ADRs, maintained-doc folds, closure sweep) pending
+
+**As a** developer or agent looking for authoritative context in `src/docs/development/`, **I want** closed-initiative narratives distilled into maintained documentation (a living `mcp-server/src/docs/ARCHITECTURE.md`, lightweight ADRs under `src/docs/adr/`, folds into existing tool/prompt docs) with the originals archived under a documented convention **so that** the directory contains only living documents, every code-comment rationale pointer resolves to a maintained doc, and future initiative docs follow a distill-then-archive lifecycle instead of accumulating.
+
+#### Acceptance Criteria
+
+- [x] PR 1 — `_archive/` scaffolding (criteria + index + frozen-links policy), 16 archive-only docs moved, ~30 living refs repointed, dead BREAKING_CHANGES anchors fixed, lifecycle convention codified in README.md + CLAUDE.md cross-link (2026-07-15)
+- [ ] PR 2 — `mcp-server/src/docs/ARCHITECTURE.md` distilled from the 5 BL-031/032.x design docs; sources archived; ~25-30 refs repointed
+- [ ] PR 3a/3b — `src/docs/adr/` with ADR-0001–0007; 7 sources archived; ~50 refs repointed
+- [ ] PR 4 — tools/README + irl-tool-input-mapping folds; new `prompts/irl-ingestion.md`; 4 sources archived
+- [ ] PR 5 — master-index adr/ row; final sweep grep (zero initiative-doc refs outside `_archive/`); closure stanza; this initiative's own design doc archived per its lifecycle
+
+---
+
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype
@@ -394,7 +410,7 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 ### BL-048: MCP Server — Wrangler Secret Sync (extracted from BL-037 Phase D)
 
-**Source**: BL-048 — extracted from [BL-037 § Phase D — Wrangler secret sync](MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-optional-deferred). Originally scoped inside BL-037 as the fourth and lowest-priority phase ("optional, deferred"). 2026-05-31 audit recommended extraction so BL-037 can close after Phase C ships without carrying an indefinitely-deferred phase. | **Effort**: ~1 day implementation after a secret-manager substrate is chosen | **Status**: 🟦 **Open · DEPRIORITIZED — indefinitely deferred** until rotation friction or audit-trail need crosses a threshold | **Depends on**: BL-037 Phases A/B (shipped 2026-05-31) for the deploy substrate; selection of a secret-manager substrate (1Password Secrets Automation, Doppler, AWS Secrets Manager, HashiCorp Vault, or other)
+**Source**: BL-048 — extracted from [BL-037 § Phase D — Wrangler secret sync](_archive/MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-optional-deferred). Originally scoped inside BL-037 as the fourth and lowest-priority phase ("optional, deferred"). 2026-05-31 audit recommended extraction so BL-037 can close after Phase C ships without carrying an indefinitely-deferred phase. | **Effort**: ~1 day implementation after a secret-manager substrate is chosen | **Status**: 🟦 **Open · DEPRIORITIZED — indefinitely deferred** until rotation friction or audit-trail need crosses a threshold | **Depends on**: BL-037 Phases A/B (shipped 2026-05-31) for the deploy substrate; selection of a secret-manager substrate (1Password Secrets Automation, Doppler, AWS Secrets Manager, HashiCorp Vault, or other)
 
 **As a** GST operator running the MCP server, **I want** Cloudflare Worker secrets (`MCP_KEY_*`, `UPSTASH_MCP_REST_*`, `SENTRY_DSN`, `INOREADER_*`, `MCP_ADMIN_KEY`) to sync from a single canonical secret manager into Cloudflare via CI/CD **so that** secret rotation becomes a one-click operation, every rotation has an audit trail, and staging/production stay in lockstep without manual paste from my laptop.
 
@@ -414,7 +430,7 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 #### Out of scope for this stanza — but documented for revisit
 
-- Substrate choice (1Password Connect / Doppler / AWS SM / Vault) — see [BL-037 § Phase D](MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-optional-deferred) for the original sketch including the `cloudflare/wrangler-action@v3` `secrets:` input contract.
+- Substrate choice (1Password Connect / Doppler / AWS SM / Vault) — see [BL-037 § Phase D](_archive/MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-optional-deferred) for the original sketch including the `cloudflare/wrangler-action@v3` `secrets:` input contract.
 - Trigger model (workflow_dispatch only vs repository_dispatch from secret-manager webhook on rotation).
 - Filename: design doc proposes `secrets-sync-mcp.yml`.
 
@@ -426,7 +442,7 @@ Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there i
 
 ### BL-087: `gst_irl_ingestion` — Prompt-Shrink L3–L5 (reserved)
 
-**Source**: reserved successor scope from BL-086 (Option D workflow simplification, L2 verified + shipped 2026-06-30 at prompt v0.19.0 / mcp-server 0.32.0). BL-086 deliberately **stopped at L2**; the three deeper cuts were deferred here pending empirical evidence. | **Architecture & plan**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) (§ L3–L5 + capability-preservation matrix) | **Status**: Reserved — do NOT start without a promotion trigger firing
+**Source**: reserved successor scope from BL-086 (Option D workflow simplification, L2 verified + shipped 2026-06-30 at prompt v0.19.0 / mcp-server 0.32.0). BL-086 deliberately **stopped at L2**; the three deeper cuts were deferred here pending empirical evidence. | **Architecture & plan**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](_archive/MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) (§ L3–L5 + capability-preservation matrix) | **Status**: Reserved — do NOT start without a promotion trigger firing
 
 **Deferred scope**:
 

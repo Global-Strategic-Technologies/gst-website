@@ -261,7 +261,7 @@ New line: _"Workflow invocation: `<name>` — a GST consultant workflow the user
 
 **Theme**: closes the precheck-loop emission damage observed on the 2026-06-07 night staging exercise. Operator paste of a ~50KB IRL body produced `provenanceVerification: { total: 19, verified: 14, unverified: 5, tierMismatches: 1, tierFabrications: 3 }` because `validate_irl_provenance` required the model to re-emit the full body alongside the citations on every precheck iteration — the model's output stream silently dropped ~12% of bytes, and the citation substring matcher then ran against the lossy reconstruction. Part A lets the model pass the canonical 16-hex `irlBodyHash` instead; the server re-hydrates the operator-supplied bytes from the shared `IrlBodyCache` (BL-076 substrate, BL-077c namespace) for matching. The model emits the body to `prepare_irl_body` ONCE per session instead of once per precheck iteration.
 
-Independently fixes the precheck-iteration emission damage — Part B (prompt-render cache pre-pop) is the larger sequel that takes the body off the emission path entirely. See `src/docs/development/MCP_SERVER_PROMPT_ARG_CACHE_PREPOP_BL-079.md` for the full design.
+Independently fixes the precheck-iteration emission damage — Part B (prompt-render cache pre-pop) is the larger sequel that takes the body off the emission path entirely. See `src/docs/development/_archive/MCP_SERVER_PROMPT_ARG_CACHE_PREPOP_BL-079.md` for the full design.
 
 **Surface impact**:
 
@@ -1314,7 +1314,7 @@ For `estimate_tech_debt_cost`:
 - dataSensitivity = `low` (bucket boundary forced)
 - Tech Debt MTTR = field omitted with extractionOnly response (placeholder substitution forced to null)
 
-**Reference**: [spec](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md), [parent design doc](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md), [review packet](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_REVIEW_PACKET.md).
+**Reference**: [spec](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md), [parent design doc](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md), [review packet](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_REVIEW_PACKET.md).
 
 ---
 
@@ -1344,7 +1344,7 @@ For `estimate_tech_debt_cost`:
 
 **Manifest-hash impact**: hash changes from `b702aa38…` to `4941f4bf…` (9 prompts post-retirement, was 10). Library/Regulation/Radar URI sets unchanged. Updated in `tests/integration/manifest-stability.test.ts` and the "Current manifest hash" section above.
 
-**Reference**: [BACKLOG.md § BL-036](../src/docs/development/BACKLOG.md#bl-036), [design doc](../src/docs/development/MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md) (retained with closure banner — preserves the original tier sketches as institutional reference for any future contributor considering a similar surface).
+**Reference**: [BACKLOG.md § BL-036](../src/docs/development/BACKLOG.md), [design doc](../src/docs/development/_archive/MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md) (retained with closure banner — preserves the original tier sketches as institutional reference for any future contributor considering a similar surface).
 
 ---
 
@@ -1358,7 +1358,7 @@ For `estimate_tech_debt_cost`:
 
 **Behavior change visible to operators**: radar tools (`search_radar`, `get_latest_insights`) now consume from `mcp:ratelimit:radar:{min,day}` Upstash keys in addition to the existing `mcp:ratelimit:gen:{min,day}` keys. A key making 6+ radar calls in <60s will see a 429 with `reason: 'radar-rate-limit-per-minute'` while general-tool calls continue to flow against the unchanged 60/min general budget.
 
-**Reference**: [BL-038 design doc](../src/docs/development/MCP_SERVER_RATE_LIMIT_TIER_BL-038.md); [BACKLOG.md BL-038](../src/docs/development/BACKLOG.md#bl-038-mcp-server--radar-rate-limit-tier-5min-50day).
+**Reference**: [BL-038 design doc](../src/docs/development/_archive/MCP_SERVER_RATE_LIMIT_TIER_BL-038.md); [BACKLOG.md BL-038](../src/docs/development/BACKLOG.md).
 
 ---
 
@@ -1547,7 +1547,7 @@ The `xlsx-js-style` READ path strips style metadata back to a partial shape, so 
 
 **Operator semantics**: patch-style bump (runtime behavior change without surface-area change → patch bump per the discipline). Pinned conversations continue to resolve everything identically; the only behavior change is the visual styling Excel applies on open.
 
-**Architecture context**: BL-044 post-merge polish (live screenshot 2026-05-25 surfaced the styling no-op). Library-choice rationale + Workers-compatibility verification documented in [`MCP_SERVER_IRL_GENERATOR_BL-044.md` § "Library choice"](../src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md#library-choice--xlsx-js-style).
+**Architecture context**: BL-044 post-merge polish (live screenshot 2026-05-25 surfaced the styling no-op). Library-choice rationale + Workers-compatibility verification documented in [`MCP_SERVER_IRL_GENERATOR_BL-044.md` § "Library choice"](../src/docs/development/_archive/MCP_SERVER_IRL_GENERATOR_BL-044.md#library-choice--xlsx-js-style).
 
 ---
 
@@ -1587,7 +1587,7 @@ The `xlsx-js-style` READ path strips style metadata back to a partial shape, so 
 
 **Operator semantics**: minor bump per the discipline (additive tool + additive prompt behavior + new dependency → `0.3.4 → 0.3.5` minor, NOT major; pinned conversations resolve `gst_information_request_list` to the newer prompt with the additive file-attachment behavior; no removed names; no schema changes to existing tools).
 
-**Architecture context**: [BL-044 in BACKLOG.md](../src/docs/development/BACKLOG.md#bl-044-information-request-list--fillable-form-generator). Tracking doc at [`src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md`](../src/docs/development/MCP_SERVER_IRL_GENERATOR_BL-044.md) (added in this release).
+**Architecture context**: [BL-044 in BACKLOG.md](../src/docs/development/BACKLOG.md). Tracking doc at [`src/docs/development/_archive/MCP_SERVER_IRL_GENERATOR_BL-044.md`](../src/docs/development/_archive/MCP_SERVER_IRL_GENERATOR_BL-044.md) (added in this release).
 
 ---
 
@@ -1610,7 +1610,7 @@ The `xlsx-js-style` READ path strips style metadata back to a partial shape, so 
 
 **Operator semantics**: patch bump per the discipline (prompt `version` field bump with same name → patch). Behavior change without surface-area change; pinned conversations continue to resolve `gst_diligence_sweep` to the (now-newer) prompt.
 
-**Architecture context**: Findings from a 4-agent parallel audit of the post-demo Scenario 7 sweep output, with full audit transcripts retained in conversation context. The audit identified that the v0.0.3 dedup, deeplink, and sentinel-discipline patches partially landed but with three material residual errors; v0.0.4 closes the residuals. [BL-032.6 demo Scenario 7](../src/docs/development/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7).
+**Architecture context**: Findings from a 4-agent parallel audit of the post-demo Scenario 7 sweep output, with full audit transcripts retained in conversation context. The audit identified that the v0.0.3 dedup, deeplink, and sentinel-discipline patches partially landed but with three material residual errors; v0.0.4 closes the residuals. [BL-032.6 demo Scenario 7](../src/docs/development/_archive/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7).
 
 ---
 
@@ -1630,7 +1630,7 @@ Fix: one-line addition in [`buildTechparDeeplink`](./src/tools/techpar.ts#L26) �
 
 **Operator semantics**: patch bump per the discipline (tool response-shape change with no name/schema change → patch bump). Pinned conversations continue to resolve `compute_techpar` identically; the only behavior change is one URL param appended to the `deeplink` field.
 
-**Architecture context**: [BL-032.6 demo Scenario 7](../src/docs/development/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7) — surfaced when the post-demo TechPar wizard click-through showed implausible numbers.
+**Architecture context**: [BL-032.6 demo Scenario 7](../src/docs/development/_archive/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7) — surfaced when the post-demo TechPar wizard click-through showed implausible numbers.
 
 ---
 
@@ -1646,7 +1646,7 @@ Fix: one-line addition in [`buildTechparDeeplink`](./src/tools/techpar.ts#L26) �
 
 **Operator semantics**: patch bump per the discipline (prompt `version` field bump with same name → patch). Behavior change without surface-area change; pinned conversations continue to resolve `gst_diligence_sweep` to the (now-newer) prompt.
 
-**Architecture context**: live-exercise findings captured in [`mcp-server/tests/examples/diligence-sweep.golden.md`](./tests/examples/diligence-sweep.golden.md) § v0.0.3 candidate patches (now shipped). [BL-032.6 demo Scenario 7](../src/docs/development/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7) demo invocation directive (`Surface each GST Hub Tool deeplink at the close of its corresponding section`) was the front-line workaround that masked the deeplink regression during the demo; v0.0.3 makes that workaround unnecessary at the prompt-body level.
+**Architecture context**: live-exercise findings captured in [`mcp-server/tests/examples/diligence-sweep.golden.md`](./tests/examples/diligence-sweep.golden.md) § v0.0.3 candidate patches (now shipped). [BL-032.6 demo Scenario 7](../src/docs/development/_archive/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7) demo invocation directive (`Surface each GST Hub Tool deeplink at the close of its corresponding section`) was the front-line workaround that masked the deeplink regression during the demo; v0.0.3 makes that workaround unnecessary at the prompt-body level.
 
 ---
 
@@ -1663,7 +1663,7 @@ Fix: one-line addition in [`buildTechparDeeplink`](./src/tools/techpar.ts#L26) �
 
 **Operator semantics**: patch bump per the discipline (prompt `version` field bump with same name → patch). Behavior change without surface-area change; pinned conversations continue to resolve `gst_diligence_sweep` to the (now-newer) prompt.
 
-**Architecture context**: [BL-032.6 demo Scenario 7](../src/docs/development/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7) + live-exercise transcript captured in [`mcp-server/tests/examples/diligence-sweep.golden.md`](./tests/examples/diligence-sweep.golden.md).
+**Architecture context**: [BL-032.6 demo Scenario 7](../src/docs/development/_archive/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7) + live-exercise transcript captured in [`mcp-server/tests/examples/diligence-sweep.golden.md`](./tests/examples/diligence-sweep.golden.md).
 
 ---
 
@@ -1679,7 +1679,7 @@ Fix: one-line addition in [`buildTechparDeeplink`](./src/tools/techpar.ts#L26) �
 
 **Pinned conversation impact**: none. Existing pinned URIs and prompt names continue to resolve.
 
-**Architecture context**: [BL-032.6 demo Scenario 7](../src/docs/development/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7).
+**Architecture context**: [BL-032.6 demo Scenario 7](../src/docs/development/_archive/MCP_SERVER_DEMO_SCRIPT_BL-032_6.md#scenario-7).
 
 ---
 

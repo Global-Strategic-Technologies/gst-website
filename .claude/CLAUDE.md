@@ -244,6 +244,7 @@ npm run astro                 # Run Astro CLI
 ### Development Roadmap
 
 - **Development Backlog**: [src/docs/development/BACKLOG.md](src/docs/development/BACKLOG.md) - All open initiatives consolidated with user stories (open + deferred/candidate items only; completed stanzas are pruned — recover via `git log`)
+- **Initiative-doc lifecycle**: closed-initiative design docs are distilled into maintained docs/ADRs, then archived — see [src/docs/development/README.md § Initiative-doc lifecycle](src/docs/development/README.md). Never leave a closed initiative's doc in the active directory; never archive without distilling first.
 - **Sentry Setup**: [src/docs/development/SENTRY_MANUAL_SETUP.md](src/docs/development/SENTRY_MANUAL_SETUP.md) - Alert rules, source maps, consent gating
 
 ### Security
