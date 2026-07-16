@@ -28,7 +28,12 @@ on:
     # still run this required audit on the new head commit. The deploy workflows
     # (deploy-mcp-staging.yml, deploy-mcp-production.yml) deliberately OMIT
     # 'dependabot/**' — dependency bumps must be validated but never auto-deployed.
-    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**']
+    # 'docs/**' + 'chore/**' added 2026-07-15: GitHub "Update branch" pushes
+    # arrive as `synchronize` too, so these families need push-trigger coverage
+    # or updated PRs stall BLOCKED (observed on PR #316). Kept in lockstep with
+    # test.yml / test-mcp-server.yml.
+    branches:
+      [master, dev, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**', 'docs/**', 'chore/**']
     paths:
       - 'package-lock.json'
       - 'mcp-server/package-lock.json'
