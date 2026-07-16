@@ -243,7 +243,7 @@ npm run astro                 # Run Astro CLI
 
 ### Development Roadmap
 
-- **Development Backlog**: [src/docs/development/BACKLOG.md](src/docs/development/BACKLOG.md) - All open initiatives consolidated with user stories (35 items)
+- **Development Backlog**: [src/docs/development/BACKLOG.md](src/docs/development/BACKLOG.md) - All open initiatives consolidated with user stories (open + deferred/candidate items only; completed stanzas are pruned — recover via `git log`)
 - **Sentry Setup**: [src/docs/development/SENTRY_MANUAL_SETUP.md](src/docs/development/SENTRY_MANUAL_SETUP.md) - Alert rules, source maps, consent gating
 
 ### Security
@@ -349,4 +349,4 @@ Vercel — auto-deploys on push to `master`, preview deploys for PRs. Build: `np
 
 ---
 
-**Last Updated**: April 17, 2026
+**Last Updated**: July 15, 2026
