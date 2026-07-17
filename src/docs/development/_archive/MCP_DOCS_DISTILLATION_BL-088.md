@@ -2,9 +2,9 @@
 
 > **Backlog initiative**: [BL-088 in BACKLOG.md](BACKLOG.md#bl-088-development-docs-distillation--cleanse)
 >
-> **Status**: In progress — PR 1 (archive wave) landed 2026-07-15; PR 2 (ARCHITECTURE.md), PR 3a (ADR-0001/2/3), PR 3b (ADR-0004–0007), and PR 4 (doc folds + `prompts/irl-ingestion.md`) landed 2026-07-17. PR 5 (closure sweep) pending.
+> **Status**: ✅ **CLOSED 2026-07-17** — all five waves landed. PR 1 (archive wave, 2026-07-15); PR 2 (ARCHITECTURE.md), PR 3a (ADR-0001/2/3), PR 3b (ADR-0004–0007), PR 4 (doc folds + `prompts/irl-ingestion.md`), and PR 5 (closure sweep) all 2026-07-17. Final sweep verified zero references to any archived initiative doc outside `_archive/` (the sole exception: intentional provenance banners in distilled docs naming their archived sources).
 >
-> **Lifecycle note**: this doc is itself a point-in-time initiative record and follows the convention it creates — at BL-088 closure (PR 5) it moves to [`_archive/`](_archive/README.md).
+> **Lifecycle note**: this doc is itself a point-in-time initiative record and follows the convention it created — archived at closure (PR 5), the first initiative doc to complete the full lifecycle it defined.
 
 ## Problem
 
@@ -62,6 +62,6 @@
 | 3a  | ADR scaffolding (`src/docs/adr/` README + TEMPLATE) + ADR-0001/2/3; archive 3 sources; repoint 19 refs                                            | ✅ 2026-07-17    |
 | 3b  | ADR-0004/5/6/7; archive 4 sources; repoint 27 refs incl. eslint message + golden-fixture prose                                                    | ✅ 2026-07-17    |
 | 4   | tools/README + irl-mapping folds (dual-source, byte-identical + prebuild regen); NEW prompts/irl-ingestion.md; archive 4 sources; repoint 22 refs | ✅ 2026-07-17    |
-| 5   | Master-index adr/ row; final sweep grep; BL-088 closure; archive this doc                                                                         | pending (~0.5 d) |
+| 5   | Final sweep grep (clean); BL-088 closure stanza; this doc archived per its own lifecycle (adr/ master-index row landed early, in PR 3a)           | ✅ 2026-07-17    |
 
 **Per-PR verification**: re-grep each filename repo-wide immediately before moving (classifications drift); post-move grep → zero hits outside `_archive/` + archive index (+ `.claude/settings*.json` stale allowlist strings, harmless); every new/edited link target exists; full local gate (`astro check`, lint, lint:css, `test:run`) + mcp gate (`typecheck`, `test:mcp`) when mcp-server files are touched; golden-fixture edits must change comments only, never assertions.
