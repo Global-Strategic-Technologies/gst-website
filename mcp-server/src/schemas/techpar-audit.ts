@@ -48,7 +48,7 @@
  * Cross-checks live in the handler body (same SDK-shape constraint as
  * the diligence audit — see schemas/diligence-audit.ts module JSDoc).
  *
- * See: src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md
+ * See: mcp-server/src/docs/prompts/irl-ingestion.md § Server-side enforcement
  */
 
 import { z } from 'zod';

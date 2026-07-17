@@ -14,11 +14,11 @@ The docs are organized by **what** they describe — the system architecture, th
 
 ## Capability surfaces
 
-| Area          | Doc                                          | What's there                                                                                                                                                        |
-| ------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Tools**     | [`tools/README.md`](tools/README.md)         | Registry of per-tool **input contracts** — the structured input every MCP tool accepts, the pattern, and per-tool `CONTRACT.md` + `USAGE.md` under `tools/<tool>/`. |
-| **Resources** | [`resources/README.md`](resources/README.md) | The read-only `gst://` **URI taxonomy** — Library, Regulations, and Radar families.                                                                                 |
-| **Prompts**   | [`prompts/README.md`](prompts/README.md)     | The registered-prompt pattern — typed, versioned macros that compose Tools + Resources into workflows.                                                              |
+| Area          | Doc                                          | What's there                                                                                                                                                                                                    |
+| ------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tools**     | [`tools/README.md`](tools/README.md)         | Registry of per-tool **input contracts** — the structured input every MCP tool accepts, the pattern, and per-tool `CONTRACT.md` + `USAGE.md` under `tools/<tool>/`.                                             |
+| **Resources** | [`resources/README.md`](resources/README.md) | The read-only `gst://` **URI taxonomy** — Library, Regulations, and Radar families.                                                                                                                             |
+| **Prompts**   | [`prompts/README.md`](prompts/README.md)     | The registered-prompt pattern — typed, versioned macros that compose Tools + Resources into workflows. Complex prompts get a per-prompt companion doc ([`prompts/irl-ingestion.md`](prompts/irl-ingestion.md)). |
 
 ## Operations & testing
 

@@ -34,7 +34,7 @@
  *    multiply re-baseline churn without proportional regression value.
  *    The structural assertions below are the durable contract.
  *
- * See: src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md
+ * See: mcp-server/src/docs/prompts/irl-ingestion.md (companion doc)
  */
 
 import { describe, it, expect } from 'vitest';

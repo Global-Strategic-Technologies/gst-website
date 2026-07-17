@@ -7,7 +7,7 @@ model: claude-opus-4-8
 
 # Worked example output for `gst_information_request_list`
 
-V1 draft recording. To be replaced with the senior-consultant live-exercise capture during Step 5.5 of [BL-043](../../../src/docs/development/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md#step-55-senior-consultant-content-review--blocking) — the prompts README authoring checklist § 10 ("Live-exercise it") is the source of truth for the final capture.
+V1 draft recording. To be replaced with the senior-consultant live-exercise capture during Step 5.5 of [BL-043](../../../src/docs/development/_archive/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md#step-55-senior-consultant-content-review--blocking) — the prompts README authoring checklist § 10 ("Live-exercise it") is the source of truth for the final capture.
 
 > **v0.0.2 (BL-044) — file-attachment behavior**: when ANY arg is supplied, the one-shot body now instructs the model to also call the `generate_information_request_list_xlsx` tool so the partner receives a downloadable fillable `.xlsx` workbook (`{ filename, base64, mimeType }`) alongside the paste-ready text. Bare invocation (interactive mode) is unchanged — still text-only. The XLSX reads from the same canonical Resource the prompt embeds, so the partner-facing text and the partner-facing file stay byte-identical.
 >

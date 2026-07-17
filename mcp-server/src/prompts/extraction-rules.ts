@@ -17,7 +17,7 @@
  * meaning of every rule is preserved verbatim. Confirmed by the
  * constant-presence test added in `tests/unit/prompts/diligence-sweep.test.ts`.
  *
- * See: src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md
+ * See: mcp-server/src/docs/prompts/irl-ingestion.md (companion doc)
  *      § Pre-implementation refactor.
  */
 

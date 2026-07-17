@@ -1157,7 +1157,7 @@ Prompt: 0.5.2 → 0.5.3 (patch — additive directive clarity, no contract chang
 
 **Body-hash impact**: 4 of 5 scenarios re-baselined (interactive unchanged).
 
-**Reference**: [design doc § Body rendering strategy, § Output structure (K)](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
+**Reference**: [design doc § Body rendering strategy, § Output structure (K)](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
 
 ---
 
@@ -1178,7 +1178,7 @@ Prompt: 0.5.2 → 0.5.3 (patch — additive directive clarity, no contract chang
 
 **Body-hash impact**: 4 of 5 scenarios re-baselined (interactive unchanged).
 
-**Reference**: [design doc § Tool inclusion gates, § Output structure, § Decisions](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
+**Reference**: [design doc § Tool inclusion gates, § Output structure, § Decisions](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
 
 ---
 
@@ -1204,7 +1204,7 @@ Specific changes:
 
 **Manifest-hash impact**: unchanged.
 
-**Reference**: [design doc § Output structure + § Body rendering strategy](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
+**Reference**: [design doc § Output structure + § Body rendering strategy](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
 
 ---
 
@@ -1236,7 +1236,7 @@ For `compute_techpar`:
 
 **Residual fabrication risk**: model can still fabricate the `monthlyAnchorAmount` value if the citation isn't grounded in the actual IRL body. Phase 2B (`validate_irl_provenance` tool per spec § M6) addresses this — substring-verifies citations against the IRL body. Tracked as the next escalation if v7 reveals citation truthfulness as the remaining failure mode.
 
-**Reference**: [spec § M6](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md).
+**Reference**: [spec § M6](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md).
 
 ---
 
@@ -1272,7 +1272,7 @@ For `compute_techpar`:
 
 **Why now, not later**: empirically, the v5 dossier explicitly noted: _"the 'ahead' (under-band) R&D reading is sensitive to (a) the CAD→USD conversion and (b) whether the YTD R&D figure was correctly annualized"_ — the model was self-aware about the uncertainty but had no enforcement mechanism. Same architectural pattern as 0.4.0 applies. The TechPar swings across runs are exactly the failure mode the audit pattern was designed to close.
 
-**Reference**: [spec](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md), [parent design doc](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
+**Reference**: [spec](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md), [parent design doc](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md).
 
 ---
 
@@ -1307,14 +1307,14 @@ For `estimate_tech_debt_cost`:
 
 **Manifest-hash impact**: unchanged at `84fd0dbd66ea7a78b2de516b0c7f8f7abe5a68eb1f1f99360aaa45145231647e` (prompt `name@version` tuples + URI sets — neither changes here). Tool input schemas changed but they don't contribute to the manifest hash.
 
-**Behavior verification**: see [BL-045 PR B Option A′ spec](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md) for the empirical hypothesis being tested. Re-test against the StoreForce IRL in Claude Desktop expected to show:
+**Behavior verification**: see [BL-045 PR B Option A′ spec](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md) for the empirical hypothesis being tested. Re-test against the StoreForce IRL in Claude Desktop expected to show:
 
 - revenueRange = `5-25m` (CAD→USD conversion forced)
 - headcount = `1-50` (engineering-only scope forced)
 - dataSensitivity = `low` (bucket boundary forced)
 - Tech Debt MTTR = field omitted with extractionOnly response (placeholder substitution forced to null)
 
-**Reference**: [spec](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md), [parent design doc](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md), [review packet](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_REVIEW_PACKET.md).
+**Reference**: [spec](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md), [parent design doc](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md), [review packet](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_REVIEW_PACKET.md).
 
 ---
 
@@ -1330,7 +1330,7 @@ For `estimate_tech_debt_cost`:
 
 **Why this is its own PR**: per BL-045's design doc, the refactor lands first so PR B (the rename + behavior expansion) starts from a clean shared-constants foundation. Future ingestion-style prompts (the renamed sweep, any subsequent BL-04N sibling) import the same constants — no duplication.
 
-**Reference**: [BL-045 design doc](../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) § Pre-implementation refactor.
+**Reference**: [BL-045 design doc](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) § Pre-implementation refactor.
 
 ---
 
@@ -1696,7 +1696,7 @@ Fix: one-line addition in [`buildTechparDeeplink`](./src/tools/techpar.ts#L26) �
 
 **Pinned conversation impact**: none. Existing pinned URIs and prompt names continue to resolve.
 
-**Architecture context**: [BL-043 design doc](../src/docs/development/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md).
+**Architecture context**: [BL-043 design doc](../src/docs/development/_archive/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md).
 
 ---
 
