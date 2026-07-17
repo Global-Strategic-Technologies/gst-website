@@ -18,7 +18,7 @@
  * Streamable HTTP) is Phase 6 verification — that's where auth + rate-limit
  * are in place and the surface is meant to be exercised end-to-end.
  *
- * Architecture: src/docs/development/MCP_SERVER_REMOTE_BL-032.md
+ * Architecture: mcp-server/src/docs/ARCHITECTURE.md § Remote transport & request flow
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';

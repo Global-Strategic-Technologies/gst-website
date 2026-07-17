@@ -36,5 +36,10 @@ Archived documents are **point-in-time records, preserved verbatim**. Their inte
 | [MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md](MCP_SERVER_VDR_AUDIT_TIERS_BL-036.md) | BL-036 gst_vdr_audit retirement | 2026-05-31 | Tier sketches retained with closure banner as institutional reference |
 | [MCP_SERVER_RATE_LIMIT_TIER_BL-038.md](MCP_SERVER_RATE_LIMIT_TIER_BL-038.md) | BL-038 radar rate-limit tier | 2026-05-31 | Tier-design record cited by BREAKING_CHANGES |
 | [IMMEDIATE_NEXT_STEPS.md](IMMEDIATE_NEXT_STEPS.md) | BL-032 → BL-033 sequencing snapshot | 2026-07-14 (all phases complete) | Point-in-time record of the go-live phase ordering and gate decisions |
+| [MCP_SERVER_ARCHITECTURE_BL-031.md](MCP_SERVER_ARCHITECTURE_BL-031.md) | BL-031 MCP internal prototype | 2026-04-27 | Original architecture rationale; distilled into `mcp-server/src/docs/ARCHITECTURE.md` § System shape (BL-088 PR 2) |
+| [MCP_SERVER_REMOTE_BL-032.md](MCP_SERVER_REMOTE_BL-032.md) | BL-032 internal remote (Worker) | 2026-05-13 | Q1–Q13 decision records; distilled into `ARCHITECTURE.md` §§ Transport / Auth / Rate limiting (BL-088 PR 2) |
+| [MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md](MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md) | BL-032.5 Resources + Prompts on remote | 2026-05-13 | Caching/scope/manifest/cron design; distilled into `ARCHITECTURE.md` § Resources & Prompts (BL-088 PR 2) |
+| [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) | BL-032.75 observability maturity | 2026-07-14 | Phase 0–3 design incl. AE schema + alerting rationale; distilled into `ARCHITECTURE.md` § Observability (BL-088 PR 2) |
+| [MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md](MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md) | BL-032.8 radar single-caller unification | 2026-05-27 | Phase 1–3 design incl. single-flight OAuth + scope resolution; distilled into `ARCHITECTURE.md` § Radar pipeline (BL-088 PR 2) |
 
 _Later BL-088 waves append rows here as the distill-then-archive PRs land (see [MCP_DOCS_DISTILLATION_BL-088.md](../MCP_DOCS_DISTILLATION_BL-088.md))._

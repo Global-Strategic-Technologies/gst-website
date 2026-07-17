@@ -256,12 +256,12 @@ Expected — see [Why scores diverge](#why-scores-diverge). For production perfo
 
 ## Related observability (not in scope here)
 
-| Surface                          | Tool                           | Where it's documented                                                                                       |
-| -------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| Production user experience (RUM) | Vercel Speed Insights          | Vercel dashboard; no in-repo doc — the package `@vercel/speed-insights` is wired up in `BaseLayout.astro`   |
-| Errors / runtime exceptions      | Sentry                         | [SENTRY_MANUAL_SETUP.md](SENTRY_MANUAL_SETUP.md)                                                            |
-| Test reliability / coverage      | Vitest + Playwright            | [../testing/README.md](../testing/README.md)                                                                |
-| Future: MCP server SLOs          | Cloudflare Analytics + Grafana | [MCP_SERVER_OBSERVABILITY_BL-032_75.md](MCP_SERVER_OBSERVABILITY_BL-032_75.md) (initiative not yet shipped) |
+| Surface                          | Tool                                                                 | Where it's documented                                                                                                                                                                          |
+| -------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Production user experience (RUM) | Vercel Speed Insights                                                | Vercel dashboard; no in-repo doc — the package `@vercel/speed-insights` is wired up in `BaseLayout.astro`                                                                                      |
+| Errors / runtime exceptions      | Sentry                                                               | [SENTRY_MANUAL_SETUP.md](SENTRY_MANUAL_SETUP.md)                                                                                                                                               |
+| Test reliability / coverage      | Vitest + Playwright                                                  | [../testing/README.md](../testing/README.md)                                                                                                                                                   |
+| MCP server SLOs + alerting       | Cloudflare Analytics Engine + Worker cron + Sentry email + `/status` | [`mcp-server/src/docs/ARCHITECTURE.md` § Observability](../../../mcp-server/src/docs/ARCHITECTURE.md#observability) (shipped at mcp-server 0.39.0; Grafana dashboard is the one deferred item) |
 
 ---
 

@@ -5,7 +5,7 @@
 # routes, observability bindings, custom domain, and secret manifests land
 # in Phase 6 (deploy + soak).
 #
-# Architecture & rationale: src/docs/development/MCP_SERVER_REMOTE_BL-032.md
+# Architecture & rationale: mcp-server/src/docs/ARCHITECTURE.md
 #
 # To run locally:
 #   npm run dev:worker          # wrangler dev --env staging

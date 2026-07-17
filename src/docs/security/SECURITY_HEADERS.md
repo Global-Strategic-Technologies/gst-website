@@ -77,7 +77,7 @@ These third-party domains are deliberately NOT in the CSP allowlist. Re-adding t
 
 ## MCP Worker subdomain (BL-032)
 
-The MCP server runs on a separate Cloudflare Workers deployment at `mcp.globalstrategic.tech` (production) and `mcp-staging.globalstrategic.tech` (staging) — see [MCP_SERVER_REMOTE_BL-032.md](../development/MCP_SERVER_REMOTE_BL-032.md). It does NOT inherit the website's CSP, since:
+The MCP server runs on a separate Cloudflare Workers deployment at `mcp.globalstrategic.tech` (production) and `mcp-staging.globalstrategic.tech` (staging) — see [`mcp-server/src/docs/ARCHITECTURE.md` § Security boundary](../../../mcp-server/src/docs/ARCHITECTURE.md#security-boundary-vs-the-website). It does NOT inherit the website's CSP, since:
 
 - The Worker serves a JSON-RPC API to MCP clients, not HTML pages with scripts/styles. CSP doesn't meaningfully apply
 - Different threat model — auth is bearer-token (Phase 2), not session-based

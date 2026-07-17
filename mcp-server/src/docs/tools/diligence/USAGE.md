@@ -224,7 +224,7 @@ For other use cases (comparable-deal recall, pitch / scope mapping), see [`mcp-s
 ## Related documentation
 
 - [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
-- [`src/docs/development/MCP_SERVER_ARCHITECTURE_BL-031.md`](../../../../../src/docs/development/MCP_SERVER_ARCHITECTURE_BL-031.md) — architecture and design rationale
+- [`mcp-server/src/docs/ARCHITECTURE.md`](../../ARCHITECTURE.md) — architecture and design rationale
 - [`src/docs/development/BACKLOG.md` § BL-031](../../../../../src/docs/development/BACKLOG.md) — initiative scope, acceptance criteria, sibling phases
 - [`mcp-server/src/docs/testing/README.md`](../../testing/README.md) — workspace testing conventions
 

@@ -4,7 +4,7 @@
 >
 > **Status**: BL-032 Phase 3 — substrate in place; full enforcement validated in Phase 6 against staging Upstash.
 >
-> **Architecture & rationale**: [`MCP_SERVER_REMOTE_BL-032.md`](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) (see Q7 for the limiter-library choice; Phase 3 plan for the budget rationale).
+> **Architecture & rationale**: [`ARCHITECTURE.md` § Rate limiting & Inoreader budget](../ARCHITECTURE.md#rate-limiting--inoreader-budget).
 
 ---
 

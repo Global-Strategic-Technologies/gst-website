@@ -234,11 +234,11 @@ _Updated: May 12, 2026 — MCP project fully wired post-production-deploy: corre
 
 ## MCP Worker (BL-032 Phase 5)
 
-The MCP server runs as a separate Cloudflare Worker at `mcp.globalstrategic.tech` ([architecture doc](./MCP_SERVER_REMOTE_BL-032.md)). It uses `@sentry/cloudflare` (not `@sentry/node`) — different SDK, different runtime, different project.
+The MCP server runs as a separate Cloudflare Worker at `mcp.globalstrategic.tech` ([architecture doc](../../../mcp-server/src/docs/ARCHITECTURE.md)). It uses `@sentry/cloudflare` (not `@sentry/node`) — different SDK, different runtime, different project.
 
 ### Sentry project
 
-Per [BL-032 Q6 (resolved 2026-05-03)](./MCP_SERVER_REMOTE_BL-032.md#q6-sentry-on-cloudflare-workers--sentrycloudflare-or-sentrynode), the MCP Worker uses a **separate Sentry project** from the website's. Rationale:
+Per [BL-032 Q6 (resolved 2026-05-03)](../../../mcp-server/src/docs/ARCHITECTURE.md#sentry-split-q6), the MCP Worker uses a **separate Sentry project** from the website's. Rationale:
 
 - **Separation of concerns**: website events and Worker events have different threat models (HTML rendering vs. JSON-RPC API), different alert thresholds, and different SLO targets
 - **Quota isolation**: a runaway agent burning through Worker errors shouldn't drown out website signal in dashboards
@@ -289,7 +289,7 @@ The same discipline as the website's `@sentry/node` setup applies, with two MCP-
 
 ### Sample rate
 
-The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry quota cost bounded under expected volume. [BL-032.75 (Production Observability Maturity)](./MCP_SERVER_OBSERVABILITY_BL-032_75.md) tunes this against measured baselines from the BL-032 soak week.
+The `tracesSampleRate: 0.1` baseline (10% of requests get traced) keeps Sentry quota cost bounded under expected volume. [the observability stack](../../../mcp-server/src/docs/ARCHITECTURE.md#observability) tunes this against measured baselines from the BL-032 soak week.
 
 ### Alert rules
 

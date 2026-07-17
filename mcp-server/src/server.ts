@@ -9,7 +9,7 @@
  * Stdio-only registrations (radar offline tool + radar Resources, which use
  * `node:*` via radar-snapshot.ts) live in [`tools/_local-only.ts`](./tools/_local-only.ts)
  * and are called only from `src/index.ts`. See BL-032 Q12 in
- * `src/docs/development/MCP_SERVER_REMOTE_BL-032.md` for the rationale.
+ * `mcp-server/src/docs/ARCHITECTURE.md` for the rationale.
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';

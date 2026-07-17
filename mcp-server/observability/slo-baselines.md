@@ -1,6 +1,6 @@
 # MCP Server — SLO Baselines
 
-> **Source initiative**: [BL-032.75 Phase 2](../../src/docs/development/MCP_SERVER_OBSERVABILITY_BL-032_75.md#phase-2--baselining-7-days-calendar-wait--1-day-engineering)
+> **Source initiative**: [BL-032.75 Phase 2](../src/docs/ARCHITECTURE.md#slo-baselines--targets) (initiative history: [archived design doc](../../src/docs/development/_archive/MCP_SERVER_OBSERVABILITY_BL-032_75.md))
 >
 > **Status**: ✅ **FILLED + SIGNED OFF 2026-07-14** — Phase 2 closed. The original 2026-06-07 data-pull deadline was missed (~5 weeks stalled); the pull was re-run 2026-07-14 on a fresh trailing-7-day window via the scripted `npm run ae:baseline` procedure below (preferable anyway — the AE stream now includes the BL-045/071/076 instrumentation added since the original window). Baselines + calibrated SLO targets below carry operator sign-off; Phase 3 alert thresholds derive from them.
 >

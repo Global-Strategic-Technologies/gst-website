@@ -15,7 +15,7 @@
  *   - GET /health with no Origin header → 200, no CORS headers (native client)
  *   - Wildcard `*` is NEVER emitted (BACKLOG-mandated)
  *
- * Architecture: src/docs/development/MCP_SERVER_REMOTE_BL-032.md § Q5
+ * Architecture: mcp-server/src/docs/ARCHITECTURE.md § CORS (Q5)
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';

@@ -25,7 +25,7 @@
  * bearer-auth check and the MCP handler. Phase 5 wires Sentry + structured
  * logs at the boundary.
  *
- * Full design + per-phase plan: src/docs/development/MCP_SERVER_REMOTE_BL-032.md
+ * Architecture reference: mcp-server/src/docs/ARCHITECTURE.md
  */
 
 import { createMcpHandler } from 'agents/mcp';
@@ -75,7 +75,7 @@ export interface Env {
   // `MCP_KEY_WEBSITE_RADAR_SCOPES` env var (JSON-encoded scope array, per
   // bearer.ts:120 contract). Same key-discovery loop as the full MCP keys;
   // the scope subset narrows the grant. See:
-  // src/docs/development/MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md § Phase 3
+  // mcp-server/src/docs/ARCHITECTURE.md § Bearer scope resolution (per-key subsets)
   MCP_KEY_WEBSITE_RADAR?: string;
   MCP_KEY_WEBSITE_RADAR_SCOPES?: string;
 

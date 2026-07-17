@@ -1,10 +1,10 @@
 # Breaking changes — `@gst/mcp-server`
 
-> **Discipline introduced under [BL-032](../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) Phase 4b**.
+> **Discipline introduced under [BL-032](../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md) Phase 4b**.
 >
 > Tool names, prompt names, and Resource URIs are part of the package's public contract — pinned client conversations, agent code, and external clients (BL-033) all reference them by name. A rename or removal here is a breaking change for every consumer.
 >
-> **Every entry in this file ships with a corresponding `version` bump in [`package.json`](./package.json) and is mirrored in the [BL-032 architecture doc](../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) Q-section that triggered it.** BL-032.5 Phase 4 formalizes the discipline with the **manifest-hash test** at [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) — the hash is computed over the registered Library/Regulation/Radar URIs + prompt `name@version` tuples; any drift fails the test and surfaces the new hash in the error message.
+> **Every entry in this file ships with a corresponding `version` bump in [`package.json`](./package.json) and is mirrored in the [archived BL-032 initiative doc](../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md) Q-section that triggered it (entries after 2026-07-17 cite the maintained [`ARCHITECTURE.md`](./src/docs/ARCHITECTURE.md) instead).** BL-032.5 Phase 4 formalizes the discipline with the **manifest-hash test** at [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) — the hash is computed over the registered Library/Regulation/Radar URIs + prompt `name@version` tuples; any drift fails the test and surfaces the new hash in the error message.
 
 ---
 
@@ -427,7 +427,7 @@ The shared Upstash token has ACL scoped to `+@all ~mcp:*` (single DB shared betw
 
 ## 0.30.0 — 2026-06-07 — BL-076 `compose_dossier_envelope` body-by-hash latency reduction
 
-**Theme**: cut model-emit latency on `compose_dossier_envelope` calls from 5–15 minutes to an estimated 1–3 minutes by removing the IRL body from the public tool input. The body now flows in through `prepare_irl_body` (which caches it server-side keyed by its canonical hash) and `compose_dossier_envelope` re-hydrates from the cache. Architecturally identical lever as BL-070 / BL-071: shift human-discipline / token-emit cost into system enforcement. **BREAKING** under [BL-032 § Q12 contract](../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) but **operator-confirmed no external clients of `compose_dossier_envelope` exist** (2026-06-07); migration is internal-only (prompt body + tests).
+**Theme**: cut model-emit latency on `compose_dossier_envelope` calls from 5–15 minutes to an estimated 1–3 minutes by removing the IRL body from the public tool input. The body now flows in through `prepare_irl_body` (which caches it server-side keyed by its canonical hash) and `compose_dossier_envelope` re-hydrates from the cache. Architecturally identical lever as BL-070 / BL-071: shift human-discipline / token-emit cost into system enforcement. **BREAKING** under [BL-032 § Q12 contract](../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md) but **operator-confirmed no external clients of `compose_dossier_envelope` exist** (2026-06-07); migration is internal-only (prompt body + tests).
 
 **Surface impact**:
 
@@ -1721,7 +1721,7 @@ BL-032 Phase 4b introduced informally.
 - URI / prompt-name **addition** → minor bump
 - prompt **`version` field** bump (same name, behavior change) → patch bump
 
-**Architecture context**: [BL-032.5 design doc § Repo placement and lifecycle](../src/docs/development/MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md#repo-placement-and-lifecycle).
+**Architecture context**: [BL-032.5 design doc § Repo placement and lifecycle](../src/docs/development/_archive/MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md#repo-placement-and-lifecycle).
 
 This is not a breaking change in itself (no Tool / prompt / Resource was renamed); it's documented here so the discipline's introduction is auditable.
 
@@ -1750,7 +1750,7 @@ The Phase 1 / BL-031.5 name `search_radar_cache` predicted a future split betwee
 
 **Affected surfaces**: pinned conversations referencing `search_radar_cache`, agent code calling the tool by name, prompts orchestrating it (none currently — verified during the rename).
 
-**Architecture context**: [BL-032 Q2](../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) records the three options considered (rename + alias / coexist / drop offline) and the decision to rename + alias.
+**Architecture context**: [BL-032 Q2](../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) records the three options considered (rename + alias / coexist / drop offline) and the decision to rename + alias.
 
 ---
 

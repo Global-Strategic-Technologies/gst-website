@@ -4,7 +4,13 @@
 >
 > This is the navigator for the MCP server's internal doc surface. For the user-facing tool/resource/prompt inventory, start at [`mcp-server/README.md`](../../README.md).
 
-The docs are organized by **what** they describe — the three MCP capability surfaces (Tools, Resources, Prompts), plus operational and testing references.
+The docs are organized by **what** they describe — the system architecture, the three MCP capability surfaces (Tools, Resources, Prompts), plus operational and testing references.
+
+## Architecture
+
+| Area             | Doc                                  | What's there                                                                                                                                                                                          |
+| ---------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Architecture** | [`ARCHITECTURE.md`](ARCHITECTURE.md) | The maintained system reference: system shape, remote transport & request flow, auth/CORS/deploy topology, rate limiting & Inoreader budget, Resources/Prompts wiring, radar pipeline, observability. |
 
 ## Capability surfaces
 
@@ -29,8 +35,8 @@ The docs are organized by **what** they describe — the three MCP capability su
 
 ## Planning artifacts (not here)
 
-Architectural decision records and per-initiative plans live under [`src/docs/development/`](../../../src/docs/development/) as `MCP_SERVER_*.md`. Those are **point-in-time records** — frozen at authoring time, not maintained against later code. The docs in _this_ tree (per-tool contracts, the resource taxonomy, the prompt reference, operations runbooks) **are** maintained.
+Per-initiative plans are **point-in-time records** — frozen at authoring time, not maintained against later code. Closed initiatives' docs are distilled into the maintained surface (this tree, headed by [`ARCHITECTURE.md`](ARCHITECTURE.md)) and then archived at [`src/docs/development/_archive/`](../../../src/docs/development/_archive/README.md) per the [initiative-doc lifecycle](../../../src/docs/development/README.md); any still-open initiative docs remain under [`src/docs/development/`](../../../src/docs/development/). The docs in _this_ tree (the architecture reference, per-tool contracts, the resource taxonomy, the prompt reference, operations runbooks) **are** maintained.
 
 ---
 
-_Last updated: 2026-07-02 (BL-034 doc-structure pass — added this navigator + `tools/` `resources/` taxonomy)._
+_Last updated: 2026-07-17 (BL-088 PR 2 — added `ARCHITECTURE.md` + lifecycle pointer). Prior: 2026-07-02 (BL-034 doc-structure pass)._
