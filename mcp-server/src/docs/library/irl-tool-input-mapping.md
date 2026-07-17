@@ -2,9 +2,22 @@
 
 > **Audience**: GST engineers and senior consultants maintaining the [Information Request List](../../../../src/data/library/information-request-list/article.md) and the Hub tools / MCP prompts that consume the answers it gathers.
 >
-> **Why this exists**: the public IRL deliberately ships with **no tool attribution** (clean for client consumption — per [BL-043 design decisions](../../../../src/docs/development/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md#decisions)). This doc is the engineering-side mirror that keeps the "what feeds what" knowledge alive. When a new Hub tool ships and needs an IRL input the artifact doesn't currently ask for, this is the document that surfaces the gap — and the place to record the resolution.
+> **Why this exists**: the public IRL deliberately ships with **no tool attribution** (clean for client consumption — see § Design provenance below). This doc is the engineering-side mirror that keeps the "what feeds what" knowledge alive. When a new Hub tool ships and needs an IRL input the artifact doesn't currently ask for, this is the document that surfaces the gap — and the place to record the resolution.
 >
 > **Maintenance discipline**: every IRL change (`src/data/library/information-request-list/article.md`) ships with a corresponding update to this file in the same PR. Every new Hub tool / MCP prompt that needs partner-supplied input adds a row to its respective section here.
+
+---
+
+## Design provenance (folded from the BL-043 design doc, 2026-07)
+
+Load-bearing rationale preserved from the archived BL-043 initiative doc ([archive copy](../../../../src/docs/development/_archive/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md)). Everything below remains true and governs future IRL evolution.
+
+- **No public tool attribution (brand one-way door)**. The public IRL ships as a clean request list — no inline "this powers TechPar" annotations. Technically reversible, but partners calibrate to the clean version, so re-introducing attribution later is a _brand_ one-way door. This SOP is the deliberate engineering-side preservation of the mapping.
+- **One source, three surfaces**. `src/data/library/information-request-list/article.md` is the single source of truth for (1) the Hub page `/hub/library/information-request-list/`, which imports the markdown rather than duplicating it, (2) the MCP Resource `gst://library/information-request-list`, codegenned into `library-data.generated.ts` at prebuild (never hand-edited), and (3) the prompt `gst_information_request_list`, which embeds the Resource as its second message. The Resource form exists so agent contexts can scope "everything we need to know about a target" with a single `resources/read` call.
+- **Why zero drift is mandatory**. The VDR Structure Guide pattern tolerates Hub-page drift because no agent consumes it; the IRL is agent-consumed via the Resource, so the partner-printed PDF and the agent-read Resource must be the same bytes.
+- **Taxonomy provenance**. Ten sections = a "00 — Basics" prelude capturing deal/profile fields no single VDR folder owns, plus the nine canonical VDR sections mirroring the VDR-9 taxonomy, with bullets scoped to what the Hub tools actually need (~63 at ship, 67 today — the live count is locked by the parser regression test, not by this doc).
+- **Voice discipline**. The article body is recipient-facing only — no partner instructions, no engineering metadata, no MCP/Resource references. Partner-side framing lives in the prompt `build()`; engineering-side metadata lives here.
+- **Slug one-way door**. `information-request-list` appears in the Resource URI, Hub URL, prompt body, and Claude Desktop pinned-Resource state — renaming it is a coordinated migration, not an edit.
 
 ---
 
@@ -212,7 +225,7 @@ The subtractive content-filter directive engine is live. Directives are authored
 
 ### Other evolution lanes
 
-- **[BL-045 PR B — shipped](../../../../src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) — `gst_irl_ingestion`**: BL-032.6's `gst_diligence_sweep` was renamed to `gst_irl_ingestion` under BL-045 PR B and hardened with explicit inclusion gates + tool-input audit schemas. The IRL → tool-input mapping is now enforced at the MCP tool-schema boundary (audit-bearing `_audit` siblings with cross-field calibration refinements) rather than relying solely on prompt prose, closing the "implicit-inside-sweep" gap this stanza originally flagged.
+- **[BL-045 PR B — shipped](../../../../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) — `gst_irl_ingestion`**: BL-032.6's `gst_diligence_sweep` was renamed to `gst_irl_ingestion` under BL-045 PR B and hardened with explicit inclusion gates + tool-input audit schemas. The IRL → tool-input mapping is now enforced at the MCP tool-schema boundary (audit-bearing `_audit` siblings with cross-field calibration refinements) rather than relying solely on prompt prose, closing the "implicit-inside-sweep" gap this stanza originally flagged.
 
 ### Generator custom requests and manual exclusions are NOT canonical (2026-07)
 
@@ -220,4 +233,4 @@ The BL-044 generator lets a partner **filter sections**, **remove individual que
 
 ---
 
-_Last updated: 2026-07-07 (BL-044.5 shipped — added the "Filter directives" dictionary + tagged-question table; extended the engagement-local note to cover per-question exclusions)._
+_Last updated: 2026-07-17 (BL-088 PR 4 — folded surviving BL-043 design rationale into § Design provenance; BL-043 initiative doc archived)._

@@ -22,7 +22,7 @@
  * `gst://library/vdr-structure` is embedded so the synthesis section can
  * use the canonical VDR-folder labels for follow-up requests verbatim.
  *
- * See: src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md
+ * See: mcp-server/src/docs/prompts/irl-ingestion.md (companion doc)
  */
 
 import { createHash } from 'node:crypto';

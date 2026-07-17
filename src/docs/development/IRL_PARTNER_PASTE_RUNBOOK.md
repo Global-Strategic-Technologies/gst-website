@@ -13,10 +13,10 @@
 >
 > **Companion docs**:
 >
-> - [MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md](MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) — design context for `gst_irl_ingestion`.
+> - [the `gst_irl_ingestion` companion doc](../../../mcp-server/src/docs/prompts/irl-ingestion.md) — contract + execution model + enforcement design.
 > - [ADR-0003 — xlsx canonicalization (deferred)](../adr/0003-irl-xlsx-canonicalization-hash-bind.md) — the deferred server-side `extract_irl_from_xlsx` design. This runbook's `npm run irl:extract` script is the **operator-local equivalent** of that tool: same conversion, runs on the operator host instead of on the server.
 > - [ADR-0002 — IRL body-by-hash cache](../adr/0002-irl-body-by-hash-cache.md) — the mechanism that makes the paste actually cheap.
-> - [MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) — canonical IRL article + Resource.
+> - [the IRL mapping SOP § Design provenance](../../../mcp-server/src/docs/library/irl-tool-input-mapping.md) — canonical IRL article + Resource.
 > - [MCP_SERVER_IRL_GENERATOR_BL-044.md](_archive/MCP_SERVER_IRL_GENERATOR_BL-044.md) — `.xlsx` generator. The extract script is its structural inverse.
 
 ---

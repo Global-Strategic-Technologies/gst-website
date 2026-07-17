@@ -145,7 +145,7 @@ The reviewer is certifying the firm's analysis, not forwarding model output. Tha
 ## Related docs
 
 - [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md) — the `npm run irl:extract` xlsx→markdown workflow (how to prepare the paste).
-- [MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md](./MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md) — `gst_irl_ingestion` design context.
+- [the `gst_irl_ingestion` companion doc](../../../mcp-server/src/docs/prompts/irl-ingestion.md) — contract + execution model + enforcement design.
 - [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](./_archive/MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) — prompt-body simplification (L0–L2 shipped).
 - [BACKLOG.md](./BACKLOG.md) — BL-074 (this runbook's parent), BL-070/071 (the server gates), BL-087 (deferred L3–L5).
 

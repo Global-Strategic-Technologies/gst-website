@@ -12,7 +12,7 @@
  * math-correct ytdMonths=3 inversion. Cover both the monthlyAnchor ×
  * ytdMonths balance case and the 10%-tolerance edges.
  *
- * See: src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md
+ * See: mcp-server/src/docs/prompts/irl-ingestion.md § Server-side enforcement
  */
 
 import { describe, it, expect } from 'vitest';

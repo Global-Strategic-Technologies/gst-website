@@ -4,7 +4,7 @@ This directory is the **registry index** for the per-tool input contracts that d
 
 The per-tool contracts live in per-tool subdirectories of this `tools/` directory — e.g. `diligence/CONTRACT.md` for the diligence machine, `techpar/CONTRACT.md` for TechPar, etc. This registry doc tracks them all, defines the pattern, and explains why input contracts are their own first-class artifact.
 
-> **Initiative tracking**: [BL-031.85: MCP Server — Tool Input Contracts](../../../../src/docs/development/BACKLOG.md#bl-03185-mcp-server--tool-input-contracts) | **Architecture**: [MCP_SERVER_CONTRACTS_BL-031_85.md](../../../../src/docs/development/MCP_SERVER_CONTRACTS_BL-031_85.md)
+> **Initiative tracking**: [BL-031.85: MCP Server — Tool Input Contracts](../../../../src/docs/development/BACKLOG.md#bl-03185-mcp-server--tool-input-contracts) | **Origin**: [MCP_SERVER_CONTRACTS_BL-031_85.md](../../../../src/docs/development/_archive/MCP_SERVER_CONTRACTS_BL-031_85.md) (archived — the still-relevant design rationale is folded into this README; the archive retains initiative history only)
 
 ---
 
@@ -22,6 +22,8 @@ Together these three answer "what can I send and what does it do?" without forci
 
 A contract is NOT a copy of the Zod schema or the wizard-config — it cites them. Its job is consolidation plus the downstream-effect narrative that does not exist anywhere else.
 
+The downstream-effect summaries are deliberately loose — 1–3 lines, no exact question/output IDs. Coupling the contract to individual output IDs would turn every content edit into a contract edit and multiply drift risk; the summary is human-readable scaffolding, and the runtime trigger map (or equivalent engine output) remains the precise source. Where doc and runtime disagree, the doc is wrong.
+
 ---
 
 ## Why the contract is its own artifact
@@ -29,7 +31,7 @@ A contract is NOT a copy of the Zod schema or the wizard-config — it cites the
 - **Self-service tool invocation.** A team member composing a prompt for an analyst doesn't need to grep `src/schemas/` to know what enum values are valid; the contract lists them with descriptions and downstream-effect notes.
 - **AI-agent introspection.** An agent in a long-running conversation can fetch the contract for a tool, plan its inputs deliberately, and avoid wasted invocations against invalid enum values.
 - **Onboarding.** New analysts get a "why each input matters" narrative — not just a list of valid values.
-- **Drift surveillance at PR review.** A contract version bump makes schema changes visible at PR review time; aligns with the schema-reuse risk mitigation BL-031.5 called out ([archived design doc](../../../../src/docs/development/_archive/MCP_SERVER_HUB_SURFACE_BL-031_5.md)).
+- **Drift surveillance at PR review.** A contract version bump makes schema changes visible at PR review time. It adds a human-visible layer on top of the code-level mitigation (MCP Zod schemas derive from each engine's canonical input types, with a subset-test asserting every wizard option remains a valid tool input): the reviewer sees _that_ the input surface changed, not just that a test still passes.
 - **Foundation for prompt argsSchema reuse.** [BL-031.75](../../../../src/docs/adr/0007-registered-prompt-pattern.md) prompts compose `argsSchema` from tool input schemas; the contract gives that composition a stable, versioned reference.
 - **Foundation for the IRL generator** (see below).
 
@@ -49,6 +51,15 @@ A contract is NOT a copy of the Zod schema or the wizard-config — it cites the
 | Radar (live)         | `search_radar`, `get_latest_insights`                                                                     | [`radar/CONTRACT.md` § Live tool surface](radar/CONTRACT.md#live-tool-surface-bl-032-phase-4c) | ✅ Authored (BL-032 Phase 4c)                            |
 
 Contract docs are authored alongside their MCP tool wrappers. The diligence contract is the inaugural reference implementation — see `diligence/CONTRACT.md` for the template. The four BL-031.5 contracts (ICG, TechPar, Tech Debt, Regulatory Map) follow it; Radar (BL-031.95 Phase 3.A) and Portfolio Search (BL-031.95 Phase 4.B) followed under the same template once their MCP tools became capability-mirror aligned with their respective website pages.
+
+### The CONTRACT.md / USAGE.md two-file convention
+
+Each per-tool subdirectory pairs two documents with deliberately different jobs:
+
+- **`CONTRACT.md`** — the input reference: what can I send and what does it do. Technical writing about the schema; versioned; reviewed when the input surface changes.
+- **`USAGE.md`** — the walkthrough: how a consultant or agent actually drives the tool through a motion. Content-design writing; reviewed when the workflow changes.
+
+They stay separate because they serve different audiences and change on different cadences — an enum bump must not force a walkthrough rewrite, and a workflow rewrite must not trigger a contract version bump.
 
 ---
 
@@ -73,11 +84,16 @@ Each contract carries a `version` (semver-style integer or `vN`) and a `lastAuth
 - **Non-bump changes**: typo fixes in descriptions, expanded prose in downstream-effect summaries, restructured tables — version stays, `lastAuthored` updates
 - **Cross-doc impact**: a contract version bump should trigger a review of dependent prompts (BL-031.75 prompts that compose `argsSchema` from the contract). Convention, not CI-enforced today
 
-Pattern borrowed from the prompt-versioning approach ([ADR-0007](../../../../src/docs/adr/0007-registered-prompt-pattern.md)). When BL-031.5 ships its four other Hub-tool contracts, each gets its own `v1` and its own version cadence.
+Pattern borrowed from the prompt-versioning approach ([ADR-0007](../../../../src/docs/adr/0007-registered-prompt-pattern.md)). Each contract carries its own `v1` and its own version cadence.
+
+Two hardening steps are on the shelf if conventional discipline proves insufficient (deliberately deferred until the failure mode is actually observed):
+
+- **Contract-parity test** — a Vitest that walks each CONTRACT.md's option-ID tables and asserts every ID exists in the matching `*_IDS` tuple in `src/schemas/<tool>.ts`. Until then, the line-range citations in each contract's source-of-truth header let a reviewer verify by hand.
+- **Prompt-compat test** — a CI assertion that dependent prompt `argsSchema`s remain compatible with the contract version they pin to, to be added if a prompt ever breaks because a contract changed silently.
 
 ---
 
-## The IRL generator forward-look (out of scope today)
+## The IRL generator (the forward-look that shipped)
 
 An **Information Request List** (IRL) is the strategic destination, not part of BL-031.85. Sketch:
 

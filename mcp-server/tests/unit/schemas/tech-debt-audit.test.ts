@@ -9,7 +9,7 @@
  * three require null. The MTTR=0 + irl-stated rule is a separate spot
  * check.
  *
- * See: src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md
+ * See: mcp-server/src/docs/prompts/irl-ingestion.md § Server-side enforcement
  */
 
 import { describe, it, expect } from 'vitest';

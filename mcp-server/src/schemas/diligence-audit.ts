@@ -31,7 +31,7 @@
  * run in the tool handler body (`runAuditRefinements`), NOT in
  * `.superRefine`. The model still receives a structured error and retries.
  *
- * See: src/docs/development/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md
+ * See: mcp-server/src/docs/prompts/irl-ingestion.md § Server-side enforcement
  */
 
 import { z } from 'zod';
