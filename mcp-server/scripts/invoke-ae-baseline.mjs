@@ -44,7 +44,7 @@ export const DATASETS = Object.freeze({
 
 /**
  * Calibration rules from the design doc § "What good observability looks
- * like" (MCP_SERVER_OBSERVABILITY_BL-032_75.md), restated in
+ * like" (mcp-server/src/docs/ARCHITECTURE.md § Observability), restated in
  * slo-baselines.md § Data-pull procedure step 5.
  */
 export const CALIBRATION = Object.freeze({

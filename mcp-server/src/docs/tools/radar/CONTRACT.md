@@ -10,9 +10,9 @@ enumParity:
 
 # Input Contract: `search_radar_offline`
 
-> **Tool**: `search_radar_offline` (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited)) — strict mirror of the `/hub/radar` website page. Reads the locally-cached Inoreader snapshot (`npm run radar:seed`) and returns a unified FYI + Wire feed. Never makes live Inoreader API calls (protects the shared 200 req/day budget — see [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) for the budget invariant).
+> **Tool**: `search_radar_offline` (renamed from `search_radar_cache` in [BL-032 Phase 4b](../../../../../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited)) — strict mirror of the `/hub/radar` website page. Reads the locally-cached Inoreader snapshot (`npm run radar:seed`) and returns a unified FYI + Wire feed. Never makes live Inoreader API calls (protects the shared 200 req/day budget — see [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts) for the budget invariant).
 >
-> **Sister tool — same shape, different source**: `search_radar` (live, Inoreader-touching, remote-MCP-only) — ships under [BL-032 Phase 4c](../../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#phase-4--inoreader-client-refactor--live-radar-tools-15-2-days). The "Live tool surface (BL-032)" section below documents the live tool's contract once it lands.
+> **Sister tool — same shape, different source**: `search_radar` (live, Inoreader-touching, remote-MCP-only) — ships under [BL-032 Phase 4c](../../../../../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md#phase-4--inoreader-client-refactor--live-radar-tools-15-2-days). The "Live tool surface (BL-032)" section below documents the live tool's contract once it lands.
 >
 > **Deprecated alias**: `search_radar_cache` is registered as a one-release deprecated alias that tail-calls this implementation. Removed in `mcp-server@0.2.0` per [`mcp-server/BREAKING_CHANGES.md`](../../../../BREAKING_CHANGES.md).
 >
@@ -118,7 +118,7 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 - URL encoder: [`src/utils/radar-url.ts`](../../../../../src/utils/radar-url.ts)
 - Live website: <https://globalstrategic.tech/hub/radar>
 - Architecture: [BL-031.95 Hub Tools URL State Restoration & MCP Deep-Link Surface](../../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) — Phase 3 (Radar URL state) closure
-- [BL-032 Phase 4b](../../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) — `search_radar_cache` rename to `search_radar_offline` (this tool's current name)
+- [BL-032 Phase 4b](../../../../../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) — `search_radar_cache` rename to `search_radar_offline` (this tool's current name)
 
 ---
 

@@ -4,7 +4,7 @@
 >
 > **Status**: BL-032 Phase 2 — bearer-token model in place; OAuth gates [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3).
 >
-> **Architecture & rationale**: [`MCP_SERVER_REMOTE_BL-032.md`](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) (see Q11 / Q13).
+> **Architecture & rationale**: [`ARCHITECTURE.md` § Auth, CORS & deploy topology](../ARCHITECTURE.md#auth-cors--deploy-topology).
 
 ---
 
@@ -149,7 +149,7 @@ The BACKLOG language is a holdover; this doc supersedes it.
 
 ## Forward-looking — per-key scopes (BL-033)
 
-BL-032 issues each key with the full tool/resource/prompt scope set. Per-key scope variation (e.g., a sales-associate teammate gets a key without `tool:radar:*`) is a [BL-032.5](../../../../src/docs/development/MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md) infrastructure concern (the catalog gets defined) and a [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3) product surface (per-client variation goes live). The bearer-token model carries forward unchanged — only the scope-checking layer at the request boundary changes.
+BL-032 issues each key with the full tool/resource/prompt scope set. Per-key scope variation (e.g., a sales-associate teammate gets a key without `tool:radar:*`) is a scope-catalog infrastructure concern (see [`ARCHITECTURE.md` § Scope gating](../ARCHITECTURE.md#scope-gating)) and a [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3) product surface (per-client variation goes live). The bearer-token model carries forward unchanged — only the scope-checking layer at the request boundary changes.
 
 ---
 

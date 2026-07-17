@@ -16,7 +16,7 @@
  *   - POST /mcp WITH valid token → reaches MCP handler (4xx structured
  *     error from the MCP layer is fine; the point is auth was passed)
  *
- * Architecture: src/docs/development/MCP_SERVER_REMOTE_BL-032.md
+ * Architecture: mcp-server/src/docs/ARCHITECTURE.md § Auth, CORS & deploy topology
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';

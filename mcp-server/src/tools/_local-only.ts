@@ -3,7 +3,7 @@
  * Cloudflare Worker entrypoint.
  *
  * **Why this exists** (BL-032 Q12 — see
- * `src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q12-transport-binding-per-radar-tool-new`):
+ * `mcp-server/src/docs/ARCHITECTURE.md#transport-binding-per-tool-q12`):
  * the offline radar tool (`search_radar_offline`, with the deprecated
  * `search_radar_cache` alias for one release per Q2) and the radar
  * Resources (`gst://radar/...`) read from `<repo>/.cache/inoreader/`

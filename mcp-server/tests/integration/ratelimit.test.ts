@@ -12,7 +12,7 @@
  * the budget can be hammered without consuming free-tier Redis quota
  * in CI runs.
  *
- * Architecture: src/docs/development/MCP_SERVER_REMOTE_BL-032.md § Phase 3
+ * Architecture: mcp-server/src/docs/ARCHITECTURE.md § Rate limiting & Inoreader budget
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';

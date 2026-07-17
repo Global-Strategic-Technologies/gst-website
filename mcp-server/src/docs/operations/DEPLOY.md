@@ -14,7 +14,7 @@
 > - [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md) — what team-members do to connect their Claude / Cursor / etc. clients
 > - [`RATE_LIMITS.md`](./RATE_LIMITS.md) — per-key budgets, RFC 9331 headers, circuit-breaker semantics
 > - [`SENTRY_MANUAL_SETUP.md` § MCP Worker](../../../../src/docs/development/SENTRY_MANUAL_SETUP.md) — Sentry project setup specifics
-> - [`MCP_SERVER_REMOTE_BL-032.md`](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md) — architecture decisions and the Q1–Q13 design rationale
+> - [`ARCHITECTURE.md`](../ARCHITECTURE.md) — the maintained architecture reference (Q1–Q13 initiative history archived at `src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md`)
 
 ---
 
@@ -26,7 +26,7 @@ These steps stand up the infrastructure the Worker needs. Done once per operator
 
 ### What you need
 
-A Cloudflare account with **Workers** enabled. Free tier is sufficient for BL-032 (100k req/day on free tier covers any plausible team usage). Paid tier becomes necessary later for [BL-032.5's](../../../../src/docs/development/MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md) Cron Triggers; ignore for now.
+A Cloudflare account with **Workers** enabled. Free tier is sufficient for BL-032 (100k req/day on free tier covers any plausible team usage). Paid tier becomes necessary later for the [cron substrate's](../ARCHITECTURE.md#cron-substrate) Cron Triggers; ignore for now.
 
 ### Steps
 
@@ -55,7 +55,7 @@ A Cloudflare account with **Workers** enabled. Free tier is sufficient for BL-03
 
 ### What you need
 
-The `globalstrategic.tech` zone managed by Cloudflare DNS (already confirmed during BL-032 planning per [Q10](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q10-dns-provisioning--mcpglobalstrategictech--out-of-band)). The website's Vercel deployment is fronted by this same zone, so this is a check-and-confirm step rather than a setup step — **as long as the zone is on Cloudflare DNS, Wrangler creates the necessary subdomain records itself when you add a `routes` block to `wrangler.toml`**.
+The `globalstrategic.tech` zone managed by Cloudflare DNS (already confirmed during BL-032 planning per [`ARCHITECTURE.md` § Deploy topology](../ARCHITECTURE.md#deploy-topology-q10)). The website's Vercel deployment is fronted by this same zone, so this is a check-and-confirm step rather than a setup step — **as long as the zone is on Cloudflare DNS, Wrangler creates the necessary subdomain records itself when you add a `routes` block to `wrangler.toml`**.
 
 ### Steps
 
@@ -365,7 +365,7 @@ Record both checks in [`SECRETS_INVENTORY.md`](../../../../src/docs/operations/S
 
 The four Inoreader OAuth secrets the website uses, copied from Vercel's environment to Wrangler secrets. These are the **same values** stored in **separate stores** — both Vercel and Cloudflare end up holding the same data.
 
-The Worker reads OAuth tokens from Upstash first ([Q4](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q4-inoreader-client-refactor--fork-or-generalize)); these env-var copies are the seed/fallback values.
+The Worker reads OAuth tokens from Upstash first ([`ARCHITECTURE.md` § Token storage and OAuth refresh](../ARCHITECTURE.md#token-storage-and-oauth-refresh)); these env-var copies are the seed/fallback values.
 
 ### Steps
 
@@ -414,7 +414,7 @@ The Worker reads OAuth tokens from Upstash first ([Q4](../../../../src/docs/deve
 
 ### What you've completed
 
-✅ Worker has the Inoreader app + OAuth credentials. The radar-live tools will use them to make API calls (read-only — the website remains the sole token-refresh writer per [Q4](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q4-inoreader-client-refactor--fork-or-generalize)).
+✅ Worker has the Inoreader app + OAuth credentials. The radar-live tools use them to make API calls. (The Worker is the **sole** Inoreader caller and token-refresh writer per BL-032.8 — see [`ARCHITECTURE.md` § Radar pipeline](../ARCHITECTURE.md#radar-pipeline-single-caller-unification); the original Q4 fork decision it superseded is in the archived BL-032 doc.)
 
 ---
 
@@ -467,7 +467,7 @@ After this one-time enable, the deploy succeeds AND every subsequent dataset (`m
 
 ### What you need
 
-A **new** Sentry project (separate from the website's per [Q6](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q6-sentry-on-cloudflare-workers--sentrycloudflare-or-sentrynode)). Full step-by-step lives in [`SENTRY_MANUAL_SETUP.md` § MCP Worker](../../../../src/docs/development/SENTRY_MANUAL_SETUP.md#mcp-worker-bl-032-phase-5).
+A **new** Sentry project (separate from the website's per [`ARCHITECTURE.md` § Sentry split](../ARCHITECTURE.md#sentry-split-q6)). Full step-by-step lives in [`SENTRY_MANUAL_SETUP.md` § MCP Worker](../../../../src/docs/development/SENTRY_MANUAL_SETUP.md#mcp-worker-bl-032-phase-5).
 
 ### Steps
 
@@ -544,7 +544,7 @@ A full `DEFAULT_SCOPES` grant would let the website's bearer call any MCP Tool o
 - Keeps audit logs clean (`keyOwner=WEBSITE_RADAR` won't show up in tool-call telemetry)
 - Forward-compatible with BL-033 pilot-client onboarding (same per-key scope-subset mechanism)
 
-See [bearer.ts](../../auth/bearer.ts) line 100–160 for the resolution code and `MCP_SERVER_RADAR_UNIFICATION_BL-032_8.md` § Phase 3 for the design.
+See [bearer.ts](../../auth/bearer.ts) line 100–160 for the resolution code and [`ARCHITECTURE.md` § Bearer scope resolution](../ARCHITECTURE.md#bearer-scope-resolution-per-key-subsets) for the design.
 
 ### Steps
 
@@ -752,7 +752,7 @@ curl -s $MCP_URL/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq '.result.tools[] | .name'
 ```
 
-Expected output: **10 tool names** — the transport-portable surface (no `search_radar_offline` and no `search_radar_cache` alias on the Worker; per [Q12](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q12-transport-binding-per-radar-tool-new), both are stdio-only and registered exclusively by `_local-only.ts`):
+Expected output: **10 tool names** — the transport-portable surface (no `search_radar_offline` and no `search_radar_cache` alias on the Worker; per [`ARCHITECTURE.md` § Transport binding per tool](../ARCHITECTURE.md#transport-binding-per-tool-q12), both are stdio-only and registered exclusively by `_local-only.ts`):
 
 ```
 "assess_infrastructure_cost_governance"

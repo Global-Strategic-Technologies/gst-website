@@ -34,7 +34,7 @@
  * operator can investigate the missing or extra call.
  *
  * **Why not delete the old day-counter at the same time**: see
- * [`MCP_SERVER_OBSERVABILITY_BL-032_75.md`](../../../src/docs/development/MCP_SERVER_OBSERVABILITY_BL-032_75.md)
+ * [`ARCHITECTURE.md` § Inoreader spend accounting](../docs/ARCHITECTURE.md#inoreader-spend-accounting)
  * Phase 0 Step 5 — old keys stay in place for a 7-day parallel-soak
  * window. Removal is a follow-up PR.
  *

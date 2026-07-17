@@ -50,7 +50,7 @@ The MCP endpoint URLs:
 
 > ⚠️ **Important — current Claude Desktop's Connectors UI is OAuth-only**
 >
-> Claude Desktop ships a **Settings → Connectors → Add custom connector** UI that looks tempting, but as of 2026-05 it only supports OAuth-authenticated remote MCP servers (the form has only `OAuth Client ID` / `OAuth Client Secret` fields under Advanced settings). Our Worker uses static bearer tokens (per [Q11](../../../../src/docs/development/MCP_SERVER_REMOTE_BL-032.md#q11-token-rotation-cadence--runbook)), so the Connectors UI **cannot authenticate against this Worker**. Instead, use the JSON config file + `mcp-remote` bridge approach below.
+> Claude Desktop ships a **Settings → Connectors → Add custom connector** UI that looks tempting, but as of 2026-05 it only supports OAuth-authenticated remote MCP servers (the form has only `OAuth Client ID` / `OAuth Client Secret` fields under Advanced settings). Our Worker uses static bearer tokens (per [`ARCHITECTURE.md` § Bearer-token auth](../ARCHITECTURE.md#bearer-token-auth-q11q13)), so the Connectors UI **cannot authenticate against this Worker**. Instead, use the JSON config file + `mcp-remote` bridge approach below.
 >
 > (OAuth support in the Worker is deferred to BL-033 when external clients raise the auth-flow stakes; until then, all Claude Desktop access goes through the bridge.)
 
