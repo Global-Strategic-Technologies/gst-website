@@ -6,7 +6,7 @@ Strategic documentation for GST website development initiatives, tooling, and op
 
 | Doc                                                            | Purpose                                                                                                                   |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| [BACKLOG.md](./BACKLOG.md)                                     | Consolidated backlog of all open development initiatives (35 user stories)                                                |
+| [BACKLOG.md](./BACKLOG.md)                                     | Consolidated backlog of all open development initiatives (completed stanzas pruned — see its header note for recovery)    |
 | [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                 | Authoritative reference for lint, format, hooks, CI, browser targets                                                      |
 | [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md)                   | Running `gst_irl_ingestion` dossiers: run tiers, reading the VERIFY block, client-ready gating, signoff, failure recovery |
 | [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md) | Converting a partner's filled `.xlsx` IRL to canonical markdown via `npm run irl:extract` for the partner-paste path      |
@@ -31,4 +31,4 @@ Completed initiative documents (Platform Hardening V1, Hub Tools Brutalist Migra
 
 <- Back to [Master Documentation Index](../README.md)
 
-_Last Updated: April 18, 2026_
+_Last Updated: July 15, 2026_
