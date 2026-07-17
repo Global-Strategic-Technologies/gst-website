@@ -5,7 +5,7 @@
 > **Companion docs**:
 >
 > - [`mcp-server/README.md`](../../../README.md) § "Prompts" — user-facing inventory (slash menu, args, examples).
-> - [`src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md`](../../../../src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md) — the planning artifact (commit phasing, file lists, AC).
+> - [`src/docs/development/_archive/MCP_SERVER_PROMPTS_BL-031_75.md`](../../../../src/docs/development/_archive/MCP_SERVER_PROMPTS_BL-031_75.md) — the planning artifact (archived); the decision record is [ADR-0007](../../../../src/docs/adr/0007-registered-prompt-pattern.md).
 >
 > This doc is the durable conceptual reference — it explains the registered-prompt pattern itself.
 

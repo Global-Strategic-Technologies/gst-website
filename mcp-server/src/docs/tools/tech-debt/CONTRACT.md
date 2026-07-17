@@ -126,4 +126,4 @@ These three drive the **post-remediation** outputs:
 
 - Tool wrapper: [`mcp-server/src/tools/tech-debt.ts`](../../../tools/tech-debt.ts)
 - Live website: <https://globalstrategic.tech/hub/tools/tech-debt-calculator>
-- Architecture: [BL-031.5 Hub Surface Extension](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md)
+- Architecture: [ADR-0004 — Resources surface](../../../../../src/docs/adr/0004-hub-surface-resources-import-restriction.md) · [`ARCHITECTURE.md`](../../ARCHITECTURE.md)

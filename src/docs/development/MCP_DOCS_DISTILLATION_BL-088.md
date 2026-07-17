@@ -2,7 +2,7 @@
 
 > **Backlog initiative**: [BL-088 in BACKLOG.md](BACKLOG.md#bl-088-development-docs-distillation--cleanse)
 >
-> **Status**: In progress — PR 1 (archive wave) landed 2026-07-15; PR 2 (ARCHITECTURE.md distillation) + PR 3a (ADR scaffolding + ADR-0001/2/3) landed 2026-07-17. PRs 3b–5 pending.
+> **Status**: In progress — PR 1 (archive wave) landed 2026-07-15; PR 2 (ARCHITECTURE.md), PR 3a (ADR scaffolding + ADR-0001/2/3), and PR 3b (ADR-0004–0007) landed 2026-07-17. PRs 4–5 pending.
 >
 > **Lifecycle note**: this doc is itself a point-in-time initiative record and follows the convention it creates — at BL-088 closure (PR 5) it moves to [`_archive/`](_archive/README.md).
 
@@ -60,7 +60,7 @@
 | 1   | `_archive/` scaffolding + 16 archive-only moves + ~30 repoints + dead-anchor fixes + conventions + BL-088 filing | ✅ 2026-07-15      |
 | 2   | ARCHITECTURE.md from 5 sources; archive them; repoint 42 refs + fix 2 stale claims (DEPLOY Q4, PERF_OBS row)     | ✅ 2026-07-17      |
 | 3a  | ADR scaffolding (`src/docs/adr/` README + TEMPLATE) + ADR-0001/2/3; archive 3 sources; repoint 19 refs           | ✅ 2026-07-17      |
-| 3b  | ADR-0004/5/6/7; archive 4 sources; repoint ~35 refs incl. golden-fixture comments                                | pending (~1.5–2 d) |
+| 3b  | ADR-0004/5/6/7; archive 4 sources; repoint 27 refs incl. eslint message + golden-fixture prose                   | ✅ 2026-07-17      |
 | 4   | tools/README + irl-mapping folds; NEW prompts/irl-ingestion.md; archive 4 sources; repoint                       | pending (~1.5–2 d) |
 | 5   | Master-index adr/ row; final sweep grep; BL-088 closure; archive this doc                                        | pending (~0.5 d)   |
 

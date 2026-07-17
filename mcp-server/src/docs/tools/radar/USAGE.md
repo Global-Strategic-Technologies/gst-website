@@ -144,7 +144,7 @@ For other use cases (live agenda drafting, comparable-deal recall), see [`mcp-se
 - [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
 - [`CONTRACT.md`](./CONTRACT.md) — per-field input reference + capability-mirror invariant rationale
 - [`../contracts/README.md`](../README.md) — registry of all per-tool contracts
-- [`src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md`](../../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) § Phase 3 — closure stanza for the URL state restoration + capability-mirror refactor
+- [ADR-0005 — Hub URL-state deep-link contract](../../../../../src/docs/adr/0005-hub-url-state-deeplink-contract.md) (Phase 3 closure history: [archived design doc](../../../../../src/docs/development/_archive/MCP_SERVER_HUB_URL_STATE_BL-031_95.md))
 
 ---
 

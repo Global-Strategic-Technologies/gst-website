@@ -133,4 +133,4 @@ Per-category zones use the same logic against the per-category benchmarks in `st
 
 - Tool wrapper: [`mcp-server/src/tools/techpar.ts`](../../../tools/techpar.ts)
 - Live website: <https://globalstrategic.tech/hub/tools/techpar>
-- Architecture: [BL-031.5 Hub Surface Extension](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md)
+- Architecture: [ADR-0004 — Resources surface](../../../../../src/docs/adr/0004-hub-surface-resources-import-restriction.md) · [`ARCHITECTURE.md`](../../ARCHITECTURE.md)

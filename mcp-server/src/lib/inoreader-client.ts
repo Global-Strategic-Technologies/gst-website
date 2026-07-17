@@ -70,7 +70,7 @@ export interface InoreaderSuccess {
  * https://www.inoreader.com/developers/rate-limiting and confirmed via
  * the 2026-05-15 BL-032.6 demo-day RCA — when these are missing from a
  * Sentry event, RCA shifts from a 30-second header read to a multi-hour
- * dashboard hunt (see BL-032_5_TESTING_FINDINGS.md § T.Z.3).
+ * dashboard hunt (see src/docs/adr/0006-inoreader-zone1-budget-protection.md; trace: _archive/BL-032_5_TESTING_FINDINGS.md § T.Z.3).
  *
  * All five fields are present on a typical 429; we keep them optional so
  * proxies that strip CORS-exposed headers don't break the type.

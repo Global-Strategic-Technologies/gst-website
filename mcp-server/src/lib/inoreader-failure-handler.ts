@@ -14,7 +14,7 @@
  *     incident window
  *
  * The 2026-05-15 BL-032.6 demo-day RCA proved this in production —
- * see BL-032_5_TESTING_FINDINGS.md § T.Z.2 for the trace.
+ * see src/docs/adr/0006-inoreader-zone1-budget-protection.md; trace at _archive/BL-032_5_TESTING_FINDINGS.md § T.Z.2.
  *
  * **Contract**: every Inoreader call site (cron OR live tool) routes
  * its failures through this helper. On `inoreader-rate-limit`, the
@@ -42,10 +42,7 @@ import type { InoreaderFailure, RateLimitInfo } from './inoreader-client';
  * documented values keeps Sentry's tag value cardinality sane.
  */
 export type InoreaderFailureSource =
-  | 'cron-wire'
-  | 'cron-fyi'
-  | 'live-search-radar'
-  | 'live-get-latest-insights';
+  'cron-wire' | 'cron-fyi' | 'live-search-radar' | 'live-get-latest-insights';
 
 /**
  * Build the structured Sentry tag set from a RateLimitInfo block. Same

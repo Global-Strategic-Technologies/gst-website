@@ -199,7 +199,7 @@ export default [
                 '../../../src/lib/inoreader/client*',
               ],
               message:
-                'mcp-server/src/** must not import the live Inoreader client. Read from the cached snapshot via mcp-server/src/content/radar-snapshot.ts instead. See MCP_SERVER_HUB_SURFACE_BL-031_5.md § Radar.',
+                'mcp-server/src/** must not import the live Inoreader client. Read from the cached snapshot via mcp-server/src/content/radar-snapshot.ts instead. See src/docs/adr/0004-hub-surface-resources-import-restriction.md.',
             },
           ],
         },
