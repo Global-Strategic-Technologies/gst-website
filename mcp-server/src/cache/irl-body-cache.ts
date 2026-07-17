@@ -7,7 +7,7 @@
  * `compose_dossier_envelope` then accepts only the hash and re-hydrates the
  * body from this cache — cutting ~9-80KB of model output tokens per envelope
  * call (40-80% latency reduction depending on body size; see
- * `src/docs/development/MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md`).
+ * `src/docs/adr/0002-irl-body-by-hash-cache.md`).
  *
  * Two implementations:
  *   - `InMemoryIrlBodyCache` — stdio path. Process-lifetime LRU `Map`,

@@ -33,7 +33,7 @@
  * **What this is NOT**: a server tool. BL-049 explored a server-side
  * `extract_irl_from_xlsx` tool and reverted it (cross-host Claude Desktop
  * topology blocks bytes delivery; design doc preserved at
- * `src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`).
+ * `src/docs/adr/0003-irl-xlsx-canonicalization-hash-bind.md`).
  * This script is the **local-operator equivalent**: same conceptual
  * conversion, runs on the operator host where the xlsx already lives.
  *

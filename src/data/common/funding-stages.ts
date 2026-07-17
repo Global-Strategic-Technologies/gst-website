@@ -13,7 +13,7 @@ import { z } from 'zod';
  * boundary choice (MCP-wrapper, not engine/schema), and
  * lossy-direction policy (intentional information-shedding for
  * benchmark-dataset granularity) are documented in
- * `src/docs/development/MCP_SERVER_STAGE_ADAPTER_BL-031_87.md`.
+ * `src/docs/adr/0001-stage-taxonomy-adapter.md`.
  */
 
 export const CANONICAL_STAGES = [

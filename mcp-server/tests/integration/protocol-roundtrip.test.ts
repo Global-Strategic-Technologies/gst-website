@@ -194,7 +194,7 @@ describe('protocol roundtrip', () => {
           // cross-host Claude Desktop topology (model in cloud-side Linux
           // sandbox, MCP server on user host) has no reachable path to
           // deliver attached xlsx bytes. Deferred indefinitely; revisit
-          // blueprint at src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md.
+          // blueprint per src/docs/adr/0003-irl-xlsx-canonicalization-hash-bind.md.
         ].sort()
       );
 

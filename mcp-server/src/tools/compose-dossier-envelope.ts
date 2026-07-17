@@ -12,7 +12,7 @@
  * (model in cloud-side Linux sandbox, MCP server on user host) has no
  * reachable path to deliver attached xlsx bytes to the server. The
  * cryptographically-receipted path is deferred indefinitely (revisit
- * blueprint at `src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`;
+ * blueprint per `src/docs/adr/0003-irl-xlsx-canonicalization-hash-bind.md`;
  * no BACKLOG ticket — gated on external infrastructure with no roadmap)
  * pending either an MCP spec primitive for binary resource delivery OR
  * a Claude Desktop attachment-to-host bridge. What stayed from BL-049: the

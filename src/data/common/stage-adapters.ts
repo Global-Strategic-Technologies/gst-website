@@ -27,7 +27,7 @@ import { CANONICAL_STAGES, type CanonicalStage } from './funding-stages';
  * doesn't support.
  *
  * Full pattern-choice and lossy-direction rationale:
- * `src/docs/development/MCP_SERVER_STAGE_ADAPTER_BL-031_87.md`.
+ * `src/docs/adr/0001-stage-taxonomy-adapter.md`.
  */
 
 // ─── ICG adapter ─────────────────────────────────────────────────────────────
