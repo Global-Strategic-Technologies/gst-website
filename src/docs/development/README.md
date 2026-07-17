@@ -35,11 +35,11 @@ The `_archive/` README carries the admission criteria and the frozen-links polic
 
 ## Archived
 
-- **2026-07-15 (BL-088)**: closed-initiative docs began moving to [`_archive/`](_archive/README.md) under the lifecycle above — see [MCP_DOCS_DISTILLATION_BL-088.md](./MCP_DOCS_DISTILLATION_BL-088.md) for the disposition table and wave ledger.
+- **2026-07-15 → 2026-07-17 (BL-088, complete)**: all 32 closed-initiative docs distilled into the maintained surface (`mcp-server/src/docs/ARCHITECTURE.md`, [`src/docs/adr/`](../adr/README.md), doc folds, `prompts/irl-ingestion.md`) and moved to [`_archive/`](_archive/README.md) under the lifecycle above — see the [archived BL-088 record](_archive/MCP_DOCS_DISTILLATION_BL-088.md) for the disposition table and wave ledger. This directory now holds only living reference docs.
 - **2026-04-18**: completed initiative documents (Platform Hardening V1, Hub Tools Brutalist Migration, Site-Wide Brutalist Migration, Favicon & Icons, Design System Initiatives 1-5) were consolidated and **removed** (pre-convention). View originals via `git show` — see the note at the top of [BACKLOG.md](./BACKLOG.md) for instructions.
 
 ---
 
 <- Back to [Master Documentation Index](../README.md)
 
-_Last Updated: July 15, 2026 (BL-088 PR 1 — lifecycle convention + archive wave)_
+_Last Updated: July 17, 2026 (BL-088 closed — directory reduced to living references only)_
