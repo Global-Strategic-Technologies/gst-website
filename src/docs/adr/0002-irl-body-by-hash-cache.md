@@ -1,0 +1,29 @@
+# ADR-0002: IRL body-by-hash server-side cache
+
+- **Status**: Accepted (2026-06-07, mcp-server 0.30.0) — extended by BL-077a/b/c + BL-079
+- **Source initiative**: BL-076 (design doc archived at [`../development/_archive/MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md`](../development/_archive/MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md))
+
+## Context
+
+`compose_dossier_envelope` is the forcing-function tool that externalizes the dossier's structural envelope ((K) provenance footer, (J) gap list, meta fence) into one large structured input. Through v0.29.0 that input included `filledIrl` — the full canonical IRL body, 9–80KB of markdown. Every invocation required the model to re-emit those bytes as tool arguments, and two live staging exercises on 2026-06-07 measured the cost: 5–15 minutes of output-token streaming per call before the server even received the request. The first occurrence was misdiagnosed as a transport wedge; operator inspection confirmed the model was typing the payload token-by-token.
+
+This latency is structural, not a server bug — the bytes are generated model-side, so no server optimization can touch it. It also carries correctness risk: the body's `sha256(filledIrl).slice(0,16)` is the BL-049 provenance hash-bind authority, so any truncation or mutation during the re-emit invalidates the hash-bind and forces a retry (`IrlBodyHashMismatchError`). Byte fidelity matters; making the model retype 80KB verbatim is the worst possible way to preserve it.
+
+## Decision
+
+The body flows into the server exactly once, via `prepare_irl_body`, and never re-enters the model-emit path:
+
+1. **`prepare_irl_body` caches on hash-compute.** The handler (`mcp-server/src/tools/prepare-irl-body.ts`) computes the canonical 16-hex hash and writes the body to `metrics.irlBodyCache` keyed by that hash. Its model-facing output (`{ irlBodyHash, byteLength }`) is unchanged from BL-068; only `readOnlyHint` flipped to `false` because the cache write is a side effect.
+2. **`compose_dossier_envelope` accepts only the hash.** `filledIrl` is removed from the public input schema (`mcp-server/src/schemas/compose-dossier-envelope.ts`); `irlBodyHash` is the sole body reference. The handler fetches the body from cache and re-injects it into the engine-internal `ComposeDossierEnvelopeEngineInput` type, keeping `runComposeDossierEnvelope` pure and its ~30 engine tests untouched. `validate_irl_provenance` gains the same by-hash path in BL-079 Part A (0.30.5).
+3. **Two cache implementations** in `mcp-server/src/cache/irl-body-cache.ts`: stdio uses `InMemoryIrlBodyCache` (process-lifetime LRU, 16 entries — the cache and the Claude Desktop session share a lifecycle); Worker uses `UpstashIrlBodyCache` (key `mcp:irl-body:<16hex>`, 4-hour TTL). The Worker path must never fall back to in-memory: Cloudflare isolates rotate between requests, so wiring fails fast at `createServer` when Upstash bindings are absent. Both enforce a 200KB per-entry cap (`IRL_BODY_CACHE_MAX_BYTES`) via `IrlBodyCacheSizeExceededError`.
+4. **Misses and write failures are loud.** A compose call with no cached body throws `Bl076BodyCacheMissError` with a directive to call `prepare_irl_body` first. Upstash writes are verified by a read-after-write probe and surface `IrlBodyCacheWriteFailedError` (`cause: write-returned-false | readback-null | readback-mismatch`) plus `bl077.cache.*` safeLog events with a per-instance `storeId` for `wrangler tail` correlation (BL-077a/b). The original `gst-mcp:` key prefix tripped the Upstash ACL (`+@all ~mcp:*` → NOPERM) on the first staging exercise; BL-077c realigned it to the documented `mcp:` namespace.
+5. **The hash-bind still runs post-rehydrate.** `sha256(body).slice(0,16) === irlBodyHash` is structurally tautological once the cache is keyed by that hash, but it stays as defense-in-depth against a future cache-key regression. BL-049 authority is unchanged: `pass-bound` for `partner-paste-verbatim`, `pass-internal` for reconstruction modes — the BL-070 `requireVerbatimBody` gate branches on `irlSource`, not `filledIrl`, so the trust seam does not move.
+
+This is the same architectural lever as the BL-070/BL-071 family: shift human/model discipline (retype the body faithfully) into system enforcement (the server holds the bytes; the model holds a 16-character receipt). Result per the 0.30.0 changelog: 40–80% emit reduction depending on body size; wall-clock per compose call from 5–15 min to an estimated 1–3 min, sub-90-seconds for small bodies.
+
+## Consequences
+
+- **Code that carries this decision**: `mcp-server/src/cache/irl-body-cache.ts` (both implementations, caps, TTL, diagnostics), `mcp-server/src/schemas/compose-dossier-envelope.ts` (public-vs-engine input split), `mcp-server/src/metrics/with-metrics.ts` (`irlBodyCache?` on `MetricsContext`, symmetric with the BL-071 `counters?` field; undefined in the NOOP context so engine tests bypass the cache entirely), and the end-to-end contract test `mcp-server/tests/integration/bl-076-body-by-hash.test.ts` (prepare-then-compose chain, miss rejection, post-rehydrate hash-bind).
+- **BREAKING but internal-only**: removing `filledIrl` is a breaking input-schema change under the BL-032 Q12 contract; the operator confirmed on 2026-06-07 that no external clients of `compose_dossier_envelope` exist, so migration was prompt body + tests, no compat shim.
+- **Accepted operational edges**: a >4h operator pause (Worker TTL) or >16 distinct bodies in one stdio session (LRU) surfaces a cache miss; recovery is one `prepare_irl_body` re-call.
+- **Extensions shipped on this substrate**: BL-077a/b/c (0.30.1–0.30.3) hardened cache diagnostics and the `mcp:` namespace; BL-079 (0.30.5/0.31.0) extended body-by-hash to `validate_irl_provenance` and pre-populates the cache at prompt-render time when the prompt is invoked with `args.filledIrl`, letting the model skip `prepare_irl_body` entirely on the happy path.

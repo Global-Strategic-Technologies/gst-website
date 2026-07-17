@@ -12,7 +12,7 @@
  *      (cache-poisoning isn't reachable by construction, but the check is
  *      pinned so a future cache-key-collision regression surfaces).
  *
- * See: src/docs/development/MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md
+ * See: src/docs/adr/0002-irl-body-by-hash-cache.md
  */
 
 import { describe, expect, it } from 'vitest';

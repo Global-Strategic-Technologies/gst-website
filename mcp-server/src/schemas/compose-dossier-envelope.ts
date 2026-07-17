@@ -316,7 +316,7 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
   // body from cache at handler entry. Removing the body from the model-
   // emitted tool args cuts 9–80KB of output token cost per call
   // (40–80% latency reduction depending on body size). See
-  // src/docs/development/MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md.
+  // src/docs/adr/0002-irl-body-by-hash-cache.md.
   irlBodyHash: z
     .string()
     .regex(

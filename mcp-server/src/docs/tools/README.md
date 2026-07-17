@@ -97,7 +97,7 @@ Some concepts appear in multiple tools' input contracts under different shapes. 
 
 ### Funding stage — canonical layer + Adapter (BL-031.87, shipped)
 
-ICG and TechPar both partition the company population by funding round to select a benchmark cohort. Their **native enum shapes differ** (different field names, different value sets, different notation), but the **canonical layer** introduced in [BL-031.87](../../../../src/docs/development/MCP_SERVER_STAGE_ADAPTER_BL-031_87.md) is the public-facing taxonomy:
+ICG and TechPar both partition the company population by funding round to select a benchmark cohort. Their **native enum shapes differ** (different field names, different value sets, different notation), but the **canonical layer** introduced in BL-031.87 ([ADR-0001](../../../../src/docs/adr/0001-stage-taxonomy-adapter.md)) is the public-facing taxonomy:
 
 ```
 canonical: 'seed' | 'series-a' | 'series-b' | 'series-c' | 'pe' | 'enterprise'
@@ -116,7 +116,7 @@ Source: [`src/data/common/funding-stages.ts`](../../../../src/data/common/fundin
 
 **MCP-wrapper input contract:** ICG and TechPar tool inputs accept canonical values (preferred) OR tool-native values (backward-compat). A Zod union renders both options in the JSON Schema; the wrapper resolves canonical to native via `resolveIcgStageInput` / `resolveTechparStageInput` before invoking the engine. Native values continue to work for one release; canonical is the going-forward public API.
 
-**Lossy direction:** canonical → tool-native is always safe (e.g., canonical `series-c` → TechPar `series_bc`). Tool-native → canonical is lossy where the native enum collapses canonical values (e.g., TechPar `series_bc` → ambiguous `['series-b', 'series-c']`). Tool responses include a `stageContext: { native, canonical: readonly CanonicalStage[] }` field that exposes the lossy direction honestly with an array — see [BL-031.87 architecture doc § Lossy-direction policy](../../../../src/docs/development/MCP_SERVER_STAGE_ADAPTER_BL-031_87.md#lossy-direction-policy) for full rationale.
+**Lossy direction:** canonical → tool-native is always safe (e.g., canonical `series-c` → TechPar `series_bc`). Tool-native → canonical is lossy where the native enum collapses canonical values (e.g., TechPar `series_bc` → ambiguous `['series-b', 'series-c']`). Tool responses include a `stageContext: { native, canonical: readonly CanonicalStage[] }` field that exposes the lossy direction honestly with an array — see [ADR-0001 § Lossy-direction policy](../../../../src/docs/adr/0001-stage-taxonomy-adapter.md#lossy-direction-policy) for full rationale.
 
 **Why the variance exists** (and why the Adapter is the right response): each tool's native enum is **coupled to its benchmark dataset** — ICG's `BENCHMARK_RANGES` is keyed by ICG's enum, TechPar's `STAGES` map is keyed by TechPar's enum. Renaming either to a canonical taxonomy in-place would require benchmark re-attribution and risk silent mis-attribution. The Adapter approach keeps engines and benchmark datasets untouched; only the MCP-wrapper boundary translates.
 

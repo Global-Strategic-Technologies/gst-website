@@ -66,7 +66,7 @@ export interface MetricsContext {
    * with an actionable diagnostic. Undefined in tests / default NOOP context
    * — backward-compatible no-op (engine tests pass `filledIrl` directly and
    * bypass the cache entirely). See
-   * `src/docs/development/MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md`.
+   * `src/docs/adr/0002-irl-body-by-hash-cache.md`.
    *
    * Scoping (matches BL-071 `counters` pattern):
    *   - stdio: process-lifetime in-memory LRU (one per Claude Desktop session)

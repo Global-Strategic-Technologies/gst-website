@@ -50,7 +50,7 @@ in lockstep when the registry shape changes.
 
 ## 0.38.0 — 2026-07-09 — BL-049 closeout hardening — `normalizeForMatching` curly-quote flattening + meta-fence stale version literal (`gst_irl_ingestion` v0.21.0 → v0.21.1)
 
-**Theme**: closes out BL-049 (BACKLOG truth-pass landed in the same PR — the stanza's "Open" status was a month stale; the server-side xlsx path stays deferred indefinitely per the [revisit blueprint](../src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md)). Two code remnants ship:
+**Theme**: closes out BL-049 (BACKLOG truth-pass landed in the same PR — the stanza's "Open" status was a month stale; the server-side xlsx path stays deferred indefinitely per the [revisit blueprint](../src/docs/development/_archive/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md)). Two code remnants ship:
 
 **1. Curly-quote flattening in `normalizeForMatching`** (`src/schemas/validate-irl-provenance.ts`): U+2018 U+2019 U+201C U+201D join the punctuation-to-space class, symmetric with the existing straight-quote handling. This closes the last encoding-drift class from BL-049's original problem statement — em-dashes were already flattened, and NBSP variants (U+00A0/U+202F) were already covered because JS `\s` matches all Unicode space separators (now locked with regression tests).
 
@@ -973,7 +973,7 @@ This is not a Windows-specific problem — it's the default Claude Desktop topol
 
 **Test deltas**: 1278 → 1241 (-37). Removed: receipt-hmac unit tests (15), extract-irl-from-xlsx parser tests (9), cross-tool integration tests (13). Updated: existing tests rebaselined for the 15-tool count + 0.5.1 prompt version + new body hashes. **Tier-discipline tests preserved** — the v11 Finding B closure remains under test coverage.
 
-**Deferred work**: the xlsx-canonicalized hash-bind authority path is deferred indefinitely. BL-054 was filed and retired same-day on 2026-06-04 — a backlog item gated on external infrastructure with no public roadmap is a tombstone, not a queueable initiative. The architecture survives as a revisit blueprint at [`src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`](../src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); re-engage by re-reading that doc when an MCP spec primitive ships for binary-resource delivery OR Claude Desktop ships an attachment-to-host bridge OR the topology pivots away from Claude Desktop + stdio.
+**Deferred work**: the xlsx-canonicalized hash-bind authority path is deferred indefinitely. BL-054 was filed and retired same-day on 2026-06-04 — a backlog item gated on external infrastructure with no public roadmap is a tombstone, not a queueable initiative. The architecture survives as a revisit blueprint at [`src/docs/development/_archive/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`](../src/docs/development/_archive/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md); re-engage by re-reading that doc when an MCP spec primitive ships for binary-resource delivery OR Claude Desktop ships an attachment-to-host bridge OR the topology pivots away from Claude Desktop + stdio.
 
 **Also in 0.13.1** — **BL-055 — hash-bind discipline split** (live-exercise empirical fix, 2026-06-04):
 
@@ -993,7 +993,7 @@ Surface impact (additive prompt-body directive expansion, no schema/code change)
 
 Prompt: 0.5.2 → 0.5.3 (patch — additive directive clarity, no contract change). Server stays at 0.13.1. Body hashes + manifest hash rebaselined.
 
-**Theme**: closes the two real failure modes the v11 StoreForce live exercise empirically exposed (after re-grounding the original "30 false-positive tier-mismatch" thesis against the actual transcript — see [`src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`](../src/docs/development/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) § "Empirical trace — v11 actual outcome"):
+**Theme**: closes the two real failure modes the v11 StoreForce live exercise empirically exposed (after re-grounding the original "30 false-positive tier-mismatch" thesis against the actual transcript — see [`src/docs/development/_archive/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`](../src/docs/development/_archive/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) § "Empirical trace — v11 actual outcome"):
 
 - **Finding A — operator-flow ambiguity.** When xlsx is attached but no `filledIrl` arg is supplied, the model improvises a body. v11's Call 1 passed the blank canonical IRL template; verifier correctly rejected 30 IRL-cited claims. Call 2 (self-correction with the populated body) was prepared but never fired. **Closed by `extract_irl_from_xlsx`** — gives the model an authoritative canonical body so Call 1 IS the successful call.
 - **Finding B — tier-discipline gaming.** Inspecting Call 2's prepared input revealed the model demoted **17 originally-tier-1 claims to tier-2** between calls — converting damning `tier-mismatch:` gaps into routine `provenance-gap:` ones. The tier field was model-declared with no server enforcement. **Closed by `tier-fabrication:` auto-append** — the verifier derives effective tier from citation properties (substring → tier-1-literal; `Section --` sentinel → partner-supplied; neither → fabrication); demoting to tier-2 with a non-substring excerpt now produces `tier-fabrication:` instead of being silently absorbed.
