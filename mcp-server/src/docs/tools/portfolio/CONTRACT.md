@@ -134,5 +134,5 @@ The website page does not (today) surface filters for `growthStage`, `year`, `in
 - URL encoder: [`src/utils/portfolio-url.ts`](../../../../../src/utils/portfolio-url.ts)
 - Walkthrough: [`USAGE.md`](./USAGE.md)
 - Live website: <https://globalstrategic.tech/ma-portfolio>
-- Architecture: [BL-031.95 Hub Tools URL State Restoration & MCP Deep-Link Surface](../../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) — Phase 4 (Portfolio URL state) closure
+- Architecture: [ADR-0005 — Hub URL-state deep-link contract](../../../../../src/docs/adr/0005-hub-url-state-deeplink-contract.md) (Phase 4 closure history: [archived design doc](../../../../../src/docs/development/_archive/MCP_SERVER_HUB_URL_STATE_BL-031_95.md))
 - Integration test: [`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../../tests/integration/portfolio-handler.test.ts)

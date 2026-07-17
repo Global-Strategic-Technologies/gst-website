@@ -8,10 +8,14 @@ Lightweight, maintained records of load-bearing design decisions that span the w
 
 ## Index
 
-| ADR                                                 | Decision                                                                                 | Status                                                                    |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [0001](0001-stage-taxonomy-adapter.md)              | Stage-taxonomy adapter at the MCP-wrapper boundary (not full normalization)              | Accepted 2026-05-02; re-validated 2026-07-14 (benchmark audit, finding A) |
-| [0002](0002-irl-body-by-hash-cache.md)              | IRL body-by-hash server-side cache (body off the model-emit path)                        | Accepted 2026-06-07 (0.30.0); extended by BL-077a/b/c + BL-079            |
-| [0003](0003-irl-xlsx-canonicalization-hash-bind.md) | IRL canonicalization & hash-bind authority; server-side xlsx path deferred with triggers | Partially accepted (subset 0.13.1; hardening 0.38.0)                      |
+| ADR                                                      | Decision                                                                                  | Status                                                                    |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [0001](0001-stage-taxonomy-adapter.md)                   | Stage-taxonomy adapter at the MCP-wrapper boundary (not full normalization)               | Accepted 2026-05-02; re-validated 2026-07-14 (benchmark audit, finding A) |
+| [0002](0002-irl-body-by-hash-cache.md)                   | IRL body-by-hash server-side cache (body off the model-emit path)                         | Accepted 2026-06-07 (0.30.0); extended by BL-077a/b/c + BL-079            |
+| [0003](0003-irl-xlsx-canonicalization-hash-bind.md)      | IRL canonicalization & hash-bind authority; server-side xlsx path deferred with triggers  | Partially accepted (subset 0.13.1; hardening 0.38.0)                      |
+| [0004](0004-hub-surface-resources-import-restriction.md) | Resources surface & the live-Inoreader import restriction (ESLint-enforced)               | Accepted 2026-04-28                                                       |
+| [0005](0005-hub-url-state-deeplink-contract.md)          | Hub URL-state deep-link contract (shared encoders, capability-mirror, no URL back-compat) | Accepted 2026-05-03                                                       |
+| [0006](0006-inoreader-zone1-budget-protection.md)        | Inoreader Zone-1 budget protection & circuit breaker (soak-derived)                       | Accepted 2026-05-13; extended by BL-032.7/.75/.77                         |
+| [0007](0007-registered-prompt-pattern.md)                | Registered prompts as the consultant-workflow surface (+ maturity bar)                    | Accepted 2026-05-01                                                       |
 
-_Established 2026-07-17 under BL-088 (development-docs distillation). ADR-0004–0007 land in the next wave._
+_Established 2026-07-17 under BL-088 (development-docs distillation)._

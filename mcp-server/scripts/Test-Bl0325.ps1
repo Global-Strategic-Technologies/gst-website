@@ -28,7 +28,7 @@
 .PARAMETER OutFile
     Optional path. When set, the full table of results is also written
     to that file (one record per line, TSV). Useful for pasting into
-    `BL-032_5_TESTING_FINDINGS.md`.
+    `src/docs/development/_archive/BL-032_5_TESTING_FINDINGS.md`.
 
 .PARAMETER ContinueOnFailure
     By default the runner finishes every scenario even if some fail.
@@ -47,7 +47,7 @@
 .NOTES
     Companion:
       - src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032_5_TESTING.md  (playbook)
-      - src/docs/development/BL-032_5_TESTING_FINDINGS.md           (findings log)
+      - src/docs/development/_archive/BL-032_5_TESTING_FINDINGS.md  (findings log; decision: src/docs/adr/0006)
       - scripts/Invoke-McpRequest.ps1                              (the helpers this builds on)
 #>
 [CmdletBinding()]

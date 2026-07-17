@@ -177,7 +177,7 @@ The engine is deterministic; per-domain scores and the recommendation list are d
 - [`mcp-server/README.md`](../../../../README.md) — install, configure, tool inventory, troubleshooting
 - [`CONTRACT.md`](./CONTRACT.md) — the canonical input contract (per-field reference, valid values, hidden semantics)
 - [`../contracts/README.md`](../README.md) — registry of all per-tool input contracts; what a contract is; the IRL forward-look
-- [`src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md`](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) — architecture and design rationale for BL-031.5
+- [ADR-0004 — Resources surface](../../../../../src/docs/adr/0004-hub-surface-resources-import-restriction.md) + [`ARCHITECTURE.md`](../../ARCHITECTURE.md) — architecture and design rationale
 
 ---
 

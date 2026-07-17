@@ -124,7 +124,7 @@ function categoryMatches(item: SnapshotItem, filter?: RadarCategory): boolean {
  * so the cron path and the live-tool path open the breaker on the same
  * 429 signal. Prior to T.Z.2, only this path opened the breaker, which
  * extended Inoreader-degradation windows by 6h on top of the upstream
- * incident — see BL-032_5_TESTING_FINDINGS.md § T.Z.2.
+ * incident — see src/docs/adr/0006-inoreader-zone1-budget-protection.md (trace: _archive/BL-032_5_TESTING_FINDINGS.md § T.Z.2).
  */
 async function failureResponse(
   env: Env,

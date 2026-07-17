@@ -117,7 +117,7 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 - Cache reader: [`mcp-server/src/content/radar-snapshot.ts`](../../../content/radar-snapshot.ts)
 - URL encoder: [`src/utils/radar-url.ts`](../../../../../src/utils/radar-url.ts)
 - Live website: <https://globalstrategic.tech/hub/radar>
-- Architecture: [BL-031.95 Hub Tools URL State Restoration & MCP Deep-Link Surface](../../../../../src/docs/development/MCP_SERVER_HUB_URL_STATE_BL-031_95.md) — Phase 3 (Radar URL state) closure
+- Architecture: [ADR-0005 — Hub URL-state deep-link contract](../../../../../src/docs/adr/0005-hub-url-state-deeplink-contract.md) (Phase 3 closure history: [archived design doc](../../../../../src/docs/development/_archive/MCP_SERVER_HUB_URL_STATE_BL-031_95.md))
 - [BL-032 Phase 4b](../../../../../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md#q2-search_radar-vs-search_radar_cache--coexistence-replacement-or-capability-mirror-revisited) — `search_radar_cache` rename to `search_radar_offline` (this tool's current name)
 
 ---

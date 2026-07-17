@@ -120,4 +120,4 @@ The tool returns:
 
 - Tool wrapper: [`mcp-server/src/tools/icg.ts`](../../../tools/icg.ts)
 - Live website: <https://globalstrategic.tech/hub/tools/infrastructure-cost-governance>
-- Architecture: [BL-031.5 Hub Surface Extension](../../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md)
+- Architecture: [ADR-0004 — Resources surface](../../../../../src/docs/adr/0004-hub-surface-resources-import-restriction.md) · [`ARCHITECTURE.md`](../../ARCHITECTURE.md)

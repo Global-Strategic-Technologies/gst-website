@@ -29,8 +29,8 @@ A contract is NOT a copy of the Zod schema or the wizard-config — it cites the
 - **Self-service tool invocation.** A team member composing a prompt for an analyst doesn't need to grep `src/schemas/` to know what enum values are valid; the contract lists them with descriptions and downstream-effect notes.
 - **AI-agent introspection.** An agent in a long-running conversation can fetch the contract for a tool, plan its inputs deliberately, and avoid wasted invocations against invalid enum values.
 - **Onboarding.** New analysts get a "why each input matters" narrative — not just a list of valid values.
-- **Drift surveillance at PR review.** A contract version bump makes schema changes visible at PR review time; aligns with the schema-reuse risk mitigation [BL-031.5](../../../../src/docs/development/MCP_SERVER_HUB_SURFACE_BL-031_5.md) calls out.
-- **Foundation for prompt argsSchema reuse.** [BL-031.75](../../../../src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md) prompts compose `argsSchema` from tool input schemas; the contract gives that composition a stable, versioned reference.
+- **Drift surveillance at PR review.** A contract version bump makes schema changes visible at PR review time; aligns with the schema-reuse risk mitigation BL-031.5 called out ([archived design doc](../../../../src/docs/development/_archive/MCP_SERVER_HUB_SURFACE_BL-031_5.md)).
+- **Foundation for prompt argsSchema reuse.** [BL-031.75](../../../../src/docs/adr/0007-registered-prompt-pattern.md) prompts compose `argsSchema` from tool input schemas; the contract gives that composition a stable, versioned reference.
 - **Foundation for the IRL generator** (see below).
 
 ---
@@ -73,7 +73,7 @@ Each contract carries a `version` (semver-style integer or `vN`) and a `lastAuth
 - **Non-bump changes**: typo fixes in descriptions, expanded prose in downstream-effect summaries, restructured tables — version stays, `lastAuthored` updates
 - **Cross-doc impact**: a contract version bump should trigger a review of dependent prompts (BL-031.75 prompts that compose `argsSchema` from the contract). Convention, not CI-enforced today
 
-Pattern borrowed from the prompt-versioning approach in [MCP_SERVER_PROMPTS_BL-031_75.md](../../../../src/docs/development/MCP_SERVER_PROMPTS_BL-031_75.md). When BL-031.5 ships its four other Hub-tool contracts, each gets its own `v1` and its own version cadence.
+Pattern borrowed from the prompt-versioning approach ([ADR-0007](../../../../src/docs/adr/0007-registered-prompt-pattern.md)). When BL-031.5 ships its four other Hub-tool contracts, each gets its own `v1` and its own version cadence.
 
 ---
 
