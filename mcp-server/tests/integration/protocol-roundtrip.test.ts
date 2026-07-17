@@ -6,7 +6,7 @@
  * vendored paired-pipe Transport. Closes BL-031 AC #9.
  *
  * Architecture decision: see
- * `src/docs/development/MCP_SERVER_ARCHITECTURE_BL-031_tests.md`.
+ * `src/docs/development/_archive/MCP_SERVER_ARCHITECTURE_BL-031_tests.md`.
  */
 
 import {

@@ -24,8 +24,8 @@
 //                   distinguish a flake from a reliable reproduction
 //   --timeout <ms>  Per-call timeout (default 30000)
 //
-// Companion: src/docs/development/MCP_SERVER_REMOTE_BL-032_25.md § 3
-//            src/docs/development/BL-032_TESTING_FINDINGS.md § T.K.2.b.3
+// Companion: src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032_25.md § 3
+//            src/docs/development/_archive/BL-032_TESTING_FINDINGS.md § T.K.2.b.3
 
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';

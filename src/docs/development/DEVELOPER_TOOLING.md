@@ -285,6 +285,7 @@ See [.prettierignore](../../../.prettierignore) for the full list. Notable entri
 - **Regulatory map content collection**: `src/data/regulatory-map/` (120 JSON files curated manually)
 - **Lock files**: `package-lock.json`
 - **Generated output**: `dist/`, `.astro/`, `.vercel/`, `coverage/`, `playwright-report/`, `test-results/`
+- **Archived initiative docs**: `src/docs/development/_archive/` (added 2026-07-15, BL-088) — archived docs are frozen verbatim point-in-time records; letting the pre-commit hook reformat them at `git mv` time would contradict the archive-verbatim policy and bloat move diffs
 
 ## Prettier idempotency + drift detection
 

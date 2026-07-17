@@ -28,7 +28,7 @@
 .NOTES
     Companion to:
       - mcp-server/src/docs/operations/DEPLOY.md  (B.3 smoke validation)
-      - src/docs/development/BL-032_TESTING_FINDINGS.md  (per-test stubs)
+      - src/docs/development/_archive/BL-032_TESTING_FINDINGS.md  (per-test stubs)
 
     The body of Invoke-McpRequest is identical to the playbook setup snippet
     in DEPLOY.md B.3 — checked in here so soak terminals don't need to paste

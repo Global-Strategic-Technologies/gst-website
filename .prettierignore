@@ -30,6 +30,10 @@ public/favicon.svg
 # Claude Code skill definitions (external to project)
 .claude/skills/
 
+# Archived initiative docs — frozen verbatim point-in-time records (BL-088);
+# reformatting on move would contradict archive-verbatim and bloat diffs
+src/docs/development/_archive/
+
 # Files where Prettier's parser fails on embedded code blocks
 # (inline scripts in .astro, code fences in markdown)
 src/components/GoogleAnalytics.astro

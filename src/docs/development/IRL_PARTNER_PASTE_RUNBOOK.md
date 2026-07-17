@@ -17,7 +17,7 @@
 > - [MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md](MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) — the deferred server-side `extract_irl_from_xlsx` design. This runbook's `npm run irl:extract` script is the **operator-local equivalent** of that tool: same conversion, runs on the operator host instead of on the server.
 > - [MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md](MCP_SERVER_COMPOSE_BODY_BY_HASH_BL-076.md) — body-by-hash mechanism that makes the paste actually cheap.
 > - [MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md](MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md) — canonical IRL article + Resource.
-> - [MCP_SERVER_IRL_GENERATOR_BL-044.md](MCP_SERVER_IRL_GENERATOR_BL-044.md) — `.xlsx` generator. The extract script is its structural inverse.
+> - [MCP_SERVER_IRL_GENERATOR_BL-044.md](_archive/MCP_SERVER_IRL_GENERATOR_BL-044.md) — `.xlsx` generator. The extract script is its structural inverse.
 
 ---
 

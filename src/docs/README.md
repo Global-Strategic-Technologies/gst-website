@@ -4,16 +4,16 @@ Master index for all project documentation.
 
 ## Directories
 
-| Directory                    | Purpose                               | Docs | Entry Point                                             |
-| ---------------------------- | ------------------------------------- | ---- | ------------------------------------------------------- |
-| [analytics/](analytics/)     | GA4 integration, event tracking       | 3    | [README.md](analytics/README.md)                        |
-| [development/](development/) | Roadmap, tooling, initiatives         | 10   | [README.md](development/README.md)                      |
-| [hub/](hub/)                 | Hub tool technical docs               | 4    | [README.md](hub/README.md)                              |
-| [operations/](operations/)   | Secrets inventory, deploy, rotation   | 1    | [SECRETS_INVENTORY.md](operations/SECRETS_INVENTORY.md) |
-| [security/](security/)       | Headers, CSP, privacy, compliance     | 1    | [README.md](security/README.md)                         |
-| [seo/](seo/)                 | SEO implementation, JSON-LD           | 4    | [README.md](seo/README.md)                              |
-| [styles/](styles/)           | CSS conventions, brand, tokens        | 6    | [README.md](styles/README.md)                           |
-| [testing/](testing/)         | Test strategy, CI/CD, troubleshooting | 7    | [README.md](testing/README.md)                          |
+| Directory                    | Purpose                                                                                                                                                                                         | Docs     | Entry Point                                             |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------- |
+| [analytics/](analytics/)     | GA4 integration, event tracking                                                                                                                                                                 | 3        | [README.md](analytics/README.md)                        |
+| [development/](development/) | Roadmap, tooling, active initiatives (closed-initiative docs distill + archive per the [lifecycle](development/README.md#initiative-doc-lifecycle-convention-codified-2026-07-15-under-bl-088)) | 8 living | [README.md](development/README.md)                      |
+| [hub/](hub/)                 | Hub tool technical docs                                                                                                                                                                         | 4        | [README.md](hub/README.md)                              |
+| [operations/](operations/)   | Secrets inventory, deploy, rotation                                                                                                                                                             | 1        | [SECRETS_INVENTORY.md](operations/SECRETS_INVENTORY.md) |
+| [security/](security/)       | Headers, CSP, privacy, compliance                                                                                                                                                               | 1        | [README.md](security/README.md)                         |
+| [seo/](seo/)                 | SEO implementation, JSON-LD                                                                                                                                                                     | 4        | [README.md](seo/README.md)                              |
+| [styles/](styles/)           | CSS conventions, brand, tokens                                                                                                                                                                  | 6        | [README.md](styles/README.md)                           |
+| [testing/](testing/)         | Test strategy, CI/CD, troubleshooting                                                                                                                                                           | 7        | [README.md](testing/README.md)                          |
 
 ## Quick Navigation
 

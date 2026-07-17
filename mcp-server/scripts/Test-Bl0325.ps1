@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Exercises every programmatically-testable scenario from
-    [`src/docs/development/MCP_SERVER_REMOTE_BL-032_5_TESTING.md`](../../src/docs/development/MCP_SERVER_REMOTE_BL-032_5_TESTING.md):
+    [`src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032_5_TESTING.md`](../../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032_5_TESTING.md):
 
     Sections covered automatically:
       C  Resource cache hit / miss observability (bodies + cache transparency)
@@ -46,7 +46,7 @@
 
 .NOTES
     Companion:
-      - src/docs/development/MCP_SERVER_REMOTE_BL-032_5_TESTING.md  (playbook)
+      - src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032_5_TESTING.md  (playbook)
       - src/docs/development/BL-032_5_TESTING_FINDINGS.md           (findings log)
       - scripts/Invoke-McpRequest.ps1                              (the helpers this builds on)
 #>
