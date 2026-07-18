@@ -84,7 +84,7 @@ This document provides Claude with essential context about the GST Website proje
 
 ### 11. Developer Tooling is Authoritative
 
-- Before suggesting or implementing changes to linting, formatting, type-checking, pre-commit hooks, or CI, read [DEVELOPER_TOOLING.md](../src/docs/development/DEVELOPER_TOOLING.md) first
+- Before suggesting or implementing changes to linting, formatting, type-checking, pre-commit hooks, or CI, read [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md) first
 - The authoritative local validation sequence (matches CI) is:
   ```
   npx astro check && npm run lint && npm run lint:css && npm run test:run
@@ -92,12 +92,12 @@ This document provides Claude with essential context about the GST Website proje
   If all four pass locally, CI will almost certainly pass
 - **Every commit is auto-formatted by the husky pre-commit hook** — lint-staged runs `eslint --fix` then `prettier --write` on staged files. Your staged files may look different in the final commit than in your working tree. This is intentional and documented
 - **`npm audit` policy**: production dependencies must stay at zero advisories (enforced via `--audit-level=moderate --omit=dev` in CI). Dev-only advisories are tolerated case-by-case
-- **Do not add or edit hooks, lint configs, or CI jobs without updating [DEVELOPER_TOOLING.md](../src/docs/development/DEVELOPER_TOOLING.md)** — the doc is the single source of truth for new contributors and future sessions
+- **Do not add or edit hooks, lint configs, or CI jobs without updating [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md)** — the doc is the single source of truth for new contributors and future sessions
 - **Do not use `git commit --no-verify`** unless you are explicitly told the change is an emergency and the user has agreed to the follow-up. CI will still enforce what the hook would have caught, so `--no-verify` only defers the problem
 
 ### 12. One Command Per Bash Call (Avoid Permission-Prompt Thrash)
 
-Claude Code's permission matcher evaluates the ENTIRE command string against the `allow` list in [`.claude/settings.local.json`](../.claude/settings.local.json). A compound command like `cd X && npm run Y | tee Z` is ONE string that matches no wildcard, even when every individual command (`cd`, `npm run`, `tee`) is pre-approved. The result: a permission prompt for work the user already authorized.
+Claude Code's permission matcher evaluates the ENTIRE command string against the `allow` list in [`.claude/settings.local.json`](.claude/settings.local.json). A compound command like `cd X && npm run Y | tee Z` is ONE string that matches no wildcard, even when every individual command (`cd`, `npm run`, `tee`) is pre-approved. The result: a permission prompt for work the user already authorized.
 
 **Rules:**
 
@@ -226,7 +226,15 @@ npm run astro                 # Run Astro CLI
 
 ## 📚 Critical Documentation
 
-**Master index**: [src/docs/README.md](src/docs/README.md) — links to all 6 documentation directories with use-case navigation. Start here when looking for any project documentation.
+**Master index**: [src/docs/README.md](src/docs/README.md) — links to every documentation directory with use-case navigation. Start here when looking for any website-side project documentation.
+
+### MCP Server & Architecture Decisions
+
+The `@gst/mcp-server` workspace has its **own** maintained doc tree — the website master index above does not contain it. Start there for anything server-side:
+
+- **MCP server docs home**: [mcp-server/src/docs/README.md](mcp-server/src/docs/README.md) — navigator for the server's internal doc surface (tools, resources, prompts, operations, testing)
+- **System architecture (maintained reference)**: [mcp-server/src/docs/ARCHITECTURE.md](mcp-server/src/docs/ARCHITECTURE.md) — system shape, remote transport & request flow, auth/CORS/deploy topology, rate limiting, radar pipeline, observability. Code comments cite its anchors — treat them as load-bearing
+- **Architecture Decision Records**: [src/docs/adr/README.md](src/docs/adr/README.md) — load-bearing design decisions distilled from closed initiatives. **Making a new architectural decision? Write an ADR for it in the same PR** (see [adr/TEMPLATE.md](src/docs/adr/TEMPLATE.md))
 
 ### Developer Tooling (Lint, Format, Hooks, CI)
 

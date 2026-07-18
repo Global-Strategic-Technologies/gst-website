@@ -120,7 +120,7 @@ Three reasons, in order of importance:
 
 1. **Adding a prompt is a closed-form operation.** Write one new TS file in `prompts/` + add one entry to `ALL_PROMPTS`. You don't touch the registry logic, the server, the SDK, or any other prompt. The cost of the 9th prompt is the same as the cost of the 2nd.
 
-2. **The invariants don't get heavier as the system grows.** The registry test runs the same 4 checks against 8 prompts that it runs against 80. Adding a prompt doesn't add a test case anywhere except its own per-prompt unit test.
+2. **The invariants don't get heavier as the system grows.** The registry test runs the same 4 checks against 9 prompts that it runs against 80. Adding a prompt doesn't add a test case anywhere except its own per-prompt unit test.
 
 3. **Schemas compose from existing source-of-truth.** A prompt's `argsSchema` is built from the same Zod schemas the underlying Tools already use — `UserInputsSchema` for diligence, `TechParInputsSchema` for TechPar, etc. When a Tool's input schema evolves, every prompt that composes from it picks up the change automatically.
 
@@ -132,7 +132,7 @@ The combination is what makes this approach durable: **the only thing that grows
 
 The system from your keystroke to the model's first response:
 
-1. **You type `/`** in Claude Desktop. Desktop has already called `prompts/list` on every connected MCP server at session start, so it has the GST server's eight prompt names + descriptions + argsSchemas cached. It renders the picker.
+1. **You type `/`** in Claude Desktop. Desktop has already called `prompts/list` on every connected MCP server at session start, so it has the GST server's nine prompt names + descriptions + argsSchemas cached. It renders the picker.
 
 2. **You select `gst_diligence_kickoff`.** Desktop renders a form: `targetName` (required text), `transactionType` (dropdown of valid enum values from the argsSchema), all 13 other fields. You fill it in.
 
@@ -165,4 +165,4 @@ The prompt itself is **passive infrastructure** — a templated message body. Al
 
 ---
 
-_Last updated: 2026-05-22 (BL-043 — added `gst_information_request_list`)._
+_Last updated: 2026-07-18 (count truth-pass — registry now holds nine prompts; `gst_irl_ingestion` added under BL-045). Prior: 2026-05-22 (BL-043 — added `gst_information_request_list`)._
