@@ -39,7 +39,7 @@ The GST website implements a high-authority SEO foundation designed to maximize 
 
 - Understanding how meta tags work: [SEO_IMPLEMENTATION.md](SEO_IMPLEMENTATION.md#meta-tags)
 - Open Graph optimization: [SEO_IMPLEMENTATION.md](SEO_IMPLEMENTATION.md#open-graph-tags)
-- Semantic HTML standards: [SEO_IMPLEMENTATION.md](SEO_IMPLEMENTATION.md#semantic-html-requirements)
+- Semantic HTML standards: [SEO_IMPLEMENTATION.md](SEO_IMPLEMENTATION.md#semantic-html)
 
 ### For Verification
 

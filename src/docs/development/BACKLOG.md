@@ -382,28 +382,25 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 ### BL-089: Documentation Link & Anchor Integrity Guard
 
-**Source**: docs-wiring audit 2026-07-18 | **Effort**: ~0.5–1 day | **Status**: Open
+**Source**: docs-wiring audit 2026-07-18 | **Effort**: ~0.5–1 day | **Status**: ✅ **CLOSED 2026-07-19** — guard shipped as [`tests/integration/docs-link-integrity.test.ts`](../../../tests/integration/docs-link-integrity.test.ts) (root project → runs under `npm run test:run`), a `test:docs` npm script, and the [`docs-integrity.yml`](../../../.github/workflows/docs-integrity.yml) CI workflow. On first run it surfaced **21 pre-existing broken links/anchors** (BACKLOG anchors orphaned by the July prune, references to the April-removed `PLATFORM_HARDENING_V1.md`/`BUSINESS_ENABLEMENT_V1.md`, reworded-heading anchor drift, and an emoji-in-anchor mismatch) — all fixed in the same PR, repointed to their distilled homes (ADR-0005, ARCHITECTURE.md anchors, `_archive/`).
 
 **As a** developer or agent relying on documentation cross-references, **I want** an automated test that verifies every relative markdown link target — and every load-bearing `#anchor` cited from code comments and cross-doc links — still resolves, **so that** the BL-088 distillation investment (ARCHITECTURE.md anchors, ADR pointers, dual-source SOPs) cannot silently rot when a file is renamed or a heading is reworded.
 
-**Why now**: BL-088 deliberately made code comments and cross-doc links point at specific doc anchors, on the assumption they'd be maintained. Nothing enforces that assumption. The audit found the load-bearing anchors resolve **today only because a human checked them by hand** — there is no guard. `contract-parity.test.ts` validates schema _file_ paths but not markdown `#anchor` fragments.
-
 #### Acceptance Criteria
 
-- [ ] A repo-local test (Vitest, following the `mcp-server/tests/integration/sop-dual-source-drift-guard.test.ts` pattern — no new external dependency like `markdown-link-check`) that:
-  - [ ] Resolves every relative markdown link target across both doc trees (`src/docs/**`, `mcp-server/src/docs/**`, plus the root and `mcp-server` READMEs) to an existing file
-  - [ ] Resolves every `#anchor` fragment on those links to a real heading in the target file (slugified per GitHub's rules)
-  - [ ] Resolves the load-bearing **code-comment → doc-anchor** citations. Known set at audit time: `mcp-server/src/lib/inoreader-egress.ts:37` → `ARCHITECTURE.md#inoreader-spend-accounting`; `mcp-server/src/tools/_local-only.ts:6` → `ARCHITECTURE.md#transport-binding-per-tool-q12`; `mcp-server/observability/slo-baselines.md:3` → `ARCHITECTURE.md#slo-baselines--targets`; `eslint.config.mjs:202` → `src/docs/adr/0004-hub-surface-resources-import-restriction.md` (path only)
-- [ ] Deliberately **excludes** `_archive/` docs from the "internal links must resolve" rule (frozen-verbatim policy — archived docs' relative links reflect their original location and may not resolve; assert this exclusion explicitly so the guard doesn't flag them)
-- [ ] Wired into the local validation sequence and CI (documented in `DEVELOPER_TOOLING.md` per Directive 11); consider a `lint:docs` npm script
-- [ ] A deliberately-broken link/anchor in a test fixture proves the guard fails (red-then-green)
+- [x] A repo-local Vitest test (self-contained, no new external dependency — GitHub slugifier hand-rolled inline per the repo's `contract-parity.test.ts` no-dep precedent, unit-tested against 6 real headings this repo cites):
+  - [x] Resolves every relative markdown link target across both doc trees (`src/docs/**`, `mcp-server/src/docs/**`), the root/`mcp-server` READMEs, `.claude/CLAUDE.md` (root-relative), and `observability/slo-baselines.md` — including ~170 links to non-`.md` source files
+  - [x] Resolves every `#anchor` on a link to a `.md` file to a real heading (GitHub slug rules; skips external URLs, images, fenced + inline code)
+  - [x] Resolves the load-bearing **code → doc-anchor** citations by scanning source for `*.md#anchor` (auto-covers `inoreader-egress.ts` + `_local-only.ts`); path-only citations (e.g. `eslint.config.mjs` → ADR-0004) covered by an explicit list
+- [x] Excludes `_archive/` docs as scan **sources** (frozen-verbatim policy) while still verifying links/anchors that point **into** the archive
+- [x] Wired into local validation (`test:run`) and CI (dedicated `docs-integrity.yml`, documented in `DEVELOPER_TOOLING.md` per Directive 11)
+- [x] A `mkdtemp` fixture proves the guard fails on a broken file + broken anchor and passes valid/external/fenced cases (red-then-green)
 
-#### Technical Context
+#### Notes
 
-- **Scope boundary**: this is a link/anchor _existence_ guard, not prose-freshness. It does not police "Last Updated" dates (a separate, lighter follow-up could flag docs whose stated date predates their last `git` commit).
-- **Slugification**: GitHub lowercases, strips punctuation, and replaces spaces with hyphens; `&` becomes empty (e.g. "SLO baselines & targets" → `slo-baselines--targets` — note the double hyphen). Reuse a vetted slugifier rather than hand-rolling.
-- **EOL**: doc files in this repo are CRLF — a line/heading scanner must be EOL-agnostic (see the drift-guard's `\r\n` handling).
-- **Discovery of code citations**: grep source comments for doc paths bearing `#` fragments; the known set above is the audit-time snapshot, but the test should scan rather than hard-code so new citations are covered automatically.
+- **Slugifier is hand-rolled, not a dependency**: investigation confirmed no slug/markdown library exists in either `package.json`; adding one for ~10 lines would break the repo's established no-new-dep norm. Validated against golden cases (`&` → `--`, emoji stripped, `(Q12)` → `q12`, etc.).
+- **Not a required check by default**: `docs-integrity.yml` runs on every PR but is advisory until "Verify doc links" is added to branch-protection required checks (operator action).
+- **Deferred follow-up** (not this item): a "Last Updated" freshness check flagging docs whose stated date predates their last `git` commit.
 
 ---
 
@@ -438,7 +435,7 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 ### BL-048: MCP Server — Wrangler Secret Sync (extracted from BL-037 Phase D)
 
-**Source**: BL-048 — extracted from [BL-037 § Phase D — Wrangler secret sync](_archive/MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-optional-deferred). Originally scoped inside BL-037 as the fourth and lowest-priority phase ("optional, deferred"). 2026-05-31 audit recommended extraction so BL-037 can close after Phase C ships without carrying an indefinitely-deferred phase. | **Effort**: ~1 day implementation after a secret-manager substrate is chosen | **Status**: 🟦 **Open · DEPRIORITIZED — indefinitely deferred** until rotation friction or audit-trail need crosses a threshold | **Depends on**: BL-037 Phases A/B (shipped 2026-05-31) for the deploy substrate; selection of a secret-manager substrate (1Password Secrets Automation, Doppler, AWS Secrets Manager, HashiCorp Vault, or other)
+**Source**: BL-048 — extracted from [BL-037 § Phase D — Wrangler secret sync](_archive/MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-extracted-2026-05-31--bl-048-indefinitely-deprioritized). Originally scoped inside BL-037 as the fourth and lowest-priority phase ("optional, deferred"). 2026-05-31 audit recommended extraction so BL-037 can close after Phase C ships without carrying an indefinitely-deferred phase. | **Effort**: ~1 day implementation after a secret-manager substrate is chosen | **Status**: 🟦 **Open · DEPRIORITIZED — indefinitely deferred** until rotation friction or audit-trail need crosses a threshold | **Depends on**: BL-037 Phases A/B (shipped 2026-05-31) for the deploy substrate; selection of a secret-manager substrate (1Password Secrets Automation, Doppler, AWS Secrets Manager, HashiCorp Vault, or other)
 
 **As a** GST operator running the MCP server, **I want** Cloudflare Worker secrets (`MCP_KEY_*`, `UPSTASH_MCP_REST_*`, `SENTRY_DSN`, `INOREADER_*`, `MCP_ADMIN_KEY`) to sync from a single canonical secret manager into Cloudflare via CI/CD **so that** secret rotation becomes a one-click operation, every rotation has an audit trail, and staging/production stay in lockstep without manual paste from my laptop.
 
@@ -458,7 +455,7 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 #### Out of scope for this stanza — but documented for revisit
 
-- Substrate choice (1Password Connect / Doppler / AWS SM / Vault) — see [BL-037 § Phase D](_archive/MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-optional-deferred) for the original sketch including the `cloudflare/wrangler-action@v3` `secrets:` input contract.
+- Substrate choice (1Password Connect / Doppler / AWS SM / Vault) — see [BL-037 § Phase D](_archive/MCP_SERVER_CI_CD_DEPLOY_BL-037.md#phase-d--wrangler-secret-sync-1-day-extracted-2026-05-31--bl-048-indefinitely-deprioritized) for the original sketch including the `cloudflare/wrangler-action@v3` `secrets:` input contract.
 - Trigger model (workflow_dispatch only vs repository_dispatch from secret-manager webhook on rotation).
 - Filename: design doc proposes `secrets-sync-mcp.yml`.
 

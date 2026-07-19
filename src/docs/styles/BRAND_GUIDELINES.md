@@ -69,7 +69,7 @@ The GST delta triangle icon is the primary brand mark. It appears as:
 - Use `currentColor` for stroke when the parent element controls color contextually
 - Use the stroke variant for inline/decorative uses
 - Scale proportionally; do not distort aspect ratio
-- See [STYLES_GUIDE.md — Brand Assets in CSS](./STYLES_GUIDE.md#brand-assets-in-css) for the CSS mask-image pattern
+- See [STYLES_GUIDE.md — Brand Delta Icon](./STYLES_GUIDE.md#brand-delta-icon) for the CSS mask-image pattern
 
 ---
 

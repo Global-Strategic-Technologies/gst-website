@@ -4,7 +4,7 @@ This directory is the **registry index** for the per-tool input contracts that d
 
 The per-tool contracts live in per-tool subdirectories of this `tools/` directory — e.g. `diligence/CONTRACT.md` for the diligence machine, `techpar/CONTRACT.md` for TechPar, etc. This registry doc tracks them all, defines the pattern, and explains why input contracts are their own first-class artifact.
 
-> **Initiative tracking**: [BL-031.85: MCP Server — Tool Input Contracts](../../../../src/docs/development/BACKLOG.md#bl-03185-mcp-server--tool-input-contracts) | **Origin**: [MCP_SERVER_CONTRACTS_BL-031_85.md](../../../../src/docs/development/_archive/MCP_SERVER_CONTRACTS_BL-031_85.md) (archived — the still-relevant design rationale is folded into this README; the archive retains initiative history only)
+> **Initiative tracking**: BL-031.85 — MCP Server Tool Input Contracts (completed; pruned from BACKLOG) | **Origin**: [MCP_SERVER_CONTRACTS_BL-031_85.md](../../../../src/docs/development/_archive/MCP_SERVER_CONTRACTS_BL-031_85.md) (archived — the still-relevant design rationale is folded into this README; the archive retains initiative history only)
 
 ---
 

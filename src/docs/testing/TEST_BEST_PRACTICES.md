@@ -1432,7 +1432,7 @@ test('clicking a preset chip updates the input', async ({ page }) => {
 });
 ```
 
-**Good — both directions tested, behavioral verification per [TEST_BEST_PRACTICES § 2](#2-❌-testing-ui-presence-not-behavior):**
+**Good — both directions tested, behavioral verification per [TEST_BEST_PRACTICES § 2](#2--testing-ui-presence-not-behavior):**
 
 ```typescript
 test('manual override deactivates the previously-selected chip', async ({ page }) => {

@@ -21,7 +21,7 @@ The full token never appears in logs, error responses, or telemetry. The `keyOwn
 
 ### Why bearer tokens, not OAuth (yet)
 
-For an internal team of ≤10, `wrangler secret put` is the simplest safe revocation surface. OAuth 2.1 with PKCE is mandatory for **external** clients (BL-033) but adds an authorization-server dependency, browser-based consent UI, and PKCE flows that don't pay for themselves at this scale. See [BL-032 doc § Why API key, not OAuth](../../../../src/docs/development/BACKLOG.md#bl-032-mcp-server--internal-remote-phase-2) for the full rationale.
+For an internal team of ≤10, `wrangler secret put` is the simplest safe revocation surface. OAuth 2.1 with PKCE is mandatory for **external** clients (BL-033) but adds an authorization-server dependency, browser-based consent UI, and PKCE flows that don't pay for themselves at this scale. See [ARCHITECTURE.md § Bearer-token auth](../ARCHITECTURE.md#bearer-token-auth-q11q13) for the full rationale.
 
 ---
 

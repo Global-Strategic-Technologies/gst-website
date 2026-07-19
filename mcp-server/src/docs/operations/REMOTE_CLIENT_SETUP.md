@@ -308,10 +308,10 @@ Full reference — per-key budget table, RFC 9331 response-header guide, circuit
 
 Quick-reference summary:
 
-| Tool family   | Per-minute | Per-day | Status                                                                                                |
-| ------------- | ---------- | ------- | ----------------------------------------------------------------------------------------------------- |
-| General tools | 60         | 1000    | ✅ Active in production (BL-032 Phase 3)                                                              |
-| Radar tools   | 5          | 50      | ⚠️ Documented; enforcement tracked under [BL-038](../../../../src/docs/development/BACKLOG.md#bl-038) |
+| Tool family   | Per-minute | Per-day | Status                                                                                                                                       |
+| ------------- | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| General tools | 60         | 1000    | ✅ Active in production (BL-032 Phase 3)                                                                                                     |
+| Radar tools   | 5          | 50      | ⚠️ Documented; enforcement tracked under [BL-038 (archived)](../../../../src/docs/development/_archive/MCP_SERVER_RATE_LIMIT_TIER_BL-038.md) |
 
 ---
 

@@ -1,0 +1,59 @@
+name: Docs link integrity
+
+# Runs the documentation link & anchor integrity guard (BL-089) —
+# `tests/integration/docs-link-integrity.test.ts`. It verifies that every
+# relative markdown link and load-bearing `#anchor` across both doc trees
+# resolves, so BL-088's distilled cross-references can't silently rot.
+#
+# WHY A DEDICATED WORKFLOW: `test.yml`'s `changes` gate deliberately SKIPS the
+# unit/integration jobs on docs-only diffs — the exact case this guard must fire
+# on. So it can't live only there. This workflow runs on EVERY PR (the guard is
+# cheap, and it also covers code→doc `#anchor` citations that a code-only change
+# could break) plus pushes to master. Default `pull_request` types include
+# `synchronize`, so every push to a PR re-runs it (no push-branch-list gap).
+#
+# To make this blocking, add "Verify doc links" to the branch-protection
+# required-status-checks list (repo Settings → Rules). It is not required by
+# default.
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: docs-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs-links:
+    name: Verify doc links
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - name: Cache node_modules
+        uses: actions/cache@v6
+        id: nm-cache
+        with:
+          path: |
+            node_modules
+            mcp-server/node_modules
+          key: nm-v1-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        if: steps.nm-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run documentation link & anchor guard
+        run: npm run test:docs
