@@ -380,6 +380,33 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 ---
 
+### BL-089: Documentation Link & Anchor Integrity Guard
+
+**Source**: docs-wiring audit 2026-07-18 | **Effort**: ~0.5–1 day | **Status**: Open
+
+**As a** developer or agent relying on documentation cross-references, **I want** an automated test that verifies every relative markdown link target — and every load-bearing `#anchor` cited from code comments and cross-doc links — still resolves, **so that** the BL-088 distillation investment (ARCHITECTURE.md anchors, ADR pointers, dual-source SOPs) cannot silently rot when a file is renamed or a heading is reworded.
+
+**Why now**: BL-088 deliberately made code comments and cross-doc links point at specific doc anchors, on the assumption they'd be maintained. Nothing enforces that assumption. The audit found the load-bearing anchors resolve **today only because a human checked them by hand** — there is no guard. `contract-parity.test.ts` validates schema _file_ paths but not markdown `#anchor` fragments.
+
+#### Acceptance Criteria
+
+- [ ] A repo-local test (Vitest, following the `mcp-server/tests/integration/sop-dual-source-drift-guard.test.ts` pattern — no new external dependency like `markdown-link-check`) that:
+  - [ ] Resolves every relative markdown link target across both doc trees (`src/docs/**`, `mcp-server/src/docs/**`, plus the root and `mcp-server` READMEs) to an existing file
+  - [ ] Resolves every `#anchor` fragment on those links to a real heading in the target file (slugified per GitHub's rules)
+  - [ ] Resolves the load-bearing **code-comment → doc-anchor** citations. Known set at audit time: `mcp-server/src/lib/inoreader-egress.ts:37` → `ARCHITECTURE.md#inoreader-spend-accounting`; `mcp-server/src/tools/_local-only.ts:6` → `ARCHITECTURE.md#transport-binding-per-tool-q12`; `mcp-server/observability/slo-baselines.md:3` → `ARCHITECTURE.md#slo-baselines--targets`; `eslint.config.mjs:202` → `src/docs/adr/0004-hub-surface-resources-import-restriction.md` (path only)
+- [ ] Deliberately **excludes** `_archive/` docs from the "internal links must resolve" rule (frozen-verbatim policy — archived docs' relative links reflect their original location and may not resolve; assert this exclusion explicitly so the guard doesn't flag them)
+- [ ] Wired into the local validation sequence and CI (documented in `DEVELOPER_TOOLING.md` per Directive 11); consider a `lint:docs` npm script
+- [ ] A deliberately-broken link/anchor in a test fixture proves the guard fails (red-then-green)
+
+#### Technical Context
+
+- **Scope boundary**: this is a link/anchor _existence_ guard, not prose-freshness. It does not police "Last Updated" dates (a separate, lighter follow-up could flag docs whose stated date predates their last `git` commit).
+- **Slugification**: GitHub lowercases, strips punctuation, and replaces spaces with hyphens; `&` becomes empty (e.g. "SLO baselines & targets" → `slo-baselines--targets` — note the double hyphen). Reuse a vetted slugifier rather than hand-rolling.
+- **EOL**: doc files in this repo are CRLF — a line/heading scanner must be EOL-agnostic (see the drift-guard's `\r\n` handling).
+- **Discovery of code citations**: grep source comments for doc paths bearing `#` fragments; the known set above is the audit-time snapshot, but the test should scan rather than hard-code so new citations are covered automatically.
+
+---
+
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype

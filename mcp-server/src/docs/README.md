@@ -2,7 +2,7 @@
 
 > **Audience**: engineers and senior consultants working on the `@gst/mcp-server` workspace.
 >
-> This is the navigator for the MCP server's internal doc surface. For the user-facing tool/resource/prompt inventory, start at [`mcp-server/README.md`](../../README.md).
+> This is the navigator for the MCP server's internal doc surface. For the user-facing tool/resource/prompt inventory, start at [`mcp-server/README.md`](../../README.md). For website-side documentation (styles, testing, SEO, analytics, security, roadmap), start at the [repo documentation master index](../../../src/docs/README.md).
 
 The docs are organized by **what** they describe — the system architecture, the three MCP capability surfaces (Tools, Resources, Prompts), plus operational and testing references.
 
@@ -39,4 +39,4 @@ Per-initiative plans are **point-in-time records** — frozen at authoring time,
 
 ---
 
-_Last updated: 2026-07-17 (BL-088 PR 2 — added `ARCHITECTURE.md` + lifecycle pointer). Prior: 2026-07-02 (BL-034 doc-structure pass)._
+_Last updated: 2026-07-18 (docs-wiring pass — added backlink to the repo documentation master index). Prior: 2026-07-17 (BL-088 PR 2 — added `ARCHITECTURE.md` + lifecycle pointer); 2026-07-02 (BL-034 doc-structure pass)._
