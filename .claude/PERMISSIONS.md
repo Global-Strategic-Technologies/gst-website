@@ -11,8 +11,9 @@ This document outlines the permissions and configurations for Claude Code when w
 Claude has **unrestricted edit permissions** for all files in the `.claude/tasks/` directory, including:
 
 - `todo.md` - Task planning and progress tracking
-- `lessons.md` - Learning log and self-improvement patterns
 - Any future task management files
+
+> **Note**: `lessons.md` (the former learning log) was **retired 2026-07-19**. Self-improvement patterns are now captured in the persistent **memory system** (`feedback` memories + the auto-loaded `MEMORY.md` index), per CLAUDE.md Directive 3 — not in `.claude/tasks/`.
 
 **Purpose**: Enable autonomous task management, progress tracking, and learning capture without requiring user approval for edits.
 
@@ -57,13 +58,6 @@ This configuration follows the Claude Workflow Directives in `claude.md`:
 - Verification results
 - Task status and timelines
 
-### `lessons.md`
-
-- Patterns and learnings from corrections
-- Rules to prevent repeating mistakes
-- Self-improvement tracking
-- Session-start reference guide
-
 ## Usage
 
 Claude will automatically:
@@ -72,8 +66,8 @@ Claude will automatically:
 2. Update progress as work proceeds
 3. Mark items complete with verification results
 4. Move tasks to completed section when done
-5. Capture lessons after corrections or improvements
-6. Review lessons at session start for relevant patterns
+
+Corrections and self-improvement patterns are captured in the **memory system** (see CLAUDE.md Directive 3), not in `.claude/tasks/`.
 
 ## No Restrictions
 

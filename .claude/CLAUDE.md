@@ -21,10 +21,10 @@ This document provides Claude with essential context about the GST Website proje
 
 ### 3. Self-Improvement Loop
 
-- After ANY correction from the user: update `.claude/tasks/lessons.md` with the pattern
-- Write rules for yourself that prevent the same mistake
-- Ruthlessly iterate on these lessons until mistake rate drops
-- Review lessons at session start for relevant project
+- After ANY correction from the user: **write it to the persistent memory system** as a `feedback` memory — one file per lesson in the memory directory, plus a one-line pointer in `MEMORY.md`. Capture the rule **and the why** so the correction survives the conversation ending.
+- The `MEMORY.md` index is loaded automatically at the start of every session — that is how prior corrections are recalled without repeating them. There is no separate "review at session start" step to remember.
+- Write rules for yourself that prevent the same mistake; before saving, check for an existing memory that already covers it and update that file rather than duplicating.
+- **Retired**: the old `.claude/tasks/lessons.md` learning log (removed 2026-07-19). Its still-relevant lessons were migrated to memory; the two codified ones already live as Directives 8 and 10. Recover the original via `git log -- .claude/tasks/lessons.md`.
 
 ### 4. Verification Before Done
 
