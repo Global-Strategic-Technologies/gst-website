@@ -32,21 +32,42 @@
  * — do not weaken this guard.
  */
 import { describe, it, expect } from 'vitest';
-import {
-  readFileSync,
-  existsSync,
-  statSync,
-  readdirSync,
-  mkdtempSync,
-  writeFileSync,
-  rmSync,
-} from 'node:fs';
+import { readFileSync, existsSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname, resolve, join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+import { execSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
+
+/**
+ * Git-tracked file set. Link targets are resolved against what the repo actually
+ * contains — i.e. what CI and GitHub check out — NOT the local working tree,
+ * which also holds gitignored files (e.g. `.claude/settings.local.json`). This
+ * keeps local runs byte-identical to CI and makes target lookups case-sensitive
+ * (matching Linux), so a link that only resolves on a case-insensitive dev FS is
+ * still caught. Directories are "tracked" if they contain any tracked file.
+ */
+const TRACKED_FILES = new Set<string>();
+const TRACKED_DIRS = new Set<string>();
+for (const relPath of execSync('git ls-files', {
+  cwd: REPO_ROOT,
+  encoding: 'utf-8',
+  maxBuffer: 64 * 1024 * 1024,
+})
+  .split('\n')
+  .filter(Boolean)) {
+  const abs = resolve(REPO_ROOT, relPath);
+  TRACKED_FILES.add(abs);
+  let dir = dirname(abs);
+  while (dir.startsWith(REPO_ROOT) && !TRACKED_DIRS.has(dir)) {
+    TRACKED_DIRS.add(dir);
+    if (dir === REPO_ROOT) break;
+    dir = dirname(dir);
+  }
+}
+const isTrackedTarget = (abs: string): boolean => TRACKED_FILES.has(abs) || TRACKED_DIRS.has(abs);
 
 // --- Scan set -------------------------------------------------------------
 
@@ -69,6 +90,14 @@ const ARCHIVE_SEGMENT = /[\\/]_archive[\\/]/;
  * file-relative); the whole file follows that convention.
  */
 const ROOT_RELATIVE_DOCS = new Set(['.claude/CLAUDE.md']);
+
+/**
+ * Link targets that are intentionally NOT tracked in git (gitignored,
+ * per-developer files) but are still valid pointers for a local reader — the IDE
+ * resolves them to the on-disk file. Repo-relative, forward slashes. Keep tiny;
+ * only add a target you have confirmed is deliberately gitignored.
+ */
+const ALLOWED_UNTRACKED_TARGETS = new Set(['.claude/settings.local.json']);
 
 /**
  * Load-bearing code-comment → doc citations that point at a doc by PATH ONLY
@@ -219,7 +248,14 @@ interface Failure {
  * failures. `ownSlugs` is injected so same-file `#fragment` links resolve
  * against this file's own headings without re-reading it.
  */
-function checkLinks(absFile: string, content: string, relFile: string): Failure[] {
+function checkLinks(
+  absFile: string,
+  content: string,
+  relFile: string,
+  // Whether a resolved target "exists". Real docs check the git-tracked set (so
+  // local == CI); the fixture test injects `existsSync` for its temp files.
+  targetExists: (abs: string) => boolean = isTrackedTarget
+): Failure[] {
   const failures: Failure[] = [];
   const ownSlugs = extractHeadingSlugs(content);
   const baseDir = ROOT_RELATIVE_DOCS.has(relFile) ? REPO_ROOT : dirname(absFile);
@@ -245,12 +281,19 @@ function checkLinks(absFile: string, content: string, relFile: string): Failure[
     }
 
     const abs = resolve(baseDir, decodeURIComponent(pathPart));
-    if (!existsSync(abs)) {
-      failures.push({ file: relFile, line, target, reason: `missing target: ${pathPart}` });
+    if (!targetExists(abs)) {
+      if (!ALLOWED_UNTRACKED_TARGETS.has(rel(abs))) {
+        failures.push({
+          file: relFile,
+          line,
+          target,
+          reason: `missing (untracked) target: ${pathPart}`,
+        });
+      }
       continue;
     }
-    // Anchors only resolve into markdown files.
-    if (fragment && extname(abs) === '.md' && statSync(abs).isFile()) {
+    // Anchors only resolve into markdown files (present per the check above).
+    if (fragment && extname(abs) === '.md') {
       if (!headingSlugsFor(abs).has(fragment)) {
         failures.push({
           file: relFile,
@@ -294,14 +337,14 @@ function scanSourceFiles(absDir: string, acc: string[]): void {
 function listScanSources(): string[] {
   const files: string[] = [];
   for (const root of DOC_ROOTS) walkMarkdown(resolve(REPO_ROOT, root), files);
-  for (const rel of STANDALONE_DOCS) {
-    const abs = resolve(REPO_ROOT, rel);
-    if (existsSync(abs)) files.push(abs);
-  }
-  return files;
+  for (const rel of STANDALONE_DOCS) files.push(resolve(REPO_ROOT, rel));
+  // Only tracked docs — an untracked local `.md` isn't part of the repo CI sees.
+  return files.filter((f) => TRACKED_FILES.has(f));
 }
 
-const rel = (abs: string) => abs.slice(REPO_ROOT.length + 1).replace(/\\/g, '/');
+function rel(abs: string): string {
+  return abs.slice(REPO_ROOT.length + 1).replace(/\\/g, '/');
+}
 
 // --- Tests ----------------------------------------------------------------
 
@@ -350,7 +393,8 @@ describe('resolver (fixture — red then green)', () => {
       const docPath = join(dir, 'doc.md');
       writeFileSync(docPath, doc, 'utf-8');
 
-      const failures = checkLinks(docPath, doc, 'doc.md');
+      // Inject `existsSync` — the fixture's temp files aren't git-tracked.
+      const failures = checkLinks(docPath, doc, 'doc.md', existsSync);
       const targets = failures.map((f) => f.target);
 
       expect(targets).toContain('./does-not-exist.md');
@@ -394,7 +438,7 @@ describe('load-bearing code → doc citations (BL-089)', () => {
     const CITE_RE = /([\w./\\-]+\.md)#([a-z0-9-]+)/g;
     const failures: string[] = [];
 
-    for (const abs of sources) {
+    for (const abs of sources.filter((a) => TRACKED_FILES.has(a))) {
       const content = readFileSync(abs, 'utf-8');
       CITE_RE.lastIndex = 0;
       let m: RegExpExecArray | null;
@@ -405,7 +449,7 @@ describe('load-bearing code → doc citations (BL-089)', () => {
           resolve(dirname(abs), pathPart),
           resolve(REPO_ROOT, pathPart.replace(/\\/g, '/')),
         ];
-        const targetAbs = candidates.find((c) => existsSync(c) && extname(c) === '.md');
+        const targetAbs = candidates.find((c) => extname(c) === '.md' && TRACKED_FILES.has(c));
         if (!targetAbs) {
           failures.push(`${rel(abs)} → ${pathPart}#${fragment} (target file not found)`);
           continue;
@@ -427,7 +471,7 @@ describe('load-bearing code → doc citations (BL-089)', () => {
 
   it('every load-bearing path-only code→doc citation points at an existing doc', () => {
     const failures = EXPLICIT_CODE_CITATIONS.filter(
-      ({ target }) => !existsSync(resolve(REPO_ROOT, target))
+      ({ target }) => !TRACKED_FILES.has(resolve(REPO_ROOT, target))
     ).map(({ file, target }) => `${file} → ${target} (missing)`);
     expect(failures, failures.join('\n')).toHaveLength(0);
   });
