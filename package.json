@@ -21,6 +21,7 @@
     "test:a11y": "playwright test tests/e2e/accessibility.test.ts --project=chromium",
     "test:mcp": "npm -w @gst/mcp-server run test",
     "test:docs": "vitest run tests/integration/docs-link-integrity.test.ts",
+    "setup:claude-hooks": "node .claude/hooks/install.mjs",
     "test:all": "npm run test:run && npm run test:e2e && npm run test:mcp",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -360,6 +360,7 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 **Open contingent items**:
 
 - [ ] Library content-source convergence (single source of truth for `gst://library/*` article bodies) — contingent, re-verified still-deferred 2026-07-02; execute if/when the library surface is next touched
+- [ ] **Dead `npm run radar:seed` instruction in live surfaces** (discovered 2026-07-19 during the CLAUDE.md accuracy audit): commit `606f4848` (BL-032.8 Phase B) deliberately removed the `radar:seed`/`radar:unseed` root scripts with the retired BL-039 fallback, but ~15 files still instruct users to run the deleted command — including RUNTIME text: `SNAPSHOT_MISSING_MESSAGE` in `mcp-server/src/content/radar-snapshot.ts:136`, the `gst_radar_brief_today` prompt body (`radar-brief-today.ts:76`), `radar-offline.ts` tool description, resources/radar.ts messages, plus ARCHITECTURE.md:205, radar CONTRACT/USAGE, resources/README, root README.md:77, RADAR.md:113, ADR-0004:27, and two tests asserting the message (`radar-offline.test.ts:126`, `radar-offline-handler.test.ts:151`). Needs a product decision — restore a seed script for the stdio offline tier, or replace every instruction with the current seeding story — then a coordinated sweep (messages + goldens + tests together). CLAUDE.md's own dead references were removed 2026-07-19
 
 ---
 
@@ -393,7 +394,7 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
   - [x] Resolves every `#anchor` on a link to a `.md` file to a real heading (GitHub slug rules; skips external URLs, images, fenced + inline code)
   - [x] Resolves the load-bearing **code → doc-anchor** citations by scanning source for `*.md#anchor` (auto-covers `inoreader-egress.ts` + `_local-only.ts`); path-only citations (e.g. `eslint.config.mjs` → ADR-0004) covered by an explicit list
 - [x] Excludes `_archive/` docs as scan **sources** (frozen-verbatim policy) while still verifying links/anchors that point **into** the archive
-- [x] Wired into local validation (`test:run`) and CI (dedicated `docs-integrity.yml`, documented in `DEVELOPER_TOOLING.md` per Directive 11)
+- [x] Wired into local validation (`test:run`) and CI (dedicated `docs-integrity.yml`, documented in `DEVELOPER_TOOLING.md` per Directive 14 — the developer-tooling directive, numbered 11 at ship time)
 - [x] A `mkdtemp` fixture proves the guard fails on a broken file + broken anchor and passes valid/external/fenced cases (red-then-green)
 
 #### Notes

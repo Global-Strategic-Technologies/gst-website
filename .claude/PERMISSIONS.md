@@ -13,7 +13,9 @@ Claude has **unrestricted edit permissions** for all files in the `.claude/tasks
 - `todo.md` - Task planning and progress tracking
 - Any future task management files
 
-> **Note**: `lessons.md` (the former learning log) was **retired 2026-07-19**. Self-improvement patterns are now captured in the persistent **memory system** (`feedback` memories + the auto-loaded `MEMORY.md` index), per CLAUDE.md Directive 3 — not in `.claude/tasks/`.
+> **Note**: `lessons.md` (the former learning log) was **retired 2026-07-19**. Self-improvement patterns are now captured in the persistent **memory system** (`feedback` memories + the auto-loaded `MEMORY.md` index), per CLAUDE.md Directive 4 — not in `.claude/tasks/`.
+>
+> `.claude/tasks/` also holds the **review-gate runtime markers** — `plan-review.json` (written by the plan-reviewer agent) and `impl-review.json` (written by the code-reviewer agent). Both are gitignored; the PreToolUse gate hooks read them. See DEVELOPER_TOOLING.md § Claude Code review gates.
 
 **Purpose**: Enable autonomous task management, progress tracking, and learning capture without requiring user approval for edits.
 
@@ -28,17 +30,12 @@ Claude has **unrestricted edit permissions** for all files in the `.claude/tasks
 
 ## Configuration Details
 
-**File**: `.claude/config.json`
+Permissions live in the gitignored, per-developer settings files (see CLAUDE.md Directive 15):
 
-```json
-{
-  "editable_paths": [".claude/tasks/**/*"],
-  "permissions": {
-    "edit_task_files": true,
-    "description": "Claude can freely edit task management files"
-  }
-}
-```
+- **`.claude/settings.local.json`** — the permission `allow` list, plus the review-gate `hooks` registration installed by `npm run setup:claude-hooks` (from the tracked source `.claude/hooks/hooks.config.json`)
+- **`.claude/settings.json`** — additional per-developer permission state written by the harness; also gitignored, never tracked
+
+(An earlier version of this doc cited a `.claude/config.json` file — that file never shipped; this section now reflects the real mechanism.)
 
 ## Why This Matters
 
@@ -67,7 +64,7 @@ Claude will automatically:
 3. Mark items complete with verification results
 4. Move tasks to completed section when done
 
-Corrections and self-improvement patterns are captured in the **memory system** (see CLAUDE.md Directive 3), not in `.claude/tasks/`.
+Corrections and self-improvement patterns are captured in the **memory system** (see CLAUDE.md Directive 4), not in `.claude/tasks/`.
 
 ## No Restrictions
 

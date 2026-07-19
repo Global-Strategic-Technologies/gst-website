@@ -2,6 +2,8 @@
 
 This document provides Claude with essential context about the GST Website project, enabling it to provide more targeted and effective assistance.
 
+**This repo is two workspaces in one** (npm workspaces): the **Astro website** (root — static site on Vercel) and the **`@gst/mcp-server`** package (`mcp-server/` — an MCP server deployed as a Cloudflare Worker at `mcp.globalstrategic.tech`). Most non-trivial work touches conventions documented in one of the two doc trees — find them before building (see 📚 Critical Documentation).
+
 ---
 
 ## 🔧 Claude Workflow Directives
@@ -13,20 +15,29 @@ This document provides Claude with essential context about the GST Website proje
 - Use plan mode for verification steps, not just building
 - Write detailed specs upfront to reduce ambiguity
 
-### 2. Subagent Strategy to Keep Main Context Window Clean
+### 2. Design Review Gate (enforced by hook)
+
+- **Every implementation plan must be reviewed by the `plan-reviewer` agent before ExitPlanMode.** The reviewer verifies the plan's claims against the actual codebase, checks convention compliance against the authoritative docs, hunts missed reuse and unverified assumptions, and writes `.claude/tasks/plan-review.json` with the plan's content hash.
+- A PreToolUse hook **mechanically blocks ExitPlanMode** without a fresh approving marker bound to the current plan text. Editing the plan after review invalidates the marker (hash mismatch) — send the revised plan back to the reviewer.
+- If the reviewer returns REVISE: fix the blockers/majors (or explicitly justify accepting a major), update the plan, re-review.
+- **Only the user can waive this gate.** On an explicit waiver, write the marker with verdict `USER_WAIVED` and the user's quoted waiver — never fabricate a waiver or hand-write an APPROVE.
+- Mechanics, marker schema, troubleshooting: [DEVELOPER_TOOLING.md § Claude Code review gates](src/docs/development/DEVELOPER_TOOLING.md). Fresh machine? Run `npm run setup:claude-hooks` once to arm the gates.
+
+### 3. Subagent Strategy to Keep Main Context Window Clean
 
 - Offload research, exploration, and parallel analysis to subagents
 - For complex problems, throw more compute at it via subagents
 - One task per subagent for focused execution
 
-### 3. Self-Improvement Loop
+### 4. Self-Improvement Loop
 
 - After ANY correction from the user: **write it to the persistent memory system** as a `feedback` memory — one file per lesson in the memory directory, plus a one-line pointer in `MEMORY.md`. Capture the rule **and the why** so the correction survives the conversation ending.
 - The `MEMORY.md` index is loaded automatically at the start of every session — that is how prior corrections are recalled without repeating them. There is no separate "review at session start" step to remember.
 - Write rules for yourself that prevent the same mistake; before saving, check for an existing memory that already covers it and update that file rather than duplicating.
-- **Retired**: the old `.claude/tasks/lessons.md` learning log (removed 2026-07-19). Its still-relevant lessons were migrated to memory; the two codified ones already live as Directives 8 and 10. Recover the original via `git log -- .claude/tasks/lessons.md`.
+- **When a private lesson is really a repo convention, codify it here (or in the relevant doc) so every session sees it** — private memory is invisible to other sessions and collaborators.
+- **Retired**: the old `.claude/tasks/lessons.md` learning log (removed 2026-07-19). Its still-relevant lessons were migrated to memory; the two codified ones live as Directives 11 and 13. Recover the original via `git log -- .claude/tasks/lessons.md`.
 
-### 4. Verification Before Done
+### 5. Verification Before Done
 
 - Never mark a task complete without proving it works
 - Diff behavior between main and your changes when relevant
@@ -34,7 +45,7 @@ This document provides Claude with essential context about the GST Website proje
 - Run unit and integration tests to verify correctness
 - **Do NOT run E2E tests unless explicitly told to do so** — except when the task itself is writing or fixing E2E tests, in which case running them _is_ the verification step (use `--project=chromium` for a fast single-browser check)
 
-### 4a. No Deferred Tech Debt — Fix Now, Not Later
+### 6. No Deferred Tech Debt — Fix Now, Not Later
 
 - **If a fix can be done in this session, do it in this session.** Do not write off remaining work as "deferred to next session," "future cleanup," or "follow-up needed" when the fix is in scope and reachable.
 - **Verification work counts.** A "live exercise" or "human-driven UI verification" labeled "deferred to next session" is the same anti-pattern as a code TODO. If the live exercise can't be done in-session due to a real infrastructure constraint (e.g., a long-running subprocess that pre-dates this session's commits), substitute with a comprehensive integration test that exercises the same handler code path so engineering correctness is proven now — and document the constraint transparently, not as deferred work.
@@ -42,47 +53,54 @@ This document provides Claude with essential context about the GST Website proje
 - **For surfaces with active clients**: a rename, removal, or enum tightening must ship with a coordinated migration of every known caller OR a backward-compat shim at the same boundary. Confirm with the user whether active clients exist before scoping migration work — don't assume risk when the codebase is internal.
 - **Reason**: deferred tech debt compounds. Each "we'll handle that later" makes the next session harder, not easier. Closing the loop in the same session that opened it is the only sustainable rhythm.
 
-### 5. Demand Elegance (Balanced)
+### 7. Implementation Review Gate (enforced by hook)
+
+- **Before any `git push`, the diff must be reviewed by the `code-reviewer` agent.** It reviews `master...HEAD` against repo conventions (reuse, styles, tests, MCP contracts), records the HEAD sha, and writes `.claude/tasks/impl-review.json`.
+- A PreToolUse hook **mechanically blocks `git push`** unless the marker's `headSha` matches the current HEAD — commits added after the review force a re-review; a failed push retries without burning the review.
+- Fix critical findings before pushing. **Only the user can waive** (verdict `USER_WAIVED` + quoted waiver — appropriate for trivial docs-only diffs the user has already authorized).
+- Never push without explicit user authorization in the first place; an approved plan authorizes only the pushes it states.
+
+### 8. Demand Elegance (Balanced)
 
 - For non-trivial changes: pause and ask "is there a more elegant way?"
 - If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
 - Skip this for simple, obvious fixes - don't over-engineer
 - Challenge your own work before presenting it
 
-### 6. Autonomous Bug Fixing
+### 9. Autonomous Bug Fixing
 
 - When given a bug report: just fix it. Don't ask for hand-holding
 - Point at logs, errors, failing tests → then resolve them
 - Zero context switching required from the user
 - Go fix failing CI tests without being told how
 
-### 7. Technical Documentation Reference
+### 10. Technical Documentation Reference
 
 - For API docs, framework features, or web standards: query **Context7 MCP Server** first
 - Don't rely on training data alone for rapidly-evolving standards (Schema.org, Astro, etc.)
 - Fallback: WebSearch/WebFetch to official documentation sources
 
-### 8. Content Changes Must Include Test Updates
+### 11. Content Changes Must Include Test Updates
 
 - After ANY content/copy change (brand names, headings, CTA text, labels), **grep `tests/` for every old string** before committing
 - E2E tests frequently assert on visible text content — changing source without updating tests breaks CI
 - Run: `grep -r "OLD_STRING" tests/` for each string replaced
 - This is a **blocking step** — do not commit content changes without this check
 
-### 9. Commit Convention
+### 12. Commit Convention
 
 - Use conventional commits: `feat()`, `fix()`, `refactor()`, `docs()`, `chore()`, `test()`
 - Scope in parentheses: `feat(design-system):`, `fix(e2e):`, `docs(brand):`
 - Message body explains **why**, not what (the diff shows what)
 - Group logically distinct changes into separate commits
 
-### 10. PR Scope Must Match New Commits Only
+### 13. PR Scope Must Match New Commits Only
 
-- When `dev` has been incrementally merged to `master` via prior PRs, `git log master..dev` shows ALL divergence — not just new work
-- Before creating a PR, identify the last merge point and only include commits after it
-- Use `git log origin/dev..dev` to see what's actually new and unmerged
+- Feature branches cut from `master` and PR straight back to `master` — scope is simply `git log master..HEAD`
+- Before creating a PR, confirm every commit on the branch belongs to this change; if the branch is stale, rebase-or-merge from `master` first rather than shipping unrelated divergence
+- Never reuse a branch for a second initiative — one branch, one PR, one concern
 
-### 11. Developer Tooling is Authoritative
+### 14. Developer Tooling is Authoritative
 
 - Before suggesting or implementing changes to linting, formatting, type-checking, pre-commit hooks, or CI, read [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md) first
 - The authoritative local validation sequence (matches CI) is:
@@ -95,9 +113,9 @@ This document provides Claude with essential context about the GST Website proje
 - **Do not add or edit hooks, lint configs, or CI jobs without updating [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md)** — the doc is the single source of truth for new contributors and future sessions
 - **Do not use `git commit --no-verify`** unless you are explicitly told the change is an emergency and the user has agreed to the follow-up. CI will still enforce what the hook would have caught, so `--no-verify` only defers the problem
 
-### 12. One Command Per Bash Call (Avoid Permission-Prompt Thrash)
+### 15. One Command Per Bash Call (Avoid Permission-Prompt Thrash)
 
-Claude Code's permission matcher evaluates the ENTIRE command string against the `allow` list in [`.claude/settings.local.json`](.claude/settings.local.json). A compound command like `cd X && npm run Y | tee Z` is ONE string that matches no wildcard, even when every individual command (`cd`, `npm run`, `tee`) is pre-approved. The result: a permission prompt for work the user already authorized.
+Claude Code's permission matcher evaluates the ENTIRE command string against the `allow` list in [`.claude/settings.local.json`](.claude/settings.local.json) (the same gitignored file that carries the review-gate hook registration installed by `npm run setup:claude-hooks`). A compound command like `cd X && npm run Y | tee Z` is ONE string that matches no wildcard, even when every individual command (`cd`, `npm run`, `tee`) is pre-approved. The result: a permission prompt for work the user already authorized.
 
 **Rules:**
 
@@ -105,6 +123,7 @@ Claude Code's permission matcher evaluates the ENTIRE command string against the
 - **Pipes are permitted only when the entire pipeline fits a single allow-list pattern.** `git log --oneline | head -20` works because `Bash(git *)` covers it and `head` is pre-approved too; but in practice most pipes mix tool families (e.g. `npm run X | tee /tmp/Y`) and trip the matcher. When in doubt, write to a file via the Write tool or split into two Bash calls.
 - **Prefer dedicated tools over shell pipelines.** `Grep` for content search, `Glob` for file patterns, `Read` for file contents — these bypass the shell entirely and are always allowed.
 - **Redirections and env-prefixes count.** `cmd > /tmp/out.txt`, `FOO=bar cmd`, `cmd 2>&1 | tail -5` are all compound strings to the matcher. Sidestep by writing the output via the Write tool, or by running the base command and parsing the result in the next call.
+- **Never inline raw secrets in any shell command** (yours or ones you ask the user to run) — use env-var references so tokens stay out of scrollback, history, and transcripts. `wrangler secret put` reads from stdin.
 - **Exception — genuine sequential coupling.** If two commands MUST be atomic (e.g. `git add X && git commit -m …` where the user explicitly authorized one combined action), keep them together. The cost of one prompt is lower than the cost of a half-applied state.
 
 This rule exists to reduce user prompt fatigue. A single compound command that thrashes the approval loop is worse than three clean calls that just work.
@@ -113,115 +132,72 @@ This rule exists to reduce user prompt fatigue. A single compound command that t
 
 ## 📋 Project Overview
 
-**GST Website** - A modern, high-performance static site for Global Strategic Technologies built with Astro and deployed to Vercel.
+**GST Website** — a modern, high-performance static site for Global Strategic Technologies, plus the GST MCP server exposing the Hub tools to LLM clients.
 
-- **Framework**: Astro 6.x
-- **Build Tool**: Vite
-- **Deployment**: Vercel
-- **Testing**: Vitest (unit/integration) + Playwright (E2E)
-- **Package Manager**: npm
+- **Website**: Astro 7.x + Vite, static output, deployed to Vercel
+- **MCP server** (`mcp-server/`, workspace `@gst/mcp-server`): TypeScript MCP server; runs over stdio locally and as a **Cloudflare Worker** remotely (staging + production); Upstash Redis for caching/rate-limiting; Sentry + custom observability
+- **Testing**: Vitest (unit/integration, both workspaces) + Playwright (E2E, website)
+- **Package Manager**: npm (workspaces: `.` and `mcp-server`)
 - **Node Version**: 22+ (LTS)
 
 ## 🎨 Design System
 
 - **Design Philosophy**: Tech brutalist with dark mode support and frosted-glass aesthetic
-- **All design tokens** (colors, spacing, typography, transitions): [src/docs/styles/VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md)
-- **Conventions and patterns**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md)
-- **Brand decisions** (color hierarchy, palettes, voice, asset rules): [src/docs/styles/BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md)
-- **Palette system**: 6 alternative color palettes in `src/styles/palettes.css` — applied to `<html>` via class, persisted in localStorage
+- **Start here for any styling work**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) — the single entry point; it links the token catalog ([VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md)) and brand decisions ([BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md))
+- **Palette system**: alternative color palettes in `src/styles/palettes.css` — applied to `<html>` via class, persisted in localStorage
 - **Delta icon**: Use `DeltaIcon.astro` component (inline SVG with `currentColor`) — never `<img>` tags
 
 ## 🗂️ Project Structure
 
+Deliberately shallow — for full detail use the two doc-tree indexes ([src/docs/README.md](src/docs/README.md), [mcp-server/src/docs/README.md](mcp-server/src/docs/README.md)). Counts are omitted on purpose; they rot.
+
 ```
 gst-website/
-├── public/                    # Static assets (favicon, images, manifest)
-│   └── data/                 # Runtime-fetched data (TopoJSON, regulation JSON)
-├── src/
-│   ├── components/           # Astro components
-│   │   ├── DeltaIcon.astro   # Palette-aware inline SVG delta (use instead of <img>)
-│   │   ├── Header.astro
-│   │   ├── Footer.astro
-│   │   ├── Hero.astro
-│   │   ├── ThemeToggle.astro
-│   │   ├── SEO.astro
-│   │   ├── GoogleAnalytics.astro
-│   │   ├── Breadcrumb.astro
-│   │   ├── ... (14 root components)
-│   │   ├── brand/            # Brand page components (PalettePanel, ColorSpecimens)
-│   │   ├── hub/              # Hub page components (HubHeader, tool sub-components)
-│   │   ├── portfolio/        # M&A portfolio components (grid, modal, filters)
-│   │   └── radar/            # Radar feed components (FyiItem, CategoryFilter)
-│   ├── data/                 # Structured data
-│   │   ├── ma-portfolio/
-│   │   │   └── projects.json # 57 validated projects
-│   │   ├── palettes.ts       # Shared palette metadata (names, concepts, tips)
-│   │   ├── diligence-machine/# Attention areas, questions, wizard config
-│   │   ├── infrastructure-cost-governance/  # Domains, recommendations
-│   │   ├── techpar/          # Industry notes, recommendations, stages
-│   │   └── regulatory-map/   # 120 regulation JSON files
-│   ├── scripts/              # Client-side TypeScript modules
-│   │   └── palette-manager.ts# Site-wide palette switching, color editing, panel controls
-│   ├── docs/                 # Strategic documentation
-│   │   ├── testing/          # Test strategy & CI/CD docs
-│   │   ├── development/      # Development roadmap
-│   │   ├── analytics/        # GA4 integration guides
-│   │   ├── styles/           # CSS conventions, brand guidelines, variable reference
-│   │   ├── hub/              # Hub tool technical docs (Radar, DM, RegMap)
-│   │   └── seo/              # SEO implementation, JSON-LD, credentials
-│   ├── layouts/              # Page layouts
-│   │   └── BaseLayout.astro  # Includes Header, Footer, PalettePanel, theme/palette init
-│   ├── pages/                # Route files (auto-routed)
-│   │   ├── index.astro       # Homepage
-│   │   ├── brand.astro       # Brand style reference (palette explorer, specimens)
-│   │   ├── hub/              # Hub gateway + 6 tool pages + library articles
-│   │   └── ...               # services, about, ma-portfolio, privacy, terms
-│   └── styles/               # Global CSS (import order matters)
-│       ├── variables.css     # Design tokens (:root + html.dark-theme)
-│       ├── palettes.css      # 6 alternative palette definitions (html.palette-N)
-│       ├── typography.css    # Semantic text utility classes
-│       ├── interactions.css  # Interactive state patterns (hover, focus, chevron)
-│       ├── global.css        # Layout, utilities, responsive — imports component modules
-│       └── components/       # Extracted component styles (tool-ui, filter, cards, form, map, etc.)
-├── .claude/
-│   ├── agents/               # Claude agent definitions
-│   └── ...
-├── tests/                    # Test files
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
-├── .github/workflows/        # CI/CD pipelines
-├── vitest.config.ts          # Vitest configuration
-├── playwright.config.ts      # Playwright configuration
-├── astro.config.mjs          # Astro configuration
-├── package.json
-└── README.md
+├── src/                        # WEBSITE workspace (Astro)
+│   ├── components/             # Root components (DeltaIcon, Header, Hero, SEO, …)
+│   │   └── brand/ hub/ portfolio/ radar/ techpar/   # Feature component dirs
+│   ├── data/                   # Structured data
+│   │   ├── ma-portfolio/projects.json   # Portfolio entries (see 📊 Data Management)
+│   │   ├── common/             # Shared taxonomies (funding stages, stage adapters)
+│   │   ├── diligence-machine/ infrastructure-cost-governance/ techpar/
+│   │   ├── regulatory-map/     # Per-regulation JSON files
+│   │   └── palettes.ts         # Palette metadata
+│   ├── pages/                  # Routes: index, brand, services, about, ma-portfolio,
+│   │   └── hub/                #   privacy, terms, 404/500 + hub/{tools/,radar/,library/}
+│   ├── schemas/                # Zod input schemas shared with the MCP tools
+│   ├── scripts/                # Client-side TS (palette-manager, …)
+│   ├── styles/                 # variables.css → typography → interactions → palettes →
+│   │   └── components/         #   global.css + extracted component modules
+│   ├── layouts/BaseLayout.astro
+│   ├── docs/                   # WEBSITE doc tree (adr/ analytics/ development/ hub/
+│   │                           #   operations/ security/ seo/ styles/ testing/)
+│   └── utils/                  # Engine modules for Hub tools (TechPar, ICG, Tech Debt)
+├── mcp-server/                 # MCP SERVER workspace (@gst/mcp-server)
+│   ├── src/tools/ prompts/ resources/ schemas/ lib/ observability/ auth/ cache/
+│   ├── src/docs/               # SERVER doc tree — ARCHITECTURE.md is the maintained
+│   │                           #   system reference; tools/<tool>/CONTRACT.md + USAGE.md
+│   ├── tests/                  # Server unit + integration suites (run: npm run test:mcp)
+│   ├── observability/          # SLO baselines, runbooks, alert evaluator scripts
+│   └── wrangler.toml           # Worker config (staging + production envs)
+├── tests/                      # Website unit/ integration/ e2e/ suites
+├── .claude/                    # CLAUDE.md, PERMISSIONS.md, agents/, skills/, hooks/
+├── .github/workflows/          # CI/CD (see DEVELOPER_TOOLING.md for the pipeline map)
+└── public/                     # Static assets (+ runtime-fetched data)
 ```
 
 ## 🚀 Key Development Commands
 
+The **authoritative command table** (all scripts, both workspaces) lives in [DEVELOPER_TOOLING.md § Quick reference](src/docs/development/DEVELOPER_TOOLING.md). Daily drivers:
+
 ```bash
-# Development
-npm run dev                    # Start dev server (http://localhost:4321)
-npm run build                  # Build for production
-npm run preview               # Preview production build locally
-
-# Testing
-npm run test                   # Run tests in watch mode
-npm run test:run              # Run all tests once
-npm run test:coverage         # Run with coverage report
-npm run test:e2e              # Run E2E tests
-npm run test:e2e:ui           # E2E tests with visual UI
-npm run test:e2e:debug        # E2E tests with debugger
-npm run test:all              # Run all tests (unit + integration + E2E)
-npm run test:ui               # Visual test UI
-
-# Radar (see src/docs/hub/RADAR.md § Working Offline)
-npm run radar:seed            # Seed dev cache with mock data for offline/rate-limited dev
-npm run radar:unseed          # Clear seeded mock data, return to live API
-
-# Other
-npm run astro                 # Run Astro CLI
+npm run dev                    # Dev server (http://localhost:4321)
+npm run build                  # Production build
+npm run test:run               # Website unit + integration (once)
+npm run test:mcp               # MCP server suite (delegates to the workspace)
+npm run test:docs              # Docs link & anchor integrity guard (required CI check)
+npm run test:e2e               # Playwright E2E (only when told — see Directive 5)
+npm run lint / lint:css        # ESLint / stylelint
+npm run setup:claude-hooks     # One-time per machine: arm the review-gate hooks
 ```
 
 ## 📚 Critical Documentation
@@ -238,14 +214,13 @@ The `@gst/mcp-server` workspace has its **own** maintained doc tree — the webs
 
 ### Developer Tooling (Lint, Format, Hooks, CI)
 
-- **Authoritative reference**: [src/docs/development/DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md) — quick-reference table of all scripts, pre-commit hook flow, CI pipeline diagram, config file locations, troubleshooting
-- **When to read it**: before touching `.prettierrc.json`, `eslint.config.mjs`, `.stylelintrc.json`, `tsconfig.json`, `.husky/*`, `.github/workflows/test.yml`, or the `scripts` / `lint-staged` / `overrides` sections of `package.json`
-- **Local validation command** (matches CI): `npx astro check && npm run lint && npm run lint:css && npm run test:run`
+- **Authoritative reference**: [src/docs/development/DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md) — quick-reference table of all scripts, pre-commit hook flow, CI pipeline diagram, config file locations, review-gate mechanics, troubleshooting
+- **When to read it**: before touching `.prettierrc.json`, `eslint.config.mjs`, `.stylelintrc.json`, `tsconfig.json`, `.husky/*`, `.github/workflows/*.yml`, `.claude/hooks/*`, or the `scripts` / `lint-staged` / `overrides` sections of `package.json`
 
 ### Testing & CI/CD
 
 - **Start here**: [src/docs/testing/README.md](src/docs/testing/README.md) — use-case-based navigation to all testing docs
-- **Writing or fixing E2E tests**: read [src/docs/testing/TEST_BEST_PRACTICES.md](src/docs/testing/TEST_BEST_PRACTICES.md) first — 25 documented anti-patterns and their fixes
+- **Writing or fixing E2E tests**: read [src/docs/testing/TEST_BEST_PRACTICES.md](src/docs/testing/TEST_BEST_PRACTICES.md) first — a numbered catalog of documented anti-patterns that cause flaky failures, with fixes
 - **Writing new tests**: read [src/docs/testing/TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md) for test patterns by component type
 - **Tests failing**: check [src/docs/testing/TROUBLESHOOTING.md](src/docs/testing/TROUBLESHOOTING.md) before debugging manually
 
@@ -259,6 +234,7 @@ The `@gst/mcp-server` workspace has its **own** maintained doc tree — the webs
 
 - **Security headers & CSP**: [src/docs/security/SECURITY_HEADERS.md](src/docs/security/SECURITY_HEADERS.md) — header inventory, CSP allowlist, how to add external services
 - **Before adding any external script, API, or embed**: check the CSP allowlist and update both `vercel.json` and `src/middleware.ts`
+- **Secrets**: never inline in shell commands or chat (Directive 15); inventory at [src/docs/operations/SECRETS_INVENTORY.md](src/docs/operations/SECRETS_INVENTORY.md)
 
 ### Analytics
 
@@ -269,69 +245,66 @@ The `@gst/mcp-server` workspace has its **own** maintained doc tree — the webs
 
 Specialized agents in `.claude/agents/`. Use the right agent for the task:
 
-| Agent                            | Use When                                                |
-| -------------------------------- | ------------------------------------------------------- |
-| **code-reviewer**                | After code changes — quality, security, maintainability |
-| **javascript-typescript-expert** | Architecture decisions, performance optimization        |
-| **test-automation-specialist**   | Implementing tests, designing test strategies           |
-| **test-strategy-architect**      | Test pyramid design, coverage analysis, CI/CD workflows |
-| **ui-ux-playwright-reviewer**    | E2E test strategy, Playwright patterns                  |
-| **performance-testing-expert**   | Load testing, performance regression detection          |
-| **technical-debt-analyst**       | Refactoring, complexity analysis, debt reduction        |
+| Agent                            | Use When                                                                                           |
+| -------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **plan-reviewer**                | MANDATORY before ExitPlanMode (Directive 2) — adversarial design review, writes plan-review marker |
+| **code-reviewer**                | MANDATORY before `git push` (Directive 7) — reviews the diff, writes impl-review marker            |
+| **javascript-typescript-expert** | Architecture decisions, performance optimization                                                   |
+| **test-automation-specialist**   | Implementing tests, designing test strategies                                                      |
+| **test-strategy-architect**      | Test pyramid design, coverage analysis, CI/CD workflows                                            |
+| **ui-ux-playwright-reviewer**    | E2E test strategy, Playwright patterns                                                             |
+| **performance-testing-expert**   | Load testing, performance regression detection                                                     |
+| **technical-debt-analyst**       | Refactoring, complexity analysis, debt reduction                                                   |
 
 ## 🔄 Git Workflow
 
-### Branch Strategy
+### Branch Strategy (trunk-based)
 
-- **Main Branch**: `master` (production-ready)
-- **Development Branch**: `dev` (active development)
-- **Feature Branches**: Created from `dev`, merged back via PR
+- **`master` is the trunk** — production-ready; every PR targets it directly
+- **Feature branches** cut from `master`, named with a CI-covered family prefix: `feat/`, `fix/`, `feature/`, `docs/`, `chore/` (these families are wired into the CI push-trigger lists — a new prefix family must be added there too, see DEVELOPER_TOOLING.md)
+- **`dev` is retired** (dormant since 2026-05-31) — do not branch from or merge to it
+- **Merge commits, never squash** — PR merges use "Create a merge commit"
+- **Never `git push` without explicit user authorization** — an approved plan authorizes only the pushes it states; pushes are additionally gated by Directive 7
 
 ### PR Requirements
 
-- All tests must pass (unit, integration, E2E)
-- Code review required
-- Coverage thresholds must be met (70%+)
-- CI/CD checks must pass
+- Required status checks (branch ruleset): **E2E Tests (Playwright)**, **Unit & Integration Tests**, **Lint & Type Check**, **Verify doc links** — plus branch up-to-date (strict policy). A PR stuck BLOCKED after "Update branch": close + reopen (see DEVELOPER_TOOLING.md § push-trigger notes)
+- Review gates (Directives 2 & 7) precede the PR; CI enforces the rest
 
 ## 📊 Data Management
 
 ### Portfolio Data
 
-- **Source**: `src/data/ma-portfolio/projects.json`
-- **Content**: 57 active projects with validated schema
-- **Fields**: id, codeName, industry, theme, summary, arr, arrNumeric, currency, growthStage, year, technologies
-- **Validation**: Unit tests covering schema integrity; auto-validated on commit via CI/CD
+- **Source**: `src/data/ma-portfolio/projects.json` — validated by schema-integrity unit tests (`npm run test:run`), which are the authoritative field list
+- **PREPEND new entries** (don't append) — the UI renders in file order with no sort; newest belongs on top
+- **Update flow**: edit → `npm run test:run` → commit. Push/PR only with user authorization (Directive 7)
 
 ## 🔍 Code Quality Standards
 
 ### Testing Standards
 
-- **Before writing or fixing E2E tests**, read [src/docs/testing/TEST_BEST_PRACTICES.md](src/docs/testing/TEST_BEST_PRACTICES.md) — it documents 25 anti-patterns that cause flaky failures
-- **Before writing new tests**, read [src/docs/testing/TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md) for the correct test type and patterns
-- **Unit Tests**: Fast, isolated, mocked dependencies
-- **Integration Tests**: Real dependencies, isolated data
-- **E2E Tests**: Critical user journeys only
-- **Coverage Target**: 70%+ line coverage minimum
+- **Doc pointers**: see 📚 Testing & CI/CD above — TEST_STRATEGY for what to write, TEST_BEST_PRACTICES before touching E2E
+- **Unit**: fast, isolated, mocked · **Integration**: real dependencies, isolated data · **E2E**: critical user journeys only
+- **Coverage**: 70% line threshold on the covered scopes (see `vitest.config.ts` / mcp-server config for exact include lists)
+- **Never bump a timeout to fix a failing/flaky test** — diagnose the root cause. Known benign flake: the FIRST mcp-server test run of a day can time out on workerd cold-start; rerun before investigating
+- **Pre-existing test debt is not a free pass** — small failing tests in your touched area get fixed in the current PR, not waved through
+- **Playwright: never set `permissions` at project level** in `playwright.config.ts` — desktop permissions crash mobile device contexts; grant per-test with `context.grantPermissions()` guarded by `browserName`
 
 ### CSS Styling Standards
 
-- **Before writing or modifying any CSS**, read [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) — it is the single entry point for all styling conventions and links to the other style docs when needed
-- **Before choosing any color, spacing, or typography value**, look it up in [src/docs/styles/VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md) — never guess or hardcode
-- **All colors must use CSS variables** — never hardcode color values
-- **All spacing must use the spacing scale** (`--spacing-xs` through `--spacing-3xl`)
-- **All font sizes must use typography utilities** (`.heading-*`, `.text-*`, `.label-*`) or variables
+- **Before writing or modifying any CSS**, read [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) — the single entry point for all styling conventions (tokens catalog: [VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md))
+- **All colors, spacing, font sizes, and transitions come from the design system** — CSS variables and utility classes only; never hardcode values
 - **Dark theme must work automatically** — use variables; the selector is `html.dark-theme`, not `body.dark-theme`
 - **Palette overrides** in `palettes.css` — applied to `<html>` via class (like dark-theme); see BRAND_GUIDELINES.md § Alternative Palette System
 - **Delta icons**: use `DeltaIcon.astro` component — never `<img>` tags (cannot inherit palette/theme colors via `currentColor`)
 - **Buttons include frosted-glass** by default (`backdrop-filter: blur(2px)`, semi-transparent backgrounds) — see STYLES_GUIDE.md § Frosted Glass
 - **Responsive design desktop-first** — base styles for desktop, `max-width` breakpoints for smaller screens
-- **No hardcoded transitions** — use `--transition-fast`, `--transition-normal`, or `--transition-slow`
-- **Brand decisions** (color hierarchy, semantic colors, palettes, voice, asset rules): [src/docs/styles/BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md)
+- **Astro `<style>` is scoped by default** — extracting markup into a sibling component silently breaks any class selector targeting it from the source file; restyle in the new component (or use `:global()` deliberately)
 
 ## 🚢 Deployment
 
-Vercel — auto-deploys on push to `master`, preview deploys for PRs. Build: `npm run build`, output: `dist`.
+- **Website**: Vercel — auto-deploys on push to `master`, preview deploys for PRs. Build `npm run build`, output `dist`. Trailing-slash canonicalization lives in `vercel.json` (`trailingSlash: true`) — NOT in `astro.config.mjs` (`'always'` breaks the dev server)
+- **MCP Worker**: fully CI/CD — **staging auto-deploys** on a green MCP test run (`deploy-mcp-staging.yml`); **production** deploys on master merges touching Worker source, gated by the `mcp-production` GitHub Environment approval, latest-wins concurrency (`deploy-mcp-production.yml`); manual rollback via `rollback-mcp.yml`. **Never instruct anyone to manually rebuild/redeploy the Worker** — merge and let the pipeline run. Details: [mcp-server/src/docs/operations/DEPLOY.md](mcp-server/src/docs/operations/DEPLOY.md)
 
 ## 💡 Common Tasks
 
@@ -352,10 +325,16 @@ Vercel — auto-deploys on push to `master`, preview deploys for PRs. Build: `np
 
 ### Updating Portfolio Data
 
-1. Edit `src/data/ma-portfolio/projects.json`
+1. Edit `src/data/ma-portfolio/projects.json` — **prepend** the new entry (see 📊 Data Management)
 2. Run: `npm run test:run` to validate schema
-3. Commit and push
+3. Commit; push/PR only with user authorization
+
+### Extending an MCP Tool
+
+1. Read the tool's `CONTRACT.md` + `USAGE.md` under `mcp-server/src/docs/tools/<tool>/` and [ARCHITECTURE.md](mcp-server/src/docs/ARCHITECTURE.md)
+2. **Tool↔prompt parity**: extending a tool's inputs must also extend its companion `gst_*` prompt (wire-shape adapters) and self-document id/enum args in `.describe()` so a cold LLM call can discover valid values
+3. Run `npm run test:mcp` (contract-parity and prompt-compat tests enforce much of this)
 
 ---
 
-**Last Updated**: July 15, 2026
+**Last Updated**: July 19, 2026 — full accuracy overhaul + review-gate directives (2 & 7) added; directives renumbered 1–15 (old 4a→6, old 5–12 → 8–15)

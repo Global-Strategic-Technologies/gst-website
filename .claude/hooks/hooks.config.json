@@ -1,0 +1,25 @@
+{
+  "$comment": "Canonical Claude Code review-gate hook registration (tracked). Installed into each developer's gitignored .claude/settings.local.json by `npm run setup:claude-hooks` (.claude/hooks/install.mjs) — settings.local.json is the merge target because the harness actively writes personal permission approvals into .claude/settings.json, which therefore cannot be tracked. Commands are $CLAUDE_PROJECT_DIR-absolute on purpose: a relative path would fail with exit 1 when the session cwd has drifted, and non-2 exit codes are NON-blocking, silently disarming the gate. See DEVELOPER_TOOLING.md § Claude Code review gates.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/plan-review-gate.mjs\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/push-review-gate.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
