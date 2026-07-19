@@ -10,7 +10,7 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 2. [Design System Architecture](#design-system-architecture)
 3. [File Organization](#file-organization)
 4. [Component Styling](#component-styling)
-5. [Brand Assets in CSS](#brand-assets-in-css)
+5. [Brand Delta Icon](#brand-delta-icon)
 6. [Dark Theme Implementation](#dark-theme-implementation)
 7. [Responsive Design](#responsive-design)
 8. [Hub Tool Patterns](#hub-tool-patterns)

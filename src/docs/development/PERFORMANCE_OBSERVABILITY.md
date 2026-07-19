@@ -198,7 +198,7 @@ Just visit <https://performance.globalstrategic.tech>. The dashboard is intentio
 - The device toggle matters — most real users hit the site from mobile
 - "Run Now" requires a GitHub login with repo access; engineering can trigger it on request
 
-The dashboard is the artifact to point at when discussing performance. It's not a real-time monitor — production user experience is captured by Vercel Speed Insights (see [Related observability](#related-observability)). Lighthouse-CI scores are synthetic; they catch regressions early but may diverge from what real users see.
+The dashboard is the artifact to point at when discussing performance. It's not a real-time monitor — production user experience is captured by Vercel Speed Insights (see [Related observability](#related-observability-not-in-scope-here)). Lighthouse-CI scores are synthetic; they catch regressions early but may diverge from what real users see.
 
 ---
 

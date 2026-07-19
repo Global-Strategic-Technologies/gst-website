@@ -16,7 +16,7 @@ Technical documentation for GST Hub interactive tools.
 - All tools live under `src/pages/hub/tools/<tool>/index.astro`
 - TechPar, ICG, and Tech Debt Calculator use engine modules in `src/utils/`
 - Radar is the only SSR page (ISR via Vercel adapter); all others are prerendered
-- Analytics events follow the `<prefix>_<action>` convention (see [GOOGLE_ANALYTICS.md](../analytics/GOOGLE_ANALYTICS.md#8-hub-tool-events))
+- Analytics events follow the `<prefix>_<action>` convention (see [GOOGLE_ANALYTICS.md](../analytics/GOOGLE_ANALYTICS.md#9-hub-tool-events))
 
 ---
 

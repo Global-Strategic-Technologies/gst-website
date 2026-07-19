@@ -185,7 +185,7 @@ If the MCP-DB Standard token is ever compromised, regenerate it from the Upstash
 
 ### Why
 
-The default `UPSTASH_MCP_REST_TOKEN` (minted in § A.3) is bound to Upstash's `default` user with **full admin permissions on the entire keyspace**. A leak gives an attacker `FLUSHDB`, `CONFIG SET`, `SCRIPT FLUSH`, `KEYS *`, and access to every key — not just our `mcp:*` namespace. The Worker only needs read+write on `mcp:*`. Closing this gap before [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033) broadens the operator pool means access-control is settled before stakes rise.
+The default `UPSTASH_MCP_REST_TOKEN` (minted in § A.3) is bound to Upstash's `default` user with **full admin permissions on the entire keyspace**. A leak gives an attacker `FLUSHDB`, `CONFIG SET`, `SCRIPT FLUSH`, `KEYS *`, and access to every key — not just our `mcp:*` namespace. The Worker only needs read+write on `mcp:*`. Closing this gap before [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3) broadens the operator pool means access-control is settled before stakes rise.
 
 ### The ACL strings
 

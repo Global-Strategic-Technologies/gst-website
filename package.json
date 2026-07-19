@@ -20,6 +20,7 @@
     "test:e2e:debug": "playwright test --debug",
     "test:a11y": "playwright test tests/e2e/accessibility.test.ts --project=chromium",
     "test:mcp": "npm -w @gst/mcp-server run test",
+    "test:docs": "vitest run tests/integration/docs-link-integrity.test.ts",
     "test:all": "npm run test:run && npm run test:e2e && npm run test:mcp",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

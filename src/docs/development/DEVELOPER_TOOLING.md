@@ -1,6 +1,6 @@
 # Developer Tooling
 
-Project-specific reference for the quality tooling installed during Phase 2 of [PLATFORM_HARDENING_V1.md](./PLATFORM_HARDENING_V1.md). Covers what runs when, how to run things manually, where the configuration lives, and how to resolve the most common failure modes.
+Project-specific reference for the quality tooling installed during Phase 2 of the platform-hardening initiative. Covers what runs when, how to run things manually, where the configuration lives, and how to resolve the most common failure modes.
 
 > This is a reference, not a tutorial. If you need to learn what Prettier or ESLint _are_, read their upstream docs. This document describes how **this specific project** uses them.
 
@@ -14,6 +14,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of [
 | Run unit and integration tests (once)  | `npm run test:run`                                                           |
 | Run unit and integration tests (watch) | `npm run test`                                                               |
 | Run tests with coverage                | `npm run test:coverage`                                                      |
+| Check documentation links & anchors    | `npm run test:docs`                                                          |
 | Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
 | Type-check the whole project           | `npx astro check`                                                            |
@@ -258,6 +259,7 @@ concurrency:
 | [.github/workflows/rollback-mcp.yml](../../../.github/workflows/rollback-mcp.yml) | Manual `workflow_dispatch` rollback of the MCP Worker to a prior deployment ID; production rollbacks gated by the `mcp-production-rollback` environment (BL-037 Phase C) |
 | [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
 | [.github/workflows/prettier-drift-check.yml](../../../.github/workflows/prettier-drift-check.yml) | Weekly cron + manual `workflow_dispatch` — runs `prettier --check .` repo-wide; opens a `tech-debt` Issue if drift accumulates (counter-pressure for the diff-scoped PR check; see § Prettier idempotency + drift) |
+| [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` (the BL-089 doc link & anchor guard) on every PR + push to `master`. Exists as its own workflow because `test.yml`'s `changes` gate skips docs-only diffs — the exact case the guard must fire on. Not a required check by default; add "Verify doc links" to branch protection to make it blocking |
 | [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
 
 ---
@@ -538,7 +540,7 @@ Evaluated during Phase 9 (2026-04-13):
 - **Pure error capture** (`captureException`, `captureMessage`): Classified as **legitimate interest** under GDPR — diagnostic data for maintaining service reliability. No consent required.
 - **Error-only replay** (`replaysOnErrorSampleRate: 1.0`): Records DOM state only when an error occurs. Arguably still legitimate interest since it is diagnostic, not behavioral tracking. No session replay for general browsing.
 - **No PII**: `sendDefaultPii: false` prevents automatic collection of user identifiers, IP addresses, or cookies.
-- **Decision**: Keep current configuration as legitimate interest. Re-evaluate when [BUSINESS_ENABLEMENT_V1.md](./BUSINESS_ENABLEMENT_V1.md) ships a cookie consent banner — at that point, consider gating replay behind analytics consent while keeping error capture ungated.
+- **Decision**: Keep current configuration as legitimate interest. Re-evaluate when [BL-001 (cookie consent)](./BACKLOG.md#bl-001-cookie-consent-and-gdpr-compliance) ships a cookie consent banner — at that point, consider gating replay behind analytics consent while keeping error capture ungated.
 
 ---
 
@@ -715,7 +717,7 @@ npm run test:coverage
 
 ## Post-merge manual steps for Phase 2
 
-Two manual steps are required to complete Phase 2. Both are documented in [PLATFORM_HARDENING_V1.md § Phase 2 Post-Merge Manual Steps](./PLATFORM_HARDENING_V1.md#post-merge-manual-steps). Summary:
+Two manual steps are required to complete Phase 2:
 
 1. **Update branch protection ruleset** to add `Lint & Type Check` to the required-checks list on ruleset 12237842. Must happen AFTER the Phase 2 PR merges to master. Full `gh` CLI recipe in the hardening doc.
 2. **Verify `astro dev` no longer emits the `[content] Content config not loaded` warning** — resolved by adding an empty `src/content.config.ts`, but only verifiable on a fresh dev server startup.
@@ -724,7 +726,6 @@ Two manual steps are required to complete Phase 2. Both are documented in [PLATF
 
 ## Related documentation
 
-- [PLATFORM_HARDENING_V1.md](./PLATFORM_HARDENING_V1.md) — the initiative that introduced this tooling
 - [TEST_STRATEGY.md](../testing/TEST_STRATEGY.md) — test patterns by component type
 - [TEST_BEST_PRACTICES.md](../testing/TEST_BEST_PRACTICES.md) — E2E anti-patterns
 - [STYLES_GUIDE.md](../styles/STYLES_GUIDE.md) — CSS conventions (enforced by stylelint)
