@@ -44,7 +44,7 @@ export function isGitPush(command) {
     .replace(/"[^"]*"/g, ' ')
     .replace(/@'[\s\S]*?'@/g, ' '); // PowerShell here-strings
   const gitPush =
-    /(^|[;&|]|&&|\|\||\bthen\b|\bdo\b)\s*(?:[\w./\\:-]*[/\\])?git(?:\.exe)?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b/;
+    /(^|[;&|\n]|&&|\|\||\bthen\b|\bdo\b)\s*(?:sudo\s+)?(?:[\w./\\:-]*[/\\])?git(?:\.exe)?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b/;
   const m = unquoted.match(gitPush);
   if (!m) return false;
   // Exempt --dry-run (check the segment from the matched `push` onward).

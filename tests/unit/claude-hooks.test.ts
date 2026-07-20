@@ -141,6 +141,8 @@ describe('push-review-gate: isGitPush command detection', () => {
     ['cd mcp-server; git push', true],
     ['npm run test:run && git push -u origin feat/x', true],
     ['git.exe push', true],
+    ['echo done\ngit push', true], // newline-separated multi-line command
+    ['sudo git push', true],
     // NOT pushes:
     ['git commit -m "docs: explain the git push gate"', false], // push inside quotes
     ["git commit -m 'mention git push here'", false],
