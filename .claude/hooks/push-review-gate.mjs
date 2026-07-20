@@ -32,9 +32,12 @@ const ALLOWED_VERDICTS = new Set(['APPROVE', 'USER_WAIVED']);
  * Detect a real `git push` in a shell command string.
  * - Quoted segments are stripped first so `git commit -m "explain git push"`
  *   never trips the gate.
- * - `git` must appear in command position (start of string or after a shell
- *   separator), with `push` as its subcommand (allowing intervening `-C dir`
- *   or `-c key=val` style options).
+ * - The command is split on shell separators (;, &, |, &&, ||, newline,
+ *   then/do) and EACH segment is tested independently: `git` must be in
+ *   command position within its segment (optional sudo/path prefix), with
+ *   `push` as its subcommand (allowing intervening `-C dir` / `-c key=val`).
+ *   Per-segment evaluation means a real push anywhere in a compound command
+ *   gates, and a `--dry-run` in one segment cannot exempt a different one.
  * - `--dry-run` pushes are exempt (harmless by definition).
  */
 export function isGitPush(command) {
@@ -43,14 +46,11 @@ export function isGitPush(command) {
     .replace(/'[^']*'/g, ' ')
     .replace(/"[^"]*"/g, ' ')
     .replace(/@'[\s\S]*?'@/g, ' '); // PowerShell here-strings
-  const gitPush =
-    /(^|[;&|\n]|&&|\|\||\bthen\b|\bdo\b)\s*(?:sudo\s+)?(?:[\w./\\:-]*[/\\])?git(?:\.exe)?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b/;
-  const m = unquoted.match(gitPush);
-  if (!m) return false;
-  // Exempt --dry-run (check the segment from the matched `push` onward).
-  const tail = unquoted.slice(unquoted.indexOf(m[0]));
-  const segmentEnd = tail.search(/[;&|]/) === -1 ? tail.length : tail.search(/[;&|]/);
-  return !tail.slice(0, segmentEnd).includes('--dry-run');
+  const pushSegment =
+    /^\s*(?:sudo\s+)?(?:[\w./\\:-]*[/\\])?git(?:\.exe)?\s+(?:-[cC]\s+\S+\s+|--[\w-]+(?:=\S+)?\s+)*push\b/;
+  return unquoted
+    .split(/&&|\|\||[;&|\n]|\bthen\b|\bdo\b/)
+    .some((segment) => pushSegment.test(segment) && !segment.includes('--dry-run'));
 }
 
 function block(reason) {

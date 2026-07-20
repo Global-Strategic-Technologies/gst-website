@@ -143,6 +143,9 @@ describe('push-review-gate: isGitPush command detection', () => {
     ['git.exe push', true],
     ['echo done\ngit push', true], // newline-separated multi-line command
     ['sudo git push', true],
+    ['git push\necho --dry-run', true], // --dry-run in a LATER segment must not exempt a real push
+    ['git push --dry-run\ngit push', true], // second, real push after an exempt one
+    ['cd x; git push --dry-run', false], // chained dry-run is still exempt (per-segment eval)
     // NOT pushes:
     ['git commit -m "docs: explain the git push gate"', false], // push inside quotes
     ["git commit -m 'mention git push here'", false],
