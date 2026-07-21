@@ -63,18 +63,18 @@ gst-website/
 
 ## Commands
 
-| Command                 | Action                                      |
-| :---------------------- | :------------------------------------------ |
-| `npm run dev`           | Start dev server at `http://localhost:4321` |
-| `npm run build`         | Build production site to `./dist/`          |
-| `npm run preview`       | Preview production build locally            |
-| `npm run test:run`      | Run unit + integration tests once           |
-| `npm run test:e2e`      | Run E2E tests (all browsers)                |
-| `npm run test:all`      | Run everything (unit + integration + E2E)   |
-| `npm run test:coverage` | Run with coverage report                    |
-| `npm run lint`          | ESLint                                      |
-| `npm run lint:css`      | Stylelint (CSS + .astro scoped styles)      |
-| `npm run radar:seed`    | Seed dev cache with mock Radar data         |
+| Command                 | Action                                                                             |
+| :---------------------- | :--------------------------------------------------------------------------------- |
+| `npm run dev`           | Start dev server at `http://localhost:4321`                                        |
+| `npm run build`         | Build production site to `./dist/`                                                 |
+| `npm run preview`       | Preview production build locally                                                   |
+| `npm run test:run`      | Run unit + integration tests once                                                  |
+| `npm run test:e2e`      | Run E2E tests (all browsers)                                                       |
+| `npm run test:all`      | Run everything (unit + integration + E2E)                                          |
+| `npm run test:coverage` | Run with coverage report                                                           |
+| `npm run lint`          | ESLint                                                                             |
+| `npm run lint:css`      | Stylelint (CSS + .astro scoped styles)                                             |
+| `npm run radar:seed`    | Populate the local stdio MCP radar snapshot with mock data (`radar:unseed` clears) |
 
 ### Local Validation (matches CI)
 

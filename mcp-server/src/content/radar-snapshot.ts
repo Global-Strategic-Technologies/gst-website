@@ -2,19 +2,22 @@
  * Radar snapshot reader — local-only, never makes Inoreader API calls.
  *
  * Reads from the cache produced by `npm run radar:seed`
- * (tests/e2e/fixtures/seed-radar-cache.ts). The cache directory lives at
- * `<repo>/.cache/inoreader/` and stores SHA256-keyed JSON files matching
- * the format in `src/lib/inoreader/cache.ts` (v0.1.0):
+ * (mcp-server/scripts/seed-radar-cache.mjs). The cache directory lives at
+ * `<repo>/.cache/inoreader/` and stores SHA256-keyed JSON files in the
+ * format inherited from the retired website cache module (the pre-BL-032.8
+ * `src/lib/inoreader/cache.ts`, deleted in 606f4848):
  *
  *   <repo>/.cache/inoreader/<sha256(fn,args)>.json
  *   { "timestamp": <ms>, "data": <InoreaderStreamResponse> }
  *
- * IMPORTANT — Inoreader budget protection: this module MUST NOT import
- * `src/lib/inoreader/client` (which makes live API calls). The ESLint
- * `no-restricted-imports` override on `mcp-server/src/**` enforces this.
- * We replicate the minimal cache-key + JSON-read logic locally rather
- * than reusing the website's `cache.ts` to keep the dependency surface
- * small (no Sentry import) and the budget-protection invariant explicit.
+ * The seeder↔reader format contract is pinned by
+ * tests/integration/radar-seed-roundtrip.test.ts.
+ *
+ * IMPORTANT — Inoreader budget protection: this module MUST NOT import a
+ * live Inoreader client. The ESLint `no-restricted-imports` override on
+ * `mcp-server/src/**` enforces this. The minimal cache-key + JSON-read
+ * logic is replicated locally to keep the dependency surface small and the
+ * budget-protection invariant explicit.
  *
  * FYI freshness gate is INTENTIONALLY NOT applied here. The live path
  * (`radar-live-store.ts` `readFyiLive`) runs `filterFreshFyi` to age curated
