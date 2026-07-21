@@ -15,6 +15,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Run unit and integration tests (watch) | `npm run test`                                                               |
 | Run tests with coverage                | `npm run test:coverage`                                                      |
 | Check documentation links & anchors    | `npm run test:docs`                                                          |
+| Arm the Claude review gates (once/machine) | `npm run setup:claude-hooks` (see § Claude Code review gates)            |
 | Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
 | Type-check the whole project           | `npx astro check`                                                            |
@@ -261,6 +262,8 @@ concurrency:
 | [.github/workflows/prettier-drift-check.yml](../../../.github/workflows/prettier-drift-check.yml) | Weekly cron + manual `workflow_dispatch` — runs `prettier --check .` repo-wide; opens a `tech-debt` Issue if drift accumulates (counter-pressure for the diff-scoped PR check; see § Prettier idempotency + drift) |
 | [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` (the BL-089 doc link & anchor guard) on every PR + push to `master`. Exists as its own workflow because `test.yml`'s `changes` gate skips docs-only diffs — the exact case the guard must fire on. Not a required check by default; add "Verify doc links" to branch protection to make it blocking |
 | [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
+| [.claude/hooks/hooks.config.json](../../../.claude/hooks/hooks.config.json)       | Tracked registration source for the Claude review-gate hooks (installed per-machine via `npm run setup:claude-hooks`; see § Claude Code review gates) |
+| [.claude/hooks/](../../../.claude/hooks/)                                         | Gate scripts (`plan-review-gate.mjs`, `push-review-gate.mjs`) + installer (`install.mjs`) — unit-tested in `tests/unit/claude-hooks.test.ts` |
 
 ---
 
@@ -626,6 +629,39 @@ Moved here from the main Test Suite (2026-05-31): the audit result is a function
 - `@lhci/cli → { tmp: 0.2.7, uuid: 11.1.1 }` (scoped, added 2026-07-15) — `@lhci/cli@0.15.1` (latest) still pins `tmp@0.1.0`/`0.0.33` (`GHSA-52f5-9888-hmc6` + `GHSA-ph9p-34f9-6g65`, high) and `uuid@8.3.2` (`GHSA-w5hq-g745-h8pq`, moderate); npm audit's only suggested "fix" is a destructive downgrade to `@lhci/cli@0.1.0`. The scoped override forces the patched transitive versions inside lhci's subtree only, which also clears the dependent `external-editor`/`inquirer` advisories. Verified via `npx lhci healthcheck` + the CI lighthouse job. Remove when `@lhci/cli` ships with `tmp >=0.2.6` and `uuid >=11.1.1` (check with `npm ls tmp uuid --all` after a Dependabot lhci bump, then delete the override and re-run `npm audit`).
 
 **Automated dependency updates** — [Dependabot](../../../.github/dependabot.yml) opens PRs weekly for npm and GitHub Actions version bumps. When reviewing Dependabot PRs that update `@astrojs/vercel` or `@vercel/routing-utils`, check whether the `path-to-regexp` override can be removed by running `npm audit --omit=dev` after deleting the `overrides` block.
+
+---
+
+## Claude Code review gates
+
+Two Claude Code PreToolUse hooks mechanically enforce the review directives in [CLAUDE.md](../../../.claude/CLAUDE.md) (Directives 2 and 7), so a session cannot lazily skip design or code review:
+
+| Gate                          | Blocks                     | Requires                                                                                                                                                                     | Reviewer agent  |
+| ----------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| **Design Review Gate**        | `ExitPlanMode` (plan exit) | `.claude/tasks/plan-review.json` — verdict `APPROVE`/`USER_WAIVED`, `planContentSha256` matching the CURRENT plan-file bytes, `reviewedAt` < 24 h                             | `plan-reviewer` |
+| **Implementation Review Gate** | any real `git push`        | `.claude/tasks/impl-review.json` — verdict `APPROVE`/`USER_WAIVED`, `headSha` equal to current `git rev-parse HEAD`                                                          | `code-reviewer` |
+
+### Setup (once per machine/clone)
+
+```bash
+npm run setup:claude-hooks
+```
+
+This runs [.claude/hooks/install.mjs](../../../.claude/hooks/install.mjs), which idempotently merges the tracked registration source [.claude/hooks/hooks.config.json](../../../.claude/hooks/hooks.config.json) into your gitignored `.claude/settings.local.json` (preserving all other keys and any personal hooks). Hooks hot-reload — no restart. **Why an installer instead of a tracked settings file**: the harness actively writes personal permission approvals into `.claude/settings.json`, so neither settings file can be tracked without leaking per-developer allowlists; the tracked config + installer keeps the registration in the repo and the personal state out of it.
+
+### How the handshake works
+
+- **Content/SHA binding, not consumption**: the plan marker stores a sha256 of the plan file it reviewed; the push marker stores the HEAD sha it reviewed. Editing the plan (or adding commits) after review invalidates the marker automatically — and a user *rejection* without edits, or a *failed push retry*, does NOT burn the review.
+- **Fail-open pitfall (load-bearing)**: for PreToolUse hooks, only **exit 2 blocks** — any other non-zero exit is a non-blocking error and the tool call PROCEEDS. This is why the registered commands are `$CLAUDE_PROJECT_DIR`-absolute (a relative path would "Cannot find module"-exit-1 whenever the session has `cd`'d, silently disarming the gate) and why the scripts fail CLOSED (exit 2) on missing/malformed/stale markers. Unit coverage: [tests/unit/claude-hooks.test.ts](../../../tests/unit/claude-hooks.test.ts).
+- **Waivers**: only the user can waive a gate. The main agent then writes the marker with verdict `USER_WAIVED`, a `waiver` field quoting the user, and the current plan-hash/HEAD-sha. Agents must never hand-write an `APPROVE`.
+- The push gate ignores everything that isn't a real push: quoted mentions (`git commit -m "about git push"`), `git stash push`, `git push --dry-run`, and all non-git traffic fast-exit clean.
+
+### Troubleshooting
+
+- **"Design Review Gate: … EDITED since it was reviewed"** — expected after revising a plan; send the revised plan back to `plan-reviewer`.
+- **"Implementation Review Gate: … new commits exist since the review"** — expected after adding commits; re-run `code-reviewer` on the final state.
+- **Gate blocks something it shouldn't** — inspect the marker (`.claude/tasks/*.json`), fix or delete it, re-run the reviewer. Markers are gitignored runtime state; deleting them is always safe (the next review recreates them).
+- **Gates not firing at all** — `npm run setup:claude-hooks` hasn't been run on this machine, or `settings.local.json` was replaced; re-run the installer.
 
 ---
 

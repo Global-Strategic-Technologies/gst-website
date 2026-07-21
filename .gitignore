@@ -34,6 +34,9 @@ pnpm-debug.log*
 .claude/settings.local.json
 # claude scheduled-tasks runtime lock (per-session)
 .claude/scheduled_tasks.lock
+# claude review-gate runtime markers (per-session; written by plan-reviewer / code-reviewer agents)
+.claude/tasks/plan-review.json
+.claude/tasks/impl-review.json
 
 # playwright test results and reports
 test-results/

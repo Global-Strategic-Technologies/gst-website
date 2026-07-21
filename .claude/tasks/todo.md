@@ -150,4 +150,4 @@ _Add summary of what was accomplished._
 - **Plan Mode Trigger**: 3+ steps OR architectural decisions
 - **Verification**: Always run `npm run test:all` before marking done
 - **Documentation**: Update this file as work progresses
-- **Lessons**: Capture correction patterns in the memory system (`feedback` memories + `MEMORY.md`), per CLAUDE.md Directive 3 — `lessons.md` retired 2026-07-19
+- **Lessons**: Capture correction patterns in the memory system (`feedback` memories + `MEMORY.md`), per CLAUDE.md Directive 4 — `lessons.md` retired 2026-07-19
