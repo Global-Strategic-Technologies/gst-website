@@ -1,38 +1,35 @@
 /**
- * Mock Inoreader API responses for Radar E2E tests AND for the dev-workflow
- * `npm run radar:seed` cache populated by `seed-radar-cache.ts`.
+ * Mock Inoreader API responses — single source of truth for BOTH:
+ *  - the unit suite (`tests/unit/radar-offline.test.ts`), and
+ *  - the dev-workflow seeder (`mcp-server/scripts/seed-radar-cache.mjs`,
+ *    invoked as `npm run radar:seed` from the repo root).
+ *
+ * Plain `.mjs` (with a `.d.mts` type sidecar for TS importers — the same
+ * pattern as `scripts/extract-irl-markdown.mjs`) so the seeder can run under
+ * plain `node` with no TS loader. Behavior is identical to the former
+ * `radar-mock-data.ts`.
  *
  * Produces data that exercises all 4 categories across both FYI (annotated)
  * and Wire (folder stream) tiers. Item timestamps are anchored to the
  * module-load time (BASE_TIMESTAMP below) so every published / annotation
  * timestamp falls in the recent past relative to "now" — required for the
- * MCP `gst_radar_brief_today` prompt's recency-window filter (default 24
- * hours of `lastSeededAt`). E2E tests are date-agnostic (radar-page.test.ts
- * checks for any month name, not a specific date), so anchoring to "now"
- * doesn't affect their reproducibility.
+ * MCP `gst_radar_brief_today` prompt's recency framing. `npm run radar:seed`
+ * is a fresh process each time, so each seeding gets a current baseline.
  *
  * Relative ordering is preserved: items are 1 hour apart, descending from
- * BASE_TIMESTAMP. The integration test `tests/integration/radar-data-flow.
- * test.ts` has its own local `makeItem` factory and is unaffected by
- * changes here.
- *
- * Factory patterns based on tests/integration/radar-data-flow.test.ts.
+ * BASE_TIMESTAMP.
  */
 
-import type { InoreaderItem, InoreaderStreamResponse } from '../../../src/lib/inoreader/types';
-
-// Module-level "now" baseline. Computed once per module load — playwright
-// global-setup loads the module fresh for each E2E run, and `npm run
-// radar:seed` is a fresh process each time, so each invocation gets a
-// current baseline. All published/annotation timestamps below derive from
-// this constant so they always fall within the recent past.
+// Module-level "now" baseline. Computed once per module load; all
+// published/annotation timestamps below derive from this constant so they
+// always fall within the recent past.
 const BASE_TIMESTAMP = Math.floor(Date.now() / 1000);
 
 // ---------------------------------------------------------------------------
 // Category → folder mapping (mirrors src/lib/inoreader/transform.ts)
 // ---------------------------------------------------------------------------
 
-const FOLDER_MAP: Record<string, string> = {
+const FOLDER_MAP = {
   'pe-ma': 'GST-PE-MA',
   'enterprise-tech': 'GST-Enterprise-Tech',
   'ai-automation': 'GST-AI-Automation',
@@ -45,7 +42,7 @@ const FOLDER_MAP: Record<string, string> = {
 
 let counter = 0;
 
-function makeItem(overrides: Partial<InoreaderItem> & { folder?: string } = {}): InoreaderItem {
+function makeItem(overrides = {}) {
   const id = overrides.id ?? `mock-item-${++counter}`;
   const folder = overrides.folder;
   const categories = overrides.categories ?? (folder ? [`user/1234/label/${folder}`] : []);
@@ -74,8 +71,8 @@ function makeItem(overrides: Partial<InoreaderItem> & { folder?: string } = {}):
 // ---------------------------------------------------------------------------
 
 /** Creates a mock response for fetchAnnotatedItems(30). */
-export function createMockAnnotatedResponse(): InoreaderStreamResponse {
-  const items: InoreaderItem[] = [
+export function createMockAnnotatedResponse() {
+  const items = [
     // --- Highlight + Comment (both sections render) ---
     makeItem({
       id: 'fyi-pe-ma-1',
@@ -206,8 +203,8 @@ export function createMockAnnotatedResponse(): InoreaderStreamResponse {
  * Creates a mock merged response for fetchAllStreams('GST-', 15).
  * This is the deduplicated, sorted result — matching what fetchAllStreams returns.
  */
-export function createMockAllStreamsResponse(): InoreaderStreamResponse {
-  const items: InoreaderItem[] = [
+export function createMockAllStreamsResponse() {
+  const items = [
     // PE & M&A items
     makeItem({
       id: 'wire-pe-1',

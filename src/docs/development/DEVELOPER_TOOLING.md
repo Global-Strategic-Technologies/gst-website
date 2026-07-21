@@ -16,6 +16,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Run tests with coverage                | `npm run test:coverage`                                                      |
 | Check documentation links & anchors    | `npm run test:docs`                                                          |
 | Arm the Claude review gates (once/machine) | `npm run setup:claude-hooks` (see § Claude Code review gates)            |
+| Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
 | Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
 | Type-check the whole project           | `npx astro check`                                                            |

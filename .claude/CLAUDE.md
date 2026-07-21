@@ -198,6 +198,7 @@ npm run test:docs              # Docs link & anchor integrity guard (required CI
 npm run test:e2e               # Playwright E2E (only when told — see Directive 5)
 npm run lint / lint:css        # ESLint / stylelint
 npm run setup:claude-hooks     # One-time per machine: arm the review-gate hooks
+npm run radar:seed / unseed    # Populate/clear the local stdio MCP radar snapshot (mock data, no API calls)
 ```
 
 ## 📚 Critical Documentation
