@@ -167,7 +167,7 @@ Each prompt module under [`src/prompts/`](src/prompts/) exports a uniform shape 
 
 ### Snapshot semantics (Radar only)
 
-The local server reads exclusively from `<repo>/.cache/inoreader/`, populated by `npm run radar:seed` from the repo root. **No live Inoreader API calls are made** — the shared 200 req/day budget is protected. The ESLint `no-restricted-imports` rule on `mcp-server/src/**` enforces this structurally: importing the live client (`src/lib/inoreader/client`) fails lint.
+The local server reads exclusively from `<repo>/.cache/inoreader/`, populated by `npm run radar:seed` from the repo root (deterministic mock fixtures; clear with `npm run radar:unseed`). **No live Inoreader API calls are made** — the shared 200 req/day budget is protected. The ESLint `no-restricted-imports` rule on `mcp-server/src/**` enforces this structurally: importing the live client (`src/lib/inoreader/client`) fails lint.
 
 If the snapshot is missing, Radar Resources return a structured error with the message: `Radar snapshot not found. Run `npm run radar:seed` from the gst-website repo root to populate the local cache.` Tools return the same error shape with `isError: true`.
 

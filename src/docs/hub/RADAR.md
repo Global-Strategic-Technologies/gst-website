@@ -160,56 +160,26 @@ Inoreader OAuth state is now owned end-to-end by the MCP Worker (BL-032.8 Phase 
 
 The legacy `gst-radar-tokens` Upstash database (which held `inoreader:*` keys when the website was the refresh-writer) was decommissioned in the same Phase B operator batch. See DEPLOY.md § C.13 for the cleanup walkthrough.
 
-## Dev-Mode API Cache
+## Inoreader Budget (shared 200 req/day)
 
-### Why It Exists
+Post-BL-032.8 Phase B the website makes **no direct Inoreader calls** — the MCP Worker is the single caller (hourly cron refresh + cache-amortized live radar tools), and the website's `/hub/radar` reads the Worker's `/radar/snapshot` endpoint at SSR time. The authoritative budget model (per-key caps, 6h Upstash cache, circuit breaker, spend accounting) lives in [ARCHITECTURE.md § Rate limiting & Inoreader budget](../../../mcp-server/src/docs/ARCHITECTURE.md#rate-limiting--inoreader-budget) — this doc deliberately does not duplicate the numbers.
 
-Inoreader enforces a **200 requests/day** rate limit (100/zone x 2 zones). Each Radar page load makes ~7 API calls (1 annotated items + 1 tag list + ~5 folder streams). During local development, hot reloads and page refreshes can exhaust this budget in under 15 page loads, resulting in **429 Too Many Requests** errors and a blank Radar feed.
-
-Production is unaffected (ISR revalidates every 6 hours = ~28 calls/day), but the dev and production environments share the same API credentials and rate limit bucket.
-
-### Budget envelope (post-BL-032 Phase 4c)
-
-The 200 req/day Inoreader budget is now shared across three production surfaces:
-
-| Surface                                                            | Per-day consumption (typical)                | Notes                                                                                                                                                                                     |
-| ------------------------------------------------------------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Website ISR** (`/hub/radar`)                                     | ~28 calls (4 ISR revalidations × 7 calls)    | Vercel-hosted. Cache TTL 6h.                                                                                                                                                              |
-| **MCP Worker — `search_radar` + `get_latest_insights` (Phase 4c)** | ≤50 per team-member-key, capped at the cliff | Per-key 5/min and 50/day rate limit. 6h Upstash cache (`mcp:radar:cache:*`) amortizes — repeat calls within the window cost 0 Inoreader requests. Circuit breaker opens on Inoreader 429. |
-| **BL-032.5 Cron snapshot refresh** (planned)                       | ~24 calls (4 categories × hourly)            | Worker Cron Trigger. Lands when [the MCP cron substrate](../../../mcp-server/src/docs/ARCHITECTURE.md#cron-substrate) ships Resources-over-HTTP.                                          |
-
-**Combined ceiling at typical usage**: 28 + (3 active analysts × ~10 cache-aware calls each) + 24 ≈ 80/day, well under 200. **Combined ceiling at agent-loop pathological usage**: 28 + (10 keys × 50/day cap) + 24 = 552/day → would tip the budget. The per-key caps + 6h cache + circuit breaker are what keep this bounded; if usage ever pushes the envelope, escalate to Inoreader's paid tier.
-
-### How It Works
-
-When `import.meta.env.DEV` is true (local dev server only), the API client in `src/lib/inoreader/client.ts` checks a file cache before making real API calls:
-
-1. Before each API call, the client checks `.cache/inoreader/` for a cached response
-2. Cache files are keyed by function name + parameters (SHA-256 hash)
-3. If a valid cache file exists (< 24 hours old), it is returned immediately — no API call made
-4. If no cache exists or it has expired, the real API call proceeds and the response is stored
-
-Cache logic lives in `src/lib/inoreader/cache.ts`.
-
-### Cache Location & Cleanup
-
-- **Directory**: `.cache/inoreader/` (project root, gitignored)
-- **TTL**: 24 hours (hardcoded)
-- **Manual clear**: Delete the `.cache/` directory to force fresh API calls on next page load
-- **Production**: Cache is completely bypassed — `import.meta.env.DEV` is `false` in Vercel builds
-
-### Console Output
-
-During dev, the cache logs its behavior to the terminal:
-
-```
-[Radar] Dev cache hit: fetchAnnotatedItems        # using cached response
-[Radar] Dev cache stored: fetchAllStreams          # fresh response saved
-```
+Local development consumes **zero** Inoreader budget on either path: the website dev server reads the staging Worker's already-warmed snapshot, and the local stdio MCP server reads the seeded mock snapshot — both described in § Working Offline below. (The pre-Phase-B website-side dev cache — `src/lib/inoreader/client.ts` + `cache.ts` with a 24h-TTL file cache — was deleted in `606f4848`; its `.cache/inoreader/` directory is now used exclusively by the stdio MCP snapshot.)
 
 ## Working Offline / Rate-Limited Development
 
-The website no longer holds an Inoreader cache (post-BL-032.8 Phase B). For offline radar development, point Vercel preview deploys / `npm run dev` at the staging MCP Worker by setting `MCP_RADAR_SNAPSHOT_URL=https://mcp-staging.globalstrategic.tech/radar/snapshot` in your local `.env`. The Worker keeps the snapshot warm via its own cron-driven cache (`mcp:radar:cache:wire` / `:fyi` in the MCP Upstash DB, 6h TTL); offline-tool fixtures live in `mcp-server/tests/fixtures/radar-mock-data.ts` and the corresponding `search_radar_offline` MCP tool covers the no-network case.
+**Website path**: the website no longer holds an Inoreader cache (post-BL-032.8 Phase B). For offline radar development, point Vercel preview deploys / `npm run dev` at the staging MCP Worker by setting `MCP_RADAR_SNAPSHOT_URL=https://mcp-staging.globalstrategic.tech/radar/snapshot` in your local `.env`. The Worker keeps the snapshot warm via its own cron-driven cache (`mcp:radar:cache:wire` / `:fyi` in the MCP Upstash DB, 6h TTL).
+
+**Local stdio MCP server path** (the `search_radar_offline` tool, `gst://radar/*` Resources over stdio, and the `gst_radar_brief_today` prompt's embed): these read a local snapshot at `<repo>/.cache/inoreader/` — populated and cleared from the repo root with:
+
+```bash
+npm run radar:seed      # write the offline snapshot (7 FYI + 13 Wire mock items, all 4 categories)
+npm run radar:unseed    # remove it (surfaces return the structured "snapshot missing" message)
+```
+
+The seeded data is **deterministic mock fixture content** (`mcp-server/tests/fixtures/radar-mock-data.mjs` — the same single source of truth the unit suite asserts against); **no live Inoreader API calls are ever made**, so the shared 200 req/day budget is untouched. Item timestamps anchor to seed time, and the reader reports the snapshot file's mtime as `lastSeededAt` — re-run `radar:seed` to refresh. The seeder↔reader format contract is enforced by `mcp-server/tests/integration/radar-seed-roundtrip.test.ts`.
+
+**Full new-developer journey** (install → build → register in Claude Desktop → seed → invoke): follow [`mcp-server/README.md`](../../../mcp-server/README.md) for install/build and client registration, then run `npm run radar:seed` and invoke `search_radar_offline` (or `/gst_radar_brief_today`) from your MCP client. Snapshot semantics detail: [`mcp-server/README.md` § Snapshot semantics](../../../mcp-server/README.md#snapshot-semantics-radar-only).
 
 ## E2E Test Mocking
 
