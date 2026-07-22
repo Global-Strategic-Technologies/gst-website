@@ -120,14 +120,14 @@ Claude Code's permission matcher evaluates compound commands **per-subcommand** 
 **Rules:**
 
 - **Compound commands are fine** when every part is an allowlisted family or read-only — use them where they read naturally (e.g. `git add X && git commit -F msg.txt` for atomic sequences).
-- **A permission prompt now signals a genuinely novel command family.** Prefer proposing a durable family rule (`Bash(<tool> *)`) for the user to add over accumulating one-shot exact approvals — exact strings never match again and bloat the settings file (a 2026-07-22 cleanup removed ~250 dead one-shot entries).
-- **Quoted multiline content fragments matching** — newlines are subcommand separators even inside quotes, so an inline multiline `-m "…"` commit message will prompt. Use `git commit -F <file>` with the message written via the Write tool.
+- **A permission prompt now signals a genuinely novel command family.** Prefer proposing a durable family rule (`Bash(<tool> *)`) for the user to add over accumulating one-shot exact approvals — exact strings with embedded paths/SHAs/messages rarely recur and bloat the settings file (a 2026-07-22 cleanup removed ~250 dead one-shot entries).
+- **Quoted multiline content fragments matching** (observed behavior, 2026-07 investigation) — newlines act as subcommand separators, so an inline multiline `-m "…"` commit message will prompt. Use `git commit -F <file>` with the message written via the Write tool.
 - **Env-var prefixes on non-safe variables aren't stripped**: `FOO=bar cmd` prompts even when `cmd` is allowed. Set env inside scripts, or use an env-override the script reads.
 - **Never inline raw secrets in any shell command** (yours or ones you ask the user to run) — use env-var references so tokens stay out of scrollback, history, and transcripts. `wrangler secret put` reads from stdin.
 - **Prefer dedicated tools over shell pipelines.** `Grep` for content search, `Glob` for file patterns, `Read` for file contents — these bypass the shell entirely and are always allowed.
 - **Never attempt to work around a deny rule** — a denied shape is an operator decision, not an obstacle.
 
-> History: this directive previously mandated one-command-per-Bash-call on the premise that the matcher evaluated the entire command string as one unit. That premise was retired 2026-07-22 — current Claude Code matches per-subcommand (see docs § Permission rules), and the allowlist was rebuilt from dead exact strings to family rules, so natural compound commands no longer thrash the approval loop.
+> History: this directive previously mandated one-command-per-Bash-call on the premise that the matcher evaluated the entire command string as one unit. That premise was retired 2026-07-22 — current Claude Code matches per-subcommand (<https://code.claude.com/docs/en/permissions.md>), and the allowlist was rebuilt from dead exact strings to family rules, so natural compound commands no longer thrash the approval loop.
 
 ---
 
