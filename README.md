@@ -31,12 +31,13 @@ gst-website/
 │   │   ├── common/             # Shared taxonomies (funding stages, stage adapters)
 │   │   ├── diligence-machine/  # Questions, attention areas, wizard config
 │   │   ├── infrastructure-cost-governance/
-│   │   └── techpar/            # Industry notes, recommendations, stages
+│   │   ├── techpar/            # Industry notes, recommendations, stages
+│   │   └── irl/ library/ …     # IRL request definitions, library article digests
 │   ├── docs/                   # Project documentation (see below)
 │   ├── layouts/                # BaseLayout.astro (header, footer, palette panel)
 │   ├── middleware.ts           # SSR security headers (CSP, HSTS, etc.)
 │   ├── pages/                  # Routes (auto-routed): index, brand, services, about,
-│   │                           #   ma-portfolio, privacy, terms + hub/{tools,radar,library}
+│   │                           #   ma-portfolio, hub/{tools,radar,library}, …
 │   ├── schemas/                # Zod input schemas (shared with the MCP tools)
 │   ├── scripts/                # Client-side modules (palette-manager)
 │   ├── styles/                 # Global CSS (variables, palettes, typography, interactions)

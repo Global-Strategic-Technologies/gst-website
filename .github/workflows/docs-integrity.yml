@@ -12,9 +12,8 @@ name: Docs link integrity
 # could break) plus pushes to master. Default `pull_request` types include
 # `synchronize`, so every push to a PR re-runs it (no push-branch-list gap).
 #
-# To make this blocking, add "Verify doc links" to the branch-protection
-# required-status-checks list (repo Settings → Rules). It is not required by
-# default.
+# "Verify doc links" IS a required status check on the master ruleset
+# (added by the operator 2026-07-19) — a broken doc link/anchor blocks merge.
 
 permissions:
   contents: read
