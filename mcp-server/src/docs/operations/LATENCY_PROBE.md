@@ -26,6 +26,8 @@ One stateless JSON-RPC POST per call (`tools/call` — the proven `Invoke-McpReq
 
 `search_radar` is informative-only (the SLA scopes to non-radar tools) and capped at 2 samples/run — 8/day at the CI cadence, under the radar tier's 50/day budget. 429 (rate-limited) and 503 (circuit-open) responses are recorded as classified outcomes and **excluded from percentiles** — a throttled response is not a latency sample.
 
+> Probe-set note: the Slice 1 plan originally named `generate_diligence_agenda` as the fourth SLA surface; the implementation substituted `search_regulations` because the diligence tool requires a structured `_audit` provenance block a probe would have to fabricate, while regulations search is a clean stateless engine read with the same representativeness.
+
 Output: a markdown summary table (stdout → CI job summary) + full JSON via `--out` (CI uploads it as a 90-day artifact named `latency-probe-<run id>`).
 
 ## Running it yourself (any region)
@@ -45,7 +47,7 @@ node mcp-server/scripts/probe-latency.mjs --region-label gru --samples 10 --out 
 
 ## Budget math (change the cadence consciously)
 
-At the default cadence (4 runs/day × ~32 authenticated tool calls): ~130 general-tier calls/day (13% of the 1000/day per-key cap; 42/min burst is under the 60/min cap), ~8 radar calls/day (16% of 50/day), and roughly 600 Upstash rate-limiter commands/day against the shared 10k/day free-tier ceiling — the probe is effectively one more light operator. Full tier reference: [`RATE_LIMITS.md`](./RATE_LIMITS.md).
+At the default cadence (4 runs/day × ~32 authenticated tool calls): ~130 general-tier calls/day (13% of the 1000/day per-key cap; 42/min burst is under the 60/min cap), ~8 radar calls/day (16% of 50/day), and roughly 600 Upstash rate-limiter commands/day against the shared 10k/day free-tier ceiling — the probe is effectively one more light operator. A max manual dispatch (`--samples 30` → ~92 sequential authenticated calls) can brush the 60/min sliding window on a fast connection; expect some `rate-limited` outcomes in that shape — they're shed from percentiles by design, not a defect. Full tier reference: [`RATE_LIMITS.md`](./RATE_LIMITS.md).
 
 ## Operational notes
 

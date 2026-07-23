@@ -1,6 +1,6 @@
 # Runbook — `traffic-spike-detected`
 
-lastReviewedAt: 2026-07-14
+lastReviewedAt: 2026-07-23
 
 **Trigger**: any bearer key's `tool_invocation` count in the last hour exceeds 10× its trailing-7-day hourly mean AND the absolute floor of 30 calls/hour. Threshold provenance: design-doc traffic rule + the min-count floor added because the 2026-07-14 baseline measured ZERO client traffic (`observability/slo-baselines.md` § Window findings — without the floor, the first genuine user would page as a 0→N spike). Severity: ticket.
 

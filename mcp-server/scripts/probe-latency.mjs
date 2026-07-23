@@ -26,10 +26,10 @@
  *   --out <file>        write full JSON results to this path
  *
  * Budget notes (see src/docs/operations/LATENCY_PROBE.md for the math):
- * a default run issues ~32 authenticated tool calls + 2 radar calls +
- * N unauthenticated /health GETs. Radar samples are informative-only
- * (sla:false) and capped at 2/run to respect the 5/min + 50/day radar
- * tier. 429/503 responses are recorded as classified outcomes and
+ * a default run issues ~32 authenticated tool calls (30 SLA-tool + 2
+ * radar) plus N unauthenticated /health GETs. Radar samples are
+ * informative-only (sla:false) and capped at 2/run to respect the
+ * 5/min + 50/day radar tier. 429/503 responses are recorded as classified outcomes and
  * EXCLUDED from latency percentiles (a rate-limited or circuit-open
  * response is not a latency sample).
  *
@@ -172,8 +172,10 @@ export async function readFirstSseEvent(body) {
       const { done, value } = await reader.read();
       if (done) return buffer;
       buffer += decoder.decode(value, { stream: true });
-      const dataStart = buffer.indexOf('data:');
-      if (dataStart !== -1 && buffer.indexOf('\n', dataStart) !== -1) return buffer;
+      // Line-anchored: `data:` must start a line (SSE field syntax) — a
+      // payload merely containing the substring must not end the read early.
+      const m = /(?:^|\n)data:[^\n]*\n/.exec(buffer);
+      if (m) return buffer;
     }
   } finally {
     await reader.cancel().catch(() => {});

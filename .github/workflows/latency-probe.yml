@@ -45,14 +45,20 @@ jobs:
           node-version: '22'
 
       # No npm ci — the probe script is dependency-free plain Node.
+      # shell: bash is load-bearing: explicitly-specified bash runs with
+      # `-eo pipefail`, so the probe's exit-nonzero-on-total-failure signal
+      # (e.g. a rotated MCP_PROBE_KEY → every sample 401) survives the tee.
+      # The default run shell omits pipefail and would report tee's 0.
       - name: Run latency probe
+        shell: bash
         env:
           MCP_URL: https://mcp.globalstrategic.tech
           MCP_KEY: ${{ secrets.MCP_PROBE_KEY }}
+          SAMPLES: ${{ github.event.inputs.samples || '10' }}
         run: |
           node mcp-server/scripts/probe-latency.mjs \
             --region-label github-us \
-            --samples "${{ github.event.inputs.samples || '10' }}" \
+            --samples "$SAMPLES" \
             --out probe-results.json | tee probe-output.txt
 
       - name: Publish job summary
@@ -64,7 +70,7 @@ jobs:
 
       - name: Upload results artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: latency-probe-${{ github.run_id }}
           path: probe-results.json
