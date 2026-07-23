@@ -79,6 +79,27 @@ describe('readFirstSseEvent', () => {
     });
     await expect(readFirstSseEvent(stream)).resolves.toBe('not sse');
   });
+
+  it('a mid-payload "data:" substring does not end the read early (line-anchored match)', async () => {
+    // e.g. a tool result containing `"metadata:"` or a JSON string with
+    // "data:" inside it — the reader must wait for a real SSE data LINE.
+    const enc = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(enc.encode('event: message\n: comment mentioning metadata: stuff\n'));
+        controller.enqueue(
+          enc.encode('data: {"jsonrpc":"2.0","id":1,"result":{"note":"has data: inside"}}\n')
+        );
+        // Never closed — resolve must come from the real data line.
+      },
+    });
+    const text = await readFirstSseEvent(stream);
+    expect(parseSseEnvelope(text)).toEqual({
+      jsonrpc: '2.0',
+      id: 1,
+      result: { note: 'has data: inside' },
+    });
+  });
 });
 
 describe('classifyOutcome', () => {
