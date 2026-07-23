@@ -113,20 +113,21 @@ This document provides Claude with essential context about the GST Website proje
 - **Do not add or edit hooks, lint configs, or CI jobs without updating [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md)** — the doc is the single source of truth for new contributors and future sessions
 - **Do not use `git commit --no-verify`** unless you are explicitly told the change is an emergency and the user has agreed to the follow-up. CI will still enforce what the hook would have caught, so `--no-verify` only defers the problem
 
-### 15. One Command Per Bash Call (Avoid Permission-Prompt Thrash)
+### 15. Shell Commands, Permissions & Secrets
 
-Claude Code's permission matcher evaluates the ENTIRE command string against the `allow` list in [`.claude/settings.local.json`](.claude/settings.local.json) (the same gitignored file that carries the review-gate hook registration installed by `npm run setup:claude-hooks`). A compound command like `cd X && npm run Y | tee Z` is ONE string that matches no wildcard, even when every individual command (`cd`, `npm run`, `tee`) is pre-approved. The result: a permission prompt for work the user already authorized.
+Claude Code's permission matcher evaluates compound commands **per-subcommand** (separators: `&&`, `||`, `;`, `|`, `&`, and newlines): a chained command runs without prompting when every subcommand matches an allow rule or is built-in read-only (`ls`, `cat`, `cd`, `grep`, read-only `git`, …). The curated allowlist lives in the gitignored [`.claude/settings.local.json`](.claude/settings.local.json) (the same file carrying the review-gate hook registration) as **broad family prefix rules** — `Bash(git *)`, `Bash(npm *)`, PowerShell mirrors, plus a small deny set (sudo, catastrophic `rm -rf` shapes, `git push --force`) that always overrides allows.
 
 **Rules:**
 
-- **Never chain with `&&`, `||`, or `;`** across Bash tool calls. Use one call per command and let prior calls complete naturally.
-- **Pipes are permitted only when the entire pipeline fits a single allow-list pattern.** `git log --oneline | head -20` works because `Bash(git *)` covers it and `head` is pre-approved too; but in practice most pipes mix tool families (e.g. `npm run X | tee /tmp/Y`) and trip the matcher. When in doubt, write to a file via the Write tool or split into two Bash calls.
-- **Prefer dedicated tools over shell pipelines.** `Grep` for content search, `Glob` for file patterns, `Read` for file contents — these bypass the shell entirely and are always allowed.
-- **Redirections and env-prefixes count.** `cmd > /tmp/out.txt`, `FOO=bar cmd`, `cmd 2>&1 | tail -5` are all compound strings to the matcher. Sidestep by writing the output via the Write tool, or by running the base command and parsing the result in the next call.
+- **Compound commands are fine** when every part is an allowlisted family or read-only — use them where they read naturally (e.g. `git add X && git commit -F msg.txt` for atomic sequences).
+- **A permission prompt now signals a genuinely novel command family.** Prefer proposing a durable family rule (`Bash(<tool> *)`) for the user to add over accumulating one-shot exact approvals — exact strings with embedded paths/SHAs/messages rarely recur and bloat the settings file (a 2026-07-22 cleanup removed ~250 dead one-shot entries).
+- **Quoted multiline content fragments matching** (observed behavior, 2026-07 investigation) — newlines act as subcommand separators, so an inline multiline `-m "…"` commit message will prompt. Use `git commit -F <file>` with the message written via the Write tool.
+- **Env-var prefixes on non-safe variables aren't stripped**: `FOO=bar cmd` prompts even when `cmd` is allowed. Set env inside scripts, or use an env-override the script reads.
 - **Never inline raw secrets in any shell command** (yours or ones you ask the user to run) — use env-var references so tokens stay out of scrollback, history, and transcripts. `wrangler secret put` reads from stdin.
-- **Exception — genuine sequential coupling.** If two commands MUST be atomic (e.g. `git add X && git commit -m …` where the user explicitly authorized one combined action), keep them together. The cost of one prompt is lower than the cost of a half-applied state.
+- **Prefer dedicated tools over shell pipelines.** `Grep` for content search, `Glob` for file patterns, `Read` for file contents — these bypass the shell entirely and are always allowed.
+- **Never attempt to work around a deny rule** — a denied shape is an operator decision, not an obstacle.
 
-This rule exists to reduce user prompt fatigue. A single compound command that thrashes the approval loop is worse than three clean calls that just work.
+> History: this directive previously mandated one-command-per-Bash-call on the premise that the matcher evaluated the entire command string as one unit. That premise was retired 2026-07-22 — current Claude Code matches per-subcommand (<https://code.claude.com/docs/en/permissions.md>), and the allowlist was rebuilt from dead exact strings to family rules, so natural compound commands no longer thrash the approval loop.
 
 ---
 
