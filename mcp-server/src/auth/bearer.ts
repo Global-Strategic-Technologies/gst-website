@@ -22,6 +22,7 @@
  */
 
 import { DEFAULT_SCOPES } from './scopes';
+import { timingSafeEqual } from './timing-safe-equal';
 
 const BEARER_PREFIX = 'Bearer ';
 const KEY_NAME_PREFIX = 'MCP_KEY_';
@@ -56,11 +57,7 @@ export interface AuthSuccess {
  *   JSON. Sentry captures these.
  */
 export type AuthFailureReason =
-  | 'missing-header'
-  | 'empty-token'
-  | 'bad-scheme'
-  | 'invalid-token'
-  | 'malformed-scopes';
+  'missing-header' | 'empty-token' | 'bad-scheme' | 'invalid-token' | 'malformed-scopes';
 
 /** Failed auth — Worker should respond with the carried 401 envelope. */
 export interface AuthFailure {
@@ -123,7 +120,10 @@ export function authenticate(request: Request, env: Record<string, unknown>): Au
     // caller authenticate by sending the JSON-encoded scope array as a
     // bearer token, which is wrong (and a leaky-ish information disclosure).
     if (name.endsWith(SCOPES_SUFFIX)) continue;
-    if (value === token) {
+    // Constant-time comparison — closes the BL-033 hardening AC carried
+    // from the BL-032 soak (T.I.5: plain `===` short-circuits at the
+    // first differing character, a timing oracle over the token value).
+    if (timingSafeEqual(value, token)) {
       const owner = name.slice(KEY_NAME_PREFIX.length);
       const result = resolveKeyScopes(env, name);
       if (!result.ok) {

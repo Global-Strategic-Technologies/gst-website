@@ -15,24 +15,10 @@
  * sync / etc.) cannot replay it.
  */
 
+import { timingSafeEqual } from '../auth/timing-safe-equal';
+
 const COOKIE_NAME = 'mcp_reauth_session';
 const COOKIE_TTL_SECONDS = 300; // 5 min — must outlast Upstash state TTL
-
-/**
- * Timing-safe string equality. Web-Crypto-aware: prefers
- * `crypto.subtle.timingSafeEqual` when available (Workers runtime),
- * falls back to a manual constant-time XOR loop. Lengths are compared
- * BEFORE the loop because a length mismatch is itself a timing leak
- * the loop can't paper over.
- */
-export function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return mismatch === 0;
-}
 
 /**
  * Validate a bearer / form-submitted admin key against `env.MCP_ADMIN_KEY`.
