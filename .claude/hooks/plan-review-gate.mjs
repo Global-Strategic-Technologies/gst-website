@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Claude Code PreToolUse hook — ExitPlanMode gate (Design Review Gate).
  *

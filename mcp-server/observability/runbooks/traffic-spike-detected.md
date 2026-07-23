@@ -1,8 +1,10 @@
 # Runbook — `traffic-spike-detected`
 
-lastReviewedAt: 2026-07-14
+lastReviewedAt: 2026-07-23
 
 **Trigger**: any bearer key's `tool_invocation` count in the last hour exceeds 10× its trailing-7-day hourly mean AND the absolute floor of 30 calls/hour. Threshold provenance: design-doc traffic rule + the min-count floor added because the 2026-07-14 baseline measured ZERO client traffic (`observability/slo-baselines.md` § Window findings — without the floor, the first genuine user would page as a 0→N spike). Severity: ticket.
+
+**Exemption**: keyOwners in `SYNTHETIC_KEY_OWNERS` (`src/observability/alert-rules.ts`) are skipped — currently only `PROBE`, the BL-033 scheduled latency probe (`scripts/probe-latency.mjs`, ~32 tool calls per run, deliberately above the 30/h floor). Synthetic traffic is volume-bounded by design and guarded by the per-key rate limiter; it must never page. If a spike report names `PROBE` anyway, the exclusion has regressed — fix `alert-rules.ts`, don't tune thresholds. Widen the set only for future synthetic keys, never for real team/client keys.
 
 **Data source**: two AE SQL queries (per-`index1` counts, 1h vs 7d) via the Worker's `CF_AE_TOKEN`/`CF_ACCOUNT_ID` secrets, compared in code (AE SQL has no joins). Fails open when secrets are unbound.
 

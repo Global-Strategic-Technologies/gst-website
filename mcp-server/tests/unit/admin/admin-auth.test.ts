@@ -11,9 +11,9 @@ import {
   buildSessionCookie,
   mintNonce,
   readSessionCookie,
-  timingSafeEqual,
   validateAdminKey,
 } from '../../../src/admin/admin-auth';
+import { timingSafeEqual } from '../../../src/auth/timing-safe-equal';
 
 describe('timingSafeEqual', () => {
   it('returns true for identical strings', () => {
