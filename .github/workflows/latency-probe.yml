@@ -1,0 +1,72 @@
+# BL-033 — scheduled synthetic latency probe against the production MCP Worker.
+#
+# Measures CLIENT-OBSERVED p50/p95 per surface (network RTT included) — the
+# evidence stream behind the pilot SLA's p95 target. Runs 30 minutes after
+# the Worker's 6-hourly radar-refresh cron so radar samples hit a warm cache
+# (honest steady-state numbers, no Inoreader budget burn).
+#
+# REGION CAVEAT (load-bearing): GitHub-hosted runners are US-region. This
+# workflow yields continuous US-client evidence and catches regressions; it
+# does NOT reproduce per-pilot-region latency (e.g. the GRU ~930ms finding).
+# For that, run the same script from a machine in the target region — see
+# mcp-server/src/docs/operations/LATENCY_PROBE.md.
+#
+# Deliberately NOT a required status check — the probe is evidence
+# collection, not a gate. Secrets: MCP_PROBE_KEY (the MCP_KEY_PROBE bearer
+# value; keyOwner PROBE is exempted from the traffic-spike alert rule).
+name: MCP Latency Probe
+
+on:
+  schedule:
+    - cron: '30 */6 * * *' # 30 min after the radar-refresh cron (0 */6)
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: 'Timed calls per surface (1-30)'
+        required: false
+        default: '10'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: latency-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      # No npm ci — the probe script is dependency-free plain Node.
+      - name: Run latency probe
+        env:
+          MCP_URL: https://mcp.globalstrategic.tech
+          MCP_KEY: ${{ secrets.MCP_PROBE_KEY }}
+        run: |
+          node mcp-server/scripts/probe-latency.mjs \
+            --region-label github-us \
+            --samples "${{ github.event.inputs.samples || '10' }}" \
+            --out probe-results.json | tee probe-output.txt
+
+      - name: Publish job summary
+        if: always()
+        run: |
+          # The script prints a markdown table between blank lines; the whole
+          # output is small, so publish it verbatim.
+          cat probe-output.txt >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: latency-probe-${{ github.run_id }}
+          path: probe-results.json
+          if-no-files-found: warn
+          retention-days: 90

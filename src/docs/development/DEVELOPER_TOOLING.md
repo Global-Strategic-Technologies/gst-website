@@ -262,6 +262,7 @@ concurrency:
 | [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
 | [.github/workflows/prettier-drift-check.yml](../../../.github/workflows/prettier-drift-check.yml) | Weekly cron + manual `workflow_dispatch` — runs `prettier --check .` repo-wide; opens a `tech-debt` Issue if drift accumulates (counter-pressure for the diff-scoped PR check; see § Prettier idempotency + drift) |
 | [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` (the BL-089 doc link & anchor guard) on every PR + push to `master`. Exists as its own workflow because `test.yml`'s `changes` gate skips docs-only diffs — the exact case the guard must fire on. Not a required check by default; add "Verify doc links" to branch protection to make it blocking |
+| [.github/workflows/latency-probe.yml](../../../.github/workflows/latency-probe.yml) | BL-033 synthetic latency probe — cron (`30 */6 * * *`, 30 min after the Worker's radar-refresh cron) + manual `workflow_dispatch`; runs `mcp-server/scripts/probe-latency.mjs` against production, publishes a p50/p95 job summary + 90-day JSON artifact. Needs the `MCP_PROBE_KEY` secret. Deliberately NOT a required check — evidence collection, not a gate. See [LATENCY_PROBE.md](../../../mcp-server/src/docs/operations/LATENCY_PROBE.md) |
 | [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
 | [.claude/hooks/hooks.config.json](../../../.claude/hooks/hooks.config.json)       | Tracked registration source for the Claude review-gate hooks (installed per-machine via `npm run setup:claude-hooks`; see § Claude Code review gates) |
 | [.claude/hooks/](../../../.claude/hooks/)                                         | Gate scripts (`plan-review-gate.mjs`, `push-review-gate.mjs`) + installer (`install.mjs`) — unit-tested in `tests/unit/claude-hooks.test.ts` |
@@ -325,7 +326,7 @@ The [eslint.config.mjs](../../../eslint.config.mjs) uses the modern **flat confi
 - **`_`-prefixed names are allowed unused**: `const [_, value] = pair` and `function handler(_event, data)` are both fine. Matches standard Node/TS idiom.
 - **Test files get `no-explicit-any: 'off'`**: test fixtures legitimately use `any` for mocks and untyped request bodies.
 - **Browser globals are declared per-directory**: `window`, `document`, `navigator`, DOM types — all available in `src/**` and `tests/e2e/**` without import.
-- **Node globals are declared for scripts**: `process`, `console`, `fetch`, `Buffer` — available in `scripts/**`, `vitest.config.ts`, `playwright.config.ts`, `eslint.config.mjs`.
+- **Node globals are declared for scripts**: `process`, `console`, `fetch`, `Buffer`, `TextDecoder`, `AbortSignal`, … — available in `scripts/**` and any `**/*.{cjs,mjs}` (which covers `mcp-server/scripts/**`), plus `vitest.config.ts`, `playwright.config.ts`, `eslint.config.mjs`. Import-less web-standard globals a Node 22 script legitimately uses get added to this list (`eslint.config.mjs` § Per-file overrides) rather than suppressed inline.
 
 ### Ignored files
 

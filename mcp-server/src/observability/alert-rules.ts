@@ -62,6 +62,20 @@ export const ENVELOPE_MIN_ATTEMPTS = 10;
 export const TRAFFIC_SPIKE_MULTIPLIER = 10;
 export const TRAFFIC_SPIKE_MIN_COUNT = 30;
 
+/**
+ * keyOwners excluded from the traffic-spike rule (BL-033 latency probe).
+ *
+ * Synthetic traffic is scheduled and volume-bounded by design (the probe
+ * issues ~32 tool calls per run — above the 30/h floor, so WITHOUT this
+ * exclusion the rule would breach on every probe run and page for days
+ * until a trailing mean accumulates). It is not the anomalous-client
+ * behavior this rule detects, and runaway-probe protection already
+ * exists at the rate-limiter layer (per-key 60/min + 1000/day).
+ * Add future synthetic keys here deliberately — never widen to real
+ * team/client keyOwners.
+ */
+export const SYNTHETIC_KEY_OWNERS: ReadonlySet<string> = new Set(['PROBE']);
+
 /** Breach cooldowns — bound Sentry event volume on the free tier. */
 export const COOLDOWN_SECONDS: Record<AlertSeverity, number> = {
   page: 2 * 3600,
@@ -203,6 +217,7 @@ const trafficSpikeDetected: AlertRule = {
     let worst: { keyOwner: string; count: number; hourlyMean: number } | null = null;
     for (const row of current) {
       const keyOwner = String(row.key_owner);
+      if (SYNTHETIC_KEY_OWNERS.has(keyOwner)) continue;
       const count = num(row.n);
       const hourlyMean = (trailingByKey.get(keyOwner) ?? 0) / (7 * 24);
       const threshold = Math.max(TRAFFIC_SPIKE_MIN_COUNT, hourlyMean * TRAFFIC_SPIKE_MULTIPLIER);
