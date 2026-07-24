@@ -17,7 +17,13 @@
 name = "gst-mcp"
 main = "src/worker.ts"
 compatibility_date = "2026-05-01"
-compatibility_flags = ["nodejs_compat"]
+# global_fetch_strictly_public (BL-033 Slice 2): SSRF defense for CIMD —
+# the OAuth provider fetches arbitrary client-supplied metadata-document
+# URLs (client_id-as-URL), and this flag confines `fetch` to strictly
+# public hosts so a malicious client_id cannot probe internal addresses.
+# Our own outbound fetches (Upstash REST, Inoreader, Sentry) are all
+# public hosts — no functional impact.
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
 # Emit source maps alongside the bundled Worker so deploy.mjs can ship them
 # to Sentry via sentry-cli (Sentry → Cloudflare integration). Without this,
@@ -51,6 +57,23 @@ upload_source_maps = true
 [[analytics_engine_datasets]]
 binding = "METRICS"
 dataset = "mcp_events_dev"
+
+# ---------------------------------------------------------------------------
+# Workers KV — OAuth token/grant/client storage (BL-033 Slice 2)
+# ---------------------------------------------------------------------------
+# Substrate for @cloudflare/workers-oauth-provider: token/secret HASHES,
+# grants (props encrypted with the token as key material), pre-registered
+# client records, plus our own `mcp:oauth:m2m-client:*` records and
+# one-shot consent/jti nonces. Distinct from the Upstash MCP DB — the
+# library requires KV, and splitting auth state across two stores would
+# be worse than the single-substrate deviation (recorded at BL-033
+# AC:244 + ADR-0008).
+#
+# Top-level binding (staging namespace id) exists for `wrangler dev` runs;
+# local dev/miniflare simulates KV and never touches the remote namespace.
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "580b8f1f9067410b93d6f1faa3edfed0"
 
 # ---------------------------------------------------------------------------
 # Cloudflare Workers Observability — persistent logs + traces (BL-032.77)
@@ -145,6 +168,12 @@ ENV_NAME = "staging"
 binding = "METRICS"
 dataset = "mcp_events_staging"
 
+# OAuth KV — staging namespace (BL-033 Slice 2; created 2026-07-24 via
+# `wrangler kv namespace create OAUTH_KV --env staging`).
+[[env.staging.kv_namespaces]]
+binding = "OAUTH_KV"
+id = "580b8f1f9067410b93d6f1faa3edfed0"
+
 # Staging deliberately has NO cron trigger.
 #
 # Staging exists to validate code changes, not to keep caches warm.
@@ -192,6 +221,12 @@ ENV_NAME = "production"
 [[env.production.analytics_engine_datasets]]
 binding = "METRICS"
 dataset = "mcp_events"
+
+# OAuth KV — production namespace (BL-033 Slice 2; created 2026-07-24 via
+# `wrangler kv namespace create OAUTH_KV --env production`).
+[[env.production.kv_namespaces]]
+binding = "OAUTH_KV"
+id = "13c9e9f590244408ab7fe8cdf650766d"
 
 # Radar snapshot refresh — cadence calibrated to cache TTL.
 #
