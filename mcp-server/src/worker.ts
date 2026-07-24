@@ -49,6 +49,7 @@ import { acquire } from './lib/single-flight-lock';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { handleAuthenticated } from './pipeline/handle-authenticated';
 import { oauthProvider } from './oauth/provider';
+import { handleClientCredentialsToken, M2M_TOKEN_PREFIX, verifyM2mToken } from './oauth/m2m-token';
 
 /**
  * Worker environment bindings.
@@ -518,6 +519,16 @@ export const handler: ExportedHandler<Env> = {
     //      Responses re-wrap with OUR CORS policy: browser-based clients
     //      (claude.ai) must POST /token cross-origin.
     if (isOAuthSurfacePath(url.pathname)) {
+      // client_credentials intercept — the library's grant model has no
+      // such grant (verified v0.8.2); oauth/m2m-token.ts issues the
+      // self-contained `mcp_m2m_*` JWTs. Body is read from a clone so
+      // other grants reach the provider with the stream intact.
+      if (url.pathname === '/token' && request.method === 'POST') {
+        const probe = await request.clone().text();
+        if (new URLSearchParams(probe).get('grant_type') === 'client_credentials') {
+          return withCors(await handleClientCredentialsToken(request, env), origin);
+        }
+      }
       const resp = await oauthProvider.fetch(request, env as never, ctx);
       return withCors(resp, origin);
     }
@@ -581,12 +592,21 @@ export const handler: ExportedHandler<Env> = {
       return handleAuthenticated(request, env, ctx, auth);
     }
     if (auth.reason === 'invalid-token') {
-      const oauthResp = await oauthProvider.fetch(request, env as never, ctx);
-      // Anything but a 401 means the provider recognized the token and
-      // the api-handler already ran the full pipeline; a 401 falls
-      // through to OUR challenge shape below (legacy JSON body +
-      // RFC 9728 resource_metadata pointer).
-      if (oauthResp.status !== 401) return oauthResp;
+      // (2) M2M self-contained JWT — zero-I/O local HMAC verify; the
+      //     `mcp_m2m_` prefix is ours, so a failed verify falls straight
+      //     through to the 401 (never to the provider).
+      const rawBearer = (request.headers.get('Authorization') ?? '').slice('Bearer '.length).trim();
+      if (rawBearer.startsWith(M2M_TOKEN_PREFIX)) {
+        const m2mAuth = await verifyM2mToken(rawBearer, env, url.origin);
+        if (m2mAuth) return handleAuthenticated(request, env, ctx, m2mAuth);
+      } else {
+        const oauthResp = await oauthProvider.fetch(request, env as never, ctx);
+        // Anything but a 401 means the provider recognized the token and
+        // the api-handler already ran the full pipeline; a 401 falls
+        // through to OUR challenge shape below (legacy JSON body +
+        // RFC 9728 resource_metadata pointer).
+        if (oauthResp.status !== 401) return oauthResp;
+      }
     }
     {
       safeLog({

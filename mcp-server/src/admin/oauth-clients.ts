@@ -30,6 +30,13 @@
 import type { OAuthHelpers } from '@cloudflare/workers-oauth-provider';
 import { validateAdminKey } from './admin-auth';
 import { safeLog } from '../auth/safe-logger';
+import {
+  createM2mClient,
+  deleteM2mClient,
+  getM2mClient,
+  listM2mClients,
+  type M2mJwk,
+} from '../oauth/m2m-clients';
 import type { Env } from '../worker';
 
 type EnvWithHelpers = Env & { OAUTH_PROVIDER: OAuthHelpers };
@@ -124,6 +131,106 @@ export async function handleAdminOauthClients(
       await env.OAUTH_PROVIDER.deleteClient(clientId);
       safeLog({
         event: 'admin.oauth.client-deleted',
+        keyOwner: 'ADMIN',
+        reason: `client=${clientId}`,
+        success: true,
+      });
+      return json({ deleted: clientId });
+    }
+    return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'DELETE' } });
+  }
+
+  return json({ error: 'not-found', message: 'Unknown admin OAuth route' }, 404);
+}
+
+/**
+ * M2M client management — /admin/oauth/m2m-clients* (BL-033 Slice 2).
+ * Same admin gate; records live in our own OAUTH_KV namespace (see
+ * oauth/m2m-clients.ts). The clientSecret appears ONLY in the creation
+ * response; deleting a record blocks re-issuance (already-minted tokens
+ * carry ≤1h residual validity — introspection reports them inactive).
+ */
+export async function handleAdminM2mClients(request: Request, env: Env): Promise<Response> {
+  const denied = requireAdmin(request, env);
+  if (denied) return denied;
+  if (!env.OAUTH_KV) {
+    return json({ error: 'server-error', message: 'OAUTH_KV not bound' }, 503);
+  }
+
+  const url = new URL(request.url);
+  const rest = url.pathname.slice('/admin/oauth/m2m-clients'.length);
+
+  if (rest === '' || rest === '/') {
+    if (request.method === 'GET') {
+      const records = await listM2mClients(env.OAUTH_KV);
+      // Never echo secret hashes or key material.
+      const clients = records.map((r) => ({
+        clientId: r.clientId,
+        name: r.name,
+        allowedScopes: r.allowedScopes,
+        tier: r.tier,
+        hasJwks: Boolean(r.jwks),
+        createdAt: r.createdAt,
+      }));
+      return json({ clients });
+    }
+    if (request.method === 'POST') {
+      let body: {
+        name?: string;
+        allowedScopes?: string[];
+        tier?: string;
+        jwks?: { keys: M2mJwk[] };
+      };
+      try {
+        body = await request.json();
+      } catch {
+        return json({ error: 'bad-request', message: 'Body must be JSON' }, 400);
+      }
+      if (!body.name || !Array.isArray(body.allowedScopes) || body.allowedScopes.length === 0) {
+        return json(
+          { error: 'bad-request', message: 'name and non-empty allowedScopes[] required' },
+          400
+        );
+      }
+      const { record, clientSecret } = await createM2mClient(env.OAUTH_KV, {
+        name: body.name,
+        allowedScopes: body.allowedScopes,
+        tier: body.tier,
+        jwks: body.jwks,
+      });
+      safeLog({
+        event: 'admin.oauth.m2m-client-created',
+        keyOwner: 'ADMIN',
+        reason: `client=${record.clientId}`,
+        success: true,
+      });
+      // clientSecret is visible ONLY here — only its hash is stored.
+      return json(
+        {
+          client: {
+            clientId: record.clientId,
+            name: record.name,
+            allowedScopes: record.allowedScopes,
+            tier: record.tier,
+            createdAt: record.createdAt,
+          },
+          clientSecret,
+        },
+        201
+      );
+    }
+    return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET, POST' } });
+  }
+
+  const idMatch = rest.match(/^\/([^/]+)$/);
+  if (idMatch) {
+    const clientId = decodeURIComponent(idMatch[1]!);
+    if (request.method === 'DELETE') {
+      const existing = await getM2mClient(env.OAUTH_KV, clientId);
+      if (!existing) return json({ error: 'not-found', message: 'Unknown clientId' }, 404);
+      await deleteM2mClient(env.OAUTH_KV, clientId);
+      safeLog({
+        event: 'admin.oauth.m2m-client-deleted',
         keyOwner: 'ADMIN',
         reason: `client=${clientId}`,
         success: true,
