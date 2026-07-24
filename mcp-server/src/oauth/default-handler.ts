@@ -9,6 +9,7 @@
 
 import type { OAuthHelpers } from '@cloudflare/workers-oauth-provider';
 import { handleAuthorizeGet, handleAuthorizePost } from './consent';
+import { handleIntrospection } from './introspection';
 import { handleAdminM2mClients, handleAdminOauthClients } from '../admin/oauth-clients';
 import type { Env } from '../worker';
 
@@ -24,6 +25,9 @@ export const oauthDefaultHandler = {
       return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET, POST' } });
     }
 
+    if (url.pathname === '/oauth/introspect') {
+      return handleIntrospection(request, env);
+    }
     if (url.pathname.startsWith('/admin/oauth/m2m-clients')) {
       return handleAdminM2mClients(request, env);
     }
