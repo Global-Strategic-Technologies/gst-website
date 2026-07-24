@@ -153,6 +153,18 @@ describe('RFC 7523 client assertion (ES256, inline JWKS)', () => {
     ).toBeNull();
   });
 
+  it('rejects an assertion with no iat (iat is required — closes the fixed-jti-TTL replay window)', async () => {
+    const assertion = await mintAssertion({
+      iss: 'm2m_abc',
+      sub: 'm2m_abc',
+      aud: 'https://mcp.test/token',
+      exp: now() + 120, // valid exp, but no iat
+    });
+    expect(
+      await verifyClientAssertion(assertion, { keys: [publicJwk as never] }, 'https://mcp.test')
+    ).toBeNull();
+  });
+
   it('rejects an assertion aimed at a different AS', async () => {
     const assertion = await mintAssertion({
       iss: 'm2m_abc',

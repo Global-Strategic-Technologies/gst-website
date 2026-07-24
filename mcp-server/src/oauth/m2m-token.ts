@@ -233,7 +233,11 @@ export async function verifyClientAssertion(
   const now = Date.now() / 1000;
   if (typeof claims.exp !== 'number' || claims.exp < now) return null;
   // Short-lived by contract: reject assertions minted with long lifetimes.
-  if (typeof claims.iat === 'number' && claims.exp - claims.iat > ASSERTION_MAX_LIFETIME_S) {
+  // `iat` is REQUIRED (not just checked-when-present) — without it a
+  // caller could mint an iat-less assertion with a far-future exp, and
+  // the fixed 300s jti-replay TTL would then leave a replay window wider
+  // than the assertion's intended lifetime (code-reviewer warning).
+  if (typeof claims.iat !== 'number' || claims.exp - claims.iat > ASSERTION_MAX_LIFETIME_S) {
     return null;
   }
   // Audience must name this AS (token endpoint or origin).
@@ -272,9 +276,13 @@ export async function handleClientCredentialsToken(request: Request, env: Env): 
   const basic = request.headers.get('Authorization') ?? '';
   if (basic.startsWith('Basic ')) {
     try {
-      const [idPart, secretPart] = atob(basic.slice('Basic '.length)).split(':', 2);
-      clientId = decodeURIComponent(idPart ?? '');
-      secret = decodeURIComponent(secretPart ?? '');
+      // Split on the FIRST colon only — a client secret may itself
+      // contain colons (RFC 6749 §2.3.1); a 2-arg split would truncate it.
+      const decoded = atob(basic.slice('Basic '.length));
+      const sep = decoded.indexOf(':');
+      if (sep === -1) throw new Error('no colon');
+      clientId = decodeURIComponent(decoded.slice(0, sep));
+      secret = decodeURIComponent(decoded.slice(sep + 1));
     } catch {
       return tokenError('invalid_client', 'Malformed Basic authorization header', 401);
     }

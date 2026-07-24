@@ -604,8 +604,10 @@ export const handler: ExportedHandler<Env> = {
         // Anything but a 401 means the provider recognized the token and
         // the api-handler already ran the full pipeline; a 401 falls
         // through to OUR challenge shape below (legacy JSON body +
-        // RFC 9728 resource_metadata pointer).
-        if (oauthResp.status !== 401) return oauthResp;
+        // RFC 9728 resource_metadata pointer). CORS-wrap on the way out —
+        // a provider error response (e.g. audience mismatch) still needs
+        // our allow-origin headers for browser-based clients.
+        if (oauthResp.status !== 401) return withCors(oauthResp, origin);
       }
     }
     {
