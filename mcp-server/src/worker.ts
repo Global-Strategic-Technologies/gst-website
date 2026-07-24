@@ -48,6 +48,7 @@ import {
 import { acquire } from './lib/single-flight-lock';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { handleAuthenticated } from './pipeline/handle-authenticated';
+import { oauthProvider } from './oauth/provider';
 
 /**
  * Worker environment bindings.
@@ -192,6 +193,22 @@ export interface Env {
 function isRoutedPath(pathname: string): boolean {
   if (pathname === '/mcp' || pathname.startsWith('/mcp/')) return true;
   if (pathname === '/radar/snapshot') return true;
+  return false;
+}
+
+/**
+ * BL-033 Slice 2 — OAuth surface paths delegated to the embedded
+ * authorization server (oauth/provider.ts) BEFORE the route allowlist
+ * and BEFORE authenticate(): the metadata documents are public by spec,
+ * and /authorize + /token + /admin/oauth/* carry their own auth
+ * semantics (consent-page key form, client credentials, admin bearer).
+ * `/oauth/introspect` is admin-gated inside its handler.
+ */
+function isOAuthSurfacePath(pathname: string): boolean {
+  if (pathname === '/authorize' || pathname === '/token') return true;
+  if (pathname.startsWith('/.well-known/')) return true;
+  if (pathname.startsWith('/admin/oauth/')) return true;
+  if (pathname === '/oauth/introspect') return true;
   return false;
 }
 
@@ -487,6 +504,24 @@ export const handler: ExportedHandler<Env> = {
       );
     }
 
+    // 2.3. BL-033 Slice 2 — OAuth surface (embedded AS as a sub-router).
+    //      /authorize + /token + /.well-known/* + /admin/oauth/* delegate
+    //      to the workers-oauth-provider instance; the provider routes
+    //      /authorize and /admin/oauth/* back into our defaultHandler
+    //      (consent page, admin client CRUD) with env.OAUTH_PROVIDER
+    //      injected, and implements /token + both metadata documents
+    //      itself. Slotted BEFORE the route allowlist (these paths are
+    //      not in isRoutedPath) and BEFORE authenticate() — metadata is
+    //      public by spec; /authorize and /token carry their own auth
+    //      semantics. grant_type=client_credentials is intercepted ahead
+    //      of delegation (library has no such grant — see oauth/m2m-token).
+    //      Responses re-wrap with OUR CORS policy: browser-based clients
+    //      (claude.ai) must POST /token cross-origin.
+    if (isOAuthSurfacePath(url.pathname)) {
+      const resp = await oauthProvider.fetch(request, env as never, ctx);
+      return withCors(resp, origin);
+    }
+
     // 2.5. BL-047 T2 — Inoreader OAuth re-auth flow. Admin-gated browser
     //      surface. Slotted BEFORE the known-route allowlist (which would
     //      404 these otherwise) AND BEFORE the standard `authenticate()`
@@ -525,9 +560,35 @@ export const handler: ExportedHandler<Env> = {
       return withCors(new Response('Not Found', { status: 404 }), origin);
     }
 
-    // 4. Bearer-token authentication — every routed, non-health, non-preflight path.
+    // 4. Authentication — dual validation, cheap-first (BL-033 Slice 2).
+    //    (1) Static MCP_KEY_* scan: constant-time, zero I/O, byte-identical
+    //        to the pre-OAuth behavior for every existing consumer.
+    //    (2) OAuth access token: only attempted when a bearer WAS presented
+    //        but matched no static key (`invalid-token`). The provider
+    //        validates against its KV store and, on success, invokes the
+    //        api-handler which runs the same handleAuthenticated pipeline.
+    //        (`malformed-scopes` does NOT delegate — a static key DID
+    //        match; that's an operator config error, not an OAuth token.)
+    //    (3) M2M `mcp_m2m_*` JWT verification slots between (1) and (2)
+    //        in the M2M phase.
+    //    auth.failed telemetry fires ONLY after every path has failed —
+    //    a valid OAuth token must never be logged as an auth failure.
     const auth = authenticate(request, env);
-    if (!auth.ok) {
+    if (auth.ok) {
+      // 5. Post-auth pipeline — Sentry tagging, rate limiting,
+      //    /radar/snapshot, MCP-handler dispatch, request logging,
+      //    RL + CORS headers (pipeline/handle-authenticated.ts).
+      return handleAuthenticated(request, env, ctx, auth);
+    }
+    if (auth.reason === 'invalid-token') {
+      const oauthResp = await oauthProvider.fetch(request, env as never, ctx);
+      // Anything but a 401 means the provider recognized the token and
+      // the api-handler already ran the full pipeline; a 401 falls
+      // through to OUR challenge shape below (legacy JSON body +
+      // RFC 9728 resource_metadata pointer).
+      if (oauthResp.status !== 401) return oauthResp;
+    }
+    {
       safeLog({
         event: 'auth.failed',
         path: url.pathname,
@@ -560,14 +621,10 @@ export const handler: ExportedHandler<Env> = {
           'auth.failed'
         );
       }
-      return withCors(authFailureResponse(auth), origin);
+      // `url.origin` powers the RFC 9728 resource_metadata pointer on
+      // token-present failures (see authFailureResponse).
+      return withCors(authFailureResponse(auth, url.origin), origin);
     }
-
-    // 5. Post-auth pipeline — Sentry tagging, rate limiting, /radar/snapshot,
-    //    MCP-handler dispatch, request logging, RL + CORS headers. Extracted
-    //    to pipeline/handle-authenticated.ts (BL-033 Slice 2) so the OAuth
-    //    and M2M auth paths converge on the identical downstream behavior.
-    return handleAuthenticated(request, env, ctx, auth);
   },
 };
 
