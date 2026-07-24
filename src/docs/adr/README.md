@@ -17,5 +17,6 @@ Lightweight, maintained records of load-bearing design decisions that span the w
 | [0005](0005-hub-url-state-deeplink-contract.md)          | Hub URL-state deep-link contract (shared encoders, capability-mirror, no URL back-compat) | Accepted 2026-05-03                                                       |
 | [0006](0006-inoreader-zone1-budget-protection.md)        | Inoreader Zone-1 budget protection & circuit breaker (soak-derived)                       | Accepted 2026-05-13; extended by BL-032.7/.75/.77                         |
 | [0007](0007-registered-prompt-pattern.md)                | Registered prompts as the consultant-workflow surface (+ maturity bar)                    | Accepted 2026-05-01                                                       |
+| [0008](0008-mcp-oauth-embedded-authorization-server.md)  | OAuth 2.1 as an embedded authorization server on the MCP Worker (dual-auth, M2M JWTs)     | Accepted 2026-07-24                                                       |
 
 _Established 2026-07-17 under BL-088 (development-docs distillation)._

@@ -31,6 +31,15 @@ vi.mock('agents/mcp', () => ({
   createMcpHandler: () => async () =>
     new Response('{"error":"mcp-mocked-in-this-test"}', { status: 501 }),
 }));
+// workers-oauth-provider imports `cloudflare:workers`, which the Node
+// vitest pool can't resolve; these tests exercise the static-key path
+// only, so the OAuth sub-router is a inert stub (never reached — static
+// auth returns before any provider delegation).
+vi.mock('@cloudflare/workers-oauth-provider', () => ({
+  OAuthProvider: class {
+    fetch = async () => new Response('{"error":"invalid_token"}', { status: 401 });
+  },
+}));
 
 // Mock the radar-live-store so the happy-path test doesn't need to spin
 // up a real Inoreader call chain. The 401/403/CORS paths never reach the

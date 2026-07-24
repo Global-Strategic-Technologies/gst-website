@@ -29,6 +29,27 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.40.0 — 2026-07-24 — BL-033 Slice 2 — OAuth 2.1 embedded authorization server + M2M client_credentials (new routes, new KV binding, new secret, additive 401 header)
+
+**Theme**: the Worker becomes its own OAuth 2.1 authorization server (`@cloudflare/workers-oauth-provider`, exact-pinned 0.8.2, mounted as a sub-router) with dual cheap-first validation — static `MCP_KEY_*` keys are byte-identical and NOT deprecated. Decision record: `src/docs/adr/0008-mcp-oauth-embedded-authorization-server.md` (website tree). Unlocks Claude's native Connectors UI (the `mcp-remote` bridge becomes a legacy path, still supported).
+
+**New public surface** (routes are not manifest-hash inputs; no tool/prompt/resource change — manifest hash unchanged):
+
+- **`GET|POST /authorize`** — server-rendered consent page. Identity = delegation over the key roster: the user authenticates with their `MCP_KEY_*` value; granted scopes = requested ∩ key scopes; grants carry `keyOwner OAUTH:<owner>`.
+- **`POST /token`** — library grants (`authorization_code` + PKCE S256-only, `refresh_token` with rotation, 1h access tokens) PLUS our own `grant_type=client_credentials` branch (the library has none): RFC 7523 `private_key_jwt` or hashed-secret client auth → self-contained HS256 `mcp_m2m_*` JWTs (1h, audience-bound, no refresh token).
+- **`/.well-known/oauth-authorization-server`** (RFC 8414) + **`/.well-known/oauth-protected-resource`** (RFC 9728) — DCR deliberately absent; CIMD advertised.
+- **`POST /oauth/introspect`** (RFC 7662, `MCP_ADMIN_KEY`-gated) — M2M tokens cross-check the client record so revoked clients report inactive.
+- **`/admin/oauth/clients*` + `/admin/oauth/m2m-clients*`** — `MCP_ADMIN_KEY`-gated client CRUD (runbooks: `operations/AUTH.md` § OAuth).
+- **Additive 401 header change on `/mcp` + `/radar/snapshot`**: when a bearer was presented but rejected, `WWW-Authenticate` now reads `Bearer realm="gst-mcp", error="invalid_token", resource_metadata="<origin>/.well-known/oauth-protected-resource"`. The JSON 401 body is unchanged; missing/empty-bearer challenges are unchanged.
+
+**New infrastructure**: `OAUTH_KV` namespace binding per env (staging `580b8f1f…`, production `13c9e9f5…` — created 2026-07-24); new Worker secret `OAUTH_M2M_SIGNING_KEY` (staging bound 2026-07-24; **production must be bound before the first production deploy of this version** — without it M2M issuance 503s while everything else works); `global_fetch_strictly_public` compatibility flag (SSRF defense for CIMD metadata fetches).
+
+**Internal restructuring** (no behavior change on the static path): post-auth pipeline extracted from `worker.ts` to `src/pipeline/handle-authenticated.ts` (shared by all three auth paths via the `AuthSuccess` contract); `matchToken` core extracted from `authenticate()`; `htmlShell`/`escapeHtml` extracted from `admin/inoreader-reauth.ts` to `src/lib/html-shell.ts` — this supersedes older entries' references to the constant-time comparator living in `admin/admin-auth.ts` (it moved to `src/auth/timing-safe-equal.ts` in 0.39.x / Slice 1).
+
+**New keyOwner values in telemetry**: `OAUTH:<user>` and `M2M:<NAME>` join the static suffixes in AE blob3 / rate-limit buckets / safeLog. A new keyOwner's first busy hour can fire the traffic-spike ticket once (no trailing mean) — expected onboarding behavior.
+
+---
+
 ## 0.39.0 — 2026-07-14 — BL-032.75 Phase 3 — SLO alert evaluator cron + `/status` page (new route, new cron, new optional secrets)
 
 **Theme**: the account-free half of BL-032.75 Phase 3 ships — a scheduled SLO alert evaluator + public status surface, calibrated from the Phase 2 baselines signed off 2026-07-14 (`observability/slo-baselines.md`). Grafana dashboards remain deferred (Grafana Cloud account is the explicit trigger).
