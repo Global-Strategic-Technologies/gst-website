@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260715.1",
-    "@sentry/cli": "^3.6.0",
+    "@sentry/cli": "^3.6.2",
     "@types/node": "^26.1.1",
     "esbuild": "^0.28.0",
     "typescript": "^5.9.3",
