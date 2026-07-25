@@ -1,8 +1,8 @@
 # MCP Server Authentication
 
-> **Audience**: operator (engineer issuing/rotating bearer keys) + future maintainer auditing the auth surface.
+> **Audience**: operator (engineer issuing keys, onboarding OAuth clients, running revocations) + future maintainer auditing the auth surface.
 >
-> **Status**: BL-032 Phase 2 — bearer-token model in place; OAuth gates [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3).
+> **Status**: dual-auth — static bearer keys (BL-032 Phase 2) AND an embedded OAuth 2.1 authorization server with M2M client_credentials (BL-033 Slice 2, 2026-07-24). Decision record: [ADR-0008](../../../../src/docs/adr/0008-mcp-oauth-embedded-authorization-server.md).
 >
 > **Architecture & rationale**: [`ARCHITECTURE.md` § Auth, CORS & deploy topology](../ARCHITECTURE.md#auth-cors--deploy-topology).
 
@@ -19,9 +19,9 @@ Every team member who needs remote MCP access gets a **single bearer token** sto
 
 The full token never appears in logs, error responses, or telemetry. The `keyOwner` string (`RP`, `AB`, etc.) is the attribution surface — stable across rotations, non-sensitive.
 
-### Why bearer tokens, not OAuth (yet)
+### How bearer keys relate to OAuth (BL-033 Slice 2)
 
-For an internal team of ≤10, `wrangler secret put` is the simplest safe revocation surface. OAuth 2.1 with PKCE is mandatory for **external** clients (BL-033) but adds an authorization-server dependency, browser-based consent UI, and PKCE flows that don't pay for themselves at this scale. See [ARCHITECTURE.md § Bearer-token auth](../ARCHITECTURE.md#bearer-token-auth-q11q13) for the full rationale.
+Static keys are no longer the only credential — the Worker is also its own OAuth 2.1 authorization server (see § OAuth below) — but the key roster remains **the identity substrate**: the OAuth consent page authenticates a human by their `MCP_KEY_*` value, and OAuth grants are scope-bounded by that key. Static keys stay first-class forever for headless internal consumers (website radar SSR, the latency probe) and as the delegation credential. Nothing in this section changed behavior when OAuth landed — the static path is byte-identical (dual validation is cheap-first; see [ARCHITECTURE.md § Dual auth](../ARCHITECTURE.md#dual-auth-static-bearers--oauth-21-q11q13--bl-033)).
 
 ---
 
@@ -147,10 +147,70 @@ The BACKLOG language is a holdover; this doc supersedes it.
 
 ---
 
-## Forward-looking — per-key scopes (BL-033)
+## OAuth 2.1 — client onboarding & operations (BL-033 Slice 2)
 
-BL-032 issues each key with the full tool/resource/prompt scope set. Per-key scope variation (e.g., a sales-associate teammate gets a key without `tool:radar:*`) is a scope-catalog infrastructure concern (see [`ARCHITECTURE.md` § Scope gating](../ARCHITECTURE.md#scope-gating)) and a [BL-033](../../../../src/docs/development/BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3) product surface (per-client variation goes live). The bearer-token model carries forward unchanged — only the scope-checking layer at the request boundary changes.
+The Worker serves its own OAuth surface: `/authorize` (consent), `/token`, `/.well-known/oauth-authorization-server` + `/.well-known/oauth-protected-resource` (discovery), `/oauth/introspect`, and the admin endpoints below. All admin endpoints are gated by `Authorization: Bearer <MCP_ADMIN_KEY>` — the same single admin credential as the Inoreader re-auth flow; team keys do NOT grant admin.
+
+### Onboard a human-consent client (pre-registered)
+
+For clients that can't use CIMD (Claude-family clients need no registration at all — their `client_id` is a metadata-document URL the AS fetches):
+
+```bash
+# Create — returns clientId + clientSecret (secret visible ONLY in this response)
+curl -s -X POST https://mcp.globalstrategic.tech/admin/oauth/clients \
+  -H "Authorization: Bearer $MCP_ADMIN_KEY" -H "Content-Type: application/json" \
+  -d '{"clientName":"<display name>","redirectUris":["https://client.example/callback"]}'
+
+# List / delete
+curl -s https://mcp.globalstrategic.tech/admin/oauth/clients -H "Authorization: Bearer $MCP_ADMIN_KEY"
+curl -s -X DELETE https://mcp.globalstrategic.tech/admin/oauth/clients/<clientId> -H "Authorization: Bearer $MCP_ADMIN_KEY"
+```
+
+The human then adds the connector in their client; at the consent page they authenticate with their `MCP_KEY_*` value. **Issue external pilots their own narrow key first** (this section's runbooks + a `MCP_KEY_<X>_SCOPES` subset) — the key's scopes are the ceiling on every grant they can approve.
+
+### Onboard an M2M client (headless client_credentials)
+
+```bash
+curl -s -X POST https://mcp.globalstrategic.tech/admin/oauth/m2m-clients \
+  -H "Authorization: Bearer $MCP_ADMIN_KEY" -H "Content-Type: application/json" \
+  -d '{"name":"<client-name>","allowedScopes":["tool:*","resource:regulations:read"],"tier":"free-pilot","jwks":{"keys":[<ES256 public JWK, optional>]}}'
+```
+
+Deliver the returned `clientId` + `clientSecret` via the secure channel (or skip the secret entirely: register their ES256 public key and have them authenticate with RFC 7523 `private_key_jwt` assertions — preferred). Their pipeline then exchanges at `/token` with `grant_type=client_credentials` for a 1-hour `mcp_m2m_*` token (no refresh token — re-exchange on expiry; the official MCP SDKs' `ClientCredentialsProvider` handles this).
+
+`allowedScopes` is the hard ceiling; radar access requires explicitly granting `tool:radar:*` / `resource:radar:read` (deliberately excluded from typical pilot grants).
+
+### Introspect a token (support/debugging)
+
+```bash
+curl -s -X POST https://mcp.globalstrategic.tech/oauth/introspect \
+  -H "Authorization: Bearer $MCP_ADMIN_KEY" \
+  --data-urlencode "token=<the token>"
+# → {"active":true,"client_id":...,"scope":...,"exp":...} or {"active":false}
+```
+
+RFC 7662 semantics: every token problem (unknown, expired, revoked, malformed) is `{"active":false}` with 200 — no oracle. A revoked M2M client's not-yet-expired token reports inactive (record cross-check).
+
+### Revoke OAuth access
+
+| Target                     | Action                                                                                        | Effect                                                                                                                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One human's grants         | Rotate/delete their `MCP_KEY_*` (runbooks above)                                              | Existing access tokens live ≤1h; refresh continues until the grant is replaced — for immediate kill also delete the client or have them re-consent (new grants revoke old ones per user+client) |
+| One pre-registered client  | `DELETE /admin/oauth/clients/<id>`                                                            | Grants orphan; tokens die at access-token expiry (≤1h)                                                                                                                                          |
+| One M2M client             | `DELETE /admin/oauth/m2m-clients/<id>`                                                        | Re-issuance blocked immediately; minted tokens carry ≤1h residual (introspection already reports them inactive)                                                                                 |
+| ALL M2M tokens (emergency) | Rotate `OAUTH_M2M_SIGNING_KEY` (`wrangler secret put ... --env production`, new random value) | Every `mcp_m2m_*` token dies at the next isolate pickup                                                                                                                                         |
+
+### Operational notes
+
+- A newly onboarded `OAUTH:<user>` or `M2M:<NAME>` keyOwner has no trailing 7-day mean in Analytics Engine, so its first busy hour above the traffic-spike floor can fire the ticket-severity alert once — expected onboarding behavior, not an incident (same as any new static key; see the traffic-spike runbook).
+- Per-client `tier` is stored on M2M records now; tier-based rate-limit enforcement is a later BL-033 slice.
 
 ---
 
-_Last updated: 2026-05-04 (Phase 2)_
+## Per-key scopes (resolved by BL-033 Slice 2)
+
+Per-key/per-client scope variation is live across all three credential paths: `MCP_KEY_<OWNER>_SCOPES` env-var subsets for static keys, requested-∩-key-scopes for OAuth grants, and `allowedScopes` for M2M clients — one catalog, one wildcard-aware checker (see [`ARCHITECTURE.md` § Scope gating](../ARCHITECTURE.md#scope-gating)).
+
+---
+
+_Last updated: 2026-07-24 (BL-033 Slice 2 — OAuth onboarding/revocation/introspection runbooks added; dual-auth framing)_

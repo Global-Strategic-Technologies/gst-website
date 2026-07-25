@@ -46,13 +46,19 @@ The MCP endpoint URLs:
 
 **Use the production URL unless you have a specific reason to use staging.** The snippets below all show the production URL; to point at staging, swap the host (`mcp` → `mcp-staging`) and rename the connector (e.g. `gst-mcp` → `gst-mcp-staging`).
 
-### Claude Desktop
+### Claude Desktop (native Connectors — recommended)
 
-> ⚠️ **Important — current Claude Desktop's Connectors UI is OAuth-only**
->
-> Claude Desktop ships a **Settings → Connectors → Add custom connector** UI that looks tempting, but as of 2026-05 it only supports OAuth-authenticated remote MCP servers (the form has only `OAuth Client ID` / `OAuth Client Secret` fields under Advanced settings). Our Worker uses static bearer tokens (per [`ARCHITECTURE.md` § Bearer-token auth](../ARCHITECTURE.md#bearer-token-auth-q11q13)), so the Connectors UI **cannot authenticate against this Worker**. Instead, use the JSON config file + `mcp-remote` bridge approach below.
->
-> (OAuth support in the Worker is deferred to BL-033 when external clients raise the auth-flow stakes; until then, all Claude Desktop access goes through the bridge.)
+> ✅ **The Worker speaks OAuth 2.1 natively (BL-033 Slice 2, 2026-07-24)** — Claude Desktop's Settings → Connectors UI now works directly. **The `mcp-remote` bridge is no longer required**; it remains documented in the legacy appendix below for existing configs, which keep working unchanged (dual auth — see [`ARCHITECTURE.md` § Dual auth](../ARCHITECTURE.md#dual-auth-static-bearers--oauth-21-q11q13--bl-033)).
+
+1. **Settings → Connectors → Add custom connector**; enter `https://mcp.globalstrategic.tech/mcp` (no client ID/secret needed — Claude registers itself via CIMD).
+2. A browser tab opens the Worker's consent page. **Paste your `MCP_KEY_*` value** (from your password manager) into the key field and click Approve — that one paste is how the grant knows who you are; your delegated access is bounded by your key's scopes.
+3. Done. Tokens are 1-hour and refresh silently; the same connector works on claude.ai web and mobile.
+
+To revoke your own grant: re-add the connector (a new consent replaces the old grant) or ask the operator (revocation table in [`AUTH.md`](./AUTH.md)).
+
+### Claude Desktop (legacy `mcp-remote` bridge)
+
+The pre-OAuth setup. Still fully supported — do not migrate working configs unless you want the native UI.
 
 #### Step 1 — Install the `mcp-remote` bridge globally
 
@@ -326,4 +332,4 @@ Contact the operator (see your team's escalation channel) when:
 
 ---
 
-_Last updated: 2026-05-12 (BL-032 production deploy shipped; canonical URL flipped from staging to `mcp.globalstrategic.tech`; token-stale recovery + BL-038 radar-tier enforcement note added)_
+_Last updated: 2026-07-24 (BL-033 Slice 2 — Claude Desktop native Connectors via the Worker's own OAuth; `mcp-remote` bridge demoted to legacy appendix, still supported)_

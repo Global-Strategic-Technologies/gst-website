@@ -111,6 +111,17 @@ export function authenticate(request: Request, env: Record<string, unknown>): Au
   const token = auth.slice(BEARER_PREFIX.length).trim();
   if (!token) return unauthorized('empty-token', 'Empty Bearer token');
 
+  return matchToken(token, env);
+}
+
+/**
+ * Token-matching core, independent of HTTP framing — BL-033 Slice 2
+ * extraction so the OAuth consent flow can validate a form-submitted
+ * `MCP_KEY_*` value (delegated-identity model) without fabricating a
+ * Request. `authenticate()` above remains the header-parsing wrapper;
+ * behavior of the scan is unchanged.
+ */
+export function matchToken(token: string, env: Record<string, unknown>): AuthResult {
   for (const [name, value] of Object.entries(env)) {
     if (typeof value !== 'string') continue;
     if (!name.startsWith(KEY_NAME_PREFIX)) continue;
@@ -213,10 +224,37 @@ function resolveKeyScopes(env: Record<string, unknown>, keyName: string): ScopeR
   }
 }
 
-/** Build a `Response` from an `AuthFailure` envelope. */
-export function authFailureResponse(failure: AuthFailure): Response {
+/**
+ * Build a `Response` from an `AuthFailure` envelope.
+ *
+ * BL-033 Slice 2: when the caller supplies the request origin AND a
+ * bearer was actually presented (`invalid-token` / `malformed-scopes`),
+ * the challenge advertises the OAuth discovery path per RFC 9728 —
+ * `error="invalid_token"` + `resource_metadata` pointing at the
+ * protected-resource metadata document — so OAuth-capable clients
+ * auto-discover the login flow from the 401 itself. Probe-class
+ * failures (`missing-header` / `empty-token` / `bad-scheme`) keep the
+ * bare challenge: no bearer was sent, so there is nothing "invalid",
+ * and scanner noise gets no extra bytes. The JSON body is unchanged
+ * either way (legacy contract, asserted by tests/integration/auth.test.ts).
+ */
+const TOKEN_PRESENT_REASONS: ReadonlySet<AuthFailureReason> = new Set([
+  'invalid-token',
+  'malformed-scopes',
+]);
+
+export function authFailureResponse(failure: AuthFailure, requestOrigin?: string): Response {
+  let headers: Record<string, string> = { ...failure.headers };
+  if (requestOrigin && TOKEN_PRESENT_REASONS.has(failure.reason)) {
+    headers = {
+      ...headers,
+      'WWW-Authenticate':
+        `Bearer realm="gst-mcp", error="invalid_token", ` +
+        `resource_metadata="${requestOrigin}/.well-known/oauth-protected-resource"`,
+    };
+  }
   return new Response(failure.bodyText, {
     status: failure.status,
-    headers: failure.headers,
+    headers,
   });
 }
