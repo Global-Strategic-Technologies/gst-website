@@ -37,6 +37,9 @@ import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
 import type { MetricSink } from './sinks/_interface';
 import type { IrlBodyCache } from '../cache/irl-body-cache';
+import type { AuditContext } from '../audit/audit-sink';
+import { newEntryId } from '../audit/redaction';
+import { AUDIT_SCHEMA_VERSION, type AuditEntry, type AuditOutcome } from '../audit/entry';
 
 export interface MetricsContext {
   readonly sink: MetricSink;
@@ -75,6 +78,16 @@ export interface MetricsContext {
    *     silently miss across isolate rotations).
    */
   readonly irlBodyCache?: IrlBodyCache;
+  /**
+   * BL-033 Slice 3a — optional compliance audit carrier. When present,
+   * `withMetricsCore` builds a full `AuditEntry` (incl. input params +
+   * output byte-size) for every `tool_invocation` and enqueues it to the
+   * audit Queue via the fire-and-forget `AuditSink`. Deliberately SEPARATE
+   * from `sink` (the AE ops path) — input params must never reach AE / Sentry
+   * / Cloudflare logs (ADR-0009). Undefined in stdio / tests / when the
+   * `AUDIT_QUEUE` binding is absent (→ no-op). Gated to tools this slice.
+   */
+  readonly audit?: AuditContext;
 }
 
 /**
@@ -178,6 +191,49 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
 ): (...args: TArgs) => Promise<TResult> {
   return async (...args: TArgs): Promise<TResult> => {
     const startedAt = Date.now();
+
+    // BL-033 Slice 3a — build + enqueue a compliance audit entry. Gated to
+    // tool_invocation (input arg shapes differ on resource/prompt surfaces).
+    // Best-effort and fully wrapped: audit capture must NEVER break the tool
+    // call. Input params + output size go ONLY to the audit sink, never to
+    // the AE `emit()` path below.
+    const recordAudit = (
+      outcome: AuditOutcome,
+      result: TResult | undefined,
+      errorCode?: string
+    ): void => {
+      const audit = ctx.audit;
+      if (!audit || eventType !== 'tool_invocation') return;
+      try {
+        let outputBytes = 0;
+        if (result !== undefined) {
+          try {
+            outputBytes = new TextEncoder().encode(JSON.stringify(result)).length;
+          } catch {
+            outputBytes = -1; // non-serializable / cyclic — size unknown.
+          }
+        }
+        const entry: AuditEntry = {
+          schemaVersion: AUDIT_SCHEMA_VERSION,
+          entryId: newEntryId(),
+          requestId: audit.requestId,
+          tsIso: new Date().toISOString(),
+          keyOwner: audit.keyOwner,
+          ipPrefix: audit.ipPrefix,
+          toolName: name,
+          inputParams: args[0],
+          outputBytes,
+          durationMs: Date.now() - startedAt,
+          outcome,
+          ...(errorCode ? { errorCode } : {}),
+        };
+        audit.sink.write(entry);
+      } catch {
+        // Audit capture is best-effort — a build/emit fault is a visibility
+        // loss, never a tool-call failure.
+      }
+    };
+
     // BL-071 — record `attempted` BEFORE inner runs so the envelope tool's
     // own snapshot includes its own in-flight attempt. Only meaningful for
     // tool_invocation; resource/prompt counters not in scope today.
@@ -214,6 +270,9 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
         outcome,
         duration_ms: Date.now() - startedAt,
       });
+      // Audit outcome is the coarse success/error (a structured `isError`
+      // rejection maps to 'error'); no errorCode on the non-throw path.
+      recordAudit(outcome === 'error' ? 'error' : 'success', result);
       return result;
     } catch (err) {
       if (eventType === 'tool_invocation') {
@@ -226,6 +285,7 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
         outcome: 'error',
         duration_ms: Date.now() - startedAt,
       });
+      recordAudit('error', undefined, err instanceof Error ? err.name : 'error');
       throw err;
     }
   };

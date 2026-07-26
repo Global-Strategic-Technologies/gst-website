@@ -99,6 +99,16 @@ export interface ServerContext {
    * `InMemoryIrlBodyCache()` here.
    */
   irlBodyCache?: import('./metrics/_index').IrlBodyCache;
+
+  /**
+   * BL-033 Slice 3a — per-request compliance-audit carrier. The Worker passes
+   * `{ sink: QueueAuditSink, requestId, ipPrefix, keyOwner }`; stdio / tests /
+   * unbound-`AUDIT_QUEUE` omit it (→ no audit emission). Threaded into
+   * `MetricsContext.audit` so the `withMetricsCore` chokepoint enqueues a
+   * full audit entry per tool call — a path SEPARATE from `metricsSink`
+   * (input params must never reach AE / Sentry / ops logs; ADR-0009).
+   */
+  audit?: import('./audit/_index').AuditContext;
 }
 
 /**
@@ -167,12 +177,14 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
           sink: new NoopSink(),
           counters: new InMemoryToolCallCounters(),
           irlBodyCache,
+          audit: ctx.audit,
         }
       : {
           sink: ctx.metricsSink,
           keyOwner: ctx.keyOwner,
           counters: new InMemoryToolCallCounters(),
           irlBodyCache,
+          audit: ctx.audit,
         };
 
   // Tools (transport-portable)

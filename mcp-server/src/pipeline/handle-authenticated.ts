@@ -26,6 +26,7 @@ import { reasonForTier, tooManyRequestsResponse, withRateLimitHeaders } from '..
 import { extractToolName, toolClassFor } from '../dispatch/extract-tool-name';
 import { tagRequest } from '../observability/sentry';
 import { AnalyticsEngineSink } from '../metrics/_index';
+import { QueueAuditSink, newRequestId, truncateIp, type AuditContext } from '../audit/_index';
 import { readWireLive, readFyiLive } from '../content/radar-live-store';
 import type { Env } from '../worker';
 
@@ -164,12 +165,31 @@ export async function handleAuthenticated(
   // when the AE binding isn't present (some test contexts). `keyOwner`
   // threads the attribution into every emitted event.
   const metricsSink = env.METRICS ? new AnalyticsEngineSink(env.METRICS) : undefined;
+
+  // BL-033 Slice 3a — per-request audit carrier. `requestId` correlates the
+  // request log line with the audit entries emitted for its tool calls;
+  // `ipPrefix` is the GDPR-truncated caller IP (last octet zeroed). The audit
+  // sink enqueues off the latency path via `ctx.waitUntil`; absent when the
+  // `AUDIT_QUEUE` binding isn't bound (→ no audit emission). Full input params
+  // captured at the metrics chokepoint go ONLY here, never to AE / Sentry.
+  const requestId = newRequestId();
+  const ipPrefix = truncateIp(request.headers.get('CF-Connecting-IP'));
+  const audit: AuditContext | undefined = env.AUDIT_QUEUE
+    ? {
+        sink: new QueueAuditSink(env.AUDIT_QUEUE, (p) => ctx.waitUntil(p)),
+        requestId,
+        ipPrefix,
+        keyOwner: auth.keyOwner,
+      }
+    : undefined;
+
   const mcp = createMcpHandler(
     createServer(env, {
       scopes: auth.scopes,
       radarSource: 'worker',
       metricsSink,
       keyOwner: auth.keyOwner,
+      audit,
     })
   );
   const response = await mcp(request, env, ctx);
@@ -178,6 +198,7 @@ export async function handleAuthenticated(
   safeLog({
     event: 'mcp.request',
     keyOwner: auth.keyOwner,
+    requestId,
     path: url.pathname,
     status: response.status,
     durationMs,

@@ -40,6 +40,12 @@ const REDACTED = '[REDACTED]';
 export interface LogEvent {
   /** Short event identifier — e.g. 'auth.ok', 'auth.failed', 'mcp.request'. */
   event: string;
+  /**
+   * BL-033 Slice 3a — per-HTTP-request UUID minted in `handle-authenticated`.
+   * Correlates a `wrangler tail` request line with the audit-log entries for
+   * the same request (audit entries carry the same `requestId`). Non-PII.
+   */
+  requestId?: string;
   /** Stripped suffix of `MCP_KEY_*` for the authenticated request, if any. */
   keyOwner?: string;
   /** Pathname of the inbound request. */

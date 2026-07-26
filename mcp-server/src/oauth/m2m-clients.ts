@@ -21,7 +21,13 @@
  */
 
 import { timingSafeEqual } from '../auth/timing-safe-equal';
+import { sha256Hex } from '../lib/sha256';
 import { m2mKeyOwner } from './key-owner';
+
+// Re-exported (hoisted to `src/lib/sha256.ts` in BL-033 Slice 3a so the audit
+// hash chain can share it without importing the OAuth module). Existing
+// importers of `sha256Hex` from this module keep working unchanged.
+export { sha256Hex };
 
 export const M2M_CLIENT_KEY_PREFIX = 'mcp:oauth:m2m-client:';
 
@@ -42,11 +48,6 @@ export interface M2mClientRecord {
   allowedScopes: string[];
   tier: string;
   createdAt: string;
-}
-
-export async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 function b64url(bytes: Uint8Array): string {
