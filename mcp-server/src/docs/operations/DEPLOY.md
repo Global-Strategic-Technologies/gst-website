@@ -12,7 +12,7 @@
 >
 > - [`AUTH.md`](./AUTH.md) — bearer-token model, key issuance/rotation/revocation commands
 > - [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md) — what team-members do to connect their Claude / Cursor / etc. clients
-> - [`RATE_LIMITS.md`](./RATE_LIMITS.md) — per-key budgets, RFC 9331 headers, circuit-breaker semantics
+> - [`RATE_LIMITS.md`](./RATE_LIMITS.md) — per-key budgets, RateLimit response headers, circuit-breaker semantics
 > - [`SENTRY_MANUAL_SETUP.md` § MCP Worker](../../../../src/docs/development/SENTRY_MANUAL_SETUP.md) — Sentry project setup specifics
 > - [`ARCHITECTURE.md`](../ARCHITECTURE.md) — the maintained architecture reference (Q1–Q13 initiative history archived at `src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md`)
 

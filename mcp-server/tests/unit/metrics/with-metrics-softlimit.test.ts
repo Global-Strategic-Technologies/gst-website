@@ -68,16 +68,17 @@ describe('withMetricsCore soft-limit warning', () => {
   });
 
   it('reports the ratio-tripping bucket (nearestLimit), not the binding bucket', async () => {
-    // Binding bucket is the minute tier (absolute-fewest remaining, 5/60), but the
-    // day bucket is proportionally closer to its cliff (100/1000 = 0.10) and is what
-    // tripped the warning. The agent must be told to throttle the DAY window.
+    // Binding bucket is the minute tier (absolute-fewest remaining, 50 < 100), but
+    // the day bucket is proportionally closer to its cliff (100/1000 = 0.10 vs the
+    // minute's 50/60 = 0.83) and is what tripped the warning. The agent must be told
+    // to throttle the DAY window — this is exactly what the real picker produces.
     const extra = extraWith(() => Promise.resolve());
     const ctx: MetricsContext = {
       sink: new NoopSink(),
       rateLimit: {
-        tier: 'minute', // binding
+        tier: 'minute', // binding (absolute-fewest remaining)
         limit: 60,
-        remaining: 5,
+        remaining: 50,
         resetAt: Date.now() + 30_000,
         minRemainingRatio: 0.1,
         nearestLimit: { tier: 'day', limit: 1000, remaining: 100, resetAt: Date.now() + 3_600_000 },

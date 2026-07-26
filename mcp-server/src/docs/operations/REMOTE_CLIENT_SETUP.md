@@ -310,7 +310,7 @@ Expect Claude's opening sentence to explicitly name `search_portfolio` and `sear
 
 ## Rate-limit etiquette
 
-Full reference — per-key budget table, RFC 9331 response-header guide, circuit-breaker semantics, "what to do when 429'd" decision tree — lives in [`RATE_LIMITS.md`](./RATE_LIMITS.md). Skim it once during setup; it pays for itself the first time you see a 429.
+Full reference — per-key budget table, RateLimit response-header guide, circuit-breaker semantics, "what to do when 429'd" decision tree — lives in [`RATE_LIMITS.md`](./RATE_LIMITS.md). Skim it once during setup; it pays for itself the first time you see a 429.
 
 Quick-reference summary:
 
