@@ -88,6 +88,28 @@ export interface MetricsContext {
    * `AUDIT_QUEUE` binding is absent (→ no-op). Gated to tools this slice.
    */
   readonly audit?: AuditContext;
+  /**
+   * BL-033 Slice 5 — the boundary's rate-limit result for this request.
+   * When some bucket is ≥80% consumed (`minRemainingRatio <= 0.20`),
+   * `withMetricsCore` emits a best-effort `notifications/message` warning on
+   * the request's SSE stream so a compliant agent can throttle itself before
+   * the hard 429. Undefined for stdio / tests / graceful-skip (→ no warning).
+   * The always-present `RateLimit-*` headers are the guaranteed fallback.
+   */
+  readonly rateLimit?: RateLimitCheck;
+}
+
+/**
+ * Minimal shape of a rate-limit `CheckResult` this module needs for the
+ * soft-limit warning — mirrored locally to avoid importing the limiter
+ * (and its `@upstash/ratelimit` dependency) into the metrics module.
+ */
+export interface RateLimitCheck {
+  readonly tier: string;
+  readonly limit: number;
+  readonly remaining: number;
+  readonly resetAt: number;
+  readonly minRemainingRatio?: number;
 }
 
 /**
@@ -173,6 +195,69 @@ function detectCounterOutcome<TResult>(
   return 'success';
 }
 
+/** Minimal view of the MCP `RequestHandlerExtra` fields we use here. */
+interface McpNotifier {
+  sendNotification?: (notification: unknown) => unknown;
+}
+
+/**
+ * Locate the MCP `RequestHandlerExtra` among a tool handler's args — the
+ * object exposing `sendNotification`. `McpServer` invokes tool callbacks as
+ * `(args, extra)` for tools with an input schema and `(extra)` for zero-arg
+ * tools, so scan for the first arg carrying a `sendNotification` function
+ * rather than assuming a fixed position. Returns `undefined` when none is
+ * present (stdio, tests, or a transport without a notification channel).
+ */
+function findMcpExtra(args: readonly unknown[]): McpNotifier | undefined {
+  for (const a of args) {
+    if (a && typeof a === 'object' && typeof (a as McpNotifier).sendNotification === 'function') {
+      return a as McpNotifier;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * BL-033 Slice 5 — emit the 80%-consumed soft-limit warning, best-effort.
+ * When some rate-limit bucket is ≥80% spent (`minRemainingRatio <= 0.20`),
+ * write a `notifications/message` onto this request's SSE stream so a
+ * compliant agent can throttle itself before the hard 429. NEVER throws:
+ * a missing `logging` capability, a non-SSE client, or an aborted request is
+ * a visibility loss, not a tool-call failure. The always-present
+ * `RateLimit-*` headers are the guaranteed fallback for clients that don't
+ * consume interim notifications.
+ */
+function maybeWarnSoftLimit(rl: RateLimitCheck | undefined, args: readonly unknown[]): void {
+  if (!rl || rl.minRemainingRatio == null || rl.minRemainingRatio > 0.2) return;
+  const extra = findMcpExtra(args);
+  if (!extra?.sendNotification) return;
+  try {
+    const resetSeconds = Math.max(0, Math.ceil((rl.resetAt - Date.now()) / 1000));
+    void Promise.resolve(
+      extra.sendNotification({
+        method: 'notifications/message',
+        params: {
+          level: 'warning',
+          logger: 'ratelimit',
+          data: {
+            message:
+              `Approaching rate limit (tier ${rl.tier}): ${rl.remaining} of ` +
+              `${rl.limit} remaining in the active window, resets in ${resetSeconds}s.`,
+            tier: rl.tier,
+            limit: rl.limit,
+            remaining: rl.remaining,
+            resetSeconds,
+          },
+        },
+      })
+    ).catch(() => {
+      /* best-effort — notification delivery failure never breaks the call */
+    });
+  } catch {
+    /* best-effort — never break the tool call */
+  }
+}
+
 /**
  * Generic core. Wraps an async function; emits one event of the given type
  * with outcome derived from the result (or `error` on throw).
@@ -245,8 +330,12 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
     // BL-071 — record `attempted` BEFORE inner runs so the envelope tool's
     // own snapshot includes its own in-flight attempt. Only meaningful for
     // tool_invocation; resource/prompt counters not in scope today.
+    // BL-033 Slice 5 — same gate emits the soft-limit warning at wrap entry
+    // (the ratio is already known from the boundary; deterministic, before
+    // any tool work).
     if (eventType === 'tool_invocation') {
       ctx.counters?.record(name, 'attempted');
+      maybeWarnSoftLimit(ctx.rateLimit, args);
     }
     try {
       const result = await inner(...args);

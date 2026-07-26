@@ -116,16 +116,18 @@ The Worker does **not** inherit the website's Content-Security-Policy (the `verc
 
 ## Rate limiting & Inoreader budget
 
-Deep rationale for the numbers below is deferred to a future ADR; this section records what ships and where.
+Rationale for the tier design + the soft-limit transport: [ADR-0010](../../../src/docs/adr/0010-per-client-rate-limit-tiers.md). This section records what ships and where.
 
-### Per-key sliding windows (Q7)
+### Per-key sliding windows (Q7), tier-aware (BL-033 Slice 5)
 
 `src/ratelimit/limiter.ts` uses `@upstash/ratelimit` (`Ratelimit.slidingWindow`, per Q7's "use the library" resolution) against the MCP Upstash DB, keyed by `keyOwner` under the `mcp:ratelimit:*` prefix. Two tool classes:
 
-- **general** — 60/min + 1000/day, checked on every authenticated request
-- **radar** (`search_radar`, `get_latest_insights`; BL-038) — an _additional_ 5/min + 50/day pair, checked on top of the general buckets (additive — radar calls consume from all four)
+- **general** — checked on every authenticated request
+- **radar** (`search_radar`, `get_latest_insights`; BL-038) — an _additional_ pair, checked on top of the general buckets (additive — radar calls consume from all four)
 
-The binding tier (whichever bucket exhausted, or has fewest remaining) drives the 429 envelope's `RateLimit-*` / `Retry-After` headers (`src/ratelimit/headers.ts`), so agents can distinguish "slow my radar polling" from "slow everything." When Upstash credentials aren't bound, the limiter fails open with a `ratelimit.skipped` warning — local `wrangler dev` works without setup; production must have credentials wired. Contract details: [`operations/RATE_LIMITS.md`](operations/RATE_LIMITS.md).
+The four ceilings are **per-client tier-aware** (`src/ratelimit/tiers.ts`, `resolveTierLimits(auth.tier)` → `createLimiter(env, limits)`). The tier (`free-pilot`/`paid`/`enterprise`) is carried on the M2M token claim — not re-fetched from KV — so the limiter reads it locally with no eventual-consistency hazard (the ADR-0008 corollary; ADR-0010 §1). Static `MCP_KEY_*` keys and OAuth human-consent carry no tier → the generous `internal` tier (= the pre-Slice-5 60/1000/5/50, so no regression).
+
+The binding tier (whichever bucket exhausted, or has fewest remaining) drives the 429 envelope's `RateLimit-*` / `Retry-After` headers (`src/ratelimit/headers.ts`); every authenticated response (200 and 429) also carries **`RateLimit-Policy`** advertising the tier ceilings. When any bucket is ≥80% consumed (`CheckResult.minRemainingRatio`), the tool-metrics wrapper (`src/metrics/with-metrics.ts`) emits a best-effort **`notifications/message`** soft-limit warning on the request's SSE stream — which requires the server to declare the `logging` capability (`src/server.ts`); the always-present headers are the guaranteed fallback (ADR-0010 §2). When Upstash credentials aren't bound, the limiter fails open with a `ratelimit.skipped` warning — local `wrangler dev` works without setup; production must have credentials wired. Contract details: [`operations/RATE_LIMITS.md`](operations/RATE_LIMITS.md).
 
 ### Inoreader budget
 

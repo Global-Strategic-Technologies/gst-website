@@ -13,10 +13,12 @@ import {
   canonicalAudience,
   signM2mToken,
   verifyClientAssertion,
+  verifyM2mToken,
   verifyM2mTokenClaims,
   M2M_TOKEN_PREFIX,
   type M2mTokenClaims,
 } from '../../../src/oauth/m2m-token';
+import type { Env } from '../../../src/worker';
 import { sha256Hex, verifyM2mSecret, type M2mClientRecord } from '../../../src/oauth/m2m-clients';
 
 const SIGNING_KEY = 'unit-test-signing-key-32-bytes-xx';
@@ -76,6 +78,33 @@ describe('M2M self-contained token', () => {
     expect(canonicalAudience('https://mcp.globalstrategic.tech')).toBe(
       'https://mcp.globalstrategic.tech/mcp'
     );
+  });
+
+  // BL-033 Slice 5 — the tier claim rides on the self-contained token so the
+  // limiter reads it locally (no KV re-fetch on the hot path; ADR-0010).
+  it('round-trips the tier claim (sign → verify)', async () => {
+    const token = await signM2mToken(claims({ tier: 'paid' }), SIGNING_KEY);
+    const verified = await verifyM2mTokenClaims(token, SIGNING_KEY, AUD);
+    expect(verified!.tier).toBe('paid');
+  });
+
+  it('verifyM2mToken surfaces the tier into the AuthSuccess result', async () => {
+    const token = await signM2mToken(claims({ tier: 'enterprise' }), SIGNING_KEY);
+    const env = { OAUTH_M2M_SIGNING_KEY: SIGNING_KEY } as unknown as Env;
+    const auth = await verifyM2mToken(token, env, 'https://mcp.test');
+    expect(auth).not.toBeNull();
+    expect(auth!.keyOwner).toBe('M2M:ACME');
+    expect(auth!.tier).toBe('enterprise');
+  });
+
+  it('a legacy token minted without a tier verifies with tier undefined (self-heals to internal)', async () => {
+    const legacy = claims();
+    delete (legacy as Partial<M2mTokenClaims>).tier;
+    const token = await signM2mToken(legacy, SIGNING_KEY);
+    const env = { OAUTH_M2M_SIGNING_KEY: SIGNING_KEY } as unknown as Env;
+    const auth = await verifyM2mToken(token, env, 'https://mcp.test');
+    expect(auth).not.toBeNull();
+    expect(auth!.tier).toBeUndefined();
   });
 });
 

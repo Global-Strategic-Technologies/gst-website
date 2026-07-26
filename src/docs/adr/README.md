@@ -19,5 +19,6 @@ Lightweight, maintained records of load-bearing design decisions that span the w
 | [0007](0007-registered-prompt-pattern.md)                | Registered prompts as the consultant-workflow surface (+ maturity bar)                     | Accepted 2026-05-01                                                       |
 | [0008](0008-mcp-oauth-embedded-authorization-server.md)  | OAuth 2.1 as an embedded authorization server on the MCP Worker (dual-auth, M2M JWTs)      | Accepted 2026-07-24                                                       |
 | [0009](0009-compliance-audit-log-hash-chain.md)          | Compliance audit log — hash-chained, R2-immutable, Upstash-sequenced (best-effort enqueue) | Accepted 2026-07-26                                                       |
+| [0010](0010-per-client-rate-limit-tiers.md)              | Per-client rate-limit tiers in the token claim; soft-limit warnings over the SSE channel   | Accepted 2026-07-26 (0.41.0)                                              |
 
 _Established 2026-07-17 under BL-088 (development-docs distillation)._

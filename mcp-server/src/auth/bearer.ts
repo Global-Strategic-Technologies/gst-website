@@ -39,6 +39,16 @@ export interface AuthSuccess {
    * Handlers gate access via `assertScope(auth.scopes, required)`.
    */
   readonly scopes: readonly string[];
+  /**
+   * BL-033 Slice 5 — the client's rate-limit tier, carried on the M2M
+   * token claim and resolved to per-client ceilings via
+   * `resolveTierLimits(auth.tier)` at the request boundary. **Left unset**
+   * for static `MCP_KEY_*` keys and the OAuth human-consent path — both
+   * are internal-team identities that resolve to the generous `internal`
+   * tier (the pre-Slice-5 default), so omitting it is the no-regression
+   * behavior, not a gap.
+   */
+  readonly tier?: string;
 }
 
 /**

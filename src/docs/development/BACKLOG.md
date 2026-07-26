@@ -252,10 +252,12 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 **Rate limiting (per-client, contractual)**
 
-- [ ] Per-client tier (`free-pilot` / `paid` / `enterprise`) gates the limit ceilings; tier stored in Redis client record
-- [ ] Sliding-window limits applied per-tool per-client — radar tools share the global Inoreader budget circuit breaker introduced in BL-032
-- [ ] Quota exhaustion returns `429` with `Retry-After` header + a structured `RateLimit-Policy` header (RFC 9331) describing the limit so client engineers can self-diagnose
-- [ ] Soft-limit warning at 80% of quota emitted as an MCP-spec `notifications/message` so the calling agent can throttle itself before hitting the hard limit
+> ✅ **This AC block shipped 2026-07-26 as BL-033 Slice 5** (per-client tier-aware ceilings, `RateLimit-Policy` header, 80% soft-limit `notifications/message`). Decision record incl. tier-in-token vs KV re-fetch + the SSE notification-transport analysis: [ADR-0010](../adr/0010-per-client-rate-limit-tiers.md). Contract: [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md). Per-AC dispositions below.
+
+- [x] Per-client tier (`free-pilot` / `paid` / `enterprise`) gates the limit ceilings; tier stored in Redis client record — ✅ **with a recorded deviation**: the ceilings are now tier-aware (`ratelimit/tiers.ts` → `resolveTierLimits(auth.tier)` → `createLimiter(env, limits)`), but the `tier` field is stored in **Cloudflare KV** (the M2M client record's substrate per ADR-0008), NOT Redis, and travels in the self-contained token claim so the limiter reads it with no KV round-trip on the hot path (ADR-0010 §1). Static `MCP_KEY_*` + OAuth human-consent carry no tier → the `internal` default = the pre-Slice-5 60/1000/5/50 (no regression). **Numbers are tunable, non-contractual capability ceilings, not SLA quotas** (operator directive)
+- [x] Sliding-window limits applied per-tool per-client — radar tools share the global Inoreader budget circuit breaker introduced in BL-032 — ✅ shipped BL-032 Phase 3 + BL-038; Slice 5 makes the ceilings tier-aware. (Radar caps are per-client fairness + cache-cold defense-in-depth; the circuit breaker — wired into the radar tool path — is the real Inoreader-budget guard, since radar calls are ~99% cache hits)
+- [x] Quota exhaustion returns `429` with `Retry-After` header + a structured `RateLimit-Policy` header (RFC 9331) describing the limit so client engineers can self-diagnose — ✅ `Retry-After` shipped in Phase 3; `RateLimit-Policy` added in Slice 5 (quoted-policy form, on every authenticated 200 AND 429 — the transport-agnostic throttle signal)
+- [x] Soft-limit warning at 80% of quota emitted as an MCP-spec `notifications/message` so the calling agent can throttle itself before hitting the hard limit — ✅ emitted from the tool-metrics wrapper on the request's SSE stream when any bucket is ≥80% consumed. **Best-effort** (a client that doesn't parse interim SSE frames won't see it; the `RateLimit-*`/`RateLimit-Policy` headers are the guaranteed fallback) — requires the `logging` server capability (now declared). Transport analysis: ADR-0010 §2
 
 **Audit logging (compliance-grade)**
 

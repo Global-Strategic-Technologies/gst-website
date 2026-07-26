@@ -9,11 +9,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   rateLimitHeaders,
+  rateLimitPolicyHeader,
   reasonForTier,
   tooManyRequestsResponse,
   withRateLimitHeaders,
 } from '../../src/ratelimit/headers';
 import { chooseBindingTier, type CheckResult } from '../../src/ratelimit/limiter';
+import { TIER_LIMITS } from '../../src/ratelimit/tiers';
 
 const FIXED_NOW = 1_715_000_000_000; // arbitrary stable timestamp
 
@@ -270,5 +272,74 @@ describe('reasonForTier (BL-038)', () => {
     expect(reasonForTier('day')).toBe('rate-limit-per-day');
     expect(reasonForTier('radar-minute')).toBe('radar-rate-limit-per-minute');
     expect(reasonForTier('radar-day')).toBe('radar-rate-limit-per-day');
+  });
+});
+
+describe('rateLimitPolicyHeader (BL-033 Slice 5)', () => {
+  it('advertises the two general buckets for a general call', () => {
+    const policy = rateLimitPolicyHeader(TIER_LIMITS['free-pilot']!, 'general');
+    expect(policy).toBe('"general-min";q=30;w=60, "general-day";q=300;w=86400');
+  });
+
+  it('additionally advertises the radar pair for a radar call', () => {
+    const policy = rateLimitPolicyHeader(TIER_LIMITS['free-pilot']!, 'radar');
+    expect(policy).toBe(
+      '"general-min";q=30;w=60, "general-day";q=300;w=86400, ' +
+        '"radar-min";q=3;w=60, "radar-day";q=20;w=86400'
+    );
+  });
+
+  it('reflects the tier ceilings (enterprise vs free-pilot differ)', () => {
+    const ent = rateLimitPolicyHeader(TIER_LIMITS['enterprise']!, 'general');
+    expect(ent).toBe('"general-min";q=120;w=60, "general-day";q=10000;w=86400');
+  });
+});
+
+describe('RateLimit-Policy on responses (BL-033 Slice 5)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('tooManyRequestsResponse sets RateLimit-Policy when a policy is supplied', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_NOW);
+    const result: CheckResult = {
+      allowed: false,
+      limit: 30,
+      remaining: 0,
+      resetAt: FIXED_NOW + 30_000,
+      tier: 'minute',
+    };
+    const policy = rateLimitPolicyHeader(TIER_LIMITS['free-pilot']!, 'general');
+    const res = tooManyRequestsResponse(result, policy);
+    expect(res.status).toBe(429);
+    expect(res.headers.get('ratelimit-policy')).toBe(policy);
+  });
+
+  it('tooManyRequestsResponse omits RateLimit-Policy when no policy is supplied', () => {
+    const result: CheckResult = {
+      allowed: false,
+      limit: 30,
+      remaining: 0,
+      resetAt: Date.now() + 30_000,
+      tier: 'minute',
+    };
+    const res = tooManyRequestsResponse(result);
+    expect(res.headers.get('ratelimit-policy')).toBeNull();
+  });
+
+  it('withRateLimitHeaders sets RateLimit-Policy on an allowed 200 response', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_NOW);
+    const upstream = new Response('ok', { status: 200 });
+    const result: CheckResult = {
+      allowed: true,
+      limit: 60,
+      remaining: 50,
+      resetAt: FIXED_NOW + 30_000,
+      tier: 'minute',
+    };
+    const policy = rateLimitPolicyHeader(TIER_LIMITS['paid']!, 'general');
+    const wrapped = withRateLimitHeaders(upstream, result, policy);
+    expect(wrapped.status).toBe(200);
+    expect(wrapped.headers.get('ratelimit-policy')).toBe(policy);
   });
 });
