@@ -55,6 +55,20 @@ export const TIER_LIMITS: Record<string, TierLimits> = {
 /** The tier applied when a request carries no (or an unrecognized) tier. */
 export const DEFAULT_TIER = 'internal';
 
+/**
+ * The tiers an operator may assign at provisioning. Excludes `internal` —
+ * that is the implicit default for callers WITHOUT a tier (static keys,
+ * OAuth human-consent), not something you hand to an external pilot. Used by
+ * the admin endpoint to reject a mistyped `tier` up front rather than let it
+ * fail generous to `internal` (60/1000, looser than `free-pilot`).
+ */
+export const ASSIGNABLE_TIERS = ['free-pilot', 'paid', 'enterprise'] as const;
+
+/** Whether `tier` is an operator-assignable tier (see `ASSIGNABLE_TIERS`). */
+export function isAssignableTier(tier: string): boolean {
+  return (ASSIGNABLE_TIERS as readonly string[]).includes(tier);
+}
+
 // Log an unknown non-empty tier at most once per distinct value, so a
 // misconfigured client record surfaces in `wrangler tail` without spamming
 // the log on every request.

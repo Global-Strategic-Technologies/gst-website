@@ -67,6 +67,33 @@ describe('withMetricsCore soft-limit warning', () => {
     expect(notif.params.data.limit).toBe(30);
   });
 
+  it('reports the ratio-tripping bucket (nearestLimit), not the binding bucket', async () => {
+    // Binding bucket is the minute tier (absolute-fewest remaining, 5/60), but the
+    // day bucket is proportionally closer to its cliff (100/1000 = 0.10) and is what
+    // tripped the warning. The agent must be told to throttle the DAY window.
+    const extra = extraWith(() => Promise.resolve());
+    const ctx: MetricsContext = {
+      sink: new NoopSink(),
+      rateLimit: {
+        tier: 'minute', // binding
+        limit: 60,
+        remaining: 5,
+        resetAt: Date.now() + 30_000,
+        minRemainingRatio: 0.1,
+        nearestLimit: { tier: 'day', limit: 1000, remaining: 100, resetAt: Date.now() + 3_600_000 },
+      },
+    };
+    const wrapped = withMetricsCore('tool_invocation', 't', ctx, () => 'success', ok);
+    await wrapped({}, extra);
+
+    const data = (
+      extra.sendNotification.mock.calls[0]![0] as { params: { data: Record<string, unknown> } }
+    ).params.data;
+    expect(data.tier).toBe('day');
+    expect(data.limit).toBe(1000);
+    expect(data.remaining).toBe(100);
+  });
+
   it('fires exactly at the 0.20 threshold boundary', async () => {
     const extra = extraWith(() => Promise.resolve());
     const wrapped = withMetricsCore('tool_invocation', 't', baseCtx(rl(0.2)), () => 'success', ok);

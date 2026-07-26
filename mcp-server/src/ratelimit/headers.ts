@@ -1,13 +1,19 @@
 /**
- * RFC 9331 RateLimit-* header builder + 429 response envelope (BL-032 Phase 3).
+ * RateLimit-* header builder + 429 response envelope (BL-032 Phase 3).
  *
- * RFC 9331 (the "RateLimit Header Fields for HTTP" RFC) standardizes:
+ * Implements the IETF "RateLimit header fields for HTTP" spec
+ * (draft-ietf-httpapi-ratelimit-headers), which standardizes:
  *   - RateLimit-Limit:     max requests in the active window
  *   - RateLimit-Remaining: requests left
  *   - RateLimit-Reset:     seconds until the active window resets
+ *   - RateLimit-Policy:    the quota policy in force (BL-033 Slice 5)
+ *
+ * (Earlier revisions of this file cited "RFC 9331" for these fields — that
+ * is wrong: RFC 9331 is L4S ECN. The RateLimit fields are the httpapi draft
+ * above; corrected 2026-07-26.)
  *
  * On 429 responses we additionally emit `Retry-After` (RFC 7231) — older
- * clients that don't read the RFC 9331 fields can still honor it. Both
+ * clients that don't read the RateLimit fields can still honor it. Both
  * headers carry the same value (seconds until reset).
  *
  * These are pure functions over a `CheckResult` from `./limiter.ts`. No
@@ -37,7 +43,7 @@ export function reasonForTier(tier: CheckResult['tier']): string {
 }
 
 /**
- * Build the RFC 9331 `RateLimit-Policy` header value describing the client's
+ * Build the `RateLimit-Policy` header value describing the client's
  * tier ceilings (BL-033 Slice 5). Unlike the `RateLimit-*` counters, this is
  * a static description of the *policy* — the windows that apply to this
  * request — so client engineers can self-diagnose which budget they're
@@ -63,7 +69,7 @@ export function rateLimitPolicyHeader(limits: TierLimits, toolClass: 'general' |
 }
 
 /**
- * Build RFC 9331 headers from a check result. Round-up to whole seconds —
+ * Build the RateLimit-* headers from a check result. Round-up to whole seconds —
  * the spec requires an integer; floor would tell clients to retry slightly
  * before the window actually resets.
  */
@@ -78,7 +84,7 @@ export function rateLimitHeaders(result: CheckResult): Record<string, string> {
 }
 
 /**
- * Build a 429 Response from a denied check result. Carries the RFC 9331
+ * Build a 429 Response from a denied check result. Carries the RateLimit-*
  * headers above plus `Retry-After` (RFC 7231) and a structured JSON body
  * naming the binding tier so clients can format a useful error message.
  */
@@ -108,7 +114,7 @@ export function tooManyRequestsResponse(result: CheckResult, policy?: string): R
 }
 
 /**
- * Add RFC 9331 headers to an already-constructed allowed response. Always
+ * Add the RateLimit-* headers to an already-constructed allowed response. Always
  * returns a new Response (Workers' Response.headers can be immutable). When
  * `policy` is supplied (BL-033 Slice 5), also emit `RateLimit-Policy` so the
  * tier ceilings ride on every authenticated 200, not just 429s.

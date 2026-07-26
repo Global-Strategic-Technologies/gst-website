@@ -110,6 +110,19 @@ export interface RateLimitCheck {
   readonly remaining: number;
   readonly resetAt: number;
   readonly minRemainingRatio?: number;
+  /**
+   * The bucket that owns `minRemainingRatio` (the proportional-closest to its
+   * cliff) — which may differ from the binding bucket named by the fields
+   * above. The soft-limit warning reports THIS bucket so the agent throttles
+   * the window that is actually under pressure. Falls back to the top-level
+   * fields when absent (fixtures / legacy callers).
+   */
+  readonly nearestLimit?: {
+    readonly tier: string;
+    readonly limit: number;
+    readonly remaining: number;
+    readonly resetAt: number;
+  };
 }
 
 /**
@@ -231,8 +244,13 @@ function maybeWarnSoftLimit(rl: RateLimitCheck | undefined, args: readonly unkno
   if (!rl || rl.minRemainingRatio == null || rl.minRemainingRatio > 0.2) return;
   const extra = findMcpExtra(args);
   if (!extra?.sendNotification) return;
+  // Report the bucket that TRIPPED the ratio (`nearestLimit`), not the binding
+  // bucket in the top-level fields — they can differ (binding = absolute-fewest;
+  // ratio = proportional-fewest), and the agent should throttle the window that
+  // is actually under pressure. Fall back to the top-level fields if absent.
+  const b = rl.nearestLimit ?? rl;
   try {
-    const resetSeconds = Math.max(0, Math.ceil((rl.resetAt - Date.now()) / 1000));
+    const resetSeconds = Math.max(0, Math.ceil((b.resetAt - Date.now()) / 1000));
     void Promise.resolve(
       extra.sendNotification({
         method: 'notifications/message',
@@ -241,11 +259,11 @@ function maybeWarnSoftLimit(rl: RateLimitCheck | undefined, args: readonly unkno
           logger: 'ratelimit',
           data: {
             message:
-              `Approaching rate limit (tier ${rl.tier}): ${rl.remaining} of ` +
-              `${rl.limit} remaining in the active window, resets in ${resetSeconds}s.`,
-            tier: rl.tier,
-            limit: rl.limit,
-            remaining: rl.remaining,
+              `Approaching rate limit (tier ${b.tier}): ${b.remaining} of ` +
+              `${b.limit} remaining in the active window, resets in ${resetSeconds}s.`,
+            tier: b.tier,
+            limit: b.limit,
+            remaining: b.remaining,
             resetSeconds,
           },
         },

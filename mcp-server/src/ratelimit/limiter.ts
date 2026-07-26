@@ -50,7 +50,7 @@ interface RatelimitResponse {
 export interface CheckResult {
   /** Whether the request is allowed through. */
   readonly allowed: boolean;
-  /** RFC 9331-compatible window limit (max requests in the active window). */
+  /** RateLimit-header window limit (max requests in the active window). */
   readonly limit: number;
   /** Requests remaining in the active window. */
   readonly remaining: number;
@@ -77,6 +77,21 @@ export interface CheckResult {
    * soft-limit emit guards with `!= null` so an absent value never warns.
    */
   readonly minRemainingRatio?: number;
+  /**
+   * BL-033 Slice 5 — the bucket that OWNS `minRemainingRatio` (the
+   * proportional-closest to its cliff), which is NOT necessarily the binding
+   * bucket above (binding = absolute-fewest-remaining; e.g. minute 50/60 can
+   * be binding while day 100/1000 is proportionally closer). The soft-limit
+   * warning reports THIS bucket so the agent throttles the right window
+   * rather than the one the top-level `tier`/`limit`/`remaining` name.
+   * Populated alongside `minRemainingRatio` by `pickBindingTier`.
+   */
+  readonly nearestLimit?: {
+    readonly tier: 'minute' | 'day' | 'radar-minute' | 'radar-day';
+    readonly limit: number;
+    readonly remaining: number;
+    readonly resetAt: number;
+  };
 }
 
 /** Limiter handle — `null` when Upstash isn't reachable (graceful skip). */
@@ -179,12 +194,23 @@ interface TaggedBucket {
  *     Tie-break: lower `allPassPriority` wins (closest-cliff first).
  */
 function pickBindingTier(buckets: readonly TaggedBucket[]): CheckResult {
-  // Smallest headroom fraction across EVERY checked bucket (not just the
-  // binding one) — drives the 80%-consumed soft-limit warning. Guard the
-  // divide against a pathological limit of 0.
-  const minRemainingRatio = Math.min(
-    ...buckets.map((b) => (b.res.limit > 0 ? b.res.remaining / b.res.limit : 0))
-  );
+  // Proportional headroom per bucket — guard the divide against limit 0.
+  const ratioOf = (b: TaggedBucket): number =>
+    b.res.limit > 0 ? b.res.remaining / b.res.limit : 0;
+  // The proportional-closest bucket across EVERY checked bucket (not just the
+  // binding one). Drives the 80%-consumed soft-limit warning AND names the
+  // bucket the agent should actually throttle (`nearestLimit`).
+  let nearest = buckets[0]!;
+  for (const b of buckets) {
+    if (ratioOf(b) < ratioOf(nearest)) nearest = b;
+  }
+  const minRemainingRatio = ratioOf(nearest);
+  const nearestLimit = {
+    tier: nearest.tier,
+    limit: nearest.res.limit,
+    remaining: nearest.res.remaining,
+    resetAt: nearest.res.reset,
+  };
   const denied = buckets.filter((b) => !b.res.success);
   if (denied.length > 0) {
     const sorted = [...denied].sort((a, b) => {
@@ -199,6 +225,7 @@ function pickBindingTier(buckets: readonly TaggedBucket[]): CheckResult {
       resetAt: chosen.res.reset,
       tier: chosen.tier,
       minRemainingRatio,
+      nearestLimit,
     };
   }
   const sorted = [...buckets].sort((a, b) => {
@@ -213,6 +240,7 @@ function pickBindingTier(buckets: readonly TaggedBucket[]): CheckResult {
     resetAt: chosen.res.reset,
     tier: chosen.tier,
     minRemainingRatio,
+    nearestLimit,
   };
 }
 

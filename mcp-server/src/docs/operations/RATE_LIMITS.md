@@ -40,7 +40,7 @@ An external pilot's tier is set on its M2M client record (`tier`: `free-pilot` /
 
 ---
 
-## Response headers (RFC 9331)
+## Response headers (IETF RateLimit fields)
 
 Every authenticated response (200 OR 429) carries:
 
