@@ -84,7 +84,7 @@
     "lint-staged": "^17.0.8",
     "playwright": "^1.58.0",
     "postcss-html": "^1.8.1",
-    "prettier": "3.9.5",
+    "prettier": "3.9.6",
     "prettier-plugin-astro": "^0.14.1",
     "stylelint": "^17.14.0",
     "stylelint-config-html": "^1.1.0",
