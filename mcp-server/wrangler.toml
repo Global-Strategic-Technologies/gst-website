@@ -257,7 +257,11 @@ bucket_name = "gst-mcp-audit-staging"
 [env.production]
 name = "gst-mcp"
 routes = [
-  { pattern = "mcp.globalstrategic.tech", custom_domain = true }
+  { pattern = "mcp.globalstrategic.tech", custom_domain = true },
+  # BL-033 Slice 4 — dedicated status subdomain. custom_domain auto-provisions
+  # the DNS record + edge cert on deploy (the zone is already on Cloudflare).
+  # worker.ts serves the status page at this subdomain's root (`/`).
+  { pattern = "status.mcp.globalstrategic.tech", custom_domain = true }
 ]
 
 # Environment discriminator — see staging block for rationale.

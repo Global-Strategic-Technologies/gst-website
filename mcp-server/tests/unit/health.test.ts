@@ -86,6 +86,14 @@ describe('buildHealthPayload', () => {
     expect(payload.phase).toContain('BL-032 Phase 5');
   });
 
+  it('reports env.VERSION (deploy-injected) when set, else the local fallback (BL-033 Slice 4)', async () => {
+    redisGet.mockResolvedValue(null);
+    const injected = await buildHealthPayload({ ...baseEnv, VERSION: '9.9.9' } as Env);
+    expect(injected.version).toBe('9.9.9');
+    const fallback = await buildHealthPayload(baseEnv);
+    expect(fallback.version).toMatch(/^0\.[0-9]+\.[0-9]+$/);
+  });
+
   it('returns ok:false when MCP DB is degraded', async () => {
     // T.X.2 fix: probeMcp now uses SET-then-DEL, so MCP-DB failure is
     // simulated by rejecting the SET (not the GET). Phase B simplification:

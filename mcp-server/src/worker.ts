@@ -157,6 +157,14 @@ export interface Env {
   // SDK's `release` option reads from a Sentry-namespaced var.
   SENTRY_RELEASE?: string;
 
+  // Deployed package.json version — injected by `scripts/deploy.mjs` via
+  // `wrangler deploy --var VERSION:<v>` (BL-033 Slice 4). Surfaced on /health
+  // + /status as the single source of truth for the running version. Falls
+  // back to the `VERSION` literal in health.ts for local `wrangler dev` /
+  // tests where this var is unbound — replacing the old hand-bumped-const
+  // drift where /health reported a stale version while GIT_SHA was fresh.
+  VERSION?: string;
+
   // Cloudflare Analytics Engine binding — typed-metric emission target
   // (BL-032.75 Phase 1). Bound per environment in wrangler.toml:
   //   - top-level (`wrangler dev`): dataset `mcp_events_dev`
@@ -500,12 +508,23 @@ export const handler: ExportedHandler<Env> = {
       return withCors(Response.json(payload), origin);
     }
 
-    // 2.1. Status page (BL-032.75 Phase 3) — public HTML over the same
-    //      health payload /health already exposes, plus the alert
-    //      evaluator's last-run summary. No auth (health is already
-    //      unauthenticated and shows strictly more); 60s edge cache
-    //      keeps uptime-monitor pollers off the Upstash probes.
-    if (url.pathname === '/status' && request.method === 'GET') {
+    // 2.1. Status page (BL-032.75 Phase 3; panels extended in BL-033 Slice 4)
+    //      — public HTML over the health payload + the evaluator's cached
+    //      alert summary + precomputed status metrics (no live AE on the
+    //      render path). No auth (health is already unauthenticated and shows
+    //      strictly more). `Cache-Control: max-age=60` sets client/downstream
+    //      caching (browsers + uptime monitors that honor it); it does NOT by
+    //      itself trigger Cloudflare edge caching of a Worker Response (that
+    //      needs the Cache API) — the render is cheap regardless (cached reads,
+    //      no live AE). BL-033 Slice 4 also fronts this at
+    //      `status.mcp.globalstrategic.tech`: serve status at the subdomain
+    //      root as well as the apex `/status` path. This check precedes the
+    //      `isRoutedPath` 404 gate, so the subdomain root is intercepted here.
+    if (
+      (url.pathname === '/status' ||
+        (url.hostname.startsWith('status.') && url.pathname === '/')) &&
+      request.method === 'GET'
+    ) {
       const html = await buildStatusHtml(env);
       return withCors(
         new Response(html, {

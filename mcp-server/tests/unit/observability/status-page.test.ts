@@ -128,3 +128,49 @@ describe('buildStatusHtml', () => {
     expect(html).toContain('&lt;script&gt;');
   });
 });
+
+// A createMcpClient whose get() answers per-key: the alert summary for
+// LAST_EVAL_KEY, the precomputed metrics blob for STATUS_METRICS_KEY.
+const keyedRedis = (byKey: Record<string, unknown>) =>
+  ({ get: vi.fn(async (k: string) => byKey[k] ?? null) }) as never;
+
+describe('buildStatusHtml — BL-033 Slice 4 panels', () => {
+  const METRICS_KEY = 'mcp:status:metrics:production';
+
+  it('renders per-tool latency as PLAIN values (no badge/threshold markup)', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      keyedRedis({
+        [METRICS_KEY]: {
+          evaluatedAt: '2026-07-26T14:00:00.000Z',
+          toolLatency: [{ name: 'search_portfolio', p50Ms: 5, p95Ms: 12, p99Ms: 30, n: 100 }],
+          audit: {
+            lastSeq: 42,
+            batches24h: 7,
+            records24h: 55,
+            lastProcessedAt: '2026-07-26T14:00:00Z',
+          },
+        },
+      })
+    );
+    const html = await buildStatusHtml(ENV);
+    // Latency panel present with plain cells.
+    expect(html).toContain('Tool latency');
+    expect(html).toContain('search_portfolio');
+    expect(html).toContain('<td>5</td>');
+    expect(html).toContain('<td>12</td>');
+    expect(html).toContain('as of 2026-07-26T14:00:00.000Z');
+    // Audit panel present.
+    expect(html).toContain('Audit log');
+    expect(html).toContain('<td>42</td>');
+    // Surface-not-ratify: latency values are NOT wrapped in the badge color spans.
+    expect(html).not.toMatch(/color:#0a7d4f[^<]*>\s*5\s*</);
+    expect(html).not.toContain('500ms');
+  });
+
+  it('renders "metrics unavailable" when the metrics cache is absent (page still renders)', async () => {
+    mockCreateMcpClient.mockReturnValue(keyedRedis({})); // no metrics key
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('OPERATIONAL'); // page still renders end-to-end
+    expect(html).toContain('metrics unavailable');
+  });
+});
