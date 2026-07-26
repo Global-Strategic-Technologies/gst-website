@@ -92,6 +92,17 @@ export interface M2mTokenClaims {
   exp: number;
   iat: number;
   jti: string;
+  /**
+   * BL-033 Slice 5 — the client's rate-limit tier, minted from
+   * `record.tier`. Travels IN the self-contained token (not re-fetched from
+   * the KV record on the hot path) precisely so the limiter never
+   * reintroduces the ~60s cross-colo eventual-consistency hazard the
+   * self-contained-JWT design eliminated (see the module docstring above +
+   * ADR-0008/ADR-0010). Optional on the type so a legacy ≤1h token minted
+   * before this shipped still verifies — its absent `tier` resolves to the
+   * generous `internal` tier and self-heals on the next re-exchange.
+   */
+  tier?: string;
 }
 
 /** Sign the self-contained M2M access token. Exported for unit tests. */
@@ -161,6 +172,7 @@ export async function verifyM2mToken(
     ok: true,
     keyOwner: claims.keyOwner,
     scopes: claims.scope.split(' ').filter(Boolean),
+    tier: claims.tier,
   };
 }
 
@@ -367,6 +379,7 @@ export async function handleClientCredentialsToken(request: Request, env: Env): 
       exp: now + M2M_TOKEN_TTL_S,
       iat: now,
       jti: crypto.randomUUID(),
+      tier: record.tier,
     },
     env.OAUTH_M2M_SIGNING_KEY
   );

@@ -37,6 +37,7 @@ import {
   listM2mClients,
   type M2mJwk,
 } from '../oauth/m2m-clients';
+import { ASSIGNABLE_TIERS, isAssignableTier } from '../ratelimit/tiers';
 import type { Env } from '../worker';
 
 type EnvWithHelpers = Env & { OAUTH_PROVIDER: OAuthHelpers };
@@ -189,6 +190,19 @@ export async function handleAdminM2mClients(request: Request, env: Env): Promise
       if (!body.name || !Array.isArray(body.allowedScopes) || body.allowedScopes.length === 0) {
         return json(
           { error: 'bad-request', message: 'name and non-empty allowedScopes[] required' },
+          400
+        );
+      }
+      // BL-033 Slice 5: reject a mistyped tier up front. Without this a typo
+      // resolves fail-generous to `internal` (60/1000) — LOOSER than
+      // `free-pilot` — silently defeating abuse containment. Omitting `tier`
+      // is fine; it defaults to `free-pilot` in `createM2mClient`.
+      if (body.tier !== undefined && !isAssignableTier(body.tier)) {
+        return json(
+          {
+            error: 'bad-request',
+            message: `tier must be one of ${ASSIGNABLE_TIERS.join(', ')} (or omitted → free-pilot)`,
+          },
           400
         );
       }

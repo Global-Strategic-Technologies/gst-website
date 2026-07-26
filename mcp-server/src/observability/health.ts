@@ -72,7 +72,7 @@ import type { Env } from '../worker';
 // deployed `/health` no longer drifts. This literal is used only when unbound
 // (wrangler dev / tests); keep it roughly current but it is no longer
 // load-bearing for prod/staging.
-const VERSION = '0.40.0';
+const VERSION = '0.41.0';
 
 /** Upstash key written by `radar-live-store.ts` (and refreshed every 6h by `cron/radar-refresh.ts`). */
 const RADAR_FYI_CACHE_KEY = 'mcp:radar:cache:fyi';

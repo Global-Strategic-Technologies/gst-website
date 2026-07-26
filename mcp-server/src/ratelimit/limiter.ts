@@ -31,6 +31,7 @@
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { createMcpClient } from '../lib/upstash-clients';
+import { INTERNAL_TIER, type TierLimits } from './tiers';
 import type { Env } from '../worker';
 
 /**
@@ -49,7 +50,7 @@ interface RatelimitResponse {
 export interface CheckResult {
   /** Whether the request is allowed through. */
   readonly allowed: boolean;
-  /** RFC 9331-compatible window limit (max requests in the active window). */
+  /** RateLimit-header window limit (max requests in the active window). */
   readonly limit: number;
   /** Requests remaining in the active window. */
   readonly remaining: number;
@@ -64,6 +65,33 @@ export interface CheckResult {
    * everything."
    */
   readonly tier: 'minute' | 'day' | 'radar-minute' | 'radar-day';
+  /**
+   * BL-033 Slice 5 — the smallest `remaining / limit` ratio across ALL
+   * buckets checked for this request (not just the binding one). Drives the
+   * 80%-consumed soft-limit `notifications/message` warning at the tool
+   * wrapper: `minRemainingRatio <= 0.20` means some bucket is ≥80% spent.
+   *
+   * Optional because callers that construct a `CheckResult` literal
+   * directly (test fixtures, and any future direct use) needn't supply it —
+   * `pickBindingTier` always populates it for real limiter results. The
+   * soft-limit emit guards with `!= null` so an absent value never warns.
+   */
+  readonly minRemainingRatio?: number;
+  /**
+   * BL-033 Slice 5 — the bucket that OWNS `minRemainingRatio` (the
+   * proportional-closest to its cliff), which is NOT necessarily the binding
+   * bucket above (binding = absolute-fewest-remaining; e.g. minute 50/60 can
+   * be binding while day 100/1000 is proportionally closer). The soft-limit
+   * warning reports THIS bucket so the agent throttles the right window
+   * rather than the one the top-level `tier`/`limit`/`remaining` name.
+   * Populated alongside `minRemainingRatio` by `pickBindingTier`.
+   */
+  readonly nearestLimit?: {
+    readonly tier: 'minute' | 'day' | 'radar-minute' | 'radar-day';
+    readonly limit: number;
+    readonly remaining: number;
+    readonly resetAt: number;
+  };
 }
 
 /** Limiter handle — `null` when Upstash isn't reachable (graceful skip). */
@@ -78,45 +106,49 @@ export interface Limiter {
   check: (keyOwner: string, toolClass: 'general' | 'radar') => Promise<CheckResult>;
 }
 
-const PERMINUTE_LIMIT = 60;
-const PERDAY_LIMIT = 1000;
-const PERRADARMINUTE_LIMIT = 5;
-const PERRADARDAY_LIMIT = 50;
 const KEY_PREFIX = 'mcp:ratelimit';
 
 /**
  * Build a limiter from the Worker's env bindings, or return `null` if
  * Upstash credentials aren't present. Callers should treat `null` as
  * "fail open" with a safeLog warning.
+ *
+ * BL-033 Slice 5: `limits` selects the four sliding-window ceilings by the
+ * caller's tier (`resolveTierLimits(auth.tier)` at the request boundary).
+ * The default is `INTERNAL_TIER` (the pre-Slice-5 60/1000/5/50 constants),
+ * so every existing `createLimiter(env)` caller and test keeps identical
+ * behavior with no regression. The Redis key prefixes are tier-independent
+ * — a client whose tier changes reuses the same keys, and the new ceiling
+ * simply applies on the next window evaluation.
  */
-export function createLimiter(env: Env): Limiter | null {
+export function createLimiter(env: Env, limits: TierLimits = INTERNAL_TIER): Limiter | null {
   const redis = createMcpClient(env);
   if (!redis) return null;
 
   const perMinute = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(PERMINUTE_LIMIT, '60 s'),
+    limiter: Ratelimit.slidingWindow(limits.perMinute, '60 s'),
     prefix: `${KEY_PREFIX}:gen:min`,
     analytics: false,
   });
 
   const perDay = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(PERDAY_LIMIT, '1 d'),
+    limiter: Ratelimit.slidingWindow(limits.perDay, '1 d'),
     prefix: `${KEY_PREFIX}:gen:day`,
     analytics: false,
   });
 
   const perRadarMinute = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(PERRADARMINUTE_LIMIT, '60 s'),
+    limiter: Ratelimit.slidingWindow(limits.radarPerMinute, '60 s'),
     prefix: `${KEY_PREFIX}:radar:min`,
     analytics: false,
   });
 
   const perRadarDay = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(PERRADARDAY_LIMIT, '1 d'),
+    limiter: Ratelimit.slidingWindow(limits.radarPerDay, '1 d'),
     prefix: `${KEY_PREFIX}:radar:day`,
     analytics: false,
   });
@@ -162,6 +194,23 @@ interface TaggedBucket {
  *     Tie-break: lower `allPassPriority` wins (closest-cliff first).
  */
 function pickBindingTier(buckets: readonly TaggedBucket[]): CheckResult {
+  // Proportional headroom per bucket — guard the divide against limit 0.
+  const ratioOf = (b: TaggedBucket): number =>
+    b.res.limit > 0 ? b.res.remaining / b.res.limit : 0;
+  // The proportional-closest bucket across EVERY checked bucket (not just the
+  // binding one). Drives the 80%-consumed soft-limit warning AND names the
+  // bucket the agent should actually throttle (`nearestLimit`).
+  let nearest = buckets[0]!;
+  for (const b of buckets) {
+    if (ratioOf(b) < ratioOf(nearest)) nearest = b;
+  }
+  const minRemainingRatio = ratioOf(nearest);
+  const nearestLimit = {
+    tier: nearest.tier,
+    limit: nearest.res.limit,
+    remaining: nearest.res.remaining,
+    resetAt: nearest.res.reset,
+  };
   const denied = buckets.filter((b) => !b.res.success);
   if (denied.length > 0) {
     const sorted = [...denied].sort((a, b) => {
@@ -175,6 +224,8 @@ function pickBindingTier(buckets: readonly TaggedBucket[]): CheckResult {
       remaining: chosen.res.remaining,
       resetAt: chosen.res.reset,
       tier: chosen.tier,
+      minRemainingRatio,
+      nearestLimit,
     };
   }
   const sorted = [...buckets].sort((a, b) => {
@@ -188,6 +239,8 @@ function pickBindingTier(buckets: readonly TaggedBucket[]): CheckResult {
     remaining: chosen.res.remaining,
     resetAt: chosen.res.reset,
     tier: chosen.tier,
+    minRemainingRatio,
+    nearestLimit,
   };
 }
 

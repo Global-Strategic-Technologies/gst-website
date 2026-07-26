@@ -22,7 +22,13 @@ import { withCors } from '../auth/cors';
 import { safeLog } from '../auth/safe-logger';
 import { hasScope } from '../auth/scopes';
 import { createLimiter } from '../ratelimit/limiter';
-import { reasonForTier, tooManyRequestsResponse, withRateLimitHeaders } from '../ratelimit/headers';
+import { resolveTierLimits } from '../ratelimit/tiers';
+import {
+  reasonForTier,
+  rateLimitPolicyHeader,
+  tooManyRequestsResponse,
+  withRateLimitHeaders,
+} from '../ratelimit/headers';
 import { extractToolName, toolClassFor } from '../dispatch/extract-tool-name';
 import { tagRequest } from '../observability/sentry';
 import { AnalyticsEngineSink } from '../metrics/_index';
@@ -54,7 +60,15 @@ export async function handleAuthenticated(
   // failures fail-safe to `'general'`.
   const toolName = await extractToolName(request);
   const toolClass = toolClassFor(toolName);
-  const limiter = createLimiter(env);
+  // BL-033 Slice 5: the client's tier (carried on the M2M token claim;
+  // undefined for static keys + OAuth human-consent) selects the four
+  // sliding-window ceilings. `RateLimit-Policy` advertises those ceilings
+  // on every authenticated response (200 and 429) — the transport-agnostic
+  // throttle signal, guaranteed even for clients that don't parse the SSE
+  // soft-limit notification.
+  const limits = resolveTierLimits(auth.tier);
+  const rlPolicy = rateLimitPolicyHeader(limits, toolClass);
+  const limiter = createLimiter(env, limits);
   let rlResult = null;
   if (limiter) {
     rlResult = await limiter.check(auth.keyOwner, toolClass);
@@ -68,7 +82,7 @@ export async function handleAuthenticated(
         success: false,
         errorCode: 'rate-limit',
       });
-      return withCors(tooManyRequestsResponse(rlResult), origin);
+      return withCors(tooManyRequestsResponse(rlResult, rlPolicy), origin);
     }
   } else {
     safeLog({
@@ -112,7 +126,7 @@ export async function handleAuthenticated(
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       });
-      const withRl = rlResult ? withRateLimitHeaders(resp, rlResult) : resp;
+      const withRl = rlResult ? withRateLimitHeaders(resp, rlResult, rlPolicy) : resp;
       return withCors(withRl, origin);
     }
     // BL-032.75 Phase 0: tag this SSR endpoint's egress separately from
@@ -140,7 +154,7 @@ export async function handleAuthenticated(
       durationMs,
       success: true,
     });
-    const withRl = rlResult ? withRateLimitHeaders(resp, rlResult) : resp;
+    const withRl = rlResult ? withRateLimitHeaders(resp, rlResult, rlPolicy) : resp;
     return withCors(withRl, origin);
   }
 
@@ -190,6 +204,11 @@ export async function handleAuthenticated(
       metricsSink,
       keyOwner: auth.keyOwner,
       audit,
+      // BL-033 Slice 5: hand the boundary's already-computed rate-limit
+      // result to the tool wrapper so it can emit the 80%-consumed soft-limit
+      // notification WITHOUT a second Upstash round-trip. `null` (graceful
+      // skip) → undefined (the optional field), so no warning fires.
+      rateLimit: rlResult ?? undefined,
     })
   );
   const response = await mcp(request, env, ctx);
@@ -205,6 +224,6 @@ export async function handleAuthenticated(
     success: response.status < 400,
   });
 
-  const withRl = rlResult ? withRateLimitHeaders(response, rlResult) : response;
+  const withRl = rlResult ? withRateLimitHeaders(response, rlResult, rlPolicy) : response;
   return withCors(withRl, origin);
 }

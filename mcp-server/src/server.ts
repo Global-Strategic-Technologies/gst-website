@@ -109,6 +109,15 @@ export interface ServerContext {
    * (input params must never reach AE / Sentry / ops logs; ADR-0009).
    */
   audit?: import('./audit/_index').AuditContext;
+
+  /**
+   * BL-033 Slice 5 — the boundary's already-computed rate-limit result for
+   * this request. Threaded into `MetricsContext.rateLimit` so the
+   * `withMetricsCore` chokepoint can emit the 80%-consumed soft-limit
+   * `notifications/message` warning without a second Upstash round-trip.
+   * Omitted for stdio / tests / graceful-skip (→ no warning).
+   */
+  rateLimit?: import('./ratelimit/limiter').CheckResult;
 }
 
 /**
@@ -124,10 +133,18 @@ export interface ServerContext {
  * Inoreader creds aren't bound at the runtime level.
  */
 export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer {
-  const server = new McpServer({
-    name: 'gst-mcp',
-    version: '0.1.0',
-  });
+  const server = new McpServer(
+    {
+      name: 'gst-mcp',
+      version: '0.1.0',
+    },
+    // BL-033 Slice 5: declare the `logging` capability so a tool handler may
+    // emit the 80%-consumed soft-limit `notifications/message` via
+    // `extra.sendNotification`. Without it the SDK's
+    // `assertNotificationCapability` throws "Server does not support logging",
+    // which would turn a best-effort soft warning into a failed tool call.
+    { capabilities: { logging: {} } }
+  );
   const scopes = ctx.scopes ?? DEFAULT_SCOPES;
 
   // BL-032.75 Phase 1: build the per-request MetricsContext once and thread
@@ -178,6 +195,7 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
           counters: new InMemoryToolCallCounters(),
           irlBodyCache,
           audit: ctx.audit,
+          rateLimit: ctx.rateLimit,
         }
       : {
           sink: ctx.metricsSink,
@@ -185,6 +203,7 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
           counters: new InMemoryToolCallCounters(),
           irlBodyCache,
           audit: ctx.audit,
+          rateLimit: ctx.rateLimit,
         };
 
   // Tools (transport-portable)

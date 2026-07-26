@@ -1,16 +1,18 @@
 # MCP Server Rate Limits
 
-> **Audience**: team-member consumers + operators. Consumers want to know "what budgets do I have, what do response headers tell me, what do I do when rate-limited?" Operators additionally want "how do I tune the limits, where's the Upstash quota envelope, when does the circuit-breaker open?"
+> **Audience**: team-member + external-pilot consumers, and operators. Consumers want to know "what budgets do I have, what do response headers tell me, what do I do when rate-limited?" Operators additionally want "how do I tune the limits, where's the Upstash quota envelope, when does the circuit-breaker open?"
 >
-> **Status**: BL-032 Phase 3 — substrate in place; full enforcement validated in Phase 6 against staging Upstash.
+> **Status**: BL-032 Phase 3 substrate + BL-038 radar tier + **BL-033 Slice 5 per-client tiers** (2026-07-26). Full sliding-window enforcement is validated against staging Upstash (not CI — no live Redis in unit runs).
 >
-> **Architecture & rationale**: [`ARCHITECTURE.md` § Rate limiting & Inoreader budget](../ARCHITECTURE.md#rate-limiting--inoreader-budget).
+> **Architecture & rationale**: [`ARCHITECTURE.md` § Rate limiting & Inoreader budget](../ARCHITECTURE.md#rate-limiting--inoreader-budget) · [ADR-0010](../../../../src/docs/adr/0010-per-client-rate-limit-tiers.md) (tier design + soft-limit transport).
 
 ---
 
 ## Per-key budgets
 
-Every authenticated request consumes one token from the budgets below. Buckets are **per `keyOwner`** (see [`AUTH.md`](./AUTH.md) — your `MCP_KEY_<INITIALS>` suffix is the bucket identifier). Two team members hammering tools at the same time get independent budgets; one team member can't deny service to another.
+Every authenticated request consumes one token from the budgets below. Buckets are **per `keyOwner`** (see [`AUTH.md`](./AUTH.md) — your `MCP_KEY_<INITIALS>` suffix, or an M2M client's `M2M:<NAME>`, is the bucket identifier). Two callers hammering tools at the same time get independent budgets; one can't deny service to another.
+
+The ceilings depend on the caller's **tier** (below). The table shows the **`internal`** tier — the budget for team `MCP_KEY_*` keys and OAuth human-consent sessions, unchanged since BL-032/BL-038:
 
 | Tool family       | Per-minute (sliding) | Per-day (sliding) | Status                           |
 | ----------------- | -------------------- | ----------------- | -------------------------------- |
@@ -19,19 +21,35 @@ Every authenticated request consumes one token from the budgets below. Buckets a
 
 **Sliding window** (vs. fixed-bucket): the budget rolls continuously — the 60th request in the past 60 seconds tips you over, regardless of when the prior 59 happened. No "burst at the top of every minute" exploit.
 
-**Why two tiers?** The website's Inoreader account has a 200 req/day budget. The website ISR consumes ~28/day; BL-032.5's Cron-driven snapshot refresh will consume ~24/day. That leaves ~150/day for MCP — split across however many team members use radar tools. The 50/day per-key cap means up to 3 active analysts can run radar tools without anyone hitting the budget alone.
+### Per-client tiers (BL-033 Slice 5)
+
+An external pilot's tier is set on its M2M client record (`tier`: `free-pilot` / `paid` / `enterprise`) and carried in the access-token claim, so the limiter reads it locally with no KV round-trip (see [ADR-0010](../../../../src/docs/adr/0010-per-client-rate-limit-tiers.md)). Callers with no tier — static `MCP_KEY_*` keys, OAuth human-consent — resolve to `internal`.
+
+| Tier         | General /min | General /day | Radar /min | Radar /day |
+| ------------ | ------------ | ------------ | ---------- | ---------- |
+| `free-pilot` | 30           | 300          | 3          | 20         |
+| `paid`       | 60           | 2000         | 5          | 50         |
+| `enterprise` | 120          | 10000        | 10         | 150        |
+| `internal`   | 60           | 1000         | 5          | 50         |
+
+> **These are tunable, non-contractual capability ceilings — NOT ratified SLA quotas.** They are abuse/capacity limits. `free-pilot` is deliberately tighter than `internal` (abuse containment for an unvetted pilot), not a promised allowance. No pilot rate SLA is contractually committed.
+
+**Changing a tier** takes effect on the next window evaluation — the limiter reuses the same per-`keyOwner` Redis keys, so there's no migration; the new ceiling simply applies going forward (a client mid-window keeps whatever tokens it already consumed).
+
+**Why a separate radar cap?** Radar tool calls are ~99% Upstash cache hits — **zero** Inoreader spend. Only a cold/expired-cache miss falls through to a live Inoreader fetch, and the global **circuit breaker** (below) is the real guard on the shared ~150/day Inoreader headroom. The per-client radar caps are therefore **per-client fairness + thin cache-cold defense-in-depth**, not the upstream-budget control. (Website ISR ~28/day + the Cron snapshot refresh ~24/day are the steady Inoreader consumers; see [ADR-0006](../../../../src/docs/adr/0006-inoreader-zone1-budget-protection.md).)
 
 ---
 
-## Response headers (RFC 9331)
+## Response headers (IETF RateLimit fields)
 
 Every authenticated response (200 OR 429) carries:
 
-| Header                | Meaning                                                                      |
-| --------------------- | ---------------------------------------------------------------------------- |
-| `RateLimit-Limit`     | Maximum requests in the active window (60 for general, 1000 for daily, etc.) |
-| `RateLimit-Remaining` | Requests left in the active window                                           |
-| `RateLimit-Reset`     | Seconds until the active window resets                                       |
+| Header                | Meaning                                                                                                                                                                                                                                              |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RateLimit-Limit`     | Maximum requests in the active window (the binding bucket's limit)                                                                                                                                                                                   |
+| `RateLimit-Remaining` | Requests left in the active window                                                                                                                                                                                                                   |
+| `RateLimit-Reset`     | Seconds until the active window resets                                                                                                                                                                                                               |
+| `RateLimit-Policy`    | The caller's tier ceilings, quoted-policy form — e.g. `"general-min";q=30;w=60, "general-day";q=300;w=86400` (radar calls append the `radar-min`/`radar-day` members). Lets client engineers self-diagnose their budget without hitting a 429 first. |
 
 429 responses additionally carry:
 
@@ -56,6 +74,29 @@ The 429 response body adds a structured JSON envelope:
 
 The `tier` field tells you which bucket triggered. With BL-038's radar-tier activation it can now be one of `"minute"`, `"day"`, `"radar-minute"`, or `"radar-day"`. The `reason` field carries a stable string designed for agent-side classification — values are `rate-limit-per-minute`, `rate-limit-per-day`, `radar-rate-limit-per-minute`, `radar-rate-limit-per-day`. Use `reason` to distinguish "slow my radar polling specifically" (`radar-rate-limit-*`) from "slow everything" (the general `rate-limit-*`). For a per-day cap hit, `retryAfterSeconds` can be many hours — sleep until tomorrow.
 
+### Soft-limit warning at 80% (BL-033 Slice 5)
+
+Before the hard 429, when any bucket is ≥80% consumed the server emits an MCP `notifications/message` (level `warning`, logger `ratelimit`) on the request's stream so an agent can throttle itself proactively:
+
+```json
+{
+  "method": "notifications/message",
+  "params": {
+    "level": "warning",
+    "logger": "ratelimit",
+    "data": {
+      "message": "Approaching rate limit …",
+      "tier": "day",
+      "limit": 300,
+      "remaining": 45,
+      "resetSeconds": 51200
+    }
+  }
+}
+```
+
+This is **best-effort**: it's delivered on the streamable-HTTP SSE response, so a client that only reads the terminal result frame won't see it. That's fine — the `RateLimit-Remaining` / `RateLimit-Policy` **headers on every response are the guaranteed signal**; the notification is a convenience for clients that consume interim frames. A failure to deliver it never affects the tool call.
+
 ---
 
 ## Circuit breaker (radar-tool-only protection)
@@ -69,7 +110,7 @@ Independent of the per-key rate limit, the radar tools share a **global circuit 
 
 **Why 6 hours?** Inoreader's daily budget resets on a rolling 24h window; 6h is a conservative back-off that avoids burning the next day's budget by retrying too aggressively. It also matches the website's ISR cache window — both surfaces converge on the same "stop hammering Inoreader" semantics.
 
-**Phase 3 status**: the read-side check + 503 envelope is wired (every request inspects the breaker before it can hit a radar tool). The write-side trigger (Inoreader 429 → set the flag) lands in Phase 4 when radar tools come online.
+**Status**: both sides are wired. The read-side check + 503 envelope run before any radar tool can hit Inoreader, and the **write-side trigger is live in the radar tool path** — a live-fetch Inoreader 429 routes through `handleInoreaderFailure` → `openCircuit` (from both the tool-call path and the refresh cron). (An earlier revision of this doc said the write-side "lands in Phase 4"; that's stale — it shipped with the radar-live tools.)
 
 503 response body:
 
@@ -107,16 +148,20 @@ Independent of the per-key rate limit, the radar tools share a **global circuit 
 
 ### Tuning the limits
 
-Per-key budgets live in [`mcp-server/src/ratelimit/limiter.ts`](../../ratelimit/limiter.ts) as named constants:
+Per-tier ceilings live in [`mcp-server/src/ratelimit/tiers.ts`](../../ratelimit/tiers.ts) as the `TIER_LIMITS` map (plus `INTERNAL_TIER`, the no-regression anchor consumed as `createLimiter`'s default):
 
 ```typescript
-const PERMINUTE_LIMIT = 60;
-const PERDAY_LIMIT = 1000;
+export const TIER_LIMITS: Record<string, TierLimits> = {
+  'free-pilot': { perMinute: 30, perDay: 300, radarPerMinute: 3, radarPerDay: 20 },
+  paid: { perMinute: 60, perDay: 2000, radarPerMinute: 5, radarPerDay: 50 },
+  enterprise: { perMinute: 120, perDay: 10000, radarPerMinute: 10, radarPerDay: 150 },
+  internal: INTERNAL_TIER, // 60 / 1000 / 5 / 50 — the pre-Slice-5 constants
+};
 ```
 
-To adjust: update the constants, redeploy. The change takes effect on the next isolate cold-start (or via `wrangler deploy --env <env>` to force fresh isolates).
+To adjust: update the map, redeploy. The change takes effect on the next isolate cold-start (or via `wrangler deploy --env <env>` to force fresh isolates). These are **tunable capability ceilings, not SLA quotas** — don't publish them as contractual commitments.
 
-**When to consider raising**: a team member doing legitimate analytical work hits 429s repeatedly. **When to consider lowering**: cost / abuse signals (Phase 5 observability dashboards will surface these).
+**When to consider raising**: a caller doing legitimate work hits 429s repeatedly. **When to consider lowering**: cost / abuse signals (observability dashboards surface these).
 
 ### Upstash quota envelope
 
