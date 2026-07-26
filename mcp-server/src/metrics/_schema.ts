@@ -40,6 +40,11 @@ export const EVENT_TYPES = [
   'inoreader_call',
   'health_check',
   'cron_outcome',
+  // BL-033 Slice 3a — audit-log queue-consumer outcome. Ops-side visibility
+  // into the audit pipeline (one event per processed batch); the audit RECORDS
+  // themselves live in R2, never in AE. `name` = 'audit-consumer', `seq`
+  // (double2) carries the batch entry count.
+  'audit_batch',
   // BL-045 PR B — IRL-ingestion-specific events. `force_tools_used` is
   // server-side-observable at prompt build time; `wrong_irl_detected` and
   // `gate_elided` are model-side outcomes that require client-side
@@ -207,6 +212,10 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
     'skipped-budget',
     'deduplicated',
   ],
+  // BL-033 Slice 3a — audit-consumer batch outcome. MANDATORY entry: the guard
+  // does `OUTCOME_VALUES[event_type].includes(outcome)`, so a missing key
+  // would throw `undefined.includes` for any emitted audit_batch event.
+  audit_batch: ['success', 'error', 'deduplicated'],
   // BL-045 PR B counter events. The `outcome` field carries the discriminator
   // that downstream SQL aggregates over.
   //

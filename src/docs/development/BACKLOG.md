@@ -259,12 +259,14 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 **Audit logging (compliance-grade)**
 
-- [ ] Every tool invocation written to an append-only audit log with: ISO-8601 timestamp, `client_id`, IP-prefix (truncated for GDPR — last octet zeroed), tool name, request UUID, **input parameters (full)**, **output payload size in bytes** (not the payload itself by default), durationMs, success/error code
-- [ ] Optional `?audit_full_payload=true` per-client flag to retain full output payloads for clients whose compliance regime requires it (must be agreed in writing — flag flips a Redis setting)
-- [ ] Logs shipped to a tamper-evident store: append-only S3 bucket with object lock, OR Cloudflare R2 with versioning + immutability — never to the same Sentry/Cloudflare logs used for ops
-- [ ] Retention: minimum 7 years to satisfy SEC Rule 17a-4 (the typical PE compliance baseline); confirm exact requirement with each client in pilot agreement
-- [ ] Per-client log export available via signed URL (read-only) so clients can ingest into their own SIEM
-- [ ] Quarterly audit-log integrity check (hash chain or AWS Object Lock attestation) — automated, results emailed to the compliance contact
+> 🟡 **Emission + durable-store half shipped 2026-07-26 as BL-033 Slice 3a** (audit path off the `withMetricsCore` chokepoint → Cloudflare Queue → hash-chained, R2-immutable store; input params never reach the ops sinks). Decision record incl. crash-safety proof + rejected alternatives: [ADR-0009](../adr/0009-compliance-audit-log-hash-chain.md). Operator runbook: [`../../../mcp-server/src/docs/operations/AUDIT_LOG.md`](../../../mcp-server/src/docs/operations/AUDIT_LOG.md). Per-AC dispositions below.
+
+- [~] Every tool invocation written to an append-only audit log with: ISO-8601 timestamp, `client_id`, IP-prefix (truncated for GDPR — last octet zeroed), tool name, request UUID, **input parameters (full)**, **output payload size in bytes** (not the payload itself by default), durationMs, success/error code — 🟡 **best-effort, not fully met**: the record shape + every field ship (`client_id` = the PII-free `keyOwner`; gated to `tool_invocation` this slice), but "**every** invocation written" is best-effort at the enqueue hop (documented first-hop loss window; the fail-closed `writeAndAwait` seam is the recorded revisit trigger for a client that contracts guaranteed capture — ADR-0009)
+- [ ] Optional `?audit_full_payload=true` per-client flag to retain full output payloads for clients whose compliance regime requires it (must be agreed in writing — flag flips a Redis setting) — **deferred** (pairs with the fail-closed per-client posture)
+- [x] Logs shipped to a tamper-evident store: append-only S3 bucket with object lock, OR Cloudflare R2 with versioning + immutability — never to the same Sentry/Cloudflare logs used for ops — ✅ Cloudflare R2, one immutable hash-chained object per entry, on a SEPARATE path from AE/Sentry/CF logs (full input params never reach the ops sinks)
+- [x] Retention: minimum 7 years to satisfy SEC Rule 17a-4 (the typical PE compliance baseline); confirm exact requirement with each client in pilot agreement — ✅ **as an operator dashboard step** (R2 **Bucket Lock** rule — Cloudflare's object-lock — at 7-yr retention, documented in AUDIT_LOG.md — a bucket config, not code); confirm the exact figure per pilot contract
+- [ ] Per-client log export available via signed URL (read-only) so clients can ingest into their own SIEM — **deferred** (next slice; the seam is clean — records carry `keyOwner`)
+- [~] Quarterly audit-log integrity check (hash chain or AWS Object Lock attestation) — automated, results emailed to the compliance contact — 🟡 **hash chain shipped, automation deferred**: each R2 record carries `seq` + `prevHash` + `entryHash` (crash-safe linear chain, ADR-0009), so a verifiable chain exists now; the scheduled re-walk + email automation is the deferred slice
 
 **Prompt-injection hardening**
 

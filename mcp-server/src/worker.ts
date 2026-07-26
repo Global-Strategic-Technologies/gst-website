@@ -48,6 +48,7 @@ import {
 import { acquire } from './lib/single-flight-lock';
 import { refreshRadarSnapshot } from './cron/radar-refresh';
 import { handleAuthenticated } from './pipeline/handle-authenticated';
+import { consumeAuditBatch, type AuditEntry } from './audit/_index';
 import { oauthProvider } from './oauth/provider';
 import { handleClientCredentialsToken, M2M_TOKEN_PREFIX, verifyM2mToken } from './oauth/m2m-token';
 
@@ -164,6 +165,18 @@ export interface Env {
   // When unbound (some test contexts), worker.ts falls back to a NoopSink
   // so emission becomes a no-op rather than throwing.
   METRICS?: import('@cloudflare/workers-types').AnalyticsEngineDataset;
+
+  // BL-033 Slice 3a — compliance audit-log bindings. Bound per environment in
+  // wrangler.toml (queues + R2 bucket the operator provisions; see
+  // operations/AUDIT_LOG.md). Absent in stdio / tests / unprovisioned envs →
+  // audit emission is a no-op (fetch path skips the sink; the queue consumer
+  // never fires).
+  //   - AUDIT_QUEUE: producer binding; the fetch handler enqueues one
+  //     `AuditEntry` per tool call off the latency path.
+  //   - AUDIT_R2: immutable/versioned bucket the queue consumer hash-chains
+  //     entries into (`audit/<env>/<yyyy>/<mm>/<dd>/<paddedSeq>.json`).
+  AUDIT_QUEUE?: import('@cloudflare/workers-types').Queue<import('./audit/_index').AuditEntry>;
+  AUDIT_R2?: import('@cloudflare/workers-types').R2Bucket;
 
   // Forward-compat: any additional MCP_KEY_* secrets get matched by name.
   [key: string]: unknown;
@@ -667,10 +680,16 @@ export const handler: ExportedHandler<Env> = {
 // `withSentry` passes the fetch handler through unchanged.
 const wrappedFetch = withSentry(sentryOptions, { fetch: handler.fetch! }).fetch;
 
+// BL-033 Slice 3a — audit-log queue consumer. Like `scheduled`, it stays
+// OUTSIDE the `withSentry({ fetch })` wrap and owns its own SDK-free
+// Sentry-envelope lifecycle. Unlike `scheduled`, it must NEVER swallow a
+// failure: `consumeAuditBatch` re-queues the batch (`retryAll`) on any error
+// so no audit record is silently dropped (see its docstring + ADR-0009).
 export default {
   fetch: wrappedFetch,
   scheduled: handler.scheduled,
-} satisfies ExportedHandler<Env>;
+  queue: (batch, env, ctx) => consumeAuditBatch(batch, env, ctx),
+} satisfies ExportedHandler<Env, AuditEntry>;
 
 /**
  * Map a `RefreshOutcome` (5 kinds, plus the `skipped` sub-reason) to
