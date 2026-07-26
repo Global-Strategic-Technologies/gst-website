@@ -66,10 +66,13 @@ import {
 } from '../lib/inoreader-refresh-health';
 import type { Env } from '../worker';
 
-// Bumped in lockstep with mcp-server/package.json (see BREAKING_CHANGES.md).
-// Sat stale at '0.1.0' from BL-032 Phase 4b until the BL-032.75 Phase 3
-// closeout (2026-07-14) re-synced it — if you bump package.json, bump this.
-const VERSION = '0.39.0';
+// Local-dev fallback ONLY. As of BL-033 Slice 4, the real version is injected
+// at deploy time from package.json via `deploy.mjs` (`--var VERSION:<v>`) and
+// read as `env.VERSION ?? VERSION` below — mirroring the GIT_SHA pipeline — so
+// deployed `/health` no longer drifts. This literal is used only when unbound
+// (wrangler dev / tests); keep it roughly current but it is no longer
+// load-bearing for prod/staging.
+const VERSION = '0.40.0';
 
 /** Upstash key written by `radar-live-store.ts` (and refreshed every 6h by `cron/radar-refresh.ts`). */
 const RADAR_FYI_CACHE_KEY = 'mcp:radar:cache:fyi';
@@ -279,7 +282,7 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
 
   return {
     ok,
-    version: VERSION,
+    version: env.VERSION ?? VERSION,
     gitSha: env.GIT_SHA ?? 'unknown',
     phase: 'BL-032 Phase 5 (observability)',
     upstashMcp,

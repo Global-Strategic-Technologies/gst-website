@@ -54,7 +54,7 @@ At the default cadence (4 runs/day × ~32 authenticated tool calls): ~130 genera
 - **Key**: the probe authenticates as `MCP_KEY_PROBE` (keyOwner `PROBE`) — issued per [`AUTH.md`](./AUTH.md), stored as the `MCP_PROBE_KEY` GitHub Actions secret. Its traffic is separable in every AE query by `keyOwner = 'PROBE'`.
 - **Alerting**: `PROBE` is exempted from the `traffic-spike-detected` rule (`src/observability/alert-rules.ts` `SYNTHETIC_KEY_OWNERS`) — a probe run's ~32 calls/h exceeds the rule's 30/h floor by design. See the [runbook](../../../observability/runbooks/traffic-spike-detected.md) § Exemption.
 - **Failure semantics**: the script exits non-zero only when _every_ sample fails (probe misconfigured or Worker down). Partial degradation is data, not a CI failure.
-- **Related**: server-side latency baselines + SLO targets live in [`observability/slo-baselines.md`](../../../observability/slo-baselines.md); the status page (`/status`) does not yet surface probe data (tracked under BL-033 § Pilot operations, status-page AC).
+- **Related**: server-side latency baselines + SLO targets live in [`observability/slo-baselines.md`](../../../observability/slo-baselines.md). As of BL-033 Slice 4, `/status` surfaces **server-side** per-tool p50/p95 (in-Worker `duration_ms` from AE — see [`STATUS_PAGE.md`](./STATUS_PAGE.md)); this probe's **client-observed** RTT (network-inclusive) remains a CI artifact only, not surfaced on `/status` (a different measurement — client round-trip vs in-Worker handler).
 
 ---
 
