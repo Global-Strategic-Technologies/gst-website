@@ -132,16 +132,35 @@ export async function consumeAuditBatch(
         freshIdx.push(i);
       }
     });
-    freshIdx.sort((a, b) => (messages[a].body.entryId < messages[b].body.entryId ? -1 : 1));
+    freshIdx.sort((a, b) => {
+      const x = messages[a].body.entryId;
+      const y = messages[b].body.entryId;
+      return x < y ? -1 : x > y ? 1 : 0;
+    });
 
     let seq = tip.lastSeq;
     let prevHash = tip.lastHash;
     const freshMeta: Array<{ entryId: string; meta: SeqMeta }> = [];
+    // Dedupe within the batch: the producer's in-`waitUntil` retry can
+    // double-enqueue the SAME entryId (a `send` false-negative), and both
+    // copies can land in one batch as FRESH (neither has a committed `seqOf`
+    // yet). Assign one seq per unique entryId — later copies reuse the first's
+    // chained entry, so R2 projection re-PUTs the identical object (idempotent)
+    // and the ledger records it once. Preserves the ADR-0009 "no duplicate"
+    // invariant against intra-batch dups, not just cross-delivery redelivery.
+    const freshByEntryId = new Map<string, ChainedAuditEntry>();
     for (const i of freshIdx) {
-      seq += 1;
       const body = messages[i].body;
+      const already = freshByEntryId.get(body.entryId);
+      if (already) {
+        chained[i] = already;
+        continue;
+      }
+      seq += 1;
       const entryHash = await computeEntryHash(prevHash, { ...body, seq });
-      chained[i] = { ...body, seq, prevHash, entryHash };
+      const entry: ChainedAuditEntry = { ...body, seq, prevHash, entryHash };
+      chained[i] = entry;
+      freshByEntryId.set(body.entryId, entry);
       freshMeta.push({ entryId: body.entryId, meta: { seq, prevHash, entryHash } });
       prevHash = entryHash;
     }

@@ -192,6 +192,26 @@ describe('idempotent redelivery (same batch twice)', () => {
     // Still exactly two objects, seq 0 and 1 — no duplicate / forked seq.
     expect(chainFromR2().map((e) => e.seq)).toEqual([0, 1]);
   });
+
+  it('dedupes the SAME entryId appearing twice in one batch (producer retry double-enqueue)', async () => {
+    // The producer's in-waitUntil retry can enqueue entryId 'a' twice; both
+    // land in one batch as FRESH (no committed seqOf). Must become ONE seq /
+    // ONE R2 object, not a fork.
+    const batch = makeBatch([entry('a'), entry('a'), entry('b')]);
+    await run(batch);
+
+    expect(batch.ackAll).toHaveBeenCalledTimes(1);
+    const chain = chainFromR2();
+    // Two unique objects only (a→seq0, b→seq1); the duplicate 'a' collapsed.
+    expect(chain.map((e) => e.seq)).toEqual([0, 1]);
+    expect(chain.find((e) => e.seq === 0)!.entryId).toBe('a');
+    expect(chain.find((e) => e.seq === 1)!.entryId).toBe('b');
+    // Ledger recorded 'a' once, tip advanced to 1 (not 2).
+    expect(state.redis!.store.get('mcp:audit:chain-tip:test')).toEqual({
+      lastSeq: 1,
+      lastHash: expect.any(String),
+    });
+  });
 });
 
 describe('crash after MULTI before R2 (interleaving a)', () => {

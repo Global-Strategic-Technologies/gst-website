@@ -197,6 +197,14 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
     // Best-effort and fully wrapped: audit capture must NEVER break the tool
     // call. Input params + output size go ONLY to the audit sink, never to
     // the AE `emit()` path below.
+    //
+    // Perf note: when `ctx.audit` is bound, `outputBytes` costs one extra
+    // synchronous `JSON.stringify(result)` on the response path (a second
+    // serialization on top of the SDK's own) — so the "one Date.now() + one
+    // sink.write" cost the module docstring quotes for metrics-only mode does
+    // NOT hold with audit enabled. Acceptable at pilot volume; revisit (defer
+    // the size computation, or approximate) if a large-result tool shows up
+    // hot in the latency probe.
     const recordAudit = (
       outcome: AuditOutcome,
       result: TResult | undefined,
