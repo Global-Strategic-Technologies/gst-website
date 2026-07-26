@@ -272,6 +272,14 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 **Prompt-injection hardening**
 
+> ⏸️ **DEFERRED (operator, 2026-07-26).** **Re-engage trigger: a pilot's security/infosec review is scheduled, or a pilot requests it.** Planned + design-reviewed 2026-07-26, then deferred: the MCP exposes only GST-authored/public data with no client-specific store, and **there are no consuming clients yet** — so building now is pre-building for a pilot that doesn't exist (per "don't build what no client asked for"). The analysis below is captured so it isn't re-derived when the trigger fires.
+>
+> **Reframed threat model (GST-as-conduit):** GST holds no secrets to exfiltrate; the only adversary-controlled surface is **third-party Inoreader radar content** (served via the radar tools, `gst://radar/*` Resources, and `/radar/snapshot`) flowing into a _pilot's_ agent. Base-model resistance is probabilistic and the consuming model isn't GST's to assume hardened.
+>
+> **De-theatered reduced scope (when re-engaged):** (1) **Radar third-party sanitization** at the shared `toSnapshotItem` (`mcp-server/src/content/radar-transform.ts`) — strip HTML/zero-width/bidi + ~4KB summary truncation on `title`/`source`/`summary`, leaving GST `annotation.*`; covers tools + resources + snapshot + website in one place, and is **the one piece with standalone value even pre-pilot** (raw third-party HTML reaches clients + the site today). (2) **Provenance labels** (`_meta.provenance` + `structuredContent._provenance`) at the `withMetricsCore` chokepoint (tool + resource) + `/radar/snapshot` JSON — `trust: untrusted` for radar, else `trusted`; a label the _client_ acts on, so value is gated on a consuming client existing. (3) **Radar item-count cap** on `search_radar` (envelope already carries `returned`/`totalMatched`) for model-processability. (4) **OWASP-LLM-Top-10 self-review doc** (`src/docs/security/`) + ADR — the pilot-security-review deliverable.
+>
+> **Rejected controls (do NOT re-propose):** the **sentinel-phrase blocklist** in the first AC below (trivially bypassed = theater); a **byte size-cap / DoS backstop** (AC 3 below — real regression risk near `compose_dossier_envelope`'s known large-payload history, for zero protection of _trusted_ content; the injection surface is untrusted radar, already bounded at its source by sanitization + the item-count cap); **multi-tenant isolation** (single shared dataset, out of scope).
+
 - [ ] All free-text fields in tool outputs (project summaries, FYI GST Take, attention-area descriptions) pass through a sanitization layer that strips: zero-width characters, bidi override marks (U+202A–U+202E, U+2066–U+2069), excessive whitespace runs, and known prompt-injection sentinel phrases ("ignore previous instructions", "you are now", etc.)
 - [ ] Output payloads include a top-level `_provenance: { source, sanitized: true, version }` field so calling agents can attribute content
 - [ ] Maximum output size: 64KB per tool response; larger results paginate via the MCP `cursor` field. Hard cap prevents an attacker from poisoning a model's context with a giant adversarial blob
@@ -490,5 +498,23 @@ Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there i
 - Empirical evidence that (J) gap-list growth is unacceptable in live exercises
 - Confirmation that no one consumes the VERIFY block externally (unlocks L4)
 - Evidence that nobody manually calls `validate_irl_provenance` (unlocks L5)
+
+---
+
+### BL-090: MCP Server — Collapse the duplicated tool-response payload (candidate)
+
+**Source**: surfaced 2026-07-26 while sizing an output guard during the BL-033 prompt-injection planning | **Effort**: small (~0.5 day incl. contract-test updates) | **Status**: Candidate · **Investigate-first**
+
+**As a** operator of the MCP server, **I want** to stop sending every tool's payload twice **so that** response bytes (and, on radar, the doubling of large article lists) aren't wasted — but only after confirming the second copy isn't load-bearing for a consumer.
+
+**What**: every MCP tool returns the same payload in BOTH `content[0].text` (`JSON.stringify(payload, null, 2)`) AND `structuredContent` (the same object) — e.g. `mcp-server/src/tools/radar-live.ts:232-234`, `mcp-server/src/tools/portfolio.ts:122-131`. This roughly doubles response size on every call.
+
+**Investigate why it exists first** (the load-bearing question): the stated rationale is MCP's backward-compatibility convention — mirror structured data as text for clients that don't support `structuredContent`. That justification is weak pre-GA: **there are no external consuming clients yet.** Determine whether ANY current or near-term consumer actually reads the `content` text vs `structuredContent` — internal `MCP_KEY_*` callers, the website `/radar/snapshot` path (note: it builds its own JSON, doesn't use the tool envelope), planned pilots. If none needs both channels, drop one (keep `structuredContent` + a short human summary in `content`, or keep `content` only). If a real consumer needs both, close the item as WON'T-DO with the evidence.
+
+**Acceptance criteria**
+
+- [ ] Documented finding: which channel each known/near-term consumer reads (evidence, not assumption)
+- [ ] If dedup is safe: one channel dropped; contract-parity tests updated; no consumer regression
+- [ ] If not safe: closed WON'T-DO with the consumer that requires both channels named
 
 ---
