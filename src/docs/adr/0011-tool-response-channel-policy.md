@@ -5,7 +5,7 @@
 
 ## Context
 
-Every GST MCP tool that returned data sent it **twice**: pretty-printed into `content[0].text` via `JSON.stringify(payload, null, 2)`, and again as the object in `structuredContent`. On a full `search_portfolio` that made the response body ~143 KB where ~61 KB suffices — and the duplicate was the _larger_ copy, because the indented text is then JSON-string-escaped inside the JSON-RPC envelope (81,826 B vs 61,439 B measured over all 61 portfolio entries).
+Every GST MCP tool that returned data sent it **twice**: pretty-printed into `content[0].text` via `JSON.stringify(payload, null, 2)`, and again as the object in `structuredContent`. Measured on the real `search_portfolio` handler result (all 65 portfolio entries): **143,403 B before, 61,560 B after — a 57.1% reduction**. The duplicate was the _larger_ copy, because the indented text is then JSON-string-escaped inside the JSON-RPC envelope.
 
 The inverse defect existed on the failure path: **none of the 18 error returns set `structuredContent` at all**. Two of them (`radar-live.ts` `failureResponse` and `circuitOpenEnvelope`) hand-`JSON.stringify`d a structured error object _into the text channel_, because no structured error convention existed to use. Downstream, `Invoke-McpRequest.ps1` substring-matched prose to detect failures and `DEPLOY.md`'s smoke commands needed a triple-`jq` unwrap to dig JSON back out of a JSON-escaped string inside JSON.
 
