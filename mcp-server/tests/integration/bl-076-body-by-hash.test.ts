@@ -264,13 +264,15 @@ describe('BL-076 — body-by-hash prepare-then-compose chain', () => {
     const oversizedCache = {
       get: async () => null,
       set: async () => {
-        throw new IrlBodyCacheSizeExceededError(999_999, 100_000);
+        // The cap itself lives in the class (IRL_BODY_CACHE_MAX_BYTES); the
+        // constructor takes only the offending byte length.
+        throw new IrlBodyCacheSizeExceededError(999_999);
       },
     };
-    const metrics = {
+    const metrics: MetricsContext = {
       sink: { write: () => undefined },
       irlBodyCache: oversizedCache,
-    } as unknown as Parameters<typeof handlePrepareIrlBodyTool>[1];
+    };
 
     const result = await handlePrepareIrlBodyTool({ filledIrl: SAMPLE_IRL }, metrics);
 
