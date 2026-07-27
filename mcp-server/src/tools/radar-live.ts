@@ -169,7 +169,7 @@ function circuitOpenEnvelope(state: CircuitState) {
   return toolFail(
     'service-unavailable',
     'Radar tools temporarily unavailable — Inoreader budget circuit is open. ' +
-      `Retry after ${state.retryAfterSeconds ?? 'some time'}.`,
+      `Retry after ${state.retryAfterSeconds !== undefined ? `${state.retryAfterSeconds} seconds` : 'some time'}.`,
     {
       status: 503,
       cause: state.reason ?? 'inoreader-rate-limit',
