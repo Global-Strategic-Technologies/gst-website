@@ -19,7 +19,7 @@ lastReviewedAt: 2026-07-25
 
 - Cron runaway: the circuit breaker + `DAILY_SOFT_CAP` in `cron/radar-refresh.ts` should self-limit; if not, disable the radar cron by removing its expression from `wrangler.toml` production triggers and deploying (rollback via `rollback-mcp.yml` if needed).
 - Client hammering: identify the key via AE `index1`, rotate/limit per `src/docs/operations/AUTH.md`; the per-key rate limiter should already be throttling — investigate why it isn't.
-- At 100/day Inoreader starts rejecting: radar goes stale (the `radar-snapshot-stale` alert will follow); no data loss — snapshots resume next window.
+- At 100/day Inoreader starts rejecting: radar goes stale (the `radar-snapshot-stale` alert will follow); no data loss — snapshots resume next window. **Client impact is degradation, not an outage** (BL-091): every radar read serves the cached snapshot flagged `liveInfo.degraded: true`; a hard 503 only appears once the cache itself expires. Confirm the breaker is the cause via `circuitOpen` on `/health` or the `/status` Substrate table. Nothing repopulates the cache while the breaker is open, so if Inoreader recovers early, use the manual reset in `src/docs/operations/RATE_LIMITS.md` § Circuit-breaker manual reset.
 
 ## Escalation
 

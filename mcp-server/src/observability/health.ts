@@ -5,6 +5,7 @@
  *
  *   {
  *     ok:                          boolean,
+ *     circuitOpen:                 boolean,           // Inoreader breaker state (informational)
  *     version:                     string,            // mcp-server package version
  *     gitSha:                      string,            // deploy-time injected; 'unknown' locally
  *     phase:                       string,
@@ -50,6 +51,12 @@
  * as a partial-degradation signal, not a hard down). A future dashboard
  * surface (BL-032.75) maps `degraded` to a non-pageable alert; only an
  * actual 5xx from /health pages oncall.
+ *
+ * **Carve-out (BL-091)**: `circuitOpen` is the one field deliberately EXCLUDED
+ * from the `ok` computation. It is an informational discriminator — `ok` is
+ * already false during a breaker window via `inoreader: 'degraded'` — so
+ * folding it in would add no signal while coupling an already-firing alert to
+ * a second input. Do not wire it into `ok`.
  */
 
 import {
@@ -58,6 +65,7 @@ import {
   type InoreaderObservedSource,
 } from './inoreader-status';
 import { createMcpClient } from '../lib/upstash-clients';
+import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { readInoreaderSpend, type InoreaderEgressCategory } from '../lib/inoreader-egress';
 import { readAclSelfCheck, type AclSelfCheckResult } from './acl-selfcheck';
 import {
@@ -72,13 +80,24 @@ import type { Env } from '../worker';
 // deployed `/health` no longer drifts. This literal is used only when unbound
 // (wrangler dev / tests); keep it roughly current but it is no longer
 // load-bearing for prod/staging.
-const VERSION = '0.41.0';
+const VERSION = '0.42.0';
 
 /** Upstash key written by `radar-live-store.ts` (and refreshed every 6h by `cron/radar-refresh.ts`). */
 const RADAR_FYI_CACHE_KEY = 'mcp:radar:cache:fyi';
 
 interface HealthResponse {
   ok: boolean;
+  /**
+   * BL-091 — whether the Inoreader budget circuit breaker is currently open.
+   * While open, every radar read surface serves the cached snapshot and makes
+   * NO upstream calls (see `ratelimit/circuit-breaker.ts`).
+   *
+   * **Informational only — never folded into `ok`.** `ok` is already false in
+   * this state via `inoreader: 'degraded'`; this field exists so an operator
+   * (or `/status`) can distinguish "Inoreader flaky" from "breaker open,
+   * serving cache". `false` when Upstash gives no signal.
+   */
+  circuitOpen: boolean;
   version: string;
   gitSha: string;
   phase: string;
@@ -263,6 +282,7 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     inoreaderSpend,
     aclSelfCheck,
     inoreaderRefreshTokenHealth,
+    circuitState,
   ] = await Promise.all([
     probeMcp(env),
     readInoreaderStatus(env),
@@ -270,6 +290,7 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     readInoreaderSpend(env),
     readAclSelfCheck(env),
     readRefreshHealth(env),
+    isCircuitOpen(env),
   ]);
 
   // ok: true iff MCP DB is reachable AND the last observed Inoreader API
@@ -278,10 +299,22 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
   // Worker cold-starts begin in this state.
   // `radarSnapshotAgeSeconds` is informational on /health — staleness
   // alerts live in BL-032.75 (Sentry alert rule on the cron events).
+  //
+  // BL-091: `circuitOpen` is deliberately NOT a factor here. It is an
+  // informational discriminator, not a new breach source — during a breaker
+  // window `ok` is ALREADY false (the store records `inoreader: 'degraded'`
+  // on the 429 that opened it, and that key persists). What operators lacked
+  // was the ability to tell "Inoreader merely flaky" from "breaker open,
+  // serving cached data"; `circuitOpen` supplies exactly that. Wiring it into
+  // `ok` would add nothing and would couple an already-firing alert
+  // (`alert-rules.ts`) to a second signal.
   const ok = upstashMcp === 'ok' && inoreader.status !== 'degraded';
 
   return {
     ok,
+    // `null` from `isCircuitOpen` means Upstash gave no signal — report
+    // `false` (fail open), consistent with every other breaker consumer.
+    circuitOpen: circuitState?.open === true,
     version: env.VERSION ?? VERSION,
     gitSha: env.GIT_SHA ?? 'unknown',
     phase: 'BL-032 Phase 5 (observability)',

@@ -129,6 +129,7 @@ export async function buildStatusHtml(env: Env): Promise<string> {
   <tr><td>Inoreader</td><td>${badge(health.inoreader !== 'degraded', esc(health.inoreader), 'degraded')}</td><td>last observed ${esc(health.inoreaderObservedSecondsAgo)}s ago (${esc(health.inoreaderObservedSource)})</td></tr>
   <tr><td>Radar snapshot freshness</td><td>${badge(snapshotOk, 'fresh', 'STALE')}</td><td>age ${esc(health.radarSnapshotAgeSeconds)}s vs SLO ${FRESHNESS_MAX_AGE_SECONDS}s (12h)</td></tr>
   <tr><td>Inoreader Zone-1 budget</td><td>${badge(spendPct < 70, `${spendPct}%`, `${spendPct}%`)}</td><td>${esc(health.inoreaderSpend.total)}/${ZONE1_DAILY_HARD_CAP} today (ticket &gt; 70%, page &gt; 90%)</td></tr>
+  <tr><td>Inoreader circuit breaker</td><td>${badge(!health.circuitOpen, 'closed', 'OPEN')}</td><td>${health.circuitOpen ? 'radar is serving cached snapshots; no upstream calls until the breaker closes' : 'radar reads go upstream on cache miss'}</td></tr>
 </table>
 
 <h2>SLO alerts (last evaluation: ${esc(lastEval?.evaluatedAt)})</h2>

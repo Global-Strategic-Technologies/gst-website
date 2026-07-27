@@ -2,7 +2,7 @@
 
 lastReviewedAt: 2026-07-14
 
-**Trigger**: FYI radar snapshot age > 43,200 s (12h = 2 × the 6h refresh cron). Threshold provenance: `observability/slo-baselines.md` freshness rule (signed off 2026-07-14). Severity: page — this is the customer-visible staleness signal.
+**Trigger**: FYI radar snapshot age > 43,200 s (12h = 2 × the 6h refresh cron). Threshold provenance: `observability/slo-baselines.md` freshness rule (signed off 2026-07-14). Severity: page — this is the customer-visible staleness signal. **This became more load-bearing under BL-091**: a breaker-open window no longer fails radar loudly (reads serve cached data), so this alert — together with `circuitOpen` on `/health` / `/status` — is the primary signal that clients are on stale data.
 
 **Data source**: Upstash `mcp:radar:cache:fyi` age via `probeRadarSnapshotAge` (`src/observability/health.ts`), evaluated by the 15-min alert-evaluator cron. A `null` age (cold cache / Upstash down) deliberately does NOT fire this rule — `health-check-failing` owns that signal.
 

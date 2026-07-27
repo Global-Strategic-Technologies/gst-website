@@ -99,20 +99,37 @@ This is **best-effort**: it's delivered on the streamable-HTTP SSE response, so 
 
 ---
 
-## Circuit breaker (radar-tool-only protection)
+## Circuit breaker (radar protection)
 
-Independent of the per-key rate limit, the radar tools share a **global circuit breaker** that opens when upstream Inoreader returns 429 — meaning GST's overall daily budget is exhausted, regardless of which key is calling.
+Independent of the per-key rate limit, the radar surfaces share a **global circuit breaker** that opens when upstream Inoreader returns 429 — meaning GST's overall daily budget is exhausted, regardless of which key is calling.
 
-| State      | What happens                                                                                                                                                            |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Closed** | Normal operation. Radar tool calls reach Inoreader (with the per-key 5/min cap still active)                                                                            |
-| **Open**   | All radar tool calls return `503 Service Unavailable` with a `Retry-After` header. The breaker stays open for 6 hours, then auto-resets. Non-radar tools are unaffected |
+| State      | What happens                                                                                                                                                                                                                     |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Closed** | Normal operation. Radar reads reach Inoreader on a cache miss (with the per-key 5/min cap still active)                                                                                                                          |
+| **Open**   | **Every radar read surface serves the cached snapshot and makes NO upstream calls.** Results carry `liveInfo.degraded: true` (see below). A `503` returns only when there is also nothing cached. Non-radar tools are unaffected |
 
 **Why 6 hours?** Inoreader's daily budget resets on a rolling 24h window; 6h is a conservative back-off that avoids burning the next day's budget by retrying too aggressively. It also matches the website's ISR cache window — both surfaces converge on the same "stop hammering Inoreader" semantics.
 
-**Status**: both sides are wired. The read-side check + 503 envelope run before any radar tool can hit Inoreader, and the **write-side trigger is live in the radar tool path** — a live-fetch Inoreader 429 routes through `handleInoreaderFailure` → `openCircuit` (from both the tool-call path and the refresh cron). (An earlier revision of this doc said the write-side "lands in Phase 4"; that's stale — it shipped with the radar-live tools.)
+**Coverage (BL-091)**: the rule is uniform across **all four** radar paths — the `search_radar` / `get_latest_insights` tools, the `gst://radar/*` Resources, and the `/radar/snapshot` SSR endpoint all switch to cache-only reads; the refresh cron skips entirely. Before BL-091 the tools _over_-applied the breaker (hard 503 even with a warm cache) while Resources and `/radar/snapshot` _under_-applied it (no check at all — they could fetch live during an open window and leak the very budget the breaker protects).
 
-503 response body:
+### Degraded mode — what a consumer sees
+
+While the breaker is open, radar results are served from the Upstash snapshot (up to 6h old) and flagged:
+
+```jsonc
+"liveInfo": {
+  "wireFetchedAt": "2026-07-27T04:12:00.000Z",
+  "wireCacheHit": true,
+  "fyiFetchedAt": null,        // this tier had nothing cached
+  "fyiCacheHit": null,
+  "degraded": true,            // served from cache; breaker is open
+  "retryAfterSeconds": 21540
+}
+```
+
+`degraded` is **always present** (`false` on the normal path). A tier with no cached data reports `null` for its `fetchedAt`/`cacheHit` rather than a fabricated value. Check `fetchedAt` for actual age.
+
+### 503 — only when nothing is cached
 
 ```json
 {
@@ -123,6 +140,10 @@ Independent of the per-key rate limit, the radar tools share a **global circuit 
 }
 ```
 
+(This is an MCP `isError` content envelope, not an HTTP status — the tool path always returns HTTP 200. `/radar/snapshot` likewise stays HTTP 200 and expresses the state in the body, so the website's feed never hard-fails.)
+
+**No automatic recovery probe.** Nothing refreshes the cache while the breaker is open (that's the point — it protects the budget), so if Inoreader recovers early the stale data persists until the 6h TTL expires. A half-open trial probe was designed and deliberately **rejected**: a naive one can _extend_ an outage, because it can succeed on the last unit of Zone-1 headroom and the follow-on 6-call wire refill then 429s — and `openCircuit` resets the **full** 6h TTL rather than preserving the original expiry. See § manual reset below if you need to recover sooner.
+
 ---
 
 ## What to do when rate-limited (consumer)
@@ -131,7 +152,8 @@ Independent of the per-key rate limit, the radar tools share a **global circuit 
 | --------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `429` with `tier: "minute"`                                     | You burst-called too fast in the past 60s                                  | Sleep `Retry-After` seconds. If you're an agent author: insert a 1.5s sleep between tool calls — humans rarely click faster than that anyway                                |
 | `429` with `tier: "day"`                                        | You consumed the full daily budget                                         | Sleep until midnight UTC (or `Retry-After`, whichever you prefer). If this is happening to you regularly while doing legitimate work, escalate to operator (see below)      |
-| `503` from radar tools, with `reason: "inoreader-rate-limit"`   | GST's overall Inoreader budget is exhausted; circuit breaker is open       | Use the offline radar tool (`search_radar_offline` — local stdio only) if you have a local MCP set up too. Otherwise wait the `Retry-After` window (up to 6h)               |
+| Radar results with `liveInfo.degraded: true`                    | Circuit breaker is open; you're getting the cached snapshot, not live data | Usually nothing — the data is real, just up to 6h old (`fetchedAt` tells you). If you need live data, wait `retryAfterSeconds`                                              |
+| `503` from radar tools, with `reason: "inoreader-rate-limit"`   | Breaker is open **and** nothing is cached to serve                         | Use the offline radar tool (`search_radar_offline` — local stdio only) if you have a local MCP set up too. Otherwise wait the `Retry-After` window (up to 6h)               |
 | `RateLimit-Remaining` is 0 but you're not getting 429s          | You're at the cliff but technically not over. Next request WILL get 429    | Stop and wait. The Worker counts the next request as the (N+1)th and 429s it                                                                                                |
 | Frequent 429s while working interactively (single conversation) | Probably an agent loop; agents are tireless and burn through 60/min easily | Inspect the conversation; cancel the runaway agent. If you're authoring a new prompt that orchestrates many tool calls, count the calls and request a higher per-key budget |
 
@@ -181,7 +203,7 @@ In practice usage is far below the per-key caps (analytical sessions, not bot lo
 
 ### Circuit-breaker manual reset
 
-The breaker auto-closes after 6 hours via TTL. If Inoreader recovers earlier and you want to manually close the circuit (rare):
+The breaker auto-closes after 6 hours via TTL. Because nothing repopulates the radar cache while it is open (BL-091 — every read surface is cache-only, and the cron skips), **manual reset is the only way to recover before the TTL expires** if Inoreader comes back early. Check `/status` (or `/health`'s `circuitOpen`) to confirm the breaker is what's holding radar on stale data:
 
 ```bash
 # Connect to Upstash via the CLI or REST API and delete the key. Path 2:

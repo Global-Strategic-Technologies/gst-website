@@ -6,13 +6,22 @@
  * registers radar Resources. The underlying `radar-live-store.ts` is
  * Workers-compatible (no node:* imports).
  *
- * BL-032.5 Phase 4 will populate the Upstash cache hourly via Worker
- * Cron. Until that ships, the cache is populated opportunistically by
- * the existing radar Tools (`search_radar`, `get_latest_insights`) on
- * each first call after TTL expiry, OR by the website's ISR.
+ * The Upstash cache is refreshed on a 6-hourly Worker Cron
+ * (`cron/radar-refresh.ts`), and opportunistically by any read that misses
+ * the cache while the Inoreader circuit breaker is CLOSED.
+ *
+ * **Circuit-breaker discipline (BL-091)**: when the breaker is OPEN this
+ * reader switches to the cache-only readers, so a `resources/read` of
+ * `gst://radar/*` can never spend Inoreader budget during a breaker window.
+ * Before BL-091 this surface had no breaker check at all and would fetch
+ * live on a cold cache — the exact leak the breaker exists to prevent. The
+ * breaker state is resolved once per reader instance (one instance is built
+ * per request in `server.ts`) and memoized, because `createWorkerSnapshotReader`
+ * is called synchronously and cannot become async.
  */
 
-import { readFyiLive, readWireLive } from './radar-live-store';
+import { readFyiLive, readWireLive, readFyiCached, readWireCached } from './radar-live-store';
+import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import type { SnapshotReader } from './radar-snapshot-reader';
 import type { RadarCategory, SnapshotTier } from './radar-transform';
 import type { Env } from '../worker';
@@ -23,9 +32,17 @@ import type { Env } from '../worker';
  * fetch handler (matching the pattern of radar Tools).
  */
 export function createWorkerSnapshotReader(env: Env): SnapshotReader {
+  // Memoized per reader instance (i.e. per request). `null` from
+  // `isCircuitOpen` means Upstash gave no signal → fail open, read live.
+  let breakerOpen: Promise<boolean> | null = null;
+  const isDegraded = (): Promise<boolean> => {
+    breakerOpen ??= isCircuitOpen(env).then((state) => state?.open === true);
+    return breakerOpen;
+  };
+
   return {
     async readFyi(): Promise<SnapshotTier | null> {
-      const result = await readFyiLive(env);
+      const result = (await isDegraded()) ? await readFyiCached(env) : await readFyiLive(env);
       if (!result.ok) return null;
       return {
         tier: 'fyi',
@@ -35,7 +52,7 @@ export function createWorkerSnapshotReader(env: Env): SnapshotReader {
     },
 
     async readWire(): Promise<SnapshotTier | null> {
-      const result = await readWireLive(env);
+      const result = (await isDegraded()) ? await readWireCached(env) : await readWireLive(env);
       if (!result.ok) return null;
       return {
         tier: 'wire',
@@ -45,7 +62,7 @@ export function createWorkerSnapshotReader(env: Env): SnapshotReader {
     },
 
     async readWireByCategory(category: RadarCategory): Promise<SnapshotTier | null> {
-      const wire = await readWireLive(env);
+      const wire = (await isDegraded()) ? await readWireCached(env) : await readWireLive(env);
       if (!wire.ok) return null;
       return {
         tier: 'wire',

@@ -501,6 +501,34 @@ Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there i
 
 ---
 
+### BL-091: MCP Server — Circuit-breaker open serves cached radar ✅ CLOSED 2026-07-27
+
+**Source**: operator question 2026-07-27 — "why doesn't the breaker just feed from the cache instead of failing the client call?" | **Effort**: ~1 day | **Status**: ✅ **CLOSED 2026-07-27** (mcp-server 0.42.0)
+
+**As a** radar consumer (MCP client, `gst://radar/*` reader, or the `/hub/radar` website), **I want** a breaker-open window to serve the cached snapshot rather than a hard failure **so that** an Inoreader budget incident degrades gracefully instead of blanking radar for up to 6 hours.
+
+**What shipped**
+
+- **Tools stopped over-applying the breaker.** `search_radar` / `get_latest_insights` checked `isCircuitOpen` as their first statement and returned 503 _before reading the cache_ — a warm 6h snapshot went unserved. They now read cache-only and serve it flagged `liveInfo.degraded: true`; the 503 envelope (shape unchanged) is the last resort, only when nothing is cached.
+- **Resources and `/radar/snapshot` stopped under-applying it.** Neither had any breaker check, so on a cold cache during an open window they fetched Inoreader live — leaking the exact budget the breaker protects. Both now switch to cache-only reads. `/radar/snapshot` can additionally now **open** the breaker (it was the highest-volume consumer and the one surface that could absorb a 429 without tripping it).
+- **Structural enforcement**: a second reader family (`readWireCached` / `readFyiCached`) whose `cache-empty` failure is deliberately not assignable to `InoreaderFailure`, so a cache miss can never reach `openCircuit`. Plus a frozen-call-site test (`tests/integration/radar-store-callers-breaker-gated.test.ts`) that fails CI if any module imports the fetch-capable readers without importing `isCircuitOpen` — this defect had already occurred twice, so the _class_ is now guarded, not just the instances.
+- Resource bodies flagged `noStore` are no longer cached for 15 min (the "snapshot not populated" placeholder outlived its cause). `circuitOpen` added to `/health` + `/status`, deliberately **not** wired into `health.ok`.
+- Decision record: [ADR-0006 § Amendment 2026-07-27](../adr/0006-inoreader-zone1-budget-protection.md). Contract: [`RATE_LIMITS.md` § Circuit breaker](../../../mcp-server/src/docs/operations/RATE_LIMITS.md).
+
+**Accepted trade-off**: nothing repopulates the radar cache while the breaker is open (the cron already skipped, and now no read fetches either), so an early Inoreader recovery is not detected automatically — manual reset is the documented lever.
+
+#### Follow-up (candidate): safe half-open recovery probe
+
+**Status**: Candidate · **do NOT implement the naive version**
+
+A trial fetch to detect early Inoreader recovery was designed during BL-091 and **deliberately cut** because a naive probe can _extend_ an outage: it can succeed on the last unit of Zone-1 headroom, the follow-on wire refill (`CALLS_PER_WIRE` calls) then 429s, and `openCircuit` **resets the full 6h TTL** rather than preserving the original expiry — so a 30-minute probe loop can hold the breaker open longer than doing nothing. Ceilings quoted in probe-call counts also under-measure: they ignore the multi-call refill a successful probe authorizes.
+
+A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating before closing, **(b)** a TTL-preserving re-arm (not a full 6h reset) when the post-close refill fails, **(c)** compare-and-delete on close so a concurrent `openCircuit` isn't erased, **(d)** `forceRefresh` so "success" is genuine upstream evidence rather than a cache hit, and **(e)** a single-flight lock via the existing `lib/single-flight-lock.ts`. Budget the ceiling against `ZONE1_DAILY_HARD_CAP`, counting the refill.
+
+**Promotion trigger**: a breaker-open incident where Inoreader demonstrably recovered early and the stale-radar window caused real harm.
+
+---
+
 ### BL-090: MCP Server — Collapse the duplicated tool-response payload (candidate)
 
 **Source**: surfaced 2026-07-26 while sizing an output guard during the BL-033 prompt-injection planning | **Effort**: small (~0.5 day incl. contract-test updates) | **Status**: Candidate · **Investigate-first**

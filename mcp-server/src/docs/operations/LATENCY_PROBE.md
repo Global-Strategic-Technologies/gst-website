@@ -24,7 +24,7 @@ One stateless JSON-RPC POST per call (`tools/call` — the proven `Invoke-McpReq
 | `search_regulations`    | tool    | yes        | N              |
 | `search_radar`          | tool    | **no**     | fixed 2        |
 
-`search_radar` is informative-only (the SLA scopes to non-radar tools) and capped at 2 samples/run — 8/day at the CI cadence, under the radar tier's 50/day budget. 429 (rate-limited) and 503 (circuit-open) responses are recorded as classified outcomes and **excluded from percentiles** — a throttled response is not a latency sample.
+`search_radar` is informative-only (the SLA scopes to non-radar tools) and capped at 2 samples/run — 8/day at the CI cadence, under the radar tier's 50/day budget. 429 (rate-limited) and 503 responses are recorded as classified outcomes and **excluded from percentiles** — a throttled response is not a latency sample. Two BL-091 caveats: (1) MCP tools return `isError` **inside HTTP 200**, so a breaker-open tool call classifies as `tool-error`, not `circuit-open`; (2) a breaker-open call with a warm cache is now a _success_ serving cached data, so those samples DO enter the percentiles — expect p50 to skew low during a breaker window, since a cache read is far faster than an upstream fetch.
 
 > Probe-set note: the Slice 1 plan originally named `generate_diligence_agenda` as the fourth SLA surface; the implementation substituted `search_regulations` because the diligence tool requires a structured `_audit` provenance block a probe would have to fabricate, while regulations search is a clean stateless engine read with the same representativeness.
 
