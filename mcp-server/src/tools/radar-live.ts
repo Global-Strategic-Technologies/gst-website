@@ -68,6 +68,7 @@ import {
   type SnapshotItem,
   type RadarCategory,
 } from '../content/radar-transform';
+import { toolOk, toolFail } from './_result';
 
 // ---------------------------------------------------------------------------
 // Schemas (shared shape with search_radar_offline; capability-mirror invariant)
@@ -148,19 +149,10 @@ async function failureResponse(
   source: InoreaderFailureSource
 ) {
   await handleInoreaderFailure(env, failure, source);
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify({
-          error: failure.reason,
-          status: failure.status,
-          message: failure.message,
-        }),
-      },
-    ],
-    isError: true,
-  };
+  // BL-090: the structured error moved to `structuredContent` — before, this was
+  // JSON hand-stringified into the text channel because no structured error
+  // convention existed. `content` now carries the human-readable message.
+  return toolFail(failure.reason, failure.message, { status: failure.status });
 }
 
 /**
@@ -170,23 +162,20 @@ async function failureResponse(
  * that handle it keep working.
  */
 function circuitOpenEnvelope(state: CircuitState) {
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify({
-          error: 'service_unavailable',
-          status: 503,
-          reason: state.reason ?? 'inoreader-rate-limit',
-          retryAfterSeconds: state.retryAfterSeconds,
-          message:
-            'Radar tools temporarily unavailable — Inoreader budget circuit is open. ' +
-            `Retry after ${state.retryAfterSeconds ?? 'some time'}.`,
-        }),
-      },
-    ],
-    isError: true,
-  };
+  // BL-090: `error` is now the kebab-case `service-unavailable` (matching every
+  // other reason), and the breaker's own trip reason moved from `reason` to
+  // `cause` — under `{ error: reason, … }` two different meanings were sharing
+  // the word "reason" on a public envelope.
+  return toolFail(
+    'service-unavailable',
+    'Radar tools temporarily unavailable — Inoreader budget circuit is open. ' +
+      `Retry after ${state.retryAfterSeconds ?? 'some time'}.`,
+    {
+      status: 503,
+      cause: state.reason ?? 'inoreader-rate-limit',
+      retryAfterSeconds: state.retryAfterSeconds,
+    }
+  );
 }
 
 /**
@@ -282,10 +271,10 @@ export async function handleSearchRadar(env: Env, input: SearchRadarInput, keyOw
     deeplink: buildRadarDeeplink(input.category),
   };
 
-  return {
-    content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
-    structuredContent: payload as unknown as Record<string, unknown>,
-  };
+  return toolOk(
+    payload,
+    `${payload.returned} of ${payload.totalMatched} radar items${degraded ? ' (degraded — served from cache)' : ''}.`
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -341,10 +330,10 @@ export async function handleGetLatestInsights(
     },
   };
 
-  return {
-    content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
-    structuredContent: payload as unknown as Record<string, unknown>,
-  };
+  return toolOk(
+    payload,
+    `${payload.returned} latest insights${degraded ? ' (degraded — served from cache)' : ''}.`
+  );
 }
 
 // ---------------------------------------------------------------------------

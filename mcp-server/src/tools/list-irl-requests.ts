@@ -23,6 +23,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
+import { toolOk } from './_result';
 
 const TOOL_DESCRIPTION = `List every canonical GST **Information Request List** question with its stable \`NN-II\` key.
 
@@ -53,15 +54,7 @@ export async function handleListIrlRequestsTool() {
 
   const summary = `Listed ${requests.length} canonical IRL requests across ${article.sections.length} sections. Each carries its NN-II key for generate_information_request_list_xlsx's excludeRequests; entries with skipIf are auto-removed when the matching transactionContext is supplied.`;
 
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: summary,
-      },
-    ],
-    structuredContent: payload as unknown as Record<string, unknown>,
-  };
+  return toolOk(payload, summary);
 }
 
 export function registerListIrlRequestsTool(

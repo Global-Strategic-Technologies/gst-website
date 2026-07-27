@@ -25,6 +25,7 @@ import {
   type PrepareIrlBodyInput,
   type PrepareIrlBodyOutput,
 } from '../schemas/prepare-irl-body';
+import { toolOk, toolFail } from './_result';
 
 const TOOL_DESCRIPTION = `Compute the canonical \`irlBodyHash\` for a \`filledIrl\` body so you can submit it to \`compose_dossier_envelope\`.
 
@@ -61,19 +62,14 @@ export async function handlePrepareIrlBodyTool(
       error instanceof IrlBodyCacheSizeExceededError ||
       error instanceof IrlBodyCacheWriteFailedError
     ) {
-      return {
-        content: [{ type: 'text' as const, text: error.message }],
-        isError: true,
-      };
+      // Tells the model to trim the body before retrying — verbatim to `content`.
+      return toolFail('cache-miss', error.message);
     }
     throw error;
   }
 
   const result: PrepareIrlBodyOutput = { irlBodyHash, byteLength };
-  return {
-    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
-    structuredContent: result as unknown as Record<string, unknown>,
-  };
+  return toolOk(result, `IRL body cached (${byteLength} bytes).`);
 }
 
 export function registerPrepareIrlBodyTool(

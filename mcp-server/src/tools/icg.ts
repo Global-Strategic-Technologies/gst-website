@@ -27,6 +27,7 @@ import {
   type ICGInputs,
 } from '../schemas';
 import { HUB_BASE } from '../config';
+import { toolOk, toolFail } from './_result';
 
 /**
  * Build the ICGState that the deep-link should restore. `currentStep: 7`
@@ -96,21 +97,13 @@ export async function handleIcgTool(mcpInputs: ICGMcpInputs) {
     const payload = stageContext
       ? { ...result, recommendations, deeplink, stageContext }
       : { ...result, recommendations, deeplink };
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(payload, null, 2),
-        },
-      ],
-      structuredContent: payload as unknown as Record<string, unknown>,
-    };
+    return toolOk(
+      payload,
+      `Infrastructure cost governance assessed: ${recommendations.length} recommendations.`
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: 'text' as const, text: `Failed to assess ICG: ${message}` }],
-      isError: true,
-    };
+    return toolFail('internal-error', `Failed to assess ICG: ${message}`);
   }
 }
 

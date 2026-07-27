@@ -124,12 +124,31 @@ describe('protocol roundtrip', () => {
     return 'error' in msg;
   }
 
-  function parseToolText<T>(result: CallToolResultPayload): T {
+  /**
+   * Read a tool's payload off the wire.
+   *
+   * BL-090: the payload now travels ONLY in `structuredContent` — `content[0]`
+   * carries a one-line human caption, not a second JSON copy. This helper still
+   * asserts the caption is present and non-empty (the MCP spec requires a
+   * `content` block when no `outputSchema` is declared) and additionally asserts
+   * it is NOT the JSON dump it used to be, so a regression back to double-sending
+   * fails here rather than silently doubling every response.
+   */
+  function parseToolResult<T>(result: CallToolResultPayload): T {
     const block = result.content[0];
     if (!block || block.type !== 'text' || !block.text) {
-      throw new Error('expected first content block to be non-empty text');
+      throw new Error('expected first content block to be a non-empty text caption');
     }
-    return JSON.parse(block.text) as T;
+    if (block.text.trimStart().startsWith('{')) {
+      throw new Error(
+        `content caption must not be a JSON dump (BL-090): ${block.text.slice(0, 80)}`
+      );
+    }
+    const structured = (result as { structuredContent?: unknown }).structuredContent;
+    if (structured === undefined) {
+      throw new Error('expected structuredContent — it is the canonical channel (BL-090)');
+    }
+    return structured as T;
   }
 
   beforeEach(async () => {
@@ -359,7 +378,7 @@ describe('protocol roundtrip', () => {
       const result = res.result as unknown as CallToolResultPayload;
       expect(result.isError).not.toBe(true);
 
-      const parsed = parseToolText<{
+      const parsed = parseToolResult<{
         topics: unknown[];
         metadata: { totalQuestions: number };
       }>(result);
@@ -382,7 +401,7 @@ describe('protocol roundtrip', () => {
       // renders all matches; `returned === totalMatched === matches.length`
       // (no `limit` field at the schema layer). Deeplink emits the
       // search filter back to /ma-portfolio.
-      const parsed = parseToolText<{
+      const parsed = parseToolResult<{
         matches: unknown[];
         totalMatched: number;
         returned: number;
@@ -405,7 +424,7 @@ describe('protocol roundtrip', () => {
       const result = res.result as unknown as CallToolResultPayload;
       expect(result.isError).not.toBe(true);
 
-      const parsed = parseToolText<{
+      const parsed = parseToolResult<{
         themes: string[];
         engagementCategories: string[];
         growthStages: string[];
@@ -473,7 +492,7 @@ describe('protocol roundtrip', () => {
       const result = res.result as unknown as CallToolResultPayload;
       expect(result.isError).not.toBe(true);
 
-      const parsed = parseToolText<{
+      const parsed = parseToolResult<{
         total: number;
         verified: number;
         unverified: number;
@@ -535,7 +554,7 @@ describe('protocol roundtrip', () => {
       const result = res.result as unknown as CallToolResultPayload;
       expect(result.isError).not.toBe(true);
 
-      const parsed = parseToolText<{
+      const parsed = parseToolResult<{
         matches: unknown[];
         totalMatched: number;
         returned: number;
@@ -573,7 +592,7 @@ describe('protocol roundtrip', () => {
       const result = res.result as unknown as CallToolResultPayload;
       expect(result.isError).not.toBe(true);
 
-      const parsed = parseToolText<{
+      const parsed = parseToolResult<{
         matches: unknown[];
         totalMatched: number;
         returned: number;

@@ -29,6 +29,7 @@ import {
   type ValidateIrlProvenanceInput,
 } from '../schemas/validate-irl-provenance';
 import { Bl076BodyCacheMissError } from '../schemas/compose-dossier-envelope';
+import { toolOk, toolFail } from './_result';
 
 const TOOL_DESCRIPTION = `Verify that citations the model emitted (in \`_audit\` blocks, the (K) provenance footer, etc.) actually appear in the supplied filled IRL.
 
@@ -85,38 +86,27 @@ export async function handleValidateIrlProvenanceTool(
       // cross-field refine rule (it consumes `inputSchema.shape`, not the
       // refined schema). Enforce "at least one of filledIrl / irlBodyHash"
       // here so the engine never receives `undefined`.
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text:
-              'validate_irl_provenance: at least one of `filledIrl` / `irlBodyHash` MUST be supplied. ' +
-              'Body-by-hash path: pass `irlBodyHash` alone after `prepare_irl_body` has seeded the cache. ' +
-              'Legacy path: pass `filledIrl` directly.',
-          },
-        ],
-        isError: true,
-      };
+      // Names both remediation paths — a retry directive, so verbatim to `content`.
+      return toolFail(
+        'invalid-input',
+        'validate_irl_provenance: at least one of `filledIrl` / `irlBodyHash` MUST be supplied. ' +
+          'Body-by-hash path: pass `irlBodyHash` alone after `prepare_irl_body` has seeded the cache. ' +
+          'Legacy path: pass `filledIrl` directly.'
+      );
     }
 
     const result = runIrlProvenanceCheck({ filledIrl, citations: payload.citations });
-    const text = JSON.stringify(result, null, 2);
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: result as unknown as Record<string, unknown>,
-    };
+    return toolOk(
+      result,
+      `${result.total} claims checked: ${result.verified} verified, ${result.unverified} unverified.`
+    );
   } catch (error) {
     if (error instanceof Bl076BodyCacheMissError) {
-      return {
-        content: [{ type: 'text' as const, text: error.message }],
-        isError: true,
-      };
+      // Carries the retry instruction naming `prepare_irl_body`.
+      return toolFail('cache-miss', error.message);
     }
     const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: 'text' as const, text: `Failed to validate IRL provenance: ${message}` }],
-      isError: true,
-    };
+    return toolFail('internal-error', `Failed to validate IRL provenance: ${message}`);
   }
 }
 

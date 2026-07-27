@@ -117,7 +117,7 @@ Subsequent radar tool calls (any key, any category) within the next 6h:
 1. Read the breaker flag from Upstash → open
 2. **Read the cached snapshot only** — never Inoreader
 3. If there is cached data: return it normally, with `liveInfo.degraded: true` and `retryAfterSeconds`. `search_radar` succeeds if **either** tier has cache; a tier with nothing cached reports `null` for its `fetchedAt`/`cacheHit`
-4. Only if nothing at all is cached: return the `isError: true` envelope with `error: 'service_unavailable'`, `status: 503`, `retryAfterSeconds: <ttl-remainder>`
+4. Only if nothing at all is cached: return the `isError: true` envelope with `error: 'service-unavailable'`, `status: 503`, `retryAfterSeconds: <ttl-remainder>` in **`structuredContent`** (0.43.0 / BL-090 — previously this JSON was serialized into `content[0].text`; `cause` carries the breaker's trip reason)
 
 So in the common case a breaker-open window is a _degradation_ (up to 6h-old data), not an outage. The same rule applies to the `gst://radar/*` Resources and the website's `/radar/snapshot` endpoint (BL-091).
 
@@ -137,7 +137,7 @@ The breaker auto-closes via TTL expiry. Note that **nothing refreshes the radar 
 | `error: "token-missing"`                        | OAuth access token not in Upstash AND no env fallback | Same — operator wires Inoreader creds                                                |
 | `error: "token-stale"`                          | Inoreader returned 401                                | Wait for the website's next ISR call to refresh; retry the Worker call after that    |
 | `error: "inoreader-rate-limit"`                 | Inoreader returned 429; circuit breaker just opened   | Wait for `Retry-After` (~6h); use `search_radar_offline` if you have local stdio MCP |
-| `error: "service_unavailable"`, `status: 503`   | Breaker open **and** nothing cached to serve          | Wait for `retryAfterSeconds`; same offline-tool fallback applies                     |
+| `error: "service-unavailable"`, `status: 503`   | Breaker open **and** nothing cached to serve          | Wait for `retryAfterSeconds`; same offline-tool fallback applies                     |
 | _Success_ with `liveInfo.degraded: true`        | Breaker open; you got the cached snapshot, not live   | Usually nothing — data is real, up to 6h old (`fetchedAt` gives age)                 |
 | `error: "upstream-error"` / `"network-timeout"` | Other Inoreader failure (5xx, timeout)                | Transient — retry. If sustained, escalate to operator                                |
 

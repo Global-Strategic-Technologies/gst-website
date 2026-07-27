@@ -443,12 +443,13 @@ describe('search_radar — failure modes', () => {
     const result = await handleSearchRadar(baseEnv, {});
 
     expect(wide(result).isError).toBe(true);
-    const errorPayload = JSON.parse((result.content[0] as { text: string }).text) as {
-      error: string;
-      status: number;
-    };
+    // BL-090: the structured error lives in `structuredContent`, not a JSON
+    // blob hand-stringified into the text channel.
+    const errorPayload = result.structuredContent as { error: string; status: number };
     expect(errorPayload.error).toBe('inoreader-rate-limit');
     expect(errorPayload.status).toBe(429);
+    // `content` carries the human-readable message verbatim, not JSON.
+    expect((result.content[0] as { text: string }).text).not.toMatch(/^\s*\{/);
 
     // Circuit breaker should have been opened (set call to mcp:radar:circuit-open).
     const circuitWrite = redisSet.mock.calls.find((c) => c[0] === 'mcp:radar:circuit-open');
@@ -468,14 +469,18 @@ describe('search_radar — failure modes', () => {
     const result = await handleSearchRadar(baseEnv, {});
 
     expect(wide(result).isError).toBe(true);
-    const errorPayload = JSON.parse((result.content[0] as { text: string }).text) as {
+    const errorPayload = result.structuredContent as {
       error: string;
       status: number;
       retryAfterSeconds: number;
+      cause: string;
     };
-    expect(errorPayload.error).toBe('service_unavailable');
+    // BL-090: kebab-cased to match every other reason, and the breaker's own
+    // trip reason moved from `reason` to `cause` (it collided with `error`).
+    expect(errorPayload.error).toBe('service-unavailable');
     expect(errorPayload.status).toBe(503);
     expect(errorPayload.retryAfterSeconds).toBe(3600);
+    expect(errorPayload.cause).toBe('inoreader-429');
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -485,9 +490,7 @@ describe('search_radar — failure modes', () => {
     const result = await handleSearchRadar(baseEnv, {});
 
     expect(wide(result).isError).toBe(true);
-    const errorPayload = JSON.parse((result.content[0] as { text: string }).text) as {
-      error: string;
-    };
+    const errorPayload = result.structuredContent as { error: string };
     expect(errorPayload.error).toBe('token-stale');
 
     // Circuit must NOT have been opened — token issues are not the same as
@@ -502,9 +505,7 @@ describe('search_radar — failure modes', () => {
     const result = await handleSearchRadar(env, {});
 
     expect(wide(result).isError).toBe(true);
-    const errorPayload = JSON.parse((result.content[0] as { text: string }).text) as {
-      error: string;
-    };
+    const errorPayload = result.structuredContent as { error: string };
     expect(errorPayload.error).toBe('config-missing');
   });
 });

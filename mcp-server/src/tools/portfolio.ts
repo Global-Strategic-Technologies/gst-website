@@ -39,6 +39,7 @@ import {
 } from '../schemas';
 import { HUB_BASE } from '../config';
 import projectsRaw from '../../../src/data/ma-portfolio/projects.json';
+import { toolOk } from './_result';
 
 // Validate the bundled dataset at module init. Any drift between the JSON
 // and the schema fails the import (and surfaces in the build log).
@@ -119,15 +120,7 @@ export async function handleSearchPortfolioTool(input: SearchPortfolioInput) {
     returned: matched.length,
     deeplink,
   };
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(payload, null, 2),
-      },
-    ],
-    structuredContent: payload as unknown as Record<string, unknown>,
-  };
+  return toolOk(payload, `${matched.length} portfolio matches.`);
 }
 
 /**
@@ -142,15 +135,10 @@ export async function handleListPortfolioFacetsTool() {
     growthStages: getUniqueGrowthStages(PROJECTS),
     years: getUniqueYears(PROJECTS),
   };
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(facets, null, 2),
-      },
-    ],
-    structuredContent: facets as unknown as Record<string, unknown>,
-  };
+  return toolOk(
+    facets,
+    `${facets.themes.length} themes, ${facets.growthStages.length} growth stages, ${facets.years.length} years.`
+  );
 }
 
 export function registerPortfolioTools(

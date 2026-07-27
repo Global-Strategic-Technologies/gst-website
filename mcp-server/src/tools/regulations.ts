@@ -24,6 +24,7 @@ import {
 } from '../content/regulation-loader';
 import { encodeFilters } from '../../../src/utils/regulatory-map-url';
 import { HUB_BASE } from '../config';
+import { toolOk } from './_result';
 
 const REGULATORY_MAP_PATH = '/hub/tools/regulatory-map/';
 
@@ -292,10 +293,7 @@ export function registerRegulationsTool(
         returned: returned.length,
         ...(filterDeeplink ? { filterDeeplink } : {}),
       };
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-        structuredContent: payload as unknown as Record<string, unknown>,
-      };
+      return toolOk(payload, `${returned.length} of ${matched.length} matching regulations.`);
     })
   );
 
@@ -316,10 +314,7 @@ export function registerRegulationsTool(
         categories: listCategories(),
         totalFrameworks: REGULATION_ENTRIES.length,
       };
-      return {
-        content: [{ type: 'text', text: JSON.stringify(facets, null, 2) }],
-        structuredContent: facets as unknown as Record<string, unknown>,
-      };
+      return toolOk(facets, `${facets.totalFrameworks} regulatory frameworks indexed.`);
     })
   );
 }

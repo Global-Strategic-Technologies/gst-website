@@ -6,6 +6,8 @@ schema: mcp-server/src/tools/radar-offline.ts
 enumParity:
   - tableHeading: '`category`'
     schemaExport: mcp-server/src/content/radar-transform.ts#RADAR_CATEGORIES
+  - tableHeading: 'Failure modes'
+    schemaExport: mcp-server/src/tools/_result.ts#RADAR_FAILURE_REASONS
 ---
 
 # Input Contract: `search_radar_offline`
@@ -188,7 +190,11 @@ When the Inoreader circuit breaker is open, both tools serve the **cached** snap
 
 `degraded` is always present; it is `false` on the normal path.
 
-**Failure modes** — all return MCP `isError: true` content envelope with structured `error` field:
+### Failure modes
+
+All failures return an MCP `isError: true` envelope. Since 0.43.0 (BL-090) the machine-readable detail lives in **`structuredContent`** — `{ error, message, status, … }` — while `content[0].text` carries the human-readable message. Previously this JSON was hand-serialized into the text block and there was no structured channel at all; see [ADR-0011](../../../../../src/docs/adr/0011-tool-response-channel-policy.md).
+
+This table is pinned against `RADAR_FAILURE_REASONS` by `contract-parity.test.ts` — the two must match exactly.
 
 | `error` value          | HTTP analog | Cause                                                            | Breaker side-effect            |
 | ---------------------- | ----------- | ---------------------------------------------------------------- | ------------------------------ |
@@ -198,6 +204,6 @@ When the Inoreader circuit breaker is open, both tools serve the **cached** snap
 | `inoreader-rate-limit` | 429         | Inoreader returned 429                                           | **Opens circuit (6h)**         |
 | `upstream-error`       | 5xx         | Other Inoreader 5xx or invalid response                          | None                           |
 | `network-timeout`      | 504         | fetch threw / aborted (5s timeout)                               | None                           |
-| `service_unavailable`  | 503         | Breaker open **AND** nothing cached to serve (see Degraded mode) | None (read-only check)         |
+| `service-unavailable`  | 503         | Breaker open **AND** nothing cached to serve (see Degraded mode) | None (read-only check)         |
 
 Walkthrough for analysts: [`USAGE_REMOTE.md`](./USAGE_REMOTE.md). Per-key + global rate-limiting reference: [`../operations/RATE_LIMITS.md`](../../operations/RATE_LIMITS.md).

@@ -133,7 +133,7 @@ While the breaker is open, radar results are served from the Upstash snapshot (u
 
 ```json
 {
-  "error": "service_unavailable",
+  "error": "service-unavailable",
   "message": "Radar tools temporarily unavailable — Inoreader budget circuit is open. Retry after 21540 seconds.",
   "retryAfterSeconds": 21540,
   "reason": "inoreader-rate-limit"

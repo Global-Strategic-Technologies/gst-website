@@ -19,6 +19,7 @@ import {
   type AuditedUserInputs,
 } from '../schemas/diligence-audit';
 import { HUB_BASE } from '../config';
+import { toolOk, toolFail } from './_result';
 
 /**
  * Build a Diligence Machine deep-link by delegating to the existing
@@ -111,10 +112,9 @@ export async function handleDiligenceTool(payload: AuditedUserInputs) {
   const auditIssues = runAuditRefinements(payload);
   mark('audit:complete');
   if (auditIssues.length > 0) {
-    return {
-      content: [{ type: 'text' as const, text: formatAuditIssues(auditIssues) }],
-      isError: true,
-    };
+    // The formatted block carries the BL-045 rule citation the `gst_irl_ingestion`
+    // prompt tells the model to read and retry on — verbatim to `content`.
+    return toolFail('audit-failed', formatAuditIssues(auditIssues));
   }
 
   try {
@@ -127,24 +127,19 @@ export async function handleDiligenceTool(payload: AuditedUserInputs) {
     const unknownDimensionCount = countUnknownDimensions(inputs as ValidatedUserInputs);
     const deeplink = buildDiligenceDeeplink(inputs as ValidatedUserInputs);
     const responsePayload = { ...result, unknownDimensionCount, deeplink };
-    const text = JSON.stringify(responsePayload, null, 2);
-    if (trace) console.error(`[REPRO] serialized text bytes=${text.length}`);
+    if (trace) {
+      // BL-090: the response no longer carries a second, pretty-printed copy of
+      // the payload, so measure the structured channel — the only copy on the wire.
+      console.error(`[REPRO] serialized bytes=${JSON.stringify(responsePayload).length}`);
+    }
     mark('handler:returning');
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text,
-        },
-      ],
-      structuredContent: responsePayload as unknown as Record<string, unknown>,
-    };
+    return toolOk(
+      responsePayload,
+      `Diligence agenda generated (${unknownDimensionCount} unknown dimensions).`
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: 'text' as const, text: `Failed to generate diligence agenda: ${message}` }],
-      isError: true,
-    };
+    return toolFail('internal-error', `Failed to generate diligence agenda: ${message}`);
   }
 }
 

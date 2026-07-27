@@ -48,6 +48,7 @@ import {
 import { customizeIrlArticle } from '../../../src/utils/irl/customize-article';
 import { irlSectionCatalog } from '../content/irl-section-catalog';
 import { HUB_BASE } from '../config';
+import { toolOk } from './_result';
 
 // The library page remains the human "canonical reference" printed into the
 // workbook's optional header row (see showCanonicalReference). The generated
@@ -280,15 +281,7 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   //   - structuredContent: full payload including base64 blob, retained
   //     for programmatic API callers (non-Claude-Desktop clients) and
   //     for the model's reasoning about what was generated.
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: summary,
-      },
-    ],
-    structuredContent: payload as unknown as Record<string, unknown>,
-  };
+  return toolOk(payload, summary);
 }
 
 export function registerGenerateIrlXlsxTool(

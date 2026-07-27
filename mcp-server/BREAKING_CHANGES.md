@@ -29,6 +29,34 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.43.0 — 2026-07-27 — BL-090 — tool responses stop sending the payload twice; failures gain a structured channel
+
+**Theme**: `structuredContent` is now the canonical machine channel on **every** path and `content[0].text` is the model channel — a one-line caption on success, the verbatim message on failure. Every tool result is built by `toolOk()` / `toolFail()` in `src/tools/_result.ts`; nothing hand-rolls the literal. Decision record: [`src/docs/adr/0011-tool-response-channel-policy.md`](../src/docs/adr/0011-tool-response-channel-policy.md). **Manifest hash unchanged** — no tool, prompt, or Resource URI added, renamed, or removed, and no prompt body reworded.
+
+**Why**: every tool that returned data sent it twice — pretty-printed into `content[0].text` AND as the object in `structuredContent`. On a full `search_portfolio` that is ~143 KB where ~61 KB suffices (the escaped text copy is the larger of the two, 81,826 B vs 61,439 B). A live probe against production confirmed clients read `structuredContent` and discard `content` when both are present, so the duplicate reached nobody. Meanwhile **no** error return carried `structuredContent` at all, and two hand-`JSON.stringify`d a structured error into the text channel.
+
+**Behavior change (client-visible)**:
+
+- **Success**: `content[0].text` is no longer a JSON dump of the payload. It is a one-line human caption (e.g. `"61 portfolio matches."`). The payload is unchanged and still in `structuredContent`. **Any consumer parsing `content[0].text` as JSON must switch to `structuredContent`.** Both known consumers were migrated in this release (see below).
+- **Failure**: `isError: true` results now ALSO carry `structuredContent` — `{ error, message, ...detail }`. Callers can branch on `error` instead of substring-matching prose. `content[0].text` is unchanged and byte-for-byte verbatim, which the `gst_irl_ingestion` retry directives depend on.
+
+**Renames on the radar failure envelope** (released by operator confirmation that no external client is live — see ADR-0011 § "expiry condition"):
+
+- `error: "service_unavailable"` → **`error: "service-unavailable"`**, the one snake_case outlier in an otherwise kebab-case vocabulary.
+- The circuit-open envelope's inner `reason` field → **`cause`**. Under `{ error, ... }` two different meanings shared the word "reason".
+- The other six radar reasons (`config-missing`, `token-missing`, `token-stale`, `inoreader-rate-limit`, `upstream-error`, `network-timeout`) are **unchanged**; the granularity `search_radar`'s description advertises is preserved deliberately.
+
+**Internal consumers migrated in this release** (no action for operators beyond re-dot-sourcing):
+
+- `scripts/Invoke-McpRequest.ps1` — `Invoke-McpTool` returns `result.structuredContent`; it no longer `ConvertFrom-Json`s the text block.
+- `src/docs/operations/DEPLOY.md` B.3 smoke commands — the triple-`jq` unwrap collapses to `jq '.result.structuredContent.matches | length'`.
+
+**Not a context-window change**: the model never received the duplicate, so this does not increase what Claude can process. It is a wire-size and code-simplicity change.
+
+**Constrains a future `outputSchema`**: the SDK client validates `structuredContent` whenever present with no `isError` guard, so declaring an `outputSchema` on any tool would make error results throw client-side. See ADR-0011.
+
+---
+
 ## 0.42.0 — 2026-07-27 — BL-091 — circuit-breaker open now serves cached radar instead of hard-failing (behavior change + additive `liveInfo` fields)
 
 **Theme**: while the Inoreader circuit breaker is open, every radar read surface serves the cached snapshot instead of erroring, and no surface calls Inoreader. Implements the second clause of ADR-0006 § Decision 2, which had never been wired up, and narrows the 503 to the cache-empty case. Decision record: `src/docs/adr/0006-inoreader-zone1-budget-protection.md` § Amendment 2026-07-27. **Manifest hash unchanged** — no tool, prompt, or Resource URI added, renamed, or removed.
