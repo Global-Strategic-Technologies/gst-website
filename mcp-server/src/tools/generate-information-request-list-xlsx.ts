@@ -275,12 +275,15 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   // ephemeral Worker-hosted file path), the canonical download surface
   // for the IRL workbook is the Hub page at
   //   https://globalstrategic.tech/hub/tools/information-request-list-generator/
-  // The tool below returns text summary + structuredContent only:
-  //   - Text content: human + model-readable summary mentioning the
-  //     filename, section/bullet counts, and Hub-page URL for download.
-  //   - structuredContent: full payload including base64 blob, retained
-  //     for programmatic API callers (non-Claude-Desktop clients) and
-  //     for the model's reasoning about what was generated.
+  // The tool below returns a text summary + structuredContent:
+  //   - structuredContent: the full payload including the base64 blob and
+  //     `canonicalUrl`. **This is what the model actually receives** — BL-090
+  //     probed this exact tool against production (its two channels differ, so
+  //     it discriminates) and the client returned the structured object, not the
+  //     summary. Anything the model must act on has to be a field here.
+  //   - Text content: the same facts as prose — filename, section/bullet counts,
+  //     Hub-page URL. Retained as the caption for clients that render `content`
+  //     and as the human-readable fallback; do not assume the model reads it.
   return toolOk(payload, summary);
 }
 

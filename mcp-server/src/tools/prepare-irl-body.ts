@@ -58,18 +58,22 @@ export async function handlePrepareIrlBodyTool(
   try {
     await metrics?.irlBodyCache?.set(irlBodyHash, payload.filledIrl);
   } catch (error) {
-    if (
-      error instanceof IrlBodyCacheSizeExceededError ||
-      error instanceof IrlBodyCacheWriteFailedError
-    ) {
+    // These two are deliberately NOT `cache-miss`: that reason means "the body
+    // was never stored, call prepare_irl_body first", and a client branching on it
+    // would retry the very call that just failed. Size-exceeded is the model's
+    // input to fix (trim the body); a write failure is ours.
+    if (error instanceof IrlBodyCacheSizeExceededError) {
       // Tells the model to trim the body before retrying — verbatim to `content`.
-      return toolFail('cache-miss', error.message);
+      return toolFail('invalid-input', error.message);
+    }
+    if (error instanceof IrlBodyCacheWriteFailedError) {
+      return toolFail('internal-error', error.message);
     }
     throw error;
   }
 
   const result: PrepareIrlBodyOutput = { irlBodyHash, byteLength };
-  return toolOk(result, `IRL body cached (${byteLength} bytes).`);
+  return toolOk(result, `IRL body hashed (${byteLength} bytes).`);
 }
 
 export function registerPrepareIrlBodyTool(

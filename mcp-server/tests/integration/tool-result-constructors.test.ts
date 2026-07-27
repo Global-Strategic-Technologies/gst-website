@@ -47,6 +47,15 @@ function toolSources(): { file: string; source: string }[] {
  * saw ZERO `toolOk(` calls in five of thirteen modules, i.e. it would have passed
  * while checking nothing. Nested templates (`` `a${`b`}c` ``) break the naive
  * version too. The sanity-check assertions below exist to catch exactly this.
+ *
+ * **Known limitation, stated rather than hidden**: it does not model regex
+ * literals, so `/it's/` opens a phantom string and can blind the scan to code
+ * after it. No tool module contains such a regex today, and the raw-vs-stripped
+ * count assertion catches the case where one precedes a constructor call — but
+ * it would not catch a regex placed after every call, or in a module with none.
+ * Modelling regex literals properly needs full expression-position tracking
+ * (`/` is ambiguous between divide and regex-start), which is more machinery
+ * than this guard's job warrants. Revisit if a tool module ever needs one.
  */
 function stripNonCode(source: string): string {
   const out: string[] = [];
@@ -154,16 +163,31 @@ describe('BL-090 — no hand-rolled tool-result literals', () => {
     expect(toolSources().length).toBeGreaterThanOrEqual(10);
   });
 
+  it('src/tools/ is flat — a nested tool module would escape this scan', () => {
+    // `toolSources()` uses a non-recursive readdir. Rather than silently missing
+    // a module under `src/tools/<subdir>/`, fail loudly and make whoever adds one
+    // decide: flatten it, or make the scan recursive.
+    const dirs = readdirSync(TOOLS_DIR, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
+    expect(dirs, 'nested tool directory — make toolSources() recursive').toEqual([]);
+  });
+
   it('the scanner preserves code across the big TOOL_DESCRIPTION templates', () => {
     // Sanity check on stripNonCode itself. Every module that calls a constructor
     // must still show that call AFTER stripping — if a template-literal mispair
     // eats the code, every assertion below silently passes on nothing.
+    //
+    // The baseline counts calls in a COMMENT-stripped copy, not the raw source:
+    // counting raw would make the first docstring that mentions `toolOk(` fail
+    // this test with "scanner lost calls", which is the opposite of the truth.
     for (const { file, source } of toolSources()) {
-      const rawCalls = (source.match(/\btool(Ok|Fail)\s*\(/g) ?? []).length;
-      const strippedCalls = (stripNonCode(source).match(/\btool(Ok|Fail)\s*\(/g) ?? []).length;
-      expect(strippedCalls, `${file}: scanner lost constructor calls while stripping`).toBe(
-        rawCalls
-      );
+      const withoutComments = source
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^[ \t]*\/\/[^\n]*/gm, '');
+      const baseline = (withoutComments.match(/\btool(Ok|Fail)\s*\(/g) ?? []).length;
+      const stripped = (stripNonCode(source).match(/\btool(Ok|Fail)\s*\(/g) ?? []).length;
+      expect(stripped, `${file}: scanner lost constructor calls while stripping`).toBe(baseline);
     }
   });
 
@@ -224,7 +248,10 @@ describe('BL-090 — success captions are captions, not payloads', () => {
    * dump.
    */
   function captionArgs(source: string): string[] {
-    const code = stripNonCode(source);
+    return captionArgsFrom(stripNonCode(source));
+  }
+
+  function captionArgsFrom(code: string): string[] {
     const captions: string[] = [];
     const re = /\btoolOk\s*\(/g;
     let match: RegExpExecArray | null;
@@ -258,6 +285,11 @@ describe('BL-090 — success captions are captions, not payloads', () => {
     return captions;
   }
 
+  /** Same extraction, but over the raw source so string contents survive. */
+  function rawCaptionArgs(source: string): string[] {
+    return captionArgsFrom(source);
+  }
+
   it('finds every toolOk call site', () => {
     const total = toolSources().reduce((n, { source }) => n + captionArgs(source).length, 0);
     // 16 success sites at the time of writing. A lower number means the parser
@@ -285,13 +317,24 @@ describe('BL-090 — success captions are captions, not payloads', () => {
     }
   });
 
-  it('no inline caption literal contains an embedded newline', () => {
+  it('no caption contains an embedded newline', () => {
+    // Read from the RAW source, not the stripped one: `stripNonCode` blanks quoted
+    // string contents, so a `'a\nb'` caption arrives here as `''` and a check
+    // against the stripped text could never fail. Template captions are the only
+    // kind whose newlines survive stripping, and the earlier version of this test
+    // excluded exactly those — so it asserted nothing at all.
     for (const { file, source } of toolSources()) {
-      for (const caption of captionArgs(source)) {
-        if (caption.startsWith("'") || caption.startsWith('"')) {
-          expect(caption, `${file}: captions are one line`).not.toMatch(/\\n/);
-        }
+      for (const caption of rawCaptionArgs(source)) {
+        expect(caption, `${file}: captions are one line (literal newline)`).not.toContain('\n');
+        expect(caption, `${file}: captions are one line (escaped newline)`).not.toMatch(/\\n/);
       }
     }
+  });
+
+  it('the newline check is not vacuous — it catches both spellings', () => {
+    // Guards the guard: the previous version of the assertion above could not
+    // fail. These two shapes must be visible to `rawCaptionArgs`.
+    expect(rawCaptionArgs("toolOk(p, 'a\\nb');")[0]).toMatch(/\\n/);
+    expect(rawCaptionArgs('toolOk(p, `a\nb`);')[0]).toContain('\n');
   });
 });

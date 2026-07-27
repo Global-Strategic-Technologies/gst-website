@@ -137,7 +137,7 @@ export async function handleListPortfolioFacetsTool() {
   };
   return toolOk(
     facets,
-    `${facets.themes.length} themes, ${facets.growthStages.length} growth stages, ${facets.years.length} years.`
+    `${facets.themes.length} themes, ${facets.engagementCategories.length} engagement categories, ${facets.growthStages.length} growth stages, ${facets.years.length} years.`
   );
 }
 

@@ -143,6 +143,12 @@ function Invoke-McpTool {
 
     # Preferred path: the structured channel. Present on BOTH success and failure.
     if ($null -ne $resp.result.structuredContent) {
+        # A tool-level failure is a 2xx MCP envelope with isError, so it would
+        # otherwise look like success to a smoke step. Say so out loud — the
+        # payload still returns, carrying .error and .message.
+        if ($resp.result.isError) {
+            Write-Warning "MCP tool '$Name' returned isError. error='$($resp.result.structuredContent.error)' message='$($resp.result.structuredContent.message)'"
+        }
         return $resp.result.structuredContent
     }
 

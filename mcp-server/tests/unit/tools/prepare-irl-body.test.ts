@@ -85,6 +85,6 @@ describe('handlePrepareIrlBodyTool', () => {
     expect(result.content[0].type).toBe('text');
     expect(result.content[0].text).not.toMatch(/^\s*\{/);
     expect(result.content[0].text).not.toContain('\n');
-    expect(result.content[0].text).toMatch(/IRL body cached/);
+    expect(result.content[0].text).toMatch(/IRL body hashed/);
   });
 });

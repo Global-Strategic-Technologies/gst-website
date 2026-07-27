@@ -175,7 +175,10 @@ export function toolFail(
     isError: true,
   };
   if (options?.suppressStructured !== true) {
-    result.structuredContent = { error: reason, message: text, ...extra };
+    // `extra` is spread FIRST so the canonical fields always win. Spread last, an
+    // `extra` that happened to carry `message` would silently clobber the verbatim
+    // mirror of `content[0].text` — the one thing Invariant 2 guarantees.
+    result.structuredContent = { ...extra, error: reason, message: text };
   }
   return result;
 }
