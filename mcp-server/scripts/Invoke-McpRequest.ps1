@@ -16,9 +16,9 @@
                             to see the JSON-RPC envelope shape.
 
         Invoke-McpTool      convenience wrapper around tools/call. Issues the
-                            call, unwraps result.content[0].text, and returns
-                            the parsed tool-response payload directly. Use for
-                            T.B.* and any test that calls a named tool.
+                            call and returns result.structuredContent — the
+                            tool's payload — directly. Use for T.B.* and any
+                            test that calls a named tool.
 
     Env vars MCP_URL and MCP_KEY are sourced from your shell. MCP_URL defaults
     to staging if unset (with a console note); MCP_KEY is prompted via
@@ -119,11 +119,20 @@ function Invoke-McpTool {
         Call a named MCP tool; returns the parsed response payload.
 
     .DESCRIPTION
-        Wraps Invoke-McpRequest -Method "tools/call" and unwraps result.content[0].text
-        to JSON-deserialize the tool's response. Invoke-McpRequest throws on HTTP
-        errors and on protocol-unexpected responses, so this wrapper only handles
-        the legitimate-2xx-but-unexpected-MCP-envelope cases (e.g., a Zod rejection
-        surfaced as plain text inside an otherwise valid envelope).
+        Wraps Invoke-McpRequest -Method "tools/call" and returns the tool's payload
+        from result.structuredContent — the canonical machine channel (BL-090).
+
+        Before BL-090 this parsed result.content[0].text as JSON, because every tool
+        sent its payload twice: pretty-printed into the text block AND as the
+        structured object. The text block is now a one-line human caption on success
+        and the verbatim message on failure, so parsing it as JSON would always fail.
+
+        Failures now carry structuredContent too — { error, message, ... } — so a
+        caller can branch on $result.error instead of substring-matching prose.
+
+        The content[0].text fallback remains for robustness against a tool that
+        somehow returns no structured channel; it emits a warning rather than
+        pretending the shape was expected.
     #>
     param(
         [Parameter(Mandatory)] [string] $Name,
@@ -132,22 +141,26 @@ function Invoke-McpTool {
     )
     $resp = Invoke-McpRequest -Method 'tools/call' -Params @{ name = $Name; arguments = $Arguments } -Id $Id
 
+    # Preferred path: the structured channel. Present on BOTH success and failure.
+    if ($null -ne $resp.result.structuredContent) {
+        # A tool-level failure is a 2xx MCP envelope with isError, so it would
+        # otherwise look like success to a smoke step. Say so out loud — the
+        # payload still returns, carrying .error and .message.
+        if ($resp.result.isError) {
+            Write-Warning "MCP tool '$Name' returned isError. error='$($resp.result.structuredContent.error)' message='$($resp.result.structuredContent.message)'"
+        }
+        return $resp.result.structuredContent
+    }
+
     if (-not $resp.result.content -or -not $resp.result.content[0].text) {
-        Write-Warning "MCP response has unexpected content shape — returning raw envelope for inspection."
+        Write-Warning 'MCP response carries neither structuredContent nor a text block — returning raw envelope for inspection.'
         return $resp
     }
-    # result.content[0].text exists but may not be JSON — happens when the tool
-    # surfaces a Zod rejection or other handler-level error as plain text inside
-    # the standard MCP envelope (vs. as a JSON-RPC error). Catch the parse
-    # failure so the operator gets a clean diagnostic + the raw text for
-    # inspection, rather than a stack-trace from ConvertFrom-Json.
-    try {
-        return $resp.result.content[0].text | ConvertFrom-Json -ErrorAction Stop
-    }
-    catch {
-        Write-Warning "MCP tool response text is not valid JSON — likely a Zod rejection or other tool-level error. Raw text preview (first 200 chars): '$($resp.result.content[0].text.Substring(0, [Math]::Min(200, $resp.result.content[0].text.Length)))'. Returning raw envelope for inspection."
-        return $resp
-    }
+
+    # No structured channel: unexpected post-BL-090. Surface the text so the
+    # operator can see what came back, rather than failing opaquely.
+    Write-Warning "MCP tool response has no structuredContent (unexpected since 0.43.0). Text preview (first 200 chars): '$($resp.result.content[0].text.Substring(0, [Math]::Min(200, $resp.result.content[0].text.Length)))'. Returning raw envelope for inspection."
+    return $resp
 }
 
 Write-Host "Loaded MCP helpers. Targeting $env:MCP_URL." -ForegroundColor Green

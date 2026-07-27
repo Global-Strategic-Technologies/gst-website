@@ -149,6 +149,11 @@ describe('handleRadarOfflineTool — BL-031.95 Phase 3.B integration', () => {
     expect(response.isError).toBe(true);
     const text = (response.content[0] as { type: 'text'; text: string }).text;
     expect(text).toMatch(/npm run radar:seed/);
+    // BL-090: same prose, now with a structured mirror.
+    expect(response.structuredContent).toMatchObject({
+      error: 'snapshot-missing',
+      message: text,
+    });
   });
 
   describe('capability-mirror invariant (Phase 3.A enforcement at the handler boundary)', () => {

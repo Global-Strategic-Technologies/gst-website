@@ -44,6 +44,7 @@ import {
   type InoreaderObservedSource,
 } from '../observability/inoreader-status';
 import { filterFreshFyi, toSnapshotItem, type SnapshotItem } from './radar-transform';
+import type { RadarUpstreamReason } from '../tools/_result';
 import type { Env } from '../worker';
 
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h, matches website ISR window
@@ -62,13 +63,15 @@ export type LiveTierResult =
   | {
       readonly ok: false;
       readonly status: number;
-      readonly reason:
-        | 'inoreader-rate-limit'
-        | 'token-stale'
-        | 'config-missing'
-        | 'token-missing'
-        | 'upstream-error'
-        | 'network-timeout';
+      /**
+       * BL-090: derived from `RADAR_UPSTREAM_REASONS` rather than hand-spelled.
+       * These six values used to be written out three times (here, as
+       * `InoreaderFailureReason` in `lib/inoreader-client.ts`, and — nearly — in
+       * the radar CONTRACT's failure table). Deriving makes `mapFailure()` below a
+       * compile-time drift guard: widening `InoreaderFailureReason` or narrowing
+       * the tuple breaks that assignment.
+       */
+      readonly reason: RadarUpstreamReason;
       readonly message: string;
       /**
        * Populated on `inoreader-rate-limit` (429) responses when Inoreader

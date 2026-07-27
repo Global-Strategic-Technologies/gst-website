@@ -107,7 +107,12 @@ This document provides Claude with essential context about the GST Website proje
   ```
   npx astro check && npm run lint && npm run lint:css && npm run test:run
   ```
-  If all four pass locally, CI will almost certainly pass
+  If all four pass locally, CI will almost certainly pass — **for website-only changes**
+- **Touching `mcp-server/`? Those four are NOT sufficient.** `astro check` type-checks the root program, whose tsconfig explicitly `exclude`s `mcp-server`, and Vitest transpiles without type-checking — so an mcp-server type error passes all four _and_ `test:mcp`, while failing CI (`test-mcp-server.yml` runs `typecheck` then `build` = `tsc --noEmit && node build.mjs`; a red run there also suppresses the staging-deploy chain). Additionally run:
+  ```
+  npm -w @gst/mcp-server run typecheck && npm run test:mcp && npm run test:docs
+  ```
+  Learned in BL-090: a two-argument call to a one-argument constructor sat green through the whole four-command sequence plus 1917 passing mcp tests
 - **Every commit is auto-formatted by the husky pre-commit hook** — lint-staged runs `eslint --fix` then `prettier --write` on staged files. Your staged files may look different in the final commit than in your working tree. This is intentional and documented
 - **`npm audit` policy**: production dependencies must stay at zero advisories (enforced via `--audit-level=moderate --omit=dev` in CI). Dev-only advisories are tolerated case-by-case
 - **Do not add or edit hooks, lint configs, or CI jobs without updating [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md)** — the doc is the single source of truth for new contributors and future sessions

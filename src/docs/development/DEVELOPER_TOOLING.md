@@ -19,7 +19,8 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
 | Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
-| Type-check the whole project           | `npx astro check`                                                            |
+| Type-check the website workspace       | `npx astro check` (root tsconfig `exclude`s `mcp-server`)                    |
+| Type-check the **mcp-server** workspace | `npm -w @gst/mcp-server run typecheck` (`astro check` does NOT cover it — see below) |
 | Lint all JS/TS/Astro                   | `npm run lint`                                                               |
 | Lint and auto-fix                      | `npm run lint:fix`                                                           |
 | Lint CSS and Astro scoped styles       | `npm run lint:css`                                                           |
@@ -37,13 +38,23 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 **Authoritative local validation sequence** (what CI runs, in the same order):
 
 ```bash
-npx astro check      # type errors
+npx astro check      # type errors (website workspace)
 npm run lint         # ESLint (JS/TS/Astro)
 npm run lint:css     # stylelint (CSS)
 npm run test:run     # Vitest unit + integration
 ```
 
-If all four pass locally, CI will almost certainly pass too.
+If all four pass locally, CI will almost certainly pass too — **for website-only changes**.
+
+> **If your change touches `mcp-server/`, these four are not sufficient.** `astro check` type-checks the root program, which does not pull in mcp-server's sources or tests, and Vitest transpiles without type-checking — so a type error in `mcp-server/` passes all four while failing CI. `.github/workflows/test-mcp-server.yml` runs `typecheck` and then `build` (= `tsc --noEmit && node build.mjs`); a red run there also suppresses the staging-deploy chain, which gates on `workflow_run.conclusion == 'success'`. Add:
+>
+> ```bash
+> npm -w @gst/mcp-server run typecheck   # tsc --noEmit over mcp-server (src + tests)
+> npm run test:mcp                       # Vitest, mcp-server workspace
+> npm run test:docs                      # doc link & anchor integrity (required check)
+> ```
+>
+> Discovered the hard way in BL-090: a two-argument call to a one-argument constructor sat green through `astro check`, `lint`, `test:run`, `test:mcp` (1917 passing) and `test:docs`, and would have failed CI.
 
 ---
 

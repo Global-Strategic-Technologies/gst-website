@@ -529,20 +529,22 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 
 ---
 
-### BL-090: MCP Server — Collapse the duplicated tool-response payload (candidate)
+### BL-092: MCP Server — declare `outputSchema` on the tool surface (candidate)
 
-**Source**: surfaced 2026-07-26 while sizing an output guard during the BL-033 prompt-injection planning | **Effort**: small (~0.5 day incl. contract-test updates) | **Status**: Candidate · **Investigate-first**
+**Source**: split out of BL-090 (shipped 0.43.0, 2026-07-27) | **Effort**: medium | **Status**: Candidate
 
-**As a** operator of the MCP server, **I want** to stop sending every tool's payload twice **so that** response bytes (and, on radar, the doubling of large article lists) aren't wasted — but only after confirming the second copy isn't load-bearing for a consumer.
+**As a** consumer of the GST MCP server, **I want** each tool to declare an `outputSchema` **so that** my client can validate `structuredContent` rather than trusting it — the natural completion of ADR-0011's "structuredContent is canonical".
 
-**What**: every MCP tool returns the same payload in BOTH `content[0].text` (`JSON.stringify(payload, null, 2)`) AND `structuredContent` (the same object) — e.g. `mcp-server/src/tools/radar-live.ts:232-234`, `mcp-server/src/tools/portfolio.ts:122-131`. This roughly doubles response size on every call.
+**What**: no tool declares an `outputSchema` today (verified), which is why `structuredContent` is transmitted but unvalidated. Adding one per tool means authoring output schemas for 16 tools.
 
-**Investigate why it exists first** (the load-bearing question): the stated rationale is MCP's backward-compatibility convention — mirror structured data as text for clients that don't support `structuredContent`. That justification is weak pre-GA: **there are no external consuming clients yet.** Determine whether ANY current or near-term consumer actually reads the `content` text vs `structuredContent` — internal `MCP_KEY_*` callers, the website `/radar/snapshot` path (note: it builds its own JSON, doesn't use the tool envelope), planned pilots. If none needs both channels, drop one (keep `structuredContent` + a short human summary in `content`, or keep `content` only). If a real consumer needs both, close the item as WON'T-DO with the evidence.
+**Blocked-by constraint — read before starting.** The SDK client validates `structuredContent` **whenever present, with no `isError` guard** (`client/index.js`, contradicting its own adjacent comment). ADR-0011 Invariant 1 puts `structuredContent` on error results too. So the day any tool declares an `outputSchema`, its error results would throw `McpError` client-side. Any implementation MUST either scope schemas to the success shape only, or exempt error results (the `toolFail` `suppressStructured` option exists for a related contingency). Do not pick this up without resolving that first.
+
+**Weigh honestly before building**: 16 hand-authored Zod output schemas can drift from the handlers that build the payloads, which is _more_ cognitive load unless derived — and TypeScript types do not survive to runtime. The win is client-side validation, not model comprehension. Deferred from BL-090 for exactly this reason.
 
 **Acceptance criteria**
 
-- [ ] Documented finding: which channel each known/near-term consumer reads (evidence, not assumption)
-- [ ] If dedup is safe: one channel dropped; contract-parity tests updated; no consumer regression
-- [ ] If not safe: closed WON'T-DO with the consumer that requires both channels named
+- [ ] Error-result interaction resolved and tested against a real client round-trip before any schema ships
+- [ ] Schemas derived or generated where possible, not hand-maintained in parallel with the handlers
+- [ ] `contract-parity` coverage so a schema and its CONTRACT.md cannot drift
 
 ---

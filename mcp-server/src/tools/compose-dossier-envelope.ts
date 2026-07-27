@@ -43,6 +43,7 @@ import {
   type ComposeDossierEnvelopeEngineInput,
   type ComposeDossierEnvelopeInput,
 } from '../schemas/compose-dossier-envelope';
+import { toolOk, toolFail } from './_result';
 
 const TOOL_DESCRIPTION = `Render the dossier's structural envelope (top-of-document meta JSON fence, (J) gap list, (K) provenance footer) as markdown the model transcribes verbatim into the dossier.
 
@@ -104,19 +105,12 @@ export async function handleComposeDossierEnvelopeTool(
     // on the call I'm currently inside").
     const serverToolCallCounts = metrics?.counters?.snapshot();
     const result = serverToolCallCounts ? { ...baseResult, serverToolCallCounts } : baseResult;
-    const text = JSON.stringify(result, null, 2);
-    return {
-      content: [{ type: 'text' as const, text }],
-      structuredContent: result as unknown as Record<string, unknown>,
-    };
+    return toolOk(result, 'Dossier envelope composed.');
   } catch (error) {
     // BL-045 PR B audit BL-2 → ALT-1: surface hash-bind diagnostic
     // verbatim so the model can act on it and retry with verbatim IRL.
     if (error instanceof IrlBodyHashMismatchError) {
-      return {
-        content: [{ type: 'text' as const, text: error.message }],
-        isError: true,
-      };
+      return toolFail('hash-mismatch', error.message);
     }
     // BL-063 server-side enforcement: surface partition + scope
     // diagnostics verbatim so the model can act on them.
@@ -127,16 +121,13 @@ export async function handleComposeDossierEnvelopeTool(
       error instanceof Bl070VerbatimBodyRequiredError ||
       error instanceof Bl076BodyCacheMissError
     ) {
-      return {
-        content: [{ type: 'text' as const, text: error.message }],
-        isError: true,
-      };
+      return toolFail(
+        error instanceof Bl076BodyCacheMissError ? 'cache-miss' : 'invalid-input',
+        error.message
+      );
     }
     const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: 'text' as const, text: `Failed to compose dossier envelope: ${message}` }],
-      isError: true,
-    };
+    return toolFail('internal-error', `Failed to compose dossier envelope: ${message}`);
   }
 }
 

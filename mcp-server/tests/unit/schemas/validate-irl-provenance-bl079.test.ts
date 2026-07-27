@@ -151,6 +151,25 @@ describe('BL-079 — handleValidateIrlProvenanceTool cache-resolution path', () 
     const text = result.content?.[0]?.type === 'text' ? result.content[0].text : '';
     expect(text).toMatch(/body-cache miss/);
     expect(text).toMatch(SAMPLE_HASH);
+    // BL-090: the retry directive is preserved verbatim AND mirrored structurally.
+    expect(result.structuredContent).toMatchObject({ error: 'cache-miss', message: text });
+  });
+
+  // BL-090 — this guard's prose names both remediation paths and had no test.
+  // It is a directive the model is expected to act on, so pin the text, not just
+  // the reason.
+  it('missing both filledIrl and irlBodyHash returns a directive naming both paths', async () => {
+    const result = await handleValidateIrlProvenanceTool(
+      { citations: SAMPLE_CITATIONS } as never,
+      noopMetrics(new InMemoryIrlBodyCache())
+    );
+
+    expect(result.isError).toBe(true);
+    const text = result.content?.[0]?.type === 'text' ? result.content[0].text : '';
+    expect(text).toContain('at least one of `filledIrl` / `irlBodyHash` MUST be supplied');
+    expect(text).toContain('prepare_irl_body');
+    expect(text).toContain('Legacy path');
+    expect(result.structuredContent).toMatchObject({ error: 'invalid-input', message: text });
   });
 
   it('prefers filledIrl when both fields are supplied (legacy precedence)', async () => {

@@ -6,7 +6,9 @@
 // three open hypotheses:
 //
 //   H1 — large JSON response overflowing the stdio pipe buffer
-//        (15–20 KB doubled by content/structuredContent duplication)
+//        (15–20 KB, historically doubled by content/structuredContent
+//        duplication — removed in 0.43.0 / BL-090, so a re-run of this
+//        repro now moves roughly half the bytes it did originally)
 //   H2 — generateScript engine slow path for this input combo
 //   H3 — stdio child-process deadlock (Desktop-side artifact; we may
 //        not be able to reproduce H3 since our reader is a plain Node

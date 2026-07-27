@@ -131,16 +131,21 @@ While the breaker is open, radar results are served from the Upstash snapshot (u
 
 ### 503 — only when nothing is cached
 
+Since 0.43.0 (BL-090) this lives in the response's **`structuredContent`**; `content[0].text` carries the same `message` verbatim.
+
 ```json
 {
-  "error": "service_unavailable",
+  "error": "service-unavailable",
   "message": "Radar tools temporarily unavailable — Inoreader budget circuit is open. Retry after 21540 seconds.",
-  "retryAfterSeconds": 21540,
-  "reason": "inoreader-rate-limit"
+  "status": 503,
+  "cause": "inoreader-rate-limit",
+  "retryAfterSeconds": 21540
 }
 ```
 
-(This is an MCP `isError` content envelope, not an HTTP status — the tool path always returns HTTP 200. `/radar/snapshot` likewise stays HTTP 200 and expresses the state in the body, so the website's feed never hard-fails.)
+`cause` is the breaker's own trip reason. It was called `reason` before 0.43.0, which collided with the meaning of `error`.
+
+(This is an MCP `isError` envelope, not an HTTP status — the tool path always returns HTTP 200. `/radar/snapshot` likewise stays HTTP 200 and expresses the state in the body, so the website's feed never hard-fails.)
 
 **No automatic recovery probe.** Nothing refreshes the cache while the breaker is open (that's the point — it protects the budget), so if Inoreader recovers early the stale data persists until the 6h TTL expires. A half-open trial probe was designed and deliberately **rejected**: a naive one can _extend_ an outage, because it can succeed on the last unit of Zone-1 headroom and the follow-on 6-call wire refill then 429s — and `openCircuit` resets the **full** 6h TTL rather than preserving the original expiry. See § manual reset below if you need to recover sooner.
 

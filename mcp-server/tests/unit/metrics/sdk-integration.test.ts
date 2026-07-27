@@ -23,6 +23,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { InMemorySink } from '../../../src/metrics/sinks/in-memory';
+import { toolOk, toolFail } from '../../../src/tools/_result';
 import {
   withPromptMetrics,
   withResourceMetrics,
@@ -91,6 +92,59 @@ describe('M4 — withToolMetrics typecheck + runtime against real McpServer', ()
     const client = await connectInMemory(server);
     await client.callTool({ name: 'fails', arguments: {} });
     expect(sink.events.at(-1)).toMatchObject({ name: 'fails', outcome: 'error' });
+    await client.close();
+  });
+
+  // BL-090 — the two constructors, exercised through a REAL McpServer + client
+  // rather than by calling the handler directly. This is the CI-resident proof
+  // that the new envelope shapes survive the SDK round-trip; before BL-090 no
+  // error result carried `structuredContent` at all, and `validateToolOutput`
+  // (server/mcp.js) treats structured output specially, so "it type-checks" was
+  // not sufficient evidence.
+  it('toolOk sends the payload once — structuredContent over the wire, caption in content', async () => {
+    const server = new McpServer({ name: 'spike', version: '0.0.0' });
+    server.registerTool(
+      'ok_tool',
+      { title: 'Ok', description: 'Succeeds', inputSchema: {} },
+      withToolMetrics('ok_tool', { sink: new InMemorySink() }, async () =>
+        toolOk({ matches: ['a', 'b'], totalMatched: 2 }, '2 matches.')
+      )
+    );
+
+    const client = await connectInMemory(server);
+    const result = await client.callTool({ name: 'ok_tool', arguments: {} });
+
+    expect(result.structuredContent).toEqual({ matches: ['a', 'b'], totalMatched: 2 });
+    expect(result.content).toEqual([{ type: 'text', text: '2 matches.' }]);
+    await client.close();
+  });
+
+  it('toolFail delivers a structured error AND the verbatim directive through the SDK', async () => {
+    const directive = [
+      'Audit FAILED.',
+      '  1. `arr` is annualized.',
+      '     Fix: pass monetaryBasis.',
+    ].join('\n');
+    const server = new McpServer({ name: 'spike', version: '0.0.0' });
+    server.registerTool(
+      'fail_tool',
+      { title: 'Fail', description: 'Fails', inputSchema: {} },
+      withToolMetrics('fail_tool', { sink: new InMemorySink() }, async () =>
+        toolFail('audit-failed', directive, { status: 400 })
+      )
+    );
+
+    const client = await connectInMemory(server);
+    const result = await client.callTool({ name: 'fail_tool', arguments: {} });
+
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({
+      error: 'audit-failed',
+      message: directive,
+      status: 400,
+    });
+    // The multi-line retry directive must reach the model byte-for-byte.
+    expect(result.content).toEqual([{ type: 'text', text: directive }]);
     await client.close();
   });
 });

@@ -24,10 +24,11 @@
  * The offline tool (`search_radar_offline`) remains stdio-only as the
  * dev/CI/budget-exhausted fallback.
  *
- * **CI invariant** (Phase 6): the schema-drift test
- * (`tests/integration/registry-snapshot.test.ts`) snapshots both the stdio
- * registry (createServer + this file) and the Worker registry (createServer
- * alone) and asserts the diff is exactly the local-only set declared here.
+ * **CI invariant**: `tests/integration/protocol-roundtrip.test.ts` asserts the
+ * full stdio tool-name list (createServer + this file), so removing or renaming
+ * a local-only tool fails there. (This comment previously cited a
+ * `tests/integration/registry-snapshot.test.ts` that has never existed in the
+ * repo — corrected in BL-090.)
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';

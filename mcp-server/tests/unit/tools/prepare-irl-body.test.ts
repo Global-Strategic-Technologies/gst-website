@@ -67,12 +67,24 @@ describe('handlePrepareIrlBodyTool', () => {
     expect(r1.structuredContent?.irlBodyHash).not.toBe(r2.structuredContent?.irlBodyHash);
   });
 
-  it('returns structuredContent (typed result) AND text-rendered JSON content', async () => {
+  // BL-090 replaces this test's original premise. It used to assert the payload
+  // was sent TWICE — parsing `content[0].text` as JSON and checking it matched
+  // `structuredContent` field-for-field. That duplication is exactly what BL-090
+  // removed (a live probe showed clients discard `content` when
+  // `structuredContent` is present, so the second copy reached nobody). What is
+  // pinned now is the replacement contract: payload in the structured channel,
+  // a human caption — never JSON — in the model channel.
+  it('sends the payload once: structuredContent carries it, content carries a caption', async () => {
     const body = makeBody(500, 'g');
     const result = (await handlePrepareIrlBodyTool({ filledIrl: body })) as SuccessResult;
+
+    expect(result.structuredContent?.irlBodyHash).toMatch(/^[0-9a-f]{16}$/);
+    expect(result.structuredContent?.byteLength).toBe(Buffer.byteLength(body, 'utf8'));
+
+    expect(result.content).toHaveLength(1);
     expect(result.content[0].type).toBe('text');
-    const parsed = JSON.parse(result.content[0].text);
-    expect(parsed.irlBodyHash).toBe(result.structuredContent?.irlBodyHash);
-    expect(parsed.byteLength).toBe(result.structuredContent?.byteLength);
+    expect(result.content[0].text).not.toMatch(/^\s*\{/);
+    expect(result.content[0].text).not.toContain('\n');
+    expect(result.content[0].text).toMatch(/IRL body hashed/);
   });
 });

@@ -16,7 +16,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { InMemoryIrlBodyCache } from '../../src/cache/irl-body-cache';
+import {
+  InMemoryIrlBodyCache,
+  IrlBodyCacheSizeExceededError,
+} from '../../src/cache/irl-body-cache';
 import { withToolMetrics, type MetricsContext } from '../../src/metrics/with-metrics';
 import { handlePrepareIrlBodyTool } from '../../src/tools/prepare-irl-body';
 import { handleComposeDossierEnvelopeTool } from '../../src/tools/compose-dossier-envelope';
@@ -251,5 +254,35 @@ describe('BL-076 — body-by-hash prepare-then-compose chain', () => {
       expect(text.text).toContain('IRL body cache write FAILED');
       expect(text.text).toContain('wrangler tail');
     }
+    // BL-090: a write failure is OURS, not the model's input — deliberately not
+    // `cache-miss`, which means "the body was never stored, call prepare_irl_body
+    // first" and would send a client back into the call that just failed.
+    expect(result.structuredContent).toMatchObject({ error: 'internal-error' });
+  });
+
+  it('a body over the per-entry size cap is invalid-input, not cache-miss (BL-090)', async () => {
+    const oversizedCache = {
+      get: async () => null,
+      set: async () => {
+        // The cap itself lives in the class (IRL_BODY_CACHE_MAX_BYTES); the
+        // constructor takes only the offending byte length.
+        throw new IrlBodyCacheSizeExceededError(999_999);
+      },
+    };
+    const metrics: MetricsContext = {
+      sink: { write: () => undefined },
+      irlBodyCache: oversizedCache,
+    };
+
+    const result = await handlePrepareIrlBodyTool({ filledIrl: SAMPLE_IRL }, metrics);
+
+    expect(result.isError).toBe(true);
+    // The model can act on this one — trim the body and retry.
+    expect(result.structuredContent).toMatchObject({ error: 'invalid-input' });
+    // And the remediation prose reaches it byte-for-byte.
+    const block = result.content[0];
+    expect(block.type === 'text' ? block.text : '').toBe(
+      (result.structuredContent as { message: string }).message
+    );
   });
 });

@@ -106,6 +106,9 @@ describe('handleTechparTool — BL-031.95 Phase 1 integration (renamed field + c
     const text = (response.content[0] as { type: 'text'; text: string }).text;
     expect(text).toContain('infraHostingAnnual');
     expect(text).toContain('greater than zero');
+    // BL-090: the retry directive stays verbatim in `content`, and the failure is
+    // now ALSO machine-readable — callers no longer have to substring-match prose.
+    expect(response.structuredContent).toMatchObject({ error: 'invalid-input', message: text });
   });
 
   it('arr = 0 produces the same isError shape as zero hosting', async () => {
@@ -115,6 +118,7 @@ describe('handleTechparTool — BL-031.95 Phase 1 integration (renamed field + c
     const text = (response.content[0] as { type: 'text'; text: string }).text;
     expect(text).toContain('arr');
     expect(text).toContain('greater than zero');
+    expect(response.structuredContent).toMatchObject({ error: 'invalid-input', message: text });
   });
 
   it('engine no longer multiplies infraHostingAnnual by 12 — 24% total tech ratio at known inputs (BL-031.95)', async () => {
