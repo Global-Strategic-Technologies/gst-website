@@ -281,6 +281,25 @@ describe('GET /radar/snapshot — circuit breaker (BL-091)', () => {
     expect(mockHandleInoreaderFailure.mock.calls[0]?.[2]).toBe('http-radar-snapshot');
   });
 
+  it('routes the breaker handler exactly ONCE when both tiers 429', async () => {
+    // openCircuit resets the full 6h TTL and each route emits a Sentry event,
+    // so double-handling one incident would both extend the outage and
+    // double-count the alert — on the highest-volume surface.
+    mockIsCircuitOpen.mockResolvedValue({ open: false });
+    const rateLimited = {
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+    };
+    mockReadWire.mockResolvedValue(rateLimited);
+    mockReadFyi.mockResolvedValue(rateLimited);
+
+    await worker.fetch!(snapshotRequest({ bearer: NARROW_KEY }), baseEnv, stubCtx);
+
+    expect(mockHandleInoreaderFailure).toHaveBeenCalledTimes(1);
+  });
+
   it('does NOT route non-429 tier failures to the breaker handler', async () => {
     mockIsCircuitOpen.mockResolvedValue({ open: false });
     mockReadWire.mockResolvedValue({

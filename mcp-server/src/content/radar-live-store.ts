@@ -92,10 +92,11 @@ export type LiveTierResult =
  *
  * `'cache-empty'` is deliberately NOT a member of `LiveTierResult`'s failure
  * union: that union is structurally an `InoreaderFailure` and is passed into
- * `handleInoreaderFailure()` at three sites (`tools/radar-live.ts`,
- * `cron/radar-refresh.ts` ×2). Keeping the cache-miss reason in a separate
- * type makes it a **compile-time** guarantee that a cache miss can never be
- * mistaken for an upstream signal and open the circuit breaker.
+ * `handleInoreaderFailure()` by **every** Inoreader call site (the tools, the
+ * cron's two tiers, `/radar/snapshot`, and the Resources reader). Keeping the
+ * cache-miss reason in a separate type makes it a **compile-time** guarantee
+ * that a cache miss can never be mistaken for an upstream signal and open the
+ * circuit breaker — which would be a self-inflicted 6h outage off a cold cache.
  */
 export type CachedTierResult =
   | Extract<LiveTierResult, { ok: true }>
@@ -129,8 +130,10 @@ async function readTierFromCache(
 ): Promise<CachedTier | null> {
   // Accept a caller-supplied store so the live readers — which already built
   // one for the write path — don't construct a second Redis client per read
-  // (`createMcpClient` news up a client on every call).
-  const cache = store ?? createCacheStore(env);
+  // (`createMcpClient` news up a client on every call). `undefined` means "no
+  // store supplied, build one"; an explicit `null` means the caller already
+  // determined Upstash is unbound, so don't re-invoke the factory.
+  const cache = store !== undefined ? store : createCacheStore(env);
   if (!cache) return null;
   return (await cache.get<CachedTier>(key)) ?? null;
 }

@@ -62,6 +62,13 @@ export function createWorkerSnapshotReader(env: Env): SnapshotReader {
    *
    * Only the live readers can produce an `InoreaderFailure`; the cache-only
    * readers' `cache-empty` is not assignable to it (by design) and is skipped.
+   *
+   * The await is **deliberate** (unlike `/radar/snapshot`, which fires this
+   * off via `ctx.waitUntil`): `SnapshotReader` has no `ExecutionContext`, and
+   * awaiting guarantees the breaker is open before the response returns — so
+   * a burst of concurrent resource reads can't each start their own fetch
+   * before the flag lands. Cost is bounded by the handler's own Upstash write
+   * plus a Sentry POST under a 2s abort ceiling.
    */
   const settle = async (
     result: LiveTierResult | CachedTierResult
