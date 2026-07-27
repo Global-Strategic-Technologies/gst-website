@@ -33,7 +33,16 @@ import { extractToolName, toolClassFor } from '../dispatch/extract-tool-name';
 import { tagRequest } from '../observability/sentry';
 import { AnalyticsEngineSink } from '../metrics/_index';
 import { QueueAuditSink, newRequestId, truncateIp, type AuditContext } from '../audit/_index';
-import { readWireLive, readFyiLive } from '../content/radar-live-store';
+import {
+  readWireLive,
+  readFyiLive,
+  readWireCached,
+  readFyiCached,
+  type LiveTierResult,
+  type CachedTierResult,
+} from '../content/radar-live-store';
+import { isCircuitOpen } from '../ratelimit/circuit-breaker';
+import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import type { Env } from '../worker';
 
 export async function handleAuthenticated(
@@ -132,13 +141,51 @@ export async function handleAuthenticated(
     // BL-032.75 Phase 0: tag this SSR endpoint's egress separately from
     // MCP-tool live calls. Lets dashboards distinguish website cache-miss
     // bursts (e.g. during redeploys) from real MCP-tool traffic.
-    const [wire, fyi] = await Promise.all([
-      readWireLive(env, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
-      readFyiLive(env, 30, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
-    ]);
+    //
+    // BL-091 — circuit-breaker discipline. Before this, the SSR path had NO
+    // breaker check and would fetch Inoreader live on a cold cache during an
+    // open window (a budget leak on the highest-volume consumer). Now: open →
+    // cache-only reads, never upstream. Note the response stays **HTTP 200**
+    // regardless — the website checks only `res.ok` (`RadarFeed.astro`), so a
+    // 5xx here would blank `/hub/radar`; per-tier `ok:false` + the `degraded`
+    // flag carry the state instead.
+    const breaker = await isCircuitOpen(env);
+    const snapshotDegraded = breaker?.open === true;
+    let wire: LiveTierResult | CachedTierResult;
+    let fyi: LiveTierResult | CachedTierResult;
+    if (snapshotDegraded) {
+      [wire, fyi] = await Promise.all([readWireCached(env), readFyiCached(env, 30)]);
+    } else {
+      const [liveWire, liveFyi] = await Promise.all([
+        readWireLive(env, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
+        readFyiLive(env, 30, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
+      ]);
+      // BL-091 — this surface can now OPEN the breaker. It is the highest-volume
+      // Inoreader consumer and was previously one of two paths that could eat a
+      // 429 without tripping it (ADR-0006 T.Z.2 wants *every* call site routed
+      // through `handleInoreaderFailure`). Fire-and-forget so the SSR response
+      // isn't delayed by the breaker write.
+      //
+      // Route at most ONE failure per request: `openCircuit` resets the full 6h
+      // TTL on every call, and each route also emits a Sentry event — so
+      // handling both tiers would double-count the same incident on the
+      // highest-volume surface, exactly when the alert matters most.
+      const rateLimited = [liveWire, liveFyi].find(
+        (tier) => !tier.ok && tier.reason === 'inoreader-rate-limit'
+      );
+      if (rateLimited && !rateLimited.ok) {
+        ctx.waitUntil(handleInoreaderFailure(env, rateLimited, 'http-radar-snapshot'));
+      }
+      wire = liveWire;
+      fyi = liveFyi;
+    }
     const payload = JSON.stringify({
       wire,
       fyi,
+      degraded: snapshotDegraded,
+      ...(snapshotDegraded && breaker?.retryAfterSeconds !== undefined
+        ? { retryAfterSeconds: breaker.retryAfterSeconds }
+        : {}),
       fetchedAt: new Date().toISOString(),
     });
     const resp = new Response(payload, {

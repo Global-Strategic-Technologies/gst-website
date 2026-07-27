@@ -858,7 +858,7 @@ The response should reference the deduplicated themes / engagement categories fr
 Use the staging deploy as your daily MCP. Watch for:
 
 - **Sustained `ratelimit.skipped` log lines** → MCP DB unreachable; check `UPSTASH_MCP_*` secrets and Upstash status
-- **Inoreader 429s** → circuit breaker should engage cleanly; verify with `/health` showing `inoreader: "degraded"` and the radar tools returning structured 503s
+- **Inoreader 429s** → circuit breaker should engage cleanly; verify with `/health` showing `inoreader: "degraded"` **and `circuitOpen: true`**, and the radar tools returning cached results flagged `liveInfo.degraded: true` (structured 503s only when nothing is cached)
 - **Claude Desktop / Claude Code reconnects after restart** without re-prompting → connection persistence is working
 - **Sentry events** → if you set up the alert rules in § A.5, you should see baseline traffic but no error noise
 
@@ -1078,7 +1078,7 @@ Surfaces the MCP DB's reachability (`upstashMcp`, `'ok' | 'degraded'`), last obs
 The radar tools share a 6-hour global circuit breaker (Phase 3 substrate, Phase 4c trigger — see [RATE_LIMITS.md](./RATE_LIMITS.md) § Circuit breaker for the full design). When Inoreader returns 429:
 
 1. The first radar-tool call to see it sets `mcp:radar:circuit-open` in the **MCP DB** with a 6h TTL
-2. All subsequent radar-tool calls (any key) read the flag and return `503 Service Unavailable` with `Retry-After`
+2. All subsequent radar reads (tools, `gst://radar/*` Resources, `/radar/snapshot`) read the flag and serve the **cached snapshot** instead of calling Inoreader, flagged `liveInfo.degraded: true`. A `503` returns only when nothing is cached (BL-091)
 3. Non-radar tools are unaffected
 4. The breaker auto-closes via TTL expiry — no manual intervention required for normal recovery
 

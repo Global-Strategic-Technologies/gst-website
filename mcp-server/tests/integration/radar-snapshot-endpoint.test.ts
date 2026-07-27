@@ -44,13 +44,35 @@ vi.mock('@cloudflare/workers-oauth-provider', () => ({
 // Mock the radar-live-store so the happy-path test doesn't need to spin
 // up a real Inoreader call chain. The 401/403/CORS paths never reach the
 // store, so they're unaffected.
-const { mockReadWire, mockReadFyi } = vi.hoisted(() => ({
+const { mockReadWire, mockReadFyi, mockReadWireCached, mockReadFyiCached } = vi.hoisted(() => ({
   mockReadWire: vi.fn(),
   mockReadFyi: vi.fn(),
+  mockReadWireCached: vi.fn(),
+  mockReadFyiCached: vi.fn(),
 }));
 vi.mock('../../src/content/radar-live-store', () => ({
   readWireLive: mockReadWire,
   readFyiLive: mockReadFyi,
+  // BL-091 — the endpoint switches to these while the breaker is open. They
+  // must exist on the mock or the handler calls `undefined`.
+  readWireCached: mockReadWireCached,
+  readFyiCached: mockReadFyiCached,
+}));
+
+// BL-091 — mock the circuit breaker directly. Seeding `redisGet` cannot work
+// here: this suite binds no UPSTASH_* creds, so `createMcpClient` returns null
+// and `isCircuitOpen` fails open regardless of what Redis would say. (Pattern
+// borrowed from tests/unit/cron/radar-refresh.test.ts.)
+const { mockIsCircuitOpen, mockHandleInoreaderFailure } = vi.hoisted(() => ({
+  mockIsCircuitOpen: vi.fn(),
+  mockHandleInoreaderFailure: vi.fn(),
+}));
+vi.mock('../../src/ratelimit/circuit-breaker', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/ratelimit/circuit-breaker')>()),
+  isCircuitOpen: mockIsCircuitOpen,
+}));
+vi.mock('../../src/lib/inoreader-failure-handler', () => ({
+  handleInoreaderFailure: mockHandleInoreaderFailure,
 }));
 
 // @upstash/redis is also mocked so the rate-limit + circuit-breaker
@@ -88,7 +110,14 @@ const baseEnv: Env = {
 beforeEach(() => {
   mockReadWire.mockReset();
   mockReadFyi.mockReset();
+  mockReadWireCached.mockReset();
+  mockReadFyiCached.mockReset();
+  mockIsCircuitOpen.mockReset();
+  mockHandleInoreaderFailure.mockReset();
   redisGet.mockReset();
+  // Default: breaker closed (null = no signal → fail open), matching the
+  // pre-BL-091 behavior every existing test in this file assumes.
+  mockIsCircuitOpen.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -112,9 +141,10 @@ function snapshotRequest(
   }) as unknown as Request<unknown, IncomingRequestCfProperties<unknown>>;
 }
 
-// Minimal ExecutionContext stub — the fetch handler uses ctx only for
-// cron's waitUntil (irrelevant here). The /radar/snapshot path never
-// touches ctx in production code.
+// Minimal ExecutionContext stub. As of BL-091 the /radar/snapshot path DOES
+// use `ctx.waitUntil` — to fire the breaker-opening `handleInoreaderFailure`
+// off the response path — so the no-op stub here is load-bearing for those
+// tests (the handler is asserted via its mock, not via the promise).
 const stubCtx = {
   waitUntil: () => undefined,
   passThroughOnException: () => undefined,
@@ -166,6 +196,129 @@ describe('GET /radar/snapshot — happy path', () => {
     const res = await worker.fetch!(snapshotRequest({ bearer: FULL_KEY }), baseEnv, stubCtx);
 
     expect(res.status).toBe(200);
+  });
+});
+
+describe('GET /radar/snapshot — circuit breaker (BL-091)', () => {
+  it('serves cache-only and makes NO live call while the breaker is open', async () => {
+    mockIsCircuitOpen.mockResolvedValue({
+      open: true,
+      retryAfterSeconds: 3600,
+      reason: 'inoreader-429-cron-wire',
+    });
+    mockReadWireCached.mockResolvedValue({
+      ok: true,
+      tier: 'wire',
+      items: [{ id: 'cached-wire' }],
+      fetchedAt: '2026-05-17T10:00:00Z',
+      cacheHit: true,
+    });
+    mockReadFyiCached.mockResolvedValue({
+      ok: false,
+      status: 503,
+      reason: 'cache-empty',
+      message: 'no cached fyi',
+    });
+
+    const res = await worker.fetch!(snapshotRequest({ bearer: NARROW_KEY }), baseEnv, stubCtx);
+
+    // Stays 200 — the website only checks `res.ok`; a 5xx would blank /hub/radar.
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { degraded: boolean; retryAfterSeconds?: number };
+    expect(body.degraded).toBe(true);
+    expect(body.retryAfterSeconds).toBe(3600);
+    // The budget-leak fix: the fetch-capable readers are never invoked.
+    expect(mockReadWire).not.toHaveBeenCalled();
+    expect(mockReadFyi).not.toHaveBeenCalled();
+    expect(mockReadWireCached).toHaveBeenCalled();
+  });
+
+  it('uses the live readers and reports degraded=false when the breaker is closed', async () => {
+    mockIsCircuitOpen.mockResolvedValue({ open: false });
+    mockReadWire.mockResolvedValue({
+      ok: true,
+      tier: 'wire',
+      items: [],
+      fetchedAt: '2026-05-17T10:00:00Z',
+      cacheHit: false,
+    });
+    mockReadFyi.mockResolvedValue({
+      ok: true,
+      tier: 'fyi',
+      items: [],
+      fetchedAt: '2026-05-17T10:00:00Z',
+      cacheHit: false,
+    });
+
+    const res = await worker.fetch!(snapshotRequest({ bearer: NARROW_KEY }), baseEnv, stubCtx);
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { degraded: boolean };
+    expect(body.degraded).toBe(false);
+    expect(mockReadWireCached).not.toHaveBeenCalled();
+  });
+
+  it('opens the breaker on a 429 from the SSR path (BL-091 — was previously the one surface that could not)', async () => {
+    mockIsCircuitOpen.mockResolvedValue({ open: false });
+    mockReadWire.mockResolvedValue({
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+    });
+    mockReadFyi.mockResolvedValue({
+      ok: true,
+      tier: 'fyi',
+      items: [],
+      fetchedAt: '2026-05-17T10:00:00Z',
+      cacheHit: false,
+    });
+
+    const res = await worker.fetch!(snapshotRequest({ bearer: NARROW_KEY }), baseEnv, stubCtx);
+
+    expect(res.status).toBe(200);
+    expect(mockHandleInoreaderFailure).toHaveBeenCalledTimes(1);
+    expect(mockHandleInoreaderFailure.mock.calls[0]?.[2]).toBe('http-radar-snapshot');
+  });
+
+  it('routes the breaker handler exactly ONCE when both tiers 429', async () => {
+    // openCircuit resets the full 6h TTL and each route emits a Sentry event,
+    // so double-handling one incident would both extend the outage and
+    // double-count the alert — on the highest-volume surface.
+    mockIsCircuitOpen.mockResolvedValue({ open: false });
+    const rateLimited = {
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+    };
+    mockReadWire.mockResolvedValue(rateLimited);
+    mockReadFyi.mockResolvedValue(rateLimited);
+
+    await worker.fetch!(snapshotRequest({ bearer: NARROW_KEY }), baseEnv, stubCtx);
+
+    expect(mockHandleInoreaderFailure).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT route non-429 tier failures to the breaker handler', async () => {
+    mockIsCircuitOpen.mockResolvedValue({ open: false });
+    mockReadWire.mockResolvedValue({
+      ok: false,
+      status: 401,
+      reason: 'token-stale',
+      message: 'stale',
+    });
+    mockReadFyi.mockResolvedValue({
+      ok: true,
+      tier: 'fyi',
+      items: [],
+      fetchedAt: '2026-05-17T10:00:00Z',
+      cacheHit: false,
+    });
+
+    await worker.fetch!(snapshotRequest({ bearer: NARROW_KEY }), baseEnv, stubCtx);
+
+    expect(mockHandleInoreaderFailure).not.toHaveBeenCalled();
   });
 });
 

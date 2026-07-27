@@ -75,8 +75,15 @@ async function hashUri(uri: string): Promise<string> {
  *   3. On a miss (or malformed cached value), run `compute()`, best-effort
  *      write the result, and return with `cacheHit: false`.
  *
+ * **`noStore` (BL-091)**: `compute()` may flag a result as non-cacheable, and
+ * the write is then skipped. This exists because a *degraded* body — e.g. the
+ * radar "snapshot not populated" placeholder produced while the Inoreader
+ * circuit breaker is open — would otherwise be pinned for the full TTL and
+ * keep serving failure text long after the underlying state recovered.
+ * Caching a transient error is worse than not caching at all.
+ *
  * Every call emits one `safeLog` event:
- *   - `resource_cache_skip` (no Upstash; populated `reason`)
+ *   - `resource_cache_skip` (no Upstash, or `noStore`; populated `reason`)
  *   - `resource_cache_hit` (cache served the body)
  *   - `resource_cache_miss` (compute ran)
  */
@@ -84,7 +91,7 @@ export async function readThroughCache(
   env: Env,
   uri: string,
   ttlSeconds: number,
-  compute: () => Promise<{ body: string; mimeType: string }>
+  compute: () => Promise<{ body: string; mimeType: string; noStore?: boolean }>
 ): Promise<CacheResult> {
   const startedAt = Date.now();
   const store = createCacheStore(env);
@@ -112,6 +119,19 @@ export async function readThroughCache(
   }
 
   const fresh = await compute();
+
+  // BL-091: never persist a body the producer flagged as degraded/transient —
+  // caching it would outlive the condition that produced it.
+  if (fresh.noStore) {
+    safeLog({
+      event: 'resource_cache_skip',
+      uri,
+      reason: 'no-store',
+      durationMs: Date.now() - startedAt,
+    });
+    return { body: fresh.body, mimeType: fresh.mimeType, cacheHit: false };
+  }
+
   const value: CachedBody = {
     body: fresh.body,
     mimeType: fresh.mimeType,

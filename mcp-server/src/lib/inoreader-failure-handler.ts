@@ -37,12 +37,27 @@ import type { InoreaderFailure, RateLimitInfo } from './inoreader-client';
 /**
  * Source labels for the `source:` Sentry tag, so dashboard filters can
  * distinguish "live tool tripped the breaker" from "cron tripped it"
- * without having to read the message body. Free-form strings are
- * accepted — these are conventions, not constraints — but using the
- * documented values keeps Sentry's tag value cardinality sane.
+ * without having to read the message body.
+ *
+ * This is a **closed union**, not free-form: it doubles as the Sentry
+ * `inoreader.source` tag vocabulary, and keeping it closed is what bounds
+ * that tag's value cardinality. Adding a call site means adding a value here
+ * (a docstring here previously claimed free-form strings were accepted —
+ * they never were; corrected in BL-091).
+ *
+ * `http-radar-snapshot` and `resource-radar` were added in BL-091 — the two
+ * surfaces that previously absorbed 429s without tripping the breaker. The
+ * SSR endpoint is the highest-volume Inoreader consumer; the Resources reader
+ * is the most dangerous one (model-initiated, and it bills to the general
+ * rate-limit tier rather than the stricter radar tier — see ADR-0004).
  */
 export type InoreaderFailureSource =
-  'cron-wire' | 'cron-fyi' | 'live-search-radar' | 'live-get-latest-insights';
+  | 'cron-wire'
+  | 'cron-fyi'
+  | 'live-search-radar'
+  | 'live-get-latest-insights'
+  | 'http-radar-snapshot'
+  | 'resource-radar';
 
 /**
  * Build the structured Sentry tag set from a RateLimitInfo block. Same

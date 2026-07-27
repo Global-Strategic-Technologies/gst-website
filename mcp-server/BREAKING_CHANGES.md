@@ -29,6 +29,35 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.42.0 — 2026-07-27 — BL-091 — circuit-breaker open now serves cached radar instead of hard-failing (behavior change + additive `liveInfo` fields)
+
+**Theme**: while the Inoreader circuit breaker is open, every radar read surface serves the cached snapshot instead of erroring, and no surface calls Inoreader. Implements the second clause of ADR-0006 § Decision 2, which had never been wired up, and narrows the 503 to the cache-empty case. Decision record: `src/docs/adr/0006-inoreader-zone1-budget-protection.md` § Amendment 2026-07-27. **Manifest hash unchanged** — no tool, prompt, or Resource URI added, renamed, or removed.
+
+**Behavior change (client-visible, not a rename)**:
+
+- `search_radar` / `get_latest_insights` previously returned `isError: true` + `error: 'service_unavailable'`, `status: 503` for the _entire_ breaker window. They now return a **normal success payload** built from the cached snapshot, with `liveInfo.degraded: true`. The 503 envelope is unchanged in shape but now appears **only when nothing is cached**. Clients branching on the 503 keep working; clients that treated a breaker window as "radar is down" will now receive data.
+- `/radar/snapshot` (website SSR) stays HTTP 200 throughout, as before, and gains `degraded` / `retryAfterSeconds` in the body. It can now also OPEN the breaker on a 429 (previously the only Inoreader consumer that could not).
+- `gst://radar/*` Resources no longer fetch Inoreader on a cold cache during an open window (previously an unguarded budget leak); the "snapshot not populated" body is also no longer cached for 15 minutes.
+
+**Additive fields** (no removals):
+
+- `liveInfo.degraded: boolean` — always present on both radar tools; `false` on the normal path.
+- `liveInfo.retryAfterSeconds?: number` — present only when degraded.
+- `liveInfo.{wire,fyi}FetchedAt` / `{wire,fyi}CacheHit` **widen to nullable** — a tier with nothing cached reports `null` rather than a fabricated timestamp/flag. Consumers reading these must tolerate `null`.
+- `/health` gains `circuitOpen: boolean` (informational; deliberately not folded into `ok`), mirrored as a `/status` Substrate row.
+
+**Removed (internal only, no consumers)**: `circuitOpenResponse()` from `src/ratelimit/circuit-breaker.ts` — dead since the tools hand-roll their MCP envelope; no callers, tests, or docs referenced it.
+
+---
+
+## 0.41.0 — 2026-07-26 — BL-033 Slice 5 — per-client rate-limit tiers (backfilled stanza)
+
+**Backfilled 2026-07-27**: 0.41.0 shipped without an entry, breaking the unbroken 0.28.0→0.40.0 run. Recorded here for continuity. **Manifest hash unchanged** — no tool/prompt/Resource change.
+
+Per-client rate-limit tiers (`free-pilot` / `paid` / `enterprise` / `internal`) became load-bearing: the ceiling is selected from the client's tier (carried on the M2M token claim) instead of flat hardcoded constants. Static `MCP_KEY_*` keys and OAuth human-consent sessions resolve to `internal`, which equals the previous constants exactly — **no regression for existing callers**. Additive response surface: `RateLimit-Policy` on every authenticated 200 and 429, plus a best-effort `notifications/message` soft-limit warning at ≥80% consumption (required declaring the server `logging` capability). Decision record: `src/docs/adr/0010-per-client-rate-limit-tiers.md`.
+
+---
+
 ## 0.40.0 — 2026-07-24 — BL-033 Slice 2 — OAuth 2.1 embedded authorization server + M2M client_credentials (new routes, new KV binding, new secret, additive 401 header)
 
 **Theme**: the Worker becomes its own OAuth 2.1 authorization server (`@cloudflare/workers-oauth-provider`, exact-pinned 0.8.2, mounted as a sub-router) with dual cheap-first validation — static `MCP_KEY_*` keys are byte-identical and NOT deprecated. Decision record: `src/docs/adr/0008-mcp-oauth-embedded-authorization-server.md` (website tree). Unlocks Claude's native Connectors UI (the `mcp-remote` bridge becomes a legacy path, still supported).

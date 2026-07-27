@@ -44,7 +44,7 @@ const CATEGORY_LABELS: Readonly<Record<RadarCategory, string>> = {
 };
 
 const SNAPSHOT_MISSING_MESSAGE =
-  'Radar snapshot is not yet populated. On the local stdio path: run `npm run radar:seed`. On the Worker path: wait for the next hourly Cron (or the next radar Tool call) to refresh the Upstash cache.';
+  'Radar snapshot is not yet populated. On the local stdio path: run `npm run radar:seed`. On the Worker path: the 6-hourly Cron refreshes the Upstash cache. Note that while the Inoreader budget circuit breaker is open, no read refreshes the cache (that is deliberate — it protects the shared upstream budget), so this state can persist until the breaker closes.';
 
 function buildBody(uri: string, tier: SnapshotTier | null): string {
   if (!tier) {
@@ -85,9 +85,17 @@ export function registerRadarResources(
   const readSnapshot = async (
     uri: string,
     fetch: () => Promise<SnapshotTier | null>
-  ): Promise<{ body: string; mimeType: string }> => {
+  ): Promise<{ body: string; mimeType: string; noStore?: boolean }> => {
     const tier = await fetch();
-    return { body: buildBody(uri, tier), mimeType: 'application/json' };
+    return {
+      body: buildBody(uri, tier),
+      mimeType: 'application/json',
+      // BL-091: a missing snapshot is a transient condition (cold cache, or
+      // the circuit breaker suppressing refreshes). Caching that placeholder
+      // for the full 15-min TTL would keep serving "not populated" well past
+      // recovery, so don't persist it.
+      ...(tier ? {} : { noStore: true }),
+    };
   };
 
   // Wrap a handler with scope-check + cache. Returns the MCP contents

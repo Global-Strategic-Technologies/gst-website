@@ -1,25 +1,29 @@
 /**
- * Inoreader circuit breaker (BL-032 Phase 3 scaffolding).
+ * Inoreader circuit breaker.
  *
- * **Why this exists**: GST's Inoreader account has a 200 req/day budget
- * shared across the website's ISR (~28/day), the upcoming Cron-driven
- * snapshot refresh (BL-032.5, ~24/day), and the MCP Worker's per-key
- * rate-limited radar tools. If Inoreader returns 429 (rate-limit on
- * THEIR side), the only safe response is to stop calling them — for ALL
- * keys — until the daily budget resets.
+ * **Why this exists**: GST's Inoreader account budget is shared across the
+ * website's ISR, the 6-hourly Cron snapshot refresh, and the MCP Worker's
+ * per-key rate-limited radar tools. (The authoritative ceiling is
+ * `ZONE1_DAILY_HARD_CAP` in `lib/inoreader-egress.ts`, not the 200/day figure
+ * this docstring used to quote.) If Inoreader returns 429 — rate-limit on
+ * THEIR side — the only safe response is to stop calling them, for ALL
+ * callers, until the budget resets.
  *
  * **The mechanism**:
- *   - Phase 4 radar tools (Inoreader-touching) catch 429 from upstream
- *     and call `openCircuit(env)` — sets `mcp:radar:circuit-open` in
- *     Upstash with a 6-hour TTL
- *   - The Worker checks `isCircuitOpen(env)` BEFORE invoking any radar
- *     tool. If open, returns 503 with `Retry-After` set to the TTL
- *     remainder
- *   - The flag self-heals via TTL expiry; no manual close in BL-032
- *     (Phase 5 health endpoint will surface the state)
- *
- * **Phase 3 ships the read-side check + 503 envelope**. The trigger
- * (`openCircuit`) wires up in Phase 4 when radar tools come online.
+ *   - Every Inoreader call site routes failures through
+ *     `handleInoreaderFailure`, which calls `openCircuit(env)` on a 429 —
+ *     setting `mcp:radar:circuit-open` in Upstash with a 6-hour TTL.
+ *   - While open, every radar READ surface (tools, `gst://radar/*` Resources,
+ *     `/radar/snapshot`) switches to the **cache-only** readers in
+ *     `content/radar-live-store.ts` and serves the stored snapshot flagged
+ *     `degraded` — never touching Inoreader. Only when there is nothing
+ *     cached does a 503-shaped error surface. The cron skips entirely.
+ *   - The flag self-heals via TTL expiry. There is no automatic half-open
+ *     probe: a naive one can *extend* an outage (it can succeed on the last
+ *     unit of headroom, and the follow-on refill's 429 resets the full 6h
+ *     TTL). Manual reset is documented in `operations/RATE_LIMITS.md`.
+ *   - `/health` and `/status` surface `circuitOpen` so an operator can tell
+ *     "breaker open, serving cache" from "Inoreader merely flaky".
  *
  * **Graceful skip**: when Upstash credentials aren't bound on `env`, all
  * functions return null / no-op. The Worker treats this the same as the
@@ -89,36 +93,8 @@ export async function openCircuit(env: Env, reason: string): Promise<void> {
     await redis.set(CIRCUIT_KEY, reason, { ex: CIRCUIT_TTL_SECONDS });
   } catch {
     // Best-effort. If we can't write the flag, the next radar call will
-    // hit Inoreader anyway — same behavior as no breaker. The user-side
-    // 503 is what protects the budget; this just delays the protection.
+    // hit Inoreader anyway — same behavior as no breaker. Suppressing
+    // upstream calls is what protects the budget; this just delays the
+    // protection by one call.
   }
-}
-
-/**
- * Build a 503 Response from a CircuitState. Mirrors RFC 7231 Retry-After
- * semantics so clients can self-throttle. JSON body lets agents reason
- * about the retry hint structurally.
- */
-export function circuitOpenResponse(state: CircuitState): Response {
-  if (!state.open) {
-    throw new Error('circuitOpenResponse called with open=false; programmer error');
-  }
-  const retryAfter = String(state.retryAfterSeconds ?? CIRCUIT_TTL_SECONDS);
-  return new Response(
-    JSON.stringify({
-      error: 'service_unavailable',
-      message:
-        'Radar tools temporarily unavailable — Inoreader budget circuit is open. ' +
-        `Retry after ${retryAfter} seconds.`,
-      retryAfterSeconds: Number(retryAfter),
-      reason: state.reason ?? 'inoreader-rate-limit',
-    }),
-    {
-      status: 503,
-      headers: {
-        'Retry-After': retryAfter,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
 }

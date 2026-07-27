@@ -18,7 +18,7 @@ You're on a partner call about a portfolio company in enterprise SaaS. The conve
 
 Claude calls `mcp__gst__search_radar` with `{ category: 'enterprise-tech' }`. The tool:
 
-1. Checks the radar circuit breaker (Upstash key `mcp:radar:circuit-open`). Closed → proceed.
+1. Checks the radar circuit breaker (Upstash key `mcp:radar:circuit-open`). Closed → proceed. Open → serve the cached snapshot only, flagged `degraded` (see below).
 2. Reads `mcp:radar:cache:wire` and `mcp:radar:cache:fyi` from Upstash. Cache hit → return cached items. Cache miss → fall through.
 3. On cache miss, fetches `tag/list` + parallel folder streams from Inoreader (5 fetches total: 1 tags + 4 GST folders) plus the annotated stream (1 more fetch). 6 Inoreader requests against the per-key 5/min budget — straddles the cliff, so use sparingly during burst-prep windows.
 4. Transforms `InoreaderItem` → `SnapshotItem` (same shape `search_radar_offline` emits — capability mirror).
@@ -45,7 +45,7 @@ Claude calls `mcp__gst__search_radar` with `{ category: 'enterprise-tech' }`. Th
 }
 ```
 
-The `liveInfo.cacheHit` flags let an agent (or curious analyst) reason about freshness — `false` means we just hit Inoreader; `true` means the data is up to 6h old.
+The `liveInfo.cacheHit` flags let an agent (or curious analyst) reason about freshness — `false` means we just hit Inoreader; `true` means the data is up to 6h old. `liveInfo.degraded` (BL-091) says _why_ it's cached: `true` means the circuit breaker is open and no upstream call was permitted. A tier with nothing cached reports `null` for its `fetchedAt`/`cacheHit`.
 
 ### Iteration
 
@@ -115,13 +115,17 @@ If GST's overall Inoreader budget is exhausted (cron snapshots + ISR + multiple 
 Subsequent radar tool calls (any key, any category) within the next 6h:
 
 1. Read the breaker flag from Upstash → open
-2. Return an `isError: true` envelope with `error: 'service_unavailable'`, `status: 503`, `retryAfterSeconds: <ttl-remainder>`
+2. **Read the cached snapshot only** — never Inoreader
+3. If there is cached data: return it normally, with `liveInfo.degraded: true` and `retryAfterSeconds`. `search_radar` succeeds if **either** tier has cache; a tier with nothing cached reports `null` for its `fetchedAt`/`cacheHit`
+4. Only if nothing at all is cached: return the `isError: true` envelope with `error: 'service_unavailable'`, `status: 503`, `retryAfterSeconds: <ttl-remainder>`
+
+So in the common case a breaker-open window is a _degradation_ (up to 6h-old data), not an outage. The same rule applies to the `gst://radar/*` Resources and the website's `/radar/snapshot` endpoint (BL-091).
 
 Non-radar tools (diligence, portfolio, ICG, etc.) are unaffected.
 
 ### Recovery
 
-The breaker auto-closes via TTL expiry. No manual reset needed in normal operation. For Inoreader-recovered-early scenarios, see [`RATE_LIMITS.md` § Circuit-breaker manual reset](../../operations/RATE_LIMITS.md#circuit-breaker-manual-reset).
+The breaker auto-closes via TTL expiry. Note that **nothing refreshes the radar cache while it is open** — that's deliberate (it's what protects the budget), but it means an early Inoreader recovery is not picked up automatically; the snapshot simply keeps aging until the TTL lapses. There is no half-open probe: see [`RATE_LIMITS.md` § Circuit breaker](../../operations/RATE_LIMITS.md) for why a naive one can make outages _longer_. To recover sooner, use [`RATE_LIMITS.md` § Circuit-breaker manual reset](../../operations/RATE_LIMITS.md#circuit-breaker-manual-reset).
 
 ---
 
@@ -133,7 +137,8 @@ The breaker auto-closes via TTL expiry. No manual reset needed in normal operati
 | `error: "token-missing"`                        | OAuth access token not in Upstash AND no env fallback | Same — operator wires Inoreader creds                                                |
 | `error: "token-stale"`                          | Inoreader returned 401                                | Wait for the website's next ISR call to refresh; retry the Worker call after that    |
 | `error: "inoreader-rate-limit"`                 | Inoreader returned 429; circuit breaker just opened   | Wait for `Retry-After` (~6h); use `search_radar_offline` if you have local stdio MCP |
-| `error: "service_unavailable"`, `status: 503`   | Circuit breaker is already open                       | Wait for `retryAfterSeconds`; same offline-tool fallback applies                     |
+| `error: "service_unavailable"`, `status: 503`   | Breaker open **and** nothing cached to serve          | Wait for `retryAfterSeconds`; same offline-tool fallback applies                     |
+| _Success_ with `liveInfo.degraded: true`        | Breaker open; you got the cached snapshot, not live   | Usually nothing — data is real, up to 6h old (`fetchedAt` gives age)                 |
 | `error: "upstream-error"` / `"network-timeout"` | Other Inoreader failure (5xx, timeout)                | Transient — retry. If sustained, escalate to operator                                |
 
 Each envelope includes a `message` field with a human-readable explanation; agents parse the `error` field for branching.

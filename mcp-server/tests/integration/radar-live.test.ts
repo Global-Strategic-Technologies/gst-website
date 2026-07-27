@@ -288,7 +288,152 @@ describe('search_radar — cache hit path', () => {
 });
 
 // ---------------------------------------------------------------------------
+// BL-091 — circuit open: serve cached data (degraded) instead of a hard 503
+// ---------------------------------------------------------------------------
+
+describe('radar tools — circuit open, cache warm (BL-091 degraded path)', () => {
+  const recentIso = () => new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+  /** Seed: breaker OPEN (1h left) + whichever cache blobs the test supplies. */
+  function seed(opts: { wire?: unknown; fyi?: unknown }) {
+    redisGet.mockImplementation(async (key: string) => {
+      if (key === 'mcp:radar:circuit-open') return 'inoreader-429';
+      if (key === 'mcp:inoreader:access_token') return 'upstash-access-token';
+      if (key === 'mcp:radar:cache:wire' && opts.wire)
+        return { storedAt: Date.now(), data: opts.wire };
+      if (key === 'mcp:radar:cache:fyi' && opts.fyi)
+        return { storedAt: Date.now(), data: opts.fyi };
+      return null;
+    });
+    redisTtl.mockResolvedValue(3600);
+  }
+
+  const fyiItem = (id: string) => ({
+    id,
+    title: `T ${id}`,
+    url: `https://example.com/${id}`,
+    source: 'Src',
+    category: 'pe-ma',
+    publishedAt: recentIso(),
+    annotatedAt: recentIso(),
+    annotation: { highlightedText: 'h', gstTake: 't' },
+  });
+
+  it('search_radar serves the cached snapshot flagged degraded, with NO Inoreader call', async () => {
+    seed({
+      wire: { tier: 'wire', items: [], fetchedAt: recentIso() },
+      fyi: { tier: 'fyi', items: [fyiItem('warm-1')], fetchedAt: recentIso() },
+    });
+
+    const result = await handleSearchRadar(baseEnv, {});
+
+    // The whole point: a warm cache is served instead of a 503.
+    expect(wide(result).isError).toBeUndefined();
+    const payload = wide(result).structuredContent as {
+      matches: Array<{ id: string }>;
+      liveInfo: { degraded: boolean; retryAfterSeconds?: number; fyiCacheHit: boolean };
+    };
+    expect(payload.matches.map((m) => m.id)).toEqual(['warm-1']);
+    expect(payload.liveInfo.degraded).toBe(true);
+    expect(payload.liveInfo.retryAfterSeconds).toBe(3600);
+    expect(payload.liveInfo.fyiCacheHit).toBe(true);
+    // The invariant that must hold in EVERY breaker-open case.
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('serves the one warm tier when the other is cache-empty, nulling the absent tier', async () => {
+    // Wire warm, FYI absent entirely.
+    seed({
+      wire: {
+        tier: 'wire',
+        items: [{ ...fyiItem('warm-wire'), annotation: undefined, annotatedAt: undefined }],
+        fetchedAt: recentIso(),
+      },
+    });
+
+    const result = await handleSearchRadar(baseEnv, {});
+
+    expect(wide(result).isError).toBeUndefined();
+    const payload = wide(result).structuredContent as {
+      matches: Array<{ id: string }>;
+      liveInfo: {
+        degraded: boolean;
+        wireCacheHit: boolean | null;
+        wireFetchedAt: string | null;
+        fyiCacheHit: boolean | null;
+        fyiFetchedAt: string | null;
+      };
+    };
+    expect(payload.matches.map((m) => m.id)).toEqual(['warm-wire']);
+    expect(payload.liveInfo.degraded).toBe(true);
+    expect(payload.liveInfo.wireCacheHit).toBe(true);
+    // Absent tier reports null rather than a fabricated timestamp/flag.
+    expect(payload.liveInfo.fyiCacheHit).toBeNull();
+    expect(payload.liveInfo.fyiFetchedAt).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('get_latest_insights returns an empty-but-successful result when the cached FYI has aged out', async () => {
+    // Cache holds RAW items; the read-time freshness gate drops anything
+    // older than the FYI age cap, so this yields zero items — an accurate
+    // "no fresh insights", NOT an error.
+    const ancient = new Date(Date.now() - 400 * 24 * 60 * 60 * 1000).toISOString();
+    seed({
+      fyi: {
+        tier: 'fyi',
+        items: [{ ...fyiItem('stale-1'), publishedAt: ancient, annotatedAt: ancient }],
+        fetchedAt: recentIso(),
+      },
+    });
+
+    const result = await handleGetLatestInsights(baseEnv, {});
+
+    expect(wide(result).isError).toBeUndefined();
+    const payload = wide(result).structuredContent as {
+      returned: number;
+      liveInfo: { degraded: boolean };
+    };
+    expect(payload.returned).toBe(0);
+    expect(payload.liveInfo.degraded).toBe(true);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('get_latest_insights serves warm cached FYI flagged degraded', async () => {
+    seed({ fyi: { tier: 'fyi', items: [fyiItem('warm-fyi')], fetchedAt: recentIso() } });
+
+    const result = await handleGetLatestInsights(baseEnv, {});
+
+    expect(wide(result).isError).toBeUndefined();
+    const payload = wide(result).structuredContent as {
+      items: Array<{ id: string }>;
+      liveInfo: { degraded: boolean; cacheHit: boolean | null };
+    };
+    expect(payload.items.map((i) => i.id)).toEqual(['warm-fyi']);
+    expect(payload.liveInfo.degraded).toBe(true);
+    expect(payload.liveInfo.cacheHit).toBe(true);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('marks degraded=false on the normal path (breaker closed)', async () => {
+    fetchSpy.mockImplementation(async (url: string) => {
+      if (String(url).includes('tag/list')) return jsonResponse({ tags: [] });
+      return jsonResponse({ items: [] });
+    });
+
+    const result = await handleSearchRadar(baseEnv, {});
+
+    const payload = wide(result).structuredContent as { liveInfo: { degraded: boolean } };
+    expect(payload.liveInfo.degraded).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // search_radar — failure modes
+//
+// NOTE (BL-091): the two circuit-open cases below run with the default empty
+// cache, so they are the **cold-cache** regression — the one state that still
+// returns a hard 503. The warm-cache behavior lives in the degraded-path
+// describe above.
 // ---------------------------------------------------------------------------
 
 describe('search_radar — failure modes', () => {

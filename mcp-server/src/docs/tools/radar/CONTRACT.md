@@ -1,7 +1,7 @@
 ---
 tool: search_radar_offline
 version: v1
-lastAuthored: 2026-05-02
+lastAuthored: 2026-07-27
 schema: mcp-server/src/tools/radar-offline.ts
 enumParity:
   - tableHeading: '`category`'
@@ -25,7 +25,7 @@ enumParity:
 >
 > **Used by prompts** (BL-031.75): [`gst_radar_brief_today`](../../../prompts/radar-brief-today.ts) (daily / pre-meeting digest of recent annotated FYI items, summarized in the GST Take voice). The prompt's argsSchema mirrors the same single `category` filter. Earlier versions accepted a `sinceHours` argument; removed in BL-031.95 Phase 3.A under the capability-mirror invariant — see [Capability-mirror invariant](#capability-mirror-invariant) below.
 >
-> **Version**: `v1` | **Last authored**: 2026-05-02
+> **Version**: `v1` | **Last authored**: 2026-07-27 (the `search_radar_offline` input contract itself is unchanged since 2026-05-02; the date moved with the BL-091 revision of the live-tool surface documented below)
 >
 > **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template.
 
@@ -132,7 +132,7 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 - Content adapter: [`mcp-server/src/content/radar-live-store.ts`](../../../content/radar-live-store.ts) — Inoreader fetch + Upstash cache (`mcp:radar:cache:wire`, `mcp:radar:cache:fyi`, 6h TTL)
 - API client: [`mcp-server/src/lib/inoreader-client.ts`](../../../lib/inoreader-client.ts) — Workers-compatible Inoreader client (Q4 fork-fallback; renamed from `inoreader-worker.ts` in BL-032.8)
 - Shared transform: [`mcp-server/src/content/radar-transform.ts`](../../../content/radar-transform.ts) — `InoreaderItem → SnapshotItem` (single source of truth used by both offline + live)
-- Circuit breaker integration: [`mcp-server/src/ratelimit/circuit-breaker.ts`](../../../ratelimit/circuit-breaker.ts) — read-side check before fetch + write-side trigger on Inoreader 429
+- Circuit breaker integration: [`mcp-server/src/ratelimit/circuit-breaker.ts`](../../../ratelimit/circuit-breaker.ts) — read-side check selects the cache-only readers while open (BL-091), write-side trigger on Inoreader 429
 
 **`search_radar` schema** — same shape as `search_radar_offline` (capability mirror):
 
@@ -147,11 +147,14 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
   matches: SnapshotItem[],   // FYI + Wire merged, deduped by URL, sorted newest-first
   totalMatched: number,
   returned: number,
+  oldestItemDaysAgo: number | null,   // null when `matches` is empty
   liveInfo: {
-    wireFetchedAt: string,    // ISO 8601
-    wireCacheHit: boolean,
-    fyiFetchedAt: string,
-    fyiCacheHit: boolean,
+    wireFetchedAt: string | null,     // ISO 8601; null when that tier had nothing cached
+    wireCacheHit: boolean | null,     // null when that tier had nothing cached
+    fyiFetchedAt: string | null,
+    fyiCacheHit: boolean | null,
+    degraded: boolean,                // always present — see "Degraded mode" below
+    retryAfterSeconds?: number,       // present only when degraded
   },
   deeplink: string,
 }
@@ -169,20 +172,32 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 {
   items: SnapshotItem[],     // FYI items with annotations populated
   returned: number,
-  liveInfo: { fetchedAt: string, cacheHit: boolean },
+  oldestItemDaysAgo: number | null,   // null when `items` is empty
+  liveInfo: {
+    fetchedAt: string | null,
+    cacheHit: boolean | null,
+    degraded: boolean,
+    retryAfterSeconds?: number,
+  },
 }
 ```
 
+### Degraded mode (BL-091)
+
+When the Inoreader circuit breaker is open, both tools serve the **cached** snapshot rather than failing, and set `liveInfo.degraded: true` plus `retryAfterSeconds`. The data is real but up to 6h old — check `fetchedAt`. A tier with nothing cached reports `null` for its `fetchedAt`/`cacheHit` instead of a fabricated value; `search_radar` still succeeds as long as **one** tier has data. `get_latest_insights` can legitimately return `returned: 0` in this mode (the cached FYI blob aged out past the freshness gate) — that is an accurate empty answer, not an error.
+
+`degraded` is always present; it is `false` on the normal path.
+
 **Failure modes** — all return MCP `isError: true` content envelope with structured `error` field:
 
-| `error` value          | HTTP analog | Cause                                       | Breaker side-effect            |
-| ---------------------- | ----------- | ------------------------------------------- | ------------------------------ |
-| `config-missing`       | 500         | App credentials not bound                   | None                           |
-| `token-missing`        | 500         | Access token unavailable                    | None                           |
-| `token-stale`          | 401         | Inoreader returned 401 (website refreshes)  | None (token issue, not budget) |
-| `inoreader-rate-limit` | 429         | Inoreader returned 429                      | **Opens circuit (6h)**         |
-| `upstream-error`       | 5xx         | Other Inoreader 5xx or invalid response     | None                           |
-| `network-timeout`      | 504         | fetch threw / aborted (5s timeout)          | None                           |
-| `service_unavailable`  | 503         | Circuit breaker already open from prior 429 | None (read-only check)         |
+| `error` value          | HTTP analog | Cause                                                            | Breaker side-effect            |
+| ---------------------- | ----------- | ---------------------------------------------------------------- | ------------------------------ |
+| `config-missing`       | 500         | App credentials not bound                                        | None                           |
+| `token-missing`        | 500         | Access token unavailable                                         | None                           |
+| `token-stale`          | 401         | Inoreader returned 401 (website refreshes)                       | None (token issue, not budget) |
+| `inoreader-rate-limit` | 429         | Inoreader returned 429                                           | **Opens circuit (6h)**         |
+| `upstream-error`       | 5xx         | Other Inoreader 5xx or invalid response                          | None                           |
+| `network-timeout`      | 504         | fetch threw / aborted (5s timeout)                               | None                           |
+| `service_unavailable`  | 503         | Breaker open **AND** nothing cached to serve (see Degraded mode) | None (read-only check)         |
 
 Walkthrough for analysts: [`USAGE_REMOTE.md`](./USAGE_REMOTE.md). Per-key + global rate-limiting reference: [`../operations/RATE_LIMITS.md`](../../operations/RATE_LIMITS.md).

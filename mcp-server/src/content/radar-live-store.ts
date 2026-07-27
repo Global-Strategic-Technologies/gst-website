@@ -7,18 +7,28 @@
  *
  *   - `radar-snapshot.ts`   reads from `<repo>/.cache/inoreader/` (Node fs)
  *   - `radar-live-store.ts` reads from Upstash KV (mcp:radar:* keys, 6h TTL),
- *     falling back to a fresh Inoreader fetch on cache miss
+ *     falling back to a fresh Inoreader fetch on cache miss — **unless the
+ *     caller uses the cache-only readers below**
+ *
+ * **Two reader families** (BL-091):
+ *   - `readWireLive` / `readFyiLive` — cache-first, fetch on miss. The normal
+ *     path, used when the Inoreader circuit breaker is CLOSED.
+ *   - `readWireCached` / `readFyiCached` — cache-only; **structurally
+ *     incapable of calling Inoreader**. Used by every read surface while the
+ *     breaker is OPEN, so a breaker-open window serves stale-but-real data
+ *     instead of either failing hard or leaking upstream budget.
  *
  * **Cache strategy**: 6h TTL on the merged stream + the FYI stream.
  * Matches the website's ISR window — both surfaces converge on the same
  * "stop hammering Inoreader" cadence.
  *
- * **Failure handling**: Inoreader 429 propagates as a structured failure
- * the caller (radar-live tool) inspects to call `openCircuit(env, ...)`
- * before returning a 503-shaped MCP error. Other failure modes
- * (token-stale, network-timeout, etc.) propagate without opening the
- * breaker — the breaker is specifically for "Inoreader budget
- * exhausted, all keys must back off."
+ * **Failure handling**: Inoreader 429 propagates as a structured failure the
+ * caller routes through `handleInoreaderFailure(env, ...)`, which opens the
+ * breaker. Other failure modes (token-stale, network-timeout, etc.) propagate
+ * without opening it — the breaker is specifically for "Inoreader budget
+ * exhausted, all keys must back off." The cache-only readers' `'cache-empty'`
+ * failure is deliberately NOT assignable to `InoreaderFailure`, so it can
+ * never reach that handler: a cache miss carries no upstream signal.
  */
 
 import {
@@ -75,10 +85,104 @@ export type LiveTierResult =
       readonly bodyExcerpt?: string;
     };
 
+/**
+ * What the cache-only readers return (BL-091). Shares `LiveTierResult`'s
+ * success arm verbatim so callers can consume either interchangeably, but
+ * carries its own single failure reason.
+ *
+ * `'cache-empty'` is deliberately NOT a member of `LiveTierResult`'s failure
+ * union: that union is structurally an `InoreaderFailure` and is passed into
+ * `handleInoreaderFailure()` by **every** Inoreader call site (the tools, the
+ * cron's two tiers, `/radar/snapshot`, and the Resources reader). Keeping the
+ * cache-miss reason in a separate type makes it a **compile-time** guarantee
+ * that a cache miss can never be mistaken for an upstream signal and open the
+ * circuit breaker — which would be a self-inflicted 6h outage off a cold cache.
+ */
+export type CachedTierResult =
+  | Extract<LiveTierResult, { ok: true }>
+  | {
+      readonly ok: false;
+      readonly status: 503;
+      readonly reason: 'cache-empty';
+      readonly message: string;
+    };
+
 interface CachedTier {
   readonly tier: 'fyi' | 'wire';
   readonly items: readonly SnapshotItem[];
   readonly fetchedAt: string;
+}
+
+/**
+ * Read one tier's RAW cached blob, or `null` when Upstash is unbound or the
+ * key is absent/expired. Single source of truth for the cache lookup, shared
+ * by the live readers' cache-hit branch and the cache-only readers.
+ *
+ * Deliberately returns the blob **unfiltered** — the FYI freshness gate
+ * (`filterFreshFyi`) is applied at each CALL SITE, because it is correct for
+ * FYI and wrong for Wire. Filtering here would reintroduce exactly the
+ * wire/fyi drift this helper exists to prevent.
+ */
+async function readTierFromCache(
+  env: Env,
+  key: string,
+  store?: ReturnType<typeof createCacheStore>
+): Promise<CachedTier | null> {
+  // Accept a caller-supplied store so the live readers — which already built
+  // one for the write path — don't construct a second Redis client per read
+  // (`createMcpClient` news up a client on every call). `undefined` means "no
+  // store supplied, build one"; an explicit `null` means the caller already
+  // determined Upstash is unbound, so don't re-invoke the factory.
+  const cache = store !== undefined ? store : createCacheStore(env);
+  if (!cache) return null;
+  return (await cache.get<CachedTier>(key)) ?? null;
+}
+
+/** The `cache-empty` failure, shared by both cache-only readers. */
+function cacheEmpty(tier: 'fyi' | 'wire'): Extract<CachedTierResult, { ok: false }> {
+  return {
+    ok: false,
+    status: 503,
+    reason: 'cache-empty',
+    message:
+      `No cached ${tier} snapshot is available and upstream fetches are ` +
+      'suspended (Inoreader budget circuit is open).',
+  };
+}
+
+/**
+ * Cache-only Wire read (BL-091). Returns the cached tier or `'cache-empty'`.
+ * **Never calls Inoreader** — this is the read used while the circuit breaker
+ * is open, so it must not be able to spend upstream budget by construction.
+ */
+export async function readWireCached(env: Env): Promise<CachedTierResult> {
+  const cached = await readTierFromCache(env, CACHE_KEY_WIRE);
+  if (!cached) return cacheEmpty('wire');
+  return {
+    ok: true,
+    tier: 'wire',
+    items: cached.items,
+    fetchedAt: cached.fetchedAt,
+    cacheHit: true,
+  };
+}
+
+/**
+ * Cache-only FYI read (BL-091). Applies the same read-time freshness gate as
+ * `readFyiLive` (the cache holds RAW items), so a cached blob whose items have
+ * all aged out yields an empty — but successful — result. That is an accurate
+ * "no fresh items", not an error. **Never calls Inoreader.**
+ */
+export async function readFyiCached(env: Env, count: number = 30): Promise<CachedTierResult> {
+  const cached = await readTierFromCache(env, CACHE_KEY_FYI);
+  if (!cached) return cacheEmpty('fyi');
+  return {
+    ok: true,
+    tier: 'fyi',
+    items: filterFreshFyi(cached.items).slice(0, count),
+    fetchedAt: cached.fetchedAt,
+    cacheHit: true,
+  };
 }
 
 /**
@@ -136,8 +240,8 @@ export async function readWireLive(
 ): Promise<LiveTierResult> {
   const source: InoreaderObservedSource = opts.source ?? 'live-tool';
   const cache = createCacheStore(env);
-  if (cache && !opts.forceRefresh) {
-    const cached = await cache.get<CachedTier>(CACHE_KEY_WIRE);
+  if (!opts.forceRefresh) {
+    const cached = await readTierFromCache(env, CACHE_KEY_WIRE, cache);
     if (cached) {
       return {
         ok: true,
@@ -203,8 +307,8 @@ export async function readFyiLive(
 ): Promise<LiveTierResult> {
   const source: InoreaderObservedSource = opts.source ?? 'live-tool';
   const cache = createCacheStore(env);
-  if (cache && !opts.forceRefresh) {
-    const cached = await cache.get<CachedTier>(CACHE_KEY_FYI);
+  if (!opts.forceRefresh) {
+    const cached = await readTierFromCache(env, CACHE_KEY_FYI, cache);
     if (cached) {
       // Apply the freshness gate against the current clock (cache holds RAW
       // items), then honor the caller's `count` upper bound. The trailing
