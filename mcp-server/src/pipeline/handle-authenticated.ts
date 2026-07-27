@@ -161,14 +161,20 @@ export async function handleAuthenticated(
         readFyiLive(env, 30, { source: 'http-snapshot', keyOwner: auth.keyOwner }),
       ]);
       // BL-091 — this surface can now OPEN the breaker. It is the highest-volume
-      // Inoreader consumer and was previously the one path that could eat a 429
-      // without tripping it (ADR-0006 T.Z.2 wants *every* call site routed
+      // Inoreader consumer and was previously one of two paths that could eat a
+      // 429 without tripping it (ADR-0006 T.Z.2 wants *every* call site routed
       // through `handleInoreaderFailure`). Fire-and-forget so the SSR response
       // isn't delayed by the breaker write.
-      for (const tier of [liveWire, liveFyi]) {
-        if (!tier.ok && tier.reason === 'inoreader-rate-limit') {
-          ctx.waitUntil(handleInoreaderFailure(env, tier, 'http-radar-snapshot'));
-        }
+      //
+      // Route at most ONE failure per request: `openCircuit` resets the full 6h
+      // TTL on every call, and each route also emits a Sentry event — so
+      // handling both tiers would double-count the same incident on the
+      // highest-volume surface, exactly when the alert matters most.
+      const rateLimited = [liveWire, liveFyi].find(
+        (tier) => !tier.ok && tier.reason === 'inoreader-rate-limit'
+      );
+      if (rateLimited && !rateLimited.ok) {
+        ctx.waitUntil(handleInoreaderFailure(env, rateLimited, 'http-radar-snapshot'));
       }
       wire = liveWire;
       fyi = liveFyi;

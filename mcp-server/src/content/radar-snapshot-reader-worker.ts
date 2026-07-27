@@ -20,8 +20,16 @@
  * is called synchronously and cannot become async.
  */
 
-import { readFyiLive, readWireLive, readFyiCached, readWireCached } from './radar-live-store';
+import {
+  readFyiLive,
+  readWireLive,
+  readFyiCached,
+  readWireCached,
+  type LiveTierResult,
+  type CachedTierResult,
+} from './radar-live-store';
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
+import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import type { SnapshotReader } from './radar-snapshot-reader';
 import type { RadarCategory, SnapshotTier } from './radar-transform';
 import type { Env } from '../worker';
@@ -40,10 +48,37 @@ export function createWorkerSnapshotReader(env: Env): SnapshotReader {
     return breakerOpen;
   };
 
+  /**
+   * Collapse a tier read to the `SnapshotTier | null` this reader's contract
+   * requires — but FIRST route an Inoreader failure through
+   * `handleInoreaderFailure` so a 429 seen here can open the breaker.
+   *
+   * Before BL-091 this surface swallowed 429s entirely (`if (!ok) return null`),
+   * making it — alongside `/radar/snapshot` — one of two paths that could burn
+   * upstream quota without ever tripping the breaker, violating ADR-0006
+   * § T.Z.2's "every Inoreader call site routes through the failure handler".
+   * That matters most here: resource reads are model-initiated and bill to the
+   * general rate-limit tier, not the stricter radar tier (ADR-0004).
+   *
+   * Only the live readers can produce an `InoreaderFailure`; the cache-only
+   * readers' `cache-empty` is not assignable to it (by design) and is skipped.
+   */
+  const settle = async (
+    result: LiveTierResult | CachedTierResult
+  ): Promise<Extract<LiveTierResult, { ok: true }> | null> => {
+    if (result.ok) return result;
+    if (result.reason !== 'cache-empty') {
+      await handleInoreaderFailure(env, result, 'resource-radar');
+    }
+    return null;
+  };
+
   return {
     async readFyi(): Promise<SnapshotTier | null> {
-      const result = (await isDegraded()) ? await readFyiCached(env) : await readFyiLive(env);
-      if (!result.ok) return null;
+      const result = await settle(
+        (await isDegraded()) ? await readFyiCached(env) : await readFyiLive(env)
+      );
+      if (!result) return null;
       return {
         tier: 'fyi',
         items: result.items,
@@ -52,8 +87,10 @@ export function createWorkerSnapshotReader(env: Env): SnapshotReader {
     },
 
     async readWire(): Promise<SnapshotTier | null> {
-      const result = (await isDegraded()) ? await readWireCached(env) : await readWireLive(env);
-      if (!result.ok) return null;
+      const result = await settle(
+        (await isDegraded()) ? await readWireCached(env) : await readWireLive(env)
+      );
+      if (!result) return null;
       return {
         tier: 'wire',
         items: result.items,
@@ -62,8 +99,10 @@ export function createWorkerSnapshotReader(env: Env): SnapshotReader {
     },
 
     async readWireByCategory(category: RadarCategory): Promise<SnapshotTier | null> {
-      const wire = (await isDegraded()) ? await readWireCached(env) : await readWireLive(env);
-      if (!wire.ok) return null;
+      const wire = await settle(
+        (await isDegraded()) ? await readWireCached(env) : await readWireLive(env)
+      );
+      if (!wire) return null;
       return {
         tier: 'wire',
         items: wire.items.filter((item) => item.category === category),

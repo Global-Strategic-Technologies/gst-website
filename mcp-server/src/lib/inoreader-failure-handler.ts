@@ -45,16 +45,19 @@ import type { InoreaderFailure, RateLimitInfo } from './inoreader-client';
  * (a docstring here previously claimed free-form strings were accepted —
  * they never were; corrected in BL-091).
  *
- * `http-radar-snapshot` was added in BL-091: the website's SSR endpoint is
- * the highest-volume Inoreader consumer and was previously the one surface
- * that could absorb a 429 without tripping the breaker.
+ * `http-radar-snapshot` and `resource-radar` were added in BL-091 — the two
+ * surfaces that previously absorbed 429s without tripping the breaker. The
+ * SSR endpoint is the highest-volume Inoreader consumer; the Resources reader
+ * is the most dangerous one (model-initiated, and it bills to the general
+ * rate-limit tier rather than the stricter radar tier — see ADR-0004).
  */
 export type InoreaderFailureSource =
   | 'cron-wire'
   | 'cron-fyi'
   | 'live-search-radar'
   | 'live-get-latest-insights'
-  | 'http-radar-snapshot';
+  | 'http-radar-snapshot'
+  | 'resource-radar';
 
 /**
  * Build the structured Sentry tag set from a RateLimitInfo block. Same

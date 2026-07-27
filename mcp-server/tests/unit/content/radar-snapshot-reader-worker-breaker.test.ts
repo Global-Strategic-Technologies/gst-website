@@ -10,14 +10,21 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { mockReadWire, mockReadFyi, mockReadWireCached, mockReadFyiCached, mockIsCircuitOpen } =
-  vi.hoisted(() => ({
-    mockReadWire: vi.fn(),
-    mockReadFyi: vi.fn(),
-    mockReadWireCached: vi.fn(),
-    mockReadFyiCached: vi.fn(),
-    mockIsCircuitOpen: vi.fn(),
-  }));
+const {
+  mockReadWire,
+  mockReadFyi,
+  mockReadWireCached,
+  mockReadFyiCached,
+  mockIsCircuitOpen,
+  mockHandleInoreaderFailure,
+} = vi.hoisted(() => ({
+  mockReadWire: vi.fn(),
+  mockReadFyi: vi.fn(),
+  mockReadWireCached: vi.fn(),
+  mockReadFyiCached: vi.fn(),
+  mockIsCircuitOpen: vi.fn(),
+  mockHandleInoreaderFailure: vi.fn(),
+}));
 
 vi.mock('../../../src/content/radar-live-store', () => ({
   readWireLive: mockReadWire,
@@ -27,6 +34,9 @@ vi.mock('../../../src/content/radar-live-store', () => ({
 }));
 vi.mock('../../../src/ratelimit/circuit-breaker', () => ({
   isCircuitOpen: mockIsCircuitOpen,
+}));
+vi.mock('../../../src/lib/inoreader-failure-handler', () => ({
+  handleInoreaderFailure: mockHandleInoreaderFailure,
 }));
 
 import { createWorkerSnapshotReader } from '../../../src/content/radar-snapshot-reader-worker';
@@ -47,6 +57,76 @@ beforeEach(() => {
   mockReadWireCached.mockReset();
   mockReadFyiCached.mockReset();
   mockIsCircuitOpen.mockReset();
+  mockHandleInoreaderFailure.mockReset();
+});
+
+describe('createWorkerSnapshotReader — routes Inoreader failures to the breaker', () => {
+  // The Resources surface previously swallowed 429s (`if (!ok) return null`),
+  // so it could burn upstream quota without ever tripping the breaker —
+  // the same defect class fixed for /radar/snapshot. It matters most here:
+  // resource reads are model-initiated and bill to the GENERAL rate-limit
+  // tier, not the stricter radar tier (ADR-0004).
+  beforeEach(() => mockIsCircuitOpen.mockResolvedValue({ open: false }));
+
+  it('opens the breaker when a live wire read returns 429', async () => {
+    mockReadWire.mockResolvedValue({
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+    });
+
+    const tier = await createWorkerSnapshotReader(env).readWire();
+
+    expect(tier).toBeNull(); // contract unchanged: failures collapse to null
+    expect(mockHandleInoreaderFailure).toHaveBeenCalledTimes(1);
+    expect(mockHandleInoreaderFailure.mock.calls[0]?.[2]).toBe('resource-radar');
+  });
+
+  it('routes a 429 from readWireByCategory too', async () => {
+    mockReadWire.mockResolvedValue({
+      ok: false,
+      status: 429,
+      reason: 'inoreader-rate-limit',
+      message: 'rate limited',
+    });
+
+    await createWorkerSnapshotReader(env).readWireByCategory('pe-ma');
+
+    expect(mockHandleInoreaderFailure).toHaveBeenCalledWith(
+      env,
+      expect.objectContaining({ reason: 'inoreader-rate-limit' }),
+      'resource-radar'
+    );
+  });
+
+  it('routes non-429 live failures too (the handler itself filters)', async () => {
+    mockReadFyi.mockResolvedValue({
+      ok: false,
+      status: 401,
+      reason: 'token-stale',
+      message: 'stale',
+    });
+
+    await createWorkerSnapshotReader(env).readFyi();
+
+    expect(mockHandleInoreaderFailure).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT route a cache-empty result — a cache miss carries no upstream signal', async () => {
+    mockIsCircuitOpen.mockResolvedValue({ open: true });
+    mockReadFyiCached.mockResolvedValue({
+      ok: false,
+      status: 503,
+      reason: 'cache-empty',
+      message: 'nothing cached',
+    });
+
+    const tier = await createWorkerSnapshotReader(env).readFyi();
+
+    expect(tier).toBeNull();
+    expect(mockHandleInoreaderFailure).not.toHaveBeenCalled();
+  });
 });
 
 describe('createWorkerSnapshotReader — breaker OPEN', () => {

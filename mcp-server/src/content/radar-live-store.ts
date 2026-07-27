@@ -122,8 +122,15 @@ interface CachedTier {
  * FYI and wrong for Wire. Filtering here would reintroduce exactly the
  * wire/fyi drift this helper exists to prevent.
  */
-async function readTierFromCache(env: Env, key: string): Promise<CachedTier | null> {
-  const cache = createCacheStore(env);
+async function readTierFromCache(
+  env: Env,
+  key: string,
+  store?: ReturnType<typeof createCacheStore>
+): Promise<CachedTier | null> {
+  // Accept a caller-supplied store so the live readers — which already built
+  // one for the write path — don't construct a second Redis client per read
+  // (`createMcpClient` news up a client on every call).
+  const cache = store ?? createCacheStore(env);
   if (!cache) return null;
   return (await cache.get<CachedTier>(key)) ?? null;
 }
@@ -231,7 +238,7 @@ export async function readWireLive(
   const source: InoreaderObservedSource = opts.source ?? 'live-tool';
   const cache = createCacheStore(env);
   if (!opts.forceRefresh) {
-    const cached = await readTierFromCache(env, CACHE_KEY_WIRE);
+    const cached = await readTierFromCache(env, CACHE_KEY_WIRE, cache);
     if (cached) {
       return {
         ok: true,
@@ -298,7 +305,7 @@ export async function readFyiLive(
   const source: InoreaderObservedSource = opts.source ?? 'live-tool';
   const cache = createCacheStore(env);
   if (!opts.forceRefresh) {
-    const cached = await readTierFromCache(env, CACHE_KEY_FYI);
+    const cached = await readTierFromCache(env, CACHE_KEY_FYI, cache);
     if (cached) {
       // Apply the freshness gate against the current clock (cache holds RAW
       // items), then honor the caller's `count` upper bound. The trailing

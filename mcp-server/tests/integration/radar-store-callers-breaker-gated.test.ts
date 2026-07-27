@@ -20,7 +20,18 @@
  * live-server frozen-list precedent in `resource-uri-stability.test.ts`.
  *
  * Deliberately matches on the IMPORT statement, not bare text: several modules
- * mention these functions in prose comments without importing them.
+ * mention these functions in prose comments without importing them. Aliased
+ * specifiers (`readWireLive as x`) and explicit `.js`/`.ts` extensions are
+ * both handled.
+ *
+ * **What this proves and what it doesn't**: it proves the *import* — i.e. that
+ * the module was written with breaker state in hand. A static scan cannot
+ * prove the state is actually consulted on every branch; the behavioral tests
+ * (`radar-live.test.ts`, `radar-snapshot-reader-worker-breaker.test.ts`,
+ * `radar-snapshot-endpoint.test.ts`) cover that. This guard's job is to make a
+ * NEW unguarded call site impossible to add silently. Namespace imports
+ * (`import * as store`) and dynamic `import()` would evade it — neither is used
+ * in this codebase, and both would be visible in review.
  */
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -50,14 +61,25 @@ function walk(dir: string, out: string[] = []): string[] {
 
 /** Extract the specifier list of any import statement pulling from the store module. */
 function storeImportSpecifiers(source: string): string[] {
-  // Matches both single-line and multi-line `import { ... } from '...radar-live-store'`
-  const re = new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*['"][^'"]*${STORE_MODULE}['"]`, 'gs');
+  // Matches single-line and multi-line `import { ... } from '...radar-live-store'`,
+  // tolerating an explicit file extension (`.js`/`.ts`) on the specifier.
+  const re = new RegExp(
+    `import\\s*\\{([^}]*)\\}\\s*from\\s*['"][^'"]*${STORE_MODULE}(?:\\.[jt]s)?['"]`,
+    'gs'
+  );
   const specs: string[] = [];
   for (const match of source.matchAll(re)) {
     specs.push(
       ...(match[1] ?? '')
         .split(',')
-        .map((s) => s.replace(/\btype\b/, '').trim())
+        // Strip an inline `type` modifier, then take the ORIGINAL name from an
+        // `x as y` alias — otherwise `readWireLive as read` would evade the check.
+        .map((s) =>
+          s
+            .replace(/\btype\b/, '')
+            .split(/\bas\b/)[0]!
+            .trim()
+        )
         .filter(Boolean)
     );
   }

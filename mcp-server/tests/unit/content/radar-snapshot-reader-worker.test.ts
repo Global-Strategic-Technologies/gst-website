@@ -8,14 +8,32 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { SnapshotItem } from '../../../src/content/radar-transform';
 
-const { mockReadFyi, mockReadWire } = vi.hoisted(() => ({
-  mockReadFyi: vi.fn(),
-  mockReadWire: vi.fn(),
-}));
+const { mockReadFyi, mockReadWire, mockIsCircuitOpen, mockHandleInoreaderFailure } = vi.hoisted(
+  () => ({
+    mockReadFyi: vi.fn(),
+    mockReadWire: vi.fn(),
+    mockIsCircuitOpen: vi.fn(),
+    mockHandleInoreaderFailure: vi.fn(),
+  })
+);
 
 vi.mock('../../../src/content/radar-live-store', () => ({
   readFyiLive: mockReadFyi,
   readWireLive: mockReadWire,
+  // BL-091 — the reader switches to these while the breaker is open. Unused in
+  // this file's scenarios (breaker mocked closed) but must exist on the mock.
+  readFyiCached: vi.fn(),
+  readWireCached: vi.fn(),
+}));
+// BL-091 — the reader now consults the breaker and routes Inoreader failures
+// so a resource-read 429 can open it. Both are mocked here: this file covers
+// the LiveTierResult → SnapshotTier mapping, not breaker behavior (that lives
+// in radar-snapshot-reader-worker-breaker.test.ts).
+vi.mock('../../../src/ratelimit/circuit-breaker', () => ({
+  isCircuitOpen: mockIsCircuitOpen,
+}));
+vi.mock('../../../src/lib/inoreader-failure-handler', () => ({
+  handleInoreaderFailure: mockHandleInoreaderFailure,
 }));
 
 import { createWorkerSnapshotReader } from '../../../src/content/radar-snapshot-reader-worker';
@@ -40,6 +58,10 @@ function makeItem(id: string, category: SnapshotItem['category']): SnapshotItem 
 beforeEach(() => {
   mockReadFyi.mockReset();
   mockReadWire.mockReset();
+  mockIsCircuitOpen.mockReset();
+  mockHandleInoreaderFailure.mockReset();
+  // Breaker closed → the live readers are used, as these tests assume.
+  mockIsCircuitOpen.mockResolvedValue({ open: false });
 });
 
 describe('createWorkerSnapshotReader — readFyi', () => {
