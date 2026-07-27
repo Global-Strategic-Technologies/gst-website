@@ -19,7 +19,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
 | Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
-| Type-check the whole project           | `npx astro check`                                                            |
+| Type-check the website workspace       | `npx astro check` (root tsconfig `exclude`s `mcp-server`)                    |
 | Type-check the **mcp-server** workspace | `npm -w @gst/mcp-server run typecheck` (`astro check` does NOT cover it — see below) |
 | Lint all JS/TS/Astro                   | `npm run lint`                                                               |
 | Lint and auto-fix                      | `npm run lint:fix`                                                           |
