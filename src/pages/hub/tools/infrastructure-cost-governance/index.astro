@@ -848,7 +848,7 @@ const domainCount = DOMAINS.length;
   }
 
   :global(.icg-recs-group__label) {
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: var(--font-weight-bold);
     font-family: var(--font-family-mono);
     margin-bottom: var(--spacing-sm);
@@ -1227,6 +1227,7 @@ const domainCount = DOMAINS.length;
        PRINT
     ════════════════════════════════════════════════════════════════════════ */
   @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
     /* Hide non-results elements */
     .icg-section :global(.site-header),
     .icg-section :global(footer),
@@ -1289,6 +1290,7 @@ const domainCount = DOMAINS.length;
     .icg-foundational-warning {
       break-inside: avoid;
     }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
   }
 </style>
 

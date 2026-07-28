@@ -308,7 +308,7 @@
   .portfolio-filter-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0);
+    background: transparent;
     z-index: 10000;
     display: none;
     transition: background var(--transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
@@ -317,7 +317,7 @@
 
   .portfolio-filter-overlay.open {
     display: block;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--scrim-30);
     pointer-events: none;
   }
 

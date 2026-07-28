@@ -1996,7 +1996,7 @@ import '../../../../styles/components/progress.css';
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background: light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005));
+    background: var(--surface-faint-bg);
     backdrop-filter: blur(3px);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     padding: var(--spacing-xl);
@@ -2125,7 +2125,7 @@ import '../../../../styles/components/progress.css';
 
   .doc-meta :global(.doc-meta-label) {
     font-family: var(--font-family-mono);
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -2559,7 +2559,7 @@ import '../../../../styles/components/progress.css';
     display: inline-block;
     padding: 1px var(--spacing-xs);
     font-family: var(--font-family-mono);
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: var(--font-weight-semibold);
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -2587,17 +2587,17 @@ import '../../../../styles/components/progress.css';
   }
 
   .doc-topics :global(.exit-impact-multiple-expander) {
-    background: rgba(46, 139, 87, 0.12);
+    background: color-mix(in srgb, var(--color-success) 12%, transparent);
     color: var(--color-success);
   }
 
   .doc-topics :global(.exit-impact-valuation-drag) {
-    background: rgba(178, 102, 34, 0.12);
+    background: color-mix(in srgb, var(--color-warning) 12%, transparent);
     color: var(--color-warning);
   }
 
   .doc-topics :global(.exit-impact-operational-risk) {
-    background: rgba(178, 34, 34, 0.12);
+    background: color-mix(in srgb, var(--color-error) 12%, transparent);
     color: var(--color-error);
   }
 
@@ -2608,7 +2608,7 @@ import '../../../../styles/components/progress.css';
     margin: 0 0 var(--spacing-sm) 0;
     padding: var(--spacing-xs) var(--spacing-sm);
     background: var(--dm-negative-dark-bg);
-    border-left: 2px solid rgba(178, 34, 34, 0.3);
+    border-left: 2px solid color-mix(in srgb, var(--color-error) 30%, transparent);
     border-radius: 0;
   }
 
@@ -2910,6 +2910,7 @@ import '../../../../styles/components/progress.css';
   /* ─── PRINT ────────────────────────────────────────────────────────── */
 
   @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
     /* Page setup */
     html,
     body {
@@ -3329,5 +3330,6 @@ import '../../../../styles/components/progress.css';
     :global(.brutal-na-btn) {
       display: none !important;
     }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
   }
 </style>
