@@ -82,9 +82,9 @@ test.describe('Palette Panel Controls', () => {
         };
       });
 
-      // 9 semi-transparent swatches should have alpha sliders
-      expect(result.alphaSliderCount).toBe(9);
-      expect(result.alphaDisplayCount).toBe(9);
+      // 8 semi-transparent swatches should have alpha sliders
+      expect(result.alphaSliderCount).toBe(8);
+      expect(result.alphaDisplayCount).toBe(8);
       // Opaque swatches should not have alpha sliders
       expect(result.totalControlCount).toBeGreaterThan(result.alphaSliderCount);
     });

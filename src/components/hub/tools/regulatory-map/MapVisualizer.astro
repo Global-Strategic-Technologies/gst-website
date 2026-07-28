@@ -138,7 +138,7 @@ import '../../../../styles/components/map.css';
 
   /* Country path base state */
   :global(.country-path) {
-    fill: light-dark(rgba(26, 26, 26, 0.08), rgba(255, 255, 255, 0.06));
+    fill: var(--surface-neutral-bg);
     stroke: light-dark(rgba(26, 26, 26, 0.15), var(--border-dark-default));
     stroke-width: 0.5;
     transition: fill var(--transition-fast);
@@ -165,7 +165,7 @@ import '../../../../styles/components/map.css';
   /* US state path base state */
   :global(.state-path) {
     fill: transparent;
-    stroke: light-dark(rgba(26, 26, 26, 0.12), rgba(255, 255, 255, 0.08));
+    stroke: var(--border-hairline);
     stroke-width: 0.3;
     transition: fill var(--transition-fast);
     cursor: default;

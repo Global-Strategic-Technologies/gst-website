@@ -100,7 +100,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
       ]}
     />
 
-    <div class="brand-content palette-scope palette-0" id="palette-scope">
+    <div class="brand-content palette-scope" id="palette-scope">
       <BrandIdentity />
       <BrandColors />
       <BrandTypography />
@@ -250,7 +250,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .brand-swatch__usage {
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
     line-height: 1.3;
   }
@@ -369,6 +369,28 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     width: 100%;
   }
 
+  /* ── Hover specimens ──
+     Cards whose documented behaviour IS the hover transition (trust card,
+     step card, service card, hub gateway card, project card). The rule below
+     is the real mechanism — never simulate it with inline onmouseenter
+     handlers, which freeze the value against theme and palette and teach the
+     wrong pattern to anyone copying this page. */
+  .brand-hover-card {
+    padding: var(--spacing-xl);
+    border: 2px solid var(--border-light);
+    transition: border-color var(--transition-normal);
+    cursor: default;
+  }
+
+  .brand-hover-card:hover {
+    border-color: var(--color-primary);
+  }
+
+  /* Top-accent variant — the primary top border persists through hover */
+  .brand-hover-card--top-accent {
+    border-top: 3px solid var(--color-primary);
+  }
+
   .brand-skeleton-demo {
     display: flex;
     flex-direction: column;
@@ -461,7 +483,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
 
   .brand-details__toggle::before {
     content: '+';
-    font-size: 1.1rem;
+    font-size: var(--text-lg);
     font-weight: 700;
     color: var(--color-primary);
     display: inline-block;
@@ -607,8 +629,10 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   /* ── REMOVED: :root alt-color definitions, dark-theme overrides,
-       .palette-scope tool derivations, .palette-0 through .palette-5
-       — all moved to src/styles/palettes.css ── */
+       .palette-scope tool derivations, and the html.palette-0 …
+       html.palette-5 override blocks — all moved to
+       src/styles/palettes.css, where they hang off <html> (the palette
+       class is applied to the root element, never to this wrapper) ── */
 
   /* ── Component State Demo Layout ── */
   .brand-state-row {
@@ -734,7 +758,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .a11y-badge {
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -747,6 +771,8 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     border-color: var(--color-success);
   }
 
+  /* Currently unused — kept deliberately: the contrast tables need it the moment a
+     token lands between the AA and AAA thresholds, or fails for normal text. */
   .a11y-badge--warn {
     color: var(--color-warning);
     border-color: var(--color-warning);
@@ -814,7 +840,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     font-size: var(--text-xs);
     padding: 2px var(--spacing-xs);
     border: 1px solid light-dark(var(--border-light), var(--border-dark-default));
-    background: light-dark(#ffffff, #1a1a1a);
+    background: var(--surface-tint-bg);
     color: var(--text-primary);
   }
 
@@ -1021,7 +1047,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   .filter-badge {
     background: var(--color-primary);
     color: var(--bg-light);
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: 700;
     padding: 0.15rem 0.45rem;
     border-radius: 50%;
@@ -1040,7 +1066,8 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     width: 90%;
     max-height: 85vh;
     padding: 2rem;
-    background: light-dark(#ffffff, #1a1a1a);
+    /* Mirrors .project-modal (ProjectModal.astro) exactly — opaque, no backdrop blur */
+    background: light-dark(var(--bg-light), var(--bg-dark-secondary));
     border: 1px solid light-dark(var(--border-light), var(--border-dark));
     border-radius: 0;
     clip-path: polygon(
@@ -1054,12 +1081,12 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
       0% 2.5%
     );
     z-index: var(--z-modal);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px var(--scrim-30);
     overflow-y: auto;
   }
 
   .modal::backdrop {
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--scrim-50);
   }
 
   .modal__close {
@@ -1116,7 +1143,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .modal__section-title {
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1154,7 +1181,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .stat-label {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     color: var(--bg-dark);
     font-weight: 700;
     text-transform: uppercase;
@@ -1180,7 +1207,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .cta-box h2 {
-    font-size: 2rem;
+    font-size: var(--text-3xl);
     color: var(--text-primary);
     margin-bottom: 1rem;
     font-weight: 600;
@@ -1213,7 +1240,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     }
 
     .stat-value {
-      font-size: 2rem;
+      font-size: var(--text-3xl);
     }
   }
 </style>

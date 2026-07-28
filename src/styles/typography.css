@@ -35,7 +35,7 @@
 
 /* Button Text Styles */
 .button-text {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -65,7 +65,7 @@
 }
 
 .brutal-heading-lg {
-  font-size: 2rem;
+  font-size: var(--text-3xl);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   color: var(--text-primary);
@@ -85,7 +85,7 @@
 }
 
 .brutal-heading-sm {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   color: var(--text-primary);
@@ -130,7 +130,7 @@
 }
 
 .brutal-label-small {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;

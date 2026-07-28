@@ -72,7 +72,7 @@
   border: 1px solid var(--filter-button-border);
   color: var(--filter-button-text);
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -102,7 +102,7 @@
   color: var(--clear-filters-text);
   border: 2px solid var(--clear-filters-border);
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -147,7 +147,7 @@ so it doesn't bleed past the drawer's own bounds onto the footer. */
   bottom: 0;
   width: 350px;
   border-left: 2px solid var(--color-primary);
-  box-shadow: -4px 0 20px -4px rgba(0, 0, 0, 0.15);
+  box-shadow: -4px 0 20px -4px var(--scrim-15);
   transition: right var(--transition-slow);
   z-index: var(--z-modal-overlay);
   overflow: hidden;
@@ -167,7 +167,7 @@ so it doesn't bleed past the drawer's own bounds onto the footer. */
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0);
+  background: transparent;
   z-index: var(--z-modal);
   display: none;
   transition: background var(--transition-slow);
@@ -176,7 +176,7 @@ so it doesn't bleed past the drawer's own bounds onto the footer. */
 
 .filter-overlay.open {
   display: block;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--scrim-30);
   /* pointer-events: none — the overlay is a visual dim only.
      If it captured pointer events, the full-viewport fixed element would
      block wheel/touch scroll on the main content under it, locking the
@@ -192,7 +192,7 @@ html.dark-theme .filter-chip.chip-unavailable {
 }
 
 html.dark-theme .filter-drawer {
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
+  box-shadow: -4px 0 20px var(--scrim-40);
 }
 
 /* ==============================
@@ -341,7 +341,7 @@ Brutalist Filter Drawer
   border: 1px solid var(--color-primary);
   color: var(--color-primary);
   padding: var(--spacing-xs) var(--spacing-md);
-  font-size: 0.65rem;
+  font-size: var(--text-2xs);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -363,7 +363,7 @@ Brutalist Filter Drawer
 }
 
 .brutal-filter-drawer__label {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -419,7 +419,7 @@ Brutalist Search
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .brutal-search__input::-webkit-search-cancel-button {

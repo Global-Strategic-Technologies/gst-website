@@ -423,7 +423,7 @@ import { palettes } from '../../data/palettes';
   .palette-panel__grab-bar {
     width: 40px;
     height: 4px;
-    background: rgba(128, 128, 128, 0.4);
+    background: var(--panel-grip-bg);
     border-radius: 2px;
   }
 
@@ -609,7 +609,7 @@ import { palettes } from '../../data/palettes';
       display: block;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.4);
+      background: var(--scrim-40);
       z-index: calc(var(--z-palette-panel) - 1);
       opacity: 0;
       pointer-events: none;
@@ -658,7 +658,7 @@ import { palettes } from '../../data/palettes';
 
 <style is:global>
   /* ── Visibility gating — must be global to avoid Astro scoping ── */
-  /* Astro's :global() wrapper inside scoped <style> produces invalid
+  /* Astro's :global() wrapper inside a scoped style block produces invalid
      selectors when the :global() wraps part of a compound selector.
      These rules need to match html attributes without scoping. */
   html:not(.palette-popped-out, [data-palette-always]) .palette-panel {
