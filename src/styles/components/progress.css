@@ -93,7 +93,7 @@ Tool Wizard Progress — segmented step indicator
 
 .tool-wizard-step__number {
   font-family: var(--font-family-mono);
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: var(--font-weight-bold);
   fill: var(--text-muted);
   transition: fill var(--transition-normal);

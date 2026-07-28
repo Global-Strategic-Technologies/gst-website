@@ -333,7 +333,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 | 11. Astro CSS Alignment          | Complete           | Mar 24 | Stylelint added; Astro CSS patterns documented; `:global()` reduced 631→577                              |
 | 12. Legacy Design System Removal | Complete           | Apr 4  | ~360 lines removed; legacy classes deleted; `portfolio-controls.css` merged; `--color-primary-rgb` added |
 | 13. Token Lint Enforcement       | Complete           | Jul 28 | Colors now a build error; 100 violations swept; `--surface-*`/`--frost-*`/`--scrim-*` families minted    |
-| 14. Off-Scale Font Sizes         | Deferred (trigger) | Jul 28 | ~150 literals need a type-scale ruling + visual review; rule live at warning severity meanwhile          |
+| 14. Off-Scale Font Sizes         | Deferred (trigger) | Jul 28 | 150 literals need a type-scale ruling + visual review; rule live at warning severity meanwhile           |
 
 **Key outcomes**:
 
@@ -492,14 +492,18 @@ Result: 631 → 577 instances (-54). Remaining instances are all justified (dyna
 **Delivered**:
 
 1. **Colors are now a build error.** `scale-unlimited/declaration-strict-value` runs at `severity: error` over `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow` with `expandShorthand: true` (so `border`/`background`/`outline` shorthands are checked at their color slot) and `ignoreFunctions: false` with a `/var[(]/` allowance (so any token-referencing value passes, including `light-dark(var(), var())`, `color-mix(… var() …)` and `rgba(var(--rgb), α)`). Applied in both the root rules and the `.astro` override.
-2. **All 100 color violations fixed** — every substitution same-value, so no rendered change. Three genuine bugs fell out: several tool tints hardcoded the _light-theme_ hex of a semantic color, freezing them against both dark theme and palette switching; those are now `color-mix(in srgb, var(--color-…) N%, transparent)`.
+2. **All 100 color violations fixed.** The large majority are same-value substitutions with no rendered change. **Nine are deliberate value changes**, each fixing a real defect where the literal was the _light-theme_ hex of a semantic color frozen into both themes — so the declaration silently ignored dark theme and every alternative palette:
+   - Diligence Machine exit-impact tints ×4 → `color-mix(in srgb, var(--color-…) N%, transparent)`. The light half shifts by ΔRGB ≈ 3–5 at 12% alpha (the frozen literal was only approximately the token's hex) and the dark half now themes correctly. Each rule's sibling `color:` already used the semantic token, confirming intent.
+   - Attention cards ×2 → `--color-authority-bg` / `--color-subdued-bg` (light identical; dark moves from the light hex at 0.08 to the correct dark hex at 0.1).
+   - Primary buttons ×2 → `--color-primary-15`/`-12`/`-25` (identical under the default palette; now palette-aware, which the literal never was).
+   - IRL generator form container → `--surface-subtle-bg`, whose dark half carries the design system's blue sheen rather than the neutral white it hardcoded. Sub-perceptual, and consolidating avoided minting a near-duplicate token.
 3. **New neutral token families** in `variables.css`: `--surface-*-bg` (10 theme-switched neutral washes, distinct from the primary-derived `--accent-*-bg` family), `--frost-highlight`/`--frost-edge` (the frosted-glass inset+edge pair, previously copy-pasted into four stylesheets), `--scrim-15…60` (black-at-alpha backdrops, deliberately not theme-switched), `--panel-grip-bg`.
-4. **Font-size literals made visible** via `declaration-property-value-allowed-list` at `severity: warning`, and every literal byte-equal to an existing `--text-*` token tokenized. The remainder is Initiative 14.
+4. **Font-size literals made visible** via `declaration-property-value-allowed-list` at `severity: warning`, and **all 95 literals byte-equal to an existing `--text-*` token tokenized** — including the brutalist type utilities themselves (`.brutal-heading-lg` was a raw `2rem`, i.e. the canonical type classes did not use their own scale). 150 off-scale literals remain; they are Initiative 14.
 5. **Documented exceptions**: `@media print` blocks keep literal `#000`/`#fff`/`#ccc` (paper has no theme) behind a justified `stylelint-disable` wrapper; the R/G/B slider affordances in `SwatchControlStyles.astro` stay red/green/blue by definition, declared once as component-local custom properties.
 
-**Verification**: `npx stylelint "src/**/*.{css,astro}"` — 0 errors (was 100). Every new token is documented in VARIABLES_REFERENCE.md, mechanically enforced by `tests/integration/docs-variables-sync.test.ts`.
+**Verification**: `npx stylelint "src/**/*.{css,astro}"` — 0 errors (was 100), 150 warnings (was 245). Every new token is documented in VARIABLES_REFERENCE.md, mechanically enforced by `tests/integration/docs-variables-sync.test.ts`.
 
-**Files affected**: `.stylelintrc.json`, `src/styles/variables.css`, and 26 files across `src/styles/components/`, `src/pages/hub/tools/`, `src/components/brand/`, `src/components/portfolio/`.
+**Files affected**: `.stylelintrc.json`, `src/styles/variables.css`, and ~40 source files across `src/styles/` (incl. `global.css`, `typography.css`, `toc.css`, `components/`), `src/pages/` (hub tools, hub library, legal pages, `ma-portfolio.astro`, `brand.astro`), and `src/components/` (`brand/`, `portfolio/`, `hub/`, `CTASection.astro`, `StatsBar.astro`, `PrintReportHeader.astro`).
 
 ---
 
@@ -507,7 +511,7 @@ Result: 631 → 577 instances (-54). Remaining instances are all justified (dyna
 
 **Status**: **Deferred** — the lint rule is live at warning severity so the debt is visible in every run, but the values are deliberately untouched. See the trigger below.
 
-**Problem**: ~150 `font-size` literals do not match any `--text-*` token (`0.7rem` ×16, `0.85rem` ×11, `2.5rem` ×9, `0.6rem` ×9, `9px` ×9, `0.9rem` ×8, `0.8rem` ×7, `10px` ×6, plus a long tail including `pt` units in print blocks). Each needs a judgement call — snap to the nearest token, or extend the scale.
+**Problem**: 150 `font-size` literals do not match any `--text-*` token (`0.7rem` ×16, `0.85rem` ×11, `2.5rem` ×9, `0.6rem` ×9, `9px` ×9, `0.9rem` ×8, `0.8rem` ×7, `10px` ×6, plus a long tail including `pt` units in print blocks). Each needs a judgement call — snap to the nearest token, or extend the scale.
 
 **Why deferred rather than swept** (operator directive, 2026-07-28): unlike the color sweep, these are **not** same-value substitutions. Snapping a size changes rendered type, which carries real mobile-UX and visual-alignment risk (line-wrap points, control heights, table column fit), and the repo has **no visual-regression coverage** to catch a mistake. A bulk mechanical pass would trade a visible-but-harmless warning for an invisible layout regression. The 95 literals that _were_ byte-equal to a token were tokenized in Initiative 13, so what remains is exactly the set that requires human judgement.
 
@@ -520,7 +524,7 @@ Promoting also means flipping `declaration-property-value-allowed-list` for `fon
 
 **Out of scope permanently**: `font-size` inside `@media print` blocks (`pt` units are correct for paper).
 
-**Estimated scope**: Medium-Large — ~150 judgement calls across ~31 files, plus the visual review.
+**Estimated scope**: Medium-Large — 150 judgement calls across ~31 files, plus the visual review.
 
 ---
 

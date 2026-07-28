@@ -483,7 +483,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
 
   .brand-details__toggle::before {
     content: '+';
-    font-size: 1.1rem;
+    font-size: var(--text-lg);
     font-weight: 700;
     color: var(--color-primary);
     display: inline-block;
@@ -1064,7 +1064,8 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     width: 90%;
     max-height: 85vh;
     padding: 2rem;
-    background: var(--surface-overlay-bg);
+    /* Mirrors .project-modal (ProjectModal.astro) exactly — opaque, no backdrop blur */
+    background: light-dark(var(--bg-light), var(--bg-dark-secondary));
     border: 1px solid light-dark(var(--border-light), var(--border-dark));
     border-radius: 0;
     clip-path: polygon(
@@ -1140,7 +1141,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .modal__section-title {
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1178,7 +1179,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .stat-label {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     color: var(--bg-dark);
     font-weight: 700;
     text-transform: uppercase;
@@ -1204,7 +1205,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .cta-box h2 {
-    font-size: 2rem;
+    font-size: var(--text-3xl);
     color: var(--text-primary);
     margin-bottom: 1rem;
     font-weight: 600;
@@ -1237,7 +1238,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     }
 
     .stat-value {
-      font-size: 2rem;
+      font-size: var(--text-3xl);
     }
   }
 </style>

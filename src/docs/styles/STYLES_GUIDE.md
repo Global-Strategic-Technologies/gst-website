@@ -708,7 +708,7 @@ Colors must use CSS variables so dark theme works automatically.
 }
 ```
 
-Font sizes come from the `--text-*` scale. This is enforced at **warning** severity (not error) while ~150 pre-existing off-scale literals are worked through — see [STYLES_REMEDIATION_ROADMAP.md § 14](./STYLES_REMEDIATION_ROADMAP.md) and BL-094. **New code should produce no new warnings.** Do not bulk-snap existing off-scale values to the nearest token: that changes rendered type, and the repo has no visual-regression coverage to catch a layout break.
+Font sizes come from the `--text-*` scale. This is enforced at **warning** severity (not error) while 150 pre-existing off-scale literals are worked through — see [STYLES_REMEDIATION_ROADMAP.md § 14](./STYLES_REMEDIATION_ROADMAP.md) and BL-094. **New code should produce no new warnings.** Do not bulk-snap existing off-scale values to the nearest token: that changes rendered type, and the repo has no visual-regression coverage to catch a layout break.
 
 ### 2. Duplicate Dark Theme Selectors
 
