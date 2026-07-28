@@ -57,8 +57,10 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Logo</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <div style="display:flex;align-items:center;gap:0.25rem;">
-          <DeltaIcon class="bullet-icon" />
+        <!-- Mirrors Header.astro: DeltaIcon at 32px (1em of --text-3xl) beside the wordmark.
+             Keep in sync with .logo-wrapper there. -->
+        <div style="display:flex;align-items:center;gap:var(--spacing-sm);">
+          <DeltaIcon size={32} />
           <span
             class="logo"
             style="font-size:var(--text-3xl);font-weight:900;font-family:var(--font-family-mono);color:var(--text-primary);letter-spacing:-0.05em;text-transform:uppercase;display:flex;align-items:center;gap:var(--spacing-sm);height:2rem;text-decoration:none;border-bottom:none;"
@@ -159,15 +161,17 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Theme Toggle</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
+        <!-- Mirrors ThemeToggle.astro: primary-colored delta sized 0.67em of a 5rem
+             font-size (~54px). Keep in sync with .theme-toggle there. -->
         <button
-          style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;transition:color var(--transition-fast);padding:0;line-height:1;display:flex;align-items:center;"
+          style="background:transparent;border:none;color:var(--color-primary);cursor:pointer;transition:color var(--transition-fast);padding:0;line-height:1;display:flex;align-items:center;"
           title="Theme toggle specimen"
           aria-label="Theme toggle specimen"
         >
-          <DeltaIcon class="bullet-icon" />
+          <DeltaIcon size={54} />
         </button>
         <code class="brand-code"
-          >.theme-toggle — delta icon, no border/radius, var(--text-muted) color,
+          >.theme-toggle — delta icon, no border/radius, var(--color-primary) color,
           var(--transition-fast)</code
         >
       </div>

@@ -142,4 +142,83 @@ test.describe('Brand Page', () => {
       expect(activeCount).toBe(1);
     });
   });
+
+  /**
+   * filter.css, map.css, portfolio.css and progress.css are deliberately code-split
+   * out of global.css and imported only by the pages that use them. The brand page
+   * renders specimens for all four, so it imports them explicitly (brand.astro).
+   * Without those imports the specimens render as unstyled markup — which is worse
+   * than omitting them, since a reader concludes the documented class is broken.
+   * These assertions fail if an import is dropped or a new sheet is code-split
+   * without adding it here.
+   */
+  test.describe('Code-split component CSS is loaded', () => {
+    test('filter drawer and chips are styled', async ({ page }) => {
+      const drawer = page.locator('.brutal-filter-drawer').first();
+      await expect(drawer).toBeVisible();
+      expect(
+        await drawer.evaluate((el) => getComputedStyle(el).borderLeftWidth),
+        'filter drawer primary left border — filter.css not loaded?'
+      ).toBe('3px');
+
+      const chipBorder = await page
+        .locator('.brutal-filter-chip')
+        .first()
+        .evaluate((el) => getComputedStyle(el).borderTopWidth);
+      expect(
+        parseFloat(chipBorder),
+        'filter chip outline — filter.css not loaded?'
+      ).toBeGreaterThan(0);
+    });
+
+    test('map tap bar, project card and wizard progress are styled', async ({ page }) => {
+      expect(
+        await page
+          .locator('.brutal-map-tap-bar')
+          .first()
+          .evaluate((el) => getComputedStyle(el).display),
+        'map tap bar flex layout — map.css not loaded?'
+      ).toBe('flex');
+
+      const cardBorder = await page
+        .locator('.brutal-project-card')
+        .first()
+        .evaluate((el) => getComputedStyle(el).borderTopWidth);
+      expect(
+        parseFloat(cardBorder),
+        'project card border — portfolio.css not loaded?'
+      ).toBeGreaterThan(0);
+
+      expect(
+        await page
+          .locator('.tool-wizard-progress')
+          .first()
+          .evaluate((el) => getComputedStyle(el).display),
+        'wizard progress flex layout — progress.css not loaded?'
+      ).toBe('flex');
+    });
+  });
+
+  /**
+   * The site-chrome specimens are hand-rolled replicas rather than the real
+   * components (Header/ThemeToggle both carry singleton ids, so they cannot be
+   * rendered twice on one page). These pin the sizes to production's computed
+   * values so the replicas cannot silently drift again — see BL-095 for the
+   * durable fix.
+   */
+  test.describe('Site chrome specimens match production sizing', () => {
+    test('logo delta is 32px and theme toggle delta is 54px', async ({ page }) => {
+      const logoBox = await page.locator('#lib-site-chrome ~ * svg').first().boundingBox();
+      expect(Math.round(logoBox!.width), 'logo delta (Header.astro renders 32px)').toBe(32);
+
+      const toggleBox = await page
+        .locator('button[title="Theme toggle specimen"] svg')
+        .first()
+        .boundingBox();
+      expect(
+        Math.round(toggleBox!.width),
+        'theme toggle delta (ThemeToggle.astro computes ~54px)'
+      ).toBe(54);
+    });
+  });
 });

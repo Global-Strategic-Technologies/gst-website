@@ -127,6 +127,28 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ## CSS and Design System
 
+### BL-095: Brand-page specimens — replace hand-rolled replicas with real components
+
+**Source**: operator review of `/brand` 2026-07-28 — reported the logo lockup not matching the site header, the delta too small on both the logo and theme-toggle specimens, and broken spacing in several component demos. Root-caused to two mechanisms; the code-split-CSS half was fixed immediately (see Technical Context), this stanza covers the durable half | **Effort**: Medium — ~900 lines of `BrandUILibrary.astro`, convertible incrementally | **Status**: Open
+
+**As a** developer using `/brand` as the design-system control example, **I want** each specimen to render the real production component **so that** what I copy is what ships, and a specimen cannot drift from the component it documents.
+
+#### Acceptance Criteria
+
+- [ ] Specimens render the real component wherever it is renderable in isolation (cards, buttons, form controls, chips, tool shells, breadcrumbs, tiles, tables)
+- [ ] For components that genuinely cannot be rendered twice on a page — `Header.astro` and `ThemeToggle.astro` both carry singleton `id`s (`#themeToggle`) and a bound script — either extract a presentational inner component the page and the specimen both use, or keep the replica **with** the pinned-size E2E guard added 2026-07-28 in `brand-page.test.ts` and a comment naming the file to keep it in sync with
+- [ ] No specimen re-implements a design-system treatment inline (the frosted-glass demo hand-rolled `rgba(255,255,255,0.75)` + `blur(12px)` — wrong colour in dark theme and the wrong blur — until it was fixed in the token sweep)
+- [ ] Specimen labels continue to name the class actually rendered (17 mismatches were corrected in the token sweep; converting to real components removes the failure mode entirely)
+
+#### Technical Context
+
+- **Two distinct causes produced the reported symptoms.** (1) **Code-split CSS** — `filter.css`, `map.css`, `portfolio.css` and `progress.css` load only on the pages that use them, so their specimens rendered as raw unstyled markup on `/brand`. **Fixed 2026-07-28** by importing all four in `brand.astro`, with E2E assertions so it cannot regress. (2) **Replica drift** — this stanza. The logo specimen passed no `size` prop to `DeltaIcon` (defaulting to 14px) where `Header.astro` renders 32px; the theme-toggle specimen was 14px against production's ~54px and used the wrong colour token.
+- **Why replicas exist**: several specimens need page context (sticky positioning, scroll state, data props) that a bare render does not supply. Convert the ones that don't first — that is most of them.
+- **Why this matters more than it looks**: STYLES_GUIDE § In-repo Control Examples now instructs every session to copy from these specimens. A drifted specimen actively teaches the wrong thing, which is worse than having no specimen at all.
+- Related: [STYLES_REMEDIATION_ROADMAP.md § 13](../styles/STYLES_REMEDIATION_ROADMAP.md) (the token sweep that surfaced the label mismatches), BL-094 (the off-scale font sizes still present in these same replica blocks).
+
+---
+
 ### BL-094: Off-scale font-size literals — type-scale ruling + sweep (deferred)
 
 **Source**: split out of the design-token lint enforcement initiative (2026-07-28) — see [STYLES_REMEDIATION_ROADMAP.md § 14](../styles/STYLES_REMEDIATION_ROADMAP.md) for the full analysis, which is the authoritative record | **Effort**: Medium-Large — 150 judgement calls across ~31 files + per-page visual review | **Status**: **Deferred** — visible as lint warnings in every run; do NOT bulk-snap (see why below)
