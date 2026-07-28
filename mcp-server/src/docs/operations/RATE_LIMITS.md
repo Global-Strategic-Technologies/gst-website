@@ -211,9 +211,9 @@ In practice usage is far below the per-key caps (analytical sessions, not bot lo
 The breaker auto-closes after 6 hours via TTL. Because nothing repopulates the radar cache while it is open (BL-091 — every read surface is cache-only, and the cron skips), **manual reset is the only way to recover before the TTL expires** if Inoreader comes back early. Check `/status` (or `/health`'s `circuitOpen`) to confirm the breaker is what's holding radar on stale data:
 
 ```bash
-# Connect to Upstash via the CLI or REST API and delete the key. Path 2:
-# the circuit-breaker flag lives in the MCP DB (mcp:* namespace), so use
-# the MCP-DB credentials, NOT the Inoreader-DB Read-Only token.
+# Connect to Upstash via the CLI or REST API and delete the key. The
+# circuit-breaker flag lives in the sole MCP DB (`gst-mcp`, mcp:* namespace) —
+# use the UPSTASH_MCP_REST_* credentials.
 redis-cli -u $UPSTASH_MCP_REST_URL DEL mcp:radar:circuit-open
 # Or via @upstash/redis console (MCP DB)
 ```
