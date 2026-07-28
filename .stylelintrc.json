@@ -30,7 +30,7 @@
     "selector-pseudo-class-no-unknown": [true, { "ignorePseudoClasses": ["global"] }],
     "at-rule-no-unknown": [true, { "ignoreAtRules": ["import", "layer"] }],
     "scale-unlimited/declaration-strict-value": [
-      ["/color$/", "fill", "stroke", "background-color"],
+      ["/color$/", "fill", "stroke", "box-shadow", "text-shadow"],
       {
         "ignoreValues": [
           "transparent",
@@ -40,11 +40,24 @@
           "none",
           "unset",
           "initial",
-          "0"
+          "revert",
+          "auto",
+          "0",
+          "/var[(]/",
+          "/url[(]/",
+          "inset",
+          "/^-?[0-9.]+(px|rem|em|%)?,?$/"
         ],
-        "ignoreFunctions": true,
-        "severity": "warning"
+        "ignoreFunctions": false,
+        "expandShorthand": true,
+        "severity": "error"
       }
+    ],
+    "declaration-property-value-allowed-list": [
+      {
+        "font-size": ["/var[(]/", "inherit", "initial", "unset", "revert", "smaller", "larger"]
+      },
+      { "severity": "warning" }
     ]
   },
   "overrides": [
@@ -85,7 +98,7 @@
         "shorthand-property-no-redundant-values": true,
         "declaration-block-no-redundant-longhand-properties": true,
         "scale-unlimited/declaration-strict-value": [
-          ["/color$/", "fill", "stroke", "background-color"],
+          ["/color$/", "fill", "stroke", "box-shadow", "text-shadow"],
           {
             "ignoreValues": [
               "transparent",
@@ -95,11 +108,24 @@
               "none",
               "unset",
               "initial",
-              "0"
+              "revert",
+              "auto",
+              "0",
+              "/var[(]/",
+              "/url[(]/",
+              "inset",
+              "/^-?[0-9.]+(px|rem|em|%)?,?$/"
             ],
-            "ignoreFunctions": true,
-            "severity": "warning"
+            "ignoreFunctions": false,
+            "expandShorthand": true,
+            "severity": "error"
           }
+        ],
+        "declaration-property-value-allowed-list": [
+          {
+            "font-size": ["/var[(]/", "inherit", "initial", "unset", "revert", "smaller", "larger"]
+          },
+          { "severity": "warning" }
         ]
       }
     }
