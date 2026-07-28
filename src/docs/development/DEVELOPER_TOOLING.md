@@ -23,7 +23,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Type-check the **mcp-server** workspace | `npm -w @gst/mcp-server run typecheck` (`astro check` does NOT cover it — see below) |
 | Lint all JS/TS/Astro                   | `npm run lint`                                                               |
 | Lint and auto-fix                      | `npm run lint:fix`                                                           |
-| Lint CSS and Astro scoped styles       | `npm run lint:css`                                                           |
+| Lint CSS and Astro scoped styles       | `npm run lint:css` (hardcoded colors are an **error**; off-scale font sizes warn — see § stylelint configuration notes) |
 | Format all files                       | `npm run format`                                                             |
 | Check formatting without writing       | `npm run format:check`                                                       |
 | Build for production                   | `npm run build`                                                              |
@@ -375,6 +375,29 @@ The override block in `.stylelintrc.json`:
 ```
 
 The base rules are duplicated inside the `.astro` override because stylelint's `extends` + `overrides` interaction does not inherit rules from the parent config. Keep the two rule sets in sync when editing.
+
+#### Design-token enforcement (added July 28, 2026)
+
+Two rules enforce the "no hardcoded values" convention from [STYLES_GUIDE.md](../styles/STYLES_GUIDE.md). Both are declared in **both** rule blocks (base + `.astro` override).
+
+| Rule                                                | Properties                                                     | Severity    | Effect                                                              |
+| --------------------------------------------------- | -------------------------------------------------------------- | ----------- | ------------------------------------------------------------------- |
+| `scale-unlimited/declaration-strict-value`           | `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow`      | **error**   | A hardcoded color fails `lint:css`, the pre-commit hook, and CI      |
+| `declaration-property-value-allowed-list`            | `font-size`                                                     | **warning** | Off-scale font sizes are reported but do not fail the build (BL-094) |
+
+Configuration notes — each of these is load-bearing, do not "simplify" them:
+
+- **`expandShorthand: true`** means shorthands are checked at their color slot only. `border: 1px solid var(--x)` passes; `border: 1px solid #fff` fails. This is why `border`/`background`/`outline` are **not** listed as properties — listing them would flag the width/style tokens too.
+- **`ignoreFunctions: false`** with `"/var[(]/"` in `ignoreValues` means "any value that references a token passes". That admits `light-dark(var(--a), var(--b))`, `color-mix(in srgb, var(--x) 12%, transparent)` and `rgba(var(--rgb), .5)` while still rejecting `light-dark(#fff, #000)` and `rgba(0, 0, 0, .5)`.
+- Regexes in `ignoreValues` use a character class — `"/var[(]/"`, not `"/var\\(/"`. The plugin strips the backslash and the pattern fails to compile.
+- `box-shadow`/`text-shadow` are not expandable shorthands, so they are listed explicitly; the numeric-length and `inset` entries in `ignoreValues` let their geometry through while the color slot is still checked.
+- **Custom property declarations are never checked.** `--my-token: #c44040` is always allowed — that is how tokens are defined, and how the documented exceptions below stay legal.
+- `font-size` uses the core allow-list rule rather than the strict-value plugin because the two cannot carry different severities under one rule key. `clamp(var(--a), 2vw, var(--b))` passes; `clamp(1rem, 2vw, 2rem)` warns.
+
+**Documented exceptions** (both are deliberate, and both are recorded in STYLES_GUIDE.md):
+
+1. **`@media print` blocks** keep literal `#000`/`#fff`/`#ccc` — paper has no theme, so the token system is meaningless there. Wrapped in `/* stylelint-disable scale-unlimited/declaration-strict-value -- … */` with a justification.
+2. **R/G/B slider affordances** in `SwatchControlStyles.astro` — a red/green/blue channel control must stay red/green/blue regardless of palette. Declared once as component-local custom properties (which the rule does not check) rather than repeated inline.
 
 #### `no-invalid-position-declaration` disabled in the `.astro` override only
 

@@ -457,10 +457,12 @@ All `.brutal-btn` buttons include a frosted-glass aesthetic by default:
 .brutal-btn {
   backdrop-filter: blur(2px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    /* wet-glass highlight */ 0 0 0 1px rgba(0, 0, 0, 0.04); /* subtle edge */
+    inset 0 1px 0 var(--frost-highlight),
+    /* wet-glass highlight */ 0 0 0 1px var(--frost-edge); /* hairline edge */
 }
 ```
+
+The `--frost-highlight` / `--frost-edge` pair carries the theme-switched values (see [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)); use the tokens rather than re-typing the rgba pair on each frosted surface.
 
 > **Do NOT manually write `-webkit-backdrop-filter`** (or any other vendor-prefixed property).
 > LightningCSS, wired to the project's [browserslist config](../../../package.json) via
@@ -683,6 +685,30 @@ The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse
 ```
 
 Colors must use CSS variables so dark theme works automatically.
+
+> **This is mechanically enforced.** Since July 28, 2026 a hardcoded color is a stylelint **error** — it fails `npm run lint:css`, the pre-commit hook, and CI. The rule covers `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow`, and the color slot of `border`/`background`/`outline` shorthands. Any value that references a token passes, including `light-dark(var(--a), var(--b))`, `color-mix(in srgb, var(--x) 12%, transparent)` and `rgba(var(--rgb), .5)`. Mechanics: [DEVELOPER_TOOLING.md § stylelint configuration notes](../development/DEVELOPER_TOOLING.md).
+>
+> **Need a tint that has no token?** Reach for `color-mix(in srgb, var(--color-success) 12%, transparent)` before minting one — it stays correct across themes and all six palettes, which a frozen `rgba(46, 139, 87, 0.12)` does not. For neutral washes use the `--surface-*-bg` family; for modal/drawer backdrops use `--scrim-15…60`; for frosted edges use `--frost-highlight`/`--frost-edge`.
+>
+> **Two documented exceptions**, both legal because custom-property declarations are never checked by the rule:
+>
+> 1. **`@media print` blocks** keep literal `#000`/`#fff`/`#ccc` — paper has no theme. Wrap the block in `/* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal */ … /* stylelint-enable … */` with that justification.
+> 2. **Channel-specific affordances** — the R/G/B slider controls in `SwatchControlStyles.astro` must stay red/green/blue regardless of palette. Declare such colors once as component-local custom properties; never repeat the literal inline.
+
+### 1b. Off-Scale Font Sizes
+
+```css
+/* BAD */
+.label {
+  font-size: 13px;
+}
+/* GOOD */
+.label {
+  font-size: var(--text-sm);
+}
+```
+
+Font sizes come from the `--text-*` scale. This is enforced at **warning** severity (not error) while ~150 pre-existing off-scale literals are worked through — see [STYLES_REMEDIATION_ROADMAP.md § 14](./STYLES_REMEDIATION_ROADMAP.md) and BL-094. **New code should produce no new warnings.** Do not bulk-snap existing off-scale values to the nearest token: that changes rendered type, and the repo has no visual-regression coverage to catch a layout break.
 
 ### 2. Duplicate Dark Theme Selectors
 
