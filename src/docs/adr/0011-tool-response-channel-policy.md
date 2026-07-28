@@ -94,6 +94,10 @@ A follow-up adding `outputSchema` must therefore scope schemas to the success sh
 
 BL-033's reduced scope contemplates a provenance label injected into `structuredContent` **at the `withMetricsCore` chokepoint** — the same chokepoint this ADR requires stay a pure observer. Whoever picks that up must either construct the label at the call site or accept the typing consequences described above.
 
-### The pre-specified fallback
+### The pre-specified fallback — specified, then confirmed unnecessary
 
-`toolFail` carries an unused `{ suppressStructured }` option. It exists for exactly one contingency: if a real client is found to render a structured error _in place of_ the directive prose the model must act on, that flag omits `structuredContent` on the directive-bearing sites only. It is a distinct fourth parameter rather than a field inside `extra`, because `extra` is spread into the payload and a control flag riding there would leak into the public envelope. Specified up front so it is not invented under post-deploy pressure.
+`toolFail` carries an unused `{ suppressStructured }` option. It exists for exactly one contingency: if a real client were found to render a structured error _in place of_ the directive prose the model must act on, that flag omits `structuredContent` on the directive-bearing sites only. It is a distinct fourth parameter rather than a field inside `extra`, because `extra` is spread into the payload and a control flag riding there would leak into the public envelope. Specified up front so it would not be invented under post-deploy pressure.
+
+**Post-deploy verification, 2026-07-27 (0.43.0 live on production):** the open question was whether adding `structuredContent` to error results would stop the model receiving the retry prose _as prose_ — the assumption the two-constructor design rests on. Settled empirically rather than by reasoning, using the same live-probe technique that produced the AC-1 finding: `compute_techpar` was called through a real MCP client with `arr: 0`, and the directive came back **verbatim** — ``TechPar requires both `arr` and `infraHostingAnnual` to be greater than zero.`` — byte-identical to the string in `techpar.ts`.
+
+So the fallback is **not needed**, and the assumption is now evidence. `suppressStructured` stays as a specified, tested, unused escape hatch; do not reach for it without new contrary evidence.
