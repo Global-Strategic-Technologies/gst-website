@@ -7,15 +7,16 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 ## Table of Contents
 
 1. [Quick Start by Task](#quick-start-by-task)
-2. [Design System Architecture](#design-system-architecture)
-3. [File Organization](#file-organization)
-4. [Component Styling](#component-styling)
-5. [Brand Delta Icon](#brand-delta-icon)
-6. [Dark Theme Implementation](#dark-theme-implementation)
-7. [Responsive Design](#responsive-design)
-8. [Hub Tool Patterns](#hub-tool-patterns)
-9. [Anti-Patterns](#anti-patterns)
-10. [New Component Checklist](#new-component-checklist)
+2. [In-repo Control Examples](#in-repo-control-examples)
+3. [Design System Architecture](#design-system-architecture)
+4. [File Organization](#file-organization)
+5. [Component Styling](#component-styling)
+6. [Brand Delta Icon](#brand-delta-icon)
+7. [Dark Theme Implementation](#dark-theme-implementation)
+8. [Responsive Design](#responsive-design)
+9. [Hub Tool Patterns](#hub-tool-patterns)
+10. [Anti-Patterns](#anti-patterns)
+11. [New Component Checklist](#new-component-checklist)
 
 ---
 
@@ -25,7 +26,7 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 
 1. Use CSS variables for all colors, spacing, and typography — see [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 2. Use typography utility classes — see [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md)
-3. Test in both light and dark themes
+3. Test in both light and dark themes and all 6 palettes
 4. Check responsive behavior at 768px and 480px breakpoints
 
 **Styling text:** Pick a utility class from [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) (`.brutal-heading-lg`, `.brutal-text-base`, `.brutal-label`, etc.). Dark theme colors switch automatically.
@@ -33,6 +34,18 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 **Need a specific color/spacing value:** Look it up in [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md). Use the variable, never a hardcoded value.
 
 **Dark theme broken:** You almost certainly hardcoded a color. Replace it with `var(--variable-name)`.
+
+---
+
+## In-repo Control Examples
+
+**The brand page is the living control-example surface for this design system — start there before building anything visual.** It renders real tokens and real component classes at runtime and reacts to the theme toggle and all six palettes, so what you see is what the system currently produces, not a static mockup.
+
+- **Page**: [src/pages/brand.astro](../../pages/brand.astro) — composition, section layout, and the specimen styling
+- **Specimen components**: [src/components/brand/](../../components/brand/) — color swatches with live token values (`BrandColors`, `ColorSpecimens`), the typography/spacing/transition ladders (`BrandTypography`), real production component specimens and state matrices (`BrandComponents`, `BrandUILibrary`), accessibility patterns (`BrandAccessibility`), and the palette editor (`PalettePanel`)
+- **How to use them**: when building a new component or page, find the nearest specimen and copy its classes and token usage — do not restyle from scratch. If a pattern you need has no specimen, that's a signal to check [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) and the component CSS modules before inventing anything new
+- **Verifying palette/theme behavior**: open `/brand` in `npm run dev`, use the PalettePanel (always visible there; pop-out makes it available on every page) to switch themes and palettes live — see [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) § Alternative Palette System
+- The rendered page at [globalstrategic.tech/brand](https://globalstrategic.tech/brand) is the shareable form of the same surface for reviewers without repo access
 
 ---
 
@@ -418,13 +431,21 @@ Additional breakpoints used sparingly:
 
 ### Z-Index Scale
 
-| Value  | Usage                                    |
-| ------ | ---------------------------------------- |
-| `0`    | Checkerboard background (`body::before`) |
-| `1`    | Container, main content                  |
-| `10`   | Site header (sticky)                     |
-| `1000` | Filter overlay, mockup labels            |
-| `1001` | Filter drawer (above overlay)            |
+Use the canonical `--z-*` tokens from [variables.css](../../styles/variables.css) — **never raw numeric z-index values** (the token block's own comment mandates this). Tool-internal layers (map annotations, chart overlays) may use direct values for contextual reasons; prefer tokens otherwise.
+
+| Token                  | Value   | Usage                                        |
+| ---------------------- | ------- | -------------------------------------------- |
+| `--z-negative`         | `-1`    | `body::before` background grid               |
+| `--z-base`             | `1`     | Normal content stacking                      |
+| `--z-raised`           | `5`     | Tool content layers (maps, charts)           |
+| `--z-sticky`           | `10`    | Sticky headers, dropdowns anchored to content |
+| `--z-dropdown`         | `20`    | Floating menus, dropdowns                    |
+| `--z-palette-panel`    | `30`    | Palette panel (brand.astro)                  |
+| `--z-overlay`          | `50`    | General overlays                             |
+| `--z-compliance-panel` | `60`    | Regulatory-map compliance panel              |
+| `--z-modal`            | `1000`  | Modal base                                   |
+| `--z-modal-overlay`    | `1001`  | Modal backdrop                               |
+| `--z-skip-nav`         | `10000` | Skip-nav link (top of page)                  |
 
 ---
 
@@ -458,7 +479,7 @@ Additional frosted-glass utilities in `global.css`:
 | Class                        | Blur               | Use Case                          |
 | ---------------------------- | ------------------ | --------------------------------- |
 | `.brutal-frosted`            | 3px                | Standard containers, action bars  |
-| `.brutal-frosted--heavy`     | 12px               | Drawers, sticky bars over content |
+| `.brutal-frosted--heavy`     | 6px                | Drawers, sticky bars over content |
 | `.brutal-frosted--blur-only` | 1.5px              | Subtle wet-glass sheen            |
 | `.brutal-frosted--overlay`   | 12px + 92% opacity | Modal/panel overlays              |
 
@@ -782,6 +803,7 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 - [ ] If new component-specific variables needed: added to both `:root` and `html.dark-theme` in `variables.css`
 - [ ] Tested in light theme
 - [ ] Tested in dark theme
+- [ ] Tested in all 6 palettes (PalettePanel pop-out — see [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) § Alternative Palette System)
 - [ ] Responsive at 768px breakpoint
 - [ ] Responsive at 480px breakpoint
 - [ ] Focus states visible in both themes
@@ -791,7 +813,8 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 
 ## Related Documentation
 
-- **[/brand](https://globalstrategic.tech/brand)** — Live visual reference of the full design system: color swatches, typography specimens, spacing scale, and UI component library. Share this URL with designers, reviewers, or integration partners who don't have repo access.
+- **[In-repo Control Examples](#in-repo-control-examples)** (top of this guide) — `src/pages/brand.astro` + `src/components/brand/`, the living specimens to copy from when building
+- **[/brand](https://globalstrategic.tech/brand)** — the same surface rendered live; share this URL with designers, reviewers, or integration partners who don't have repo access
 - [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) — Brand color palette, usage rules, and asset guidelines
 - [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) — Complete design token catalog
 - [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) — Typography utility classes
@@ -800,4 +823,4 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 
 ---
 
-**Last Updated**: April 4, 2026
+**Last Updated**: July 28, 2026 (in-repo control examples section; z-index token scale; frosted `--heavy` blur corrected to match code; 6-palette checklist item)

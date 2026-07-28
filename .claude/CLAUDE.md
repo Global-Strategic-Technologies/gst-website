@@ -263,6 +263,10 @@ Specialized agents in `.claude/agents/`. Use the right agent for the task:
 | **performance-testing-expert**   | Load testing, performance regression detection                                                     |
 | **technical-debt-analyst**       | Refactoring, complexity analysis, debt reduction                                                   |
 
+### Claude Skills
+
+Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep them procedural and pointer-based — never restate styling facts a doc owns): **gst-page-content** (page copy: audience, voice, sentence/CTA formulas, content-type structure — styling defers to STYLES_GUIDE), **gst-ma-portfolio-card** (insert portfolio entries into `projects.json`), **get-api-docs** (fetch third-party API docs via chub). Adding or changing a skill? Update this roster line in the same PR.
+
 ## 🔄 Git Workflow
 
 ### Branch Strategy (trunk-based)
@@ -321,6 +325,15 @@ Specialized agents in `.claude/agents/`. Use the right agent for the task:
 2. Follow existing component patterns and CSS Styling Standards (above)
 3. Add unit tests; if user-facing, add E2E tests
 4. Test in both light and dark themes at desktop, 768px, and 480px
+
+### Adding a New Page
+
+1. **Model page**: [src/pages/hub/index.astro](src/pages/hub/index.astro) — copy its shape (BaseLayout + composed components), don't hand-roll structure. The **in-repo control examples** for every component/token are [src/pages/brand.astro](src/pages/brand.astro) + [src/components/brand/](src/components/brand/) (see STYLES_GUIDE § In-repo control examples)
+2. Design-system tokens only — no hardcoded colors, spacing, font sizes (stylelint enforces colors; see STYLES_GUIDE)
+3. Verify in light AND dark theme AND all 6 palettes (PalettePanel pop-out from /brand — see BRAND_GUIDELINES § Alternative Palette System)
+4. Desktop-first responsive: base styles for desktop, `max-width` overrides at 768px and 480px
+5. Page copy: use the `gst-page-content` skill (audience, voice, structure)
+6. Add E2E coverage per [TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md); ensure the route is covered by `tests/e2e/accessibility.test.ts`
 
 ### Working with Palettes
 
