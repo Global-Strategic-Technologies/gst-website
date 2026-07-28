@@ -350,12 +350,7 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Trust Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <div
-          style="padding:var(--spacing-xl);background:transparent;border:2px solid var(--border-light);transition:all var(--transition-normal);max-width:400px;cursor:default;"
-          onmouseenter="this.style.borderColor='var(--color-primary)'"
-          onmouseleave="this.style.borderColor='var(--border-light)'"
-          data-specimen
-        >
+        <div class="brand-hover-card" style="max-width:400px;" data-specimen>
           <div
             style="font-size:var(--text-lg);font-family:var(--font-family-mono);font-weight:var(--font-weight-bold);color:var(--text-primary);margin-bottom:var(--spacing-md);line-height:1.4;"
           >
@@ -377,12 +372,7 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Engagement Step Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <div
-          style="padding:var(--spacing-xl);background:transparent;border:2px solid var(--border-light);transition:all var(--transition-normal);max-width:250px;text-align:center;cursor:default;"
-          onmouseenter="this.style.borderColor='var(--color-primary)'"
-          onmouseleave="this.style.borderColor='var(--border-light)'"
-          data-specimen
-        >
+        <div class="brand-hover-card" style="max-width:250px;text-align:center;" data-specimen>
           <div
             style="display:flex;flex-direction:column;align-items:center;gap:var(--spacing-sm);margin-bottom:var(--spacing-md);"
           >
@@ -463,12 +453,7 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Service Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <div
-          style="padding:var(--spacing-xl);background:transparent;border:2px solid var(--border-light);transition:all var(--transition-normal);max-width:320px;cursor:default;"
-          onmouseenter="this.style.borderColor='var(--color-primary)'"
-          onmouseleave="this.style.borderColor='var(--border-light)'"
-          data-specimen
-        >
+        <div class="brand-hover-card" style="max-width:320px;" data-specimen>
           <div
             style="font-size:1.4rem;font-family:var(--font-family-mono);font-weight:700;color:var(--text-primary);margin-bottom:var(--spacing-sm);line-height:1.3;"
           >
@@ -569,10 +554,8 @@ import TableOfContents from '../TableOfContents.astro';
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div
-          class="brutal-frosted"
-          style="padding:var(--spacing-xl);border:2px solid var(--border-light);border-top:3px solid var(--color-primary);transition:all var(--transition-normal);max-width:280px;text-align:center;cursor:default;"
-          onmouseenter="this.style.borderColor='var(--color-primary)'"
-          onmouseleave="this.style.borderColor='var(--border-light)';this.style.borderTopColor='var(--color-primary)'"
+          class="brutal-frosted brand-hover-card brand-hover-card--top-accent"
+          style="max-width:280px;text-align:center;"
           data-specimen
         >
           <div
@@ -649,6 +632,21 @@ import TableOfContents from '../TableOfContents.astro';
 
     <h4 class="brutal-label brand-subgroup-title">Frosted Glass Variants</h4>
     <div class="brand-component-row">
+      <div class="brand-component-item">
+        <div
+          class="brutal-frosted"
+          style="padding:var(--spacing-lg);min-height:60px;display:flex;align-items:center;justify-content:center;"
+        >
+          <span
+            style="font-family:var(--font-family-mono);font-size:var(--text-xs);color:var(--text-primary);"
+            >Base frost</span
+          >
+        </div>
+        <code class="brand-code"
+          >.brutal-frosted — base utility (3px blur, near-transparent tint). The most-used frosted
+          class; pair it with a variant below, which overrides its background + blur</code
+        >
+      </div>
       <div class="brand-component-item">
         <div
           class="brutal-frosted brutal-frosted--heavy"
@@ -768,13 +766,7 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Project Card</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <div
-          class="brutal-frosted"
-          style="padding:var(--spacing-xl);border:2px solid var(--border-light);transition:all var(--transition-normal);max-width:280px;cursor:default;"
-          onmouseenter="this.style.borderColor='var(--color-primary)'"
-          onmouseleave="this.style.borderColor='var(--border-light)'"
-          data-specimen
-        >
+        <div class="brutal-frosted brand-hover-card" style="max-width:280px;" data-specimen>
           <div
             style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--spacing-sm);"
           >
@@ -896,7 +888,8 @@ import TableOfContents from '../TableOfContents.astro';
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
         <div
-          style="display:flex;align-items:center;gap:0.75rem;background:rgba(255,255,255,0.75);backdrop-filter:blur(12px);padding:0.5rem;max-width:500px;border-bottom:2px solid var(--color-primary);"
+          class="brutal-frosted brutal-frosted--heavy"
+          style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem;max-width:500px;border-bottom:2px solid var(--color-primary);"
           data-specimen
         >
           <div style="flex:1;display:flex;align-items:center;padding-left:0.75rem;">
@@ -932,8 +925,8 @@ import TableOfContents from '../TableOfContents.astro';
           </div>
         </div>
         <code class="brand-code"
-          >.controls-wrapper — frosted glass (blur 12px, 75% white), monospace search + filter,
-          primary bottom-border</code
+          >.controls-wrapper — .brutal-frosted--heavy (6px blur, 75% white / 60% near-black),
+          monospace search + filter, primary bottom-border</code
         >
       </div>
     </div>
@@ -1032,8 +1025,8 @@ import TableOfContents from '../TableOfContents.astro';
           </div>
         </div>
         <code class="brand-code"
-          >.wizard-progress, .progress-segment — completed (filled delta), active (scaled, primary
-          stroke), inactive (faded)</code
+          >.tool-wizard-progress, .tool-wizard-step — completed (filled delta), active (scaled,
+          primary stroke), inactive (faded)</code
         >
       </div>
     </div>
@@ -1103,8 +1096,8 @@ import TableOfContents from '../TableOfContents.astro';
           </div>
         </div>
         <code class="brand-code"
-          >.wizard-progress-mobile, .progress-dot — even dots flipped 180°, compact for small
-          screens</code
+          >.tool-wizard-progress-mobile, .tool-wizard-dot — even dots flipped 180°, compact for
+          small screens</code
         >
       </div>
     </div>
@@ -1143,8 +1136,8 @@ import TableOfContents from '../TableOfContents.astro';
           </button>
         </div>
         <code class="brand-code"
-          >.option-card (brutalist) — sharp edges, no shadow, monospace label, hard border,
-          primary-fill selected state</code
+          >.brutal-option-card — sharp edges, no shadow, monospace label, hard border, primary-fill
+          selected state</code
         >
       </div>
     </div>
@@ -1277,7 +1270,7 @@ import TableOfContents from '../TableOfContents.astro';
       </div>
     </div>
     <code class="brand-code"
-      >.project-card (brutalist) — no shadow, left-border metrics, monospace values, outlined tags,
+      >.brutal-project-card — no shadow, left-border metrics, monospace values, outlined tags,
       invert-hover CTA</code
     >
 
@@ -1352,8 +1345,8 @@ import TableOfContents from '../TableOfContents.astro';
       </article>
     </div>
     <code class="brand-code"
-      >.teaser-card (brutalist) — no radius, border-top accent, left-aligned, monospace heading,
-      outlined badge</code
+      >.brutal-teaser-card — no radius, border-top accent, left-aligned, monospace heading, outlined
+      badge</code
     >
 
     <h4 class="brutal-label brand-subgroup-title">Recommendation Card (Current)</h4>
@@ -1388,7 +1381,7 @@ import TableOfContents from '../TableOfContents.astro';
         </div>
       </div>
     </div>
-    <code class="brand-code">.icg-rec-card — rounded corners, filled badges, rounded borders</code>
+    <code class="brand-code">.rec-card — rounded corners, filled badges, rounded borders</code>
 
     <h4 class="brutal-label brand-subgroup-title">Recommendation Card</h4>
     <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
@@ -1426,7 +1419,7 @@ import TableOfContents from '../TableOfContents.astro';
       </div>
     </div>
     <code class="brand-code"
-      >.icg-rec-card (brutalist) — no radius, left-border accent, outlined badges, monospace title</code
+      >.brutal-rec-card — no radius, left-border accent, outlined badges, monospace title</code
     >
 
     <h4 class="brutal-label brand-subgroup-title">Attention Card (Current)</h4>
@@ -1462,7 +1455,7 @@ import TableOfContents from '../TableOfContents.astro';
       </div>
     </div>
     <code class="brand-code"
-      >.doc-attention-card — rounded corners, tinted bg by relevance, colored divider</code
+      >.attention-card — rounded corners, tinted bg by relevance, colored divider</code
     >
 
     <h4 class="brutal-label brand-subgroup-title">Attention Card</h4>
@@ -1497,8 +1490,7 @@ import TableOfContents from '../TableOfContents.astro';
       </div>
     </div>
     <code class="brand-code"
-      >.doc-attention-card (brutalist) — no radius, no bg fill, hard left-border, monospace title,
-      no divider</code
+      >.brutal-attention-card — no radius, no bg fill, hard left-border, monospace title, no divider</code
     >
 
     <!-- 8b-2. ICG Tool Components -->
@@ -1596,7 +1588,7 @@ import TableOfContents from '../TableOfContents.astro';
           <div class="brutal-filter-chip" data-demo-chip-brutal>Early Stage</div>
         </div>
         <code class="brand-code"
-          >.filter-chip (brutalist) — no radius, outlined, monospace, primary-fill active state</code
+          >.brutal-filter-chip — no radius, outlined, monospace, primary-fill active state</code
         >
       </div>
     </div>
@@ -1913,8 +1905,7 @@ import TableOfContents from '../TableOfContents.astro';
     <div class="brand-component-row">
       <div class="brand-component-item">
         <button class="brutal-btn brutal-btn--primary" id="demo-modal-open">Open Demo Modal</button>
-        <code class="brand-code"
-          >&lt;dialog&gt; with .project-modal — clip-path corners, backdrop blur</code
+        <code class="brand-code">&lt;dialog&gt; with .modal — clip-path corners, backdrop blur</code
         >
       </div>
     </div>
@@ -2079,7 +2070,7 @@ import TableOfContents from '../TableOfContents.astro';
           </div>
         </div>
         <code class="brand-code"
-          >.filter-drawer (brutalist) — hard primary left-border, monospace labels, outlined chips,
+          >.brutal-filter-drawer — hard primary left-border, monospace labels, outlined chips,
           primary-fill active state</code
         >
       </div>
@@ -2222,8 +2213,8 @@ import TableOfContents from '../TableOfContents.astro';
           </table>
         </div>
         <code class="brand-code"
-          >.tool-bench-table (brutalist) — monospace values, hard primary left-border on active,
-          uppercase labels with no radius</code
+          >.brutal-bench-table — monospace values, hard primary left-border on active, uppercase
+          labels with no radius</code
         >
       </div>
     </div>

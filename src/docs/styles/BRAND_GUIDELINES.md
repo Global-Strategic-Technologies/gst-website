@@ -254,7 +254,7 @@ All text and UI element pairings must meet WCAG 2.1 AA contrast minimums:
 | Large text (≥ 18px or ≥ 14px bold)                      | 3:1                    |
 | Non-text UI elements (borders, icons, focus indicators) | 3:1                    |
 
-**`--text-muted` usage**: Opacity set to `0.6` for both themes, yielding ~3.8:1 on white and passing AA for large text. Restrict `--text-muted` to large text (≥ 18px), placeholder text, and decorative/disabled elements. For normal-sized body text, use `--text-muted` or higher.
+**`--text-muted` usage**: Opacity is `0.65` in light theme and `0.6` in dark, yielding ~5.4:1 on `#ffffff` and ~4.7:1 on `#0a0a0a`. Both clear the 4.5:1 AA floor for normal text, but only just — so restrict `--text-muted` to large text (≥ 18px), labels, captions, placeholder text, and decorative/disabled elements. For sustained normal-sized body text, use `--text-secondary` or higher. The live per-theme ratios are rendered on `/brand` under Accessibility → Color Contrast Ratios.
 
 ---
 
