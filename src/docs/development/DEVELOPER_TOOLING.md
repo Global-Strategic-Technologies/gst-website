@@ -14,7 +14,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Run unit and integration tests (once)  | `npm run test:run`                                                           |
 | Run unit and integration tests (watch) | `npm run test`                                                               |
 | Run tests with coverage                | `npm run test:coverage`                                                      |
-| Check documentation links & anchors    | `npm run test:docs`                                                          |
+| Run the docs guards (link/anchor integrity + variables parity) | `npm run test:docs`                                  |
 | Arm the Claude review gates (once/machine) | `npm run setup:claude-hooks` (see § Claude Code review gates)            |
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
 | Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
@@ -51,7 +51,7 @@ If all four pass locally, CI will almost certainly pass too — **for website-on
 > ```bash
 > npm -w @gst/mcp-server run typecheck   # tsc --noEmit over mcp-server (src + tests)
 > npm run test:mcp                       # Vitest, mcp-server workspace
-> npm run test:docs                      # doc link & anchor integrity (required check)
+> npm run test:docs                      # docs guards: link/anchor integrity + VARIABLES_REFERENCE parity (required check)
 > ```
 >
 > Discovered the hard way in BL-090: a two-argument call to a one-argument constructor sat green through `astro check`, `lint`, `test:run`, `test:mcp` (1917 passing) and `test:docs`, and would have failed CI.
@@ -272,7 +272,7 @@ concurrency:
 | [.github/workflows/rollback-mcp.yml](../../../.github/workflows/rollback-mcp.yml) | Manual `workflow_dispatch` rollback of the MCP Worker to a prior deployment ID; production rollbacks gated by the `mcp-production-rollback` environment (BL-037 Phase C) |
 | [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
 | [.github/workflows/prettier-drift-check.yml](../../../.github/workflows/prettier-drift-check.yml) | Weekly cron + manual `workflow_dispatch` — runs `prettier --check .` repo-wide; opens a `tech-debt` Issue if drift accumulates (counter-pressure for the diff-scoped PR check; see § Prettier idempotency + drift) |
-| [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` (the BL-089 doc link & anchor guard) on every PR + push to `master`. Exists as its own workflow because `test.yml`'s `changes` gate skips docs-only diffs — the exact case the guard must fire on. Not a required check by default; add "Verify doc links" to branch protection to make it blocking |
+| [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` — the BL-089 doc link & anchor guard plus the `VARIABLES_REFERENCE.md` ↔ `variables.css` parity guard (`tests/integration/docs-variables-sync.test.ts`) — on every PR + push to `master`. Exists as its own workflow because `test.yml`'s `changes` gate skips docs-only diffs — the exact case the guards must fire on. Its "Verify doc links" job **is a required branch-protection check** (added 2026-07-19; see CLAUDE.md § PR Requirements) |
 | [.github/workflows/latency-probe.yml](../../../.github/workflows/latency-probe.yml) | BL-033 synthetic latency probe — cron (`30 */6 * * *`, 30 min after the Worker's radar-refresh cron) + manual `workflow_dispatch`; runs `mcp-server/scripts/probe-latency.mjs` against production, publishes a p50/p95 job summary + 90-day JSON artifact. Needs the `MCP_PROBE_KEY` secret. Deliberately NOT a required check — evidence collection, not a gate. See [LATENCY_PROBE.md](../../../mcp-server/src/docs/operations/LATENCY_PROBE.md) |
 | [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
 | [.claude/hooks/hooks.config.json](../../../.claude/hooks/hooks.config.json)       | Tracked registration source for the Claude review-gate hooks (installed per-machine via `npm run setup:claude-hooks`; see § Claude Code review gates) |
@@ -787,4 +787,4 @@ Two manual steps are required to complete Phase 2:
 
 ---
 
-**Last Updated**: April 11, 2026 (Phase 2 of PLATFORM_HARDENING_V1)
+**Last Updated**: July 28, 2026 (`test:docs` now also runs the `VARIABLES_REFERENCE.md` ↔ `variables.css` parity guard; corrected the stale "not a required check" note on docs-integrity.yml)
