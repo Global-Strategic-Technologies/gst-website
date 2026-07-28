@@ -220,7 +220,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 - **2 design-partner PE firms** in active production use within 90 days of GA launch — not just signed paper, but logs showing ≥100 tool invocations/month per client
 - **Zero security incidents** over the first 6 months: no unauthorized access, no data exfiltration, no successful prompt-injection exploit found in pen test or in production
 - **At least 1 pilot client converts to a paid tier** within 6 months, validating willingness-to-pay
-- **Listed in ≥2 MCP directories** (Anthropic's registry + MCPMarket.com or Cursor catalog) with >50 install attempts in the first 90 days
+- **Listed in ≥2 MCP directories** (Anthropic's registry + MCPMarket.com or Cursor catalog) with >50 install attempts in the first 90 days (listing execution tracked under BL-093)
 - Audit-log integrity check passes every quarterly review for the first year (hash chain or R2 object-lock attestation)
 - Pilot SLA met every month: 99.5% uptime, p95 <500ms non-radar, support response <1 business day
 
@@ -296,11 +296,11 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 - [~] Status page published at `https://status.mcp.globalstrategic.tech` showing uptime, p50/p95 latency, and rate-limit-availability per tool — 🟡 **mostly shipped**: `status.mcp.globalstrategic.tech` subdomain live + per-tool **server-side p50/p95** and audit-log health added ([STATUS_PAGE.md](../../../mcp-server/src/docs/operations/STATUS_PAGE.md)), rendered as **plain observability (no SLA badges)** per the operator directive. **Per-tool rate-limit-availability panel deferred** (pairs with the per-client rate-limit-tiers slice). Latency is surfaced, NOT ratified as an SLA
 - [ ] Pilot SLA defined and contractually committed: 99.5% monthly uptime, p95 latency <500ms for non-radar tools, support response <1 business day — **deferred (operator directive)**: don't ratify SLA numbers no client has contracted
 - [ ] At least 2 design-partner PE firms onboarded to the pilot
-- [ ] Listed in **MCP directories** — submission to MCPMarket.com, Anthropic's official MCP registry, and Cursor's MCP catalog with screenshots and a 60s demo video
+- [ ] Listed in **MCP directories** — submission to MCPMarket.com, Anthropic's official MCP registry, and Cursor's MCP catalog with screenshots and a 60s demo video — **moved to [BL-093](#bl-093-mcp-server--commercialization-phase-4) 2026-07-27** (candidate sub-block with hard gate + promotion triggers; the pen-test AC below remains the hard gate)
 
 **Verification & docs**
 
-- [ ] Public-facing developer docs at `https://docs.mcp.globalstrategic.tech` — tool reference (auto-generated from Zod schemas), authentication guide, rate-limit policy, audit-log schema, status page link
+- [ ] Public-facing developer docs at `https://docs.mcp.globalstrategic.tech` — tool reference (auto-generated from Zod schemas), authentication guide, rate-limit policy, audit-log schema, status page link — **moved to [BL-093](#bl-093-mcp-server--commercialization-phase-4) 2026-07-27** (its § Public developer documentation block carries the full scope, now sourced from the CONTRACT/USAGE corpus)
 - [ ] Penetration test by an independent firm focused on the OAuth flow, prompt-injection surface, and audit-log integrity — findings remediated before public listing
 - [ ] Load test demonstrates the system handles the contracted SLA at 10× expected pilot volume without degradation
 - [ ] Final compliance review with each pilot client's information-security team — signed-off before they switch from sandbox to production tokens
@@ -363,7 +363,7 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 5. Sandbox client successfully exercises every tool from a non-GST IP, with the corresponding audit entries visible in the per-client export
 6. Two pilot agreements signed (legal + technical) — engineering does not "soft launch" without paper
 7. Status page live, on-call rotation defined, incident response runbook in place
-8. Public listing on at least one MCP directory with a working "try it" demo
+8. Public listing on at least one MCP directory with a working "try it" demo — **superseded 2026-07-27: listing moved to [BL-093](#bl-093-mcp-server--commercialization-phase-4) as a candidate gated on the pen test + a promotion trigger (e.g. first paying client live), so it no longer gates pilot launch**
 
 ---
 
@@ -418,6 +418,73 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 - **Slugifier is hand-rolled, not a dependency**: investigation confirmed no slug/markdown library exists in either `package.json`; adding one for ~10 lines would break the repo's established no-new-dep norm. Validated against golden cases (`&` → `--`, emoji stripped, `(Q12)` → `q12`, etc.).
 - **Not a required check by default**: `docs-integrity.yml` runs on every PR but is advisory until "Verify doc links" is added to branch-protection required checks (operator action).
 - **Deferred follow-up** (not this item): a "Last Updated" freshness check flagging docs whose stated date predates their last `git` commit.
+
+---
+
+### BL-093: MCP Server — Commercialization (Phase 4)
+
+**Source**: operator directive 2026-07-27 — proactive positioning: build the commercial front door (public developer docs, website marketing, invoice-first payments, request-access + provisioning automation) ahead of demand; absorbs BL-033's two go-to-market ACs (MCP-directory listing → candidate sub-block here; public developer docs → first AC block). SLA ratification and perf promises stay deferred in [BL-033](#bl-033-mcp-server--external-pilot-phase-3) per "don't ratify SLA numbers no client has contracted" — this item is onboarding/capability infrastructure, which proceeds as roadmap work | **Effort**: ~2–4 weeks engineering across independently-shippable slices + content/legal lead time | **Status**: Open | **Depends on**: BL-033 Slices 1–5 (shipped 2026-07-23→26 — OAuth 2.1 embedded AS [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md), hash-chained audit log [ADR-0009](../adr/0009-compliance-audit-log-hash-chain.md), per-client rate-limit tiers [ADR-0010](../adr/0010-per-client-rate-limit-tiers.md), status page, [`PILOT_ONBOARDING.md`](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md))
+
+**As a** prospective MCP client (PE deal team, corp-dev, procurement engineer) who discovers GST's MCP server, **I want** public developer docs, a website front door with a request-access path, and an invoice-backed paid tier **so that** I can evaluate, request access, get provisioned, and pay without GST inventing the commercial motion per-client.
+
+#### Acceptance Criteria
+
+**Public developer documentation** (absorbed from BL-033 § Verification & docs, 2026-07-27)
+
+- [ ] Public developer docs published at `https://docs.mcp.globalstrategic.tech` — tool reference, authentication guide (M2M `client_credentials` + how to request access), rate-limit policy, audit-log guarantees, status-page link (the original BL-033 scope, carried verbatim)
+- [ ] Tool reference derives from the existing per-tool-family `CONTRACT.md`/`USAGE.md` corpus (`mcp-server/src/docs/tools/{icg,portfolio,regulatory-map,tech-debt,diligence,radar,techpar}/`), already drift-guarded by `mcp-server/tests/integration/contract-parity.test.ts` — a publication pipeline over that corpus, NOT a parallel hand-written or separately-generated reference (avoids a third description of every tool)
+- [ ] Consumer quickstart derived from [`REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) — its audience header currently says "GST team member (consumer)"; split or re-audience for external clients without breaking the internal doc
+- [ ] Rate-limit page carries the "tunable, non-contractual capability ceilings — NOT ratified SLA quotas" framing from [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) / ADR-0010 — no published doc may imply a ratified SLA
+- [ ] Published set reviewed against [`AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) / [`DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) so operator-only material (admin endpoints, key rotation, Upstash) stays private
+
+**Website marketing surface**
+
+- [ ] Dedicated page under `/hub` (route naming consistent with `/hub/radar`, `/hub/tools/*`): what the server is, the BL-033 use cases, tier table, links to the public docs + status page, request-access CTA
+- [ ] MCP offer section on `src/pages/services.astro` (zero MCP marketing exists site-wide today) + cross-link from `src/pages/hub/index.astro`
+- [ ] Page meets the existing hub-page bar: design-system tokens only, works in light/dark themes and all 6 palettes, desktop-first responsive; E2E coverage per [`TEST_STRATEGY.md`](../testing/TEST_STRATEGY.md); if any existing copy strings change, the Directive-11 `grep tests/` check applies
+- [ ] Copy includes the human-in-the-loop caveat for radar content (per BL-033 § Risks & mitigations: radar output should not be auto-actioned by client agents)
+
+**Request-access front door + provisioning automation**
+
+- [ ] Request-access form/CTA (name, firm, use case, email) delivering to the operator — explicitly NOT self-serve credential issuance and NOT a user directory (preserves ADR-0008's pre-registration / no-DCR stance)
+- [ ] CSP compliance: the site pins `form-action 'self'` and an explicit `connect-src` — an external form endpoint or submission API must be added to the allowlist in BOTH `vercel.json` and `src/middleware.ts`, per [`SECURITY_HEADERS.md`](../security/SECURITY_HEADERS.md)
+- [ ] BL-004 coordination: the form either builds on BL-004's email-capture service selection (form UX, WCAG 2.1 AA, error states, zero client-side PII) or records the deliberate divergence here; either way `src/pages/privacy.astro` gains the data-collection disclosure (BL-004's privacy AC applies to this form too)
+- [ ] One-command operator provisioning script (`mcp-server/scripts/`) wrapping the existing admin API (`POST /admin/oauth/m2m-clients` — `mcp-server/src/oauth/m2m-clients.ts`, `mcp-server/src/admin/oauth-clients.ts`): creates the client, assigns scopes + tier, and emits a ready-to-send onboarding email (credential hand-off note, REMOTE_CLIENT_SETUP link, the guarantees list from PILOT_ONBOARDING § 3)
+- [ ] Script defaults mirror the PILOT_ONBOARDING guardrails: minimum scopes, `tool:radar:*` excluded unless explicitly flagged, tier required, admin key via env var never inline (Directive 15)
+- [ ] [`PILOT_ONBOARDING.md`](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md) updated: manual curl replaced by the script; request-access intake feeds its step 0
+
+**Payments & invoicing (invoice-first, operator-driven)**
+
+- [ ] Stripe Invoicing/Billing configured for the `paid`/`enterprise` tiers — **no payment code on the website or the Worker** (none exists today; this stanza keeps it that way)
+- [ ] Operator payments runbook (new operations doc or PILOT_ONBOARDING extension): contract signed → invoice sent → payment confirmed → tier assigned (the tier flip is the existing admin-API step, now via the provisioning script above)
+- [ ] Every `paid`/`enterprise` tier assignment traceable to a paid invoice (invoice ID recorded alongside the client record)
+- [ ] Pricing presentation decided and published on the marketing page + docs site; ceilings remain non-contractual per ADR-0010
+
+**MCP directory listing** (candidate sub-block; absorbed from BL-033 § Pilot operations, 2026-07-27) — **Status**: Candidate · do NOT submit before the hard gate + a promotion trigger
+
+Benefit analysis, condensed from BL-033 § Business value (whose original bullets remain there — the restatement is deliberate so this candidate stays self-contained): inbound discoverability from agent-curious PE/VC funds, category positioning ("one of the first M&A advisory firms with a public MCP server"), and a direct sales channel that bypasses the traditional advisory motion. Honest counterweight: PE-firm buyers don't shop developer registries — the near-term sales motion is relationship-driven; a listing amplifies an offer, it doesn't originate one.
+
+- [ ] Submission to MCPMarket.com, Anthropic's official MCP registry, and Cursor's MCP catalog with screenshots and a 60s demo video (the original BL-033 AC, verbatim)
+- [ ] `/.well-known/mcp` + `server.json` registry metadata published on the Worker (neither exists today; only the two OAuth well-knowns are served)
+
+**Hard gate** (regardless of triggers): BL-033's independent pen test passed with findings remediated — that AC stays in [BL-033](#bl-033-mcp-server--external-pilot-phase-3) and already reads "remediated before public listing".
+
+**Promotion triggers** (any one, after the hard gate):
+
+- Request-access flow (above) live, so inbound install attempts can be absorbed
+- First paying client live — validates the offer before amplifying it
+- Explicit operator go-decision after the marketing surface ships
+
+#### Technical Context
+
+- **Existing assets to build on**: the M2M admin API + [`AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) runbook; [`PILOT_ONBOARDING.md`](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md); [`REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) as quickstart raw material; the CONTRACT/USAGE corpus + contract-parity guard; the tier system (ADR-0010, [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md)); per-`keyOwner` Analytics Engine telemetry + the status page ([`STATUS_PAGE.md`](../../../mcp-server/src/docs/operations/STATUS_PAGE.md)) giving per-client usage visibility at invoice time; the hash-chained audit log (ADR-0009, [`AUDIT_LOG.md`](../../../mcp-server/src/docs/operations/AUDIT_LOG.md)) as the compliance sales asset
+- **Sequencing**: docs site and marketing page parallelize; request-access ships with/before the marketing page (a front door needs a doorbell); payments runbook before the first paid conversion; registry listing stays candidate
+- **Relationship to BL-033**: Phase 3 = pilot capability + trust infrastructure (retains pen test, load test, sandbox env, design-partner recruitment, regional latency, SLA — deferred, prompt-injection hardening — deferred). Phase 4 = the commercial front door
+- **Out of scope** (each with where the decision lives + the revisit trigger):
+  - **Self-serve signup / user directory / dynamic client registration** — [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md) records the stance and its revisit triggers; identity remains delegation over pre-registered clients
+  - **Usage-metered billing** — tiers are capability ceilings ([ADR-0010](../adr/0010-per-client-rate-limit-tiers.md)). Trigger: a client asks for usage-based pricing, or invoice disputes require per-call metering (the per-`keyOwner` telemetry is the seam)
+  - **SLA ratification** — stays deferred under BL-033 (operator directive); nothing in this stanza may ratify one by implication
+  - **Public checkout / webhook-driven tier automation** — trigger: request-access volume makes operator-driven invoicing the bottleneck
 
 ---
 
