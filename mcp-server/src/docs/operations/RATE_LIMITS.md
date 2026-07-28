@@ -211,11 +211,11 @@ In practice usage is far below the per-key caps (analytical sessions, not bot lo
 The breaker auto-closes after 6 hours via TTL. Because nothing repopulates the radar cache while it is open (BL-091 — every read surface is cache-only, and the cron skips), **manual reset is the only way to recover before the TTL expires** if Inoreader comes back early. Check `/status` (or `/health`'s `circuitOpen`) to confirm the breaker is what's holding radar on stale data:
 
 ```bash
-# Connect to Upstash via the CLI or REST API and delete the key. Path 2:
-# the circuit-breaker flag lives in the MCP DB (mcp:* namespace), so use
-# the MCP-DB credentials, NOT the Inoreader-DB Read-Only token.
-redis-cli -u $UPSTASH_MCP_REST_URL DEL mcp:radar:circuit-open
-# Or via @upstash/redis console (MCP DB)
+# Delete the key over the Upstash REST API. The circuit-breaker flag lives
+# in the sole MCP DB (`gst-mcp`, mcp:* namespace) — use the
+# UPSTASH_MCP_REST_* credentials (set as env vars; never inline the token).
+curl -H "Authorization: Bearer $UPSTASH_MCP_REST_TOKEN" "$UPSTASH_MCP_REST_URL/del/mcp:radar:circuit-open"
+# Or via the Upstash console: gst-mcp DB -> CLI tab -> DEL mcp:radar:circuit-open
 ```
 
 **Don't manually reset reflexively** — if Inoreader is still degraded, you'll just trigger another circuit-open seconds later, burning more budget. Wait for Inoreader's status page to show "operational" first.
@@ -240,4 +240,4 @@ The general tier still applies to radar calls — they count toward the general 
 
 ---
 
-_Last updated: 2026-05-31 (BL-038 — radar tier shipped)_
+_Last updated: 2026-07-27 (stale gst-radar-tokens references retired; circuit-breaker reset command corrected to the REST API)_
