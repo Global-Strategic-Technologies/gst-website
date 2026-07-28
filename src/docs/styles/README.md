@@ -21,7 +21,7 @@ CSS conventions, design tokens, brand guidelines, and typography reference for t
 - All colors must use CSS variables (never hardcode)
 - All spacing uses the `--spacing-*` scale
 - Desktop-first responsive design with `max-width` breakpoints
-- Theme switching via `light-dark()` color values in `variables.css`; the `html.dark-theme` class (not `body`) only flips `color-scheme`
+- Theme switching via `light-dark()` color values in `variables.css`; the `html.dark-theme` class (not `body`) primarily flips `color-scheme` (plus a few non-`<color>` variable overrides that can't use `light-dark()`)
 - Palette system: 6 alternatives in `src/styles/palettes.css`
 - In-repo control examples: `src/pages/brand.astro` + `src/components/brand/` (see STYLES_GUIDE § In-repo Control Examples)
 

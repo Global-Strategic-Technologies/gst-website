@@ -47,7 +47,7 @@ asset path, or title formula) inside copy work — link the doc instead.
 - **H1**: `[Action/State] + [Business Outcome]` — "Strategic Advisory & Execution", "De-Risking High-Stakes Technology Investments".
 - **H2**: `[Specific Capability] + [Target Audience Context]` — "Technical diligence and value creation execution for private equity".
 - **Body**: `[Problem Context] → [Approach] → [Outcome]` — "Portfolio companies inherit complex technical debt that constrains growth. GST conducts forensic assessments of architecture, security, and scalability, then builds executable roadmaps that deliver measurable EBITDA improvement within 12–18 months."
-- **CTAs**: direct action ("Schedule a Consultation") or the site's function-style invocation convention — `BOOK_CALENDAR_SLOT()`, `REQUEST_WHITEPAPER()`. CTAs render through `src/components/CTASection.astro`, whose default button text is the function-style form — reuse that component rather than hand-rolling.
+- **CTAs**: direct action ("Schedule a Consultation") or the site's function-style invocation convention — `BOOK_CALENDAR_SLOT()` is the established form (`REQUEST_WHITEPAPER()` is illustrative of the shape, not an existing CTA). CTAs render through `src/components/CTASection.astro`, whose default button text is the function-style form — reuse that component rather than hand-rolling.
 
 ## Step 4 — Structure by content type (field lists)
 
