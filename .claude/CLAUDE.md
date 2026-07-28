@@ -200,7 +200,7 @@ npm run dev                    # Dev server (http://localhost:4321)
 npm run build                  # Production build
 npm run test:run               # Website unit + integration (once)
 npm run test:mcp               # MCP server suite (delegates to the workspace)
-npm run test:docs              # Docs link & anchor integrity guard (required CI check)
+npm run test:docs              # Docs guards: link/anchor integrity + VARIABLES_REFERENCE↔variables.css parity (required CI check)
 npm run test:e2e               # Playwright E2E (only when told — see Directive 5)
 npm run lint / lint:css        # ESLint / stylelint
 npm run setup:claude-hooks     # One-time per machine: arm the review-gate hooks
