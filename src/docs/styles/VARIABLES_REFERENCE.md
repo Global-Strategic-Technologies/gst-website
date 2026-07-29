@@ -174,6 +174,12 @@ Neutral black at fixed alpha, for modal backdrops, drawer shadows and inset dept
 | `--spacing-2_5xl` | `2.5rem`  | 40px                  |
 | `--spacing-3xl`   | `3rem`    | 48px                  |
 
+## Touch Targets
+
+| Variable             | Value  | Usage                                                                                                                                                         |
+| -------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--touch-target-min` | `44px` | WCAG 2.5.5 (AAA) minimum for interactive controls. A floor, not a fixed size — components may sit above it; page-local overrides must never resolve below it. |
+
 ## Gap Variables
 
 | Variable           | Value     | Usage                    |
