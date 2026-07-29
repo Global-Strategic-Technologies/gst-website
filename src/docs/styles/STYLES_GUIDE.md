@@ -429,6 +429,22 @@ Additional breakpoints used sparingly:
 - `@media (min-width: 480px) and (max-width: 767px)` — tablet-only range
 - `@media print` — print stylesheet
 
+### Touch Targets
+
+Interactive controls clear **44×44px** — WCAG 2.5.5, Level AAA. Use the `--touch-target-min` token, never a raw `44px`:
+
+```css
+.my-control {
+  min-height: var(--touch-target-min);
+}
+```
+
+It is a **floor, not a fixed size**. Components may sit above it where the design calls for it — the ICG wizard nav uses 48px, the diligence-machine document action uses 52px — and those stay as they are. What must never happen is a page-local rule resolving *below* it: `.brutal-choice-btn--unsure` (36px) and a techpar mobile action bar (40px) both did exactly that, silently out-specifying the base rule. [touch-target-floor.test.ts](../../../tests/integration/touch-target-floor.test.ts) now fails on any `min-height` under the token for a `brutal-btn` / `brutal-choice-btn` selector, including inside Astro `<style>` blocks.
+
+Beware `display` overrides on a button that inherits the floor: swapping `inline-flex` for `inline-block` drops `align-items: center`, leaving the label top-aligned above dead space.
+
+Canonical statement and the documented exception live in [BRAND_GUIDELINES.md § Accessibility](./BRAND_GUIDELINES.md).
+
 ### Z-Index Scale
 
 Use the canonical `--z-*` tokens from [variables.css](../../styles/variables.css) — **never raw numeric z-index values** (the token block's own comment mandates this). Tool-internal layers (map annotations, chart overlays) may use direct values for contextual reasons; prefer tokens otherwise.

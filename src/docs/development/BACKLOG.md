@@ -127,6 +127,48 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ## CSS and Design System
 
+### BL-097: `/brand` responsive-demo iframes all render the same group
+
+**Source**: found 2026-07-29 while measuring iframe clipping for the touch-target floor change | **Effort**: Small-Medium — the fix is mechanical, but it moves a URL that security config matches on | **Status**: Open
+
+**As a** developer using `/brand` as the design-system control, **I want** the Responsive Behavior section to show the component group each frame is labelled with **so that** the tabs, form and tool-shell demos actually demonstrate their own responsive behaviour.
+
+#### Acceptance Criteria
+
+- [ ] Each of the 12 frames renders the group its label claims (`cards`, `tabs`, `form`, `shell`), at all three widths
+- [ ] The E2E is strengthened past "the frame is not empty" to assert the frame's content matches its group — the current check passes with all four rendering `cards`
+- [ ] `src/middleware.ts` (`SAME_ORIGIN_FRAMEABLE`) and `vercel.json`'s framing-exception rule are updated in the same change if the route shape moves, and `tests/unit/security-headers.test.ts` still passes
+
+#### Technical Context
+
+- **Root cause**: `responsive-frame.astro:12` reads `Astro.url.searchParams.get('group')`. The site is static output, so the page is prerendered once and query params are never available — every `?group=` request falls through to the `'cards'` default. Verified by fetching all four groups from the dev server: byte-identical responses (133203 bytes each), all rendering `.brutal-option-card`.
+- **Live since the section was built.** `brand-page.test.ts` asserts each frame _loads content rather than being blocked_ (the CSP `frame-ancestors` fix), which passes while every frame shows the wrong content.
+- **Likely fix**: convert to `src/pages/brand/responsive-frame/[group].astro` with `getStaticPaths()` over the four groups, and point `brand.astro`'s iframe `src`s at the path form. That moves the URL, hence the middleware/`vercel.json` criterion above.
+- **Blocks a deferred measurement**: the 33→44px button growth in the touch-target change could in principle overflow the fixed-height frames (600×200 / 384×350 / 240×400, `body { overflow: hidden }`), but only the `form` group contains `.brutal-btn` and that group never renders. Measured content for the group that _does_ render is 113/261/297px against 200/350/400px, so nothing clips today. Re-measure the `form` group when this is fixed.
+
+---
+
+### BL-096: Site-wide touch-target audit (AAA) + axe route coverage
+
+**Source**: split out of the `--touch-target-min` change 2026-07-29, which fixed the button classes and deliberately stopped there | **Effort**: Medium — mostly design calls on space-constrained controls | **Status**: Open — needs a ruling before any code moves
+
+**As a** mobile user, **I want** every interactive control to be comfortably tappable **so that** I am not missing small targets on the tool pages.
+
+#### Acceptance Criteria
+
+- [ ] **Ruling first**: is WCAG 2.5.5 (AAA, 44×44) a site-wide goal or a guarantee scoped to the button component classes? Everything below depends on the answer, which is why nothing was swept pre-emptively
+- [ ] Audit and resolve the known sub-44 interactive controls: `.brutal-quick-zoom` (32px, pinned by `regulatory-map-mobile.test.ts:97-106`), `.filter-button` in `PortfolioHeader.astro` (`height: 38px` beside a `min-width` that now uses the token), TOC links, filter chips, palette-panel affordances, nav links
+- [ ] Extend the axe route list beyond its current 8 — `src/pages` holds 25 `.astro` files, ~22 of them real routes once `brand/responsive-frame` and the two error pages are set aside
+- [ ] If the ruling is site-wide, `.a11y-badge--fail`-style documented exceptions in BRAND_GUIDELINES § Accessibility are updated or removed accordingly
+
+#### Technical Context
+
+- The floor itself is done: `--touch-target-min` exists, `.brutal-btn` / `.brutal-choice-btn` / `.cta-button` clear it, and `tests/integration/touch-target-floor.test.ts` fails any rule that resolves a button below it — including inside Astro scoped `<style>` blocks, where one of the two real regressions was hiding.
+- 2.5.5 is **Level AAA**. The AA criterion (2.2 SC 2.5.8) is 24×24, which every control above already passes — so this is an enhancement, not a compliance gap. Worth stating plainly before anyone treats the 32px zoom control as a defect.
+- The `/brand` axe entry added with that change uses `checkA11y`'s `exclude` option rather than a `KNOWN_SERIOUS` baseline, because the page deliberately exhibits low-contrast hover specimens. Any route added here needs the same judgement: baseline only what is genuinely debt that should decrease.
+
+---
+
 ### BL-095: Brand-page specimens — replace hand-rolled replicas with real components
 
 **Source**: operator review of `/brand` 2026-07-28 — reported the logo lockup not matching the site header, the delta too small on both the logo and theme-toggle specimens, and broken spacing in several component demos. Root-caused to two mechanisms; the code-split-CSS half was fixed immediately (see Technical Context), this stanza covers the durable half | **Effort**: Medium — ~900 lines of `BrandUILibrary.astro`, convertible incrementally | **Status**: Open
