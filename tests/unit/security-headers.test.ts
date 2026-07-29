@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { SECURITY_HEADERS } from '@/middleware';
+import { SECURITY_HEADERS, onRequest } from '@/middleware';
 
 /**
  * Parses vercel.json and extracts the header key-value pairs
@@ -142,12 +142,47 @@ describe('Security Headers', () => {
       expect(getVercelHeaders()['X-Frame-Options']).toBe('DENY');
     });
 
-    it('middleware scopes the exception to exactly that one path', async () => {
-      const src = readFileSync(join(process.cwd(), 'src/middleware.ts'), 'utf-8');
-      const listed = src.match(/SAME_ORIGIN_FRAMEABLE = new Set\(\[([^\]]*)\]\)/);
-      expect(listed, 'middleware must declare SAME_ORIGIN_FRAMEABLE').not.toBeNull();
-      const paths = [...listed![1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
-      expect(paths).toEqual(['/brand/responsive-frame']);
+    /**
+     * Ordering is load-bearing: Vercel applies every matching header rule in
+     * array order, last write winning per key. Move this rule above the
+     * catch-all and production silently reverts to DENY while dev still works.
+     */
+    it('the frame rule is ordered AFTER the catch-all (last match wins)', () => {
+      const raw = readFileSync(join(process.cwd(), 'vercel.json'), 'utf-8');
+      const config = JSON.parse(raw);
+      const sources = config.headers.map((h: { source: string }) => h.source);
+      expect(sources.indexOf(FRAME_ROUTE)).toBeGreaterThan(sources.indexOf('/(.*)'));
+    });
+
+    // Behavior, not source text: invoking the real middleware is what proves the
+    // exception works. A shape-only assertion stays green if the logic is deleted.
+    const runMiddleware = async (pathname: string) => {
+      const url = new URL(`http://localhost:4321${pathname}`);
+      const res = await onRequest(
+        { url, request: new Request(url) } as never,
+        () => new Response('ok') as never
+      );
+      return res as Response;
+    };
+
+    it('middleware relaxes framing for the frame route, both slash forms', async () => {
+      for (const path of ['/brand/responsive-frame', '/brand/responsive-frame/']) {
+        const res = await runMiddleware(path);
+        expect(res.headers.get('X-Frame-Options'), path).toBe('SAMEORIGIN');
+        expect(res.headers.get('Content-Security-Policy'), path).toContain(
+          "frame-ancestors 'self'"
+        );
+      }
+    });
+
+    it('middleware keeps every other path strict', async () => {
+      for (const path of ['/', '/brand/', '/brand/responsive-frame/sub', '/hub/radar/']) {
+        const res = await runMiddleware(path);
+        expect(res.headers.get('X-Frame-Options'), path).toBe('DENY');
+        expect(res.headers.get('Content-Security-Policy'), path).toContain(
+          "frame-ancestors 'none'"
+        );
+      }
     });
   });
 });

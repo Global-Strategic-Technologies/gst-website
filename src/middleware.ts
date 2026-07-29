@@ -86,6 +86,11 @@ export const SECURITY_HEADERS: Record<string, string> = {
  * created by our own pages. Every other route keeps the strict default.
  *
  * Paths are stored without a trailing slash; the lookup normalizes.
+ *
+ * ADDING A PATH HERE IS NOT ENOUGH. Prerendered routes are served by the CDN,
+ * which never runs this middleware — you must add a matching rule to
+ * `vercel.json` (after the catch-all; last match wins) or it will work in dev
+ * and silently fail in production. See SECURITY_HEADERS.md § Route Exceptions.
  */
 const SAME_ORIGIN_FRAMEABLE = new Set(['/brand/responsive-frame']);
 

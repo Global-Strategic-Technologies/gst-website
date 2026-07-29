@@ -6,15 +6,15 @@ One route carries a documented, narrowly-scoped relaxation — see [Route Except
 
 ## Header Inventory
 
-| Header                    | Value                                        | Purpose                                               |
-| ------------------------- | -------------------------------------------- | ----------------------------------------------------- |
-| X-Frame-Options           | DENY                                         | Prevent clickjacking via iframe embedding             |
-| X-Content-Type-Options    | nosniff                                      | Prevent MIME-type sniffing attacks                    |
-| Referrer-Policy           | strict-origin-when-cross-origin              | Limit referrer leakage to external sites              |
-| Permissions-Policy        | camera=(), microphone=(), geolocation=()     | Disable unused browser APIs                           |
-| X-DNS-Prefetch-Control    | on                                           | Allow DNS prefetching for performance                 |
-| Strict-Transport-Security | max-age=63072000; includeSubDomains; preload | Force HTTPS for 2 years, including subdomains         |
-| Content-Security-Policy   | (see below)                                  | Restrict which sources can load scripts, styles, etc. |
+| Header                    | Value                                        | Purpose                                                                               |
+| ------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| X-Frame-Options           | DENY (one route: SAMEORIGIN)                 | Prevent clickjacking via iframe embedding — see [Route Exceptions](#route-exceptions) |
+| X-Content-Type-Options    | nosniff                                      | Prevent MIME-type sniffing attacks                                                    |
+| Referrer-Policy           | strict-origin-when-cross-origin              | Limit referrer leakage to external sites                                              |
+| Permissions-Policy        | camera=(), microphone=(), geolocation=()     | Disable unused browser APIs                                                           |
+| X-DNS-Prefetch-Control    | on                                           | Allow DNS prefetching for performance                                                 |
+| Strict-Transport-Security | max-age=63072000; includeSubDomains; preload | Force HTTPS for 2 years, including subdomains                                         |
+| Content-Security-Policy   | (see below)                                  | Restrict which sources can load scripts, styles, etc.                                 |
 
 ## Content-Security-Policy Breakdown
 

@@ -202,6 +202,42 @@ test.describe('Brand Page', () => {
   });
 
   /**
+   * The Responsive Behavior section embeds /brand/responsive-frame in same-origin
+   * iframes. The site default (`X-Frame-Options: DENY` + `frame-ancestors 'none'`)
+   * forbids framing by every origin INCLUDING this one, so without the documented
+   * route exception every frame is blocked with ERR_BLOCKED_BY_RESPONSE and renders
+   * empty — silently, with no build error. That shipped and went unnoticed.
+   *
+   * The iframes are `loading="lazy"`, so they must be scrolled into view before
+   * they load at all; a check that skips the scroll passes against empty frames.
+   */
+  test.describe('Responsive-demo iframes render', () => {
+    test('every frame loads content rather than being blocked', async ({ page }) => {
+      await page.locator('#responsive-demos').scrollIntoViewIfNeeded();
+      const frames = page.locator('.responsive-demo-frame iframe');
+      const total = await frames.count();
+      expect(total, 'responsive demo iframes present').toBeGreaterThan(0);
+
+      for (let i = 0; i < total; i++) {
+        await frames.nth(i).scrollIntoViewIfNeeded();
+      }
+
+      await expect
+        .poll(
+          async () =>
+            frames.evaluateAll(
+              (els) =>
+                els.filter(
+                  (el) => (el as HTMLIFrameElement).contentDocument?.body?.children.length ?? 0 > 0
+                ).length
+            ),
+          { message: 'iframes rendering content — framing blocked by security headers?' }
+        )
+        .toBe(total);
+    });
+  });
+
+  /**
    * The site-chrome specimens are hand-rolled replicas rather than the real
    * components (Header/ThemeToggle both carry singleton ids, so they cannot be
    * rendered twice on one page). These assert PARITY against the live components
