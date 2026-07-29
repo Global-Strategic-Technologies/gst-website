@@ -1207,6 +1207,27 @@ import '../styles/components/progress.css';
     font-size: var(--text-lg);
   }
 
+  /* ProjectModal.astro styles its metrics differently from the card — smaller,
+     wider tracking, secondary colour. The modal specimen uses these so it does
+     not borrow the card's treatment and misrepresent the dialog. */
+  .brand-modal-metric__label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: light-dark(var(--text-secondary), var(--text-muted));
+    margin: 0 0 var(--spacing-sm);
+  }
+
+  .brand-modal-metric__value {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+  }
+
   .brand-tag {
     font-family: var(--font-family-mono);
     background: var(--accent-dark-bg);

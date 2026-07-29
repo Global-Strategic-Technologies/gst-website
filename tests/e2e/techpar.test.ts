@@ -197,6 +197,12 @@ test.describe('TechPar - Analysis tab', () => {
     await setupToAnalysis(page);
     const activeRow = page.locator('[data-bench-row="series_bc"]');
     await expect(activeRow).toHaveClass(/brutal-bench-table__active/);
+
+    // Assert the rendered effect, not just the class. This test previously passed
+    // while the feature was broken: chart.ts emitted `bench-row--active`, which no
+    // stylesheet defined, and a class-only assertion moves with a rename.
+    await expect(activeRow.locator('td').first()).toHaveCSS('border-left-width', '3px');
+    await expect(activeRow.locator('.brutal-bench-table__label--stage')).toBeVisible();
   });
 });
 

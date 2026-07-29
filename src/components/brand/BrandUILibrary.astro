@@ -599,24 +599,22 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Teaser Card (Gateway)</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <div
-          class="brutal-frosted"
-          style="padding:1.5rem;border:2px solid var(--border-light);border-top:3px solid var(--color-primary);max-width:400px;text-align:center;"
-          data-specimen
-        >
-          <div
-            style="font-size:1.2rem;font-family:var(--font-family-mono);font-weight:700;color:var(--text-primary);margin-bottom:var(--spacing-md);"
-          >
-            Regulatory Map
+        <!-- Same classes and structure as hub/tools/index.astro. No inline styling:
+             the hand-rolled border used a light-only token and read as near-invisible
+             in dark theme, where .brutal-gateway-card uses a light-dark() pair. -->
+        <article class="brutal-gateway-card brutal-frosted" data-specimen>
+          <div class="brutal-gateway-card__header">
+            <h2>Regulatory Map</h2>
           </div>
-          <div
-            style="font-size:var(--text-base);font-family:var(--font-family-mono);color:var(--text-secondary);line-height:1.7;"
-          >
-            120 regulations across privacy, AI, cybersecurity, and compliance
-          </div>
-        </div>
+          <ul class="brutal-gateway-card__features">
+            <li>
+              <DeltaIcon class="bullet-icon" />120 regulations across privacy, AI, cybersecurity,
+              and compliance
+            </li>
+          </ul>
+        </article>
         <code class="brand-code"
-          >.brutal-gateway-card — brutal-frosted, 3px primary top-border, monospace heading,
+          >.brutal-gateway-card + .brutal-frosted — 3px primary top-border, monospace heading,
           centered</code
         >
       </div>
@@ -1834,20 +1832,20 @@ import TableOfContents from '../TableOfContents.astro';
         </div>
         <div class="modal__metrics">
           <div class="brand-metric">
-            <div class="brand-metric__label">ARR</div>
-            <div class="brand-metric__value brand-metric__value--arr">$18M</div>
+            <div class="brand-modal-metric__label">ARR</div>
+            <div class="brand-modal-metric__value">$18M</div>
           </div>
           <div class="brand-metric">
-            <div class="brand-metric__label">Stage</div>
-            <div class="brand-metric__value">Growth</div>
+            <div class="brand-modal-metric__label">Stage</div>
+            <div class="brand-modal-metric__value">Growth</div>
           </div>
           <div class="brand-metric">
-            <div class="brand-metric__label">Year</div>
-            <div class="brand-metric__value">2025</div>
+            <div class="brand-modal-metric__label">Year</div>
+            <div class="brand-modal-metric__value">2025</div>
           </div>
           <div class="brand-metric">
-            <div class="brand-metric__label">Currency</div>
-            <div class="brand-metric__value">USD</div>
+            <div class="brand-modal-metric__label">Currency</div>
+            <div class="brand-modal-metric__value">USD</div>
           </div>
         </div>
         <div class="modal__section">
