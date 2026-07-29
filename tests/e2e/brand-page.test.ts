@@ -302,4 +302,80 @@ test.describe('Brand Page', () => {
       expect(s.color, 'toggle specimen delta color vs real toggle').toBe(p.color);
     });
   });
+
+  /**
+   * Every class on this page must have a CSS rule behind it.
+   *
+   * A specimen whose class has no rule renders as unstyled markup while its
+   * label confidently documents the class — so the page actively teaches the
+   * wrong thing, and nothing fails. An audit found 28 such classes: a "Live"
+   * badge rendering as bare text, inert `.cta-button primary` modifiers whose
+   * label claimed they were real variants, and stale names that had drifted
+   * from the classes production actually uses.
+   *
+   * The same audit surfaced a live TechPar defect from the identical cause
+   * (emitted `bench-label--stage`, styled `.brutal-bench-table__label--stage`),
+   * so this is not a brand-page-only failure mode.
+   *
+   * ALLOWED_UNSTYLED is for classes used purely as JS hooks. Adding to it is a
+   * deliberate act: it says "this class is a selector for script, never a
+   * styling hook". If a specimen looks wrong, the fix is the markup or the CSS,
+   * never this list.
+   *
+   * Known precision limit: a class counts as "defined" if it appears anywhere in
+   * any selector, including another component's scoped rule or a descendant
+   * qualifier (`.a .b` marks both `a` and `b`). So this catches a class with no
+   * rule at all — the failure mode that shipped 28 times — but not one whose
+   * rule can never apply in this context. Tightening that would mean resolving
+   * specificity per element, which is not worth the complexity here.
+   */
+  test.describe('No orphan classes', () => {
+    const ALLOWED_UNSTYLED = new Set([
+      // Read by src/scripts/palette-manager.ts to drive the swatch editor.
+      'swatch-slider-r',
+      'swatch-slider-g',
+      'swatch-slider-b',
+      'swatch-slider-a',
+      // JS-created span (palette-manager.ts); styled entirely by its parent
+      // .palette-panel__popout rule. Asserted on by palette-panel-mobile.test.ts
+      // (~:213, :227), so it is a live selector — do not delete it as dead markup.
+      'palette-panel__popout-label',
+    ]);
+
+    test('every class in the DOM has a CSS rule', async ({ page }) => {
+      const orphans = await page.evaluate(() => {
+        const defined = new Set<string>();
+        const walk = (rules: CSSRuleList) => {
+          for (const rule of Array.from(rules)) {
+            const sel = (rule as CSSStyleRule).selectorText;
+            if (sel) {
+              for (const m of sel.matchAll(/\.([A-Za-z0-9_-]+)/g)) defined.add(m[1]);
+            }
+            const nested = (rule as CSSGroupingRule).cssRules;
+            if (nested) walk(nested);
+          }
+        };
+        for (const sheet of Array.from(document.styleSheets)) {
+          try {
+            walk(sheet.cssRules);
+          } catch {
+            /* stylesheet not readable — skip */
+          }
+        }
+        const used = new Set<string>();
+        for (const el of Array.from(document.querySelectorAll('[class]'))) {
+          for (const c of Array.from(el.classList)) used.add(c);
+        }
+        return [...used].filter((c) => !defined.has(c)).sort();
+      });
+
+      const unexpected = orphans.filter((c) => !ALLOWED_UNSTYLED.has(c));
+      expect(
+        unexpected,
+        `classes used on /brand with no CSS rule anywhere — the specimen will render ` +
+          `unstyled while its label documents the class. Repoint the markup at the real ` +
+          `class, or add the rule. Only add to ALLOWED_UNSTYLED if it is purely a JS hook.`
+      ).toEqual([]);
+    });
+  });
 });
