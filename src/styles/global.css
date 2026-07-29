@@ -14,11 +14,17 @@
 @import './components/cards.css';
 @import './components/form.css';
 
-/* Page-specific component CSS — imported by the pages that use them:
-   filter.css     → PortfolioHeader.astro (ma-portfolio)
-   portfolio.css  → PortfolioGrid.astro (ma-portfolio)
-   map.css        → MapVisualizer.astro (regulatory-map)
-   progress.css   → diligence-machine/index.astro */
+/* Page-specific component CSS — NOT loaded site-wide; imported by the pages that
+   use them. Any page rendering these components must import the sheet itself:
+   filter.css     → PortfolioHeader.astro (ma-portfolio), regulatory-map/index.astro, brand.astro
+   portfolio.css  → PortfolioGrid.astro (ma-portfolio), brand.astro
+   map.css        → MapVisualizer.astro (regulatory-map), brand.astro
+   progress.css   → diligence-machine/index.astro, brand.astro
+
+   brand.astro imports all four because it renders specimens for every one of them;
+   without the imports those specimens render as unstyled markup. That is guarded by
+   tests/e2e/brand-page.test.ts § "Code-split component CSS is loaded" — if you split
+   a new sheet out of this file, add it to brand.astro and to that guard. */
 
 * {
   margin: 0;

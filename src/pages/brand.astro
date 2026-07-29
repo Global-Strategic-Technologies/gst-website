@@ -7,6 +7,18 @@ import BrandTypography from '../components/brand/BrandTypography.astro';
 import BrandComponents from '../components/brand/BrandComponents.astro';
 import BrandAccessibility from '../components/brand/BrandAccessibility.astro';
 import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
+
+/* Page-specific component CSS. These four are deliberately code-split out of
+ * global.css (see the note there) and imported only by the pages that use them,
+ * so they do NOT load site-wide. The brand page renders specimens for all of
+ * them, and without these imports those specimens render as unstyled markup —
+ * which is worse than no specimen, since a reader concludes the class is broken.
+ * This page is the design-system reference, so it needs the full set; the
+ * page-weight argument for splitting does not apply to a documentation surface. */
+import '../styles/components/filter.css';
+import '../styles/components/map.css';
+import '../styles/components/portfolio.css';
+import '../styles/components/progress.css';
 ---
 
 <BaseLayout
@@ -1393,7 +1405,9 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     const syncThemeToFrames = () => {
       const isDark = document.documentElement.classList.contains('dark-theme');
       document.querySelectorAll<HTMLIFrameElement>('.responsive-demo-frame iframe').forEach((f) => {
-        f.contentWindow?.postMessage({ type: 'theme-sync', dark: isDark }, '*');
+        // Same-origin target: the receiver validates e.origin, so the sender
+        // pins targetOrigin rather than broadcasting to whatever holds the frame.
+        f.contentWindow?.postMessage({ type: 'theme-sync', dark: isDark }, window.location.origin);
       });
     };
     // Observe theme class changes on <html>
