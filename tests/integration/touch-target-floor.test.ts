@@ -20,9 +20,10 @@
  *     a scoped `<style>` block, so a CSS-only scan would miss it.
  *   - `src/docs/` is excluded: its markdown fences legitimately contain `.brutal-btn`
  *     example rules.
- *   - Declarations whose value IS `var(--touch-target-min)` are conformant by
- *     construction and skipped. After the token migration that is most of the corpus,
- *     so this guard's real job is catching the next raw literal.
+ *   - `var()` values are RESOLVED against the `:root` token map, not skipped. The
+ *     floor token is conformant by construction, but a declaration pointed at some
+ *     other token could resolve anywhere, and blanket-skipping `var(` would wave a
+ *     32px one through in silence.
  *   - Only `min-height` / `min-width` are checked. A fixed `height` below the floor is
  *     a different (and rarer) shape; see BL-096.
  *
@@ -86,12 +87,6 @@ export function lengthToPx(value: string): number | null {
   return m[2] === 'px' ? parseFloat(m[1]) : parseFloat(m[1]) * 16;
 }
 
-/**
- * Find guarded declarations resolving below `floorPx`.
- *
- * Matches innermost `{ … }` blocks, so a rule nested in `@media` yields its own
- * selector as the prelude rather than the at-rule's.
- */
 /** Parse `:root` custom properties from variables.css into a name -> value map. */
 export function parseRootTokens(css: string): Record<string, string> {
   const out: Record<string, string> = {};
@@ -119,6 +114,12 @@ function resolveToPx(value: string, tokens: Record<string, string>): number | nu
   return target === undefined ? null : lengthToPx(target);
 }
 
+/**
+ * Find guarded declarations resolving below `floorPx`.
+ *
+ * Matches innermost `{ … }` blocks, so a rule nested in `@media` yields its own
+ * selector as the prelude rather than the at-rule's.
+ */
 export function findFloorViolations(
   css: string,
   floorPx: number,
