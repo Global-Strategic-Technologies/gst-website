@@ -69,11 +69,21 @@ export interface FloorViolation {
   px: number;
 }
 
-/** Resolve a CSS length to px, or null if it isn't a plain px/rem literal. */
+/**
+ * Resolve a CSS length to px, or null if it isn't a plain literal we can judge.
+ *
+ * Handles `!important` (the likeliest shape for the next page-local override, and
+ * the one that silently slipped past the first version of this parser), unitless
+ * `0`, and em/rem at the 16px root. Values we cannot resolve statically — `calc()`,
+ * percentages, viewport units — return null and are not flagged; the guard's job is
+ * catching plain literals, not evaluating CSS.
+ */
 export function lengthToPx(value: string): number | null {
-  const m = /^(-?[0-9]*\.?[0-9]+)(px|rem)$/.exec(value.trim());
+  const bare = value.replace(/!\s*important\s*$/i, '').trim();
+  if (/^0$/.test(bare)) return 0;
+  const m = /^(-?[0-9]*\.?[0-9]+)(px|r?em)$/.exec(bare);
   if (!m) return null;
-  return m[2] === 'rem' ? parseFloat(m[1]) * 16 : parseFloat(m[1]);
+  return m[2] === 'px' ? parseFloat(m[1]) : parseFloat(m[1]) * 16;
 }
 
 /**
@@ -82,12 +92,44 @@ export function lengthToPx(value: string): number | null {
  * Matches innermost `{ … }` blocks, so a rule nested in `@media` yields its own
  * selector as the prelude rather than the at-rule's.
  */
-export function findFloorViolations(css: string, floorPx: number): FloorViolation[] {
+/** Parse `:root` custom properties from variables.css into a name -> value map. */
+export function parseRootTokens(css: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const root = /:root\s*\{([\s\S]*?)\}/.exec(stripComments(css));
+  if (!root) return out;
+  for (const m of root[1].matchAll(/(--[A-Za-z0-9_-]+)\s*:\s*([^;]+);/g)) {
+    out[m[1]] = m[2].trim();
+  }
+  return out;
+}
+
+/**
+ * Resolve a declaration value to px, following a single `var(--token)` indirection
+ * through the supplied token map. One hop is enough for this codebase and keeps the
+ * resolver honest — anything deeper returns null rather than guessing.
+ */
+function resolveToPx(value: string, tokens: Record<string, string>): number | null {
+  const direct = lengthToPx(value);
+  if (direct !== null) return direct;
+  const ref = /^var\(\s*(--[A-Za-z0-9_-]+)\s*\)$/.exec(
+    value.replace(/!\s*important\s*$/i, '').trim()
+  );
+  if (!ref) return null;
+  const target = tokens[ref[1]];
+  return target === undefined ? null : lengthToPx(target);
+}
+
+export function findFloorViolations(
+  css: string,
+  floorPx: number,
+  tokens: Record<string, string> = {}
+): FloorViolation[] {
   const out: FloorViolation[] = [];
   const ruleRe = /([^{}]+)\{([^{}]*)\}/g;
+  const source = stripComments(css);
   let rule: RegExpExecArray | null;
 
-  while ((rule = ruleRe.exec(stripComments(css))) !== null) {
+  while ((rule = ruleRe.exec(source)) !== null) {
     const selector = rule[1].trim().replace(/\s+/g, ' ');
     if (!GUARDED_SELECTOR_RE.test(selector)) continue;
 
@@ -97,9 +139,11 @@ export function findFloorViolations(css: string, floorPx: number): FloorViolatio
       const prop = decl.slice(0, idx).trim();
       const value = decl.slice(idx + 1).trim();
       if (!GUARDED_PROPS.includes(prop)) continue;
-      if (value.includes('var(')) continue; // token-driven — conformant by construction
 
-      const px = lengthToPx(value);
+      // Resolve rather than skip every `var()`. The floor token is conformant by
+      // construction, but a DIFFERENT token could resolve to anything — blanket-
+      // skipping `var(` would wave through a min-height pointed at a 32px token.
+      const px = resolveToPx(value, tokens);
       if (px !== null && px < floorPx) out.push({ selector, prop, value, px });
     }
   }
@@ -148,7 +192,39 @@ describe('touch-target floor — parser fixtures', () => {
       .icg-wizard-nav .brutal-btn { min-height: 48px; }
       .brutal-choice-btn { min-height: 2.75rem; }
     `;
-    expect(findFloorViolations(css, 44)).toEqual([]);
+    expect(findFloorViolations(css, 44, { '--touch-target-min': '44px' })).toEqual([]);
+  });
+
+  it('flags a value carrying !important — the likeliest override shape', () => {
+    const css = `.brutal-btn { min-height: 36px !important; }`;
+    expect(findFloorViolations(css, 44)[0]).toMatchObject({ px: 36 });
+  });
+
+  it('flags a unitless 0 and an em value', () => {
+    expect(findFloorViolations(`.brutal-btn { min-width: 0; }`, 44)[0]).toMatchObject({ px: 0 });
+    expect(findFloorViolations(`.brutal-btn { min-height: 2em; }`, 44)[0]).toMatchObject({
+      px: 32,
+    });
+  });
+
+  it('follows a var() to a DIFFERENT token that resolves below the floor', () => {
+    const css = `.brutal-btn { min-height: var(--some-small-thing); }`;
+    const tokens = { '--touch-target-min': '44px', '--some-small-thing': '32px' };
+    expect(findFloorViolations(css, 44, tokens)[0]).toMatchObject({ px: 32 });
+  });
+
+  it('does not guess at values it cannot resolve statically', () => {
+    const css = `
+      .brutal-btn { min-height: calc(100% - 4px); }
+      .brutal-btn--b { min-height: var(--unknown-token); }
+      .brutal-btn--c { min-height: 10%; }
+    `;
+    expect(findFloorViolations(css, 44, {})).toEqual([]);
+  });
+
+  it('parses :root tokens from variables.css shape', () => {
+    const css = `/* c */\n:root {\n  --a: 44px;\n  --b: light-dark(#fff, #000);\n}\n`;
+    expect(parseRootTokens(css)).toEqual({ '--a': '44px', '--b': 'light-dark(#fff, #000)' });
   });
 
   it('ignores unguarded selectors and unguarded properties', () => {
@@ -178,7 +254,8 @@ describe('touch-target floor — parser fixtures', () => {
 // --- The sweep --------------------------------------------------------------
 
 describe('touch-target floor — source sweep', () => {
-  const floorRaw = /--touch-target-min:\s*([^;]+);/.exec(readFileSync(VARIABLES_CSS, 'utf-8'))?.[1];
+  const TOKENS = parseRootTokens(readFileSync(VARIABLES_CSS, 'utf-8'));
+  const floorRaw = TOKENS['--touch-target-min'];
 
   it('defines --touch-target-min in variables.css', () => {
     expect(floorRaw, '--touch-target-min must exist in src/styles/variables.css').toBeDefined();
@@ -196,7 +273,7 @@ describe('touch-target floor — source sweep', () => {
       const source = readFileSync(abs, 'utf-8');
       const chunks = abs.endsWith('.astro') ? extractAstroStyles(source) : [source];
       for (const chunk of chunks) {
-        for (const v of findFloorViolations(chunk, floorPx)) {
+        for (const v of findFloorViolations(chunk, floorPx, TOKENS)) {
           failures.push(
             `${relative(REPO_ROOT, abs).replace(/\\/g, '/')}: ` +
               `${v.selector} { ${v.prop}: ${v.value} } resolves to ${v.px}px, below the ${floorPx}px floor`

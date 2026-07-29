@@ -1548,7 +1548,11 @@ const domainCount = DOMAINS.length;
     resultsView.classList.toggle('is-hidden', state.currentStep !== 7);
     comparisonView.classList.add('is-hidden');
 
-    // Hide back link during wizard/results to reduce mobile clutter
+    // Hide the back link during wizard/results — at every viewport, not just
+    // mobile: the toggle has no media-query scope. It was inert until 2026-07-29
+    // (`.icg-back-link { display: inline-block }` out-specified `.is-hidden`), so
+    // this reads as new behaviour even though the intent is original. Returning to
+    // the landing view restores it; both directions are pinned by E2E.
     const backLink = document.querySelector('.icg-back-link') as HTMLElement | null;
     if (backLink) backLink.classList.toggle('is-hidden', state.currentStep !== 0);
 

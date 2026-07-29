@@ -235,6 +235,19 @@ test.describe('Brand Page', () => {
           { message: 'iframes rendering content — framing blocked by security headers?' }
         )
         .toBe(total);
+
+      // Asserted here rather than in its own test: the axe scan excludes
+      // `.responsive-demo-frame iframe` (12 lazy same-origin frames of one document
+      // would make the violation count nondeterministic and triple-counted), which
+      // also drops axe's `frame-title` check. Folding it in keeps that coverage
+      // without a second parallel load of /brand racing these same lazy frames.
+      const titles = await frames.evaluateAll((els) =>
+        els.map((el) => (el as HTMLIFrameElement).title?.trim() ?? '')
+      );
+      expect(
+        titles.filter((t) => t.length > 0),
+        'every demo iframe needs a title for screen-reader users'
+      ).toHaveLength(total);
     });
   });
 

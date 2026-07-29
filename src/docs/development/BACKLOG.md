@@ -157,15 +157,16 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 #### Acceptance Criteria
 
 - [ ] **Ruling first**: is WCAG 2.5.5 (AAA, 44×44) a site-wide goal or a guarantee scoped to the button component classes? Everything below depends on the answer, which is why nothing was swept pre-emptively
-- [ ] Audit and resolve the known sub-44 interactive controls: `.brutal-quick-zoom` (32px, pinned by `regulatory-map-mobile.test.ts:97-106`), `.filter-button` in `PortfolioHeader.astro` (`height: 38px` beside a `min-width` that now uses the token), TOC links, filter chips, palette-panel affordances, nav links
+- [ ] Audit and resolve the known sub-44 interactive controls: `.brutal-quick-zoom` (32px, pinned by `regulatory-map-mobile.test.ts:97-106`), `.filter-button` in `PortfolioHeader.astro` (`height: 38px` beside a `min-width` that now uses the token), the modal close buttons in `ProjectModal.astro` (~~:323-329) and `PortfolioGrid.astro` (~~:315-321) which both drop to 40px inside a media query, TOC links, filter chips, palette-panel affordances, nav links
 - [ ] Extend the axe route list beyond its current 8 — `src/pages` holds 25 `.astro` files, ~22 of them real routes once `brand/responsive-frame` and the two error pages are set aside
+- [ ] **Ratchet down `/brand`'s 13 `color-contrast` nodes** (`KNOWN_SERIOUS` in `accessibility.test.ts`). 8 are the `.a11y-badge` pass/fail chips. Restyling the badge cannot fix them — contrast is symmetric, so a filled badge with page-background text is the same colour pair and the same 4.25:1. The levers are the `--color-success` / `--color-error` light values, or raising the badge above the 14px-bold "large text" threshold so 3:1 applies. The remaining 5 are `.brutal-tab__label`, `.brand-tag`, `.project-card__cta`, `.brutal-reg-card__scope`, `.brutal-map-tap-bar__action`
 - [ ] If the ruling is site-wide, `.a11y-badge--fail`-style documented exceptions in BRAND_GUIDELINES § Accessibility are updated or removed accordingly
 
 #### Technical Context
 
 - The floor itself is done: `--touch-target-min` exists, `.brutal-btn` / `.brutal-choice-btn` / `.cta-button` clear it, and `tests/integration/touch-target-floor.test.ts` fails any rule that resolves a button below it — including inside Astro scoped `<style>` blocks, where one of the two real regressions was hiding.
 - 2.5.5 is **Level AAA**. The AA criterion (2.2 SC 2.5.8) is 24×24, which every control above already passes — so this is an enhancement, not a compliance gap. Worth stating plainly before anyone treats the 32px zoom control as a defect.
-- The `/brand` axe entry added with that change uses `checkA11y`'s `exclude` option rather than a `KNOWN_SERIOUS` baseline, because the page deliberately exhibits low-contrast hover specimens. Any route added here needs the same judgement: baseline only what is genuinely debt that should decrease.
+- The `/brand` axe entry added with that change uses **both** instruments, deliberately: `checkA11y`'s `exclude` for the two things that are not debt (12 lazy same-origin iframes, whose load state at scan time would make the count nondeterministic; and the `[data-demo-state="hover"]` specimens, which are low-contrast on purpose and must never "improve"), plus a `KNOWN_SERIOUS` baseline of 13 for contrast findings that genuinely are debt. Any route added here needs the same split judgement — exclude what must not change, baseline what should decrease, and never widen the exclusions to make a number go away.
 
 ---
 

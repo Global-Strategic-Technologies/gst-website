@@ -68,11 +68,20 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
   // /brand, added 2026-07-29. The intent was to land it with no baseline at all;
   // the discovery run said otherwise, and the honest move is to record the number
   // rather than widen the exclusions until the prediction comes true.
-  // 8 of the 13 are .a11y-badge--pass/--fail (--color-success / --color-error at
-  // --text-2xs) — site-wide semantic tokens, so this is genuine design debt and
-  // ratcheting it down means changing those tokens, not the specimen. The other 5
-  // are .brutal-tab__label, .brand-tag, .project-card__cta, .brutal-reg-card__scope
-  // and .brutal-map-tap-bar__action, all real components. Tracked in BL-096.
+  //
+  // 8 of the 13 are .a11y-badge--pass/--fail, which IS page-local (styled in
+  // brand.astro, used only in BrandAccessibility.astro) — so the obvious fix is
+  // to restyle the badge here. That does not work: contrast ratio is symmetric,
+  // so filling the badge with the semantic token and using the page background as
+  // the text colour produces the same colour pair and the identical ratio
+  // (--color-success on white is 4.25:1 either way). The real levers are the token
+  // values themselves (site-wide) or the badge's type size — 2xs is well under the
+  // 14px-bold "large text" threshold that would relax this to 3:1. Both are design
+  // calls, so they go to BL-096 rather than getting decided here.
+  //
+  // The other 5 are .brutal-tab__label, .brand-tag, .project-card__cta,
+  // .brutal-reg-card__scope and .brutal-map-tap-bar__action — real components,
+  // already partly baselined on other routes.
   '/brand/': { 'color-contrast': 13 },
 };
 
