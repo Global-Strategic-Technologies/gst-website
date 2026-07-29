@@ -196,7 +196,7 @@ test.describe('TechPar - Analysis tab', () => {
   test('benchmark table highlights the active stage row', async ({ page }) => {
     await setupToAnalysis(page);
     const activeRow = page.locator('[data-bench-row="series_bc"]');
-    await expect(activeRow).toHaveClass(/bench-row--active/);
+    await expect(activeRow).toHaveClass(/brutal-bench-table__active/);
   });
 });
 

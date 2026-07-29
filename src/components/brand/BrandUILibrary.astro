@@ -616,7 +616,8 @@ import TableOfContents from '../TableOfContents.astro';
           </div>
         </div>
         <code class="brand-code"
-          >.teaser-card — brutal-frosted, 3px primary top-border, monospace heading/features</code
+          >.brutal-gateway-card — brutal-frosted, 3px primary top-border, monospace heading,
+          centered</code
         >
       </div>
     </div>
@@ -1062,9 +1063,7 @@ import TableOfContents from '../TableOfContents.astro';
                   stroke-linejoin="miter"></path></svg
               ></button
             >
-            <button
-              class="tool-wizard-dot tool-wizard-dot--completed tool-wizard-dot--even"
-              type="button"
+            <button class="tool-wizard-dot tool-wizard-dot--completed" type="button"
               ><svg viewBox="0 0 64 64" fill="none"
                 ><path
                   d="M32 12 L52 52 L12 52 Z"
@@ -1084,7 +1083,7 @@ import TableOfContents from '../TableOfContents.astro';
                   stroke-linejoin="miter"></path></svg
               ></button
             >
-            <button class="tool-wizard-dot tool-wizard-dot--even" type="button"
+            <button class="tool-wizard-dot" type="button"
               ><svg viewBox="0 0 64 64" fill="none"
                 ><path
                   d="M32 12 L52 52 L12 52 Z"
@@ -1107,8 +1106,8 @@ import TableOfContents from '../TableOfContents.astro';
           </div>
         </div>
         <code class="brand-code"
-          >.tool-wizard-progress-mobile, .tool-wizard-dot — even dots flipped 180°, compact for
-          small screens</code
+          >.tool-wizard-progress-mobile, .tool-wizard-dot — even-position dots flipped 180° via
+          :nth-child(even), compact for small screens</code
         >
       </div>
     </div>
@@ -1244,7 +1243,8 @@ import TableOfContents from '../TableOfContents.astro';
       </div>
     </div>
     <code class="brand-code"
-      >.project-card — rounded hover shadow, filled metrics bg, rounded tags</code
+      >.project-card — hover lift + drop shadow, filled metrics panel with primary left-border,
+      filled square tags</code
     >
 
     <h4 class="brutal-label brand-subgroup-title">Project Card</h4>
@@ -1285,42 +1285,6 @@ import TableOfContents from '../TableOfContents.astro';
       invert-hover CTA</code
     >
 
-    <h4 class="brutal-label brand-subgroup-title">Teaser Card (Current)</h4>
-    <div class="brand-card-grid brand-card-grid--single">
-      <article class="teaser-card">
-        <div class="teaser-card__header">
-          <h2>Technology Cost Benchmarking</h2>
-        </div>
-        <ul class="teaser-card__features">
-          <li>
-            <svg class="bullet-icon" viewBox="0 0 64 64" fill="none"
-              ><path
-                d="M32 12 L52 52 L12 52 Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="6"
-                stroke-linejoin="miter"></path></svg
-            >
-            Revenue-normalized cost analysis
-          </li>
-          <li>
-            <svg class="bullet-icon" viewBox="0 0 64 64" fill="none"
-              ><path
-                d="M32 12 L52 52 L12 52 Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="6"
-                stroke-linejoin="miter"></path></svg
-            >
-            Industry benchmark comparison
-          </li>
-        </ul>
-        <span class="brand-badge">Live</span>
-        <a class="cta-button primary teaser-card__cta" href="#ui-library">Launch Tool</a>
-      </article>
-    </div>
-    <code class="brand-code">.teaser-card — rounded corners, accent-wash bg, centered layout</code>
-
     <h4 class="brutal-label brand-subgroup-title">Teaser Card</h4>
     <div class="brand-card-grid brand-card-grid--single">
       <article class="brutal-teaser-card">
@@ -1360,40 +1324,6 @@ import TableOfContents from '../TableOfContents.astro';
       badge</code
     >
 
-    <h4 class="brutal-label brand-subgroup-title">Recommendation Card (Current)</h4>
-    <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
-      <div class="rec-card" id="demo-rec-card">
-        <div class="rec-body">
-          <div class="rec-title">
-            <span class="rec-badge rec-badge--high">High</span>
-            <span class="rec-badge rec-badge--effort">Quick Win</span>
-            <button class="rec-na" id="demo-rec-na" type="button" title="Mark as not applicable"
-              >N/A</button
-            >
-            Deploy a cloud cost visibility dashboard
-            <svg
-              class="delta-chevron"
-              viewBox="0 0 64 64"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M32 12 L52 52 L12 52 Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="6"
-                stroke-linejoin="miter"></path>
-            </svg>
-          </div>
-          <div class="rec-desc">
-            Implement AWS Cost Explorer, GCP Billing dashboards, or a FinOps platform. Engineering
-            leads need direct access with no approval gate.
-          </div>
-        </div>
-      </div>
-    </div>
-    <code class="brand-code">.rec-card — rounded corners, filled badges, rounded borders</code>
-
     <h4 class="brutal-label brand-subgroup-title">Recommendation Card</h4>
     <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
       <div class="brutal-rec-card" id="demo-rec-brutal">
@@ -1431,42 +1361,6 @@ import TableOfContents from '../TableOfContents.astro';
     </div>
     <code class="brand-code"
       >.brutal-rec-card — no radius, left-border accent, outlined badges, monospace title</code
-    >
-
-    <h4 class="brutal-label brand-subgroup-title">Attention Card (Current)</h4>
-    <div class="brand-card-grid brand-card-grid--single" style="max-width: 600px;">
-      <div class="attention-card attention-card--high" id="demo-attention-card">
-        <div class="attention-header">
-          <h3 class="attention-title">Key-Person Technical Dependencies</h3>
-          <button
-            class="attention-na"
-            id="demo-attention-na"
-            type="button"
-            title="Mark as not applicable">N/A</button
-          >
-          <svg
-            class="delta-chevron"
-            viewBox="0 0 64 64"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M32 12 L52 52 L12 52 Z"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="6"
-              stroke-linejoin="miter"></path>
-          </svg>
-        </div>
-        <div class="attention-divider"></div>
-        <p class="attention-desc">
-          Small engineering teams in on-premise environments often concentrate critical knowledge in
-          1–2 individuals. Assess key person dependencies and knowledge gaps before close.
-        </p>
-      </div>
-    </div>
-    <code class="brand-code"
-      >.attention-card — rounded corners, tinted bg by relevance, colored divider</code
     >
 
     <h4 class="brutal-label brand-subgroup-title">Attention Card</h4>
@@ -2235,23 +2129,25 @@ import TableOfContents from '../TableOfContents.astro';
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brand-year-badge">2025</div>
-        <code class="brand-code">.year-badge</code>
+        <code class="brand-code"
+          >.brand-year-badge — replica of .year-badge (PortfolioGrid.astro)</code
+        >
       </div>
       <div class="brand-component-item">
         <span class="brand-tech-tag">React</span>
-        <code class="brand-code">.tech-tag</code>
+        <code class="brand-code">.brand-tech-tag — replica of .tech-tag (ProjectModal.astro)</code>
       </div>
       <div class="brand-component-item">
-        <span class="brand-badge">Live</span>
-        <code class="brand-code">.badge</code>
+        <span class="brutal-gateway-card__badge">Live</span>
+        <code class="brand-code">.brutal-gateway-card__badge</code>
       </div>
       <div class="brand-component-item">
-        <span class="bench-label bench-label--score">Score</span>
-        <code class="brand-code">.bench-label--score</code>
+        <span class="brutal-bench-table__label brutal-bench-table__label--score">Score</span>
+        <code class="brand-code">.brutal-bench-table__label--score</code>
       </div>
       <div class="brand-component-item">
-        <span class="bench-label bench-label--stage">Stage</span>
-        <code class="brand-code">.bench-label--stage</code>
+        <span class="brutal-bench-table__label brutal-bench-table__label--stage">Stage</span>
+        <code class="brand-code">.brutal-bench-table__label--stage</code>
       </div>
     </div>
 
@@ -2276,7 +2172,7 @@ import TableOfContents from '../TableOfContents.astro';
         <div class="cta-box">
           <h2>Ready to Get Started?</h2>
           <p>Strategic technology advisory for high-stakes environments.</p>
-          <a class="cta-button primary" href="#ui-library">Schedule a Call</a>
+          <a class="cta-button" href="#ui-library">Schedule a Call</a>
         </div>
         <code class="brand-code"
           >.cta-box — primary border, centered layout, heading + description + CTA button</code
@@ -2412,11 +2308,11 @@ import TableOfContents from '../TableOfContents.astro';
 
 <!-- ═══════════════════════ TABLE OF CONTENTS COMPONENT ═══════════════════════ -->
 <section class="brand-section" id="toc-component">
-  <h2 class="brand-section-heading">
+  <h2 class="brutal-heading-md brand-section__title">
     <DeltaIcon class="bullet-icon" />
     Table of Contents Component
   </h2>
-  <p class="brand-body">
+  <p class="brutal-text-small brand-section__note">
     The <code>&lt;TableOfContents&gt;</code> component provides a reusable, props-driven table of contents
     with optional scroll-spy, mobile collapse, and auto-generated sublists from page headings.
   </p>

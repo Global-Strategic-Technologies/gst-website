@@ -102,15 +102,15 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     $$('[data-bench-row]').forEach((tr) => {
       const el = tr as HTMLElement;
       const isStage = el.dataset.benchRow === tp.stageKey;
-      tr.classList.toggle('bench-row--active', isStage);
+      tr.classList.toggle('brutal-bench-table__active', isStage);
 
       const firstTd = el.querySelector('td')!;
-      firstTd.querySelectorAll('.bench-label').forEach((b) => b.remove());
+      firstTd.querySelectorAll('.brutal-bench-table__label').forEach((b) => b.remove());
 
       if (isStage) {
         firstTd.insertAdjacentHTML(
           'beforeend',
-          ' <span class="bench-label bench-label--stage">Your stage</span>'
+          ' <span class="brutal-bench-table__label brutal-bench-table__label--stage">Your stage</span>'
         );
       }
 
@@ -120,7 +120,7 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
           ratioMatched = true;
           firstTd.insertAdjacentHTML(
             'beforeend',
-            ' <span class="bench-label bench-label--score">Your ratio</span>'
+            ' <span class="brutal-bench-table__label brutal-bench-table__label--score">Your ratio</span>'
           );
         }
       }

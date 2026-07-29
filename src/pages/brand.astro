@@ -1101,6 +1101,11 @@ import '../styles/components/progress.css';
     background: var(--scrim-50);
   }
 
+  /* Positioning context for .modal__close (mirrors .modal-content in ProjectModal.astro) */
+  .modal__content {
+    position: relative;
+  }
+
   .modal__close {
     position: absolute;
     top: 1rem;
@@ -1167,6 +1172,80 @@ import '../styles/components/progress.css';
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  /* ── Portfolio specimen replicas ───────────────────
+     The production originals (.metric-label, .metric-value, .tag, .tech-tag,
+     .year-badge) live in Astro-scoped \3c style> blocks inside PortfolioGrid.astro
+     and ProjectModal.astro, so they are unreachable from /brand. These .brand-*
+     replicas mirror those declarations so the specimens render truthfully. */
+  .brand-metric {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brand-metric__label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    color: light-dark(var(--text-muted), var(--text-dark-muted));
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.35rem;
+    font-weight: 700;
+  }
+
+  .brand-metric__value {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-base);
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .brand-metric__value--arr {
+    color: var(--color-tertiary);
+    font-size: var(--text-lg);
+  }
+
+  .brand-tag {
+    font-family: var(--font-family-mono);
+    background: var(--accent-dark-bg);
+    color: var(--color-primary);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: 0;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .brand-tag--theme {
+    background: var(--accent-light-bg-hover);
+    color: var(--color-tertiary);
+  }
+
+  .brand-tech-tag {
+    background: light-dark(var(--filter-chip-bg-hover), var(--accent-dark-bg));
+    color: var(--text-secondary);
+    padding: 0.35rem 0.65rem;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .brand-year-badge {
+    font-family: var(--font-family-mono);
+    background: light-dark(var(--filter-chip-bg), var(--accent-dark-bg));
+    color: var(--text-secondary);
+    padding: 0.35rem 0.75rem;
+    border-radius: 0;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
   }
 
   /* ── Stats Bar (current specimen) ─────────────────── */
@@ -1341,27 +1420,12 @@ import '../styles/components/progress.css';
       });
     }
 
-    // Recommendation card — collapse toggle and N/A dismiss
-    const recCard = document.getElementById('demo-rec-card');
-    const recNa = document.getElementById('demo-rec-na');
-    if (recCard) {
-      recCard.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.rec-na')) return;
-        recCard.classList.toggle('is-collapsed');
-      });
-    }
-    if (recNa && recCard) {
-      recNa.addEventListener('click', () => {
-        recCard.classList.toggle('is-dismissed');
-      });
-    }
-
     // Brutalist recommendation card — collapse toggle and N/A dismiss
     const recBrutal = document.getElementById('demo-rec-brutal');
     const recBrutalNa = document.getElementById('demo-rec-brutal-na');
     if (recBrutal) {
       recBrutal.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.brand-rec-brutal__na')) return;
+        if ((e.target as HTMLElement).closest('.brutal-rec-card__na')) return;
         recBrutal.classList.toggle('is-collapsed');
       });
     }
@@ -1376,28 +1440,13 @@ import '../styles/components/progress.css';
     const attBrutalNa = document.getElementById('demo-attention-brutal-na');
     if (attBrutal) {
       attBrutal.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.brand-attention-brutal__na')) return;
+        if ((e.target as HTMLElement).closest('.brutal-na-btn')) return;
         attBrutal.classList.toggle('is-collapsed');
       });
     }
     if (attBrutalNa && attBrutal) {
       attBrutalNa.addEventListener('click', () => {
         attBrutal.classList.toggle('is-dismissed');
-      });
-    }
-
-    // Attention card — collapse toggle and N/A dismiss
-    const attCard = document.getElementById('demo-attention-card');
-    const attNa = document.getElementById('demo-attention-na');
-    if (attCard) {
-      attCard.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.attention-na')) return;
-        attCard.classList.toggle('is-collapsed');
-      });
-    }
-    if (attNa && attCard) {
-      attNa.addEventListener('click', () => {
-        attCard.classList.toggle('is-dismissed');
       });
     }
 
