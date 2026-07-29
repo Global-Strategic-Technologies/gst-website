@@ -204,9 +204,9 @@ test.describe('Brand Page', () => {
   /**
    * The site-chrome specimens are hand-rolled replicas rather than the real
    * components (Header/ThemeToggle both carry singleton ids, so they cannot be
-   * rendered twice on one page). These pin the sizes to production's computed
-   * values so the replicas cannot silently drift again — see BL-095 for the
-   * durable fix.
+   * rendered twice on one page). These assert PARITY against the live components
+   * BaseLayout renders on this same page — no magic numbers, so they cannot go
+   * stale when those components change — see BL-095 for the durable fix.
    */
   test.describe('Site chrome specimens match production', () => {
     /**
@@ -232,12 +232,24 @@ test.describe('Brand Page', () => {
       ]);
       expect(s.w, 'logo specimen delta width vs real header').toBe(p.w);
       expect(s.color, 'logo specimen delta color vs real header').toBe(p.color);
+
+      // Lockup gap is its own drift dimension — it regressed once (specimen 8px vs
+      // production 4px) while width and color still matched.
+      const [sGap, pGap] = await Promise.all([
+        page.locator('[data-specimen-logo]').evaluate((el) => getComputedStyle(el).columnGap),
+        page
+          .locator('.logo-wrapper')
+          .first()
+          .evaluate((el) => getComputedStyle(el).columnGap),
+      ]);
+      expect(sGap, 'logo lockup gap vs real header').toBe(pGap);
     });
 
     test('theme toggle specimen delta matches the real toggle', async ({ page }) => {
       const specimen = page.locator('button[title="Theme toggle specimen"] svg').first();
       const production = page.locator('#themeToggle .theme-toggle-icon').first();
       await expect(specimen).toBeVisible();
+      await expect(production).toBeVisible();
 
       const [s, p] = await Promise.all([
         specimen.evaluate((el) => ({
