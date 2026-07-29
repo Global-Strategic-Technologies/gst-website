@@ -139,6 +139,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - [ ] For components that genuinely cannot be rendered twice on a page — `Header.astro` and `ThemeToggle.astro` both carry singleton `id`s (`#themeToggle`) and a bound script — either extract a presentational inner component the page and the specimen both use, or keep the replica **with** the pinned-size E2E guard added 2026-07-28 in `brand-page.test.ts` and a comment naming the file to keep it in sync with
 - [ ] No specimen re-implements a design-system treatment inline (the frosted-glass demo hand-rolled `rgba(255,255,255,0.75)` + `blur(12px)` — wrong colour in dark theme and the wrong blur — until it was fixed in the token sweep)
 - [ ] Specimen labels continue to name the class actually rendered (17 mismatches were corrected in the token sweep; converting to real components removes the failure mode entirely)
+- [ ] Resolve the ~28 class names present in the `/brand` DOM with **no CSS rule anywhere** in the repo (`brand-metric`, `brand-tag`, `rec-badge--effort`, `colors-status-chip--success`, `tool-wizard-dot--even`, …) — surfaced by a live DOM audit 2026-07-28. Each is either a label-only artifact of a replica or a genuinely missing rule; converting to real components resolves the first kind and exposes the second
 
 #### Technical Context
 

@@ -57,9 +57,13 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Logo</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <!-- Mirrors Header.astro: DeltaIcon at 32px (1em of --text-3xl) beside the wordmark.
-             Keep in sync with .logo-wrapper there. -->
-        <div style="display:flex;align-items:center;gap:var(--spacing-sm);">
+        <!-- Mirrors Header.astro's .logo-wrapper: primary-colored DeltaIcon at 32px
+             (1em of --text-3xl) with a 0.25rem gap. Keep in sync with that file —
+             the brand-page E2E asserts parity against the real header element. -->
+        <div
+          style="display:flex;align-items:center;gap:var(--spacing-xs);color:var(--color-primary);"
+          data-specimen-logo
+        >
           <DeltaIcon size={32} />
           <span
             class="logo"
@@ -2368,19 +2372,11 @@ import TableOfContents from '../TableOfContents.astro';
     <h4 class="brutal-label brand-subgroup-title">Map Tap Bar</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div
-          class="brutal-map-tap-bar"
-          style="display:flex;align-items:center;justify-content:space-between;padding:var(--spacing-sm) var(--spacing-md);border:2px solid var(--color-primary);background:var(--bg-light);font-family:var(--font-family-mono);"
-        >
-          <span
-            class="brutal-map-tap-bar__name"
-            style="font-size:var(--text-sm);font-weight:var(--font-weight-bold);color:var(--text-primary);"
-            >Selected Region</span
-          >
-          <button
-            class="brutal-btn brutal-btn--primary brutal-map-tap-bar__action"
-            type="button"
-            style="font-size:var(--text-xs);padding:var(--spacing-xs) var(--spacing-md);"
+        <!-- No inline styling: map.css owns this component. It supplies the gap that
+             was missing here, a top-only border, and a dark-theme-correct background. -->
+        <div class="brutal-map-tap-bar">
+          <span class="brutal-map-tap-bar__name">Selected Region</span>
+          <button class="brutal-btn brutal-btn--primary brutal-map-tap-bar__action" type="button"
             >View Details</button
           >
         </div>

@@ -172,13 +172,15 @@ test.describe('Brand Page', () => {
     });
 
     test('map tap bar, project card and wizard progress are styled', async ({ page }) => {
+      // `gap` is the discriminating property — it exists only in map.css, so this
+      // fails if the sheet is absent. Do not assert `display`/`border`: the
+      // specimen would satisfy those from markup alone if inline styles return.
+      const tapBar = page.locator('.brutal-map-tap-bar').first();
+      await expect(tapBar).toBeVisible();
       expect(
-        await page
-          .locator('.brutal-map-tap-bar')
-          .first()
-          .evaluate((el) => getComputedStyle(el).display),
-        'map tap bar flex layout — map.css not loaded?'
-      ).toBe('flex');
+        await tapBar.evaluate((el) => getComputedStyle(el).columnGap),
+        'map tap bar gap (--spacing-md) — map.css not loaded?'
+      ).toBe('12px');
 
       const cardBorder = await page
         .locator('.brutal-project-card')
@@ -206,19 +208,49 @@ test.describe('Brand Page', () => {
    * values so the replicas cannot silently drift again — see BL-095 for the
    * durable fix.
    */
-  test.describe('Site chrome specimens match production sizing', () => {
-    test('logo delta is 32px and theme toggle delta is 54px', async ({ page }) => {
-      const logoBox = await page.locator('#lib-site-chrome ~ * svg').first().boundingBox();
-      expect(Math.round(logoBox!.width), 'logo delta (Header.astro renders 32px)').toBe(32);
+  test.describe('Site chrome specimens match production', () => {
+    /**
+     * Asserted as PARITY against the live components rendered by BaseLayout on this
+     * same page, not against magic numbers — so the pins cannot go stale when
+     * Header/ThemeToggle change, and colour drift is caught as well as size.
+     */
+    test('logo specimen delta matches the real header delta', async ({ page }) => {
+      const specimen = page.locator('[data-specimen-logo] svg').first();
+      const production = page.locator('.logo-wrapper .delta-icon').first();
+      await expect(specimen).toBeVisible();
+      await expect(production).toBeVisible();
 
-      const toggleBox = await page
-        .locator('button[title="Theme toggle specimen"] svg')
-        .first()
-        .boundingBox();
-      expect(
-        Math.round(toggleBox!.width),
-        'theme toggle delta (ThemeToggle.astro computes ~54px)'
-      ).toBe(54);
+      const [s, p] = await Promise.all([
+        specimen.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return { w: Math.round(r.width), color: getComputedStyle(el).color };
+        }),
+        production.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return { w: Math.round(r.width), color: getComputedStyle(el).color };
+        }),
+      ]);
+      expect(s.w, 'logo specimen delta width vs real header').toBe(p.w);
+      expect(s.color, 'logo specimen delta color vs real header').toBe(p.color);
+    });
+
+    test('theme toggle specimen delta matches the real toggle', async ({ page }) => {
+      const specimen = page.locator('button[title="Theme toggle specimen"] svg').first();
+      const production = page.locator('#themeToggle .theme-toggle-icon').first();
+      await expect(specimen).toBeVisible();
+
+      const [s, p] = await Promise.all([
+        specimen.evaluate((el) => ({
+          w: Math.round(el.getBoundingClientRect().width),
+          color: getComputedStyle(el).color,
+        })),
+        production.evaluate((el) => ({
+          w: Math.round(el.getBoundingClientRect().width),
+          color: getComputedStyle(el).color,
+        })),
+      ]);
+      expect(s.w, 'toggle specimen delta width vs real toggle').toBe(p.w);
+      expect(s.color, 'toggle specimen delta color vs real toggle').toBe(p.color);
     });
   });
 });
