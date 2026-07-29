@@ -1405,7 +1405,9 @@ import '../styles/components/progress.css';
     const syncThemeToFrames = () => {
       const isDark = document.documentElement.classList.contains('dark-theme');
       document.querySelectorAll<HTMLIFrameElement>('.responsive-demo-frame iframe').forEach((f) => {
-        f.contentWindow?.postMessage({ type: 'theme-sync', dark: isDark }, '*');
+        // Same-origin target: the receiver validates e.origin, so the sender
+        // pins targetOrigin rather than broadcasting to whatever holds the frame.
+        f.contentWindow?.postMessage({ type: 'theme-sync', dark: isDark }, window.location.origin);
       });
     };
     // Observe theme class changes on <html>

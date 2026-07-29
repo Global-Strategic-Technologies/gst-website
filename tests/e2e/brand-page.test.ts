@@ -228,7 +228,8 @@ test.describe('Brand Page', () => {
             frames.evaluateAll(
               (els) =>
                 els.filter(
-                  (el) => (el as HTMLIFrameElement).contentDocument?.body?.children.length ?? 0 > 0
+                  (el) =>
+                    ((el as HTMLIFrameElement).contentDocument?.body?.children.length ?? 0) > 0
                 ).length
             ),
           { message: 'iframes rendering content — framing blocked by security headers?' }
