@@ -43,6 +43,23 @@ Sync enforcement                  tests/unit/security-headers.test.ts
                                   Reads both sources, fails CI if they diverge
 ```
 
+## Route Exceptions
+
+### `/brand/responsive-frame` — same-origin framing
+
+| Header                | Site default | This route   |
+| --------------------- | ------------ | ------------ |
+| `X-Frame-Options`     | `DENY`       | `SAMEORIGIN` |
+| CSP `frame-ancestors` | `'none'`     | `'self'`     |
+
+**Why**: the site default forbids framing by _every_ origin — including this one. The brand page's Responsive Behavior section renders the same components at three viewport widths using same-origin `<iframe>`s pointed at `/brand/responsive-frame`. Under the default those frames are blocked with `net::ERR_BLOCKED_BY_RESPONSE` and render empty, with no build error and no console warning to explain it (this shipped broken and went unnoticed until a visual review in July 2026).
+
+**Why it's safe**: the route is a `noindex` partial with no user data, no authenticated state and no actionable form. `'self'` permits framing only by our own pages, so an attacker's origin still cannot embed it — the clickjacking protection that matters is unchanged. Nothing else in the policy is relaxed.
+
+**Where it lives**: both `vercel.json` (the route is prerendered, so production headers come from the CDN) and `src/middleware.ts` (`SAME_ORIGIN_FRAMEABLE`, covering dev and any SSR path). `tests/unit/security-headers.test.ts` pins the exception to that single path and asserts the frame-route CSP differs from the site default _only_ in `frame-ancestors`.
+
+**Adding another frameable route** — do all three: add the path to `SAME_ORIGIN_FRAMEABLE`, add a `vercel.json` header rule, and update the test's expected path list. If you only do the first, it will work in dev and silently fail in production.
+
 ## Adding a New External Service
 
 When you add a third-party script, API, or embed:

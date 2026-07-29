@@ -71,6 +71,24 @@ export const SECURITY_HEADERS: Record<string, string> = {
   ].join('; '),
 };
 
+/**
+ * Routes that must be embeddable in a SAME-ORIGIN iframe.
+ *
+ * The site-wide default is `X-Frame-Options: DENY` + `frame-ancestors 'none'`,
+ * which forbids framing by every origin — including this one. A page whose only
+ * purpose is to be embedded therefore renders as an empty frame, with no build
+ * error and no console warning to explain it.
+ *
+ * `/brand/responsive-frame` is a `noindex` partial rendered exclusively inside
+ * the brand page's Responsive Behavior section, at three viewport widths. It
+ * holds no user data, no authenticated state and no actionable form, so relaxing
+ * it to `'self'` gives an attacker nothing: a same-origin frame can only be
+ * created by our own pages. Every other route keeps the strict default.
+ *
+ * Paths are stored without a trailing slash; the lookup normalizes.
+ */
+const SAME_ORIGIN_FRAMEABLE = new Set(['/brand/responsive-frame']);
+
 export const onRequest = defineMiddleware(async (context, next) => {
   // Discovery defense for internal endpoints. See module docstring.
   // Runs BEFORE `next()` so the route handler doesn't execute on probes;
@@ -98,6 +116,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
     }
     response.headers.set(key, value);
+  }
+
+  // Narrow exception: routes that exist to be embedded same-origin. See the
+  // SAME_ORIGIN_FRAMEABLE docblock — the site-wide default forbids framing by
+  // every origin including our own, which silently breaks such a page.
+  if (SAME_ORIGIN_FRAMEABLE.has(context.url.pathname.replace(/\/$/, ''))) {
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+    const csp = response.headers.get('Content-Security-Policy');
+    if (csp) {
+      response.headers.set(
+        'Content-Security-Policy',
+        csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'")
+      );
+    }
   }
 
   return response;
