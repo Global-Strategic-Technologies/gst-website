@@ -1003,8 +1003,11 @@ const domainCount = DOMAINS.length;
   }
 
   /* ── Back link ────────────────────────────────────────────────────────── */
+  /* No `display` here on purpose. It would out-specify `.is-hidden` (same
+     specificity, later source order), which is what previously made the
+     wizard/results hide below a no-op, and it would drop the inherited
+     `inline-flex` that centres the label inside the touch-target floor. */
   .icg-back-link {
-    display: inline-block;
     margin-top: var(--spacing-2xl);
   }
 

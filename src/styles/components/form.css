@@ -57,7 +57,7 @@ Brutalist Choice Button
     color var(--transition-fast),
     background var(--transition-fast);
   text-align: center;
-  min-height: 44px;
+  min-height: var(--touch-target-min);
   border-radius: 0;
 }
 
@@ -79,10 +79,12 @@ Brutalist Choice Button
   box-shadow: inset 0 0 0 2px var(--color-primary);
 }
 
+/* Muting is dashed border + italic only — deliberately no height override, so
+   the variant keeps the .brutal-choice-btn touch-target floor. Mirrors
+   .brutal-option-card--unsure in cards.css, which has never carried one. */
 .brutal-choice-btn--unsure {
   border-style: dashed;
   font-style: italic;
-  min-height: 36px;
 }
 
 .brutal-choice-btn--unsure.brutal-choice-btn--selected {
