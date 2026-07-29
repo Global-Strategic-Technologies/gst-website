@@ -173,6 +173,11 @@ function injectControls() {
     const initialAlpha = parseAlpha(resolved);
     const hasAlpha = initialAlpha < 1;
 
+    // The R/G/B/A sliders below are wrapped in <label>, but these two are bare
+    // inputs — 86 unlabelled controls across the 43 swatches, which axe reports
+    // as a critical `label` violation. Name them after the token they edit.
+    const swatchName = varName ?? 'swatch';
+
     const alphaDisplayHtml = hasAlpha
       ? `<span class="swatch-alpha-display">@ ${Math.round(initialAlpha * 100)}%</span>`
       : '';
@@ -184,8 +189,8 @@ function injectControls() {
     controls.className = 'swatch-controls';
     controls.innerHTML = `
       <div class="swatch-controls__row">
-        <input type="color" class="swatch-picker" value="${initialHex}" />
-        <input type="text" class="swatch-hex" value="${initialHex}" maxlength="7" spellcheck="false" />
+        <input type="color" class="swatch-picker" value="${initialHex}" aria-label="${swatchName} color picker" />
+        <input type="text" class="swatch-hex" value="${initialHex}" maxlength="7" spellcheck="false" aria-label="${swatchName} hex value" />
         ${alphaDisplayHtml}
         <button class="swatch-reset" title="Reset to palette default" type="button">&times;</button>
       </div>
@@ -507,8 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clone popout (left position) with text label
     const popoutClone = document.getElementById('panel-popout-toggle')?.cloneNode(true) as
-      | HTMLElement
-      | undefined;
+      HTMLElement | undefined;
     if (popoutClone) {
       popoutClone.removeAttribute('id');
       mobileHeader.appendChild(popoutClone);
@@ -526,8 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clone theme toggle (right position)
     const themeClone = document.getElementById('panel-theme-toggle')?.cloneNode(true) as
-      | HTMLElement
-      | undefined;
+      HTMLElement | undefined;
     if (themeClone) {
       themeClone.removeAttribute('id');
       mobileHeader.appendChild(themeClone);

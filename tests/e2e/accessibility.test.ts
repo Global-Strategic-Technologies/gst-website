@@ -1,7 +1,7 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA scanning.
  *
- * Scans 7 critical pages for accessibility violations.
+ * Scans 8 critical pages for accessibility violations.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -10,7 +10,14 @@
 import { test, expect } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
 
-const PAGES = [
+interface A11yPage {
+  name: string;
+  path: string;
+  /** Selectors dropped from the scan. Every entry needs a reason — see /brand. */
+  exclude?: string[];
+}
+
+const PAGES: A11yPage[] = [
   { name: 'Homepage', path: '/' },
   { name: 'Services', path: '/services/' },
   { name: 'About', path: '/about/' },
@@ -18,6 +25,32 @@ const PAGES = [
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
+  {
+    name: 'Brand',
+    path: '/brand/',
+    // Scoped rather than baselined into KNOWN_SERIOUS, which is documented as
+    // design debt that "can only decrease" — the wrong contract for a page whose
+    // job is exhibiting components, including deliberately non-conformant ones.
+    exclude: [
+      // 12 lazy same-origin iframes of the same document. axe scans frames by
+      // default, so whether they are loaded at scan time (engine, viewport and
+      // machine dependent) would swing the count, and one violation inside the
+      // shared document is counted once per embed. The wrapper is NOT excluded:
+      // .responsive-demo-label is real 0.6rem text that should be checked.
+      '.responsive-demo-frame iframe',
+      // Specimens that force a :hover appearance, which for the primary and
+      // secondary buttons is primary-on-transparent — low contrast ON PURPOSE.
+      // Scoped to "hover" specifically: focus/error/readonly states only alter
+      // outline and border, so they stay in scope. Their default-state twins sit
+      // beside them in the same row and are scanned normally.
+      '[data-demo-state="hover"]',
+    ],
+    // Deliberately NOT excluded: the contrast tables. The ~2.1:1 "Decorative only"
+    // row documents a ratio via a text-less swatch span, and axe's color-contrast
+    // rule only evaluates text nodes — so it was never in scope. The row's own
+    // text is --text-secondary/--text-muted (AA), and the .a11y-badge tokens are
+    // used site-wide, where a failure is real debt rather than a specimen artifact.
+  },
 ];
 
 /**
@@ -32,6 +65,15 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
   '/hub/': { 'color-contrast': 1 },
   '/hub/tools/techpar/': { 'color-contrast': 4 },
   '/hub/tools/tech-debt-calculator/': { 'color-contrast': 14 },
+  // /brand, added 2026-07-29. The intent was to land it with no baseline at all;
+  // the discovery run said otherwise, and the honest move is to record the number
+  // rather than widen the exclusions until the prediction comes true.
+  // 8 of the 13 are .a11y-badge--pass/--fail (--color-success / --color-error at
+  // --text-2xs) — site-wide semantic tokens, so this is genuine design debt and
+  // ratcheting it down means changing those tokens, not the specimen. The other 5
+  // are .brutal-tab__label, .brand-tag, .project-card__cta, .brutal-reg-card__scope
+  // and .brutal-map-tap-bar__action, all real components. Tracked in BL-096.
+  '/brand/': { 'color-contrast': 13 },
 };
 
 test.describe('Accessibility — WCAG 2.1 AA', () => {
@@ -39,7 +81,7 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
     test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
       await page.goto(pg.path, { waitUntil: 'load' });
 
-      const results = await checkA11y(page);
+      const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
 
       // Critical MUST always be zero
       if (results.critical.length > 0) {

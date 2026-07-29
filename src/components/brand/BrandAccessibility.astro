@@ -10,8 +10,8 @@
       class="brutal-text-small"
       style="margin-bottom: var(--spacing-xl); color: var(--text-muted);"
     >
-      WCAG 2.1 AA compliance reference. Focus states, contrast ratios, touch targets, keyboard
-      patterns, and semantic structure.
+      WCAG 2.1 AA compliance reference — with touch targets held to the stricter AAA 2.5.5 figure.
+      Focus states, contrast ratios, touch targets, keyboard patterns, and semantic structure.
     </p>
 
     <!-- A: Focus States -->
@@ -32,11 +32,14 @@
       </div>
       <div class="brand-state-item">
         <div class="brutal-field" style="margin-bottom: 0;">
+          <!-- No visible label in this specimen (it demonstrates the focus ring,
+               not the field pattern), so the accessible name comes from aria-label. -->
           <input
             class="brutal-field__input"
             type="text"
             value="Input field"
             data-demo-state="focus"
+            aria-label="Focus state demo field"
           />
         </div>
         <code class="brand-code">:focus (solid border)</code>
@@ -140,23 +143,29 @@
       class="brutal-text-small"
       style="margin-bottom: var(--spacing-md); color: var(--text-muted);"
     >
-      WCAG 2.5.5 requires 44&times;44px minimum touch target size. All interactive components meet
-      this requirement.
+      WCAG 2.5.5 (Level AAA) asks for a 44&times;44px minimum — stricter than the 24&times;24px of
+      AA 2.5.8. <code class="brand-code">.brutal-btn</code>, <code class="brand-code"
+        >.brutal-choice-btn</code
+      > (including <code class="brand-code">--unsure</code>) and <code class="brand-code"
+        >.cta-button</code
+      > all clear the AAA figure from the shared <code class="brand-code">--touch-target-min</code>
+      floor. Space-constrained map zoom controls are a documented exception — they meet AA, not AAA. The
+      dashed outline below is the 44&times;44 minimum drawn over each control.
     </p>
     <div class="brand-state-row">
       <div class="brand-state-item">
         <div class="a11y-touch-demo">
           <button class="brutal-btn brutal-btn--primary">Button</button>
-          <div class="a11y-touch-overlay">44&times;44</div>
+          <div class="a11y-touch-overlay" aria-hidden="true"></div>
         </div>
-        <code class="brand-code">.brutal-btn — meets minimum</code>
+        <code class="brand-code">.brutal-btn — 44&times;44 minimum</code>
       </div>
       <div class="brand-state-item">
         <div class="a11y-touch-demo">
           <button class="brutal-choice-btn" type="button">Choice</button>
-          <div class="a11y-touch-overlay">44&times;44</div>
+          <div class="a11y-touch-overlay" aria-hidden="true"></div>
         </div>
-        <code class="brand-code">.brutal-choice-btn — min-height: 44px</code>
+        <code class="brand-code">.brutal-choice-btn — 44&times;44 minimum</code>
       </div>
     </div>
 
@@ -265,7 +274,9 @@
     </p>
 
     <h3 class="brutal-heading-sm brand-group-title" id="resp-option-card">Option Card Grid</h3>
-    <div class="responsive-demo-row">
+    <!-- tabindex on the scroll container: the row is `overflow-x: auto`, so without
+         it a keyboard user cannot scroll to the frames past the viewport edge. -->
+    <div class="responsive-demo-row" tabindex="0" role="group" aria-labelledby="resp-option-card">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
         <iframe
@@ -293,7 +304,7 @@
     </div>
 
     <h3 class="brutal-heading-sm brand-group-title" id="resp-tab-bar">Tab Bar</h3>
-    <div class="responsive-demo-row">
+    <div class="responsive-demo-row" tabindex="0" role="group" aria-labelledby="resp-tab-bar">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
         <iframe
@@ -321,7 +332,7 @@
     </div>
 
     <h3 class="brutal-heading-sm brand-group-title" id="resp-form-controls">Form Controls</h3>
-    <div class="responsive-demo-row">
+    <div class="responsive-demo-row" tabindex="0" role="group" aria-labelledby="resp-form-controls">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
         <iframe
@@ -349,7 +360,7 @@
     </div>
 
     <h3 class="brutal-heading-sm brand-group-title" id="resp-tool-shell">Tool Shell</h3>
-    <div class="responsive-demo-row">
+    <div class="responsive-demo-row" tabindex="0" role="group" aria-labelledby="resp-tool-shell">
       <div class="responsive-demo-frame responsive-demo-frame--desktop">
         <span class="responsive-demo-label">1200px</span>
         <iframe

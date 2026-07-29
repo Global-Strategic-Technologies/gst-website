@@ -378,4 +378,87 @@ test.describe('Brand Page', () => {
       ).toEqual([]);
     });
   });
+
+  /**
+   * The touch-target specimens must measure what their captions claim.
+   *
+   * `.brutal-btn` had no `min-height` and computed to 33px, so the specimen's own
+   * dashed 44x44 overlay bled 5.5px above and below the button while the caption
+   * read "meets minimum" and the prose claimed every interactive component met
+   * WCAG 2.5.5. The page was rendering its own counter-evidence.
+   *
+   * /brand is the right place to assert this because it renders every variant —
+   * primary, secondary, full-width, disabled, choice and choice--unsure — in one
+   * document. The floor itself is enforced at source level by
+   * tests/integration/touch-target-floor.test.ts, which reaches the tool pages'
+   * media-query overrides that no E2E can.
+   *
+   * The visible filter is load-bearing: PalettePanel renders a `.brutal-btn` in a
+   * panel body that is `display: none` until opened, and BaseLayout puts it on
+   * every page, so an unfiltered sweep measures a 0x0 box and fails on a control
+   * the user cannot touch.
+   */
+  test.describe('Touch targets', () => {
+    const MIN = 44;
+
+    const measureUndersized = (page: import('@playwright/test').Page) =>
+      page.evaluate((min) => {
+        const bad: string[] = [];
+        for (const el of Array.from(document.querySelectorAll('.brutal-btn, .brutal-choice-btn'))) {
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 && r.height === 0) continue; // not rendered
+          if (r.width < min || r.height < min) {
+            bad.push(
+              `${el.className.trim()} = ${r.width.toFixed(1)}x${r.height.toFixed(1)} ` +
+                `("${(el.textContent ?? '').trim().slice(0, 20)}")`
+            );
+          }
+        }
+        return bad;
+      }, MIN);
+
+    for (const vp of [
+      { name: 'desktop', width: 1280, height: 900 },
+      { name: 'mobile', width: 390, height: 844 },
+    ]) {
+      test(`every visible button meets ${MIN}x${MIN} on ${vp.name}`, async ({ page }) => {
+        await page.setViewportSize({ width: vp.width, height: vp.height });
+        const undersized = await measureUndersized(page);
+        expect(
+          undersized,
+          `Buttons below the ${MIN}x${MIN} WCAG 2.5.5 floor at ${vp.width}px. A page-local ` +
+            `rule is probably out-specifying var(--touch-target-min):\n  ${undersized.join('\n  ')}`
+        ).toEqual([]);
+      });
+    }
+
+    test('the 44x44 overlay traces each specimen instead of overflowing it', async ({ page }) => {
+      const demos = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('.a11y-touch-demo')).map((demo) => {
+          const b = demo.querySelector('button')!.getBoundingClientRect();
+          const o = demo.querySelector('.a11y-touch-overlay')!.getBoundingClientRect();
+          return { bleedTop: b.top - o.top, bleedBottom: o.bottom - b.bottom };
+        })
+      );
+
+      expect(demos.length, 'touch-target specimens present').toBeGreaterThan(0);
+      for (const d of demos) {
+        // Negative bleed = overlay inside the button, which is the passing shape.
+        expect(d.bleedTop, 'overlay must not extend above the control').toBeLessThanOrEqual(0.5);
+        expect(d.bleedBottom, 'overlay must not extend below the control').toBeLessThanOrEqual(0.5);
+      }
+    });
+
+    test('the overlay is decorative and carries no text of its own', async ({ page }) => {
+      // It sits over the button's label; any text here renders as an unreadable
+      // overlap and is announced as a stray string after the button.
+      const overlays = page.locator('.a11y-touch-overlay');
+      const count = await overlays.count();
+      expect(count).toBeGreaterThan(0);
+      for (let i = 0; i < count; i++) {
+        await expect(overlays.nth(i)).toHaveAttribute('aria-hidden', 'true');
+        expect((await overlays.nth(i).textContent())?.trim()).toBe('');
+      }
+    });
+  });
 });
