@@ -321,6 +321,13 @@ test.describe('Brand Page', () => {
    * deliberate act: it says "this class is a selector for script, never a
    * styling hook". If a specimen looks wrong, the fix is the markup or the CSS,
    * never this list.
+   *
+   * Known precision limit: a class counts as "defined" if it appears anywhere in
+   * any selector, including another component's scoped rule or a descendant
+   * qualifier (`.a .b` marks both `a` and `b`). So this catches a class with no
+   * rule at all — the failure mode that shipped 28 times — but not one whose
+   * rule can never apply in this context. Tightening that would mean resolving
+   * specificity per element, which is not worth the complexity here.
    */
   test.describe('No orphan classes', () => {
     const ALLOWED_UNSTYLED = new Set([
@@ -329,7 +336,9 @@ test.describe('Brand Page', () => {
       'swatch-slider-g',
       'swatch-slider-b',
       'swatch-slider-a',
-      // JS-created span; styled entirely by its parent .palette-panel__popout rule.
+      // JS-created span (palette-manager.ts); styled entirely by its parent
+      // .palette-panel__popout rule. Asserted on by palette-panel-mobile.test.ts
+      // (~:213, :227), so it is a live selector — do not delete it as dead markup.
       'palette-panel__popout-label',
     ]);
 
