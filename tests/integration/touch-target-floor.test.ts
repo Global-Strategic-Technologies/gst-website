@@ -41,8 +41,19 @@ const REPO_ROOT = resolve(__dirname, '..', '..');
 const SRC_DIR = resolve(REPO_ROOT, 'src');
 const VARIABLES_CSS = resolve(REPO_ROOT, 'src/styles/variables.css');
 
-/** Selectors targeting a component that must honour the floor. */
-const GUARDED_SELECTOR_RE = /\.brutal-(?:btn|choice-btn)/;
+/**
+ * Selectors targeting a component BRAND_GUIDELINES claims meets the floor.
+ *
+ * Keep this in step with that claim — the failure this guard exists to prevent is a
+ * doc asserting a floor no instrument enforces. `.cta-button` is here because the
+ * docs name it, even though it currently clears 44px by padding at most widths and
+ * only carries the token below 480px.
+ *
+ * Known coupling: matching is by CLASS NAME, so a bespoke class on a button element
+ * (`.icg-back-link`, `.deploy-btn`, `.filter-button`) is outside the net even when it
+ * renders a button. Those are BL-096's audit list, not this guard's.
+ */
+const GUARDED_SELECTOR_RE = /\.(?:brutal-(?:btn|choice-btn)|cta-button)/;
 /** Properties whose value sets a lower bound on the rendered box. */
 const GUARDED_PROPS = ['min-height', 'min-width'];
 
@@ -71,18 +82,23 @@ export interface FloorViolation {
 }
 
 /**
- * Resolve a CSS length to px, or null if it isn't a plain literal we can judge.
+ * Resolve a CSS length to px, or null if it isn't a literal we can judge statically.
  *
  * Handles `!important` (the likeliest shape for the next page-local override, and
  * the one that silently slipped past the first version of this parser), unitless
- * `0`, and em/rem at the 16px root. Values we cannot resolve statically — `calc()`,
- * percentages, viewport units — return null and are not flagged; the guard's job is
- * catching plain literals, not evaluating CSS.
+ * `0`, and `rem` at the 16px root (no `html { font-size }` override exists in
+ * `src/styles/`).
+ *
+ * `em` is deliberately NOT resolved. It is relative to the element's own font-size,
+ * and `.brutal-btn` is `0.7rem` — so `3.5em` is 39.2px in the browser but would look
+ * like 56px to a 16px-based resolver. That is a false PASS at almost exactly the
+ * 33px failure this guard exists to prevent, so em joins calc/%/viewport units in
+ * returning null: decline to judge rather than judge wrongly.
  */
 export function lengthToPx(value: string): number | null {
   const bare = value.replace(/!\s*important\s*$/i, '').trim();
   if (/^0$/.test(bare)) return 0;
-  const m = /^(-?[0-9]*\.?[0-9]+)(px|r?em)$/.exec(bare);
+  const m = /^(-?[0-9]*\.?[0-9]+)(px|rem)$/.exec(bare);
   if (!m) return null;
   return m[2] === 'px' ? parseFloat(m[1]) : parseFloat(m[1]) * 16;
 }
@@ -137,7 +153,7 @@ export function findFloorViolations(
     for (const decl of rule[2].split(';')) {
       const idx = decl.indexOf(':');
       if (idx === -1) continue;
-      const prop = decl.slice(0, idx).trim();
+      const prop = decl.slice(0, idx).trim().toLowerCase();
       const value = decl.slice(idx + 1).trim();
       if (!GUARDED_PROPS.includes(prop)) continue;
 
@@ -201,11 +217,14 @@ describe('touch-target floor — parser fixtures', () => {
     expect(findFloorViolations(css, 44)[0]).toMatchObject({ px: 36 });
   });
 
-  it('flags a unitless 0 and an em value', () => {
+  it('flags a unitless 0', () => {
     expect(findFloorViolations(`.brutal-btn { min-width: 0; }`, 44)[0]).toMatchObject({ px: 0 });
-    expect(findFloorViolations(`.brutal-btn { min-height: 2em; }`, 44)[0]).toMatchObject({
-      px: 32,
-    });
+  });
+
+  it('declines to judge em, which is relative to the button own font-size', () => {
+    // .brutal-btn is 0.7rem, so 3.5em is 39.2px in the browser — a 16px-based
+    // resolver would call it 56px and wave a real violation through.
+    expect(findFloorViolations(`.brutal-btn { min-height: 3.5em; }`, 44)).toEqual([]);
   });
 
   it('follows a var() to a DIFFERENT token that resolves below the floor', () => {
@@ -261,6 +280,12 @@ describe('touch-target floor — source sweep', () => {
   it('defines --touch-target-min in variables.css', () => {
     expect(floorRaw, '--touch-target-min must exist in src/styles/variables.css').toBeDefined();
     expect(lengthToPx(floorRaw!), `--touch-target-min must be a px/rem literal`).not.toBeNull();
+    // If :root is ever split or reshaped past the parser, resolution degrades to
+    // "resolve nothing" and the sweep quietly loses its teeth. Fail loudly instead.
+    expect(
+      Object.keys(TOKENS).length,
+      'parsed :root tokens — a sharp drop means the parser stopped matching variables.css'
+    ).toBeGreaterThan(150);
   });
 
   it('has no button rule resolving below the floor', () => {

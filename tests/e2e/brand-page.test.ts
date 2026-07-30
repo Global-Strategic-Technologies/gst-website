@@ -212,7 +212,7 @@ test.describe('Brand Page', () => {
    * they load at all; a check that skips the scroll passes against empty frames.
    */
   test.describe('Responsive-demo iframes render', () => {
-    test('every frame loads content rather than being blocked', async ({ page }) => {
+    test('every frame loads content rather than being blocked, and is titled', async ({ page }) => {
       await page.locator('#responsive-demos').scrollIntoViewIfNeeded();
       const frames = page.locator('.responsive-demo-frame iframe');
       const total = await frames.count();
@@ -241,13 +241,20 @@ test.describe('Brand Page', () => {
       // would make the violation count nondeterministic and triple-counted), which
       // also drops axe's `frame-title` check. Folding it in keeps that coverage
       // without a second parallel load of /brand racing these same lazy frames.
-      const titles = await frames.evaluateAll((els) =>
-        els.map((el) => (el as HTMLIFrameElement).title?.trim() ?? '')
+      const untitled = await frames.evaluateAll((els) =>
+        els
+          .map((el, i) => ({
+            i,
+            src: (el as HTMLIFrameElement).src.split('?')[1] ?? '',
+            t: (el as HTMLIFrameElement).title?.trim() ?? '',
+          }))
+          .filter((f) => f.t.length === 0)
+          .map((f) => `frame ${f.i} (${f.src})`)
       );
       expect(
-        titles.filter((t) => t.length > 0),
-        'every demo iframe needs a title for screen-reader users'
-      ).toHaveLength(total);
+        untitled,
+        `demo iframes with no title — screen-reader users get "iframe" and nothing else:\n  ${untitled.join('\n  ')}`
+      ).toEqual([]);
     });
   });
 
@@ -401,8 +408,11 @@ test.describe('Brand Page', () => {
    * WCAG 2.5.5. The page was rendering its own counter-evidence.
    *
    * /brand is the right place to assert this because it renders every variant —
-   * primary, secondary, full-width, disabled, choice and choice--unsure — in one
-   * document. The floor itself is enforced at source level by
+   * primary, secondary, full-width, disabled, choice, choice--unsure and the
+   * marketing .cta-button — in one document. All three classes are named as meeting
+   * the floor in BRAND_GUIDELINES, so all three are measured here; a doc claiming a
+   * floor that no instrument checks is the exact defect this branch removes.
+   * The floor itself is enforced at source level by
    * tests/integration/touch-target-floor.test.ts, which reaches the tool pages'
    * media-query overrides that no E2E can.
    *
@@ -417,7 +427,8 @@ test.describe('Brand Page', () => {
     const measureUndersized = (page: import('@playwright/test').Page) =>
       page.evaluate((min) => {
         const bad: string[] = [];
-        for (const el of Array.from(document.querySelectorAll('.brutal-btn, .brutal-choice-btn'))) {
+        const guarded = '.brutal-btn, .brutal-choice-btn, .cta-button';
+        for (const el of Array.from(document.querySelectorAll(guarded))) {
           const r = el.getBoundingClientRect();
           if (r.width === 0 && r.height === 0) continue; // not rendered
           if (r.width < min || r.height < min) {

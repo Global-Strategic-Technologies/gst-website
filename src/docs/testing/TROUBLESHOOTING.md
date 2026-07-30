@@ -123,6 +123,27 @@ See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readin
    npx playwright test -g "test name" --repeat-each=5
    ```
 
+### "A UI region renders empty and the test fails locally, but CI is green"
+
+**Likely cause:** a long-lived dev server whose Vite module graph has gone stale after many HMR cycles — **not** your change.
+
+Playwright's `webServer` uses `reuseExistingServer: !process.env.CI`, so locally it attaches to whatever server is already on :4321. After an editing session with dozens of hot reloads, Vite can start serving `504 (Outdated Optimize Dep)` for a lazily-imported chunk. The page still loads and the element still exists — it is just **empty**, because the code that fills it never ran.
+
+This is easy to misread as a real regression, because the symptom is silent. TechPar's trajectory legend is the known example: `renderTrajectory` lazy-imports Chart.js and populates `[data-traj-legend]` inside a `try/catch` that reports to Sentry, so a failed import produces an empty legend with **no console error and no test-visible exception**. The same shape hit the ICG wizard (the whole `[data-view="wizard"]` never initialised).
+
+**Confirm it is environmental, in this order — cheapest first:**
+
+1. Check CI on the same commit. If `Test Suite` is green there, stop suspecting your diff.
+2. `git stash` and run the same test on a clean tree. Still failing → not your change.
+3. Restart clean and re-run:
+   ```bash
+   # stop whatever is on :4321, then
+   rm -rf node_modules/.vite
+   npm run dev
+   ```
+
+Only after all three still fail is it worth debugging the feature. Note the reverse trap too: Astro's dev server **detaches**, so `npm run dev` returns immediately and Playwright may race a server that is not listening yet — wait for the port before invoking the suite.
+
 ### "Coverage report is missing"
 
 **Solution:**

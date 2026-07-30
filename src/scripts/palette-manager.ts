@@ -175,8 +175,10 @@ function injectControls() {
 
     // The R/G/B/A sliders below are wrapped in <label>, but these two are bare
     // inputs — 86 unlabelled controls across the 43 swatches, which axe reports
-    // as a critical `label` violation. Name them after the token they edit.
-    const swatchName = varName ?? 'swatch';
+    // as a critical `label` violation. Name them after the token they edit, with
+    // the leading `--` stripped so a screen reader says "color primary color
+    // picker" rather than opening with two dashes.
+    const swatchName = varName?.replace(/^--/, '') ?? 'swatch';
 
     const alphaDisplayHtml = hasAlpha
       ? `<span class="swatch-alpha-display">@ ${Math.round(initialAlpha * 100)}%</span>`

@@ -70,14 +70,15 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
   // rather than widen the exclusions until the prediction comes true.
   //
   // 8 of the 13 are .a11y-badge--pass/--fail, which IS page-local (styled in
-  // brand.astro, used only in BrandAccessibility.astro) — so the obvious fix is
-  // to restyle the badge here. That does not work: contrast ratio is symmetric,
-  // so filling the badge with the semantic token and using the page background as
-  // the text colour produces the same colour pair and the identical ratio
-  // (--color-success on white is 4.25:1 either way). The real levers are the token
-  // values themselves (site-wide) or the badge's type size — 2xs is well under the
-  // 14px-bold "large text" threshold that would relax this to 3:1. Both are design
-  // calls, so they go to BL-096 rather than getting decided here.
+  // brand.astro, used only in BrandAccessibility.astro). What does NOT work is
+  // merely inverting it: contrast ratio is symmetric, so filling the badge with the
+  // semantic token and using the page background as text colour is the same colour
+  // pair and the identical 4.25:1 for --color-success on white. A filled badge with
+  // a DIFFERENT foreground is a real option (#000 on #2e8b57 is 4.95:1), as are
+  // changing the token light values or clearing WCAG's large-text threshold — which
+  // is 18.66px bold, not 14px, so --text-2xs is nowhere near it. All three are
+  // design calls on a page whose job is exhibiting the system, so they go to BL-096
+  // rather than getting decided inside a touch-target change.
   //
   // The other 5 are .brutal-tab__label, .brand-tag, .project-card__cta,
   // .brutal-reg-card__scope and .brutal-map-tap-bar__action — real components,
