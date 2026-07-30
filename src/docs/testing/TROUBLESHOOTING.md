@@ -138,13 +138,18 @@ This is easy to misread as a real regression, because the symptom is silent. Tec
 3. Restart clean and re-run:
    ```bash
    # stop whatever is on :4321, then
-   rm -rf node_modules/.vite
+   rm -rf node_modules/.vite .astro
    npm run dev
    ```
+   Clear the caches only for **this** failure mode — a stale graph. For an ordinary
+   first-run-of-the-day timeout, deleting `.vite` forces a full re-optimization and
+   makes the next run slower for no benefit; just re-run instead.
 
 Only after all three still fail is it worth debugging the feature.
 
-**Two adjacent traps when starting the server yourself.** `npm run dev` is `astro dev`, and the launching process exits while a server keeps listening — verified by watching a background job report `Completed` while `:4321` still answered 200. Playwright reports that as `Error: Process from config.webServer exited early`. And if nothing is bound to 4321 yet when Playwright starts its own, Astro auto-increments to **4322**, leaving two servers up while the suite talks to neither the one you were watching nor the one you expected. Wait for the port to answer before invoking the suite.
+**Two adjacent traps when starting the server yourself.** On Windows (observed; the wrapper's behaviour differs by platform, and a Linux launcher will typically block), `npm run dev` returns while a server keeps listening — verified by watching a background job report `Completed` while `:4321` still answered 200. Playwright races process-exit against URL-availability and reports that as `Error: Process from config.webServer exited early`, even though a server is up. Separately, if nothing is bound to 4321 yet when Playwright starts its own, Astro auto-increments to **4322**, leaving two servers up while the suite talks to neither the one you were watching nor the one you expected. Wait for the port to answer before invoking the suite.
+
+**One known intermittent, already audited — do not re-derive it.** The three "Not sure" tests in `diligence-machine.test.ts` (§12) fail occasionally in a large multi-file run and pass on the immediate repeat, in isolation, and on master. It is **not** the readiness-signal defect below: that entry's own gate comes back clean here, because `data-restored="true"` is emitted at `index.astro:1788` while every `addEventListener` sits between `:1146` and `:1775` — the signal tells the truth. What remains is first-run contention. Seen four times across two sessions as of 2026-07-30; re-run before investigating.
 
 ### "Coverage report is missing"
 
