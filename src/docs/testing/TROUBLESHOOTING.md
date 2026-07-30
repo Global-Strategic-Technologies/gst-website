@@ -127,14 +127,14 @@ See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readin
 
 **Likely cause:** a long-lived dev server whose Vite module graph has gone stale after many HMR cycles — **not** your change.
 
-Playwright's `webServer` uses `reuseExistingServer: !process.env.CI`, so locally it attaches to whatever server is already on :4321. After an editing session with dozens of hot reloads, Vite can start serving `504 (Outdated Optimize Dep)` for a lazily-imported chunk. The page still loads and the element still exists — it is just **empty**, because the code that fills it never ran.
+Playwright's `webServer` uses `reuseExistingServer: !process.env.CI`, so locally it attaches to whatever server is already on :4321. After an editing session with dozens of hot reloads, Vite can start serving `504 (Outdated Optimize Dep)` for a chunk in a client script — lazily imported or static. The page still loads and the element still exists — it is just **empty**, because the code that fills it never ran.
 
-This is easy to misread as a real regression, because the symptom is silent. TechPar's trajectory legend is the known example: `renderTrajectory` lazy-imports Chart.js and populates `[data-traj-legend]` inside a `try/catch` that reports to Sentry, so a failed import produces an empty legend with **no console error and no test-visible exception**. The same shape hit the ICG wizard (the whole `[data-view="wizard"]` never initialised).
+This is easy to misread as a real regression, because the symptom is silent. TechPar's trajectory legend is the known example: `renderTrajectory` (`src/utils/techpar/chart.ts`) awaits a dynamic `import('chart.js')` and only then fills `[data-traj-legend]`, all inside a `try/catch` whose handler calls `Sentry.captureException` and nothing else — so a failed import yields an empty legend with **no console error and no test-visible exception**. The same shape emptied the ICG wizard, where the whole client module failed and `[data-view="wizard"]` never initialised.
 
 **Confirm it is environmental, in this order — cheapest first:**
 
 1. Check CI on the same commit. If `Test Suite` is green there, stop suspecting your diff.
-2. `git stash` and run the same test on a clean tree. Still failing → not your change.
+2. Run the same test against an unmodified tree — `git stash` if your work is uncommitted, `git checkout master` if it is already committed. (`git stash` is a no-op on committed work, so skipping this distinction gives you a confident-looking result from the tree you were trying to rule out.)
 3. Restart clean and re-run:
    ```bash
    # stop whatever is on :4321, then
@@ -142,7 +142,9 @@ This is easy to misread as a real regression, because the symptom is silent. Tec
    npm run dev
    ```
 
-Only after all three still fail is it worth debugging the feature. Note the reverse trap too: Astro's dev server **detaches**, so `npm run dev` returns immediately and Playwright may race a server that is not listening yet — wait for the port before invoking the suite.
+Only after all three still fail is it worth debugging the feature.
+
+**Two adjacent traps when starting the server yourself.** `npm run dev` is `astro dev`, and the launching process exits while a server keeps listening — verified by watching a background job report `Completed` while `:4321` still answered 200. Playwright reports that as `Error: Process from config.webServer exited early`. And if nothing is bound to 4321 yet when Playwright starts its own, Astro auto-increments to **4322**, leaving two servers up while the suite talks to neither the one you were watching nor the one you expected. Wait for the port to answer before invoking the suite.
 
 ### "Coverage report is missing"
 

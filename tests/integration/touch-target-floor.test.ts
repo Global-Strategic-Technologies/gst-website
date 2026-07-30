@@ -26,6 +26,17 @@
  *     32px one through in silence.
  *   - Only `min-height` / `min-width` are checked. A fixed `height` below the floor is
  *     a different (and rarer) shape; see BL-096.
+ *   - `min-width: 0` IS flagged, even though it is a common flex-shrink idiom rather
+ *     than a touch-target statement. On a guarded selector it is worth a look, and a
+ *     deliberate one can say so in the same breath as widening this comment.
+ *   - Native CSS nesting would defeat the innermost-brace match (an outer declaration
+ *     gets absorbed into the nested rule's prelude). The repo uses none today; if that
+ *     changes, this parser needs revisiting before it can be trusted.
+ *
+ * Structural limit worth knowing: this is a DECLARED-VALUE scan. It can only judge a
+ * declaration that exists, so it catches an override that resolves too low — it can
+ * never catch a component with no floor at all, which is exactly how `.brutal-btn`
+ * sat at 33px. That gap belongs to the /brand geometry E2E, not here.
  *
  * No CSS parsing library is a dependency of this repo (by design — see
  * `docs-link-integrity.test.ts`), so the scanner is hand-rolled and proven against

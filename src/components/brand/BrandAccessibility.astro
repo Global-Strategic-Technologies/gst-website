@@ -146,11 +146,12 @@
       WCAG 2.5.5 (Level AAA) asks for a 44&times;44px minimum — stricter than the 24&times;24px of
       AA 2.5.8. <code class="brand-code">.brutal-btn</code>, <code class="brand-code"
         >.brutal-choice-btn</code
-      > (including <code class="brand-code">--unsure</code>) and <code class="brand-code"
-        >.cta-button</code
-      > all clear the AAA figure from the shared <code class="brand-code">--touch-target-min</code>
-      floor. Space-constrained map zoom controls are a documented exception — they meet AA, not AAA. The
-      dashed outline below is the 44&times;44 minimum drawn over each control.
+      > (including <code class="brand-code">--unsure</code>) take the shared <code
+        class="brand-code">--touch-target-min</code
+      > floor directly; <code class="brand-code">.cta-button</code> clears the same figure from its own
+      padding above 480px and the token below it. Space-constrained map zoom controls are a documented
+      exception — they meet AA, not AAA. The dashed outline below is the 44&times;44 minimum drawn over
+      each control.
     </p>
     <div class="brand-state-row">
       <div class="brand-state-item">

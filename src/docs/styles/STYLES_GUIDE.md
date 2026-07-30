@@ -439,7 +439,7 @@ Interactive controls clear **44×44px** — WCAG 2.5.5, Level AAA. Use the `--to
 }
 ```
 
-It is a **floor, not a fixed size**. Components may sit above it where the design calls for it — the ICG wizard nav uses 48px, the diligence-machine document action uses 52px — and those stay as they are. What must never happen is a page-local rule resolving *below* it: `.brutal-choice-btn--unsure` (36px) and a techpar mobile action bar (40px) both did exactly that, silently out-specifying the base rule. [touch-target-floor.test.ts](../../../tests/integration/touch-target-floor.test.ts) now fails on any `min-height` under the token for a `brutal-btn` / `brutal-choice-btn` selector, including inside Astro `<style>` blocks.
+It is a **floor, not a fixed size**. Components may sit above it where the design calls for it — the ICG wizard nav uses 48px, the diligence-machine document action uses 52px — and those stay as they are. What must never happen is a page-local rule resolving *below* it: `.brutal-choice-btn--unsure` (36px) and a techpar mobile action bar (40px) both did exactly that, silently out-specifying the base rule. [touch-target-floor.test.ts](../../../tests/integration/touch-target-floor.test.ts) now fails on any `min-height` / `min-width` that resolves under the token for a `brutal-btn`, `brutal-choice-btn` or `cta-button` selector, including inside Astro `<style>` blocks. It scans declarations that exist, so it catches a bad override — it cannot tell you a component has no floor at all, which is the shape that let `.brutal-btn` sit at 33px in the first place.
 
 Beware `display` overrides on a button that inherits the floor: swapping `inline-flex` for `inline-block` drops `align-items: center`, leaving the label top-aligned above dead space.
 
