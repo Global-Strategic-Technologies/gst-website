@@ -21,10 +21,17 @@
  * retained in Phase A; Phase B (post-soak) deletes them. No runtime
  * feature flag — git is the source of truth for the rollback.
  *
- * Used with `server:defer` so the page shell (header, nav, category filter)
- * renders instantly while this component fetches from the MCP Worker.
- * No props — data fetching is self-contained to avoid prop serialization
- * limits imposed by server islands.
+ * Rendered INLINE, not as a `server:defer` island — the feed IS the page's
+ * substance, and deferring it served crawlers a bare shell. See RADAR.md
+ * § "Why the feed is not a server island".
+ *
+ * No props — data fetching is self-contained. (Originally to dodge server-island
+ * prop-serialization limits; kept because it keeps the fetch next to its use.)
+ *
+ * The fetch below is on the page's critical path, so it MUST stay bounded:
+ * undici defaults to a 300s timeout and this function sets no `maxDuration`,
+ * so an unbounded call to a hung Worker would 5xx the very crawler this
+ * inlining exists to serve — strictly worse than the shell it replaced.
  */
 import FyiItem from './FyiItem.astro';
 import WireItem from './WireItem.astro';
@@ -68,11 +75,19 @@ if (!RADAR_BEARER) {
   );
 } else {
   try {
+    // 5s is a conservative bound, not a measured p95 of THIS path: the nearest
+    // available proxies are cron-radar p95 <= 899ms (ARCHITECTURE.md § SLO
+    // baselines, a section that explicitly defers tool/resource latency SLOs)
+    // and ~930ms client-observed search_radar p95 from GRU (LATENCY_PROBE.md).
+    // Neither measures Vercel-function -> Worker /radar/snapshot. Wide enough
+    // that a slow-but-working Worker is not cut off and its empty result cached
+    // for 6h; tight enough that a hung one cannot 5xx the page.
     const res = await fetch(RADAR_SNAPSHOT_URL, {
       headers: {
         Authorization: `Bearer ${RADAR_BEARER}`,
         Accept: 'application/json',
       },
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) {
       console.error(`[Radar] MCP /radar/snapshot returned ${res.status} ${res.statusText}`);
@@ -132,7 +147,14 @@ if (!RADAR_BEARER) {
       }
     }
   } catch (e) {
-    console.error('[Radar] MCP /radar/snapshot fetch threw:', e);
+    // Name the timeout explicitly: an AbortError here means the 5s bound above
+    // fired, which is operationally different from a network or parse failure
+    // and is the case most likely to cache an empty feed for a full ISR window.
+    if (e instanceof Error && e.name === 'TimeoutError') {
+      console.error('[Radar] MCP /radar/snapshot timed out after 5000ms — rendering empty feed.');
+    } else {
+      console.error('[Radar] MCP /radar/snapshot fetch threw:', e);
+    }
   }
 }
 

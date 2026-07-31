@@ -2,9 +2,18 @@
 /**
  * /hub/radar — The Radar: Curated Intelligence Feed
  *
- * SERVER-RENDERED with ISR. The page shell (header, nav, category filter)
- * renders instantly. The feed content is a server island (`server:defer`)
- * that fetches from the Inoreader API and streams in when ready.
+ * SERVER-RENDERED with ISR. The feed is rendered INLINE — deliberately not a
+ * server island. Under `server:defer` the initial HTML carried only the shell
+ * (~44 words of nav and headings, measured); the feed arrived via a second
+ * JS-initiated request. Googlebot executes JS on a deferred queue, so a page
+ * whose substance lives entirely in that payload gets judged on the shell —
+ * which is why this route sat unindexed. See RADAR.md § "Why the feed is not
+ * a server island" before reintroducing `server:defer`.
+ *
+ * Trade-off accepted, not overlooked: inlining moves the fetch inside the
+ * cached ISR entry, so a failed revalidation bakes the empty state into a 200
+ * for up to 6h where the uncached island self-healed on the next request.
+ * Tracked as BL-098.
  *
  * Content tiers (rendered in a single unified feed):
  *   1. FYI — Annotated items from Inoreader (highlights + GST Take)
@@ -15,7 +24,6 @@ export const prerender = false;
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import RadarHeader from '../../../components/radar/RadarHeader.astro';
 import RadarFeed from '../../../components/radar/RadarFeed.astro';
-import RadarFeedSkeleton from '../../../components/radar/RadarFeedSkeleton.astro';
 import CategoryFilter from '../../../components/radar/CategoryFilter.astro';
 import PrintReportHeader from '../../../components/PrintReportHeader.astro';
 
@@ -38,9 +46,7 @@ import { CATEGORIES } from '../../../lib/inoreader/transform';
 
       <CategoryFilter categories={CATEGORIES} />
 
-      <RadarFeed server:defer>
-        <RadarFeedSkeleton slot="fallback" />
-      </RadarFeed>
+      <RadarFeed />
 
       <a href="/hub/" class="cta-button secondary">Return to Hub</a>
     </div>
