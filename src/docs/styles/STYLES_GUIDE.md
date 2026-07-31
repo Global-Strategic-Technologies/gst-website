@@ -615,11 +615,13 @@ Hub tools use the standardized `.brutal-tool-shell` class defined in `global.css
 
 ### Skeleton Loading Placeholders
 
-For components that load content asynchronously (API calls, server islands), use the skeleton loading pattern. The `@keyframes pulse` animation is already defined in `global.css` (line 137).
+For components that load content asynchronously, use the skeleton loading pattern. The `@keyframes pulse` animation and the classes below are defined in [`src/styles/components/skeleton.css`](../../styles/components/skeleton.css).
 
-**Canonical reference**: `src/components/radar/RadarFeedSkeleton.astro`
+**Canonical reference**: the live specimens on [`/brand`](../../pages/brand.astro) — see `src/components/brand/BrandComponents.astro`, which is the in-repo control example for this pattern.
 
-**Global classes** (defined in `global.css`):
+> Do **not** reach for a skeleton to defer a page's primary content. `/hub/radar` used to do exactly that via a `server:defer` island, and crawlers judged the shell rather than the feed, leaving the page unindexed. Skeletons are for secondary content that genuinely arrives later. See [RADAR.md § Why the feed is not a server island](../hub/RADAR.md).
+
+**Global classes**:
 
 | Class               | Description                                   |
 | ------------------- | --------------------------------------------- |

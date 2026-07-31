@@ -20,9 +20,29 @@ Both tiers render in a **single unified feed**, sorted chronologically (FYI by a
 ### Rendering Model
 
 - **Radar page** (`/hub/radar`): Server-rendered with Vercel ISR (6-hour cache)
-- **RadarFeed**: Loaded as an Astro **server island** (`server:defer`) — the page shell (header, category filter, footer) renders instantly while the feed streams in asynchronously
-- **RadarFeedSkeleton**: Placeholder shown in the server island's `slot="fallback"` while feed data loads — renders 6 pulsing skeleton items mimicking wire-item layout
+- **RadarFeed**: Rendered **inline** — its markup is in the initial HTML response. Deliberately _not_ a server island; see below
 - **All other pages**: Unchanged, remain fully static
+
+### Why the feed is not a server island
+
+The feed used to be an Astro server island (`server:defer`) with a skeleton in `slot="fallback"`, so the shell painted instantly and the feed streamed in. That is a good pattern for secondary content and the wrong one here, because **the feed is the page's entire substance**.
+
+Under `server:defer` the initial HTML carried roughly 44 words — nav, heading, filter pills — and every item arrived via a second JS-initiated request. Googlebot executes JavaScript, but on a deferred queue, so the page was repeatedly judged on the shell and sat unindexed in Search Console. Inlining puts the items in the first response.
+
+`RadarFeedSkeleton.astro` was deleted with the island; nothing else used it. The generic `.skeleton-*` utilities in `src/styles/components/skeleton.css` are unaffected and still used elsewhere.
+
+**Do not reintroduce `server:defer` here.** Two guards will fail: a source tripwire in `tests/unit/indexability.test.ts`, and — more importantly — a behavioural check in `tests/e2e/radar-page.test.ts` that fetches the raw HTML without executing scripts and asserts the island marker is absent and RadarFeed's markup is present.
+
+### Accepted trade-off: negative caching
+
+Inlining moves the MCP fetch inside the cached ISR entry, and that changes both paths:
+
+- **Failure path.** A failed revalidation now bakes the empty state into a `200` for up to 6 hours. The island did not have this problem: `@astrojs/vercel` routes `/_server-islands/*` to the uncached render function, so a failed island self-healed on the next request. This is tracked as **BL-098** and is accepted, not overlooked.
+- **Success path.** The feed was previously re-fetched on _every_ pageview; it is now fetched once per revalidation. Worst-case content age roughly doubles — the 6h ISR window on top of the Worker's own 6h cron — which sits exactly at the `snapshot age ≤ 12h` SLO recorded in the MCP server's ARCHITECTURE.md. The compensating win is that Worker load drops from per-pageview to per-revalidation.
+
+A future fix must first distinguish a **failed** fetch from a **legitimately empty** feed — today both render identically, which is precisely why "just don't cache the empty case" is not implementable as stated. Note also that BL-091 (circuit-breaker serves cached radar) does **not** make this degrade safely: breaker-open is cache-only, so a cold cache still renders empty.
+
+The fetch carries a 5s `AbortSignal.timeout`. Without it an unbounded call to a hung Worker would 5xx the very crawler this inlining exists to serve — undici defaults to 300s and the function sets no `maxDuration`.
 
 ### Data Flow
 
@@ -33,10 +53,10 @@ Inoreader API ──► MCP Worker (mcp.globalstrategic.tech)
                   • cron pre-warm every 6h (cron/radar-refresh.ts)
                        │
                        ▼
-                  RadarFeed server island (Vercel SSR)
+                  RadarFeed, rendered inline (Vercel SSR, 5s fetch timeout)
                        │
                        ▼
-                  Vercel ISR cache (6h) ──► Visitors
+                  Vercel ISR cache (6h) ──► Visitors + crawlers
 ```
 
 The website is a downstream consumer of the MCP Worker, not a parallel Inoreader caller (BL-032.8 Phase B, 2026-05-17). All Inoreader budget protections (rate-limit, breaker, day-counter, 429 header observability) apply to website traffic automatically.
@@ -136,8 +156,7 @@ The category filter pills (`CategoryFilter.astro`) use a gravitational spacing e
 src/
 ├── components/radar/
 │   ├── RadarHeader.astro         # Page header with breadcrumb + Santiago timestamp
-│   ├── RadarFeed.astro           # Server island — fetches and renders unified feed
-│   ├── RadarFeedSkeleton.astro   # Skeleton placeholder while server island loads
+│   ├── RadarFeed.astro           # Fetches and renders the unified feed INLINE (not an island)
 │   ├── FyiItem.astro             # Collapsible FYI item with GST Take
 │   ├── WireItem.astro            # Compact wire feed item
 │   └── CategoryFilter.astro     # Client-side filter pills (gravity spacing)

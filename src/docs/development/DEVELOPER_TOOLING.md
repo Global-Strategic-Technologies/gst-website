@@ -501,7 +501,7 @@ All environment variables are declared in `astro.config.mjs` → `env.schema` us
 ### Rules
 
 - **Never use `process.env` in `src/`** — ESLint `no-restricted-properties` enforces this. Use `astro:env/server` or `astro:env/client` instead.
-- **Server secrets** (`access: "secret"`) are never inlined into the build output. They're resolved at runtime by the Vercel adapter, which is why server islands (`server:defer`) work safely.
+- **Server secrets** (`access: "secret"`) are never inlined into the build output. They're resolved at runtime by the Vercel adapter — which is what lets an SSR component like `RadarFeed.astro` read `MCP_KEY_WEBSITE_RADAR` from `astro:env/server` and fetch with it during render. (This rule previously cited server islands as the example; the repo has no `server:defer` usages left — see [RADAR.md § Why the feed is not a server island](../hub/RADAR.md).)
 - **Public vars** (`access: "public"`) are inlined at build time. Use the `PUBLIC_` prefix convention.
 - **`.env` file** is for local development only (loaded by Astro dev server). Production vars are set in Vercel dashboard.
 - **`.env.example`** documents all vars with placeholder values. Keep it in sync when adding new vars.

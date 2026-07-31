@@ -232,6 +232,7 @@ The following expertise areas are indexed for semantic search:
 <meta name="robots" content="index, follow" />
 ```
 - Allows search engines to index and follow links
+- Pass `noindex` to `BaseLayout` to emit `noindex, follow` instead — see [SEO_COMPONENT.md § Keeping a page out of the index](./SEO_COMPONENT.md). Every `noindex` page must also be excluded in `src/utils/sitemap-filter.ts`
 
 **Canonical URL**
 ```html
@@ -284,32 +285,17 @@ Open Graph tags control how the site appears when shared on social platforms. Es
 
 ## Sitemap & Robots
 
-### Sitemap.xml
+### Sitemap
 
-Location: `public/sitemap.xml`
+**Generated at build time** by `@astrojs/sitemap`. There is no checked-in `public/sitemap.xml` — do not add one.
 
-**Purpose**: Informs search engines of all pages available for indexing.
+**Submit `https://globalstrategic.tech/sitemap-index.xml`** to Search Console. The integration emits a sitemap _index_ plus per-batch children (`sitemap-0.xml`, …), and `public/robots.txt` already points there.
 
-**Content**:
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url>
-        <loc>https://globalstrategic.tech/</loc>
-        <lastmod>2026-02-04</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>1.0</priority>
-    </url>
-    <url>
-        <loc>https://globalstrategic.tech/services</loc>
-        <lastmod>2026-02-04</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.8</priority>
-    </url>
-</urlset>
-```
+> **Submitting `/sitemap.xml` instead is the known cause of a duplicate, permanently-stale entry in Search Console.** That path 301s to the index (`vercel.json`), so it is harmless but never updates, and it lingers in the Sitemaps report showing whatever page count it first saw. If you see two sitemaps listed, remove the `/sitemap.xml` one. This doc previously described a static `public/sitemap.xml` and told readers to submit that URL, which is almost certainly how the duplicate got submitted.
 
-**Maintenance**: Update `lastmod` dates when content changes.
+**What is excluded**: [`src/utils/sitemap-filter.ts`](../../utils/sitemap-filter.ts). Every page rendered with `noindex` must appear there; see [SEO_COMPONENT.md](./SEO_COMPONENT.md) for the pairing table.
+
+**Maintenance**: none. `lastmod` and the URL list come from the build.
 
 ### Robots.txt
 
@@ -322,7 +308,7 @@ Location: `public/robots.txt`
 User-agent: *
 Allow: /
 
-Sitemap: https://globalstrategic.tech/sitemap.xml
+Sitemap: https://globalstrategic.tech/sitemap-index.xml
 ```
 
 **Directives**:
@@ -500,7 +486,9 @@ Steps:
 
 **Check Sitemap Structure**:
 ```bash
-curl https://globalstrategic.tech/sitemap.xml
+# The index, then the child file it references
+curl https://globalstrategic.tech/sitemap-index.xml
+curl -s https://globalstrategic.tech/sitemap-0.xml | grep -o "<loc>[^<]*</loc>"
 ```
 
 **Submit to Google Search Console**:
@@ -545,7 +533,7 @@ The SEO implementation has **zero negative performance impact**:
 - ✅ JSON-LD is render-blocked (no visual rendering)
 - ✅ Meta tags are non-blocking
 - ✅ No additional JavaScript required
-- ✅ Sitemap and robots.txt are static files
+- ✅ `robots.txt` is a static file; the sitemap is generated at build time (no runtime cost either way)
 - ✅ All 432 tests pass with no performance regression
 
 ## Enhanced Social Media Features (February 2026)
