@@ -123,6 +123,34 @@ See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readin
    npx playwright test -g "test name" --repeat-each=5
    ```
 
+### "A UI region renders empty and the test fails locally, but CI is green"
+
+**Likely cause:** a long-lived dev server whose Vite module graph has gone stale after many HMR cycles — **not** your change.
+
+Playwright's `webServer` uses `reuseExistingServer: !process.env.CI`, so locally it attaches to whatever server is already on :4321. After an editing session with dozens of hot reloads, Vite can start serving `504 (Outdated Optimize Dep)` for a chunk in a client script — lazily imported or static. The page still loads and the element still exists — it is just **empty**, because the code that fills it never ran.
+
+This is easy to misread as a real regression, because the symptom is silent. TechPar's trajectory legend is the known example: `renderTrajectory` (`src/utils/techpar/chart.ts`) awaits a dynamic `import('chart.js')` and only then fills `[data-traj-legend]`, all inside a `try/catch` whose handler calls `Sentry.captureException` and nothing else — so a failed import yields an empty legend with **no console error and no test-visible exception**. The same shape emptied the ICG wizard, where the whole client module failed and `[data-view="wizard"]` never initialised.
+
+**Confirm it is environmental, in this order — cheapest first:**
+
+1. Check CI on the same commit. If `Test Suite` is green there, stop suspecting your diff.
+2. Run the same test against an unmodified tree — `git stash` if your work is uncommitted, `git checkout master` if it is already committed. (`git stash` is a no-op on committed work, so skipping this distinction gives you a confident-looking result from the tree you were trying to rule out.)
+3. Restart clean and re-run:
+   ```bash
+   # stop whatever is on :4321, then
+   rm -rf node_modules/.vite .astro
+   npm run dev
+   ```
+   Clear the caches only for **this** failure mode — a stale graph. For an ordinary
+   first-run-of-the-day timeout, deleting `.vite` forces a full re-optimization and
+   makes the next run slower for no benefit; just re-run instead.
+
+Only after all three still fail is it worth debugging the feature.
+
+**Two adjacent traps when starting the server yourself.** On Windows (observed; the wrapper's behaviour differs by platform, and a Linux launcher will typically block), `npm run dev` returns while a server keeps listening — verified by watching a background job report `Completed` while `:4321` still answered 200. Playwright races process-exit against URL-availability and reports that as `Error: Process from config.webServer exited early`, even though a server is up. Separately, if nothing is bound to 4321 yet when Playwright starts its own, Astro auto-increments to **4322**, leaving two servers up while the suite talks to neither the one you were watching nor the one you expected. Wait for the port to answer before invoking the suite.
+
+**One known intermittent, already audited — do not re-derive it.** The three "Not sure" tests in `diligence-machine.test.ts` (§12) fail occasionally in a large multi-file run and pass on the immediate repeat, in isolation, and on master. It is **not** the readiness-signal defect described under ["Test passes in isolation but fails in the full suite"](#test-passes-in-isolation-but-fails-in-the-full-suite-parallel-load-flake): that entry's own gate comes back clean here, because `data-restored="true"` is emitted at `index.astro:1788` while every `addEventListener` sits between `:1146` and `:1775` — the signal tells the truth. What remains is first-run contention. Seen four times across two sessions as of 2026-07-30; re-run before investigating.
+
 ### "Coverage report is missing"
 
 **Solution:**

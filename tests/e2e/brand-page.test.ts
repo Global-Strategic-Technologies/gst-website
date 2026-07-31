@@ -212,7 +212,7 @@ test.describe('Brand Page', () => {
    * they load at all; a check that skips the scroll passes against empty frames.
    */
   test.describe('Responsive-demo iframes render', () => {
-    test('every frame loads content rather than being blocked', async ({ page }) => {
+    test('every frame loads content rather than being blocked, and is titled', async ({ page }) => {
       await page.locator('#responsive-demos').scrollIntoViewIfNeeded();
       const frames = page.locator('.responsive-demo-frame iframe');
       const total = await frames.count();
@@ -235,6 +235,26 @@ test.describe('Brand Page', () => {
           { message: 'iframes rendering content — framing blocked by security headers?' }
         )
         .toBe(total);
+
+      // Asserted here rather than in its own test: the axe scan excludes
+      // `.responsive-demo-frame iframe` (12 lazy same-origin frames of one document
+      // would make the violation count nondeterministic and triple-counted), which
+      // also drops axe's `frame-title` check. Folding it in keeps that coverage
+      // without a second parallel load of /brand racing these same lazy frames.
+      const untitled = await frames.evaluateAll((els) =>
+        els
+          .map((el, i) => ({
+            i,
+            src: (el as HTMLIFrameElement).src.split('?')[1] ?? '',
+            t: (el as HTMLIFrameElement).title?.trim() ?? '',
+          }))
+          .filter((f) => f.t.length === 0)
+          .map((f) => `frame ${f.i} (${f.src})`)
+      );
+      expect(
+        untitled,
+        `demo iframes with no title — screen-reader users get "iframe" and nothing else:\n  ${untitled.join('\n  ')}`
+      ).toEqual([]);
     });
   });
 
@@ -376,6 +396,93 @@ test.describe('Brand Page', () => {
           `unstyled while its label documents the class. Repoint the markup at the real ` +
           `class, or add the rule. Only add to ALLOWED_UNSTYLED if it is purely a JS hook.`
       ).toEqual([]);
+    });
+  });
+
+  /**
+   * The touch-target specimens must measure what their captions claim.
+   *
+   * `.brutal-btn` had no `min-height` and computed to 33px, so the specimen's own
+   * dashed 44x44 overlay bled 5.5px above and below the button while the caption
+   * read "meets minimum" and the prose claimed every interactive component met
+   * WCAG 2.5.5. The page was rendering its own counter-evidence.
+   *
+   * /brand is the right place to assert this because it renders every variant —
+   * primary, secondary, full-width, disabled, choice, choice--unsure and the
+   * marketing .cta-button — in one document. All three classes are named as meeting
+   * the floor in BRAND_GUIDELINES, so all three are measured here; a doc claiming a
+   * floor that no instrument checks is the exact defect this branch removes.
+   * The floor itself is enforced at source level by
+   * tests/integration/touch-target-floor.test.ts, which reaches the tool pages'
+   * media-query overrides that no E2E can.
+   *
+   * The visible filter is load-bearing: PalettePanel renders a `.brutal-btn` in a
+   * panel body that is `display: none` until opened, and BaseLayout puts it on
+   * every page, so an unfiltered sweep measures a 0x0 box and fails on a control
+   * the user cannot touch.
+   */
+  test.describe('Touch targets', () => {
+    const MIN = 44;
+
+    const measureUndersized = (page: import('@playwright/test').Page) =>
+      page.evaluate((min) => {
+        const bad: string[] = [];
+        const guarded = '.brutal-btn, .brutal-choice-btn, .cta-button';
+        for (const el of Array.from(document.querySelectorAll(guarded))) {
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 && r.height === 0) continue; // not rendered
+          if (r.width < min || r.height < min) {
+            bad.push(
+              `${el.className.trim()} = ${r.width.toFixed(1)}x${r.height.toFixed(1)} ` +
+                `("${(el.textContent ?? '').trim().slice(0, 20)}")`
+            );
+          }
+        }
+        return bad;
+      }, MIN);
+
+    for (const vp of [
+      { name: 'desktop', width: 1280, height: 900 },
+      { name: 'mobile', width: 390, height: 844 },
+    ]) {
+      test(`every visible button meets ${MIN}x${MIN} on ${vp.name}`, async ({ page }) => {
+        await page.setViewportSize({ width: vp.width, height: vp.height });
+        const undersized = await measureUndersized(page);
+        expect(
+          undersized,
+          `Buttons below the ${MIN}x${MIN} WCAG 2.5.5 floor at ${vp.width}px. A page-local ` +
+            `rule is probably out-specifying var(--touch-target-min):\n  ${undersized.join('\n  ')}`
+        ).toEqual([]);
+      });
+    }
+
+    test('the 44x44 overlay traces each specimen instead of overflowing it', async ({ page }) => {
+      const demos = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('.a11y-touch-demo')).map((demo) => {
+          const b = demo.querySelector('button')!.getBoundingClientRect();
+          const o = demo.querySelector('.a11y-touch-overlay')!.getBoundingClientRect();
+          return { bleedTop: b.top - o.top, bleedBottom: o.bottom - b.bottom };
+        })
+      );
+
+      expect(demos.length, 'touch-target specimens present').toBeGreaterThan(0);
+      for (const d of demos) {
+        // Negative bleed = overlay inside the button, which is the passing shape.
+        expect(d.bleedTop, 'overlay must not extend above the control').toBeLessThanOrEqual(0.5);
+        expect(d.bleedBottom, 'overlay must not extend below the control').toBeLessThanOrEqual(0.5);
+      }
+    });
+
+    test('the overlay is decorative and carries no text of its own', async ({ page }) => {
+      // It sits over the button's label; any text here renders as an unreadable
+      // overlap and is announced as a stray string after the button.
+      const overlays = page.locator('.a11y-touch-overlay');
+      const count = await overlays.count();
+      expect(count).toBeGreaterThan(0);
+      for (let i = 0; i < count; i++) {
+        await expect(overlays.nth(i)).toHaveAttribute('aria-hidden', 'true');
+        expect((await overlays.nth(i).textContent())?.trim()).toBe('');
+      }
     });
   });
 });

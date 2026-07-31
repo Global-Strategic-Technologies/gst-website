@@ -800,20 +800,17 @@ import '../styles/components/progress.css';
     display: inline-flex;
   }
 
+  /* Empty by design: the box IS the 44x44 indicator. It previously carried a
+     "44x44" caption that painted straight over the button's own label, leaving
+     both unreadable — the dimension lives in the code caption underneath. */
   .a11y-touch-overlay {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 44px;
-    height: 44px;
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
     border: 2px dashed var(--color-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-family-mono);
-    font-size: 0.55rem;
-    color: var(--color-primary);
     pointer-events: none;
     opacity: 0.7;
   }
@@ -1118,8 +1115,8 @@ import '../styles/components/progress.css';
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
     transition: all 0.2s;
   }
 

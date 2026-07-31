@@ -333,16 +333,22 @@
     <div class="brand-state-grid">
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label">Default</label>
-          <input class="brutal-field__input" type="text" placeholder="Placeholder text" />
+          <label class="brutal-field__label" for="state-field-default">Default</label>
+          <input
+            class="brutal-field__input"
+            id="state-field-default"
+            type="text"
+            placeholder="Placeholder text"
+          />
         </div>
         <code class="brand-code">default — dashed border</code>
       </div>
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label">Focused</label>
+          <label class="brutal-field__label" for="state-field-focused">Focused</label>
           <input
             class="brutal-field__input"
+            id="state-field-focused"
             type="text"
             value="Entered text"
             data-demo-state="focus"
@@ -352,20 +358,27 @@
       </div>
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label">Disabled</label>
-          <input class="brutal-field__input" type="text" value="Cannot edit" disabled />
+          <label class="brutal-field__label" for="state-field-disabled">Disabled</label>
+          <input
+            class="brutal-field__input"
+            id="state-field-disabled"
+            type="text"
+            value="Cannot edit"
+            disabled
+          />
         </div>
         <code class="brand-code">:disabled — reduced opacity</code>
       </div>
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label"
+          <label class="brutal-field__label" for="state-field-error"
             >Error <span class="brutal-field__req" style="color: var(--color-error);"
               >(invalid)</span
             ></label
           >
           <input
             class="brutal-field__input"
+            id="state-field-error"
             type="text"
             value="Bad input"
             data-demo-state="error"
@@ -375,9 +388,10 @@
       </div>
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label">Read-only</label>
+          <label class="brutal-field__label" for="state-field-readonly">Read-only</label>
           <input
             class="brutal-field__input"
+            id="state-field-readonly"
             type="text"
             value="Locked value"
             readonly

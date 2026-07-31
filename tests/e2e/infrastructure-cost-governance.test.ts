@@ -144,6 +144,34 @@ test.describe('ICG - Wizard navigation', () => {
     expect(label).toContain('Domain 1');
   });
 
+  /**
+   * The "Return to Tools" link is hidden once the wizard starts (JS toggles
+   * `.is-hidden` on step change, to cut mobile clutter). That toggle was inert for
+   * its whole life: `.icg-back-link { display: inline-block }` sat at equal
+   * specificity and later source order than `.is-hidden { display: none }`, so the
+   * class landed and changed nothing. Removing that declaration — needed anyway,
+   * because it dropped the `inline-flex` that centres the label inside the
+   * touch-target floor — is what made the hide real.
+   *
+   * Asserts computed visibility, NOT the class: the class has always toggled, so
+   * `toHaveClass(/is-hidden/)` would have passed just as happily while the link
+   * stayed on screen.
+   */
+  test('"Return to Tools" is actually hidden once the wizard starts', async ({ page }) => {
+    await gotoTool(page);
+    const backLink = page.locator('.icg-back-link');
+    await expect(backLink).toBeVisible();
+
+    await jsClick(page, '[data-action="start"]');
+    await page.waitForSelector('[data-view="wizard"]:not(.is-hidden)', { timeout: 3000 });
+    await expect(backLink).toBeHidden();
+
+    // ...and comes back on return to the landing view.
+    await jsClick(page, '[data-action="back"]');
+    await page.waitForSelector('[data-view="landing"]:not(.is-hidden)', { timeout: 3000 });
+    await expect(backLink).toBeVisible();
+  });
+
   test('back from step 1 returns to landing', async ({ page }) => {
     await gotoTool(page);
     await jsClick(page, '[data-action="start"]');
