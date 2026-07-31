@@ -3,13 +3,19 @@ import { expect, type Page } from '@playwright/test';
 /**
  * Wait for the Radar page to be ready.
  *
- * The Radar page is SSR — all HTML is delivered complete by the server.
- * By the time page.goto() resolves, the DOM is ready. We just need to
- * confirm the expected structure exists (header or fallback section).
+ * The Radar page is SSR and the feed is rendered INLINE (not a `server:defer`
+ * island), so all HTML — including feed items — is delivered complete by the
+ * server. By the time page.goto() resolves, the DOM is ready; we just confirm
+ * the expected structure exists.
  *
- * Note: Mock Inoreader data is seeded into the dev cache by the Playwright
- * global setup (tests/e2e/global-setup.ts). The Astro dev server reads
- * this cache during SSR, so content is always available during E2E runs.
+ * There is NO seeded feed data. `tests/e2e/global-setup.ts` is an explicit
+ * no-op, and `npm run radar:seed` populates only the local *stdio* MCP
+ * snapshot, which the website never reads — the site fetches the Worker over
+ * HTTP. So items appear only when `MCP_KEY_WEBSITE_RADAR` is bound and the
+ * Worker responds; CI binds no such secret and renders the empty state.
+ * That is why content-dependent assertions must branch on hasRadarContent().
+ * (This docstring previously claimed setup seeded a dev cache and content was
+ * "always available" — both died with BL-032.8 Phase B.)
  */
 export async function waitForRadarReady(page: Page): Promise<void> {
   // SSR page delivers full HTML — confirm header and content area rendered.

@@ -27,6 +27,18 @@ test.describe('404 Page', () => {
       expect(response?.status()).toBe(404);
     });
 
+    test('should be excluded from the search index', async ({ page }) => {
+      // `follow` is deliberate — the page is kept out of the index while its
+      // outbound links still pass equity. Paired with a sitemap exclusion in
+      // src/utils/sitemap-filter.ts; tests/unit/indexability.test.ts enforces
+      // that pairing. This asserts the tag is actually SERVED, which the
+      // source-level unit test cannot.
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        'content',
+        'noindex, follow'
+      );
+    });
+
     test('should have correct page title', async ({ page }) => {
       const title = await page.title();
       expect(title).toContain('404');
