@@ -46,7 +46,9 @@ export const SITEMAP_EXCLUDED_PREFIXES = [
 ] as const;
 
 /**
- * @param page Absolute URL of the candidate page, as supplied by the integration.
+ * @param page The candidate page. The integration supplies an absolute URL;
+ *   a bare pathname is also accepted and behaves identically, so a change to
+ *   that contract is a no-op rather than a silent failure.
  * @returns `true` to include the page in the sitemap.
  */
 export function sitemapFilter(page: string): boolean {
