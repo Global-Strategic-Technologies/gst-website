@@ -12,24 +12,46 @@
  * tests exercise the real absolute-URL contract rather than a paraphrase of it.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 
 import { sitemapFilter, SITEMAP_EXCLUDED_PREFIXES } from '../../src/utils/sitemap-filter';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const PAGES_DIR = join(REPO_ROOT, 'src', 'pages');
 const SITE = 'https://globalstrategic.tech';
 
-/** Pages that pass `noindex` to BaseLayout, and must therefore be excluded. */
-const NOINDEX_PAGES = [
-  { path: '/404', file: 'src/pages/404.astro' },
-  { path: '/500', file: 'src/pages/500.astro' },
-  { path: '/booking-confirmed', file: 'src/pages/booking-confirmed.astro' },
-  { path: '/brand', file: 'src/pages/brand.astro' },
-] as const;
-
 const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), 'utf-8');
+
+/** Recursive .astro walk — no glob library is a dependency of this repo, by design. */
+function walkAstro(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const full = join(dir, e.name);
+    if (e.isDirectory()) return walkAstro(full);
+    return e.isFile() && e.name.endsWith('.astro') ? [full] : [];
+  });
+}
+
+/** `src/pages/hub/radar/index.astro` → `/hub/radar` ; `src/pages/404.astro` → `/404` */
+function routeOf(absFile: string): string {
+  const rel = relative(PAGES_DIR, absFile)
+    .split(sep)
+    .join('/')
+    .replace(/\.astro$/, '');
+  const route = rel === 'index' ? '/' : `/${rel.replace(/\/index$/, '')}`;
+  return route;
+}
+
+/**
+ * Every page that passes `noindex` to BaseLayout, DISCOVERED rather than
+ * hardcoded. A hardcoded list only re-checks pages someone remembered to add,
+ * so a fifth noindex page shipped without a sitemap entry would pass the whole
+ * suite — which is the exact contradictory signal this file exists to prevent.
+ */
+const NOINDEX_PAGES = walkAstro(PAGES_DIR)
+  .filter((f) => /<BaseLayout[^>]*\bnoindex(\s|\/?>|=\{true\})/s.test(readFileSync(f, 'utf-8')))
+  .map((f) => ({ path: routeOf(f), file: relative(REPO_ROOT, f).split(sep).join('/') }));
 
 describe('sitemapFilter — absolute-URL contract', () => {
   it('receives absolute URLs and excludes by pathname, not substring', () => {
@@ -55,18 +77,25 @@ describe('sitemapFilter — absolute-URL contract', () => {
     expect(sitemapFilter(`${SITE}/brand/responsive-frame/`)).toBe(false);
   });
 
-  it('fails open on a non-absolute value rather than emptying the sitemap', () => {
-    // If the integration ever passes a bare path, an over-full sitemap is
-    // recoverable; an empty one is an outage-shaped SEO regression.
-    expect(sitemapFilter('/brand/')).toBe(true);
+  it('also handles a bare pathname, so a contract drift is a no-op', () => {
+    // Resolved against a dummy base, so the integration switching from
+    // absolute URLs to pathnames keeps working rather than silently disabling
+    // every exclusion — no fail-open branch to reason about.
+    expect(sitemapFilter('/brand/')).toBe(false);
+    expect(sitemapFilter('/services/')).toBe(true);
   });
 });
 
 describe('noindex ↔ sitemap pairing', () => {
-  it.each(NOINDEX_PAGES)('$file renders noindex', ({ file }) => {
-    const src = read(file);
-    // Bare attribute or explicit `noindex={true}`; `noindex={false}` must not pass.
-    expect(src).toMatch(/\bnoindex(\s|\/?>|=\{true\})/);
+  it('discovers the noindex pages rather than trusting a hardcoded list', () => {
+    // Guards the discovery itself: a regex that silently stopped matching
+    // would make every pairing assertion below vacuous.
+    expect(NOINDEX_PAGES.map((p) => p.path).sort()).toEqual([
+      '/404',
+      '/500',
+      '/booking-confirmed',
+      '/brand',
+    ]);
   });
 
   it.each(NOINDEX_PAGES)('$path is excluded from the sitemap', ({ path }) => {

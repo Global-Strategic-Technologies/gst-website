@@ -291,7 +291,7 @@ The SEO component generates the following HTML:
 
 `follow` is deliberate: the page leaves the index while its outbound links still pass equity. There is no `nofollow` variant, and none should be added without a reason to withhold equity.
 
-**Always pair `noindex` with a sitemap exclusion.** Submitting a URL in the sitemap while telling crawlers to drop it is a contradictory signal. The exclusion list lives in [`src/utils/sitemap-filter.ts`](../../utils/sitemap-filter.ts) and `tests/unit/indexability.test.ts` enforces the pairing in both directions.
+**Always pair `noindex` with a sitemap exclusion.** Submitting a URL in the sitemap while telling crawlers to drop it is a contradictory signal. The exclusion list lives in [`src/utils/sitemap-filter.ts`](../../utils/sitemap-filter.ts). `tests/unit/indexability.test.ts` enforces the pairing by **discovering** every page that passes `noindex` — walking `src/pages/**/*.astro` rather than reading a hardcoded list — and asserting each is excluded. Add a `noindex` page without a filter entry and that test fails.
 
 | Page                  | `noindex` | Sitemap | Why                                                                     |
 | --------------------- | --------- | ------- | ----------------------------------------------------------------------- |

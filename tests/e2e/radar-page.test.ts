@@ -440,7 +440,12 @@ test.describe('Radar Page', () => {
      * context; the standalone `request` fixture does not.)
      */
     test('feed is rendered inline, not deferred to a server island', async ({ page }) => {
-      const html = await (await page.request.get('/hub/radar/')).text();
+      const res = await page.request.get('/hub/radar/');
+      // Check the status first: without this a dev-server 500 surfaces as
+      // "RadarFeed did not render server-side", which reads like the
+      // regression this guards rather than the outage it actually is.
+      expect(res.status(), 'radar route did not return 200').toBe(200);
+      const html = await res.text();
 
       // 1. The island marker must be gone. This exact token is what Astro
       //    writes as an HTML comment for a deferred island
@@ -490,11 +495,13 @@ test.describe('Radar Page', () => {
      * queries `[data-category]` — but under `server:defer` those items did not
      * exist yet, so the pill activated while the feed stayed unfiltered.
      */
-    test('activates the matching pill and filters the feed', async ({ page }) => {
-      // Read a real category off the rendered filters rather than hardcoding
-      // one — the keys are data-driven (CATEGORIES in lib/inoreader/transform)
-      // and a stale literal fails as a missing-locator, which reads like a
-      // broken feature rather than a stale test.
+    test('activates the matching pill', async ({ page }) => {
+      // Genuinely key-independent: the hydration path runs whether or not the
+      // feed has items, so this half always executes — including in CI.
+      // Read a real category off the rendered pills rather than hardcoding one;
+      // the keys are data-driven (CATEGORIES in lib/inoreader/transform) and a
+      // stale literal fails as a missing-locator, which reads like a broken
+      // feature rather than a stale test.
       const category = await page
         .locator('.filter-btn[data-filter]:not([data-filter="all"])')
         .first()
@@ -504,33 +511,38 @@ test.describe('Radar Page', () => {
       await page.goto(`/hub/radar/?category=${category}`);
       await waitForRadarReady(page);
 
-      // Key-independent: the hydration path runs regardless of feed contents.
       await expect(page.locator(`.filter-btn[data-filter="${category}"]`)).toHaveClass(/active/);
+    });
 
-      // Item-level filtering needs actual items. Without a bound
-      // MCP_KEY_WEBSITE_RADAR (the CI case) the feed renders empty, so an
-      // unguarded assertion here would fail or pass vacuously — the repo's
-      // documented data-dependent anti-pattern. Same branch idiom as the
-      // content tests above.
-      if (await hasRadarContent(page)) {
-        // Both halves are needed: without the positive, a bug that hid EVERY
-        // item would satisfy "no non-matching items visible" and pass.
-        expect(
-          await getVisibleItemCount(page, category!),
-          'deep-link hid every item, including its own category'
-        ).toBeGreaterThan(0);
-
-        const otherVisible = await page.evaluate(
-          (cat) =>
-            Array.from(document.querySelectorAll('[data-category]')).filter(
-              (el) =>
-                (el as HTMLElement).dataset.category !== cat &&
-                window.getComputedStyle(el as HTMLElement).display !== 'none'
-            ).length,
-          category
-        );
-        expect(otherVisible, 'deep-link activated the pill but did not filter the feed').toBe(0);
+    test('filters the feed to the deep-linked category', async ({ page }) => {
+      // test.skip() rather than a bare `if`, matching this file's idiom: a
+      // silent guard reports PASSED in CI having executed no meaningful
+      // assertion, which hides the coverage gap instead of showing it.
+      if (!(await hasRadarContent(page))) {
+        test.skip();
+        return;
       }
+
+      // Derive the category from a RENDERED ITEM, not from the pill list. The
+      // pills come from CATEGORIES and are independent of what the snapshot
+      // contains, so picking the first pill can select a category with zero
+      // items and fail for a data reason. This never fires in CI (no bearer),
+      // which is exactly what would make it a latent trap for anyone running
+      // Playwright with the secret bound.
+      const category = await page.locator('[data-category]').first().getAttribute('data-category');
+      expect(category, 'content present but no [data-category] items').toBeTruthy();
+
+      await page.goto(`/hub/radar/?category=${category}`);
+      await waitForRadarReady(page);
+
+      // Both halves are needed: without the positive, a bug that hid EVERY
+      // item would satisfy "no non-matching items visible" and pass.
+      const inCategory = await getVisibleItemCount(page, category!);
+      expect(inCategory, 'deep-link hid every item, including its own category').toBeGreaterThan(0);
+      expect(
+        await getVisibleItemCount(page),
+        'deep-link activated the pill but left other categories visible'
+      ).toBe(inCategory);
     });
   });
 });

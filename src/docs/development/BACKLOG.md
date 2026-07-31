@@ -127,31 +127,6 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ## CSS and Design System
 
-### BL-098: Radar negative caching — a failed revalidation is cached as a 200
-
-**Source**: accepted trade-off of inlining the Radar feed (2026-07-31, `fix/seo-indexability-radar-ssr`) | **Effort**: Medium — the naive fix is worse than the problem | **Status**: Open, do not implement without the trigger
-
-**As a** visitor to `/hub/radar`, **I want** a transient failure of the MCP Worker not to leave the feed empty for hours **so that** a 30-second outage doesn't become a 6-hour one.
-
-**What changed.** The feed used to be a `server:defer` island, and `@astrojs/vercel` routes `/_server-islands/*` to the uncached render function — so a failed fetch self-healed on the very next request. Inlining the feed (required: crawlers were judging the shell and the page sat unindexed) moved the fetch inside the ISR entry, where a failed revalidation is cached as a `200` with the empty state for up to 6h.
-
-**Why the obvious fixes are wrong.** Vercel prerender functions take no per-response TTL, so "refuse to cache a failed fetch" realistically means throwing a 5xx — trading a graceful empty state for an error page for every visitor during the outage, _plus_ a live MCP fetch per request while the breaker is open, which is the exact Zone-1 budget pressure [ADR-0006](../adr/0006-inoreader-zone1-budget-protection.md) exists to prevent. **Do not reintroduce the server island**: that reopens the indexability defect this was fixed to close. Note also that BL-091 does not cover this — breaker-open is cache-only, so a cold cache still renders empty.
-
-**Prerequisite for any fix**: the code cannot currently tell a _failed_ fetch from a _legitimately empty_ feed — both render `.radar-empty`. That distinction has to exist first.
-
-**Trigger**: a Search Console or operator report of a stale-empty radar window causing real harm. Until then the trade-off is accepted.
-
-**Worth recording on the other side of the ledger**: the same change dropped Worker load from per-pageview to per-revalidation, and worst-case content age (~12h: the 6h ISR window on top of the Worker's 6h cron) sits at the `snapshot age ≤ 12h` SLO in the MCP server's ARCHITECTURE.md rather than beyond it.
-
-#### Acceptance Criteria
-
-- [ ] A failed `/radar/snapshot` fetch is distinguishable from an empty feed at the render site
-- [ ] A revalidation failure does not persist an empty feed for the full ISR window
-- [ ] No 5xx is served to visitors for a feed-fetch failure, and no per-request MCP fetch is introduced while the breaker is open
-- [ ] `/hub/radar` still ships its feed in the initial HTML — verified by the existing raw-HTML E2E, not re-litigated
-
----
-
 ### BL-097: `/brand` responsive-demo iframes all render the same group
 
 **Source**: found 2026-07-29 while measuring iframe clipping for the touch-target floor change | **Effort**: Small-Medium — the fix is mechanical, but it moves a URL that security config matches on | **Status**: Open
@@ -315,6 +290,31 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 ---
 
 ## Infrastructure
+
+### BL-098: Radar negative caching — a failed revalidation is cached as a 200
+
+**Source**: accepted trade-off of inlining the Radar feed (2026-07-31, `fix/seo-indexability-radar-ssr`) | **Effort**: Medium — the naive fix is worse than the problem | **Status**: Open, do not implement without the trigger
+
+**As a** visitor to `/hub/radar`, **I want** a transient failure of the MCP Worker not to leave the feed empty for hours **so that** a 30-second outage doesn't become a 6-hour one.
+
+**What changed.** The feed used to be a `server:defer` island, and `@astrojs/vercel` routes `/_server-islands/*` to the uncached render function — so a failed fetch self-healed on the very next request. Inlining the feed (required: crawlers were judging the shell and the page sat unindexed) moved the fetch inside the ISR entry, where a failed revalidation is cached as a `200` with the empty state for up to 6h.
+
+**Why the obvious fixes are wrong.** Vercel prerender functions take no per-response TTL, so "refuse to cache a failed fetch" realistically means throwing a 5xx — trading a graceful empty state for an error page for every visitor during the outage, _plus_ a live MCP fetch per request while the breaker is open, which is the exact Zone-1 budget pressure [ADR-0006](../adr/0006-inoreader-zone1-budget-protection.md) exists to prevent. **Do not reintroduce the server island**: that reopens the indexability defect this was fixed to close. Note also that BL-091 does not cover this — breaker-open is cache-only, so a cold cache still renders empty.
+
+**Prerequisite for any fix**: the code cannot currently tell a _failed_ fetch from a _legitimately empty_ feed — both render `.radar-empty`. That distinction has to exist first.
+
+**Trigger**: a Search Console or operator report of a stale-empty radar window causing real harm. Until then the trade-off is accepted.
+
+**Worth recording on the other side of the ledger**: the same change dropped Worker load from per-pageview to per-revalidation. The cost is staleness — nominal worst-case visitor-visible age ~12h (6h ISR on top of the 6h cron). Do not read that as "within the `snapshot age ≤ 12h` SLO": that SLO is `2 × cron-interval`, an alerting threshold that tolerates one missed cron, and it governs the Worker's snapshot rather than the website's cache. When both slip, visitor-visible age can reach ~18h.
+
+#### Acceptance Criteria
+
+- [ ] A failed `/radar/snapshot` fetch is distinguishable from an empty feed at the render site
+- [ ] A revalidation failure does not persist an empty feed for the full ISR window
+- [ ] No 5xx is served to visitors for a feed-fetch failure, and no per-request MCP fetch is introduced while the breaker is open
+- [ ] `/hub/radar` still ships its feed in the initial HTML — verified by the existing raw-HTML E2E, not re-litigated
+
+---
 
 ### BL-033: MCP Server — External Pilot (Phase 3)
 

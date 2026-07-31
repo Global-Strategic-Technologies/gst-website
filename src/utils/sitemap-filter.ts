@@ -50,16 +50,14 @@ export const SITEMAP_EXCLUDED_PREFIXES = [
  * @returns `true` to include the page in the sitemap.
  */
 export function sitemapFilter(page: string): boolean {
-  let pathname: string;
-  try {
-    pathname = new URL(page).pathname;
-  } catch {
-    // A non-absolute value means the integration's contract changed under us.
-    // Fail open — a slightly over-full sitemap is recoverable, an empty one is
-    // an outage-shaped SEO regression — but make the cause obvious in the build log.
-    console.warn(`[sitemap-filter] Expected an absolute URL, received: ${page}`);
-    return true;
-  }
+  // The base is ignored when `page` is absolute (the documented contract) and
+  // used when it is a bare path. That makes the one realistic contract drift —
+  // the integration starting to pass pathnames — a no-op rather than a silent
+  // failure mode, so there is no fail-open branch left to reason about.
+  //
+  // Assumes `astro.config.mjs` sets no `base`. If one is ever added, pathnames
+  // gain that prefix and every exclusion below silently stops matching.
+  const pathname = new URL(page, 'https://sitemap-filter.invalid').pathname;
 
   // Normalise the trailing slash the site emits (`trailingSlash: true` in
   // vercel.json) so `/brand/` and `/brand` compare identically.
