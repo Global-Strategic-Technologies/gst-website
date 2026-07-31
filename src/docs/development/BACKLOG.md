@@ -305,7 +305,7 @@ Deliberately **not** done in the branch that noticed it: a six-page refactor of 
 
 - [ ] A helper in `src/utils/` takes `{ name, description, featureList, datePublished, dateModified }` and emits the schema
 - [ ] All six tool pages use it; the shared `author` / `publisher` / `offers` / `knowsAbout` blocks exist once
-- [ ] A test asserts every page under `src/pages/hub/tools/` emits `WebApplication` — the gap that let the IRL generator ship without one
+- [ ] A test asserts every **tool** page — `src/pages/hub/tools/*/index.astro` — emits `WebApplication`, the gap that let the IRL generator ship without one. Note `tools/index.astro` is the listing page and correctly emits `ItemList`; a test scoped to `tools/` rather than `tools/*/` would either fail or invite "fixing" that page's schema to the wrong type
 
 ---
 
