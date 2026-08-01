@@ -103,8 +103,12 @@ const group = Astro.url.searchParams.get('group') || 'cards';
     }
 
     <script>
-      // Sync theme with parent frame
+      // Sync theme with parent frame. The origin check is required, not defensive
+      // hygiene: this page is now framable same-origin (see SECURITY_HEADERS.md §
+      // Route Exceptions), and any cross-origin window that opens it could
+      // otherwise post to it.
       window.addEventListener('message', (e) => {
+        if (e.origin !== window.location.origin) return;
         if (e.data?.type === 'theme-sync') {
           document.documentElement.classList.toggle('dark-theme', e.data.dark);
         }

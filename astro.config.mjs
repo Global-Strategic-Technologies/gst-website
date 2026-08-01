@@ -5,6 +5,11 @@ import sentry from '@sentry/astro';
 import sitemap from '@astrojs/sitemap';
 import browserslist from 'browserslist';
 import { browserslistToTargets } from 'lightningcss';
+// Extensionless specifier: `moduleResolution: "Bundler"` resolves it, and Astro
+// loads this config through a TS-aware loader. Kept out of the config file so it
+// can be unit-tested directly — see src/utils/sitemap-filter.ts for the
+// absolute-URL contract this depends on.
+import { sitemapFilter } from './src/utils/sitemap-filter';
 
 // Load-bearing: Vite does NOT forward browserslist to LightningCSS automatically.
 // Without this, LightningCSS strips -webkit-backdrop-filter, breaking frosted glass in Firefox.
@@ -76,7 +81,7 @@ export default defineConfig({
         ]
       : []),
     sitemap({
-      filter: (page) => !page.includes('/brand') && !page.includes('/colors'),
+      filter: sitemapFilter,
     }),
   ],
   adapter: vercel({

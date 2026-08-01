@@ -738,7 +738,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     font-weight: var(--font-weight-bold);
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    min-height: 44px;
+    min-height: var(--touch-target-min);
     transition: color var(--transition-fast);
   }
 
@@ -809,7 +809,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
   }
 
   .deploy-btn {
-    min-height: 44px;
+    min-height: var(--touch-target-min);
     padding: var(--spacing-xs);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     background: transparent;
@@ -1091,7 +1091,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     .calc-footer__controls .currency-select,
     .calc-footer__controls .copy-link-btn {
       flex: 1;
-      min-height: 44px;
+      min-height: var(--touch-target-min);
     }
   }
 

@@ -182,7 +182,7 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 - **Contrast**: All text/background combinations should meet WCAG 2.1 AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
 - **Focus indicators**: 2px solid `--color-primary` outline with 2px offset via `.interactive-focus` utility or `:focus-visible` on `.brutal-*` components
 - **Color alone**: Never use color as the sole indicator of state — always pair with text, icons, or patterns
-- **Touch targets**: 44x44px minimum per WCAG 2.5.5 — all `.brutal-btn` and `.brutal-choice-btn` components meet this
+- **Touch targets**: 44x44px minimum per WCAG 2.5.5 (Level **AAA** — stricter than AA's 24x24 in 2.5.8). `.brutal-btn` and `.brutal-choice-btn` (including `--unsure`) take the shared `--touch-target-min` floor directly. `.cta-button` also clears 44px, but by its own padding above 480px and via the token below — worth knowing before you trim its padding. A page-local override on any of the three must never resolve below the floor, which `tests/integration/touch-target-floor.test.ts` enforces; note that guard inspects declarations that exist, so it catches a bad override rather than proving a component has a floor at all. Known exception: the regulatory-map quick-zoom control is 32px — AA-conformant, not AAA (see BL-096)
 - **Keyboard navigation**: All interactive components are focusable via Tab; modals trap focus; tab bars support arrow keys
 - **Live reference**: The [/brand page — Accessibility section](https://globalstrategic.tech/brand#accessibility) demonstrates focus states, contrast ratios, touch targets, keyboard patterns, ARIA usage, and semantic HTML structure
 
@@ -254,7 +254,7 @@ All text and UI element pairings must meet WCAG 2.1 AA contrast minimums:
 | Large text (≥ 18px or ≥ 14px bold)                      | 3:1                    |
 | Non-text UI elements (borders, icons, focus indicators) | 3:1                    |
 
-**`--text-muted` usage**: Opacity set to `0.6` for both themes, yielding ~3.8:1 on white and passing AA for large text. Restrict `--text-muted` to large text (≥ 18px), placeholder text, and decorative/disabled elements. For normal-sized body text, use `--text-muted` or higher.
+**`--text-muted` usage**: Opacity is `0.65` in light theme and `0.6` in dark, yielding ~5.4:1 on `#ffffff` and ~4.7:1 on `#0a0a0a`. Both clear the 4.5:1 AA floor for normal text, but only just — so restrict `--text-muted` to large text (≥ 18px), labels, captions, placeholder text, and decorative/disabled elements. For sustained normal-sized body text, use `--text-secondary` or higher. The live per-theme ratios are rendered on `/brand` under Accessibility → Color Contrast Ratios.
 
 ---
 

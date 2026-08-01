@@ -2,17 +2,19 @@
 
 HTTP security headers applied to all GST website responses. Static routes receive headers from `vercel.json`; the SSR Radar route receives identical headers from Astro middleware (`src/middleware.ts`). A sync test in `tests/unit/security-headers.test.ts` ensures the two sources stay identical.
 
+One route carries a documented, narrowly-scoped relaxation — see [Route Exceptions](#route-exceptions).
+
 ## Header Inventory
 
-| Header                    | Value                                        | Purpose                                               |
-| ------------------------- | -------------------------------------------- | ----------------------------------------------------- |
-| X-Frame-Options           | DENY                                         | Prevent clickjacking via iframe embedding             |
-| X-Content-Type-Options    | nosniff                                      | Prevent MIME-type sniffing attacks                    |
-| Referrer-Policy           | strict-origin-when-cross-origin              | Limit referrer leakage to external sites              |
-| Permissions-Policy        | camera=(), microphone=(), geolocation=()     | Disable unused browser APIs                           |
-| X-DNS-Prefetch-Control    | on                                           | Allow DNS prefetching for performance                 |
-| Strict-Transport-Security | max-age=63072000; includeSubDomains; preload | Force HTTPS for 2 years, including subdomains         |
-| Content-Security-Policy   | (see below)                                  | Restrict which sources can load scripts, styles, etc. |
+| Header                    | Value                                        | Purpose                                                                               |
+| ------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------- |
+| X-Frame-Options           | DENY (one route: SAMEORIGIN)                 | Prevent clickjacking via iframe embedding — see [Route Exceptions](#route-exceptions) |
+| X-Content-Type-Options    | nosniff                                      | Prevent MIME-type sniffing attacks                                                    |
+| Referrer-Policy           | strict-origin-when-cross-origin              | Limit referrer leakage to external sites                                              |
+| Permissions-Policy        | camera=(), microphone=(), geolocation=()     | Disable unused browser APIs                                                           |
+| X-DNS-Prefetch-Control    | on                                           | Allow DNS prefetching for performance                                                 |
+| Strict-Transport-Security | max-age=63072000; includeSubDomains; preload | Force HTTPS for 2 years, including subdomains                                         |
+| Content-Security-Policy   | (see below)                                  | Restrict which sources can load scripts, styles, etc.                                 |
 
 ## Content-Security-Policy Breakdown
 
@@ -25,8 +27,8 @@ HTTP security headers applied to all GST website responses. Static routes receiv
 | style-src                 | 'self' 'unsafe-inline'                                                                                                                                     | Inline styles for theme/palette initialization                                                                                                                                                                                                                                                                                                        |
 | img-src                   | 'self' https: data:                                                                                                                                        | OG images, external link thumbnails, data URIs                                                                                                                                                                                                                                                                                                        |
 | font-src                  | 'self'                                                                                                                                                     | Self-hosted fonts only                                                                                                                                                                                                                                                                                                                                |
-| frame-src                 | 'self'                                                                                                                                                     | Brand responsive demo iframe only                                                                                                                                                                                                                                                                                                                     |
-| frame-ancestors           | 'none'                                                                                                                                                     | Nobody can embed this site (CSP-level framing protection)                                                                                                                                                                                                                                                                                             |
+| frame-src                 | 'self'                                                                                                                                                     | Brand responsive demo iframe only. NOTE: this permits the _parent_ to load a frame; the framed page must also permit being framed via its own `frame-ancestors` — see [Route Exceptions](#route-exceptions)                                                                                                                                           |
+| frame-ancestors           | 'none'                                                                                                                                                     | Nobody can embed this site — including this site itself (CSP-level framing protection). One route relaxes this to `'self'`; see [Route Exceptions](#route-exceptions)                                                                                                                                                                                 |
 | manifest-src              | 'self'                                                                                                                                                     | PWA manifest                                                                                                                                                                                                                                                                                                                                          |
 | form-action               | 'self'                                                                                                                                                     | Forms can only submit to same origin                                                                                                                                                                                                                                                                                                                  |
 | base-uri                  | 'self'                                                                                                                                                     | Prevent base tag injection                                                                                                                                                                                                                                                                                                                            |
@@ -42,6 +44,23 @@ SSR routes (Radar only)           src/middleware.ts → Astro injects headers se
 Sync enforcement                  tests/unit/security-headers.test.ts
                                   Reads both sources, fails CI if they diverge
 ```
+
+## Route Exceptions
+
+### `/brand/responsive-frame` — same-origin framing
+
+| Header                | Site default | This route   |
+| --------------------- | ------------ | ------------ |
+| `X-Frame-Options`     | `DENY`       | `SAMEORIGIN` |
+| CSP `frame-ancestors` | `'none'`     | `'self'`     |
+
+**Why**: the site default forbids framing by _every_ origin — including this one. The brand page's Responsive Behavior section renders the same components at three viewport widths using same-origin `<iframe>`s pointed at `/brand/responsive-frame`. Under the default those frames are blocked with `net::ERR_BLOCKED_BY_RESPONSE` and render empty, with no build error and no console warning to explain it (this shipped broken and went unnoticed until a visual review in July 2026).
+
+**Why it's safe**: the route is a `noindex` partial with no user data, no authenticated state and no actionable form. `'self'` permits framing only by our own pages, so an attacker's origin still cannot embed it — the clickjacking protection that matters is unchanged. Nothing else in the policy is relaxed.
+
+**Where it lives**: both `vercel.json` (the route is prerendered, so production headers come from the CDN) and `src/middleware.ts` (`SAME_ORIGIN_FRAMEABLE`, covering dev and any SSR path). `tests/unit/security-headers.test.ts` pins the exception to that single path and asserts the frame-route CSP differs from the site default _only_ in `frame-ancestors`.
+
+**Adding another frameable route** — do all three: add the path to `SAME_ORIGIN_FRAMEABLE`, add a `vercel.json` header rule, and update the test's expected path list. If you only do the first, it will work in dev and silently fail in production.
 
 ## Adding a New External Service
 

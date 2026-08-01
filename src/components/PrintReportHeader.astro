@@ -47,6 +47,7 @@ const generatedDate = new Date().toLocaleDateString('en-US', {
   }
 
   @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
     :global(.print-report-header) {
       display: flex !important;
       align-items: center;
@@ -78,5 +79,6 @@ const generatedDate = new Date().toLocaleDateString('en-US', {
       font-size: var(--text-xs);
       color: var(--text-muted);
     }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
   }
 </style>

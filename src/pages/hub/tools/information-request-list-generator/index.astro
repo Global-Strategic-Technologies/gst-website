@@ -33,6 +33,44 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
   ogImageAlt="GST Information Request List Generator"
   ogUrl="https://globalstrategic.tech/hub/tools/information-request-list-generator/"
 >
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'Information Request List Generator',
+      description:
+        'Generate a fillable .xlsx Information Request List personalized to a target or client, from the canonical GST IRL',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      publisher: { '@type': 'Organization', name: 'Global Strategic Technologies' },
+      datePublished: '2026-05-25',
+      dateModified: '2026-07-31',
+      featureList: [
+        'Fillable .xlsx workbook generated client-side',
+        'Per-section selection mirroring VDR folder structure',
+        'Engagement-specific custom requests',
+        'Context-aware request removal',
+      ],
+      author: {
+        '@type': 'Person',
+        name: 'Reid Peryam',
+        jobTitle: 'Strategic Technology Advisor',
+        sameAs: ['https://www.linkedin.com/in/reidperyam/'],
+        description:
+          'Technology advisor with experience across 100+ PE technology diligence engagements',
+        knowsAbout: [
+          'Technical Due Diligence',
+          'Information Request Lists',
+          'Virtual Data Room Structure',
+          'M&A Tech Strategy',
+        ],
+      },
+    })}
+  />
+
   <section class="irl-gen">
     <div class="container">
       <HubHeader
@@ -664,7 +702,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
     gap: var(--spacing-xl);
     padding: var(--spacing-xl);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    background: light-dark(rgba(0, 0, 0, 0.02), rgba(255, 255, 255, 0.03));
+    background: var(--surface-subtle-bg);
     backdrop-filter: blur(2px);
   }
 

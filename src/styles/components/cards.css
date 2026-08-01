@@ -80,7 +80,7 @@ Brutalist Option Cards
   flex-direction: column;
   gap: var(--spacing-xs);
   padding: var(--spacing-md) var(--spacing-lg);
-  background: light-dark(rgba(0, 0, 0, 0.02), rgba(200, 220, 255, 0.03));
+  background: var(--surface-subtle-bg);
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
   cursor: pointer;
@@ -91,8 +91,8 @@ Brutalist Option Cards
   text-align: left;
   backdrop-filter: blur(2px);
   box-shadow:
-    inset 0 1px 0 light-dark(rgba(255, 255, 255, 0.12), var(--border-dark-subtle)),
-    0 0 0 1px light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05));
+    inset 0 1px 0 var(--frost-highlight),
+    0 0 0 1px var(--frost-edge);
   font-family: var(--font-family);
   color: var(--text-primary);
 }
@@ -302,7 +302,7 @@ Brutalist Teaser Card
 }
 
 .brutal-teaser-card__header h2 {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -331,7 +331,7 @@ Brutalist Teaser Card
 }
 
 .brutal-teaser-card__badge {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs);
   font-weight: 700;
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -474,127 +474,6 @@ Brutalist Rec Card
 
 /* ==============================
 
-Attention Card
-
-============================== */
-
-.attention-card {
-  padding: calc(var(--spacing-xl) * 0.5) var(--spacing-xl);
-  border-left: 3px solid var(--color-primary);
-  background: light-dark(var(--color-primary-03), var(--color-primary-08));
-  border-radius: 4px;
-  cursor: pointer;
-  transition:
-    padding var(--transition-normal),
-    opacity var(--transition-normal);
-}
-
-.attention-card--high {
-  border-left-color: var(--color-authority);
-  background: light-dark(rgba(91, 122, 157, 0.1), rgba(91, 122, 157, 0.08));
-}
-
-.attention-card--medium {
-  border-left-color: var(--color-subdued);
-  background: light-dark(rgba(140, 122, 107, 0.04), rgba(140, 122, 107, 0.08));
-}
-
-.attention-card.is-dismissed {
-  opacity: 0.45;
-  border-style: dashed;
-}
-
-.attention-card.is-collapsed {
-  padding: var(--spacing-sm) var(--spacing-xl);
-}
-
-.attention-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.attention-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
-  line-height: 1.4;
-  margin: 0;
-  flex: 1;
-  min-width: 0;
-}
-
-.attention-na {
-  flex-shrink: 0;
-  padding: 2px var(--spacing-sm);
-  font-size: 0.65rem;
-  font-weight: var(--font-weight-bold);
-  font-family: var(--font-family);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  background: light-dark(rgba(200, 200, 200, 0.08), rgba(200, 200, 200, 0.04));
-  border: 1px dashed light-dark(var(--border-light), var(--accent-light-bg-hover));
-  border-radius: 4px;
-  cursor: pointer;
-  transition:
-    color var(--transition-fast),
-    border-color var(--transition-fast),
-    background var(--transition-fast);
-}
-
-.attention-na:hover {
-  color: var(--text-primary);
-  border-color: light-dark(var(--text-secondary), var(--accent-border-medium));
-  background: light-dark(rgba(200, 200, 200, 0.15), var(--accent-light-bg));
-}
-
-.attention-divider {
-  width: 2rem;
-  height: 2px;
-  border: none;
-  background: var(--color-primary);
-  opacity: 0.4;
-  margin: var(--spacing-md) 0;
-  transition:
-    max-height var(--transition-normal),
-    opacity var(--transition-normal);
-}
-
-.attention-card--high .attention-divider {
-  background: var(--color-authority);
-}
-
-.attention-card--medium .attention-divider {
-  background: var(--color-subdued);
-}
-
-.attention-desc {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  line-height: 1.7;
-  margin: 0;
-  transition:
-    max-height var(--transition-normal),
-    opacity var(--transition-normal);
-  max-height: 200px;
-  overflow: hidden;
-}
-
-.attention-card.is-collapsed .attention-divider {
-  max-height: 0;
-  opacity: 0;
-  margin: 0;
-  overflow: hidden;
-}
-
-.attention-card.is-collapsed .attention-desc {
-  max-height: 0;
-  opacity: 0;
-}
-
-/* ==============================
-
 Brutalist Attention Card
 
 ============================== */
@@ -651,7 +530,7 @@ Brutalist Attention Card
 .brutal-na-btn {
   flex-shrink: 0;
   padding: 2px var(--spacing-sm);
-  font-size: 0.65rem;
+  font-size: var(--text-2xs);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
   text-transform: uppercase;
@@ -724,7 +603,7 @@ Brutalist FAQ
   width: 100%;
   padding: var(--spacing-md) var(--spacing-lg);
   font-family: var(--font-family-mono);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: var(--font-weight-bold);
   color: var(--text-primary);
   cursor: pointer;
@@ -798,102 +677,6 @@ Brutalist FAQ
   }
 }
 
-/* ── Recommendation Card ───────────────────────────── */
-
-.rec-card {
-  display: flex;
-  gap: var(--gap-normal);
-  padding: var(--spacing-md) var(--spacing-md);
-  border: 1px solid light-dark(var(--border-light), var(--border-dark-subtle));
-  border-radius: 8px;
-  background: light-dark(var(--bg-light-alt), var(--bg-dark-secondary));
-  cursor: pointer;
-  transition:
-    opacity var(--transition-normal),
-    border-style var(--transition-normal);
-}
-
-.rec-card.is-dismissed {
-  opacity: 0.45;
-  border-style: dashed;
-}
-
-.rec-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  width: 100%;
-}
-
-.rec-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  flex-wrap: wrap;
-}
-
-.rec-desc {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  line-height: 1.55;
-  transition:
-    max-height var(--transition-normal),
-    opacity var(--transition-normal);
-  max-height: 200px;
-  opacity: 1;
-  overflow: hidden;
-}
-
-.rec-card.is-collapsed .rec-desc {
-  max-height: 0;
-  opacity: 0;
-}
-
-.rec-badge {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.65rem;
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: 4px;
-  line-height: 1;
-  border: 1px solid light-dark(var(--border-light), rgba(200, 200, 200, 0.1));
-  background: light-dark(var(--bg-light-alt), rgba(200, 200, 200, 0.05));
-  color: var(--text-muted);
-}
-
-.rec-na {
-  flex-shrink: 0;
-  padding: 2px var(--spacing-sm);
-  margin-right: var(--spacing-xs);
-  font-size: 0.65rem;
-  font-weight: var(--font-weight-bold);
-  font-family: var(--font-family);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  background: light-dark(rgba(200, 200, 200, 0.08), rgba(200, 200, 200, 0.04));
-  border: 1px dashed light-dark(var(--border-light), var(--accent-light-bg-hover));
-  border-radius: 4px;
-  cursor: pointer;
-  transition:
-    color var(--transition-fast),
-    border-color var(--transition-fast),
-    background var(--transition-fast);
-}
-
-.rec-na:hover {
-  color: var(--text-primary);
-  border-color: light-dark(var(--text-secondary), var(--accent-border-medium));
-  background: light-dark(rgba(200, 200, 200, 0.15), var(--accent-light-bg));
-}
-
 /* ── Option Cards (current specimen) ──────────────── */
 
 .options-grid {
@@ -930,7 +713,7 @@ Brutalist FAQ
 
 .project-card__title {
   font-weight: 900;
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
   color: var(--text-primary);
   letter-spacing: -0.01em;
   line-height: 1.3;
@@ -953,7 +736,7 @@ Brutalist FAQ
 }
 
 .project-card__summary {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.6;
   margin: 1rem 0;
@@ -997,53 +780,6 @@ Brutalist FAQ
   flex-shrink: 0;
   color: var(--color-primary);
   margin-top: calc((1lh - 14px) / 2);
-}
-
-/* ── Teaser Card (current specimen) ───────────────── */
-
-.teaser-card {
-  max-width: 600px;
-  padding: 2rem;
-  background: light-dark(var(--accent-wash-bg), var(--color-primary-05));
-  border: 1px solid var(--color-primary-30);
-  border-radius: 8px;
-  text-align: center;
-}
-
-.teaser-card__header {
-  margin-bottom: var(--spacing-md);
-}
-
-.teaser-card__header h2 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.teaser-card__features {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
-}
-
-.teaser-card__features li {
-  font-size: var(--text-base);
-  color: var(--text-secondary);
-  line-height: 1.7;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
-  text-align: left;
-}
-
-.teaser-card__cta {
-  margin-top: var(--spacing-lg);
-  display: inline-block;
 }
 
 /* ==============================

@@ -19,6 +19,8 @@ Tracked initiatives to close the gap between documented conventions and actual i
 10. [Reusable Skeleton CSS Classes](#10-reusable-skeleton-css-classes)
 11. [Astro CSS Alignment & Tooling](#11-astro-css-alignment--tooling)
 12. [Legacy Design System Removal](#12-legacy-design-system-removal) _(complete)_
+13. [Design-Token Lint Enforcement & Color Sweep](#13-design-token-lint-enforcement--color-sweep) _(complete)_
+14. [Off-Scale Font-Size Literals](#14-off-scale-font-size-literals) _(deferred — trigger below)_
 
 ---
 
@@ -65,22 +67,23 @@ Tracked initiatives to close the gap between documented conventions and actual i
 **Problem**: The styles guide prohibits hardcoded colors, but the codebase uses them extensively. This breaks dark theme support and creates maintenance burden.
 
 **Affected files** (sorted by severity):
-| File | Violations | Notes |
-|------|-----------|-------|
-| `diligence-machine/index.astro` | 75 | 46 rgba + 29 hex; domain-specific colors, status indicators, floating action bar |
-| `regulatory-map/index.astro` | 30+ | Industry/cyber colors, map fills |
-| `infrastructure-cost-governance/index.astro` | 22+ | Maturity colors, radar chart, benchmark badge colors added in recent commits |
-| `StickyControls.astro` | 20+ | Portfolio filter UI |
-| `PortfolioHeader.astro` | 13+ | Portfolio header and controls |
-| `PortfolioGrid.astro` | 13+ | Grid layout and cards |
-| `ProjectModal.astro` | 11+ | Modal dialog |
-| `MapVisualizer.astro` | 6 | Map visualization |
-| `FyiItem.astro` | 4 | Radar FYI items |
-| `privacy.astro` | 2 | Legal page accents |
-| `terms.astro` | 2 | Legal page accents |
-| `Footer.astro` | 2 | Footer links |
-| `tech-debt-calculator/index.astro` | 1 | Print styles |
-| `techpar/index.astro` | 1 | Print styles |
+
+| File                                         | Violations | Notes                                                                            |
+| -------------------------------------------- | ---------- | -------------------------------------------------------------------------------- |
+| `diligence-machine/index.astro`              | 75         | 46 rgba + 29 hex; domain-specific colors, status indicators, floating action bar |
+| `regulatory-map/index.astro`                 | 30+        | Industry/cyber colors, map fills                                                 |
+| `infrastructure-cost-governance/index.astro` | 22+        | Maturity colors, radar chart, benchmark badge colors added in recent commits     |
+| `StickyControls.astro`                       | 20+        | Portfolio filter UI                                                              |
+| `PortfolioHeader.astro`                      | 13+        | Portfolio header and controls                                                    |
+| `PortfolioGrid.astro`                        | 13+        | Grid layout and cards                                                            |
+| `ProjectModal.astro`                         | 11+        | Modal dialog                                                                     |
+| `MapVisualizer.astro`                        | 6          | Map visualization                                                                |
+| `FyiItem.astro`                              | 4          | Radar FYI items                                                                  |
+| `privacy.astro`                              | 2          | Legal page accents                                                               |
+| `terms.astro`                                | 2          | Legal page accents                                                               |
+| `Footer.astro`                               | 2          | Footer links                                                                     |
+| `tech-debt-calculator/index.astro`           | 1          | Print styles                                                                     |
+| `techpar/index.astro`                        | 1          | Print styles                                                                     |
 
 **Approach**:
 
@@ -107,13 +110,14 @@ Tracked initiatives to close the gap between documented conventions and actual i
 - `max-width: 420px` / `640px` / `700px` - Layout container widths (see also Init. 7)
 
 **Affected files**:
-| File | Violations | Notes |
-|------|-----------|-------|
-| `diligence-machine/index.astro` | 58 | Worst offender — hardcoded px/rem/em for padding, margin, gap, widths, min/max-height |
-| `vdr-structure/index.astro` | 3 | Mixed patterns |
-| `business-architectures/index.astro` | 3 | Mixed patterns |
-| `regulatory-map/index.astro` | 2 | Mixed patterns |
-| `infrastructure-cost-governance/index.astro` | 2 | Badge micro-spacing |
+
+| File                                         | Violations | Notes                                                                                 |
+| -------------------------------------------- | ---------- | ------------------------------------------------------------------------------------- |
+| `diligence-machine/index.astro`              | 58         | Worst offender — hardcoded px/rem/em for padding, margin, gap, widths, min/max-height |
+| `vdr-structure/index.astro`                  | 3          | Mixed patterns                                                                        |
+| `business-architectures/index.astro`         | 3          | Mixed patterns                                                                        |
+| `regulatory-map/index.astro`                 | 2          | Mixed patterns                                                                        |
+| `infrastructure-cost-governance/index.astro` | 2          | Badge micro-spacing                                                                   |
 
 **Micro-spacing exception**: Values below `--spacing-xs` (4px) are acceptable for badge padding, border-radius fine-tuning, and optical alignment adjustments. These should use `2px` or `1px` directly since the spacing scale doesn't cover sub-4px values. See STYLES_GUIDE.md for the documented exception.
 
@@ -284,6 +288,8 @@ Tracked initiatives to close the gap between documented conventions and actual i
 - `@keyframes pulse` defined in `global.css` (line 137) - Shared animation
 - Skeleton mimics the wire-item layout with animated bars at varying widths
 
+> **Superseded 2026-07-31.** `RadarFeedSkeleton.astro` was deleted when the Radar feed stopped being a `server:defer` island — deferring the page's primary content left it unindexed. The `@keyframes pulse` animation moved to `src/styles/components/skeleton.css` (it was never at `global.css:137`; that line is an unrelated media query). The documented pattern survives — the canonical reference is now the `/brand` specimens. See [RADAR.md § Why the feed is not a server island](../hub/RADAR.md).
+
 **Pattern components**:
 
 1. **Skeleton component**: Renders placeholder shapes matching the expected content layout
@@ -309,23 +315,27 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## Completion Summary
 
-12 initiatives tracked. 11 fully complete, 1 awaiting stakeholder review (Init 1A).
+14 initiatives tracked. 13 complete, 1 deferred with a written promotion trigger (Init 14).
 
-| Initiative                       | Status               | Date   | Notes                                                                                                    |
-| -------------------------------- | -------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
-| 1. Brand Guidelines              | Requirements Defined | Mar 24 | Palette documented; 5 areas with recommendations awaiting stakeholder review (see Init 1A)               |
-| 1A. Guidelines Completion        | Awaiting Review      | Mar 24 | Semantic colors, usage rules, contrast audit, data viz, brand assets                                     |
-| 2. Hardcoded Colors              | Complete             | Mar 23 | Design system colors standardized; data viz colors preserved as exceptions                               |
-| 3. Hardcoded Spacing             | Complete             | Mar 23 | Actionable values replaced; micro-spacing (1-3px) documented as exceptions                               |
-| 4. Diligence Machine             | Complete             | Mar 23 | 75+ color + spacing replacements; 6 redundant dark overrides removed                                     |
-| 5. TechPar Docs                  | Complete             | Mar 23 | 35 variables documented in VARIABLES_REFERENCE.md                                                        |
-| 6. ICG Colors                    | Complete             | Mar 23 | Engine, radar chart, and template standardized with CSS variables                                        |
-| 7. Tool Shell                    | Complete             | Mar 23 | `.tool-shell` class created; ICG + Tech Debt Calculator migrated                                         |
-| 8. Skeleton Loading              | Complete             | Mar 23 | Pattern documented; classes extracted in Init 10                                                         |
-| 9. Text Variable Refactor        | Complete             | Mar 24 | `--text-*` aliases added; 335 refs migrated; ~200 lines of redundant dark overrides removed              |
-| 10. Skeleton CSS Classes         | Complete             | Mar 24 | `.skeleton-bar`, `.skeleton-bar--sm`, `.skeleton-dot` extracted to global.css                            |
-| 11. Astro CSS Alignment          | Complete             | Mar 24 | Stylelint added; Astro CSS patterns documented; `:global()` reduced 631→577                              |
-| 12. Legacy Design System Removal | Complete             | Apr 4  | ~360 lines removed; legacy classes deleted; `portfolio-controls.css` merged; `--color-primary-rgb` added |
+> Init 1 / 1A note (reconciled July 28, 2026): the table below previously read "Requirements Defined" / "Awaiting Review" while the initiative sections themselves recorded both as Complete. The sections are authoritative — Init 1A was finalized March 24, 2026 — and the rows now match.
+
+| Initiative                       | Status             | Date   | Notes                                                                                                    |
+| -------------------------------- | ------------------ | ------ | -------------------------------------------------------------------------------------------------------- |
+| 1. Brand Guidelines              | Complete           | Mar 24 | Palette documented; 5 requirement areas finalized in Init 1A                                             |
+| 1A. Guidelines Completion        | Complete           | Mar 24 | Semantic colors, usage rules, contrast audit, data viz, brand assets                                     |
+| 2. Hardcoded Colors              | Complete           | Mar 23 | Design system colors standardized; data viz colors preserved as exceptions                               |
+| 3. Hardcoded Spacing             | Complete           | Mar 23 | Actionable values replaced; micro-spacing (1-3px) documented as exceptions                               |
+| 4. Diligence Machine             | Complete           | Mar 23 | 75+ color + spacing replacements; 6 redundant dark overrides removed                                     |
+| 5. TechPar Docs                  | Complete           | Mar 23 | 35 variables documented in VARIABLES_REFERENCE.md                                                        |
+| 6. ICG Colors                    | Complete           | Mar 23 | Engine, radar chart, and template standardized with CSS variables                                        |
+| 7. Tool Shell                    | Complete           | Mar 23 | `.tool-shell` class created; ICG + Tech Debt Calculator migrated                                         |
+| 8. Skeleton Loading              | Complete           | Mar 23 | Pattern documented; classes extracted in Init 10                                                         |
+| 9. Text Variable Refactor        | Complete           | Mar 24 | `--text-*` aliases added; 335 refs migrated; ~200 lines of redundant dark overrides removed              |
+| 10. Skeleton CSS Classes         | Complete           | Mar 24 | `.skeleton-bar`, `.skeleton-bar--sm`, `.skeleton-dot` extracted to global.css                            |
+| 11. Astro CSS Alignment          | Complete           | Mar 24 | Stylelint added; Astro CSS patterns documented; `:global()` reduced 631→577                              |
+| 12. Legacy Design System Removal | Complete           | Apr 4  | ~360 lines removed; legacy classes deleted; `portfolio-controls.css` merged; `--color-primary-rgb` added |
+| 13. Token Lint Enforcement       | Complete           | Jul 28 | Colors now a build error; 100 violations swept; `--surface-*`/`--frost-*`/`--scrim-*` families minted    |
+| 14. Off-Scale Font Sizes         | Deferred (trigger) | Jul 28 | 150 literals need a type-scale ruling + visual review; rule live at warning severity meanwhile           |
 
 **Key outcomes**:
 
@@ -417,7 +427,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 2. Refactor `RadarFeedSkeleton.astro` to use the shared classes instead of scoped styles
 3. Document in STYLES_GUIDE.md
 
-**Trigger**: Implement when a second component needs skeleton loading. Until then, the scoped approach in RadarFeedSkeleton is sufficient.
+**Trigger**: ~~Implement when a second component needs skeleton loading.~~ Moot — the extraction shipped (see Status), and the component that motivated it was deleted on 2026-07-31. The classes now live in `src/styles/components/skeleton.css` and are consumed by the `/brand` specimens; nothing depends on `RadarFeedSkeleton.astro` any more.
 
 **Estimated scope**: Small
 
@@ -475,6 +485,54 @@ Result: 631 → 577 instances (-54). Remaining instances are all justified (dyna
 
 ---
 
+### 13. Design-Token Lint Enforcement & Color Sweep
+
+**Status**: Complete (July 28, 2026)
+
+**Problem**: Initiatives 2, 3, 4 and 6 remediated hardcoded values by hand, but nothing stopped them coming back. Init 11A added stylelint with the token rule at **warning** severity on four properties with `ignoreFunctions: true` — so `background: #fff`, `light-dark(#fff, #1a1a1a)`, `border: 1px solid #05cd99` and every `font-size: 13px` passed CI silently. Measured before this initiative: **345 violations** the toolchain could not see (100 color, 245 font-size). The audit trail shows the cost — repeated manual sweeps ("replace 132 hardcoded instances", "replace ~271 hardcoded `<img>` tags", four separate per-directory font-size passes), each catching what review had already missed.
+
+**Delivered**:
+
+1. **Colors are now a build error.** `scale-unlimited/declaration-strict-value` runs at `severity: error` over `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow` with `expandShorthand: true` (so `border`/`background`/`outline` shorthands are checked at their color slot) and `ignoreFunctions: false` with a `/var[(]/` allowance (so any token-referencing value passes, including `light-dark(var(), var())`, `color-mix(… var() …)` and `rgba(var(--rgb), α)`). Applied in both the root rules and the `.astro` override.
+2. **All 100 color violations fixed.** The large majority are same-value substitutions with no rendered change. **Nine are deliberate value changes**, each fixing a real defect where the literal was the _light-theme_ hex of a semantic color frozen into both themes — so the declaration silently ignored dark theme and every alternative palette:
+   - Diligence Machine exit-impact tints ×4 → `color-mix(in srgb, var(--color-…) N%, transparent)`. The light half shifts by ΔRGB ≈ 3–5 at 12% alpha (the frozen literal was only approximately the token's hex) and the dark half now themes correctly. Each rule's sibling `color:` already used the semantic token, confirming intent.
+   - Attention cards ×2 → `--color-authority-bg` / `--color-subdued-bg` (light identical; dark moves from the light hex at 0.08 to the correct dark hex at 0.1).
+   - Primary buttons ×2 → `--color-primary-15`/`-12`/`-25` (identical under the default palette; now palette-aware, which the literal never was).
+   - IRL generator form container → `--surface-subtle-bg`, whose dark half carries the design system's blue sheen rather than the neutral white it hardcoded. Sub-perceptual, and consolidating avoided minting a near-duplicate token.
+
+   A tenth change does not fit the "frozen hex" framing but is listed for completeness: the brand page's `kbd` keycap moved from an opaque `light-dark(#ffffff, #1a1a1a)` to `--surface-tint-bg` (a 5% neutral tint). The original was already theme-switched; the change is an improvement — a white keycap on the `--bg-light-alt` row was nearly invisible in light theme.
+
+3. **New neutral token families** in `variables.css`: `--surface-*-bg` (10 theme-switched neutral washes, distinct from the primary-derived `--accent-*-bg` family), `--frost-highlight`/`--frost-edge` (the frosted-glass inset+edge pair, previously copy-pasted into four stylesheets), `--scrim-15…60` (black-at-alpha backdrops, deliberately not theme-switched), `--panel-grip-bg`.
+4. **Font-size literals made visible** via `declaration-property-value-allowed-list` at `severity: warning`, and **all 95 literals byte-equal to an existing `--text-*` token tokenized** — including the brutalist type utilities themselves (`.brutal-heading-lg` was a raw `2rem`, i.e. the canonical type classes did not use their own scale). 150 off-scale literals remain; they are Initiative 14.
+5. **Documented exceptions**: `@media print` blocks keep literal `#000`/`#fff`/`#ccc` (paper has no theme) behind a justified `stylelint-disable` wrapper; the R/G/B slider affordances in `SwatchControlStyles.astro` stay red/green/blue by definition, declared once as component-local custom properties.
+
+**Verification**: `npx stylelint "src/**/*.{css,astro}"` — 0 errors (was 100), 150 warnings (was 245). Every new token is documented in VARIABLES_REFERENCE.md, mechanically enforced by `tests/integration/docs-variables-sync.test.ts`.
+
+**Files affected**: `.stylelintrc.json`, `src/styles/variables.css`, and ~40 source files across `src/styles/` (incl. `global.css`, `typography.css`, `toc.css`, `components/`), `src/pages/` (hub tools, hub library, legal pages, `ma-portfolio.astro`, `brand.astro`), and `src/components/` (`brand/`, `portfolio/`, `hub/`, `CTASection.astro`, `StatsBar.astro`, `PrintReportHeader.astro`).
+
+---
+
+### 14. Off-Scale Font-Size Literals
+
+**Status**: **Deferred** — the lint rule is live at warning severity so the debt is visible in every run, but the values are deliberately untouched. See the trigger below.
+
+**Problem**: 150 `font-size` literals do not match any `--text-*` token (`0.7rem` ×16, `0.85rem` ×11, `2.5rem` ×9, `0.6rem` ×9, `9px` ×9, `0.9rem` ×8, `0.8rem` ×7, `10px` ×6, plus a long tail including `pt` units in print blocks). Each needs a judgement call — snap to the nearest token, or extend the scale.
+
+**Why deferred rather than swept** (operator directive, 2026-07-28): unlike the color sweep, these are **not** same-value substitutions. Snapping a size changes rendered type, which carries real mobile-UX and visual-alignment risk (line-wrap points, control heights, table column fit), and the repo has **no visual-regression coverage** to catch a mistake. A bulk mechanical pass would trade a visible-but-harmless warning for an invisible layout regression. The 95 literals that _were_ byte-equal to a token were tokenized in Initiative 13, so what remains is exactly the set that requires human judgement.
+
+**Trigger to promote from deferred → active** (both required):
+
+1. A type-scale ruling exists — i.e. a decision, recorded in TYPOGRAPHY_REFERENCE.md, on whether the off-scale sizes snap to the nearest token or the scale gains steps (e.g. a `--text-2xs`-adjacent tier for the `0.6rem`/`0.7rem` cluster); **and**
+2. Per-page visual review is affordable for the pages being changed — either a human walks the affected pages at desktop/768/480 in both themes, or visual-regression coverage exists to do it mechanically.
+
+Promoting also means flipping `declaration-property-value-allowed-list` for `font-size` from `warning` to `error` in `.stylelintrc.json`, in the same change that clears the last literal.
+
+**Out of scope permanently**: `font-size` inside `@media print` blocks (`pt` units are correct for paper).
+
+**Estimated scope**: Medium-Large — 150 judgement calls across ~31 files, plus the visual review.
+
+---
+
 ## Related Documentation
 
 - [STYLES_GUIDE.md](./STYLES_GUIDE.md) - Current CSS conventions and patterns
@@ -485,4 +543,4 @@ Result: 631 → 577 instances (-54). Remaining instances are all justified (dyna
 ---
 
 **Created**: March 21, 2026
-**Last Updated**: April 4, 2026
+**Last Updated**: July 28, 2026 (Initiatives 13 & 14 added; Init 1/1A status reconciled)

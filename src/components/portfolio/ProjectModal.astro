@@ -136,7 +136,7 @@
   }
 
   .project-modal::backdrop {
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--scrim-50);
   }
 
   .modal-content {
@@ -156,8 +156,8 @@
     align-items: center;
     justify-content: center;
     transition: all var(--transition-fast);
-    min-width: 44px;
-    min-height: 44px;
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
   }
 
   .modal-close:hover {
@@ -317,7 +317,7 @@
     }
 
     .project-modal::backdrop {
-      background: rgba(0, 0, 0, 0.6);
+      background: var(--scrim-60);
     }
 
     .modal-close {

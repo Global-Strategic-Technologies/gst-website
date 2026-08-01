@@ -210,7 +210,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
   /* Dark Theme Component Overrides */
 
-  /* dark theme frosted glass handled by .brutal-frosted--heavy */
+  /* dark theme frosted glass handled by .brutal-frosted (base, 3px blur) */
 
   :global(html.dark-theme) .controls-wrapper {
     border-bottom-color: var(--color-primary);
@@ -323,7 +323,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
     .filter-button {
       flex-shrink: 0;
-      min-width: 44px;
+      min-width: var(--touch-target-min);
       height: 38px;
       padding: 0;
       display: flex;

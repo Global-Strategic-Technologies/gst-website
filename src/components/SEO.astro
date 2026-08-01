@@ -22,6 +22,14 @@ interface Props {
   ogLocale?: string;
   twitterSite?: string;
   faqItems?: Array<{ question: string; answer: string }>;
+  /**
+   * Keep this page out of the search index. Emits `noindex, follow` —
+   * `follow` is retained deliberately so outbound link equity still flows.
+   * Pair every `noindex` page with a sitemap exclusion in
+   * `src/utils/sitemap-filter.ts`; submitting a URL you also tell crawlers
+   * to drop is a contradictory signal.
+   */
+  noindex?: boolean;
 }
 
 const {
@@ -41,7 +49,10 @@ const {
   ogLocale = 'en_US',
   twitterSite = '@globalstrategic',
   faqItems,
+  noindex = false,
 } = Astro.props;
+
+const robotsDirective = noindex ? 'noindex, follow' : 'index, follow';
 
 // Derive og:title from page title when not explicitly provided
 const finalOgTitle = ogTitle || title;
@@ -439,4 +450,4 @@ const jsonLdData = {
   content="M&A technical due diligence, technology advisory, platform modernization, AI strategy, technical diligence"
 />
 <meta name="author" content="Reid Peryam" />
-<meta name="robots" content="index, follow" />
+<meta name="robots" content={robotsDirective} />

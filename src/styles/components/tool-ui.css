@@ -1,10 +1,12 @@
 @media print {
+  /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
   .brutal-tool-shell {
     max-width: 100%;
     background: #fff !important;
     backdrop-filter: none !important;
     border: none;
   }
+  /* stylelint-enable scale-unlimited/declaration-strict-value */
 }
 
 /* Benchmark disclaimer note */
@@ -38,7 +40,7 @@
 }
 
 .tool-action-bar--frosted {
-  background: light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005));
+  background: var(--surface-faint-bg);
   backdrop-filter: blur(3px);
 }
 
@@ -182,6 +184,7 @@ Override to delta icon with .tool-methodology--delta modifier. */
 }
 
 @media print {
+  /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
   .tool-methodology {
     border-top: 1px solid #ccc;
     break-inside: avoid;
@@ -196,6 +199,7 @@ Override to delta icon with .tool-methodology--delta modifier. */
     display: block !important;
     padding: var(--spacing-md) 0;
   }
+  /* stylelint-enable scale-unlimited/declaration-strict-value */
 }
 
 /* ==============================
@@ -210,7 +214,7 @@ Tool Tab Bar — sticky frosted tab navigation
   position: sticky;
   top: 0;
   z-index: 11;
-  background: light-dark(rgba(255, 255, 255, 0.85), rgba(10, 10, 10, 0.85));
+  background: var(--surface-panel-bg);
   backdrop-filter: blur(8px);
   border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   overflow-x: auto;

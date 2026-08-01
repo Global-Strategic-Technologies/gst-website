@@ -127,6 +127,99 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ## CSS and Design System
 
+### BL-097: `/brand` responsive-demo iframes all render the same group
+
+**Source**: found 2026-07-29 while measuring iframe clipping for the touch-target floor change | **Effort**: Small-Medium — the fix is mechanical, but it moves a URL that security config matches on | **Status**: Open
+
+**As a** developer using `/brand` as the design-system control, **I want** the Responsive Behavior section to show the component group each frame is labelled with **so that** the tabs, form and tool-shell demos actually demonstrate their own responsive behaviour.
+
+#### Acceptance Criteria
+
+- [ ] Each of the 12 frames renders the group its label claims (`cards`, `tabs`, `form`, `shell`), at all three widths
+- [ ] The E2E is strengthened past "the frame is not empty" to assert the frame's content matches its group — the current check passes with all four rendering `cards`
+- [ ] `src/middleware.ts` (`SAME_ORIGIN_FRAMEABLE`) and `vercel.json`'s framing-exception rule are updated in the same change if the route shape moves, and `tests/unit/security-headers.test.ts` still passes
+
+#### Technical Context
+
+- **Root cause**: `responsive-frame.astro:12` reads `Astro.url.searchParams.get('group')`. The site is static output, so the page is prerendered once and query params are never available — every `?group=` request falls through to the `'cards'` default. Verified by fetching all four groups from the dev server: byte-identical responses (133203 bytes each), all rendering `.brutal-option-card`.
+- **Live since the section was built.** `brand-page.test.ts` asserts each frame _loads content rather than being blocked_ (the CSP `frame-ancestors` fix), which passes while every frame shows the wrong content.
+- **Likely fix**: convert to `src/pages/brand/responsive-frame/[group].astro` with `getStaticPaths()` over the four groups, and point `brand.astro`'s iframe `src`s at the path form. That moves the URL, hence the middleware/`vercel.json` criterion above.
+- **Blocks a deferred measurement**: the 33→44px button growth in the touch-target change could in principle overflow the fixed-height frames (600×200 / 384×350 / 240×400, `body { overflow: hidden }`), but only the `form` group contains `.brutal-btn` and that group never renders. Measured content for the group that _does_ render is 113/261/297px against 200/350/400px, so nothing clips today. Re-measure the `form` group when this is fixed.
+
+---
+
+### BL-096: Site-wide touch-target audit (AAA) + axe route coverage
+
+**Source**: split out of the `--touch-target-min` change 2026-07-29, which fixed the button classes and deliberately stopped there | **Effort**: Medium — mostly design calls on space-constrained controls | **Status**: Open — needs a ruling before any code moves
+
+**As a** mobile user, **I want** every interactive control to be comfortably tappable **so that** I am not missing small targets on the tool pages.
+
+#### Acceptance Criteria
+
+- [ ] **Ruling first**: is WCAG 2.5.5 (AAA, 44×44) a site-wide goal or a guarantee scoped to the button component classes? Everything below depends on the answer, which is why nothing was swept pre-emptively
+- [ ] Audit and resolve the known sub-44 interactive controls: `.brutal-quick-zoom` (32px, pinned by `regulatory-map-mobile.test.ts:97-106`), `.filter-button` in `PortfolioHeader.astro` (`height: 38px` beside a `min-width` that now uses the token), the modal close buttons in `ProjectModal.astro` (around :323-329) and `PortfolioGrid.astro` (around :315-321) which both drop to 40px inside a media query, TOC links, filter chips, palette-panel affordances, nav links
+- [ ] Extend the axe route list beyond its current 8 — `src/pages` holds 25 `.astro` files, ~22 of them real routes once `brand/responsive-frame` and the two error pages are set aside
+- [ ] **Dead rule to resolve**: `MapVisualizer.astro`'s `.brutal-map-control { width/height: var(--touch-target-min) }` sits in a `@media (max-width: 767px)` block, but `.map-controls` is `display: none` below 1024px (:122-127, pinned by `regulatory-map-mobile.test.ts:89-95`) — so the mobile zoom sizing never applies. It was tokenised in the 2026-07-29 sweep for consistency (value-identical), but either the controls should be reachable on mobile or the rule should go
+- [ ] **Ratchet down `/brand`'s 13 `color-contrast` nodes** (`KNOWN_SERIOUS` in `accessibility.test.ts`). 8 are the `.a11y-badge` pass/fail chips, and they are page-local, so this is fixable without touching the site. What will NOT fix it is inverting the badge: contrast is symmetric, so a filled badge with page-background text is the same colour pair and the same 4.25:1. Three real levers — (a) fill the badge and pick a _different_ foreground (`#000` on `#2e8b57` measures 4.95:1, and the dark-theme pair is already 6.60:1), which needs an ink token since bare hex is lint-blocked; (b) change the `--color-success` / `--color-error` light values, which is site-wide; (c) clear WCAG's large-text threshold — **18.66px bold** (14pt), not 14px, so `--text-2xs` is nowhere near it. The remaining 5 are `.brutal-tab__label`, `.brand-tag`, `.project-card__cta`, `.brutal-reg-card__scope`, `.brutal-map-tap-bar__action`
+- [ ] If the ruling is site-wide, `.a11y-badge--fail`-style documented exceptions in BRAND_GUIDELINES § Accessibility are updated or removed accordingly
+
+#### Technical Context
+
+- The floor itself is done: `--touch-target-min` exists, `.brutal-btn` / `.brutal-choice-btn` / `.cta-button` clear it, and `tests/integration/touch-target-floor.test.ts` fails any rule that resolves a button below it — including inside Astro scoped `<style>` blocks, where one of the two real regressions was hiding.
+- 2.5.5 is **Level AAA**. The AA criterion (2.2 SC 2.5.8) is 24×24, which every control above already passes — so this is an enhancement, not a compliance gap. Worth stating plainly before anyone treats the 32px zoom control as a defect.
+- The `/brand` axe entry added with that change uses **both** instruments, deliberately: `checkA11y`'s `exclude` for the two things that are not debt (12 lazy same-origin iframes, whose load state at scan time would make the count nondeterministic; and the `[data-demo-state="hover"]` specimens, which are low-contrast on purpose and must never "improve"), plus a `KNOWN_SERIOUS` baseline of 13 for contrast findings that genuinely are debt. Any route added here needs the same split judgement — exclude what must not change, baseline what should decrease, and never widen the exclusions to make a number go away.
+
+---
+
+### BL-095: Brand-page specimens — replace hand-rolled replicas with real components
+
+**Source**: operator review of `/brand` 2026-07-28 — reported the logo lockup not matching the site header, the delta too small on both the logo and theme-toggle specimens, and broken spacing in several component demos. Root-caused to two mechanisms; the code-split-CSS half was fixed immediately (see Technical Context), this stanza covers the durable half | **Effort**: Medium — ~900 lines of `BrandUILibrary.astro`, convertible incrementally | **Status**: Open
+
+**As a** developer using `/brand` as the design-system control example, **I want** each specimen to render the real production component **so that** what I copy is what ships, and a specimen cannot drift from the component it documents.
+
+#### Acceptance Criteria
+
+- [ ] Specimens render the real component wherever it is renderable in isolation (cards, buttons, form controls, chips, tool shells, breadcrumbs, tiles, tables)
+- [ ] For components that genuinely cannot be rendered twice on a page — `Header.astro` and `ThemeToggle.astro` both carry singleton `id`s (`#themeToggle`) and a bound script — either extract a presentational inner component the page and the specimen both use, or keep the replica **with** the parity E2E guard added 2026-07-28 in `brand-page.test.ts` (which compares the specimen's size, colour and gap against the live component on the same page) and a comment naming the file to keep it in sync with
+- [ ] No specimen re-implements a design-system treatment inline (the frosted-glass demo hand-rolled `rgba(255,255,255,0.75)` + `blur(12px)` — wrong colour in dark theme and the wrong blur — until it was fixed in the token sweep)
+- [ ] Specimen labels continue to name the class actually rendered (17 mismatches were corrected in the token sweep; converting to real components removes the failure mode entirely)
+- [x] Resolve the ~28 class names present in the `/brand` DOM with **no CSS rule anywhere** in the repo (`brand-metric`, `brand-tag`, `rec-badge--effort`, `colors-status-chip--success`, `tool-wizard-dot--even`, …) — surfaced by a live DOM audit 2026-07-28. **Done 2026-07-29**: 28 → 5, and the 5 that remain are legitimate JS hooks with no visual role (`swatch-slider-{r,g,b,a}`, `palette-panel__popout-label`). Three dead legacy specimens (`.teaser-card`, `.rec-card`, `.attention-card` — zero production usage) were deleted with their CSS and demo JS; the rest were either repointed at the real class or given the missing rule as a documented `.brand-*` replica in `brand.astro`. The audit also exposed a live TechPar defect — `utils/techpar/chart.ts` emitted `bench-row--active` / `bench-label*`, names no rule defines, against a table styled with `.brutal-bench-table__active` / `__label*` — now fixed
+- [ ] **Two items deliberately deferred out of the 2026-07-29 sweep** (recorded so they don't evaporate):
+  - The `.brand-*` card replicas in `brand.astro` omit their originals' `@media (max-width: 480px)` overrides — `PortfolioGrid.astro` shrinks `.metric-value` and `.metric-value.arr` there (~:271, :275), the replicas do not. Scope is narrow: the 768px block touches nothing a replica mirrors, and `ProjectModal`'s media blocks override no replicated selector at all, so the modal replicas have no responsive gap. Only matters if the specimens are ever viewport-demoed directly; the Responsive Behavior iframes already cover that job for the components they frame.
+  - **Two competing `.project-card` definitions**: `cards.css` uses `var(--bg-light)` while `PortfolioGrid.astro`'s scoped rule uses `light-dark(…, var(--bg-dark-secondary))`, so the `/brand` specimen renders `rgb(12,12,12)` in dark theme against production's `rgb(26,26,26)`. Pre-existing production debt — deliberately not folded into a brand-page branch, since resolving it means changing which definition wins for the live portfolio grid
+
+#### Technical Context
+
+- **Two distinct causes produced the reported symptoms.** (1) **Code-split CSS** — `filter.css`, `map.css`, `portfolio.css` and `progress.css` load only on the pages that use them, so their specimens rendered as raw unstyled markup on `/brand`. **Fixed 2026-07-28** by importing all four in `brand.astro`, with E2E assertions so it cannot regress. (2) **Replica drift** — this stanza. The logo specimen passed no `size` prop to `DeltaIcon` (defaulting to 14px) where `Header.astro` renders 32px; the theme-toggle specimen was 14px against production's ~54px and used the wrong colour token.
+- **Why replicas exist**: several specimens need page context (sticky positioning, scroll state, data props) that a bare render does not supply. Convert the ones that don't first — that is most of them.
+- **Why this matters more than it looks**: STYLES_GUIDE § In-repo Control Examples now instructs every session to copy from these specimens. A drifted specimen actively teaches the wrong thing, which is worse than having no specimen at all.
+- **`.primary` / `.secondary` are inert everywhere.** `buttons.css` defines exactly one CTA appearance (`.cta-button`); the bare `primary` / `secondary` tokens seen in `class="cta-button primary"` match no rule in the repo. They were removed from the `/brand` specimens 2026-07-29 (and the CTA Buttons group collapsed from two identical specimens to one truthful `.cta-button`), but ~20 inert occurrences remain in production markup — `Hero.astro`, `hub/tools/index.astro`, `hub/library/index.astro`, the tool back-links. Stripping them is mechanical and behaviour-free; **defining** them is not — `.cta-button.secondary` would restyle every "Back to …" link at once and needs a design decision first. Bare unnamespaced globals are also a collision hazard: prefer `.brutal-btn--primary` / `--secondary` when a real two-variant pair is wanted.
+- Related: [STYLES_REMEDIATION_ROADMAP.md § 13](../styles/STYLES_REMEDIATION_ROADMAP.md) (the token sweep that surfaced the label mismatches), BL-094 (the off-scale font sizes still present in these same replica blocks).
+
+---
+
+### BL-094: Off-scale font-size literals — type-scale ruling + sweep (deferred)
+
+**Source**: split out of the design-token lint enforcement initiative (2026-07-28) — see [STYLES_REMEDIATION_ROADMAP.md § 14](../styles/STYLES_REMEDIATION_ROADMAP.md) for the full analysis, which is the authoritative record | **Effort**: Medium-Large — 150 judgement calls across ~31 files + per-page visual review | **Status**: **Deferred** — visible as lint warnings in every run; do NOT bulk-snap (see why below)
+
+**As a** developer changing type sizes, **I want** every `font-size` to come from the `--text-*` scale **so that** typography is consistent and a size change is a token change — but not at the cost of an unreviewed layout regression.
+
+#### Acceptance Criteria
+
+- [ ] A type-scale ruling recorded in [TYPOGRAPHY_REFERENCE.md](../styles/TYPOGRAPHY_REFERENCE.md): do the off-scale sizes snap to the nearest existing token, or does the scale gain steps (the `0.6rem`/`0.7rem` cluster is the strongest candidate for a new tier)?
+- [ ] The 150 remaining literals resolved per that ruling, with the affected pages visually reviewed at desktop/768/480 in both themes (or visual-regression coverage standing in for the human pass)
+- [ ] `declaration-property-value-allowed-list` for `font-size` flipped from `warning` to `error` in `.stylelintrc.json` in the same change that clears the last literal
+- [ ] `@media print` font-sizes remain exempt — `pt` units are correct for paper
+
+#### Technical Context
+
+- **Why this is deferred and not swept** (operator directive 2026-07-28): unlike the color sweep that shipped alongside it, these are **not** same-value substitutions. Snapping a size changes rendered type, risking line-wrap points, control heights and table fit — and the repo has **no visual-regression coverage** to catch a mistake. The 95 literals that were byte-equal to an existing token were already tokenized; what remains is precisely the set needing human judgement.
+- **Promotion trigger** (both required): the type-scale ruling exists, AND per-page visual review is affordable for the pages being changed.
+- Largest clusters: `0.7rem` ×16, `0.85rem` ×11, `2.5rem` ×9, `0.6rem` ×9, `9px` ×9, `0.9rem` ×8, `0.8rem` ×7, `10px` ×6.
+- Current scale for reference: `--text-2xs` 0.65rem · `--text-xs` 0.75rem · `--text-sm` 0.875rem · `--text-base` 1rem · `--text-lg` 1.1rem · `--text-xl` 1.25rem · `--text-2xl` 1.5rem · `--text-3xl` 2rem.
+
+---
+
 ### BL-020: Design System Package Extraction
 
 **Source**: DESIGN_SYSTEM_FUTURE_INITIATIVES.md | **Effort**: Large | **Status**: Deferred
@@ -197,6 +290,49 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 ---
 
 ## Infrastructure
+
+### BL-099: Extract the shared `WebApplication` JSON-LD block from the six hub tool pages
+
+**Source**: noticed while adding the missing schema to the IRL generator (2026-07-31, `fix/seo-indexability-radar-ssr`) | **Effort**: Small | **Status**: Open
+
+**As a** maintainer, **I want** one helper emitting the tool-page `WebApplication` schema **so that** the shared `author` / `publisher` / `offers` blocks cannot drift apart across six copies.
+
+All six pages under `src/pages/hub/tools/` inline a near-identical literal differing only in `name`, `description`, `featureList` and the two dates. The drift is already real rather than hypothetical: the IRL generator's copy shipped without the `knowsAbout` array its five siblings carry (fixed on landing), and a guessed `datePublished` that post-dated the page by five weeks (corrected against `git log`).
+
+Deliberately **not** done in the branch that noticed it: a six-page refactor of unrelated tool pages would have expanded an indexability fix into five pages that have nothing to do with it (Directive 13). Filed rather than carried silently — that is the difference between out-of-scope and deferred debt.
+
+#### Acceptance Criteria
+
+- [ ] A helper in `src/utils/` takes `{ name, description, featureList, datePublished, dateModified }` and emits the schema
+- [ ] All six tool pages use it; the shared `author` / `publisher` / `offers` / `knowsAbout` blocks exist once
+- [ ] A test asserts every **tool** page — `src/pages/hub/tools/*/index.astro` — emits `WebApplication`, the gap that let the IRL generator ship without one. Note `tools/index.astro` is the listing page and correctly emits `ItemList`; a test scoped to `tools/` rather than `tools/*/` would either fail or invite "fixing" that page's schema to the wrong type
+
+---
+
+### BL-098: Radar negative caching — a failed revalidation is cached as a 200
+
+**Source**: accepted trade-off of inlining the Radar feed (2026-07-31, `fix/seo-indexability-radar-ssr`) | **Effort**: Medium — the naive fix is worse than the problem | **Status**: Open, do not implement without the trigger
+
+**As a** visitor to `/hub/radar`, **I want** a transient failure of the MCP Worker not to leave the feed empty for hours **so that** a 30-second outage doesn't become a 6-hour one.
+
+**What changed.** The feed used to be a `server:defer` island, and `@astrojs/vercel` routes `/_server-islands/*` to the uncached render function — so a failed fetch self-healed on the very next request. Inlining the feed (required: crawlers were judging the shell and the page sat unindexed) moved the fetch inside the ISR entry, where a failed revalidation is cached as a `200` with the empty state for up to 6h.
+
+**Why the obvious fixes are wrong.** Vercel prerender functions take no per-response TTL, so "refuse to cache a failed fetch" realistically means throwing a 5xx — trading a graceful empty state for an error page for every visitor during the outage, _plus_ a live MCP fetch per request while the breaker is open, which is the exact Zone-1 budget pressure [ADR-0006](../adr/0006-inoreader-zone1-budget-protection.md) exists to prevent. **Do not reintroduce the server island**: that reopens the indexability defect this was fixed to close. Note also that BL-091 does not cover this — breaker-open is cache-only, so a cold cache still renders empty.
+
+**Prerequisite for any fix**: the code cannot currently tell a _failed_ fetch from a _legitimately empty_ feed — both render `.radar-empty`. That distinction has to exist first.
+
+**Trigger**: a Search Console or operator report of a stale-empty radar window causing real harm. Until then the trade-off is accepted.
+
+**Worth recording on the other side of the ledger**: the same change dropped Worker load from per-pageview to per-revalidation. The cost is staleness — nominal worst-case visitor-visible age ~12h (6h ISR on top of the 6h cron). Do not read that as "within the `snapshot age ≤ 12h` SLO": that SLO is `2 × cron-interval`, an alerting threshold that tolerates one missed cron, and it governs the Worker's snapshot rather than the website's cache. When both slip, visitor-visible age can reach ~18h.
+
+#### Acceptance Criteria
+
+- [ ] A failed `/radar/snapshot` fetch is distinguishable from an empty feed at the render site
+- [ ] A revalidation failure does not persist an empty feed for the full ISR window
+- [ ] No 5xx is served to visitors for a feed-fetch failure, and no per-request MCP fetch is introduced while the breaker is open
+- [ ] `/hub/radar` still ships its feed in the initial HTML — verified by the existing raw-HTML E2E, not re-litigated
+
+---
 
 ### BL-033: MCP Server — External Pilot (Phase 3)
 
