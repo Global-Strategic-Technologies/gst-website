@@ -48,6 +48,17 @@ const ldJsonElements = (src: string) =>
   scriptElements(src).filter((el) => el.includes('type="application/ld+json"'));
 
 /**
+ * The `knowsAbout` entries a page passes to the helper, read out of its JSON-LD
+ * element. Read from source rather than by importing the page, because .astro
+ * components can't be evaluated under vitest's node environment.
+ */
+function knowsAboutOf(src: string): string[] {
+  const [element] = ldJsonElements(src);
+  const block = element?.match(/knowsAbout:\s*\[([\s\S]*?)\]/)?.[1] ?? '';
+  return [...block.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1].replace(/\\'/g, "'"));
+}
+
+/**
  * Tool pages are `hub/tools/<tool>/index.astro`. The bare `hub/tools/index.astro`
  * is the LISTING page and is deliberately excluded — it correctly emits
  * `ItemList`, so a scan scoped to `tools/` rather than to its subdirectories
@@ -149,6 +160,18 @@ describe('every hub tool page emits WebApplication JSON-LD', () => {
     // appear inside THIS element's `set:html`. Attribute order is not assumed.
     const [element] = ldJsonElements(read(TOOLS_DIR, tool, 'index.astro'));
     expect(element).toMatch(/set:html=\{JSON\.stringify\(\s*hubToolSchema\(/);
+  });
+
+  it.each(TOOL_PAGES)('%s passes a well-formed knowsAbout array', (tool) => {
+    // Makes JSON_LD_SCHEMA.md § Adding a New Tool step 4 executable rather than
+    // merely documented. An OMITTED knowsAbout is already a type error — that
+    // was the original BL-099 defect — but an empty or truncated one is not,
+    // and it degrades the same author-expertise signal just as silently.
+    const knowsAbout = knowsAboutOf(read(TOOLS_DIR, tool, 'index.astro'));
+    expect(knowsAbout.length).toBeGreaterThanOrEqual(4);
+    expect(knowsAbout.length).toBeLessThanOrEqual(5);
+    expect(knowsAbout).toContain('Technical Due Diligence');
+    expect(knowsAbout).toContain('M&A Tech Strategy');
   });
 });
 
