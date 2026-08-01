@@ -281,6 +281,30 @@ The SEO component generates the following HTML:
 <meta name="robots" content="index, follow" />
 ```
 
+### Keeping a page out of the index — the `noindex` prop
+
+`SEO.astro` accepts `noindex`, forwarded from `BaseLayout.astro`, which flips the robots tag to `noindex, follow`:
+
+```astro
+<BaseLayout title="Booking Confirmed | GST" description="..." noindex>
+```
+
+`follow` is deliberate: the page leaves the index while its outbound links still pass equity. There is no `nofollow` variant, and none should be added without a reason to withhold equity.
+
+**Always pair `noindex` with a sitemap exclusion.** Submitting a URL in the sitemap while telling crawlers to drop it is a contradictory signal. The exclusion list lives in [`src/utils/sitemap-filter.ts`](../../utils/sitemap-filter.ts). `tests/unit/indexability.test.ts` enforces the pairing by **discovering** every page that passes `noindex` — walking `src/pages/**/*.astro` rather than reading a hardcoded list — and asserting each is excluded. Add a `noindex` page without a filter entry and that test fails.
+
+| Page                  | `noindex` | Sitemap | Why                                                                     |
+| --------------------- | --------- | ------- | ----------------------------------------------------------------------- |
+| `/booking-confirmed/` | yes       | excluded | Post-conversion page; no search intent it could satisfy                 |
+| `/brand/`             | yes       | excluded | Internal design reference, not marketing content                        |
+| `/404`, `/500`        | yes       | excluded | Status pages. The sitemap integration drops these itself — the filter entry is documented belt-and-braces |
+| `/colors`             | n/a       | excluded | A bare 301 to `/brand#colors` with no layout, so there is no tag to set |
+
+Two caveats worth knowing before extending this:
+
+- **`canonicalUrl` is declared on `SEO.astro` but never forwarded by `BaseLayout.astro`.** Pages cannot set a canonical through the layout today; `SEO.astro` emits a self-referential one. `noindex` alongside a self-canonical is standard and correct.
+- **`src/pages/brand/responsive-frame.astro` hand-rolls its own `<meta name="robots" content="noindex">`.** It is an iframe partial with no layout, so it cannot use the prop. That is the only sanctioned exception — every page that _has_ a layout must use `noindex`.
+
 ### Where Output Appears
 
 The component outputs into the `<head>` of your HTML document:

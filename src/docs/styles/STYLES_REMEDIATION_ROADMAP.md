@@ -288,6 +288,8 @@ Tracked initiatives to close the gap between documented conventions and actual i
 - `@keyframes pulse` defined in `global.css` (line 137) - Shared animation
 - Skeleton mimics the wire-item layout with animated bars at varying widths
 
+> **Superseded 2026-07-31.** `RadarFeedSkeleton.astro` was deleted when the Radar feed stopped being a `server:defer` island — deferring the page's primary content left it unindexed. The `@keyframes pulse` animation moved to `src/styles/components/skeleton.css` (it was never at `global.css:137`; that line is an unrelated media query). The documented pattern survives — the canonical reference is now the `/brand` specimens. See [RADAR.md § Why the feed is not a server island](../hub/RADAR.md).
+
 **Pattern components**:
 
 1. **Skeleton component**: Renders placeholder shapes matching the expected content layout
@@ -425,7 +427,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
 2. Refactor `RadarFeedSkeleton.astro` to use the shared classes instead of scoped styles
 3. Document in STYLES_GUIDE.md
 
-**Trigger**: Implement when a second component needs skeleton loading. Until then, the scoped approach in RadarFeedSkeleton is sufficient.
+**Trigger**: ~~Implement when a second component needs skeleton loading.~~ Moot — the extraction shipped (see Status), and the component that motivated it was deleted on 2026-07-31. The classes now live in `src/styles/components/skeleton.css` and are consumed by the `/brand` specimens; nothing depends on `RadarFeedSkeleton.astro` any more.
 
 **Estimated scope**: Small
 

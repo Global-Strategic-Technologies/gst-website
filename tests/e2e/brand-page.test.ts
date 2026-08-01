@@ -5,6 +5,19 @@ test.describe('Brand Page', () => {
     await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
   });
 
+  test.describe('Indexability', () => {
+    test('should be excluded from the search index', async ({ page }) => {
+      // /brand is an internal design reference, not marketing content, and has
+      // been sitemap-excluded since before this tag existed. `follow` keeps
+      // outbound link equity flowing. Asserts the tag is actually SERVED,
+      // which tests/unit/indexability.test.ts cannot check from source.
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+        'content',
+        'noindex, follow'
+      );
+    });
+  });
+
   test.describe('Page Structure', () => {
     test('should render all 12 content sections', async ({ page }) => {
       const sectionIds = [

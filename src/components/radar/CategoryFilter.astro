@@ -44,12 +44,14 @@ const allD = (Math.abs(0 - center) / maxDist).toFixed(3);
   //
   // - On init: read `?category=<X>` from the URL; if a known category is
   //   present, activate that pill (matches the active state the user
-  //   would see by clicking) and apply the visual filter to any items
-  //   already in the DOM.
+  //   would see by clicking) and apply the visual filter. Since the feed is
+  //   rendered inline, the items exist by DOMContentLoaded and the filter
+  //   actually takes effect — while it was a server island this hydration
+  //   activated the pill against an empty DOM and silently did nothing.
   // - On click: write `?category=<X>` (or strip when "all") via
   //   history.replaceState so a copied URL deep-links to the same view.
-  // - Items themselves are filtered exactly as before — server island
-  //   `data-category` attributes drive `display: none` / unset.
+  // - Items themselves are filtered by toggling `display` on the
+  //   `data-category` elements RadarFeed renders.
 
   function applyFilterVisual(filter: string): void {
     const items = document.querySelectorAll('[data-category]');
@@ -97,9 +99,12 @@ const allD = (Math.abs(0 - center) / maxDist).toFixed(3);
         buttons.forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
 
-        // Query items at click time — RadarFeed is a server island
-        // that streams in after DOMContentLoaded, so items don't
-        // exist during initial script setup.
+        // Query items at click time rather than caching a NodeList at setup:
+        // the feed is re-rendered on navigation, and a stale list would filter
+        // detached nodes. (Until the feed was inlined this comment cited the
+        // server island streaming in after DOMContentLoaded — that is no longer
+        // true, and it was also why the ?category= hydration above silently
+        // did nothing.)
         applyFilterVisual(filter);
         syncUrlState(filter);
       });

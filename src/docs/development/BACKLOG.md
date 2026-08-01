@@ -291,6 +291,49 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
+### BL-099: Extract the shared `WebApplication` JSON-LD block from the six hub tool pages
+
+**Source**: noticed while adding the missing schema to the IRL generator (2026-07-31, `fix/seo-indexability-radar-ssr`) | **Effort**: Small | **Status**: Open
+
+**As a** maintainer, **I want** one helper emitting the tool-page `WebApplication` schema **so that** the shared `author` / `publisher` / `offers` blocks cannot drift apart across six copies.
+
+All six pages under `src/pages/hub/tools/` inline a near-identical literal differing only in `name`, `description`, `featureList` and the two dates. The drift is already real rather than hypothetical: the IRL generator's copy shipped without the `knowsAbout` array its five siblings carry (fixed on landing), and a guessed `datePublished` that post-dated the page by five weeks (corrected against `git log`).
+
+Deliberately **not** done in the branch that noticed it: a six-page refactor of unrelated tool pages would have expanded an indexability fix into five pages that have nothing to do with it (Directive 13). Filed rather than carried silently — that is the difference between out-of-scope and deferred debt.
+
+#### Acceptance Criteria
+
+- [ ] A helper in `src/utils/` takes `{ name, description, featureList, datePublished, dateModified }` and emits the schema
+- [ ] All six tool pages use it; the shared `author` / `publisher` / `offers` / `knowsAbout` blocks exist once
+- [ ] A test asserts every **tool** page — `src/pages/hub/tools/*/index.astro` — emits `WebApplication`, the gap that let the IRL generator ship without one. Note `tools/index.astro` is the listing page and correctly emits `ItemList`; a test scoped to `tools/` rather than `tools/*/` would either fail or invite "fixing" that page's schema to the wrong type
+
+---
+
+### BL-098: Radar negative caching — a failed revalidation is cached as a 200
+
+**Source**: accepted trade-off of inlining the Radar feed (2026-07-31, `fix/seo-indexability-radar-ssr`) | **Effort**: Medium — the naive fix is worse than the problem | **Status**: Open, do not implement without the trigger
+
+**As a** visitor to `/hub/radar`, **I want** a transient failure of the MCP Worker not to leave the feed empty for hours **so that** a 30-second outage doesn't become a 6-hour one.
+
+**What changed.** The feed used to be a `server:defer` island, and `@astrojs/vercel` routes `/_server-islands/*` to the uncached render function — so a failed fetch self-healed on the very next request. Inlining the feed (required: crawlers were judging the shell and the page sat unindexed) moved the fetch inside the ISR entry, where a failed revalidation is cached as a `200` with the empty state for up to 6h.
+
+**Why the obvious fixes are wrong.** Vercel prerender functions take no per-response TTL, so "refuse to cache a failed fetch" realistically means throwing a 5xx — trading a graceful empty state for an error page for every visitor during the outage, _plus_ a live MCP fetch per request while the breaker is open, which is the exact Zone-1 budget pressure [ADR-0006](../adr/0006-inoreader-zone1-budget-protection.md) exists to prevent. **Do not reintroduce the server island**: that reopens the indexability defect this was fixed to close. Note also that BL-091 does not cover this — breaker-open is cache-only, so a cold cache still renders empty.
+
+**Prerequisite for any fix**: the code cannot currently tell a _failed_ fetch from a _legitimately empty_ feed — both render `.radar-empty`. That distinction has to exist first.
+
+**Trigger**: a Search Console or operator report of a stale-empty radar window causing real harm. Until then the trade-off is accepted.
+
+**Worth recording on the other side of the ledger**: the same change dropped Worker load from per-pageview to per-revalidation. The cost is staleness — nominal worst-case visitor-visible age ~12h (6h ISR on top of the 6h cron). Do not read that as "within the `snapshot age ≤ 12h` SLO": that SLO is `2 × cron-interval`, an alerting threshold that tolerates one missed cron, and it governs the Worker's snapshot rather than the website's cache. When both slip, visitor-visible age can reach ~18h.
+
+#### Acceptance Criteria
+
+- [ ] A failed `/radar/snapshot` fetch is distinguishable from an empty feed at the render site
+- [ ] A revalidation failure does not persist an empty feed for the full ISR window
+- [ ] No 5xx is served to visitors for a feed-fetch failure, and no per-request MCP fetch is introduced while the breaker is open
+- [ ] `/hub/radar` still ships its feed in the initial HTML — verified by the existing raw-HTML E2E, not re-litigated
+
+---
+
 ### BL-033: MCP Server — External Pilot (Phase 3)
 
 **Source**: MCP_SERVER_INITIATIVE.md (archived) | **Effort**: 2 weeks engineering + indeterminate legal/sales lead time | **Status**: Open | **Depends on**: BL-032, BL-032.7 (substrate safety + observability — shipped 2026-05-16), **BL-032.8** (radar consumer unification — precondition; eliminates the website's direct Inoreader caller so all consumers — including pilot clients — go through the same canonical MCP path with the BL-032.7 protections)
