@@ -291,24 +291,6 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
-### BL-099: Extract the shared `WebApplication` JSON-LD block from the six hub tool pages
-
-**Source**: noticed while adding the missing schema to the IRL generator (2026-07-31, `fix/seo-indexability-radar-ssr`) | **Effort**: Small | **Status**: Open
-
-**As a** maintainer, **I want** one helper emitting the tool-page `WebApplication` schema **so that** the shared `author` / `publisher` / `offers` blocks cannot drift apart across six copies.
-
-All six pages under `src/pages/hub/tools/` inline a near-identical literal differing only in `name`, `description`, `featureList` and the two dates. The drift is already real rather than hypothetical: the IRL generator's copy shipped without the `knowsAbout` array its five siblings carry (fixed on landing), and a guessed `datePublished` that post-dated the page by five weeks (corrected against `git log`).
-
-Deliberately **not** done in the branch that noticed it: a six-page refactor of unrelated tool pages would have expanded an indexability fix into five pages that have nothing to do with it (Directive 13). Filed rather than carried silently — that is the difference between out-of-scope and deferred debt.
-
-#### Acceptance Criteria
-
-- [ ] A helper in `src/utils/` takes `{ name, description, featureList, datePublished, dateModified }` and emits the schema
-- [ ] All six tool pages use it; the shared `author` / `publisher` / `offers` / `knowsAbout` blocks exist once
-- [ ] A test asserts every **tool** page — `src/pages/hub/tools/*/index.astro` — emits `WebApplication`, the gap that let the IRL generator ship without one. Note `tools/index.astro` is the listing page and correctly emits `ItemList`; a test scoped to `tools/` rather than `tools/*/` would either fail or invite "fixing" that page's schema to the wrong type
-
----
-
 ### BL-098: Radar negative caching — a failed revalidation is cached as a 200
 
 **Source**: accepted trade-off of inlining the Radar feed (2026-07-31, `fix/seo-indexability-radar-ssr`) | **Effort**: Medium — the naive fix is worse than the problem | **Status**: Open, do not implement without the trigger
