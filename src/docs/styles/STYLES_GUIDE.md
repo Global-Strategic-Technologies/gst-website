@@ -429,6 +429,22 @@ Additional breakpoints used sparingly:
 - `@media (min-width: 480px) and (max-width: 767px)` — tablet-only range
 - `@media print` — print stylesheet
 
+### Touch Targets
+
+Interactive controls clear **44×44px** — WCAG 2.5.5, Level AAA. Use the `--touch-target-min` token, never a raw `44px`:
+
+```css
+.my-control {
+  min-height: var(--touch-target-min);
+}
+```
+
+It is a **floor, not a fixed size**. Components may sit above it where the design calls for it — the ICG wizard nav uses 48px, the diligence-machine document action uses 52px — and those stay as they are. What must never happen is a page-local rule resolving *below* it: `.brutal-choice-btn--unsure` (36px) and a techpar mobile action bar (40px) both did exactly that, silently out-specifying the base rule. [touch-target-floor.test.ts](../../../tests/integration/touch-target-floor.test.ts) now fails on any `min-height` / `min-width` that resolves under the token for a `brutal-btn`, `brutal-choice-btn` or `cta-button` selector, including inside Astro `<style>` blocks. It scans declarations that exist, so it catches a bad override — it cannot tell you a component has no floor at all, which is the shape that let `.brutal-btn` sit at 33px in the first place.
+
+Beware `display` overrides on a button that inherits the floor: swapping `inline-flex` for `inline-block` drops `align-items: center`, leaving the label top-aligned above dead space.
+
+Canonical statement and the documented exception live in [BRAND_GUIDELINES.md § Accessibility](./BRAND_GUIDELINES.md).
+
 ### Z-Index Scale
 
 Use the canonical `--z-*` tokens from [variables.css](../../styles/variables.css) — **never raw numeric z-index values** (the token block's own comment mandates this). Tool-internal layers (map annotations, chart overlays) may use direct values for contextual reasons; prefer tokens otherwise.
@@ -457,10 +473,12 @@ All `.brutal-btn` buttons include a frosted-glass aesthetic by default:
 .brutal-btn {
   backdrop-filter: blur(2px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    /* wet-glass highlight */ 0 0 0 1px rgba(0, 0, 0, 0.04); /* subtle edge */
+    inset 0 1px 0 var(--frost-highlight),
+    /* wet-glass highlight */ 0 0 0 1px var(--frost-edge); /* hairline edge */
 }
 ```
+
+The `--frost-highlight` / `--frost-edge` pair carries the theme-switched values (see [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)); use the tokens rather than re-typing the rgba pair on each frosted surface.
 
 > **Do NOT manually write `-webkit-backdrop-filter`** (or any other vendor-prefixed property).
 > LightningCSS, wired to the project's [browserslist config](../../../package.json) via
@@ -597,11 +615,13 @@ Hub tools use the standardized `.brutal-tool-shell` class defined in `global.css
 
 ### Skeleton Loading Placeholders
 
-For components that load content asynchronously (API calls, server islands), use the skeleton loading pattern. The `@keyframes pulse` animation is already defined in `global.css` (line 137).
+For components that load content asynchronously, use the skeleton loading pattern. The `@keyframes pulse` animation and the classes below are defined in [`src/styles/components/skeleton.css`](../../styles/components/skeleton.css).
 
-**Canonical reference**: `src/components/radar/RadarFeedSkeleton.astro`
+**Canonical reference**: the live specimens on [`/brand`](../../pages/brand.astro) — see `src/components/brand/BrandComponents.astro`, which is the in-repo control example for this pattern.
 
-**Global classes** (defined in `global.css`):
+> Do **not** reach for a skeleton to defer a page's primary content. `/hub/radar` used to do exactly that via a `server:defer` island, and crawlers judged the shell rather than the feed, leaving the page unindexed. Skeletons are for secondary content that genuinely arrives later. See [RADAR.md § Why the feed is not a server island](../hub/RADAR.md).
+
+**Global classes**:
 
 | Class               | Description                                   |
 | ------------------- | --------------------------------------------- |
@@ -683,6 +703,30 @@ The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse
 ```
 
 Colors must use CSS variables so dark theme works automatically.
+
+> **This is mechanically enforced.** Since July 28, 2026 a hardcoded color is a stylelint **error** — it fails `npm run lint:css`, the pre-commit hook, and CI. The rule covers `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow`, and the color slot of `border`/`background`/`outline` shorthands. Any value that references a token passes, including `light-dark(var(--a), var(--b))`, `color-mix(in srgb, var(--x) 12%, transparent)` and `rgba(var(--rgb), .5)`. Mechanics: [DEVELOPER_TOOLING.md § stylelint configuration notes](../development/DEVELOPER_TOOLING.md).
+>
+> **Need a tint that has no token?** Reach for `color-mix(in srgb, var(--color-success) 12%, transparent)` before minting one — it stays correct across themes and all six palettes, which a frozen `rgba(46, 139, 87, 0.12)` does not. For neutral washes use the `--surface-*-bg` family; for modal/drawer backdrops use `--scrim-15…60`; for frosted edges use `--frost-highlight`/`--frost-edge`.
+>
+> **Two documented exceptions**, both legal because custom-property declarations are never checked by the rule:
+>
+> 1. **`@media print` blocks** keep literal `#000`/`#fff`/`#ccc` — paper has no theme. Wrap the block in `/* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal */ … /* stylelint-enable … */` with that justification.
+> 2. **Channel-specific affordances** — the R/G/B slider controls in `SwatchControlStyles.astro` must stay red/green/blue regardless of palette. Declare such colors once as component-local custom properties; never repeat the literal inline.
+
+### 1b. Off-Scale Font Sizes
+
+```css
+/* BAD */
+.label {
+  font-size: 13px;
+}
+/* GOOD */
+.label {
+  font-size: var(--text-sm);
+}
+```
+
+Font sizes come from the `--text-*` scale. This is enforced at **warning** severity (not error) while 150 pre-existing off-scale literals are worked through — see [STYLES_REMEDIATION_ROADMAP.md § 14](./STYLES_REMEDIATION_ROADMAP.md) and BL-094. **New code should produce no new warnings.** Do not bulk-snap existing off-scale values to the nearest token: that changes rendered type, and the repo has no visual-regression coverage to catch a layout break.
 
 ### 2. Duplicate Dark Theme Selectors
 

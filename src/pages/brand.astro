@@ -7,12 +7,25 @@ import BrandTypography from '../components/brand/BrandTypography.astro';
 import BrandComponents from '../components/brand/BrandComponents.astro';
 import BrandAccessibility from '../components/brand/BrandAccessibility.astro';
 import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
+
+/* Page-specific component CSS. These four are deliberately code-split out of
+ * global.css (see the note there) and imported only by the pages that use them,
+ * so they do NOT load site-wide. The brand page renders specimens for all of
+ * them, and without these imports those specimens render as unstyled markup —
+ * which is worse than no specimen, since a reader concludes the class is broken.
+ * This page is the design-system reference, so it needs the full set; the
+ * page-weight argument for splitting does not apply to a documentation surface. */
+import '../styles/components/filter.css';
+import '../styles/components/map.css';
+import '../styles/components/portfolio.css';
+import '../styles/components/progress.css';
 ---
 
 <BaseLayout
   title="Brand Style Reference | GST"
   description="GST visual identity reference — colors, typography, spacing, and component patterns rendered live from the design system."
   showPalettePanel
+  noindex
 >
   <div class="container">
     <h1 class="brutal-heading-lg brand-page__title">Brand Style Reference</h1>
@@ -100,7 +113,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
       ]}
     />
 
-    <div class="brand-content palette-scope palette-0" id="palette-scope">
+    <div class="brand-content palette-scope" id="palette-scope">
       <BrandIdentity />
       <BrandColors />
       <BrandTypography />
@@ -250,7 +263,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .brand-swatch__usage {
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     color: var(--text-muted);
     line-height: 1.3;
   }
@@ -369,6 +382,28 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     width: 100%;
   }
 
+  /* ── Hover specimens ──
+     Cards whose documented behaviour IS the hover transition (trust card,
+     step card, service card, hub gateway card, project card). The rule below
+     is the real mechanism — never simulate it with inline onmouseenter
+     handlers, which freeze the value against theme and palette and teach the
+     wrong pattern to anyone copying this page. */
+  .brand-hover-card {
+    padding: var(--spacing-xl);
+    border: 2px solid var(--border-light);
+    transition: border-color var(--transition-normal);
+    cursor: default;
+  }
+
+  .brand-hover-card:hover {
+    border-color: var(--color-primary);
+  }
+
+  /* Top-accent variant — the primary top border persists through hover */
+  .brand-hover-card--top-accent {
+    border-top: 3px solid var(--color-primary);
+  }
+
   .brand-skeleton-demo {
     display: flex;
     flex-direction: column;
@@ -461,7 +496,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
 
   .brand-details__toggle::before {
     content: '+';
-    font-size: 1.1rem;
+    font-size: var(--text-lg);
     font-weight: 700;
     color: var(--color-primary);
     display: inline-block;
@@ -607,8 +642,10 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   /* ── REMOVED: :root alt-color definitions, dark-theme overrides,
-       .palette-scope tool derivations, .palette-0 through .palette-5
-       — all moved to src/styles/palettes.css ── */
+       .palette-scope tool derivations, and the html.palette-0 …
+       html.palette-5 override blocks — all moved to
+       src/styles/palettes.css, where they hang off <html> (the palette
+       class is applied to the root element, never to this wrapper) ── */
 
   /* ── Component State Demo Layout ── */
   .brand-state-row {
@@ -734,7 +771,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .a11y-badge {
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -747,6 +784,8 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     border-color: var(--color-success);
   }
 
+  /* Currently unused — kept deliberately: the contrast tables need it the moment a
+     token lands between the AA and AAA thresholds, or fails for normal text. */
   .a11y-badge--warn {
     color: var(--color-warning);
     border-color: var(--color-warning);
@@ -762,20 +801,17 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     display: inline-flex;
   }
 
+  /* Empty by design: the box IS the 44x44 indicator. It previously carried a
+     "44x44" caption that painted straight over the button's own label, leaving
+     both unreadable — the dimension lives in the code caption underneath. */
   .a11y-touch-overlay {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 44px;
-    height: 44px;
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
     border: 2px dashed var(--color-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-family-mono);
-    font-size: 0.55rem;
-    color: var(--color-primary);
     pointer-events: none;
     opacity: 0.7;
   }
@@ -814,7 +850,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     font-size: var(--text-xs);
     padding: 2px var(--spacing-xs);
     border: 1px solid light-dark(var(--border-light), var(--border-dark-default));
-    background: light-dark(#ffffff, #1a1a1a);
+    background: var(--surface-tint-bg);
     color: var(--text-primary);
   }
 
@@ -1021,7 +1057,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   .filter-badge {
     background: var(--color-primary);
     color: var(--bg-light);
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: 700;
     padding: 0.15rem 0.45rem;
     border-radius: 50%;
@@ -1040,7 +1076,8 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     width: 90%;
     max-height: 85vh;
     padding: 2rem;
-    background: light-dark(#ffffff, #1a1a1a);
+    /* Mirrors .project-modal (ProjectModal.astro) exactly — opaque, no backdrop blur */
+    background: light-dark(var(--bg-light), var(--bg-dark-secondary));
     border: 1px solid light-dark(var(--border-light), var(--border-dark));
     border-radius: 0;
     clip-path: polygon(
@@ -1054,12 +1091,17 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
       0% 2.5%
     );
     z-index: var(--z-modal);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px var(--scrim-30);
     overflow-y: auto;
   }
 
   .modal::backdrop {
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--scrim-50);
+  }
+
+  /* Positioning context for .modal__close (mirrors .modal-content in ProjectModal.astro) */
+  .modal__content {
+    position: relative;
   }
 
   .modal__close {
@@ -1074,8 +1116,8 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
     transition: all 0.2s;
   }
 
@@ -1116,7 +1158,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .modal__section-title {
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1128,6 +1170,101 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  /* ── Portfolio specimen replicas ───────────────────
+     The production originals (.metric-label, .metric-value, .tag, .tech-tag,
+     .year-badge) live in Astro-scoped \3c style> blocks inside PortfolioGrid.astro
+     and ProjectModal.astro, so they are unreachable from /brand. These .brand-*
+     replicas mirror those declarations so the specimens render truthfully. */
+  .brand-metric {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .brand-metric__label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    color: light-dark(var(--text-muted), var(--text-dark-muted));
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.35rem;
+    font-weight: 700;
+  }
+
+  .brand-metric__value {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-base);
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .brand-metric__value--arr {
+    color: var(--color-tertiary);
+    font-size: var(--text-lg);
+  }
+
+  /* ProjectModal.astro styles its metrics differently from the card — smaller,
+     wider tracking, secondary colour. The modal specimen uses these so it does
+     not borrow the card's treatment and misrepresent the dialog. */
+  .brand-modal-metric__label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: light-dark(var(--text-secondary), var(--text-muted));
+    margin: 0 0 var(--spacing-sm);
+  }
+
+  .brand-modal-metric__value {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .brand-tag {
+    font-family: var(--font-family-mono);
+    background: var(--accent-dark-bg);
+    color: var(--color-primary);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: 0;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .brand-tag--theme {
+    background: var(--accent-light-bg-hover);
+    color: var(--color-tertiary);
+  }
+
+  .brand-tech-tag {
+    background: light-dark(var(--filter-chip-bg-hover), var(--accent-dark-bg));
+    color: var(--text-secondary);
+    padding: 0.35rem 0.65rem;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .brand-year-badge {
+    font-family: var(--font-family-mono);
+    background: light-dark(var(--filter-chip-bg), var(--accent-dark-bg));
+    color: var(--text-secondary);
+    padding: 0.35rem 0.75rem;
+    border-radius: 0;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
   }
 
   /* ── Stats Bar (current specimen) ─────────────────── */
@@ -1154,7 +1291,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .stat-label {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     color: var(--bg-dark);
     font-weight: 700;
     text-transform: uppercase;
@@ -1180,7 +1317,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
   }
 
   .cta-box h2 {
-    font-size: 2rem;
+    font-size: var(--text-3xl);
     color: var(--text-primary);
     margin-bottom: 1rem;
     font-weight: 600;
@@ -1213,7 +1350,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     }
 
     .stat-value {
-      font-size: 2rem;
+      font-size: var(--text-3xl);
     }
   }
 </style>
@@ -1302,27 +1439,12 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
       });
     }
 
-    // Recommendation card — collapse toggle and N/A dismiss
-    const recCard = document.getElementById('demo-rec-card');
-    const recNa = document.getElementById('demo-rec-na');
-    if (recCard) {
-      recCard.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.rec-na')) return;
-        recCard.classList.toggle('is-collapsed');
-      });
-    }
-    if (recNa && recCard) {
-      recNa.addEventListener('click', () => {
-        recCard.classList.toggle('is-dismissed');
-      });
-    }
-
     // Brutalist recommendation card — collapse toggle and N/A dismiss
     const recBrutal = document.getElementById('demo-rec-brutal');
     const recBrutalNa = document.getElementById('demo-rec-brutal-na');
     if (recBrutal) {
       recBrutal.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.brand-rec-brutal__na')) return;
+        if ((e.target as HTMLElement).closest('.brutal-rec-card__na')) return;
         recBrutal.classList.toggle('is-collapsed');
       });
     }
@@ -1337,7 +1459,7 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
     const attBrutalNa = document.getElementById('demo-attention-brutal-na');
     if (attBrutal) {
       attBrutal.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.brand-attention-brutal__na')) return;
+        if ((e.target as HTMLElement).closest('.brutal-na-btn')) return;
         attBrutal.classList.toggle('is-collapsed');
       });
     }
@@ -1347,26 +1469,13 @@ import BrandUILibrary from '../components/brand/BrandUILibrary.astro';
       });
     }
 
-    // Attention card — collapse toggle and N/A dismiss
-    const attCard = document.getElementById('demo-attention-card');
-    const attNa = document.getElementById('demo-attention-na');
-    if (attCard) {
-      attCard.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).closest('.attention-na')) return;
-        attCard.classList.toggle('is-collapsed');
-      });
-    }
-    if (attNa && attCard) {
-      attNa.addEventListener('click', () => {
-        attCard.classList.toggle('is-dismissed');
-      });
-    }
-
     // Responsive demo: sync theme to iframes
     const syncThemeToFrames = () => {
       const isDark = document.documentElement.classList.contains('dark-theme');
       document.querySelectorAll<HTMLIFrameElement>('.responsive-demo-frame iframe').forEach((f) => {
-        f.contentWindow?.postMessage({ type: 'theme-sync', dark: isDark }, '*');
+        // Same-origin target: the receiver validates e.origin, so the sender
+        // pins targetOrigin rather than broadcasting to whatever holds the frame.
+        f.contentWindow?.postMessage({ type: 'theme-sync', dark: isDark }, window.location.origin);
       });
     };
     // Observe theme class changes on <html>

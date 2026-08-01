@@ -32,12 +32,12 @@
     <h3 class="brutal-heading-sm brand-group-title" id="comp-cta-buttons">CTA Buttons</h3>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <a class="cta-button primary" href="#components">CTA Primary</a>
-        <code class="brand-code">.cta-button.primary</code>
-      </div>
-      <div class="brand-component-item">
-        <a class="cta-button secondary" href="#components">CTA Secondary</a>
-        <code class="brand-code">.cta-button.secondary</code>
+        <a class="cta-button" href="#components">CTA Button</a>
+        <code class="brand-code"
+          >.cta-button — single variant: filled primary, translateX hover. The `primary` /
+          `secondary` words seen in page markup are inert (no rule defines them); use
+          .brutal-btn--primary / --secondary for a two-variant pair</code
+        >
       </div>
     </div>
 
@@ -68,7 +68,7 @@
           </div>
         </div>
         <code class="brand-code"
-          >.tool-shell (brutalist) — no radius, transparent bg, top-border accent</code
+          >.brutal-tool-shell — no radius, transparent bg, top-border accent</code
         >
       </div>
     </div>
@@ -117,15 +117,15 @@
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brutal-interactive" tabindex="0">Hover / Focus</div>
-        <code class="brand-code">.interactive</code>
+        <code class="brand-code">.brutal-interactive</code>
       </div>
       <div class="brand-component-item">
         <a class="brutal-link-interactive" href="#components">Link Interactive</a>
-        <code class="brand-code">.link-interactive</code>
+        <code class="brand-code">.brutal-link-interactive</code>
       </div>
       <div class="brand-component-item">
         <div class="brutal-focus-outline">Focus Outline</div>
-        <code class="brand-code">.focus-outline</code>
+        <code class="brand-code">.brutal-focus-outline</code>
       </div>
     </div>
 
@@ -333,16 +333,22 @@
     <div class="brand-state-grid">
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label">Default</label>
-          <input class="brutal-field__input" type="text" placeholder="Placeholder text" />
+          <label class="brutal-field__label" for="state-field-default">Default</label>
+          <input
+            class="brutal-field__input"
+            id="state-field-default"
+            type="text"
+            placeholder="Placeholder text"
+          />
         </div>
         <code class="brand-code">default — dashed border</code>
       </div>
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label">Focused</label>
+          <label class="brutal-field__label" for="state-field-focused">Focused</label>
           <input
             class="brutal-field__input"
+            id="state-field-focused"
             type="text"
             value="Entered text"
             data-demo-state="focus"
@@ -352,20 +358,27 @@
       </div>
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label">Disabled</label>
-          <input class="brutal-field__input" type="text" value="Cannot edit" disabled />
+          <label class="brutal-field__label" for="state-field-disabled">Disabled</label>
+          <input
+            class="brutal-field__input"
+            id="state-field-disabled"
+            type="text"
+            value="Cannot edit"
+            disabled
+          />
         </div>
         <code class="brand-code">:disabled — reduced opacity</code>
       </div>
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label"
+          <label class="brutal-field__label" for="state-field-error"
             >Error <span class="brutal-field__req" style="color: var(--color-error);"
               >(invalid)</span
             ></label
           >
           <input
             class="brutal-field__input"
+            id="state-field-error"
             type="text"
             value="Bad input"
             data-demo-state="error"
@@ -375,9 +388,10 @@
       </div>
       <div class="brand-state-item brand-state-item--wide">
         <div class="brutal-field">
-          <label class="brutal-field__label">Read-only</label>
+          <label class="brutal-field__label" for="state-field-readonly">Read-only</label>
           <input
             class="brutal-field__input"
+            id="state-field-readonly"
             type="text"
             value="Locked value"
             readonly

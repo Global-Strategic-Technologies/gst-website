@@ -71,6 +71,10 @@
   /* Borders & Accents */
   --border-light: rgba(26, 26, 26, 0.1);
   --border-dark: var(--color-primary-20);
+
+  /* Neutral theme-switched hairline — sub-pixel SVG strokes and 1px dividers
+   * that need to read as "barely there" in both themes. */
+  --border-hairline: light-dark(rgba(26, 26, 26, 0.12), rgba(255, 255, 255, 0.08));
   --accent-subtle-bg: light-dark(var(--color-primary-02), var(--color-primary-03));
   --accent-wash-bg: light-dark(var(--color-primary-03), var(--color-primary-04));
   --accent-faint-bg: light-dark(var(--color-primary-04), var(--color-primary-05));
@@ -86,6 +90,39 @@
   --border-dark-default: rgba(255, 255, 255, 0.15);
   --border-dark-prominent: rgba(255, 255, 255, 0.2);
 
+  /* Neutral Surface Tints — theme-switched wash backgrounds for layered surfaces.
+   * Distinct from the --accent-*-bg family above, which is primary-derived; these
+   * are neutral and do not shift with the palette. Ordered lightest → heaviest.
+   */
+  --surface-faint-bg: light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005));
+  --surface-subtle-bg: light-dark(rgba(0, 0, 0, 0.02), rgba(200, 220, 255, 0.03));
+  --surface-sheen-bg: light-dark(transparent, rgba(200, 220, 255, 0.03));
+  --surface-input-bg: light-dark(transparent, rgba(255, 255, 255, 0.04));
+  --surface-tint-bg: light-dark(rgba(26, 26, 26, 0.05), rgba(255, 255, 255, 0.05));
+  --surface-neutral-bg: light-dark(rgba(26, 26, 26, 0.08), rgba(255, 255, 255, 0.06));
+  --surface-muted-bg: light-dark(rgba(200, 200, 200, 0.08), rgba(200, 200, 200, 0.04));
+  --surface-veil-bg: light-dark(rgba(255, 255, 255, 0.75), rgba(20, 20, 20, 0.6));
+  --surface-panel-bg: light-dark(rgba(255, 255, 255, 0.85), rgba(10, 10, 10, 0.85));
+  --surface-overlay-bg: light-dark(rgba(245, 245, 245, 0.92), rgba(20, 20, 20, 0.92));
+
+  /* Frosted-glass edge treatment — the inset highlight + hairline edge pair applied
+   * to every frosted surface (see STYLES_GUIDE.md § Frosted Glass).
+   */
+  --frost-highlight: light-dark(rgba(255, 255, 255, 0.12), var(--border-dark-subtle));
+  --frost-edge: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05));
+
+  /* Scrims — neutral black at fixed alpha, for modal backdrops, drawer shadows and
+   * inset depth. Deliberately NOT theme-switched: a scrim is black in both themes.
+   * Named by alpha, mirroring the --color-primary-NN opacity scale.
+   */
+  --scrim-15: rgba(0, 0, 0, 0.15);
+  --scrim-20: rgba(0, 0, 0, 0.2);
+  --scrim-30: rgba(0, 0, 0, 0.3);
+  --scrim-40: rgba(0, 0, 0, 0.4);
+  --scrim-50: rgba(0, 0, 0, 0.5);
+  --scrim-60: rgba(0, 0, 0, 0.6);
+  --panel-grip-bg: rgba(128, 128, 128, 0.4);
+
   /* Spacing Scale */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -94,6 +131,11 @@
   --spacing-xl: 1.5rem;
   --spacing-2xl: 2rem;
   --spacing-3xl: 3rem;
+
+  /* Touch Targets — WCAG 2.5.5 (AAA) minimum for interactive controls.
+     A floor, not a fixed size: components may sit above it (the ICG wizard nav
+     uses 48px). Page-local overrides must never resolve below it. */
+  --touch-target-min: 44px;
 
   /* Gap Patterns */
   --gap-tight: 0.5rem;

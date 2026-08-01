@@ -1,11 +1,9 @@
 /**
  * Unit Tests for Radar UI Logic
  *
- * Tests the pure logic and data that drives two Astro components which cannot
- * be rendered in a Node/Vitest environment:
- *
- * - RadarFeedSkeleton — skeleton placeholder width calculations
- * - RadarHeader — timestamp formatting via toLocaleDateString
+ * Tests the pure logic that drives RadarHeader, an Astro component which
+ * cannot be rendered in a Node/Vitest environment: timestamp formatting via
+ * toLocaleDateString.
  */
 
 // ---------------------------------------------------------------------------
@@ -23,16 +21,6 @@ function formatRadarTimestamp(date: Date): string {
     minute: '2-digit',
   });
 }
-
-// ---------------------------------------------------------------------------
-// RadarFeedSkeleton — Width Calculations
-// ---------------------------------------------------------------------------
-
-// RadarFeedSkeleton width calculations block removed:
-// Tests were exercising locally-defined helper functions (skeletonTitleWidth,
-// skeletonMetaWidth) that mirror but do not import the Astro template logic.
-// If the template diverges, these tests still pass — false confidence.
-// The aria-hidden test was a tautological `expect(true).toBe(true)`.
 
 // ---------------------------------------------------------------------------
 // RadarHeader — Timestamp Formatting

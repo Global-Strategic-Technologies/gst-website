@@ -98,19 +98,20 @@ Use these in all new code. They auto-switch in dark theme.
 
 ## Borders & Accents
 
-| Variable                  | Value                                 | Usage                        |
-| ------------------------- | ------------------------------------- | ---------------------------- |
-| `--border-light`          | `rgba(26, 26, 26, 0.1)`               | Subtle borders (light theme) |
-| `--border-dark`           | `var(--color-primary-20)`             | Teal borders (dark theme)    |
-| `--accent-subtle-bg`      | `var(--color-primary-02)` / `03` dark | Ultra-subtle accent fill     |
-| `--accent-wash-bg`        | `var(--color-primary-03)` / `04` dark | Wash-level accent fill       |
-| `--accent-faint-bg`       | `var(--color-primary-04)` / `05` dark | Faint accent fill            |
-| `--accent-tint-bg`        | `var(--color-primary-06)` / `08` dark | Tint-level accent fill       |
-| `--accent-light-bg`       | `var(--color-primary-08)`             | Light accent background      |
-| `--accent-light-bg-hover` | `var(--color-primary-15)`             | Accent background on hover   |
-| `--accent-dark-bg`        | `var(--color-primary-10)`             | Darker accent background     |
-| `--accent-border-light`   | `var(--color-primary-25)`             | Subtle accent borders        |
-| `--accent-border-medium`  | `var(--color-primary-30)`             | Medium accent borders        |
+| Variable                  | Value                                                           | Usage                                                                 |
+| ------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `--border-light`          | `rgba(26, 26, 26, 0.1)`                                         | Subtle borders (light theme)                                          |
+| `--border-dark`           | `var(--color-primary-20)`                                       | Teal borders (dark theme)                                             |
+| `--border-hairline`       | `light-dark(rgba(26, 26, 26, 0.12), rgba(255, 255, 255, 0.08))` | Neutral theme-switched hairline — sub-pixel SVG strokes, 1px dividers |
+| `--accent-subtle-bg`      | `var(--color-primary-02)` / `03` dark                           | Ultra-subtle accent fill                                              |
+| `--accent-wash-bg`        | `var(--color-primary-03)` / `04` dark                           | Wash-level accent fill                                                |
+| `--accent-faint-bg`       | `var(--color-primary-04)` / `05` dark                           | Faint accent fill                                                     |
+| `--accent-tint-bg`        | `var(--color-primary-06)` / `08` dark                           | Tint-level accent fill                                                |
+| `--accent-light-bg`       | `var(--color-primary-08)`                                       | Light accent background                                               |
+| `--accent-light-bg-hover` | `var(--color-primary-15)`                                       | Accent background on hover                                            |
+| `--accent-dark-bg`        | `var(--color-primary-10)`                                       | Darker accent background                                              |
+| `--accent-border-light`   | `var(--color-primary-25)`                                       | Subtle accent borders                                                 |
+| `--accent-border-medium`  | `var(--color-primary-30)`                                       | Medium accent borders                                                 |
 
 ### Dark Border Scale (dark theme only)
 
@@ -119,6 +120,46 @@ Use these in all new code. They auto-switch in dark theme.
 | `--border-dark-subtle`    | `rgba(255, 255, 255, 0.1)`  | Subtle separators, inset shadows          |
 | `--border-dark-default`   | `rgba(255, 255, 255, 0.15)` | Standard dark-theme borders (most common) |
 | `--border-dark-prominent` | `rgba(255, 255, 255, 0.2)`  | Emphasized borders, hover states          |
+
+## Neutral Surface Tints
+
+Theme-switched wash backgrounds for layered surfaces. Distinct from the `--accent-*-bg` family above, which is primary-derived and shifts with the palette; these are neutral and do not. Ordered lightest → heaviest.
+
+| Variable               | Value                                                              | Usage                                             |
+| ---------------------- | ------------------------------------------------------------------ | ------------------------------------------------- |
+| `--surface-faint-bg`   | `light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005))`     | Barely-there tool shell / bench section wash      |
+| `--surface-subtle-bg`  | `light-dark(rgba(0, 0, 0, 0.02), rgba(200, 220, 255, 0.03))`       | Card and form-control resting background          |
+| `--surface-sheen-bg`   | `light-dark(transparent, rgba(200, 220, 255, 0.03))`               | Blur-only frosted sheen (no light-theme tint)     |
+| `--surface-input-bg`   | `light-dark(transparent, rgba(255, 255, 255, 0.04))`               | Text input interior                               |
+| `--surface-tint-bg`    | `light-dark(rgba(26, 26, 26, 0.05), rgba(255, 255, 255, 0.05))`    | Map/panel inset regions                           |
+| `--surface-neutral-bg` | `light-dark(rgba(26, 26, 26, 0.08), rgba(255, 255, 255, 0.06))`    | Map graticule fills, neutral chart surfaces       |
+| `--surface-muted-bg`   | `light-dark(rgba(200, 200, 200, 0.08), rgba(200, 200, 200, 0.04))` | Disabled / de-emphasized card states              |
+| `--surface-veil-bg`    | `light-dark(rgba(255, 255, 255, 0.75), rgba(20, 20, 20, 0.6))`     | Heavy frosted glass (`.brutal-frosted--heavy`)    |
+| `--surface-panel-bg`   | `light-dark(rgba(255, 255, 255, 0.85), rgba(10, 10, 10, 0.85))`    | Sticky tool action bars                           |
+| `--surface-overlay-bg` | `light-dark(rgba(245, 245, 245, 0.92), rgba(20, 20, 20, 0.92))`    | Modal/panel overlays (`.brutal-frosted--overlay`) |
+
+### Frosted-Glass Edge Treatment
+
+The inset highlight + hairline edge pair applied to every frosted surface — see [STYLES_GUIDE.md § Frosted Glass](./STYLES_GUIDE.md).
+
+| Variable            | Value                                                              | Usage                               |
+| ------------------- | ------------------------------------------------------------------ | ----------------------------------- |
+| `--frost-highlight` | `light-dark(rgba(255, 255, 255, 0.12), var(--border-dark-subtle))` | `inset 0 1px 0` wet-glass highlight |
+| `--frost-edge`      | `light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05))`       | `0 0 0 1px` hairline edge           |
+
+### Scrims
+
+Neutral black at fixed alpha, for modal backdrops, drawer shadows and inset depth. Deliberately **not** theme-switched — a scrim is black in both themes. Named by alpha, mirroring the `--color-primary-NN` opacity scale.
+
+| Variable          | Value                      | Usage                                       |
+| ----------------- | -------------------------- | ------------------------------------------- |
+| `--scrim-15`      | `rgba(0, 0, 0, 0.15)`      | Light-theme drawer shadow                   |
+| `--scrim-20`      | `rgba(0, 0, 0, 0.2)`       | Inset input depth (dark theme)              |
+| `--scrim-30`      | `rgba(0, 0, 0, 0.3)`       | Filter overlay backdrop                     |
+| `--scrim-40`      | `rgba(0, 0, 0, 0.4)`       | Dark-theme drawer/panel shadow, panel scrim |
+| `--scrim-50`      | `rgba(0, 0, 0, 0.5)`       | Modal backdrop                              |
+| `--scrim-60`      | `rgba(0, 0, 0, 0.6)`       | Heavy modal backdrop                        |
+| `--panel-grip-bg` | `rgba(128, 128, 128, 0.4)` | Palette-panel drag handle                   |
 
 ## Spacing Scale
 
@@ -132,6 +173,12 @@ Use these in all new code. They auto-switch in dark theme.
 | `--spacing-2xl`   | `2rem`    | 32px                  |
 | `--spacing-2_5xl` | `2.5rem`  | 40px                  |
 | `--spacing-3xl`   | `3rem`    | 48px                  |
+
+## Touch Targets
+
+| Variable             | Value  | Usage                                                                                                                                                         |
+| -------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--touch-target-min` | `44px` | WCAG 2.5.5 (AAA) minimum for interactive controls. A floor, not a fixed size — components may sit above it; page-local overrides must never resolve below it. |
 
 ## Gap Variables
 
