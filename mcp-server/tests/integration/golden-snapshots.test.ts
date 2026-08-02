@@ -30,10 +30,11 @@ function promptToSlug(name: string): string {
 const REQUIRED_FRONTMATTER_KEYS = ['promptName', 'version', 'recordedAt', 'model'] as const;
 
 function parseFrontmatter(body: string): Record<string, string> | null {
-  // Normalize CRLF → LF so this works on Windows checkouts where git's
-  // `core.autocrlf=true` (the default) rewrites text files to CRLF on
-  // disk. Without this, every assertion fails on Windows even though
-  // the goldens are correctly formatted.
+  // Normalize CRLF → LF. Belt-and-braces since `.gitattributes` began forcing
+  // `eol=lf` repo-wide: it still protects a stale clone checked out before
+  // that rule, where git's `core.autocrlf=true` (the Windows default) had
+  // rewritten text files to CRLF on disk and every assertion here failed even
+  // though the goldens were correctly formatted.
   const normalized = body.replace(/\r\n/g, '\n');
   if (!normalized.startsWith('---\n')) return null;
   const end = normalized.indexOf('\n---\n', 4);

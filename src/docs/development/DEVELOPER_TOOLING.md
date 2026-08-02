@@ -261,6 +261,7 @@ concurrency:
 | [package.json](../../../package.json)                             | `scripts`, `devDependencies`, `lint-staged`, `overrides`, `prepare`                             |
 | [.prettierrc.json](../../../.prettierrc.json)                     | Prettier formatting rules (2-space, single quotes, 100-char line width, etc.)                   |
 | [.prettierignore](../../../.prettierignore)                       | Files and directories Prettier will not touch (generated output, lock files, hand-curated data) |
+| [.gitattributes](../../../.gitattributes)                         | `* text=auto eol=lf` — forces LF in the working tree on every platform, so `prettier --check` behaves the same locally as in CI. See § Line endings |
 | [eslint.config.mjs](../../../eslint.config.mjs)                   | ESLint flat config — recommended rules + overrides for tests, node scripts, and browser globals |
 | [.stylelintrc.json](../../../.stylelintrc.json)                   | CSS lint rules                                                                                  |
 | [tsconfig.json](../../../tsconfig.json)                           | TypeScript config, including the `@/*` → `src/*` path alias                                     |
@@ -308,15 +309,32 @@ a trap: the restored file came back CRLF, prettier then failed on it, and `git s
 nothing wrong.
 
 Because the index was already LF, adding the rule normalized the working tree only — no content
-diff, no history rewrite. If you have a stale clone with CRLF files, renormalize with:
+diff, no history rewrite. A fresh clone needs nothing. If you have a **stale clone** whose files are
+still CRLF, renormalize with:
 
 ```bash
-git add --renormalize .    # should stage nothing; the index is already LF
-git checkout-index -a -f   # rewrites the working tree per .gitattributes
+git add --renormalize .   # sanity check — stages nothing; the index is already LF
+
+# WARNING: the next two lines discard uncommitted work. Commit or stash first.
+# Between them `git status` shows every file as deleted — that is expected.
+git rm --cached -r -q .   # drop the index's stat cache
+git reset --hard          # re-materializes every file per .gitattributes
 ```
 
-`.sh` scripts *require* LF (a CRLF shebang breaks execution). The `.ps1` scripts under
-`mcp-server/scripts/` are run with PowerShell 7+ (`pwsh`), which reads LF fine.
+> Do **not** substitute `git checkout-index -a -f`. It honors git's stat cache and silently skips
+> every file it considers up to date — on this repo it rewrote **1 of 805** CRLF files, then exited
+> 0 printing nothing. (In a small scratch repo it often appears to work, which is what makes it
+> such a convincing trap.) Whether it does anything depends on stat-cache state you can't see, so
+> the "success" it reports means nothing. The sequence above is deterministic.
+
+`.sh` scripts and `.husky/pre-commit` *require* LF — a CRLF shebang breaks execution. The `.ps1`
+scripts under `mcp-server/scripts/` are safe because **both Windows PowerShell 5.1 and PowerShell 7
+parse LF-only script files**, including the here-strings in `Verify-AeEmission.ps1`; this does not
+depend on which host an operator happens to use.
+
+One consequence for macOS/Linux contributors, who were already unaffected in the working tree:
+`text=auto` now also normalizes CRLF→LF **on commit**. If a fixture ever needs literal CRLF on disk,
+give it an explicit `-text` override rather than relying on verbatim storage.
 
 ### What Prettier will NOT format
 
@@ -739,6 +757,19 @@ npm run format
 ```
 
 Be aware this will produce a large diff against the current state. The expected place to do this is as a single standalone commit during the Phase 9 sweep, not piecemeal during feature work.
+
+### "`prettier --check` fails locally but CI is green"
+
+Almost certainly line endings, and it is the harder direction to diagnose because CI never tells you
+anything is wrong. Confirm with:
+
+```bash
+git ls-files --eol | grep -c "w/crlf"   # expect 0
+```
+
+Any count above zero means your working tree predates the `* text=auto eol=lf` rule (or something
+rewrote files behind git's back). Fix it with the renormalization sequence in § Line endings, and
+re-run the count to confirm — do not trust a command's exit code here.
 
 ### "My commit was rejected by the pre-commit hook"
 

@@ -15,7 +15,9 @@
 # produces no content diff.
 #
 # Shell scripts additionally REQUIRE LF (a CRLF shebang line breaks execution).
-# The .ps1 scripts are run with PowerShell 7+ (`pwsh`), which reads LF fine.
+# The .ps1 scripts are safe regardless of host: both Windows PowerShell 5.1 and
+# PowerShell 7 parse LF-only script files, here-strings included. No .bat/.cmd
+# are tracked — those are the one class where CRLF is genuinely load-bearing.
 * text=auto eol=lf
 
 # Binary — never normalize, never diff as text. `text=auto` detects these

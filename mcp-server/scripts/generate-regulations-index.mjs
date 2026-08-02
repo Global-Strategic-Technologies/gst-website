@@ -218,8 +218,10 @@ async function writeFormatted(filePath, content) {
       const path = resolve(sourceDir, slug, 'article.md');
       try {
         // Normalize CRLF→LF so the generated TS string literals round-trip
-        // identically across platforms. `core.autocrlf=true` on Windows
-        // checks markdown out as CRLF; prettier's TS formatter doesn't
+        // identically across platforms. Belt-and-braces since `.gitattributes`
+        // began forcing `eol=lf` repo-wide — it still protects a stale clone
+        // checked out before that rule. Historically `core.autocrlf=true` on
+        // Windows checked markdown out as CRLF; prettier's TS formatter doesn't
         // touch escape sequences inside string literals, so without this
         // the regenerator embeds `\r\n` on Windows and `\n` on CI, and
         // git-status churns between machines.
