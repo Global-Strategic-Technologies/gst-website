@@ -293,7 +293,30 @@ Configured in [.prettierrc.json](../../../.prettierrc.json):
 | `semi`           | `true`     | Always use semicolons                                                        |
 | `arrowParens`    | `"always"` | `(x) => x`, not `x => x`                                                     |
 | `bracketSpacing` | `true`     | `{ a: 1 }`, not `{a: 1}`                                                     |
-| `endOfLine`      | `"lf"`     | Unix line endings (matters on Windows — git's autocrlf should not undo this) |
+| `endOfLine`      | `"lf"`     | Unix line endings — enforced in the working tree by `.gitattributes`, see below |
+
+### Line endings (`.gitattributes`)
+
+[`.gitattributes`](../../../.gitattributes) sets `* text=auto eol=lf`, so **every text file is LF in
+the working tree on every platform**, regardless of the operator's `core.autocrlf`.
+
+This is load-bearing, not cosmetic. Prettier's `endOfLine: "lf"` means a CRLF working file fails
+`prettier --check` even when its committed content is byte-correct. Before this rule, a Windows
+checkout with git's default `core.autocrlf=true` left **607 files** failing `prettier --check`
+locally while CI — which checks out on Linux — stayed green. It also made `git checkout -- <file>`
+a trap: the restored file came back CRLF, prettier then failed on it, and `git status` showed
+nothing wrong.
+
+Because the index was already LF, adding the rule normalized the working tree only — no content
+diff, no history rewrite. If you have a stale clone with CRLF files, renormalize with:
+
+```bash
+git add --renormalize .    # should stage nothing; the index is already LF
+git checkout-index -a -f   # rewrites the working tree per .gitattributes
+```
+
+`.sh` scripts *require* LF (a CRLF shebang breaks execution). The `.ps1` scripts under
+`mcp-server/scripts/` are run with PowerShell 7+ (`pwsh`), which reads LF fine.
 
 ### What Prettier will NOT format
 
