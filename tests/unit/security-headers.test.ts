@@ -217,6 +217,10 @@ describe('Security Headers', () => {
         // Unknown group under the same prefix — proves enumeration, not prefixing.
         '/brand/responsive-frame/bogus',
         '/brand/responsive-frame/sub',
+        // Deeper and double-slash forms: correct today, but these are what
+        // regress if the exact-set lookup is ever loosened to a prefix.
+        '/brand/responsive-frame/cards/sub',
+        '/brand/responsive-frame/cards//',
         '/hub/radar/',
       ]) {
         const res = await runMiddleware(path);

@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+import type { ResponsiveDemoGroup } from '../../src/utils/responsive-demo-groups';
+
 test.describe('Brand Page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
@@ -215,8 +217,8 @@ test.describe('Brand Page', () => {
   });
 
   /**
-   * The Responsive Behavior section embeds /brand/responsive-frame in same-origin
-   * iframes. The site default (`X-Frame-Options: DENY` + `frame-ancestors 'none'`)
+   * The Responsive Behavior section embeds /brand/responsive-frame/<group> in
+   * same-origin iframes. The site default (`X-Frame-Options: DENY` + `frame-ancestors 'none'`)
    * forbids framing by every origin INCLUDING this one, so without the documented
    * route exception every frame is blocked with ERR_BLOCKED_BY_RESPONSE and renders
    * empty — silently, with no build error. That shipped and went unnoticed.
@@ -276,17 +278,32 @@ test.describe('Brand Page', () => {
      * STATIC build never supplies — so all 12 frames rendered the `cards` group
      * while their labels claimed four different ones. The test above passes
      * regardless, because "the frame is not empty" is true of twelve frames all
-     * showing the wrong thing. This asserts each frame renders the group its own
-     * URL names.
+     * showing the wrong thing.
+     *
+     * The expectation is anchored to the frame's LABEL, not its `src`. Anchoring
+     * to `src` looks equivalent and is not: pointing all four rows at
+     * `/…/cards/` while leaving the headings and titles saying "Tab Bar" /
+     * "Form Controls" / "Tool Shell" reproduces the shipped defect exactly, and a
+     * URL-anchored check calls that consistent. The user-visible contract is
+     * "the frame shows what its label claims", so the label is what the
+     * expectation must come from — the `src` is then asserted to agree.
      */
-    const GROUP_MARKER: Record<string, string> = {
+    const GROUP_MARKER: Record<ResponsiveDemoGroup, string> = {
       cards: '.brutal-option-card',
       tabs: '.brutal-tab',
       form: '.brutal-field',
       shell: '.brutal-tool-shell',
     };
 
-    test('each frame renders the group its URL names', async ({ page }) => {
+    /** Frame titles read "<Label> at <width>px" — see BrandAccessibility.astro. */
+    const LABEL_TO_GROUP: Record<string, ResponsiveDemoGroup> = {
+      Cards: 'cards',
+      Tabs: 'tabs',
+      Form: 'form',
+      Shell: 'shell',
+    };
+
+    test('each frame renders the group its LABEL claims', async ({ page }) => {
       await page.locator('#responsive-demos').scrollIntoViewIfNeeded();
       const frames = page.locator('.responsive-demo-frame iframe');
       const total = await frames.count();
@@ -296,33 +313,50 @@ test.describe('Brand Page', () => {
         await frames.nth(i).scrollIntoViewIfNeeded();
       }
 
-      // Poll: lazy frames may not have parsed yet. Resolving group-from-URL inside
-      // the browser keeps the expectation tied to what the page actually requested,
-      // so a wrong `src` surfaces as a wrong group rather than passing silently.
       await expect
         .poll(
           async () =>
-            frames.evaluateAll((els, markers) => {
-              return els.map((el) => {
-                const f = el as HTMLIFrameElement;
-                const group = new URL(f.src).pathname.replace(/\/$/, '').split('/').pop() ?? '';
-                const marker = markers[group];
-                const doc = f.contentDocument;
-                if (!marker) return `${group}: UNKNOWN GROUP`;
-                if (!doc || doc.readyState === 'loading') return `${group}: not loaded`;
-                return doc.querySelector(marker)
-                  ? `${group}: ok`
-                  : `${group}: MISSING ${marker} (body has ${
-                      doc.body?.firstElementChild?.className || 'nothing'
-                    })`;
-              });
-            }, GROUP_MARKER),
+            frames.evaluateAll(
+              (els, { markers, labels }) =>
+                els.map((el) => {
+                  const f = el as HTMLIFrameElement;
+                  const label = (f.title || '').split(' ')[0];
+                  const expected = labels[label];
+                  const urlGroup =
+                    new URL(f.src).pathname.replace(/\/$/, '').split('/').pop() ?? '';
+                  const doc = f.contentDocument;
+
+                  if (!expected) return `${f.title}: UNLABELLED (no group for "${label}")`;
+                  // Anchored on the label: a row pointed at the wrong group fails
+                  // here even though its URL and its content agree with each other.
+                  if (urlGroup !== expected)
+                    return `${label}: src is ${urlGroup}, label claims ${expected}`;
+                  if (!doc || doc.readyState !== 'complete') return `${label}: not loaded`;
+                  return doc.querySelector(markers[expected])
+                    ? `${label}: ok`
+                    : `${label}: MISSING ${markers[expected]} (body has ${
+                        doc.body?.firstElementChild?.className || 'nothing'
+                      })`;
+                }),
+              { markers: GROUP_MARKER, labels: LABEL_TO_GROUP }
+            ),
           {
             message:
-              'each frame must render its own group — BL-097: a static build cannot read ?group=',
+              'each frame must render the group its label claims — BL-097: a static build cannot read ?group=',
           }
         )
         .toEqual(Array(12).fill(expect.stringContaining(': ok')));
+    });
+
+    test('every demo iframe requests the trailing-slash form', async ({ page }) => {
+      // `responsive-demo-groups.ts` exports two builders and the iframes must use
+      // the slash-terminated one: `trailingSlash: true` makes the slashless form a
+      // 308 per frame in production. The dev server serves both, so nothing else
+      // would notice the swap.
+      const paths = await page
+        .locator('.responsive-demo-frame iframe')
+        .evaluateAll((els) => els.map((el) => new URL((el as HTMLIFrameElement).src).pathname));
+      expect(paths.filter((p) => !p.endsWith('/'))).toEqual([]);
     });
 
     /**
@@ -345,15 +379,20 @@ test.describe('Brand Page', () => {
         await frames.nth(i).scrollIntoViewIfNeeded();
       }
 
-      // Sequenced after a content poll on purpose: an unloaded or about:blank frame
-      // reports scrollHeight === clientHeight, so overflow would pass vacuously on a
-      // frame that never loaded.
+      // Sequenced after a readiness poll on purpose: an unloaded or about:blank
+      // frame reports scrollHeight === clientHeight, so overflow would pass
+      // vacuously on a frame that never loaded.
+      //
+      // Gates on `readyState === 'complete'`, not on body having children: the
+      // frame's stylesheets are still pending at 'interactive', and an unstyled
+      // document (default body margin, no grid) lays out differently enough to
+      // cause both false failures and false passes in the measurement below.
       await expect
         .poll(async () =>
           frames.evaluateAll(
             (els) =>
               els.filter(
-                (el) => ((el as HTMLIFrameElement).contentDocument?.body?.children.length ?? 0) > 0
+                (el) => (el as HTMLIFrameElement).contentDocument?.readyState === 'complete'
               ).length
           )
         )

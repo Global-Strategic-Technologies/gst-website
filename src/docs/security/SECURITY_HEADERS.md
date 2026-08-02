@@ -64,7 +64,14 @@ Sync enforcement                  tests/unit/security-headers.test.ts
 
 > The middleware stores paths **without** a trailing slash and normalizes on lookup, which is why `responsive-demo-groups.ts` exports two builders. Using the slash-terminated one there would make the set never match — the exception would die in dev while production kept working from the CDN rule.
 
-**Adding another demo group** — add it to `RESPONSIVE_DEMO_GROUPS` and widen the `vercel.json` alternation. The middleware follows automatically; the drift guard fails until `vercel.json` agrees.
+**Adding another demo group** — four edits, and the tests tell you when you've missed one:
+
+1. `RESPONSIVE_DEMO_GROUPS` in `src/utils/responsive-demo-groups.ts` (the middleware and the route follow automatically)
+2. the `vercel.json` alternation
+3. `FRAME_ROUTE` in `tests/unit/security-headers.test.ts` — a literal, deliberately, so the expected pattern is stated rather than computed from the thing it checks
+4. `tests/e2e/brand-page.test.ts` — `GROUP_MARKER`, `LABEL_TO_GROUP`, and the frame count
+
+Plus a row in `RESPONSIVE_ROWS` (`src/components/brand/BrandAccessibility.astro`) and a specimen block on the frame page, or the group builds but nothing embeds it.
 
 **Adding an unrelated frameable route** — do all three: add the path to `SAME_ORIGIN_FRAMEABLE`, add a `vercel.json` header rule, and update the test's expected path list. If you only do the first, it will work in dev and silently fail in production.
 
