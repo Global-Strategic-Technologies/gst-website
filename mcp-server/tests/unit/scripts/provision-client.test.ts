@@ -53,16 +53,15 @@ describe('provision-client — constant parity with the server', () => {
     // Without this, appending a second narrowing wildcard there (exactly how
     // `tool:radar:*` got added) would leave this mirror stale and green.
     const providerSrc = repoFile('src/oauth/provider.ts');
-    const declaration = providerSrc
-      .slice(providerSrc.indexOf('export const SCOPES_SUPPORTED'))
-      .slice(
-        0,
-        providerSrc.slice(providerSrc.indexOf('export const SCOPES_SUPPORTED')).indexOf(');') + 2
-      );
+    const start = providerSrc.indexOf('export const SCOPES_SUPPORTED');
+    const declaration = providerSrc.slice(start, providerSrc.indexOf(');', start) + 2);
     expect(declaration).toContain('...DEFAULT_SCOPES');
     expect(declaration).toContain("'tool:radar:*'");
     // Exactly one literal scope string beyond the DEFAULT_SCOPES spread.
-    expect(declaration.match(/'[a-z:*]+'/g)).toEqual(["'tool:radar:*'"]);
+    // Match ANY quoted literal, not a scope-shaped character class: a class
+    // like [a-z:*] silently omits underscores and digits, so adding
+    // 'tool:search_portfolio' here would drift past the guard unseen.
+    expect(declaration.match(/'[^']*'/g)).toEqual(["'tool:radar:*'"]);
   });
 
   it('keeps the omit-scopes default free of every radar scope', () => {
