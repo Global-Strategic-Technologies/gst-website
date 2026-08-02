@@ -166,27 +166,34 @@ describe('/hub/radar defers its feed to a server island', () => {
 describe('category filter survives island timing', () => {
   const page = () => read('src/pages/hub/radar/index.astro');
 
-  it('has one CSS rule per category, driven by an ancestor attribute', () => {
-    // Drift guard. The rules are literal (CSS cannot compare two elements'
-    // attribute values, and generating them would forfeit Astro scoping), so
-    // a fifth category could ship with no rule and simply never filter. This
-    // is the single failure mode literal rules have.
+  it('has one CSS rule per category, with both sides of the rule bound', () => {
+    // Drift guard for literal rules (CSS cannot compare two elements'
+    // attribute values, and generating them would forfeit Astro scoping).
+    //
+    // Both halves are matched in ONE regex on purpose. Asserting the ancestor
+    // value and the negated value separately leaves them unbound, so swapping
+    // a pair —
+    //   [data-active-category='security'] :global([data-category]:not([data-category='ai-automation']))
+    // — satisfies every separate assertion while filtering to the wrong
+    // category. Nothing else would catch it: the behavioural test that would
+    // (`filters the feed to the deep-linked category`) self-skips in CI for
+    // want of MCP_KEY_WEBSITE_RADAR.
+    //
+    // The `:global()` requirement rides along here rather than in its own test.
+    // Astro scopes every compound it compiles and no element carries two scope
+    // ids, so an unscoped [data-category] would be rewritten to match only
+    // elements declared in this file — never the <article>s FyiItem/WireItem
+    // render — compiling to dead CSS while the source still looked right.
     const src = page();
     for (const key of Object.keys(CATEGORIES)) {
+      const rule = new RegExp(
+        String.raw`\[data-active-category='${key}'\]\s*:global\(\[data-category\]:not\(\[data-category='${key}'\]\)\)`
+      );
       expect(
         src,
-        `no [data-active-category='${key}'] rule — a category was added without a filter rule`
-      ).toContain(`[data-active-category='${key}']`);
+        `rule for '${key}' is missing, unscoped, or filters a different category`
+      ).toMatch(rule);
     }
-  });
-
-  it('scopes the item selector with :global()', () => {
-    // Astro scopes every compound it compiles, and no element carries two
-    // scope ids — so an unscoped [data-category] here would be rewritten to
-    // match only elements declared in this file, never the <article>s that
-    // FyiItem/WireItem render. The rule would compile to dead CSS and the
-    // filter would silently stop working.
-    expect(page()).toMatch(/:global\(\[data-category\]:not\(\[data-category='[\w-]+'\]\)\)/);
   });
 
   it('CategoryFilter sets the attribute rather than reaching for items', () => {

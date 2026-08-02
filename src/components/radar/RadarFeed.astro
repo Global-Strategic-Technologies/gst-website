@@ -1,6 +1,6 @@
 ---
 /**
- * RadarFeed — Fetches and renders the unified feed, inline in the page.
+ * RadarFeed — Fetches and renders the unified feed as a server island.
  *
  * **BL-032.8 Phase A (2026-05-17)**: data source switched from direct
  * Inoreader API calls (`inoreader/client.ts`) to the MCP Worker's
@@ -64,7 +64,7 @@ interface RadarSnapshotResponse {
   fetchedAt: string;
 }
 
-// --- Data Fetching (runs on Vercel at revalidation time) ---
+// --- Data Fetching (runs on Vercel per pageview — the island is uncached) ---
 
 let fyi: RadarFyiItem[] = [];
 let wire: RadarWireItem[] = [];
