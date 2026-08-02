@@ -280,13 +280,19 @@ test.describe('Brand Page', () => {
      * regardless, because "the frame is not empty" is true of twelve frames all
      * showing the wrong thing.
      *
-     * The expectation is anchored to the frame's LABEL, not its `src`. Anchoring
-     * to `src` looks equivalent and is not: pointing all four rows at
-     * `/…/cards/` while leaving the headings and titles saying "Tab Bar" /
-     * "Form Controls" / "Tool Shell" reproduces the shipped defect exactly, and a
-     * URL-anchored check calls that consistent. The user-visible contract is
-     * "the frame shows what its label claims", so the label is what the
-     * expectation must come from — the `src` is then asserted to agree.
+     * The expectation is anchored to the row's HEADING, and every other link in
+     * the chain is asserted to agree with it: heading -> iframe title -> `src` ->
+     * rendered content. Anchoring anywhere further down looks equivalent and is
+     * not, because each anchor leaves the links above it free to drift together:
+     *
+     *   - anchored on `src`: pointing all four rows at `/…/cards/` reproduces the
+     *     shipped defect exactly, and the check calls it self-consistent
+     *   - anchored on the title: changing a row's `group` AND `label` together
+     *     leaves a section headed "Tab Bar" rendering three card frames
+     *
+     * The heading is the right anchor because it is the accessible name — each
+     * row is `role="group"` with `aria-labelledby` pointing at it — so it is what
+     * a screen-reader user is told the frames below are.
      */
     const GROUP_MARKER: Record<ResponsiveDemoGroup, string> = {
       cards: '.brutal-option-card',
@@ -303,7 +309,15 @@ test.describe('Brand Page', () => {
       Shell: 'shell',
     };
 
-    test('each frame renders the group its LABEL claims', async ({ page }) => {
+    /** The row headings, which are the rows' accessible names. */
+    const HEADING_TO_GROUP: Record<string, ResponsiveDemoGroup> = {
+      'Option Card Grid': 'cards',
+      'Tab Bar': 'tabs',
+      'Form Controls': 'form',
+      'Tool Shell': 'shell',
+    };
+
+    test('each frame renders the group its HEADING claims', async ({ page }) => {
       await page.locator('#responsive-demos').scrollIntoViewIfNeeded();
       const frames = page.locator('.responsive-demo-frame iframe');
       const total = await frames.count();
@@ -317,28 +331,39 @@ test.describe('Brand Page', () => {
         .poll(
           async () =>
             frames.evaluateAll(
-              (els, { markers, labels }) =>
+              (els, { markers, labels, headings }) =>
                 els.map((el) => {
                   const f = el as HTMLIFrameElement;
+
+                  // The anchor: the row's accessible name.
+                  const labelledBy = f
+                    .closest('.responsive-demo-row')
+                    ?.getAttribute('aria-labelledby');
+                  const heading = labelledBy
+                    ? (document.getElementById(labelledBy)?.textContent ?? '').trim()
+                    : '';
+                  const expected = headings[heading];
+                  if (!expected) return `"${heading}": UNKNOWN HEADING`;
+
                   const label = (f.title || '').split(' ')[0];
-                  const expected = labels[label];
+                  if (labels[label] !== expected)
+                    return `${heading}: title says "${label}", heading claims ${expected}`;
+
                   const urlGroup =
                     new URL(f.src).pathname.replace(/\/$/, '').split('/').pop() ?? '';
-                  const doc = f.contentDocument;
-
-                  if (!expected) return `${f.title}: UNLABELLED (no group for "${label}")`;
-                  // Anchored on the label: a row pointed at the wrong group fails
-                  // here even though its URL and its content agree with each other.
                   if (urlGroup !== expected)
-                    return `${label}: src is ${urlGroup}, label claims ${expected}`;
-                  if (!doc || doc.readyState !== 'complete') return `${label}: not loaded`;
+                    return `${heading}: src is ${urlGroup}, heading claims ${expected}`;
+
+                  const doc = f.contentDocument;
+                  if (!doc || doc.readyState !== 'complete' || !doc.body?.children.length)
+                    return `${heading}: not loaded`;
                   return doc.querySelector(markers[expected])
-                    ? `${label}: ok`
-                    : `${label}: MISSING ${markers[expected]} (body has ${
+                    ? `${heading}: ok`
+                    : `${heading}: MISSING ${markers[expected]} (body has ${
                         doc.body?.firstElementChild?.className || 'nothing'
                       })`;
                 }),
-              { markers: GROUP_MARKER, labels: LABEL_TO_GROUP }
+              { markers: GROUP_MARKER, labels: LABEL_TO_GROUP, headings: HEADING_TO_GROUP }
             ),
           {
             message:
@@ -383,17 +408,23 @@ test.describe('Brand Page', () => {
       // frame reports scrollHeight === clientHeight, so overflow would pass
       // vacuously on a frame that never loaded.
       //
-      // Gates on `readyState === 'complete'`, not on body having children: the
-      // frame's stylesheets are still pending at 'interactive', and an unstyled
-      // document (default body margin, no grid) lays out differently enough to
-      // cause both false failures and false passes in the measurement below.
+      // BOTH conditions, and neither alone is sufficient:
+      //   - body-has-children alone admits a frame at 'interactive', whose
+      //     stylesheets are still pending; an unstyled document (default body
+      //     margin, no grid) lays out differently enough to cause both false
+      //     failures and false passes in the measurement below
+      //   - readyState alone admits a lazy frame that has NOT navigated yet: its
+      //     pristine about:blank already reports 'complete', with zero children
+      //     and scrollHeight === clientHeight in both axes, which would make the
+      //     measurement entirely vacuous
       await expect
         .poll(async () =>
           frames.evaluateAll(
             (els) =>
-              els.filter(
-                (el) => (el as HTMLIFrameElement).contentDocument?.readyState === 'complete'
-              ).length
+              els.filter((el) => {
+                const doc = (el as HTMLIFrameElement).contentDocument;
+                return doc?.readyState === 'complete' && (doc.body?.children.length ?? 0) > 0;
+              }).length
           )
         )
         .toBe(total);

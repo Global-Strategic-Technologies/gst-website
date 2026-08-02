@@ -64,14 +64,14 @@ Sync enforcement                  tests/unit/security-headers.test.ts
 
 > The middleware stores paths **without** a trailing slash and normalizes on lookup, which is why `responsive-demo-groups.ts` exports two builders. Using the slash-terminated one there would make the set never match — the exception would die in dev while production kept working from the CDN rule.
 
-**Adding another demo group** — four edits, and the tests tell you when you've missed one:
+**Adding another demo group** — six edits. Every one of them is enforced by a failing test or a type error, so the list is a shortcut rather than a thing you must remember:
 
-1. `RESPONSIVE_DEMO_GROUPS` in `src/utils/responsive-demo-groups.ts` (the middleware and the route follow automatically)
-2. the `vercel.json` alternation
-3. `FRAME_ROUTE` in `tests/unit/security-headers.test.ts` — a literal, deliberately, so the expected pattern is stated rather than computed from the thing it checks
-4. `tests/e2e/brand-page.test.ts` — `GROUP_MARKER`, `LABEL_TO_GROUP`, and the frame count
-
-Plus a row in `RESPONSIVE_ROWS` (`src/components/brand/BrandAccessibility.astro`) and a specimen block on the frame page, or the group builds but nothing embeds it.
+1. `RESPONSIVE_DEMO_GROUPS` in `src/utils/responsive-demo-groups.ts` — the middleware and the route follow automatically
+2. A specimen block on `src/pages/brand/responsive-frame/[group].astro`, and a row in `RESPONSIVE_ROWS` (`src/components/brand/BrandAccessibility.astro`) — otherwise the page builds but nothing embeds it
+3. The `vercel.json` alternation
+4. `tests/unit/security-headers.test.ts` — **both** `FRAME_ROUTE` (a literal, deliberately, so the expected pattern is stated rather than computed from the thing it checks) **and** the `toHaveLength` count in the positive middleware case
+5. `tests/e2e/brand-page.test.ts` — `GROUP_MARKER` (a `Record<ResponsiveDemoGroup, …>`, so omitting it is a compile error), `LABEL_TO_GROUP`, `HEADING_TO_GROUP`, and the frame count
+6. This document's route table, if the group changes what the exception covers
 
 **Adding an unrelated frameable route** — do all three: add the path to `SAME_ORIGIN_FRAMEABLE`, add a `vercel.json` header rule, and update the test's expected path list. If you only do the first, it will work in dev and silently fail in production.
 
