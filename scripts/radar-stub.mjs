@@ -28,12 +28,18 @@
  * then point the site at it (any non-empty bearer will do — the value is never
  * checked here, it only has to be non-empty so RadarFeed reaches the fetch):
  *
- *   MCP_RADAR_SNAPSHOT_URL=http://localhost:8787
+ *   MCP_RADAR_SNAPSHOT_URL=http://127.0.0.1:8787/radar/snapshot
  *   MCP_KEY_WEBSITE_RADAR=stub-bearer-not-a-real-secret
  *
  * in `.env` (gitignored), then `npm run dev` or the Playwright suite.
  *
- * Override the port with `STUB_PORT`.
+ * Override the port with `STUB_PORT`. NOTE 8787 is also `wrangler dev`'s
+ * default — if the Worker is running locally you will hit the REAL Worker
+ * rather than this fixture, silently. Change `STUB_PORT` if both are up.
+ *
+ * Item shape mirrors `RadarSnapshotItem` in `src/lib/inoreader/transform.ts`,
+ * which is the source of truth; this is a third hand-rolled copy and has no
+ * mechanical guard, so change it in lockstep.
  */
 import { createServer } from 'node:http';
 
@@ -61,6 +67,10 @@ const wireItem = (n, category) => ({
 const fyiItem = (n, category) => ({
   ...wireItem(n, category),
   id: `fyi-${category}-${n}`,
+  // Distinct URL, not just a distinct id. RadarFeed dedupes wire items against
+  // FYI URLs, so sharing one silently drops a wire item and the advertised
+  // counts stop matching what renders.
+  url: `https://example.invalid/${category}/fyi/${n}`,
   title: `FYI item ${n} (${category})`,
   annotatedAt: new Date(Date.UTC(2026, 6, 20 - n)).toISOString(),
   annotation: {
@@ -87,14 +97,21 @@ const server = createServer((_req, res) => {
   // The bearer is deliberately NOT validated. This is an offline fixture, not
   // an auth simulator; checking it would only add a way to misconfigure the
   // fixture itself.
+  // Only the real path answers, so a mistyped MCP_RADAR_SNAPSHOT_URL fails
+  // loudly here instead of appearing to work against any path.
+  if (!(_req.url ?? '').startsWith('/radar/snapshot')) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'not_found', expected: '/radar/snapshot' }));
+    return;
+  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(snapshot));
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   const wire = snapshot.wire.items.length;
   const fyi = snapshot.fyi.items.length;
-  console.log(`[radar-stub] http://localhost:${PORT}`);
+  console.log(`[radar-stub] http://127.0.0.1:${PORT}/radar/snapshot`);
   console.log(
     `[radar-stub] serving ${wire} wire + ${fyi} FYI items across: ${CATEGORIES.join(', ')}`
   );

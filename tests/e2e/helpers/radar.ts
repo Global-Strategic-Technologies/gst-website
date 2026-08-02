@@ -1,6 +1,19 @@
 import { expect, type Page } from '@playwright/test';
 
 /**
+ * The island has RESOLVED when one of these exists — real items, or the empty
+ * state it renders when the fetch yields nothing.
+ *
+ * Exported because `accessibility.test.ts` needs the same contract: scanning
+ * before this matches audits the aria-hidden skeleton rather than the DOM a
+ * user ends up with. This module owns the contract; don't re-spell it.
+ */
+export const RADAR_SETTLED_SELECTOR = '.fyi-item, .wire-item, .radar-empty';
+
+/** Time budget for the island to resolve. The fetch itself is bounded at 5s. */
+export const RADAR_SETTLE_TIMEOUT_MS = 15000;
+
+/**
  * Wait for the Radar page to be ready.
  *
  * The feed is a `server:defer` island, so `domcontentloaded` is NOT enough:
@@ -18,6 +31,13 @@ import { expect, type Page } from '@playwright/test';
  * HTTP. So items appear only when `MCP_KEY_WEBSITE_RADAR` is bound and the
  * Worker responds; CI binds no such secret and renders the empty state.
  * That is why content-dependent assertions must branch on hasRadarContent().
+ *
+ * **To make those assertions actually RUN**: `npm run radar:stub` serves a
+ * fixed offline snapshot; point `MCP_RADAR_SNAPSHOT_URL` at it and set any
+ * non-empty `MCP_KEY_WEBSITE_RADAR` in `.env`. Without that, the tests proving
+ * `?category=` genuinely filters the feed never execute anywhere — which is
+ * how that deep-link stayed broken unnoticed for months. See
+ * [RADAR.md § Working Offline](../../../src/docs/hub/RADAR.md).
  */
 /**
  * Navigate to a Radar URL and wait for it to be usable.
@@ -41,13 +61,12 @@ export async function waitForRadarReady(page: Page): Promise<void> {
   // Under parallel load, webkit takes longer; use explicit timeouts.
   await expect(page.locator('.hub-header')).toBeVisible({ timeout: 10000 });
   await page.waitForLoadState('domcontentloaded');
-  // The island's own fetch is bounded at 5s (RadarFeed.astro), so 15s covers
-  // it plus page overhead. A timeout here means the island never resolved —
-  // which is a real failure, not a reason to raise this number.
+  // A timeout here means the island never resolved — which is a real failure,
+  // not a reason to raise the budget.
   await page
-    .locator('.fyi-item, .wire-item, .radar-empty')
+    .locator(RADAR_SETTLED_SELECTOR)
     .first()
-    .waitFor({ state: 'attached', timeout: 15000 });
+    .waitFor({ state: 'attached', timeout: RADAR_SETTLE_TIMEOUT_MS });
 }
 
 /**

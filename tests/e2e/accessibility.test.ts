@@ -1,7 +1,7 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA scanning.
  *
- * Scans 8 critical pages for accessibility violations.
+ * Scans 9 critical pages for accessibility violations.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -9,6 +9,7 @@
  */
 import { test, expect } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
+import { RADAR_SETTLED_SELECTOR, RADAR_SETTLE_TIMEOUT_MS } from './helpers/radar';
 
 interface A11yPage {
   name: string;
@@ -42,9 +43,28 @@ const PAGES: A11yPage[] = [
     // MCP_KEY_WEBSITE_RADAR, so the island resolves to `.radar-empty` and the
     // scan covers the shell — breadcrumb, headings, the filter pills (real
     // interactive controls), the empty state and the CTA. `FyiItem`/`WireItem`
-    // are NOT scanned here because they never render without a bearer. Run the
-    // suite with `npm run radar:stub` bound to cover those too.
-    waitFor: '.fyi-item, .wire-item, .radar-empty',
+    // only render with a bearer; use `npm run radar:stub` to cover those too.
+    waitFor: RADAR_SETTLED_SELECTOR,
+    exclude: [
+      // FyiItem nests its article <a> inside the <details> <summary>, which axe
+      // rates `nested-interactive`/serious. EXCLUDED, not baselined, and the
+      // distinction is the point: per the /brand precedent this file follows,
+      // exclusions are for "must not change" and KNOWN_SERIOUS is for debt that
+      // should decrease. An operator investigated this exact finding on
+      // 2026-08-02 — link is keyboard-reachable, Enter navigates without
+      // toggling, the mouse case is handled by a stopPropagation, and no
+      // screen-reader harm reproduced — and ruled the component works as
+      // intended and is not to be changed. See BACKLOG.md § BL-095.
+      //
+      // Baselining it would also have been quietly broken: KNOWN_SERIOUS is a
+      // MAX node count, and the count scales with however many annotated items
+      // the feed holds — so a number measured against the 2-item stub fixture
+      // would fail the first person to bind a real feed.
+      //
+      // Scoped to the <summary> only. The item BODY stays in scope, so a real
+      // violation in the expanded content still fails.
+      '.fyi-item__header',
+    ],
   },
   {
     name: 'Brand',
@@ -104,17 +124,11 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
   // only decrease. Raised as a design item rather than decided inside a test
   // change, matching the /brand -> BL-096 precedent below.
   //
-  // `nested-interactive` (2 nodes) is CONTENT-DEPENDENT and therefore invisible
-  // to CI: FyiItem puts an <a> inside a <summary>, and <summary> is itself an
-  // interactive control, so it only fires once FYI items actually render — which
-  // needs a bearer CI does not have. Reproduce with `npm run radar:stub`. The
-  // node count tracks the number of FYI items in the fixture (2), NOT a
-  // production count, so this entry cannot ratchet meaningfully; it is here so
-  // the suite is runnable against real content rather than failing anyone who
-  // binds a feed. The defect is real and tracked as BL-100 — the fix is an
-  // interaction-model decision (does clicking a headline expand, or navigate?),
-  // not something to settle inside a test change.
-  '/hub/radar/': { 'color-contrast': 2, 'nested-interactive': 2 },
+  // Both live in the page SHELL, so the count is content-independent: measured
+  // identical with an empty feed and with a 6-item one. (The island's own
+  // `nested-interactive` finding is content-dependent and is handled by a
+  // scoped exclusion above, not here — see the note on that entry.)
+  '/hub/radar/': { 'color-contrast': 2 },
   // /brand, added 2026-07-29. The intent was to land it with no baseline at all;
   // the discovery run said otherwise, and the honest move is to record the number
   // rather than widen the exclusions until the prediction comes true.
@@ -140,10 +154,15 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
   for (const pg of PAGES) {
     test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
       if (pg.waitFor) {
-        // `load` would block on the island's own request and can resolve before
-        // the swap lands, so wait on the resulting DOM instead of the lifecycle.
+        // Not `load`: it waits on the island's own subresource request, which
+        // under worker contention times out the navigation itself (see the
+        // `gotoRadar` docblock in helpers/radar.ts). Wait on the resulting DOM
+        // instead of the lifecycle — that is the signal we actually need.
         await page.goto(pg.path, { waitUntil: 'domcontentloaded' });
-        await page.locator(pg.waitFor).first().waitFor({ state: 'attached', timeout: 15000 });
+        await page
+          .locator(pg.waitFor)
+          .first()
+          .waitFor({ state: 'attached', timeout: RADAR_SETTLE_TIMEOUT_MS });
       } else {
         await page.goto(pg.path, { waitUntil: 'load' });
       }

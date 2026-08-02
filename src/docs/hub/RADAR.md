@@ -209,14 +209,14 @@ Local development consumes **zero** Inoreader budget on either path: the website
 
 **Website path**: the website no longer holds an Inoreader cache (post-BL-032.8 Phase B). For offline radar development, point Vercel preview deploys / `npm run dev` at the staging MCP Worker by setting `MCP_RADAR_SNAPSHOT_URL=https://mcp-staging.globalstrategic.tech/radar/snapshot` in your local `.env`. The Worker keeps the snapshot warm via its own cron-driven cache (`mcp:radar:cache:wire` / `:fyi` in the MCP Upstash DB, 6h TTL).
 
-**Website path, with no secret at all**: `npm run radar:stub` serves a fixed offline snapshot (6 wire + 2 FYI items across two categories) on `localhost:8787`. Point the site at it in `.env`:
+**Website path, with no secret at all**: `npm run radar:stub` serves a fixed offline snapshot on `127.0.0.1:8787` — 6 wire + 2 FYI items across two categories, all 8 of which render. (FYI items carry their own URLs deliberately: `RadarFeed` dedupes wire entries whose URL also appears in FYI, so reusing one would silently drop a wire item.) Point the site at it in `.env`:
 
 ```dotenv
-MCP_RADAR_SNAPSHOT_URL=http://localhost:8787
+MCP_RADAR_SNAPSHOT_URL=http://127.0.0.1:8787/radar/snapshot
 MCP_KEY_WEBSITE_RADAR=stub-bearer-not-a-real-secret   # any non-empty value
 ```
 
-The bearer must be non-empty or `RadarFeed.astro` short-circuits before the fetch and renders the empty state regardless of the URL. **This is what makes the content-dependent E2E assertions runnable** — without it they `test.skip()` everywhere, including the one proving `?category=` actually filters the feed rather than merely activating a pill. Two categories is deliberate: with one, a totally broken filter produces the same DOM as a working one.
+The bearer must be non-empty or `RadarFeed.astro` short-circuits before the fetch and renders the empty state regardless of the URL. **This is what makes the content-dependent E2E assertions runnable** — without it they `test.skip()` everywhere, including the one proving `?category=` actually filters the feed rather than merely activating a pill. Two categories is deliberate: with one, a totally broken filter produces the same DOM as a working one. Note 8787 is also `wrangler dev`'s default port — with the Worker running locally you would hit the real Worker instead of the fixture, so set `STUB_PORT` if both are up.
 
 **Local stdio MCP server path** (the `search_radar_offline` tool, `gst://radar/*` Resources over stdio, and the `gst_radar_brief_today` prompt's embed): these read a local snapshot at `<repo>/.cache/inoreader/` — populated and cleared from the repo root with:
 
@@ -231,7 +231,12 @@ The seeded data is **deterministic mock fixture content** (`mcp-server/tests/fix
 
 ## E2E Test Mocking
 
-E2E tests against `/hub/radar` rely on the production / staging MCP Worker's `/radar/snapshot` endpoint (already cron-warmed). Playwright's global-setup and global-teardown are intentionally no-ops post-Phase-B — there's no website-side cache to seed or clear. Set `MCP_KEY_WEBSITE_RADAR` in the Playwright env when running E2E tests so the Astro dev server's SSR fetch authenticates against the Worker.
+Playwright's global-setup and global-teardown are intentionally no-ops post-Phase-B — there's no website-side cache to seed or clear. Two ways to give the tests a feed:
+
+- **`npm run radar:stub`** (preferred, no secret): a fixed offline snapshot. Point `MCP_RADAR_SNAPSHOT_URL` at it and set any non-empty `MCP_KEY_WEBSITE_RADAR` — see § Working Offline for the exact values.
+- **The real staging Worker**: set a real `MCP_KEY_WEBSITE_RADAR` so the SSR fetch authenticates.
+
+**Without either, the content-dependent tests `test.skip()` — including the one asserting `?category=` actually filters the feed rather than just activating a pill.** CI has no bearer, so that test never runs there. That is not a theoretical gap: the deep-link was broken in exactly that way for months and nothing caught it, while the MCP tools hand clients those links.
 
 ## Vercel Caching & ISR Details
 

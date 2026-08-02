@@ -494,10 +494,10 @@ The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-cor
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 6 critical pages (Chromium, ~6 seconds)
+npm run test:a11y        # Scans 9 critical pages (Chromium, ~6 seconds)
 ```
 
-This runs `tests/e2e/accessibility.test.ts` which scans: Homepage, Services, About, M&A Portfolio, Hub, and TechPar.
+This runs `tests/e2e/accessibility.test.ts` which scans: Homepage, Services, About, M&A Portfolio, Hub, TechPar, Tech Debt Calculator, Brand, and Radar. (`/hub/radar/` waits for its `server:defer` island to resolve before scanning; with no `MCP_KEY_WEBSITE_RADAR` bound it scans the shell plus the empty state — bind `npm run radar:stub` to cover the feed items too.)
 
 ### How the ratchet works
 
