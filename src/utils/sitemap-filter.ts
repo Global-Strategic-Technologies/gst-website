@@ -36,11 +36,18 @@
  *
  * `/colors` is a bare 301 to `/brand#colors` with no layout, so it cannot
  * carry a `noindex` tag; the exclusion here is the only thing keeping it out.
+ *
+ * `/hub/radar` is the inverse of `/colors`: it DOES carry `noindex`, and this
+ * entry is the required other half of that pairing. Its feed rotates wholly
+ * every 6h and has no per-item permalinks, so there is nothing stable for an
+ * index to hold — see ADR-0012. Note the prefix match below stops at
+ * `/hub/radar` and anything beneath it; `/hub/` itself stays in the sitemap.
  */
 export const SITEMAP_EXCLUDED_PREFIXES = [
   '/brand',
   '/colors',
   '/booking-confirmed',
+  '/hub/radar',
   '/404',
   '/500',
 ] as const;

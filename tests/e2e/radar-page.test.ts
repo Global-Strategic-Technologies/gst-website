@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test';
 import {
-  waitForRadarReady,
+  gotoRadar,
   hasRadarContent,
   clickCategoryFilter,
   getVisibleItemCount,
+  waitForCategoryFilterApplied,
 } from './helpers/radar';
 
 test.describe('Radar Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/hub/radar/');
-    await waitForRadarReady(page);
+    await gotoRadar(page);
   });
 
   // -------------------------------------------------------------------------
@@ -349,8 +349,7 @@ test.describe('Radar Page', () => {
   test.describe('Responsive', () => {
     test('filter pills should be horizontally scrollable at mobile width', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 812 });
-      await page.goto('/hub/radar/');
-      await waitForRadarReady(page);
+      await gotoRadar(page);
 
       // Verify the filter container has overflow behavior at mobile
       const filterStyle = await page.evaluate(() => {
@@ -371,8 +370,7 @@ test.describe('Radar Page', () => {
 
     test('filter pills should wrap at desktop width', async ({ page }) => {
       await page.setViewportSize({ width: 1920, height: 1080 });
-      await page.goto('/hub/radar/');
-      await waitForRadarReady(page);
+      await gotoRadar(page);
 
       // At desktop, filter should wrap normally
       const filterStyle = await page.evaluate(() => {
@@ -429,58 +427,61 @@ test.describe('Radar Page', () => {
 
   test.describe('Crawler payload (raw server HTML)', () => {
     /**
-     * `/hub/radar/` was unindexed because the feed was a `server:defer`
-     * island: the initial HTML carried only the shell (~44 words, measured
-     * on the dev server) and the feed arrived via a second JS-initiated
-     * request. Googlebot runs JS on a deferred queue, so it judged the shell.
+     * The feed IS deferred, deliberately, and this test pins that.
+     *
+     * Deferring a page's primary content normally costs indexability —
+     * Googlebot runs JS on a deferred queue and judges the shell. It is
+     * acceptable here because `/hub/radar/` is `noindex` (ADR-0012): the feed
+     * rotates wholly every 6h with no per-item permalinks, so there is nothing
+     * for an index to hold. In exchange the island buys self-healing —
+     * `/_server-islands/*` routes to the UNCACHED function, so a failed fetch
+     * does not persist in the ISR entry.
+     *
+     * If this page ever needs to rank, the fix is per-item permalinks on a
+     * separate route — NOT inlining this feed. Inlining was tried (bbd96fbf)
+     * and reverted; see ADR-0012 before reaching for it again.
      *
      * `page.request.get()` — not `page.goto()` — because it fetches the raw
      * response WITHOUT executing scripts, which is the entire point: it sees
      * what a crawler's first pass sees. (`page.request` inherits the browser
      * context; the standalone `request` fixture does not.)
      */
-    test('feed is rendered inline, not deferred to a server island', async ({ page }) => {
+    test('feed is deferred to a server island, and the page is noindex', async ({ page }) => {
       const res = await page.request.get('/hub/radar/');
-      // Check the status first: without this a dev-server 500 surfaces as
-      // "RadarFeed did not render server-side", which reads like the
-      // regression this guards rather than the outage it actually is.
+      // Check the status first: without this a dev-server 500 surfaces as a
+      // marker-missing failure, which reads like a regression in this
+      // behaviour rather than the outage it actually is.
       expect(res.status(), 'radar route did not return 200').toBe(200);
       const html = await res.text();
 
-      // 1. The island marker must be gone. This exact token is what Astro
+      // 1. The island marker must be present. This exact token is what Astro
       //    writes as an HTML comment for a deferred island
       //    (astro/dist/runtime/server/render/server-islands-shared.js).
       //    NOT `astro-island`, which is the CLIENT-island custom element and
-      //    never appears on this page either way — asserting its absence
-      //    would pass before and after the fix, proving nothing.
+      //    never appears on this page either way.
       expect(
         html,
-        'server island marker still present — was server:defer reinstated?'
-      ).not.toContain('server-island-start');
+        'server island marker absent — was the feed inlined again? See ADR-0012.'
+      ).toContain('server-island-start');
 
-      // 2. RadarFeed's own markup must be present. Match the CLASS ATTRIBUTE,
-      //    not the bare class name: Astro's dev server inlines every
-      //    component's CSS as raw text (dev/pipeline.js), so `feed-list`
-      //    appears in the stylesheet even when the island is deferred — a
-      //    naive substring check goes GREEN on master and proves nothing.
-      //    Verified: on master this assertion fails, on this branch it passes.
-      //
-      //    Prefix match (no closing quote) so it survives an added class and
-      //    all three `scopedStyleStrategy` values — the class-injecting ones
-      //    append the scope after the authored name.
-      //
-      //    The disjunction is the invariant: RadarFeed is a single ternary
-      //    with no third branch, so exactly one of these renders when inline.
-      //    Neither alone is environment-independent — `feed-list` is
-      //    unreachable without a bound MCP_KEY_WEBSITE_RADAR (so it never
-      //    appears in CI), and `radar-empty` is unreachable when the feed has
-      //    items. Asserting either one alone makes this test environment-bound.
-      const hasFeed = html.includes('class="feed-list');
-      const hasEmptyState = html.includes('class="radar-empty');
+      // 2. RadarFeed's own markup must be ABSENT from the first response —
+      //    that is what "deferred" means. Match the CLASS ATTRIBUTE, not the
+      //    bare class name: Astro's dev server inlines every component's CSS
+      //    as raw text (dev/pipeline.js), so `feed-list` appears in the
+      //    stylesheet regardless and a naive substring check proves nothing.
+      expect(html, 'feed-list in the first response — the feed is not deferred').not.toContain(
+        'class="feed-list'
+      );
+      expect(html, 'radar-empty in the first response — the feed is not deferred').not.toContain(
+        'class="radar-empty'
+      );
+
+      // 3. The pairing that makes (1) and (2) acceptable. Asserted on the same
+      //    payload so the two facts can never drift apart silently.
       expect(
-        hasFeed || hasEmptyState,
-        'neither feed-list nor radar-empty in raw HTML — RadarFeed did not render server-side'
-      ).toBe(true);
+        html,
+        'page is not noindex — deferring primary content now costs indexability'
+      ).toMatch(/<meta\s+name="robots"\s+content="noindex, follow"/);
     });
   });
 
@@ -490,10 +491,17 @@ test.describe('Radar Page', () => {
 
   test.describe('Category deep-link (?category=)', () => {
     /**
-     * This was half-broken until the feed was inlined. CategoryFilter hydrates
-     * `?category=` inside DOMContentLoaded and calls applyFilterVisual(), which
-     * queries `[data-category]` — but under `server:defer` those items did not
-     * exist yet, so the pill activated while the feed stayed unfiltered.
+     * This was half-broken while the feed was an island the FIRST time round:
+     * CategoryFilter hydrated `?category=` inside DOMContentLoaded and reached
+     * for `[data-category]` items the island had not delivered yet, so the pill
+     * activated and the feed stayed unfiltered.
+     *
+     * The island is back, and the bug is not, because filtering no longer
+     * touches the items: hydration sets `data-active-category` on
+     * `.radar-container` — a shell element that exists at DOMContentLoaded —
+     * and a CSS rule hides non-matching items whenever they arrive. Timing
+     * cannot break it, which matters because Astro fires no event when an
+     * island's content is spliced in.
      */
     test('activates the matching pill', async ({ page }) => {
       // Genuinely key-independent: the hydration path runs whether or not the
@@ -508,8 +516,7 @@ test.describe('Radar Page', () => {
         .getAttribute('data-filter');
       expect(category, 'no category filter buttons rendered').toBeTruthy();
 
-      await page.goto(`/hub/radar/?category=${category}`);
-      await waitForRadarReady(page);
+      await gotoRadar(page, `/hub/radar/?category=${category}`);
 
       await expect(page.locator(`.filter-btn[data-filter="${category}"]`)).toHaveClass(/active/);
     });
@@ -532,8 +539,10 @@ test.describe('Radar Page', () => {
       const category = await page.locator('[data-category]').first().getAttribute('data-category');
       expect(category, 'content present but no [data-category] items').toBeTruthy();
 
-      await page.goto(`/hub/radar/?category=${category}`);
-      await waitForRadarReady(page);
+      await gotoRadar(page, `/hub/radar/?category=${category}`);
+      // The attribute is set at DOMContentLoaded but the island's items arrive
+      // afterwards, so the visual result settles later than the navigation.
+      await waitForCategoryFilterApplied(page, category!);
 
       // Both halves are needed: without the positive, a bug that hid EVERY
       // item would satisfy "no non-matching items visible" and pass.

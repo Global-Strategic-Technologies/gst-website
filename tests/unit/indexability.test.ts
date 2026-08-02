@@ -17,6 +17,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, sep } from 'node:path';
 
 import { sitemapFilter, SITEMAP_EXCLUDED_PREFIXES } from '../../src/utils/sitemap-filter';
+// Imported, not hardcoded: the drift guard below is only meaningful if it
+// tracks the same category list the page renders pills from.
+import { CATEGORIES } from '../../src/lib/inoreader/transform';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PAGES_DIR = join(REPO_ROOT, 'src', 'pages');
@@ -97,6 +100,7 @@ describe('noindex ↔ sitemap pairing', () => {
       '/500',
       '/booking-confirmed',
       '/brand',
+      '/hub/radar',
     ]);
   });
 
@@ -129,33 +133,77 @@ describe('/colors — redirect, so exclusion is the only lever', () => {
   });
 });
 
-describe('/hub/radar renders its feed inline', () => {
+describe('/hub/radar defers its feed to a server island', () => {
   const page = () => read('src/pages/hub/radar/index.astro');
 
-  it('does not defer the feed to a server island', () => {
-    // The indexability defect this branch exists to fix: under `server:defer`
-    // the feed is absent from the initial HTML, and Googlebot judges the shell.
-    // The behavioural guard is in tests/e2e/radar-page.test.ts; this is the
-    // cheap source-level tripwire that fails the moment someone reinstates it.
+  it('renders RadarFeed with server:defer', () => {
+    // Deferring primary content is normally an indexability defect — it is
+    // acceptable HERE, and only here, because the page is `noindex` (ADR-0012).
+    // The island buys self-healing: `/_server-islands/*` routes to the uncached
+    // function, so a failed fetch does not persist in an ISR entry.
     //
     // Match the DIRECTIVE ON THE COMPONENT, not the bare string: the page
-    // docstring names `server:defer` in prose to explain why it must not come
-    // back, and a naive `not.toContain('server:defer')` fails on that comment.
-    expect(page()).not.toMatch(/<RadarFeed\b[^>]*\bserver:defer/);
+    // docstring names `server:defer` in prose, so a bare `toContain` would
+    // pass on the comment alone.
+    expect(page()).toMatch(/<RadarFeed\b[^>]*\bserver:defer/);
   });
 
-  it('still renders RadarFeed', () => {
-    // Guards the other direction: `not.toContain('server:defer')` also passes
-    // if the component is deleted outright.
-    expect(page()).toContain('<RadarFeed');
+  it('supplies the skeleton as the island fallback', () => {
+    // Guards the other direction: an island with no fallback renders nothing
+    // at all while it loads.
+    expect(page()).toMatch(/<RadarFeedSkeleton\b[^>]*\bslot="fallback"/);
+  });
+
+  it('is paired with noindex, since the island defers primary content', () => {
+    // The coupling ADR-0012 records: `server:defer` here is only defensible
+    // while this page stays out of the index. If someone removes `noindex`,
+    // this fails and sends them to the ADR rather than letting the page
+    // silently go back to being judged on its shell.
+    expect(page()).toMatch(/<BaseLayout[^>]*\bnoindex(\s|\/?>|=\{true\})/s);
   });
 });
 
-describe('critical-path fetch is bounded', () => {
+describe('category filter survives island timing', () => {
+  const page = () => read('src/pages/hub/radar/index.astro');
+
+  it('has one CSS rule per category, driven by an ancestor attribute', () => {
+    // Drift guard. The rules are literal (CSS cannot compare two elements'
+    // attribute values, and generating them would forfeit Astro scoping), so
+    // a fifth category could ship with no rule and simply never filter. This
+    // is the single failure mode literal rules have.
+    const src = page();
+    for (const key of Object.keys(CATEGORIES)) {
+      expect(
+        src,
+        `no [data-active-category='${key}'] rule — a category was added without a filter rule`
+      ).toContain(`[data-active-category='${key}']`);
+    }
+  });
+
+  it('scopes the item selector with :global()', () => {
+    // Astro scopes every compound it compiles, and no element carries two
+    // scope ids — so an unscoped [data-category] here would be rewritten to
+    // match only elements declared in this file, never the <article>s that
+    // FyiItem/WireItem render. The rule would compile to dead CSS and the
+    // filter would silently stop working.
+    expect(page()).toMatch(/:global\(\[data-category\]:not\(\[data-category='[\w-]+'\]\)\)/);
+  });
+
+  it('CategoryFilter sets the attribute rather than reaching for items', () => {
+    // The bug this design exists to prevent: hydration runs at
+    // DOMContentLoaded, before the island's items exist, so anything that
+    // queries [data-category] on load activates the pill and filters nothing.
+    const filter = read('src/components/radar/CategoryFilter.astro');
+    expect(filter).toContain('dataset.activeCategory');
+    expect(filter).not.toContain("querySelectorAll('[data-category]')");
+  });
+});
+
+describe('island fetch is bounded', () => {
   it('RadarFeed passes an AbortSignal timeout', () => {
-    // Inlining put this on the critical path. undici defaults to 300s and the
-    // function sets no maxDuration, so an unbounded call to a hung Worker
-    // would 5xx the crawler this change exists to serve.
+    // undici defaults to 300s and the island function sets no maxDuration, so
+    // an unbounded call to a hung Worker holds a serverless invocation open
+    // for the full default. True of the island exactly as of the inline render.
     expect(read('src/components/radar/RadarFeed.astro')).toMatch(
       /signal:\s*AbortSignal\.timeout\(\d+\)/
     );

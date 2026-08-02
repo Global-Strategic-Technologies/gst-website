@@ -43,26 +43,23 @@ const allD = (Math.abs(0 - center) / maxDist).toFixed(3);
   // BL-031.95 Phase 3.B: URL state ↔ category pill sync.
   //
   // - On init: read `?category=<X>` from the URL; if a known category is
-  //   present, activate that pill (matches the active state the user
-  //   would see by clicking) and apply the visual filter. Since the feed is
-  //   rendered inline, the items exist by DOMContentLoaded and the filter
-  //   actually takes effect — while it was a server island this hydration
-  //   activated the pill against an empty DOM and silently did nothing.
+  //   present, activate that pill and set the filter.
   // - On click: write `?category=<X>` (or strip when "all") via
   //   history.replaceState so a copied URL deep-links to the same view.
-  // - Items themselves are filtered by toggling `display` on the
-  //   `data-category` elements RadarFeed renders.
+  //
+  // Filtering is done by setting ONE attribute on `.radar-container` — a shell
+  // element that exists at DOMContentLoaded — and letting CSS in
+  // `pages/hub/radar/index.astro` hide the non-matching `[data-category]`
+  // items. It deliberately does NOT touch the items themselves: RadarFeed is a
+  // `server:defer` island whose contents arrive after DOMContentLoaded, and
+  // Astro fires no event when they do (the runtime just splices a fragment in).
+  // Any approach that reaches for the items on load has to guess at that
+  // timing; this one cannot be wrong about it, because the rule is already in
+  // place before the items exist. Reaching for `[data-category]` here is the
+  // bug that made `?category=` activate the pill but never filter the feed.
 
-  function applyFilterVisual(filter: string): void {
-    const items = document.querySelectorAll('[data-category]');
-    items.forEach((item) => {
-      const el = item as HTMLElement;
-      if (filter === 'all' || el.dataset.category === filter) {
-        el.style.display = '';
-      } else {
-        el.style.display = 'none';
-      }
-    });
+  function applyFilter(root: Element | null, filter: string): void {
+    if (root instanceof HTMLElement) root.dataset.activeCategory = filter;
   }
 
   function syncUrlState(filter: string): void {
@@ -81,15 +78,18 @@ const allD = (Math.abs(0 - center) / maxDist).toFixed(3);
 
   document.addEventListener('DOMContentLoaded', () => {
     const buttons = document.querySelectorAll('.filter-btn');
+    // Resolved from a pill rather than queried globally, so this component
+    // carries no assumption about where in the page it was mounted.
+    const scope = buttons[0]?.closest('.radar-container') ?? null;
 
     // Hydrate from URL: if a known category is in `?category=`, activate
-    // that pill and apply the visual filter immediately.
+    // that pill and set the filter. Safe to run before the island lands.
     const urlFilters = deserializeRadarFilters(new URLSearchParams(window.location.search));
     if (urlFilters.category) {
       buttons.forEach((b) => {
         b.classList.toggle('active', (b as HTMLElement).dataset.filter === urlFilters.category);
       });
-      applyFilterVisual(urlFilters.category);
+      applyFilter(scope, urlFilters.category);
     }
 
     buttons.forEach((btn) => {
@@ -99,13 +99,7 @@ const allD = (Math.abs(0 - center) / maxDist).toFixed(3);
         buttons.forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
 
-        // Query items at click time rather than caching a NodeList at setup:
-        // the feed is re-rendered on navigation, and a stale list would filter
-        // detached nodes. (Until the feed was inlined this comment cited the
-        // server island streaming in after DOMContentLoaded — that is no longer
-        // true, and it was also why the ?category= hydration above silently
-        // did nothing.)
-        applyFilterVisual(filter);
+        applyFilter(scope, filter);
         syncUrlState(filter);
       });
     });

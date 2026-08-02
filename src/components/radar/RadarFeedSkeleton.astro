@@ -1,0 +1,49 @@
+---
+/**
+ * RadarFeedSkeleton — Placeholder shown while RadarFeed server island loads.
+ * Mimics the wire-item layout with pulsing bars.
+ * Uses global .brutal-skeleton-bar and .brutal-skeleton-dot classes from skeleton.css.
+ */
+---
+
+<div class="feed-skeleton" aria-hidden="true">
+  {
+    Array.from({ length: 6 }).map((_, i) => (
+      <div class="skeleton-item">
+        <div class="brutal-skeleton-dot skeleton-item-dot" />
+        <div class="skeleton-content">
+          <div class="brutal-skeleton-bar" style={`width: ${70 + (i % 3) * 10}%`} />
+          <div
+            class="brutal-skeleton-bar brutal-skeleton-bar--sm"
+            style={`width: ${30 + (i % 3) * 10}%; animation-delay: 0.3s`}
+          />
+        </div>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .feed-skeleton {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .skeleton-item {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .skeleton-item-dot {
+    margin-top: 0.375rem;
+  }
+
+  .skeleton-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+</style>
