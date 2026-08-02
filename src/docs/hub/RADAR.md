@@ -186,7 +186,8 @@ src/
 ├── pages/hub/radar/
 │   └── index.astro               # Main Radar page (SSR + ISR + unified feed)
 scripts/
-└── inoreader-auth.mjs           # OAuth setup helper
+├── inoreader-auth.mjs           # OAuth setup helper
+└── radar-stub.mjs               # Offline /radar/snapshot fixture (npm run radar:stub)
 ```
 
 ## Token Management (Worker-side)

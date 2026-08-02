@@ -91,15 +91,14 @@ const snapshot = {
   fetchedAt: new Date(Date.UTC(2026, 6, 20)).toISOString(),
 };
 
-// `_req` is unused on purpose: every path returns the same fixture, so there is
-// nothing to route on. Underscore-prefixed so the unused-parameter check passes.
-const server = createServer((_req, res) => {
-  // The bearer is deliberately NOT validated. This is an offline fixture, not
-  // an auth simulator; checking it would only add a way to misconfigure the
-  // fixture itself.
-  // Only the real path answers, so a mistyped MCP_RADAR_SNAPSHOT_URL fails
-  // loudly here instead of appearing to work against any path.
-  if (!(_req.url ?? '').startsWith('/radar/snapshot')) {
+const server = createServer((req, res) => {
+  // Routed on path, but NOT on the bearer: this is an offline fixture, not an
+  // auth simulator, and validating a token would only add a way to
+  // misconfigure the fixture itself.
+  //
+  // The path check exists so a mistyped MCP_RADAR_SNAPSHOT_URL fails loudly
+  // here instead of appearing to work against any path.
+  if (!(req.url ?? '').startsWith('/radar/snapshot')) {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'not_found', expected: '/radar/snapshot' }));
     return;
