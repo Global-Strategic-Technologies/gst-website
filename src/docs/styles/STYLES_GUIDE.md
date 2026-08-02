@@ -47,6 +47,32 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 - **Verifying palette/theme behavior**: open `/brand` in `npm run dev`, use the PalettePanel (always visible there; pop-out makes it available on every page) to switch themes and palettes live — see [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) § Alternative Palette System
 - The rendered page at [globalstrategic.tech/brand](https://globalstrategic.tech/brand) is the shareable form of the same surface for reviewers without repo access
 
+### How a specimen relates to what ships
+
+Because you are told to copy from these specimens, a specimen that has drifted from production
+teaches the wrong thing — which is worse than having no specimen. Every specimen must therefore use
+one of three mechanisms, in this order of preference (BL-095):
+
+1. **Render the real component.** Structurally cannot drift. The default, and what to do for anything
+   renderable in isolation — `Breadcrumb`, `StatsBar`, `WireItem`, `TableOfContents` and the logo
+   components are all live components on `/brand`, not copies of them.
+2. **Replica + parity guard.** Only for components that genuinely cannot render twice — those that
+   hardcode a singleton DOM `id` (`Header`, `ThemeToggle`, `CTASection`, the portfolio family). Add a
+   test in `tests/e2e/brand-page.test.ts` § "Site chrome specimens match production" comparing the
+   specimen's computed styles against the live component **on the same page**, never against literal
+   values, so the pin cannot go stale. Add a source comment naming the file to keep it in sync with.
+3. **Plain CSS class, no component.** Most `.brutal-*` specimens: the class lives in
+   `src/styles/components/*.css` with no `.astro` component behind it, so writing the markup *is*
+   rendering the real thing. Nothing to converge on.
+
+Two things that make replicas drift silently, both of which have happened:
+
+- **Astro `<style>` is scoped**, so a production component's styles never reach a replica of it on
+  another page. That is why replicas carry inline styles, and why they diverge unnoticed.
+- **Read the media queries, not just the base rule.** `.footer-links` is `gap: 0.75rem` at the top of
+  `Footer.astro` and `gap: 2rem` under `@media (min-width: 768px)` — the desktop value is the one a
+  desktop specimen must match.
+
 ---
 
 ## Design System Architecture

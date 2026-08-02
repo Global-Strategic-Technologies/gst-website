@@ -551,6 +551,73 @@ test.describe('Brand Page', () => {
       expect(s.w, 'toggle specimen delta width vs real toggle').toBe(p.w);
       expect(s.color, 'toggle specimen delta color vs real toggle').toBe(p.color);
     });
+
+    /**
+     * Viewport dependency, stated rather than relied on: `Header.astro:180-182`
+     * drops the nav list gap at <=768px and `:202` drops the link size, while the
+     * specimen's inline styles do not respond. `playwright.config.ts` runs this
+     * project desktop-only, so both sides are at their desktop values here. If a
+     * mobile project is ever added, these two tests need viewport-aware pins
+     * rather than a straight comparison.
+     */
+    test('header nav link specimen matches the real header nav', async ({ page }) => {
+      const specimen = page.locator('[data-specimen-nav-links] a').first();
+      const production = page.locator('.site-header nav a:not(.logo)').first();
+      await expect(specimen).toBeVisible();
+      await expect(production).toBeVisible();
+
+      const read = (l: typeof specimen) =>
+        l.evaluate((el) => {
+          const cs = getComputedStyle(el);
+          return { fontSize: cs.fontSize, color: cs.color, letterSpacing: cs.letterSpacing };
+        });
+      const [s, p] = await Promise.all([read(specimen), read(production)]);
+      expect(s.fontSize, 'nav specimen font-size vs real header nav').toBe(p.fontSize);
+      expect(s.color, 'nav specimen color vs real header nav').toBe(p.color);
+      expect(s.letterSpacing, 'nav specimen letter-spacing vs real header nav').toBe(
+        p.letterSpacing
+      );
+
+      // Gap is its own drift dimension (the logo lockup regressed on gap alone
+      // while width and colour matched), which is why the specimen mirrors
+      // production's nav > ul > li structure rather than being a flat <nav>.
+      const [sGap, pGap] = await Promise.all([
+        page.locator('[data-specimen-nav-links] ul').evaluate((el) => getComputedStyle(el).gap),
+        page
+          .locator('.site-header nav ul')
+          .first()
+          .evaluate((el) => getComputedStyle(el).gap),
+      ]);
+      expect(sGap, 'nav specimen list gap vs real header nav').toBe(pGap);
+    });
+
+    test('footer link specimen matches the real footer links', async ({ page }) => {
+      const specimen = page.locator('[data-specimen-footer-links] a').first();
+      const production = page.locator('footer .footer-links a').first();
+      await expect(specimen).toBeVisible();
+      await expect(production).toBeVisible();
+
+      const read = (l: typeof specimen) =>
+        l.evaluate((el) => {
+          const cs = getComputedStyle(el);
+          return { fontSize: cs.fontSize, color: cs.color, letterSpacing: cs.letterSpacing };
+        });
+      const [s, p] = await Promise.all([read(specimen), read(production)]);
+      expect(s.fontSize, 'footer specimen font-size vs real footer').toBe(p.fontSize);
+      expect(s.color, 'footer specimen color vs real footer').toBe(p.color);
+      expect(s.letterSpacing, 'footer specimen letter-spacing vs real footer').toBe(
+        p.letterSpacing
+      );
+
+      const [sGap, pGap] = await Promise.all([
+        page.locator('[data-specimen-footer-links]').evaluate((el) => getComputedStyle(el).gap),
+        page
+          .locator('footer .footer-links')
+          .first()
+          .evaluate((el) => getComputedStyle(el).gap),
+      ]);
+      expect(sGap, 'footer specimen gap vs real footer links').toBe(pGap);
+    });
   });
 
   /**

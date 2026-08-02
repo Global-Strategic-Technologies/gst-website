@@ -416,45 +416,6 @@ import '../styles/components/progress.css';
   }
 
   /* Breadcrumb demo */
-  .brand-breadcrumb-demo {
-    padding: var(--spacing-lg) 0 0;
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-  }
-
-  .brand-breadcrumb-demo .breadcrumb__list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    align-items: baseline;
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-  }
-
-  .brand-breadcrumb-demo .breadcrumb__item {
-    display: flex;
-    align-items: baseline;
-    white-space: nowrap;
-  }
-
-  .brand-breadcrumb-demo .breadcrumb__item a {
-    color: var(--color-primary);
-    text-decoration: none;
-    transition: opacity var(--transition-fast);
-  }
-
-  .brand-breadcrumb-demo .breadcrumb__item a:hover {
-    opacity: 0.8;
-  }
-
-  .brand-breadcrumb-demo .breadcrumb__separator {
-    margin: 0 var(--spacing-sm);
-  }
-
-  /* Wizard progress demos use shared .tool-wizard-progress classes from progress.css */
-
-  /* Card grid */
   .brand-card-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -1267,48 +1228,39 @@ import '../styles/components/progress.css';
     white-space: nowrap;
   }
 
-  /* ── Stats Bar (current specimen) ─────────────────── */
-  .stats-bar {
-    background: var(--color-primary);
+  /* ── Stats Bar specimen ───────────────────────────── */
+  /* The specimen renders the real <StatsBar>, whose own scoped styles apply.
+     This only neutralises the `.container` it wraps its grid in, which would
+     otherwise inset the specimen inside the brand column. */
+  .brand-statsbar-specimen .container {
+    max-width: none;
+    padding: 0;
   }
 
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-  }
+  /* ── CTA Box replica ──────────────────────────────────
+     Replica of CTASection.astro, whose styles are Astro-scoped and so cannot
+     reach this page. CTASection is NOT rendered here because it hardcodes
+     `id="contact"` (CTASection.astro:24) — a singleton id, the same
+     disqualifier as ThemeToggle's `#themeToggle` (BL-095 AC-2). It also fires
+     `trackCTA('calendarbridge','cta-section')` from an inline onclick with no
+     suppressing prop, so a specimen click would emit a real analytics event.
 
-  .stat-item {
-    text-align: center;
-    padding: 1.5rem 1rem;
-  }
-
-  .stat-value {
-    font-size: 2.5rem;
-    font-weight: 900;
-    color: var(--bg-dark);
-    line-height: 1;
-    margin-bottom: 0.5rem;
-  }
-
-  .stat-label {
-    font-size: var(--text-xs);
-    color: var(--bg-dark);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-  }
-
-  /* ── CTA Box ───────────────────────────────────────── */
+     Values below are CONVERGED to production; keep them that way. Everything
+     except the three marked adaptations is a straight copy of CTASection.astro.
+     Before BL-095 this replica had drifted on background, padding, max-width,
+     both font sizes, both colours and both margins — and dropped the
+     `light-dark()` pair on the heading, so it was wrong in dark theme. */
   .cta-box {
-    background: var(--bg-light);
+    background: var(--cta-box-bg);
     border: 2px solid var(--color-primary);
-    padding: 3rem;
+    padding: 4rem;
+    /* ADAPTATION: production is 800px; the brand column is narrower. */
     max-width: 600px;
     text-align: center;
     position: relative;
   }
 
-  /* Left-align specimens (override global margin: 0 auto) */
+  /* ADAPTATION: left-align specimens (override global margin: 0 auto) */
   .brand-component-item .brutal-tool-shell,
   .brand-component-item .cta-box {
     margin-left: 0;
@@ -1317,25 +1269,23 @@ import '../styles/components/progress.css';
   }
 
   .cta-box h2 {
-    font-size: var(--text-3xl);
-    color: var(--text-primary);
-    margin-bottom: 1rem;
+    font-size: 2.5rem;
+    color: light-dark(var(--text-primary), var(--text-dark-primary));
+    margin-bottom: 1.5rem;
     font-weight: 600;
   }
 
   .cta-box p {
-    color: var(--text-secondary);
-    font-size: 1.05rem;
-    margin-bottom: 2rem;
+    color: var(--cta-box-text);
+    font-size: var(--text-lg);
+    margin-bottom: 2.5rem;
   }
 
-  /* Responsive overrides for specimen components */
+  /* Responsive overrides for specimen components.
+     The `.stats-grid` / `.stat-value` rules that used to live here went with the
+     StatsBar replica — the real component ships its own 768px and 480px rules. */
   @media (max-width: 768px) {
     .modal__metrics {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .stats-grid {
       grid-template-columns: repeat(2, 1fr);
     }
   }
@@ -1343,14 +1293,6 @@ import '../styles/components/progress.css';
   @media (max-width: 480px) {
     .modal__metrics {
       grid-template-columns: repeat(2, 1fr);
-    }
-
-    .stats-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .stat-value {
-      font-size: var(--text-3xl);
     }
   }
 </style>
