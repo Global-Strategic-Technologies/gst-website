@@ -678,6 +678,7 @@ If your test has any of these, it's likely a false positive:
 26. ✗ Queries `body` for a class that lives on `document.documentElement` (or vice versa) — silently returns `false`, making conditional setup fire incorrectly
 27. ✗ Waits for a CSS class change but asserts on a computed style property (`display`, `visibility`) that lags behind in the rendering pipeline — passes in Chromium, fails in Firefox
 28. ✗ Source emits a `data-*-ready` / `__*Initialized` signal before all `addEventListener` / D3 `.on()` calls have run — passes in isolation, fails under parallel worker load
+29. ✗ Gates on a readiness signal that was never observed false — a never-navigated iframe's `about:blank` already reports `readyState === 'complete'`, so the gate admits every frame and the assertion beneath it cannot fail
 
 ## E2E Cross-Browser Pitfalls
 
@@ -1334,6 +1335,8 @@ test('should display description', async ({ page }) => {
 
 **Key principle:** The readiness gate in `beforeEach` should wait for the deepest shared element that downstream tests depend on — not just the outermost container. This is especially important with `waitUntil: 'domcontentloaded'`, which fires before the browser has fully built the render tree.
 
+**Related:** this is a gate whose _scope_ is too shallow. [Anti-pattern 28](#28--trusting-a-readiness-gate-you-never-sampled-before-the-thing-it-gates-starts) is the adjacent failure — a gate that is never _false_, and so gates nothing at all. Fixing scope without checking the second property leaves a gate that still passes vacuously.
+
 **When this bites you:**
 
 - Static SSG pages under `domcontentloaded` (no hydration to blame — it's pure DOM construction timing)
@@ -1482,7 +1485,7 @@ els.filter((el) => el.contentDocument?.readyState === 'complete').length === tot
 
 which reads as strictly stronger than the `body.children.length > 0` check it replaced — `'complete'` implies stylesheets have loaded, `children.length` does not.
 
-It is **not stronger. The two are incomparable**, and on the axis that mattered here it was vacuous: a lazy `<iframe>` that has not navigated yet exposes its pristine `about:blank`, and `about:blank` **already reports `readyState === 'complete'`** (spec-mandated at browsing-context creation, verified in chromium, firefox and webkit — not a Chromium quirk). Once navigation has begun `readyState` is the stronger signal; before it begins it admits everything. Measured in the pre-navigation window, the gate admitted **12 of 12** frames — every one empty, every one reporting `scrollHeight === clientHeight` in both axes. The assertion beneath it could not fail.
+It is **not stronger. The two are incomparable**, and on the axis that mattered here it was vacuous: a lazy `<iframe>` that has not navigated yet exposes its pristine `about:blank`, and `about:blank` **already reports `readyState === 'complete'`** (the HTML spec gives every `Document` a current document readiness "initially `complete`", and names initial `about:blank` documents as a case that default applies to; verified in chromium, firefox and webkit — not a Chromium quirk). Once navigation has begun `readyState` is the stronger signal; before it begins it admits everything. Measured in the pre-navigation window, the gate admitted **12 of 12** frames — every one empty, every one reporting `scrollHeight === clientHeight` in both axes. The assertion beneath it could not fail.
 
 Neither condition is sufficient alone, so the fix is the conjunction:
 
