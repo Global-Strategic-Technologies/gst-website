@@ -376,6 +376,10 @@ test.describe('Brand Page', () => {
       // what its heading claims, which stays true if a row is duplicated —
       // turning the tabs row into a second cards row leaves /brand with two
       // identical sections and the tabs group demoed nowhere, all twelve honest.
+      // `.at(-2)` rather than the strip-then-pop the other checks use, deliberately:
+      // it reads the segment BEFORE the trailing empty one, so a slashless `src`
+      // yields 'responsive-frame' and fails loudly instead of silently regrouping.
+      // Don't harmonise the three parses into one helper without keeping that.
       const groups = await frames.evaluateAll((els) =>
         els.map((el) => new URL((el as HTMLIFrameElement).src).pathname.split('/').at(-2))
       );

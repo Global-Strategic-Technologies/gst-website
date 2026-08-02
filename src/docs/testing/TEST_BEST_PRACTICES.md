@@ -1480,7 +1480,9 @@ A readiness gate is only meaningful if it is **false at some point**. Verify tha
 els.filter((el) => el.contentDocument?.readyState === 'complete').length === total;
 ```
 
-which reads as strictly stronger than the `body.children.length > 0` check it replaced — `'complete'` implies stylesheets have loaded, `children.length` does not. It is in fact **weaker to the point of vacuity**: a lazy `<iframe>` that has not navigated yet exposes its pristine `about:blank`, and `about:blank` **already reports `readyState === 'complete'`**. Measured in the pre-navigation window, the gate admitted **12 of 12** frames — every one empty, every one reporting `scrollHeight === clientHeight` in both axes. The assertion beneath it could not fail.
+which reads as strictly stronger than the `body.children.length > 0` check it replaced — `'complete'` implies stylesheets have loaded, `children.length` does not.
+
+It is **not stronger. The two are incomparable**, and on the axis that mattered here it was vacuous: a lazy `<iframe>` that has not navigated yet exposes its pristine `about:blank`, and `about:blank` **already reports `readyState === 'complete'`** (spec-mandated at browsing-context creation, verified in chromium, firefox and webkit — not a Chromium quirk). Once navigation has begun `readyState` is the stronger signal; before it begins it admits everything. Measured in the pre-navigation window, the gate admitted **12 of 12** frames — every one empty, every one reporting `scrollHeight === clientHeight` in both axes. The assertion beneath it could not fail.
 
 Neither condition is sufficient alone, so the fix is the conjunction:
 
@@ -1505,9 +1507,21 @@ console.log(
 );
 ```
 
-Generalises past iframes: `document.readyState` on a fresh document, an empty `<video>`'s `readyState`, a not-yet-populated container's `childElementCount === 0`, and any `Promise.resolve()`-shaped "ready" signal all report a benign value that a naive gate reads as success.
+**Generalises past iframes.** The shape is a resource reporting a benign value _because nothing has been asked of it yet_:
+
+| Signal                                                | Before anything starts | Mid-work              |
+| ----------------------------------------------------- | ---------------------- | --------------------- |
+| `iframe.contentDocument.readyState` (never navigated) | `'complete'`           | `'loading'`           |
+| `new Image().complete` (no `src`)                     | `true`                 | `false` while loading |
+| any `Promise.resolve()`-shaped "ready" hook           | resolves immediately   | pends                 |
+
+The inverse trap exists too and reads the opposite way: a **negative** assertion (`childElementCount === 0`, "the error list is empty") passes before the work that would populate it has started. Same root cause, so the same fix — sample it early and require it to fail.
+
+Counter-example worth knowing, because it looks like it belongs above and does not: an empty `<video>` reports `readyState === 0` (`HAVE_NOTHING`), which is falsy. A truthiness gate correctly reads it as _not_ ready. Media readiness is a monotonic integer, not a boolean, so it doesn't have this failure mode.
 
 **Key principle:** a gate that has never been observed false is indistinguishable from `true`. Prove it can be false before you trust what it protects — the same red-then-green discipline you apply to the assertion itself.
+
+**Related:** anti-pattern 25 is the adjacent failure — a gate whose _scope_ doesn't cover what the test depends on. 25 is "gating on the wrong thing"; this is "gating on something that was never false."
 
 ---
 
