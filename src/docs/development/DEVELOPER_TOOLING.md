@@ -304,7 +304,10 @@ the working tree on every platform**, regardless of the operator's `core.autocrl
 This is load-bearing, not cosmetic. Prettier's `endOfLine: "lf"` means a CRLF working file fails
 `prettier --check` even when its committed content is byte-correct. Before this rule, a Windows
 checkout with git's default `core.autocrlf=true` left **607 files** failing `prettier --check`
-locally while CI — which checks out on Linux — stayed green. It also made `git checkout -- <file>`
+locally while CI — which checks out on Linux — stayed green. (Three different denominators appear
+in this section: ~873 files were CRLF on disk, 805 of them tracked-and-counted at the time of the
+fix, and 607 is the subset Prettier actually checks — the rest are `.prettierignore`d or not file
+types it handles.) It also made `git checkout -- <file>`
 a trap: the restored file came back CRLF, prettier then failed on it, and `git status` showed
 nothing wrong.
 
@@ -321,11 +324,13 @@ git rm --cached -r -q .   # drop the index's stat cache
 git reset --hard          # re-materializes every file per .gitattributes
 ```
 
-> Do **not** substitute `git checkout-index -a -f`. It honors git's stat cache and silently skips
-> every file it considers up to date — on this repo it rewrote **1 of 805** CRLF files, then exited
-> 0 printing nothing. (In a small scratch repo it often appears to work, which is what makes it
-> such a convincing trap.) Whether it does anything depends on stat-cache state you can't see, so
-> the "success" it reports means nothing. The sequence above is deterministic.
+> Do **not** substitute `git checkout-index -a -f`. It skips any file whose index stat-cache entry
+> still matches what is on disk — which is **exactly the stale-clone case**, because those CRLF
+> files were *written by* a git checkout that recorded their stat as it went. On this repo it
+> rewrote **1 of 805**, then exited 0 printing nothing. It *does* act on files that are missing or
+> whose size changed since staging, so a scratch repo where you hand-write CRLF content will show
+> it "working" — that is what makes it a convincing trap rather than an obviously broken command.
+> Its exit code tells you nothing. The sequence above is deterministic.
 
 `.sh` scripts and `.husky/pre-commit` *require* LF — a CRLF shebang breaks execution. The `.ps1`
 scripts under `mcp-server/scripts/` are safe because **both Windows PowerShell 5.1 and PowerShell 7
