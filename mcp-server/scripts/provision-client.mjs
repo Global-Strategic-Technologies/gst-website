@@ -98,14 +98,26 @@ export function parseArgs(argv) {
     unsafeScopes: [],
     dryRun: false,
   };
+
+  // Every value-taking flag goes through this. Without it, a swallowed flag
+  // silently becomes a value — `--name --dry-run --tier paid` would parse as
+  // name='--dry-run' with dryRun UNSET, i.e. a real production create from an
+  // invocation the operator believed was a preview.
+  const takeValue = (flag, value) => {
+    if (value === undefined || value.startsWith('--')) {
+      throw new Error(`${flag} requires a value (got: ${value ?? 'end of arguments'})`);
+    }
+    return value;
+  };
+
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--name') args.name = argv[++i];
-    else if (arg === '--tier') args.tier = argv[++i];
-    else if (arg === '--scopes') args.scopes = argv[++i];
-    else if (arg === '--env') args.env = argv[++i];
+    if (arg === '--name') args.name = takeValue(arg, argv[++i]);
+    else if (arg === '--tier') args.tier = takeValue(arg, argv[++i]);
+    else if (arg === '--scopes') args.scopes = takeValue(arg, argv[++i]);
+    else if (arg === '--env') args.env = takeValue(arg, argv[++i]);
     else if (arg === '--allow-radar') args.allowRadar = true;
-    else if (arg === '--unsafe-scope') args.unsafeScopes.push(argv[++i]);
+    else if (arg === '--unsafe-scope') args.unsafeScopes.push(takeValue(arg, argv[++i]));
     else if (arg === '--dry-run') args.dryRun = true;
     else throw new Error(`Unknown argument: ${arg}`);
   }
@@ -126,10 +138,6 @@ export function parseArgs(argv) {
       `--env must be one of: ${Object.keys(BASE_URLS).join(', ')} (got: ${args.env})`
     );
   }
-  if (args.unsafeScopes.some((s) => !s || s.startsWith('--'))) {
-    throw new Error('--unsafe-scope requires a scope string value');
-  }
-
   const scopes = args.scopes
     ? args.scopes
         .split(',')
@@ -210,10 +218,16 @@ export function renderOnboardingEmail({ clientId, name, tier, scopes, env = 'pro
     '',
     'CONNECTING',
     '',
+    // Deliberately limited to what the server actually implements and what we
+    // can hand an external M2M client today. REMOTE_CLIENT_SETUP.md is NOT
+    // referenced here: it is written for GST team members authenticating with
+    // an MCP_KEY_<INITIALS> value at the consent page, which an M2M pilot will
+    // never have, and it documents no client_credentials flow. Point at it
+    // again once a client-facing variant exists (BL-093 docs slice).
     'Your pipeline exchanges the client ID + secret at /token with',
-    'grant_type=client_credentials for a 1-hour token (no refresh token — re-exchange on',
-    'expiry; the official MCP SDKs handle this for you). The setup guide covering Claude,',
-    'Cursor, ChatGPT and raw HTTP is attached.',
+    'grant_type=client_credentials for a 1-hour access token, then calls the endpoint',
+    'above with it as a bearer token. There is no refresh token — request a new one when',
+    'it expires.',
     '',
     'WHAT YOU GET',
     '',
@@ -238,13 +252,55 @@ export function renderOnboardingEmail({ clientId, name, tier, scopes, env = 'pro
   ].join('\n');
 }
 
-// ---------------------------------------------------------------------------
-// CLI
-// ---------------------------------------------------------------------------
-
 function line(char = '-') {
   return char.repeat(72);
 }
+
+/**
+ * Render everything the operator sees after a successful create.
+ *
+ * Exported (rather than inlined in `runCli`) so the security property can be
+ * asserted in a test: the secret must appear EXACTLY once in this output, and
+ * never inside the embedded email. Inline, that property was unreachable.
+ */
+export function renderCreatedSummary({ client, clientSecret, env = 'production' }) {
+  const baseUrl = BASE_URLS[env];
+  return [
+    `Created M2M client on ${env}.`,
+    '',
+    `  Client ID:  ${client.clientId}`,
+    `  Name:       ${client.name}`,
+    `  Tier:       ${client.tier}`,
+    `  Scopes:     ${client.allowedScopes.join(', ')}`,
+    `  Created:    ${client.createdAt}`,
+    '',
+    line('='),
+    'CLIENT SECRET — shown once, never retrievable again.',
+    'Deliver over the agreed secure channel (1Password share, etc.), then clear',
+    'your scrollback. Only its hash is stored server-side.',
+    '',
+    `  ${clientSecret}`,
+    line('='),
+    '',
+    'ONBOARDING EMAIL (secret deliberately excluded — send it separately):',
+    line(),
+    renderOnboardingEmail({
+      clientId: client.clientId,
+      name: client.name,
+      tier: client.tier,
+      scopes: client.allowedScopes,
+      env,
+    }),
+    line(),
+    '',
+    `Revoke with: DELETE ${baseUrl}/admin/oauth/m2m-clients/${client.clientId}`,
+    '',
+  ].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// CLI
+// ---------------------------------------------------------------------------
 
 async function runCli() {
   const args = parseArgs(process.argv.slice(2));
@@ -320,39 +376,7 @@ async function runCli() {
 
   const { client, clientSecret } = payload;
 
-  process.stdout.write(
-    [
-      `Created M2M client on ${args.env}.`,
-      '',
-      `  Client ID:  ${client.clientId}`,
-      `  Name:       ${client.name}`,
-      `  Tier:       ${client.tier}`,
-      `  Scopes:     ${client.allowedScopes.join(', ')}`,
-      `  Created:    ${client.createdAt}`,
-      '',
-      line('='),
-      'CLIENT SECRET — shown once, never retrievable again.',
-      'Deliver over the agreed secure channel (1Password share, etc.), then clear',
-      'your scrollback. Only its hash is stored server-side.',
-      '',
-      `  ${clientSecret}`,
-      line('='),
-      '',
-      'ONBOARDING EMAIL (secret deliberately excluded — send it separately):',
-      line(),
-      renderOnboardingEmail({
-        clientId: client.clientId,
-        name: client.name,
-        tier: client.tier,
-        scopes: client.allowedScopes,
-        env: args.env,
-      }),
-      line(),
-      '',
-      `Revoke with: DELETE ${baseUrl}/admin/oauth/m2m-clients/${client.clientId}`,
-      '',
-    ].join('\n')
-  );
+  process.stdout.write(renderCreatedSummary({ client, clientSecret, env: args.env }));
 }
 
 // Run the CLI only when invoked directly. Importing this module (from the

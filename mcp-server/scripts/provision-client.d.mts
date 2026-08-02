@@ -64,3 +64,21 @@ export declare function renderOnboardingEmail(input: {
   scopes: readonly string[];
   env?: keyof typeof BASE_URLS;
 }): string;
+
+export interface CreatedClientRecord {
+  readonly clientId: string;
+  readonly name: string;
+  readonly tier: string;
+  readonly allowedScopes: readonly string[];
+  readonly createdAt: string;
+}
+
+/**
+ * Renders the post-create operator output. The secret appears exactly once
+ * here and never inside the embedded email — asserted in the unit tests.
+ */
+export declare function renderCreatedSummary(input: {
+  client: CreatedClientRecord;
+  clientSecret: string;
+  env?: keyof typeof BASE_URLS;
+}): string;

@@ -22,7 +22,14 @@ const SCRIPT = path.resolve(
 
 const scrubbedEnv = () => {
   const env = { ...process.env };
-  delete env.MCP_ADMIN_KEY;
+  // Case-INSENSITIVE scrub. `process.env` spreads to a plain object with
+  // whatever casing the OS stored, but Windows env lookups in the child are
+  // case-insensitive — so `delete env.MCP_ADMIN_KEY` alone would leave a
+  // `Mcp_Admin_Key` variable readable by the script, and the one non-dry-run
+  // case below would then create a REAL production client.
+  for (const key of Object.keys(env)) {
+    if (key.toUpperCase() === 'MCP_ADMIN_KEY') delete env[key];
+  }
   return env;
 };
 
@@ -39,6 +46,18 @@ describe('provision-client CLI smoke (real Node)', () => {
     expect(res.stderr).toContain('AUTH.md');
     // No flag equivalent exists — that is the point (Directive 15).
     expect(res.stderr).not.toContain('--admin-key');
+    // If the key check is ever reordered after the fetch, this fails loudly
+    // rather than silently creating a client.
+    expect(res.stdout).not.toContain('Created M2M client');
+  });
+
+  it('refuses to swallow a following flag as a value', () => {
+    // Previously parsed as name='--dry-run' with dryRun unset — a real
+    // production create from what the operator read as a preview.
+    const res = run(['--name', '--dry-run', '--tier', 'paid']);
+    expect(res.status).toBe(1);
+    expect(res.stderr).toContain('--name requires a value');
+    expect(res.stdout).not.toContain('Created M2M client');
   });
 
   it('rejects unknown CLI arguments', () => {

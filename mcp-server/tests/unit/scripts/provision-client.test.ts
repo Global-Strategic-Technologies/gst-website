@@ -7,6 +7,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 import {
   ASSIGNABLE_TIERS,
@@ -17,11 +20,18 @@ import {
   assertScopesValid,
   buildCreateBody,
   parseArgs,
+  renderCreatedSummary,
   renderOnboardingEmail,
 } from '../../../scripts/provision-client.mjs';
 
 import { ASSIGNABLE_TIERS as SERVER_TIERS } from '../../../src/ratelimit/tiers';
 import { DEFAULT_SCOPES } from '../../../src/auth/scopes';
+
+const repoFile = (rel: string) =>
+  readFileSync(
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../', rel),
+    'utf8'
+  );
 
 const baseArgs = ['--name', 'Acme Capital', '--tier', 'free-pilot'];
 
@@ -34,11 +44,25 @@ describe('provision-client — constant parity with the server', () => {
   });
 
   it('mirrors SCOPES_SUPPORTED from src/oauth/provider.ts', () => {
-    // Composed from the leaf module rather than imported from provider.ts:
-    // that module runs `new OAuthProvider({...})` at import time and pulls in
-    // both request handlers. `SCOPES_SUPPORTED` is defined there as exactly
-    // `[...DEFAULT_SCOPES, 'tool:radar:*']`, which is what we rebuild here.
+    // provider.ts cannot be imported here: its transitive graph reaches a
+    // `cloudflare:` scheme import, which the node vitest environment cannot
+    // resolve. So the value is rebuilt from the leaf module it composes...
     expect([...SUPPORTED_SCOPES]).toEqual([...DEFAULT_SCOPES, 'tool:radar:*']);
+
+    // ...and the composition itself is pinned by reading provider.ts as text.
+    // Without this, appending a second narrowing wildcard there (exactly how
+    // `tool:radar:*` got added) would leave this mirror stale and green.
+    const providerSrc = repoFile('src/oauth/provider.ts');
+    const declaration = providerSrc
+      .slice(providerSrc.indexOf('export const SCOPES_SUPPORTED'))
+      .slice(
+        0,
+        providerSrc.slice(providerSrc.indexOf('export const SCOPES_SUPPORTED')).indexOf(');') + 2
+      );
+    expect(declaration).toContain('...DEFAULT_SCOPES');
+    expect(declaration).toContain("'tool:radar:*'");
+    // Exactly one literal scope string beyond the DEFAULT_SCOPES spread.
+    expect(declaration.match(/'[a-z:*]+'/g)).toEqual(["'tool:radar:*'"]);
   });
 
   it('keeps the omit-scopes default free of every radar scope', () => {
@@ -100,6 +124,22 @@ describe('provision-client — parseArgs', () => {
     expect(() => parseArgs([...baseArgs, '--scopes', ' , '])).toThrow(/empty after parsing/);
   });
 
+  it.each(['--name', '--tier', '--scopes', '--env', '--unsafe-scope'])(
+    'refuses to swallow a following flag as %s’s value',
+    (flag) => {
+      // The dangerous shape: `--name --dry-run --tier paid` previously parsed
+      // as name='--dry-run' with dryRun UNSET — a real production create from
+      // an invocation the operator believed was a preview.
+      expect(() => parseArgs([flag, '--dry-run', '--tier', 'paid'])).toThrow(
+        `${flag} requires a value`
+      );
+    }
+  );
+
+  it('refuses a value-taking flag at the end of the argument list', () => {
+    expect(() => parseArgs([...baseArgs, '--scopes'])).toThrow(/--scopes requires a value/);
+  });
+
   it('collects repeated --unsafe-scope values and rejects a missing value', () => {
     const args = parseArgs([
       ...baseArgs,
@@ -110,7 +150,7 @@ describe('provision-client — parseArgs', () => {
     ]);
     expect(args.unsafeScopes).toEqual(['tool:a:*', 'tool:b:*']);
     expect(() => parseArgs([...baseArgs, '--unsafe-scope', '--dry-run'])).toThrow(
-      /--unsafe-scope requires a scope string value/
+      /--unsafe-scope requires a value/
     );
   });
 
@@ -226,6 +266,17 @@ describe('provision-client — renderOnboardingEmail', () => {
     expect(rendered).toMatch(/arrives separately over the secure channel/i);
   });
 
+  it('only claims a connection flow the server actually implements', () => {
+    // REMOTE_CLIENT_SETUP.md is written for GST team members pasting an
+    // MCP_KEY_<INITIALS> value at the consent page and documents no
+    // client_credentials flow — an external M2M client never has that key.
+    // The email must not promise it as an attached guide.
+    expect(email).not.toMatch(/attached/i);
+    expect(email).toContain('grant_type=client_credentials');
+    // No claim about SDK behaviour we haven't verified.
+    expect(email).not.toMatch(/SDKs? handle/i);
+  });
+
   it('honours the staging environment', () => {
     const staging = renderOnboardingEmail({
       clientId: 'm2m_abc123',
@@ -235,5 +286,42 @@ describe('provision-client — renderOnboardingEmail', () => {
       env: 'staging',
     });
     expect(staging).toContain(`${BASE_URLS.staging}/mcp`);
+  });
+});
+
+describe('provision-client — renderCreatedSummary', () => {
+  const clientSecret = 'ZmFrZS1zZWNyZXQtZm9yLXRlc3Rz';
+  const client = {
+    clientId: 'm2m_abc123',
+    name: 'Acme Capital',
+    tier: 'free-pilot',
+    allowedScopes: ['tool:*', 'resource:regulations:read'],
+    createdAt: '2026-08-02T00:00:00.000Z',
+  };
+  const summary = renderCreatedSummary({ client, clientSecret });
+
+  it('prints the secret exactly once', () => {
+    // The security property the whole hand-off rests on. Counted, not eyeballed.
+    expect(summary.split(clientSecret).length - 1).toBe(1);
+  });
+
+  it('keeps the secret out of the embedded email', () => {
+    const emailStart = summary.indexOf('Subject: Your GST MCP server access');
+    expect(emailStart).toBeGreaterThan(-1);
+    expect(summary.slice(emailStart)).not.toContain(clientSecret);
+  });
+
+  it('warns that the secret is unrecoverable and names the revoke route', () => {
+    expect(summary).toMatch(/shown once, never retrievable again/i);
+    // The m2m route — NOT /admin/oauth/clients, which 404s for an m2m_* id.
+    expect(summary).toContain(
+      `DELETE ${BASE_URLS.production}/admin/oauth/m2m-clients/${client.clientId}`
+    );
+  });
+
+  it('reports the environment it created against', () => {
+    const staging = renderCreatedSummary({ client, clientSecret, env: 'staging' });
+    expect(staging).toContain('Created M2M client on staging.');
+    expect(staging).toContain(`${BASE_URLS.staging}/admin/oauth/m2m-clients/`);
   });
 });

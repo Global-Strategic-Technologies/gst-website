@@ -38,7 +38,7 @@ The script wraps `POST /admin/oauth/m2m-clients`; the raw curl and the JWKS-regi
 
 The provisioning script prints a ready-to-send onboarding email covering the endpoint, client id, tier, scopes and the § 3 guarantees below. It **deliberately omits the client secret** — that value exists only in the creation response and belongs on the secure channel, not in a mail-client draft. Send the two separately.
 
-Point the client at [REMOTE_CLIENT_SETUP.md](REMOTE_CLIENT_SETUP.md) — the consumer-facing guide for Claude Desktop native Connectors (OAuth), Cursor, ChatGPT, and raw HTTP. They connect to `https://mcp.globalstrategic.tech/mcp`.
+[REMOTE_CLIENT_SETUP.md](REMOTE_CLIENT_SETUP.md) covers Claude Desktop native Connectors (OAuth), Cursor and ChatGPT. **Read before forwarding it**: it is written for a **GST team member** whose credential is an `MCP_KEY_<INITIALS>` value pasted at the consent page, and it documents **no** `client_credentials` flow or raw-HTTP path — despite older references here claiming otherwise. An external M2M pilot has a client id + secret and never has an `MCP_KEY_*`, so that guide does not describe their flow. Until BL-093's docs slice produces a client-facing variant, hand M2M pilots the connection summary from the provisioning script's generated email (endpoint, `/token` exchange, bearer use) and [AUTH.md § Onboard an M2M client](AUTH.md) for the wire detail. All clients connect to `https://mcp.globalstrategic.tech/mcp`.
 
 ## 3. What the client gets — guarantees to communicate
 
