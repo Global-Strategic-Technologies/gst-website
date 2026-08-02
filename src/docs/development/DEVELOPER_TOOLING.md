@@ -261,6 +261,7 @@ concurrency:
 | [package.json](../../../package.json)                             | `scripts`, `devDependencies`, `lint-staged`, `overrides`, `prepare`                             |
 | [.prettierrc.json](../../../.prettierrc.json)                     | Prettier formatting rules (2-space, single quotes, 100-char line width, etc.)                   |
 | [.prettierignore](../../../.prettierignore)                       | Files and directories Prettier will not touch (generated output, lock files, hand-curated data) |
+| [.gitattributes](../../../.gitattributes)                         | `* text=auto eol=lf` — forces LF in the working tree on every platform, so `prettier --check` behaves the same locally as in CI. See § Line endings |
 | [eslint.config.mjs](../../../eslint.config.mjs)                   | ESLint flat config — recommended rules + overrides for tests, node scripts, and browser globals |
 | [.stylelintrc.json](../../../.stylelintrc.json)                   | CSS lint rules                                                                                  |
 | [tsconfig.json](../../../tsconfig.json)                           | TypeScript config, including the `@/*` → `src/*` path alias                                     |
@@ -293,7 +294,52 @@ Configured in [.prettierrc.json](../../../.prettierrc.json):
 | `semi`           | `true`     | Always use semicolons                                                        |
 | `arrowParens`    | `"always"` | `(x) => x`, not `x => x`                                                     |
 | `bracketSpacing` | `true`     | `{ a: 1 }`, not `{a: 1}`                                                     |
-| `endOfLine`      | `"lf"`     | Unix line endings (matters on Windows — git's autocrlf should not undo this) |
+| `endOfLine`      | `"lf"`     | Unix line endings — enforced in the working tree by `.gitattributes`, see below |
+
+### Line endings (`.gitattributes`)
+
+[`.gitattributes`](../../../.gitattributes) sets `* text=auto eol=lf`, so **every text file is LF in
+the working tree on every platform**, regardless of the operator's `core.autocrlf`.
+
+This is load-bearing, not cosmetic. Prettier's `endOfLine: "lf"` means a CRLF working file fails
+`prettier --check` even when its committed content is byte-correct. Before this rule, a Windows
+checkout with git's default `core.autocrlf=true` left **607 files** failing `prettier --check`
+locally while CI — which checks out on Linux — stayed green. (Three different denominators appear
+in this section: ~873 files were CRLF on disk, 805 of them tracked-and-counted at the time of the
+fix, and 607 is the subset Prettier actually checks — the rest are `.prettierignore`d or not file
+types it handles.) It also made `git checkout -- <file>`
+a trap: the restored file came back CRLF, prettier then failed on it, and `git status` showed
+nothing wrong.
+
+Because the index was already LF, adding the rule normalized the working tree only — no content
+diff, no history rewrite. A fresh clone needs nothing. If you have a **stale clone** whose files are
+still CRLF, renormalize with:
+
+```bash
+git add --renormalize .   # sanity check — stages nothing; the index is already LF
+
+# WARNING: the next two lines discard uncommitted work. Commit or stash first.
+# Between them `git status` shows every file as deleted — that is expected.
+git rm --cached -r -q .   # drop the index's stat cache
+git reset --hard          # re-materializes every file per .gitattributes
+```
+
+> Do **not** substitute `git checkout-index -a -f`. It skips any file whose index stat-cache entry
+> still matches what is on disk — which is **exactly the stale-clone case**, because those CRLF
+> files were *written by* a git checkout that recorded their stat as it went. On this repo it
+> rewrote **1 of 805**, then exited 0 printing nothing. It *does* act on files that are missing or
+> whose size changed since staging, so a scratch repo where you hand-write CRLF content will show
+> it "working" — that is what makes it a convincing trap rather than an obviously broken command.
+> Its exit code tells you nothing. The sequence above is deterministic.
+
+`.sh` scripts and `.husky/pre-commit` *require* LF — a CRLF shebang breaks execution. The `.ps1`
+scripts under `mcp-server/scripts/` are safe because **both Windows PowerShell 5.1 and PowerShell 7
+parse LF-only script files**, including the here-strings in `Verify-AeEmission.ps1`; this does not
+depend on which host an operator happens to use.
+
+One consequence for macOS/Linux contributors, who were already unaffected in the working tree:
+`text=auto` now also normalizes CRLF→LF **on commit**. If a fixture ever needs literal CRLF on disk,
+give it an explicit `-text` override rather than relying on verbatim storage.
 
 ### What Prettier will NOT format
 
@@ -716,6 +762,19 @@ npm run format
 ```
 
 Be aware this will produce a large diff against the current state. The expected place to do this is as a single standalone commit during the Phase 9 sweep, not piecemeal during feature work.
+
+### "`prettier --check` fails locally but CI is green"
+
+Almost certainly line endings, and it is the harder direction to diagnose because CI never tells you
+anything is wrong. Confirm with:
+
+```bash
+git ls-files --eol | grep -c "w/crlf"   # expect 0
+```
+
+Any count above zero means your working tree predates the `* text=auto eol=lf` rule (or something
+rewrote files behind git's back). Fix it with the renormalization sequence in § Line endings, and
+re-run the count to confirm — do not trust a command's exit code here.
 
 ### "My commit was rejected by the pre-commit hook"
 

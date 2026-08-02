@@ -148,7 +148,8 @@ function slugify(headingText: string): string {
 
 // --- Markdown parsing helpers --------------------------------------------
 
-/** Split into lines, EOL-agnostic (repo docs are CRLF). */
+/** Split into lines, EOL-agnostic. Repo files are LF (`.gitattributes` forces
+ * `eol=lf`), but stale clones predating that rule can still be CRLF on disk. */
 function toLines(content: string): string[] {
   return content.split(/\r?\n/);
 }
