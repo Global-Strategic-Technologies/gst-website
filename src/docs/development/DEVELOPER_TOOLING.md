@@ -14,15 +14,17 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Run unit and integration tests (once)  | `npm run test:run`                                                           |
 | Run unit and integration tests (watch) | `npm run test`                                                               |
 | Run tests with coverage                | `npm run test:coverage`                                                      |
-| Check documentation links & anchors    | `npm run test:docs`                                                          |
+| Run the docs guards (link/anchor integrity + variables parity) | `npm run test:docs`                                  |
 | Arm the Claude review gates (once/machine) | `npm run setup:claude-hooks` (see § Claude Code review gates)            |
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
+| Serve a fake `/radar/snapshot` for the **website** | `npm run radar:stub` (the stdio seed above is a different consumer — the site never reads it; needed for the content-dependent radar E2E) |
 | Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
-| Type-check the whole project           | `npx astro check`                                                            |
+| Type-check the website workspace       | `npx astro check` (root tsconfig `exclude`s `mcp-server`)                    |
+| Type-check the **mcp-server** workspace | `npm -w @gst/mcp-server run typecheck` (`astro check` does NOT cover it — see below) |
 | Lint all JS/TS/Astro                   | `npm run lint`                                                               |
 | Lint and auto-fix                      | `npm run lint:fix`                                                           |
-| Lint CSS and Astro scoped styles       | `npm run lint:css`                                                           |
+| Lint CSS and Astro scoped styles       | `npm run lint:css` (hardcoded colors are an **error**; off-scale font sizes warn — see § stylelint configuration notes) |
 | Format all files                       | `npm run format`                                                             |
 | Check formatting without writing       | `npm run format:check`                                                       |
 | Build for production                   | `npm run build`                                                              |
@@ -33,17 +35,28 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Validate Worker bundle without deploy  | `cd mcp-server && npx wrangler deploy --dry-run --env staging`                |
 | Deploy MCP Worker to staging           | `cd mcp-server && npm run deploy:staging` (Phase 6 — staging URL: `mcp-staging.globalstrategic.tech`) |
 | Deploy MCP Worker to production        | `cd mcp-server && npm run deploy:production` (Phase 6 — production URL: `mcp.globalstrategic.tech`) |
+| Provision an MCP client credential     | `cd mcp-server && npm run provision:client -- --name "<client>" --tier free-pilot [--dry-run]` (admin key via `MCP_ADMIN_KEY` env var — never a flag; runbook: [PILOT_ONBOARDING.md](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md)) |
 
 **Authoritative local validation sequence** (what CI runs, in the same order):
 
 ```bash
-npx astro check      # type errors
+npx astro check      # type errors (website workspace)
 npm run lint         # ESLint (JS/TS/Astro)
 npm run lint:css     # stylelint (CSS)
 npm run test:run     # Vitest unit + integration
 ```
 
-If all four pass locally, CI will almost certainly pass too.
+If all four pass locally, CI will almost certainly pass too — **for website-only changes**.
+
+> **If your change touches `mcp-server/`, these four are not sufficient.** `astro check` type-checks the root program, which does not pull in mcp-server's sources or tests, and Vitest transpiles without type-checking — so a type error in `mcp-server/` passes all four while failing CI. `.github/workflows/test-mcp-server.yml` runs `typecheck` and then `build` (= `tsc --noEmit && node build.mjs`); a red run there also suppresses the staging-deploy chain, which gates on `workflow_run.conclusion == 'success'`. Add:
+>
+> ```bash
+> npm -w @gst/mcp-server run typecheck   # tsc --noEmit over mcp-server (src + tests)
+> npm run test:mcp                       # Vitest, mcp-server workspace
+> npm run test:docs                      # docs guards: link/anchor integrity + VARIABLES_REFERENCE parity (required check)
+> ```
+>
+> Discovered the hard way in BL-090: a two-argument call to a one-argument constructor sat green through `astro check`, `lint`, `test:run`, `test:mcp` (1917 passing) and `test:docs`, and would have failed CI.
 
 ---
 
@@ -250,6 +263,7 @@ concurrency:
 | [package.json](../../../package.json)                             | `scripts`, `devDependencies`, `lint-staged`, `overrides`, `prepare`                             |
 | [.prettierrc.json](../../../.prettierrc.json)                     | Prettier formatting rules (2-space, single quotes, 100-char line width, etc.)                   |
 | [.prettierignore](../../../.prettierignore)                       | Files and directories Prettier will not touch (generated output, lock files, hand-curated data) |
+| [.gitattributes](../../../.gitattributes)                         | `* text=auto eol=lf` — forces LF in the working tree on every platform, so `prettier --check` behaves the same locally as in CI. See § Line endings |
 | [eslint.config.mjs](../../../eslint.config.mjs)                   | ESLint flat config — recommended rules + overrides for tests, node scripts, and browser globals |
 | [.stylelintrc.json](../../../.stylelintrc.json)                   | CSS lint rules                                                                                  |
 | [tsconfig.json](../../../tsconfig.json)                           | TypeScript config, including the `@/*` → `src/*` path alias                                     |
@@ -261,7 +275,8 @@ concurrency:
 | [.github/workflows/rollback-mcp.yml](../../../.github/workflows/rollback-mcp.yml) | Manual `workflow_dispatch` rollback of the MCP Worker to a prior deployment ID; production rollbacks gated by the `mcp-production-rollback` environment (BL-037 Phase C) |
 | [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
 | [.github/workflows/prettier-drift-check.yml](../../../.github/workflows/prettier-drift-check.yml) | Weekly cron + manual `workflow_dispatch` — runs `prettier --check .` repo-wide; opens a `tech-debt` Issue if drift accumulates (counter-pressure for the diff-scoped PR check; see § Prettier idempotency + drift) |
-| [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` (the BL-089 doc link & anchor guard) on every PR + push to `master`. Exists as its own workflow because `test.yml`'s `changes` gate skips docs-only diffs — the exact case the guard must fire on. Not a required check by default; add "Verify doc links" to branch protection to make it blocking |
+| [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` — the BL-089 doc link & anchor guard plus the `VARIABLES_REFERENCE.md` ↔ `variables.css` parity guard (`tests/integration/docs-variables-sync.test.ts`) — on every PR + push to `master`. Exists as its own workflow because `test.yml`'s `changes` gate skips docs-only diffs — the exact case the guards must fire on. Its "Verify doc links" job **is a required branch-protection check** (added 2026-07-19; see CLAUDE.md § PR Requirements) |
+| [.github/workflows/latency-probe.yml](../../../.github/workflows/latency-probe.yml) | BL-033 synthetic latency probe — cron (`30 */6 * * *`, 30 min after the Worker's radar-refresh cron) + manual `workflow_dispatch`; runs `mcp-server/scripts/probe-latency.mjs` against production, publishes a p50/p95 job summary + 90-day JSON artifact. Needs the `MCP_PROBE_KEY` secret. Deliberately NOT a required check — evidence collection, not a gate. See [LATENCY_PROBE.md](../../../mcp-server/src/docs/operations/LATENCY_PROBE.md) |
 | [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
 | [.claude/hooks/hooks.config.json](../../../.claude/hooks/hooks.config.json)       | Tracked registration source for the Claude review-gate hooks (installed per-machine via `npm run setup:claude-hooks`; see § Claude Code review gates) |
 | [.claude/hooks/](../../../.claude/hooks/)                                         | Gate scripts (`plan-review-gate.mjs`, `push-review-gate.mjs`) + installer (`install.mjs`) — unit-tested in `tests/unit/claude-hooks.test.ts` |
@@ -281,7 +296,52 @@ Configured in [.prettierrc.json](../../../.prettierrc.json):
 | `semi`           | `true`     | Always use semicolons                                                        |
 | `arrowParens`    | `"always"` | `(x) => x`, not `x => x`                                                     |
 | `bracketSpacing` | `true`     | `{ a: 1 }`, not `{a: 1}`                                                     |
-| `endOfLine`      | `"lf"`     | Unix line endings (matters on Windows — git's autocrlf should not undo this) |
+| `endOfLine`      | `"lf"`     | Unix line endings — enforced in the working tree by `.gitattributes`, see below |
+
+### Line endings (`.gitattributes`)
+
+[`.gitattributes`](../../../.gitattributes) sets `* text=auto eol=lf`, so **every text file is LF in
+the working tree on every platform**, regardless of the operator's `core.autocrlf`.
+
+This is load-bearing, not cosmetic. Prettier's `endOfLine: "lf"` means a CRLF working file fails
+`prettier --check` even when its committed content is byte-correct. Before this rule, a Windows
+checkout with git's default `core.autocrlf=true` left **607 files** failing `prettier --check`
+locally while CI — which checks out on Linux — stayed green. (Three different denominators appear
+in this section: ~873 files were CRLF on disk, 805 of them tracked-and-counted at the time of the
+fix, and 607 is the subset Prettier actually checks — the rest are `.prettierignore`d or not file
+types it handles.) It also made `git checkout -- <file>`
+a trap: the restored file came back CRLF, prettier then failed on it, and `git status` showed
+nothing wrong.
+
+Because the index was already LF, adding the rule normalized the working tree only — no content
+diff, no history rewrite. A fresh clone needs nothing. If you have a **stale clone** whose files are
+still CRLF, renormalize with:
+
+```bash
+git add --renormalize .   # sanity check — stages nothing; the index is already LF
+
+# WARNING: the next two lines discard uncommitted work. Commit or stash first.
+# Between them `git status` shows every file as deleted — that is expected.
+git rm --cached -r -q .   # drop the index's stat cache
+git reset --hard          # re-materializes every file per .gitattributes
+```
+
+> Do **not** substitute `git checkout-index -a -f`. It skips any file whose index stat-cache entry
+> still matches what is on disk — which is **exactly the stale-clone case**, because those CRLF
+> files were *written by* a git checkout that recorded their stat as it went. On this repo it
+> rewrote **1 of 805**, then exited 0 printing nothing. It *does* act on files that are missing or
+> whose size changed since staging, so a scratch repo where you hand-write CRLF content will show
+> it "working" — that is what makes it a convincing trap rather than an obviously broken command.
+> Its exit code tells you nothing. The sequence above is deterministic.
+
+`.sh` scripts and `.husky/pre-commit` *require* LF — a CRLF shebang breaks execution. The `.ps1`
+scripts under `mcp-server/scripts/` are safe because **both Windows PowerShell 5.1 and PowerShell 7
+parse LF-only script files**, including the here-strings in `Verify-AeEmission.ps1`; this does not
+depend on which host an operator happens to use.
+
+One consequence for macOS/Linux contributors, who were already unaffected in the working tree:
+`text=auto` now also normalizes CRLF→LF **on commit**. If a fixture ever needs literal CRLF on disk,
+give it an explicit `-text` override rather than relying on verbatim storage.
 
 ### What Prettier will NOT format
 
@@ -325,7 +385,7 @@ The [eslint.config.mjs](../../../eslint.config.mjs) uses the modern **flat confi
 - **`_`-prefixed names are allowed unused**: `const [_, value] = pair` and `function handler(_event, data)` are both fine. Matches standard Node/TS idiom.
 - **Test files get `no-explicit-any: 'off'`**: test fixtures legitimately use `any` for mocks and untyped request bodies.
 - **Browser globals are declared per-directory**: `window`, `document`, `navigator`, DOM types — all available in `src/**` and `tests/e2e/**` without import.
-- **Node globals are declared for scripts**: `process`, `console`, `fetch`, `Buffer` — available in `scripts/**`, `vitest.config.ts`, `playwright.config.ts`, `eslint.config.mjs`.
+- **Node globals are declared for scripts**: `process`, `console`, `fetch`, `Buffer`, `TextDecoder`, `AbortSignal`, … — available in `scripts/**` and any `**/*.{cjs,mjs}` (which covers `mcp-server/scripts/**`), plus `vitest.config.ts`, `playwright.config.ts`, `eslint.config.mjs`. Import-less web-standard globals a Node 22 script legitimately uses get added to this list (`eslint.config.mjs` § Per-file overrides) rather than suppressed inline.
 
 ### Ignored files
 
@@ -363,6 +423,29 @@ The override block in `.stylelintrc.json`:
 ```
 
 The base rules are duplicated inside the `.astro` override because stylelint's `extends` + `overrides` interaction does not inherit rules from the parent config. Keep the two rule sets in sync when editing.
+
+#### Design-token enforcement (added July 28, 2026)
+
+Two rules enforce the "no hardcoded values" convention from [STYLES_GUIDE.md](../styles/STYLES_GUIDE.md). Both are declared in **both** rule blocks (base + `.astro` override).
+
+| Rule                                                | Properties                                                     | Severity    | Effect                                                              |
+| --------------------------------------------------- | -------------------------------------------------------------- | ----------- | ------------------------------------------------------------------- |
+| `scale-unlimited/declaration-strict-value`           | `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow`      | **error**   | A hardcoded color fails `lint:css`, the pre-commit hook, and CI      |
+| `declaration-property-value-allowed-list`            | `font-size`                                                     | **warning** | Off-scale font sizes are reported but do not fail the build (BL-094) |
+
+Configuration notes — each of these is load-bearing, do not "simplify" them:
+
+- **`expandShorthand: true`** means shorthands are checked at their color slot only. `border: 1px solid var(--x)` passes; `border: 1px solid #fff` fails. This is why `border`/`background`/`outline` are **not** listed as properties — listing them would flag the width/style tokens too.
+- **`ignoreFunctions: false`** with `"/var[(]/"` in `ignoreValues` means "any value that references a token passes". That admits `light-dark(var(--a), var(--b))`, `color-mix(in srgb, var(--x) 12%, transparent)` and `rgba(var(--rgb), .5)` while still rejecting `light-dark(#fff, #000)` and `rgba(0, 0, 0, .5)`.
+- Regexes in `ignoreValues` use a character class — `"/var[(]/"`. The double-backslash form (`"/var\\(/"`) also works, but the single-backslash spelling a maintainer reaches for first is **invalid JSON** and aborts stylelint with a "Bad escaped character" parse error. The character class sidesteps escaping entirely.
+- `box-shadow`/`text-shadow` are not expandable shorthands, so they are listed explicitly; the numeric-length and `inset` entries in `ignoreValues` let their geometry through while the color slot is still checked.
+- **Custom property declarations are never checked.** `--my-token: #c44040` is always allowed — that is how tokens are defined, and how the documented exceptions below stay legal.
+- `font-size` uses the core allow-list rule rather than the strict-value plugin because the two cannot carry different severities under one rule key. `clamp(var(--a), 2vw, var(--b))` passes; `clamp(1rem, 2vw, 2rem)` warns.
+
+**Documented exceptions** (both are deliberate, and both are recorded in STYLES_GUIDE.md):
+
+1. **`@media print` blocks** keep literal `#000`/`#fff`/`#ccc` — paper has no theme, so the token system is meaningless there. Wrapped in `/* stylelint-disable scale-unlimited/declaration-strict-value -- … */` with a justification.
+2. **R/G/B slider affordances** in `SwatchControlStyles.astro` — a red/green/blue channel control must stay red/green/blue regardless of palette. Declared once as component-local custom properties (which the rule does not check) rather than repeated inline.
 
 #### `no-invalid-position-declaration` disabled in the `.astro` override only
 
@@ -411,10 +494,10 @@ The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-cor
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 6 critical pages (Chromium, ~6 seconds)
+npm run test:a11y        # Scans 9 critical pages (Chromium, ~6 seconds)
 ```
 
-This runs `tests/e2e/accessibility.test.ts` which scans: Homepage, Services, About, M&A Portfolio, Hub, and TechPar.
+This runs `tests/e2e/accessibility.test.ts` which scans: Homepage, Services, About, M&A Portfolio, Hub, TechPar, Tech Debt Calculator, Brand, and Radar. (`/hub/radar/` waits for its `server:defer` island to resolve before scanning; with no `MCP_KEY_WEBSITE_RADAR` bound it scans the shell plus the empty state — bind `npm run radar:stub` to cover the feed items too.)
 
 ### How the ratchet works
 
@@ -466,7 +549,7 @@ All environment variables are declared in `astro.config.mjs` → `env.schema` us
 ### Rules
 
 - **Never use `process.env` in `src/`** — ESLint `no-restricted-properties` enforces this. Use `astro:env/server` or `astro:env/client` instead.
-- **Server secrets** (`access: "secret"`) are never inlined into the build output. They're resolved at runtime by the Vercel adapter, which is why server islands (`server:defer`) work safely.
+- **Server secrets** (`access: "secret"`) are never inlined into the build output. They're resolved at runtime by the Vercel adapter — which is what lets a `server:defer` island like `RadarFeed.astro` read `MCP_KEY_WEBSITE_RADAR` from `astro:env/server` and fetch with it during render — including on the island's own uncached invocation, which runs per pageview rather than per ISR revalidation (see [RADAR.md § What a pageview costs](../hub/RADAR.md)).
 - **Public vars** (`access: "public"`) are inlined at build time. Use the `PUBLIC_` prefix convention.
 - **`.env` file** is for local development only (loaded by Astro dev server). Production vars are set in Vercel dashboard.
 - **`.env.example`** documents all vars with placeholder values. Keep it in sync when adding new vars.
@@ -622,12 +705,18 @@ Moved here from the main Test Suite (2026-05-31): the audit result is a function
 
 **Why `--omit=dev`**: dev-only advisories (e.g., `@astrojs/check` → `yaml-language-server` → `yaml`) affect local development tooling but never reach users. Production dependencies must stay at zero advisories; dev-only moderate advisories are tolerated and revisited case-by-case.
 
-**Current production state**: zero vulnerabilities (verified post-Phase-2). As of 2026-07-15 the **full tree (dev included) is also at zero** — `npm audit fix` cleared the undici/ws/yaml-chain advisories and the scoped `@lhci/cli` override (below) cleared the rest.
+**Current production state**: **zero vulnerabilities** on the enforced gate (`--omit=dev`), verified 2026-07-24. The **full tree (dev included) carries 6 dev-only high advisories** (tolerated per the `--omit=dev` policy above — e.g. dev `@lhci/cli → chrome-launcher → rimraf@3 → glob@7 → minimatch@3.1.5 → brace-expansion`, which cannot reach users). Restored to prod-zero on 2026-07-24 after a batch of newly-published CVEs (fleet-wide, not introduced by any single PR) regressed the tree: a non-breaking `npm audit fix` cleared the `tar`/`sharp`/`postcss`/`svgo` chains (incl. a critical `tar` node-tar advisory), and the override bumps below cleared the rest.
 
 **Package overrides** — see [package.json](../../../package.json) `overrides` block:
 
 - `path-to-regexp: 6.3.0` — forces the patched version across the dependency tree to close `GHSA-9wv6-86v2-598j` without a destructive `@astrojs/vercel` downgrade. Re-evaluate when `@vercel/routing-utils` ships a clean upgrade path.
+- `fast-uri: 3.1.4` — patched `fast-uri` for the ajv subtree (transitive via `@modelcontextprotocol/sdk → ajv@8.20.0`, which declares `^3.0.1`), closing the host-confusion advisories `GHSA-v2hh-gcrm-f6hx` + `GHSA-4c8g-83qw-93j6` (range `3.0.0–3.1.3`). Stays on the 3.x line (`3.1.4` is the `three` dist-tag) — deliberately NOT 4.x, which would violate ajv's `^3.0.1`. Re-evaluate when ajv widens its range to `^4`.
+- `@modelcontextprotocol/sdk → { hono: 4.12.32, express-rate-limit: 8.5.1 }` and `@hono/node-server → { ".": 2.0.11, hono: 4.12.32 }` (scoped) — `hono@4.12.32` closes the hono/jsx cross-request-disclosure + header advisories (`GHSA-hvrm-45r6-mjfj`, `GHSA-w62v-xxxg-mg59`, `GHSA-xgm2-5f3f-mvvc`, range `4.0.0–4.12.26`); `@hono/node-server@2.0.11` closes its own Windows serve-static path-traversal (`GHSA-frvp-7c67-39w9`, `<2.0.5`). **The `@hono/node-server` `.` self-key forces a 1.x→2.x major that is OUTSIDE the SDK's declared `^1.19.9`** — accepted because the Worker uses the Web-standard `agents/mcp` `createMcpHandler` transport, not the `@hono/node-server` Node adapter (SDK-internal, unreached), and `npm run test:mcp` (1718/1718) proves no module-load break. The flat `"hono"` form is NOT honored by npm 11 in this repo — use the parent-scoped form, and bump both `hono` entries in lockstep. `express-rate-limit: 8.5.1` closes the depends-on-vulnerable-`ip-address` advisory. Re-evaluate when the SDK declares `hono ^4.12.27+` and `@hono/node-server ^2` (drop the overrides then).
+- `express-rate-limit → { ip-address: 10.2.0 }` — patched `ip-address` closing the XSS advisory `GHSA-v2v4-37r5-5v8g` (`<=10.1.0`) inside express-rate-limit's subtree. Remove when express-rate-limit ships with `ip-address >=10.2.0`.
+- `esbuild: 0.28.1` — patched `esbuild` closing two high advisories (`GHSA-gv7w-rqvm-qjhr`, `GHSA-g7r4-m6w7-qqqr`, range `0.17.0–0.28.0`) — build/dev-time risks, not Vercel-runtime; Astro/Vite tolerate `0.28.1` cleanly. Remove when the tree's esbuild consumers resolve to `>=0.28.1` naturally.
 - `@lhci/cli → { tmp: 0.2.7, uuid: 11.1.1 }` (scoped, added 2026-07-15) — `@lhci/cli@0.15.1` (latest) still pins `tmp@0.1.0`/`0.0.33` (`GHSA-52f5-9888-hmc6` + `GHSA-ph9p-34f9-6g65`, high) and `uuid@8.3.2` (`GHSA-w5hq-g745-h8pq`, moderate); npm audit's only suggested "fix" is a destructive downgrade to `@lhci/cli@0.1.0`. The scoped override forces the patched transitive versions inside lhci's subtree only, which also clears the dependent `external-editor`/`inquirer` advisories. Verified via `npx lhci healthcheck` + the CI lighthouse job. Remove when `@lhci/cli` ships with `tmp >=0.2.6` and `uuid >=11.1.1` (check with `npm ls tmp uuid --all` after a Dependabot lhci bump, then delete the override and re-run `npm audit`).
+
+> **Not an override**: the prod `brace-expansion` advisory (`GHSA-3jxr-9vmj-r5cp`, `GHSA-mh99-v99m-4gvg`) reached the tree via `@astrojs/vercel → @vercel/nft → glob@13 → minimatch@10` and was cleared by a plain lockfile bump to the patched `5.0.8` (in-range for minimatch@10's `^5.0.5`) — no override needed. A flat/`minimatch`-scoped override was deliberately avoided: it would have hit the unrelated dev `minimatch@3.1.5` (which needs `brace-expansion ^1.1.7`) and forced a cross-major break.
 
 **Automated dependency updates** — [Dependabot](../../../.github/dependabot.yml) opens PRs weekly for npm and GitHub Actions version bumps. When reviewing Dependabot PRs that update `@astrojs/vercel` or `@vercel/routing-utils`, check whether the `path-to-regexp` override can be removed by running `npm audit --omit=dev` after deleting the `overrides` block.
 
@@ -675,6 +764,19 @@ npm run format
 ```
 
 Be aware this will produce a large diff against the current state. The expected place to do this is as a single standalone commit during the Phase 9 sweep, not piecemeal during feature work.
+
+### "`prettier --check` fails locally but CI is green"
+
+Almost certainly line endings, and it is the harder direction to diagnose because CI never tells you
+anything is wrong. Confirm with:
+
+```bash
+git ls-files --eol | grep -c "w/crlf"   # expect 0
+```
+
+Any count above zero means your working tree predates the `* text=auto eol=lf` rule (or something
+rewrote files behind git's back). Fix it with the renormalization sequence in § Line endings, and
+re-run the count to confirm — do not trust a command's exit code here.
 
 ### "My commit was rejected by the pre-commit hook"
 
@@ -769,4 +871,4 @@ Two manual steps are required to complete Phase 2:
 
 ---
 
-**Last Updated**: April 11, 2026 (Phase 2 of PLATFORM_HARDENING_V1)
+**Last Updated**: July 28, 2026 (`test:docs` now also runs the `VARIABLES_REFERENCE.md` ↔ `variables.css` parity guard; corrected the stale "not a required check" note on docs-integrity.yml)

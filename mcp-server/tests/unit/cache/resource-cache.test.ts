@@ -186,6 +186,62 @@ describe('readThroughCache — cache miss path', () => {
   });
 });
 
+describe('readThroughCache — noStore (BL-091)', () => {
+  it('does NOT write a result the producer flagged noStore', async () => {
+    bindStore();
+    mockGet.mockResolvedValueOnce(null);
+    const compute = vi.fn(async () => ({
+      body: 'transient placeholder',
+      mimeType: 'application/json',
+      noStore: true,
+    }));
+
+    const result = await readThroughCache(env, 'gst://radar/wire', 900, compute);
+
+    // Body still flows to the caller — only persistence is skipped.
+    expect(result).toEqual({
+      body: 'transient placeholder',
+      mimeType: 'application/json',
+      cacheHit: false,
+    });
+    expect(compute).toHaveBeenCalledTimes(1);
+    expect(mockSet).not.toHaveBeenCalled();
+  });
+
+  it('emits resource_cache_skip with reason=no-store', async () => {
+    bindStore();
+    mockGet.mockResolvedValueOnce(null);
+
+    await readThroughCache(env, 'gst://radar/fyi', 900, async () => ({
+      body: 'transient',
+      mimeType: 'application/json',
+      noStore: true,
+    }));
+
+    expect(mockSafeLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'resource_cache_skip',
+        uri: 'gst://radar/fyi',
+        reason: 'no-store',
+      })
+    );
+  });
+
+  it('still writes when noStore is absent or false (no behavior change for normal bodies)', async () => {
+    bindStore();
+    mockGet.mockResolvedValueOnce(null);
+    mockSet.mockResolvedValueOnce(true);
+
+    await readThroughCache(env, 'gst://library/z', 300, async () => ({
+      body: 'real',
+      mimeType: 'text/plain',
+      noStore: false,
+    }));
+
+    expect(mockSet).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('readThroughCache — fail-open path (no Upstash binding)', () => {
   it('skips the cache entirely when Upstash isn’t bound', async () => {
     createCacheStoreMock.mockReturnValue(null);

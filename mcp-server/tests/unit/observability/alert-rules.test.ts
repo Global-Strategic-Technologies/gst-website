@@ -30,6 +30,7 @@ vi.mock('../../../src/lib/upstash-clients', () => ({
 import {
   ALERT_RULES,
   FRESHNESS_MAX_AGE_SECONDS,
+  SYNTHETIC_KEY_OWNERS,
   TRAFFIC_SPIKE_MIN_COUNT,
   datasetForEnv,
   type EvaluatorContext,
@@ -167,6 +168,32 @@ describe('traffic-spike-detected', () => {
       .mockResolvedValueOnce([]);
     const ev = await rule('traffic-spike-detected').evaluate(makeCtx({ queryAe }));
     expect(ev.breached).toBe(false);
+  });
+  it('excludes synthetic keyOwners (PROBE) — a probe run above the floor must not breach', async () => {
+    // BL-033 latency probe: ~32 tool calls/run > the 30/h floor, with no
+    // trailing baseline on first run. Without the SYNTHETIC_KEY_OWNERS
+    // exclusion this shape pages on every scheduled probe execution.
+    const queryAe = vi
+      .fn()
+      .mockResolvedValueOnce([{ key_owner: 'PROBE', n: '32' }])
+      .mockResolvedValueOnce([]);
+    const ev = await rule('traffic-spike-detected').evaluate(makeCtx({ queryAe }));
+    expect(ev.breached).toBe(false);
+  });
+  it('the PROBE exclusion does not mask a real key spiking in the same window', async () => {
+    const queryAe = vi
+      .fn()
+      .mockResolvedValueOnce([
+        { key_owner: 'PROBE', n: '32' },
+        { key_owner: 'RP', n: '100' },
+      ])
+      .mockResolvedValueOnce([{ key_owner: 'RP', n: '168' }]);
+    const ev = await rule('traffic-spike-detected').evaluate(makeCtx({ queryAe }));
+    expect(ev.breached).toBe(true);
+    expect(ev.observed.keyOwner).toBe('RP');
+  });
+  it('SYNTHETIC_KEY_OWNERS carries exactly the PROBE key (widen deliberately, never to real keys)', () => {
+    expect([...SYNTHETIC_KEY_OWNERS]).toEqual(['PROBE']);
   });
 });
 

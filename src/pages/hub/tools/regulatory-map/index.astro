@@ -35,6 +35,7 @@ const faqItems = [
 ];
 
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
+import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 ---
 
 <BaseLayout
@@ -55,31 +56,19 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   <script
     is:inline
     type="application/ld+json"
-    set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      name: 'Regulatory Map',
-      description:
-        'Interactive map of 120+ global data privacy, AI governance, cybersecurity, and compliance regulations across jurisdictions',
-      applicationCategory: 'BusinessApplication',
-      operatingSystem: 'Web',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      publisher: { '@type': 'Organization', name: 'Global Strategic Technologies' },
-      datePublished: '2026-01-15',
-      dateModified: '2026-03-22',
-      featureList: [
-        '120+ regulations across 4 categories',
-        'Interactive D3 world map',
-        'Jurisdiction-specific compliance details',
-        'Data privacy, AI governance, cybersecurity, and industry compliance',
-      ],
-      author: {
-        '@type': 'Person',
-        name: 'Reid Peryam',
-        jobTitle: 'Strategic Technology Advisor',
-        sameAs: ['https://www.linkedin.com/in/reidperyam/'],
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Regulatory Map',
         description:
-          'Technology advisor with experience across 100+ PE technology diligence engagements',
+          'Interactive map of 120+ global data privacy, AI governance, cybersecurity, and compliance regulations across jurisdictions',
+        datePublished: '2026-01-15',
+        dateModified: '2026-03-22',
+        featureList: [
+          '120+ regulations across 4 categories',
+          'Interactive D3 world map',
+          'Jurisdiction-specific compliance details',
+          'Data privacy, AI governance, cybersecurity, and industry compliance',
+        ],
         knowsAbout: [
           'Regulatory Compliance',
           'Data Privacy',
@@ -87,8 +76,8 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
           'Technical Due Diligence',
           'M&A Tech Strategy',
         ],
-      },
-    })}
+      })
+    )}
   />
 
   <section class="regulatory-map-section">
@@ -1653,7 +1642,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
       display: block;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.4);
+      background: var(--scrim-40);
       z-index: 50;
       opacity: 0;
       pointer-events: none;
@@ -1847,7 +1836,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
   }
 
   .timeline-scroll::-webkit-scrollbar-track {
-    background: light-dark(rgba(26, 26, 26, 0.05), rgba(255, 255, 255, 0.05));
+    background: var(--surface-tint-bg);
     border-radius: 0;
   }
 

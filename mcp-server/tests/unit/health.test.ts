@@ -18,7 +18,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { redisGet, redisMget, redisSet, redisDel, MockRedis } = vi.hoisted(() => {
+const { redisGet, redisMget, redisSet, redisDel, redisTtl, MockRedis } = vi.hoisted(() => {
   const redisGet = vi.fn();
   // BL-032.75 Phase 0: readInoreaderSpend uses MGET (one round-trip) for
   // total + per-category counters. The Phase 0 audit-fix S2 swapped the
@@ -30,13 +30,17 @@ const { redisGet, redisMget, redisSet, redisDel, MockRedis } = vi.hoisted(() => 
   // failure stay unchanged — only the failure-path tests override.
   const redisSet = vi.fn().mockResolvedValue('OK');
   const redisDel = vi.fn().mockResolvedValue(1);
+  // BL-091: `/health` now reports `circuitOpen`, and `isCircuitOpen` issues a
+  // GET + TTL pair. Default `-2` = key absent = breaker closed.
+  const redisTtl = vi.fn().mockResolvedValue(-2);
   class MockRedis {
     get = redisGet;
     mget = redisMget;
     set = redisSet;
     del = redisDel;
+    ttl = redisTtl;
   }
-  return { redisGet, redisMget, redisSet, redisDel, MockRedis };
+  return { redisGet, redisMget, redisSet, redisDel, redisTtl, MockRedis };
 });
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
@@ -84,6 +88,14 @@ describe('buildHealthPayload', () => {
     expect(payload.inoreaderObservedSource).toBe('cron');
     expect(payload.version).toMatch(/^0\.[0-9]+\.[0-9]+$/);
     expect(payload.phase).toContain('BL-032 Phase 5');
+  });
+
+  it('reports env.VERSION (deploy-injected) when set, else the local fallback (BL-033 Slice 4)', async () => {
+    redisGet.mockResolvedValue(null);
+    const injected = await buildHealthPayload({ ...baseEnv, VERSION: '9.9.9' } as Env);
+    expect(injected.version).toBe('9.9.9');
+    const fallback = await buildHealthPayload(baseEnv);
+    expect(fallback.version).toMatch(/^0\.[0-9]+\.[0-9]+$/);
   });
 
   it('returns ok:false when MCP DB is degraded', async () => {
@@ -404,6 +416,62 @@ describe('buildHealthPayload', () => {
   // call fails inside the rate-limiter. The earlier GET-only probe missed
   // the case where the token had read perms but no write perms (read-only
   // REST token).
+  describe('circuitOpen (BL-091)', () => {
+    beforeEach(() => {
+      redisTtl.mockReset();
+      redisTtl.mockResolvedValue(-2);
+    });
+
+    it('reports circuitOpen:false when the breaker key is absent', async () => {
+      redisGet.mockResolvedValue(null);
+
+      const payload = await buildHealthPayload(baseEnv);
+
+      expect(payload.circuitOpen).toBe(false);
+    });
+
+    it('reports circuitOpen:true when the breaker is open', async () => {
+      redisGet.mockImplementation(async (key: string) =>
+        key === 'mcp:radar:circuit-open' ? 'inoreader-429-cron-wire' : null
+      );
+      redisTtl.mockResolvedValue(3600);
+
+      const payload = await buildHealthPayload(baseEnv);
+
+      expect(payload.circuitOpen).toBe(true);
+    });
+
+    it('does NOT let circuitOpen flip ok — ok stays derived from upstash + inoreader only', async () => {
+      // The load-bearing carve-out: an open breaker must not become a second
+      // input to `ok` (it would couple an already-firing alert to a new
+      // signal). Here Inoreader last-status is healthy, so despite the open
+      // breaker, ok remains true.
+      redisGet.mockImplementation(async (key: string) => {
+        if (key === 'mcp:radar:circuit-open') return 'inoreader-429-cron-wire';
+        if (key === 'mcp:inoreader:last-status') {
+          return { status: 'ok', observedAt: '2026-05-04T18:00:00.000Z', source: 'cron' };
+        }
+        return null;
+      });
+      redisTtl.mockResolvedValue(3600);
+
+      const payload = await buildHealthPayload(baseEnv);
+
+      expect(payload.circuitOpen).toBe(true);
+      expect(payload.ok).toBe(true);
+    });
+
+    it('reports circuitOpen:false when Upstash gives no signal (creds absent)', async () => {
+      const payload = await buildHealthPayload({
+        ...baseEnv,
+        UPSTASH_MCP_REST_URL: undefined,
+        UPSTASH_MCP_REST_TOKEN: undefined,
+      } as Env);
+
+      expect(payload.circuitOpen).toBe(false);
+    });
+  });
+
   describe('probeMcp — SET-then-DEL write probe (T.X.2)', () => {
     it("returns upstashMcp: 'ok' when SET succeeds AND DEL succeeds", async () => {
       // Defaults already resolve OK — this is the happy path.

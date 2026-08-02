@@ -78,6 +78,7 @@ const STANDALONE_DOCS = [
   'README.md',
   'mcp-server/README.md',
   '.claude/CLAUDE.md',
+  '.claude/skills/gst-page-content/SKILL.md',
   'mcp-server/observability/slo-baselines.md',
 ];
 /** Any path segment matching this is excluded as a scan source (still a valid target). */
@@ -87,9 +88,15 @@ const ARCHIVE_SEGMENT = /[\\/]_archive[\\/]/;
  * Docs whose relative links are resolved from the REPO ROOT rather than the
  * file's own directory. `.claude/CLAUDE.md` is an agent-context file consumed by
  * the IDE, which resolves links workspace-root-relative (not GitHub-style
- * file-relative); the whole file follows that convention.
+ * file-relative); the whole file follows that convention. Skill files under
+ * `.claude/skills/` are agent-context files too and follow the same convention —
+ * their doc pointers are written repo-root-relative so a session can open them
+ * from any working directory.
  */
-const ROOT_RELATIVE_DOCS = new Set(['.claude/CLAUDE.md']);
+const ROOT_RELATIVE_DOCS = new Set([
+  '.claude/CLAUDE.md',
+  '.claude/skills/gst-page-content/SKILL.md',
+]);
 
 /**
  * Link targets that are intentionally NOT tracked in git (gitignored,
@@ -141,7 +148,8 @@ function slugify(headingText: string): string {
 
 // --- Markdown parsing helpers --------------------------------------------
 
-/** Split into lines, EOL-agnostic (repo docs are CRLF). */
+/** Split into lines, EOL-agnostic. Repo files are LF (`.gitattributes` forces
+ * `eol=lf`), but stale clones predating that rule can still be CRLF on disk. */
 function toLines(content: string): string[] {
   return content.split(/\r?\n/);
 }

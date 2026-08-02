@@ -22,6 +22,7 @@
  */
 
 import { DEFAULT_SCOPES } from './scopes';
+import { timingSafeEqual } from './timing-safe-equal';
 
 const BEARER_PREFIX = 'Bearer ';
 const KEY_NAME_PREFIX = 'MCP_KEY_';
@@ -38,6 +39,16 @@ export interface AuthSuccess {
    * Handlers gate access via `assertScope(auth.scopes, required)`.
    */
   readonly scopes: readonly string[];
+  /**
+   * BL-033 Slice 5 — the client's rate-limit tier, carried on the M2M
+   * token claim and resolved to per-client ceilings via
+   * `resolveTierLimits(auth.tier)` at the request boundary. **Left unset**
+   * for static `MCP_KEY_*` keys and the OAuth human-consent path — both
+   * are internal-team identities that resolve to the generous `internal`
+   * tier (the pre-Slice-5 default), so omitting it is the no-regression
+   * behavior, not a gap.
+   */
+  readonly tier?: string;
 }
 
 /**
@@ -56,11 +67,7 @@ export interface AuthSuccess {
  *   JSON. Sentry captures these.
  */
 export type AuthFailureReason =
-  | 'missing-header'
-  | 'empty-token'
-  | 'bad-scheme'
-  | 'invalid-token'
-  | 'malformed-scopes';
+  'missing-header' | 'empty-token' | 'bad-scheme' | 'invalid-token' | 'malformed-scopes';
 
 /** Failed auth — Worker should respond with the carried 401 envelope. */
 export interface AuthFailure {
@@ -114,6 +121,17 @@ export function authenticate(request: Request, env: Record<string, unknown>): Au
   const token = auth.slice(BEARER_PREFIX.length).trim();
   if (!token) return unauthorized('empty-token', 'Empty Bearer token');
 
+  return matchToken(token, env);
+}
+
+/**
+ * Token-matching core, independent of HTTP framing — BL-033 Slice 2
+ * extraction so the OAuth consent flow can validate a form-submitted
+ * `MCP_KEY_*` value (delegated-identity model) without fabricating a
+ * Request. `authenticate()` above remains the header-parsing wrapper;
+ * behavior of the scan is unchanged.
+ */
+export function matchToken(token: string, env: Record<string, unknown>): AuthResult {
   for (const [name, value] of Object.entries(env)) {
     if (typeof value !== 'string') continue;
     if (!name.startsWith(KEY_NAME_PREFIX)) continue;
@@ -123,7 +141,10 @@ export function authenticate(request: Request, env: Record<string, unknown>): Au
     // caller authenticate by sending the JSON-encoded scope array as a
     // bearer token, which is wrong (and a leaky-ish information disclosure).
     if (name.endsWith(SCOPES_SUFFIX)) continue;
-    if (value === token) {
+    // Constant-time comparison — closes the BL-033 hardening AC carried
+    // from the BL-032 soak (T.I.5: plain `===` short-circuits at the
+    // first differing character, a timing oracle over the token value).
+    if (timingSafeEqual(value, token)) {
       const owner = name.slice(KEY_NAME_PREFIX.length);
       const result = resolveKeyScopes(env, name);
       if (!result.ok) {
@@ -213,10 +234,37 @@ function resolveKeyScopes(env: Record<string, unknown>, keyName: string): ScopeR
   }
 }
 
-/** Build a `Response` from an `AuthFailure` envelope. */
-export function authFailureResponse(failure: AuthFailure): Response {
+/**
+ * Build a `Response` from an `AuthFailure` envelope.
+ *
+ * BL-033 Slice 2: when the caller supplies the request origin AND a
+ * bearer was actually presented (`invalid-token` / `malformed-scopes`),
+ * the challenge advertises the OAuth discovery path per RFC 9728 —
+ * `error="invalid_token"` + `resource_metadata` pointing at the
+ * protected-resource metadata document — so OAuth-capable clients
+ * auto-discover the login flow from the 401 itself. Probe-class
+ * failures (`missing-header` / `empty-token` / `bad-scheme`) keep the
+ * bare challenge: no bearer was sent, so there is nothing "invalid",
+ * and scanner noise gets no extra bytes. The JSON body is unchanged
+ * either way (legacy contract, asserted by tests/integration/auth.test.ts).
+ */
+const TOKEN_PRESENT_REASONS: ReadonlySet<AuthFailureReason> = new Set([
+  'invalid-token',
+  'malformed-scopes',
+]);
+
+export function authFailureResponse(failure: AuthFailure, requestOrigin?: string): Response {
+  let headers: Record<string, string> = { ...failure.headers };
+  if (requestOrigin && TOKEN_PRESENT_REASONS.has(failure.reason)) {
+    headers = {
+      ...headers,
+      'WWW-Authenticate':
+        `Bearer realm="gst-mcp", error="invalid_token", ` +
+        `resource_metadata="${requestOrigin}/.well-known/oauth-protected-resource"`,
+    };
+  }
   return new Response(failure.bodyText, {
     status: failure.status,
-    headers: failure.headers,
+    headers,
   });
 }

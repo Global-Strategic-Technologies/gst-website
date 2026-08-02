@@ -8,8 +8,9 @@
  *   - `radar-snapshot-reader-stdio.ts`  — wraps the node:fs-backed
  *     `radar-snapshot.ts` (offline cache populated by `npm run radar:seed`)
  *   - `radar-snapshot-reader-worker.ts` — wraps the Upstash-backed
- *     `radar-live-store.ts` (cache populated by website ISR + the
- *     BL-032.5 Phase 4 hourly Worker Cron)
+ *     `radar-live-store.ts` (cache populated by the BL-032.5 Phase 4
+ *     Worker Cron; website `/hub/radar` traffic reads it, and only
+ *     repopulates it on a cache-cold miss)
  *
  * Separating the interface from the implementations keeps node-only
  * modules out of the Worker bundle while preserving a single

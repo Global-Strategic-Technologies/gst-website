@@ -29,6 +29,84 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.43.0 — 2026-07-27 — BL-090 — tool responses stop sending the payload twice; failures gain a structured channel
+
+**Theme**: `structuredContent` is now the canonical machine channel on **every** path and `content[0].text` is the model channel — a one-line caption on success, the verbatim message on failure. Every tool result is built by `toolOk()` / `toolFail()` in `src/tools/_result.ts`; nothing hand-rolls the literal. Decision record: [`src/docs/adr/0011-tool-response-channel-policy.md`](../src/docs/adr/0011-tool-response-channel-policy.md). **Manifest hash unchanged** — no tool, prompt, or Resource URI added, renamed, or removed, and no prompt body reworded.
+
+**Why**: every tool that returned data sent it twice — pretty-printed into `content[0].text` AND as the object in `structuredContent`. On a full `search_portfolio` that is ~143 KB where ~61 KB suffices (the escaped text copy is the larger of the two, 81,826 B vs 61,439 B). A live probe against production confirmed clients read `structuredContent` and discard `content` when both are present, so the duplicate reached nobody. Meanwhile **no** error return carried `structuredContent` at all, and two hand-`JSON.stringify`d a structured error into the text channel.
+
+**Behavior change (client-visible)**:
+
+- **Success**: `content[0].text` is no longer a JSON dump of the payload. It is a one-line human caption (e.g. `"61 portfolio matches."`). The payload is unchanged and still in `structuredContent`. **Any consumer parsing `content[0].text` as JSON must switch to `structuredContent`.** Both known consumers were migrated in this release (see below).
+- **Failure**: `isError: true` results now ALSO carry `structuredContent` — `{ error, message, ...detail }`. Callers can branch on `error` instead of substring-matching prose. `content[0].text` is unchanged and byte-for-byte verbatim, which the `gst_irl_ingestion` retry directives depend on.
+
+**Renames on the radar failure envelope** (released by operator confirmation that no external client is live — see ADR-0011 § "expiry condition"):
+
+- `error: "service_unavailable"` → **`error: "service-unavailable"`**, the one snake_case outlier in an otherwise kebab-case vocabulary.
+- The circuit-open envelope's inner `reason` field → **`cause`**. Under `{ error, ... }` two different meanings shared the word "reason".
+- The other six radar reasons (`config-missing`, `token-missing`, `token-stale`, `inoreader-rate-limit`, `upstream-error`, `network-timeout`) are **unchanged**; the granularity `search_radar`'s description advertises is preserved deliberately.
+
+**Internal consumers migrated in this release** (no action for operators beyond re-dot-sourcing):
+
+- `scripts/Invoke-McpRequest.ps1` — `Invoke-McpTool` returns `result.structuredContent`; it no longer `ConvertFrom-Json`s the text block.
+- `src/docs/operations/DEPLOY.md` B.3 smoke commands — the triple-`jq` unwrap collapses to `jq '.result.structuredContent.matches | length'`.
+
+**Not a context-window change**: the model never received the duplicate, so this does not increase what Claude can process. It is a wire-size and code-simplicity change.
+
+**Constrains a future `outputSchema`**: the SDK client validates `structuredContent` whenever present with no `isError` guard, so declaring an `outputSchema` on any tool would make error results throw client-side. See ADR-0011.
+
+---
+
+## 0.42.0 — 2026-07-27 — BL-091 — circuit-breaker open now serves cached radar instead of hard-failing (behavior change + additive `liveInfo` fields)
+
+**Theme**: while the Inoreader circuit breaker is open, every radar read surface serves the cached snapshot instead of erroring, and no surface calls Inoreader. Implements the second clause of ADR-0006 § Decision 2, which had never been wired up, and narrows the 503 to the cache-empty case. Decision record: `src/docs/adr/0006-inoreader-zone1-budget-protection.md` § Amendment 2026-07-27. **Manifest hash unchanged** — no tool, prompt, or Resource URI added, renamed, or removed.
+
+**Behavior change (client-visible, not a rename)**:
+
+- `search_radar` / `get_latest_insights` previously returned `isError: true` + `error: 'service_unavailable'`, `status: 503` for the _entire_ breaker window. They now return a **normal success payload** built from the cached snapshot, with `liveInfo.degraded: true`. The 503 envelope is unchanged in shape but now appears **only when nothing is cached**. Clients branching on the 503 keep working; clients that treated a breaker window as "radar is down" will now receive data.
+- `/radar/snapshot` (website SSR) stays HTTP 200 throughout, as before, and gains `degraded` / `retryAfterSeconds` in the body. It can now also OPEN the breaker on a 429 (previously the only Inoreader consumer that could not).
+- `gst://radar/*` Resources no longer fetch Inoreader on a cold cache during an open window (previously an unguarded budget leak); the "snapshot not populated" body is also no longer cached for 15 minutes.
+
+**Additive fields** (no removals):
+
+- `liveInfo.degraded: boolean` — always present on both radar tools; `false` on the normal path.
+- `liveInfo.retryAfterSeconds?: number` — present only when degraded.
+- `liveInfo.{wire,fyi}FetchedAt` / `{wire,fyi}CacheHit` **widen to nullable** — a tier with nothing cached reports `null` rather than a fabricated timestamp/flag. Consumers reading these must tolerate `null`.
+- `/health` gains `circuitOpen: boolean` (informational; deliberately not folded into `ok`), mirrored as a `/status` Substrate row.
+
+**Removed (internal only, no consumers)**: `circuitOpenResponse()` from `src/ratelimit/circuit-breaker.ts` — dead since the tools hand-roll their MCP envelope; no callers, tests, or docs referenced it.
+
+---
+
+## 0.41.0 — 2026-07-26 — BL-033 Slice 5 — per-client rate-limit tiers (backfilled stanza)
+
+**Backfilled 2026-07-27**: 0.41.0 shipped without an entry, breaking the unbroken 0.28.0→0.40.0 run. Recorded here for continuity. **Manifest hash unchanged** — no tool/prompt/Resource change.
+
+Per-client rate-limit tiers (`free-pilot` / `paid` / `enterprise` / `internal`) became load-bearing: the ceiling is selected from the client's tier (carried on the M2M token claim) instead of flat hardcoded constants. Static `MCP_KEY_*` keys and OAuth human-consent sessions resolve to `internal`, which equals the previous constants exactly — **no regression for existing callers**. Additive response surface: `RateLimit-Policy` on every authenticated 200 and 429, plus a best-effort `notifications/message` soft-limit warning at ≥80% consumption (required declaring the server `logging` capability). Decision record: `src/docs/adr/0010-per-client-rate-limit-tiers.md`.
+
+---
+
+## 0.40.0 — 2026-07-24 — BL-033 Slice 2 — OAuth 2.1 embedded authorization server + M2M client_credentials (new routes, new KV binding, new secret, additive 401 header)
+
+**Theme**: the Worker becomes its own OAuth 2.1 authorization server (`@cloudflare/workers-oauth-provider`, exact-pinned 0.8.2, mounted as a sub-router) with dual cheap-first validation — static `MCP_KEY_*` keys are byte-identical and NOT deprecated. Decision record: `src/docs/adr/0008-mcp-oauth-embedded-authorization-server.md` (website tree). Unlocks Claude's native Connectors UI (the `mcp-remote` bridge becomes a legacy path, still supported).
+
+**New public surface** (routes are not manifest-hash inputs; no tool/prompt/resource change — manifest hash unchanged):
+
+- **`GET|POST /authorize`** — server-rendered consent page. Identity = delegation over the key roster: the user authenticates with their `MCP_KEY_*` value; granted scopes = requested ∩ key scopes; grants carry `keyOwner OAUTH:<owner>`.
+- **`POST /token`** — library grants (`authorization_code` + PKCE S256-only, `refresh_token` with rotation, 1h access tokens) PLUS our own `grant_type=client_credentials` branch (the library has none): RFC 7523 `private_key_jwt` or hashed-secret client auth → self-contained HS256 `mcp_m2m_*` JWTs (1h, audience-bound, no refresh token).
+- **`/.well-known/oauth-authorization-server`** (RFC 8414) + **`/.well-known/oauth-protected-resource`** (RFC 9728) — DCR deliberately absent; CIMD advertised.
+- **`POST /oauth/introspect`** (RFC 7662, `MCP_ADMIN_KEY`-gated) — M2M tokens cross-check the client record so revoked clients report inactive.
+- **`/admin/oauth/clients*` + `/admin/oauth/m2m-clients*`** — `MCP_ADMIN_KEY`-gated client CRUD (runbooks: `operations/AUTH.md` § OAuth).
+- **Additive 401 header change on `/mcp` + `/radar/snapshot`**: when a bearer was presented but rejected, `WWW-Authenticate` now reads `Bearer realm="gst-mcp", error="invalid_token", resource_metadata="<origin>/.well-known/oauth-protected-resource"`. The JSON 401 body is unchanged; missing/empty-bearer challenges are unchanged.
+
+**New infrastructure**: `OAUTH_KV` namespace binding per env (staging `580b8f1f…`, production `13c9e9f5…` — created 2026-07-24); new Worker secret `OAUTH_M2M_SIGNING_KEY` (staging bound 2026-07-24; **production must be bound before the first production deploy of this version** — without it M2M issuance 503s while everything else works); `global_fetch_strictly_public` compatibility flag (SSRF defense for CIMD metadata fetches).
+
+**Internal restructuring** (no behavior change on the static path): post-auth pipeline extracted from `worker.ts` to `src/pipeline/handle-authenticated.ts` (shared by all three auth paths via the `AuthSuccess` contract); `matchToken` core extracted from `authenticate()`; `htmlShell`/`escapeHtml` extracted from `admin/inoreader-reauth.ts` to `src/lib/html-shell.ts` — this supersedes older entries' references to the constant-time comparator living in `admin/admin-auth.ts` (it moved to `src/auth/timing-safe-equal.ts` in 0.39.x / Slice 1).
+
+**New keyOwner values in telemetry**: `OAUTH:<user>` and `M2M:<NAME>` join the static suffixes in AE blob3 / rate-limit buckets / safeLog. A new keyOwner's first busy hour can fire the traffic-spike ticket once (no trailing mean) — expected onboarding behavior.
+
+---
+
 ## 0.39.0 — 2026-07-14 — BL-032.75 Phase 3 — SLO alert evaluator cron + `/status` page (new route, new cron, new optional secrets)
 
 **Theme**: the account-free half of BL-032.75 Phase 3 ships — a scheduled SLO alert evaluator + public status surface, calibrated from the Phase 2 baselines signed off 2026-07-14 (`observability/slo-baselines.md`). Grafana dashboards remain deferred (Grafana Cloud account is the explicit trigger).

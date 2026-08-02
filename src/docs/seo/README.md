@@ -20,7 +20,7 @@ The GST website implements a high-authority SEO foundation designed to maximize 
 
 ## Key Features
 
-- **JSON-LD Structured Data**: ProfessionalService, Person, BreadcrumbList, and FAQPage schemas with complete credential information
+- **JSON-LD Structured Data**: ProfessionalService, Person, BreadcrumbList, FAQPage, WebApplication (per hub tool) and ItemList schemas with complete credential information
 - **Open Graph Tags**: Optimized for social media sharing across LinkedIn, Twitter, and other platforms
 - **Meta Tags**: Title, description, keywords, author, and robots directives
 - **Sitemap & Robots**: Automated crawling configuration for search engines
@@ -66,8 +66,8 @@ The GST website implements a high-authority SEO foundation designed to maximize 
 - `src/components/Header.astro` - Added descriptive alt text
 - `src/components/WhoWeSupport.astro` - Enhanced alt text
 - `src/components/WhatWeDo.astro` - Enhanced alt text
-- `public/sitemap.xml` - Generated XML sitemap
-- `public/robots.txt` - Generated robots configuration
+- `public/robots.txt` - Robots configuration (checked in; points crawlers at the sitemap index)
+- `src/utils/sitemap-filter.ts` - Sitemap exclusion list. The sitemap itself is **generated at build time** by `@astrojs/sitemap` — there is no `public/sitemap.xml`
 
 ## SEO Strategy
 

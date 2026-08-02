@@ -62,6 +62,13 @@ vi.mock('agents/mcp', () => ({
   createMcpHandler: () => async () =>
     new Response('{"error":"mcp-mocked-in-this-test"}', { status: 501 }),
 }));
+// workers-oauth-provider imports `cloudflare:workers` (unresolvable in the
+// Node pool); the scheduled handler never touches the OAuth sub-router.
+vi.mock('@cloudflare/workers-oauth-provider', () => ({
+  OAuthProvider: class {
+    fetch = async () => new Response('{"error":"invalid_token"}', { status: 401 });
+  },
+}));
 
 vi.mock('../../src/cron/radar-refresh');
 vi.mock('../../src/observability/sentry', () => ({

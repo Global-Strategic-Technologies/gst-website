@@ -1,27 +1,34 @@
 /**
  * BL-032.75 Phase 3 — public `/status` page.
  *
- * Minimal server-rendered HTML over two data sources the Worker already
- * holds: `buildHealthPayload(env)` (live probes) and the alert
- * evaluator's last-run summary (`mcp:alerts:last-eval`, written every 15
- * minutes). No client JS, no external assets.
+ * Minimal server-rendered HTML over three cached/probed sources the Worker
+ * already holds: `buildHealthPayload(env)` (live probes), the alert
+ * evaluator's last-run summary (`mcp:alerts:last-eval`), and the precomputed
+ * status metrics (`mcp:status:metrics:<env>`, BL-033 Slice 4) — both written
+ * by the 15-min evaluator cron. No live AE query on the render path; no client
+ * JS, no external assets.
  *
  * **Public-safety**: `/health` is already unauthenticated and exposes a
  * strict superset of what renders here (spend detail, ACL self-check,
  * refresh-token health). This page shows: overall status, env/version/
  * gitSha, Upstash + Inoreader status, radar snapshot age vs the 12h SLO,
- * Zone-1 spend vs the daily cap, and the per-rule alert table. No key
- * names, no correlation ids, no token material.
+ * Zone-1 spend vs the daily cap, the per-rule alert table, per-tool latency,
+ * and audit-log health. No key names, no correlation ids, no token material.
  *
- * The design doc's `status.mcp.globalstrategic.tech` subdomain AC is
- * satisfied-in-substance by this Worker route at
- * `mcp.globalstrategic.tech/status`; a dedicated subdomain stays with
- * the deferred Grafana item (it would just CNAME here anyway).
+ * **Surface, don't ratify** (BL-033 operator directive): the tool-latency
+ * panel renders raw p50/p95/p99 as PLAIN values — no badges, no pass/fail
+ * threshold, no ratified SLA (contrast the freshness/spend rows, which ARE
+ * signed-off SLOs). The tool-latency SLO stays deferred (`slo-baselines.md`).
+ *
+ * BL-033 Slice 4 fronts this page at `status.mcp.globalstrategic.tech`
+ * (a `custom_domain` route → `worker.ts` serves status at the subdomain root);
+ * `mcp.globalstrategic.tech/status` keeps working.
  */
 
 import { buildHealthPayload } from './health';
 import { FRESHNESS_MAX_AGE_SECONDS } from './alert-rules';
 import { LAST_EVAL_KEY, type AlertEvaluationSummary } from './alert-evaluator';
+import { readStatusMetrics } from './status-metrics';
 import { ZONE1_DAILY_HARD_CAP } from '../lib/inoreader-egress';
 import { createMcpClient } from '../lib/upstash-clients';
 import type { Env } from '../worker';
@@ -51,7 +58,34 @@ const badge = (ok: boolean, okText: string, badText: string): string =>
 
 /** Render the /status HTML. Never throws — degraded sources render as unknowns. */
 export async function buildStatusHtml(env: Env): Promise<string> {
-  const [health, lastEval] = await Promise.all([buildHealthPayload(env), readLastEval(env)]);
+  const [health, lastEval, metrics] = await Promise.all([
+    buildHealthPayload(env),
+    readLastEval(env),
+    readStatusMetrics(env),
+  ]);
+
+  // Tool latency — PLAIN values, no badges/thresholds (surface, don't ratify).
+  // toolLatency null → AE unbound / query failed; [] → no traffic in window.
+  const latencyRows =
+    metrics?.toolLatency == null
+      ? '<tr><td colspan="5">metrics unavailable — the evaluator cron populates every 15 min (needs CF_AE_TOKEN bound; staging has no cron)</td></tr>'
+      : metrics.toolLatency.length === 0
+        ? '<tr><td colspan="5">no tool_invocation events in the last 7 days</td></tr>'
+        : metrics.toolLatency
+            .map(
+              (r) =>
+                `<tr><td>${esc(r.name)}</td><td>${esc(r.p50Ms)}</td><td>${esc(r.p95Ms)}</td><td>${esc(r.p99Ms)}</td><td>${esc(r.n)}</td></tr>`
+            )
+            .join('');
+
+  const a = metrics?.audit;
+  const auditRows =
+    metrics == null
+      ? '<tr><td colspan="2">metrics unavailable — the evaluator cron populates every 15 min</td></tr>'
+      : `<tr><td>Records committed (chain tip)</td><td>${esc(a?.lastSeq ?? '—')}</td></tr>` +
+        `<tr><td>Batches processed (24h)</td><td>${esc(a?.batches24h ?? '—')}</td></tr>` +
+        `<tr><td>Records committed (24h)</td><td>${esc(a?.records24h ?? '—')}</td></tr>` +
+        `<tr><td>Last batch processed</td><td>${esc(a?.lastProcessedAt ?? '—')}</td></tr>`;
 
   const snapshotOk =
     health.radarSnapshotAgeSeconds !== null &&
@@ -95,12 +129,26 @@ export async function buildStatusHtml(env: Env): Promise<string> {
   <tr><td>Inoreader</td><td>${badge(health.inoreader !== 'degraded', esc(health.inoreader), 'degraded')}</td><td>last observed ${esc(health.inoreaderObservedSecondsAgo)}s ago (${esc(health.inoreaderObservedSource)})</td></tr>
   <tr><td>Radar snapshot freshness</td><td>${badge(snapshotOk, 'fresh', 'STALE')}</td><td>age ${esc(health.radarSnapshotAgeSeconds)}s vs SLO ${FRESHNESS_MAX_AGE_SECONDS}s (12h)</td></tr>
   <tr><td>Inoreader Zone-1 budget</td><td>${badge(spendPct < 70, `${spendPct}%`, `${spendPct}%`)}</td><td>${esc(health.inoreaderSpend.total)}/${ZONE1_DAILY_HARD_CAP} today (ticket &gt; 70%, page &gt; 90%)</td></tr>
+  <tr><td>Inoreader circuit breaker</td><td>${badge(!health.circuitOpen, 'closed', 'OPEN')}</td><td>${health.circuitOpen ? 'radar is serving cached snapshots; no upstream calls until the breaker closes' : 'radar reads go upstream on cache miss'}</td></tr>
 </table>
 
 <h2>SLO alerts (last evaluation: ${esc(lastEval?.evaluatedAt)})</h2>
 <table>
   <tr><th>Rule</th><th>State</th><th>Severity</th><th>Detail</th></tr>
   ${alertRows}
+</table>
+
+<h2>Tool latency (server-side, last 7d${metrics?.evaluatedAt ? `, as of ${esc(metrics.evaluatedAt)}` : ''})</h2>
+<table>
+  <tr><th>Tool</th><th>p50 ms</th><th>p95 ms</th><th>p99 ms</th><th>samples</th></tr>
+  ${latencyRows}
+</table>
+<p class="meta">Raw in-Worker handler latency (observability, not a ratified SLA). Includes synthetic probe traffic. Tool-latency SLO deliberately deferred — see slo-baselines.md.</p>
+
+<h2>Audit log (BL-033 Slice 3a)</h2>
+<table>
+  <tr><th>Metric</th><th>Value</th></tr>
+  ${auditRows}
 </table>
 
 <p class="meta">Runbooks: <code>mcp-server/observability/runbooks/</code> · SLO provenance: <code>mcp-server/observability/slo-baselines.md</code> (signed off 2026-07-14) · Evaluator cadence: 15 min</p>

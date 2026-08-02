@@ -3,6 +3,7 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import PrintReportHeader from '../../../../components/PrintReportHeader.astro';
 import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engine';
+import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 ---
 
 <BaseLayout
@@ -17,31 +18,19 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
   <script
     is:inline
     type="application/ld+json"
-    set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      name: 'Technical Debt Cost Calculator',
-      description:
-        'Quantify the annual carrying cost of technical debt for PE diligence and portfolio executive conversations',
-      applicationCategory: 'BusinessApplication',
-      operatingSystem: 'Web',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      publisher: { '@type': 'Organization', name: 'Global Strategic Technologies' },
-      datePublished: '2025-06-01',
-      dateModified: '2026-03-20',
-      featureList: [
-        'Annual carrying cost quantification',
-        'Team size and salary inputs',
-        'Maintenance burden and delivery metrics',
-        'Defensible estimates for PE conversations',
-      ],
-      author: {
-        '@type': 'Person',
-        name: 'Reid Peryam',
-        jobTitle: 'Strategic Technology Advisor',
-        sameAs: ['https://www.linkedin.com/in/reidperyam/'],
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Technical Debt Cost Calculator',
         description:
-          'Technology advisor with experience across 100+ PE technology diligence engagements',
+          'Quantify the annual carrying cost of technical debt for PE diligence and portfolio executive conversations',
+        datePublished: '2025-06-01',
+        dateModified: '2026-03-20',
+        featureList: [
+          'Annual carrying cost quantification',
+          'Team size and salary inputs',
+          'Maintenance burden and delivery metrics',
+          'Defensible estimates for PE conversations',
+        ],
         knowsAbout: [
           'Technical Due Diligence',
           'Technical Debt Assessment',
@@ -49,8 +38,8 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
           'DORA Metrics',
           'Software Engineering Economics',
         ],
-      },
-    })}
+      })
+    )}
   />
 
   <section class="tdc-section">
@@ -738,7 +727,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     font-weight: var(--font-weight-bold);
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    min-height: 44px;
+    min-height: var(--touch-target-min);
     transition: color var(--transition-fast);
   }
 
@@ -809,7 +798,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
   }
 
   .deploy-btn {
-    min-height: 44px;
+    min-height: var(--touch-target-min);
     padding: var(--spacing-xs);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     background: transparent;
@@ -1091,7 +1080,7 @@ import { DEPLOY_OPTIONS, DEFAULT_STATE } from '../../../../utils/tech-debt-engin
     .calc-footer__controls .currency-select,
     .calc-footer__controls .copy-link-btn {
       flex: 1;
-      min-height: 44px;
+      min-height: var(--touch-target-min);
     }
   }
 

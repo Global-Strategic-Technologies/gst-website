@@ -46,6 +46,7 @@ import { oldestItemDaysAgo } from '../content/radar-transform';
 import { serializeToParams as serializeRadarUrl } from '../../../src/utils/radar-url';
 import { RadarCategoryEnum } from '../schemas';
 import { HUB_BASE } from '../config';
+import { toolOk, toolFail } from './_result';
 
 const SearchRadarOfflineInputSchema = z.object({
   category: RadarCategoryEnum.optional().describe(
@@ -92,10 +93,7 @@ export async function handleRadarOfflineTool(input: SearchRadarOfflineInput) {
   const fyi = readFyiSnapshot();
   const wire = readWireSnapshot();
   if (!fyi && !wire) {
-    return {
-      content: [{ type: 'text' as const, text: SNAPSHOT_MISSING_MESSAGE }],
-      isError: true,
-    };
+    return toolFail('snapshot-missing', SNAPSHOT_MISSING_MESSAGE);
   }
 
   const tagged: Array<SnapshotItem & { tier: 'fyi' | 'wire' }> = [];
@@ -126,10 +124,7 @@ export async function handleRadarOfflineTool(input: SearchRadarOfflineInput) {
     },
     deeplink,
   };
-  return {
-    content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
-    structuredContent: payload as unknown as Record<string, unknown>,
-  };
+  return toolOk(payload, `${matched.length} radar items from the local snapshot.`);
 }
 
 /**

@@ -12,7 +12,7 @@
 >
 > - [`AUTH.md`](./AUTH.md) — bearer-token model, key issuance/rotation/revocation commands
 > - [`REMOTE_CLIENT_SETUP.md`](./REMOTE_CLIENT_SETUP.md) — what team-members do to connect their Claude / Cursor / etc. clients
-> - [`RATE_LIMITS.md`](./RATE_LIMITS.md) — per-key budgets, RFC 9331 headers, circuit-breaker semantics
+> - [`RATE_LIMITS.md`](./RATE_LIMITS.md) — per-key budgets, RateLimit response headers, circuit-breaker semantics
 > - [`SENTRY_MANUAL_SETUP.md` § MCP Worker](../../../../src/docs/development/SENTRY_MANUAL_SETUP.md) — Sentry project setup specifics
 > - [`ARCHITECTURE.md`](../ARCHITECTURE.md) — the maintained architecture reference (Q1–Q13 initiative history archived at `src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md`)
 
@@ -690,7 +690,7 @@ A 7-step curl sequence to verify each layer of the request flow. Run these again
 > Two helpers land in the session:
 >
 > - **`Invoke-McpRequest -Method <m> [-Params <hash>] [-Id <n>]`** — raw JSON-RPC call; returns the full envelope. Use for `tools/list`, `prompts/list`, etc., or when you need to see the protocol envelope.
-> - **`Invoke-McpTool -Name <toolName> [-Arguments <hash>] [-Id <n>]`** — convenience wrapper around `tools/call`. Issues the call, unwraps `result.content[0].text` automatically, and returns the parsed tool-response payload directly.
+> - **`Invoke-McpTool -Name <toolName> [-Arguments <hash>] [-Id <n>]`** — convenience wrapper around `tools/call`. Issues the call and returns `result.structuredContent` — the tool's payload — directly. (Since 0.43.0 / BL-090 the payload travels only in the structured channel; `result.content[0].text` is a one-line human caption.)
 >
 > With these, B.3.3 becomes `(Invoke-McpRequest -Method "tools/list").result.tools.name`, B.3.4 becomes `Invoke-McpTool -Name "list_portfolio_facets"`, T.B.2.a becomes `Invoke-McpTool -Name "search_portfolio" -Arguments @{ search = "kubernetes" }`. PowerShell-flavored examples are inlined per-step below.
 
@@ -779,7 +779,7 @@ curl -s $MCP_URL/mcp \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_portfolio_facets","arguments":{}}}' | jq
 ```
 
-Expected: a JSON response with `result.content[0].text` containing the deduplicated themes / engagement categories / etc. for the M&A portfolio.
+Expected: a JSON response with `result.structuredContent` containing the deduplicated themes / engagement categories / etc. for the M&A portfolio. (`result.content[0].text` carries a one-line caption, not the data — see ADR-0011.)
 
 ### B.3.5 — Verify rate-limit headers
 
@@ -800,7 +800,7 @@ curl -s $MCP_URL/mcp \
   -H "Authorization: Bearer $MCP_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
-  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search_radar","arguments":{"category":"pe-ma"}}}' | jq '.result.content[0].text' | jq -r . | jq '.matches | length'
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search_radar","arguments":{"category":"pe-ma"}}}' | jq '.result.structuredContent.matches | length'
 ```
 
 Expected: a non-zero integer. The first call fetches from Inoreader (~6 API calls); subsequent calls within 6h hit the Upstash cache.
@@ -858,7 +858,7 @@ The response should reference the deduplicated themes / engagement categories fr
 Use the staging deploy as your daily MCP. Watch for:
 
 - **Sustained `ratelimit.skipped` log lines** → MCP DB unreachable; check `UPSTASH_MCP_*` secrets and Upstash status
-- **Inoreader 429s** → circuit breaker should engage cleanly; verify with `/health` showing `inoreader: "degraded"` and the radar tools returning structured 503s
+- **Inoreader 429s** → circuit breaker should engage cleanly; verify with `/health` showing `inoreader: "degraded"` **and `circuitOpen: true`**, and the radar tools returning cached results flagged `liveInfo.degraded: true` (structured 503s only when nothing is cached)
 - **Claude Desktop / Claude Code reconnects after restart** without re-prompting → connection persistence is working
 - **Sentry events** → if you set up the alert rules in § A.5, you should see baseline traffic but no error noise
 
@@ -1078,7 +1078,7 @@ Surfaces the MCP DB's reachability (`upstashMcp`, `'ok' | 'degraded'`), last obs
 The radar tools share a 6-hour global circuit breaker (Phase 3 substrate, Phase 4c trigger — see [RATE_LIMITS.md](./RATE_LIMITS.md) § Circuit breaker for the full design). When Inoreader returns 429:
 
 1. The first radar-tool call to see it sets `mcp:radar:circuit-open` in the **MCP DB** with a 6h TTL
-2. All subsequent radar-tool calls (any key) read the flag and return `503 Service Unavailable` with `Retry-After`
+2. All subsequent radar reads (tools, `gst://radar/*` Resources, `/radar/snapshot`) read the flag and serve the **cached snapshot** instead of calling Inoreader, flagged `liveInfo.degraded: true`. A `503` returns only when nothing is cached (BL-091)
 3. Non-radar tools are unaffected
 4. The breaker auto-closes via TTL expiry — no manual intervention required for normal recovery
 
@@ -1103,7 +1103,7 @@ The next radar-tool call will hit Inoreader; if it succeeds, the breaker stays c
 
 If radar tools 429 repeatedly across the team — and Inoreader's status page is fine — the issue is GST's daily budget exhaustion. Check the budget envelope in [`src/docs/hub/RADAR.md` § Budget envelope](../../../../src/docs/hub/RADAR.md):
 
-- Website ISR: ~28 calls/day (Vercel-hosted, fixed at 6h ISR)
+- Website `/hub/radar`: one `/radar/snapshot` call **per pageview** (the feed is a `server:defer` island, and `/_server-islands/*` bypasses ISR). Almost all are Upstash cache hits costing zero Inoreader spend; only a cache-cold miss falls through. Bounded by the key's `INTERNAL_TIER` (60/min, 1000/day). Was ~28/day while the feed was briefly inlined into the ISR entry (2026-07-31 → 2026-08-02); see [ADR-0012](../../../../src/docs/adr/0012-rotating-feeds-are-noindex.md)
 - MCP per-key: capped at 50/day per key by the rate-limiter
 - BL-032.5 Cron snapshot (when shipped): ~24 calls/day
 

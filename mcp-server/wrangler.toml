@@ -17,7 +17,13 @@
 name = "gst-mcp"
 main = "src/worker.ts"
 compatibility_date = "2026-05-01"
-compatibility_flags = ["nodejs_compat"]
+# global_fetch_strictly_public (BL-033 Slice 2): SSRF defense for CIMD —
+# the OAuth provider fetches arbitrary client-supplied metadata-document
+# URLs (client_id-as-URL), and this flag confines `fetch` to strictly
+# public hosts so a malicious client_id cannot probe internal addresses.
+# Our own outbound fetches (Upstash REST, Inoreader, Sentry) are all
+# public hosts — no functional impact.
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
 # Emit source maps alongside the bundled Worker so deploy.mjs can ship them
 # to Sentry via sentry-cli (Sentry → Cloudflare integration). Without this,
@@ -51,6 +57,50 @@ upload_source_maps = true
 [[analytics_engine_datasets]]
 binding = "METRICS"
 dataset = "mcp_events_dev"
+
+# ---------------------------------------------------------------------------
+# Workers KV — OAuth token/grant/client storage (BL-033 Slice 2)
+# ---------------------------------------------------------------------------
+# Substrate for @cloudflare/workers-oauth-provider: token/secret HASHES,
+# grants (props encrypted with the token as key material), pre-registered
+# client records, plus our own `mcp:oauth:m2m-client:*` records and
+# one-shot consent/jti nonces. Distinct from the Upstash MCP DB — the
+# library requires KV, and splitting auth state across two stores would
+# be worse than the single-substrate deviation (recorded at BL-033
+# AC:244 + ADR-0008).
+#
+# Top-level binding (staging namespace id) exists for `wrangler dev` runs;
+# local dev/miniflare simulates KV and never touches the remote namespace.
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "580b8f1f9067410b93d6f1faa3edfed0"
+
+# ---------------------------------------------------------------------------
+# Compliance audit log — Queue + R2 (BL-033 Slice 3a)
+# ---------------------------------------------------------------------------
+# The fetch handler enqueues one `AuditEntry` per tool call to AUDIT_QUEUE
+# (off the latency path via ctx.waitUntil); the `queue` consumer in
+# src/audit/consumer.ts hash-chains each entry and writes it as an immutable
+# object to AUDIT_R2. First-of-kind Queue + R2 bindings in this repo — the
+# operator MUST provision them per env BEFORE deploy (a [[queues.consumers]]
+# referencing a missing queue fails `wrangler deploy`). See
+# src/docs/operations/AUDIT_LOG.md. Top-level blocks are for `wrangler dev`
+# (miniflare simulates Queues + R2 in-process; no remote resource touched).
+[[queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-log-dev"
+
+[[queues.consumers]]
+queue = "audit-log-dev"
+max_concurrency = 1          # single writer → linear hash chain (see ADR-0009)
+max_batch_size = 100
+max_batch_timeout = 5
+max_retries = 5
+dead_letter_queue = "audit-log-dlq-dev"
+
+[[r2_buckets]]
+binding = "AUDIT_R2"
+bucket_name = "gst-mcp-audit-dev"
 
 # ---------------------------------------------------------------------------
 # Cloudflare Workers Observability — persistent logs + traces (BL-032.77)
@@ -145,6 +195,34 @@ ENV_NAME = "staging"
 binding = "METRICS"
 dataset = "mcp_events_staging"
 
+# OAuth KV — staging namespace (BL-033 Slice 2; created 2026-07-24 via
+# `wrangler kv namespace create OAUTH_KV --env staging`).
+[[env.staging.kv_namespaces]]
+binding = "OAUTH_KV"
+id = "580b8f1f9067410b93d6f1faa3edfed0"
+
+# Compliance audit log — staging Queue + R2 (BL-033 Slice 3a). Provision
+# BEFORE this merges (staging auto-deploys): `wrangler queues create
+# audit-log-staging` + `... audit-log-dlq-staging` + `wrangler r2 bucket
+# create gst-mcp-audit-staging` (then add a Bucket Lock rule at 7yr retention
+# in the R2 dashboard; versioning not needed — create-only writes). See
+# src/docs/operations/AUDIT_LOG.md.
+[[env.staging.queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-log-staging"
+
+[[env.staging.queues.consumers]]
+queue = "audit-log-staging"
+max_concurrency = 1
+max_batch_size = 100
+max_batch_timeout = 5
+max_retries = 5
+dead_letter_queue = "audit-log-dlq-staging"
+
+[[env.staging.r2_buckets]]
+binding = "AUDIT_R2"
+bucket_name = "gst-mcp-audit-staging"
+
 # Staging deliberately has NO cron trigger.
 #
 # Staging exists to validate code changes, not to keep caches warm.
@@ -179,7 +257,11 @@ dataset = "mcp_events_staging"
 [env.production]
 name = "gst-mcp"
 routes = [
-  { pattern = "mcp.globalstrategic.tech", custom_domain = true }
+  { pattern = "mcp.globalstrategic.tech", custom_domain = true },
+  # BL-033 Slice 4 — dedicated status subdomain. custom_domain auto-provisions
+  # the DNS record + edge cert on deploy (the zone is already on Cloudflare).
+  # worker.ts serves the status page at this subdomain's root (`/`).
+  { pattern = "status.mcp.globalstrategic.tech", custom_domain = true }
 ]
 
 # Environment discriminator — see staging block for rationale.
@@ -192,6 +274,34 @@ ENV_NAME = "production"
 [[env.production.analytics_engine_datasets]]
 binding = "METRICS"
 dataset = "mcp_events"
+
+# OAuth KV — production namespace (BL-033 Slice 2; created 2026-07-24 via
+# `wrangler kv namespace create OAUTH_KV --env production`).
+[[env.production.kv_namespaces]]
+binding = "OAUTH_KV"
+id = "13c9e9f590244408ab7fe8cdf650766d"
+
+# Compliance audit log — production Queue + R2 (BL-033 Slice 3a). Provision
+# BEFORE the production deploy runs: `wrangler queues create
+# audit-log-production` + `... audit-log-dlq-production` + `wrangler r2 bucket
+# create gst-mcp-audit-production` (then add a Bucket Lock rule at 7yr SEC
+# 17a-4 retention in the R2 dashboard; versioning not needed — create-only
+# writes). See src/docs/operations/AUDIT_LOG.md.
+[[env.production.queues.producers]]
+binding = "AUDIT_QUEUE"
+queue = "audit-log-production"
+
+[[env.production.queues.consumers]]
+queue = "audit-log-production"
+max_concurrency = 1
+max_batch_size = 100
+max_batch_timeout = 5
+max_retries = 5
+dead_letter_queue = "audit-log-dlq-production"
+
+[[env.production.r2_buckets]]
+binding = "AUDIT_R2"
+bucket_name = "gst-mcp-audit-production"
 
 # Radar snapshot refresh — cadence calibrated to cache TTL.
 #

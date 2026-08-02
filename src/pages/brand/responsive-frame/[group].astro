@@ -2,14 +2,32 @@
 /**
  * Minimal page for embedding in iframes on the brand page.
  * Renders component specimens without header/footer for responsive demos.
- * Query params: ?group=cards|tabs|form|shell
+ *
+ * One prerendered page per group: /brand/responsive-frame/{cards,tabs,form,shell}/
+ *
+ * BL-097: this used to be a single page reading `?group=` from the query string.
+ * The site is static output, so it was prerendered once and the param was never
+ * available — all 12 frames rendered the `cards` default while their labels
+ * claimed four different groups. Query params cannot drive a static route; the
+ * group has to be part of the path.
+ *
+ * Moving the URL also moves what `SAME_ORIGIN_FRAMEABLE` (src/middleware.ts) and
+ * vercel.json's framing rule match on — see SECURITY_HEADERS.md § Route Exceptions.
  */
-import '../../styles/variables.css';
-import '../../styles/typography.css';
-import '../../styles/interactions.css';
-import '../../styles/global.css';
+import '../../../styles/variables.css';
+import '../../../styles/typography.css';
+import '../../../styles/interactions.css';
+import '../../../styles/global.css';
+import {
+  RESPONSIVE_DEMO_GROUPS,
+  type ResponsiveDemoGroup,
+} from '../../../utils/responsive-demo-groups';
 
-const group = Astro.url.searchParams.get('group') || 'cards';
+export function getStaticPaths() {
+  return RESPONSIVE_DEMO_GROUPS.map((group) => ({ params: { group } }));
+}
+
+const { group } = Astro.params as { group: ResponsiveDemoGroup };
 ---
 
 <html lang="en">
@@ -77,10 +95,18 @@ const group = Astro.url.searchParams.get('group') || 'cards';
       group === 'form' && (
         <div style="max-width: 100%;">
           <div class="brutal-field">
-            <label class="brutal-field__label">
+            {/* `for`/`id` pair: this specimen never rendered before BL-097, so the
+                missing association shipped unseen. /brand is the control example
+                every session is told to copy from. */}
+            <label class="brutal-field__label" for="resp-frame-company">
               Company name <span class="brutal-field__req">(required)</span>
             </label>
-            <input class="brutal-field__input" type="text" placeholder="Enter company name" />
+            <input
+              class="brutal-field__input"
+              id="resp-frame-company"
+              type="text"
+              placeholder="Enter company name"
+            />
           </div>
           <div style="display: flex; gap: var(--gap-normal); flex-wrap: wrap;">
             <button class="brutal-btn brutal-btn--primary">Submit</button>
@@ -103,8 +129,12 @@ const group = Astro.url.searchParams.get('group') || 'cards';
     }
 
     <script>
-      // Sync theme with parent frame
+      // Sync theme with parent frame. The origin check is required, not defensive
+      // hygiene: this page is now framable same-origin (see SECURITY_HEADERS.md §
+      // Route Exceptions), and any cross-origin window that opens it could
+      // otherwise post to it.
       window.addEventListener('message', (e) => {
+        if (e.origin !== window.location.origin) return;
         if (e.data?.type === 'theme-sync') {
           document.documentElement.classList.toggle('dark-theme', e.data.dark);
         }

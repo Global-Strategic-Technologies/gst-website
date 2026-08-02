@@ -20,6 +20,7 @@ const { mockRules, mockPostEvent, mockPostCheckIn, mockCreateMcpClient, mockEmit
 vi.mock('../../../src/observability/alert-rules', () => ({
   ALERT_RULES: mockRules,
   COOLDOWN_SECONDS: { page: 7200, ticket: 21600 },
+  datasetForEnv: () => 'mcp_events',
 }));
 vi.mock('../../../src/observability/sentry-envelope', () => ({
   postSentryEvent: mockPostEvent,
@@ -57,9 +58,11 @@ const healthy = () =>
 
 const stubRedis = (setResult: 'OK' | null = 'OK') => {
   const set = vi.fn().mockResolvedValue(setResult);
-  const client = { set } as never;
+  // `get` is used by the BL-033 Slice 4 status-metrics precompute (chain tip).
+  const get = vi.fn().mockResolvedValue(null);
+  const client = { set, get } as never;
   mockCreateMcpClient.mockReturnValue(client);
-  return { set };
+  return { set, get };
 };
 
 const ENV = { ENV_NAME: 'production', METRICS: {} } as unknown as Env;
@@ -171,6 +174,21 @@ describe('runAlertEvaluation', () => {
         outcome: 'success',
       })
     );
+  });
+
+  it('precomputes + caches the /status metrics in the same run (BL-033 Slice 4)', async () => {
+    const { set } = stubRedis('OK');
+    mockRules.push(makeRule('health-check-failing', healthy));
+
+    await runAlertEvaluation(ENV, { now: NOW });
+
+    const metricsWrite = set.mock.calls.find((c) => c[0] === 'mcp:status:metrics:production');
+    expect(metricsWrite).toBeDefined();
+    // The blob carries the three top-level fields the /status panels read.
+    expect(JSON.parse(metricsWrite![1] as string)).toMatchObject({
+      evaluatedAt: expect.any(String),
+      audit: expect.any(Object),
+    });
   });
 
   it('never throws even when Upstash and Sentry are both unavailable', async () => {

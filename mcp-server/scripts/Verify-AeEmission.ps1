@@ -21,6 +21,13 @@
 .PARAMETER WindowHours
     Lookback window in hours. Defaults to 24.
 
+.PARAMETER Detailed
+    Additionally print an `inoreader_call` breakdown grouped by
+    (name, outcome, status_code, zone1) — the blob2/blob4/blob6/blob7
+    columns. Use when characterizing Inoreader-egress anomalies (which
+    calls, what outcomes/status codes, Zone-1 vs not); referenced from the
+    `inoreader-budget-exhausted` runbook.
+
 .EXAMPLE
     PS> $env:CF_AE_TOKEN = '<token>'
     PS> $env:CLOUDFLARE_ACCOUNT_ID = '<account id>'
@@ -28,6 +35,10 @@
 
 .EXAMPLE
     PS> .\scripts\Verify-AeEmission.ps1 -Env production -WindowHours 6
+
+.EXAMPLE
+    # Per-status/Zone-1 breakdown of the Inoreader egress (budget triage)
+    PS> .\scripts\Verify-AeEmission.ps1 -Env production -WindowHours 6 -Detailed
 
 .NOTES
     Requires `$env:CF_AE_TOKEN` (Account | Account Analytics | Read) and
@@ -41,7 +52,12 @@ param(
     [string]$Env = 'both',
 
     [ValidateRange(1, 168)]
-    [int]$WindowHours = 24
+    [int]$WindowHours = 24,
+
+    # When set, additionally print an inoreader_call breakdown grouped by
+    # (name, outcome, status_code, zone1) — useful for Phase 1 Step 6
+    # post-deploy verification of the blob6/blob7 emission.
+    [switch]$Detailed
 )
 
 $ErrorActionPreference = 'Stop'
@@ -102,4 +118,29 @@ FORMAT JSON
     $response.data |
         Select-Object event_type, name, outcome, @{Name='n'; Expression={[int]$_.n}} |
         Format-Table -AutoSize
+
+    if ($Detailed) {
+        Write-Host "  --- inoreader_call detail (name, outcome, status_code, zone1) ---" -ForegroundColor DarkCyan
+        $detailSql = @"
+SELECT blob2 AS name, blob4 AS outcome, blob6 AS status_code, blob7 AS zone1, count() AS n
+FROM $dataset
+WHERE blob1 = 'inoreader_call' AND timestamp > NOW() - INTERVAL '$WindowHours' HOUR
+GROUP BY blob2, blob4, blob6, blob7
+ORDER BY n DESC
+FORMAT JSON
+"@
+        try {
+            $detail = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $detailSql
+        } catch {
+            Write-Host "  Detail query failed: $_" -ForegroundColor Red
+            continue
+        }
+        if (-not $detail.data -or $detail.data.Count -eq 0) {
+            Write-Host "  (no inoreader_call rows in window)" -ForegroundColor Yellow
+        } else {
+            $detail.data |
+                Select-Object name, outcome, status_code, zone1, @{Name='n'; Expression={[int]$_.n}} |
+                Format-Table -AutoSize
+        }
+    }
 }

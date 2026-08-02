@@ -2,19 +2,23 @@
 
 Complete catalog of all CSS custom properties defined in `src/styles/variables.css`. Use this when styling components.
 
-**Source of truth**: `src/styles/variables.css` — 160 variables in `:root`, 85 dark theme overrides in `html.dark-theme`.
+**Source of truth**: `src/styles/variables.css`. This reference is kept in exact parity with it by `tests/integration/docs-variables-sync.test.ts` (run via `npm run test:docs`) — every `:root` token must be documented here, and every documented token must exist there.
 
 ---
 
 ## Primary Colors
 
-| Variable                 | Value                                | Usage                                                   |
-| ------------------------ | ------------------------------------ | ------------------------------------------------------- |
-| `--color-primary`        | `#05cd99`                            | Primary accent — links, borders, buttons, active states |
-| `--color-primary-rgb`    | `5, 205, 153`                        | Base RGB triplet — used by the opacity scale below      |
-| `--color-primary-dark`   | `#04a87a`                            | Darker shade for emphasis                               |
-| `--color-secondary`      | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber)                                |
-| `--color-secondary-dark` | `#FFAA33`                            | Secondary dark variant                                  |
+| Variable                     | Value                                | Usage                                                   |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------- |
+| `--color-primary`            | `#05cd99`                            | Primary accent — links, borders, buttons, active states |
+| `--color-primary-rgb`        | `5, 205, 153`                        | Base RGB triplet — used by the opacity scale below      |
+| `--color-primary-dark`       | `#04a87a`                            | Darker shade for emphasis                               |
+| `--color-secondary`          | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber)                                |
+| `--color-secondary-dark`     | `#ffaa33`                            | Secondary dark variant                                  |
+| `--color-tertiary`           | `#02724f` (light) / `#05cd99` (dark) | Tertiary accent (deep teal)                             |
+| `--color-tertiary-dark`      | `#01633f` (light) / `#04a87a` (dark) | Tertiary dark variant                                   |
+| `--color-editors-pick`       | `#b26622` (light) / `#d4923a` (dark) | Editor's Pick accent                                    |
+| `--color-editors-pick-hover` | `#d4923a` (light) / `#b26622` (dark) | Editor's Pick hover state (inverted)                    |
 
 ## Primary Color Opacity Scale
 
@@ -71,53 +75,91 @@ Shared status colors for cross-tool consistency. See [BRAND_GUIDELINES.md — Se
 
 Use these in all new code. They auto-switch in dark theme.
 
-| Variable           | Light Value            | Dark Value                | Usage                                                                                                                     |
-| ------------------ | ---------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `--text-primary`   | `rgba(26,26,26, 0.95)` | `rgba(245,245,245, 0.95)` | Headings, primary text                                                                                                    |
-| `--text-secondary` | `rgba(26,26,26, 0.7)`  | `rgba(200,200,200, 0.8)`  | Body text, descriptions                                                                                                   |
-| `--text-muted`     | `rgba(26,26,26, 0.6)`  | `rgba(200,200,200, 0.6)`  | Labels, captions                                                                                                          |
-| `--text-muted`     | `rgba(26,26,26, 0.6)`  | `rgba(200,200,200, 0.6)`  | Disabled, placeholders (large text only — see [contrast requirements](./BRAND_GUIDELINES.md#color-contrast-requirements)) |
+| Variable           | Light Value              | Dark Value                  | Usage                                                                                                                                              |
+| ------------------ | ------------------------ | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--text-primary`   | `rgba(26, 26, 26, 0.95)` | `rgba(245, 245, 245, 0.95)` | Headings, primary text                                                                                                                             |
+| `--text-secondary` | `rgba(26, 26, 26, 0.7)`  | `rgba(200, 200, 200, 0.8)`  | Body text, descriptions                                                                                                                            |
+| `--text-muted`     | `rgba(26, 26, 26, 0.65)` | `rgba(200, 200, 200, 0.6)`  | Labels, captions, disabled states, placeholders (large text only — see [contrast requirements](./BRAND_GUIDELINES.md#color-contrast-requirements)) |
 
 > Components reference `--text-primary` etc. and get dark values automatically. No dark theme overrides needed for text colors.
 
 ### Legacy Theme-Specific Variables (still available)
 
-| Variable                 | Value                     | When to use                                             |
-| ------------------------ | ------------------------- | ------------------------------------------------------- |
-| `--text-light-primary`   | `rgba(26,26,26, 0.95)`    | Force light-theme text color regardless of active theme |
-| `--text-light-secondary` | `rgba(26,26,26, 0.7)`     | Force light-theme text color                            |
-| `--text-light-muted`     | `rgba(26,26,26, 0.6)`     | Force light-theme text color                            |
-| `--text-light-faded`     | `rgba(26,26,26, 0.6)`     | Force light-theme text color                            |
-| `--text-dark-primary`    | `rgba(245,245,245, 0.95)` | Force dark-theme text color (e.g., text on dark card)   |
-| `--text-dark-secondary`  | `rgba(200,200,200, 0.8)`  | Force dark-theme text color                             |
-| `--text-dark-muted`      | `rgba(200,200,200, 0.6)`  | Force dark-theme text color                             |
-| `--text-dark-faded`      | `rgba(200,200,200, 0.6)`  | Force dark-theme text color                             |
+| Variable                 | Value                       | When to use                                             |
+| ------------------------ | --------------------------- | ------------------------------------------------------- |
+| `--text-light-primary`   | `rgba(26, 26, 26, 0.95)`    | Force light-theme text color regardless of active theme |
+| `--text-light-secondary` | `rgba(26, 26, 26, 0.7)`     | Force light-theme text color                            |
+| `--text-light-muted`     | `rgba(26, 26, 26, 0.65)`    | Force light-theme text color                            |
+| `--text-dark-primary`    | `rgba(245, 245, 245, 0.95)` | Force dark-theme text color (e.g., text on dark card)   |
+| `--text-dark-secondary`  | `rgba(200, 200, 200, 0.8)`  | Force dark-theme text color                             |
+| `--text-dark-muted`      | `rgba(200, 200, 200, 0.6)`  | Force dark-theme text color                             |
 
-> `--text-light-*` also auto-switch in dark theme (legacy behavior). Prefer `--text-*` for clarity.
+> `--text-light-*` and `--text-dark-*` are static per-theme constants — they do **not** switch with the active theme. Prefer the `--text-*` aliases for anything theme-aware.
 
 ## Borders & Accents
 
-| Variable                  | Value                                 | Usage                        |
-| ------------------------- | ------------------------------------- | ---------------------------- |
-| `--border-light`          | `rgba(26,26,26, 0.1)`                 | Subtle borders (light theme) |
-| `--border-dark`           | `var(--color-primary-20)`             | Teal borders (dark theme)    |
-| `--accent-subtle-bg`      | `var(--color-primary-02)` / `03` dark | Ultra-subtle accent fill     |
-| `--accent-wash-bg`        | `var(--color-primary-03)` / `04` dark | Wash-level accent fill       |
-| `--accent-faint-bg`       | `var(--color-primary-04)` / `05` dark | Faint accent fill            |
-| `--accent-tint-bg`        | `var(--color-primary-06)` / `08` dark | Tint-level accent fill       |
-| `--accent-light-bg`       | `var(--color-primary-08)`             | Light accent background      |
-| `--accent-light-bg-hover` | `var(--color-primary-15)`             | Accent background on hover   |
-| `--accent-dark-bg`        | `var(--color-primary-10)`             | Darker accent background     |
-| `--accent-border-light`   | `var(--color-primary-25)`             | Subtle accent borders        |
-| `--accent-border-medium`  | `var(--color-primary-30)`             | Medium accent borders        |
+| Variable                  | Value                                                           | Usage                                                                 |
+| ------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `--border-light`          | `rgba(26, 26, 26, 0.1)`                                         | Subtle borders (light theme)                                          |
+| `--border-dark`           | `var(--color-primary-20)`                                       | Teal borders (dark theme)                                             |
+| `--border-hairline`       | `light-dark(rgba(26, 26, 26, 0.12), rgba(255, 255, 255, 0.08))` | Neutral theme-switched hairline — sub-pixel SVG strokes, 1px dividers |
+| `--accent-subtle-bg`      | `var(--color-primary-02)` / `03` dark                           | Ultra-subtle accent fill                                              |
+| `--accent-wash-bg`        | `var(--color-primary-03)` / `04` dark                           | Wash-level accent fill                                                |
+| `--accent-faint-bg`       | `var(--color-primary-04)` / `05` dark                           | Faint accent fill                                                     |
+| `--accent-tint-bg`        | `var(--color-primary-06)` / `08` dark                           | Tint-level accent fill                                                |
+| `--accent-light-bg`       | `var(--color-primary-08)`                                       | Light accent background                                               |
+| `--accent-light-bg-hover` | `var(--color-primary-15)`                                       | Accent background on hover                                            |
+| `--accent-dark-bg`        | `var(--color-primary-10)`                                       | Darker accent background                                              |
+| `--accent-border-light`   | `var(--color-primary-25)`                                       | Subtle accent borders                                                 |
+| `--accent-border-medium`  | `var(--color-primary-30)`                                       | Medium accent borders                                                 |
 
 ### Dark Border Scale (dark theme only)
 
-| Variable                  | Value                     | Usage                                     |
-| ------------------------- | ------------------------- | ----------------------------------------- |
-| `--border-dark-subtle`    | `rgba(255,255,255, 0.10)` | Subtle separators, inset shadows          |
-| `--border-dark-default`   | `rgba(255,255,255, 0.15)` | Standard dark-theme borders (most common) |
-| `--border-dark-prominent` | `rgba(255,255,255, 0.20)` | Emphasized borders, hover states          |
+| Variable                  | Value                       | Usage                                     |
+| ------------------------- | --------------------------- | ----------------------------------------- |
+| `--border-dark-subtle`    | `rgba(255, 255, 255, 0.1)`  | Subtle separators, inset shadows          |
+| `--border-dark-default`   | `rgba(255, 255, 255, 0.15)` | Standard dark-theme borders (most common) |
+| `--border-dark-prominent` | `rgba(255, 255, 255, 0.2)`  | Emphasized borders, hover states          |
+
+## Neutral Surface Tints
+
+Theme-switched wash backgrounds for layered surfaces. Distinct from the `--accent-*-bg` family above, which is primary-derived and shifts with the palette; these are neutral and do not. Ordered lightest → heaviest.
+
+| Variable               | Value                                                              | Usage                                             |
+| ---------------------- | ------------------------------------------------------------------ | ------------------------------------------------- |
+| `--surface-faint-bg`   | `light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005))`     | Barely-there tool shell / bench section wash      |
+| `--surface-subtle-bg`  | `light-dark(rgba(0, 0, 0, 0.02), rgba(200, 220, 255, 0.03))`       | Card and form-control resting background          |
+| `--surface-sheen-bg`   | `light-dark(transparent, rgba(200, 220, 255, 0.03))`               | Blur-only frosted sheen (no light-theme tint)     |
+| `--surface-input-bg`   | `light-dark(transparent, rgba(255, 255, 255, 0.04))`               | Text input interior                               |
+| `--surface-tint-bg`    | `light-dark(rgba(26, 26, 26, 0.05), rgba(255, 255, 255, 0.05))`    | Map/panel inset regions                           |
+| `--surface-neutral-bg` | `light-dark(rgba(26, 26, 26, 0.08), rgba(255, 255, 255, 0.06))`    | Map graticule fills, neutral chart surfaces       |
+| `--surface-muted-bg`   | `light-dark(rgba(200, 200, 200, 0.08), rgba(200, 200, 200, 0.04))` | Disabled / de-emphasized card states              |
+| `--surface-veil-bg`    | `light-dark(rgba(255, 255, 255, 0.75), rgba(20, 20, 20, 0.6))`     | Heavy frosted glass (`.brutal-frosted--heavy`)    |
+| `--surface-panel-bg`   | `light-dark(rgba(255, 255, 255, 0.85), rgba(10, 10, 10, 0.85))`    | Sticky tool action bars                           |
+| `--surface-overlay-bg` | `light-dark(rgba(245, 245, 245, 0.92), rgba(20, 20, 20, 0.92))`    | Modal/panel overlays (`.brutal-frosted--overlay`) |
+
+### Frosted-Glass Edge Treatment
+
+The inset highlight + hairline edge pair applied to every frosted surface — see [STYLES_GUIDE.md § Frosted Glass](./STYLES_GUIDE.md).
+
+| Variable            | Value                                                              | Usage                               |
+| ------------------- | ------------------------------------------------------------------ | ----------------------------------- |
+| `--frost-highlight` | `light-dark(rgba(255, 255, 255, 0.12), var(--border-dark-subtle))` | `inset 0 1px 0` wet-glass highlight |
+| `--frost-edge`      | `light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05))`       | `0 0 0 1px` hairline edge           |
+
+### Scrims
+
+Neutral black at fixed alpha, for modal backdrops, drawer shadows and inset depth. Deliberately **not** theme-switched — a scrim is black in both themes. Named by alpha, mirroring the `--color-primary-NN` opacity scale.
+
+| Variable          | Value                      | Usage                                       |
+| ----------------- | -------------------------- | ------------------------------------------- |
+| `--scrim-15`      | `rgba(0, 0, 0, 0.15)`      | Light-theme drawer shadow                   |
+| `--scrim-20`      | `rgba(0, 0, 0, 0.2)`       | Inset input depth (dark theme)              |
+| `--scrim-30`      | `rgba(0, 0, 0, 0.3)`       | Filter overlay backdrop                     |
+| `--scrim-40`      | `rgba(0, 0, 0, 0.4)`       | Dark-theme drawer/panel shadow, panel scrim |
+| `--scrim-50`      | `rgba(0, 0, 0, 0.5)`       | Modal backdrop                              |
+| `--scrim-60`      | `rgba(0, 0, 0, 0.6)`       | Heavy modal backdrop                        |
+| `--panel-grip-bg` | `rgba(128, 128, 128, 0.4)` | Palette-panel drag handle                   |
 
 ## Spacing Scale
 
@@ -131,6 +173,12 @@ Use these in all new code. They auto-switch in dark theme.
 | `--spacing-2xl`   | `2rem`    | 32px                  |
 | `--spacing-2_5xl` | `2.5rem`  | 40px                  |
 | `--spacing-3xl`   | `3rem`    | 48px                  |
+
+## Touch Targets
+
+| Variable             | Value  | Usage                                                                                                                                                         |
+| -------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--touch-target-min` | `44px` | WCAG 2.5.5 (AAA) minimum for interactive controls. A floor, not a fixed size — components may sit above it; page-local overrides must never resolve below it. |
 
 ## Gap Variables
 
@@ -146,15 +194,18 @@ Use these in all new code. They auto-switch in dark theme.
 | Variable                 | Value                                 |
 | ------------------------ | ------------------------------------- |
 | `--font-family`          | `'Helvetica Neue', Arial, sans-serif` |
+| `--font-family-mono`     | `monospace`                           |
 | `--font-weight-normal`   | `400`                                 |
 | `--font-weight-semibold` | `600`                                 |
 | `--font-weight-bold`     | `700`                                 |
+| `--text-2xs`             | `0.65rem` (10.4px)                    |
 | `--text-xs`              | `0.75rem` (12px)                      |
 | `--text-sm`              | `0.875rem` (14px)                     |
 | `--text-base`            | `1rem` (16px)                         |
 | `--text-lg`              | `1.1rem` (17.6px)                     |
 | `--text-xl`              | `1.25rem` (20px)                      |
 | `--text-2xl`             | `1.5rem` (24px)                       |
+| `--text-3xl`             | `2rem` (32px)                         |
 
 ## Transitions
 
@@ -166,11 +217,29 @@ Use these in all new code. They auto-switch in dark theme.
 
 ## Shadows
 
-| Variable      | Value                           | Usage                    |
-| ------------- | ------------------------------- | ------------------------ |
-| `--shadow-sm` | `0 2px 8px rgba(0,0,0, 0.1)`    | Subtle elevation         |
-| `--shadow-md` | `0 4px 12px rgba(0,0,0, 0.15)`  | Medium elevation         |
-| `--shadow-lg` | `-4px 0 20px rgba(0,0,0, 0.15)` | Large elevation (drawer) |
+| Variable      | Value                             | Usage                    |
+| ------------- | --------------------------------- | ------------------------ |
+| `--shadow-sm` | `0 2px 8px rgba(0, 0, 0, 0.1)`    | Subtle elevation         |
+| `--shadow-md` | `0 4px 12px rgba(0, 0, 0, 0.15)`  | Medium elevation         |
+| `--shadow-lg` | `-4px 0 20px rgba(0, 0, 0, 0.15)` | Large elevation (drawer) |
+
+## Z-Index Scale
+
+Canonical stacking tiers — use these instead of raw numeric `z-index` values. Higher value → higher in the stack. Tool-internal layers (map annotations, chart overlays) may use direct values for contextual reasons; prefer the variables otherwise.
+
+| Variable               | Value   | Usage                                           |
+| ---------------------- | ------- | ----------------------------------------------- |
+| `--z-negative`         | `-1`    | Behind content (`body::before` background grid) |
+| `--z-base`             | `1`     | Normal content stacking                         |
+| `--z-raised`           | `5`     | Tool content layers (maps, charts)              |
+| `--z-sticky`           | `10`    | Sticky headers, dropdowns anchored to content   |
+| `--z-dropdown`         | `20`    | Floating menus, dropdowns                       |
+| `--z-palette-panel`    | `30`    | Palette panel (`brand.astro`)                   |
+| `--z-overlay`          | `50`    | General overlays                                |
+| `--z-compliance-panel` | `60`    | Regulatory map compliance panel                 |
+| `--z-modal`            | `1000`  | Modal base                                      |
+| `--z-modal-overlay`    | `1001`  | Modal backdrop                                  |
+| `--z-skip-nav`         | `10000` | Skip-nav link (top of page)                     |
 
 ---
 
@@ -194,8 +263,10 @@ These variables exist for page sections and UI components that need distinct lig
 | ----------------------------- | ------------------------- | -------------------------- |
 | `--filter-chip-bg`            | `rgba(26,26,26, 0.05)`    | `var(--color-primary-10)`  |
 | `--filter-chip-bg-hover`      | `rgba(26,26,26, 0.08)`    | `var(--color-primary-15)`  |
+| `--filter-chip-bg-active`     | `#02724f`                 | `#05cd99`                  |
 | `--filter-chip-border`        | `rgba(26,26,26, 0.1)`     | `var(--color-primary-20)`  |
 | `--filter-chip-text`          | `rgba(26,26,26, 0.7)`     | `rgba(200,200,200, 0.8)`   |
+| `--filter-chip-text-active`   | `#ffffff`                 | `#0a0a0a`                  |
 | `--filter-button-bg`          | `rgba(26,26,26, 0.05)`    | `var(--color-primary-10)`  |
 | `--filter-button-bg-hover`    | `rgba(26,26,26, 0.08)`    | `var(--color-primary-15)`  |
 | `--filter-button-border`      | `rgba(26,26,26, 0.1)`     | `var(--color-primary-20)`  |
@@ -233,35 +304,51 @@ These variables exist for page sections and UI components that need distinct lig
 
 ---
 
+## Expanded Palette Tokens
+
+Purpose-named base tokens that all tool-domain variables (TechPar, Diligence Machine, ICG, Regulatory Map) derive from. The `-rgb` triplets are the only tokens still overridden in `html.dark-theme` — RGB triplets are not `<color>` values, so `light-dark()` cannot express them.
+
+| Variable                | Light                       | Dark                        | Usage                                                            |
+| ----------------------- | --------------------------- | --------------------------- | ---------------------------------------------------------------- |
+| `--color-authority`     | `#5b7a9d`                   | `#7a9dbd`                   | Authority/expertise accent (institutional credibility)           |
+| `--color-authority-rgb` | `91, 122, 157`              | `122, 157, 189`             | RGB triplet for `rgba()` usage (dark value in `html.dark-theme`) |
+| `--color-authority-bg`  | `rgba(91, 122, 157, 0.1)`   | `rgba(122, 157, 189, 0.1)`  | Authority theme background                                       |
+| `--color-distinguish`   | `#8b5cf6`                   | `#a78bfa`                   | Differentiation accent                                           |
+| `--color-subdued`       | `#8c7a6b`                   | `#a89888`                   | Muted neutral accent                                             |
+| `--color-subdued-rgb`   | `140, 122, 107`             | `168, 152, 136`             | RGB triplet for `rgba()` usage (dark value in `html.dark-theme`) |
+| `--color-subdued-bg`    | `rgba(140, 122, 107, 0.04)` | `rgba(168, 152, 136, 0.06)` | Subdued theme background                                         |
+
+---
+
 ## TechPar Variables
 
-Domain-specific variables for the TechPar tool. Defined in `variables.css` lines 116-150 with dark theme overrides at lines 204-229.
+Domain-specific variables for the TechPar tool, defined in `variables.css`. Zone, category, and KPI tokens derive from the core semantic tokens via `var(...)`; background and chart tokens carry their own `light-dark()` values.
 
 ### Zone Colors
 
 | Variable                        | Light                     | Dark                       | Usage                              |
 | ------------------------------- | ------------------------- | -------------------------- | ---------------------------------- |
-| `--techpar-zone-underinvest`    | `#CC8800`                 | `#FFAA33`                  | Under-investment zone label/border |
+| `--techpar-zone-underinvest`    | `var(--color-warning)`    | _(inherits)_               | Under-investment zone label/border |
 | `--techpar-zone-underinvest-bg` | `rgba(204, 136, 0, 0.08)` | `rgba(255, 170, 51, 0.09)` | Under-investment zone background   |
-| `--techpar-zone-ahead`          | `#2ea84e`                 | `#2ea84e`                  | Ahead-of-peers zone label/border   |
+| `--techpar-zone-ahead`          | `var(--color-success)`    | _(inherits)_               | Ahead-of-peers zone label/border   |
 | `--techpar-zone-ahead-bg`       | `rgba(46, 168, 78, 0.08)` | `rgba(46, 168, 78, 0.09)`  | Ahead zone background              |
 | `--techpar-zone-healthy`        | `var(--color-primary)`    | _(inherits)_               | Healthy zone label/border          |
 | `--techpar-zone-healthy-bg`     | `var(--accent-light-bg)`  | _(inherits)_               | Healthy zone background            |
-| `--techpar-zone-above`          | `#CC8800`                 | `#FFAA33`                  | Above-average zone label/border    |
+| `--techpar-zone-above`          | `var(--color-warning)`    | _(inherits)_               | Above-average zone label/border    |
 | `--techpar-zone-above-bg`       | `rgba(204, 136, 0, 0.08)` | `rgba(255, 170, 51, 0.09)` | Above-average zone background      |
-| `--techpar-zone-elevated`       | `#d93636`                 | `#e05050`                  | Elevated risk zone label/border    |
+| `--techpar-zone-elevated`       | `var(--color-error)`      | _(inherits)_               | Elevated risk zone label/border    |
 | `--techpar-zone-elevated-bg`    | `rgba(217, 54, 54, 0.08)` | `rgba(224, 80, 80, 0.09)`  | Elevated risk zone background      |
-| `--techpar-zone-critical`       | `#b82e2e`                 | `#e05050`                  | Critical risk zone label/border    |
+| `--techpar-zone-critical`       | `var(--color-error)`      | _(inherits)_               | Critical risk zone label/border    |
 | `--techpar-zone-critical-bg`    | `rgba(184, 46, 46, 0.08)` | `rgba(224, 80, 80, 0.09)`  | Critical risk zone background      |
 
 ### Category Colors
 
-| Variable                       | Light                    | Dark            | Usage                         |
-| ------------------------------ | ------------------------ | --------------- | ----------------------------- |
-| `--techpar-category-infra`     | `var(--color-primary)`   | _(inherits)_    | Infrastructure spend category |
-| `--techpar-category-personnel` | `#3b82f6`                | _(no override)_ | Personnel spend category      |
-| `--techpar-category-rd-opex`   | `#8b5cf6`                | _(no override)_ | R&D OpEx spend category       |
-| `--techpar-category-rd-capex`  | `var(--color-secondary)` | _(inherits)_    | R&D CapEx spend category      |
+| Variable                       | Light                      | Dark         | Usage                         |
+| ------------------------------ | -------------------------- | ------------ | ----------------------------- |
+| `--techpar-category-infra`     | `var(--color-primary)`     | _(inherits)_ | Infrastructure spend category |
+| `--techpar-category-personnel` | `var(--color-authority)`   | _(inherits)_ | Personnel spend category      |
+| `--techpar-category-rd-opex`   | `var(--color-distinguish)` | _(inherits)_ | R&D OpEx spend category       |
+| `--techpar-category-rd-capex`  | `var(--color-secondary)`   | _(inherits)_ | R&D CapEx spend category      |
 
 ### Chart Colors
 
@@ -282,8 +369,8 @@ Domain-specific variables for the TechPar tool. Defined in `variables.css` lines
 | Variable                 | Light                  | Dark         | Usage                  |
 | ------------------------ | ---------------------- | ------------ | ---------------------- |
 | `--techpar-kpi-positive` | `var(--color-primary)` | _(inherits)_ | Positive KPI indicator |
-| `--techpar-kpi-warn`     | `#CC8800`              | `#FFAA33`    | Warning KPI indicator  |
-| `--techpar-kpi-negative` | `#d93636`              | `#e05050`    | Negative KPI indicator |
+| `--techpar-kpi-warn`     | `var(--color-warning)` | _(inherits)_ | Warning KPI indicator  |
+| `--techpar-kpi-negative` | `var(--color-error)`   | _(inherits)_ | Negative KPI indicator |
 
 ---
 
@@ -293,44 +380,44 @@ Cross-tool semantic colors shared by multiple hub tools.
 
 ### Shared Colors
 
-| Variable                  | Light                     | Dark                       | Usage                                      |
-| ------------------------- | ------------------------- | -------------------------- | ------------------------------------------ |
-| `--hub-authority-blue`    | `#5b7a9d`                 | `#7a9dbd`                  | Authority/expertise theme color (DM + ICG) |
-| `--hub-authority-blue-bg` | `rgba(91, 122, 157, 0.1)` | `rgba(122, 157, 189, 0.1)` | Authority theme background                 |
+| Variable               | Light                    | Dark         | Usage                                      |
+| ---------------------- | ------------------------ | ------------ | ------------------------------------------ |
+| `--hub-authority-blue` | `var(--color-authority)` | _(inherits)_ | Authority/expertise theme color (DM + ICG) |
+
+> Background variant: use `--color-authority-bg` (see [Expanded Palette Tokens](#expanded-palette-tokens)).
 
 ### Diligence Machine Domain Colors
 
-| Variable                    | Light                       | Dark                        | Usage                         |
-| --------------------------- | --------------------------- | --------------------------- | ----------------------------- |
-| `--dm-methodology-brown`    | `#8c7a6b`                   | `#a89888`                   | Methodology theme color       |
-| `--dm-methodology-brown-bg` | `rgba(140, 122, 107, 0.04)` | `rgba(140, 122, 107, 0.06)` | Methodology theme background  |
-| `--dm-results-blue`         | `#7a9dbd`                   | `#9dbde0`                   | Results theme accent          |
-| `--dm-results-tan`          | `#a89888`                   | `#c0b0a0`                   | Results theme secondary       |
-| `--dm-positive`             | `#4cba7a`                   | `#4cba7a`                   | Positive indicator            |
-| `--dm-negative`             | `#e06060`                   | `#e06060`                   | Negative/red flag indicator   |
-| `--dm-negative-dark`        | `#b22222`                   | `#b22222`                   | Strong negative indicator     |
-| `--dm-negative-dark-bg`     | `rgba(178, 34, 34, 0.06)`   | `rgba(178, 34, 34, 0.1)`    | Negative indicator background |
-| `--dm-warning`              | `#d4923a`                   | `#d4923a`                   | Warning indicator             |
-| `--dm-warning-dark`         | `#b26622`                   | `#b26622`                   | Strong warning indicator      |
-| `--dm-success`              | `#2e8b57`                   | `#3da868`                   | Success indicator             |
+| Variable                 | Light                     | Dark                     | Usage                         |
+| ------------------------ | ------------------------- | ------------------------ | ----------------------------- |
+| `--dm-methodology-brown` | `var(--color-subdued)`    | _(inherits)_             | Methodology theme color       |
+| `--dm-results-blue`      | `var(--color-authority)`  | _(inherits)_             | Results theme accent          |
+| `--dm-results-tan`       | `var(--color-subdued)`    | _(inherits)_             | Results theme secondary       |
+| `--dm-positive`          | `var(--color-success)`    | _(inherits)_             | Positive indicator            |
+| `--dm-negative`          | `var(--color-error)`      | _(inherits)_             | Negative/red flag indicator   |
+| `--dm-negative-dark`     | `var(--color-error)`      | _(inherits)_             | Strong negative indicator     |
+| `--dm-negative-dark-bg`  | `rgba(178, 34, 34, 0.06)` | `rgba(178, 34, 34, 0.1)` | Negative indicator background |
+| `--dm-warning`           | `var(--color-warning)`    | _(inherits)_             | Warning indicator             |
+| `--dm-warning-dark`      | `var(--color-warning)`    | _(inherits)_             | Strong warning indicator      |
+| `--dm-success`           | `var(--color-success)`    | _(inherits)_             | Success indicator             |
 
 ### ICG Maturity Colors
 
-| Variable                    | Light                  | Dark         | Usage                             |
-| --------------------------- | ---------------------- | ------------ | --------------------------------- |
-| `--icg-maturity-reactive`   | `#E24B4A`              | `#e86060`    | Reactive maturity level (red)     |
-| `--icg-maturity-aware`      | `#EF9F27`              | `#f5b040`    | Aware maturity level (orange)     |
-| `--icg-maturity-optimizing` | `#639922`              | `#78b830`    | Optimizing maturity level (green) |
-| `--icg-maturity-strategic`  | `var(--color-primary)` | _(inherits)_ | Strategic maturity level (teal)   |
-| `--icg-radar-grid`          | `#999`                 | `#666`       | Radar chart grid lines            |
-| `--icg-radar-label`         | `#666`                 | `#999`       | Radar chart axis labels           |
+| Variable                    | Light                  | Dark         | Usage                           |
+| --------------------------- | ---------------------- | ------------ | ------------------------------- |
+| `--icg-maturity-reactive`   | `var(--color-error)`   | _(inherits)_ | Reactive maturity level         |
+| `--icg-maturity-aware`      | `var(--color-warning)` | _(inherits)_ | Aware maturity level            |
+| `--icg-maturity-optimizing` | `var(--color-success)` | _(inherits)_ | Optimizing maturity level       |
+| `--icg-maturity-strategic`  | `var(--color-primary)` | _(inherits)_ | Strategic maturity level (teal) |
+| `--icg-radar-grid`          | `var(--text-muted)`    | _(inherits)_ | Radar chart grid lines          |
+| `--icg-radar-label`         | `var(--text-muted)`    | _(inherits)_ | Radar chart axis labels         |
 
 ### Regulatory Map Category Colors
 
-| Variable                     | Light     | Dark      | Usage                                      |
-| ---------------------------- | --------- | --------- | ------------------------------------------ |
-| `--regmap-category-industry` | `#6c63ff` | `#8078ff` | Industry regulation category (purple-blue) |
-| `--regmap-category-cyber`    | `#e74c3c` | `#f06050` | Cybersecurity regulation category (red)    |
+| Variable                     | Light                      | Dark         | Usage                             |
+| ---------------------------- | -------------------------- | ------------ | --------------------------------- |
+| `--regmap-category-industry` | `var(--color-distinguish)` | _(inherits)_ | Industry regulation category      |
+| `--regmap-category-cyber`    | `var(--color-error)`       | _(inherits)_ | Cybersecurity regulation category |
 
 ---
 
@@ -349,6 +436,7 @@ Cross-tool semantic colors shared by multiple hub tools.
 | Primary tint/glow       | `--color-primary-XX` (opacity scale) or `--accent-*-bg` (semantic)                    |
 | Padding/margin          | `--spacing-sm` through `--spacing-3xl`                                                |
 | Flex/grid gaps          | `--gap-tight` through `--gap-extra-wide`                                              |
+| Stacking order          | `--z-base` through `--z-skip-nav` (Z-Index Scale)                                     |
 | Quick interaction       | `--transition-fast`                                                                   |
 | Standard animation      | `--transition-normal`                                                                 |
 | Elevation               | `--shadow-sm`, `--shadow-md`, `--shadow-lg`                                           |
@@ -398,9 +486,9 @@ Also overrides `--color-primary-rgb`, `--border-dark`, `--accent-light-bg`, `--a
 ## Adding New Variables
 
 1. Check if an existing variable already covers your need
-2. Add both `:root` (light) and `html.dark-theme` (dark) values in `variables.css`
+2. Add the token to `:root` in `variables.css` — use `light-dark(lightValue, darkValue)` for anything theme-dependent (the `html.dark-theme` block only carries `color-scheme` and the RGB-triplet overrides that `light-dark()` cannot express)
 3. Use semantic names: `--component-property` (e.g., `--filter-chip-bg`)
-4. Update this reference file
+4. Update this reference file — `npm run test:docs` fails until the new token is documented here
 
 ---
 
@@ -413,5 +501,5 @@ Also overrides `--color-primary-rgb`, `--border-dark`, `--accent-light-bg`, `--a
 
 ---
 
-**Last Updated**: April 5, 2026
-**Total Variables**: 160 (`:root`) + 85 dark theme overrides
+**Last Updated**: July 28, 2026
+**Parity**: every `:root` token in `variables.css` ↔ every table row here — machine-enforced by `tests/integration/docs-variables-sync.test.ts` (`npm run test:docs`); token counts are deliberately not stated (the test, not this footer, is the referee)

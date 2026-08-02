@@ -23,6 +23,7 @@ import {
   type AuditedTechDebtInputs,
 } from '../schemas/tech-debt-audit';
 import { HUB_BASE } from '../config';
+import { toolOk, toolFail } from './_result';
 
 const TOOL_DESCRIPTION = `Estimate the carrying cost of accumulated technical debt for a target organization.
 
@@ -87,10 +88,8 @@ export function registerTechDebtTool(
       // BL-045 PR B — MTTR + incident-count fabrication guard.
       const auditIssues = runTechDebtAuditRefinements(payload);
       if (auditIssues.length > 0) {
-        return {
-          content: [{ type: 'text' as const, text: formatTechDebtAuditIssues(auditIssues) }],
-          isError: true,
-        };
+        // Retry directive — reaches `content` verbatim (BL-090 Invariant 2).
+        return toolFail('audit-failed', formatTechDebtAuditIssues(auditIssues));
       }
 
       try {
@@ -116,23 +115,13 @@ export function registerTechDebtTool(
           mttrSource: _audit.mttrSource,
           incidentsSource: _audit.incidentsSource,
         };
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(responsePayload, null, 2),
-            },
-          ],
-          structuredContent: responsePayload as unknown as Record<string, unknown>,
-        };
+        return toolOk(
+          responsePayload,
+          `Tech-debt cost estimated${extractionOnly.length > 0 ? ` (${extractionOnly.length} field(s) extraction-only)` : ''}.`
+        );
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        return {
-          content: [
-            { type: 'text' as const, text: `Failed to estimate tech-debt cost: ${message}` },
-          ],
-          isError: true,
-        };
+        return toolFail('internal-error', `Failed to estimate tech-debt cost: ${message}`);
       }
     })
   );

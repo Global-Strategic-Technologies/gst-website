@@ -37,11 +37,14 @@
 import {
   ALERT_RULES,
   COOLDOWN_SECONDS,
+  datasetForEnv,
   type AlertEvaluation,
   type AlertRule,
   type EvaluatorContext,
 } from './alert-rules';
 import { postSentryEvent } from './sentry-envelope';
+import { createAeQuery } from './ae-query';
+import { computeStatusMetrics, writeStatusMetrics } from './status-metrics';
 import { createMcpClient } from '../lib/upstash-clients';
 import { emit, AnalyticsEngineSink } from '../metrics/_index';
 import { safeLog } from '../auth/safe-logger';
@@ -56,8 +59,6 @@ import type { Env } from '../worker';
 // (Line comments here because the expression itself contains `*/`, which
 // terminates a block comment.)
 export const ALERT_EVALUATOR_CRON = '*/15 * * * *';
-
-const AE_QUERY_TIMEOUT_MS = 4000;
 
 /** Upstash key holding the latest evaluation summary (read by /status). */
 export const LAST_EVAL_KEY = 'mcp:alerts:last-eval';
@@ -81,53 +82,6 @@ export interface AlertEvaluationSummary {
   evaluatedAt: string;
   env: string;
   rules: RuleResult[];
-}
-
-/**
- * AE SQL query runner for the evaluator context. Returns `null` (never
- * throws) when secrets are unbound, the request fails, times out, or the
- * response shape is unexpected — rules fail open on `null`.
- */
-async function queryAeFactory(env: Env): Promise<EvaluatorContext['queryAe']> {
-  const token = env.CF_AE_TOKEN as string | undefined;
-  const accountId = env.CF_ACCOUNT_ID as string | undefined;
-  if (!token || !accountId) {
-    return async () => null;
-  }
-  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/analytics_engine/sql`;
-  return async (sql: string) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), AE_QUERY_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: `${sql} FORMAT JSON`,
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        safeLog({
-          event: 'alert-evaluator.ae-query.non-2xx',
-          status: res.status,
-          success: false,
-          errorCode: 'ae-query-non-2xx',
-        });
-        return null;
-      }
-      const json = (await res.json()) as { data?: Record<string, string | number>[] };
-      return Array.isArray(json.data) ? json.data : null;
-    } catch (err) {
-      safeLog({
-        event: 'alert-evaluator.ae-query.failed',
-        success: false,
-        errorCode: 'ae-query-failed',
-        reason: err instanceof Error ? err.message.slice(0, 200) : 'unknown',
-      });
-      return null;
-    } finally {
-      clearTimeout(timer);
-    }
-  };
 }
 
 async function evaluateRule(rule: AlertRule, ctx: EvaluatorContext): Promise<RuleResult> {
@@ -184,7 +138,7 @@ export async function runAlertEvaluation(
 ): Promise<AlertEvaluationSummary> {
   const startedAt = Date.now();
   const now = opts?.now ?? new Date();
-  const queryAe = await queryAeFactory(env);
+  const queryAe = createAeQuery(env);
   const ctx: EvaluatorContext = { env, queryAe, now };
 
   const results: RuleResult[] = [];
@@ -244,6 +198,24 @@ export async function runAlertEvaluation(
     }
   } catch {
     // /status just shows the previous (or no) summary — not worth failing over.
+  }
+
+  // BL-033 Slice 4 — precompute the /status latency + audit-health panels in
+  // this same cron run (reuses `queryAe` + a redis handle) and cache to
+  // Upstash for `/status` to read. Isolated best-effort: the alert path is the
+  // higher-priority tenant of this cron, so a metrics-compute failure must
+  // NEVER break alert evaluation (its own try/catch, distinct from the summary
+  // write above). Absent (fresh deploy / staging has no cron) → /status renders
+  // "metrics unavailable" until the next run.
+  try {
+    const redis = createMcpClient(env);
+    if (redis) {
+      const envName = (env.ENV_NAME as string | undefined) ?? 'unknown';
+      const metrics = await computeStatusMetrics(queryAe, redis, datasetForEnv(envName), envName);
+      await writeStatusMetrics(redis, envName, metrics);
+    }
+  } catch {
+    // /status shows the previous (or no) metrics — not worth failing over.
   }
 
   const anyErrors = results.some((r) => r.error !== undefined);

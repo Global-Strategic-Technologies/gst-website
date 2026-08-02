@@ -1,5 +1,7 @@
 import { defineMiddleware } from 'astro:middleware';
 
+import { RESPONSIVE_DEMO_GROUPS, responsiveFrameRoute } from './utils/responsive-demo-groups';
+
 /**
  * Astro middleware for SSR routes (Radar).
  *
@@ -71,6 +73,39 @@ export const SECURITY_HEADERS: Record<string, string> = {
   ].join('; '),
 };
 
+/**
+ * Routes that must be embeddable in a SAME-ORIGIN iframe.
+ *
+ * The site-wide default is `X-Frame-Options: DENY` + `frame-ancestors 'none'`,
+ * which forbids framing by every origin — including this one. A page whose only
+ * purpose is to be embedded therefore renders as an empty frame, with no build
+ * error and no console warning to explain it.
+ *
+ * `/brand/responsive-frame/<group>` is a set of `noindex` partials rendered
+ * exclusively inside the brand page's Responsive Behavior section, one per
+ * component group, at three viewport widths each. They hold no user data, no
+ * authenticated state and no submission target — the `form` group renders a
+ * bare input and two buttons with no `<form>`, no handlers, and `form-action
+ * 'self'` — so relaxing to `'self'` gives an attacker nothing: a same-origin
+ * frame can only be created by our own pages. Every other route keeps the
+ * strict default.
+ *
+ * The four paths are ENUMERATED, not prefix-matched: a `/brand/responsive-frame/*`
+ * prefix would extend the exception to any future sub-path under it.
+ *
+ * Paths are stored without a trailing slash; the lookup normalizes. That is why
+ * this uses `responsiveFrameRoute` and not `responsiveFramePath` — see the
+ * builders' docblocks in `utils/responsive-demo-groups.ts`.
+ *
+ * ADDING A PATH HERE IS NOT ENOUGH. Prerendered routes are served by the CDN,
+ * which never runs this middleware — you must add a matching rule to
+ * `vercel.json` (after the catch-all; last match wins) or it will work in dev
+ * and silently fail in production. See SECURITY_HEADERS.md § Route Exceptions.
+ */
+const SAME_ORIGIN_FRAMEABLE = new Set<string>(
+  RESPONSIVE_DEMO_GROUPS.map((group) => responsiveFrameRoute(group))
+);
+
 export const onRequest = defineMiddleware(async (context, next) => {
   // Discovery defense for internal endpoints. See module docstring.
   // Runs BEFORE `next()` so the route handler doesn't execute on probes;
@@ -98,6 +133,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
     }
     response.headers.set(key, value);
+  }
+
+  // Narrow exception: routes that exist to be embedded same-origin. See the
+  // SAME_ORIGIN_FRAMEABLE docblock — the site-wide default forbids framing by
+  // every origin including our own, which silently breaks such a page.
+  if (SAME_ORIGIN_FRAMEABLE.has(context.url.pathname.replace(/\/$/, ''))) {
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+    const csp = response.headers.get('Content-Security-Policy');
+    if (csp) {
+      response.headers.set(
+        'Content-Security-Policy',
+        csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'")
+      );
+    }
   }
 
   return response;

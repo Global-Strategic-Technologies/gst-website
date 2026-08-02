@@ -57,10 +57,7 @@ const KEY_LAST_ROTATION = 'mcp:inoreader:last-rotation-at';
 const COUNTER_TTL_SECONDS = 90_000; // 25 hours
 
 export type RefreshFailureReason =
-  | 'invalid-refresh-token'
-  | 'token-missing'
-  | 'upstash-write-failed'
-  | 'inoreader-error';
+  'invalid-refresh-token' | 'token-missing' | 'upstash-write-failed' | 'inoreader-error';
 
 const FAILURE_REASONS: readonly RefreshFailureReason[] = [
   'invalid-refresh-token',

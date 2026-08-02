@@ -55,6 +55,23 @@ export const DEFAULT_SCOPES: readonly string[] = Object.freeze([
 ]);
 
 /**
+ * BL-033 Slice 2 — human-readable scope descriptions for the OAuth
+ * consent page. Keys are the catalog strings above plus the radar
+ * tool wildcard (`tool:radar:*` is a *narrowing* string used in
+ * per-client `allowedScopes`, not a member of DEFAULT_SCOPES).
+ * Consent renders whatever a client requests; an unknown scope string
+ * falls back to the raw value (escaped) so nothing is hidden.
+ */
+export const SCOPE_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
+  [SCOPES.TOOL_ALL]: 'Run all GST analysis tools (diligence, portfolio, TechPar, ICG, IRL)',
+  [SCOPES.PROMPT_ALL]: 'Use all GST guided prompts (diligence kickoff, IRL, memos)',
+  [SCOPES.RESOURCE_LIBRARY_READ]: 'Read the GST insight library',
+  [SCOPES.RESOURCE_REGULATIONS_READ]: 'Read the GST regulatory map',
+  [SCOPES.RESOURCE_RADAR_READ]: 'Read the GST Radar market-intelligence feed',
+  'tool:radar:*': 'Run GST Radar live-search tools (consumes the shared Inoreader budget)',
+});
+
+/**
  * Test whether an owned scope set covers a required scope.
  *
  * Match order:

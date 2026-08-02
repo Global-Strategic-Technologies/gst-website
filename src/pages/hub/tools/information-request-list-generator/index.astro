@@ -4,6 +4,7 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import articleBodyRaw from '../../../../data/irl/information-request-list.md?raw';
 import { parseIrlArticle } from '../../../../utils/irl/parse-article';
+import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
 // Parse the IRL generator source at build time so the section checkboxes render
 // server-side. Client-created DOM does NOT receive Astro's scoped-style
@@ -33,6 +34,32 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
   ogImageAlt="GST Information Request List Generator"
   ogUrl="https://globalstrategic.tech/hub/tools/information-request-list-generator/"
 >
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Information Request List Generator',
+        description:
+          'Generate a fillable .xlsx Information Request List personalized to a target or client, from the canonical GST IRL',
+        datePublished: '2026-05-25',
+        dateModified: '2026-07-31',
+        featureList: [
+          'Fillable .xlsx workbook generated client-side',
+          'Per-section selection mirroring VDR folder structure',
+          'Engagement-specific custom requests',
+          'Context-aware request removal',
+        ],
+        knowsAbout: [
+          'Technical Due Diligence',
+          'Information Request Lists',
+          'Virtual Data Room Structure',
+          'M&A Tech Strategy',
+        ],
+      })
+    )}
+  />
+
   <section class="irl-gen">
     <div class="container">
       <HubHeader
@@ -664,7 +691,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
     gap: var(--spacing-xl);
     padding: var(--spacing-xl);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    background: light-dark(rgba(0, 0, 0, 0.02), rgba(255, 255, 255, 0.03));
+    background: var(--surface-subtle-bg);
     backdrop-filter: blur(2px);
   }
 

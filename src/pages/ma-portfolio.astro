@@ -55,6 +55,7 @@ const portfolioType = 'ma';
   }
 
   @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
     /* Hide interactive chrome */
     :global(.sticky-controls-overlay),
     :global(.portfolio-filter-drawer),
@@ -92,5 +93,6 @@ const portfolioType = 'ma';
     @page {
       margin: 1.5cm;
     }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
   }
 </style>

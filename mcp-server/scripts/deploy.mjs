@@ -44,6 +44,7 @@
  */
 
 import { execSync, spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const ALLOWED_ENVS = ['staging', 'production'];
 
@@ -79,6 +80,17 @@ if (!/^[0-9a-f]{7}$/.test(sha)) {
   process.exit(1);
 }
 
+// Package.json version → injected as `--var VERSION:<v>` (BL-033 Slice 4) so
+// /health + /status report the real deployed version from a single source of
+// truth, mirroring the GIT_SHA pipeline (replaces the old hand-bumped const).
+const version = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf-8')
+).version;
+if (typeof version !== 'string' || version.length === 0) {
+  console.error('Refusing to deploy: could not read a version from package.json');
+  process.exit(1);
+}
+
 const passthrough = process.argv.slice(3);
 const wranglerArgs = [
   'wrangler',
@@ -89,13 +101,15 @@ const wranglerArgs = [
   `GIT_SHA:${sha}`,
   '--var',
   `SENTRY_RELEASE:${sha}`,
+  '--var',
+  `VERSION:${version}`,
   '--outdir',
   'dist',
   '--upload-source-maps',
   ...passthrough,
 ];
 
-console.log(`> deploying mcp-server to ${env} with GIT_SHA=${sha}`);
+console.log(`> deploying mcp-server to ${env} with GIT_SHA=${sha} VERSION=${version}`);
 console.log(`> npx ${wranglerArgs.join(' ')}`);
 
 const wranglerResult = spawnSync('npx', wranglerArgs, {

@@ -64,6 +64,7 @@ import {
   readSessionCookie,
   validateAdminKey,
 } from './admin-auth';
+import { escapeHtml, htmlShell } from '../lib/html-shell';
 import type { Env } from '../worker';
 
 const REFRESH_LOCK_KEY = 'mcp:inoreader:refresh-lock';
@@ -354,35 +355,10 @@ async function emitStateRejected(
 }
 
 // ---------------------------------------------------------------------------
-// Self-contained HTML (no external resources — defends against Referer
-// leak of `code` to third parties; inline CSS only).
+// Self-contained HTML — shell + escaping shared via lib/html-shell.ts
+// (extracted in BL-033 Slice 2 when the OAuth consent page became the
+// second consumer; no-external-resources rationale documented there).
 // ---------------------------------------------------------------------------
-
-function htmlShell(title: string, body: string): string {
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title>${title}</title>
-<style>
-:root { color-scheme: light dark; }
-body { font: 16px/1.4 system-ui, sans-serif; max-width: 28rem; margin: 2rem auto; padding: 0 1rem; }
-h1 { font-size: 1.25rem; margin-bottom: 1rem; }
-form { display: flex; flex-direction: column; gap: 0.75rem; }
-input[type=password] { padding: 0.6rem; font: inherit; border: 1px solid #999; border-radius: 0.25rem; }
-button { padding: 0.6rem; font: inherit; background: #1a1a1a; color: #fff; border: 0; border-radius: 0.25rem; cursor: pointer; }
-button:hover { background: #000; }
-.error { color: #b00020; margin-bottom: 1rem; }
-.success { color: #006400; }
-code { font-family: ui-monospace, monospace; background: #f4f4f4; padding: 0.1rem 0.3rem; border-radius: 0.2rem; }
-p { margin: 0.75rem 0; }
-</style>
-</head>
-<body>${body}</body>
-</html>`;
-}
 
 function loginFormPage(errorMessage: string | null): string {
   const errorBlock = errorMessage ? `<p class="error">${escapeHtml(errorMessage)}</p>` : '';
@@ -433,13 +409,4 @@ function callbackPersistFailedPage(): string {
 <p class="error">Inoreader minted a fresh chain but the Worker could not write it to Upstash. This is a recoverable state.</p>
 <p><strong>Action required within ~5 minutes</strong>: re-run <a href="/admin/inoreader/reauth/start">/admin/inoreader/reauth/start</a> to mint another chain before the unpersisted one rotates further. Once the new flow succeeds, the stranded chain self-invalidates.</p>`
   );
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

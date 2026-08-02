@@ -18,6 +18,7 @@ import {
   type AuditedTechParInputs,
 } from '../schemas/techpar-audit';
 import { HUB_BASE } from '../config';
+import { toolOk, toolFail } from './_result';
 
 /**
  * Build a TechPar deep-link from the resolved (native-shape) inputs by
@@ -70,10 +71,9 @@ export async function handleTechparTool(payload: AuditedTechParInputs) {
   // the handler body, same pattern as diligence + tech-debt audits.
   const auditIssues = runTechParAuditRefinements(payload);
   if (auditIssues.length > 0) {
-    return {
-      content: [{ type: 'text' as const, text: formatTechParAuditIssues(auditIssues) }],
-      isError: true,
-    };
+    // The formatted issue block is a retry directive the model is instructed to
+    // act on, so it reaches `content` verbatim (BL-090 Invariant 2).
+    return toolFail('audit-failed', formatTechParAuditIssues(auditIssues));
   }
 
   try {
@@ -85,15 +85,10 @@ export async function handleTechparTool(payload: AuditedTechParInputs) {
     const inputs: TechParInputs = { ...mcpInputs, stage: nativeStage };
     const result = compute(inputs);
     if (result === null) {
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: 'TechPar requires both `arr` and `infraHostingAnnual` to be greater than zero.',
-          },
-        ],
-        isError: true,
-      };
+      return toolFail(
+        'invalid-input',
+        'TechPar requires both `arr` and `infraHostingAnnual` to be greater than zero.'
+      );
     }
     const stageContext = {
       native: nativeStage,
@@ -106,21 +101,10 @@ export async function handleTechparTool(payload: AuditedTechParInputs) {
       deeplink,
       monetaryBasis: _audit.monetaryBasis,
     };
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: JSON.stringify(responsePayload, null, 2),
-        },
-      ],
-      structuredContent: responsePayload as unknown as Record<string, unknown>,
-    };
+    return toolOk(responsePayload, `TechPar computed for stage ${nativeStage}.`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return {
-      content: [{ type: 'text' as const, text: `Failed to compute TechPar: ${message}` }],
-      isError: true,
-    };
+    return toolFail('internal-error', `Failed to compute TechPar: ${message}`);
   }
 }
 

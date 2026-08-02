@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Claude Code PreToolUse hook — git-push gate (Implementation Review Gate).
  *

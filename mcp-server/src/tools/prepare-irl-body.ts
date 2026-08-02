@@ -25,6 +25,7 @@ import {
   type PrepareIrlBodyInput,
   type PrepareIrlBodyOutput,
 } from '../schemas/prepare-irl-body';
+import { toolOk, toolFail } from './_result';
 
 const TOOL_DESCRIPTION = `Compute the canonical \`irlBodyHash\` for a \`filledIrl\` body so you can submit it to \`compose_dossier_envelope\`.
 
@@ -48,32 +49,30 @@ export async function handlePrepareIrlBodyTool(
 
   // BL-076 — write the body to the IRL body cache keyed by the canonical
   // hash so `compose_dossier_envelope` can re-hydrate it without the model
-  // re-emitting it as tool args. Best-effort: if the cache rejects the body
-  // (over the per-entry size cap), surface a structured error so the model
-  // knows to trim the body before retrying. Other cache write failures
-  // (e.g., Upstash transient blip) propagate as a thrown error which the
-  // handler catches below — the next compose call will surface
-  // `Bl076BodyCacheMissError` directing a retry.
+  // re-emitting it as tool args. Best-effort, with the two known write failures
+  // separated by who can act on them (BL-090): a body over the per-entry size cap
+  // is the model's to fix (`invalid-input` — trim and retry), while a write
+  // failure is ours (`internal-error`). Anything else rethrows; the next compose
+  // call then surfaces `Bl076BodyCacheMissError` directing a retry.
   try {
     await metrics?.irlBodyCache?.set(irlBodyHash, payload.filledIrl);
   } catch (error) {
-    if (
-      error instanceof IrlBodyCacheSizeExceededError ||
-      error instanceof IrlBodyCacheWriteFailedError
-    ) {
-      return {
-        content: [{ type: 'text' as const, text: error.message }],
-        isError: true,
-      };
+    // These two are deliberately NOT `cache-miss`: that reason means "the body
+    // was never stored, call prepare_irl_body first", and a client branching on it
+    // would retry the very call that just failed. Size-exceeded is the model's
+    // input to fix (trim the body); a write failure is ours.
+    if (error instanceof IrlBodyCacheSizeExceededError) {
+      // Tells the model to trim the body before retrying — verbatim to `content`.
+      return toolFail('invalid-input', error.message);
+    }
+    if (error instanceof IrlBodyCacheWriteFailedError) {
+      return toolFail('internal-error', error.message);
     }
     throw error;
   }
 
   const result: PrepareIrlBodyOutput = { irlBodyHash, byteLength };
-  return {
-    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
-    structuredContent: result as unknown as Record<string, unknown>,
-  };
+  return toolOk(result, `IRL body hashed (${byteLength} bytes).`);
 }
 
 export function registerPrepareIrlBodyTool(

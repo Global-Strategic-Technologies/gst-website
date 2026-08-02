@@ -18,13 +18,22 @@
  *   - `token-stale`                           → 401 from Inoreader; website refreshes
  *   - `inoreader-rate-limit`                  → 429 from Inoreader; circuit breaker opens
  *   - `upstream-error` / `network-timeout`    → other fetch failures
- *   - circuit already open                    → 503 with retry-hint
+ *   - circuit open AND no cached snapshot     → 503 with retry-hint
  *
- * **Circuit breaker integration** (Phase 3 + Phase 4c):
- *   - Before fetching: check `isCircuitOpen(env)`. If open, return 503 envelope
- *     immediately without touching Inoreader.
- *   - On Inoreader 429: call `openCircuit(env, reason)` then return 503-shaped
- *     MCP error.
+ * **Circuit breaker integration** (Phase 3 + Phase 4c; reworked in BL-091):
+ *   - Before fetching: check `isCircuitOpen(env)`. If open, read the Upstash
+ *     snapshot via the **cache-only** readers (`readWireCached` /
+ *     `readFyiCached`) — never Inoreader — and serve whatever is cached,
+ *     flagged `liveInfo.degraded: true`. This implements the second clause of
+ *     ADR-0006 §2 ("radar reads serve cached snapshot data instead of touching
+ *     Inoreader"), which had never been wired up.
+ *   - Only when NOTHING is cached does the 503 envelope return — its shape is
+ *     unchanged from the pre-BL-091 behavior.
+ *   - On Inoreader 429 (normal path only): `handleInoreaderFailure` opens the
+ *     circuit, then a 503-shaped MCP error returns. Per-tier fail-fast on the
+ *     normal path is load-bearing (ADR-0006 T.Z.2: *every* Inoreader call site
+ *     routes failures through that handler) — tier-tolerance applies ONLY when
+ *     the breaker is already open.
  *
  * **Capability mirror with `search_radar_offline`** (Q2): same single
  * `category` filter, same payload shape. Enables the common "live for
@@ -38,8 +47,15 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { z } from 'zod';
 import type { Env } from '../worker';
-import { readWireLive, readFyiLive, type LiveTierResult } from '../content/radar-live-store';
-import { isCircuitOpen } from '../ratelimit/circuit-breaker';
+import {
+  readWireLive,
+  readFyiLive,
+  readWireCached,
+  readFyiCached,
+  type LiveTierResult,
+  type CachedTierResult,
+} from '../content/radar-live-store';
+import { isCircuitOpen, type CircuitState } from '../ratelimit/circuit-breaker';
 import {
   handleInoreaderFailure,
   type InoreaderFailureSource,
@@ -52,6 +68,7 @@ import {
   type SnapshotItem,
   type RadarCategory,
 } from '../content/radar-transform';
+import { toolOk, toolFail } from './_result';
 
 // ---------------------------------------------------------------------------
 // Schemas (shared shape with search_radar_offline; capability-mirror invariant)
@@ -88,9 +105,9 @@ const SEARCH_RADAR_DESCRIPTION = `Live GST Radar search — strict mirror of the
 
 Sister tool: \`search_radar_offline\` (same shape, reads from a frozen local snapshot — for dev/CI/budget-exhausted contexts).
 
-Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"); omit for all categories. Output: unified FYI + Wire feed sorted by \`publishedAt\` newest-first, with \`fetchedAt\` timestamp + \`cacheHit\` flag + \`deeplink\` URL.
+Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"); omit for all categories. Output: unified FYI + Wire feed sorted by \`publishedAt\` newest-first, with \`fetchedAt\` timestamp + \`cacheHit\` flag + \`degraded\` flag + \`deeplink\` URL. When \`liveInfo.degraded\` is true the results come from the cached snapshot (up to 6h old) because the Inoreader budget circuit is open — treat them as stale-but-real, and check \`fetchedAt\` for age.
 
-Failure modes return a structured \`isError: true\` envelope with \`reason\` field — agents can distinguish "Inoreader stale token, retry later" from "Inoreader rate limit, circuit broken" from "transient network error."
+Failure modes return \`isError: true\` with a machine-readable \`error\` field in \`structuredContent\` (\`config-missing\` | \`token-missing\` | \`token-stale\` | \`inoreader-rate-limit\` | \`upstream-error\` | \`network-timeout\` | \`service-unavailable\`) — so agents can distinguish "Inoreader stale token, retry later" from "Inoreader rate limit, circuit broken" from "transient network error." \`content[0].text\` carries the human-readable message. A broken circuit only returns an error when there is ALSO no cached snapshot to serve; otherwise you get cached results flagged \`degraded\`.
 
 Per-key budget: 5 requests/minute and 50 requests/day (BL-032 Phase 3 radar tier — activates with this tool). The website's /hub/radar page shares the underlying 200/day Inoreader budget; treat radar tool calls as expensive.`;
 
@@ -132,48 +149,51 @@ async function failureResponse(
   source: InoreaderFailureSource
 ) {
   await handleInoreaderFailure(env, failure, source);
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify({
-          error: failure.reason,
-          status: failure.status,
-          message: failure.message,
-        }),
-      },
-    ],
-    isError: true,
-  };
+  // BL-090: the structured error moved to `structuredContent` — before, this was
+  // JSON hand-stringified into the text channel because no structured error
+  // convention existed. `content` now carries the human-readable message.
+  return toolFail(failure.reason, failure.message, { status: failure.status });
 }
 
 /**
- * Check the circuit breaker; if open, return the 503-shaped error envelope.
- * Returns null if the breaker is closed OR Upstash isn't reachable (graceful
- * skip — fail open per the rate-limit + circuit-breaker design).
+ * Build the 503-shaped MCP error envelope for an OPEN circuit with nothing
+ * cached to serve (BL-091: this is now the *last* resort, not the first
+ * check). Shape is unchanged from the pre-BL-091 behavior so existing clients
+ * that handle it keep working.
  */
-async function checkCircuitBreaker(env: Env) {
-  const state = await isCircuitOpen(env);
-  if (!state || !state.open) return null;
-  // Convert circuitOpenResponse's HTTP-flavored Response into an MCP-flavored
-  // error envelope. Same status/reason fields, transport-appropriate shape.
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify({
-          error: 'service_unavailable',
-          status: 503,
-          reason: state.reason ?? 'inoreader-rate-limit',
-          retryAfterSeconds: state.retryAfterSeconds,
-          message:
-            'Radar tools temporarily unavailable — Inoreader budget circuit is open. ' +
-            `Retry after ${state.retryAfterSeconds ?? 'some time'}.`,
-        }),
-      },
-    ],
-    isError: true,
-  };
+function circuitOpenEnvelope(state: CircuitState) {
+  // BL-090: `error` is now the kebab-case `service-unavailable` (matching every
+  // other reason), and the breaker's own trip reason moved from `reason` to
+  // `cause` — under `{ error: reason, … }` two different meanings were sharing
+  // the word "reason" on a public envelope.
+  return toolFail(
+    'service-unavailable',
+    'Radar tools temporarily unavailable — Inoreader budget circuit is open. ' +
+      `Retry after ${state.retryAfterSeconds !== undefined ? `${state.retryAfterSeconds} seconds` : 'some time'}.`,
+    {
+      status: 503,
+      cause: state.reason ?? 'inoreader-rate-limit',
+      retryAfterSeconds: state.retryAfterSeconds,
+    }
+  );
+}
+
+/**
+ * Normalized per-tier view (BL-091). A tier can be `cache-empty` on the
+ * degraded path while its sibling still has data, so `fetchedAt` / `cacheHit`
+ * become `null` rather than fabricated values — matching the `liveInfo`
+ * contract and this file's existing `oldestItemDaysAgo` null idiom.
+ */
+interface TierView {
+  readonly items: readonly SnapshotItem[];
+  readonly fetchedAt: string | null;
+  readonly cacheHit: boolean | null;
+}
+
+function tierView(result: LiveTierResult | CachedTierResult): TierView {
+  return result.ok
+    ? { items: result.items, fetchedAt: result.fetchedAt, cacheHit: result.cacheHit }
+    : { items: [], fetchedAt: null, cacheHit: null };
 }
 
 // ---------------------------------------------------------------------------
@@ -181,27 +201,44 @@ async function checkCircuitBreaker(env: Env) {
 // ---------------------------------------------------------------------------
 
 export async function handleSearchRadar(env: Env, input: SearchRadarInput, keyOwner?: string) {
-  const breakerCheck = await checkCircuitBreaker(env);
-  if (breakerCheck) return breakerCheck;
+  // `null` → Upstash unreachable; fail open to the normal path (unchanged).
+  const breaker = await isCircuitOpen(env);
+  const degraded = breaker?.open === true;
 
-  const [wireResult, fyiResult] = await Promise.all([
-    readWireLive(env, { keyOwner }),
-    readFyiLive(env, 30, { keyOwner }),
-  ]);
+  let wireView: TierView;
+  let fyiView: TierView;
 
-  if (!wireResult.ok) return failureResponse(env, wireResult, 'live-search-radar');
-  if (!fyiResult.ok) return failureResponse(env, fyiResult, 'live-search-radar');
+  if (degraded && breaker) {
+    // Breaker open → cache only, never Inoreader. Serve whatever is cached;
+    // tier-tolerance is deliberately scoped to THIS path (there is nothing
+    // left to open, and `cache-empty` carries no upstream signal).
+    const [wire, fyi] = await Promise.all([readWireCached(env), readFyiCached(env, 30)]);
+    if (!wire.ok && !fyi.ok) return circuitOpenEnvelope(breaker);
+    wireView = tierView(wire);
+    fyiView = tierView(fyi);
+  } else {
+    const [wire, fyi] = await Promise.all([
+      readWireLive(env, { keyOwner }),
+      readFyiLive(env, 30, { keyOwner }),
+    ]);
+    // Per-tier fail-fast — load-bearing (ADR-0006 T.Z.2): this is the path
+    // that routes a 429 into `handleInoreaderFailure` → `openCircuit`.
+    if (!wire.ok) return failureResponse(env, wire, 'live-search-radar');
+    if (!fyi.ok) return failureResponse(env, fyi, 'live-search-radar');
+    wireView = tierView(wire);
+    fyiView = tierView(fyi);
+  }
 
   // Merge + dedupe + sort, mirroring the website's unified feed.
   const seen = new Set<string>();
   const merged: Array<SnapshotItem & { tier: 'fyi' | 'wire' }> = [];
-  for (const item of fyiResult.items) {
+  for (const item of fyiView.items) {
     if (!seen.has(item.url || item.id)) {
       seen.add(item.url || item.id);
       merged.push({ ...item, tier: 'fyi' });
     }
   }
-  for (const item of wireResult.items) {
+  for (const item of wireView.items) {
     if (!seen.has(item.url || item.id)) {
       seen.add(item.url || item.id);
       merged.push({ ...item, tier: 'wire' });
@@ -221,18 +258,23 @@ export async function handleSearchRadar(env: Env, input: SearchRadarInput, keyOw
     // empty; otherwise rolling 24h-bucketed age of the oldest item.
     oldestItemDaysAgo: oldestItemDaysAgo(matched),
     liveInfo: {
-      wireFetchedAt: wireResult.fetchedAt,
-      wireCacheHit: wireResult.cacheHit,
-      fyiFetchedAt: fyiResult.fetchedAt,
-      fyiCacheHit: fyiResult.cacheHit,
+      wireFetchedAt: wireView.fetchedAt,
+      wireCacheHit: wireView.cacheHit,
+      fyiFetchedAt: fyiView.fetchedAt,
+      fyiCacheHit: fyiView.cacheHit,
+      // BL-091: `true` when served from cache because the breaker is open.
+      degraded,
+      ...(degraded && breaker?.retryAfterSeconds !== undefined
+        ? { retryAfterSeconds: breaker.retryAfterSeconds }
+        : {}),
     },
     deeplink: buildRadarDeeplink(input.category),
   };
 
-  return {
-    content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
-    structuredContent: payload as unknown as Record<string, unknown>,
-  };
+  return toolOk(
+    payload,
+    `${payload.returned} of ${payload.totalMatched} radar items${degraded ? ' (degraded — served from cache)' : ''}.`
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -244,17 +286,28 @@ export async function handleGetLatestInsights(
   input: GetLatestInsightsInput,
   keyOwner?: string
 ) {
-  const breakerCheck = await checkCircuitBreaker(env);
-  if (breakerCheck) return breakerCheck;
+  // `null` → Upstash unreachable; fail open to the normal path (unchanged).
+  const breaker = await isCircuitOpen(env);
+  const degraded = breaker?.open === true;
 
   const limit = input.limit ?? 10;
   // Fetch 30 always so the Upstash cache is shared with search_radar. Note:
   // readFyiLive caps FYI output at FYI_MAX_COUNT (15) via the freshness gate,
   // so `limit` (schema max 30) can never actually yield more than 15 items.
-  const fyiResult = await readFyiLive(env, Math.max(limit, 30), { keyOwner });
-  if (!fyiResult.ok) return failureResponse(env, fyiResult, 'live-get-latest-insights');
+  let fyiView: TierView;
+  if (degraded && breaker) {
+    const fyi = await readFyiCached(env, Math.max(limit, 30));
+    // A cached-but-fully-aged-out blob yields `ok` with zero items — that's an
+    // accurate "no fresh items", not an error. Only a true cache miss 503s.
+    if (!fyi.ok) return circuitOpenEnvelope(breaker);
+    fyiView = tierView(fyi);
+  } else {
+    const fyi = await readFyiLive(env, Math.max(limit, 30), { keyOwner });
+    if (!fyi.ok) return failureResponse(env, fyi, 'live-get-latest-insights');
+    fyiView = tierView(fyi);
+  }
 
-  const filtered = fyiResult.items
+  const filtered = fyiView.items
     .filter((item) => categoryMatches(item, input.category))
     .slice()
     .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1))
@@ -267,15 +320,20 @@ export async function handleGetLatestInsights(
     // items is empty; otherwise rolling 24h-bucketed age of the oldest.
     oldestItemDaysAgo: oldestItemDaysAgo(filtered),
     liveInfo: {
-      fetchedAt: fyiResult.fetchedAt,
-      cacheHit: fyiResult.cacheHit,
+      fetchedAt: fyiView.fetchedAt,
+      cacheHit: fyiView.cacheHit,
+      // BL-091: `true` when served from cache because the breaker is open.
+      degraded,
+      ...(degraded && breaker?.retryAfterSeconds !== undefined
+        ? { retryAfterSeconds: breaker.retryAfterSeconds }
+        : {}),
     },
   };
 
-  return {
-    content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
-    structuredContent: payload as unknown as Record<string, unknown>,
-  };
+  return toolOk(
+    payload,
+    `${payload.returned} latest insights${degraded ? ' (degraded — served from cache)' : ''}.`
+  );
 }
 
 // ---------------------------------------------------------------------------

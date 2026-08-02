@@ -29,11 +29,11 @@ The server surface is built by a single factory, `createServer(env, ctx)` in `sr
 - **stdio** — `src/index.ts` calls `createServer()` plus `registerLocalOnlyTools(server)` from `src/tools/_local-only.ts`, then connects a `StdioServerTransport`. The local-only module holds registrations that depend on `node:fs`/`node:crypto`/`node:path` at module load (the offline radar tool and the filesystem-backed radar Resource reader over `<repo>/.cache/inoreader/`).
 - **Worker** — `src/worker.ts` (remote Streamable HTTP on Cloudflare Workers) calls only `createServer(env, { scopes, radarSource: 'worker', metricsSink, keyOwner })`, so the Worker bundle never transitively imports Node-only modules; radar Resources register there with an Upstash-backed reader instead.
 
-`ServerContext` threads per-request concerns (scope grants, metrics sink, key attribution, IRL body cache) into the registry; stdio passes nothing and gets full-grant defaults with no-op metrics. A CI registry-snapshot test (`tests/integration/registry-snapshot.test.ts`) asserts the stdio-vs-Worker registry diff is exactly the declared local-only set.
+`ServerContext` threads per-request concerns (scope grants, metrics sink, key attribution, IRL body cache) into the registry; stdio passes nothing and gets full-grant defaults with no-op metrics. The stdio-vs-Worker registry difference is asserted by the tool-name list in `tests/integration/protocol-roundtrip.test.ts` (a `registry-snapshot.test.ts` was described here and in `src/tools/_local-only.ts` but never existed — dangling cite removed in BL-090).
 
 ### SDK
 
-The server is built on the official TypeScript SDK, **`@modelcontextprotocol/sdk` v1.x** (`^1.29.0` in `mcp-server/package.json`), importing `McpServer` from `@modelcontextprotocol/sdk/server/mcp.js` and `StdioServerTransport` from `.../server/stdio.js`, with Zod v4 schemas. (The frozen BL-031 doc anticipated a v2 `@modelcontextprotocol/server` package split; that never became the shipped dependency — the single-package SDK remains current.) Handlers return structured MCP errors (`{ isError: true, content: [...] }`), never thrown exceptions.
+The server is built on the official TypeScript SDK, **`@modelcontextprotocol/sdk` v1.x** (`^1.29.0` in `mcp-server/package.json`), importing `McpServer` from `@modelcontextprotocol/sdk/server/mcp.js` and `StdioServerTransport` from `.../server/stdio.js`, with Zod v4 schemas. (The frozen BL-031 doc anticipated a v2 `@modelcontextprotocol/server` package split; that never became the shipped dependency — the single-package SDK remains current.) Handlers return structured MCP errors, never thrown exceptions. Since 0.43.0 (BL-090) every result — success and failure alike — is built by `toolOk()` / `toolFail()` in `src/tools/_result.ts`: the payload (or `{ error, message, … }`) goes to `structuredContent`, and `content[0].text` carries a one-line caption on success or the verbatim message on failure. See [ADR-0011](../../../src/docs/adr/0011-tool-response-channel-policy.md).
 
 ### Local stdio discovery and connection
 
@@ -59,12 +59,11 @@ Requests pass through, in order:
 
 1. **CORS preflight** — `OPTIONS` with `Access-Control-Request-Method` gets a 204 with origin-checked headers. Never authenticated, never logged.
 2. **Public endpoints (no auth)** — `GET /health` returns the JSON health payload (`src/observability/health.ts`: Upstash probe + cached Inoreader status + `GIT_SHA` build provenance); `GET /status` renders a public HTML status page over the same payload plus the alert evaluator's last-run summary, edge-cached 60s (`src/observability/status-page.ts`). Health deliberately never calls Inoreader — it reads a 5-minute-TTL Upstash status cache written by real radar calls, so uptime monitors can't burn API budget.
-3. **Admin re-auth surface** — `/admin/inoreader/reauth/*` (operator-driven Inoreader OAuth recovery) is gated by the separate `MCP_ADMIN_KEY`, not team bearers.
-4. **Routed-path allowlist** — anything other than `/mcp` (prefix) and `/radar/snapshot` (exact) 404s _before_ auth runs (`isRoutedPath()` in `worker.ts`). This kills bot-probe noise (`/favicon.ico`, `/.env`, `/wp-admin`) at the source: no auth attempt, no Sentry event, no quota burn.
-5. **Bearer auth** — `authenticate()` from `src/auth/bearer.ts` (see next section). Failures 401 with a structured envelope; probe-class failures (missing/empty header) are safeLog-only, actionable ones (`invalid-token`, `malformed-scopes`) also go to Sentry.
-6. **Rate limit** — per-key sliding-window check via `src/ratelimit/limiter.ts`; the tool name is extracted at the Worker boundary from a cloned-body JSON-RPC parse (`src/dispatch/extract-tool-name.ts`) so radar tools hit the stricter tier. Exceeded → 429 with `RateLimit-*` headers.
-7. **`GET /radar/snapshot`** — plain-HTTP convenience endpoint for the website's SSR, gated on the `resource:radar:read` scope; slotted after auth + rate limit, before MCP framing.
-8. **MCP handler** — everything else delegates to `createMcpHandler`. Every response is wrapped with CORS + rate-limit headers on the way out; every request emits a structured `safeLog` line and (when bound) an Analytics Engine event.
+3. **OAuth surface** (BL-033 Slice 2) — `/authorize`, `/token`, `/.well-known/*`, `/oauth/introspect`, and `/admin/oauth/*` delegate to the embedded authorization server (`src/oauth/provider.ts`, sub-router pattern — see § OAuth below). `grant_type=client_credentials` is intercepted ahead of delegation and served by `src/oauth/m2m-token.ts`.
+4. **Admin re-auth surface** — `/admin/inoreader/reauth/*` (operator-driven Inoreader OAuth recovery) is gated by the separate `MCP_ADMIN_KEY`, not team bearers.
+5. **Routed-path allowlist** — anything other than `/mcp` (prefix), `/radar/snapshot` (exact), and the OAuth surface 404s _before_ auth runs (`isRoutedPath()` / `isOAuthSurfacePath()` in `worker.ts`). This kills bot-probe noise (`/favicon.ico`, `/.env`, `/wp-admin`) at the source: no auth attempt, no Sentry event, no quota burn.
+6. **Authentication — dual validation, cheap-first** — (1) static `MCP_KEY_*` scan (`authenticate()` from `src/auth/bearer.ts`; constant-time, zero I/O, byte-identical to the pre-OAuth behavior); (2) `mcp_m2m_*` self-contained JWT verify (local HMAC, zero I/O); (3) OAuth access-token validation via the provider (KV-backed), whose api-handler re-enters the shared pipeline. Failures 401 with the structured envelope; when a bearer was actually presented, the challenge carries the RFC 9728 `resource_metadata` pointer so OAuth-capable clients auto-discover the flow. `auth.failed` telemetry (safeLog + conditional Sentry) fires only after every path has failed.
+7. **Post-auth pipeline** (`src/pipeline/handle-authenticated.ts` — shared by all three auth paths, keyed on the `AuthSuccess {keyOwner, scopes}` contract): per-key sliding-window rate limit (`src/ratelimit/limiter.ts`; tool name extracted from a cloned-body JSON-RPC parse so radar tools hit the stricter tier; exceeded → 429 with `RateLimit-*` headers) → `GET /radar/snapshot` (plain-HTTP convenience endpoint for the website's SSR, gated on `resource:radar:read`) → `createMcpHandler` dispatch. Every response is wrapped with CORS + rate-limit headers on the way out; every request emits a structured `safeLog` line and (when bound) an Analytics Engine event.
 
 The `scheduled` handler dispatches three production crons by `event.cron` (see the deploy-topology table below), with a single-flight Upstash lock keyed on `cron:scheduledTime` deduplicating Cloudflare's documented double-invocations.
 
@@ -76,13 +75,19 @@ Tools whose implementations need `node:fs` / `node:crypto` are **stdio-only**: `
 
 ## Auth, CORS & deploy topology
 
-### Bearer-token auth (Q11/Q13)
+### Dual auth: static bearers + OAuth 2.1 (Q11/Q13 → BL-033)
 
-Auth is static bearer tokens, one per teammate, stored as Wrangler secrets named `MCP_KEY_<INITIALS>` (e.g. `MCP_KEY_RP`). `src/auth/bearer.ts` enumerates all `MCP_KEY_*` bindings at runtime via `Object.entries(env)` — adding a teammate is one `wrangler secret put`, no code change. The matched secret's suffix becomes the `keyOwner` used for log attribution and rate-limit bucketing; the token value itself is never logged or returned.
+Two credential families validate on the same endpoints, cheap-first (decision record: [ADR-0008](../../../src/docs/adr/0008-mcp-oauth-embedded-authorization-server.md)):
 
-**Why bearer, not OAuth**: for an internal team of <10, `wrangler secret put` is the simplest safe issuance-and-revocation surface. OAuth 2.1 (and therefore compatibility with Claude Desktop's Connectors OAuth UI) is deferred to the BL-033 external-pilot scope. Rotation is manual, on demand or on suspected compromise — runbook in [`operations/AUTH.md`](operations/AUTH.md).
+**Static bearer tokens** — one per teammate/integration, stored as Wrangler secrets named `MCP_KEY_<INITIALS>` (e.g. `MCP_KEY_RP`). `src/auth/bearer.ts` enumerates all `MCP_KEY_*` bindings at runtime via `Object.entries(env)` — adding a teammate is one `wrangler secret put`, no code change. The matched secret's suffix becomes the `keyOwner` used for log attribution and rate-limit bucketing; the token value itself is never logged or returned; comparison is constant-time (`src/auth/timing-safe-equal.ts`). This path is byte-identical to the pre-OAuth behavior — the website's `MCP_KEY_WEBSITE_RADAR`, the latency probe's `MCP_KEY_PROBE`, and legacy bridge configs keep working unchanged.
 
-**Scopes** (`src/auth/scopes.ts`): coarse-grained permission strings carried on the auth result — `tool:*`, `prompt:*`, and per-family `resource:<family>:read`, with `prefix:*` wildcard matching. Every team key gets `DEFAULT_SCOPES` (full grant) unless a companion `MCP_KEY_<OWNER>_SCOPES` env var (JSON string array) narrows it — the mechanism behind `MCP_KEY_WEBSITE_RADAR`, the website's SSR key that carries only `resource:radar:read`. Malformed `_SCOPES` JSON fails loud as a 401 at auth time. Scope denials surface as JSON-RPC error `-32002` (`MissingScopeError`).
+**OAuth 2.1 (embedded authorization server)** — `@cloudflare/workers-oauth-provider` (exact-pinned) mounted as a sub-router from `worker.ts`, backed by the `OAUTH_KV` namespace. The MCP-spec surface: RFC 8414 AS metadata + RFC 9728 protected-resource metadata at `/.well-known/*`, PKCE S256-only, DCR disabled (pre-registration via admin endpoints + CIMD for Claude-family clients), 1h access tokens with rotating 30-day refresh tokens. **Identity is a delegation layer over the key roster**: the `/authorize` consent page authenticates the human via their existing `MCP_KEY_*` value (same constant-time `matchToken` core), grants scopes = requested ∩ key scopes, and stamps `keyOwner OAUTH:<owner>`. This is what makes Claude's native Connectors UI work against the Worker (see `operations/REMOTE_CLIENT_SETUP.md`).
+
+**M2M client_credentials** — headless machine clients (`/admin/oauth/m2m-clients` registry in OAUTH_KV) exchange `grant_type=client_credentials` at `/token` (our branch — the library has no such grant) for **self-contained HS256 JWTs** (`mcp_m2m_*`, signed with `OAUTH_M2M_SIGNING_KEY`, 1h, audience-bound, no refresh token). Client auth: RFC 7523 `private_key_jwt` (preferred; ES256 vs registered JWKS, ≤5-min assertions, jti replay check) or hashed-secret compare. Verification is zero-I/O on the request path; revocation semantics (record-delete vs signing-key rotation) in ADR-0008 + `operations/AUTH.md`.
+
+**Introspection** — `POST /oauth/introspect` (RFC 7662, `MCP_ADMIN_KEY`-gated) reports token liveness/scopes for support; M2M tokens are cross-checked against the client record so revoked clients report inactive during their ≤1h residual.
+
+**Scopes** (`src/auth/scopes.ts`): coarse-grained permission strings carried on the auth result — `tool:*`, `prompt:*`, and per-family `resource:<family>:read`, with `prefix:*` wildcard matching — **identical strings across all three auth paths**; the `AuthSuccess {keyOwner, scopes}` contract feeds the shared post-auth pipeline. Every team key gets `DEFAULT_SCOPES` (full grant) unless a companion `MCP_KEY_<OWNER>_SCOPES` env var (JSON string array) narrows it — the mechanism behind `MCP_KEY_WEBSITE_RADAR`, the website's SSR key that carries only `resource:radar:read`; OAuth grants are bounded by the consenting key's scopes; M2M tokens by the client record's `allowedScopes`. Malformed `_SCOPES` JSON fails loud as a 401 at auth time. Scope denials surface as JSON-RPC error `-32002` (`MissingScopeError`).
 
 ### CORS (Q5)
 
@@ -111,16 +116,18 @@ The Worker does **not** inherit the website's Content-Security-Policy (the `verc
 
 ## Rate limiting & Inoreader budget
 
-Deep rationale for the numbers below is deferred to a future ADR; this section records what ships and where.
+Rationale for the tier design + the soft-limit transport: [ADR-0010](../../../src/docs/adr/0010-per-client-rate-limit-tiers.md). This section records what ships and where.
 
-### Per-key sliding windows (Q7)
+### Per-key sliding windows (Q7), tier-aware (BL-033 Slice 5)
 
 `src/ratelimit/limiter.ts` uses `@upstash/ratelimit` (`Ratelimit.slidingWindow`, per Q7's "use the library" resolution) against the MCP Upstash DB, keyed by `keyOwner` under the `mcp:ratelimit:*` prefix. Two tool classes:
 
-- **general** — 60/min + 1000/day, checked on every authenticated request
-- **radar** (`search_radar`, `get_latest_insights`; BL-038) — an _additional_ 5/min + 50/day pair, checked on top of the general buckets (additive — radar calls consume from all four)
+- **general** — checked on every authenticated request
+- **radar** (`search_radar`, `get_latest_insights`; BL-038) — an _additional_ pair, checked on top of the general buckets (additive — radar calls consume from all four)
 
-The binding tier (whichever bucket exhausted, or has fewest remaining) drives the 429 envelope's `RateLimit-*` / `Retry-After` headers (`src/ratelimit/headers.ts`), so agents can distinguish "slow my radar polling" from "slow everything." When Upstash credentials aren't bound, the limiter fails open with a `ratelimit.skipped` warning — local `wrangler dev` works without setup; production must have credentials wired. Contract details: [`operations/RATE_LIMITS.md`](operations/RATE_LIMITS.md).
+The four ceilings are **per-client tier-aware** (`src/ratelimit/tiers.ts`, `resolveTierLimits(auth.tier)` → `createLimiter(env, limits)`). The tier (`free-pilot`/`paid`/`enterprise`) is carried on the M2M token claim — not re-fetched from KV — so the limiter reads it locally with no eventual-consistency hazard (the ADR-0008 corollary; ADR-0010 §1). Static `MCP_KEY_*` keys and OAuth human-consent carry no tier → the generous `internal` tier (= the pre-Slice-5 60/1000/5/50, so no regression).
+
+The binding tier (whichever bucket exhausted, or has fewest remaining) drives the 429 envelope's `RateLimit-*` / `Retry-After` headers (`src/ratelimit/headers.ts`); every authenticated response (200 and 429) also carries **`RateLimit-Policy`** advertising the tier ceilings. When any bucket is ≥80% consumed (`CheckResult.minRemainingRatio`), the tool-metrics wrapper (`src/metrics/with-metrics.ts`) emits a best-effort **`notifications/message`** soft-limit warning on the request's SSE stream — which requires the server to declare the `logging` capability (`src/server.ts`); the always-present headers are the guaranteed fallback (ADR-0010 §2). When Upstash credentials aren't bound, the limiter fails open with a `ratelimit.skipped` warning — local `wrangler dev` works without setup; production must have credentials wired. Contract details: [`operations/RATE_LIMITS.md`](operations/RATE_LIMITS.md).
 
 ### Inoreader budget
 
@@ -130,7 +137,9 @@ The binding tier (whichever bucket exhausted, or has fewest remaining) drives th
 
 ### Circuit breaker
 
-Every Inoreader call site (cron or live tool) routes failures through `src/lib/inoreader-failure-handler.ts`, which opens the breaker in `src/ratelimit/circuit-breaker.ts` on `inoreader-rate-limit` signals and tags a Sentry message with the zone-diagnostic headers; while open, radar reads serve cached data and skip upstream calls until the cool-down elapses.
+Every Inoreader call site (cron, live tool, the `gst://radar/*` Resources reader, and the `/radar/snapshot` SSR endpoint) routes failures through `src/lib/inoreader-failure-handler.ts`, which opens the breaker in `src/ratelimit/circuit-breaker.ts` on `inoreader-rate-limit` signals and tags a Sentry message with the zone-diagnostic headers; while open, radar reads serve cached data and skip upstream calls until the cool-down elapses.
+
+**How "serve cached data" is enforced (BL-091).** `src/content/radar-live-store.ts` exposes two reader families: the cache-first-then-fetch `readWireLive`/`readFyiLive`, and the cache-only `readWireCached`/`readFyiCached` which are _structurally incapable_ of calling Inoreader (their miss case is a `cache-empty` failure, deliberately not assignable to `InoreaderFailure` so it can never reach `openCircuit`). Every read surface — tools, `gst://radar/*` Resources via `createWorkerSnapshotReader`, and `/radar/snapshot` — checks `isCircuitOpen` and switches families; results carry `liveInfo.degraded` (a tier with nothing cached reports `null` for its `fetchedAt`/`cacheHit`). A hard 503 is now the _last_ resort, returned only when nothing is cached. `tests/integration/radar-store-callers-breaker-gated.test.ts` freezes this structurally: any module importing the fetch-capable readers must also import `isCircuitOpen`, so a new call site can't silently reopen the leak that BL-091 closed on two surfaces. Operator visibility: `circuitOpen` on `/health` and a row on `/status` — deliberately **not** folded into `health.ok`, which is already false in this state. Rationale + the rejected half-open probe: [ADR-0006](../../../src/docs/adr/0006-inoreader-zone1-budget-protection.md).
 
 _Distilled from MCP_SERVER_REMOTE_BL-032.md (May 2026, Q1–Q13 decision records) — archived at `src/docs/development/_archive/`._
 
@@ -168,7 +177,7 @@ _Distilled from MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md (May 2026) — a
 
 ## Radar pipeline (single-caller unification)
 
-The MCP Worker is the **sole Inoreader API consumer** for all GST traffic (BL-032.8). One OAuth identity, one token-storage path, one protective substrate — every consumer surface (website ISR, Claude Desktop / Claude Code, remote MCP clients) flows through the same rate limit, circuit breaker, day-counter, and 429 header capture. No second caller can invisibly starve the shared 100/day Zone-1 budget.
+The MCP Worker is the **sole Inoreader API consumer** for all GST traffic (BL-032.8). One OAuth identity, one token-storage path, one protective substrate — every consumer surface (the website's `/hub/radar` island, Claude Desktop / Claude Code, remote MCP clients) flows through the same rate limit, circuit breaker, day-counter, and 429 header capture. No second caller can invisibly starve the shared 100/day Zone-1 budget.
 
 ### Consumer surfaces
 
@@ -222,13 +231,13 @@ Metrics are written to Cloudflare Analytics Engine (positional-columnar, SQL-que
 
 The column map is pinned in `src/metrics/_schema.ts` — the single source of truth for emitters, the runtime guard, test fixtures, baseline queries, and alert SQL:
 
-| Column  | Field                                                                                                                                                                                                  |     | Column    | Field                                                       |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --- | --------- | ----------------------------------------------------------- |
-| `blob1` | `event_type` (discriminator: `tool_invocation`, `resource_read`, `prompt_invocation`, `prompt_span`, `rate_limit_decision`, `inoreader_call`, `health_check`, `cron_outcome`, + BL-045 counter events) |     | `blob6`   | `status_code` (string)                                      |
-| `blob2` | `name` (tool/prompt/cron slug/egress category)                                                                                                                                                         |     | `blob7`   | `zone1` (`'1'`/`'0'`, `inoreader_call` only)                |
-| `blob3` | `keyOwner` (PII-free `MCP_KEY_*` suffix)                                                                                                                                                               |     | `double1` | `duration_ms`                                               |
-| `blob4` | `outcome` (`success`/`error`/per-type enum)                                                                                                                                                            |     | `double2` | `seq` (prompt-span step index)                              |
-| `blob5` | `correlation_id` (`prompt_span` only)                                                                                                                                                                  |     | `index1`  | `keyOwner` mirror (AE sampling key; `__none__` when absent) |
+| Column  | Field                                                                                                                                                                                                                 |     | Column    | Field                                                       |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | --------- | ----------------------------------------------------------- |
+| `blob1` | `event_type` (discriminator: `tool_invocation`, `resource_read`, `prompt_invocation`, `prompt_span`, `rate_limit_decision`, `inoreader_call`, `health_check`, `cron_outcome`, `audit_batch`, + BL-045 counter events) |     | `blob6`   | `status_code` (string)                                      |
+| `blob2` | `name` (tool/prompt/cron slug/egress category)                                                                                                                                                                        |     | `blob7`   | `zone1` (`'1'`/`'0'`, `inoreader_call` only)                |
+| `blob3` | `keyOwner` (PII-free `MCP_KEY_*` suffix)                                                                                                                                                                              |     | `double1` | `duration_ms`                                               |
+| `blob4` | `outcome` (`success`/`error`/per-type enum)                                                                                                                                                                           |     | `double2` | `seq` (prompt-span step index)                              |
+| `blob5` | `correlation_id` (`prompt_span` only)                                                                                                                                                                                 |     | `index1`  | `keyOwner` mirror (AE sampling key; `__none__` when absent) |
 
 Handlers never touch positional columns. Typed emitters — the `withToolMetrics` / resource / prompt HOFs in `src/metrics/with-metrics.ts` wrap handlers at registration time and emit one event per invocation; `src/metrics/prompt-span.ts` emits correlation-id-linked per-step events (a lightweight trace substitute). Sinks implement the `MetricSink` interface: `AnalyticsEngineSink` in production, `InMemorySink` in tests. A `schema.test.ts` snapshot pins the column map — changing it is a breaking change to every downstream consumer and forces deliberate review.
 
@@ -274,4 +283,18 @@ _Distilled from MCP_SERVER_OBSERVABILITY_BL-032_75.md (May–July 2026) — arch
 
 ---
 
-_Last updated: 2026-07-17 (BL-088 PR 2 — initial distillation from the five archived initiative docs). Maintained: update this doc in the same PR as architecture changes._
+## Audit logging (BL-033 Slice 3a)
+
+Distinct from Observability above: metrics/AE are the **ops** surface (aggregation-shaped, 3-month retention, feeds Sentry/CF logs); the audit log is the **compliance** surface — a tamper-evident, hash-chained, immutable record of every tool invocation, deliberately kept off the ops sinks. Decision record: [`../../../src/docs/adr/0009-compliance-audit-log-hash-chain.md`](../../../src/docs/adr/0009-compliance-audit-log-hash-chain.md). Operator runbook: [`operations/AUDIT_LOG.md`](operations/AUDIT_LOG.md). This slice ships **emission + durable store**; signed-URL export, the quarterly integrity-check automation, and the `?audit_full_payload=true` retention flag are deferred.
+
+**Separate path off the shared chokepoint.** `withMetricsCore` (`src/metrics/with-metrics.ts`) already wraps every tool handler with `{name, args[0], result, duration, outcome, keyOwner}` in scope. A per-request `AuditContext` (`{sink, requestId, ipPrefix, keyOwner}`) is threaded alongside the metrics sink via `createServer` → `ServerContext` → `MetricsContext`; for `tool_invocation` only, the chokepoint builds a full `AuditEntry` (incl. `inputParams` + `outputBytes`) and hands it to a fire-and-forget `AuditSink` — a path wholly separate from `emit()`/`MetricSink`, so **full input params never reach AE/Sentry/CF logs**. `requestId` (a fresh UUID minted in `handle-authenticated.ts`) correlates the audit entries with the request's `safeLog` line; `ipPrefix` is the GDPR-truncated caller IP.
+
+**Enqueue → consumer → R2.** `QueueAuditSink.write` enqueues to `AUDIT_QUEUE` via `ctx.waitUntil` (off the latency path, best-effort — a documented first-hop loss window, ADR-0009). The Worker's `queue` handler (`src/audit/consumer.ts`) is a single writer (`max_concurrency=1` + single-flight lock) that hash-chains each entry and writes one immutable object per entry to `AUDIT_R2` at `audit/<env>/<yyyy>/<mm>/<dd>/<paddedSeq(16)>.json` (a Cloudflare Bucket Lock rule at 7-yr retention configured on the bucket; create-only writes mean versioning is unnecessary). It owns its own SDK-free Sentry-envelope lifecycle (like `scheduled`) but — unlike the retry-less cron — **never swallows a failure**: any error (including a null/unreachable Upstash) `retryAll`s the batch → DLQ, never an ack-drop.
+
+**Crash-safe hash chain.** Sequencing is authoritative via an `entryId→{seq,prevHash,entryHash}` ledger in Upstash committed atomically with the chain tip (`mcp:audit:chain-tip:<env>`) in a single `MULTI`; R2 is an idempotent per-seq projection (`If-None-Match: *` → `put()` returns `null` for an already-written object). An entry's `seq` is fixed the instant its `seqOf` commits and never shifts on redelivery, so a recomposed redelivered batch can neither fork nor duplicate the chain. `seq` (not the wall-clock `tsIso`) is the canonical chain order. Consumer-batch outcomes emit an `audit_batch` AE event for ops visibility (the records themselves never touch AE). Upstash (not KV) because KV is eventually consistent and lacks multi-key transactions — see ADR-0009 for the full crash-interleaving analysis and rejected alternatives.
+
+**First-of-kind bindings.** R2 and Cloudflare Queues are introduced here; the operator provisions each env's Queue + DLQ + R2 bucket **before** deploy (a `[[queues.consumers]]` on a missing queue fails `wrangler deploy`). Steps in `operations/AUDIT_LOG.md`.
+
+---
+
+_Last updated: 2026-07-26 (BL-033 Slice 3a — added § Audit logging). Previously 2026-07-17 (BL-088 PR 2 — initial distillation). Maintained: update this doc in the same PR as architecture changes._

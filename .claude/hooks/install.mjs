@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Installs the review-gate hooks (hooks.config.json) into this developer's
  * .claude/settings.local.json — run via `npm run setup:claude-hooks`.

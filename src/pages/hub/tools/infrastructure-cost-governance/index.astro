@@ -2,6 +2,7 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import { DOMAINS, TOTAL_QUESTIONS } from '../../../../data/infrastructure-cost-governance/domains';
+import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
 const domainCount = DOMAINS.length;
 ---
@@ -18,31 +19,19 @@ const domainCount = DOMAINS.length;
   <script
     is:inline
     type="application/ld+json"
-    set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      name: 'Infrastructure Cost Governance',
-      description:
-        'Cloud cost maturity assessment across six operational domains for PE diligence, board reviews, and 100-day planning',
-      applicationCategory: 'BusinessApplication',
-      operatingSystem: 'Web',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      publisher: { '@type': 'Organization', name: 'Global Strategic Technologies' },
-      datePublished: '2026-03-01',
-      dateModified: '2026-03-21',
-      featureList: [
-        '20 questions across 6 cloud cost domains',
-        'Scored diagnostic with benchmarks',
-        'Prioritized improvement checklist',
-        'Shareable results for board reviews',
-      ],
-      author: {
-        '@type': 'Person',
-        name: 'Reid Peryam',
-        jobTitle: 'Strategic Technology Advisor',
-        sameAs: ['https://www.linkedin.com/in/reidperyam/'],
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Infrastructure Cost Governance',
         description:
-          'Technology advisor with experience across 100+ PE technology diligence engagements',
+          'Cloud cost maturity assessment across six operational domains for PE diligence, board reviews, and 100-day planning',
+        datePublished: '2026-03-01',
+        dateModified: '2026-03-21',
+        featureList: [
+          '20 questions across 6 cloud cost domains',
+          'Scored diagnostic with benchmarks',
+          'Prioritized improvement checklist',
+          'Shareable results for board reviews',
+        ],
         knowsAbout: [
           'Cloud Cost Optimization',
           'Infrastructure Governance',
@@ -50,8 +39,8 @@ const domainCount = DOMAINS.length;
           'Technical Due Diligence',
           'M&A Tech Strategy',
         ],
-      },
-    })}
+      })
+    )}
   />
 
   <section class="icg-section">
@@ -848,7 +837,7 @@ const domainCount = DOMAINS.length;
   }
 
   :global(.icg-recs-group__label) {
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: var(--font-weight-bold);
     font-family: var(--font-family-mono);
     margin-bottom: var(--spacing-sm);
@@ -1003,8 +992,11 @@ const domainCount = DOMAINS.length;
   }
 
   /* ── Back link ────────────────────────────────────────────────────────── */
+  /* No `display` here on purpose. It would out-specify `.is-hidden` (same
+     specificity, later source order), which is what previously made the
+     wizard/results hide below a no-op, and it would drop the inherited
+     `inline-flex` that centres the label inside the touch-target floor. */
   .icg-back-link {
-    display: inline-block;
     margin-top: var(--spacing-2xl);
   }
 
@@ -1217,7 +1209,8 @@ const domainCount = DOMAINS.length;
       flex-wrap: wrap;
     }
 
-    /* Hide back link on mobile when in wizard or results */
+    /* Spacing only. The wizard/results hide is a JS class toggle with no viewport
+       scope — see the note above the toggle; this rule never hid anything. */
     .icg-back-link {
       margin-top: var(--spacing-lg);
     }
@@ -1227,6 +1220,7 @@ const domainCount = DOMAINS.length;
        PRINT
     ════════════════════════════════════════════════════════════════════════ */
   @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
     /* Hide non-results elements */
     .icg-section :global(.site-header),
     .icg-section :global(footer),
@@ -1289,6 +1283,7 @@ const domainCount = DOMAINS.length;
     .icg-foundational-warning {
       break-inside: avoid;
     }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
   }
 </style>
 
@@ -1543,7 +1538,11 @@ const domainCount = DOMAINS.length;
     resultsView.classList.toggle('is-hidden', state.currentStep !== 7);
     comparisonView.classList.add('is-hidden');
 
-    // Hide back link during wizard/results to reduce mobile clutter
+    // Hide the back link during wizard/results — at every viewport, not just
+    // mobile: the toggle has no media-query scope. It was inert until 2026-07-29
+    // (`.icg-back-link { display: inline-block }` out-specified `.is-hidden`), so
+    // this reads as new behaviour even though the intent is original. Returning to
+    // the landing view restores it; both directions are pinned by E2E.
     const backLink = document.querySelector('.icg-back-link') as HTMLElement | null;
     if (backLink) backLink.classList.toggle('is-hidden', state.currentStep !== 0);
 

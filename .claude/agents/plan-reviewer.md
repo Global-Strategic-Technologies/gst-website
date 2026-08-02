@@ -55,6 +55,11 @@ After delivering your findings, write `.claude/tasks/plan-review.json` (repo-rel
 
 Compute the hash from the file you actually reviewed (e.g. `node -e` with `crypto.createHash('sha256')`, or PowerShell `Get-FileHash`). The gate compares this hash against the plan file's current content: if the plan is edited after your review, the gate forces a re-review — so review the FINAL text, and if the main agent revises the plan in response to your findings, it must send the revised plan back to you.
 
+**Marker-writing discipline** (both learned from live gate rejections):
+
+- `reviewedAt` must be a **real clock read** — write the marker via a node one-liner that embeds `new Date().toISOString()`. Never estimate or round a timestamp: the gate fails closed on future timestamps (clock-skew guard).
+- After writing, **round-trip the file through `JSON.parse`** to prove it's valid — the gate fails closed on malformed JSON. Avoid raw regex/backslash snippets inside the findings strings (invalid JSON escapes); paraphrase in prose instead.
+
 Never write a marker with verdict `USER_WAIVED` — that verdict is reserved for the main agent recording an explicit user waiver, and it must quote the user's waiver in a `waiver` field.
 
 Your final response should contain the full findings report (the marker is machinery; the findings are the deliverable).

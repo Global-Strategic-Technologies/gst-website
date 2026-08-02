@@ -3,6 +3,7 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import PresetInput from '../../../../components/techpar/PresetInput.astro';
+import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 ---
 
 <BaseLayout
@@ -17,31 +18,19 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
   <script
     is:inline
     type="application/ld+json"
-    set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      name: 'TechPar',
-      description:
-        'Technology cost structure analysis tool for PE diligence and portfolio company benchmarking',
-      applicationCategory: 'BusinessApplication',
-      operatingSystem: 'Web',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      publisher: { '@type': 'Organization', name: 'Global Strategic Technologies' },
-      datePublished: '2026-02-01',
-      dateModified: '2026-03-22',
-      featureList: [
-        'Blended technology cost ratio',
-        'Stage-adjusted benchmarking',
-        '36-month trajectory projection',
-        'Infrastructure, personnel, and R&D breakdown',
-      ],
-      author: {
-        '@type': 'Person',
-        name: 'Reid Peryam',
-        jobTitle: 'Strategic Technology Advisor',
-        sameAs: ['https://www.linkedin.com/in/reidperyam/'],
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'TechPar',
         description:
-          'Technology advisor with experience across 100+ PE technology diligence engagements',
+          'Technology cost structure analysis tool for PE diligence and portfolio company benchmarking',
+        datePublished: '2026-02-01',
+        dateModified: '2026-03-22',
+        featureList: [
+          'Blended technology cost ratio',
+          'Stage-adjusted benchmarking',
+          '36-month trajectory projection',
+          'Infrastructure, personnel, and R&D breakdown',
+        ],
         knowsAbout: [
           'Technology Cost Benchmarking',
           'SaaS Metrics',
@@ -49,8 +38,8 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
           'M&A Tech Strategy',
           'Infrastructure Cost Analysis',
         ],
-      },
-    })}
+      })
+    )}
   />
 
   <section class="techpar-section">
@@ -1804,7 +1793,7 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
   /* ── Primary KPI hero (frosted glass) ────────────────────── */
   .tp-kpi-hero {
     padding: var(--spacing-xl);
-    background: light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005));
+    background: var(--surface-faint-bg);
     backdrop-filter: blur(3px);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-top: 3px solid var(--color-primary);
@@ -1887,7 +1876,7 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
   /* ── Signal card (frosted glass) ─────────────────────────── */
   .tp-signal {
     padding: var(--spacing-lg);
-    background: light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005));
+    background: var(--surface-faint-bg);
     backdrop-filter: blur(3px);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-left: 3px solid var(--color-primary);
@@ -1969,7 +1958,7 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
 
   /* KPI cells are injected via innerHTML — use :global for children */
   .tp-kpi-grid :global(.tp-kpi-cell) {
-    background: light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005));
+    background: var(--surface-faint-bg);
     backdrop-filter: blur(3px);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     padding: var(--spacing-md);
@@ -2110,7 +2099,7 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
   .tp-bench-table-wrap {
     margin-bottom: var(--spacing-lg);
     padding: var(--spacing-md);
-    background: light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005));
+    background: var(--surface-faint-bg);
     backdrop-filter: blur(3px);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
@@ -2301,7 +2290,7 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
   .tp-recs {
     margin-bottom: var(--spacing-lg);
     padding: var(--spacing-md);
-    background: light-dark(rgba(0, 0, 0, 0.005), rgba(255, 255, 255, 0.005));
+    background: var(--surface-faint-bg);
     backdrop-filter: blur(3px);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-top: 3px solid var(--color-primary);
@@ -2443,7 +2432,7 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
 
   .tp-scenario-list :global(.tp-scenario-chip__zone) {
     font-family: var(--font-family-mono);
-    font-size: 0.65rem;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -2713,12 +2702,13 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
     }
 
     .tool-action-bar .brutal-btn--secondary {
-      min-height: 40px;
+      min-height: var(--touch-target-min);
     }
   }
 
   /* ─── Print stylesheet ─────────────────────────────────── */
   @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
     /* ── Hide interactive chrome ─────────────────────────────── */
     .site-header,
     .tool-tab-bar,
@@ -2811,7 +2801,7 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
       content: 'Generated by TechPar  |  globalstrategic.tech/hub/tools/techpar';
       display: block;
       font-family: var(--font-family-mono);
-      font-size: 0.65rem;
+      font-size: var(--text-2xs);
       color: var(--text-muted);
       margin-top: var(--spacing-lg);
       border-top: 2px solid var(--border-light);
@@ -2965,6 +2955,7 @@ import PresetInput from '../../../../components/techpar/PresetInput.astro';
     @page {
       margin: 1.5cm;
     }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
   }
 </style>
 

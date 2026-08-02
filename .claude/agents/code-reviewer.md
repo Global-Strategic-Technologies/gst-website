@@ -52,3 +52,8 @@ After delivering your review, record the reviewed state and write `.claude/tasks
 ```
 
 Verdict `APPROVE` only when there are no unresolved critical issues. The push gate compares `headSha` to the current HEAD — if commits are added after your review, the gate forces a re-review, so review the final commit state. Never write verdict `USER_WAIVED` — that is reserved for the main agent recording an explicit user waiver (with the quoted waiver in a `waiver` field).
+
+**Marker-writing discipline** (both learned from live gate rejections):
+
+- `reviewedAt` must be a **real clock read** — write the marker via a node one-liner that embeds `new Date().toISOString()`. Never estimate or round a timestamp: the gate fails closed on future timestamps (clock-skew guard).
+- After writing, **round-trip the file through `JSON.parse`** to prove it's valid — the gate fails closed on malformed JSON. Avoid raw regex/backslash snippets inside the findings strings (invalid JSON escapes); paraphrase in prose instead.

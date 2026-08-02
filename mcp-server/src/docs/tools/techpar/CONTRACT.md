@@ -30,7 +30,7 @@ enumParity:
 
 ## Field overview
 
-14 inputs. All required and validated by Zod; the engine returns `null` when `arr` or `infraHostingAnnual` is zero — the MCP wrapper surfaces this as an `isError` response with the message `TechPar requires both 'arr' and 'infraHostingAnnual' to be greater than zero.`
+14 inputs. All required and validated by Zod; the engine returns `null` when `arr` or `infraHostingAnnual` is zero — the MCP wrapper surfaces this as an `isError` response carrying `error: 'invalid-input'` in `structuredContent` and the message `TechPar requires both 'arr' and 'infraHostingAnnual' to be greater than zero.` verbatim in `content[0].text`.
 
 | Field                | Type       | Notes                                                                                  |
 | -------------------- | ---------- | -------------------------------------------------------------------------------------- |

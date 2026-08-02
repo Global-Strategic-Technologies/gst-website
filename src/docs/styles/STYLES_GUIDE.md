@@ -7,15 +7,16 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 ## Table of Contents
 
 1. [Quick Start by Task](#quick-start-by-task)
-2. [Design System Architecture](#design-system-architecture)
-3. [File Organization](#file-organization)
-4. [Component Styling](#component-styling)
-5. [Brand Delta Icon](#brand-delta-icon)
-6. [Dark Theme Implementation](#dark-theme-implementation)
-7. [Responsive Design](#responsive-design)
-8. [Hub Tool Patterns](#hub-tool-patterns)
-9. [Anti-Patterns](#anti-patterns)
-10. [New Component Checklist](#new-component-checklist)
+2. [In-repo Control Examples](#in-repo-control-examples)
+3. [Design System Architecture](#design-system-architecture)
+4. [File Organization](#file-organization)
+5. [Component Styling](#component-styling)
+6. [Brand Delta Icon](#brand-delta-icon)
+7. [Dark Theme Implementation](#dark-theme-implementation)
+8. [Responsive Design](#responsive-design)
+9. [Hub Tool Patterns](#hub-tool-patterns)
+10. [Anti-Patterns](#anti-patterns)
+11. [New Component Checklist](#new-component-checklist)
 
 ---
 
@@ -25,7 +26,7 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 
 1. Use CSS variables for all colors, spacing, and typography — see [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 2. Use typography utility classes — see [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md)
-3. Test in both light and dark themes
+3. Test in both light and dark themes and all 6 palettes
 4. Check responsive behavior at 768px and 480px breakpoints
 
 **Styling text:** Pick a utility class from [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) (`.brutal-heading-lg`, `.brutal-text-base`, `.brutal-label`, etc.). Dark theme colors switch automatically.
@@ -33,6 +34,47 @@ Conventions, best practices, and patterns for all CSS work on the GST Website.
 **Need a specific color/spacing value:** Look it up in [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md). Use the variable, never a hardcoded value.
 
 **Dark theme broken:** You almost certainly hardcoded a color. Replace it with `var(--variable-name)`.
+
+---
+
+## In-repo Control Examples
+
+**The brand page is the living control-example surface for this design system — start there before building anything visual.** It renders real tokens and real component classes at runtime and reacts to the theme toggle and all six palettes, so what you see is what the system currently produces, not a static mockup.
+
+- **Page**: [src/pages/brand.astro](../../pages/brand.astro) — composition, section layout, and the specimen styling
+- **Specimen components**: [src/components/brand/](../../components/brand/) — color swatches with live token values (`BrandColors`, `ColorSpecimens`), the typography/spacing/transition ladders (`BrandTypography`), real production component specimens and state matrices (`BrandComponents`, `BrandUILibrary`), accessibility patterns (`BrandAccessibility`), and the palette editor (`PalettePanel`)
+- **How to use them**: when building a new component or page, find the nearest specimen and copy its classes and token usage — do not restyle from scratch. If a pattern you need has no specimen, that's a signal to check [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) and the component CSS modules before inventing anything new
+- **Verifying palette/theme behavior**: open `/brand` in `npm run dev`, use the PalettePanel (always visible there; pop-out makes it available on every page) to switch themes and palettes live — see [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) § Alternative Palette System
+- The rendered page at [globalstrategic.tech/brand](https://globalstrategic.tech/brand) is the shareable form of the same surface for reviewers without repo access
+
+### How a specimen relates to what ships
+
+Because you are told to copy from these specimens, a specimen that has drifted from production
+teaches the wrong thing — which is worse than having no specimen. Every specimen must therefore use
+one of three mechanisms, in this order of preference (BL-095):
+
+1. **Render the real component.** Structurally cannot drift. The default, and what to do for anything
+   renderable in isolation — `Breadcrumb`, `StatsBar`, `WireItem`, `TableOfContents`, `DeltaIcon` and
+   `CompositeLogo` are live components on `/brand`, not copies of them. (The header *lockup* specimen
+   is not: only the `DeltaIcon` inside it is real, and the wordmark beside it is an inline-styled
+   replica under mechanism 2 — `Header` carries a `role="banner"` landmark and sticky positioning, so
+   it cannot render twice.)
+2. **Replica + parity guard.** Only for components that genuinely cannot render twice — those that
+   hardcode a singleton DOM `id` (`Header`, `ThemeToggle`, `CTASection`, the portfolio family). Add a
+   test in `tests/e2e/brand-page.test.ts` § "Site chrome specimens match production" comparing the
+   specimen's computed styles against the live component **on the same page**, never against literal
+   values, so the pin cannot go stale. Add a source comment naming the file to keep it in sync with.
+3. **Plain CSS class, no component.** Most `.brutal-*` specimens: the class lives in
+   `src/styles/components/*.css` with no `.astro` component behind it, so writing the markup *is*
+   rendering the real thing. Nothing to converge on.
+
+Two things that make replicas drift silently, both of which have happened:
+
+- **Astro `<style>` is scoped**, so a production component's styles never reach a replica of it on
+  another page. That is why replicas carry inline styles, and why they diverge unnoticed.
+- **Read the media queries, not just the base rule.** `.footer-links` is `gap: 0.75rem` at the top of
+  `Footer.astro` and `gap: 2rem` under `@media (min-width: 768px)` — the desktop value is the one a
+  desktop specimen must match.
 
 ---
 
@@ -416,15 +458,39 @@ Additional breakpoints used sparingly:
 - `@media (min-width: 480px) and (max-width: 767px)` — tablet-only range
 - `@media print` — print stylesheet
 
+### Touch Targets
+
+Interactive controls clear **44×44px** — WCAG 2.5.5, Level AAA. Use the `--touch-target-min` token, never a raw `44px`:
+
+```css
+.my-control {
+  min-height: var(--touch-target-min);
+}
+```
+
+It is a **floor, not a fixed size**. Components may sit above it where the design calls for it — the ICG wizard nav uses 48px, the diligence-machine document action uses 52px — and those stay as they are. What must never happen is a page-local rule resolving *below* it: `.brutal-choice-btn--unsure` (36px) and a techpar mobile action bar (40px) both did exactly that, silently out-specifying the base rule. [touch-target-floor.test.ts](../../../tests/integration/touch-target-floor.test.ts) now fails on any `min-height` / `min-width` that resolves under the token for a `brutal-btn`, `brutal-choice-btn` or `cta-button` selector, including inside Astro `<style>` blocks. It scans declarations that exist, so it catches a bad override — it cannot tell you a component has no floor at all, which is the shape that let `.brutal-btn` sit at 33px in the first place.
+
+Beware `display` overrides on a button that inherits the floor: swapping `inline-flex` for `inline-block` drops `align-items: center`, leaving the label top-aligned above dead space.
+
+Canonical statement and the documented exception live in [BRAND_GUIDELINES.md § Accessibility](./BRAND_GUIDELINES.md).
+
 ### Z-Index Scale
 
-| Value  | Usage                                    |
-| ------ | ---------------------------------------- |
-| `0`    | Checkerboard background (`body::before`) |
-| `1`    | Container, main content                  |
-| `10`   | Site header (sticky)                     |
-| `1000` | Filter overlay, mockup labels            |
-| `1001` | Filter drawer (above overlay)            |
+Use the canonical `--z-*` tokens from [variables.css](../../styles/variables.css) — **never raw numeric z-index values** (the token block's own comment mandates this). Tool-internal layers (map annotations, chart overlays) may use direct values for contextual reasons; prefer tokens otherwise.
+
+| Token                  | Value   | Usage                                        |
+| ---------------------- | ------- | -------------------------------------------- |
+| `--z-negative`         | `-1`    | `body::before` background grid               |
+| `--z-base`             | `1`     | Normal content stacking                      |
+| `--z-raised`           | `5`     | Tool content layers (maps, charts)           |
+| `--z-sticky`           | `10`    | Sticky headers, dropdowns anchored to content |
+| `--z-dropdown`         | `20`    | Floating menus, dropdowns                    |
+| `--z-palette-panel`    | `30`    | Palette panel (brand.astro)                  |
+| `--z-overlay`          | `50`    | General overlays                             |
+| `--z-compliance-panel` | `60`    | Regulatory-map compliance panel              |
+| `--z-modal`            | `1000`  | Modal base                                   |
+| `--z-modal-overlay`    | `1001`  | Modal backdrop                               |
+| `--z-skip-nav`         | `10000` | Skip-nav link (top of page)                  |
 
 ---
 
@@ -436,10 +502,12 @@ All `.brutal-btn` buttons include a frosted-glass aesthetic by default:
 .brutal-btn {
   backdrop-filter: blur(2px);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    /* wet-glass highlight */ 0 0 0 1px rgba(0, 0, 0, 0.04); /* subtle edge */
+    inset 0 1px 0 var(--frost-highlight),
+    /* wet-glass highlight */ 0 0 0 1px var(--frost-edge); /* hairline edge */
 }
 ```
+
+The `--frost-highlight` / `--frost-edge` pair carries the theme-switched values (see [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)); use the tokens rather than re-typing the rgba pair on each frosted surface.
 
 > **Do NOT manually write `-webkit-backdrop-filter`** (or any other vendor-prefixed property).
 > LightningCSS, wired to the project's [browserslist config](../../../package.json) via
@@ -458,7 +526,7 @@ Additional frosted-glass utilities in `global.css`:
 | Class                        | Blur               | Use Case                          |
 | ---------------------------- | ------------------ | --------------------------------- |
 | `.brutal-frosted`            | 3px                | Standard containers, action bars  |
-| `.brutal-frosted--heavy`     | 12px               | Drawers, sticky bars over content |
+| `.brutal-frosted--heavy`     | 6px                | Drawers, sticky bars over content |
 | `.brutal-frosted--blur-only` | 1.5px              | Subtle wet-glass sheen            |
 | `.brutal-frosted--overlay`   | 12px + 92% opacity | Modal/panel overlays              |
 
@@ -576,11 +644,25 @@ Hub tools use the standardized `.brutal-tool-shell` class defined in `global.css
 
 ### Skeleton Loading Placeholders
 
-For components that load content asynchronously (API calls, server islands), use the skeleton loading pattern. The `@keyframes pulse` animation is already defined in `global.css` (line 137).
+For components that load content asynchronously, use the skeleton loading pattern. The `@keyframes pulse` animation and the classes below are defined in [`src/styles/components/skeleton.css`](../../styles/components/skeleton.css).
 
-**Canonical reference**: `src/components/radar/RadarFeedSkeleton.astro`
+**Canonical reference**: the live specimens on [`/brand`](../../pages/brand.astro) — see `src/components/brand/BrandComponents.astro`, which is the in-repo control example for this pattern.
 
-**Global classes** (defined in `global.css`):
+> Do **not** reach for a skeleton to defer a page's primary content **on a page you want indexed**. Crawlers run JS on a deferred queue and judge the shell, so the page gets rated on whatever the skeleton is standing in for. `/hub/radar` is the exception that proves the rule rather than a violation of it: its feed _is_ deferred behind a skeleton, and that is fine precisely because the page is `noindex` — a rotating feed with no per-item permalinks is not an indexable page type. See [ADR-0012](../adr/0012-rotating-feeds-are-noindex.md) and [RADAR.md § Why the feed is a server island](../hub/RADAR.md). If you are deferring primary content on an indexable page, you have the wrong tool.
+
+**Global classes** — two families, and they are not interchangeable.
+
+Brutalist (current design system; what new work should use):
+
+| Class                      | Description                                   |
+| -------------------------- | --------------------------------------------- |
+| `.brutal-skeleton-bar`     | Rectangular placeholder bar (0.875rem height) |
+| `.brutal-skeleton-bar--sm` | Smaller bar variant (0.625rem height)         |
+| `.brutal-skeleton-dot`     | Square placeholder (8px, `border-radius: 0`)  |
+
+These are outlined, not filled: `background: transparent` with a `1px solid var(--color-primary)` border, animated with the stepped `brutal-blink`. `RadarFeedSkeleton.astro` is the in-repo consumer.
+
+Legacy (soft/filled, retained for existing callers):
 
 | Class               | Description                                   |
 | ------------------- | --------------------------------------------- |
@@ -588,7 +670,7 @@ For components that load content asynchronously (API calls, server islands), use
 | `.skeleton-bar--sm` | Smaller bar variant (0.625rem height)         |
 | `.skeleton-dot`     | Circular placeholder (8px)                    |
 
-All use `var(--accent-light-bg-hover)` for background color (auto-switches in dark theme) and the `pulse` animation.
+These use `var(--accent-light-bg-hover)` for background color (auto-switches in dark theme) and the smooth `pulse` animation.
 
 ```html
 <!-- Example: text block skeleton -->
@@ -662,6 +744,30 @@ The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse
 ```
 
 Colors must use CSS variables so dark theme works automatically.
+
+> **This is mechanically enforced.** Since July 28, 2026 a hardcoded color is a stylelint **error** — it fails `npm run lint:css`, the pre-commit hook, and CI. The rule covers `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow`, and the color slot of `border`/`background`/`outline` shorthands. Any value that references a token passes, including `light-dark(var(--a), var(--b))`, `color-mix(in srgb, var(--x) 12%, transparent)` and `rgba(var(--rgb), .5)`. Mechanics: [DEVELOPER_TOOLING.md § stylelint configuration notes](../development/DEVELOPER_TOOLING.md).
+>
+> **Need a tint that has no token?** Reach for `color-mix(in srgb, var(--color-success) 12%, transparent)` before minting one — it stays correct across themes and all six palettes, which a frozen `rgba(46, 139, 87, 0.12)` does not. For neutral washes use the `--surface-*-bg` family; for modal/drawer backdrops use `--scrim-15…60`; for frosted edges use `--frost-highlight`/`--frost-edge`.
+>
+> **Two documented exceptions**, both legal because custom-property declarations are never checked by the rule:
+>
+> 1. **`@media print` blocks** keep literal `#000`/`#fff`/`#ccc` — paper has no theme. Wrap the block in `/* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal */ … /* stylelint-enable … */` with that justification.
+> 2. **Channel-specific affordances** — the R/G/B slider controls in `SwatchControlStyles.astro` must stay red/green/blue regardless of palette. Declare such colors once as component-local custom properties; never repeat the literal inline.
+
+### 1b. Off-Scale Font Sizes
+
+```css
+/* BAD */
+.label {
+  font-size: 13px;
+}
+/* GOOD */
+.label {
+  font-size: var(--text-sm);
+}
+```
+
+Font sizes come from the `--text-*` scale. This is enforced at **warning** severity (not error) while 150 pre-existing off-scale literals are worked through — see [STYLES_REMEDIATION_ROADMAP.md § 14](./STYLES_REMEDIATION_ROADMAP.md) and BL-094. **New code should produce no new warnings.** Do not bulk-snap existing off-scale values to the nearest token: that changes rendered type, and the repo has no visual-regression coverage to catch a layout break.
 
 ### 2. Duplicate Dark Theme Selectors
 
@@ -782,6 +888,7 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 - [ ] If new component-specific variables needed: added to both `:root` and `html.dark-theme` in `variables.css`
 - [ ] Tested in light theme
 - [ ] Tested in dark theme
+- [ ] Tested in all 6 palettes (PalettePanel pop-out — see [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) § Alternative Palette System)
 - [ ] Responsive at 768px breakpoint
 - [ ] Responsive at 480px breakpoint
 - [ ] Focus states visible in both themes
@@ -791,7 +898,8 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 
 ## Related Documentation
 
-- **[/brand](https://globalstrategic.tech/brand)** — Live visual reference of the full design system: color swatches, typography specimens, spacing scale, and UI component library. Share this URL with designers, reviewers, or integration partners who don't have repo access.
+- **[In-repo Control Examples](#in-repo-control-examples)** (top of this guide) — `src/pages/brand.astro` + `src/components/brand/`, the living specimens to copy from when building
+- **[/brand](https://globalstrategic.tech/brand)** — the same surface rendered live; share this URL with designers, reviewers, or integration partners who don't have repo access
 - [BRAND_GUIDELINES.md](./BRAND_GUIDELINES.md) — Brand color palette, usage rules, and asset guidelines
 - [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) — Complete design token catalog
 - [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) — Typography utility classes
@@ -800,4 +908,4 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 
 ---
 
-**Last Updated**: April 4, 2026
+**Last Updated**: July 28, 2026 (in-repo control examples section; z-index token scale; frosted `--heavy` blur corrected to match code; 6-palette checklist item)

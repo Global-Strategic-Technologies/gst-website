@@ -11,9 +11,10 @@
  *
  * **Namespace discipline (Q13 / Path 2)**: this store talks ONLY to the MCP
  * DB via `createMcpClient(env)`. All keys written here use the `mcp:` prefix
- * (cache snapshots, rate-limit counters, circuit-breaker flags); the Worker
- * never reads `inoreader:*` through this store — that path goes through
- * `inoreader-token-store.ts` against the Inoreader DB's Read-Only client.
+ * (cache snapshots, rate-limit counters, circuit-breaker flags); Inoreader
+ * OAuth token state is never touched through this store — that path goes
+ * through `inoreader-token-store.ts` (`mcp:inoreader:*` in the same MCP DB;
+ * the legacy website Inoreader DB was retired in BL-032.8 Phase B).
  */
 
 import { safeLog } from '../auth/safe-logger';

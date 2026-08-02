@@ -5,14 +5,41 @@
  * Renders accessible markup with proper ARIA attributes.
  *
  * Placed in BaseLayout.astro — every non-homepage page gets breadcrumbs automatically.
+ *
+ * Both props exist so `/brand` can exhibit this as a live specimen instead of the
+ * hand-rolled replica it used to carry (BL-095); neither is set anywhere else.
  */
 import { slugToName } from '../utils/breadcrumbs';
+
+interface Props {
+  /**
+   * Override the derived crumbs. Used by the `/brand` specimen so its links stay
+   * in-page (`#ui-library`) — the derived form emits real hrefs, which would
+   * navigate away from the design-system page.
+   *
+   * `isLast` is honoured and a supplied list still passes through the FIFO
+   * truncation below, so the prop cannot bypass MAX_BREADCRUMBS. (The `/brand`
+   * specimen passes exactly 3, so it does not itself exercise truncation.)
+   */
+  crumbs?: { name: string; href: string; isLast: boolean }[];
+  /**
+   * Landmark name. Defaults to the real one; the `/brand` specimen passes a
+   * distinct label because BaseLayout already renders this component on that page
+   * and two identically-named landmarks is an axe `landmark-unique` violation.
+   *
+   * That rule is best-practice/moderate, which `tests/e2e/helpers/a11y.ts` filters
+   * out — so nothing in CI would catch a collision here.
+   */
+  ariaLabel?: string;
+}
+
+const { crumbs: crumbsProp, ariaLabel = 'Breadcrumb' } = Astro.props;
 
 const pathname = Astro.url.pathname.replace(/\/$/, '');
 const segments = pathname.split('/').filter(Boolean);
 
 // Build full crumb list including Home, then FIFO-truncate to 3 max
-const allCrumbs = [
+const allCrumbs = crumbsProp ?? [
   { name: 'Home', href: '/', isLast: false },
   ...segments.map((slug, index) => ({
     name: slugToName(slug),
@@ -32,7 +59,7 @@ const crumbs =
     : allCrumbs;
 ---
 
-<nav aria-label="Breadcrumb" class="breadcrumb">
+<nav aria-label={ariaLabel} class="breadcrumb">
   <ol class="breadcrumb__list">
     {
       crumbs.map((crumb) => (
