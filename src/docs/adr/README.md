@@ -21,5 +21,6 @@ Lightweight, maintained records of load-bearing design decisions that span the w
 | [0009](0009-compliance-audit-log-hash-chain.md)          | Compliance audit log — hash-chained, R2-immutable, Upstash-sequenced (best-effort enqueue)    | Accepted 2026-07-26                                                                                        |
 | [0010](0010-per-client-rate-limit-tiers.md)              | Per-client rate-limit tiers in the token claim; soft-limit warnings over the SSE channel      | Accepted 2026-07-26 (0.41.0)                                                                               |
 | [0011](0011-tool-response-channel-policy.md)             | `structuredContent` is the machine channel; `content` is the model channel (two constructors) | Accepted 2026-07-27 (0.43.0)                                                                               |
+| [0012](0012-rotating-feeds-are-noindex.md)               | Rotating aggregate feeds are `noindex`, and may therefore defer their content                 | Accepted 2026-08-02 (closes BL-098; reverts `bbd96fbf`)                                                    |
 
 _Established 2026-07-17 under BL-088 (development-docs distillation)._

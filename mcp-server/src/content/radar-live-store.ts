@@ -18,9 +18,12 @@
  *     breaker is OPEN, so a breaker-open window serves stale-but-real data
  *     instead of either failing hard or leaking upstream budget.
  *
- * **Cache strategy**: 6h TTL on the merged stream + the FYI stream.
- * Matches the website's ISR window — both surfaces converge on the same
- * "stop hammering Inoreader" cadence.
+ * **Cache strategy**: 6h TTL on the merged stream + the FYI stream,
+ * matching the refresh cron's cadence. This is what makes the website's
+ * per-pageview `/radar/snapshot` calls cheap: they are cache hits against
+ * this store, not Inoreader fetches. Note there is no single-flight lock
+ * here, so concurrent callers arriving between TTL expiry and the next
+ * cron warm each fall through to `fetchAllStreams`.
  *
  * **Failure handling**: Inoreader 429 propagates as a structured failure the
  * caller routes through `handleInoreaderFailure(env, ...)`, which opens the
@@ -47,7 +50,7 @@ import { filterFreshFyi, toSnapshotItem, type SnapshotItem } from './radar-trans
 import type { RadarUpstreamReason } from '../tools/_result';
 import type { Env } from '../worker';
 
-const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h, matches website ISR window
+const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h, matches the radar refresh cron interval
 const CACHE_KEY_WIRE = 'mcp:radar:cache:wire';
 const CACHE_KEY_FYI = 'mcp:radar:cache:fyi';
 

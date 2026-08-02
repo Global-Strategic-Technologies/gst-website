@@ -177,7 +177,7 @@ _Distilled from MCP_SERVER_REMOTE_RESOURCES_PROMPTS_BL-032_5.md (May 2026) — a
 
 ## Radar pipeline (single-caller unification)
 
-The MCP Worker is the **sole Inoreader API consumer** for all GST traffic (BL-032.8). One OAuth identity, one token-storage path, one protective substrate — every consumer surface (website ISR, Claude Desktop / Claude Code, remote MCP clients) flows through the same rate limit, circuit breaker, day-counter, and 429 header capture. No second caller can invisibly starve the shared 100/day Zone-1 budget.
+The MCP Worker is the **sole Inoreader API consumer** for all GST traffic (BL-032.8). One OAuth identity, one token-storage path, one protective substrate — every consumer surface (the website's `/hub/radar` island, Claude Desktop / Claude Code, remote MCP clients) flows through the same rate limit, circuit breaker, day-counter, and 429 header capture. No second caller can invisibly starve the shared 100/day Zone-1 budget.
 
 ### Consumer surfaces
 

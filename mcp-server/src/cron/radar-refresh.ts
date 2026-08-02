@@ -10,9 +10,12 @@
  *
  * **Inoreader budget protection**: each refresh consumes up to 6
  * Inoreader API calls (1 tag-list + 4 folder fetches for wire, plus 1
- * annotated-items fetch for fyi). Combined with website ISR (~28/day)
- * and rate-limited live tools (~8/day in steady state), the daily
- * total stays under the 200/day Inoreader cap. Two guards prevent
+ * annotated-items fetch for fyi). The website's /hub/radar calls
+ * /radar/snapshot once per pageview (uncached server:defer island), but
+ * those are cache hits against the snapshot this cron warms — they cost
+ * Worker rate-limit budget, not Inoreader spend, except on a cache-cold
+ * miss. Combined with rate-limited live tools (~8/day in steady state),
+ * the daily total stays under the 200/day Inoreader cap. Two guards prevent
  * over-spending in pathological cases:
  *
  *   1. **Circuit breaker** — if `mcp:radar:circuit-open` is set

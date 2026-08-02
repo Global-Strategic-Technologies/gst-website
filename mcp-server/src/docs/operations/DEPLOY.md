@@ -1103,7 +1103,7 @@ The next radar-tool call will hit Inoreader; if it succeeds, the breaker stays c
 
 If radar tools 429 repeatedly across the team — and Inoreader's status page is fine — the issue is GST's daily budget exhaustion. Check the budget envelope in [`src/docs/hub/RADAR.md` § Budget envelope](../../../../src/docs/hub/RADAR.md):
 
-- Website ISR: ~28 calls/day (Vercel-hosted, fixed at 6h ISR)
+- Website `/hub/radar`: one `/radar/snapshot` call **per pageview** (the feed is a `server:defer` island, and `/_server-islands/*` bypasses ISR). Almost all are Upstash cache hits costing zero Inoreader spend; only a cache-cold miss falls through. Bounded by the key's `INTERNAL_TIER` (60/min, 1000/day). Was ~28/day while the feed was briefly inlined into the ISR entry (2026-07-31 → 2026-08-02); see [ADR-0012](../../../../src/docs/adr/0012-rotating-feeds-are-noindex.md)
 - MCP per-key: capped at 50/day per key by the rate-limiter
 - BL-032.5 Cron snapshot (when shipped): ~24 calls/day
 

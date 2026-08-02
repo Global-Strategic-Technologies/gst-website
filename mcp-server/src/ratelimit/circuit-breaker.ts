@@ -37,7 +37,7 @@ import type { Env } from '../worker';
 const CIRCUIT_KEY = 'mcp:radar:circuit-open';
 
 /** TTL (seconds) for which the circuit stays open after an Inoreader 429. */
-const CIRCUIT_TTL_SECONDS = 6 * 60 * 60; // 6h, matches the website's ISR cache window
+const CIRCUIT_TTL_SECONDS = 6 * 60 * 60; // 6h, matches the radar snapshot cache TTL
 
 /** Result of the read-side check. */
 export interface CircuitState {

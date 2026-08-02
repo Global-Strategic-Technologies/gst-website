@@ -648,9 +648,21 @@ For components that load content asynchronously, use the skeleton loading patter
 
 **Canonical reference**: the live specimens on [`/brand`](../../pages/brand.astro) — see `src/components/brand/BrandComponents.astro`, which is the in-repo control example for this pattern.
 
-> Do **not** reach for a skeleton to defer a page's primary content. `/hub/radar` used to do exactly that via a `server:defer` island, and crawlers judged the shell rather than the feed, leaving the page unindexed. Skeletons are for secondary content that genuinely arrives later. See [RADAR.md § Why the feed is not a server island](../hub/RADAR.md).
+> Do **not** reach for a skeleton to defer a page's primary content **on a page you want indexed**. Crawlers run JS on a deferred queue and judge the shell, so the page gets rated on whatever the skeleton is standing in for. `/hub/radar` is the exception that proves the rule rather than a violation of it: its feed _is_ deferred behind a skeleton, and that is fine precisely because the page is `noindex` — a rotating feed with no per-item permalinks is not an indexable page type. See [ADR-0012](../adr/0012-rotating-feeds-are-noindex.md) and [RADAR.md § Why the feed is a server island](../hub/RADAR.md). If you are deferring primary content on an indexable page, you have the wrong tool.
 
-**Global classes**:
+**Global classes** — two families, and they are not interchangeable.
+
+Brutalist (current design system; what new work should use):
+
+| Class                      | Description                                   |
+| -------------------------- | --------------------------------------------- |
+| `.brutal-skeleton-bar`     | Rectangular placeholder bar (0.875rem height) |
+| `.brutal-skeleton-bar--sm` | Smaller bar variant (0.625rem height)         |
+| `.brutal-skeleton-dot`     | Square placeholder (8px, `border-radius: 0`)  |
+
+These are outlined, not filled: `background: transparent` with a `1px solid var(--color-primary)` border, animated with the stepped `brutal-blink`. `RadarFeedSkeleton.astro` is the in-repo consumer.
+
+Legacy (soft/filled, retained for existing callers):
 
 | Class               | Description                                   |
 | ------------------- | --------------------------------------------- |
@@ -658,7 +670,7 @@ For components that load content asynchronously, use the skeleton loading patter
 | `.skeleton-bar--sm` | Smaller bar variant (0.625rem height)         |
 | `.skeleton-dot`     | Circular placeholder (8px)                    |
 
-All use `var(--accent-light-bg-hover)` for background color (auto-switches in dark theme) and the `pulse` animation.
+These use `var(--accent-light-bg-hover)` for background color (auto-switches in dark theme) and the smooth `pulse` animation.
 
 ```html
 <!-- Example: text block skeleton -->

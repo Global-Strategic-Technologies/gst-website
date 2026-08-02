@@ -297,10 +297,13 @@ The SEO component generates the following HTML:
 | --------------------- | --------- | ------- | ----------------------------------------------------------------------- |
 | `/booking-confirmed/` | yes       | excluded | Post-conversion page; no search intent it could satisfy                 |
 | `/brand/`             | yes       | excluded | Internal design reference, not marketing content                        |
+| `/hub/radar/`         | yes       | excluded | Content rotates wholly every 6h with no per-item permalinks — nothing stable to index. See [ADR-0012](../adr/0012-rotating-feeds-are-noindex.md) |
 | `/404`, `/500`        | yes       | excluded | Status pages. The sitemap integration drops these itself — the filter entry is documented belt-and-braces |
 | `/colors`             | n/a       | excluded | A bare 301 to `/brand#colors` with no layout, so there is no tag to set |
 
-Two caveats worth knowing before extending this:
+Three caveats worth knowing before extending this:
+
+- **`noindex` needs the page to stay crawlable.** `public/robots.txt` must keep `Allow: /` for these routes. A `Disallow` would stop Googlebot fetching the page at all, so it would never see the `noindex` — the page stays in the index on the strength of inbound links, which is the exact opposite of the intent. Robots-disallow and robots-noindex are not two strengths of the same lever.
 
 - **`canonicalUrl` is declared on `SEO.astro` but never forwarded by `BaseLayout.astro`.** Pages cannot set a canonical through the layout today; `SEO.astro` emits a self-referential one. `noindex` alongside a self-canonical is standard and correct.
 - **`src/pages/brand/responsive-frame/[group].astro` hand-rolls its own `<meta name="robots" content="noindex">`.** It is an iframe partial with no layout, so it cannot use the prop. That is the only sanctioned exception — every page that _has_ a layout must use `noindex`.

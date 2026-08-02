@@ -290,6 +290,8 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 > **Superseded 2026-07-31.** `RadarFeedSkeleton.astro` was deleted when the Radar feed stopped being a `server:defer` island — deferring the page's primary content left it unindexed. The `@keyframes pulse` animation moved to `src/styles/components/skeleton.css` (it was never at `global.css:137`; that line is an unrelated media query). The documented pattern survives — the canonical reference is now the `/brand` specimens. See [RADAR.md § Why the feed is not a server island](../hub/RADAR.md).
 
+> **Reinstated 2026-08-02.** The inlining above was reverted and `RadarFeedSkeleton.astro` restored, so the "Current implementation" bullets are live again — with two corrections that outlast the flip-flop: the component uses the **`.brutal-skeleton-*`** classes (stepped `brutal-blink`, outlined not filled), not the legacy `.skeleton-*`/`pulse` set this section describes, and the animation has never lived in `global.css`. The indexability reasoning was the part that did not survive: `/hub/radar` is now `noindex` by classification (a 6-hourly rotating feed with no per-item permalinks is not an indexable page type), which is what makes deferring its primary content acceptable. See [ADR-0012](../adr/0012-rotating-feeds-are-noindex.md).
+
 **Pattern components**:
 
 1. **Skeleton component**: Renders placeholder shapes matching the expected content layout
@@ -427,7 +429,9 @@ Tracked initiatives to close the gap between documented conventions and actual i
 2. Refactor `RadarFeedSkeleton.astro` to use the shared classes instead of scoped styles
 3. Document in STYLES_GUIDE.md
 
-**Trigger**: ~~Implement when a second component needs skeleton loading.~~ Moot — the extraction shipped (see Status), and the component that motivated it was deleted on 2026-07-31. The classes now live in `src/styles/components/skeleton.css` and are consumed by the `/brand` specimens; nothing depends on `RadarFeedSkeleton.astro` any more.
+**Trigger**: ~~Implement when a second component needs skeleton loading.~~ Moot — the extraction shipped (see Status). The classes live in `src/styles/components/skeleton.css` and are consumed by the `/brand` specimens.
+
+> **Corrected 2026-08-02.** This previously read "the component that motivated it was deleted on 2026-07-31 … nothing depends on `RadarFeedSkeleton.astro` any more." That deletion was reverted: the component is back and consumes the shared `.brutal-skeleton-*` classes, which is the outcome step 2 of this item asked for. The extraction is done either way — the trigger stays moot.
 
 **Estimated scope**: Small
 
