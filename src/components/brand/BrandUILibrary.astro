@@ -138,7 +138,8 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           </ul>
         </nav>
         <code class="brand-code"
-          >nav a — monospace, uppercase, bold, 2px underline on active/hover</code
+          >nav a — monospace, uppercase, bold, 2px underline on active/hover. Values shown are the
+          desktop ones; Header.astro narrows the size and list gap below 768px</code
         >
       </div>
     </div>
@@ -152,6 +153,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
              twice (BL-095 AC-2). `.footer-links` sits on the CONTAINER here, as
              it does in production (Footer.astro:8); it used to be on an <a>,
              which made the caption a lie and the parity selector a trap. */
+        }
+        {
+          /* `.footer-links` here is DOCUMENTARY — Footer.astro's rule is Astro-scoped
+            and cannot reach this page, so the inline styles below do the work. */
         }
         <div
           class="footer-links"
@@ -175,7 +180,8 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           >
         </div>
         <code class="brand-code"
-          >.footer-links a — monospace, uppercase, bold, primary underline-reveal on hover</code
+          >.footer-links a — monospace, uppercase, bold, primary underline-reveal on hover. Values
+          shown are the desktop ones; Footer.astro narrows the size and gap below 768px</code
         >
       </div>
     </div>
@@ -309,7 +315,10 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
 
     <h4 class="brutal-label brand-subgroup-title">CTA Box</h4>
     {
-      /* Replica of CTASection.astro — deferred: hardcodes id="contact". Keep in sync (BL-095 AC-2). */
+      /* TYPOGRAPHY specimen — sizes here are illustrative, deliberately smaller than
+         production so the type relationship reads in a narrow column. Do NOT converge
+         these on CTASection.astro. The specimen that IS converged on it, and that
+         carries the sync obligation, is the `.cta-box` one under Layout Containers. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
@@ -2333,6 +2342,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <h3 class="brutal-heading-sm" id="toc-basic">Basic</h3>
       <div class="brand-toc-specimen">
         <TableOfContents
+          ariaLabel="Table of contents demo: basic"
           heading="Demo: Basic"
           items={[
             { href: '#toc-basic', label: 'Overview' },
@@ -2354,6 +2364,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <h3 class="brutal-heading-sm" id="toc-collapsible">Collapsible (resize to mobile)</h3>
       <div class="brand-toc-specimen">
         <TableOfContents
+          ariaLabel="Table of contents demo: collapsible"
           heading="Demo: Collapsible"
           collapsible={true}
           items={[

@@ -54,8 +54,11 @@ teaches the wrong thing — which is worse than having no specimen. Every specim
 one of three mechanisms, in this order of preference (BL-095):
 
 1. **Render the real component.** Structurally cannot drift. The default, and what to do for anything
-   renderable in isolation — `Breadcrumb`, `StatsBar`, `WireItem`, `TableOfContents` and the logo
-   components are all live components on `/brand`, not copies of them.
+   renderable in isolation — `Breadcrumb`, `StatsBar`, `WireItem`, `TableOfContents`, `DeltaIcon` and
+   `CompositeLogo` are live components on `/brand`, not copies of them. (The header *lockup* specimen
+   is not: only the `DeltaIcon` inside it is real, and the wordmark beside it is an inline-styled
+   replica under mechanism 2 — `Header` carries a `role="banner"` landmark and sticky positioning, so
+   it cannot render twice.)
 2. **Replica + parity guard.** Only for components that genuinely cannot render twice — those that
    hardcode a singleton DOM `id` (`Header`, `ThemeToggle`, `CTASection`, the portfolio family). Add a
    test in `tests/e2e/brand-page.test.ts` § "Site chrome specimens match production" comparing the

@@ -17,8 +17,9 @@ interface Props {
    * in-page (`#ui-library`) — the derived form emits real hrefs, which would
    * navigate away from the design-system page.
    *
-   * `isLast` is still honoured, and the FIFO truncation below still applies, so a
-   * supplied list demonstrates the same MAX_BREADCRUMBS behaviour as a derived one.
+   * `isLast` is honoured and a supplied list still passes through the FIFO
+   * truncation below, so the prop cannot bypass MAX_BREADCRUMBS. (The `/brand`
+   * specimen passes exactly 3, so it does not itself exercise truncation.)
    */
   crumbs?: { name: string; href: string; isLast: boolean }[];
   /**
