@@ -1,6 +1,6 @@
 # Runbook — Pilot client onboarding
 
-lastReviewedAt: 2026-07-26
+lastReviewedAt: 2026-08-02
 
 The end-to-end playbook for bringing a BL-033 external-pilot client onto the GST MCP server. It stitches together mechanics that already ship — this doc is the ordered checklist, not new capability. **Business/legal steps (NDA, DPA, kickoff) are out of engineering scope and flagged as such.**
 
@@ -8,6 +8,7 @@ The end-to-end playbook for bringing a BL-033 external-pilot client onto the GST
 
 ## 0. Before you provision (business — not engineering)
 
+- [ ] **Intake received.** Today this is an email/introduction landing in the operator inbox; BL-093's request-access slice will add a form on the website that delivers into the same place. Either way the intake supplies the four things step 0 needs: name, firm, use case, contact address.
 - [ ] Legal sign-off; **NDA + DPA executed** (front-loaded, amortized across pilots).
 - [ ] Agree the tier (`free-pilot` / `paid` / `enterprise`) and the tool scopes the client needs.
 - [ ] Agree success metrics (target ≥100 tool invocations/month per client).
@@ -16,26 +17,32 @@ The end-to-end playbook for bringing a BL-033 external-pilot client onto the GST
 
 Most pilots are **M2M** (headless client_credentials — a PE firm's pipeline calling tools with no human in the loop). Human-consent OAuth clients follow the same scope model; see [AUTH.md § Onboard a human-consent client](AUTH.md).
 
-Create the M2M client (returns the `client_secret` **once** — hand it to the client over a secure channel):
+Create the M2M client with the provisioning script. It returns the `client_secret` **once** — hand it to the client over a secure channel — and prints a ready-to-send onboarding email:
 
 ```
-curl -sS -X POST https://mcp.globalstrategic.tech/admin/oauth/m2m-clients \
-  -H "Authorization: Bearer $MCP_ADMIN_KEY" \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"<client-name>","allowedScopes":["tool:*","resource:regulations:read"],"tier":"free-pilot"}'
+# From mcp-server/. Preview first; nothing is created and no key is needed:
+npm run provision:client -- --name "<client-name>" --tier free-pilot --dry-run
+
+# Then, with the admin key in the environment (never inline it — Directive 15):
+npm run provision:client -- --name "<client-name>" --tier free-pilot
 ```
 
-- **`allowedScopes` is the hard ceiling.** Grant the minimum the use case needs. Radar is **not** included by `tool:*` for pilots — it requires explicitly adding `tool:radar:*` (it shares the Inoreader Zone-1 budget, so grant it deliberately). See [AUTH.md § scopes](AUTH.md).
-- **`tier`** gates the rate-limit ceilings (per-client tiers are a separate BL-033 slice; the field is stored now).
-- Rotate/revoke: `DELETE /admin/oauth/clients/<client_id>` (revocation has a ≤1h residual for self-contained M2M tokens — see [AUTH.md § Revoke](AUTH.md)).
+The script wraps `POST /admin/oauth/m2m-clients`; the raw curl and the JWKS-registration variant live in [AUTH.md § Onboard an M2M client](AUTH.md). Use the script by default — the admin API validates far less than the runbook assumes, and the script is where the guardrails live:
+
+- **`allowedScopes` is the hard ceiling.** Grant the minimum the use case needs. The script defaults to `tool:*` + `resource:regulations:read` when `--scopes` is omitted, and **rejects any scope outside the advertised catalog** — the admin API does not validate scopes at all, so a typo like `tool:portfolo:*` would otherwise provision a client that can call nothing. Deliberate narrowing below the catalog takes `--unsafe-scope <scope>`. See [AUTH.md § scopes](AUTH.md).
+- **Radar takes `--allow-radar`.** It is not included by `tool:*`, it shares the Inoreader Zone-1 budget, and the script blocks **both** `tool:radar:*` and `resource:radar:read` without the flag — the latter reads the same Inoreader-funded snapshot and is the easier one to grant by accident.
+- **`--tier` is required.** It gates the rate-limit ceilings, which are enforced per client ([RATE_LIMITS.md](RATE_LIMITS.md), [ADR-0010](../../../../src/docs/adr/0010-per-client-rate-limit-tiers.md)). The flag is mandatory because the API treats `tier` as optional and silently resolves an absent one to `free-pilot`.
+- Rotate/revoke: `DELETE /admin/oauth/m2m-clients/<client_id>` — the **m2m** route; `/admin/oauth/clients/<id>` is the separate provider-client route and 404s for an `m2m_*` id. Revocation has a ≤1h residual for self-contained M2M tokens — see [AUTH.md § Revoke](AUTH.md).
 
 ## 2. Client-side setup (hand-off)
 
-Point the client at [REMOTE_CLIENT_SETUP.md](REMOTE_CLIENT_SETUP.md) — the consumer-facing guide for Claude Desktop native Connectors (OAuth), Cursor, ChatGPT, and raw HTTP. They connect to `https://mcp.globalstrategic.tech/mcp`.
+The provisioning script prints a ready-to-send onboarding email covering the endpoint, client id, tier, scopes and the § 3 guarantees below. It **deliberately omits the client secret** — that value exists only in the creation response and belongs on the secure channel, not in a mail-client draft. Send the two separately.
+
+[REMOTE_CLIENT_SETUP.md](REMOTE_CLIENT_SETUP.md) covers Claude Desktop native Connectors (OAuth), Cursor and ChatGPT. **Read before forwarding it**: it is written for a **GST team member** whose credential is an `MCP_KEY_<INITIALS>` value pasted at the consent page, and it documents **no** `client_credentials` flow or raw-HTTP path — despite older references here claiming otherwise. An external M2M pilot has a client id + secret and never has an `MCP_KEY_*`, so that guide does not describe their flow. Until BL-093's docs slice produces a client-facing variant, the only thing to send an M2M pilot is the connection summary in the provisioning script's generated email (endpoint, `/token` exchange, bearer use). If you need more wire detail to write into your reply, read [AUTH.md § Onboard an M2M client](AUTH.md) **yourself — it is an operator doc carrying `$MCP_ADMIN_KEY` curls and the revocation runbook, and must never be forwarded to a client.** All clients connect to `https://mcp.globalstrategic.tech/mcp`.
 
 ## 3. What the client gets — guarantees to communicate
 
-- **Audit trail**: every tool call is written to a tamper-evident, hash-chained, immutable log (7-yr retention). Per-client SIEM export is a later slice; the guarantee exists now. See [AUDIT_LOG.md](AUDIT_LOG.md) / [ADR-0009](../../../../src/docs/adr/0009-compliance-audit-log-hash-chain.md).
+- **Audit trail**: tool calls are written to a tamper-evident, hash-chained, immutable log (7-yr retention). Deliberately not "every call" — capture is best-effort at the enqueue hop (ADR-0009 documents the first-hop loss window), and the fail-closed `writeAndAwait` seam is the lever for a client who contracts guaranteed capture. Don't promise more than that in writing. Per-client SIEM export is a later slice; the guarantee exists now. See [AUDIT_LOG.md](AUDIT_LOG.md) / [ADR-0009](../../../../src/docs/adr/0009-compliance-audit-log-hash-chain.md).
 - **Status transparency**: [status.mcp.globalstrategic.tech](https://status.mcp.globalstrategic.tech) — uptime, dependency health, per-tool latency, audit health. See [STATUS_PAGE.md](STATUS_PAGE.md). Note: latency is **observability, not a ratified SLA** (no pilot SLA is contractually committed — BL-033 directive).
 - **Sandbox** — a synthetic-data sandbox environment (zero real client data) for integration testing is **deferred (AC 282)**; until it ships, integration is against production with a narrow-scope credential.
 
