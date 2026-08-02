@@ -170,6 +170,8 @@ The human then adds the connector in their client; at the consent page they auth
 
 ### Onboard an M2M client (headless client_credentials)
 
+**Normal path**: `npm run provision:client -- --name "<client>" --tier free-pilot` from `mcp-server/` — it wraps this endpoint, requires an explicit tier, validates scopes against the advertised catalog, gates radar behind `--allow-radar`, and prints the onboarding email. See [PILOT_ONBOARDING.md § 1](PILOT_ONBOARDING.md). The raw contract below stays here as the reference — and is still the way to register a JWKS, which the script does not do.
+
 ```bash
 curl -s -X POST https://mcp.globalstrategic.tech/admin/oauth/m2m-clients \
   -H "Authorization: Bearer $MCP_ADMIN_KEY" -H "Content-Type: application/json" \
@@ -203,7 +205,7 @@ RFC 7662 semantics: every token problem (unknown, expired, revoked, malformed) i
 ### Operational notes
 
 - A newly onboarded `OAUTH:<user>` or `M2M:<NAME>` keyOwner has no trailing 7-day mean in Analytics Engine, so its first busy hour above the traffic-spike floor can fire the ticket-severity alert once — expected onboarding behavior, not an incident (same as any new static key; see the traffic-spike runbook).
-- Per-client `tier` is stored on M2M records now; tier-based rate-limit enforcement is a later BL-033 slice.
+- Per-client `tier` is stored on M2M records **and enforced** — tier-based rate-limit ceilings shipped in BL-033 Slice 5 (2026-07-26). See [RATE_LIMITS.md](RATE_LIMITS.md) / [ADR-0010](../../../../src/docs/adr/0010-per-client-rate-limit-tiers.md).
 
 ---
 
