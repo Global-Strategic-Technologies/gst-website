@@ -32,11 +32,13 @@ const PAGES: A11yPage[] = [
     // design debt that "can only decrease" — the wrong contract for a page whose
     // job is exhibiting components, including deliberately non-conformant ones.
     exclude: [
-      // 12 lazy same-origin iframes of the same document. axe scans frames by
-      // default, so whether they are loaded at scan time (engine, viewport and
-      // machine dependent) would swing the count, and one violation inside the
-      // shared document is counted once per embed. The wrapper is NOT excluded:
-      // .responsive-demo-label is real 0.6rem text that should be checked.
+      // 12 lazy same-origin iframes across the four group documents (BL-097 —
+      // one document per component group, embedded at three widths each). axe
+      // scans frames by default, so whether they are loaded at scan time
+      // (engine, viewport and machine dependent) would swing the count, and one
+      // violation inside a group's document is counted once per width embed.
+      // The wrapper is NOT excluded: .responsive-demo-label is real 0.6rem text
+      // that should be checked.
       '.responsive-demo-frame iframe',
       // Specimens that force a :hover appearance, which for the primary and
       // secondary buttons is primary-on-transparent — low contrast ON PURPOSE.

@@ -2,13 +2,13 @@
 
 HTTP security headers applied to all GST website responses. Static routes receive headers from `vercel.json`; the SSR Radar route receives identical headers from Astro middleware (`src/middleware.ts`). A sync test in `tests/unit/security-headers.test.ts` ensures the two sources stay identical.
 
-One route carries a documented, narrowly-scoped relaxation — see [Route Exceptions](#route-exceptions).
+One family of routes carries a documented, narrowly-scoped relaxation — see [Route Exceptions](#route-exceptions).
 
 ## Header Inventory
 
 | Header                    | Value                                        | Purpose                                                                               |
 | ------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------- |
-| X-Frame-Options           | DENY (one route: SAMEORIGIN)                 | Prevent clickjacking via iframe embedding — see [Route Exceptions](#route-exceptions) |
+| X-Frame-Options           | DENY (demo frames: SAMEORIGIN)               | Prevent clickjacking via iframe embedding — see [Route Exceptions](#route-exceptions) |
 | X-Content-Type-Options    | nosniff                                      | Prevent MIME-type sniffing attacks                                                    |
 | Referrer-Policy           | strict-origin-when-cross-origin              | Limit referrer leakage to external sites                                              |
 | Permissions-Policy        | camera=(), microphone=(), geolocation=()     | Disable unused browser APIs                                                           |
@@ -47,20 +47,33 @@ Sync enforcement                  tests/unit/security-headers.test.ts
 
 ## Route Exceptions
 
-### `/brand/responsive-frame` — same-origin framing
+### `/brand/responsive-frame/<group>` — same-origin framing
 
-| Header                | Site default | This route   |
+| Header                | Site default | These routes |
 | --------------------- | ------------ | ------------ |
 | `X-Frame-Options`     | `DENY`       | `SAMEORIGIN` |
 | CSP `frame-ancestors` | `'none'`     | `'self'`     |
 
-**Why**: the site default forbids framing by _every_ origin — including this one. The brand page's Responsive Behavior section renders the same components at three viewport widths using same-origin `<iframe>`s pointed at `/brand/responsive-frame`. Under the default those frames are blocked with `net::ERR_BLOCKED_BY_RESPONSE` and render empty, with no build error and no console warning to explain it (this shipped broken and went unnoticed until a visual review in July 2026).
+**Which routes**: exactly four — `/brand/responsive-frame/{cards,tabs,form,shell}/`, one per component group. They are **enumerated, not prefix-matched**: an unknown path under the same prefix keeps the strict default. Before BL-097 (2026-08) this was a single route reading `?group=` from the query string, which a static build never supplies — all 12 frames rendered the `cards` default.
 
-**Why it's safe**: the route is a `noindex` partial with no user data, no authenticated state and no actionable form. `'self'` permits framing only by our own pages, so an attacker's origin still cannot embed it — the clickjacking protection that matters is unchanged. Nothing else in the policy is relaxed.
+**Why**: the site default forbids framing by _every_ origin — including this one. The brand page's Responsive Behavior section renders each component group at three viewport widths using same-origin `<iframe>`s. Under the default those frames are blocked with `net::ERR_BLOCKED_BY_RESPONSE` and render empty, with no build error and no console warning to explain it (this shipped broken and went unnoticed until a visual review in July 2026).
 
-**Where it lives**: both `vercel.json` (the route is prerendered, so production headers come from the CDN) and `src/middleware.ts` (`SAME_ORIGIN_FRAMEABLE`, covering dev and any SSR path). `tests/unit/security-headers.test.ts` pins the exception to that single path and asserts the frame-route CSP differs from the site default _only_ in `frame-ancestors`.
+**Why it's safe**: each route is a `noindex` partial with no user data, no authenticated state and **no submission target** — the `form` group renders a bare input and two buttons with no `<form>` element, no handlers, and `form-action 'self'` unchanged. (Before BL-097 this said "no actionable form"; the `form` group never actually rendered then, so the phrasing is now stated as what is load-bearing rather than as an absence of markup.) `'self'` permits framing only by our own pages, so an attacker's origin still cannot embed it — the clickjacking protection that matters is unchanged. Nothing else in the policy is relaxed.
 
-**Adding another frameable route** — do all three: add the path to `SAME_ORIGIN_FRAMEABLE`, add a `vercel.json` header rule, and update the test's expected path list. If you only do the first, it will work in dev and silently fail in production.
+**Where it lives**: both `vercel.json` (the routes are prerendered, so production headers come from the CDN) and `src/middleware.ts` (`SAME_ORIGIN_FRAMEABLE`, covering dev and any SSR path). The middleware derives its set from `src/utils/responsive-demo-groups.ts`; `vercel.json` cannot import, so a drift guard in `tests/unit/security-headers.test.ts` asserts its `source` against the same constant. That test also pins the exception to those paths and asserts the frame-route CSP differs from the site default _only_ in `frame-ancestors`.
+
+> The middleware stores paths **without** a trailing slash and normalizes on lookup, which is why `responsive-demo-groups.ts` exports two builders. Using the slash-terminated one there would make the set never match — the exception would die in dev while production kept working from the CDN rule.
+
+**Adding another demo group** — six edits. Every one of them is enforced by a failing test or a type error, so the list is a shortcut rather than a thing you must remember:
+
+1. `RESPONSIVE_DEMO_GROUPS` in `src/utils/responsive-demo-groups.ts` — the middleware and the route follow automatically
+2. A specimen block on `src/pages/brand/responsive-frame/[group].astro`, and a row in `RESPONSIVE_ROWS` (`src/components/brand/BrandAccessibility.astro`) — otherwise the page builds but nothing embeds it
+3. The `vercel.json` alternation
+4. `tests/unit/security-headers.test.ts` — **both** `FRAME_ROUTE` (a literal, deliberately, so the expected pattern is stated rather than computed from the thing it checks) **and** the `toHaveLength` count in the positive middleware case
+5. `tests/e2e/brand-page.test.ts` — `GROUP_MARKER` (a `Record<ResponsiveDemoGroup, …>`, so omitting it is a compile error), `LABEL_TO_GROUP`, `HEADING_TO_GROUP`, and the frame count
+6. This document's route table, if the group changes what the exception covers
+
+**Adding an unrelated frameable route** — do all three: add the path to `SAME_ORIGIN_FRAMEABLE`, add a `vercel.json` header rule, and update the test's expected path list. If you only do the first, it will work in dev and silently fail in production.
 
 ## Adding a New External Service
 

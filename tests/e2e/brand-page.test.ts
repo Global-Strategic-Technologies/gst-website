@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+import type { ResponsiveDemoGroup } from '../../src/utils/responsive-demo-groups';
+
 test.describe('Brand Page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
@@ -215,8 +217,8 @@ test.describe('Brand Page', () => {
   });
 
   /**
-   * The Responsive Behavior section embeds /brand/responsive-frame in same-origin
-   * iframes. The site default (`X-Frame-Options: DENY` + `frame-ancestors 'none'`)
+   * The Responsive Behavior section embeds /brand/responsive-frame/<group> in
+   * same-origin iframes. The site default (`X-Frame-Options: DENY` + `frame-ancestors 'none'`)
    * forbids framing by every origin INCLUDING this one, so without the documented
    * route exception every frame is blocked with ERR_BLOCKED_BY_RESPONSE and renders
    * empty — silently, with no build error. That shipped and went unnoticed.
@@ -250,15 +252,16 @@ test.describe('Brand Page', () => {
         .toBe(total);
 
       // Asserted here rather than in its own test: the axe scan excludes
-      // `.responsive-demo-frame iframe` (12 lazy same-origin frames of one document
-      // would make the violation count nondeterministic and triple-counted), which
-      // also drops axe's `frame-title` check. Folding it in keeps that coverage
-      // without a second parallel load of /brand racing these same lazy frames.
+      // `.responsive-demo-frame iframe` (12 lazy same-origin frames across the four
+      // group documents would make the violation count nondeterministic and
+      // triple-counted), which also drops axe's `frame-title` check. Folding it in
+      // keeps that coverage without a second parallel load of /brand racing these
+      // same lazy frames.
       const untitled = await frames.evaluateAll((els) =>
         els
           .map((el, i) => ({
             i,
-            src: (el as HTMLIFrameElement).src.split('?')[1] ?? '',
+            src: new URL((el as HTMLIFrameElement).src).pathname,
             t: (el as HTMLIFrameElement).title?.trim() ?? '',
           }))
           .filter((f) => f.t.length === 0)
@@ -267,6 +270,220 @@ test.describe('Brand Page', () => {
       expect(
         untitled,
         `demo iframes with no title — screen-reader users get "iframe" and nothing else:\n  ${untitled.join('\n  ')}`
+      ).toEqual([]);
+    });
+
+    /**
+     * BL-097: the frame page used to read `?group=` from the query string, which a
+     * STATIC build never supplies — so all 12 frames rendered the `cards` group
+     * while their labels claimed four different ones. The test above passes
+     * regardless, because "the frame is not empty" is true of twelve frames all
+     * showing the wrong thing.
+     *
+     * The expectation is anchored to the row's HEADING, and every other link in
+     * the chain is asserted to agree with it: heading -> iframe title -> `src` ->
+     * rendered content. Anchoring anywhere further down looks equivalent and is
+     * not, because each anchor leaves the links above it free to drift together:
+     *
+     *   - anchored on `src`: pointing all four rows at `/…/cards/` reproduces the
+     *     shipped defect exactly, and the check calls it self-consistent
+     *   - anchored on the title: changing a row's `group` AND `label` together
+     *     leaves a section headed "Tab Bar" rendering three card frames
+     *
+     * The heading is the right anchor because it is the accessible name — each
+     * row is `role="group"` with `aria-labelledby` pointing at it — so it is what
+     * a screen-reader user is told the frames below are.
+     */
+    const GROUP_MARKER: Record<ResponsiveDemoGroup, string> = {
+      cards: '.brutal-option-card',
+      tabs: '.brutal-tab',
+      form: '.brutal-field',
+      shell: '.brutal-tool-shell',
+    };
+
+    /** Frame titles read "<Label> at <width>px" — see BrandAccessibility.astro. */
+    const LABEL_TO_GROUP: Record<string, ResponsiveDemoGroup> = {
+      Cards: 'cards',
+      Tabs: 'tabs',
+      Form: 'form',
+      Shell: 'shell',
+    };
+
+    /** The row headings, which are the rows' accessible names. */
+    const HEADING_TO_GROUP: Record<string, ResponsiveDemoGroup> = {
+      'Option Card Grid': 'cards',
+      'Tab Bar': 'tabs',
+      'Form Controls': 'form',
+      'Tool Shell': 'shell',
+    };
+
+    test('each frame renders the group its HEADING claims', async ({ page }) => {
+      await page.locator('#responsive-demos').scrollIntoViewIfNeeded();
+      const frames = page.locator('.responsive-demo-frame iframe');
+      const total = await frames.count();
+      expect(total, 'responsive demo iframes present').toBe(12);
+
+      for (let i = 0; i < total; i++) {
+        await frames.nth(i).scrollIntoViewIfNeeded();
+      }
+
+      await expect
+        .poll(
+          async () =>
+            frames.evaluateAll(
+              (els, { markers, labels, headings }) =>
+                els.map((el) => {
+                  const f = el as HTMLIFrameElement;
+
+                  // The anchor: the row's accessible name.
+                  const labelledBy = f
+                    .closest('.responsive-demo-row')
+                    ?.getAttribute('aria-labelledby');
+                  const heading = labelledBy
+                    ? (document.getElementById(labelledBy)?.textContent ?? '').trim()
+                    : '';
+                  const expected = headings[heading];
+                  if (!expected) return `"${heading}": UNKNOWN HEADING`;
+
+                  const label = (f.title || '').split(' ')[0];
+                  if (labels[label] !== expected)
+                    return `${heading}: title says "${label}", heading claims ${expected}`;
+
+                  const urlGroup =
+                    new URL(f.src).pathname.replace(/\/$/, '').split('/').pop() ?? '';
+                  if (urlGroup !== expected)
+                    return `${heading}: src is ${urlGroup}, heading claims ${expected}`;
+
+                  const doc = f.contentDocument;
+                  if (!doc || doc.readyState !== 'complete' || !doc.body?.children.length)
+                    return `${heading}: not loaded`;
+                  return doc.querySelector(markers[expected])
+                    ? `${heading}: ok`
+                    : `${heading}: MISSING ${markers[expected]} (body has ${
+                        doc.body?.firstElementChild?.className || 'nothing'
+                      })`;
+                }),
+              { markers: GROUP_MARKER, labels: LABEL_TO_GROUP, headings: HEADING_TO_GROUP }
+            ),
+          {
+            message:
+              'each frame must render the group its label claims — BL-097: a static build cannot read ?group=',
+          }
+        )
+        .toEqual(Array(12).fill(expect.stringContaining(': ok')));
+
+      // Truthfulness is not coverage. The poll above proves every frame renders
+      // what its heading claims, which stays true if a row is duplicated —
+      // turning the tabs row into a second cards row leaves /brand with two
+      // identical sections and the tabs group demoed nowhere, all twelve honest.
+      // `.at(-2)` rather than the strip-then-pop the other checks use, deliberately:
+      // it reads the segment BEFORE the trailing empty one, so a slashless `src`
+      // yields 'responsive-frame' and fails loudly instead of silently regrouping.
+      // Don't harmonise the three parses into one helper without keeping that.
+      const groups = await frames.evaluateAll((els) =>
+        els.map((el) => new URL((el as HTMLIFrameElement).src).pathname.split('/').at(-2))
+      );
+      const perGroup = Object.fromEntries(
+        [...new Set(groups)].sort().map((g) => [g, groups.filter((x) => x === g).length])
+      );
+      expect(perGroup, 'every group demoed at exactly the three widths').toEqual({
+        cards: 3,
+        form: 3,
+        shell: 3,
+        tabs: 3,
+      });
+    });
+
+    test('every demo iframe requests the trailing-slash form', async ({ page }) => {
+      // `responsive-demo-groups.ts` exports two builders and the iframes must use
+      // the slash-terminated one: `trailingSlash: true` makes the slashless form a
+      // 308 per frame in production. The dev server serves both, so nothing else
+      // would notice the swap.
+      const paths = await page
+        .locator('.responsive-demo-frame iframe')
+        .evaluateAll((els) => els.map((el) => new URL((el as HTMLIFrameElement).src).pathname));
+      expect(paths.filter((p) => !p.endsWith('/'))).toEqual([]);
+    });
+
+    /**
+     * The frames are fixed-height with `body { overflow: hidden }`, so content that
+     * outgrows them is cropped SILENTLY. BL-096 deferred this measurement because
+     * only the `form` group contains `.brutal-btn` and that group never rendered.
+     *
+     * Measured on the VIEWPORT, not `body`: `<html>` is `overflow: visible`, so
+     * body's `overflow: hidden` propagates to the viewport and body's own used
+     * overflow becomes `visible`. With `height: auto` body then grows to fit its
+     * content, making `body.scrollHeight === body.clientHeight` regardless of
+     * clipping — an assertion that can never fail.
+     */
+    test('no frame crops its own content', async ({ page }) => {
+      await page.locator('#responsive-demos').scrollIntoViewIfNeeded();
+      const frames = page.locator('.responsive-demo-frame iframe');
+      const total = await frames.count();
+
+      for (let i = 0; i < total; i++) {
+        await frames.nth(i).scrollIntoViewIfNeeded();
+      }
+
+      // Sequenced after a readiness poll on purpose: an unloaded or about:blank
+      // frame reports scrollHeight === clientHeight, so overflow would pass
+      // vacuously on a frame that never loaded.
+      //
+      // BOTH conditions, and neither alone is sufficient:
+      //   - body-has-children alone admits a frame at 'interactive', whose
+      //     stylesheets are still pending; an unstyled document (default body
+      //     margin, no grid) lays out differently enough to cause both false
+      //     failures and false passes in the measurement below
+      //   - readyState alone admits a lazy frame that has NOT navigated yet: its
+      //     pristine about:blank already reports 'complete', with zero children
+      //     and scrollHeight === clientHeight in both axes, which would make the
+      //     measurement entirely vacuous
+      await expect
+        .poll(async () =>
+          frames.evaluateAll(
+            (els) =>
+              els.filter((el) => {
+                const doc = (el as HTMLIFrameElement).contentDocument;
+                return doc?.readyState === 'complete' && (doc.body?.children.length ?? 0) > 0;
+              }).length
+          )
+        )
+        .toBe(total);
+
+      // Both axes: `overflow: hidden` crops horizontally just as silently.
+      // Overflow INSIDE a component's own scroll container doesn't count and
+      // isn't measured here — `.brutal-tab-bar` is `overflow-x: auto`, so at
+      // 240px it scrolls internally, which is exactly what production does.
+      // Only the document outgrowing the frame is a cropped demo.
+      const overflowing = await frames.evaluateAll((els) =>
+        els
+          .flatMap((el) => {
+            const f = el as HTMLIFrameElement;
+            const root = f.contentDocument!.documentElement;
+            const group = new URL(f.src).pathname.replace(/\/$/, '').split('/').pop();
+            return [
+              {
+                group,
+                w: f.clientWidth,
+                axis: 'height',
+                content: root.scrollHeight,
+                frame: root.clientHeight,
+              },
+              {
+                group,
+                w: f.clientWidth,
+                axis: 'width',
+                content: root.scrollWidth,
+                frame: root.clientWidth,
+              },
+            ];
+          })
+          .filter((m) => m.content > m.frame)
+          .map((m) => `${m.group} @${m.w}px: ${m.axis} ${m.content}px > frame ${m.frame}px`)
+      );
+      expect(
+        overflowing,
+        `frames cropping their content (body has overflow:hidden, so this is invisible):\n  ${overflowing.join('\n  ')}`
       ).toEqual([]);
     });
   });

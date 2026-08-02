@@ -678,6 +678,7 @@ If your test has any of these, it's likely a false positive:
 26. ✗ Queries `body` for a class that lives on `document.documentElement` (or vice versa) — silently returns `false`, making conditional setup fire incorrectly
 27. ✗ Waits for a CSS class change but asserts on a computed style property (`display`, `visibility`) that lags behind in the rendering pipeline — passes in Chromium, fails in Firefox
 28. ✗ Source emits a `data-*-ready` / `__*Initialized` signal before all `addEventListener` / D3 `.on()` calls have run — passes in isolation, fails under parallel worker load
+29. ✗ Gates on a readiness signal that was never observed false — a never-navigated iframe's `about:blank` already reports `readyState === 'complete'`, so the gate admits every frame and the assertion beneath it cannot fail
 
 ## E2E Cross-Browser Pitfalls
 
@@ -1334,6 +1335,8 @@ test('should display description', async ({ page }) => {
 
 **Key principle:** The readiness gate in `beforeEach` should wait for the deepest shared element that downstream tests depend on — not just the outermost container. This is especially important with `waitUntil: 'domcontentloaded'`, which fires before the browser has fully built the render tree.
 
+**Related:** this is a gate whose _scope_ is too shallow. [Anti-pattern 28](#28--trusting-a-readiness-gate-you-never-sampled-before-the-thing-it-gates-starts) is the adjacent failure — a gate that is never _false_, and so gates nothing at all. Fixing scope without checking the second property leaves a gate that still passes vacuously.
+
 **When this bites you:**
 
 - Static SSG pages under `domcontentloaded` (no hydration to blame — it's pure DOM construction timing)
@@ -1467,6 +1470,61 @@ grep -rn "addEventListener('click'" src/ | xargs -I{} echo "audit {}: does any '
 ```
 
 **Key principle:** dual-control UI is a contract. Both directions must reconcile, and both directions must be tested. The bug almost never lives in the direction the developer was thinking about — it lives in the direction they assumed would "just work."
+
+---
+
+### 28. ❌ Trusting a Readiness Gate You Never Sampled Before the Thing It Gates Starts
+
+A readiness gate is only meaningful if it is **false at some point**. Verify that by sampling it in the window before the awaited work begins — not by observing that the test passes.
+
+**The trap that produced this entry** (BL-097, `tests/e2e/brand-page.test.ts`): a measurement of iframe content overflow was gated on
+
+```ts
+els.filter((el) => el.contentDocument?.readyState === 'complete').length === total;
+```
+
+which reads as strictly stronger than the `body.children.length > 0` check it replaced — `'complete'` implies stylesheets have loaded, `children.length` does not.
+
+It is **not stronger. The two are incomparable**, and on the axis that mattered here it was vacuous: a lazy `<iframe>` that has not navigated yet exposes its pristine `about:blank`, and `about:blank` **already reports `readyState === 'complete'`** (the HTML spec gives every `Document` a current document readiness "initially `complete`", and names initial `about:blank` documents as a case that default applies to; verified in chromium, firefox and webkit — not a Chromium quirk). Once navigation has begun `readyState` is the stronger signal; before it begins it admits everything. Measured in the pre-navigation window, the gate admitted **12 of 12** frames — every one empty, every one reporting `scrollHeight === clientHeight` in both axes. The assertion beneath it could not fail.
+
+Neither condition is sufficient alone, so the fix is the conjunction:
+
+```ts
+els.filter((el) => {
+  const doc = (el as HTMLIFrameElement).contentDocument;
+  return doc?.readyState === 'complete' && (doc.body?.children.length ?? 0) > 0;
+}).length === total;
+```
+
+**How to check your own gate**, in the window before the work starts:
+
+```js
+// In page context, in the SAME task that triggers loading — before awaiting anything
+els.forEach((e) => e.scrollIntoView());
+console.log(
+  'gate admits',
+  els.filter(/* your predicate */).length,
+  'of',
+  els.length,
+  '— must be 0 here'
+);
+```
+
+**Generalises past iframes.** The shape is a resource reporting a benign value _because nothing has been asked of it yet_:
+
+| Signal                                                | Before anything starts | Mid-work              |
+| ----------------------------------------------------- | ---------------------- | --------------------- |
+| `iframe.contentDocument.readyState` (never navigated) | `'complete'`           | `'loading'`           |
+| `new Image().complete` (no `src`)                     | `true`                 | `false` while loading |
+| any `Promise.resolve()`-shaped "ready" hook           | resolves immediately   | pends                 |
+
+The inverse trap exists too and reads the opposite way: a **negative** assertion (`childElementCount === 0`, "the error list is empty") passes before the work that would populate it has started. Same root cause, so the same fix — sample it early and require it to fail.
+
+Counter-example worth knowing, because it looks like it belongs above and does not: an empty `<video>` reports `readyState === 0` (`HAVE_NOTHING`), which is falsy. A truthiness gate correctly reads it as _not_ ready. Media readiness is a monotonic integer, not a boolean, so it doesn't have this failure mode.
+
+**Key principle:** a gate that has never been observed false is indistinguishable from `true`. Prove it can be false before you trust what it protects — the same red-then-green discipline you apply to the assertion itself.
+
+**Related:** anti-pattern 25 is the adjacent failure — a gate whose _scope_ doesn't cover what the test depends on. 25 is "gating on the wrong thing"; this is "gating on something that was never false."
 
 ---
 

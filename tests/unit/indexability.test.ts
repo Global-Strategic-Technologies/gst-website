@@ -75,6 +75,8 @@ describe('sitemapFilter — absolute-URL contract', () => {
 
   it('excludes nested paths under an excluded prefix', () => {
     expect(sitemapFilter(`${SITE}/brand/responsive-frame/`)).toBe(false);
+    // BL-097 moved the frame partials a level deeper; still noindex, still out.
+    expect(sitemapFilter(`${SITE}/brand/responsive-frame/cards/`)).toBe(false);
   });
 
   it('also handles a bare pathname, so a contract drift is a no-op', () => {
