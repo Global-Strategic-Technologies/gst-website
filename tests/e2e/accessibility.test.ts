@@ -1,7 +1,7 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA scanning.
  *
- * Scans 8 critical pages for accessibility violations.
+ * Scans 9 critical pages for accessibility violations.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -9,12 +9,20 @@
  */
 import { test, expect } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
+import { RADAR_SETTLED_SELECTOR, RADAR_SETTLE_TIMEOUT_MS } from './helpers/radar';
 
 interface A11yPage {
   name: string;
   path: string;
   /** Selectors dropped from the scan. Every entry needs a reason — see /brand. */
   exclude?: string[];
+  /**
+   * Selector that must be present before scanning. Only needed for pages whose
+   * real content arrives after navigation — i.e. a `server:defer` island, where
+   * scanning on `load` would audit the skeleton placeholder instead of the DOM
+   * a user ends up with. Pages without this keep the original `load` wait.
+   */
+  waitFor?: string;
 }
 
 const PAGES: A11yPage[] = [
@@ -25,6 +33,39 @@ const PAGES: A11yPage[] = [
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
+  {
+    name: 'Radar',
+    path: '/hub/radar/',
+    // The feed is a `server:defer` island (ADR-0012), so this waits for it to
+    // RESOLVE before scanning — otherwise axe audits the aria-hidden skeleton.
+    //
+    // Scope note, so nobody reads this as more coverage than it is: CI binds no
+    // MCP_KEY_WEBSITE_RADAR, so the island resolves to `.radar-empty` and the
+    // scan covers the shell — breadcrumb, headings, the filter pills (real
+    // interactive controls), the empty state and the CTA. `FyiItem`/`WireItem`
+    // only render with a bearer; use `npm run radar:stub` to cover those too.
+    waitFor: RADAR_SETTLED_SELECTOR,
+    exclude: [
+      // FyiItem nests its article <a> inside the <details> <summary>, which axe
+      // rates `nested-interactive`/serious. EXCLUDED, not baselined, and the
+      // distinction is the point: per the /brand precedent this file follows,
+      // exclusions are for "must not change" and KNOWN_SERIOUS is for debt that
+      // should decrease. An operator investigated this exact finding on
+      // 2026-08-02 — link is keyboard-reachable, Enter navigates without
+      // toggling, the mouse case is handled by a stopPropagation, and no
+      // screen-reader harm reproduced — and ruled the component works as
+      // intended and is not to be changed. See BACKLOG.md § BL-095.
+      //
+      // Baselining it would also have been quietly broken: KNOWN_SERIOUS is a
+      // MAX node count, and the count scales with however many annotated items
+      // the feed holds — so a number measured against the 2-item stub fixture
+      // would fail the first person to bind a real feed.
+      //
+      // Scoped to the <summary> only. The item BODY stays in scope, so a real
+      // violation in the expanded content still fails.
+      '.fyi-item__header',
+    ],
+  },
   {
     name: 'Brand',
     path: '/brand/',
@@ -67,6 +108,27 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
   '/hub/': { 'color-contrast': 1 },
   '/hub/tools/techpar/': { 'color-contrast': 4 },
   '/hub/tools/tech-debt-calculator/': { 'color-contrast': 14 },
+  // /hub/radar, added 2026-08-02 with the route. Both nodes are --color-primary
+  // (#05cd99) contrast, i.e. design-level token calls, not ARIA fixes:
+  //
+  //   1. a[href="/hub/"].active — the site-wide ACTIVE NAV LINK, #05cd99 on
+  //      #f5f5f5 = 1.88:1. Not radar-specific; it is the same violation already
+  //      baselined above on /hub/, surfacing here because this route is also
+  //      under /hub. Fixing it is a header change affecting every page.
+  //   2. .filter-btn.active — #ffffff on #05cd99 = 2.05:1, the "All" pill.
+  //      Radar-local, and the worse offender of the two in practice because the
+  //      pills are the page's only interactive control.
+  //
+  // Both are real text failing AA — deliberately NOT excluded, since an
+  // exclusion would hide them, whereas this ratchet keeps them counted and can
+  // only decrease. Raised as a design item rather than decided inside a test
+  // change, matching the /brand -> BL-096 precedent below.
+  //
+  // Both live in the page SHELL, so the count is content-independent: measured
+  // identical with an empty feed and with a 6-item one. (The island's own
+  // `nested-interactive` finding is content-dependent and is handled by a
+  // scoped exclusion above, not here — see the note on that entry.)
+  '/hub/radar/': { 'color-contrast': 2 },
   // /brand, added 2026-07-29. The intent was to land it with no baseline at all;
   // the discovery run said otherwise, and the honest move is to record the number
   // rather than widen the exclusions until the prediction comes true.
@@ -91,7 +153,19 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
 test.describe('Accessibility — WCAG 2.1 AA', () => {
   for (const pg of PAGES) {
     test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
-      await page.goto(pg.path, { waitUntil: 'load' });
+      if (pg.waitFor) {
+        // Not `load`: it waits on the island's own subresource request, which
+        // under worker contention times out the navigation itself (see the
+        // `gotoRadar` docblock in helpers/radar.ts). Wait on the resulting DOM
+        // instead of the lifecycle — that is the signal we actually need.
+        await page.goto(pg.path, { waitUntil: 'domcontentloaded' });
+        await page
+          .locator(pg.waitFor)
+          .first()
+          .waitFor({ state: 'attached', timeout: RADAR_SETTLE_TIMEOUT_MS });
+      } else {
+        await page.goto(pg.path, { waitUntil: 'load' });
+      }
 
       const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
 

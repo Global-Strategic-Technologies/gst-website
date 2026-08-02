@@ -205,6 +205,7 @@ npm run test:e2e               # Playwright E2E (only when told — see Directiv
 npm run lint / lint:css        # ESLint / stylelint
 npm run setup:claude-hooks     # One-time per machine: arm the review-gate hooks
 npm run radar:seed / unseed    # Populate/clear the local stdio MCP radar snapshot (mock data, no API calls)
+npm run radar:stub             # Serve a fake /radar/snapshot for the WEBSITE (different consumer from radar:seed)
 ```
 
 ## 📚 Critical Documentation

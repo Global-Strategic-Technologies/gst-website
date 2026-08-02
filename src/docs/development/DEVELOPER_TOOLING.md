@@ -17,6 +17,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Run the docs guards (link/anchor integrity + variables parity) | `npm run test:docs`                                  |
 | Arm the Claude review gates (once/machine) | `npm run setup:claude-hooks` (see § Claude Code review gates)            |
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
+| Serve a fake `/radar/snapshot` for the **website** | `npm run radar:stub` (the stdio seed above is a different consumer — the site never reads it; needed for the content-dependent radar E2E) |
 | Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
 | Type-check the website workspace       | `npx astro check` (root tsconfig `exclude`s `mcp-server`)                    |
@@ -493,10 +494,10 @@ The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-cor
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 6 critical pages (Chromium, ~6 seconds)
+npm run test:a11y        # Scans 9 critical pages (Chromium, ~6 seconds)
 ```
 
-This runs `tests/e2e/accessibility.test.ts` which scans: Homepage, Services, About, M&A Portfolio, Hub, and TechPar.
+This runs `tests/e2e/accessibility.test.ts` which scans: Homepage, Services, About, M&A Portfolio, Hub, TechPar, Tech Debt Calculator, Brand, and Radar. (`/hub/radar/` waits for its `server:defer` island to resolve before scanning; with no `MCP_KEY_WEBSITE_RADAR` bound it scans the shell plus the empty state — bind `npm run radar:stub` to cover the feed items too.)
 
 ### How the ratchet works
 

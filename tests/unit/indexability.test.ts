@@ -186,8 +186,13 @@ describe('category filter survives island timing', () => {
     // render — compiling to dead CSS while the source still looked right.
     const src = page();
     for (const key of Object.keys(CATEGORIES)) {
+      // Escape before interpolating. Every current key is a plain slug, but a
+      // future key containing a regex metacharacter (`.`, `+`) would silently
+      // match a DIFFERENT selector — which is the same class of bug this guard
+      // exists to catch, so it should not be reintroduced by the guard itself.
+      const k = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const rule = new RegExp(
-        String.raw`\[data-active-category='${key}'\]\s*:global\(\[data-category\]:not\(\[data-category='${key}'\]\)\)`
+        String.raw`\[data-active-category='${k}'\]\s*:global\(\[data-category\]:not\(\[data-category='${k}'\]\)\)`
       );
       expect(
         src,
