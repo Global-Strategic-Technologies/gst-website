@@ -187,9 +187,12 @@ describe('every hub tool page emits WebApplication JSON-LD', () => {
     expect(knowsAbout!.length).toBeLessThanOrEqual(5);
     expect(knowsAbout).toContain('Technical Due Diligence');
     expect(knowsAbout).toContain('M&A Tech Strategy');
-    // Padding a short array with a duplicate satisfies the count while adding
-    // no expertise signal, which is the thing the count is a proxy for.
-    expect(new Set(knowsAbout)).toHaveProperty('size', knowsAbout!.length);
+    // Padding a short array with a duplicate or a blank satisfies the count
+    // while adding no expertise signal, which is the thing the count proxies
+    // for. `toEqual` against the deduped array rather than comparing sizes:
+    // the failure diff points a `+` at the offending entry.
+    expect(knowsAbout).toEqual([...new Set(knowsAbout)]);
+    expect(knowsAbout!.filter((topic) => topic.trim() === '')).toEqual([]);
   });
 });
 
