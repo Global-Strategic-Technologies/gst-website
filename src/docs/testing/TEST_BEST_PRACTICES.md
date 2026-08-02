@@ -1470,6 +1470,47 @@ grep -rn "addEventListener('click'" src/ | xargs -I{} echo "audit {}: does any '
 
 ---
 
+### 28. ❌ Trusting a Readiness Gate You Never Sampled Before the Thing It Gates Starts
+
+A readiness gate is only meaningful if it is **false at some point**. Verify that by sampling it in the window before the awaited work begins — not by observing that the test passes.
+
+**The trap that produced this entry** (BL-097, `tests/e2e/brand-page.test.ts`): a measurement of iframe content overflow was gated on
+
+```ts
+els.filter((el) => el.contentDocument?.readyState === 'complete').length === total;
+```
+
+which reads as strictly stronger than the `body.children.length > 0` check it replaced — `'complete'` implies stylesheets have loaded, `children.length` does not. It is in fact **weaker to the point of vacuity**: a lazy `<iframe>` that has not navigated yet exposes its pristine `about:blank`, and `about:blank` **already reports `readyState === 'complete'`**. Measured in the pre-navigation window, the gate admitted **12 of 12** frames — every one empty, every one reporting `scrollHeight === clientHeight` in both axes. The assertion beneath it could not fail.
+
+Neither condition is sufficient alone, so the fix is the conjunction:
+
+```ts
+els.filter((el) => {
+  const doc = (el as HTMLIFrameElement).contentDocument;
+  return doc?.readyState === 'complete' && (doc.body?.children.length ?? 0) > 0;
+}).length === total;
+```
+
+**How to check your own gate**, in the window before the work starts:
+
+```js
+// In page context, in the SAME task that triggers loading — before awaiting anything
+els.forEach((e) => e.scrollIntoView());
+console.log(
+  'gate admits',
+  els.filter(/* your predicate */).length,
+  'of',
+  els.length,
+  '— must be 0 here'
+);
+```
+
+Generalises past iframes: `document.readyState` on a fresh document, an empty `<video>`'s `readyState`, a not-yet-populated container's `childElementCount === 0`, and any `Promise.resolve()`-shaped "ready" signal all report a benign value that a naive gate reads as success.
+
+**Key principle:** a gate that has never been observed false is indistinguishable from `true`. Prove it can be false before you trust what it protects — the same red-then-green discipline you apply to the assertion itself.
+
+---
+
 ## Running Tests
 
 ```bash

@@ -371,6 +371,23 @@ test.describe('Brand Page', () => {
           }
         )
         .toEqual(Array(12).fill(expect.stringContaining(': ok')));
+
+      // Truthfulness is not coverage. The poll above proves every frame renders
+      // what its heading claims, which stays true if a row is duplicated —
+      // turning the tabs row into a second cards row leaves /brand with two
+      // identical sections and the tabs group demoed nowhere, all twelve honest.
+      const groups = await frames.evaluateAll((els) =>
+        els.map((el) => new URL((el as HTMLIFrameElement).src).pathname.split('/').at(-2))
+      );
+      const perGroup = Object.fromEntries(
+        [...new Set(groups)].sort().map((g) => [g, groups.filter((x) => x === g).length])
+      );
+      expect(perGroup, 'every group demoed at exactly the three widths').toEqual({
+        cards: 3,
+        form: 3,
+        shell: 3,
+        tabs: 3,
+      });
     });
 
     test('every demo iframe requests the trailing-slash form', async ({ page }) => {
