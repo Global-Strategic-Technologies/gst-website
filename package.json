@@ -24,6 +24,7 @@
     "setup:claude-hooks": "node .claude/hooks/install.mjs",
     "radar:seed": "node mcp-server/scripts/seed-radar-cache.mjs",
     "radar:unseed": "node mcp-server/scripts/seed-radar-cache.mjs --unseed",
+    "radar:stub": "node scripts/radar-stub.mjs",
     "test:all": "npm run test:run && npm run test:e2e && npm run test:mcp",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

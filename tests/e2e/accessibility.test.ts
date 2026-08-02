@@ -15,6 +15,13 @@ interface A11yPage {
   path: string;
   /** Selectors dropped from the scan. Every entry needs a reason — see /brand. */
   exclude?: string[];
+  /**
+   * Selector that must be present before scanning. Only needed for pages whose
+   * real content arrives after navigation — i.e. a `server:defer` island, where
+   * scanning on `load` would audit the skeleton placeholder instead of the DOM
+   * a user ends up with. Pages without this keep the original `load` wait.
+   */
+  waitFor?: string;
 }
 
 const PAGES: A11yPage[] = [
@@ -25,6 +32,20 @@ const PAGES: A11yPage[] = [
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
+  {
+    name: 'Radar',
+    path: '/hub/radar/',
+    // The feed is a `server:defer` island (ADR-0012), so this waits for it to
+    // RESOLVE before scanning — otherwise axe audits the aria-hidden skeleton.
+    //
+    // Scope note, so nobody reads this as more coverage than it is: CI binds no
+    // MCP_KEY_WEBSITE_RADAR, so the island resolves to `.radar-empty` and the
+    // scan covers the shell — breadcrumb, headings, the filter pills (real
+    // interactive controls), the empty state and the CTA. `FyiItem`/`WireItem`
+    // are NOT scanned here because they never render without a bearer. Run the
+    // suite with `npm run radar:stub` bound to cover those too.
+    waitFor: '.fyi-item, .wire-item, .radar-empty',
+  },
   {
     name: 'Brand',
     path: '/brand/',
@@ -67,6 +88,33 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
   '/hub/': { 'color-contrast': 1 },
   '/hub/tools/techpar/': { 'color-contrast': 4 },
   '/hub/tools/tech-debt-calculator/': { 'color-contrast': 14 },
+  // /hub/radar, added 2026-08-02 with the route. Both nodes are --color-primary
+  // (#05cd99) contrast, i.e. design-level token calls, not ARIA fixes:
+  //
+  //   1. a[href="/hub/"].active — the site-wide ACTIVE NAV LINK, #05cd99 on
+  //      #f5f5f5 = 1.88:1. Not radar-specific; it is the same violation already
+  //      baselined above on /hub/, surfacing here because this route is also
+  //      under /hub. Fixing it is a header change affecting every page.
+  //   2. .filter-btn.active — #ffffff on #05cd99 = 2.05:1, the "All" pill.
+  //      Radar-local, and the worse offender of the two in practice because the
+  //      pills are the page's only interactive control.
+  //
+  // Both are real text failing AA — deliberately NOT excluded, since an
+  // exclusion would hide them, whereas this ratchet keeps them counted and can
+  // only decrease. Raised as a design item rather than decided inside a test
+  // change, matching the /brand -> BL-096 precedent below.
+  //
+  // `nested-interactive` (2 nodes) is CONTENT-DEPENDENT and therefore invisible
+  // to CI: FyiItem puts an <a> inside a <summary>, and <summary> is itself an
+  // interactive control, so it only fires once FYI items actually render — which
+  // needs a bearer CI does not have. Reproduce with `npm run radar:stub`. The
+  // node count tracks the number of FYI items in the fixture (2), NOT a
+  // production count, so this entry cannot ratchet meaningfully; it is here so
+  // the suite is runnable against real content rather than failing anyone who
+  // binds a feed. The defect is real and tracked as BL-100 — the fix is an
+  // interaction-model decision (does clicking a headline expand, or navigate?),
+  // not something to settle inside a test change.
+  '/hub/radar/': { 'color-contrast': 2, 'nested-interactive': 2 },
   // /brand, added 2026-07-29. The intent was to land it with no baseline at all;
   // the discovery run said otherwise, and the honest move is to record the number
   // rather than widen the exclusions until the prediction comes true.
@@ -91,7 +139,14 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
 test.describe('Accessibility — WCAG 2.1 AA', () => {
   for (const pg of PAGES) {
     test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
-      await page.goto(pg.path, { waitUntil: 'load' });
+      if (pg.waitFor) {
+        // `load` would block on the island's own request and can resolve before
+        // the swap lands, so wait on the resulting DOM instead of the lifecycle.
+        await page.goto(pg.path, { waitUntil: 'domcontentloaded' });
+        await page.locator(pg.waitFor).first().waitFor({ state: 'attached', timeout: 15000 });
+      } else {
+        await page.goto(pg.path, { waitUntil: 'load' });
+      }
 
       const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
 

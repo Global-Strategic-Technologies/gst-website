@@ -209,6 +209,15 @@ Local development consumes **zero** Inoreader budget on either path: the website
 
 **Website path**: the website no longer holds an Inoreader cache (post-BL-032.8 Phase B). For offline radar development, point Vercel preview deploys / `npm run dev` at the staging MCP Worker by setting `MCP_RADAR_SNAPSHOT_URL=https://mcp-staging.globalstrategic.tech/radar/snapshot` in your local `.env`. The Worker keeps the snapshot warm via its own cron-driven cache (`mcp:radar:cache:wire` / `:fyi` in the MCP Upstash DB, 6h TTL).
 
+**Website path, with no secret at all**: `npm run radar:stub` serves a fixed offline snapshot (6 wire + 2 FYI items across two categories) on `localhost:8787`. Point the site at it in `.env`:
+
+```dotenv
+MCP_RADAR_SNAPSHOT_URL=http://localhost:8787
+MCP_KEY_WEBSITE_RADAR=stub-bearer-not-a-real-secret   # any non-empty value
+```
+
+The bearer must be non-empty or `RadarFeed.astro` short-circuits before the fetch and renders the empty state regardless of the URL. **This is what makes the content-dependent E2E assertions runnable** — without it they `test.skip()` everywhere, including the one proving `?category=` actually filters the feed rather than merely activating a pill. Two categories is deliberate: with one, a totally broken filter produces the same DOM as a working one.
+
 **Local stdio MCP server path** (the `search_radar_offline` tool, `gst://radar/*` Resources over stdio, and the `gst_radar_brief_today` prompt's embed): these read a local snapshot at `<repo>/.cache/inoreader/` — populated and cleared from the repo root with:
 
 ```bash

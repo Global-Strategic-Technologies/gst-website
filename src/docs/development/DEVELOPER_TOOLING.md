@@ -17,6 +17,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Run the docs guards (link/anchor integrity + variables parity) | `npm run test:docs`                                  |
 | Arm the Claude review gates (once/machine) | `npm run setup:claude-hooks` (see § Claude Code review gates)            |
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
+| Serve a fake `/radar/snapshot` for the **website** | `npm run radar:stub` (the stdio seed above is a different consumer — the site never reads it; needed for the content-dependent radar E2E) |
 | Run E2E tests                          | `npm run test:e2e` (Chromium only: `npm run test:e2e -- --project=chromium`) |
 | Run accessibility scan (axe-core)      | `npm run test:a11y`                                                          |
 | Type-check the website workspace       | `npx astro check` (root tsconfig `exclude`s `mcp-server`)                    |
