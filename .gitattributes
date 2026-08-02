@@ -1,10 +1,38 @@
+# Line endings — LF in the repo AND in the working tree, on every platform.
+#
+# WHY THIS IS NOT LEFT TO core.autocrlf: .prettierrc.json sets
+# `endOfLine: "lf"`, so a CRLF working file fails `prettier --check` even
+# though its committed content is byte-correct. On a Windows checkout with
+# `core.autocrlf=true` (git's Windows default), that described 607 of the
+# repo's files — every local `prettier --check` run was red while CI, which
+# checks out on Linux, was green. The mismatch also made `git checkout -- <file>`
+# a trap: it rewrote the file to CRLF, after which prettier failed on it
+# locally while `git status` stayed clean.
+#
+# `eol=lf` overrides core.autocrlf for the working tree, so the checkout no
+# longer depends on each operator's git config. The index was already LF, so
+# this normalizes the working tree only — it does not rewrite history and
+# produces no content diff.
+#
+# Shell scripts additionally REQUIRE LF (a CRLF shebang line breaks execution).
+# The .ps1 scripts are safe regardless of host: both Windows PowerShell 5.1 and
+# PowerShell 7 parse LF-only script files, here-strings included. No .bat/.cmd
+# are tracked — those are the one class where CRLF is genuinely load-bearing.
+* text=auto eol=lf
+
+# Binary — never normalize, never diff as text. `text=auto` detects these
+# heuristically; declaring them is explicit and cheaper.
+*.png binary
+*.jpg binary
+*.ico binary
+
 # Generated files — written by tooling, force LF in the repo regardless of
 # the checkout platform. Without this, Windows operators see persistent
 # `LF will be replaced by CRLF` warnings + git showing the files as
 # modified after every `npm run build` / `npm run test` (which invokes
 # `prebuild` / `pretest` hooks that regenerate them).
 #
-# Narrowly scoped to the .generated.ts files in mcp-server/src/content/
-# (regulations + library indices) to keep this rule's blast radius small.
-# Extend if/when other generated files appear with the same pattern.
+# Retained explicitly even though the `*` rule above now covers it: it
+# documents a distinct reason (regeneration churn, not prettier), and it
+# should survive any future narrowing of the blanket rule.
 mcp-server/src/content/*.generated.ts text eol=lf

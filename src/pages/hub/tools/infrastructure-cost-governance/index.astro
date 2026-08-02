@@ -2,6 +2,7 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import { DOMAINS, TOTAL_QUESTIONS } from '../../../../data/infrastructure-cost-governance/domains';
+import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
 const domainCount = DOMAINS.length;
 ---
@@ -18,31 +19,19 @@ const domainCount = DOMAINS.length;
   <script
     is:inline
     type="application/ld+json"
-    set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      name: 'Infrastructure Cost Governance',
-      description:
-        'Cloud cost maturity assessment across six operational domains for PE diligence, board reviews, and 100-day planning',
-      applicationCategory: 'BusinessApplication',
-      operatingSystem: 'Web',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      publisher: { '@type': 'Organization', name: 'Global Strategic Technologies' },
-      datePublished: '2026-03-01',
-      dateModified: '2026-03-21',
-      featureList: [
-        '20 questions across 6 cloud cost domains',
-        'Scored diagnostic with benchmarks',
-        'Prioritized improvement checklist',
-        'Shareable results for board reviews',
-      ],
-      author: {
-        '@type': 'Person',
-        name: 'Reid Peryam',
-        jobTitle: 'Strategic Technology Advisor',
-        sameAs: ['https://www.linkedin.com/in/reidperyam/'],
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Infrastructure Cost Governance',
         description:
-          'Technology advisor with experience across 100+ PE technology diligence engagements',
+          'Cloud cost maturity assessment across six operational domains for PE diligence, board reviews, and 100-day planning',
+        datePublished: '2026-03-01',
+        dateModified: '2026-03-21',
+        featureList: [
+          '20 questions across 6 cloud cost domains',
+          'Scored diagnostic with benchmarks',
+          'Prioritized improvement checklist',
+          'Shareable results for board reviews',
+        ],
         knowsAbout: [
           'Cloud Cost Optimization',
           'Infrastructure Governance',
@@ -50,8 +39,8 @@ const domainCount = DOMAINS.length;
           'Technical Due Diligence',
           'M&A Tech Strategy',
         ],
-      },
-    })}
+      })
+    )}
   />
 
   <section class="icg-section">
