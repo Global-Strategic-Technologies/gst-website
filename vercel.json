@@ -61,7 +61,7 @@
       ]
     },
     {
-      "source": "/brand/responsive-frame(/?)",
+      "source": "/brand/responsive-frame/:group(cards|tabs|form|shell)(/?)",
       "headers": [
         {
           "key": "X-Frame-Options",

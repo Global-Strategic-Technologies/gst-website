@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SECURITY_HEADERS, onRequest } from '@/middleware';
+import {
+  RESPONSIVE_DEMO_GROUPS,
+  responsiveFramePath,
+  responsiveFrameRoute,
+} from '@/utils/responsive-demo-groups';
 
 /**
  * Parses vercel.json and extracts the header key-value pairs
@@ -98,17 +103,36 @@ describe('Security Headers', () => {
 
   /**
    * The site-wide default forbids framing by EVERY origin, including this one.
-   * `/brand/responsive-frame` exists only to be embedded in the brand page's
-   * Responsive Behavior section, so it needs a narrowly-scoped relaxation to
-   * `'self'` — without it the frames are blocked with ERR_BLOCKED_BY_RESPONSE
-   * and render empty, with no build error to explain it.
+   * The `/brand/responsive-frame/<group>` partials exist only to be embedded in
+   * the brand page's Responsive Behavior section, so they need a narrowly-scoped
+   * relaxation to `'self'` — without it the frames are blocked with
+   * ERR_BLOCKED_BY_RESPONSE and render empty, with no build error to explain it.
    *
-   * The route is prerendered, so production headers come from vercel.json (CDN)
+   * The routes are prerendered, so production headers come from vercel.json (CDN)
    * while dev and any SSR path come from the middleware — both must carry the
    * exception, and neither may relax anything beyond `frame-ancestors`.
+   *
+   * BL-097 moved these from one query-param route to four path routes. The
+   * exception is ENUMERATED rather than prefix-matched, so an unknown group
+   * under the same prefix stays strict.
    */
-  describe('same-origin framing exception for /brand/responsive-frame', () => {
-    const FRAME_ROUTE = '/brand/responsive-frame(/?)';
+  describe('same-origin framing exception for /brand/responsive-frame/<group>', () => {
+    const FRAME_ROUTE = '/brand/responsive-frame/:group(cards|tabs|form|shell)(/?)';
+
+    /**
+     * vercel.json cannot import RESPONSIVE_DEMO_GROUPS, so it is the one surface
+     * that could silently disagree with the other three. Compose the expected
+     * source from the constant rather than parsing the alternation out of it: an
+     * added group that nobody added to the CDN rule fails here.
+     */
+    it('the vercel.json rule enumerates exactly the demo groups', () => {
+      expect(FRAME_ROUTE).toBe(
+        `/brand/responsive-frame/:group(${RESPONSIVE_DEMO_GROUPS.join('|')})(/?)`
+      );
+      const raw = readFileSync(join(process.cwd(), 'vercel.json'), 'utf-8');
+      const sources = JSON.parse(raw).headers.map((h: { source: string }) => h.source);
+      expect(sources).toContain(FRAME_ROUTE);
+    });
 
     function getFrameRouteHeaders(): Record<string, string> {
       const raw = readFileSync(join(process.cwd(), 'vercel.json'), 'utf-8');
@@ -165,8 +189,16 @@ describe('Security Headers', () => {
       return res as Response;
     };
 
-    it('middleware relaxes framing for the frame route, both slash forms', async () => {
-      for (const path of ['/brand/responsive-frame', '/brand/responsive-frame/']) {
+    it('middleware relaxes framing for every group route, both slash forms', async () => {
+      // Built from BOTH builders on purpose: it covers the two slash forms and
+      // exercises `responsiveFramePath`, whose only production caller is an
+      // .astro component that vitest never instruments.
+      const paths = RESPONSIVE_DEMO_GROUPS.flatMap((g) => [
+        responsiveFrameRoute(g),
+        responsiveFramePath(g),
+      ]);
+      expect(paths).toHaveLength(8);
+      for (const path of paths) {
         const res = await runMiddleware(path);
         expect(res.headers.get('X-Frame-Options'), path).toBe('SAMEORIGIN');
         expect(res.headers.get('Content-Security-Policy'), path).toContain(
@@ -176,7 +208,17 @@ describe('Security Headers', () => {
     });
 
     it('middleware keeps every other path strict', async () => {
-      for (const path of ['/', '/brand/', '/brand/responsive-frame/sub', '/hub/radar/']) {
+      for (const path of [
+        '/',
+        '/brand/',
+        // The pre-BL-097 route: no longer a page, and must not stay frameable.
+        '/brand/responsive-frame',
+        '/brand/responsive-frame/',
+        // Unknown group under the same prefix — proves enumeration, not prefixing.
+        '/brand/responsive-frame/bogus',
+        '/brand/responsive-frame/sub',
+        '/hub/radar/',
+      ]) {
         const res = await runMiddleware(path);
         expect(res.headers.get('X-Frame-Options'), path).toBe('DENY');
         expect(res.headers.get('Content-Security-Policy'), path).toContain(

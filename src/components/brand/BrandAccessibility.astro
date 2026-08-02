@@ -1,5 +1,28 @@
 ---
+import { responsiveFramePath } from '../../utils/responsive-demo-groups';
 
+/**
+ * The Responsive Behavior rows. Driven by data rather than twelve near-identical
+ * markup blocks so a group cannot be added to the route without appearing here —
+ * BL-097 shipped with all twelve frames rendering the same group precisely
+ * because each `src` was written out by hand.
+ *
+ * `group` is validated against RESPONSIVE_DEMO_GROUPS by `responsiveFramePath`'s
+ * parameter type, so a typo is a build error rather than a silent 404.
+ */
+const RESPONSIVE_ROWS = [
+  { group: 'cards', id: 'resp-option-card', heading: 'Option Card Grid', label: 'Cards' },
+  { group: 'tabs', id: 'resp-tab-bar', heading: 'Tab Bar', label: 'Tabs' },
+  { group: 'form', id: 'resp-form-controls', heading: 'Form Controls', label: 'Form' },
+  { group: 'shell', id: 'resp-tool-shell', heading: 'Tool Shell', label: 'Shell' },
+] as const;
+
+/** Frame sizes are set by these modifier classes — see brand.astro's global block. */
+const RESPONSIVE_WIDTHS = [
+  { modifier: 'desktop', label: '1200px' },
+  { modifier: 'tablet', label: '768px' },
+  { modifier: 'mobile', label: '480px' },
+] as const;
 ---
 
 <!-- Section 7c: Accessibility -->
@@ -274,118 +297,29 @@
       is a live embed showing how layouts collapse and reflow.
     </p>
 
-    <h3 class="brutal-heading-sm brand-group-title" id="resp-option-card">Option Card Grid</h3>
-    <!-- tabindex on the scroll container: the row is `overflow-x: auto`, so without
-         it a keyboard user cannot scroll to the frames past the viewport edge. -->
-    <div class="responsive-demo-row" tabindex="0" role="group" aria-labelledby="resp-option-card">
-      <div class="responsive-demo-frame responsive-demo-frame--desktop">
-        <span class="responsive-demo-label">1200px</span>
-        <iframe
-          src="/brand/responsive-frame?group=cards"
-          title="Cards at 1200px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-      <div class="responsive-demo-frame responsive-demo-frame--tablet">
-        <span class="responsive-demo-label">768px</span>
-        <iframe
-          src="/brand/responsive-frame?group=cards"
-          title="Cards at 768px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-      <div class="responsive-demo-frame responsive-demo-frame--mobile">
-        <span class="responsive-demo-label">480px</span>
-        <iframe
-          src="/brand/responsive-frame?group=cards"
-          title="Cards at 480px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-    </div>
-
-    <h3 class="brutal-heading-sm brand-group-title" id="resp-tab-bar">Tab Bar</h3>
-    <div class="responsive-demo-row" tabindex="0" role="group" aria-labelledby="resp-tab-bar">
-      <div class="responsive-demo-frame responsive-demo-frame--desktop">
-        <span class="responsive-demo-label">1200px</span>
-        <iframe
-          src="/brand/responsive-frame?group=tabs"
-          title="Tabs at 1200px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-      <div class="responsive-demo-frame responsive-demo-frame--tablet">
-        <span class="responsive-demo-label">768px</span>
-        <iframe
-          src="/brand/responsive-frame?group=tabs"
-          title="Tabs at 768px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-      <div class="responsive-demo-frame responsive-demo-frame--mobile">
-        <span class="responsive-demo-label">480px</span>
-        <iframe
-          src="/brand/responsive-frame?group=tabs"
-          title="Tabs at 480px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-    </div>
-
-    <h3 class="brutal-heading-sm brand-group-title" id="resp-form-controls">Form Controls</h3>
-    <div class="responsive-demo-row" tabindex="0" role="group" aria-labelledby="resp-form-controls">
-      <div class="responsive-demo-frame responsive-demo-frame--desktop">
-        <span class="responsive-demo-label">1200px</span>
-        <iframe
-          src="/brand/responsive-frame?group=form"
-          title="Form at 1200px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-      <div class="responsive-demo-frame responsive-demo-frame--tablet">
-        <span class="responsive-demo-label">768px</span>
-        <iframe
-          src="/brand/responsive-frame?group=form"
-          title="Form at 768px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-      <div class="responsive-demo-frame responsive-demo-frame--mobile">
-        <span class="responsive-demo-label">480px</span>
-        <iframe
-          src="/brand/responsive-frame?group=form"
-          title="Form at 480px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-    </div>
-
-    <h3 class="brutal-heading-sm brand-group-title" id="resp-tool-shell">Tool Shell</h3>
-    <div class="responsive-demo-row" tabindex="0" role="group" aria-labelledby="resp-tool-shell">
-      <div class="responsive-demo-frame responsive-demo-frame--desktop">
-        <span class="responsive-demo-label">1200px</span>
-        <iframe
-          src="/brand/responsive-frame?group=shell"
-          title="Shell at 1200px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-      <div class="responsive-demo-frame responsive-demo-frame--tablet">
-        <span class="responsive-demo-label">768px</span>
-        <iframe
-          src="/brand/responsive-frame?group=shell"
-          title="Shell at 768px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-      <div class="responsive-demo-frame responsive-demo-frame--mobile">
-        <span class="responsive-demo-label">480px</span>
-        <iframe
-          src="/brand/responsive-frame?group=shell"
-          title="Shell at 480px"
-          loading="lazy"
-          style="overflow:hidden"></iframe>
-      </div>
-    </div>
+    {
+      /* tabindex on the scroll container: the row is `overflow-x: auto`, so without
+         it a keyboard user cannot scroll to the frames past the viewport edge. */
+      RESPONSIVE_ROWS.map((row) => (
+        <>
+          <h3 class="brutal-heading-sm brand-group-title" id={row.id}>
+            {row.heading}
+          </h3>
+          <div class="responsive-demo-row" tabindex="0" role="group" aria-labelledby={row.id}>
+            {RESPONSIVE_WIDTHS.map((width) => (
+              <div class={`responsive-demo-frame responsive-demo-frame--${width.modifier}`}>
+                <span class="responsive-demo-label">{width.label}</span>
+                <iframe
+                  src={responsiveFramePath(row.group)}
+                  title={`${row.label} at ${width.label}`}
+                  loading="lazy"
+                  style="overflow:hidden"
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      ))
+    }
   </div>
 </section>

@@ -303,7 +303,7 @@ The SEO component generates the following HTML:
 Two caveats worth knowing before extending this:
 
 - **`canonicalUrl` is declared on `SEO.astro` but never forwarded by `BaseLayout.astro`.** Pages cannot set a canonical through the layout today; `SEO.astro` emits a self-referential one. `noindex` alongside a self-canonical is standard and correct.
-- **`src/pages/brand/responsive-frame.astro` hand-rolls its own `<meta name="robots" content="noindex">`.** It is an iframe partial with no layout, so it cannot use the prop. That is the only sanctioned exception — every page that _has_ a layout must use `noindex`.
+- **`src/pages/brand/responsive-frame/[group].astro` hand-rolls its own `<meta name="robots" content="noindex">`.** It is an iframe partial with no layout, so it cannot use the prop. That is the only sanctioned exception — every page that _has_ a layout must use `noindex`.
 
 ### Where Output Appears
 

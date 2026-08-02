@@ -127,27 +127,6 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ## CSS and Design System
 
-### BL-097: `/brand` responsive-demo iframes all render the same group
-
-**Source**: found 2026-07-29 while measuring iframe clipping for the touch-target floor change | **Effort**: Small-Medium — the fix is mechanical, but it moves a URL that security config matches on | **Status**: Open
-
-**As a** developer using `/brand` as the design-system control, **I want** the Responsive Behavior section to show the component group each frame is labelled with **so that** the tabs, form and tool-shell demos actually demonstrate their own responsive behaviour.
-
-#### Acceptance Criteria
-
-- [ ] Each of the 12 frames renders the group its label claims (`cards`, `tabs`, `form`, `shell`), at all three widths
-- [ ] The E2E is strengthened past "the frame is not empty" to assert the frame's content matches its group — the current check passes with all four rendering `cards`
-- [ ] `src/middleware.ts` (`SAME_ORIGIN_FRAMEABLE`) and `vercel.json`'s framing-exception rule are updated in the same change if the route shape moves, and `tests/unit/security-headers.test.ts` still passes
-
-#### Technical Context
-
-- **Root cause**: `responsive-frame.astro:12` reads `Astro.url.searchParams.get('group')`. The site is static output, so the page is prerendered once and query params are never available — every `?group=` request falls through to the `'cards'` default. Verified by fetching all four groups from the dev server: byte-identical responses (133203 bytes each), all rendering `.brutal-option-card`.
-- **Live since the section was built.** `brand-page.test.ts` asserts each frame _loads content rather than being blocked_ (the CSP `frame-ancestors` fix), which passes while every frame shows the wrong content.
-- **Likely fix**: convert to `src/pages/brand/responsive-frame/[group].astro` with `getStaticPaths()` over the four groups, and point `brand.astro`'s iframe `src`s at the path form. That moves the URL, hence the middleware/`vercel.json` criterion above.
-- **Blocks a deferred measurement**: the 33→44px button growth in the touch-target change could in principle overflow the fixed-height frames (600×200 / 384×350 / 240×400, `body { overflow: hidden }`), but only the `form` group contains `.brutal-btn` and that group never renders. Measured content for the group that _does_ render is 113/261/297px against 200/350/400px, so nothing clips today. Re-measure the `form` group when this is fixed.
-
----
-
 ### BL-096: Site-wide touch-target audit (AAA) + axe route coverage
 
 **Source**: split out of the `--touch-target-min` change 2026-07-29, which fixed the button classes and deliberately stopped there | **Effort**: Medium — mostly design calls on space-constrained controls | **Status**: Open — needs a ruling before any code moves
@@ -158,8 +137,9 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 - [ ] **Ruling first**: is WCAG 2.5.5 (AAA, 44×44) a site-wide goal or a guarantee scoped to the button component classes? Everything below depends on the answer, which is why nothing was swept pre-emptively
 - [ ] Audit and resolve the known sub-44 interactive controls: `.brutal-quick-zoom` (32px, pinned by `regulatory-map-mobile.test.ts:97-106`), `.filter-button` in `PortfolioHeader.astro` (`height: 38px` beside a `min-width` that now uses the token), the modal close buttons in `ProjectModal.astro` (around :323-329) and `PortfolioGrid.astro` (around :315-321) which both drop to 40px inside a media query, TOC links, filter chips, palette-panel affordances, nav links
-- [ ] Extend the axe route list beyond its current 8 — `src/pages` holds 25 `.astro` files, ~22 of them real routes once `brand/responsive-frame` and the two error pages are set aside
+- [ ] Extend the axe route list beyond its current 8 — `src/pages` holds 28 `.astro` files, ~22 of them real routes once the four `brand/responsive-frame/<group>` iframe partials (BL-097 split the single query-param route into one page per group) and the two error pages are set aside
 - [ ] **Dead rule to resolve**: `MapVisualizer.astro`'s `.brutal-map-control { width/height: var(--touch-target-min) }` sits in a `@media (max-width: 767px)` block, but `.map-controls` is `display: none` below 1024px (:122-127, pinned by `regulatory-map-mobile.test.ts:89-95`) — so the mobile zoom sizing never applies. It was tokenised in the 2026-07-29 sweep for consistency (value-identical), but either the controls should be reachable on mobile or the rule should go
+- [x] **Frame-clipping measurement — resolved 2026-08-02 by BL-097, and now permanently guarded.** The concern was that the 33→44px button growth could overflow the fixed frames (600×200 / 384×350 / 240×400, `body { overflow: hidden }`, so cropping is invisible). With all four groups finally rendering, measured content at 600px is `cards` 113px, `form` **139px**, `shell` 168px against a 200px frame — nothing clips, in either axis, at any of the three widths. Rather than record a number that rots, `tests/e2e/brand-page.test.ts` now asserts per frame that `documentElement.scrollHeight/scrollWidth` fit `clientHeight/clientWidth`. Note the instrument: measuring `body` instead would be **vacuous** — `<html>` is `overflow: visible`, so body's `overflow: hidden` propagates to the viewport, body's own overflow resolves to `visible`, and with `height: auto` it grows to fit, making `body.scrollHeight === body.clientHeight` regardless of cropping
 - [ ] **Ratchet down `/brand`'s 13 `color-contrast` nodes** (`KNOWN_SERIOUS` in `accessibility.test.ts`). 8 are the `.a11y-badge` pass/fail chips, and they are page-local, so this is fixable without touching the site. What will NOT fix it is inverting the badge: contrast is symmetric, so a filled badge with page-background text is the same colour pair and the same 4.25:1. Three real levers — (a) fill the badge and pick a _different_ foreground (`#000` on `#2e8b57` measures 4.95:1, and the dark-theme pair is already 6.60:1), which needs an ink token since bare hex is lint-blocked; (b) change the `--color-success` / `--color-error` light values, which is site-wide; (c) clear WCAG's large-text threshold — **18.66px bold** (14pt), not 14px, so `--text-2xs` is nowhere near it. The remaining 5 are `.brutal-tab__label`, `.brand-tag`, `.project-card__cta`, `.brutal-reg-card__scope`, `.brutal-map-tap-bar__action`
 - [ ] If the ruling is site-wide, `.a11y-badge--fail`-style documented exceptions in BRAND_GUIDELINES § Accessibility are updated or removed accordingly
 
