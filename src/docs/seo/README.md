@@ -20,7 +20,7 @@ The GST website implements a high-authority SEO foundation designed to maximize 
 
 ## Key Features
 
-- **JSON-LD Structured Data**: ProfessionalService, Person, BreadcrumbList, and FAQPage schemas with complete credential information
+- **JSON-LD Structured Data**: ProfessionalService, Person, BreadcrumbList, FAQPage, WebApplication (per hub tool) and ItemList schemas with complete credential information
 - **Open Graph Tags**: Optimized for social media sharing across LinkedIn, Twitter, and other platforms
 - **Meta Tags**: Title, description, keywords, author, and robots directives
 - **Sitemap & Robots**: Automated crawling configuration for search engines

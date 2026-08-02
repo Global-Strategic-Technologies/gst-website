@@ -4,6 +4,7 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import articleBodyRaw from '../../../../data/irl/information-request-list.md?raw';
 import { parseIrlArticle } from '../../../../utils/irl/parse-article';
+import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
 // Parse the IRL generator source at build time so the section checkboxes render
 // server-side. Client-created DOM does NOT receive Astro's scoped-style
@@ -36,39 +37,27 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
   <script
     is:inline
     type="application/ld+json"
-    set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      name: 'Information Request List Generator',
-      description:
-        'Generate a fillable .xlsx Information Request List personalized to a target or client, from the canonical GST IRL',
-      applicationCategory: 'BusinessApplication',
-      operatingSystem: 'Web',
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      publisher: { '@type': 'Organization', name: 'Global Strategic Technologies' },
-      datePublished: '2026-05-25',
-      dateModified: '2026-07-31',
-      featureList: [
-        'Fillable .xlsx workbook generated client-side',
-        'Per-section selection mirroring VDR folder structure',
-        'Engagement-specific custom requests',
-        'Context-aware request removal',
-      ],
-      author: {
-        '@type': 'Person',
-        name: 'Reid Peryam',
-        jobTitle: 'Strategic Technology Advisor',
-        sameAs: ['https://www.linkedin.com/in/reidperyam/'],
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Information Request List Generator',
         description:
-          'Technology advisor with experience across 100+ PE technology diligence engagements',
+          'Generate a fillable .xlsx Information Request List personalized to a target or client, from the canonical GST IRL',
+        datePublished: '2026-05-25',
+        dateModified: '2026-07-31',
+        featureList: [
+          'Fillable .xlsx workbook generated client-side',
+          'Per-section selection mirroring VDR folder structure',
+          'Engagement-specific custom requests',
+          'Context-aware request removal',
+        ],
         knowsAbout: [
           'Technical Due Diligence',
           'Information Request Lists',
           'Virtual Data Room Structure',
           'M&A Tech Strategy',
         ],
-      },
-    })}
+      })
+    )}
   />
 
   <section class="irl-gen">
