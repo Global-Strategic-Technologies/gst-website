@@ -533,7 +533,7 @@ When creating a new hub tool:
 1. Import `hubToolSchema` from `src/utils/hub-tool-schema.ts` and call it inside the page's `set:html` — do **not** copy another page's JSON-LD literal
 2. Set tool-specific `name`, `description`, and `featureList`
 3. Set `datePublished` to the launch date, `dateModified` to today
-4. Customize the `knowsAbout` array for the tool's domain (4–5 items, always including "Technical Due Diligence" and "M&A Tech Strategy")
+4. Customize the `knowsAbout` array for the tool's domain (4–5 distinct items, always including "Technical Due Diligence" and "M&A Tech Strategy" — enforced by `tests/unit/hub-tool-schema.test.ts`)
 5. Add the tool to the `ItemList` on the tools landing page
 6. Update this document with the new tool's details, and the expected-page list in `tests/unit/hub-tool-schema.test.ts`
 7. Validate with Google Structured Data Testing Tool

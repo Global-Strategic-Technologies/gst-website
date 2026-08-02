@@ -49,13 +49,27 @@ const ldJsonElements = (src: string) =>
 
 /**
  * The `knowsAbout` entries a page passes to the helper, read out of its JSON-LD
- * element. Read from source rather than by importing the page, because .astro
- * components can't be evaluated under vitest's node environment.
+ * element — or `null` if the array literal could not be located at all. Read
+ * from source rather than by importing the page, because .astro components
+ * can't be evaluated under vitest's node environment.
+ *
+ * `null` rather than `[]` on a parse miss so the caller can report "couldn't
+ * find the array" distinctly from "the array is too short". Otherwise a page
+ * that hoists its array to a named const surfaces as a content defect that
+ * isn't there, sending the next author hunting for the wrong bug.
+ *
+ * BOTH quote styles are matched. `.prettierrc.json` sets `singleQuote: true`,
+ * which flips an apostrophe-bearing string to DOUBLE quotes — so a future
+ * entry like "Founders' Diligence" is double-quoted in a file that is
+ * otherwise uniformly single-quoted.
  */
-function knowsAboutOf(src: string): string[] {
+function knowsAboutOf(src: string): string[] | null {
   const [element] = ldJsonElements(src);
-  const block = element?.match(/knowsAbout:\s*\[([\s\S]*?)\]/)?.[1] ?? '';
-  return [...block.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1].replace(/\\'/g, "'"));
+  const block = element?.match(/knowsAbout:\s*\[([\s\S]*?)\]/)?.[1];
+  if (block === undefined) return null;
+  return [...block.matchAll(/(['"])((?:\\.|(?!\1)[^\\])*)\1/g)].map((m) =>
+    m[2].replace(/\\(.)/g, '$1')
+  );
 }
 
 /**
@@ -168,10 +182,14 @@ describe('every hub tool page emits WebApplication JSON-LD', () => {
     // was the original BL-099 defect — but an empty or truncated one is not,
     // and it degrades the same author-expertise signal just as silently.
     const knowsAbout = knowsAboutOf(read(TOOLS_DIR, tool, 'index.astro'));
-    expect(knowsAbout.length).toBeGreaterThanOrEqual(4);
-    expect(knowsAbout.length).toBeLessThanOrEqual(5);
+    expect(knowsAbout, 'knowsAbout array literal not found in the JSON-LD element').not.toBeNull();
+    expect(knowsAbout!.length).toBeGreaterThanOrEqual(4);
+    expect(knowsAbout!.length).toBeLessThanOrEqual(5);
     expect(knowsAbout).toContain('Technical Due Diligence');
     expect(knowsAbout).toContain('M&A Tech Strategy');
+    // Padding a short array with a duplicate satisfies the count while adding
+    // no expertise signal, which is the thing the count is a proxy for.
+    expect(new Set(knowsAbout)).toHaveProperty('size', knowsAbout!.length);
   });
 });
 
