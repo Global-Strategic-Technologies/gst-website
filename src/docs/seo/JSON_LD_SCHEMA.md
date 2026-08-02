@@ -36,7 +36,7 @@ ProfessionalService (Organization)
 ├── knowsAbout: [10 expertise areas]
 └── address: PostalAddress
 
-WebApplication (per hub tool — 5 tools)
+WebApplication (per hub tool — 6 tools, built by src/utils/hub-tool-schema.ts)
 ├── name, description, applicationCategory
 ├── operatingSystem: "Web"
 ├── offers: Free
@@ -47,7 +47,7 @@ WebApplication (per hub tool — 5 tools)
 
 ItemList (hub tools landing page)
 ├── name: GST Strategic Intelligence Tools
-├── numberOfItems: 5
+├── numberOfItems: 6
 └── itemListElement: [ListItem with position, name, url]
 
 BreadcrumbList (per-page, non-homepage only)
@@ -401,7 +401,24 @@ Describes each hub tool as a free, browser-based web application with author exp
 
 Google supports both types for rich results (price, ratings). `WebApplication` additionally supports `browserRequirements` if needed in the future.
 
+### Where it comes from
+
+Tool pages do **not** hand-write this block. `src/utils/hub-tool-schema.ts` exports `hubToolSchema()`,
+which owns every shared field; each page passes only its six per-tool values:
+
+```astro
+set:html={JSON.stringify(
+  hubToolSchema({ name, description, featureList, knowsAbout, datePublished, dateModified })
+)}
+```
+
+Before BL-099 the block was copy-pasted into all six pages and drifted — one page shipped with no
+`knowsAbout` array and a `datePublished` five weeks off. `tests/unit/hub-tool-schema.test.ts` now
+asserts every `src/pages/hub/tools/*/index.astro` renders its JSON-LD script from the helper.
+
 ### Schema Template
+
+The shape the helper emits:
 
 ```json
 {
@@ -450,7 +467,10 @@ Google supports both types for rich results (price, ratings). `WebApplication` a
 | `featureList` | Array[String] | Key capabilities of the tool | Recommended |
 | `author` | Person | Reid Peryam with tool-specific `knowsAbout` | Yes |
 
-### Current Tool Schemas (5 Tools)
+Only `name`, `description`, `featureList`, `knowsAbout`, `datePublished` and `dateModified` are
+per-tool parameters. Everything else is a constant inside the helper.
+
+### Current Tool Schemas (6 Tools)
 
 #### 1. The Diligence Machine
 
@@ -497,16 +517,25 @@ Google supports both types for rich results (price, ratings). `WebApplication` a
 | **featureList** | 120+ regulations across 4 categories, Interactive D3 world map, Jurisdiction-specific compliance details, Data privacy/AI governance/cybersecurity/industry compliance |
 | **knowsAbout** | Regulatory Compliance, Data Privacy, AI Governance, Technical Due Diligence, M&A Tech Strategy |
 
+#### 6. Information Request List Generator
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/pages/hub/tools/information-request-list-generator/index.astro` |
+| **datePublished** | 2026-05-25 |
+| **featureList** | Fillable .xlsx workbook generated client-side, Per-section selection mirroring VDR folder structure, Engagement-specific custom requests, Context-aware request removal |
+| **knowsAbout** | Technical Due Diligence, Information Request Lists, Virtual Data Room Structure, M&A Tech Strategy |
+
 ### Adding a New Tool
 
 When creating a new hub tool:
 
-1. Copy the WebApplication JSON-LD template into the tool's `index.astro`
+1. Import `hubToolSchema` from `src/utils/hub-tool-schema.ts` and call it inside the page's `set:html` — do **not** copy another page's JSON-LD literal
 2. Set tool-specific `name`, `description`, and `featureList`
 3. Set `datePublished` to the launch date, `dateModified` to today
-4. Customize the `knowsAbout` array for the tool's domain (keep 5 items, always include "Technical Due Diligence" and "M&A Tech Strategy")
+4. Customize the `knowsAbout` array for the tool's domain (4–5 distinct items, always including "Technical Due Diligence" and "M&A Tech Strategy" — enforced by `tests/unit/hub-tool-schema.test.ts`)
 5. Add the tool to the `ItemList` on the tools landing page
-6. Update this document with the new tool's details
+6. Update this document with the new tool's details, and the expected-page list in `tests/unit/hub-tool-schema.test.ts`
 7. Validate with Google Structured Data Testing Tool
 
 ### Updating dateModified
@@ -531,41 +560,50 @@ Describes the tools collection page as an ordered list of web applications, enab
   "@type": "ItemList",
   "name": "GST Strategic Intelligence Tools",
   "description": "Interactive calculators and generators to quantify risk and value in technology investments",
-  "numberOfItems": 5,
+  "numberOfItems": 6,
   "itemListElement": [
     {
       "@type": "ListItem",
       "position": 1,
       "name": "Regulatory Map",
-      "url": "https://globalstrategic.tech/hub/tools/regulatory-map"
+      "url": "https://globalstrategic.tech/hub/tools/regulatory-map/"
     },
     {
       "@type": "ListItem",
       "position": 2,
       "name": "The Diligence Machine",
-      "url": "https://globalstrategic.tech/hub/tools/diligence-machine"
+      "url": "https://globalstrategic.tech/hub/tools/diligence-machine/"
     },
     {
       "@type": "ListItem",
       "position": 3,
       "name": "Technical Debt Cost Calculator",
-      "url": "https://globalstrategic.tech/hub/tools/tech-debt-calculator"
+      "url": "https://globalstrategic.tech/hub/tools/tech-debt-calculator/"
     },
     {
       "@type": "ListItem",
       "position": 4,
       "name": "Infrastructure Cost Governance",
-      "url": "https://globalstrategic.tech/hub/tools/infrastructure-cost-governance"
+      "url": "https://globalstrategic.tech/hub/tools/infrastructure-cost-governance/"
     },
     {
       "@type": "ListItem",
       "position": 5,
       "name": "TechPar",
-      "url": "https://globalstrategic.tech/hub/tools/techpar"
+      "url": "https://globalstrategic.tech/hub/tools/techpar/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "name": "Information Request List Generator",
+      "url": "https://globalstrategic.tech/hub/tools/information-request-list-generator/"
     }
   ]
 }
 ```
+
+URLs carry a trailing slash, matching the site's `trailingSlash: true` canonicalization in
+`vercel.json`.
 
 ### File Location
 
@@ -783,6 +821,7 @@ Example:
 - [ ] publisher organizations have proper @type
 - [ ] Hub tools use `WebApplication` (not `SoftwareApplication`)
 - [ ] Hub tools have `author`, `datePublished`, `dateModified`, and `featureList`
+- [ ] Hub tool schemas come from `hubToolSchema()`, not a pasted literal
 - [ ] ItemList `numberOfItems` matches actual tool count
 - [ ] ItemList positions match visual page order
 
@@ -831,7 +870,8 @@ npm run test:all
 
 #### Step 1: Edit the Appropriate File
 - **Organization/Person**: `src/components/SEO.astro`
-- **Hub Tools**: `src/pages/hub/tools/[tool-name]/index.astro`
+- **Hub Tools — shared fields** (`offers`, `publisher`, `author`, `applicationCategory`, `operatingSystem`): `src/utils/hub-tool-schema.ts` — one edit changes all six tools
+- **Hub Tools — per-tool fields** (`name`, `description`, `featureList`, `knowsAbout`, dates): `src/pages/hub/tools/[tool-name]/index.astro`
 - **Tools Landing**: `src/pages/hub/tools/index.astro`
 
 #### Step 2: Validate
@@ -875,6 +915,6 @@ Recommendation: Keep important credentials even if expired (shows comprehensive 
 
 ---
 
-**Last Updated**: March 22, 2026
-**Schema Version**: 3.0
+**Last Updated**: August 1, 2026
+**Schema Version**: 3.1
 **Validation Status**: ✓ Compliant
