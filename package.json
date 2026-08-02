@@ -46,10 +46,10 @@
   ],
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
-    "@astrojs/vercel": "^11.0.2",
+    "@astrojs/vercel": "^11.0.4",
     "@sentry/astro": "^10.65.0",
     "@vercel/speed-insights": "^2.0.0",
-    "astro": "^7.0.7",
+    "astro": "^7.1.5",
     "chart.js": "^4.5.1",
     "d3-geo": "^3.1.1",
     "d3-selection": "^3.0.0",
@@ -60,7 +60,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.9",
+    "@astrojs/check": "^0.9.10",
     "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^10.0.1",
     "@lhci/cli": "^0.15.1",
@@ -70,7 +70,7 @@
     "@types/d3-transition": "^3.0.9",
     "@types/d3-zoom": "^3.0.8",
     "@types/geojson": "^7946.0.16",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "@types/topojson-client": "^3.1.5",
     "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.10",
