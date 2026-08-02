@@ -2,18 +2,32 @@
 /**
  * /hub/radar — The Radar: Curated Intelligence Feed
  *
- * SERVER-RENDERED with ISR. The feed is rendered INLINE — deliberately not a
- * server island. Under `server:defer` the initial HTML carried only the shell
- * (~44 words of nav and headings, measured); the feed arrived via a second
- * JS-initiated request. Googlebot executes JS on a deferred queue, so a page
- * whose substance lives entirely in that payload gets judged on the shell —
- * which is why this route sat unindexed. See RADAR.md § "Why the feed is not
- * a server island" before reintroducing `server:defer`.
+ * SERVER-RENDERED with ISR shell + a `server:defer` island for the feed.
  *
- * Trade-off accepted, not overlooked: inlining moves the fetch inside the
- * cached ISR entry, so a failed revalidation bakes the empty state into a 200
- * for up to 6h where the uncached island self-healed on the next request.
- * Tracked as BL-098.
+ * This page is `noindex` (paired with a sitemap exclusion in
+ * `src/utils/sitemap-filter.ts`). A feed whose contents rotate wholly every 6h,
+ * with no per-item permalinks, is not an indexable page type — see ADR-0012.
+ * Because nothing here is meant to rank, deferring the primary content behind
+ * a skeleton costs no indexability, and we take the island's real benefit:
+ * `@astrojs/vercel` routes `/_server-islands/*` to the UNCACHED render function
+ * (adapter `dist/index.js`, the `_server-islands` -> NODE_PATH branch), so a
+ * failed fetch self-heals on the next request instead of baking an empty feed
+ * into an ISR entry for 6h. That was BL-098, now closed by removing it.
+ *
+ * The active category is NOT server-rendered from `Astro.url.searchParams`,
+ * deliberately. `@astrojs/vercel`'s `buildISRFolder` writes
+ * `allowQuery: ['x_astro_path','x_astro_path_token']` with `passQuery: true`,
+ * so `/hub/radar/` and `/hub/radar/?category=security` share ONE cache entry
+ * while the param still reaches the function on a miss — server-rendering it
+ * would pass dev, preview and every test, then serve a sticky mis-filtered
+ * variant on the first production cache hit.
+ *
+ * The filter is applied client-side instead, via `data-active-category` on
+ * `.radar-container`. That attribute lives on the SHELL — which exists at
+ * DOMContentLoaded — rather than on the items, because the island's contents
+ * arrive later and Astro fires no event when they do. CategoryFilter only ever
+ * sets the attribute; the CSS in the <style> block below does the hiding, so
+ * it applies to items whenever they land. Full rationale is on that rule.
  *
  * Content tiers (rendered in a single unified feed):
  *   1. FYI — Annotated items from Inoreader (highlights + GST Take)
@@ -24,6 +38,7 @@ export const prerender = false;
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import RadarHeader from '../../../components/radar/RadarHeader.astro';
 import RadarFeed from '../../../components/radar/RadarFeed.astro';
+import RadarFeedSkeleton from '../../../components/radar/RadarFeedSkeleton.astro';
 import CategoryFilter from '../../../components/radar/CategoryFilter.astro';
 import PrintReportHeader from '../../../components/PrintReportHeader.astro';
 
@@ -37,16 +52,19 @@ import { CATEGORIES } from '../../../lib/inoreader/transform';
   ogDescription="Curated technology and M&A intelligence for PE investors and portfolio company leaders."
   ogImage="/og-image.png"
   ogImageAlt="GST Radar - Technology and M&A Intelligence Feed"
+  noindex
 >
   <PrintReportHeader title="The Radar" />
 
-  <div class="radar-container">
+  <div class="radar-container" data-active-category="all">
     <div class="container">
       <RadarHeader />
 
       <CategoryFilter categories={CATEGORIES} />
 
-      <RadarFeed />
+      <RadarFeed server:defer>
+        <RadarFeedSkeleton slot="fallback" />
+      </RadarFeed>
 
       <a href="/hub/" class="cta-button secondary">Return to Hub</a>
     </div>
@@ -58,8 +76,50 @@ import { CATEGORIES } from '../../../lib/inoreader/transform';
     padding-bottom: var(--spacing-3xl);
   }
 
+  /*
+    Category filter. One rule per CATEGORIES key — `tests/unit/indexability.test.ts`
+    has a drift guard that fails if a fifth category ships without a rule here.
+
+    `:global()` is mandatory and wraps the WHOLE compound: Astro scopes every
+    compound selector it compiles, and no element ever carries two scope ids, so
+    an unscoped `[data-category]` here would be rewritten to match only elements
+    declared in THIS file — never the <article>s that FyiItem/WireItem render.
+    Same problem and same fix as `src/components/Header.astro:83-85`. Do NOT
+    rewrite this as `:global([data-category]):not(...)` — wrapping part of a
+    compound emits an invalid selector (see PalettePanel.astro's note).
+
+    This only ever ADDS `display: none`; it never restores a value. That is
+    load-bearing — `.wire-item` is `display: flex`, so a "hide all, re-show the
+    match" formulation would flatten wire items to block.
+  */
+  .radar-container[data-active-category='pe-ma']
+    :global([data-category]:not([data-category='pe-ma'])) {
+    display: none;
+  }
+
+  .radar-container[data-active-category='enterprise-tech']
+    :global([data-category]:not([data-category='enterprise-tech'])) {
+    display: none;
+  }
+
+  .radar-container[data-active-category='ai-automation']
+    :global([data-category]:not([data-category='ai-automation'])) {
+    display: none;
+  }
+
+  .radar-container[data-active-category='security']
+    :global([data-category]:not([data-category='security'])) {
+    display: none;
+  }
+
   @media print {
-    .category-filter,
+    /*
+      `:global()` on the filter for the same reason as above — <nav
+      class="category-filter"> is declared in CategoryFilter.astro, so the
+      page-scoped selector this used to carry never matched it and the pills
+      printed. `.cta-button` IS in this file's template, so it stays scoped.
+    */
+    :global(.category-filter),
     .cta-button {
       display: none;
     }

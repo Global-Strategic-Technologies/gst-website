@@ -1,15 +1,15 @@
 /**
  * /booking-confirmed/ — indexability.
  *
- * This is the one URL whose sitemap status actually changed in the
- * indexability work: `sitemap-0.xml` went from 20 entries to 19 when this
- * page was excluded. `/brand` and `/colors` were already excluded, and
- * `@astrojs/sitemap` drops `/404` and `/500` itself before any user filter
- * runs — so this page is the only one where the pairing is load-bearing
- * rather than belt-and-braces.
+ * One of two URLs where the noindex↔sitemap pairing is load-bearing rather
+ * than belt-and-braces: excluding this page took `sitemap-0.xml` from 20
+ * entries to 19, and excluding `/hub/radar/` later took it to 18. `/brand`
+ * and `/colors` were already excluded, and `@astrojs/sitemap` drops `/404`
+ * and `/500` itself before any user filter runs.
  *
- * It is also a post-conversion page with no search intent it could satisfy,
- * which is why it is `noindex` rather than merely unlinked.
+ * This is a post-conversion page with no search intent it could satisfy,
+ * which is why it is `noindex` rather than merely unlinked. (`/hub/radar/` is
+ * noindex for a different reason — see ADR-0012.)
  */
 import { test, expect } from '@playwright/test';
 

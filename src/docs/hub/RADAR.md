@@ -19,30 +19,48 @@ Both tiers render in a **single unified feed**, sorted chronologically (FYI by a
 
 ### Rendering Model
 
-- **Radar page** (`/hub/radar`): Server-rendered with Vercel ISR (6-hour cache)
-- **RadarFeed**: Rendered **inline** — its markup is in the initial HTML response. Deliberately _not_ a server island; see below
+- **Radar page** (`/hub/radar`): shell server-rendered with Vercel ISR (6-hour cache); **`noindex`**, paired with a sitemap exclusion in `src/utils/sitemap-filter.ts`
+- **RadarFeed**: an Astro **server island** (`server:defer`) with `RadarFeedSkeleton` in `slot="fallback"` — its markup is _not_ in the initial HTML; see below
 - **All other pages**: Unchanged, remain fully static
 
-### Why the feed is not a server island
+### Why the page is `noindex`
 
-The feed used to be an Astro server island (`server:defer`) with a skeleton in `slot="fallback"`, so the shell painted instantly and the feed streamed in. That is a good pattern for secondary content and the wrong one here, because **the feed is the page's entire substance**.
+The Radar is not an indexable page type, and this is a classification rather than a concession — see **[ADR-0012](../adr/0012-rotating-feeds-are-noindex.md)**:
 
-Under `server:defer` the initial HTML carried roughly 44 words — nav, heading, filter pills — and every item arrived via a second JS-initiated request. Googlebot executes JavaScript, but on a deferred queue, so the page was repeatedly judged on the shell and sat unindexed in Search Console. Inlining puts the items in the first response.
+- The feed is replaced **wholly every 6h**. A URL whose content rotates has nothing durable for an index to hold.
+- There are **no per-item permalinks**. The one original asset — the GST Takes — has no addressable home.
+- The Takes are commentary _on_ third-party headlines, so they are keyword-bound to news the original publisher owns and outranks an aggregator for.
 
-`RadarFeedSkeleton.astro` was deleted with the island; nothing else used it. The generic `.skeleton-*` utilities in `src/styles/components/skeleton.css` are unaffected and still used elsewhere.
+Note the argument is rotation plus the absence of permalinks. It is **not** that the Takes sit inside collapsed `<details>` — Google indexes collapsed content normally.
 
-**Do not reintroduce `server:defer` here.** Two guards will fail: a source tripwire in `tests/unit/indexability.test.ts`, and — more importantly — a behavioural check in `tests/e2e/radar-page.test.ts` that fetches the raw HTML without executing scripts and asserts the island marker is absent and RadarFeed's markup is present.
+This was learned the expensive way. The page sat unindexed in Search Console, and `bbd96fbf` (2026-07-31) inlined the feed to fix it. That made the page crawlable but not rankable, because nothing above changed — so it was reverted. If Radar content should ever rank, the answer is **per-item permalinks on a separate archive route**, not inlining this feed.
 
-### Accepted trade-off: negative caching
+### Why the feed is a server island
 
-Inlining moves the MCP fetch inside the cached ISR entry, and that changes both paths:
+Deferring a page's primary content normally costs indexability: Googlebot runs JS on a deferred queue and judges the shell. That cost does not apply to a `noindex` page, so the island is free here — and it buys two real things:
 
-- **Failure path.** A failed revalidation now bakes the empty state into a `200` for up to 6 hours. The island did not have this problem: `@astrojs/vercel` routes `/_server-islands/*` to the uncached render function, so a failed island self-healed on the next request. This is tracked as **BL-098** and is accepted, not overlooked.
-- **Success path.** The feed was previously re-fetched on _every_ pageview; it is now fetched once per revalidation. Nominal worst-case visitor-visible content age roughly doubles to ~12h: the 6h ISR window stacked on the Worker's own 6h cron. Note this is _not_ bounded by the `snapshot age ≤ 12h` SLO in the MCP server's ARCHITECTURE.md — that figure is `2 × cron-interval`, an alerting threshold that deliberately tolerates one missed cron, and it governs the Worker's snapshot, not the website's cache. Under a missed cron the two compound and visitor-visible age can reach ~18h. The compensating win is that Worker load drops from per-pageview to per-revalidation.
+- **Self-healing.** `@astrojs/vercel` routes `/_server-islands/*` to the **uncached** render function (the `_server-islands` → `NODE_PATH` branch in the adapter). A failed fetch self-heals on the very next request instead of baking an empty feed into an ISR entry for 6h. That failure mode was **BL-098**, now closed by removing the requirement rather than fixing it.
+- **A legible wait.** `RadarFeedSkeleton.astro` paints immediately instead of the visitor staring at an unpainted page while the Worker responds.
 
-A future fix must first distinguish a **failed** fetch from a **legitimately empty** feed — today both render identically, which is precisely why "just don't cache the empty case" is not implementable as stated. Note also that BL-091 (circuit-breaker serves cached radar) does **not** make this degrade safely: breaker-open is cache-only, so a cold cache still renders empty.
+The fetch carries a 5s `AbortSignal.timeout`. Without it, an unbounded call to a hung Worker would hold a serverless invocation open for undici's 300s default — the island function sets no `maxDuration`, exactly as the inline render did not.
 
-The fetch carries a 5s `AbortSignal.timeout`. Without it an unbounded call to a hung Worker would 5xx the very crawler this inlining exists to serve — undici defaults to 300s and the function sets no `maxDuration`.
+**If you remove `noindex`, this island is no longer defensible.** `tests/unit/indexability.test.ts` asserts the pairing and will fail, pointing here.
+
+### What a pageview costs
+
+The island bypasses ISR, so **each pageview makes one Worker call**. That is the same property as self-healing, not a separate defect — an uncached endpoint is what heals. What the call actually costs:
+
+- `GET /radar/snapshot` reaches `readWireLive`/`readFyiLive`, which are **cache-first against Upstash with a 6h TTL** (`mcp-server/src/content/radar-live-store.ts`), warmed by the 6h cron. A typical pageview is **two Redis reads and one HTTPS hop — not an Inoreader fetch**, so ADR-0006's Zone-1 budget is not exposed per-pageview.
+- **It is not never, though.** `single-flight-lock.ts` is not applied to the radar cache-miss path (it guards OAuth refresh, admin re-auth, the audit consumer and cron dedup — but not this), so in the window between TTL expiry and cron re-warm, concurrent requests each fall through to a real Inoreader fetch. Under ISR that window was hit by one renderer; under the island, by whatever concurrency is live. The day-counter and the BL-091 breaker are the backstops.
+- The binding ceiling is the Worker's own limiter: `MCP_KEY_WEBSITE_RADAR` resolves to `INTERNAL_TIER` — **60/min, 1000/day**. A bodyless GET has no tool name to classify, so it fail-safes to the `general` class (that pair), not radar's 5/50. **At a traffic spike the 60/min burst ceiling binds long before the daily cap.**
+
+`/hub/radar` traffic is very low, so this is accepted with ample headroom. Note the substrate was built for this: `handle-authenticated.ts` calls this SSR path "the highest-volume Inoreader consumer" and BL-091 hardened it for exactly that reason.
+
+### Known trade-off: layout shift
+
+Restoring the island reintroduces a skeleton→content swap, and therefore CLS that the inlined version did not have. `lighthouserc.cjs` **and** `lighthouserc.mobile.cjs` both assert `cumulative-layout-shift ≤ 0.1` on this URL, and the same workflow runs both — but `.github/workflows/lighthouse.yml` runs them with `continue-on-error: true` and Lighthouse is not a required check, so they report without gating.
+
+**No mitigation is attempted, deliberately.** A `server:defer` island renders no persistent slot element to reserve space on, so a `min-height` would have to hang on `.radar-container` (which also holds the header, filter and CTA) and would stabilize nothing. Sizing `.radar-empty` instead would only help the keyless dev/LHCI case no visitor sees, and would turn a misconfiguration state into a tall blank box. This is a restoration of pre-`bbd96fbf` behaviour on an un-gated audit, accepted and recorded. If CLS here ever matters, it is its own piece of work with its own measurement.
 
 ### Data Flow
 
@@ -53,10 +71,11 @@ Inoreader API ──► MCP Worker (mcp.globalstrategic.tech)
                   • cron pre-warm every 6h (cron/radar-refresh.ts)
                        │
                        ▼
-                  RadarFeed, rendered inline (Vercel SSR, 5s fetch timeout)
+                  RadarFeed server island (Vercel SSR, 5s fetch timeout)
+                  • /_server-islands/* — UNCACHED, one call per pageview
                        │
                        ▼
-                  Vercel ISR cache (6h) ──► Visitors + crawlers
+                  Visitors (page shell itself is ISR-cached, 6h)
 ```
 
 The website is a downstream consumer of the MCP Worker, not a parallel Inoreader caller (BL-032.8 Phase B, 2026-05-17). All Inoreader budget protections (rate-limit, breaker, day-counter, 429 header observability) apply to website traffic automatically.
@@ -156,10 +175,11 @@ The category filter pills (`CategoryFilter.astro`) use a gravitational spacing e
 src/
 ├── components/radar/
 │   ├── RadarHeader.astro         # Page header with breadcrumb + Santiago timestamp
-│   ├── RadarFeed.astro           # Fetches and renders the unified feed INLINE (not an island)
+│   ├── RadarFeed.astro           # Fetches + renders the unified feed (server:defer island)
+│   ├── RadarFeedSkeleton.astro   # slot="fallback" for the island above
 │   ├── FyiItem.astro             # Collapsible FYI item with GST Take
 │   ├── WireItem.astro            # Compact wire feed item
-│   └── CategoryFilter.astro     # Client-side filter pills (gravity spacing)
+│   └── CategoryFilter.astro     # Filter pills; sets data-active-category on .radar-container
 ├── lib/inoreader/
 │   ├── types.ts                  # TypeScript interfaces (RadarFyiItem, RadarWireItem, ...)
 │   └── transform.ts             # MCP-snapshot adapters + CATEGORIES + mergeFeed
@@ -222,38 +242,51 @@ Because the page sets `export const prerender = false`, Astro delegates it to a 
 
 ### Cache Lifecycle
 
-1. **First request after deploy** — Vercel invokes the ISR function:
-   - Fetches Wire items from Inoreader API (up to 30 across `GST-` folders)
-   - Fetches FYI items from Inoreader annotated stream (up to 30)
-   - Renders full HTML and **caches the result for 6 hours**
-2. **Requests within 6 hours** — Vercel serves the **cached HTML from CDN**. No serverless function runs, no Inoreader API calls.
-3. **First request after 6 hours** — **Stale-while-revalidate** pattern:
-   - The visitor **immediately gets the stale cached version** (no wait)
-   - Vercel **re-renders the page in the background** with fresh API calls
-   - The **next visitor** after the background render completes gets fresh content
-4. **If background render fails** — Vercel continues serving the last successfully cached version until the next revalidation attempt.
+**Two independent lifecycles.** The page shell is ISR-cached; the feed is not cached at Vercel at all. Do not reason about them as one.
+
+**The shell** (header, filter pills, CTA — everything except the feed):
+
+1. **First request after deploy** — Vercel invokes the ISR function, renders the shell plus the island's skeleton fallback, and **caches that for 6 hours**.
+2. **Requests within 6 hours** — Vercel serves the cached shell HTML from CDN. No serverless function runs for the shell.
+3. **First request after 6 hours** — stale-while-revalidate: the visitor immediately gets the stale shell while Vercel re-renders in the background.
+
+**The feed** (`/_server-islands/RadarFeed`):
+
+1. **Every pageview** invokes the island function — `@astrojs/vercel` routes `/_server-islands/*` past the ISR pipeline, so there is no Vercel-side caching here at all.
+2. That function calls the Worker's `GET /radar/snapshot`, which is **cache-first against Upstash (6h TTL, cron-warmed)**. So a pageview normally costs two Redis reads, not an Inoreader fetch — see § What a pageview costs for the exception and the rate-limit ceiling.
+3. **If the fetch fails**, the visitor sees `.radar-empty` and the **next request retries from scratch**. Nothing is cached, so nothing to un-cache — this is the self-healing property the island exists for.
 
 ### What Refreshes When
 
-| Content                | Refresh Trigger   | Frequency               |
-| ---------------------- | ----------------- | ----------------------- |
-| The Wire (RSS feeds)   | ISR revalidation  | Every 6 hours           |
-| FYI (annotated items)  | ISR revalidation  | Every 6 hours           |
-| Static assets (JS/CSS) | Vercel deployment | Immutable, 1-year cache |
+| Content                | Refresh Trigger             | Frequency               |
+| ---------------------- | --------------------------- | ----------------------- |
+| The Wire (RSS feeds)   | Worker Upstash cache + cron | Every 6 hours           |
+| FYI (annotated items)  | Worker Upstash cache + cron | Every 6 hours           |
+| Page shell             | ISR revalidation            | Every 6 hours           |
+| Static assets (JS/CSS) | Vercel deployment           | Immutable, 1-year cache |
+
+Worst-case visitor-visible content age is now bounded by the Worker's 6h cache alone (the ISR window no longer stacks on top of it, as it did while the feed was inlined), plus whatever a missed cron adds.
 
 ### Vercel Routing
 
-Vercel generates routing rules that send `/hub/radar` requests to the ISR function:
+Two routes, and the difference is load-bearing:
 
 ```
-/hub/radar → /_isr?x_astro_path=/hub/radar
+/hub/radar               → /_isr?x_astro_path=/hub/radar     (ISR-cached shell)
+/_server-islands/*       → the Node render function          (UNCACHED — the feed)
 ```
+
+The adapter special-cases `/_server-islands` (and `/_image`) past the ISR pipeline. **That bypass is why a failed feed fetch self-heals** rather than persisting in a cache entry.
 
 The prerender config (`.vercel/output/functions/_isr.prerender-config.json`) sets:
 
 - `expiration: 21600` (6 hours)
-- `allowQuery: ["x_astro_path"]`
+- `allowQuery: ["x_astro_path", "x_astro_path_token"]`
 - `passQuery: true`
+
+**`allowQuery` is the allowlist of params that participate in the cache key** — everything else is stripped from it, while `passQuery: true` still forwards the full query string to the function on a miss. So `/hub/radar/` and `/hub/radar/?category=security` **share one cache entry**.
+
+That is why the active category is resolved client-side and never server-rendered from `Astro.url.searchParams`: on a cache miss the param arrives intact, so a server-rendered version would work in dev, in preview, and in every test — then serve whichever category warmed the entry to everyone for 6h on the first production cache hit.
 
 ## Error Handling
 
@@ -261,7 +294,7 @@ The website's failure modes shrink to MCP-Worker-call failures (post-BL-032.8 Ph
 
 - **MCP Worker reachable, snapshot OK**: feed renders normally
 - **MCP Worker returns 5xx / tier-failed envelope**: that tier renders empty; the other tier renders if its envelope is OK
-- **MCP Worker unreachable / fetch throws**: feed renders empty with the SSR fallback message; ISR cache continues serving the last good page until next revalidation
+- **MCP Worker unreachable / fetch throws**: feed renders empty with the SSR fallback message. The island is uncached, so the **next request retries** — a 30-second outage stays a 30-second outage
 - **`MCP_KEY_WEBSITE_RADAR` unbound** (preview deploys with no Vercel env): feed renders empty + warning logged; the page shell still renders
 
 All upstream Inoreader concerns (token refresh, 429 handling, OAuth recovery) live on the Worker — see [`mcp-server/src/docs/operations/DEPLOY.md` § C.5 — Inoreader budget recovery](../../../mcp-server/src/docs/operations/DEPLOY.md).

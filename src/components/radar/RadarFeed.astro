@@ -1,6 +1,6 @@
 ---
 /**
- * RadarFeed — Fetches and renders the unified feed, inline in the page.
+ * RadarFeed — Fetches and renders the unified feed as a server island.
  *
  * **BL-032.8 Phase A (2026-05-17)**: data source switched from direct
  * Inoreader API calls (`inoreader/client.ts`) to the MCP Worker's
@@ -21,17 +21,20 @@
  * retained in Phase A; Phase B (post-soak) deletes them. No runtime
  * feature flag — git is the source of truth for the rollback.
  *
- * Rendered INLINE, not as a `server:defer` island — the feed IS the page's
- * substance, and deferring it served crawlers a bare shell. See RADAR.md
- * § "Why the feed is not a server island".
+ * Rendered as a `server:defer` server island with `RadarFeedSkeleton` in
+ * `slot="fallback"`. `@astrojs/vercel` routes `/_server-islands/*` to the
+ * UNCACHED render function, so a failed fetch self-heals on the next request
+ * rather than being baked into an ISR entry for 6h. `/hub/radar` is `noindex`,
+ * so deferring the page's primary content costs no indexability — see
+ * ADR-0012 and RADAR.md § "Why the feed is a server island".
  *
  * No props — data fetching is self-contained. (Originally to dodge server-island
  * prop-serialization limits; kept because it keeps the fetch next to its use.)
  *
- * The fetch below is on the page's critical path, so it MUST stay bounded:
- * undici defaults to a 300s timeout and this function sets no `maxDuration`,
- * so an unbounded call to a hung Worker would 5xx the very crawler this
- * inlining exists to serve — strictly worse than the shell it replaced.
+ * The fetch below MUST stay bounded: undici defaults to a 300s timeout and
+ * this function sets no `maxDuration`, so an unbounded call to a hung Worker
+ * would hold a serverless invocation open for the full default. That is true
+ * of the island function exactly as it was of the inline render.
  */
 import FyiItem from './FyiItem.astro';
 import WireItem from './WireItem.astro';
@@ -61,7 +64,7 @@ interface RadarSnapshotResponse {
   fetchedAt: string;
 }
 
-// --- Data Fetching (runs on Vercel at revalidation time) ---
+// --- Data Fetching (runs on Vercel per pageview — the island is uncached) ---
 
 let fyi: RadarFyiItem[] = [];
 let wire: RadarWireItem[] = [];
@@ -80,8 +83,8 @@ if (!RADAR_BEARER) {
     // baselines, a section that explicitly defers tool/resource latency SLOs)
     // and ~930ms client-observed search_radar p95 from GRU (LATENCY_PROBE.md).
     // Neither measures Vercel-function -> Worker /radar/snapshot. Wide enough
-    // that a slow-but-working Worker is not cut off and its empty result cached
-    // for 6h; tight enough that a hung one cannot 5xx the page.
+    // that a slow-but-working Worker is not cut off; tight enough that a hung
+    // one cannot pin the island invocation open for undici's 300s default.
     const res = await fetch(RADAR_SNAPSHOT_URL, {
       headers: {
         Authorization: `Bearer ${RADAR_BEARER}`,
@@ -148,8 +151,9 @@ if (!RADAR_BEARER) {
     }
   } catch (e) {
     // Name the timeout explicitly: an AbortError here means the 5s bound above
-    // fired, which is operationally different from a network or parse failure
-    // and is the case most likely to cache an empty feed for a full ISR window.
+    // fired, which is operationally different from a network or parse failure.
+    // As an island this no longer risks caching the empty state — the next
+    // request re-runs uncached — but the distinction still matters in logs.
     if (e instanceof Error && e.name === 'TimeoutError') {
       console.error('[Radar] MCP /radar/snapshot timed out after 5000ms — rendering empty feed.');
     } else {
