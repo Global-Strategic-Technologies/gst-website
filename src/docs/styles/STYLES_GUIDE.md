@@ -281,6 +281,43 @@ import '../../styles/my-component.css';
 ---
 ```
 
+### Card grids: the grid owns the columns, the card owns itself
+
+A card must **not** set `max-width` / `margin: 0 auto` on itself. That is page positioning
+living on a component, and it silently defeats any layout the card is later dropped into —
+`.brutal-gateway-card` carried `max-width: 600px` and so rendered as one centred column in a
+1504px container, wasting 60% of every row on both hub gateway indexes (BL-105).
+
+The established pairing, in `PortfolioGrid.astro` (`.grid` / `.project-card`) and
+`cards.css` (`.brutal-gateway-grid` / `.brutal-gateway-card`):
+
+```css
+.my-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(<floor>, 1fr));
+  gap: var(--spacing-…);
+}
+@media (max-width: 768px) {
+  .my-grid {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+`auto-fill` with a floor beats fixed column counts: `.container` is a flat `max-width: 1600px`
+with no responsive override, so `repeat(3, 1fr)` yields 368px cards at a 1280 viewport and
+283px at 1025 — narrower than the same card on a phone. The 768px `1fr` override is also what
+stops the `minmax()` floor forcing horizontal scroll on small screens; do not remove it.
+
+**Two traps when the cards become flex children for equal-height rows:**
+
+- Bottom-align the CTA with `flex-grow: 1` on the element above it, **not** `margin-top: auto`
+  on the CTA. The tallest card in each row resolves an auto margin to 0 and silently loses the
+  gap above its CTA.
+- `inline-block` children (CTAs, badges) are blockified by flex and stretch to the full card
+  width under the default `align-items: stretch`. Give those items `align-self: center` — not
+  `align-items: center` on the card, which shrink-wraps the content list too.
+
 ### Variable Usage Priority
 
 1. **Design system variables** for colors, spacing, typography, transitions
