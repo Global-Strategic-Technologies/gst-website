@@ -1,7 +1,7 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA scanning.
  *
- * Scans 20 critical pages for accessibility violations.
+ * Scans 22 critical pages for accessibility violations.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -17,10 +17,16 @@ interface A11yPage {
   /** Selectors dropped from the scan. Every entry needs a reason — see /brand. */
   exclude?: string[];
   /**
-   * Selector that must be present before scanning. Only needed for pages whose
-   * real content arrives after navigation — i.e. a `server:defer` island, where
-   * scanning on `load` would audit the skeleton placeholder instead of the DOM
-   * a user ends up with. Pages without this keep the original `load` wait.
+   * Selector that must be present before scanning. Two uses:
+   *
+   *   1. Pages whose real content arrives after navigation — a `server:defer` island or
+   *      a d3-rendered map — where scanning on `load` audits a placeholder.
+   *   2. HEAVY pages, where `load` blocks on every subresource and, under worker
+   *      contention against one dev server, times out the navigation itself rather
+   *      than the assertion. `h1` is enough: it proves the document rendered without
+   *      waiting on images and fonts.
+   *
+   * Pages without this keep the original `load` wait.
    */
   waitFor?: string;
 }
@@ -33,7 +39,7 @@ const PAGES: A11yPage[] = [
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
-  // BL-096 AC3, 2026-08-03: 9 routes -> 20. Deliberately NOT excluded here are the
+  // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline). Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting
   // zero rather than excluding them is the honest choice: a violation in markup that
@@ -45,13 +51,21 @@ const PAGES: A11yPage[] = [
   // trailingSlash before the error page renders.
   { name: '404', path: '/this-page-does-not-exist' },
   { name: 'Hub Library', path: '/hub/library/' },
-  { name: 'Library — Business Architectures', path: '/hub/library/business-architectures/' },
+  {
+    name: 'Library — Business Architectures',
+    path: '/hub/library/business-architectures/',
+    waitFor: 'h1',
+  },
   { name: 'Library — IRL', path: '/hub/library/information-request-list/' },
-  { name: 'Library — VDR Structure', path: '/hub/library/vdr-structure/' },
+  { name: 'Library — VDR Structure', path: '/hub/library/vdr-structure/', waitFor: 'h1' },
   { name: 'Hub Tools', path: '/hub/tools/' },
-  { name: 'IRL Generator', path: '/hub/tools/information-request-list-generator/' },
-  { name: 'Diligence Machine', path: '/hub/tools/diligence-machine/' },
-  { name: 'ICG', path: '/hub/tools/infrastructure-cost-governance/' },
+  {
+    name: 'IRL Generator',
+    path: '/hub/tools/information-request-list-generator/',
+    waitFor: 'h1',
+  },
+  { name: 'Diligence Machine', path: '/hub/tools/diligence-machine/', waitFor: 'h1' },
+  { name: 'ICG', path: '/hub/tools/infrastructure-cost-governance/', waitFor: 'h1' },
   {
     name: 'Regulatory Map',
     path: '/hub/tools/regulatory-map/',
@@ -178,7 +192,8 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
   '/hub/tools/techpar/': { 'color-contrast': 1 },
   '/hub/tools/tech-debt-calculator/': { 'color-contrast': 1 },
   '/hub/radar/': { 'color-contrast': 1 },
-  // The 9 routes added 2026-08-03 (BL-096 AC3). Every one carries exactly the same
+  // The 9 of 13 new routes that needed a baseline (BL-096 AC3, 2026-08-03). Each carries
+  // exactly the same
   // single node as the routes above — the header's active nav link at 1.88:1 — which is
   // why they are uniform. `/privacy/`, `/terms/`, `/booking-confirmed/` and `/404` are
   // absent because they have NO active nav link and came back clean.
@@ -245,6 +260,26 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
         ratchetBreaches,
         `Ratchet breached on ${pg.name}:\n${formatViolations(ratchetBreaches)}`
       ).toHaveLength(0);
+
+      // Stale-baseline guard. The ratchet only ever failed on EXCEEDING a baseline, so a
+      // too-generous one passed forever — and three of seven had rotted into slack by
+      // 2026-08-03 (tech-debt-calculator carried 14 against a real 1). This is the same
+      // mechanism FLOOR_EXCEPTIONS uses for its allowlist, applied to the other one:
+      // fixing a violation now FAILS until the number comes down with it.
+      const slack = Object.entries(knownForPage)
+        .map(([id, max]) => {
+          const actual = results.serious.find((v) => v.id === id)?.nodes ?? 0;
+          return { id, max, actual };
+        })
+        .filter(({ max, actual }) => actual < max);
+
+      expect(
+        slack,
+        `Baseline is now slack on ${pg.name} — the violation was fixed but KNOWN_SERIOUS ` +
+          `was not ratcheted down. Lower it to the measured count (or delete the entry ` +
+          `entirely when it reaches 0, so a future one fails as UNKNOWN):\n  ` +
+          slack.map((e) => `${e.id}: baseline ${e.max}, actual ${e.actual}`).join('\n  ')
+      ).toEqual([]);
 
       // Log known serious for visibility
       const knownSerious = results.serious.filter((v) => v.id in knownForPage);

@@ -221,7 +221,13 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
              horizontally and without it a keyboard user cannot reach the content that
              is off-screen. axe rates it `scrollable-region-focusable` (WCAG 2.1.1
              Keyboard, Level A). The role+label give the focus stop an announceable
-             identity rather than a bare unnamed group. -->
+             identity rather than a bare unnamed group.
+
+             SCOPE LIMIT, so this is not mistaken for full keyboard support: this makes
+             the region SCROLLABLE by keyboard. The timeline entries themselves are
+             plain <div>s with a delegated click handler and no tabindex, role or key
+             handler, so a keyboard user still cannot OPEN a regulation from here. axe
+             cannot see that, so it will never reach the ratchet — tracked as BL-104. -->
         <div
           class="timeline-scroll"
           id="timelineScroll"

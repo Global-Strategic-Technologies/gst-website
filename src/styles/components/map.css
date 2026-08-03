@@ -319,10 +319,13 @@ Brutalist Map Controls
     color var(--transition-fast);
 }
 
+/* Distinct from the default, which is now ALSO filled — promoting the old hover pair to
+   the default left these identical, so the mobile tap bar's only action had no press
+   feedback and the transition above was a no-op. */
 .brutal-map-tap-bar__action:hover,
 .brutal-map-tap-bar__action:active {
-  background: var(--color-primary);
-  color: var(--bg-dark);
+  background: var(--color-tertiary);
+  color: var(--bg-light);
 }
 
 .brutal-quick-zoom {

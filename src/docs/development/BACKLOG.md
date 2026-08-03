@@ -142,11 +142,11 @@ Consolidated backlog of open development initiatives for the GST website. Each i
   - `StickyControls.astro:126` already declared the token; the audit listed it in error.
   - `.brutal-quick-zoom` stays at 32px as a documented exception, so `regulatory-map-mobile.test.ts:97-106` (a `>= 32` floor) keeps passing unmodified.
     The rest — filter chips, palette-panel affordances, nav and footer links — are padding-derived with no declaration to scan, and are listed under § Still owed. TOC links were **removed from scope** rather than deferred; see the same section.
-- [x] **Done 2026-08-03 — 9 routes → 20.** Added `/privacy/`, `/terms/`, `/booking-confirmed/`, `/404` (reached via a bogus URL, as `404-page.test.ts` does), all four `/hub/library/*`, `/hub/tools/`, and the four tool pages. Excluded by design: `/colors` (a bare 301), the four `/brand/responsive-frame/*` (chrome-less iframe partials, already covered by an exclusion on `/brand`), and the JSON endpoints.
+- [x] **Done 2026-08-03 — 9 routes → 22** (13 added; 9 of them needed a baseline). Added `/privacy/`, `/terms/`, `/booking-confirmed/`, `/404` (reached via a bogus URL, as `404-page.test.ts` does), all four `/hub/library/*`, `/hub/tools/`, and the four tool pages. Excluded by design: `/colors` (a bare 301), the four `/brand/responsive-frame/*` (chrome-less iframe partials, already covered by an exclusion on `/brand`), and the JSON endpoints.
       The **dev-only gateway cards** on `/hub/library` and `/hub/tools` are deliberately **not excluded** — asserting zero is honest, whereas a violation in markup that never ships would become a baseline CI can never clear. They came back clean.
-      The 9 new baselines are uniform at 1 node, and it is the same node every time: the header's active nav link. `/privacy/`, `/terms/`, `/booking-confirmed/` and `/404` have no active nav link and are clean.
+      The 9 baselines are uniform at 1 node, and it is the same node every time: the header's active nav link. `/privacy/`, `/terms/`, `/booking-confirmed/` and `/404` have no active nav link and are clean.
       **This is what the AC was for.** The new routes surfaced three real findings nobody was watching: two on the regulatory map (filed as BL-102) and a scrollable region with no keyboard access (`#timelineScroll`), which was **fixed here** — it is WCAG 2.1.1 Keyboard, Level A, and the remedy is one attribute with no visual change.
-      Note for CI: 20 routes × 3 engines roughly doubles `test:a11y`, and 20 routes at Playwright's default worker count puts real concurrent load on one dev server. One transient failure was seen locally while the server was recompiling; two consecutive clean full runs after.
+      Note for CI: the required check runs chromium only, so the cost is 22 routes on one engine rather than three — but 22 routes at Playwright's worker count is real concurrent load on one dev server, so the five heaviest use `waitFor` + `domcontentloaded` rather than blocking on `load`. One transient failure was seen locally while the server was recompiling; two consecutive clean full runs after.
 - [x] **Dead rule resolved 2026-08-03** — deleted. `.map-controls` is `display: none` below 1023px, so the `@media (max-width: 767px)` sizing could never paint. The controls were **not** made reachable on mobile: `regulatory-map-mobile.test.ts:89-95` is a hard equality pin and that is a feature change. What the dead rule was masking is now its own item — see BL-101
 - [x] **Frame-clipping measurement — resolved 2026-08-02 by BL-097, and now permanently guarded.** The concern was that the 33→44px button growth could overflow the fixed frames (600×200 / 384×350 / 240×400, `body { overflow: hidden }`, so cropping is invisible). With all four groups finally rendering, measured content at 600px is `cards` 113px, `form` **139px**, `shell` 168px against a 200px frame — nothing clips, in either axis, at any of the three widths. Rather than record a number that rots, `tests/e2e/brand-page.test.ts` now asserts per frame that `documentElement.scrollHeight/scrollWidth` fit `clientHeight/clientWidth`. Note the instrument: measuring `body` instead would be **vacuous** — `<html>` is `overflow: visible`, so body's `overflow: hidden` propagates to the viewport, body's own overflow resolves to `visible`, and with `height: auto` it grows to fit, making `body.scrollHeight === body.clientHeight` regardless of cropping. That vacuity is **height-specific**: body's used overflow resolves to `visible`, so `body.scrollWidth` still reflects horizontal overflow — measuring `body` would silently lose the vertical finding while keeping the horizontal one
 - [x] **Ratcheted 2026-08-03 — `/brand` went 13 → 0** and its `KNOWN_SERIOUS` entry was removed entirely rather than zeroed, so a new violation there now fails as an _unknown_ serious rather than sitting under a baseline. One principle covered all 13: **non-interactive labels move the semantic colour to the border/accent and take a readable text token; interactive buttons promote the compliant filled treatment their own `:hover` already defined.**
@@ -224,6 +224,26 @@ So: **filter chips, segmented controls, drawer/search closes, header nav links, 
 - [ ] `.swatch-slider` clears 24×24 as a target, with the visual design intact or deliberately changed
 - [ ] `target-size` reports zero on `/brand`
 - [ ] Sequenced before enabling `wcag22aa` as a standing guard (BL-096 § Still owed), which this currently blocks
+
+---
+
+### BL-104: Regulatory map — timeline entries are not keyboard-operable
+
+**Source**: the scope limit of BL-096's `#timelineScroll` fix, 2026-08-03 | **Effort**: Small | **Status**: Open
+
+**As a** keyboard user, **I want** to open a regulation from the timeline **so that** the timeline is a control rather than a picture.
+
+**What it is.** BL-096 made `#timelineScroll` focusable so the region can be _scrolled_ by keyboard (WCAG 2.1.1, Level A). The entries inside it are still plain `<div>`s carrying `data-reg-id`, opened by a delegated click handler (`regulatory-map/index.astro` ~:1477) — **no `tabindex`, no role, no key handler**. So a keyboard user can scroll the timeline and still cannot open anything in it. That is the more serious half of the same 2.1.1 failure.
+
+**Why it will not surface on its own**: axe cannot flag a `<div>` with a delegated listener — there is nothing in the markup that says it is interactive. It will never reach the ratchet, which is exactly why it is filed rather than left to be rediscovered.
+
+**Remedy**: make each entry a `<button>`, or give it `tabindex="0"`, a role and Enter/Space handling. Prefer the former — it gets focus, semantics and keys for free.
+
+#### Acceptance Criteria
+
+- [ ] Every timeline entry is reachable by Tab and openable by Enter/Space
+- [ ] Focus is visible against the timeline's own background, per the repo's 2px `--color-primary` convention
+- [ ] The delegated click handler still works, or is replaced deliberately
 
 ---
 
