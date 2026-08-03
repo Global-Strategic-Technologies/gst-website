@@ -29,6 +29,7 @@ async function rowShape(page: import('@playwright/test').Page) {
     );
     const first = cards[0];
     const cta = first.querySelector<HTMLElement>('.brutal-gateway-card__cta');
+    const rects = cards.map((c) => c.getBoundingClientRect());
     const grid = document.querySelector<HTMLElement>('.brutal-gateway-grid')!;
     const gap = parseFloat(getComputedStyle(grid).columnGap) || 0;
     const rowSpan =
@@ -43,6 +44,8 @@ async function rowShape(page: import('@playwright/test').Page) {
       ctasBottomAligned: ctaBottoms.size <= 1,
       gridWidth: Math.round(grid.getBoundingClientRect().width),
       rowSpan: Math.round(rowSpan),
+      distinctWidths: new Set(rects.map((r) => Math.round(r.width))).size,
+      distinctLefts: new Set(rects.map((r) => Math.round(r.left))).size,
     };
   });
 }
@@ -61,7 +64,13 @@ for (const route of ROUTES) {
       // THE actual requirement: the row uses the full width available to it. Asserting
       // "card < 600px" would be wrong — at viewports where two columns fit, each card is
       // legitimately WIDER than the old 600px cap, which is the fix working, not failing.
-      expect(s.rowSpan, 'the row spans the whole grid, leaving no dead width').toBe(s.gridWidth);
+      // toBeCloseTo, not toBe: rowSpan and gridWidth are independently rounded, and
+      // webkit drifts ~0.016px on the sum. Safe today, but a half-pixel boundary is
+      // not worth owning.
+      expect(s.rowSpan, 'the row spans the whole grid, leaving no dead width').toBeCloseTo(
+        s.gridWidth,
+        0
+      );
 
       // Grid rows stretch to equal height, so a ragged CTA is the failure mode that
       // makes the layout look broken. `flex-grow: 1` on the feature list prevents it.
@@ -84,6 +93,28 @@ for (const route of ROUTES) {
       // The 768px block must revert `display` too, or the flex alignment rules above
       // stay live on mobile — a card-width check alone would not notice.
       expect(s.display, 'card reverts to block below 768px').toBe('block');
+    });
+
+    /**
+     * The single-column band is where this change nearly shipped a regression, and
+     * neither of the tests above could see it: they sample `cards[0]` and assert an
+     * upper bound, while the invariant that broke was UNIFORMITY.
+     *
+     * Auto inline margins on a grid item absorb free space before alignment, which
+     * disables `justify-self: stretch` — so without an explicit `width: 100%` the
+     * cards size shrink-to-fit and land at different widths and different left
+     * edges. It only shows between ~600 and 768px, where the track is wider than
+     * the 600px cap but the content is not; at 480 the behaviour coincides and
+     * looks correct.
+     */
+    test('cards stay uniform in the single-column band', async ({ page }) => {
+      await page.setViewportSize({ width: 768, height: 900 });
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await page.locator('.brutal-gateway-card').first().waitFor();
+
+      const s = await rowShape(page);
+      expect(s.distinctWidths, 'every card is the same width at 768px').toBe(1);
+      expect(s.distinctLefts, 'every card shares one left edge at 768px').toBe(1);
     });
   });
 }

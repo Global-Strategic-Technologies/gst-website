@@ -318,6 +318,15 @@ stops the `minmax()` floor forcing horizontal scroll on small screens; do not re
   width under the default `align-items: stretch`. Give those items `align-self: center` — not
   `align-items: center` on the card, which shrink-wraps the content list too.
 
+And one trap in the **single-column fallback**, which is where BL-105 nearly shipped a regression:
+
+- Centring a capped card with `margin-inline: auto` needs an explicit `width: 100%` alongside it.
+  Auto inline margins on a **grid item** absorb the free space before alignment runs, which
+  disables the default `justify-self: stretch` — the card then sizes shrink-to-fit instead of
+  filling the track and being clamped by `max-width`. It only shows between the cap and the
+  breakpoint (600–768px here), so a check at 480px sees nothing wrong. Assert **uniformity**
+  across all cards, not one card's upper bound.
+
 ### Variable Usage Priority
 
 1. **Design system variables** for colors, spacing, typography, transitions

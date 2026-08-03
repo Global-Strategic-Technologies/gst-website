@@ -896,6 +896,13 @@ Brutalist Gateway Card (Library/Tools index pages)
 
   .brutal-gateway-grid > .brutal-gateway-card {
     display: block;
+    /* `width: 100%` is load-bearing, not redundant. Auto inline margins on a GRID
+       ITEM absorb the free space before alignment runs, which disables the default
+       `justify-self: stretch` — the card then sizes shrink-to-fit rather than
+       filling the track and being clamped by max-width. Between ~600 and 768px
+       that made the three library cards render at three different widths with
+       three different left edges, where master had one. */
+    width: 100%;
     max-width: 600px;
     margin-inline: auto;
   }
