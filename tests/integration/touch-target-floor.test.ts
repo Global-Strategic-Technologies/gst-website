@@ -64,9 +64,62 @@ const VARIABLES_CSS = resolve(REPO_ROOT, 'src/styles/variables.css');
  * (`.icg-back-link`, `.deploy-btn`, `.filter-button`) is outside the net even when it
  * renders a button. Those are BL-096's audit list, not this guard's.
  */
-const GUARDED_SELECTOR_RE = /\.(?:brutal-(?:btn|choice-btn)|cta-button)/;
-/** Properties whose value sets a lower bound on the rendered box. */
-const GUARDED_PROPS = ['min-height', 'min-width'];
+const GUARDED_SELECTOR_RE =
+  /\.(?:brutal-(?:btn|choice-btn|map-control|quick-zoom)|cta-button|filter-button|modal-close|theme-toggle)/;
+
+/**
+ * Properties whose value sets a lower bound on the rendered box.
+ *
+ * `height`/`width` joined `min-*` in BL-096: `PortfolioHeader`'s `.filter-button`
+ * carried `height: 38px` and `ThemeToggle` `height: 0.85rem`, both invisible to a
+ * min-only scan. Note the asymmetry that buys — a fixed `height` is a CEILING as
+ * well as a floor, so it fails here for a second reason.
+ *
+ * Fix a violation with **`min-height`, not `min-width`**, unless the control is a
+ * fixed-size icon button. `.category-filter` pills must still wrap at 1920px and
+ * scroll at 375px (`radar-page.test.ts:350-372`), and `.brutal-segmented` is
+ * `max-width: 320px; overflow: hidden` (`form.css:195-200`) — a `min-width` sweep
+ * would clip both.
+ */
+const GUARDED_PROPS = ['min-height', 'min-width', 'height', 'width'];
+
+/**
+ * Controls allowed below the floor, each with the reason BRAND_GUIDELINES carries.
+ *
+ * This is the enforcement half of BL-096's ruling — WCAG 2.5.5 is a site-wide goal
+ * **with documented exceptions**, and an exception nobody can find is just a bug.
+ * An entry that stops matching a real declaration FAILS the sweep (see the
+ * unused-entry test), so raising a control cannot silently leave slack behind.
+ */
+interface FloorException {
+  /** Repo-relative path, forward slashes. */
+  file: string;
+  /** Exact selector text as it appears in the source. */
+  selector: string;
+  /** The largest value this exception tolerates. */
+  maxPx: number;
+  reason: string;
+}
+
+const FLOOR_EXCEPTIONS: FloorException[] = [
+  {
+    file: 'src/styles/components/map.css',
+    selector: '.brutal-quick-zoom',
+    maxPx: 32,
+    reason:
+      'Four region presets overlaying the map itself. 44px targets would either overlap ' +
+      'each other or consume ~176px of vertical map on mobile. Still clears 2.5.8 AA (24px).',
+  },
+  {
+    file: 'src/styles/components/map.css',
+    selector: '.brutal-map-control',
+    maxPx: 32,
+    reason:
+      'Desktop-only +/-/reset cluster, hidden below 1024px. A documented DEVIATION, not a ' +
+      'WCAG exception: 2.5.5 governs pointer inputs including the mouse, and scroll/drag ' +
+      'are gestures rather than the equivalent CONTROL the Equivalent exception requires.',
+  },
+];
 
 // --- Parsers ---------------------------------------------------------------
 
@@ -84,12 +137,65 @@ export function extractAstroStyles(source: string): string[] {
   return blocks;
 }
 
-/** A `min-height`/`min-width` declaration below the floor, on a guarded selector. */
+/** A size declaration below the floor, on a guarded selector. */
 export interface FloorViolation {
   selector: string;
   prop: string;
   value: string;
   px: number;
+}
+
+/**
+ * Split a selector list on TOP-LEVEL commas only, so `:not(a, b)` stays intact.
+ */
+export function splitSelectorList(prelude: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let buf = '';
+  for (const ch of prelude) {
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    if (ch === ',' && depth === 0) {
+      out.push(buf);
+      buf = '';
+    } else buf += ch;
+  }
+  if (buf.trim()) out.push(buf);
+  return out.map((s) => s.trim()).filter(Boolean);
+}
+
+/**
+ * The last compound of one selector — i.e. the element the rule actually sizes.
+ *
+ * Load-bearing once `height`/`width` are guarded: `.filter-button svg { width: 20px }`
+ * sizes the ICON, not the button, and matching the prelude as a substring would report
+ * it as a 20px touch target. Three such rules exist today.
+ *
+ * `:global(...)` is stripped rather than descended into — it is Astro's escape hatch
+ * into another component's DOM, so its contents are never this selector's target.
+ * `.theme-toggle :global(.theme-toggle-icon)` (ThemeToggle.astro) is exactly that
+ * shape, and today it escapes only because `em` declines to resolve.
+ */
+export function lastCompound(selector: string): string {
+  // Substituted with a SENTINEL COMPOUND rather than deleted. Deleting it would leave
+  // the guarded ancestor as the last compound — `.theme-toggle :global(.icon)` would
+  // read as sizing `.theme-toggle`, the exact false positive this exists to prevent.
+  // The leading space guarantees it forms its own compound; the missing `.` guarantees
+  // it can never match GUARDED_SELECTOR_RE.
+  const withoutGlobal = selector.replace(/:global\([^)]*\)/g, ' astro-global-escape');
+  const parts = withoutGlobal.split(/[\s>+~]+/).filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : '';
+}
+
+/**
+ * Is any selector in the list one whose OWN box this rule sizes?
+ *
+ * Checked per selector, not against the whole prelude: anchoring the prelude's last
+ * compound would let `.filter-button, .icon svg { height: 20px }` pass silently, even
+ * though `.filter-button` genuinely receives that height.
+ */
+export function isGuardedPrelude(prelude: string): boolean {
+  return splitSelectorList(prelude).some((sel) => GUARDED_SELECTOR_RE.test(lastCompound(sel)));
 }
 
 /**
@@ -159,7 +265,7 @@ export function findFloorViolations(
 
   while ((rule = ruleRe.exec(source)) !== null) {
     const selector = rule[1].trim().replace(/\s+/g, ' ');
-    if (!GUARDED_SELECTOR_RE.test(selector)) continue;
+    if (!isGuardedPrelude(selector)) continue;
 
     for (const decl of rule[2].split(';')) {
       const idx = decl.indexOf(':');
@@ -196,7 +302,53 @@ function walkStyleSources(absDir: string, acc: string[]): void {
 
 // --- Fixtures (prove the parser before trusting the sweep) ------------------
 
+describe('touch-target floor — selector anchoring', () => {
+  // These four exist because widening GUARDED_PROPS to height/width made the
+  // difference between "sizes the control" and "sizes something inside it" load-bearing.
+  it('ignores a rule sizing a DESCENDANT of a guarded control', () => {
+    // Real shape: PortfolioHeader.astro:334. A 20px icon is not a 20px touch target.
+    expect(findFloorViolations(`.filter-button svg { width: 20px; height: 20px; }`, 44)).toEqual(
+      []
+    );
+  });
+
+  it('ignores an Astro :global() descendant', () => {
+    // Real shape: ThemeToggle.astro:54 — another component's DOM, never this rule's target.
+    expect(
+      findFloorViolations(`.theme-toggle :global(.theme-toggle-icon) { height: 10px; }`, 44)
+    ).toEqual([]);
+  });
+
+  it('flags a guarded selector that shares a rule with an unguarded descendant', () => {
+    // The hole that anchoring the PRELUDE's last compound would open: `.filter-button`
+    // genuinely receives this height, even though the list ends on something unguarded.
+    const found = findFloorViolations(`.filter-button, .card svg { height: 20px; }`, 44);
+    expect(found).toHaveLength(1);
+    expect(found[0].px).toBe(20);
+  });
+
+  it('still flags the guarded control itself, through pseudo-classes', () => {
+    expect(findFloorViolations(`.modal-close:hover { min-height: 40px; }`, 44)).toHaveLength(1);
+  });
+
+  it('does not split inside :not(), so a comma there is not a selector boundary', () => {
+    expect(splitSelectorList('.a:not(.b, .c), .d')).toEqual(['.a:not(.b, .c)', '.d']);
+  });
+
+  it('reads the last compound past combinators', () => {
+    expect(lastCompound('.a > .b + .theme-toggle')).toBe('.theme-toggle');
+    expect(lastCompound('.theme-toggle > svg')).toBe('svg');
+  });
+});
+
 describe('touch-target floor — parser fixtures', () => {
+  it('flags a fixed height below the floor, not just min-height', () => {
+    // ThemeToggle carried `height: 0.85rem` for years; a min-only scan never saw it.
+    expect(findFloorViolations(`.theme-toggle { height: 0.85rem; }`, 44)).toEqual([
+      { selector: '.theme-toggle', prop: 'height', value: '0.85rem', px: 13.6 },
+    ]);
+  });
+
   it('flags a raw literal below the floor', () => {
     const css = `.brutal-choice-btn--unsure { border-style: dashed; min-height: 36px; }`;
     expect(findFloorViolations(css, 44)).toEqual([
@@ -259,8 +411,12 @@ describe('touch-target floor — parser fixtures', () => {
   });
 
   it('ignores unguarded selectors and unguarded properties', () => {
+    // `.brutal-quick-zoom` used to be this fixture's unguarded example. BL-096 guarded
+    // it deliberately — an exception the scan cannot see is not an exception — so it
+    // now lives in FLOOR_EXCEPTIONS instead. Padding is still unguarded: it contributes
+    // to the box but does not bound it.
     const css = `
-      .brutal-quick-zoom { min-height: 32px; }
+      .hub-card-icon { min-height: 32px; }
       .brutal-btn { padding: 8px; font-size: 11px; }
     `;
     expect(findFloorViolations(css, 44)).toEqual([]);
@@ -299,30 +455,68 @@ describe('touch-target floor — source sweep', () => {
     ).toBeGreaterThan(150);
   });
 
-  it('has no button rule resolving below the floor', () => {
-    const floorPx = lengthToPx(floorRaw!)!;
+  /** Every sub-floor declaration in `src/`, paired with its repo-relative file. */
+  function sweep(floorPx: number): { file: string; v: FloorViolation }[] {
     const files: string[] = [];
     walkStyleSources(SRC_DIR, files);
     expect(files.length, 'style sources found').toBeGreaterThan(0);
 
-    const failures: string[] = [];
+    const hits: { file: string; v: FloorViolation }[] = [];
     for (const abs of files) {
+      const file = relative(REPO_ROOT, abs).replace(/\\/g, '/');
       const source = readFileSync(abs, 'utf-8');
       const chunks = abs.endsWith('.astro') ? extractAstroStyles(source) : [source];
       for (const chunk of chunks) {
-        for (const v of findFloorViolations(chunk, floorPx, TOKENS)) {
-          failures.push(
-            `${relative(REPO_ROOT, abs).replace(/\\/g, '/')}: ` +
-              `${v.selector} { ${v.prop}: ${v.value} } resolves to ${v.px}px, below the ${floorPx}px floor`
-          );
-        }
+        for (const v of findFloorViolations(chunk, floorPx, TOKENS)) hits.push({ file, v });
       }
     }
+    return hits;
+  }
+
+  const matchesException = (e: FloorException, file: string, v: FloorViolation) =>
+    e.file === file && e.selector === v.selector && v.px <= e.maxPx;
+
+  it('has no guarded rule resolving below the floor', () => {
+    const floorPx = lengthToPx(floorRaw!)!;
+
+    const failures = sweep(floorPx)
+      .filter(({ file, v }) => !FLOOR_EXCEPTIONS.some((e) => matchesException(e, file, v)))
+      .map(
+        ({ file, v }) =>
+          `${file}: ${v.selector} { ${v.prop}: ${v.value} } resolves to ${v.px}px, ` +
+          `below the ${floorPx}px floor`
+      );
 
     expect(
       failures,
-      `Rules below the touch-target floor (use var(--touch-target-min); see ` +
-        `STYLES_GUIDE.md § Touch Targets):\n  ${failures.join('\n  ')}`
+      `Rules below the touch-target floor. Fix with min-height: var(--touch-target-min) — ` +
+        `or, if the control genuinely cannot clear it, add a FLOOR_EXCEPTIONS entry WITH a ` +
+        `reason and record it in BRAND_GUIDELINES.md § Accessibility:\n  ${failures.join('\n  ')}`
     ).toEqual([]);
+  });
+
+  it('has no stale exception', () => {
+    // The half that keeps the allowlist honest. Without it, raising a control leaves its
+    // entry behind as permanent slack — the exception list quietly becomes a budget.
+    const floorPx = lengthToPx(floorRaw!)!;
+    const hits = sweep(floorPx);
+
+    const stale = FLOOR_EXCEPTIONS.filter(
+      (e) => !hits.some(({ file, v }) => matchesException(e, file, v))
+    ).map((e) => `${e.file}: ${e.selector} (maxPx ${e.maxPx})`);
+
+    expect(
+      stale,
+      `FLOOR_EXCEPTIONS entries matching nothing. The control was raised or renamed — ` +
+        `delete the entry and the matching prose in BRAND_GUIDELINES.md:\n  ${stale.join('\n  ')}`
+    ).toEqual([]);
+  });
+
+  it('documents a reason for every exception', () => {
+    for (const e of FLOOR_EXCEPTIONS) {
+      expect(e.reason.length, `${e.selector} needs a reason, not just an entry`).toBeGreaterThan(
+        40
+      );
+    }
   });
 });

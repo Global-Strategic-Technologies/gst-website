@@ -324,7 +324,9 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     .filter-button {
       flex-shrink: 0;
       min-width: var(--touch-target-min);
-      height: 38px;
+      /* min-height, not height: a fixed height is a ceiling as well as a floor, and
+         this one sat 6px under the target size for the whole life of the component. */
+      min-height: var(--touch-target-min);
       padding: 0;
       display: flex;
       align-items: center;
