@@ -162,51 +162,26 @@ const PAGES: A11yPage[] = [
  * Pre-existing violations that require design-level fixes (not ARIA attributes).
  * Tracked as a ratchet — each entry is a MAX node count that can only decrease.
  *
- * Every entry re-measured 2026-08-03 under BL-096 and ratcheted to its actual count.
+ * **It is empty, and that is the finished state, not an un-filled one.**
  *
- * What is left is ONE node per route, and it is the same node everywhere: the header's
- * active nav link, `--color-primary` (#05cd99) on #f5f5f5 = **1.88:1**. It is not
- * page-local — it surfaces on each route because each route has a header — so fixing it
- * is a token or header change affecting every page, which is deferred with the rest of
- * BL-096 rather than decided inside this one.
+ * It held 16 entries until 2026-08-03, every one of them `{ 'color-contrast': 1 }`, and
+ * every one of them the SAME node: the header's active nav link, `--color-primary`
+ * (#05cd99) on #f5f5f5 = 1.88:1. It appeared once per route because every route has a
+ * header. BL-096 § Still owed closed it by moving the ink to `--color-tertiary`
+ * (light-dark(#02724f, #05cd99) — 5.47:1 in light, unchanged in dark), so all 16 went to
+ * zero together and the entries were deleted rather than zero-valued.
  *
- * Three of these had drifted into slack: techpar carried 4 against a real 1,
- * tech-debt-calculator 14 against 1, ma-portfolio 2 against 1. A ratchet that is never
- * re-measured stops being a ratchet, so the numbers below are all from a run rather
- * than from history.
+ * Deleting beats zeroing: with no entry, a future violation on these routes fails as an
+ * UNKNOWN serious violation — louder than sitting under a baseline of 0. `/brand/` was
+ * emptied the same way earlier in BL-096 (13 → absent).
  *
- * `/brand/` was 13 and is now **absent**, not zero-valued: the 8 `.a11y-badge` chips
- * plus `.brutal-tab--active`, `.brand-tag`, `.brutal-reg-card__scope`,
- * `.brutal-map-tap-bar__action` and the deleted `.project-card__cta` were all fixed.
- * An entry here would be slack for a violation that no longer exists — and its absence
- * means any new one fails as an UNKNOWN serious violation, which is louder.
- *
- * `/hub/radar/` was 2, now 1: `.filter-btn.active` was `--bg-light` on the category
- * colour; active pills now fill uniformly with `--color-primary` and take `--bg-dark`.
+ * Keep the mechanism. Two guards flank it and both still matter the moment anything is
+ * added back: the ratchet fails on EXCEEDING a baseline, and the stale-baseline guard
+ * below fails on falling under one. Between them, an entry of `n` asserts exactly `n` —
+ * which is how the earlier rot was caught (tech-debt-calculator carried 14 against a
+ * real 1; techpar 4 against 1; ma-portfolio 2 against 1).
  */
-const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
-  '/services/': { 'color-contrast': 1 },
-  '/about/': { 'color-contrast': 1 },
-  '/ma-portfolio/': { 'color-contrast': 1 },
-  '/hub/': { 'color-contrast': 1 },
-  '/hub/tools/techpar/': { 'color-contrast': 1 },
-  '/hub/tools/tech-debt-calculator/': { 'color-contrast': 1 },
-  '/hub/radar/': { 'color-contrast': 1 },
-  // The 9 of 13 new routes that needed a baseline (BL-096 AC3, 2026-08-03). Each carries
-  // exactly the same
-  // single node as the routes above — the header's active nav link at 1.88:1 — which is
-  // why they are uniform. `/privacy/`, `/terms/`, `/booking-confirmed/` and `/404` are
-  // absent because they have NO active nav link and came back clean.
-  '/hub/library/': { 'color-contrast': 1 },
-  '/hub/library/business-architectures/': { 'color-contrast': 1 },
-  '/hub/library/information-request-list/': { 'color-contrast': 1 },
-  '/hub/library/vdr-structure/': { 'color-contrast': 1 },
-  '/hub/tools/': { 'color-contrast': 1 },
-  '/hub/tools/information-request-list-generator/': { 'color-contrast': 1 },
-  '/hub/tools/diligence-machine/': { 'color-contrast': 1 },
-  '/hub/tools/infrastructure-cost-governance/': { 'color-contrast': 1 },
-  '/hub/tools/regulatory-map/': { 'color-contrast': 1 },
-};
+const KNOWN_SERIOUS: Record<string, Record<string, number>> = {};
 
 test.describe('Accessibility — WCAG 2.1 AA', () => {
   for (const pg of PAGES) {
