@@ -129,7 +129,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-096: Site-wide touch-target audit (AAA) + axe route coverage
 
-**Source**: split out of the `--touch-target-min` change 2026-07-29, which fixed the button classes and deliberately stopped there | **Effort**: Medium — mostly design calls on space-constrained controls | **Status**: **Partially delivered 2026-08-03** — the ruling is made and enforced, AC4/AC6/AC7 are closed, AC2 is partial. Remaining scope is listed under § Still owed
+**Source**: split out of the `--touch-target-min` change 2026-07-29, which fixed the button classes and deliberately stopped there | **Effort**: Medium — mostly design calls on space-constrained controls | **Status**: **CLOSED 2026-08-03.** Every AC delivered across two slices. The § Still owed list is empty and the AA half of the ruling is now machine-enforced rather than asserted
 
 **As a** mobile user, **I want** every interactive control to be comfortably tappable **so that** I am not missing small targets on the tool pages.
 
@@ -170,11 +170,17 @@ The measurement settled it. An axe `target-size` probe — that rule implements 
 
 So: **filter chips, segmented controls, drawer/search closes, header nav links, footer links, TOC links and the PalettePanel rail are closed as out of scope.** 44px stays welcome where it costs nothing; it is not a reason to rebuild working UI. See BRAND_GUIDELINES § Accessibility for the narrowed ruling.
 
-#### Still owed
+> **One clause of that probe was wrong, corrected 2026-08-03 in the second slice.** It reported the **palette rail tabs** clean. They are not: the probe ran only at 390px, where `.palette-panel__edge` is `display: none` and the tabs measure `0×0`, so "clean" meant "not rendered". At desktop they are 32×22 and fail `target-size` on both size and spacing. Fixed to a 24px AA floor — which does **not** reopen the decision above, since that closed the rail at 44px/AAA on the grounds it would widen fixed chrome, and this changes 2px of height and no width at all.
+>
+> The transferable lesson, and the reason this is kept rather than quietly edited: **a single-viewport probe reports absence as compliance.** Probe every viewport a control actually renders at. Both are probed now, and the standing `target-size` guard scans at the suite's desktop viewport, so this specific blind spot cannot recur silently.
 
-- **The active nav link at 1.88:1** — the single remaining node on all 16 baselined routes. This is **not** a touch-target item and does not fall under the scope decision above: it is a straight AA _contrast_ failure at under half the required 4.5:1, on the element telling you where you are. A token or header change touching every page.
-- **`wcag22aa` / axe's `target-size` rule as a standing guard.** The probe above was a one-off. Enabling it permanently would catch "no floor at all" across all 20 routes for free — but axe rates it _serious_, so it hard-fails until `/brand`'s 137 swatch-slider nodes (BL-103) are resolved. Sequence it after that.
-- **Under-collected, if ever relevant**: `.brutal-search__result` (~36px listbox option), `.modal__close` (a different family from `.modal-close`). Also worth documenting `.brutal-option-card` as "passes by padding, don't trim", as § Accessibility already does for `.cta-button`.
+#### Still owed — nothing. Closed out 2026-08-03 (second slice)
+
+- [x] **The active nav link at 1.88:1** — closed. `--color-primary` (#05cd99) on #f5f5f5 at 14px/700; bold 14px is 10.5pt, under the 14pt-bold large-text threshold, so the bar was 4.5:1 and it was failing at under half. Ink moved to `--color-tertiary` — 5.47:1 in light, byte-identical in dark, where the token's dark value already _is_ #05cd99. Verified across all six palettes rather than assumed (5.47 / 9.50 / 8.24 / 8.32 / 7.05 / 8.36 on #f5f5f5, and no palette overrides `--bg-light-alt`), because the first slice was nearly caught out by exactly that with `--color-error`.
+      Four rules carried the ink, not one: Header's `.active` **and** `:hover` (leaving hover would have made hovering the active link _lower_ its contrast), plus `typography.css`'s `.nav-link.active` and `.nav-link:hover` — a utility with no production consumer that renders only as a `/brand` specimen. A fifth carrier, the inline replica in `BrandUILibrary.astro`, is why there is a new test: the existing parity guard compares `.first()` on both sides, which is the **non-active** link, so the drift was invisible to it. The new guard reads two pages, because `/brand` has no active nav link to compare against — which is why the original settled for `.first()` in the first place.
+      **`KNOWN_SERIOUS` is now empty.** All 16 entries were this one node; the suite passing 22/22 with the map emptied is the proof that they were.
+- [x] **`wcag22aa` / `target-size` as a standing guard** — enabled. The prediction that it would "hard-fail until BL-103 is resolved" was pessimistic: measured, **21 of 22 routes were already clean** and `/brand` was the sole failure. Pinned to axe-core 4.12.1, where the tag selects exactly one rule.
+- [x] **Under-collected** — recorded in BRAND_GUIDELINES § Accessibility rather than left as a list here: `.brutal-search__result` and `.modal__close` render only after an interaction, so no scanned route reaches them; `.brutal-option-card` passes by padding and must not be trimmed.
 
 #### Technical Context
 
@@ -209,7 +215,7 @@ So: **filter chips, segmented controls, drawer/search closes, header nav links, 
 
 ### BL-103: `/brand`'s palette editor fails AA target size — 137 nodes at 6px
 
-**Source**: an axe `target-size` probe run under BL-096, 2026-08-03 | **Effort**: Small | **Status**: Open
+**Source**: an axe `target-size` probe run under BL-096, 2026-08-03 | **Effort**: Small | **Status**: **CLOSED 2026-08-03**, same day, as BL-096's final blocker
 
 **As a** keyboard or touch user editing a palette on `/brand`, **I want** the RGB sliders to be reachable **so that** I can actually use the editor.
 
@@ -217,13 +223,16 @@ So: **filter chips, segmented controls, drawer/search closes, header nav links, 
 
 **Why it matters more than the count suggests**: `/brand` is the page that teaches the design system. A control there failing AA is a worked example of the wrong thing.
 
-**Likely remedy**: raise the track height, or keep the 6px paint and expand the **hit area** — WCAG measures the hit area, not the paint, so `padding` plus a compensating negative margin preserves the visual. Check `palette-panel-controls.test.ts`, which drives sliders by coordinate.
+**A second offender, found on the way in**: `.palette-panel__tab` at **32×22**, 6 nodes. Not in the original count because this ticket's 137 came from a 390px probe, where the rail is `display: none`. See the correction under BL-096 § Out of scope.
 
 #### Acceptance Criteria
 
-- [ ] `.swatch-slider` clears 24×24 as a target, with the visual design intact or deliberately changed
-- [ ] `target-size` reports zero on `/brand`
-- [ ] Sequenced before enabling `wcag22aa` as a standing guard (BL-096 § Still owed), which this currently blocks
+- [x] **`.swatch-slider` clears 24×24 with the 6px paint intact.** The input goes `height: var(--touch-target-min-aa)` and `background: transparent`; the track pseudo-elements carry the paint. This is the recipe `.brutal-slider__input` already ships in `form.css:387-436` — which is also why the tech-debt calculator's range inputs already passed — so it was reused rather than derived, bringing its `light-dark()` track colour with it (`--border-light` alone is `rgba(26,26,26,0.1)`, near-invisible on the dark panel, and once the input is transparent that 6px track is the only paint).
+      **Two rejected alternatives, recorded because both look right.** (1) The hit-area trick this ticket proposed — 6px paint plus a compensating negative margin, as `.theme-toggle` used — fails here: the rows sit at a ~15.5px pitch, so 24px boxes overlap by ~9px and the middle slider steals its neighbours' clicks. `.theme-toggle` worked only because it had no stacked neighbours. (2) Grouping the two vendor track pseudo-elements into one selector list; kept separate, matching `form.css`, because a browser drops the whole list on the pseudo-element it does not recognise.
+- [x] **`target-size` reports zero on `/brand`** — measured at **both 1280 and 390**, which is the check this ticket's own scoping error argues for. Page growth: +399px desktop, +808px mobile, well under the ~1440px estimated from swatch count. Deliberately not pinned in a test — a page-height constant is the kind of measured number that rots.
+- [x] `wcag22aa` enabled as a standing guard (BL-096), which this was blocking
+
+**Correction to this ticket's own note**: it said to check `palette-panel-controls.test.ts` because it "drives sliders by coordinate". It does not — the only coordinate work there is the **resize handle**; every slider interaction sets `.value` and dispatches an event. There was no geometry coupling to break.
 
 ---
 

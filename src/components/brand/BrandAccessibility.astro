@@ -177,10 +177,13 @@ const RESPONSIVE_WIDTHS = [
         >.cta-button</code
       > clears the same figure from its own padding above 480px and the token below it. BL-096 settled
       the scope: 44px is <strong>guaranteed and enforced on those families</strong>, and everywhere
-      else the bar is AA 2.5.8 (24&times;24), which measurement shows is already met. It is measured
-      on the <em>target</em>, so a small control inside a clickable label already passes. The two
-      map zoom clusters are recorded deviations — they meet AA, not AAA. The dashed outline below is
-      the 44&times;44 minimum drawn over each control.
+      else the bar is AA 2.5.8 (24&times;24) via <code class="brand-code"
+        >--touch-target-min-aa</code
+      >, now <strong>enforced by axe's <code class="brand-code">target-size</code></strong> on every route
+      the accessibility suite scans rather than asserted. It is measured on the <em>target</em>, so
+      a small control inside a clickable label already passes. The two map zoom clusters are
+      recorded deviations — they meet AA, not AAA. The dashed outline below is the 44&times;44
+      minimum drawn over each control.
     </p>
     <div class="brand-state-row">
       <div class="brand-state-item">
