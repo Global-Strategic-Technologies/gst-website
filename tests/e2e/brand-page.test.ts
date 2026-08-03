@@ -641,6 +641,15 @@ test.describe('Brand Page', () => {
       expect(s.borderBottomColor, 'active nav specimen accent vs real active header nav link').toBe(
         p.borderBottomColor
       );
+
+      // `.nav-link.active` (typography.css) is a SECOND carrier of the same ink,
+      // rendered as its own specimen beside the replica. It has no production
+      // consumer, which is precisely why it drifts unnoticed — it did, and needed a
+      // hand-correction in the slice that added this test.
+      const utility = page.locator('.nav-link.active');
+      await expect(utility).toBeVisible();
+      const u = await readInk(utility);
+      expect(u.color, '.nav-link.active utility ink vs real active header nav link').toBe(p.color);
     });
 
     test('footer link specimen matches the real footer links', async ({ page }) => {

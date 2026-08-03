@@ -134,6 +134,10 @@
     background: transparent;
     outline: none;
     cursor: pointer;
+    /* Chrome's UA sheet gives range inputs `margin: 2px`. Zeroed to match
+       `.brutal-slider__input` exactly, so the 24px box is the whole target. */
+    padding: 0;
+    margin: 0;
   }
 
   /* Kept as separate rules, matching form.css. Grouping vendor pseudo-elements in

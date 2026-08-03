@@ -135,6 +135,12 @@ const PAGES: A11yPage[] = [
   {
     name: 'Brand',
     path: '/brand/',
+    // The swatch controls are injected inside a requestIdleCallback, so `load` can
+    // resolve with ZERO .swatch-slider nodes in the DOM — measured at 2 runs in 5,
+    // all present by +300ms. Those sliders are the reason `target-size` is enabled
+    // at all (BL-103), and four documents now say the AA floor is machine-enforced
+    // rather than asserted, so the scan must not race the surface it enforces.
+    waitFor: '.swatch-slider',
     // Scoped rather than baselined into KNOWN_SERIOUS, which is documented as
     // design debt that "can only decrease" — the wrong contract for a page whose
     // job is exhibiting components, including deliberately non-conformant ones.

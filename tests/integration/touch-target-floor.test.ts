@@ -74,7 +74,9 @@ const VARIABLES_CSS = resolve(REPO_ROOT, 'src/styles/variables.css');
  * meets it, so this set is a deliberate list, NOT a staging area that grows until it
  * covers everything. Matching is by CLASS NAME, so a bespoke class not listed here
  * (`.icg-back-link`, `.deploy-btn`) is outside the net even when it renders a button —
- * see BL-096 § Still owed.
+ * see BRAND_GUIDELINES § Accessibility, which carries the guarded families, the two
+ * documented exceptions and the under-collected list. (This used to point at BL-096
+ * § Still owed; that section is now empty and the content moved.)
  *
  * The trailing lookahead is load-bearing and was found by a fixture: without it
  * `.theme-toggle-icon` matches `.theme-toggle` by substring, so the ICON inside the
