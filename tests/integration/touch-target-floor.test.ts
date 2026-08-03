@@ -70,16 +70,11 @@ const VARIABLES_CSS = resolve(REPO_ROOT, 'src/styles/variables.css');
  * only carries the token below 480px.
  *
  * BL-096 settled the scope: 44px is GUARANTEED on the families listed here, and AA 2.5.8
- * (24x24) is the bar everywhere else -- measurement showed the rest of the site already
+ * (24x24) is the bar everywhere else — measurement showed the rest of the site already
  * meets it, so this set is a deliberate list, NOT a staging area that grows until it
- * covers everything.
- * Matching is still by CLASS NAME, so a bespoke class not listed here (`.icg-back-link`,
- * `.deploy-btn`) is outside the net even when it renders a button — see BL-096
- * § Still owed for what remains.
- */
-/**
- * Matches a guarded class, tolerating BEM modifiers but NOT a longer class that merely
- * starts with one.
+ * covers everything. Matching is by CLASS NAME, so a bespoke class not listed here
+ * (`.icg-back-link`, `.deploy-btn`) is outside the net even when it renders a button —
+ * see BL-096 § Still owed.
  *
  * The trailing lookahead is load-bearing and was found by a fixture: without it
  * `.theme-toggle-icon` matches `.theme-toggle` by substring, so the ICON inside the
