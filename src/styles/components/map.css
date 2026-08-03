@@ -319,13 +319,20 @@ Brutalist Map Controls
     color var(--transition-fast);
 }
 
-/* Distinct from the default, which is now ALSO filled — promoting the old hover pair to
-   the default left these identical, so the mobile tap bar's only action had no press
-   feedback and the transition above was a no-op. */
+/* Must differ from the filled default in BOTH themes. --color-tertiary is the wrong
+   token here: it is light-dark(#02724f, #05cd99), and its dark value IS --color-primary,
+   so a tertiary fill collapses back onto the default in dark theme and under all five
+   palettes (palettes.css aliases --altN-color-tertiary to --altN-color-primary in its
+   dark block). --color-tertiary-dark differs in both — #01633f / #04a87a — and keeps
+   --bg-dark ink readable at ~6.5:1.
+
+   This is the mobile tap bar's only action, and the bar is display:none above 1023px,
+   so it is touch-only: :active is the ONLY feedback that exists on the devices that
+   render it. */
 .brutal-map-tap-bar__action:hover,
 .brutal-map-tap-bar__action:active {
-  background: var(--color-tertiary);
-  color: var(--bg-light);
+  background: var(--color-tertiary-dark);
+  color: var(--bg-dark);
 }
 
 .brutal-quick-zoom {

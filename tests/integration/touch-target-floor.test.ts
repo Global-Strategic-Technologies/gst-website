@@ -123,9 +123,9 @@ interface FloorException {
   /**
    * The EXACT value this exception tolerates — matched with `===`, not `<=`.
    * A control drifting further below the floor is a new regression, not a
-   * continuation of the documented one.
+   * continuation of the documented one, which is why this is not named `maxPx`.
    */
-  maxPx: number;
+  px: number;
   reason: string;
 }
 
@@ -133,7 +133,7 @@ const FLOOR_EXCEPTIONS: FloorException[] = [
   {
     file: 'src/styles/components/map.css',
     selector: '.brutal-quick-zoom',
-    maxPx: 32,
+    px: 32,
     reason:
       'Four region presets overlaying the map itself. 44px targets would either overlap ' +
       'each other or consume ~176px of vertical map on mobile. Still clears 2.5.8 AA (24px).',
@@ -141,7 +141,7 @@ const FLOOR_EXCEPTIONS: FloorException[] = [
   {
     file: 'src/styles/components/map.css',
     selector: '.brutal-map-control',
-    maxPx: 32,
+    px: 32,
     reason:
       'Desktop-only +/-/reset cluster, hidden below 1024px. A documented DEVIATION, not a ' +
       'WCAG exception: 2.5.5 governs pointer inputs including the mouse, and scroll/drag ' +
@@ -215,7 +215,14 @@ export function lastCompound(selector: string): string {
   //     icon, and `:global(.modal-close)` still ends on the guarded class.
   const withoutGlobal = selector.replace(/:global\(([^)]*)\)/g, ' $1');
   const parts = withoutGlobal.split(/[\s>+~]+/).filter(Boolean);
-  return parts.length > 0 ? parts[parts.length - 1] : '';
+  if (parts.length === 0) return '';
+  const last = parts[parts.length - 1];
+  // A ::pseudo-element compound is DISQUALIFIED, not reduced to its base class. Its box
+  // is never the pointer target, so `.swatch-slider::-webkit-slider-thumb { height:14px }`
+  // sizes the thumb, not the slider — stripping the pseudo instead would report that
+  // 14px AS the slider's size, which is the inverse of the truth and would fire the
+  // moment BL-103 guards `.swatch-slider`.
+  return /::[\w-]+/.test(last) ? '' : last;
 }
 
 /**
@@ -393,6 +400,14 @@ describe('touch-target floor — selector anchoring', () => {
     ).toHaveLength(1);
   });
 
+  it('ignores a ::pseudo-element on a guarded control', () => {
+    // A pseudo-element box is never the pointer target. Aimed at BL-103: the swatch
+    // slider's 14px thumb is a ::-webkit-slider-thumb on a 6px track.
+    expect(findFloorViolations(`.modal-close::-webkit-slider-thumb { height: 14px; }`, 44)).toEqual(
+      []
+    );
+  });
+
   it('reads the last compound past combinators', () => {
     expect(lastCompound('.a > .b + .theme-toggle')).toBe('.theme-toggle');
     expect(lastCompound('.theme-toggle > svg')).toBe('svg');
@@ -533,10 +548,10 @@ describe('touch-target floor — source sweep', () => {
 
   // Strict equality on the value, not `<=`. With `<=`, an entry documenting a 32px
   // control excused ANY smaller value — a regression dropping `.brutal-quick-zoom` to
-  // 12px would have passed both the sweep and the stale-entry check. `maxPx` is
-  // documented as the value this exception tolerates, so it is pinned to exactly that.
+  // 12px would have passed both the sweep and the stale-entry check. The field records
+  // the value this exception tolerates, so it is pinned to exactly that.
   const matchesException = (e: FloorException, file: string, v: FloorViolation) =>
-    e.file === file && e.selector === v.selector && v.px === e.maxPx;
+    e.file === file && e.selector === v.selector && v.px === e.px;
 
   it('has no guarded rule resolving below the floor', () => {
     const floorPx = lengthToPx(floorRaw!)!;
@@ -565,7 +580,7 @@ describe('touch-target floor — source sweep', () => {
 
     const stale = FLOOR_EXCEPTIONS.filter(
       (e) => !hits.some(({ file, v }) => matchesException(e, file, v))
-    ).map((e) => `${e.file}: ${e.selector} (maxPx ${e.maxPx})`);
+    ).map((e) => `${e.file}: ${e.selector} (px ${e.px})`);
 
     expect(
       stale,
