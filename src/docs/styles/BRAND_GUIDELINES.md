@@ -182,7 +182,22 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 - **Contrast**: All text/background combinations should meet WCAG 2.1 AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
 - **Focus indicators**: 2px solid `--color-primary` outline with 2px offset via `.interactive-focus` utility or `:focus-visible` on `.brutal-*` components
 - **Color alone**: Never use color as the sole indicator of state — always pair with text, icons, or patterns
-- **Touch targets**: 44x44px minimum per WCAG 2.5.5 (Level **AAA** — stricter than AA's 24x24 in 2.5.8). `.brutal-btn` and `.brutal-choice-btn` (including `--unsure`) take the shared `--touch-target-min` floor directly. `.cta-button` also clears 44px, but by its own padding above 480px and via the token below — worth knowing before you trim its padding. A page-local override on any of the three must never resolve below the floor, which `tests/integration/touch-target-floor.test.ts` enforces; note that guard inspects declarations that exist, so it catches a bad override rather than proving a component has a floor at all. Known exception: the regulatory-map quick-zoom control is 32px — AA-conformant, not AAA (see BL-096)
+- **Touch targets**: 44x44px minimum per WCAG 2.5.5 (Level **AAA** — stricter than AA's 24x24 in 2.5.8). **Operator ruling (2026-08-03, BL-096): this is a SITE-WIDE goal, with documented exceptions** — not a guarantee scoped to the button classes.
+
+  **Measure the target, not the element.** 2.5.5 governs the region that accepts the pointer action, so a 16px checkbox inside a `cursor: pointer` `<label>` is already a label-sized target. Check for a larger clickable ancestor before raising anything.
+
+  **Guarded families** (`--touch-target-min` floor, enforced by [`touch-target-floor.test.ts`](../../../tests/integration/touch-target-floor.test.ts)): `.brutal-btn`, `.brutal-choice-btn`, `.cta-button`, `.filter-button`, `.modal-close`, `.theme-toggle`, plus the two exception families below. That guard checks `min-height`/`min-width` **and** `height`/`width` — a fixed `height` is a ceiling as well as a floor, which is how `.theme-toggle` sat at 13.6px. It matches the **last compound** of each selector, so `.filter-button svg { width: 20px }` sizes an icon and is correctly ignored.
+
+  **Fix with `min-height`, not `min-width`**, unless the control is a fixed-size icon button — radar pills must still wrap and scroll, and `.brutal-segmented` is `max-width: 320px; overflow: hidden`.
+
+  **Documented exceptions** live in `FLOOR_EXCEPTIONS` in that test file, each with a reason, and a stale entry fails the suite — so an exception cannot outlive the control it excuses:
+  - `.brutal-quick-zoom` (32px) — four region presets overlaying the map itself; 44px targets would overlap or consume ~176px of vertical map on mobile. Still clears 2.5.8 AA.
+  - `.brutal-map-control` (32px) — desktop-only zoom cluster. A **documented deviation, not a WCAG exception**: 2.5.5 governs pointer inputs including the mouse, and scroll/drag are gestures rather than the equivalent _control_ the Equivalent exception requires.
+
+  **Not exempt**, contrary to a common reading: header nav, footer and TOC links. 2.5.5's Inline exception is "the target is in a sentence or block of text" — the line-height clause belongs to 2.5.8. A list of links is not a sentence. Those are BL-096's remaining scope.
+
+  Two instruments, deliberately: the source scan above catches a declaration resolving too low; [`brand-page.test.ts`](../../../tests/e2e/brand-page.test.ts) § Touch targets measures **rendered geometry** at two viewports, which is the only way to catch a control with no floor declared at all — the shape that let `.brutal-btn` sit at 33px
+
 - **Keyboard navigation**: All interactive components are focusable via Tab; modals trap focus; tab bars support arrow keys
 - **Live reference**: The [/brand page — Accessibility section](https://globalstrategic.tech/brand#accessibility) demonstrates focus states, contrast ratios, touch targets, keyboard patterns, ARIA usage, and semantic HTML structure
 
