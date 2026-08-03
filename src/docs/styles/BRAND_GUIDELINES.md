@@ -194,7 +194,9 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
   - `.brutal-quick-zoom` (32px) — four region presets overlaying the map itself; 44px targets would overlap or consume ~176px of vertical map on mobile. Still clears 2.5.8 AA.
   - `.brutal-map-control` (32px) — desktop-only zoom cluster. A **documented deviation, not a WCAG exception**: 2.5.5 governs pointer inputs including the mouse, and scroll/drag are gestures rather than the equivalent _control_ the Equivalent exception requires.
 
-  **Not exempt**, contrary to a common reading: header nav, footer and TOC links. 2.5.5's Inline exception is "the target is in a sentence or block of text" — the line-height clause belongs to 2.5.8. A list of links is not a sentence. Those are BL-096's remaining scope.
+  **Not exempt**, contrary to a common reading: header nav, footer and TOC links. 2.5.5's Inline exception is "the target is in a sentence or block of text" — the line-height clause belongs to 2.5.8. A list of links is not a sentence.
+
+  Of those, **TOC links are a recorded deviation** (operator decision 2026-08-03, BL-096): `.toc__list a` ~28px and `.toc__sublist a` ~24px stay put, because reaching 44px roughly triples TOC height and desktop has no `max-height`, so a sticky TOC would outgrow the viewport — a navigation regression traded for a target-size gain. They clear 2.5.8 AA, so this is an AAA gap rather than a compliance one. Header and footer links remain BL-096's scope.
 
   Two instruments, deliberately: the source scan above catches a declaration resolving too low; [`brand-page.test.ts`](../../../tests/e2e/brand-page.test.ts) § Touch targets measures **rendered geometry** at two viewports, which is the only way to catch a control with no floor declared at all — the shape that let `.brutal-btn` sit at 33px
 
