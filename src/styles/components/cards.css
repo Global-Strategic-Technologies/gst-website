@@ -754,25 +754,11 @@ Brutalist FAQ
   margin-bottom: 1rem;
 }
 
-.project-card__cta {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  background: transparent;
-  color: var(--color-primary);
-  border: 2px solid var(--color-primary);
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-top: auto;
-  transition: all var(--transition-normal);
-}
-
-.project-card__cta:hover {
-  background: var(--color-primary);
-  color: var(--bg-dark);
-}
+/* `.project-card__cta` was deleted in BL-096. `.project-card` is the live production
+   card, but PortfolioGrid binds its click handler to the WHOLE card, so no CTA button
+   is ever rendered — the rule's only consumer was the /brand specimen, which therefore
+   documented a control production does not have. It also carried --color-primary on
+   white at 2.06:1, which is how it was found. */
 
 .bullet-icon {
   width: 14px;

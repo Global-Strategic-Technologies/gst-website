@@ -145,8 +145,10 @@ Brutalist Tab Bar
   position: relative;
 }
 
+/* The 2px bottom border carries the active accent; the LABEL uses the darker
+   tertiary. --color-primary on --bg-light is 2.06:1 at --text-xs. */
 .brutal-tab--active {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-bottom-color: var(--color-primary);
 }
 

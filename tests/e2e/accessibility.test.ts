@@ -72,6 +72,8 @@ const PAGES: A11yPage[] = [
     // Scoped rather than baselined into KNOWN_SERIOUS, which is documented as
     // design debt that "can only decrease" — the wrong contract for a page whose
     // job is exhibiting components, including deliberately non-conformant ones.
+    // NOTE /brand no longer has a KNOWN_SERIOUS entry at all (BL-096, 2026-08-03);
+    // these exclusions are the only instrument left on it, which is the intent.
     exclude: [
       // 12 lazy same-origin iframes across the four group documents (BL-097 —
       // one document per component group, embedded at three widths each). axe
@@ -98,56 +100,38 @@ const PAGES: A11yPage[] = [
 
 /**
  * Pre-existing violations that require design-level fixes (not ARIA attributes).
- * Tracked here as a ratchet — count can only decrease over time.
- * Each entry documents the violation ID and the max allowed node count.
+ * Tracked as a ratchet — each entry is a MAX node count that can only decrease.
+ *
+ * Every entry re-measured 2026-08-03 under BL-096 and ratcheted to its actual count.
+ *
+ * What is left is ONE node per route, and it is the same node everywhere: the header's
+ * active nav link, `--color-primary` (#05cd99) on #f5f5f5 = **1.88:1**. It is not
+ * page-local — it surfaces on each route because each route has a header — so fixing it
+ * is a token or header change affecting every page, which is deferred with the rest of
+ * BL-096 rather than decided inside this one.
+ *
+ * Three of these had drifted into slack: techpar carried 4 against a real 1,
+ * tech-debt-calculator 14 against 1, ma-portfolio 2 against 1. A ratchet that is never
+ * re-measured stops being a ratchet, so the numbers below are all from a run rather
+ * than from history.
+ *
+ * `/brand/` was 13 and is now **absent**, not zero-valued: the 8 `.a11y-badge` chips
+ * plus `.brutal-tab--active`, `.brand-tag`, `.brutal-reg-card__scope`,
+ * `.brutal-map-tap-bar__action` and the deleted `.project-card__cta` were all fixed.
+ * An entry here would be slack for a violation that no longer exists — and its absence
+ * means any new one fails as an UNKNOWN serious violation, which is louder.
+ *
+ * `/hub/radar/` was 2, now 1: `.filter-btn.active` was `--bg-light` on the category
+ * colour; active pills now fill uniformly with `--color-primary` and take `--bg-dark`.
  */
 const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
   '/services/': { 'color-contrast': 1 },
   '/about/': { 'color-contrast': 1 },
-  '/ma-portfolio/': { 'color-contrast': 2 },
+  '/ma-portfolio/': { 'color-contrast': 1 },
   '/hub/': { 'color-contrast': 1 },
-  '/hub/tools/techpar/': { 'color-contrast': 4 },
-  '/hub/tools/tech-debt-calculator/': { 'color-contrast': 14 },
-  // /hub/radar, added 2026-08-02 with the route. Both nodes are --color-primary
-  // (#05cd99) contrast, i.e. design-level token calls, not ARIA fixes:
-  //
-  //   1. a[href="/hub/"].active — the site-wide ACTIVE NAV LINK, #05cd99 on
-  //      #f5f5f5 = 1.88:1. Not radar-specific; it is the same violation already
-  //      baselined above on /hub/, surfacing here because this route is also
-  //      under /hub. Fixing it is a header change affecting every page.
-  //   2. .filter-btn.active — #ffffff on #05cd99 = 2.05:1, the "All" pill.
-  //      Radar-local, and the worse offender of the two in practice because the
-  //      pills are the page's only interactive control.
-  //
-  // Both are real text failing AA — deliberately NOT excluded, since an
-  // exclusion would hide them, whereas this ratchet keeps them counted and can
-  // only decrease. Raised as a design item rather than decided inside a test
-  // change, matching the /brand -> BL-096 precedent below.
-  //
-  // Both live in the page SHELL, so the count is content-independent: measured
-  // identical with an empty feed and with a 6-item one. (The island's own
-  // `nested-interactive` finding is content-dependent and is handled by a
-  // scoped exclusion above, not here — see the note on that entry.)
-  '/hub/radar/': { 'color-contrast': 2 },
-  // /brand, added 2026-07-29. The intent was to land it with no baseline at all;
-  // the discovery run said otherwise, and the honest move is to record the number
-  // rather than widen the exclusions until the prediction comes true.
-  //
-  // 8 of the 13 are .a11y-badge--pass/--fail, which IS page-local (styled in
-  // brand.astro, used only in BrandAccessibility.astro). What does NOT work is
-  // merely inverting it: contrast ratio is symmetric, so filling the badge with the
-  // semantic token and using the page background as text colour is the same colour
-  // pair and the identical 4.25:1 for --color-success on white. A filled badge with
-  // a DIFFERENT foreground is a real option (#000 on #2e8b57 is 4.95:1), as are
-  // changing the token light values or clearing WCAG's large-text threshold — which
-  // is 18.66px bold, not 14px, so --text-2xs is nowhere near it. All three are
-  // design calls on a page whose job is exhibiting the system, so they go to BL-096
-  // rather than getting decided inside a touch-target change.
-  //
-  // The other 5 are .brutal-tab__label, .brand-tag, .project-card__cta,
-  // .brutal-reg-card__scope and .brutal-map-tap-bar__action — real components,
-  // already partly baselined on other routes.
-  '/brand/': { 'color-contrast': 13 },
+  '/hub/tools/techpar/': { 'color-contrast': 1 },
+  '/hub/tools/tech-debt-calculator/': { 'color-contrast': 1 },
+  '/hub/radar/': { 'color-contrast': 1 },
 };
 
 test.describe('Accessibility — WCAG 2.1 AA', () => {

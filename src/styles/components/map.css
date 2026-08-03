@@ -301,7 +301,10 @@ Brutalist Map Controls
 
 .brutal-map-tap-bar__action {
   padding: var(--spacing-xs) var(--spacing-md);
-  background: transparent;
+  /* Filled by default rather than on hover: outlined, this was --color-primary on a
+     light surface at 2.06:1. Its own :hover already defined the compliant pair, and
+     production's .brutal-project-card__cta ships the same shape as its default. */
+  background: var(--color-primary);
   border: 2px solid var(--color-primary);
   border-radius: 0;
   font-family: var(--font-family-mono);
@@ -309,7 +312,7 @@ Brutalist Map Controls
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-primary);
+  color: var(--bg-dark);
   cursor: pointer;
   transition:
     background var(--transition-fast),
@@ -463,11 +466,14 @@ Brutalist Panel & Reg Card
 .brutal-reg-card__scope {
   display: inline-block;
   padding: 2px var(--spacing-sm);
+  /* The border-left keeps the brand accent; the TEXT uses the darker tertiary.
+     --color-primary on a light surface is 2.06:1 at this size, and this label is
+     non-interactive so there is no hover state to promote. */
   border-left: 3px solid var(--color-primary);
   font-family: var(--font-family-mono);
   font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border-radius: 0;
