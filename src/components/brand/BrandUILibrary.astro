@@ -616,28 +616,38 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     </div>
 
     <h4 class="brutal-label brand-subgroup-title">Teaser Card (Gateway)</h4>
-    <div class="brand-component-row">
-      <div class="brand-component-item">
-        <!-- Same classes and structure as hub/tools/index.astro. No inline styling:
-             the hand-rolled border used a light-only token and read as near-invisible
-             in dark theme, where .brutal-gateway-card uses a light-dark() pair. -->
-        <article class="brutal-gateway-card brutal-frosted" data-specimen>
-          <div class="brutal-gateway-card__header">
-            <h2>Regulatory Map</h2>
-          </div>
-          <ul class="brutal-gateway-card__features">
-            <li>
-              <DeltaIcon class="bullet-icon" />120 regulations across privacy, AI, cybersecurity,
-              and compliance
-            </li>
-          </ul>
-        </article>
-        <code class="brand-code"
-          >.brutal-gateway-card + .brutal-frosted — 3px primary top-border, monospace heading,
-          centered</code
-        >
-      </div>
+    <!-- Deliberately NOT inside .brand-component-row/.brand-component-item, unlike
+         its neighbours. Both are shrink-to-fit flex containers, so a grid placed in
+         them gets an indefinite inline size and `auto-fill` collapses to a single
+         max-content track — the specimen would document a width nothing renders.
+         `.brand-card-grid` below sits at section level for the same reason.
+
+         What this specimen documents is the GRID's behaviour, not a width: the card
+         is width-agnostic by design now, so the column it lands in (~460px here,
+         469px on the hub pages, /brand's content column being narrower) carries no
+         meaning. The empty track to its right is the point — `auto-fit` would
+         collapse it and stretch the card across the whole row. -->
+    <div class="brutal-gateway-grid">
+      <!-- Same classes and structure as hub/tools/index.astro. No inline styling:
+           the hand-rolled border used a light-only token and read as near-invisible
+           in dark theme, where .brutal-gateway-card uses a light-dark() pair. -->
+      <article class="brutal-gateway-card brutal-frosted" data-specimen>
+        <div class="brutal-gateway-card__header">
+          <h2>Regulatory Map</h2>
+        </div>
+        <ul class="brutal-gateway-card__features">
+          <li>
+            <DeltaIcon class="bullet-icon" />120 regulations across privacy, AI, cybersecurity, and
+            compliance
+          </li>
+        </ul>
+        <a href="#ui-library" class="cta-button brutal-gateway-card__cta">Launch Tool</a>
+      </article>
     </div>
+    <code class="brand-code"
+      >.brutal-gateway-grid + .brutal-gateway-card — auto-fill columns, equal-height rows,
+      bottom-aligned CTA</code
+    >
 
     <h4 class="brutal-label brand-subgroup-title">Hub Header</h4>
     <div class="brand-component-row">

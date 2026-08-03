@@ -425,6 +425,17 @@ import '../styles/components/progress.css';
     margin-bottom: var(--spacing-lg);
   }
 
+  /* The gateway grid ships a `margin-bottom: var(--spacing-3xl)` for the hub index
+     pages, where a "Return to Hub" link follows it. On /brand that 48px orphans the
+     specimen's <code> caption — it lands closer to the NEXT subgroup heading than to
+     the specimen it describes. Collapsed to the 4px every other specimen uses.
+     A `.brand-component-item` wrapper is not an option: `align-items: flex-start`
+     would make the grid's inline size indefinite and collapse auto-fill to one
+     max-content track (see the comment on the specimen itself). */
+  .brand-content .brutal-gateway-grid {
+    margin-bottom: var(--spacing-xs);
+  }
+
   .brand-card-grid--single {
     grid-template-columns: 1fr;
     max-width: 400px;

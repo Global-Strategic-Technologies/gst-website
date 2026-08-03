@@ -236,6 +236,31 @@ So: **filter chips, segmented controls, drawer/search closes, header nav links, 
 
 ---
 
+### BL-105: Hub gateway indexes wasted 60% of every row
+
+**Source**: operator request 2026-08-03 — "the different cards should span multiple columns to make use of the entire page" | **Effort**: Small | **Status**: **CLOSED 2026-08-03**
+
+**As a** desktop visitor to the Hub, **I want** the tool and library cards to use the width of the page **so that** I can see what is on offer without scrolling past one card at a time.
+
+**What it was.** `.brutal-gateway-card` set `max-width: 600px; margin: 0 auto` on itself and neither `/hub/tools/` nor `/hub/library/` had a grid, so the cards stacked in one centred column. Measured against `.container`'s 1504px of content: **60% of every row unused** at ≥1600px, 49% at 1280, 35% at 1024, and `/hub/tools/` **4795px tall** — identical at every desktop width, because the card never reflowed.
+
+**`/hub/` itself was already correct** and was left alone: `.hub-cards` has been `repeat(3, 1fr)` with 1024→2 and 768→1 all along. Its remaining 800px blocks (`.hub-intro p`, `.brutal-faq`, `.cta-box`) are reading measures on prose, and widening running text to 1504px would make it harder to read.
+
+#### Acceptance Criteria
+
+- [x] **Cards span multiple columns on desktop.** `.brutal-gateway-grid` in `cards.css`, following the pairing `PortfolioGrid.astro` already uses (`.grid` / `.project-card`) rather than a bespoke idiom: `repeat(auto-fill, minmax(420px, 1fr))` with a 768px `1fr` fallback. Measured after: **3 columns at 1504px** (469px each, matching `.hub-cards`' 475px), 2 at 1184/928. `/hub/tools/` **4795px → 2274px**.
+      Fixed columns were rejected on measurement: `.container` is a flat `max-width: 1600px` with no responsive override, so `repeat(3, 1fr)` gives 368px cards at 1280 and 283px at 1025 — narrower than the same card on a 375px phone.
+- [x] **The card stops positioning itself.** `max-width` / `margin` removed; the grid owns layout. Recorded in STYLES_GUIDE § Card grids as the general rule, since this is the second component to hit it.
+- [x] **Mobile unchanged.** The 768px block reverts `display`, `max-width` and `margin` — verified at 375/480/768 across four properties, because a card-width check is blind to every failure mode here. It must stay _after_ the base rules: `> .brutal-gateway-card` ties them on specificity (0,2,0) and wins on source order alone.
+- [x] **Equal-height rows without redesigning the CTA.** `flex-grow: 1` on the feature list, not `margin-top: auto` on the CTA — the tallest card in each row resolves an auto margin to 0 and would silently lose the gap above its CTA. `align-self: center` on the CTA and badge, because flex blockifies `inline-block` and `align-items: stretch` would have turned the "Planned" badge into a full-width bar.
+- [x] **Regression guard**: `tests/e2e/hub-gateway-grid.test.ts`, there being no E2E file for either gateway index before this. Asserts relationships, never pixel constants — the row spans the full grid, CTAs bottom-align, the CTA stays narrower than its card, and mobile is one capped `block` column.
+- [x] **`/brand` specimen** wrapped in the grid and moved out of `.brand-component-row`. Both that row and `.brand-component-item` are shrink-to-fit flex containers, so a grid inside them gets an indefinite inline size and `auto-fill` collapses to a single max-content track — the specimen would have documented a width nothing renders. `.brand-card-grid` sits at section level for the same reason. No second replica was added, per BL-095's note that the gateway card wants a real component first.
+- [x] **Free cleanup** (Directive 6): the inert `.primary` / `.secondary` classes recorded in this file were stripped from both pages — 9 occurrences. Nothing in `tests/` selects them.
+
+**Two things worth carrying forward.** The specimen documents the grid's _behaviour_ — equal-height rows, bottom-aligned CTA, one surviving empty track — not a width; `/brand`'s content column is `.brand-layout` (`280px 1fr`, capped 1400px), not `.container`, so its cards are a different size from the hub pages' by design and no number there is "the" gateway width. And `auto-fit` would have been wrong for exactly that reason: it collapses the empty track and stretches the lone specimen across the whole row.
+
+---
+
 ### BL-104: Regulatory map — timeline entries are not keyboard-operable
 
 **Source**: the scope limit of BL-096's `#timelineScroll` fix, 2026-08-03 | **Effort**: Small | **Status**: Open
@@ -305,7 +330,7 @@ So: **filter chips, segmented controls, drawer/search closes, header nav links, 
 - **Two distinct causes produced the reported symptoms.** (1) **Code-split CSS** — `filter.css`, `map.css`, `portfolio.css` and `progress.css` load only on the pages that use them, so their specimens rendered as raw unstyled markup on `/brand`. **Fixed 2026-07-28** by importing all four in `brand.astro`, with E2E assertions so it cannot regress. (2) **Replica drift** — this stanza. The logo specimen passed no `size` prop to `DeltaIcon` (defaulting to 14px) where `Header.astro` renders 32px; the theme-toggle specimen was 14px against production's ~54px and used the wrong colour token.
 - **Why replicas exist**: several specimens need page context (sticky positioning, scroll state, data props) that a bare render does not supply. Convert the ones that don't first — that is most of them.
 - **Why this matters more than it looks**: STYLES_GUIDE § In-repo Control Examples now instructs every session to copy from these specimens. A drifted specimen actively teaches the wrong thing, which is worse than having no specimen at all.
-- **`.primary` / `.secondary` are inert everywhere.** `buttons.css` defines exactly one CTA appearance (`.cta-button`); the bare `primary` / `secondary` tokens seen in `class="cta-button primary"` match no rule in the repo. They were removed from the `/brand` specimens 2026-07-29 (and the CTA Buttons group collapsed from two identical specimens to one truthful `.cta-button`), but ~20 inert occurrences remain in production markup — `Hero.astro`, `hub/tools/index.astro`, `hub/library/index.astro`, the tool back-links. Stripping them is mechanical and behaviour-free; **defining** them is not — `.cta-button.secondary` would restyle every "Back to …" link at once and needs a design decision first. Bare unnamespaced globals are also a collision hazard: prefer `.brutal-btn--primary` / `--secondary` when a real two-variant pair is wanted.
+- **`.primary` / `.secondary` are inert everywhere.** `buttons.css` defines exactly one CTA appearance (`.cta-button`); the bare `primary` / `secondary` tokens seen in `class="cta-button primary"` match no rule in the repo. They were removed from the `/brand` specimens 2026-07-29 (and the CTA Buttons group collapsed from two identical specimens to one truthful `.cta-button`), and the 9 on the two hub gateway indexes went with BL-105 on 2026-08-03. **10 remain**, counted rather than estimated: `Hero.astro` (2), the three `hub/library/*` article pages, `hub/radar/`, three tool pages' back-links, and the IRL generator's submit button (`information-request-list-generator/index.astro:272`) — the one that is not a back-link. Stripping them is mechanical and behaviour-free; **defining** them is not — `.cta-button.secondary` would restyle every "Back to …" link at once and needs a design decision first. Bare unnamespaced globals are also a collision hazard: prefer `.brutal-btn--primary` / `--secondary` when a real two-variant pair is wanted.
 - Related: [STYLES_REMEDIATION_ROADMAP.md § 13](../styles/STYLES_REMEDIATION_ROADMAP.md) (the token sweep that surfaced the label mismatches), BL-094 (the off-scale font sizes still present in these same replica blocks).
 
 ---
