@@ -182,7 +182,32 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 - **Contrast**: All text/background combinations should meet WCAG 2.1 AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
 - **Focus indicators**: 2px solid `--color-primary` outline with 2px offset via `.interactive-focus` utility or `:focus-visible` on `.brutal-*` components
 - **Color alone**: Never use color as the sole indicator of state — always pair with text, icons, or patterns
-- **Touch targets**: 44x44px minimum per WCAG 2.5.5 (Level **AAA** — stricter than AA's 24x24 in 2.5.8). `.brutal-btn` and `.brutal-choice-btn` (including `--unsure`) take the shared `--touch-target-min` floor directly. `.cta-button` also clears 44px, but by its own padding above 480px and via the token below — worth knowing before you trim its padding. A page-local override on any of the three must never resolve below the floor, which `tests/integration/touch-target-floor.test.ts` enforces; note that guard inspects declarations that exist, so it catches a bad override rather than proving a component has a floor at all. Known exception: the regulatory-map quick-zoom control is 32px — AA-conformant, not AAA (see BL-096)
+- **Touch targets**: 44x44px per WCAG 2.5.5 (Level **AAA**) on the guarded families; **AA's 24x24 (2.5.8) everywhere else**.
+
+  **The ruling, narrowed 2026-08-03 after measurement.** BL-096 first ruled 2.5.5 a site-wide goal with documented exceptions. Applying it turned out to mean visibly rebuilding dense UI — filter chips more than doubling, the header growing on every page, the palette rail widening — all to clear a **AAA** bar. So the operator scoped it back, and the measurement supports that: axe's `target-size` rule (which implements 2.5.8 _including_ its spacing exception) reports **zero failures on 9 of 10 routes at 390px**, covering the 21px chips, the 22px nav links and the 20px palette tabs. Those clear AA on spacing; only the AAA figure is unmet.
+
+  So the honest statement is a guarantee plus an aspiration, not a site-wide rule with a growing exception list:
+  - **Guaranteed and enforced at 44px**: `.brutal-btn`, `.brutal-choice-btn`, `.cta-button`, `.filter-button`, `.modal-close`, `.theme-toggle`.
+  - **Everywhere else**: AA 2.5.8 (24×24 or its spacing exception) is the bar, and it is currently met. 44px is welcome where it costs nothing and is **not** a reason to rebuild a working layout.
+
+  **Measure the target, not the element.** 2.5.5 governs the region that accepts the pointer action, so a 16px checkbox inside a `cursor: pointer` `<label>` is already a label-sized target. Check for a larger clickable ancestor before raising anything.
+
+  **Guarded families** (`--touch-target-min` floor, enforced by [`touch-target-floor.test.ts`](../../../tests/integration/touch-target-floor.test.ts)): `.brutal-btn`, `.brutal-choice-btn`, `.cta-button`, `.filter-button`, `.modal-close`, `.theme-toggle`, plus the two exception families below. That guard checks `min-height`/`min-width` **and** `height`/`width` — a fixed `height` is a ceiling as well as a floor, which is how `.theme-toggle` sat at 13.6px. It matches the **last compound** of each selector, so `.filter-button svg { width: 20px }` sizes an icon and is correctly ignored.
+
+  **Fix with `min-height`, not `min-width`**, unless the control is a fixed-size icon button — radar pills must still wrap and scroll, and `.brutal-segmented` is `max-width: 320px; overflow: hidden`.
+
+  **Documented exceptions** live in `FLOOR_EXCEPTIONS` in that test file, each with a reason, and a stale entry fails the suite — so an exception cannot outlive the control it excuses:
+  - `.brutal-quick-zoom` (32px) — four region presets overlaying the map itself; 44px targets would overlap or consume ~176px of vertical map on mobile. Still clears 2.5.8 AA.
+  - `.brutal-map-control` (32px) — desktop-only zoom cluster. A **documented deviation, not a WCAG exception**: 2.5.5 governs pointer inputs including the mouse, and scroll/drag are gestures rather than the equivalent _control_ the Equivalent exception requires.
+
+  **Not exempt**, contrary to a common reading: header nav, footer and TOC links. 2.5.5's Inline exception is "the target is in a sentence or block of text" — the line-height clause belongs to 2.5.8. A list of links is not a sentence.
+
+  That matters only for the AAA figure, though — and per the narrowed ruling above, header nav, footer links, TOC links, filter chips and the palette rail are all **out of scope by operator decision (2026-08-03)**: each clears AA 2.5.8, and raising any of them visibly rebuilds working UI. Recorded so nobody re-derives the sweep from first principles and reopens it.
+
+  **The one measured AA failure is on `/brand` itself**: the palette editor's RGB tracks (`.swatch-slider`, `SwatchControlStyles.astro`) are 6px tall — 137 nodes, well under 24×24 with no spacing relief. Filed as BL-103. It is the page that teaches the system, which is what makes it worth fixing.
+
+  Two instruments, deliberately: the source scan above catches a declaration resolving too low; [`brand-page.test.ts`](../../../tests/e2e/brand-page.test.ts) § Touch targets measures **rendered geometry** at two viewports, which is the only way to catch a control with no floor declared at all — the shape that let `.brutal-btn` sit at 33px
+
 - **Keyboard navigation**: All interactive components are focusable via Tab; modals trap focus; tab bars support arrow keys
 - **Live reference**: The [/brand page — Accessibility section](https://globalstrategic.tech/brand#accessibility) demonstrates focus states, contrast ratios, touch targets, keyboard patterns, ARIA usage, and semantic HTML structure
 

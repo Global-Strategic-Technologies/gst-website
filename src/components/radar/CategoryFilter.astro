@@ -139,10 +139,15 @@ const allD = (Math.abs(0 - center) / maxDist).toFixed(3);
     color: var(--btn-color, var(--color-primary));
   }
 
+  /* Active pills fill with --color-primary UNIFORMLY and carry category identity on
+     the border. Deliberately not the per-category fill: --btn-color comes from
+     lib/inoreader/transform.ts and spans #9B59B6 / #A0785A / #3498DB / #E74C3C, so any
+     fixed ink is a coin-flip against it. Only "All" is active on load, so the other
+     three never appear in an axe scan — a regression there would have been silent. */
   .filter-btn.active {
-    background: var(--btn-color, var(--color-primary));
+    background: var(--color-primary);
     border-color: var(--btn-color, var(--color-primary));
-    color: var(--bg-light);
+    color: var(--bg-dark);
   }
 
   @media (max-width: 480px) {

@@ -724,10 +724,20 @@ test.describe('Brand Page', () => {
     const measureUndersized = (page: import('@playwright/test').Page) =>
       page.evaluate((min) => {
         const bad: string[] = [];
-        const guarded = '.brutal-btn, .brutal-choice-btn, .cta-button';
+        // Grows with each BL-096 slice. This is the instrument that catches a control
+        // with NO floor declared at all — the declared-value scan in
+        // tests/integration/touch-target-floor.test.ts structurally cannot.
+        const guarded =
+          '.brutal-btn, .brutal-choice-btn, .cta-button, .filter-button, .theme-toggle';
         for (const el of Array.from(document.querySelectorAll(guarded))) {
           const r = el.getBoundingClientRect();
-          if (r.width === 0 && r.height === 0) continue; // not rendered
+          // getClientRects() rather than a zero-rect test: `visibility: hidden` keeps a
+          // NONZERO rect, so a zero-rect check would measure controls the user cannot
+          // touch. `offsetParent === null` is not the alternative — it is null for
+          // `position: fixed` too, which would silently skip the palette rail.
+          if (el.getClientRects().length === 0) continue;
+          const cs = getComputedStyle(el);
+          if (cs.visibility === 'hidden' || cs.pointerEvents === 'none') continue;
           if (r.width < min || r.height < min) {
             bad.push(
               `${el.className.trim()} = ${r.width.toFixed(1)}x${r.height.toFixed(1)} ` +

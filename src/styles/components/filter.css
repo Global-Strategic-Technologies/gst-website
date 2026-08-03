@@ -79,7 +79,7 @@
   transition: all var(--transition-normal);
   white-space: nowrap;
   position: relative;
-  min-height: 38px;
+  min-height: var(--touch-target-min);
 }
 
 .filter-button:hover {

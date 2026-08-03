@@ -129,25 +129,141 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-096: Site-wide touch-target audit (AAA) + axe route coverage
 
-**Source**: split out of the `--touch-target-min` change 2026-07-29, which fixed the button classes and deliberately stopped there | **Effort**: Medium — mostly design calls on space-constrained controls | **Status**: Open — needs a ruling before any code moves
+**Source**: split out of the `--touch-target-min` change 2026-07-29, which fixed the button classes and deliberately stopped there | **Effort**: Medium — mostly design calls on space-constrained controls | **Status**: **Partially delivered 2026-08-03** — the ruling is made and enforced, AC4/AC6/AC7 are closed, AC2 is partial. Remaining scope is listed under § Still owed
 
 **As a** mobile user, **I want** every interactive control to be comfortably tappable **so that** I am not missing small targets on the tool pages.
 
 #### Acceptance Criteria
 
-- [ ] **Ruling first**: is WCAG 2.5.5 (AAA, 44×44) a site-wide goal or a guarantee scoped to the button component classes? Everything below depends on the answer, which is why nothing was swept pre-emptively
-- [ ] Audit and resolve the known sub-44 interactive controls: `.brutal-quick-zoom` (32px, pinned by `regulatory-map-mobile.test.ts:97-106`), `.filter-button` in `PortfolioHeader.astro` (`height: 38px` beside a `min-width` that now uses the token), the modal close buttons in `ProjectModal.astro` (around :323-329) and `PortfolioGrid.astro` (around :315-321) which both drop to 40px inside a media query, TOC links, filter chips, palette-panel affordances, nav links
-- [ ] Extend the axe route list beyond its current 8 — `src/pages` holds 25 `.astro` files that emit 28 routes, ~22 of them real routes once the four `brand/responsive-frame/<group>` iframe partials (BL-097 split the single query-param route into one page per group, from one `[group].astro` file) and the two error pages are set aside. **`/hub/radar/` was added 2026-08-02 (now 9)**. Worth recording what that did and did not prove: it surfaced two `color-contrast` nodes (one of them the site-wide active nav link, already baselined on `/hub/`) and re-surfaced the `nested-interactive` finding BL-095 had already ruled on — i.e. one genuinely new baseline and one thing already investigated. Adding routes is worth doing, but expect known findings to reappear on new routes rather than new defects
-- [ ] **Dead rule to resolve**: `MapVisualizer.astro`'s `.brutal-map-control { width/height: var(--touch-target-min) }` sits in a `@media (max-width: 767px)` block, but `.map-controls` is `display: none` below 1024px (:122-127, pinned by `regulatory-map-mobile.test.ts:89-95`) — so the mobile zoom sizing never applies. It was tokenised in the 2026-07-29 sweep for consistency (value-identical), but either the controls should be reachable on mobile or the rule should go
+- [x] **Ruling first** — **operator ruling 2026-08-03, NARROWED the same day after measurement: 44px is guaranteed and enforced on the guarded families; everywhere else the bar is AA 2.5.8 (24×24), which is already met.** The first ruling was site-wide-with-exceptions; applying it meant visibly rebuilding dense UI for a AAA figure, and an axe `target-size` probe (which implements 2.5.8 _including_ its spacing exception) came back clean on 9 of 10 routes at 390px — so the exceptions would have swallowed the rule. Original ruling text and reasoning: Recorded canonically in BRAND_GUIDELINES § Accessibility and made enforceable rather than left as prose: `FLOOR_EXCEPTIONS` in `touch-target-floor.test.ts` carries each exception with a reason, and a **stale entry fails the suite**, so an exception cannot outlive the control it excuses. A second, load-bearing clarification came out of it: 2.5.5 measures the **target**, not the element, so a small control inside a clickable label already passes — check for a larger clickable ancestor before raising anything
+- [~] Audit and resolve the known sub-44 interactive controls. **Done 2026-08-03 for every control the guard can see** — the widened scan found exactly 7 declarations and all 7 are resolved: `.filter-button` (base `min-height: 38px` in `filter.css` **and** `height: 38px` in `PortfolioHeader`), `.modal-close` in `ProjectModal`, `.theme-toggle`, plus two in `PortfolioGrid` deleted as dead (below). Three corrections to this AC's original wording, found by doing it:
+  - `.filter-button` was 38px **everywhere**, not only at 480px — `filter.css:82` carried the base.
+  - `PortfolioGrid`'s `.modal-close` rules were **dead CSS**, not a missing base rule. That file's `<style>` is Astro-scoped and it renders no modal markup — the only `.modal-close` in the repo is `ProjectModal.astro:11` — so both media blocks were deleted rather than fixed. Found because two of them surfaced as touch-target violations.
+  - `StickyControls.astro:126` already declared the token; the audit listed it in error.
+  - `.brutal-quick-zoom` stays at 32px as a documented exception, so `regulatory-map-mobile.test.ts:97-106` (a `>= 32` floor) keeps passing unmodified.
+    The rest — filter chips, palette-panel affordances, nav and footer links — are padding-derived with no declaration to scan, and are listed under § Still owed. TOC links were **removed from scope** rather than deferred; see the same section.
+- [x] **Done 2026-08-03 — 9 routes → 22** (13 added; 9 of them needed a baseline). Added `/privacy/`, `/terms/`, `/booking-confirmed/`, `/404` (reached via a bogus URL, as `404-page.test.ts` does), all four `/hub/library/*`, `/hub/tools/`, and the four tool pages. Excluded by design: `/colors` (a bare 301), the four `/brand/responsive-frame/*` (chrome-less iframe partials, already covered by an exclusion on `/brand`), and the JSON endpoints.
+      The **dev-only gateway cards** on `/hub/library` and `/hub/tools` are deliberately **not excluded** — asserting zero is honest, whereas a violation in markup that never ships would become a baseline CI can never clear. They came back clean.
+      The 9 baselines are uniform at 1 node, and it is the same node every time: the header's active nav link. `/privacy/`, `/terms/`, `/booking-confirmed/` and `/404` have no active nav link and are clean.
+      **This is what the AC was for.** The new routes surfaced three real findings nobody was watching: two on the regulatory map (filed as BL-102) and a scrollable region with no keyboard access (`#timelineScroll`), which was **partly fixed here** — the region is now scrollable by keyboard (WCAG 2.1.1, Level A; one attribute, no visual change), but the entries inside remain non-focusable `<div>`s with a delegated handler, so a keyboard user still cannot _open_ a regulation from the timeline. axe cannot see that, so it would never reach the ratchet: filed as **BL-104**.
+      Note for CI: the required check runs chromium only, so the cost is 22 routes on one engine rather than three — but 22 routes at Playwright's worker count is real concurrent load on one dev server, so the five heaviest use `waitFor` + `domcontentloaded` rather than blocking on `load`. One transient failure was seen locally while the server was recompiling; two consecutive clean full runs after.
+- [x] **Dead rule resolved 2026-08-03** — deleted. `.map-controls` is `display: none` below 1023px, so the `@media (max-width: 767px)` sizing could never paint. The controls were **not** made reachable on mobile: `regulatory-map-mobile.test.ts:89-95` is a hard equality pin and that is a feature change. What the dead rule was masking is now its own item — see BL-101
 - [x] **Frame-clipping measurement — resolved 2026-08-02 by BL-097, and now permanently guarded.** The concern was that the 33→44px button growth could overflow the fixed frames (600×200 / 384×350 / 240×400, `body { overflow: hidden }`, so cropping is invisible). With all four groups finally rendering, measured content at 600px is `cards` 113px, `form` **139px**, `shell` 168px against a 200px frame — nothing clips, in either axis, at any of the three widths. Rather than record a number that rots, `tests/e2e/brand-page.test.ts` now asserts per frame that `documentElement.scrollHeight/scrollWidth` fit `clientHeight/clientWidth`. Note the instrument: measuring `body` instead would be **vacuous** — `<html>` is `overflow: visible`, so body's `overflow: hidden` propagates to the viewport, body's own overflow resolves to `visible`, and with `height: auto` it grows to fit, making `body.scrollHeight === body.clientHeight` regardless of cropping. That vacuity is **height-specific**: body's used overflow resolves to `visible`, so `body.scrollWidth` still reflects horizontal overflow — measuring `body` would silently lose the vertical finding while keeping the horizontal one
-- [ ] **Ratchet down `/brand`'s 13 `color-contrast` nodes** (`KNOWN_SERIOUS` in `accessibility.test.ts`). 8 are the `.a11y-badge` pass/fail chips, and they are page-local, so this is fixable without touching the site. What will NOT fix it is inverting the badge: contrast is symmetric, so a filled badge with page-background text is the same colour pair and the same 4.25:1. Three real levers — (a) fill the badge and pick a _different_ foreground (`#000` on `#2e8b57` measures 4.95:1, and the dark-theme pair is already 6.60:1), which needs an ink token since bare hex is lint-blocked; (b) change the `--color-success` / `--color-error` light values, which is site-wide; (c) clear WCAG's large-text threshold — **18.66px bold** (14pt), not 14px, so `--text-2xs` is nowhere near it. The remaining 5 are `.brutal-tab__label`, `.brand-tag`, `.project-card__cta`, `.brutal-reg-card__scope`, `.brutal-map-tap-bar__action`
-- [ ] If the ruling is site-wide, `.a11y-badge--fail`-style documented exceptions in BRAND_GUIDELINES § Accessibility are updated or removed accordingly
+- [x] **Ratcheted 2026-08-03 — `/brand` went 13 → 0** and its `KNOWN_SERIOUS` entry was removed entirely rather than zeroed, so a new violation there now fails as an _unknown_ serious rather than sitting under a baseline. One principle covered all 13: **non-interactive labels move the semantic colour to the border/accent and take a readable text token; interactive buttons promote the compliant filled treatment their own `:hover` already defined.**
+  - The 8 `.a11y-badge` chips: text → `--text-primary`, border keeps pass/fail. The lever this AC originally proposed — fill the badge with dark ink — was **rejected on evidence**: `/brand` is the one page with a runtime palette switcher, palettes override `--color-error`, and `#000` on palette 4's `#9f1239` is 2.5:1. axe scans only the default palette, so that regression would never have been caught.
+  - `.brutal-tab--active` (**not** `.brutal-tab__label`, which declares no colour at all) and `.brand-tag` → `--color-tertiary`, matching `.brand-tag--theme` which already measured ~5.2:1.
+  - `.brutal-reg-card__scope` → `--color-tertiary`. It has no `:hover` to promote and is not interactive, so the label treatment applied.
+  - `.brutal-map-tap-bar__action` → filled by default, promoting its own hover pair.
+  - `.project-card__cta` → **deleted with its specimen.** `.project-card` is the live production card, but PortfolioGrid binds its click handler to the whole card, so no CTA button is ever rendered — the `/brand` specimen was documenting a control production does not have.
+  - **Four other baselines had rotted into slack** and were re-measured in the same pass: techpar 4 → 1, tech-debt-calculator 14 → 1, ma-portfolio 2 → 1, radar 2 → 1. A ratchet nobody re-measures stops being a ratchet.
+  - What remains is **one node per route, and it is the same node**: the header's active nav link at 1.88:1. Not page-local — see § Still owed.
+
+- [x] **Done 2026-08-03.** BRAND_GUIDELINES § Accessibility now carries the ruling, the guarded families, the `min-height`-not-`min-width` rule, both documented exceptions with their bases, and the correction that nav/footer/TOC links are **not** covered by 2.5.5's Inline exception (which is "in a sentence or block of text" — the line-height clause belongs to 2.5.8). STYLES_GUIDE and the rendered `/brand` prose in `BrandAccessibility.astro` were brought into line
+
+#### Out of scope, by operator decision 2026-08-03
+
+Not deferred — **decided**. Recorded so nobody re-derives the sweep from first principles and reopens it.
+
+The trigger was asking whether the remaining work actually changed the product. It did: filter chips (`.brutal-filter-chip` ~21px) would more than double, header and footer links would grow on every page and need their active underline rebuilt as an `::after`, and the PalettePanel rail would widen fixed chrome site-wide. All to clear **AAA**.
+
+The measurement settled it. An axe `target-size` probe — that rule implements AA 2.5.8 _including_ its spacing exception, which is the part that cannot be hand-computed — came back **clean on 9 of 10 routes at 390px**, covering every one of those controls. They meet AA; only the AAA figure is unmet.
+
+So: **filter chips, segmented controls, drawer/search closes, header nav links, footer links, TOC links and the PalettePanel rail are closed as out of scope.** 44px stays welcome where it costs nothing; it is not a reason to rebuild working UI. See BRAND_GUIDELINES § Accessibility for the narrowed ruling.
+
+#### Still owed
+
+- **The active nav link at 1.88:1** — the single remaining node on all 16 baselined routes. This is **not** a touch-target item and does not fall under the scope decision above: it is a straight AA _contrast_ failure at under half the required 4.5:1, on the element telling you where you are. A token or header change touching every page.
+- **`wcag22aa` / axe's `target-size` rule as a standing guard.** The probe above was a one-off. Enabling it permanently would catch "no floor at all" across all 20 routes for free — but axe rates it _serious_, so it hard-fails until `/brand`'s 137 swatch-slider nodes (BL-103) are resolved. Sequence it after that.
+- **Under-collected, if ever relevant**: `.brutal-search__result` (~36px listbox option), `.modal__close` (a different family from `.modal-close`). Also worth documenting `.brutal-option-card` as "passes by padding, don't trim", as § Accessibility already does for `.cta-button`.
 
 #### Technical Context
 
 - The floor itself is done: `--touch-target-min` exists, `.brutal-btn` / `.brutal-choice-btn` / `.cta-button` clear it, and `tests/integration/touch-target-floor.test.ts` fails any rule that resolves a button below it — including inside Astro scoped `<style>` blocks, where one of the two real regressions was hiding.
 - 2.5.5 is **Level AAA**. The AA criterion (2.2 SC 2.5.8) is 24×24, which every control above already passes — so this is an enhancement, not a compliance gap. Worth stating plainly before anyone treats the 32px zoom control as a defect.
 - The `/brand` axe entry added with that change uses **both** instruments, deliberately: `checkA11y`'s `exclude` for the two things that are not debt (12 lazy same-origin iframes, whose load state at scan time would make the count nondeterministic; and the `[data-demo-state="hover"]` specimens, which are low-contrast on purpose and must never "improve"), plus a `KNOWN_SERIOUS` baseline of 13 for contrast findings that genuinely are debt. Any route added here needs the same split judgement — exclude what must not change, baseline what should decrease, and never widen the exclusions to make a number go away.
+
+---
+
+### BL-102: Regulatory map — how is the map exposed to assistive tech?
+
+**Source**: surfaced 2026-08-03 the moment `/hub/tools/regulatory-map/` joined the axe sweep (BL-096 AC3) | **Effort**: Small to change, gated on one design call | **Status**: Open — needs the ruling first
+
+**As a** screen-reader user of the regulatory map, **I want** the map to expose either its countries or itself, unambiguously **so that** I am not handed 110 labels that may or may not be announced.
+
+**Two findings, one question.** Both are `serious`, both are excluded (not baselined) in `accessibility.test.ts` with a pointer here:
+
+- **`aria-prohibited-attr`, 110 nodes.** Every `.country-path` carries **both** `role="presentation"` and `aria-label="<country>"`. A global ARIA attribute suppresses the presentation role, so it is genuinely ambiguous whether 110 country names are announced or silent — the markup asks for both.
+- **`nested-interactive`, 1 node.** `#mapSvg` is `role="img"` — "treat this as a single image" — while holding focusable descendants.
+
+**The call to make**: is the map a single image with a text alternative (drop the per-path `aria-label`s, keep the SVG's `role="img"`, and rely on the search + compliance panel for country access), or a navigable structure (drop `role="presentation"`, give the paths real roles, and accept 110 nodes in the a11y tree)? Both are defensible; they produce opposite experiences, and neither should be picked inside a route addition.
+
+**Why excluded rather than baselined**: the 110 tracks the number of country paths in the topojson, so a baseline would be a data-derived number that breaks the day the map data changes — the same fixture-count trap that nearly shipped on the radar feed (see BL-095's note).
+
+#### Acceptance Criteria
+
+- [ ] A ruling on which model the map presents, recorded here
+- [ ] `aria-prohibited-attr` and `nested-interactive` are zero on the route with `#mapSvg` back in scope
+- [ ] The `#mapSvg` exclusion is removed from `accessibility.test.ts`, not merely lowered
+
+---
+
+### BL-103: `/brand`'s palette editor fails AA target size — 137 nodes at 6px
+
+**Source**: an axe `target-size` probe run under BL-096, 2026-08-03 | **Effort**: Small | **Status**: Open
+
+**As a** keyboard or touch user editing a palette on `/brand`, **I want** the RGB sliders to be reachable **so that** I can actually use the editor.
+
+**What it is.** `.swatch-slider` (`SwatchControlStyles.astro`) renders a **131.6 × 6px** track. `target-size` reports **137 such nodes**, all on `/brand`. Unlike everything else BL-096 measured, these get **no relief from 2.5.8's spacing exception** — so this is a genuine **AA** failure, not the AAA gap the rest of the audit turned out to be. It is the only one found across 10 routes.
+
+**Why it matters more than the count suggests**: `/brand` is the page that teaches the design system. A control there failing AA is a worked example of the wrong thing.
+
+**Likely remedy**: raise the track height, or keep the 6px paint and expand the **hit area** — WCAG measures the hit area, not the paint, so `padding` plus a compensating negative margin preserves the visual. Check `palette-panel-controls.test.ts`, which drives sliders by coordinate.
+
+#### Acceptance Criteria
+
+- [ ] `.swatch-slider` clears 24×24 as a target, with the visual design intact or deliberately changed
+- [ ] `target-size` reports zero on `/brand`
+- [ ] Sequenced before enabling `wcag22aa` as a standing guard (BL-096 § Still owed), which this currently blocks
+
+---
+
+### BL-104: Regulatory map — timeline entries are not keyboard-operable
+
+**Source**: the scope limit of BL-096's `#timelineScroll` fix, 2026-08-03 | **Effort**: Small | **Status**: Open
+
+**As a** keyboard user, **I want** to open a regulation from the timeline **so that** the timeline is a control rather than a picture.
+
+**What it is.** BL-096 made `#timelineScroll` focusable so the region can be _scrolled_ by keyboard (WCAG 2.1.1, Level A). The entries inside it are still plain `<div>`s carrying `data-reg-id`, opened by a delegated click handler (`regulatory-map/index.astro` ~:1477) — **no `tabindex`, no role, no key handler**. So a keyboard user can scroll the timeline and still cannot open anything in it. That is the more serious half of the same 2.1.1 failure.
+
+**Why it will not surface on its own**: axe cannot flag a `<div>` with a delegated listener — there is nothing in the markup that says it is interactive. It will never reach the ratchet, which is exactly why it is filed rather than left to be rediscovered.
+
+**Remedy**: make each entry a `<button>`, or give it `tabindex="0"`, a role and Enter/Space handling. Prefer the former — it gets focus, semantics and keys for free.
+
+#### Acceptance Criteria
+
+- [ ] Every timeline entry is reachable by Tab and openable by Enter/Space
+- [ ] Focus is visible against the timeline's own background, per the repo's 2px `--color-primary` convention
+- [ ] The delegated click handler still works, or is replaced deliberately
+
+---
+
+### BL-101: Regulatory map — no single-pointer way back to the world view
+
+**Source**: surfaced 2026-08-03 by BL-096's dead-rule deletion, which had been masking it | **Effort**: Small — one button | **Status**: Open
+
+**As a** mobile visitor to the regulatory map, **I want** a single-pointer way to zoom back out **so that** I am not stranded in a region view unless I can perform a pinch gesture.
+
+**What it is.** Below 1023px `.map-controls` (`#zoomIn` / `#zoomOut` / `#zoomReset`) is `display: none`, and the only zoom affordance is `.brutal-quick-zoom` — four **region presets** (AMR / EUR / APAC / MEA), not incremental controls. So once you are zoomed into a region, the only way back to the world view is **pinch**, which is multipoint.
+
+**Why the framing matters.** "No incremental zoom on mobile" names the wrong defect and invites a `+`/`−` design that is not what is missing — the presets _are_ single-pointer zoom. The gap is specifically the **zoom-out / reset** direction. That makes it a candidate **WCAG 2.5.1 Pointer Gestures (AA)** failure rather than a UX nicety: 2.5.1 exempts user-agent gestures, but this is a d3 zoom behaviour on an SVG, i.e. author-implemented, so the exemption likely does not reach it.
+
+**Remedy**: one more `.brutal-quick-zoom` with `data-region="world"` in the same `#mapQuickZoom` div, wired to the existing `REGION_VIEWS` lookup. Do **not** un-hide `.map-controls` — `regulatory-map-mobile.test.ts:89-95` pins its `display: none` and that is a feature change.
+
+#### Acceptance Criteria
+
+- [ ] A single-pointer control returns the map to the world view at mobile widths
+- [ ] `regulatory-map-mobile.test.ts:77-87` (which asserts exactly 4 quick-zoom buttons) is updated deliberately, not incidentally
+- [ ] The conformance question is settled either way in the commit body — defect closed, or exemption argued
 
 ---
 

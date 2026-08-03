@@ -27,7 +27,13 @@ import DeltaIcon from './DeltaIcon.astro';
     line-height: 1;
     display: flex;
     align-items: center;
-    height: 0.85rem;
+    /* A real 44px hit box whose MARGIN box stays 13.6px, so `.footer-top` is unmoved.
+       The 5rem glyph deliberately overflows this — WCAG 2.5.5 measures the target,
+       not the paint. Padding cannot substitute: `box-sizing: border-box` is global
+       (global.css), so padding would shrink the content box and leave the target at
+       13.6px. See BRAND_GUIDELINES.md § Accessibility. */
+    height: var(--touch-target-min);
+    margin-block: calc((0.85rem - var(--touch-target-min)) / 2);
     touch-action: none;
   }
 
