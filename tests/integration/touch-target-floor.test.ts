@@ -584,6 +584,30 @@ describe('touch-target floor — source sweep', () => {
     ).toEqual([]);
   });
 
+  it('does not excuse a value that has drifted further below the floor', () => {
+    // The entire behavioural delta of matching `===` rather than `<=`. With `<=`, an
+    // entry documenting a 32px control excused ANY smaller value, so a regression to
+    // 30px passed both the sweep and the stale check.
+    const drifted = { file: 'src/styles/components/map.css', selector: '.brutal-quick-zoom' };
+    const entry = FLOOR_EXCEPTIONS.find(
+      (e) => e.file === drifted.file && e.selector === drifted.selector
+    )!;
+    expect(entry, 'fixture assumes the quick-zoom exception exists').toBeDefined();
+
+    const at = (px: number) => ({
+      selector: drifted.selector,
+      prop: 'min-height',
+      value: `${px}px`,
+      px,
+    });
+    expect(matchesException(entry, drifted.file, at(entry.px)), 'documented value is excused').toBe(
+      true
+    );
+    expect(matchesException(entry, drifted.file, at(entry.px - 2)), 'drift is NOT excused').toBe(
+      false
+    );
+  });
+
   it('documents a reason for every exception', () => {
     for (const e of FLOOR_EXCEPTIONS) {
       expect(e.reason.length, `${e.selector} needs a reason, not just an entry`).toBeGreaterThan(
