@@ -217,7 +217,18 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
             ><span class="brutal-timeline-dot brutal-timeline-dot--cyber" aria-hidden="true"></span> Cybersecurity</span
           >
         </div>
-        <div class="timeline-scroll" id="timelineScroll">
+        <!-- tabindex="0" is load-bearing, not decoration: this region scrolls
+             horizontally and without it a keyboard user cannot reach the content that
+             is off-screen. axe rates it `scrollable-region-focusable` (WCAG 2.1.1
+             Keyboard, Level A). The role+label give the focus stop an announceable
+             identity rather than a bare unnamed group. -->
+        <div
+          class="timeline-scroll"
+          id="timelineScroll"
+          tabindex="0"
+          role="region"
+          aria-label="Regulation timeline, scrollable horizontally"
+        >
           <div class="timeline-track" id="timelineTrack">
             <!-- Rendered by client JS -->
           </div>

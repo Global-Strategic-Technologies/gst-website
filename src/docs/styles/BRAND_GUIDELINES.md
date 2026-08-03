@@ -182,7 +182,13 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 - **Contrast**: All text/background combinations should meet WCAG 2.1 AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
 - **Focus indicators**: 2px solid `--color-primary` outline with 2px offset via `.interactive-focus` utility or `:focus-visible` on `.brutal-*` components
 - **Color alone**: Never use color as the sole indicator of state — always pair with text, icons, or patterns
-- **Touch targets**: 44x44px minimum per WCAG 2.5.5 (Level **AAA** — stricter than AA's 24x24 in 2.5.8). **Operator ruling (2026-08-03, BL-096): this is a SITE-WIDE goal, with documented exceptions** — not a guarantee scoped to the button classes.
+- **Touch targets**: 44x44px per WCAG 2.5.5 (Level **AAA**) on the guarded families; **AA's 24x24 (2.5.8) everywhere else**.
+
+  **The ruling, narrowed 2026-08-03 after measurement.** BL-096 first ruled 2.5.5 a site-wide goal with documented exceptions. Applying it turned out to mean visibly rebuilding dense UI — filter chips more than doubling, the header growing on every page, the palette rail widening — all to clear a **AAA** bar. So the operator scoped it back, and the measurement supports that: axe's `target-size` rule (which implements 2.5.8 _including_ its spacing exception) reports **zero failures on 9 of 10 routes at 390px**, covering the 21px chips, the 22px nav links and the 20px palette tabs. Those clear AA on spacing; only the AAA figure is unmet.
+
+  So the honest statement is a guarantee plus an aspiration, not a site-wide rule with a growing exception list:
+  - **Guaranteed and enforced at 44px**: `.brutal-btn`, `.brutal-choice-btn`, `.cta-button`, `.filter-button`, `.modal-close`, `.theme-toggle`.
+  - **Everywhere else**: AA 2.5.8 (24×24 or its spacing exception) is the bar, and it is currently met. 44px is welcome where it costs nothing and is **not** a reason to rebuild a working layout.
 
   **Measure the target, not the element.** 2.5.5 governs the region that accepts the pointer action, so a 16px checkbox inside a `cursor: pointer` `<label>` is already a label-sized target. Check for a larger clickable ancestor before raising anything.
 
@@ -196,7 +202,9 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 
   **Not exempt**, contrary to a common reading: header nav, footer and TOC links. 2.5.5's Inline exception is "the target is in a sentence or block of text" — the line-height clause belongs to 2.5.8. A list of links is not a sentence.
 
-  Of those, **TOC links are a recorded deviation** (operator decision 2026-08-03, BL-096): `.toc__list a` ~28px and `.toc__sublist a` ~24px stay put, because reaching 44px roughly triples TOC height and desktop has no `max-height`, so a sticky TOC would outgrow the viewport — a navigation regression traded for a target-size gain. They clear 2.5.8 AA, so this is an AAA gap rather than a compliance one. Header and footer links remain BL-096's scope.
+  That matters only for the AAA figure, though — and per the narrowed ruling above, header nav, footer links, TOC links, filter chips and the palette rail are all **out of scope by operator decision (2026-08-03)**: each clears AA 2.5.8, and raising any of them visibly rebuilds working UI. Recorded so nobody re-derives the sweep from first principles and reopens it.
+
+  **The one measured AA failure is on `/brand` itself**: the palette editor's RGB tracks (`.swatch-slider`, `SwatchControlStyles.astro`) are 6px tall — 137 nodes, well under 24×24 with no spacing relief. Filed as BL-103. It is the page that teaches the system, which is what makes it worth fixing.
 
   Two instruments, deliberately: the source scan above catches a declaration resolving too low; [`brand-page.test.ts`](../../../tests/e2e/brand-page.test.ts) § Touch targets measures **rendered geometry** at two viewports, which is the only way to catch a control with no floor declared at all — the shape that let `.brutal-btn` sit at 33px
 

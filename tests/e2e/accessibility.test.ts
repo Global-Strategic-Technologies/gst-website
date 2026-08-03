@@ -1,7 +1,7 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA scanning.
  *
- * Scans 9 critical pages for accessibility violations.
+ * Scans 20 critical pages for accessibility violations.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -33,6 +33,52 @@ const PAGES: A11yPage[] = [
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
+  // BL-096 AC3, 2026-08-03: 9 routes -> 20. Deliberately NOT excluded here are the
+  // dev-only gateway cards on /hub/library and /hub/tools (rendered under
+  // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting
+  // zero rather than excluding them is the honest choice: a violation in markup that
+  // never ships would otherwise become a baseline CI can never clear.
+  { name: 'Privacy', path: '/privacy/' },
+  { name: 'Terms', path: '/terms/' },
+  { name: 'Booking Confirmed', path: '/booking-confirmed/' },
+  // Reached the way 404-page.test.ts reaches it — `/404` directly can 308 under
+  // trailingSlash before the error page renders.
+  { name: '404', path: '/this-page-does-not-exist' },
+  { name: 'Hub Library', path: '/hub/library/' },
+  { name: 'Library — Business Architectures', path: '/hub/library/business-architectures/' },
+  { name: 'Library — IRL', path: '/hub/library/information-request-list/' },
+  { name: 'Library — VDR Structure', path: '/hub/library/vdr-structure/' },
+  { name: 'Hub Tools', path: '/hub/tools/' },
+  { name: 'IRL Generator', path: '/hub/tools/information-request-list-generator/' },
+  { name: 'Diligence Machine', path: '/hub/tools/diligence-machine/' },
+  { name: 'ICG', path: '/hub/tools/infrastructure-cost-governance/' },
+  {
+    name: 'Regulatory Map',
+    path: '/hub/tools/regulatory-map/',
+    // The map is d3-rendered after two blocking fetches, so `load` can resolve with an
+    // empty <svg>. Wait for a painted country path instead of the lifecycle.
+    waitFor: '#mapSvg path',
+    exclude: [
+      // Adding this route surfaced two REAL findings, both about the same unanswered
+      // question — how the map is exposed to assistive tech — so both are filed as
+      // BL-102 rather than settled inside a route addition:
+      //
+      //   - aria-prohibited-attr (110 nodes): every `.country-path` carries BOTH
+      //     `role="presentation"` AND `aria-label="<country>"`. A global ARIA attribute
+      //     suppresses the presentation role, so it is genuinely ambiguous whether 110
+      //     country names are announced or silent. Deleting the labels and deleting the
+      //     role are both defensible and produce opposite experiences.
+      //   - nested-interactive (1): the <svg> is `role="img"` — "treat as one image" —
+      //     while holding focusable descendants.
+      //
+      // EXCLUDED rather than baselined, deliberately. The 110 tracks the number of
+      // country paths in the topojson, so a baseline would be a data-derived number
+      // that breaks the day the map data changes — the same fixture-count trap that
+      // nearly shipped on the radar feed. Scoped to the SVG only: the search, filter
+      // chips, region cards and compliance panel all stay in scope.
+      '#mapSvg',
+    ],
+  },
   {
     name: 'Radar',
     path: '/hub/radar/',
@@ -132,6 +178,19 @@ const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
   '/hub/tools/techpar/': { 'color-contrast': 1 },
   '/hub/tools/tech-debt-calculator/': { 'color-contrast': 1 },
   '/hub/radar/': { 'color-contrast': 1 },
+  // The 9 routes added 2026-08-03 (BL-096 AC3). Every one carries exactly the same
+  // single node as the routes above — the header's active nav link at 1.88:1 — which is
+  // why they are uniform. `/privacy/`, `/terms/`, `/booking-confirmed/` and `/404` are
+  // absent because they have NO active nav link and came back clean.
+  '/hub/library/': { 'color-contrast': 1 },
+  '/hub/library/business-architectures/': { 'color-contrast': 1 },
+  '/hub/library/information-request-list/': { 'color-contrast': 1 },
+  '/hub/library/vdr-structure/': { 'color-contrast': 1 },
+  '/hub/tools/': { 'color-contrast': 1 },
+  '/hub/tools/information-request-list-generator/': { 'color-contrast': 1 },
+  '/hub/tools/diligence-machine/': { 'color-contrast': 1 },
+  '/hub/tools/infrastructure-cost-governance/': { 'color-contrast': 1 },
+  '/hub/tools/regulatory-map/': { 'color-contrast': 1 },
 };
 
 test.describe('Accessibility — WCAG 2.1 AA', () => {
