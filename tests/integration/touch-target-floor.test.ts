@@ -24,8 +24,13 @@
  *     floor token is conformant by construction, but a declaration pointed at some
  *     other token could resolve anywhere, and blanket-skipping `var(` would wave a
  *     32px one through in silence.
- *   - Only `min-height` / `min-width` are checked. A fixed `height` below the floor is
- *     a different (and rarer) shape; see BL-096.
+ *   - `min-height`, `min-width`, `height` and `width` are all checked (BL-096 widened
+ *     this). A fixed `height` is a ceiling as well as a floor, and it is how
+ *     `.theme-toggle` sat at 13.6px and `.filter-button` at 38px, both invisible to the
+ *     original min-only scan.
+ *   - Selector matching is anchored to the LAST COMPOUND of each selector, split on
+ *     top-level commas. Once `height`/`width` are guarded that distinction is
+ *     load-bearing: `.filter-button svg { width: 20px }` sizes an icon, not a target.
  *   - `min-width: 0` IS flagged, even though it is a common flex-shrink idiom rather
  *     than a touch-target statement. On a guarded selector it is worth a look, and a
  *     deliberate one can say so in the same breath as widening this comment.
@@ -36,7 +41,11 @@
  * Structural limit worth knowing: this is a DECLARED-VALUE scan. It can only judge a
  * declaration that exists, so it catches an override that resolves too low — it can
  * never catch a component with no floor at all, which is exactly how `.brutal-btn`
- * sat at 33px. That gap belongs to the /brand geometry E2E, not here.
+ * sat at 33px. That gap belongs to the /brand geometry E2E, not here. Be honest about
+ * the reach: of the ~30 sub-44 controls BL-096's audit found, this scan sees 5.
+ *
+ * Documented exceptions live in `FLOOR_EXCEPTIONS` below, each with a reason, and a
+ * STALE entry fails the suite — an exception cannot outlive the control it excuses.
  *
  * No CSS parsing library is a dependency of this repo (by design — see
  * `docs-link-integrity.test.ts`), so the scanner is hand-rolled and proven against
@@ -60,9 +69,11 @@ const VARIABLES_CSS = resolve(REPO_ROOT, 'src/styles/variables.css');
  * docs name it, even though it currently clears 44px by padding at most widths and
  * only carries the token below 480px.
  *
- * Known coupling: matching is by CLASS NAME, so a bespoke class on a button element
- * (`.icg-back-link`, `.deploy-btn`, `.filter-button`) is outside the net even when it
- * renders a button. Those are BL-096's audit list, not this guard's.
+ * BL-096's operator ruling made the floor a SITE-WIDE goal with documented exceptions,
+ * so this set grows as each slice lands rather than tracking only the button classes.
+ * Matching is still by CLASS NAME, so a bespoke class not listed here (`.icg-back-link`,
+ * `.deploy-btn`) is outside the net even when it renders a button — see BL-096
+ * § Still owed for what remains.
  */
 const GUARDED_SELECTOR_RE =
   /\.(?:brutal-(?:btn|choice-btn|map-control|quick-zoom)|cta-button|filter-button|modal-close|theme-toggle)/;

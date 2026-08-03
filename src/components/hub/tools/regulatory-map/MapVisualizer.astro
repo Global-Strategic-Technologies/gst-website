@@ -261,18 +261,12 @@ import '../../../../styles/components/map.css';
     }
   }
 
-  /* Mobile zoom button touch targets */
-  @media (max-width: 767px) {
-    .brutal-map-control {
-      width: var(--touch-target-min);
-      height: var(--touch-target-min);
-    }
-
-    .brutal-map-control svg {
-      width: 20px;
-      height: 20px;
-    }
-  }
+  /* The `@media (max-width: 767px)` block that sized `.brutal-map-control` to the touch
+     target was DELETED in BL-096: it could never paint. `.map-controls` — the only
+     ancestor of those three buttons — is `display: none` below 1023px (see above), so
+     at every width where the sizing applied, the whole cluster was hidden. The controls
+     are desktop-only at 32px, a documented deviation recorded in BRAND_GUIDELINES.md
+     § Accessibility and enforced by FLOOR_EXCEPTIONS in touch-target-floor.test.ts. */
 
   /* Tooltip visibility */
   .brutal-map-tooltip {
