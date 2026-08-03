@@ -35,7 +35,7 @@ export interface AxeViolation {
  * Run an axe-core accessibility scan on the current page.
  *
  * @param page - Playwright page object (must already be navigated)
- * @param options.tags - WCAG tags to check (default: WCAG 2.1 AA)
+ * @param options.tags - WCAG tags to check (default: WCAG 2.1 AA + 2.2 AA)
  * @param options.exclude - CSS selectors to exclude from scanning
  */
 export async function checkA11y(
@@ -45,8 +45,18 @@ export async function checkA11y(
     exclude?: string[];
   }
 ): Promise<A11yResult> {
+  // `wcag22aa` added 2026-08-03 (BL-096 § Still owed). In axe-core **4.12.1** it
+  // selects exactly ONE rule, `target-size` — verified, not assumed, because the
+  // tag is the only thing standing between this suite and the AA half of the
+  // touch-target ruling: `touch-target-floor.test.ts` enforces 44px on the guarded
+  // families from source, and this enforces 24x24 on everything else, rendered.
+  //
+  // Pin that version claim deliberately. A future axe bump can add rules to the
+  // tag, and a silently widened guard is how a "free" check turns into a surprise
+  // failure nobody budgeted for. If an unfamiliar rule appears here after an
+  // upgrade, that is why — triage it, do not reflexively baseline it.
   let builder = new AxeBuilder({ page }).withTags(
-    options?.tags ?? ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
+    options?.tags ?? ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
   );
 
   if (options?.exclude) {

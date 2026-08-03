@@ -1,9 +1,15 @@
 /**
- * Accessibility E2E Tests — axe-core WCAG 2.1 AA scanning.
+ * Accessibility E2E Tests — axe-core WCAG 2.1 AA + 2.2 AA scanning.
  *
  * Scans 22 critical pages for accessibility violations.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
+ *
+ * The 2.2 AA tag (`target-size`) was added 2026-08-03 once /brand's palette editor
+ * was fixed — see the tag rationale in helpers/a11y.ts. BL-096 predicted it would
+ * "hard-fail until BL-103 is resolved"; measured, 21 of the 22 routes were already
+ * clean and /brand was the sole failure. Recorded because the prediction was
+ * pessimistic and the cost of the guard was close to zero.
  *
  * Run locally: npm run test:a11y
  */
@@ -183,7 +189,7 @@ const PAGES: A11yPage[] = [
  */
 const KNOWN_SERIOUS: Record<string, Record<string, number>> = {};
 
-test.describe('Accessibility — WCAG 2.1 AA', () => {
+test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
   for (const pg of PAGES) {
     test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
       if (pg.waitFor) {
