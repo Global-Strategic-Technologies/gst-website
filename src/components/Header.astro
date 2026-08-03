@@ -153,8 +153,13 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     border-bottom: 2px solid transparent;
   }
 
+  /* Ink is --color-tertiary, not --color-primary: #05cd99 on the #f5f5f5 header
+     measures 1.88:1, and at 14px/700 (10.5pt — under the 14pt-bold large-text
+     threshold) the bar is 4.5:1. --color-tertiary is light-dark(#02724f, #05cd99),
+     so light theme gets 5.47:1 and dark is unchanged. The accent keeps
+     --color-primary, per the .brutal-tab--active treatment (BL-096). */
   .site-header nav a:not(.logo):hover {
-    color: var(--color-primary);
+    color: var(--color-tertiary);
     border-bottom-color: var(--color-primary);
   }
 
@@ -163,8 +168,10 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     outline-offset: 0.25rem;
   }
 
+  /* Same treatment as :hover above — the two states are one visual design, and
+     leaving hover on --color-primary would LOWER contrast on the active link. */
   .site-header nav a:not(.logo).active {
-    color: var(--color-primary);
+    color: var(--color-tertiary);
     border-bottom-color: var(--color-primary);
   }
 

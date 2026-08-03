@@ -591,6 +591,67 @@ test.describe('Brand Page', () => {
       expect(sGap, 'nav specimen list gap vs real header nav').toBe(pGap);
     });
 
+    /**
+     * The ACTIVE link is its own parity dimension, and the test above is
+     * structurally blind to it: both sides use `.first()`, which is the
+     * non-active "Services" link (`--text-secondary` in both). BL-096 changed the
+     * active ink from `--color-primary` (1.88:1) to `--color-tertiary` and found
+     * the specimen still hardcoding the old token — drift the guard could not see.
+     *
+     * This one reads TWO pages, because `/brand` has no active nav link to compare
+     * against: `BaseLayout.astro` passes `Astro.url.pathname` and `Header.astro`
+     * marks `active` only for `/services`, `/ma-portfolio`, `/hub` and `/about`.
+     * That absence is why the test above settled for `.first()` in the first place.
+     *
+     * Asserting the specimen against a resolved `var(--color-tertiary)` would be
+     * cheaper and weaker — it cannot see production moving to some third token.
+     */
+    test('active nav link specimen matches the real active header nav link', async ({ page }) => {
+      /**
+       * Transitions are suppressed before every read. `.site-header nav a` declares
+       * `transition: color var(--transition-fast)`, and the theme script re-resolves
+       * `light-dark()` after first paint — so an immediate read samples the animation
+       * rather than the value. It caught this test out with `rgb(4, 181, 134)`, which
+       * is `#05cd99 → #02724f` about a quarter of the way through.
+       *
+       * The test above never hit this because it compares two elements on ONE page,
+       * which transition together. Reading across two navigations does not.
+       */
+      const freeze = () =>
+        page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+      const readInk = (l: ReturnType<typeof page.locator>) =>
+        l.evaluate((el) => {
+          const cs = getComputedStyle(el);
+          return { color: cs.color, borderBottomColor: cs.borderBottomColor };
+        });
+
+      await page.goto('/services/', { waitUntil: 'domcontentloaded' });
+      const production = page.locator('.site-header nav a:not(.logo).active');
+      await expect(production).toBeVisible();
+      await freeze();
+      const p = await readInk(production);
+
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      const specimen = page.locator('[data-specimen-nav-active]');
+      await expect(specimen).toBeVisible();
+      await freeze();
+      const s = await readInk(specimen);
+
+      expect(s.color, 'active nav specimen ink vs real active header nav link').toBe(p.color);
+      expect(s.borderBottomColor, 'active nav specimen accent vs real active header nav link').toBe(
+        p.borderBottomColor
+      );
+
+      // `.nav-link.active` (typography.css) is a SECOND carrier of the same ink,
+      // rendered as its own specimen beside the replica. It has no production
+      // consumer, which is precisely why it drifts unnoticed — it did, and needed a
+      // hand-correction in the slice that added this test.
+      const utility = page.locator('.nav-link.active');
+      await expect(utility).toBeVisible();
+      const u = await readInk(utility);
+      expect(u.color, '.nav-link.active utility ink vs real active header nav link').toBe(p.color);
+    });
+
     test('footer link specimen matches the real footer links', async ({ page }) => {
       const specimen = page.locator('[data-specimen-footer-links] a').first();
       const production = page.locator('footer .footer-links a').first();

@@ -489,21 +489,27 @@ Brand-page specimen overrides (search, filter, modal, stats, CTA box) were moved
 
 ## Accessibility testing
 
-The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-core/playwright` for automated WCAG 2.1 AA scanning.
+The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-core/playwright` for automated **WCAG 2.1 AA + 2.2 AA** scanning.
 
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 9 critical pages (Chromium, ~6 seconds)
+npm run test:a11y        # Scans 22 routes (Chromium, ~9 seconds)
 ```
 
-This runs `tests/e2e/accessibility.test.ts` which scans: Homepage, Services, About, M&A Portfolio, Hub, TechPar, Tech Debt Calculator, Brand, and Radar. (`/hub/radar/` waits for its `server:defer` island to resolve before scanning; with no `MCP_KEY_WEBSITE_RADAR` bound it scans the shell plus the empty state — bind `npm run radar:stub` to cover the feed items too.)
+This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all five tool pages, plus `/brand` and `/hub/radar/`.
+
+`/hub/radar/` waits for its `server:defer` island to resolve before scanning; with no `MCP_KEY_WEBSITE_RADAR` bound it scans the shell plus the empty state — bind `npm run radar:stub` to cover the feed items too.
+
+The `wcag22aa` tag was added 2026-08-03 and selects exactly one rule in axe-core 4.12.1: `target-size`. It enforces the AA half of the touch-target ruling (24×24) on every scanned route; `tests/integration/touch-target-floor.test.ts` enforces the 44px AAA floor on the guarded families from source. See [BRAND_GUIDELINES § Accessibility](../styles/BRAND_GUIDELINES.md#accessibility).
 
 ### How the ratchet works
 
 - **Critical violations**: must always be zero — blocks merge
-- **Serious violations**: new violation IDs must be zero; pre-existing violations (color-contrast, nested-interactive) are tracked in a `KNOWN_SERIOUS` map with per-page max node counts that can only decrease
+- **Serious violations**: new violation IDs must be zero; pre-existing ones can be tracked in a `KNOWN_SERIOUS` map of per-page max node counts
 - **Moderate/minor**: logged for visibility, not enforced
+
+`KNOWN_SERIOUS` is **currently empty**, and that is the finished state rather than an unfilled one — its last 16 entries were all the same active-nav-link contrast node, closed 2026-08-03. Two guards flank it and both matter the moment anything is added: the ratchet fails on _exceeding_ a baseline, and a stale-baseline guard fails on falling _under_ one, so an entry of `n` asserts exactly `n`. Prefer deleting an entry that reaches zero over zero-valuing it — with no entry, a regression fails as an **unknown** serious violation, which is louder.
 
 ### Shared helper
 

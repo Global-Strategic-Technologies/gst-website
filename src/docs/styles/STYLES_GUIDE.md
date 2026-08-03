@@ -460,7 +460,7 @@ Additional breakpoints used sparingly:
 
 ### Touch Targets
 
-Interactive controls clear **44×44px** — WCAG 2.5.5, Level AAA. Use the `--touch-target-min` token, never a raw `44px`:
+**Two floors, and the difference is a ruling, not a preference.** The guarded component families clear **44×44px** (WCAG 2.5.5, AAA) via `--touch-target-min`; everywhere else the bar is **24×24px** (2.5.8, AA) via `--touch-target-min-aa`. Never a raw `44px` or `24px` — see [BRAND_GUIDELINES § Accessibility](./BRAND_GUIDELINES.md#accessibility) for which controls sit where and why the AAA sweep was scoped back. The AA floor is enforced by axe's `target-size` on every route `accessibility.test.ts` scans, so dropping below it fails CI.
 
 ```css
 .my-control {

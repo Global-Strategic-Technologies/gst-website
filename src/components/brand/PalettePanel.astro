@@ -360,8 +360,19 @@ import { palettes } from '../../data/palettes';
     flex: 1;
   }
 
+  /* min-height is the AA floor (2.5.8), not the AAA one. These were 32x22 and
+     failed `target-size` on BOTH its checks — size, and spacing at a 22px pitch.
+     BL-096's original probe ran at 390px, where `.palette-panel__edge` is
+     `display: none` and the tabs measure 0x0, which is how they were recorded as
+     clearing AA. They do not; they were never measured.
+
+     This is NOT the rail raise the operator ruled out of scope — that was 44px
+     (AAA) and would have widened fixed chrome site-wide. The edge is
+     content-height, so this grows the closed rail by 12px total and leaves its
+     32px width alone. The mobile-header clones already declare 40px below. */
   .palette-panel__tab {
     flex: 1;
+    min-height: var(--touch-target-min-aa);
     display: flex;
     align-items: center;
     justify-content: center;
