@@ -751,7 +751,7 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 
 **Source**: gap analysis of the deployed server against MCP spec revision `2026-07-28` | **Shipped**: `@gst/mcp-server` 0.44.0 (PR #382) | **Outcome**: the remote Worker serves `2026-07-28` only; stdio deliberately keeps serving the legacy era | **Decisions**: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) | **Full analysis**: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)
 
-Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because the standing caution below has nowhere better to live at stanza level, and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury.
+Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because the unreproduced instance behind the [`CLAUDE.md`](../../../.claude/CLAUDE.md) flake rule is stanza-level evidence with no better home, and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury.
 
 **What shipped**: migration to `@modelcontextprotocol/server@2.0.0`; `Mcp-Method` / `Mcp-Name` through the CORS preflight; `ttlMs` / `cacheScope` published on library and regulation reads; `cors.ts` promoted to sole origin authority; production `npm audit` restored to zero (it was already failing on `master`).
 
