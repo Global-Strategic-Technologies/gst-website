@@ -296,7 +296,7 @@ export function registerGenerateIrlXlsxTool(
     {
       title: 'Generate Information Request List (.xlsx)',
       description: TOOL_DESCRIPTION,
-      inputSchema: GenerateIrlXlsxInputSchema.shape,
+      inputSchema: GenerateIrlXlsxInputSchema,
       annotations: {
         readOnlyHint: true,
         idempotentHint: false, // each call uses `new Date()` → new filename

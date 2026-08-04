@@ -119,7 +119,7 @@ export function registerValidateIrlProvenanceTool(
     {
       title: 'Validate IRL provenance',
       description: TOOL_DESCRIPTION,
-      inputSchema: ValidateIrlProvenanceInputObject.shape,
+      inputSchema: ValidateIrlProvenanceInputObject,
     },
     withToolMetrics('validate_irl_provenance', metrics, (payload: ValidateIrlProvenanceInput) =>
       handleValidateIrlProvenanceTool(payload, metrics)

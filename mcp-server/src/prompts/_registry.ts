@@ -96,13 +96,6 @@ export function registerPrompts(
 ): void {
   for (const prompt of ALL_PROMPTS) {
     assertPromptInvariants(prompt);
-    // SDK v1.29's `registerPrompt` expects `argsSchema` to be a ZodRawShape
-    // (the `{ key: ZodType }` map), not a wrapped `z.object({...})`. Passing
-    // the wrapped object causes the SDK to enumerate ZodObject's prototype
-    // methods (keyof / catchall / passthrough / loose / strict / strip) as
-    // if they were arguments — surfacing in Claude Desktop as bogus form
-    // fields. `.shape` extracts the raw map. See registry-shape regression
-    // test alongside this file.
     // BL-045 PR B: instrument `gst_irl_ingestion`'s server-side-observable
     // signals (forceTools usage) at the build seam. Wrap the build function
     // with a forceTools sniffer; the wrapper emits the `force_tools_used`
@@ -162,7 +155,17 @@ export function registerPrompts(
       prompt.name,
       {
         description: prompt.description,
-        argsSchema: prompt.argsSchema.shape,
+        // BL-106 — the wrapped `z.object({...})`, not `.shape`.
+        //
+        // SDK v1 accepted only a ZodRawShape here, and passing the wrapped
+        // object made it enumerate ZodObject's prototype methods (keyof /
+        // catchall / passthrough / loose / strict / strip) as if they were
+        // arguments — surfacing in Claude Desktop as bogus form fields, which
+        // is why `.shape` was here. SDK v2 takes a StandardSchema directly and
+        // derives the argument list via `~standard.jsonSchema`, so the raw map
+        // is unnecessary and its overload is `@deprecated`. The prompts-args
+        // regression tests still pin the resulting argument names.
+        argsSchema: prompt.argsSchema,
       },
       withPromptMetrics(prompt.name, metrics, wrappedBuild)
     );

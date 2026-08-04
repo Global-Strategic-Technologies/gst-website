@@ -140,7 +140,7 @@ export function registerComposeDossierEnvelopeTool(
     {
       title: 'Compose dossier envelope (meta fence + (J) gap list + (K) provenance footer)',
       description: TOOL_DESCRIPTION,
-      inputSchema: ComposeDossierEnvelopeInputSchema.shape,
+      inputSchema: ComposeDossierEnvelopeInputSchema,
     },
     withToolMetrics(
       'compose_dossier_envelope',

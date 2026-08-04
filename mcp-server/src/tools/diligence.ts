@@ -162,7 +162,7 @@ export function registerDiligenceTool(
     {
       title: 'Generate Diligence Agenda',
       description: TOOL_DESCRIPTION,
-      inputSchema: AuditedUserInputsSchema.shape,
+      inputSchema: AuditedUserInputsSchema,
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,
