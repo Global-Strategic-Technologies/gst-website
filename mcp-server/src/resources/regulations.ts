@@ -32,6 +32,10 @@ export function registerRegulationResources(
         title: entry.data.name,
         description: entry.data.summary,
         mimeType: 'application/json',
+        // BL-106 — see library.ts for the rationale. Regulation frameworks
+        // change infrequently and atomically per-framework, so the same 24h
+        // policy applies. `'public'`: the cache key carries no `keyOwner`.
+        cacheHint: { ttlMs: RESOURCE_TTL_SECONDS.REGULATION * 1000, cacheScope: 'public' },
       },
       withResourceMetrics(entry.uri, metrics, async (uri: URL) => {
         const { body, mimeType } = await readThroughCache(

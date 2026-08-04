@@ -37,8 +37,6 @@ export const RESOURCE_TTL_SECONDS = {
   REGULATION: 24 * 60 * 60,
   /** Radar list snapshots: 15 min, matches the BL-032.5 Cron refresh cadence. */
   RADAR: 15 * 60,
-  /** Radar items are effectively immutable once published; 24h. */
-  RADAR_ITEM: 24 * 60 * 60,
 } as const;
 
 /** What `readThroughCache` returns. Body shape is identical hit-vs-miss. */

@@ -142,6 +142,50 @@ describe('BL-106 — Worker protocol era', () => {
     expect(res.headers.get('access-control-allow-origin')).not.toBe('*');
   });
 
+  it('publishes cache hints on a library read, and none on radar (BL-091 safety)', async () => {
+    const readResource = async (uri: string) =>
+      readJsonRpc(
+        await worker.fetch('/mcp', {
+          ...modernRequest('resources/read', { 'Mcp-Name': uri }),
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'resources/read',
+            params: {
+              uri,
+              _meta: {
+                'io.modelcontextprotocol/protocolVersion': MODERN_VERSION,
+                'io.modelcontextprotocol/clientInfo': { name: 'gst-test-client', version: '1.0.0' },
+                'io.modelcontextprotocol/clientCapabilities': {},
+              },
+            },
+          }),
+        })
+      );
+
+    // Library: the 24h server-side policy is now advertised to the client.
+    //
+    // NOTE: assert on `result` UNCONDITIONALLY. An earlier draft guarded these
+    // with `if (result)` and used a URI that does not exist — so the library
+    // half asserted nothing at all while the test reported green. If the URI
+    // below ever stops resolving, this must fail loudly rather than skip.
+    const lib = await readResource('gst://library/information-request-list');
+    expect(lib.error).toBeUndefined();
+    const libResult = lib.result as { ttlMs?: number; cacheScope?: string };
+    expect(libResult.ttlMs).toBe(24 * 60 * 60 * 1000);
+    expect(libResult.cacheScope).toBe('public');
+
+    // Radar: deliberately no registered hint, so the SDK's conservative
+    // default applies. A non-zero ttl here would mean a degraded
+    // "snapshot not populated" body could be cached client-side for 15
+    // minutes — the BL-091 failure, moved somewhere we cannot invalidate.
+    const radar = await readResource('gst://radar/wire/latest');
+    expect(radar.error).toBeUndefined();
+    const radarResult = radar.result as { ttlMs?: number; cacheScope?: string };
+    expect(radarResult.ttlMs).toBe(0);
+    expect(radarResult.cacheScope).toBe('private');
+  });
+
   it('rejects a 2025-era initialize handshake (modern-only)', async () => {
     const res = await worker.fetch('/mcp', {
       method: 'POST',

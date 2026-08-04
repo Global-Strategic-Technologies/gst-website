@@ -30,6 +30,14 @@ export function registerLibraryResources(
         title: entry.name,
         description: entry.description,
         mimeType: entry.mimeType,
+        // BL-106 — publish the freshness policy we already enforce server-side.
+        // `RESOURCE_TTL_SECONDS.LIBRARY` has always governed the Upstash
+        // read-through cache; until now it was invisible to clients, so they
+        // re-polled on their own schedule. `cacheScope: 'public'` is honest:
+        // the cache key is `sha256(uri)` with no `keyOwner` in it, so the body
+        // is already shared across callers. Only sent on 2026-07-28 requests;
+        // earlier revisions have no cache-hint field at all.
+        cacheHint: { ttlMs: RESOURCE_TTL_SECONDS.LIBRARY * 1000, cacheScope: 'public' },
       },
       withResourceMetrics(entry.uri, metrics, async (uri: URL) => {
         const { body, mimeType } = await readThroughCache(

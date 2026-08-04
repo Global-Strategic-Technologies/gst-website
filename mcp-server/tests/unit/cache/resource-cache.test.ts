@@ -276,6 +276,5 @@ describe('RESOURCE_TTL_SECONDS — policy constants', () => {
     expect(RESOURCE_TTL_SECONDS.LIBRARY).toBe(86_400);
     expect(RESOURCE_TTL_SECONDS.REGULATION).toBe(86_400);
     expect(RESOURCE_TTL_SECONDS.RADAR).toBe(900);
-    expect(RESOURCE_TTL_SECONDS.RADAR_ITEM).toBe(86_400);
   });
 });
