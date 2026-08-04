@@ -709,9 +709,23 @@ npm audit --audit-level=moderate --omit=dev
 
 Moved here from the main Test Suite (2026-05-31): the audit result is a function of the lockfile only, so running on every code push was pure waste.
 
-**Why `--omit=dev`**: dev-only advisories (e.g., `@astrojs/check` → `yaml-language-server` → `yaml`) affect local development tooling but never reach users. Production dependencies must stay at zero advisories; dev-only moderate advisories are tolerated and revisited case-by-case.
+**Why `--omit=dev`**: dev-only advisories (e.g., `@astrojs/check` → `yaml-language-server` → `yaml`) affect local development tooling but never reach users. **Production dependencies must stay at zero advisories — that is the enforced gate.** Dev-only advisories are tolerated **at any severity, including high**, and revisited case-by-case; the deciding question is reachability, not the CVSS band, because a flaw in a CLI that runs on a developer's machine or in CI has a different threat model from one in code served to users.
 
-**Current production state**: **zero vulnerabilities** on the enforced gate (`--omit=dev`), verified 2026-08-04 (BL-106). The gate had regressed to **8 production advisories on `master`** — 4 moderate, 4 high — from newly-published CVEs against already-pinned versions (`hono@4.12.32`, `fast-uri@3.1.4`, `ip-address@10.2.0`, `brace-expansion@5.0.8`). This was fleet-wide drift, not introduced by a PR; it was cleared by advancing each pin to its patched release, all within the same major. Previously verified 2026-07-24. The **full tree (dev included) carries 3 dev-only advisories** (2 moderate, 1 high — measured 2026-08-04): `wrangler → miniflare → undici`, tolerated per the `--omit=dev` policy above because wrangler is a local dev/deploy CLI that never ships to users. The previously-cited `@lhci/cli → chrome-launcher → rimraf@3 → glob@7 → minimatch@3.1.5 → brace-expansion` example is **no longer a finding** — that chain resolves `brace-expansion@1.1.18` and is clean. Restored to prod-zero on 2026-07-24 after a batch of newly-published CVEs (fleet-wide, not introduced by any single PR) regressed the tree: a non-breaking `npm audit fix` cleared the `tar`/`sharp`/`postcss`/`svgo` chains (incl. a critical `tar` node-tar advisory), and the override bumps below cleared the rest.
+Two consequences worth stating, since the severity-blind rule is easy to misread as laxness:
+
+- **Tolerated is not ignored.** Each dev-only advisory should have a named chain and a reason it cannot reach users (see the current state below). An advisory nobody can explain is a finding, whatever the tool says.
+- **The gate is severity-based (`--audit-level=moderate`) but the _policy_ is not.** The flag exists so the command exits non-zero on anything that matters in production; it is not a statement that dev-only highs are acceptable and dev-only moderates are not.
+
+_(This paragraph previously read "dev-only **moderate** advisories are tolerated", which never matched practice — the tree has carried tolerated dev-only highs continuously. Corrected 2026-08-04.)_
+
+**Current production state** (measured 2026-08-04, BL-106): **zero vulnerabilities** on the enforced gate (`--omit=dev`).
+
+The **full tree, dev included, carries 3 dev-only advisories** (2 moderate, 1 high), all one chain: `wrangler → miniflare → undici`. Tolerated per the policy above — wrangler is a local dev/deploy CLI and never ships to users.
+
+History, most recent first:
+
+- **2026-08-04 (BL-106)** — the gate had regressed to **8 production advisories** (4 moderate, 4 high) from newly-published CVEs against already-pinned versions: `hono@4.12.32`, `fast-uri@3.1.4`, `ip-address@10.2.0`, `brace-expansion@5.0.8`. Fleet-wide drift, not introduced by a PR. Cleared by advancing each pin to its patched release, all within the same major. The `@lhci/cli → chrome-launcher → rimraf@3 → glob@7 → minimatch@3.1.5 → brace-expansion` chain cited here for months is **no longer a finding** — it resolves `brace-expansion@1.1.18` and is clean.
+- **2026-07-24** — restored to prod-zero after an earlier batch of newly-published CVEs regressed the tree: a non-breaking `npm audit fix` cleared the `tar`/`sharp`/`postcss`/`svgo` chains (including a critical node-tar advisory), and the override bumps below cleared the rest.
 
 **Package overrides** — see [package.json](../../../package.json) `overrides` block:
 
