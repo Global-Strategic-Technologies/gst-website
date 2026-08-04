@@ -12,7 +12,7 @@
  * `mcp-server/src/docs/ARCHITECTURE.md` for the rationale.
  */
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/server';
 import { registerDiligenceTool } from './tools/diligence';
 import { registerPortfolioTools } from './tools/portfolio';
 import { registerIcgTool } from './tools/icg';
@@ -43,10 +43,15 @@ import { createCacheStore } from './lib/upstash-cache-store';
 import type { Env } from './worker';
 
 /**
- * Per-request context threaded into the server registry by the
+ * Per-request options threaded into the server registry by the
  * Worker fetch handler. Stdio callers pass `{}` (defaults below).
+ *
+ * Named `ServerFactoryOptions` rather than `ServerContext` (BL-106): the MCP
+ * SDK v2 exports its own `ServerContext` — the per-request handler context
+ * carrying `mcpReq` / `http` — and a file importing both would have to alias
+ * one. These are different things; the names should say so.
  */
-export interface ServerContext {
+export interface ServerFactoryOptions {
   /**
    * Scope set granted to this request's caller. Defaults to
    * `DEFAULT_SCOPES` (full grant — stdio entrypoint, single user).
@@ -132,7 +137,7 @@ export interface ServerContext {
  * still register but return a `config-missing` error envelope when
  * Inoreader creds aren't bound at the runtime level.
  */
-export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer {
+export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): McpServer {
   const server = new McpServer(
     {
       name: 'gst-mcp',
@@ -164,8 +169,20 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
   // Worker path MUST NOT fall back to in-memory: Cloudflare isolates rotate
   // between requests, so an in-memory cache populated by `prepare_irl_body`
   // would silently miss the subsequent `compose_dossier_envelope` call from
-  // a different isolate. Fail fast at startup time when Upstash bindings
-  // are absent in Worker mode (audit R-3).
+  // a different isolate — so an absent binding must fail loudly (audit R-3).
+  //
+  // BL-106 — resolution is LAZY. This block used to run eagerly and throw
+  // during registration, which the original comment described as failing "at
+  // startup time". Under the SDK v2 factory there is no startup: `createServer`
+  // runs per request, so an unbound Upstash turned EVERY call into a -32603 —
+  // including `tools/list`, and including the fourteen tools that never touch
+  // this cache. One tool's runtime dependency was gating the whole surface.
+  //
+  // Deferring resolution to first use preserves the R-3 invariant exactly (an
+  // unbound Worker still throws the same error, with the same message, rather
+  // than silently degrading to in-memory) while scoping the blast radius to the
+  // two tools that actually read it. Production binds Upstash, so this changes
+  // nothing there; it is dev, test, and partial-outage behaviour that improves.
   const irlBodyCache: IrlBodyCache = (() => {
     // Test override path: short-circuit the stdio/Worker discriminator.
     if (ctx.irlBodyCache) {
@@ -175,17 +192,26 @@ export function createServer(env: Env = {}, ctx: ServerContext = {}): McpServer 
       // Stdio.
       return new InMemoryIrlBodyCache();
     }
-    // Worker — require Upstash.
-    const store = createCacheStore(env);
-    if (!store) {
-      throw new Error(
-        'BL-076 requires Upstash bindings in Worker mode: createCacheStore returned null. ' +
-          'compose_dossier_envelope fetches the IRL body from a shared cache; an in-memory ' +
-          'fallback would silently miss across isolate rotations. Bind UPSTASH_* env vars or ' +
-          'switch to stdio.'
-      );
-    }
-    return new UpstashIrlBodyCache(store);
+    // Worker — require Upstash, resolved on first use.
+    let resolved: IrlBodyCache | undefined;
+    const resolve = (): IrlBodyCache => {
+      if (resolved) return resolved;
+      const store = createCacheStore(env);
+      if (!store) {
+        throw new Error(
+          'BL-076 requires Upstash bindings in Worker mode: createCacheStore returned null. ' +
+            'compose_dossier_envelope fetches the IRL body from a shared cache; an in-memory ' +
+            'fallback would silently miss across isolate rotations. Bind UPSTASH_* env vars or ' +
+            'switch to stdio.'
+        );
+      }
+      resolved = new UpstashIrlBodyCache(store);
+      return resolved;
+    };
+    return {
+      set: (hash, body) => resolve().set(hash, body),
+      get: (hash) => resolve().get(hash),
+    };
   })();
 
   const metrics: MetricsContext =

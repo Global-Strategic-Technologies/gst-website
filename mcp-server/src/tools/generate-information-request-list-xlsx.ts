@@ -35,7 +35,7 @@
  */
 
 import { z } from 'zod';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';

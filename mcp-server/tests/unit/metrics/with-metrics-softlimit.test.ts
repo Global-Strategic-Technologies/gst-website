@@ -4,9 +4,17 @@
  *
  * The wrapper reads the boundary's already-computed rate-limit result from
  * `MetricsContext.rateLimit` and, when some bucket is ≥80% spent, writes a
- * best-effort warning onto the request's SSE stream via `extra.sendNotification`.
+ * best-effort warning onto the request's SSE stream via `ctx.mcpReq.notify`.
  * These tests pin: fires at/under the 0.20 threshold, silent above it, never
  * throws when the notifier is absent or rejects, and is gated to tool calls.
+ *
+ * BL-106 — the fake below moved from SDK v1's flat `{ sendNotification }` to
+ * v2's nested `{ mcpReq: { notify } }`. That rename is exactly why these tests
+ * are load-bearing: before the migration they built their own v1-shaped fake,
+ * so they would have kept passing while production — reading a field the SDK
+ * no longer supplies — silently stopped emitting the warning altogether. When
+ * these four went red on the swap, that WAS the structural fix proving itself.
+ * Keep the fake shaped like the real `ServerContext`; do not loosen it.
  */
 import { describe, it, expect, vi } from 'vitest';
 import {
@@ -29,12 +37,20 @@ const rl = (minRemainingRatio: number): RateLimitCheck => ({
   minRemainingRatio,
 });
 
-/** A tool-handler `extra` carrying a `sendNotification` spy. */
-const extraWith = (send: (n: unknown) => unknown) => ({ sendNotification: vi.fn(send) });
+/**
+ * An SDK v2 `ServerContext` carrying a `mcpReq.notify` spy. The spy is hoisted
+ * onto the returned object as `notify` so assertions stay readable, but the
+ * shape the production code reads is the nested one.
+ */
+const extraWith = (send: (n: unknown) => unknown) => {
+  const notify = vi.fn(send);
+  return { notify, mcpReq: { notify } };
+};
 
-// Mirrors an MCP tool callback's `(args, extra)` arity so `withMetricsCore`
-// infers a 2-arg wrapper the tests can invoke with an `extra`.
-const ok = async (_input?: unknown, _extra?: unknown) => ({
+// Mirrors an MCP tool callback's `(args, ctx)` arity so `withMetricsCore`
+// infers a 2-arg wrapper the tests can invoke with a context. The SDK passes
+// its context LAST on every overload, which is the position production reads.
+const ok = async (_input?: unknown, _ctx?: unknown) => ({
   content: [{ type: 'text', text: 'ok' }],
 });
 
@@ -51,8 +67,8 @@ describe('withMetricsCore soft-limit warning', () => {
 
     await wrapped({ q: 'x' }, extra);
 
-    expect(extra.sendNotification).toHaveBeenCalledTimes(1);
-    const notif = extra.sendNotification.mock.calls[0]![0] as {
+    expect(extra.notify).toHaveBeenCalledTimes(1);
+    const notif = extra.notify.mock.calls[0]![0] as {
       method: string;
       params: {
         level: string;
@@ -87,9 +103,8 @@ describe('withMetricsCore soft-limit warning', () => {
     const wrapped = withMetricsCore('tool_invocation', 't', ctx, () => 'success', ok);
     await wrapped({}, extra);
 
-    const data = (
-      extra.sendNotification.mock.calls[0]![0] as { params: { data: Record<string, unknown> } }
-    ).params.data;
+    const data = (extra.notify.mock.calls[0]![0] as { params: { data: Record<string, unknown> } })
+      .params.data;
     expect(data.tier).toBe('day');
     expect(data.limit).toBe(1000);
     expect(data.remaining).toBe(100);
@@ -99,14 +114,14 @@ describe('withMetricsCore soft-limit warning', () => {
     const extra = extraWith(() => Promise.resolve());
     const wrapped = withMetricsCore('tool_invocation', 't', baseCtx(rl(0.2)), () => 'success', ok);
     await wrapped({}, extra);
-    expect(extra.sendNotification).toHaveBeenCalledTimes(1);
+    expect(extra.notify).toHaveBeenCalledTimes(1);
   });
 
   it('does NOT emit when headroom is above 20% remaining', async () => {
     const extra = extraWith(() => Promise.resolve());
     const wrapped = withMetricsCore('tool_invocation', 't', baseCtx(rl(0.5)), () => 'success', ok);
     await wrapped({}, extra);
-    expect(extra.sendNotification).not.toHaveBeenCalled();
+    expect(extra.notify).not.toHaveBeenCalled();
   });
 
   it('does NOT emit when no rateLimit context is present (stdio / graceful-skip)', async () => {
@@ -119,7 +134,7 @@ describe('withMetricsCore soft-limit warning', () => {
       ok
     );
     await wrapped({}, extra);
-    expect(extra.sendNotification).not.toHaveBeenCalled();
+    expect(extra.notify).not.toHaveBeenCalled();
   });
 
   it('is gated to tool_invocation — a resource_read never warns', async () => {
@@ -132,23 +147,23 @@ describe('withMetricsCore soft-limit warning', () => {
       ok
     );
     await wrapped({}, extra);
-    expect(extra.sendNotification).not.toHaveBeenCalled();
+    expect(extra.notify).not.toHaveBeenCalled();
   });
 
-  it('never throws when the handler exposes no sendNotification (non-SSE / zero-arg)', async () => {
+  it('never throws when the handler context exposes no notifier (non-SSE / zero-arg)', async () => {
     const wrapped = withMetricsCore('tool_invocation', 't', baseCtx(rl(0.05)), () => 'success', ok);
-    // Only a plain input arg, no extra with sendNotification.
+    // Only a plain input arg — no trailing ServerContext, so no notifier.
     await expect(wrapped({ q: 'x' })).resolves.toEqual({ content: [{ type: 'text', text: 'ok' }] });
   });
 
-  it('never breaks the tool call when sendNotification rejects', async () => {
+  it('never breaks the tool call when notify rejects', async () => {
     const extra = extraWith(() => Promise.reject(new Error('stream closed')));
     const wrapped = withMetricsCore('tool_invocation', 't', baseCtx(rl(0.05)), () => 'success', ok);
     await expect(wrapped({}, extra)).resolves.toEqual({ content: [{ type: 'text', text: 'ok' }] });
-    expect(extra.sendNotification).toHaveBeenCalledTimes(1);
+    expect(extra.notify).toHaveBeenCalledTimes(1);
   });
 
-  it('never breaks the tool call when sendNotification throws synchronously', async () => {
+  it('never breaks the tool call when notify throws synchronously', async () => {
     const extra = extraWith(() => {
       throw new Error('boom');
     });

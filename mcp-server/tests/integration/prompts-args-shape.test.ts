@@ -25,7 +25,7 @@ import {
   type JSONRPCRequest,
   type JSONRPCResponse,
   type JSONRPCErrorResponse,
-} from '@modelcontextprotocol/sdk/types.js';
+} from '@modelcontextprotocol/server';
 import { createServer } from '../../src/server';
 import { ALL_PROMPTS } from '../../src/prompts/_registry';
 import { createPairedTransports, type PairedHalf } from '../helpers/paired-transport';

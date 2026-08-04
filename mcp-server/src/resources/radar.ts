@@ -24,7 +24,7 @@
  * The same shape ships on both transports so client UX is consistent.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import {
   RADAR_CATEGORIES,
   type RadarCategory,

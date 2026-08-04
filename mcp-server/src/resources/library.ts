@@ -11,7 +11,7 @@
  * computed body directly.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { LIBRARY_ENTRIES, loadLibraryByUri } from '../content/library-loader';
 import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
 import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';

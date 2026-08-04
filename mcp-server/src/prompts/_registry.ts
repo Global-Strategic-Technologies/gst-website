@@ -14,7 +14,7 @@
  * message body mentions each `orchestrates` entry.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { NOOP_METRICS_CONTEXT, withPromptMetrics, type MetricsContext } from '../metrics/_index';
 import { emitForceToolsUsed } from '../metrics/irl-ingestion-events';
 import { handlePrepareIrlBodyTool } from '../tools/prepare-irl-body';

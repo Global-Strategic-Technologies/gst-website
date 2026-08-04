@@ -13,7 +13,7 @@
  * recomputing on every call.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { REGULATION_ENTRIES, loadRegulationByUri } from '../content/regulation-loader';
 import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
 import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';

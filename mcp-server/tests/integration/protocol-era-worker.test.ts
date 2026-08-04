@@ -1,0 +1,170 @@
+/**
+ * BL-106 — protocol-era behaviour of the Worker's MCP handler.
+ *
+ * Boots the Worker via `unstable_dev` with a synthetic bearer bound through
+ * `vars` (the same mechanism `auth.test.ts` uses) so these are real,
+ * authenticated, end-to-end round trips rather than in-memory approximations.
+ *
+ * This file exists because the migration to the SDK v2 stateless handler
+ * introduced two failure modes that NOTHING else in the suite would catch:
+ *
+ *   1. **The origin gate.** The v2 handler runs its own Host/Origin check
+ *      before the SDK. Left at its default, the accepted origin set is the
+ *      localhost trio — so on any real hostname a request carrying
+ *      `Origin: https://claude.ai` is answered 403, killing exactly the
+ *      browser-based clients `auth/cors.ts` maintains an allowlist for. We
+ *      disable it (`allowedOriginHostnames: '*'`) and let `cors.ts` remain
+ *      the single origin authority. The first test below is the guard; it
+ *      demonstrably fails if that option is removed.
+ *
+ *   2. **No proof the handler serves anything.** Before this file, every
+ *      Worker-level test asserted auth-layer outcomes only (`not 401`,
+ *      `not 403`, "some 4xx"). None asserted a successful MCP result, so a
+ *      Worker that rejected *every* protocol request would have kept the
+ *      suite green. Going modern-only makes that gap dangerous.
+ *
+ * Architecture: mcp-server/src/docs/ARCHITECTURE.md § Streamable HTTP binding
+ */
+
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
+
+const TEST_KEY = 'test-token-rp';
+const MODERN_VERSION = '2026-07-28';
+const BROWSER_ORIGIN = 'https://claude.ai';
+
+let worker: Unstable_DevWorker;
+
+beforeAll(async () => {
+  worker = await unstable_dev('src/worker.ts', {
+    config: 'wrangler.toml',
+    env: 'staging',
+    local: true,
+    experimental: { disableExperimentalWarning: true },
+    vars: { MCP_KEY_RP: TEST_KEY },
+  });
+}, 60_000);
+
+afterAll(async () => {
+  await worker?.stop();
+});
+
+/**
+ * A conforming `2026-07-28` request. The protocol version rides in BOTH the
+ * `MCP-Protocol-Version` header and `params._meta`; the server rejects a
+ * mismatch with `-32020`. `Mcp-Method` is required on every POST — `Mcp-Name`
+ * only on `tools/call` / `resources/read` / `prompts/get`, so `tools/list`
+ * carries no name header.
+ */
+function modernRequest(method: string, extraHeaders: Record<string, string> = {}) {
+  return {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${TEST_KEY}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json, text/event-stream',
+      'MCP-Protocol-Version': MODERN_VERSION,
+      'Mcp-Method': method,
+      ...extraHeaders,
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method,
+      params: {
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': MODERN_VERSION,
+          'io.modelcontextprotocol/clientInfo': { name: 'gst-test-client', version: '1.0.0' },
+          'io.modelcontextprotocol/clientCapabilities': {},
+        },
+      },
+    }),
+  };
+}
+
+/**
+ * Reads a JSON-RPC result from either a plain JSON body or an SSE stream.
+ *
+ * Typed structurally rather than as `Response`: `unstable_dev`'s fetch returns
+ * undici's `Response`, which is not assignable to the global one.
+ */
+async function readJsonRpc(res: {
+  headers: { get(name: string): string | null };
+  text(): Promise<string>;
+}): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if ((res.headers.get('content-type') ?? '').includes('text/event-stream')) {
+    // Last `data:` line carries the final response.
+    const lines = text
+      .split('\n')
+      .filter((l) => l.startsWith('data:'))
+      .map((l) => l.slice('data:'.length).trim());
+    return JSON.parse(lines[lines.length - 1]!) as Record<string, unknown>;
+  }
+  return JSON.parse(text) as Record<string, unknown>;
+}
+
+describe('BL-106 — Worker protocol era', () => {
+  it('serves a modern tools/list from a browser origin (origin gate is not ours to enforce)', async () => {
+    const res = await worker.fetch('/mcp', modernRequest('tools/list', { Origin: BROWSER_ORIGIN }));
+
+    // The guard: without `allowedOriginHostnames: '*'` on the handler, this is
+    // a 403 from the SDK's origin validator long before the MCP layer runs.
+    expect(res.status).not.toBe(403);
+    expect(res.status).toBe(200);
+
+    const body = await readJsonRpc(res);
+    expect(body.error).toBeUndefined();
+
+    // And the substantive half: the handler actually serves a result. The
+    // Worker registers 15 tools (17 minus the two stdio-only radar tools).
+    const result = body.result as { tools?: Array<{ name: string }> };
+    expect(Array.isArray(result?.tools)).toBe(true);
+    expect(result.tools!.length).toBeGreaterThan(0);
+    expect(result.tools!.map((t) => t.name)).toContain('search_portfolio');
+  });
+
+  it('still applies our own CORS allowlist to the response', async () => {
+    const res = await worker.fetch('/mcp', modernRequest('tools/list', { Origin: BROWSER_ORIGIN }));
+    // `corsOptions: false` stops the handler emitting its own (wildcard)
+    // headers; `withCors` in the pipeline supplies the allowlisted origin.
+    expect(res.headers.get('access-control-allow-origin')).toBe(BROWSER_ORIGIN);
+    expect(res.headers.get('access-control-allow-origin')).not.toBe('*');
+  });
+
+  it('emits no wildcard Allow-Origin for a disallowed origin', async () => {
+    const res = await worker.fetch(
+      '/mcp',
+      modernRequest('tools/list', { Origin: 'https://evil.example' })
+    );
+    // The pre-BL-106 defect: the handler's default CORS shipped `*` here,
+    // which `withCors` did not overwrite for non-allowlisted origins.
+    expect(res.headers.get('access-control-allow-origin')).not.toBe('*');
+  });
+
+  it('rejects a 2025-era initialize handshake (modern-only)', async () => {
+    const res = await worker.fetch('/mcp', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${TEST_KEY}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2025-11-25',
+          capabilities: {},
+          clientInfo: { name: 'legacy', version: '1.0.0' },
+        },
+      }),
+    });
+
+    // `legacy: 'reject'` — the legacy lane is off. Auth passed (this is not a
+    // 401), so the rejection is the protocol layer's, which is the point.
+    expect(res.status).not.toBe(401);
+    expect(res.status).toBeGreaterThanOrEqual(400);
+  });
+});
