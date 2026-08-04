@@ -97,6 +97,8 @@ Two credential families validate on the same endpoints, cheap-first (decision re
 
 `src/auth/cors.ts` holds an explicit origin allowlist: `https://claude.ai`, `https://chatgpt.com`, `https://cursor.sh`, plus the website's `https://globalstrategic.tech` / `https://www.globalstrategic.tech`. Native MCP clients (Claude Desktop, Claude Code, Cursor CLI) send no `Origin` header, so CORS is a no-op for them; the allowlist exists for web-based clients. `Access-Control-Allow-Origin: *` is deliberately forbidden — a wildcard would let any website read MCP responses on a user's behalf. Disallowed origins are not 4xx'd; they simply get no `Access-Control-Allow-*` headers, so the browser blocks the cross-origin read while non-browser callers are unaffected.
 
+**Allowed request headers** (the preflight contract — `cors.ts` is the source of truth, this is the rationale): `Authorization`, `Content-Type`, `Mcp-Session-Id`, `Mcp-Protocol-Version`, `Mcp-Method`, `Mcp-Name`. The last two became REQUIRED on every Streamable HTTP POST in protocol revision `2026-07-28` (SEP-2243), so omitting them fails a modern browser client at the preflight before any MCP traffic flows (added in BL-106). `Mcp-Param-*` is **not** listed and cannot be: CORS has no wildcard-prefix form for `Access-Control-Allow-Headers`, and those headers exist only for tools declaring `x-mcp-header`, which BL-106 declined. Adopting `x-mcp-header` on any tool would require the preflight to echo `Access-Control-Request-Headers` instead of serving a fixed list.
+
 ### Deploy topology (Q10)
 
 Two Cloudflare Workers environments, declared in `mcp-server/wrangler.toml`:

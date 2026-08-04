@@ -56,6 +56,29 @@ describe('CORS — Phase 2', () => {
     expect(res.headers.get('vary')).toContain('Origin');
   });
 
+  // BL-106 — `Mcp-Method` and `Mcp-Name` are REQUIRED on every Streamable HTTP
+  // POST from protocol revision 2026-07-28 (SEP-2243). Without them in the
+  // allowlist a browser-based client on that revision never gets past the
+  // preflight, so this asserts the headers a real claude.ai connector will ask
+  // for. `Mcp-Param-*` is deliberately NOT asserted — see cors.ts for why it
+  // cannot be expressed here.
+  it('preflight allows the 2026-07-28 required request headers', async () => {
+    const res = await worker.fetch('/mcp', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: ALLOWED_ORIGIN,
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'Authorization, Content-Type, Mcp-Method, Mcp-Name',
+      },
+    });
+    expect(res.status).toBe(204);
+    const allowed = res.headers.get('access-control-allow-headers') ?? '';
+    expect(allowed).toContain('Mcp-Method');
+    expect(allowed).toContain('Mcp-Name');
+    // 2025-era clients must keep working until the Worker goes modern-only.
+    expect(allowed).toContain('Mcp-Protocol-Version');
+  });
+
   it('OPTIONS preflight from disallowed origin returns 204 with no Allow-Origin', async () => {
     const res = await worker.fetch('/mcp', {
       method: 'OPTIONS',
