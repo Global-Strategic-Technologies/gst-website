@@ -43,11 +43,15 @@ const rl = (minRemainingRatio: number): RateLimitCheck => ({
  * onto the returned object as `notify` so assertions stay readable, but the
  * shape the production code reads is the nested one.
  *
- * The return type is `Pick<ServerContext, 'mcpReq'>`, deliberately — binding
- * the fake to the SDK's own type is what makes a future rename a compile error
- * here instead of a silently-passing test against a hand-written shape. That
- * hand-written shape is exactly how the v1→v2 notifier rename nearly shipped
- * as a silent loss (BL-106).
+ * The return type is annotated as `Pick<ServerContext, 'mcpReq'>` so the fake
+ * is described in the SDK's own vocabulary rather than an invented shape. Be
+ * precise about what that does and does not buy: the object literal goes
+ * through a double cast (building a real `ServerContext['mcpReq']` — `id`,
+ * `method`, `requestState`, `signal`, `send` — would be pure noise here), so
+ * **this file is not the guard**. The guard is the `Pick<ServerContext,
+ * 'mcpReq'>` in `src/metrics/with-metrics.ts`: an SDK rename breaks
+ * `findMcpNotifier` at compile time in production code, which is what stops
+ * the v1→v2 silent loss from recurring (BL-106).
  */
 const extraWith = (
   send: (n: unknown) => unknown
