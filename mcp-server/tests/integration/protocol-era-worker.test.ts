@@ -186,7 +186,17 @@ describe('BL-106 — Worker protocol era', () => {
     expect(radarResult.cacheScope).toBe('private');
   });
 
-  it('rejects a 2025-era initialize handshake (modern-only)', async () => {
+  // REGRESSION GUARD — this is the incident test. BL-106 shipped the Worker
+  // as modern-only (`legacy: 'reject'`) on the inference that "no external
+  // clients" meant no clients on the old protocol era. Claude Desktop was on
+  // `2025-11-25`, so within hours of the production deploy every tool call
+  // failed with `-32022`. It surfaced as "failed to call tool
+  // list_portfolio_facets" rather than a connection error, because the client
+  // still had a cached tool list — the symptom pointed at the tool, not the
+  // handshake.
+  //
+  // If someone flips the era token back to `'reject'`, these two die.
+  it('serves a 2025-era initialize handshake (the Claude Desktop path)', async () => {
     const res = await worker.fetch('/mcp', {
       method: 'POST',
       headers: {
@@ -201,23 +211,70 @@ describe('BL-106 — Worker protocol era', () => {
         params: {
           protocolVersion: '2025-11-25',
           capabilities: {},
-          clientInfo: { name: 'legacy', version: '1.0.0' },
+          clientInfo: { name: 'claude-desktop', version: '1.0.0' },
         },
       }),
     });
 
-    // `legacy: 'reject'` — the legacy lane is off. Auth passed (this is not a
-    // 401), so the rejection is the protocol layer's, which is the point.
+    expect(res.status).toBe(200);
+    const body = await readJsonRpc(res);
+    expect(body.error).toBeUndefined();
+    const result = body.result as { protocolVersion?: string };
+    expect(result.protocolVersion).toBe('2025-11-25');
+  });
+
+  it('serves a 2025-era tools/call — the exact request that failed in production', async () => {
+    const res = await worker.fetch('/mcp', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${TEST_KEY}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      // No `_meta`, no `MCP-Protocol-Version` / `Mcp-Method` / `Mcp-Name` —
+      // a 2025-era client sends none of them. Under `legacy: 'reject'` this
+      // is answered `-32022 Unsupported protocol version`.
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/call',
+        params: { name: 'list_portfolio_facets', arguments: {} },
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await readJsonRpc(res);
+    expect(body.error).toBeUndefined();
+    const result = body.result as { structuredContent?: { themes?: string[] } };
+    expect(Array.isArray(result.structuredContent?.themes)).toBe(true);
+  });
+
+  it('still rejects a request that names an unsupported protocol version', async () => {
+    const res = await worker.fetch('/mcp', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${TEST_KEY}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+        'MCP-Protocol-Version': '2099-01-01',
+        'Mcp-Method': 'tools/list',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/list',
+        params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2099-01-01' } },
+      }),
+    });
+
+    // Serving both eras is not the same as serving anything: a version we do
+    // not implement is still refused. Auth passed (not a 401), so the
+    // rejection is the protocol layer's.
     expect(res.status).not.toBe(401);
     expect(res.status).toBeGreaterThanOrEqual(400);
-
-    // Assert it is the PROTOCOL layer rejecting, not an incidental 4xx: a
-    // bare `>= 400` would also pass on a malformed-body or rate-limit error,
-    // which would make this test look green while proving nothing about the
-    // era. Under `legacy: 'stateless'` this same request is answered 200.
     const body = await readJsonRpc(res);
     const err = body.error as { code?: number; message?: string } | undefined;
     expect(err).toBeDefined();
-    expect(String(err?.message ?? '')).toMatch(/protocol|version|initialize/i);
+    expect(String(err?.message ?? '')).toMatch(/protocol|version/i);
   });
 });

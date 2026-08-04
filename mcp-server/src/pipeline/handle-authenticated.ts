@@ -253,8 +253,21 @@ export async function handleAuthenticated(
   // shape, so this is a wrapper, not a restructure — the radar-live tools'
   // `env` closure capture is unaffected.
   const mcp = createMcpHandler(
-    () =>
-      createServer(env, {
+    (mcpCtx) => {
+      // BL-106 follow-up — the era discriminator, which the original change
+      // specified and then dropped. The SDK hands the factory the era it
+      // classified this request as, so recording it costs one log line and
+      // turns "which protocol version are our callers on?" from an inference
+      // into a query. Without it, the modern-only regression could only be
+      // diagnosed by reproducing symptoms.
+      safeLog({
+        event: 'mcp.request.era',
+        keyOwner: auth.keyOwner,
+        requestId,
+        path: url.pathname,
+        era: (mcpCtx as { era?: string } | undefined)?.era ?? 'unknown',
+      });
+      return createServer(env, {
         scopes: auth.scopes,
         radarSource: 'worker',
         metricsSink,
@@ -265,16 +278,35 @@ export async function handleAuthenticated(
         // notification WITHOUT a second Upstash round-trip. `null` (graceful
         // skip) → undefined (the optional field), so no warning fires.
         rateLimit: rlResult ?? undefined,
-      }),
+      });
+    },
     {
-      // Modern-only. There are no external clients of the remote surface
-      // (BL-106 verified: the website uses plain-HTTP `GET /radar/snapshot`,
-      // and no M2M/OAuth clients are provisioned), so serving the 2025 era
-      // would be carrying a compatibility lane for nobody. Rollback is this
-      // one token → `'stateless'`. NOTE: the stdio entrypoint deliberately
-      // stays on its legacy-serving default and uses a DIFFERENT token
-      // (`'serve'`) — see src/index.ts and ADR-0013.
-      legacy: 'reject',
+      // Serve BOTH protocol eras. The modern lane handles 2026-07-28; the
+      // compatibility lane pins a 2025-era instance from this same factory
+      // for clients that open with `initialize`.
+      //
+      // BL-106 shipped this as `'reject'` (modern-only) on the reasoning that
+      // the remote surface had no external clients. That reasoning was about
+      // the wrong thing: it asked *who is contractually a client* and not
+      // *what does the client software speak*. **Claude Desktop speaks
+      // `2025-11-25`** — the spec revision is a week old and its client has
+      // not moved — so within hours of the production deploy every tool call
+      // failed with `-32022 Unsupported protocol version: 2025-11-25`. The
+      // symptom was misleading: Claude Desktop still displayed the tool list
+      // from its cache, so it surfaced as "failed to call tool <name>" rather
+      // than as a connection error, which points at the tool and not the
+      // handshake.
+      //
+      // The identical active-client argument that kept stdio on its legacy
+      // lane (see src/index.ts) applied here too and was not made, because
+      // "no external clients" was read as "no clients". Reverted to serving
+      // both eras; see ADR-0013's 2026-08-04 amendment.
+      //
+      // Do NOT flip this back to `'reject'` without first confirming, from
+      // telemetry rather than inference, that no caller is opening with
+      // `initialize`. The `era` discriminator below is what makes that
+      // checkable.
+      legacy: 'stateless',
 
       // `cors.ts` owns origin policy exclusively — these two options are what
       // make that true, and both are load-bearing:
