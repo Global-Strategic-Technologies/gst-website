@@ -210,5 +210,14 @@ describe('BL-106 — Worker protocol era', () => {
     // 401), so the rejection is the protocol layer's, which is the point.
     expect(res.status).not.toBe(401);
     expect(res.status).toBeGreaterThanOrEqual(400);
+
+    // Assert it is the PROTOCOL layer rejecting, not an incidental 4xx: a
+    // bare `>= 400` would also pass on a malformed-body or rate-limit error,
+    // which would make this test look green while proving nothing about the
+    // era. Under `legacy: 'stateless'` this same request is answered 200.
+    const body = await readJsonRpc(res);
+    const err = body.error as { code?: number; message?: string } | undefined;
+    expect(err).toBeDefined();
+    expect(String(err?.message ?? '')).toMatch(/protocol|version|initialize/i);
   });
 });

@@ -759,7 +759,7 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 
 #### Acceptance Criteria
 
-> 🟢 **Implemented 2026-08-03** across four commits (CORS → v2 swap → schema normalisation → cache hints). **Four ACs below were written on wrong premises and are marked ✅-with-correction rather than silently reworded** — the analysis that produced them is committed history, so the corrections belong next to the claims they overturn. A fifth AC is declined. Full reasoning: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md).
+> 🟢 **Implemented 2026-08-03** across four commits (CORS → v2 swap → schema normalisation → cache hints). **Five ACs below were written on wrong premises and are marked ✅-with-correction rather than silently reworded** — the analysis that produced them is committed history, so the corrections belong next to the claims they overturn. Three carry `[~]`: two ACs declined outright (dropping `agents`; swapping the rate-limit dispatch to `Mcp-Name`) and one only half-met (staging verification, which needs a push). Full reasoning: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md).
 
 **CORS preflight fix** — the one confirmed defect; independent of everything below
 
@@ -798,7 +798,7 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 - **Closed, not deferred**: RFC 9207 `iss` on the embedded AS. It defends against authorization-server mix-up, which needs a third-party OAuth client; none are provisioned, and `@cloudflare/workers-oauth-provider` never advertises `authorization_response_iss_parameter_supported`, so a strict client sees it as unsupported rather than being misled. BL-093's onboarding gate covers the only condition that would revive it
 - **Relationship to [BL-092](#bl-092-mcp-server--declare-outputschema-on-the-tool-surface-candidate)**: SEP-2106 loosens the permitted `inputSchema` / `outputSchema` keywords, but that is **orthogonal** to BL-092's blocker (the SDK client validates `structuredContent` whenever present with no `isError` guard, colliding with [ADR-0011](../adr/0011-tool-response-channel-policy.md) Invariant 1). This initiative does not unblock BL-092
 - **Risks & mitigations**: the migration touches a live surface the team uses against the remote production Worker → staging exercise before production, and slice 1 ships independently so the CORS fix is not held hostage to it. Going modern-only bets that the team's own LLM clients already speak `2026-07-28` — third-party software on a release schedule we do not control → the bet is cheap because the compatibility lane is one option flag away, so losing it is a same-day rollback rather than an incident
-- **Out of scope**: the stdio entrypoint's own transport migration (decision belongs to the migration; team usage is remote); `mcp-server/BREAKING_CHANGES.md` (no wire behaviour changes until slice 2, and the BL-076 precedent governs them when there are); `x-mcp-header` parameter mirroring (declined — no tool parameter benefits)
+- **Out of scope**: `x-mcp-header` parameter mirroring (declined — no tool parameter benefits); the Tasks / MRTR extensions (deferred with triggers above). **No longer out of scope**: the stdio entrypoint migrated with the Worker (the shared `createServer` factory made separating them impossible), and `mcp-server/BREAKING_CHANGES.md` gained a 0.44.0 entry plus a widened scope note, since going modern-only IS a wire change
 
 ---
 

@@ -16,7 +16,8 @@
  * these four went red on the swap, that WAS the structural fix proving itself.
  * Keep the fake shaped like the real `ServerContext`; do not loosen it.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, type Mock } from 'vitest';
+import type { ServerContext } from '@modelcontextprotocol/server';
 import {
   withMetricsCore,
   type MetricsContext,
@@ -38,13 +39,25 @@ const rl = (minRemainingRatio: number): RateLimitCheck => ({
 });
 
 /**
- * An SDK v2 `ServerContext` carrying a `mcpReq.notify` spy. The spy is hoisted
+ * An SDK `ServerContext` carrying a `mcpReq.notify` spy. The spy is hoisted
  * onto the returned object as `notify` so assertions stay readable, but the
  * shape the production code reads is the nested one.
+ *
+ * The return type is `Pick<ServerContext, 'mcpReq'>`, deliberately — binding
+ * the fake to the SDK's own type is what makes a future rename a compile error
+ * here instead of a silently-passing test against a hand-written shape. That
+ * hand-written shape is exactly how the v1→v2 notifier rename nearly shipped
+ * as a silent loss (BL-106).
  */
-const extraWith = (send: (n: unknown) => unknown) => {
+const extraWith = (
+  send: (n: unknown) => unknown
+): Pick<ServerContext, 'mcpReq'> & {
+  notify: Mock;
+} => {
   const notify = vi.fn(send);
-  return { notify, mcpReq: { notify } };
+  return { notify, mcpReq: { notify } } as unknown as Pick<ServerContext, 'mcpReq'> & {
+    notify: Mock;
+  };
 };
 
 // Mirrors an MCP tool callback's `(args, ctx)` arity so `withMetricsCore`

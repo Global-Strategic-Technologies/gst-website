@@ -145,7 +145,7 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
     },
     // BL-033 Slice 5: declare the `logging` capability so a tool handler may
     // emit the 80%-consumed soft-limit `notifications/message` via
-    // `extra.sendNotification`. Without it the SDK's
+    // `ctx.mcpReq.notify`. Without it the SDK's
     // `assertNotificationCapability` throws "Server does not support logging",
     // which would turn a best-effort soft warning into a failed tool call.
     { capabilities: { logging: {} } }

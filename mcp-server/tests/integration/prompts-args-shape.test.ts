@@ -3,13 +3,18 @@
  * its argsSchema shape (and never leak ZodObject prototype methods).
  *
  * Background — the bug this guards against:
- *   The SDK's `registerPrompt` accepts a `ZodRawShape` (the raw
- *   `{ key: ZodType }` map), NOT a wrapped `z.object({...})`. Passing the
- *   wrapped object causes the SDK to enumerate ZodObject's prototype
- *   methods (keyof / catchall / passthrough / loose / strict / strip)
- *   and surface them as bogus argument fields in Claude Desktop's prompt
- *   UI. Found during BL-032 soak T.A.11 verification (2026-05-10) on
- *   `gst_diligence_kickoff`.
+ *   SDK **v1**'s `registerPrompt` accepted only a `ZodRawShape` (the raw
+ *   `{ key: ZodType }` map). Passing a wrapped `z.object({...})` made it
+ *   enumerate ZodObject's prototype methods (keyof / catchall / passthrough
+ *   / loose / strict / strip) and surface them as bogus argument fields in
+ *   Claude Desktop's prompt UI. Found during BL-032 soak T.A.11 verification
+ *   (2026-05-10) on `gst_diligence_kickoff`.
+ *
+ *   **BL-106 inverted the rule.** SDK v2 takes a StandardSchema and derives
+ *   arguments via Zod 4's `~standard.jsonSchema`, so `_registry.ts` now passes
+ *   the WRAPPED object and the `.shape` workaround is gone. This guard stays
+ *   valuable either way: it pins the argument NAMES, so whichever mechanism
+ *   the SDK uses, a regression that leaks prototype methods still fails here.
  *
  * Coverage: this test boots the live server through the same paired-
  * transport rig as protocol-roundtrip.test.ts, sends a real `prompts/list`

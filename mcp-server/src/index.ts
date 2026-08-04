@@ -36,12 +36,23 @@ import { registerLocalOnlyTools } from './tools/_local-only';
 // an instance the transport never pins.
 serveStdio(
   () => {
-    const server = createServer();
-    // stdio-only: offline radar tool + radar Resources backed by the node:fs
-    // reader (BL-032 Q12). The Worker registers radar Resources separately
-    // with the Upstash-backed reader and never touches these.
-    registerLocalOnlyTools(server);
-    return server;
+    try {
+      const server = createServer();
+      // stdio-only: offline radar tool + radar Resources backed by the node:fs
+      // reader (BL-032 Q12). The Worker registers radar Resources separately
+      // with the Upstash-backed reader and never touches these.
+      registerLocalOnlyTools(server);
+      return server;
+    } catch (err) {
+      // A registry that cannot be built is fatal for stdio: the client would
+      // otherwise see a process that is up but answers nothing. This restores
+      // the pre-BL-106 `main().catch(… process.exit(1))` behaviour, which the
+      // move to `serveStdio` dropped — the factory runs per connection, so a
+      // throw here is swallowed by the SDK rather than reaching a top-level
+      // handler.
+      console.error('[gst-mcp] fatal: failed to build server registry:', err);
+      process.exit(1);
+    }
   },
   {
     onerror: (err) => {
@@ -50,4 +61,8 @@ serveStdio(
   }
 );
 
-console.error('[gst-mcp] connected on stdio');
+// `serveStdio` returns synchronously and the connection is established lazily
+// on the first message, so this is a "listening" line, not a "connected" one.
+// (Pre-BL-106 it followed an awaited `server.connect()` and genuinely meant
+// connected.) stdout stays protocol-only — all logging goes to stderr.
+console.error('[gst-mcp] listening on stdio');

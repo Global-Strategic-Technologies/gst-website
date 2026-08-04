@@ -32,6 +32,7 @@
  * perspective — wall-clock cost is one `Date.now()` + one synchronous
  * `sink.write()`.
  */
+import type { ServerContext } from '@modelcontextprotocol/server';
 import { safeLog } from '../auth/safe-logger';
 import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
@@ -209,7 +210,7 @@ function detectCounterOutcome<TResult>(
 }
 
 /**
- * Minimal structural view of the SDK v2 `ServerContext` fields we use.
+ * The slice of the SDK's `ServerContext` this module reads.
  *
  * BL-106 — this replaced a duck-typing scan (`findMcpExtra`) that looked for
  * the first argument carrying a `sendNotification` function. That worked under
@@ -219,17 +220,16 @@ function detectCounterOutcome<TResult>(
  * 80%-consumed warning would have died **silently** — no type error, and no
  * test failure either, since the soft-limit tests build their own fake.
  *
- * The fix is structural rather than defensive: the SDK passes its context as
- * the LAST argument on every tool callback overload, so we read that position
- * and let the shape be a type obligation. If a future SDK moves the notifier
- * again, the assertion in `with-metrics-softlimit.test.ts` fails loudly
- * instead of the warning quietly disappearing.
+ * The fix is structural: the SDK passes its context as the LAST argument on
+ * every tool / resource / prompt callback overload, so we read that position.
+ *
+ * **This type is derived from the SDK's own `ServerContext` on purpose.** An
+ * earlier BL-106 draft hand-wrote the shape and claimed a future rename would
+ * "fail loudly" — it would not have. A hand-written interface plus a test that
+ * builds its own matching fake reproduces the exact silent-loss mode this
+ * change fixed. `Pick` makes a rename a compile error here instead.
  */
-interface McpServerContextView {
-  mcpReq?: {
-    notify?: (notification: unknown) => unknown;
-  };
-}
+type McpServerContextView = Pick<ServerContext, 'mcpReq'>;
 
 /**
  * Read the MCP handler context off the trailing argument.

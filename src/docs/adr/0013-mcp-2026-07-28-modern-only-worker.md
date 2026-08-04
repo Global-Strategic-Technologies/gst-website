@@ -40,6 +40,8 @@ The client picture is asymmetric, and that asymmetry is the substance of this AD
 
 **Compatibility**: the remote Worker no longer serves `2025-11-25`. This is a breaking wire change, recorded in `mcp-server/BREAKING_CHANGES.md`. Rollback is one token — but note the two enums differ: `agents` takes `'stateless' | 'reject'`, `serveStdio` takes `'serve' | 'reject'`.
 
+**Known spec deviation, accepted**: revision `2026-07-28` says servers **MUST** validate the `Origin` header and respond `403` when it is present and invalid. `src/auth/cors.ts` does not — it omits the `Access-Control-Allow-*` headers instead, so the browser blocks the cross-origin _read_ while the request itself still executes. That behaviour predates this ADR, but decision 3 makes `cors.ts` the sole origin authority, so the deviation is now wholly ours and is recorded here rather than left implicit. Accepted because the exposure the MUST targets (DNS rebinding) needs an ambient credential to be worth stealing, and `/mcp` has none: authentication is a bearer token the attacker page cannot supply, and the one cookie in the server (`mcp_reauth_session`) is path-scoped to `/admin/inoreader/reauth/`. Revisit if `/mcp` ever accepts cookie or session auth — at which point returning `403` for a present-and-disallowed `Origin` becomes the correct behaviour, not just defence in depth.
+
 **Operational edges**:
 
 - `nodejs_compat` cannot be retired. The `agents` stateless handler imports `node:async_hooks` at module top; the flag is load-bearing for the handler, not just its transitive dependencies. The pre-BL-106 comment in `wrangler.toml` claiming otherwise was wrong and is corrected.
