@@ -747,58 +747,24 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 
 ---
 
-### BL-106: MCP Server — 2026-07-28 spec alignment
+### BL-106: MCP Server — 2026-07-28 spec alignment ✅ CLOSED 2026-08-04
 
-**Source**: gap analysis of the deployed server against MCP spec revision `2026-07-28` (released 2026-07-28; analysis 2026-08-03) — full findings in [MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md](MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md) | **Effort**: implemented 2026-08-03 | **Status**: 🟢 **Implemented, unmerged** — all non-deferred ACs met at `@gst/mcp-server` 0.44.0; decisions recorded in [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md). Closes on merge + a staging exercise | **Depends on**: none
+**Source**: gap analysis of the deployed server against MCP spec revision `2026-07-28` | **Shipped**: `@gst/mcp-server` 0.44.0 (PR #382) | **Outcome**: the remote Worker serves `2026-07-28` only; stdio deliberately keeps serving the legacy era | **Decisions**: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) | **Full analysis**: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)
 
-**As a** maintainer of the GST MCP server, **I want** the server to speak `2026-07-28` natively and to shed the compatibility layers it no longer needs **so that** the codebase gets smaller rather than larger, and the deprecation deadline we do not control stops being ours.
+Retained rather than pruned because three of its findings are cited elsewhere and one is a standing caution.
 
-> **Two operator directives (2026-08-03) govern this item.** (1) **Do not maintain backwards compatibility** — no external clients exist; the website consumes `GET /radar/snapshot` over plain HTTP, not MCP RPC, and no M2M/OAuth clients are provisioned. (2) **Simplicity, elegance and maintainability are the design policy.** Together they invert the shape: this is a net **deletion**, not a staged migration. Any AC below that reintroduces a compatibility path needs to justify itself against directive 1.
->
-> **The clock is our dependency, not the spec.** `src/pipeline/handle-authenticated.ts` passes a v1 `McpServer` to `createMcpHandler`, which logs _"Passing an MCP SDK v1 server to createMcpHandler is deprecated and will be removed in the next major version"_ on every request today. The spec imposes no deadline (twelve-month floor; earliest removal on or after 2027-07-28). With no coordination cost, there is nothing to sequence around — **migrate now**.
+**What shipped**: migration to `@modelcontextprotocol/server@2.0.0`; `Mcp-Method` / `Mcp-Name` through the CORS preflight; `ttlMs` / `cacheScope` published on library and regulation reads; `cors.ts` promoted to sole origin authority; production `npm audit` restored to zero (it was already failing on `master`).
 
-#### Acceptance Criteria
+**Verified in production 2026-08-04**: `/health` reports `0.44.0` at `gitSha ace6c7c`; the CORS preflight returns `204` allowing `Mcp-Method` / `Mcp-Name` with `Access-Control-Allow-Origin: https://claude.ai` and no wildcard. The authenticated modern round-trip was **not** exercised from here — it needs a bearer token — so that half rests on `tests/integration/protocol-era-worker.test.ts` plus any client session since the deploy.
 
-> 🟢 **Implemented 2026-08-03** across four commits (CORS → v2 swap → schema normalisation → cache hints). **Five ACs below were written on wrong premises and are marked ✅-with-correction rather than silently reworded** — the analysis that produced them is committed history, so the corrections belong next to the claims they overturn. Three carry `[~]`: two ACs declined outright (dropping `agents`; swapping the rate-limit dispatch to `Mcp-Name`) and one only half-met (staging verification, which needs a push). Full reasoning: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md).
+**Two findings worth remembering** (both cost real time to discover, and neither was predicted by the analysis):
 
-**CORS preflight fix** — the one confirmed defect; independent of everything below
+1. The SDK v2 handler runs its **own** Host/Origin gate. Left at its default the accepted set is the localhost trio, so on a custom domain every request carrying `Origin: https://claude.ai` gets a **403** — the exact browser clients the allowlist exists for, and a failure mode the legacy handler did not have. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the fix.
+2. `with-metrics.ts` located its notifier by duck-typing on a field v2 renamed, and the function is contractually non-throwing — so the rate-limit warning would have died **silently**, with the soft-limit tests staying green against their own fake. Both the production view and the fake are now bound to the SDK's `ServerContext` so a rename is a compile error.
 
-- [x] `Mcp-Method` and `Mcp-Name` added to `Access-Control-Allow-Headers` in `corsHeadersFor` (`mcp-server/src/auth/cors.ts`) — ✅ **correction: `Mcp-Param-*` was dropped, and could never have shipped.** CORS has no wildcard-prefix form for `Allow-Headers` (the only wildcard is a bare `*`, which that file forbids), and those headers exist only for tools declaring `x-mcp-header`, which this initiative declined. Supporting them would require echoing `Access-Control-Request-Headers` through `corsHeadersFor` → `withCors` → its call sites, for a feature nothing uses
-- [x] Audit-date comment updated — ✅ **correction: the contract is in `ARCHITECTURE.md` § CORS (Q5), not `AUTH.md`.** The pointer in `cors.ts` named a doc with no CORS section; fixed at the source and the allowed-header list is now documented where the contract actually lives
+**Standing caution**: an unreproduced single-test failure in the mcp suite (`1 failed | 1973 passed`, once, name never captured; seven other full runs green). It fits the documented workerd cold-start flake but that remains an explanation, not evidence. **If a red mcp run appears, capture the failing test name before rerunning** — a rerun destroys it.
 
-**Migrate to the v2 server, modern-only** — the main event, and mostly subtraction
-
-- [x] The handler receives an `@modelcontextprotocol/server` factory instead of a v1 `McpServer` instance — ✅ the per-request `createServer(env, {...})` closure was already the `McpServerFactory` shape, so the radar-live `env` capture was untouched
-- [x] **Modern-only on the Worker** (`legacy: 'reject'`) — ✅ **correction: stdio deliberately keeps `legacy: 'serve'`.** The blanket reading of directive 1 was wrong: stdio has an active, committed client — the git-tracked `.mcp.json` registers this server for every Claude Code session in the project — so Directive 6's active-client rule applies there and not to the Worker. Verified by smoke-testing the built binary: a 2025-era `initialize` still negotiates and lists all 17 stdio tools. Rollback tokens differ (`'stateless'` on the Worker, `'serve'` on stdio)
-- [x] **Narrowed the `agents` import to `agents/mcp/server`** — ✅ **correction: this did NOT free `nodejs_compat`, and nothing could.** The stateless handler imports `node:async_hooks` at module top for its auth-context `AsyncLocalStorage`, so the flag is load-bearing for the handler itself. The `wrangler.toml` comment claiming it existed "solely for `mimetext`/`mime-types`" was wrong and is corrected
-- [~] **Dropping `agents` altogether — declined.** 🟡 **The stated reason for keeping it was also wrong and is worth recording**: this AC said `worker.ts` "already does" origin validation. It does not — it allowlists for _header emission_ and never rejects. And after this change the wrapper does no gating at all (`allowedOriginHostnames: '*'` skips the origin block; host validation no-ops on a custom domain), so "we would have to re-implement its security gate" is an empty argument. Declined on the reasons that survive: scope discipline, it is the Cloudflare-supported seam for the v2 factory, and it is the Durable Objects / Workflows path if the deferred Tasks work activates
-- [x] `ARCHITECTURE.md` § SDK + § Streamable HTTP binding rewritten; [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) written — ✅ covering the era asymmetry, `cors.ts` as sole origin authority, the `agents` decision, the ADR-0010 logging position, and the body-parse retention
-- [~] Verified against a real client round-trip — 🟡 **in-repo yes, staging no.** `tests/integration/protocol-era-worker.test.ts` boots a real Worker via `unstable_dev` and asserts an authenticated modern `tools/list` succeeds from a browser origin; the stdio binary was smoke-tested end to end. **Staging remains untouched because nothing has been pushed** — that half closes on merge, not here
-
-**Simplify what the migration unlocks**
-
-- [x] `ttlMs` / `cacheScope` published on library and regulation resource reads via `registerResource`'s `cacheHint` — ✅ **correction (two): the AC said "list and read", and it said nothing about radar.** `registerResource` covers `resources/read` only; the list methods would need `ServerOptions.cacheHints`, deliberately not added (and that option must **never** carry a `'resources/read'` key — it would silently override radar). Radar registers no hint at all: its bodies are degradable, and a registration-time TTL would advertise a 15-minute cache on the "snapshot not populated" placeholder, moving BL-091 to the client where we cannot invalidate it. The SDK's `{ttlMs: 0, cacheScope: 'private'}` default is the correct answer there, asserted on the wire
-- [~] **Rate-limit dispatch: the body parse STAYS.** 🟡 **This AC was a security regression and is declined.** `Mcp-Name` may carry a base64 sentinel (`=?base64?…?=`) that the SDK decodes before its own cross-check, so a naive header read would see an encoded `search_radar` as opaque, miss `RADAR_TOOLS`, and fall through to the general tier — bypassing the bucket protecting the Inoreader budget for a request the SDK then executes. (The rationale originally filed here — "declare one tool, send another" — was also wrong: the SDK rejects that with `-32020` before dispatch.) The header's value is at the Cloudflare edge, a different layer. Reasoning recorded at the call site
-- [x] **Logging capability kept, exit recorded** — ✅ ADR-0013 decision 5. Verified survivable: the compat adapter intercepts only JSON-RPC requests, so notifications pass through
-
-**Deferred with triggers**
-
-> ⏸️ **DEFERRED.** Both are real fits with no consuming client, which is the test [BL-093](#bl-093-mcp-server--commercialization-phase-4) was deferred on (2026-08-02). Do not pick one up because it is "unblocked."
-
-- [ ] **Tasks extension** (`io.modelcontextprotocol/tasks`) — fits the long-running `compose_dossier_envelope` and XLSX-generation paths. **Triggers**: a client hits a timeout on a long-running tool, or a design partner appears
-- [ ] **MRTR** (Multi Round-Trip Requests) — would let a diligence tool ask a clarifying question mid-call. **Triggers**: as above
-
-#### Technical Context
-
-- **The migration substrate was already installed**, which is why this took hours rather than the estimated days: `agents@0.20.1` already depended on `@modelcontextprotocol/{core,client,server}@2.0.0`. The v2 `McpServer` retains `registerTool` / `registerResource` / `registerPrompt`, and Zod 4 implements StandardSchema's `~standard.jsonSchema` natively, so **zero input schemas were rewritten** — the 22 src import rewrites were mechanical
-- **What actually cost the time** (none of it predicted): the v2 handler's own origin gate, which would have 403'd every `claude.ai` request in production; a silent-failure seam in `with-metrics.ts` where the notifier was located by duck-typing on a field v2 renamed; and a pre-existing eager-Upstash throw in `createServer` that turned every request into a `-32603` when the binding was absent, now resolved lazily
-- **A coverage hole this closed**: before `protocol-era-worker.test.ts`, no test asserted the Worker's MCP handler ever _served_ a request — every Worker-level test asserted auth-layer outcomes only (`not 401`, `not 403`, "some 4xx"). A Worker rejecting every protocol call would have kept the suite green, which going modern-only made dangerous
-- **`@modelcontextprotocol/sdk@1.30.0` stays in the tree** as an `agents` peer dependency, so the root `package.json` `overrides` entry pinning its `hono` / `express-rate-limit` transitives must remain
-- **Existing assets to build on**: the per-request `createServer(env, {...})` factory (already the `McpServerFactory` shape); `RESOURCE_TTL_SECONDS` (`src/cache/resource-cache.ts`); the Analytics Engine sink and its `keyOwner` attribution, which already covers per-client identity
-- **Closed, not deferred**: RFC 9207 `iss` on the embedded AS. It defends against authorization-server mix-up, which needs a third-party OAuth client; none are provisioned, and `@cloudflare/workers-oauth-provider` never advertises `authorization_response_iss_parameter_supported`, so a strict client sees it as unsupported rather than being misled. BL-093's onboarding gate covers the only condition that would revive it
-- **Relationship to [BL-092](#bl-092-mcp-server--declare-outputschema-on-the-tool-surface-candidate)**: SEP-2106 loosens the permitted `inputSchema` / `outputSchema` keywords, but that is **orthogonal** to BL-092's blocker (the SDK client validates `structuredContent` whenever present with no `isError` guard, colliding with [ADR-0011](../adr/0011-tool-response-channel-policy.md) Invariant 1). This initiative does not unblock BL-092
-- **Risks & mitigations**: the migration touches a live surface the team uses against the remote production Worker → staging exercise before production, and slice 1 ships independently so the CORS fix is not held hostage to it. Going modern-only bets that the team's own LLM clients already speak `2026-07-28` — third-party software on a release schedule we do not control → the bet is cheap because the compatibility lane is one option flag away, so losing it is a same-day rollback rather than an incident
-- **Out of scope**: `x-mcp-header` parameter mirroring (declined — no tool parameter benefits); the Tasks / MRTR extensions (deferred with triggers above). **No longer out of scope**: the stdio entrypoint migrated with the Worker (the shared `createServer` factory made separating them impossible), and `mcp-server/BREAKING_CHANGES.md` gained a 0.44.0 entry plus a widened scope note, since going modern-only IS a wire change
+**Deferred work extracted to [BL-107](#bl-107-mcp-server--tasks-extension-and-mrtr-candidate)** so it stays visible in the backlog rather than only inside a closed stanza. Declined outright: `x-mcp-header` mirroring; replacing the body-parse rate-limit dispatch with `Mcp-Name` (base64-sentinel values would let an encoded `search_radar` escape the radar tier); dropping the `agents` dependency. RFC 9207 `iss` closed — reasoning distilled into ADR-0013.
 
 ---
 
@@ -927,5 +893,26 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 - [ ] Error-result interaction resolved and tested against a real client round-trip before any schema ships
 - [ ] Schemas derived or generated where possible, not hand-maintained in parallel with the handlers
 - [ ] `contract-parity` coverage so a schema and its CONTRACT.md cannot drift
+
+---
+
+### BL-107: MCP Server — Tasks extension and MRTR (candidate)
+
+**Source**: extracted from [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) on its closure (2026-08-04) so the deferral stays discoverable in the backlog rather than surviving only inside a closed stanza and [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) | **Effort**: unscoped — size it when a trigger fires | **Status**: Candidate · deferred with triggers | **Depends on**: BL-106 (shipped — the server speaks `2026-07-28`, which is what makes either of these available)
+
+**As a** consumer running a long GST workflow, **I want** long-running tools to report progress instead of blocking, and tools to ask a clarifying question mid-call **so that** a dossier build neither times out silently nor fails on an input the server could simply have asked for.
+
+> ⏸️ **DEFERRED — do not pick this up because it is "unblocked".** Both are real fits with no consuming client, which is the test [BL-093](#bl-093-mcp-server--commercialization-phase-4) was deferred on (2026-08-02) and the same test BL-106 applied per-slice. Being newly _possible_ is not a reason; a consumer is.
+
+#### Acceptance Criteria
+
+- [ ] **Tasks extension** (`io.modelcontextprotocol/tasks`) — poll-based `tasks/get` + `tasks/update`, fitting the long-running `compose_dossier_envelope` and `generate_information_request_list_xlsx` paths. **Triggers**: a client hits a timeout on a long-running tool, or a design partner appears
+- [ ] **MRTR** (Multi Round-Trip Requests) — server returns `InputRequiredResult`, client retries with `inputResponses`; would let a diligence tool ask for a missing input mid-call instead of failing. **Triggers**: as above
+
+#### Technical Context
+
+- **Reversibility note carried from BL-106**: if Tasks activates, long-running Workers jobs want Durable Objects or Workflows — which is `agents`' actual competence. That is the trigger to reconsider ADR-0013 decision 4 (keeping `agents` as a thin adapter rather than dropping it)
+- **Not blocked by anything technical.** The server is on `@modelcontextprotocol/server@2.0.0` and both features are available today; the only thing missing is someone to use them
+- Full spec-delta analysis, including why these two were the only deltas worth deferring rather than declining outright: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)
 
 ---

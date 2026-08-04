@@ -1,7 +1,7 @@
 # ADR-0013: The MCP Worker serves protocol `2026-07-28` only; stdio keeps serving the legacy era
 
 - **Status**: Accepted (2026-08-03, `@gst/mcp-server` 0.44.0)
-- **Source initiative**: BL-106 (design doc: [`../development/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](../development/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md) — open at time of writing; archive on closure per the initiative-doc lifecycle)
+- **Source initiative**: BL-106 (closed 2026-08-04; design doc archived at [`../development/_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](../development/_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md))
 
 ## Context
 
@@ -32,7 +32,7 @@ The client picture is asymmetric, and that asymmetry is the substance of this AD
 
 6. **Keep the body-parse tool-name dispatch** in `src/dispatch/extract-tool-name.ts`. _Rejected: reading the new `Mcp-Name` header instead._ The header is allowed to carry a base64 sentinel (`=?base64?…?=`) which the SDK decodes before its own cross-check — so a naive header read would see an encoded `search_radar` as an opaque string, miss `RADAR_TOOLS`, and fall through to the general rate-limit tier, bypassing the bucket that protects the Inoreader budget for a request the SDK then executes. The header's value is at the Cloudflare edge, a different layer from this in-Worker gate.
 
-**Deferred with triggers** (unchanged from BL-106): the Tasks extension and MRTR. Both fit real surfaces — Tasks for `compose_dossier_envelope` and XLSX generation, MRTR for mid-call clarification — and neither has a consuming client. Triggers: a client times out on a long-running tool, or a design partner appears.
+**Deferred with triggers**: the Tasks extension and MRTR. Both fit real surfaces — Tasks for `compose_dossier_envelope` and XLSX generation, MRTR for mid-call clarification — and neither has a consuming client. Triggers: a client times out on a long-running tool, or a design partner appears. On BL-106's closure these were extracted to **BL-107** in [`BACKLOG.md`](../development/BACKLOG.md) so the work stays visible in the backlog rather than surviving only inside a closed stanza and this ADR.
 
 ## Consequences
 
@@ -41,6 +41,8 @@ The client picture is asymmetric, and that asymmetry is the substance of this AD
 **Compatibility**: the remote Worker no longer serves `2025-11-25`. This is a breaking wire change, recorded in `mcp-server/BREAKING_CHANGES.md`. Rollback is one token — but note the two enums differ: `agents` takes `'stateless' | 'reject'`, `serveStdio` takes `'serve' | 'reject'`.
 
 **Known spec deviation, accepted**: revision `2026-07-28` says servers **MUST** validate the `Origin` header and respond `403` when it is present and invalid. `src/auth/cors.ts` does not — it omits the `Access-Control-Allow-*` headers instead, so the browser blocks the cross-origin _read_ while the request itself still executes. That behaviour predates this ADR, but decision 3 makes `cors.ts` the sole origin authority, so the deviation is now wholly ours and is recorded here rather than left implicit. Accepted because the exposure the MUST targets (DNS rebinding) needs an ambient credential to be worth stealing, and `/mcp` has none: authentication is a bearer token the attacker page cannot supply, and the one cookie in the server (`mcp_reauth_session`) is path-scoped to `/admin/inoreader/reauth/`. Revisit if `/mcp` ever accepts cookie or session auth — at which point returning `403` for a present-and-disallowed `Origin` becomes the correct behaviour, not just defence in depth.
+
+**Second deliberate non-implementation — RFC 9207 `iss`** (distilled from the BL-106 design doc on closure, so it survives that doc's archival). The revision says authorization servers **SHOULD** return an `iss` parameter in authorization responses, and our embedded AS does not. Not implemented, and closed rather than deferred: `iss` defends against authorization-server mix-up, which requires a client talking to more than one AS, and no third-party OAuth client is provisioned. `@cloudflare/workers-oauth-provider` (exact-pinned at `0.8.2`) assembles the redirect in `completeAuthorization` with only `code` and `state`, and never advertises `authorization_response_iss_parameter_supported` — so a strict client sees the parameter as unsupported rather than being misled. Implementing it needs an upstream PR, a response-rewriting shim, or a fork. Revisit trigger: the first external OAuth client is provisioned (BL-093's onboarding gate already gates that), or the library ships `iss` support during a deliberate version bump.
 
 **Operational edges**:
 
