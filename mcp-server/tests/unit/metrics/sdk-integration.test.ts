@@ -115,7 +115,14 @@ describe('M4 — withToolMetrics typecheck + runtime against real McpServer', ()
     const result = await client.callTool({ name: 'ok_tool', arguments: {} });
 
     expect(result.structuredContent).toEqual({ matches: ['a', 'b'], totalMatched: 2 });
-    expect(result.content).toEqual([{ type: 'text', text: '2 matches.' }]);
+    // BL-108: both channels carry the payload over a REAL client round-trip. This
+    // is the assertion that would have caught the Claude Desktop outage — under
+    // BL-090 it read `toEqual([{ text: '2 matches.' }])`, i.e. it actively pinned
+    // the shape that starved `content`-reading clients of data.
+    expect(result.content).toEqual([
+      { type: 'text', text: '2 matches.' },
+      { type: 'text', text: '{"matches":["a","b"],"totalMatched":2}' },
+    ]);
     await client.close();
   });
 

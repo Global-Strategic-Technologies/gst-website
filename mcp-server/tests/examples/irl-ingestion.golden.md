@@ -7,7 +7,13 @@ model: claude-opus-4-7
 
 # Worked example output for `gst_irl_ingestion`
 
-Live-exercise transcript captured 2026-05-22 against the MedSig Health populated-IRL fixture ([`mcp-server/tests/fixtures/medsig-health-filled-irl.md`](../fixtures/medsig-health-filled-irl.md)). Originally recorded against `gst_diligence_sweep@0.0.5`; carried forward as the BL-045 PR B rename-commit baseline. **PENDING re-record** at PR B close against the renamed prompt's final body (mode / verbosity / forceTools args, inclusion gates, meta JSON fence, provenance footer, gap list).
+Live-exercise transcript captured 2026-05-22 against the MedSig Health populated-IRL fixture ([`mcp-server/tests/fixtures/medsig-health-filled-irl.md`](../fixtures/medsig-health-filled-irl.md)). Originally recorded against `gst_diligence_sweep@0.0.5`; carried forward as the BL-045 PR B rename-commit baseline.
+
+> **This is a historical transcript, not a current-body snapshot** (statement of constraint, 2026-08-04, BL-108 — replacing a "PENDING re-record at PR B close" marker that had sat un-actioned since BL-045).
+>
+> Re-recording requires a **human-driven live exercise** against a real MCP client; it cannot be regenerated in-session or in CI, which is why the marker was never actioned. Nothing depends on it being current: [`golden-snapshots.test.ts`](../integration/golden-snapshots.test.ts) asserts only file existence, four frontmatter keys and `promptName` — never `version` or body — so the `version: 0.1.0` above has been stale against the live prompt for twenty minor versions without consequence.
+>
+> Its **value is precisely that it is old**: §4 below records the `"Healthcare Tech"` → zero-matches retry that drove the v0.0.2 Step 2 refinement, and which BL-108 later cited as evidence when the same invented theme names turned up in the tool descriptions themselves. Re-recording would destroy that provenance. Treat this file as an archived observation; do not grep-replace values in it.
 
 ## Input
 

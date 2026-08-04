@@ -31,6 +31,26 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.45.0 — 2026-08-04 — BL-108 — tool results carry the payload in `content` again
+
+**Every successful tool response changes shape.** `content` goes from one block to two: `content[0].text` is the same one-line caption as before, byte-identical, and **`content[1].text` is the compact serialized payload**. `structuredContent` is unchanged and remains canonical. Failure results are untouched — still a single block carrying the verbatim message.
+
+**Who this affects**: any consumer that assumed `content` had exactly one element. Within this repo that was five test assertions, plus the caption-extractor in `tests/integration/tool-result-constructors.test.ts` (which took "everything after the first comma" and so silently swallowed the new third argument); `scripts/Invoke-McpRequest.ps1` and the smoke commands below read `structuredContent` and are unaffected. Consumers reading `content[0].text` for the caption are also unaffected — index 0 did not move.
+
+**Why.** Between 0.43.0 and this release, `content` carried a caption and nothing else. **Claude Desktop reads `content`**, so for three weeks it received `"11 portfolio matches."` with no rows and `"15 themes, 2 engagement categories, 6 growth stages, 5 years."` with no values, and reported `search_portfolio` as broken. The MCP spec has a clause for exactly this — _"a tool that returns structured content SHOULD also return the serialized JSON in a TextContent block"_ — which [ADR-0011](../src/docs/adr/0011-tool-response-channel-policy.md) recorded itself as knowingly deviating from. The serialization is **compact**, never pretty-printed: the indentation was BL-090's real finding, the duplication was not.
+
+**Measured wire cost** — `search_portfolio` (all 65) 61,529 → 127,599 B (×2.07); `compose_dossier_envelope` 16,581 → 33,290 B (×2.01); `list_portfolio_facets` 597 → 1,105 B (×1.85). Against the 143,403 B pre-BL-090 baseline this lands ~11% below where BL-090 started, not back at it. The audit stream's `outputBytes` will step up accordingly — expected, not a regression signal.
+
+**One exception**: `generate_information_request_list_xlsx` omits its base64 blob from `content[1]` only, replacing it with a marker string; `structuredContent.base64` is untouched. ~17 KB of base64 is ~4,500-6,000 tokens the model cannot use, of a payload Claude Desktop cannot render (see 0.3.9 below). Note this makes it the sole tool whose two channels differ — the property that produced BL-090's wrong generalisation.
+
+**Not a `content[1]` precedent**: 0.3.8 below also used a `content[1]`, but for a **`resource`** block carrying the .xlsx as a blob, reverted in 0.3.9. Unrelated mechanism, unrelated payload.
+
+**Also in this release**: the `search_portfolio` theme vocabulary is now derived from `projects.json` rather than hand-written. The descriptions had been advertising `"Healthcare Tech"`, `"Financial Services"` and `"Life Sciences"` — none of which are real themes — including in the `tools/list` argument description, which is the only portfolio vocabulary a cold LLM call can see. The `gst_irl_ingestion` body carried the same two invented values; corrected in place.
+
+**No manifest change.** Tool names, prompt names and Resource URIs are untouched, and `gst_irl_ingestion` stays at `0.21.1` — the prompt edit replaced illustrative data values inside directives whose semantics and structure are unchanged, which is the BL-086 L0/L1 no-bump class. (Contrast BL-064, which _introduced_ that Step 2 batching directive and did bump.) The three one-shot body hashes in `tests/integration/irl-ingestion-body-hash-stability.test.ts` are rebaselined; the manifest hash above is unchanged.
+
+---
+
 ## 0.44.1 — 2026-08-04 — BL-106 — **REVERTED**: the Worker serves both protocol eras again
 
 **This undoes the breaking change in 0.44.0, roughly an hour after it reached production, because it broke production.** 0.44.0 deployed at 17:56 UTC on 2026-08-04 (the stanza below is dated 08-03, when the change was written). The remote Worker serves protocol `2025-11-25` again alongside `2026-07-28` (`legacy: 'stateless'`).

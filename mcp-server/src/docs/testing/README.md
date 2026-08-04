@@ -13,7 +13,7 @@ The workspace is self-contained — its tests, coverage thresholds, and CI workf
 | Input contract (diligence) | `tests/unit/diligence.test.ts` | `UserInputsSchema` accepts the canonical 13-field payload, rejects bad enums, rejects payloads missing required fields        |
 | Engine wrapper (diligence) | `tests/unit/diligence.test.ts` | `generateScript` returns non-empty `topics`, JSON-serializable output, well-formed `attentionAreas`, varies with input        |
 | Dataset bundle integrity   | `tests/unit/portfolio.test.ts` | `ProjectsArraySchema.parse(projectsRaw)` succeeds at module init; project count regression-locked; non-empty `technologies[]` |
-| Search input contract      | `tests/unit/portfolio.test.ts` | `SearchPortfolioInputSchema` defaults applied, `limit` clamped to (0, 61], empty input accepted                               |
+| Search input contract      | `tests/unit/portfolio.test.ts` | `SearchPortfolioInputSchema` defaults applied, empty input accepted (no `limit` — removed in BL-031.95)                       |
 | Filter parity              | `tests/unit/portfolio.test.ts` | `filterProjects` honors `search`, `theme`, and `engagement` predicates                                                        |
 | Facet determinism          | `tests/unit/portfolio.test.ts` | themes sorted ascending, years descending, dedup invariants for engagement categories and growth stages                       |
 

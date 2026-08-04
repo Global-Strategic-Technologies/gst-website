@@ -170,3 +170,47 @@ describe('ListPortfolioFacetsInputSchema', () => {
     expect(result.success).toBe(true);
   });
 });
+
+// BL-108 — the `theme` argument description ships in `tools/list` and is the only
+// portfolio vocabulary a cold LLM call can see before its first tool call. It used
+// to advertise "Healthcare Tech", "Financial Services" and "Life Sciences", none of
+// which exist; a real Claude Desktop session tried them, got zero matches, and fell
+// back to probing names by trial. The description is now derived from the dataset —
+// this pins that derivation so it cannot silently drift back into fiction.
+describe('search_portfolio theme description — derived vocabulary (BL-108)', () => {
+  const description = SearchPortfolioInputSchema.shape.theme.description ?? '';
+  const realThemes = getUniqueThemes(ProjectsArraySchema.parse(projectsRaw));
+
+  it('advertises every real theme verbatim', () => {
+    expect(realThemes.length).toBeGreaterThan(0);
+    for (const theme of realThemes) {
+      expect(description, `theme "${theme}" must appear in the tools/list description`).toContain(
+        `"${theme}"`
+      );
+    }
+  });
+
+  it('advertises no theme that does not exist', () => {
+    // Every quoted value in the enumerated set must be a real theme. Scoped to the
+    // sentence listing them so the batching example's own quoted values (which are
+    // themselves real themes) do not widen the match to unrelated prose.
+    const listed = description.match(/valid values is:\*\*([^.]+)\./)?.[1] ?? '';
+    // Fails CLOSED if the description is reworded: an empty capture means the
+    // enumeration moved or vanished, which must be a failure rather than a
+    // vacuously-passing set comparison against nothing.
+    expect(
+      listed,
+      'could not locate the enumerated theme list in the description — if the wording changed, update this regex rather than deleting the assertion'
+    ).not.toBe('');
+    const advertised = [...listed.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    expect(advertised.sort()).toEqual([...realThemes].sort());
+  });
+
+  it('names no theme that the facets tool would not return', () => {
+    // The parity claim the description makes out loud.
+    for (const invented of ['Healthcare Tech', 'Financial Services', 'Life Sciences']) {
+      expect(realThemes).not.toContain(invented);
+      expect(description).not.toContain(`"${invented}"`);
+    }
+  });
+});

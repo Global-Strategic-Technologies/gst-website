@@ -772,6 +772,39 @@ Retained rather than pruned — not because its findings lack a home (both are d
 
 ---
 
+### BL-108: MCP Server — restore the serialized-JSON text block ✅ CLOSED 2026-08-04
+
+**Source**: a live Claude Desktop session reporting `search_portfolio` "only returning match counts, not the project rows or the deeplink its schema promises" | **Shipped**: `@gst/mcp-server` 0.45.0 | **Decisions**: [ADR-0011](../adr/0011-tool-response-channel-policy.md) § Amendment 2026-08-04
+
+**The defect**: since 0.43.0 (BL-090), `toolOk` put the payload in `structuredContent` and a one-line caption in `content`. **Claude Desktop reads `content`.** For three weeks it received `"11 portfolio matches."` with no rows, and `"15 themes, 2 engagement categories, 6 growth stages, 5 years."` with no values — the literal caption strings from `portfolio.ts:123,140`. The user reported a broken tool; the tool was working exactly as designed.
+
+**Not a regression from the 0.44.x deploy**, which is where the investigation would naturally have started. The era axis was the leading alternative — Desktop speaks `2025-11-25` — and it was tested and cleared: `appendTextFallbackForNonObject` is era-agnostic and the rev2025 `{result:…}` wrap fires only for non-object `structuredContent`, so both eras are identity for our payloads. Claude Code, on the same build, returned all 11 rows. The difference was the client, not the transport.
+
+**What shipped**: `content` is now `[caption, compact serialized JSON]`, per the spec's backwards-compatibility clause that ADR-0011 recorded itself as knowingly deviating from. Plus `toolOk`'s one exception, `textOmit`, used solely to keep a 17 KB base64 `.xlsx` (~4,500-6,000 tokens) out of the model channel.
+
+**Wire cost, measured** — accepted by the operator on the basis that a 61 KB response the model cannot read is worth less than a 127 KB one it can:
+
+| tool                        | before   | after     |       |
+| --------------------------- | -------- | --------- | ----- |
+| `search_portfolio` (all 65) | 61,529 B | 127,599 B | ×2.07 |
+| `compose_dossier_envelope`  | 16,581 B | 33,290 B  | ×2.01 |
+| `list_portfolio_facets`     | 597 B    | 1,105 B   | ×1.85 |
+
+**The second defect, which cost the same session real calls**: the tool descriptions advertised theme values that **do not exist** — `"Healthcare Tech"` and `"Financial Services"` in `tools/portfolio.ts`, and `"Life Sciences"` in `schemas.ts:150`, the description shipped in `tools/list` and therefore the only portfolio vocabulary a cold LLM call can see. Desktop dutifully tried them and got zero matches, then "probed theme names by trial". The theme list and project count are now **derived from `projects.json`**, so the vocabulary cannot drift from the data again. The `gst_irl_ingestion` prompt carried the same two invented values inside a directive telling the model _not_ to guess at labels; corrected there by hand (interpolating into a prompt body would couple its committed hashes to the dataset, reddening CI on a routine portfolio edit).
+
+**Findings worth remembering**:
+
+1. **BL-090's evidence generalised from n=1 client.** The probe was real, correctly executed, and its conclusion true — of the one client it ran through. The AC demanded "evidence, not assumption" and was satisfied in form. A single client cannot establish a cross-client fact.
+2. **The tripwire was set on the wrong event.** ADR-0011 predicted this failure mode precisely, then scoped it to "the moment a first external pilot connects". It needed no pilot: an internal client, on a modern revision, that renders the other channel. The same "no external clients" answer had already mis-scoped [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) a day earlier — twice in two days, a contract question answered where a software question was asked.
+3. **Nothing asserted the model-visible channel carried data.** A three-week outage sat under a fully green suite. `protocol-era-worker.test.ts` now pins `content.length === 2` and block-1/`structuredContent` agreement on a **legacy-era** call; `protocol-roundtrip.test.ts` enforces it for every tool it exercises.
+4. **`generate_information_request_list_xlsx` is again the only channel-asymmetric tool** — the exact property that made it BL-090's probe target. Recorded in the ADR and at the call site: do not run the next which-channel probe there.
+
+**Unblocked, not undertaken**: [BL-092](#bl-092-mcp-server--declare-outputschema-on-the-tool-surface-candidate)'s blocker is retired by SDK v2. It stays separate — it would not have fixed this bug, and it turns on Desktop behaviour still unverified.
+
+**Open, for the operator**: only a Claude Desktop call against the deployed Worker settles the fix. Staging auto-deploys on a green MCP run.
+
+---
+
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype
@@ -890,7 +923,11 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 
 **Spec revision `2026-07-28` does NOT move this** — recorded here so it is not re-derived. SEP-2106 loosens the permitted `inputSchema` / `outputSchema` keywords, which reads like an unblock but is orthogonal: the blocker below is a _validation-trigger_ problem (the client validates whenever `structuredContent` is present, with no `isError` guard), not a keyword-strictness one. Established under [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04).
 
-**Blocked-by constraint — read before starting.** The SDK client validates `structuredContent` **whenever present, with no `isError` guard** (`client/index.js`, contradicting its own adjacent comment). ADR-0011 Invariant 1 puts `structuredContent` on error results too. So the day any tool declares an `outputSchema`, its error results would throw `McpError` client-side. Any implementation MUST either scope schemas to the success shape only, or exempt error results (the `toolFail` `suppressStructured` option exists for a related contingency). Do not pick this up without resolving that first.
+**~~Blocked-by constraint~~ — RETIRED 2026-08-04 (BL-108).** The blocker read: the SDK client validates `structuredContent` **whenever present, with no `isError` guard** (v1 `client/index.js`, contradicting its own adjacent comment), so with ADR-0011 Invariant 1 putting `structuredContent` on error results, declaring an `outputSchema` would throw `McpError` client-side on every failure.
+
+**SDK v2 fixed it.** `@modelcontextprotocol/client` now guards _both_ branches with `&& !result.isError` (`dist/index.cjs:4155-4156` — the missing-structured throw and the validation call), and the server mirrors it (`if (result.isError) return` in `validateToolOutput`). Error results are simply not validated against `outputSchema`. No workaround, no success-shape scoping, no `suppressStructured` is required. Verified against the installed 2.0.0 packages while diagnosing BL-108.
+
+**New constraint inherited from BL-108 — keep output schemas OBJECT-ROOTED, and beware unions.** The rev2025 codec wraps `structuredContent` as `{ result: … }` when the advertised `outputSchema`'s root `type` is not `"object"` — the predicate is literally `json["type"] !== "object"`, so it fires on a root that omits `type` at all, not just on arrays and primitives. Measured against the installed Zod: `z.object` → `type:"object"` (safe); **`z.union` → `anyOf` root and `z.discriminatedUnion` → `oneOf` root, both typeless, both wrap**; `z.array` wraps. A discriminated union of result shapes is the natural thing to reach for when authoring 16 output schemas, and it is exactly what would make `structuredContent` **era-sensitive on the 2025 wire** — the era Claude Desktop speaks. This arm is dormant today only because nothing declares an `outputSchema`, which is precisely why BL-108's era analysis came out identity. See [ADR-0011](../adr/0011-tool-response-channel-policy.md).
 
 **Weigh honestly before building**: 16 hand-authored Zod output schemas can drift from the handlers that build the payloads, which is _more_ cognitive load unless derived — and TypeScript types do not survive to runtime. The win is client-side validation, not model comprehension. Deferred from BL-090 for exactly this reason.
 
