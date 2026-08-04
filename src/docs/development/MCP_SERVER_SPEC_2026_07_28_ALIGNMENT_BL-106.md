@@ -11,9 +11,11 @@
 >
 > **Predecessors**: [BL-033](BACKLOG.md#bl-033-mcp-server--external-pilot-phase-3) (OAuth 2.1, audit log, tier system — the surfaces this revision touches).
 >
-> **Scope**: a gap analysis of the deployed GST MCP server against MCP spec revision `2026-07-28`, with a disposition for every delta. Establishes the evidence base and the ordering; ships no code.
+> **Scope**: a gap analysis of the deployed GST MCP server against MCP spec revision `2026-07-28`, with a disposition for every delta — and, from 2026-08-03, the record of implementing it. (The original scope line read "ships no code"; the operator authorised implementation on the same branch after the analysis was filed.)
 >
 > **Operator directives (2026-08-03)**: (1) **do not maintain backwards compatibility** — there are no external clients; (2) **simplicity, elegance and maintainability are the governing design policy.** Both are load-bearing below: together they turn this from a careful staged migration into a net deletion.
+>
+> **Status: implemented 2026-08-03** at `@gst/mcp-server` 0.44.0; decisions ratified in [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md). **Five conclusions in this document were overturned during implementation** — see § What implementation overturned. They are corrected in place below AND listed there, because the wrong versions were acted on (and one was reported to the operator) before being caught.
 
 ---
 
@@ -22,11 +24,11 @@
 |                        |                                                                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Spec revision released | `2026-07-28`                                                                                                                                |
-| What our Worker speaks | `2025-11-25`, capped by `@modelcontextprotocol/sdk@1.30.0`                                                                                  |
+| What our Worker speaks | `2026-07-28` only, since 0.44.0 — was `2025-11-25`. stdio still serves both                                                                 |
 | Migration substrate    | **Already resolved in `node_modules`** — `agents@0.20.1` pulls `@modelcontextprotocol/{core,client,server}@2.0.0`, which carry `2026-07-28` |
 | What sets the clock    | **Not the spec.** `agents` has deprecated the v1 path we use and will remove it in its next major                                           |
 | Confirmed defects      | One (CORS preflight)                                                                                                                        |
-| Expected net effect    | **Fewer dependencies, fewer lines, one less deadline** — see § The simplification                                                           |
+| Net effect             | Deadline retired; `agents` and `nodejs_compat` **stayed** — see § What implementation overturned                                            |
 | Analysis date          | 2026-08-03                                                                                                                                  |
 
 ---
@@ -69,7 +71,7 @@ We currently import from `agents/mcp`, the wide barrel that carries the whole Du
 
 ### Recommendation: narrow first, then evaluate
 
-**Step 1 — change the import to `agents/mcp/server`.** One line. Near-zero risk, and it is the path Cloudflare's own deprecation notice points at. This alone is expected to shed the transitive `mimetext` / `mime-types` and therefore allow removing `nodejs_compat` from `wrangler.toml`, whose comment states the flag exists _solely_ for them (verify against the other Worker dependencies first — see Open questions).
+**Step 1 — change the import to `agents/mcp/server`.** One line. Near-zero risk, and it is the path Cloudflare's own deprecation notice points at. ~~This alone is expected to shed the transitive `mimetext` / `mime-types` and therefore allow removing `nodejs_compat`.~~ **Corrected in implementation: it does not.** The stateless handler imports `node:async_hooks` at module top for its auth-context `AsyncLocalStorage`, so the flag is load-bearing for the handler itself. The `wrangler.toml` comment claiming it existed solely for `mimetext` / `mime-types` was wrong and has been fixed.
 
 **Step 2 — then ask whether the remaining wrapper earns its keep.** Everything it still adds over the raw SDK handler is already done by `worker.ts` before the handler is reached, does not apply to us, or is being removed:
 
@@ -147,7 +149,7 @@ The specification moved toward decisions this codebase had already made.
 
 ## Confirmed defect
 
-**The CORS preflight allowlist rejects the new spec's required headers.** `mcp-server/src/auth/cors.ts` allows `Authorization, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version`. Revision `2026-07-28` makes `Mcp-Method` and `Mcp-Name` REQUIRED on every Streamable HTTP POST and adds optional `Mcp-Param-*`. A browser-based client on the new spec — the claude.ai / ChatGPT connector case the allowlist exists to serve — fails at the preflight before any MCP traffic flows.
+**The CORS preflight allowlist rejects the new spec's required headers.** `mcp-server/src/auth/cors.ts` allows `Authorization, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version`. Revision `2026-07-28` makes `Mcp-Method` and `Mcp-Name` REQUIRED on every Streamable HTTP POST, and adds optional `Mcp-Param-*` — which **cannot be allowlisted** (no wildcard-prefix form exists) and needs no allowlisting, since those headers appear only for tools declaring `x-mcp-header`, which we declined. A browser-based client on the new spec — the claude.ai / ChatGPT connector case the allowlist exists to serve — fails at the preflight before any MCP traffic flows.
 
 Independent of the migration, and worth fixing regardless: it costs hours and its absence is invisible until a real client hits it.
 
@@ -165,6 +167,23 @@ Negative results, recorded so they are not re-derived.
 
 ---
 
+## What implementation overturned
+
+Five conclusions in the analysis above did not survive contact with the code. They are corrected in place, and listed together here because a gap analysis whose errors are quietly edited out teaches nothing about how much to trust the next one.
+
+| Claim                                                     | What was actually true                                                                                                                                                                                                                                                                              |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add `Mcp-Param-*` to the CORS allowlist                   | **Impossible and unnecessary.** CORS has no wildcard-prefix form for `Allow-Headers`; and the headers only exist for tools declaring `x-mcp-header`, which we declined                                                                                                                              |
+| Narrowing/dropping `agents` likely frees `nodejs_compat`  | **It cannot.** The stateless handler imports `node:async_hooks` at module top for its auth-context `AsyncLocalStorage`. Reported to the operator in an exec summary before being caught                                                                                                             |
+| Replace the body-parse tool-name dispatch with `Mcp-Name` | **A rate-limit bypass.** Base64-sentinel header values decode SDK-side but not in a naive read, letting an encoded `search_radar` escape the radar tier. (The originally-filed rationale — "declare one tool, send another" — was _also_ wrong: the SDK rejects that with `-32020` before dispatch) |
+| Keep `agents` because it owns the origin/host gate        | **Empty reason.** After `allowedOriginHostnames: '*'` the gate never runs, and host validation no-ops on a custom domain. The decision stands on scope discipline and the supported-seam argument instead                                                                                           |
+| Modern-only on both transports                            | **Wrong for stdio.** The git-tracked `.mcp.json` makes stdio's client population real and unverifiable, so Directive 6's active-client rule applies there but not to the Worker                                                                                                                     |
+
+Two further things were discovered rather than corrected, and neither was in the plan:
+
+- **The v2 handler runs its own origin gate**, defaulting to the localhost trio — which on a custom domain answers **403** to every `Origin: https://claude.ai` request. This would have broken exactly the browser clients the CORS fix was written to serve, and no existing test would have caught it. It is the single most consequential finding of the implementation.
+- **`with-metrics.ts` located the notifier by duck-typing** on a field v2 renamed, and `maybeWarnSoftLimit` is contractually non-throwing — so the rate-limit warning would have died silently, with the soft-limit tests staying green against their own v1-shaped fake.
+
 ## Positions considered and dropped
 
 Recorded because both are tempting shapes that cost real time before being discarded.
@@ -176,9 +195,9 @@ Recorded because both are tempting shapes that cost real time before being disca
 
 ## Business value
 
-- **Header-based routing.** `Mcp-Method` / `Mcp-Name` let Cloudflare rules meter and route per tool without parsing a JSON body, moving enforcement to the edge — the thing a metered product built on [ADR-0010](../adr/0010-per-client-rate-limit-tiers.md)'s tiers eventually needs. Modern-only makes this a straight swap: read the header, delete the body clone and JSON parse in `mcp-server/src/dispatch/extract-tool-name.ts`.
+- **Header-based routing.** `Mcp-Method` / `Mcp-Name` let Cloudflare rules meter and route per tool without parsing a JSON body, moving enforcement to the edge — the thing a metered product built on [ADR-0010](../adr/0010-per-client-rate-limit-tiers.md)'s tiers eventually needs. ~~Modern-only makes this a straight swap: read the header, delete the body clone and JSON parse.~~ **Corrected in implementation: the body parse stays.** `Mcp-Name` may carry a base64 sentinel the SDK decodes but a naive read would not, so an encoded `search_radar` would escape the stricter radar rate-limit tier. The edge-metering value is real; replacing the in-Worker gate is not part of it.
 - **`ttlMs` / `cacheScope`.** `RESOURCE_TTL_SECONDS` in `mcp-server/src/cache/resource-cache.ts` already encodes per-family freshness; today it is invisible to clients, so they re-poll on their own schedule. Publishing it costs a field per result. See [ARCHITECTURE.md § Server-side resource caching](../../../mcp-server/src/docs/ARCHITECTURE.md#server-side-resource-caching).
-- **Maintainability, which is the largest line item.** Dropping `agents`, the legacy lane, the body-parse dispatch and possibly `nodejs_compat` removes more code and configuration than the migration adds.
+- **Maintainability.** The legacy lane, the duck-typed notifier scan, the v1 `.shape` workarounds and a dead TTL constant all went. `agents`, the body-parse dispatch and `nodejs_compat` all **stayed** — for the reasons in § What implementation overturned — so this was a smaller net deletion than projected.
 - **Tasks and MRTR are capability, not leverage.** Genuinely useful — Tasks for the long-running `compose_dossier_envelope` and XLSX paths, MRTR for mid-call clarification — but neither has a consumer. Building them now repeats the pattern [BL-093](BACKLOG.md#bl-093-mcp-server--commercialization-phase-4) was deferred for on 2026-08-02.
 
 ---
@@ -193,7 +212,7 @@ With no external clients there is no coordination cost and nothing to sequence a
 
 ## Open questions
 
-- **Q1 — Does narrowing to `agents/mcp/server` free `nodejs_compat`?** `wrangler.toml` states the flag exists solely for `agents`' transitive `mimetext` / `mime-types`, which arrive via the observability module in the wide barrel. Confirm the lean entry point does not pull them, then verify against the other Worker dependencies (`@sentry/cloudflare`, `xlsx-js-style`, `fflate`, `@upstash/*`) before removing the flag.
+- ~~**Q1 — Does narrowing to `agents/mcp/server` free `nodejs_compat`?**~~ **Answered: no.** `handler-stateless-*.js` imports `node:async_hooks` at module top. The flag stays and `wrangler.toml` now says why.
 - **Q2 — Is `getMcpAuthContext` worth adopting, or is it redundant?** It is the other half of what `agents/mcp/server` exports. We resolve auth ourselves and thread `AuthSuccess` through `handleAuthenticated`, and `mcp-server/src/oauth/api-handler.ts` re-enters that same pipeline — so this is expected to be redundant rather than useful. It is the one integration point the wrapper touches that we have not exercised, and it decides whether step 2 (dropping to the raw SDK) is clean or fiddly.
 
 ---

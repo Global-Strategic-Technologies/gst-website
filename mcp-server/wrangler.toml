@@ -136,14 +136,22 @@ head_sampling_rate = 1
 logs = { enabled = true, head_sampling_rate = 1, persist = true, invocation_logs = true }
 traces = { enabled = true, persist = true, head_sampling_rate = 1 }
 
-# nodejs_compat is required because the `agents` SDK pulls in `mimetext`
-# (uses node:os) and `mime-types` (uses node:path) transitively through its
-# observability module. Cloudflare's nodejs_compat layer polyfills these
+# nodejs_compat is required on two counts. The primary one (BL-106): the
+# `agents` stateless MCP handler imports `node:async_hooks` at module top for
+# the AsyncLocalStorage it carries auth context in — so the flag is load-bearing
+# for the handler itself, not merely its dependencies. Secondarily the SDK still
+# pulls `mimetext` (node:os) and `mime-types` (node:path) transitively through
+# its observability module. Cloudflare's nodejs_compat layer polyfills these
 # Node built-ins on the Worker runtime — well-supported, no functional
 # impact on our code path.
 #
-# Our OWN code stays Web-API-only — we use v1 SDK's
-# WebStandardStreamableHTTPServerTransport (via agents/mcp's createMcpHandler).
+# BL-106 checked whether narrowing the import from `agents/mcp` to
+# `agents/mcp/server` would let this flag be retired. It does not — the
+# node:async_hooks import is in the stateless handler we now use.
+#
+# Our OWN code stays Web-API-only — we use the v2 SDK's
+# WebStandardStreamableHTTPServerTransport (via agents/mcp/server's
+# createMcpHandler).
 # Local-only tools/resources that DO use node:fs / node:crypto live in
 # src/tools/_local-only.ts and are registered only by the stdio entrypoint
 # (src/index.ts), never by this Worker. See BL-032 Q12.

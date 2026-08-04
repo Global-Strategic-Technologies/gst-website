@@ -59,13 +59,13 @@ mcp-server/
 │       └── testing/
 │           └── README.md  # this file
 ├── tests/
-│   ├── unit/        # current — pure-function wrapper tests
-│   └── integration/ # reserved for future MCP-protocol-level tests
+│   ├── unit/        # 108 files — engines, schemas, wrappers, metrics, cache
+│   └── integration/ # 41 files — protocol round-trips, Worker boot, auth, OAuth
 ├── vitest.config.ts # globs: tests/unit/**, tests/integration/**
 └── package.json
 ```
 
-The `tests/integration/` directory is pre-declared in [`vitest.config.ts`](../../../vitest.config.ts) so future protocol-level tests (spinning up the stdio transport in-process, exercising tool-registration discovery, asserting JSON-RPC responses) can drop in without a config change.
+Both directories are declared in [`vitest.config.ts`](../../../vitest.config.ts). `tests/integration/` was originally a placeholder for anticipated protocol-level work; that work has long since landed — it now holds protocol round-trips, `unstable_dev` Worker-boot suites (auth, CORS, rate limiting, OAuth, protocol era), and contract-parity guards.
 
 ---
 
@@ -120,8 +120,14 @@ Editing only documentation under `mcp-server/**/*.md` does not trigger this work
 
 ---
 
-## Why no E2E or integration tests yet
+## Integration coverage
 
-The current MCP surface is three pure-function wrappers over already-tested engines. Asserting on the wrappers' inputs, outputs, and JSON-serializability is sufficient for engine-parity claims.
+_(This section previously read "Why no E2E or integration tests yet" and described the MCP surface as "three pure-function wrappers". It was written before Resources, Prompts, the remote transport, OAuth and the tier system landed, and had been stale for some time — corrected under BL-106.)_
 
-A future MCP-protocol-level integration suite is anticipated alongside the Resources (BL-031.5) and Prompts (BL-031.75) primitives — at that point the protocol surface becomes large enough that a direct stdio harness is warranted. The placeholder `tests/integration/` directory is already wired into the vitest include glob for that work.
+The integration suite covers three bands:
+
+- **Protocol round-trips** — an in-process server + client pair exercising tool / resource / prompt discovery and JSON-RPC responses (`protocol-roundtrip`, `prompts-args-shape`, `resource-uri-stability`).
+- **Worker boot** — real `unstable_dev` Workers asserting the HTTP edge: auth, CORS, rate limiting, OAuth flows, the radar snapshot endpoint, and protocol-era behaviour (`protocol-era-worker`).
+- **Contract guards** — manifest-hash stability and CONTRACT.md/USAGE.md parity, which fail on registry drift rather than on behaviour.
+
+There is still no browser E2E here; the website workspace owns that (Playwright), and this package has no browser surface.
