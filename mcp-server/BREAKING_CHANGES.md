@@ -31,6 +31,20 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.44.1 — 2026-08-04 — BL-106 — **REVERTED**: the Worker serves both protocol eras again
+
+**This undoes the breaking change in 0.44.0, roughly an hour after it reached production, because it broke production.** 0.44.0 deployed at 17:56 UTC on 2026-08-04 (the stanza below is dated 08-03, when the change was written). The remote Worker serves protocol `2025-11-25` again alongside `2026-07-28` (`legacy: 'stateless'`).
+
+0.44.0's stanza said "who this affects: nobody known at ship time." That was wrong within the hour. **Claude Desktop speaks `2025-11-25`** — the spec revision was a week old and its client had not moved — so its `initialize` was refused with `-32022` and every tool call failed. It presented as `failed to call tool list_portfolio_facets`, not as a connection error, because the client still displayed its cached tool list; the symptom pointed at a tool rather than at the handshake.
+
+The error was in the question asked, not the evidence gathered. "No external clients" was verified and true; what mattered was _what protocol version the client software speaks_, which is a different question whenever the consumers are your own team using third-party tools.
+
+Also shipped here: the `era` discriminator (`mcp.request.era`, `legacy` / `modern`), which was specified for 0.44.0, dropped during implementation, and whose absence meant this had to be diagnosed by reproducing symptoms instead of reading a log. Plus two regression tests pinning the legacy handshake and the exact `tools/call` that failed.
+
+See [ADR-0013](../src/docs/adr/0013-mcp-2026-07-28-modern-only-worker.md) § Amendment 2026-08-04. **No manifest change** — tool names, prompt names and Resource URIs are untouched, so the manifest hash is unchanged and could not have caught this.
+
+---
+
 ## 0.44.0 — 2026-08-03 — BL-106 — the remote Worker serves protocol `2026-07-28` only
 
 **Breaking, transport-scoped.** The Worker at `mcp.globalstrategic.tech` no longer serves protocol revision `2025-11-25`: a client opening with an `initialize` handshake is answered with the unsupported-protocol-version error naming the modern revisions. **stdio is unaffected** and continues to serve the legacy era — see [ADR-0013](../src/docs/adr/0013-mcp-2026-07-28-modern-only-worker.md) for why the two transports differ.

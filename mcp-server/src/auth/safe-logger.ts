@@ -65,6 +65,20 @@ export interface LogEvent {
   /** MCP Resource URI (e.g. `gst://library/vdr-structure`). Carried on `resource_cache_*` events from BL-032.5 Phase 1; safe to log (URIs are public identifiers). */
   uri?: string;
   /**
+   * Protocol era the caller opened this request with — `'legacy'` (a
+   * 2025-era `initialize` handshake) or `'modern'` (2026-07-28 per-request
+   * `_meta`), or `'no-factory-run'` when the handler refused the request
+   * before it ever reached the server factory. Carried on `mcp.request`.
+   *
+   * This exists because its ABSENCE cost a production incident. BL-106 set
+   * the Worker to modern-only on the inference that "no external clients"
+   * meant no clients on the old era; Claude Desktop was on `2025-11-25` and
+   * every tool call failed. With no era signal, diagnosing it meant guessing
+   * from symptoms. Never flip the Worker to `legacy: 'reject'` again without
+   * first confirming from THIS field that nothing is opening with `initialize`.
+   */
+  era?: 'legacy' | 'modern' | 'no-factory-run';
+  /**
    * Sub-classification for `auth.failed` events — the discriminator from
    * `AuthFailure.reason`. Lets `wrangler tail`-side analysis distinguish
    * probe traffic (`missing-header` / `empty-token` / `bad-scheme`) from

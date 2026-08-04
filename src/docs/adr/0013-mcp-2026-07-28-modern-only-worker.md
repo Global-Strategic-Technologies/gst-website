@@ -55,3 +55,31 @@ The client picture is asymmetric, and that asymmetry is the substance of this AD
 **Accepted trade-off**: modern-only on the Worker bets that no future consumer of the remote surface predates `2026-07-28`. Cheap, because the fallback is one token and there is nobody to coordinate with. Should a prospective client turn up on an older revision, flipping to `'stateless'` restores the lane without a redesign.
 
 **Revisit triggers**: a client requires `2025-11-25` on the remote surface; `agents` ships the major that removes the v1 path (verify nothing else regressed); SEP-2577's Logging removal is actually scheduled (decision 5); or the Tasks deferral fires (decision 4's reversibility note).
+
+---
+
+## Amendment — 2026-08-04, same day: decision 1 reverted after a production incident
+
+**Decision 1 (`legacy: 'reject'` on the Worker) is reverted to `legacy: 'stateless'`. Both protocol eras are served.** Every other decision in this ADR stands; the title is left as written so the reversal is legible rather than tidied away.
+
+### What happened
+
+Production deployed at 17:56 UTC. Within the hour, tool calls from Claude Desktop failed. **Claude Desktop speaks `2025-11-25`** — revision `2026-07-28` was a week old and its client had not moved — so its opening `initialize` was answered `-32022 Unsupported protocol version: 2025-11-25` and no call could complete.
+
+The symptom was misleading and worth recording. Claude Desktop still displayed the tool list from its cache, so the failure surfaced as **"failed to call tool `list_portfolio_facets`"** — pointing at a tool, not at a handshake. The first hypothesis chased was a hang in that tool.
+
+### Why the reasoning failed
+
+The evidence for decision 1 was correct: no external clients, no M2M or OAuth clients provisioned, the website on plain HTTP. The **question** was wrong. It asked _who is contractually a client of this surface_ when the load-bearing question was _what protocol version does the client software speak_. Those come apart exactly when the only consumers are your own team using third-party tools — which was the situation.
+
+The irony is that this ADR already contains the correct reasoning, applied to the other transport. Decision 2 keeps stdio on its legacy lane precisely because `.mcp.json` gives it a client whose revision we do not control. **The remote Worker had the same property and it was not noticed**: the team points Claude Desktop at it. "No external clients" was read as "no clients".
+
+### What changed
+
+- `legacy: 'stateless'` in `handle-authenticated.ts` — the compat lane pins a 2025-era instance from the same factory. Modern requests are unaffected.
+- The **`era` discriminator now ships** (`safeLog` `mcp.request.era`, values `legacy` / `modern`). It was an acceptance criterion of the original change, was silently dropped during implementation, and its absence is why the incident had to be diagnosed by reproducing symptoms rather than by reading a log line. Restoring it is the durable half of this fix.
+- Two regression tests in `tests/integration/protocol-era-worker.test.ts` pin the legacy `initialize` **and** the exact legacy `tools/call` that failed. Flipping the token back breaks them.
+
+### The standing rule
+
+**Do not set the Worker to `legacy: 'reject'` again without first confirming from `mcp.request.era` telemetry — not from inference about who the clients are — that nothing is opening with `initialize`.** The original revisit trigger ("a client requires `2025-11-25`") was satisfied on day one; it just had no instrument capable of reporting it.
