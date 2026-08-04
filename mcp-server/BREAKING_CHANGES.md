@@ -33,7 +33,7 @@ in lockstep when the registry shape changes.
 
 ## 0.44.1 — 2026-08-04 — BL-106 — **REVERTED**: the Worker serves both protocol eras again
 
-**This undoes the breaking change in 0.44.0, the same day, after it broke production.** The remote Worker serves protocol `2025-11-25` again alongside `2026-07-28` (`legacy: 'stateless'`).
+**This undoes the breaking change in 0.44.0, roughly an hour after it reached production, because it broke production.** 0.44.0 deployed at 17:56 UTC on 2026-08-04 (the stanza below is dated 08-03, when the change was written). The remote Worker serves protocol `2025-11-25` again alongside `2026-07-28` (`legacy: 'stateless'`).
 
 0.44.0's stanza said "who this affects: nobody known at ship time." That was wrong within the hour. **Claude Desktop speaks `2025-11-25`** — the spec revision was a week old and its client had not moved — so its `initialize` was refused with `-32022` and every tool call failed. It presented as `failed to call tool list_portfolio_facets`, not as a connection error, because the client still displayed its cached tool list; the symptom pointed at a tool rather than at the handshake.
 

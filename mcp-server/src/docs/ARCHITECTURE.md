@@ -53,14 +53,16 @@ MCP-over-HTTP is served by Cloudflare's `agents` SDK (`agents@^0.20.1`): `create
 
 The import is `agents/mcp/server`, not the wider `agents/mcp` barrel — the latter carries the Durable Object / RPC / event-store surface including `McpAgent`, which is now `@deprecated` and feature-frozen upstream. Cloudflare froze that session-shaped agent in the same period the spec removed protocol-level sessions, so the stateless factory is the supported path, not a fallback.
 
-**Protocol era differs by transport, deliberately** (BL-106, [ADR-0013](../../../src/docs/adr/0013-mcp-2026-07-28-modern-only-worker.md)):
+**Both transports serve both protocol eras** (BL-106, [ADR-0013](../../../src/docs/adr/0013-mcp-2026-07-28-modern-only-worker.md) incl. its 2026-08-04 amendment):
 
-| Transport | Era option                  | Why                                                                                                  |
-| --------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Worker    | `legacy: 'reject'`          | No external clients; `agents` deprecated the v1 path with removal in its next major                  |
-| stdio     | `legacy: 'serve'` (default) | Active committed client — the git-tracked `.mcp.json` registers this server for Claude Code sessions |
+| Transport | Era option                  | Why                                                                                                            |
+| --------- | --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Worker    | `legacy: 'stateless'`       | **Claude Desktop speaks `2025-11-25`** — modern-only broke every tool call within an hour of the 0.44.0 deploy |
+| stdio     | `legacy: 'serve'` (default) | Active committed client — the git-tracked `.mcp.json` registers this server for Claude Code sessions           |
 
-Rollback tokens differ: the `agents` handler takes `'stateless' | 'reject'`, `serveStdio` takes `'serve' | 'reject'`.
+The Worker shipped as `legacy: 'reject'` in 0.44.0 and was reverted the same day in 0.44.1. The rationale then — "no external clients" — was true and irrelevant: what governs is _what protocol version the client software speaks_, not who is contractually a client. Both rows now rest on the same reasoning.
+
+**Do not set the Worker to `'reject'` again without first confirming from `mcp.request.era` telemetry** (values `legacy` / `modern` / `no-factory-run`) that nothing is opening with `initialize`. Note the tokens differ per transport: the `agents` handler takes `'stateless' | 'reject'`, `serveStdio` takes `'serve' | 'reject'`.
 
 **`cors.ts` is the sole origin authority.** The handler is passed `allowedOriginHostnames: '*'` and `corsOptions: false`, which disables its own Host/Origin gate and its own CORS emission. Both are load-bearing: left at its default the accepted origin set is the localhost trio, so on this custom domain every request carrying `Origin: https://claude.ai` would be answered **403** — the exact browser clients the allowlist exists for. Its default CORS also emits `Access-Control-Allow-Origin: *`, which `withCors` only overwrites for allowlisted origins. Consequence: after this the handler performs no origin or host gating at all (host validation also no-ops on a custom domain), and `src/auth/cors.ts` owns the policy end to end. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the option.
 

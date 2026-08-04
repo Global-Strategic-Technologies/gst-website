@@ -252,21 +252,28 @@ export async function handleAuthenticated(
   // per-request `createServer(env, {...})` construction was already the right
   // shape, so this is a wrapper, not a restructure — the radar-live tools'
   // `env` closure capture is unaffected.
+  // Set by the server factory below. Stays `'no-factory-run'` when the handler
+  // refuses a request before dispatch — the state that matters most, because a
+  // modern-only Worker rejecting every legacy client would otherwise emit no
+  // era signal at all.
+  let requestEra: 'legacy' | 'modern' | 'no-factory-run' = 'no-factory-run';
+
   const mcp = createMcpHandler(
     (mcpCtx) => {
       // BL-106 follow-up — the era discriminator, which the original change
       // specified and then dropped. The SDK hands the factory the era it
-      // classified this request as, so recording it costs one log line and
-      // turns "which protocol version are our callers on?" from an inference
-      // into a query. Without it, the modern-only regression could only be
-      // diagnosed by reproducing symptoms.
-      safeLog({
-        event: 'mcp.request.era',
-        keyOwner: auth.keyOwner,
-        requestId,
-        path: url.pathname,
-        era: (mcpCtx as { era?: string } | undefined)?.era ?? 'unknown',
-      });
+      // classified this request as, which turns "what protocol version are
+      // our callers on?" from an inference into a query. Its absence is why
+      // the 0.44.0 regression had to be diagnosed by reproducing symptoms.
+      //
+      // Captured into the outer scope rather than logged here, so it rides
+      // the existing `mcp.request` line below. That is not just tidier: the
+      // factory does NOT run for a request the handler refuses (an
+      // unsupported protocol version is rejected before dispatch), so a
+      // dedicated line inside the factory would go silent in exactly the
+      // failure it exists to detect. `no-factory-run` makes that state
+      // visible instead of absent.
+      requestEra = mcpCtx.era;
       return createServer(env, {
         scopes: auth.scopes,
         radarSource: 'worker',
@@ -357,6 +364,7 @@ export async function handleAuthenticated(
     status: response.status,
     durationMs,
     success: response.status < 400,
+    era: requestEra,
   });
 
   const withRl = rlResult ? withRateLimitHeaders(response, rlResult, rlPolicy) : response;

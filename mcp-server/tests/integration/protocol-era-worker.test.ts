@@ -249,6 +249,22 @@ describe('BL-106 — Worker protocol era', () => {
     expect(Array.isArray(result.structuredContent?.themes)).toBe(true);
   });
 
+  it('accepts the legacy notifications/initialized that follows the handshake', async () => {
+    // Claude Desktop's second message. A notification carries no id, so a
+    // conforming server answers 202 with no body; getting this wrong strands
+    // the client just as surely as refusing the handshake.
+    const res = await worker.fetch('/mcp', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${TEST_KEY}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }),
+    });
+    expect(res.status).toBe(202);
+  });
+
   it('still rejects a request that names an unsupported protocol version', async () => {
     const res = await worker.fetch('/mcp', {
       method: 'POST',
@@ -259,11 +275,21 @@ describe('BL-106 — Worker protocol era', () => {
         'MCP-Protocol-Version': '2099-01-01',
         'Mcp-Method': 'tools/list',
       },
+      // A COMPLETE _meta envelope naming an unknown revision. An incomplete
+      // one (e.g. omitting clientCapabilities) is refused earlier with -32602
+      // for a malformed envelope, which would make this test pass for the
+      // wrong reason — it did, until the code assertion below caught it.
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 1,
         method: 'tools/list',
-        params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2099-01-01' } },
+        params: {
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2099-01-01',
+            'io.modelcontextprotocol/clientInfo': { name: 'gst-test-client', version: '1.0.0' },
+            'io.modelcontextprotocol/clientCapabilities': {},
+          },
+        },
       }),
     });
 
@@ -274,7 +300,7 @@ describe('BL-106 — Worker protocol era', () => {
     expect(res.status).toBeGreaterThanOrEqual(400);
     const body = await readJsonRpc(res);
     const err = body.error as { code?: number; message?: string } | undefined;
-    expect(err).toBeDefined();
+    expect(err?.code).toBe(-32022);
     expect(String(err?.message ?? '')).toMatch(/protocol|version/i);
   });
 });

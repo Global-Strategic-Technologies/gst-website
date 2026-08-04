@@ -67,8 +67,8 @@ export interface LogEvent {
   /**
    * Protocol era the caller opened this request with — `'legacy'` (a
    * 2025-era `initialize` handshake) or `'modern'` (2026-07-28 per-request
-   * `_meta`). Supplied by the SDK to the server factory and carried on
-   * `mcp.request.era`.
+   * `_meta`), or `'no-factory-run'` when the handler refused the request
+   * before it ever reached the server factory. Carried on `mcp.request`.
    *
    * This exists because its ABSENCE cost a production incident. BL-106 set
    * the Worker to modern-only on the inference that "no external clients"
@@ -77,7 +77,7 @@ export interface LogEvent {
    * from symptoms. Never flip the Worker to `legacy: 'reject'` again without
    * first confirming from THIS field that nothing is opening with `initialize`.
    */
-  era?: string;
+  era?: 'legacy' | 'modern' | 'no-factory-run';
   /**
    * Sub-classification for `auth.failed` events — the discriminator from
    * `AuthFailure.reason`. Lets `wrangler tail`-side analysis distinguish
