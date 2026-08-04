@@ -22,7 +22,9 @@
  * forbids it, and a wildcard would let any website read MCP responses on
  * a user's behalf.
  *
- * Audit date: 2026-05-17 (BL-032.8 Phase 3 — added website origin). Origins:
+ * Audit date: 2026-08-03 (BL-106 — added the `Mcp-Method` / `Mcp-Name` request
+ * headers required by protocol revision 2026-07-28; origin list unchanged since
+ * 2026-05-17, BL-032.8 Phase 3). Origins:
  *   - https://claude.ai          — Claude.ai web UI with remote MCP connector
  *   - https://chatgpt.com        — ChatGPT web with MCP Connectors
  *   - https://cursor.sh          — Cursor (when used in browser mode; native CLI has no Origin)
@@ -33,7 +35,10 @@
  *   - https://www.globalstrategic.tech — Same; www-prefixed variant
  *
  * To add an origin: paste the new value into ALLOWED_ORIGINS, bump the
- * audit-date comment, document the verification method in `AUTH.md`.
+ * audit-date comment, and document the verification method in
+ * [`ARCHITECTURE.md` § CORS (Q5)](../docs/ARCHITECTURE.md#cors-q5) — the
+ * CORS contract lives there. (This pointer previously named `AUTH.md`,
+ * which has no CORS section; corrected in BL-106.)
  */
 
 const ALLOWED_ORIGINS: ReadonlySet<string> = new Set([
@@ -61,8 +66,19 @@ export function corsHeadersFor(origin: string | null): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    // `Mcp-Method` / `Mcp-Name` became REQUIRED on every Streamable HTTP POST
+    // in protocol revision 2026-07-28 (SEP-2243), so a browser-based client on
+    // that revision fails at the preflight without them — before any MCP
+    // traffic flows. `Mcp-Session-Id` is retained for 2025-era clients.
+    //
+    // `Mcp-Param-*` (SEP-2243 custom headers) is deliberately ABSENT: CORS has
+    // no wildcard-prefix form for Allow-Headers (the only wildcard is a bare
+    // `*`, forbidden above), and those headers are emitted only for tools that
+    // declare `x-mcp-header` in their inputSchema — which BL-106 declined. If a
+    // tool ever adopts `x-mcp-header`, this list cannot express it and the
+    // preflight must instead echo `Access-Control-Request-Headers`.
     'Access-Control-Allow-Headers':
-      'Authorization, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version',
+      'Authorization, Content-Type, Mcp-Session-Id, Mcp-Protocol-Version, Mcp-Method, Mcp-Name',
     'Access-Control-Expose-Headers': 'Mcp-Session-Id, Mcp-Protocol-Version, WWW-Authenticate',
     'Access-Control-Max-Age': '86400',
     Vary: 'Origin',

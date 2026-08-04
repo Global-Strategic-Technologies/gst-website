@@ -24,7 +24,7 @@
  * The same shape ships on both transports so client UX is consistent.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import {
   RADAR_CATEGORIES,
   type RadarCategory,
@@ -121,6 +121,21 @@ export function registerRadarResources(
       };
     };
 
+  // BL-106 — the radar family deliberately registers NO `cacheHint`, unlike
+  // the library and regulation families. Do not "fix" this omission.
+  //
+  // Radar bodies are degradable: when the Inoreader circuit breaker is open,
+  // the handler serves a "snapshot not populated" placeholder and
+  // `resource-cache.ts` sets `noStore` so we never persist it server-side
+  // (BL-091). A registration-time hint cannot know that — it would advertise
+  // a 15-minute TTL on the failure text and reintroduce BL-091 on the CLIENT
+  // side, where we have no cache to invalidate.
+  //
+  // Registering nothing is not a gap: the SDK resolves the conservative
+  // default `{ ttlMs: 0, cacheScope: 'private' }` per resource at encode time,
+  // which is exactly right for a degradable body. If radar ever needs a real
+  // hint, it must be authored per-RESULT off the `noStore` flag, not here.
+  //
   // gst://radar/fyi/latest
   server.registerResource(
     'GST Radar — FYI (latest annotated items)',

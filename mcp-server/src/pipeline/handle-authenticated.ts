@@ -15,7 +15,11 @@
  * would-be import cycle worker.ts → oauth/* → worker.ts.
  */
 
-import { createMcpHandler } from 'agents/mcp';
+// Narrowed from `agents/mcp` (BL-106): that barrel carries the whole Durable
+// Object / RPC / event-store surface including the now-`@deprecated`,
+// feature-frozen `McpAgent`. `agents/mcp/server` exports only the stateless
+// handler and is the target Cloudflare's own deprecation notice names.
+import { createMcpHandler } from 'agents/mcp/server';
 import { createServer } from '../server';
 import type { AuthSuccess } from '../auth/bearer';
 import { withCors } from '../auth/cors';
@@ -244,19 +248,71 @@ export async function handleAuthenticated(
       }
     : undefined;
 
+  // BL-106: the SDK v2 handler takes a FACTORY, not an instance. Our
+  // per-request `createServer(env, {...})` construction was already the right
+  // shape, so this is a wrapper, not a restructure — the radar-live tools'
+  // `env` closure capture is unaffected.
   const mcp = createMcpHandler(
-    createServer(env, {
-      scopes: auth.scopes,
-      radarSource: 'worker',
-      metricsSink,
-      keyOwner: auth.keyOwner,
-      audit,
-      // BL-033 Slice 5: hand the boundary's already-computed rate-limit
-      // result to the tool wrapper so it can emit the 80%-consumed soft-limit
-      // notification WITHOUT a second Upstash round-trip. `null` (graceful
-      // skip) → undefined (the optional field), so no warning fires.
-      rateLimit: rlResult ?? undefined,
-    })
+    () =>
+      createServer(env, {
+        scopes: auth.scopes,
+        radarSource: 'worker',
+        metricsSink,
+        keyOwner: auth.keyOwner,
+        audit,
+        // BL-033 Slice 5: hand the boundary's already-computed rate-limit
+        // result to the tool wrapper so it can emit the 80%-consumed soft-limit
+        // notification WITHOUT a second Upstash round-trip. `null` (graceful
+        // skip) → undefined (the optional field), so no warning fires.
+        rateLimit: rlResult ?? undefined,
+      }),
+    {
+      // Modern-only. There are no external clients of the remote surface
+      // (BL-106 verified: the website uses plain-HTTP `GET /radar/snapshot`,
+      // and no M2M/OAuth clients are provisioned), so serving the 2025 era
+      // would be carrying a compatibility lane for nobody. Rollback is this
+      // one token → `'stateless'`. NOTE: the stdio entrypoint deliberately
+      // stays on its legacy-serving default and uses a DIFFERENT token
+      // (`'serve'`) — see src/index.ts and ADR-0013.
+      legacy: 'reject',
+
+      // `cors.ts` owns origin policy exclusively — these two options are what
+      // make that true, and both are load-bearing:
+      //
+      //  - `allowedOriginHostnames: '*'` disables the handler's OWN origin
+      //    gate. Without it the accepted set defaults to the localhost trio
+      //    (localhost / 127.0.0.1 / [::1]); `mcp.globalstrategic.tech` is
+      //    neither localhost nor *.workers.dev, so EVERY request carrying
+      //    `Origin: https://claude.ai` would be answered 403 — precisely the
+      //    browser-client case the allowlist exists to serve. The legacy
+      //    handler had no such gate, so this would have been a new failure
+      //    mode introduced by the migration rather than a pre-existing one.
+      //  - `corsOptions: false` stops the handler emitting its own CORS
+      //    headers, which default to `Access-Control-Allow-Origin: *`.
+      //    `withCors` only overwrites that for allowlisted origins, so
+      //    no-Origin and disallowed-origin responses were shipping the
+      //    wildcard that ARCHITECTURE.md § CORS (Q5) calls deliberately
+      //    forbidden. Pre-existing defect, closed here.
+      //
+      // Consequence worth knowing: after this the handler performs no origin
+      // or host gating at all (host validation also no-ops on a custom
+      // domain). `src/auth/cors.ts` is the single origin authority.
+      allowedOriginHostnames: '*',
+      corsOptions: false,
+
+      // Out-of-band handler errors are otherwise invisible: the SDK answers
+      // the client with a bare `-32603 Internal server error` and the reason
+      // never reaches our logs. Route it to safeLog so `wrangler tail` shows
+      // the cause. Reporting only — this never alters the wire response.
+      onerror: (err: Error) => {
+        safeLog({
+          event: 'mcp.handler.error',
+          success: false,
+          errorCode: 'mcp-handler-error',
+          reason: (err?.message ?? String(err)).slice(0, 300),
+        });
+      },
+    }
   );
   const response = await mcp(request, env, ctx);
   const durationMs = Date.now() - startedAt;

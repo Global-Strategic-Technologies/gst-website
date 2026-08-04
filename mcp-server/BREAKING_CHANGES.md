@@ -4,6 +4,8 @@
 >
 > Tool names, prompt names, and Resource URIs are part of the package's public contract — pinned client conversations, agent code, and external clients (BL-033) all reference them by name. A rename or removal here is a breaking change for every consumer.
 >
+> **Scope widened under BL-106 (2026-08-03)**: the **protocol revision a transport serves** is also part of that contract. Dropping an era is breaking for any client speaking it, even when no tool, prompt, or Resource URI moves — and such a change leaves the manifest hash below untouched, so that guard will not catch it. Entries of this kind must say which transport changed and how to roll it back.
+>
 > **Every entry in this file ships with a corresponding `version` bump in [`package.json`](./package.json) and is mirrored in the [archived BL-032 initiative doc](../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md) Q-section that triggered it (entries after 2026-07-17 cite the maintained [`ARCHITECTURE.md`](./src/docs/ARCHITECTURE.md) instead).** BL-032.5 Phase 4 formalizes the discipline with the **manifest-hash test** at [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) — the hash is computed over the registered Library/Regulation/Radar URIs + prompt `name@version` tuples; any drift fails the test and surfaces the new hash in the error message.
 
 ---
@@ -26,6 +28,20 @@ If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.44.0 — 2026-08-03 — BL-106 — the remote Worker serves protocol `2026-07-28` only
+
+**Breaking, transport-scoped.** The Worker at `mcp.globalstrategic.tech` no longer serves protocol revision `2025-11-25`: a client opening with an `initialize` handshake is answered with the unsupported-protocol-version error naming the modern revisions. **stdio is unaffected** and continues to serve the legacy era — see [ADR-0013](../src/docs/adr/0013-mcp-2026-07-28-modern-only-worker.md) for why the two transports differ.
+
+No tool name, prompt name, or Resource URI changed, so **the manifest hash above is unchanged** — the guard that normally catches breaking changes cannot see this one, which is why the file's scope note was widened in the same commit.
+
+Who this affects: nobody known at ship time. The website consumes `GET /radar/snapshot` over plain HTTP rather than MCP RPC, and no M2M or OAuth clients are provisioned. The change exists because `agents` deprecated the SDK-v1 handler path we were on, with removal in its next major.
+
+**Rollback**: set `legacy: 'stateless'` on the `createMcpHandler` options in `src/pipeline/handle-authenticated.ts`. Note stdio's equivalent token is `'serve'`, not `'stateless'` — the two enums differ.
+
+Shipped alongside (non-breaking): `Mcp-Method` / `Mcp-Name` added to the CORS preflight allowlist; `ttlMs` / `cacheScope` published on library and regulation resource reads; migration from `@modelcontextprotocol/sdk@1.30.0` to `@modelcontextprotocol/server@2.0.0`.
 
 ---
 

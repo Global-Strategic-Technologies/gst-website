@@ -13,7 +13,7 @@
  * recomputing on every call.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { REGULATION_ENTRIES, loadRegulationByUri } from '../content/regulation-loader';
 import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
 import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';
@@ -32,6 +32,10 @@ export function registerRegulationResources(
         title: entry.data.name,
         description: entry.data.summary,
         mimeType: 'application/json',
+        // BL-106 — see library.ts for the rationale. Regulation frameworks
+        // change infrequently and atomically per-framework, so the same 24h
+        // policy applies. `'public'`: the cache key carries no `keyOwner`.
+        cacheHint: { ttlMs: RESOURCE_TTL_SECONDS.REGULATION * 1000, cacheScope: 'public' },
       },
       withResourceMetrics(entry.uri, metrics, async (uri: URL) => {
         const { body, mimeType } = await readThroughCache(

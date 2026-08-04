@@ -22,11 +22,14 @@
  * The model emits both halves of the payload; the tool handler runs the
  * cross-field calibration checks below before invoking the agenda engine.
  *
- * **SDK constraint** (B1/B2 from the impartial audit): the MCP SDK
- * normalizes input schemas via `normalizeObjectSchema` (in
- * `@modelcontextprotocol/sdk/dist/cjs/server/zod-compat.js`), which only
- * recognizes `ZodObject`. A `z.union(...)` or a `.superRefine(...)` wrapper
+ * **SDK constraint** (B1/B2 from the impartial audit): the input schema must
+ * be a plain `ZodObject`. A `z.union(...)` or a `.superRefine(...)` wrapper
  * (returning `ZodEffects`) would publish an EMPTY input schema to clients.
+ * (Under SDK v1 this was `normalizeObjectSchema` in the package's `zod-compat`
+ * internals; BL-106 moved us to `@modelcontextprotocol/server` v2, which
+ * derives the schema via Zod 4's `~standard.jsonSchema` instead. The
+ * constraint is unchanged — only the mechanism — so the citation of a v1
+ * internal path is dropped rather than repointed at another private module.)
  * Therefore: the schema below is a plain `ZodObject`; cross-field checks
  * run in the tool handler body (`runAuditRefinements`), NOT in
  * `.superRefine`. The model still receives a structured error and retries.

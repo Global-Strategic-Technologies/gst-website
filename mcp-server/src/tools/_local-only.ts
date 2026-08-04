@@ -31,7 +31,7 @@
  * repo — corrected in BL-090.)
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { registerRadarOfflineTool, registerSearchRadarCacheAlias } from './radar-offline';
 import { registerRadarResources } from '../resources/radar';
 import { stdioSnapshotReader } from '../content/radar-snapshot-reader-stdio';

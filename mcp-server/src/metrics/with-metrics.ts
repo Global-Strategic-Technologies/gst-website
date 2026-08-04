@@ -32,6 +32,7 @@
  * perspective — wall-clock cost is one `Date.now()` + one synchronous
  * `sink.write()`.
  */
+import type { ServerContext } from '@modelcontextprotocol/server';
 import { safeLog } from '../auth/safe-logger';
 import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
@@ -208,24 +209,44 @@ function detectCounterOutcome<TResult>(
   return 'success';
 }
 
-/** Minimal view of the MCP `RequestHandlerExtra` fields we use here. */
-interface McpNotifier {
-  sendNotification?: (notification: unknown) => unknown;
-}
+/**
+ * The slice of the SDK's `ServerContext` this module reads.
+ *
+ * BL-106 — this replaced a duck-typing scan (`findMcpExtra`) that looked for
+ * the first argument carrying a `sendNotification` function. That worked under
+ * SDK v1's flat `RequestHandlerExtra`, but v2 renamed and nested the notifier
+ * to `ctx.mcpReq.notify`. Because `maybeWarnSoftLimit` is contractually
+ * non-throwing, the scan would have returned `undefined` forever and the
+ * 80%-consumed warning would have died **silently** — no type error, and no
+ * test failure either, since the soft-limit tests build their own fake.
+ *
+ * The fix is structural: the SDK passes its context as the LAST argument on
+ * every tool / resource / prompt callback overload, so we read that position.
+ *
+ * **This type is derived from the SDK's own `ServerContext` on purpose.** An
+ * earlier BL-106 draft hand-wrote the shape and claimed a future rename would
+ * "fail loudly" — it would not have. A hand-written interface plus a test that
+ * builds its own matching fake reproduces the exact silent-loss mode this
+ * change fixed. `Pick` makes a rename a compile error here instead.
+ */
+type McpServerContextView = Pick<ServerContext, 'mcpReq'>;
 
 /**
- * Locate the MCP `RequestHandlerExtra` among a tool handler's args — the
- * object exposing `sendNotification`. `McpServer` invokes tool callbacks as
- * `(args, extra)` for tools with an input schema and `(extra)` for zero-arg
- * tools, so scan for the first arg carrying a `sendNotification` function
- * rather than assuming a fixed position. Returns `undefined` when none is
- * present (stdio, tests, or a transport without a notification channel).
+ * Read the MCP handler context off the trailing argument.
+ *
+ * The SDK invokes tool callbacks as `(args, ctx)` for tools with an input
+ * schema and `(ctx)` for zero-arg tools — in both shapes the context is last.
+ * Returns `undefined` when the trailing arg carries no notifier (stdio without
+ * a notification channel, or a unit test calling the handler directly).
  */
-function findMcpExtra(args: readonly unknown[]): McpNotifier | undefined {
-  for (const a of args) {
-    if (a && typeof a === 'object' && typeof (a as McpNotifier).sendNotification === 'function') {
-      return a as McpNotifier;
-    }
+function findMcpNotifier(args: readonly unknown[]): McpServerContextView | undefined {
+  const last = args[args.length - 1];
+  if (
+    last &&
+    typeof last === 'object' &&
+    typeof (last as McpServerContextView).mcpReq?.notify === 'function'
+  ) {
+    return last as McpServerContextView;
   }
   return undefined;
 }
@@ -242,8 +263,8 @@ function findMcpExtra(args: readonly unknown[]): McpNotifier | undefined {
  */
 function maybeWarnSoftLimit(rl: RateLimitCheck | undefined, args: readonly unknown[]): void {
   if (!rl || rl.minRemainingRatio == null || rl.minRemainingRatio > 0.2) return;
-  const extra = findMcpExtra(args);
-  if (!extra?.sendNotification) return;
+  const notify = findMcpNotifier(args)?.mcpReq?.notify;
+  if (!notify) return;
   // Report the bucket that TRIPPED the ratio (`nearestLimit`), not the binding
   // bucket in the top-level fields — they can differ (binding = absolute-fewest;
   // ratio = proportional-fewest), and the agent should throttle the window that
@@ -252,7 +273,7 @@ function maybeWarnSoftLimit(rl: RateLimitCheck | undefined, args: readonly unkno
   try {
     const resetSeconds = Math.max(0, Math.ceil((b.resetAt - Date.now()) / 1000));
     void Promise.resolve(
-      extra.sendNotification({
+      notify({
         method: 'notifications/message',
         params: {
           level: 'warning',

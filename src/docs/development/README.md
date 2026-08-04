@@ -4,14 +4,15 @@ Strategic documentation for GST website development initiatives, tooling, and op
 
 ## Active Documents
 
-| Doc                                                            | Purpose                                                                                                                   |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| [BACKLOG.md](./BACKLOG.md)                                     | Consolidated backlog of all open development initiatives (completed stanzas pruned — see its header note for recovery)    |
-| [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                 | Authoritative reference for lint, format, hooks, CI, browser targets                                                      |
-| [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md)                   | Running `gst_irl_ingestion` dossiers: run tiers, reading the VERIFY block, client-ready gating, signoff, failure recovery |
-| [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md) | Converting a partner's filled `.xlsx` IRL to canonical markdown via `npm run irl:extract` for the partner-paste path      |
-| [PERFORMANCE_OBSERVABILITY.md](./PERFORMANCE_OBSERVABILITY.md) | Lighthouse CI on PRs, weekly dashboard at <https://performance.globalstrategic.tech>, and the workflows that run them     |
-| [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md)             | Sentry alert rules, source map upload, and consent gating setup reference                                                 |
+| Doc                                                                                                | Purpose                                                                                                                        |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| [BACKLOG.md](./BACKLOG.md)                                                                         | Consolidated backlog of all open development initiatives (completed stanzas pruned — see its header note for recovery)         |
+| [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                                                     | Authoritative reference for lint, format, hooks, CI, browser targets                                                           |
+| [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md)                                                       | Running `gst_irl_ingestion` dossiers: run tiers, reading the VERIFY block, client-ready gating, signoff, failure recovery      |
+| [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md)                                     | Converting a partner's filled `.xlsx` IRL to canonical markdown via `npm run irl:extract` for the partner-paste path           |
+| [PERFORMANCE_OBSERVABILITY.md](./PERFORMANCE_OBSERVABILITY.md)                                     | Lighthouse CI on PRs, weekly dashboard at <https://performance.globalstrategic.tech>, and the workflows that run them          |
+| [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md)                                                 | Sentry alert rules, source map upload, and consent gating setup reference                                                      |
+| [MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md](./MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md) | **Open initiative (BL-106)** — gap analysis of the MCP server against spec revision `2026-07-28`, with a disposition per delta |
 
 ## How to Use
 
@@ -35,11 +36,11 @@ The `_archive/` README carries the admission criteria and the frozen-links polic
 
 ## Archived
 
-- **2026-07-15 → 2026-07-17 (BL-088, complete)**: all 32 closed-initiative docs distilled into the maintained surface (`mcp-server/src/docs/ARCHITECTURE.md`, [`src/docs/adr/`](../adr/README.md), doc folds, `prompts/irl-ingestion.md`) and moved to [`_archive/`](_archive/README.md) under the lifecycle above — see the [archived BL-088 record](_archive/MCP_DOCS_DISTILLATION_BL-088.md) for the disposition table and wave ledger. This directory now holds only living reference docs.
+- **2026-07-15 → 2026-07-17 (BL-088, complete)**: all 32 closed-initiative docs distilled into the maintained surface (`mcp-server/src/docs/ARCHITECTURE.md`, [`src/docs/adr/`](../adr/README.md), doc folds, `prompts/irl-ingestion.md`) and moved to [`_archive/`](_archive/README.md) under the lifecycle above — see the [archived BL-088 record](_archive/MCP_DOCS_DISTILLATION_BL-088.md) for the disposition table and wave ledger. That reduced the directory to living reference docs only; BL-106 (2026-08-03) is the first initiative doc to re-enter under step 1 of the lifecycle above.
 - **2026-04-18**: completed initiative documents (Platform Hardening V1, Hub Tools Brutalist Migration, Site-Wide Brutalist Migration, Favicon & Icons, Design System Initiatives 1-5) were consolidated and **removed** (pre-convention). View originals via `git show` — see the note at the top of [BACKLOG.md](./BACKLOG.md) for instructions.
 
 ---
 
 <- Back to [Master Documentation Index](../README.md)
 
-_Last Updated: July 17, 2026 (BL-088 closed — directory reduced to living references only)_
+_Last Updated: August 3, 2026 (BL-106 opened — first initiative doc to re-enter the directory since BL-088)_
