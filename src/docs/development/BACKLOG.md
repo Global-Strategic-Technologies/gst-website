@@ -747,6 +747,56 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 
 ---
 
+### BL-106: MCP Server — 2026-07-28 spec alignment
+
+**Source**: gap analysis of the deployed server against MCP spec revision `2026-07-28` (released 2026-07-28; analysis 2026-08-03) — full findings in [MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md](MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md) | **Effort**: slice 1 hours · slice 2 ~2–4 days · slice 3 ~1 day | **Status**: Open | **Depends on**: none (slice 3 depends on slice 2)
+
+**As a** maintainer of the GST MCP server, **I want** the server to speak `2026-07-28` natively and to shed the compatibility layers it no longer needs **so that** the codebase gets smaller rather than larger, and the deprecation deadline we do not control stops being ours.
+
+> **Two operator directives (2026-08-03) govern this item.** (1) **Do not maintain backwards compatibility** — no external clients exist; the website consumes `GET /radar/snapshot` over plain HTTP, not MCP RPC, and no M2M/OAuth clients are provisioned. (2) **Simplicity, elegance and maintainability are the design policy.** Together they invert the shape: this is a net **deletion**, not a staged migration. Any AC below that reintroduces a compatibility path needs to justify itself against directive 1.
+>
+> **The clock is our dependency, not the spec.** `src/pipeline/handle-authenticated.ts` passes a v1 `McpServer` to `createMcpHandler`, which logs _"Passing an MCP SDK v1 server to createMcpHandler is deprecated and will be removed in the next major version"_ on every request today. The spec imposes no deadline (twelve-month floor; earliest removal on or after 2027-07-28). With no coordination cost, there is nothing to sequence around — **migrate now**.
+
+#### Acceptance Criteria
+
+**CORS preflight fix** — the one confirmed defect; independent of everything below
+
+- [ ] `Mcp-Method`, `Mcp-Name` and `Mcp-Param-*` added to `Access-Control-Allow-Headers` in `corsHeadersFor` (`mcp-server/src/auth/cors.ts`) — `2026-07-28` makes the first two REQUIRED on every Streamable HTTP POST, so a browser-based client on the new spec currently fails at the preflight before any MCP traffic flows
+- [ ] Audit-date comment and `AUTH.md` updated per the file's own contract for changing the allowlist
+
+**Migrate to the v2 server, modern-only** — the main event, and mostly subtraction
+
+- [ ] The handler receives an `@modelcontextprotocol/server` factory instead of a v1 `McpServer` instance. Our per-request `createServer(env, {...})` closure already matches the required `McpServerFactory` shape, so the radar-live tools' `env` capture is not at risk
+- [ ] **Modern-only: the legacy compatibility lane is off** (`legacy: "reject"`). Per directive 1 there is nobody to serve on it. Treat the lane as a rollback lever, not a design element — if a team member's client turns out to predate `2026-07-28`, flipping it back is a one-line same-day change
+- [ ] **Narrow the `agents` import to `agents/mcp/server`.** We import one symbol (`createMcpHandler`) from `agents/mcp`, the wide barrel carrying the whole Durable Object / RPC / event-store surface. `agents/mcp/server` exports only the stateless handler and is the target Cloudflare's own deprecation notice names (`McpAgent` is now `@deprecated` and feature-frozen). One line, near-zero risk, and expected to shed the transitive `mimetext`/`mime-types` — and therefore `nodejs_compat`, whose `wrangler.toml` comment says it exists solely for them (verify against the other Worker deps first)
+- [ ] **Then evaluate dropping `agents` altogether** — optional second subtraction, not a precondition. `@modelcontextprotocol/server` exports `createMcpHandler` and `WebStandardStreamableHTTPServerTransport` directly; everything the wrapper still adds (route matching, CORS/`OPTIONS`, origin validation) `worker.ts` already does first, host validation only engages for localhost/`workers.dev`, and the legacy lane is being removed. Doing so deletes the deadline and leaves one origin policy instead of two. ⚠️ Reversibility: if the deferred **Tasks** work ever activates, long-running Workers jobs want Durable Objects or Workflows — `agents`' actual competence — so that is the trigger to reconsider
+- [ ] `ARCHITECTURE.md` § Streamable HTTP binding rewritten to match whatever lands, and an ADR written for the migration decision (the `agents` question + the ADR-0010 logging position)
+- [ ] Verified against a real client round-trip, not just the type checker; staging before production
+
+**Simplify what the migration unlocks**
+
+- [ ] `ttlMs` / `cacheScope` published on list and read results via the v2 `registerResource`'s `cacheHint`, sourced from the existing `RESOURCE_TTL_SECONDS` policy in `src/cache/resource-cache.ts` — the policy exists and is invisible to clients today, so they re-poll on their own schedule
+- [ ] Rate-limit tier dispatch reads `Mcp-Name`; the body-clone-and-parse in `src/dispatch/extract-tool-name.ts` is **deleted**. (Modern-only makes this a straight swap. It would not be otherwise: `Mcp-Name` is modern-era-only, and `toolClassFor(null)` fail-safes to `'general'`, so keeping a legacy lane while deleting the parse would let `search_radar` / `get_latest_insights` escape the stricter BL-038 radar tier.)
+- [ ] **Logging capability: keep, and record the exit.** SEP-2577 deprecates it, and `src/server.ts`'s `{ capabilities: { logging: {} } }` plus the soft-limit `notifications/message` in `src/metrics/with-metrics.ts` depend on it ([ADR-0010](../adr/0010-per-client-rate-limit-tiers.md)). Twelve-month window, nothing in the v2 path blocks a notification. Folding the signal into the `RateLimit-*` headers is _not_ a like-for-like swap — headers reach client code, the notification reaches the model's context — so collapsing them loses a signal rather than simplifying
+
+**Deferred with triggers**
+
+> ⏸️ **DEFERRED.** Both are real fits with no consuming client, which is the test [BL-093](#bl-093-mcp-server--commercialization-phase-4) was deferred on (2026-08-02). Do not pick one up because it is "unblocked."
+
+- [ ] **Tasks extension** (`io.modelcontextprotocol/tasks`) — fits the long-running `compose_dossier_envelope` and XLSX-generation paths. **Triggers**: a client hits a timeout on a long-running tool, or a design partner appears
+- [ ] **MRTR** (Multi Round-Trip Requests) — would let a diligence tool ask a clarifying question mid-call. **Triggers**: as above
+
+#### Technical Context
+
+- **The migration substrate is already installed.** `agents@0.20.1` depends on `@modelcontextprotocol/{core,client,server}@2.0.0`, which carry `2026-07-28`; our direct `@modelcontextprotocol/sdk@1.30.0` caps at `2025-11-25`. The v2 `McpServer` retains `registerTool` / `registerResource` / `registerPrompt`, so the 17-tool / 9-prompt / 5-resource-call-site registry is largely portable
+- **Existing assets to build on**: the per-request `createServer(env, {...})` factory (already the `McpServerFactory` shape); `RESOURCE_TTL_SECONDS` (`src/cache/resource-cache.ts`); the Analytics Engine sink and its `keyOwner` attribution, which already covers per-client identity
+- **Closed, not deferred**: RFC 9207 `iss` on the embedded AS. It defends against authorization-server mix-up, which needs a third-party OAuth client; none are provisioned, and `@cloudflare/workers-oauth-provider` never advertises `authorization_response_iss_parameter_supported`, so a strict client sees it as unsupported rather than being misled. BL-093's onboarding gate covers the only condition that would revive it
+- **Relationship to [BL-092](#bl-092-mcp-server--declare-outputschema-on-the-tool-surface-candidate)**: SEP-2106 loosens the permitted `inputSchema` / `outputSchema` keywords, but that is **orthogonal** to BL-092's blocker (the SDK client validates `structuredContent` whenever present with no `isError` guard, colliding with [ADR-0011](../adr/0011-tool-response-channel-policy.md) Invariant 1). This initiative does not unblock BL-092
+- **Risks & mitigations**: the migration touches a live surface the team uses against the remote production Worker → staging exercise before production, and slice 1 ships independently so the CORS fix is not held hostage to it. Going modern-only bets that the team's own LLM clients already speak `2026-07-28` — third-party software on a release schedule we do not control → the bet is cheap because the compatibility lane is one option flag away, so losing it is a same-day rollback rather than an incident
+- **Out of scope**: the stdio entrypoint's own transport migration (decision belongs to the migration; team usage is remote); `mcp-server/BREAKING_CHANGES.md` (no wire behaviour changes until slice 2, and the BL-076 precedent governs them when there are); `x-mcp-header` parameter mirroring (declined — no tool parameter benefits)
+
+---
+
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype
