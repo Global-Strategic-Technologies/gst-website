@@ -126,6 +126,10 @@ const referencesSecret = (body: string, secret: string): boolean =>
   // counterexample to this file's own rule about matching what the PLATFORM accepts.
   // Interpolating `secret` into a RegExp is safe because GitHub secret names are limited
   // to letters, digits and underscores; DEPLOY_SECRETS is a literal list above regardless.
+  // No trailing boundary, deliberately: a future `CLOUDFLARE_API_TOKEN_V2` reads as a
+  // reference to `CLOUDFLARE_API_TOKEN` and so must also bind an environment. That is the
+  // fail-CLOSED direction — a spurious requirement to scope a deploy credential is a far
+  // better error than missing one.
   new RegExp(String.raw`secrets\s*\.\s*` + secret, 'i').test(body) ||
   new RegExp(String.raw`secrets\s*\[\s*['"]\s*` + secret, 'i').test(body);
 
@@ -418,7 +422,18 @@ describe('workflow secret scoping (BL-111 D2)', () => {
     // spelling of the keyword is syntax whack-a-mole; asserting that no job-level `uses:`
     // exists removes the precondition entirely. Step-level `uses:` (actions/checkout etc.)
     // is a list item under `steps:` and is not matched.
-    expect(reusableWorkflowCallers).toEqual([]);
+    //
+    // Indent assumption, stated because it bounds the claim: `/^ {4}uses:/` matches the
+    // CANONICAL job-key indent. A reusable call written with six-space job keys evades
+    // this specific assertion (the `secrets: inherit` keyword belt still catches it, and a
+    // call passing no secrets is harmless). "Ends the class outright" means at the indent
+    // every workflow in this repo uses.
+    expect(
+      reusableWorkflowCallers,
+      'A reusable workflow call is the precondition for `secrets: inherit`, which no ' +
+        'membership test can resolve. If this is a legitimate addition, EXTEND the parser to ' +
+        'follow `uses:` targets — do not delete this assertion.'
+    ).toEqual([]);
   });
 
   it('confines MCP_PROBE_KEY to the one workflow whose repo-level residency is justified', () => {
