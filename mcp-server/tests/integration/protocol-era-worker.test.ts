@@ -245,8 +245,27 @@ describe('BL-106 — Worker protocol era', () => {
     expect(res.status).toBe(200);
     const body = await readJsonRpc(res);
     expect(body.error).toBeUndefined();
-    const result = body.result as { structuredContent?: { themes?: string[] } };
+    const result = body.result as {
+      structuredContent?: { themes?: string[] };
+      content?: { type: string; text: string }[];
+    };
     expect(Array.isArray(result.structuredContent?.themes)).toBe(true);
+
+    // BL-108 — the data must reach the `content` channel too, on the LEGACY era.
+    //
+    // This is the assertion whose absence cost three weeks. `structuredContent`
+    // above was correct throughout: the Worker always emitted it, and Claude Code
+    // reads it. Claude Desktop reads `content`, which under BL-090 carried nothing
+    // but "15 themes, 2 engagement categories, ..." — so `search_portfolio` looked
+    // like a broken tool while every server-side test stayed green.
+    //
+    // Shape-based, never row counts: `projects.json` is edited routinely
+    // (TEST_BEST_PRACTICES §6), and a count here would fail on unrelated PRs.
+    expect(result.content).toHaveLength(2);
+    expect(result.content?.[0].text).toMatch(/themes/);
+    const mirrored = JSON.parse(result.content?.[1].text ?? '') as { themes?: unknown };
+    expect(mirrored).toEqual(result.structuredContent);
+    expect(Array.isArray(mirrored.themes)).toBe(true);
   });
 
   it('accepts the legacy notifications/initialized that follows the handshake', async () => {

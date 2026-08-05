@@ -1,6 +1,6 @@
 # ADR-0011: `structuredContent` is the machine channel; `content` is the model channel
 
-- **Status**: Accepted 2026-07-27 (0.43.0)
+- **Status**: Accepted 2026-07-27 (0.43.0); **§ Amendment 2026-08-04 (BL-108, 0.45.0)** — Invariant 2 now puts the serialized payload in `content` alongside the caption. The deviation recorded under _Spec position, stated honestly_ was the defect.
 - **Source initiative**: [BL-090](../development/BACKLOG.md) — "Collapse the duplicated tool-response payload", an investigate-first candidate raised while sizing an output guard during BL-033 prompt-injection planning.
 
 ## Context
@@ -101,3 +101,68 @@ BL-033's reduced scope contemplates a provenance label injected into `structured
 **Post-deploy verification, 2026-07-27 (0.43.0 live on production):** the open question was whether adding `structuredContent` to error results would stop the model receiving the retry prose _as prose_ — the assumption the two-constructor design rests on. Settled empirically rather than by reasoning, using the same live-probe technique that produced the AC-1 finding: `compute_techpar` was called through a real MCP client with `arr: 0`, and the directive came back **verbatim** — ``TechPar requires both `arr` and `infraHostingAnnual` to be greater than zero.`` — byte-identical to the string in `techpar.ts`.
 
 So the fallback is **not needed**, and the assumption is now evidence. `suppressStructured` stays as a specified, tested, unused escape hatch; do not reach for it without new contrary evidence.
+
+---
+
+## Amendment 2026-08-04 — BL-108: `content` carries the payload again
+
+**Invariant 2 is amended.** On success, `content` is now `[caption, compact serialized JSON]`. Invariants 1 and 3 are untouched, and `toolFail` is byte-for-byte unchanged — the verbatim guarantee and `suppressStructured` stand exactly as specified above.
+
+### What happened
+
+For three weeks, `search_portfolio` answered a real Claude Desktop session with `"11 portfolio matches."` and no rows. `list_portfolio_facets` answered `"15 themes, 2 engagement categories, 6 growth stages, 5 years."` and no values. The user reported it as a broken tool. Every server-side test was green, because the server was doing exactly what this ADR specified.
+
+**Claude Desktop reads `content`. It did not surface `structuredContent`.**
+
+### Which claim above was wrong
+
+Not the design — the **evidence**. Three specific corrections:
+
+1. **_"Evidence: which channel do clients actually read?"_ generalised from n=1 client.** The `generate_information_request_list_xlsx` probe was real and correctly executed, and its conclusion is true — of Claude Code, which surfaces `structuredContent` and returns full rows on the identical server build. It is false of Claude Desktop. The section says "**The client** discards `content`"; there is no such thing as _the_ client. A single probe through a single client cannot establish a cross-client fact, and the AC that demanded "evidence, not assumption" was satisfied in form rather than in substance.
+
+2. **_Consequences_ → "Not a context-window win. The model never received the duplicate"** is **falsified** for Claude Desktop. The model never received the duplicate _or the data_. This is the sentence that made the change look free.
+
+3. **_"Operator confirmation, with an expiry condition"_ set the tripwire on the wrong event.** It reasoned correctly that a client without `structuredContent` support would receive only the caption, and then scoped the risk to "the moment a first external pilot connects". The failure needed no pilot and no external client: an **internal** client, on a **modern** protocol revision, that simply renders the other channel. "No external clients" was the operator's answer to a question about contracts, and it was read as an answer about client software.
+
+The spec position recorded under _"Spec position, stated honestly"_ — that a caption satisfies presence but not the compatibility intent, "a deliberate deviation, recorded here rather than quietly taken" — was honest and is exactly the clause that fired. Writing a risk down is not the same as accepting it knowingly enough; the clause exists because client behaviour is not knowable from the server.
+
+### What changed, and what it costs
+
+`content[1]` is `JSON.stringify(payload)` — **compact**. The pretty-printing was BL-090's real finding (81 KB of the old 143 KB `search_portfolio` response was the indented, JSON-escaped copy); the duplication itself was not. Measured on the current dataset:
+
+| tool                        | before   | after     |       |
+| --------------------------- | -------- | --------- | ----- |
+| `search_portfolio` (all 65) | 61,529 B | 127,599 B | ×2.07 |
+| `compose_dossier_envelope`  | 16,581 B | 33,290 B  | ×2.01 |
+| `list_portfolio_facets`     | 597 B    | 1,105 B   | ×1.85 |
+
+Against the 143,403 B pre-BL-090 `search_portfolio` baseline, this lands ~11% below where BL-090 started, not back at it. Roughly 46 of BL-090's 57 percentage points are given back, and the operator accepted that trade explicitly: a 61 KB response the model cannot read is worth less than a 127 KB one it can.
+
+### `textOmit`, and the asymmetry to stop probing
+
+`toolOk` gains one option: `textOmit`, which replaces named keys **in the text mirror only** with a marker string (the key is kept, never deleted, so the model can see the field exists). `structuredContent` is untouched, so Invariant 1 holds.
+
+Sole call site: `generate_information_request_list_xlsx`, whose base64 `.xlsx` measures 17,412 B. That looked too small to justify API surface when priced in bytes — the model channel is priced in **tokens**, where it is ~4,500-6,000 per call, of a blob `BREAKING_CHANGES.md` 0.3.9 records Claude Desktop cannot render at all.
+
+**This makes that tool, once again, the only one whose two channels differ — which is precisely the property that made it BL-090's probe target and produced the wrong generalisation.** Do not run the next which-channel-does-this-client-read probe there. Use any other tool, where the channels agree by construction.
+
+### The guard that was missing
+
+`tests/integration/protocol-era-worker.test.ts` now asserts, on a **2025-era** `tools/call`, that `content` has two blocks and that block 1 parses to `structuredContent`. Nothing previously asserted anything about the model-visible channel carrying data, which is why a three-week outage sat under a green suite. `protocol-roundtrip.test.ts`'s `parseToolResult` enforces the same agreement for every tool it exercises.
+
+### Consequence for BL-092 (`outputSchema`)
+
+The blocker recorded under _"Constraint this places on a future `outputSchema`"_ — that the SDK client validates `structuredContent` whenever present with no `isError` guard, so declaring a schema would throw on every error result — **is retired in SDK v2**. `@modelcontextprotocol/client` now guards both branches with `&& !result.isError` (`dist/index.cjs:4155-4156`), and the server mirrors it. BL-092 may proceed without the workaround this ADR required of it. It remains a separate initiative: it would not have fixed this bug, since it turns on client behaviour we have not verified.
+
+**One new constraint it inherits, from the era analysis above.** The rev2025 codec wraps `structuredContent` as `{ result: … }` when the value is non-object **or when the advertised `outputSchema`'s root `type` is not `"object"`**. The predicate is literally `json["type"] !== "object"` (`client/dist/src-D_zzAWoS.mjs:1974-1976`), so it fires on a root that omits `type` altogether — not only on arrays and primitives.
+
+That distinction is the whole risk, because it is what a **Zod union** produces. Measured against the installed Zod:
+
+| output schema                         | JSON-schema root   | wraps?  |
+| ------------------------------------- | ------------------ | ------- |
+| `z.object({…})`                       | `type: "object"`   | no      |
+| `z.union([z.object(…), z.object(…)])` | `anyOf`, no `type` | **yes** |
+| `z.discriminatedUnion(…)`             | `oneOf`, no `type` | **yes** |
+| `z.array(…)`                          | `type: "array"`    | **yes** |
+
+The SDK stamps `type:'object'` on typeless roots it can _prove_ are objects, but a union of two object variants is not stamped — verified, not assumed. Nothing advertises an `outputSchema` today, which is exactly why the era axis came out identity for BL-108; the day BL-092 declares one, a union-rooted schema makes `structuredContent` **era-sensitive on the 2025 wire**, and Claude Desktop is on that era. Keep output schemas object-rooted — a discriminated union of result shapes is the natural thing to reach for and the thing to avoid.

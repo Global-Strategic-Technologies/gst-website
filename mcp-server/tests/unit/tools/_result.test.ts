@@ -18,20 +18,37 @@ import {
 } from '../../../src/tools/_result';
 
 describe('toolOk', () => {
-  it('puts the payload in structuredContent and the caption in content', () => {
+  it('puts the payload in structuredContent, the caption in block 0, the JSON in block 1', () => {
     const payload = { matches: [1, 2, 3], totalMatched: 3 };
     const result = toolOk(payload, '3 portfolio matches.');
 
     expect(result.structuredContent).toEqual(payload);
-    expect(result.content).toEqual([{ type: 'text', text: '3 portfolio matches.' }]);
+    expect(result.content).toEqual([
+      { type: 'text', text: '3 portfolio matches.' },
+      { type: 'text', text: '{"matches":[1,2,3],"totalMatched":3}' },
+    ]);
   });
 
-  it('does NOT duplicate the payload into content — the whole point of BL-090', () => {
+  // BL-108 replaces BL-090's "does NOT duplicate the payload into content" test.
+  // That test encoded the assumption this initiative disproved: it treated the
+  // caption-only shape as the goal, when Claude Desktop reads `content` and was
+  // therefore served bare counts for three weeks. The spec's backwards-compat
+  // clause asks for the serialized JSON, so duplication is now the REQUIREMENT.
+  it('DOES duplicate the payload into content — the spec backwards-compat clause', () => {
     const payload = { secret: 'needle-in-the-payload' };
     const result = toolOk(payload, 'one item.');
 
+    expect(result.content[0]?.text).toBe('one item.');
     expect(result.content[0]?.text).not.toContain('needle-in-the-payload');
-    expect(result.content[0]?.text).not.toMatch(/^\s*\{/);
+    expect(result.content[1]?.text).toContain('needle-in-the-payload');
+    expect(JSON.parse(result.content[1]?.text ?? '')).toEqual(payload);
+  });
+
+  it('serializes block 1 compactly — pretty-printing was BL-090s real bloat', () => {
+    const result = toolOk({ a: 1, b: 2 }, 'ok.');
+
+    expect(result.content[1]?.text).toBe('{"a":1,"b":2}');
+    expect(result.content[1]?.text).not.toContain('\n');
   });
 
   it('does not set isError', () => {
@@ -43,6 +60,60 @@ describe('toolOk', () => {
     const result = toolOk(payload, 'ok.');
 
     expect(result.structuredContent).toBe(payload as unknown as Record<string, unknown>);
+  });
+
+  // The sharp edge of returning structuredContent by reference while block 1 is a
+  // construction-time snapshot: mutate afterwards and the channels disagree. Pinned
+  // so the asymmetry is documented behaviour rather than a latent surprise.
+  it('snapshots block 1 at construction — post-hoc mutation desynchronises the channels', () => {
+    const payload: { a: number } = { a: 1 };
+    const result = toolOk(payload, 'ok.');
+    payload.a = 999;
+
+    expect(result.structuredContent).toEqual({ a: 999 });
+    expect(result.content[1]?.text).toBe('{"a":1}');
+  });
+});
+
+describe('toolOk textOmit', () => {
+  it('keeps the key in the text mirror but replaces the value with a marker', () => {
+    const payload = { filename: 'x.xlsx', base64: 'AAAABBBBCCCC', byteLength: 9 };
+    const result = toolOk(payload, 'generated.', { textOmit: ['base64'] });
+
+    const mirrored = JSON.parse(result.content[1]?.text ?? '') as Record<string, unknown>;
+
+    // Present, not deleted — the model must be able to see the field exists.
+    expect(Object.keys(mirrored)).toContain('base64');
+    expect(mirrored.base64).toBe(
+      '[omitted from text channel: 12 B; read structuredContent.base64]'
+    );
+    // Byte length is of the OMITTED VALUE (12 chars of base64), never of the
+    // `byteLength` field, which means the decoded workbook.
+    expect(mirrored.base64).not.toContain('9 B');
+  });
+
+  it('leaves structuredContent canonical — Invariant 1 is not weakened', () => {
+    const payload = { filename: 'x.xlsx', base64: 'AAAABBBBCCCC' };
+    const result = toolOk(payload, 'generated.', { textOmit: ['base64'] });
+
+    expect(result.structuredContent?.base64).toBe('AAAABBBBCCCC');
+  });
+
+  it('mirrors every non-omitted key untouched', () => {
+    const payload = { filename: 'x.xlsx', base64: 'AAAA', sectionCount: 10 };
+    const result = toolOk(payload, 'generated.', { textOmit: ['base64'] });
+
+    const mirrored = JSON.parse(result.content[1]?.text ?? '') as Record<string, unknown>;
+
+    expect(mirrored.filename).toBe('x.xlsx');
+    expect(mirrored.sectionCount).toBe(10);
+  });
+
+  it('is inert when not passed — block 1 deep-equals structuredContent', () => {
+    const payload = { filename: 'x.xlsx', base64: 'AAAA' };
+    const result = toolOk(payload, 'generated.');
+
+    expect(JSON.parse(result.content[1]?.text ?? '')).toEqual(payload);
   });
 });
 

@@ -124,8 +124,16 @@ function Invoke-McpTool {
 
         Before BL-090 this parsed result.content[0].text as JSON, because every tool
         sent its payload twice: pretty-printed into the text block AND as the
-        structured object. The text block is now a one-line human caption on success
-        and the verbatim message on failure, so parsing it as JSON would always fail.
+        structured object. content[0].text is now a one-line human caption on success
+        and the verbatim message on failure, so parsing IT as JSON would always fail.
+
+        Since BL-108 (0.45.0) the payload is again sent twice, deliberately: success
+        results carry it compactly in content[1].text for clients that read the model
+        channel (Claude Desktop does; the caption-only shape left it with bare counts).
+        This helper still reads structuredContent — it is the canonical channel and is
+        present on every path including failures, whereas content[1] is success-only
+        and, for generate_information_request_list_xlsx, has its base64 field replaced
+        by a marker. Do not switch this to content[1].
 
         Failures now carry structuredContent too — { error, message, ... } — so a
         caller can branch on $result.error instead of substring-matching prose.

@@ -392,6 +392,7 @@ The [eslint.config.mjs](../../../eslint.config.mjs) uses the modern **flat confi
 The following files are explicitly excluded from linting:
 
 - Build output: `dist/`, `.astro/`, `.vercel/`, `coverage/`, `playwright-report/`, `test-results/`, `.cache/`, `node_modules/`, `public/`
+- **`**/.wrangler/**`** (added 2026-08-04, BL-108) — Wrangler's build cache. The Worker integration tests use `unstable_dev`, which writes bundled Worker output here, so **after any `npm run test:mcp` these generated files added ~2,650 errors to `npm run lint`**. That matters more than it sounds: `lint` is one of the four authoritative validation commands, and the noise is not cosmetic — it buried a genuine one-line error in `mcp-server/src/schemas.ts` that only surfaced by grepping the output. If you see `lint` suddenly report thousands of errors in files you did not write, check for a newly generated directory rather than a newly broken rule.
 - Minified vendor assets: `**/*.min.js`, `**/*.min.css`
 - Stale one-shot migration scripts at repo root: `abbreviate-arr.js`, `sort-projects.js` (tracked in Phase 9 backlog for deletion)
 - `src/pages/hub/tools/techpar/index.astro` — `astro-eslint-parser` emits a spurious parsing error at the `<style>` block boundary on this one file. Other large `.astro` files (including the 3778-line `brand.astro`) parse cleanly. Tracked in Phase 9 backlog for investigation.

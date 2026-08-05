@@ -81,10 +81,16 @@ describe('handlePrepareIrlBodyTool', () => {
     expect(result.structuredContent?.irlBodyHash).toMatch(/^[0-9a-f]{16}$/);
     expect(result.structuredContent?.byteLength).toBe(Buffer.byteLength(body, 'utf8'));
 
-    expect(result.content).toHaveLength(1);
+    // BL-108: block 0 stays the one-line caption (no JSON, no newlines — several
+    // callers surface it verbatim); block 1 is the serialized payload. ADR-0002 is
+    // unaffected: the IRL body itself never enters this payload, only its hash and
+    // byte length, so the text mirror cannot put the body back on the emit path.
+    expect(result.content).toHaveLength(2);
     expect(result.content[0].type).toBe('text');
     expect(result.content[0].text).not.toMatch(/^\s*\{/);
     expect(result.content[0].text).not.toContain('\n');
     expect(result.content[0].text).toMatch(/IRL body hashed/);
+    expect(JSON.parse(result.content[1].text)).toEqual(result.structuredContent);
+    expect(result.content[1].text).not.toContain(body);
   });
 });

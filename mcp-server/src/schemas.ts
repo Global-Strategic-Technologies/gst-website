@@ -11,6 +11,46 @@ import { z } from 'zod';
 import { CanonicalStageSchema } from '../../src/data/common/funding-stages';
 import { CompanyStageSchema, ICGInputsSchema } from '../../src/schemas/icg';
 import { StageSchema as TechParStageSchema, TechParInputsSchema } from '../../src/schemas/techpar';
+import projectsRaw from '../../src/data/ma-portfolio/projects.json';
+import { getUniqueThemes } from '../../src/utils/filterLogic';
+import type { Project } from '../../src/schemas/portfolio';
+
+/**
+ * Live theme vocabulary, derived from the data (BL-108).
+ *
+ * Interpolated into the `search_portfolio` argument description below, which ships
+ * in `tools/list` and is the ONLY portfolio vocabulary a cold LLM call can see
+ * before its first tool call. The hand-written examples had rotted into fiction —
+ * `"Healthcare Tech"`, `"Financial Services"` and `"Life Sciences"`, none of which
+ * exist — and a real Claude Desktop session burned calls probing them by trial.
+ *
+ * Uses the SAME `getUniqueThemes` helper that backs `list_portfolio_facets`
+ * (`src/utils/filterLogic.ts`), which `portfolio/CONTRACT.md` names as the source
+ * of truth. That is what makes the description's "`list_portfolio_facets` returns
+ * the same list at runtime" claim true by construction rather than by coincidence:
+ * two independent derivations would drift silently the day `ProjectSchema.theme`
+ * gained a transform. `filterLogic.ts` has no runtime imports, so reuse is free.
+ *
+ * Deliberately NOT `ProjectsArraySchema.parse`: a description string needs no
+ * validation, and `tools/portfolio.ts` already parses this same JSON unconditionally
+ * at isolate init (`registerPortfolioTools` is always registered, `server.ts`), so a
+ * Zod pass here would merely duplicate that — a second full-dataset validation to
+ * build a description string. Dataset/schema drift is caught by that existing parse
+ * regardless. (Module init runs once per isolate, not once per importer, so the
+ * twelve modules importing `schemas.ts` share one evaluation.)
+ *
+ * Why a cast at all: `Project` narrows four fields to string-literal unions via
+ * `z.enum` — `currency`, `growthStage`, `engagementType`, `engagementCategory`
+ * (`src/schemas/portfolio.ts`) — and TypeScript infers those as plain `string` from
+ * a JSON import, so `const x: Project[] = projectsRaw` does not type-check. It is
+ * NOT about optional-field presence: all records carry an identical key set.
+ *
+ * The cast is *unchecked* — a record losing `theme` would not be a compile error
+ * here. That is covered at runtime by `ProjectsArraySchema.parse` in
+ * `tools/portfolio.ts` and by the derived-vocabulary tests in
+ * `tests/unit/portfolio.test.ts`.
+ */
+const PORTFOLIO_THEMES: readonly string[] = getUniqueThemes(projectsRaw as Project[]);
 
 // Re-export canonical funding-stage taxonomy + adapters (BL-031.87).
 // The canonical layer is the public-API stability surface for stage-aware
@@ -123,8 +163,8 @@ export type RadarCategoryValue = z.infer<typeof RadarCategoryEnum>;
  * the website's three filter controls on `/ma-portfolio` exactly — a free-
  * text `search` box, a single-select `theme` chip, and a single-select
  * `engagement` (engagementCategory) chip. Earlier versions accepted a
- * `limit` field that had no website counterpart (the page renders all 61
- * projects always; CSS hides filtered-out cards). `limit` was removed
+ * `limit` field that had no website counterpart (the page renders every
+ * project always; CSS hides filtered-out cards). `limit` was removed
  * under the capability-mirror invariant — see
  * `mcp-server/src/docs/tools/portfolio/CONTRACT.md` for the rationale.
  */
@@ -147,7 +187,7 @@ export const SearchPortfolioInputSchema = z.object({
       'Free-text query, case-insensitive. Matches against codeName, industry, summary, and the technologies array. Mirrors the website search input on /ma-portfolio. Omit or pass empty string for no search filter.'
     ),
   theme: StringOrStringArray.default(['all']).describe(
-    'Theme filter. Accepts a single string OR an array of strings (BL-064 batching). Pass "all" (the default) — or omit — to skip filtering. Each value must be one of the strings listed under `themes` in `list_portfolio_facets`. Mirrors the website Theme chip row. **Batched usage**: when IRL Section 01 + the target profile suggest multiple themes, pass them as an array — `theme: ["Healthcare", "Life Sciences"]` returns matches across both in a single call. Do NOT call `search_portfolio` once per theme.'
+    `Theme filter. Accepts a single string OR an array of strings (BL-064 batching). Pass "all" (the default) — or omit — to skip filtering. Mirrors the website Theme chip row. **The complete set of valid values is:** ${PORTFOLIO_THEMES.map((t) => `"${t}"`).join(', ')}. Use them verbatim — anything else matches zero projects. \`list_portfolio_facets\` returns the same list at runtime. **Batched usage**: when IRL Section 01 + the target profile suggest multiple themes, pass them as an array — \`theme: ["Finance", "Software"]\` returns matches across both in a single call. Do NOT call \`search_portfolio\` once per theme.`
   ),
   engagement: StringOrStringArray.default(['all']).describe(
     'Engagement-category filter. Accepts a single string OR an array of strings (BL-064 batching). Pass "all" (the default) — or omit — to skip filtering. Each value must be one of the strings listed under `engagementCategories` in `list_portfolio_facets` (typically "Buy-Side" or "Sell-Side"). Mirrors the website Engagement chip row. **Natural-language mapping**: "GST advised on selling X" / "X was sold to Y" / "X exited to Y" → `Sell-Side`; "GST did diligence on X for an acquirer" / "X was acquired by Y" / "we bought X" / "we are evaluating acquiring X" → `Buy-Side`. When the user\'s phrasing is genuinely ambiguous about which side GST was on (e.g. "GST worked on the X transaction"), pass BOTH in a single call as `engagement: ["Buy-Side", "Sell-Side"]` and surface the split in synthesis — do NOT default to one side and do NOT run two separate calls.'

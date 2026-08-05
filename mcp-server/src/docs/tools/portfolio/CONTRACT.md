@@ -18,9 +18,9 @@ enumParity:
 > - **Project shape**: [`src/schemas/portfolio.ts`](../../../../../src/schemas/portfolio.ts) — `ProjectSchema`, `EngagementCategorySchema`, `GrowthStageSchema`
 > - **Filter engine**: [`src/utils/filterLogic.ts`](../../../../../src/utils/filterLogic.ts) — `filterProjects`, `getUnique*` helpers; the same code path the website uses (`PortfolioHeader.astro` script block)
 > - **URL encoder**: [`src/utils/portfolio-url.ts`](../../../../../src/utils/portfolio-url.ts) — `serializeToParams` / `deserializeFromParams`. Imported by both the website page (hydrates filters from URL on init; writes URL on each change) and the MCP wrapper (`buildPortfolioDeeplink`); single source of truth for portfolio URL state.
-> - **Bundled dataset**: [`src/data/ma-portfolio/projects.json`](../../../../../src/data/ma-portfolio/projects.json) — 61 anonymized engagements, validated against `ProjectsArraySchema` at MCP-server module init.
+> - **Bundled dataset**: [`src/data/ma-portfolio/projects.json`](../../../../../src/data/ma-portfolio/projects.json) — anonymized engagements, validated against `ProjectsArraySchema` at MCP-server module init.
 >
-> **Used by prompts** (BL-031.75): [`gst_comparable_engagements_memo`](../../../prompts/) — composes a 1-page memo of comparable past engagements anchored on a free-text theme; calls `search_portfolio` once per theme and synthesises the memo from the matched `summary` / `challenge` / `solution` fields.
+> **Used by prompts** (BL-031.75): [`gst_comparable_engagements_memo`](../../../prompts/) — composes a 1-page memo of comparable past engagements anchored on a free-text theme; calls `search_portfolio` ONCE with a batched theme array (BL-064) and synthesises the memo from the matched `summary` / `challenge` / `solution` fields.
 >
 > **Version**: `v1` | **Last authored**: 2026-05-03
 >
@@ -113,7 +113,7 @@ Zero arguments. The MCP tool returns the four facet dimensions present in the bu
 
 **The MCP tool's input schema mirrors the website's filter UI exactly.**
 
-The `/ma-portfolio` page surfaces three filter controls (the search input + Theme chip row + Engagement chip row in [`src/components/portfolio/PortfolioHeader.astro`](../../../../../src/components/portfolio/PortfolioHeader.astro) + [`src/components/portfolio/FilterDrawer.astro`](../../../../../src/components/portfolio/FilterDrawer.astro)). Pre-BL-031.95-Phase-4.A, the MCP tool also accepted a `limit` field (default 20, max 61); the website renders all 61 projects always (CSS `display: none` hides filtered-out cards), so a tool-level `limit` had no website counterpart and was removed under the capability-mirror invariant.
+The `/ma-portfolio` page surfaces three filter controls (the search input + Theme chip row + Engagement chip row in [`src/components/portfolio/PortfolioHeader.astro`](../../../../../src/components/portfolio/PortfolioHeader.astro) + [`src/components/portfolio/FilterDrawer.astro`](../../../../../src/components/portfolio/FilterDrawer.astro)). Pre-BL-031.95-Phase-4.A, the MCP tool also accepted a `limit` field (default 20); the website renders every project always (CSS `display: none` hides filtered-out cards), so a tool-level `limit` had no website counterpart and was removed under the capability-mirror invariant.
 
 The website page does not (today) surface filters for `growthStage`, `year`, `industry`, `engagementType`, or any free-text against `challenge` / `solution`. Those fields are visible on individual cards / modals but not used as filter axes; the MCP tool follows suit. If a future website filter ships for any of those dimensions, the encoder + decoder + tool input schema grow in lockstep with the website surface.
 

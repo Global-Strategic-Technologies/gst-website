@@ -71,9 +71,13 @@ describe('list_irl_requests', () => {
 
   it('text summary names the count and cross-references the generate tool', async () => {
     const result = await handleListIrlRequestsTool();
-    expect(result.content).toHaveLength(1);
+    // BL-108: block 0 caption + block 1 serialized payload.
+    expect(result.content).toHaveLength(2);
     const text = (result.content[0] as { text: string }).text;
     expect(text).toContain('67');
     expect(text).toContain('excludeRequests');
+    expect(JSON.parse((result.content[1] as { text: string }).text)).toEqual(
+      result.structuredContent
+    );
   });
 });

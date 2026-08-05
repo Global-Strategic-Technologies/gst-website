@@ -246,12 +246,30 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // one-shot and extract-only bodies, so 6 of 7 hashes drift — the interactive
 // hash is unchanged (deliberately NOT interpolating the live version constant,
 // which would churn these hashes on every future version bump).
+// BL-108 rebaseline (prompt v0.21.1, UNCHANGED version, 2026-08-04): Step 2's
+// portfolio-theme examples were invented values — `"Financial Services"` in the
+// seed list and `["Healthcare", "Life Sciences"]` in the worked example — neither
+// of which is a real theme, in a sentence that instructs the model NOT to guess at
+// labels. The stale "57-engagement" count was dropped rather than corrected to 65,
+// so it cannot rot again (interpolating the live count would couple these hashes to
+// `projects.json`, reddening CI on a routine portfolio edit that never touched the
+// server). Step 2 lives ONLY in `buildOneShotBody`, and the interactive body's
+// equivalent (Step 2b) carries no invented values, so exactly the 3 one-shot hashes
+// drift — minimal + full + full-compact.
+//
+// promptVersion deliberately NOT bumped, following the BL-086 L0/L1 precedent
+// above: every directive, its semantics and its structure are untouched: only
+// illustrative data values changed. Contrast BL-064, which DID bump (0.11.0 →
+// 0.12.0) for this same line — it *introduced* the batched-array directive, a
+// structural rewrite. Preserving that batching clause verbatim is precisely what
+// keeps this edit in the no-bump class; delete it and the bump is owed. Holding the
+// version steady also keeps the resource/prompt manifest hash unchanged.
 const EXPECTED_HASH_INTERACTIVE =
   'de70481c9ef59babc8bd2282c2d0867d25833e944fb42547771b3c66132e881c';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'cfc9413bec5dd98e9c9e03f91a8048917487d08d6863d17bccb2cd89d653eb11';
+  '54aa125b5fb5f5852d68780e35ece6358eb8ab34fea541e3500e86e88ec40f56';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'd00deefd4b0f354314b5c948d945640926de328a99ddaeea770bdb1c2e59c736';
+  '4b30a35a3ca6b1a8edc38d2cbedec5c374f803a1bbf615fb02ea1237ebdca68d';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '6ad7aeb685c273bca6137e5cee65422e93d13c2e7ae91da2cd1b22a61d48dfd3';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
@@ -265,7 +283,7 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '9f0458c1d012f026cf2d52cfc96dca7831248fa7e999a553ea79c81cf457ab97';
+  'a23bc49fda6e4ec96fd98533e2fa167f25e60fe0b4bd1e41d5491e1fbd66864f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
   '869175c9fc58193e75d95ffe52d89c3618bcc2d6ff6bc094f8ca10a06604eeff';
 

@@ -98,10 +98,26 @@ describe('generate_information_request_list_xlsx — handler', () => {
     // format" error for arbitrary binary mimeTypes. Until BL-046 ships a
     // proper file-delivery surface, the tool returns text + structuredContent
     // only; the canonical download path is the Hub page.
+    //
+    // BL-108: `content` is now two text blocks — caption + serialized payload —
+    // and this tool is the sole `textOmit` site, so block 1 carries the marker in
+    // place of the base64 rather than ~17 KB (≈4,500-6,000 tokens) of blob the
+    // model cannot use.
     const result = await handleGenerateIrlXlsxTool({});
-    expect(result.content).toHaveLength(1);
+    expect(result.content).toHaveLength(2);
     expect(result.content[0].type).toBe('text');
     expect((result.content[0] as { text: string }).text).toMatch(/Generated.*workbook/i);
+
+    const mirrored = JSON.parse((result.content[1] as { text: string }).text) as Record<
+      string,
+      unknown
+    >;
+    expect(mirrored.base64).toMatch(
+      /^\[omitted from text channel: \d+ B; read structuredContent\./
+    );
+    expect(mirrored.filename).toBe((result.structuredContent as { filename: string }).filename);
+    // The real blob still reaches programmatic consumers.
+    expect(typeof (result.structuredContent as { base64: unknown }).base64).toBe('string');
   });
 
   it('text summary directs the recipient to the Hub page download surface', async () => {

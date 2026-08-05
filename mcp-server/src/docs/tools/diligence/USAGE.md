@@ -144,7 +144,7 @@ In the same conversation, you can pull comparable past engagements via the `sear
 
 > _"Pull our past engagements that touched financial services or fund administration."_
 
-Returns matches from the 61-engagement anonymized dataset. For this deal profile the most useful matches are:
+Returns matches from the anonymized engagement dataset. For this deal profile the most useful matches are:
 
 | Codename   | Engagement type              | ARR   | Stack                                                 | Why it's a useful analogy                                                                               |
 | ---------- | ---------------------------- | ----- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -203,7 +203,7 @@ These are the operations that previously required manual extraction from the wiz
 | Re-shaping output for different audiences | Manual extraction and reformatting                               | Prompt-driven; data is already in conversation                                          |
 | Engine drift risk                         | Two surfaces (web + MCP) → divergence possible                   | Both surfaces call the same `generateScript` engine — by construction, identical output |
 
-The engine is not new. The 61-engagement dataset is not new. **What is new is putting both inside the conversation that's writing the proposal, prepping the call, or briefing the analyst** — without any context-switch.
+The engine is not new. The engagement dataset is not new. **What is new is putting both inside the conversation that's writing the proposal, prepping the call, or briefing the analyst** — without any context-switch.
 
 ---
 

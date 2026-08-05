@@ -690,7 +690,7 @@ A 7-step curl sequence to verify each layer of the request flow. Run these again
 > Two helpers land in the session:
 >
 > - **`Invoke-McpRequest -Method <m> [-Params <hash>] [-Id <n>]`** — raw JSON-RPC call; returns the full envelope. Use for `tools/list`, `prompts/list`, etc., or when you need to see the protocol envelope.
-> - **`Invoke-McpTool -Name <toolName> [-Arguments <hash>] [-Id <n>]`** — convenience wrapper around `tools/call`. Issues the call and returns `result.structuredContent` — the tool's payload — directly. (Since 0.43.0 / BL-090 the payload travels only in the structured channel; `result.content[0].text` is a one-line human caption.)
+> - **`Invoke-McpTool -Name <toolName> [-Arguments <hash>] [-Id <n>]`** — convenience wrapper around `tools/call`. Issues the call and returns `result.structuredContent` — the tool's payload — directly. (`result.content[0].text` is a one-line human caption; since 0.45.0 / BL-108 `result.content[1].text` carries the same payload serialized, so `content`-reading clients are not starved of data. `structuredContent` remains the channel to read programmatically.)
 >
 > With these, B.3.3 becomes `(Invoke-McpRequest -Method "tools/list").result.tools.name`, B.3.4 becomes `Invoke-McpTool -Name "list_portfolio_facets"`, T.B.2.a becomes `Invoke-McpTool -Name "search_portfolio" -Arguments @{ search = "kubernetes" }`. PowerShell-flavored examples are inlined per-step below.
 
@@ -779,7 +779,7 @@ curl -s $MCP_URL/mcp \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_portfolio_facets","arguments":{}}}' | jq
 ```
 
-Expected: a JSON response with `result.structuredContent` containing the deduplicated themes / engagement categories / etc. for the M&A portfolio. (`result.content[0].text` carries a one-line caption, not the data — see ADR-0011.)
+Expected: a JSON response with `result.structuredContent` containing the deduplicated themes / engagement categories / etc. for the M&A portfolio. (`result.content[0].text` carries a one-line caption; `result.content[1].text` carries the same payload serialized — see ADR-0011 and its 2026-08-04 amendment.)
 
 ### B.3.5 — Verify rate-limit headers
 
