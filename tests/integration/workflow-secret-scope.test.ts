@@ -37,15 +37,15 @@
  *      are unordered, so a top-level `env:` written *below* `jobs:` was outside the parse
  *      window — the exact hole that assertion was added to close.
  *   6. The `secrets: inherit` guard added to close (5)'s round shipped without a trailing-
- *      comment allowance — one function below the docstring rule saying trailing comments
- *      are legal everywhere. `secrets: inherit # needs everything` passed green.
+ *      comment allowance — 177 lines below the docstring rule saying trailing
+ *      comments are legal everywhere, and 35 below the nearest in-code restatement. `secrets: inherit # needs everything` passed green.
  *   7. Membership tested only `secrets.NAME`. `secrets['NAME']` is valid expression syntax,
  *      so an unbound job holding the production token via the index form was invisible —
  *      and the positive pairing could not see it either, since the rogue simply never
  *      entered the holders list, which stayed exactly the three expected entries.
  *   8. The `secrets[<expr>]` guard added to close (7) scanned job bodies ONLY, not the
  *      `outside` complement — so a top-level `env:` indexing by expression passed green.
- *      That is (5) recurring inside its own round's fix, 200 lines below the rule
+ *      That is (5) recurring inside its own round's fix, 216 lines below the rule
  *      "compute by complement, never by position".
  *   9. Membership was case-SENSITIVE. GitHub documents secret names as case-insensitive,
  *      so `secrets.cloudflare_api_token` in an unbound job was invisible — the direct
@@ -296,8 +296,8 @@ function parseWorkflows(): Parsed {
     // reusable workflows, so the honest guard is that it stays that way — modelling the
     // inheritance properly would mean resolving `uses:` targets.
     //
-    // `(#.*)?` — this guard shipped WITHOUT it, one function below the docstring rule
-    // saying trailing comments are legal everywhere, and `secrets: inherit # needs
+    // `(#.*)?` — this guard shipped WITHOUT it, 177 lines below the docstring rule saying
+    // trailing comments are legal everywhere, and 35 below the nearest restatement, and `secrets: inherit # needs
     // everything` passed 9/9 green. Sixth instance.
     const whole = stripComments(lines).join('\n');
     // `['"]?` — YAML parses `secrets: "inherit"` to the same scalar. Widening the keyword
