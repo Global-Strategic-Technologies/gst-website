@@ -113,6 +113,14 @@ jobs:
     # would defeat the point of an unattended post-merge staging deploy. The
     # scoping alone is the win.
     #
+    # And a trap for whoever is tempted to add a deployment branch policy here
+    # later: a `workflow_run` consumer is attributed to the DEFAULT branch, so
+    # every run of this job reports `head_branch: master` regardless of which
+    # branch actually triggered the upstream suite. A branch policy would
+    # therefore evaluate `master`, always pass, and restrict nothing — security
+    # theatre. The `branches:` filter on the trigger and the `if:` above are
+    # what actually constrain which runs deploy.
+    #
     # NOTE the collision that cost us an hour: `[env.staging]` in wrangler.toml
     # is a CLOUDFLARE Worker environment (what gets deployed where). This is a
     # GITHUB Actions Environment (which jobs may read which secrets). Same word,

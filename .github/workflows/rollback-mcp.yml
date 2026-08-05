@@ -12,8 +12,10 @@ name: Rollback MCP Worker
 # Reviewer gate: production rollbacks bind the `mcp-production-rollback`
 # GitHub Environment (separate from `mcp-production` so the rollback
 # reviewer list can diverge from the deploy reviewer list if needed).
-# Staging rollbacks have no environment / no reviewer — they're cheap
-# enough to be self-service.
+# Staging rollbacks bind `mcp-staging` (BL-111) — for SECRET SCOPING only,
+# not review: that environment carries no protection rules, so staging
+# rollback stays self-service and unattended. It binds an environment at
+# all so its Cloudflare credentials stop resolving at repository level.
 #
 # Sentry source maps: NOT re-uploaded. The rollback target was a prior
 # deploy that already uploaded its source maps; Sentry's release-pinning
