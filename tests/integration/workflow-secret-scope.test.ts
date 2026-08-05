@@ -313,7 +313,10 @@ function parseWorkflows(): Parsed {
     }
     // `outside` too, NOT just job bodies. Shipping this check over job bodies alone was
     // fail-open path 8 — the workflow-level blind spot recurring inside the fix whose own
-    // docstring rule is "compute by complement, never by position", 200 lines above.
+    // docstring rule is "compute by complement, never by position" — 216 lines above it at
+    // `0f6e6b9f` where the defect shipped, and further above in this file today. The last
+    // unmeasured figure of the eleven this stanza records; it disagreed with the docstring's
+    // own number for the same distance.
     if (
       dynamicSecretIndex(outside) ||
       jobs.some((j) => j.workflow === workflow && dynamicSecretIndex(j.body))
