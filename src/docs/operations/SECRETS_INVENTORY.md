@@ -203,7 +203,9 @@ Upstash tokens are bearer-style — anyone with the token has full DB access. Tr
 
 **DSN** (the runtime ingest URL): Sentry → Project → **Settings → Client Keys (DSN)**. One DSN per project. The website + MCP Worker use different Sentry projects (`gst-website` and `GST-MCP-SERVER`) so the DSNs differ — _this is correct_, not a duplication.
 
-**Auth token** (build-time, for source-map upload): not bound yet. BL-037 Phase A will add `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT` so source maps upload during `wrangler deploy`. Until then, MCP source maps don't upload — stack traces in Sentry remain minified.
+**Auth token** (build-time, for source-map upload): **bound since 2026-05-31** (BL-037 Phase A). It is a **GitHub Actions** secret, not a Worker secret — source maps upload from the deploy job, never at Worker runtime — and lives on `mcp-staging` + `mcp-production`, with the repository-level copy pending deletion (see [§ GitHub Actions](#github-actions-cicd-deploy-credentials--bl-111)). `SENTRY_ORG` / `SENTRY_PROJECT` were never needed: [`deploy.mjs:53-54`](../../../mcp-server/scripts/deploy.mjs) hardcodes `gst-7o` / `gst-mcp-server`. The token is **optional** — [`deploy.mjs:135`](../../../mcp-server/scripts/deploy.mjs) warns and skips the upload when it is unset, leaving stack traces minified.
+
+> This paragraph read "not bound yet … will add" for **nine weeks** after Phase A shipped, and was the _third_ copy of that claim in this file — the at-a-glance row and the decommission row said it too. All three were corrected in BL-111, in three separate review rounds, because fixing the two visible copies did not surface this one. **When a fact is stated in three places, correcting two of them is the normal outcome, not the unlucky one.**
 
 ---
 
