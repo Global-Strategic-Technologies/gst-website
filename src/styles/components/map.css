@@ -301,7 +301,10 @@ Brutalist Map Controls
 
 .brutal-map-tap-bar__action {
   padding: var(--spacing-xs) var(--spacing-md);
-  background: transparent;
+  /* Filled by default rather than on hover: outlined, this was --color-primary on a
+     light surface at 2.06:1. Its own :hover already defined the compliant pair, and
+     production's .brutal-project-card__cta ships the same shape as its default. */
+  background: var(--color-primary);
   border: 2px solid var(--color-primary);
   border-radius: 0;
   font-family: var(--font-family-mono);
@@ -309,17 +312,37 @@ Brutalist Map Controls
   font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-primary);
+  color: var(--bg-dark);
   cursor: pointer;
   transition:
     background var(--transition-fast),
     color var(--transition-fast);
 }
 
+/* Must differ from the filled default AND stay readable in BOTH themes — this pair took
+   three attempts, so the reasoning is worth keeping.
+
+   --color-tertiary is the wrong FILL: light-dark(#02724f, #05cd99), whose dark value IS
+   --color-primary, so it collapses onto the default in dark theme (and under all five
+   palettes, which alias --altN-color-tertiary to --altN-color-primary in their dark
+   block). --color-tertiary-dark differs in both: #01633f / #04a87a.
+
+   --bg-dark is the wrong INK: it is STATIC #0a0a0a, so it does not flip while the fill
+   does — #0a0a0a on #01633f is 2.69:1 in light theme, below even the 3:1 large-text bar
+   at this 0.7rem size. --bg-light DOES flip, giving #ffffff on #01633f (7.35:1) in light
+   and #0a0a0a on #04a87a (6.49:1) in dark.
+
+   Note this is the first use of --color-tertiary-dark as a BACKGROUND; its four other
+   consumers all use it as dark ink on a light surface, so there was no pairing to copy
+   and the name reads like a fill. Check both themes before reusing it that way.
+
+   Load-bearing because the bar is display:none above 1023px — it is touch-only, so
+   :active is the ONLY feedback that exists on the devices that render it, and axe
+   scans the default state on a desktop viewport where the element does not exist. */
 .brutal-map-tap-bar__action:hover,
 .brutal-map-tap-bar__action:active {
-  background: var(--color-primary);
-  color: var(--bg-dark);
+  background: var(--color-tertiary-dark);
+  color: var(--bg-light);
 }
 
 .brutal-quick-zoom {
@@ -463,11 +486,14 @@ Brutalist Panel & Reg Card
 .brutal-reg-card__scope {
   display: inline-block;
   padding: 2px var(--spacing-sm);
+  /* The border-left keeps the brand accent; the TEXT uses the darker tertiary.
+     --color-primary on a light surface is 2.06:1 at this size, and this label is
+     non-interactive so there is no hover state to promote. */
   border-left: 3px solid var(--color-primary);
   font-family: var(--font-family-mono);
   font-size: 0.7rem;
   font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border-radius: 0;

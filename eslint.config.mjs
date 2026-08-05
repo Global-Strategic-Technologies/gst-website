@@ -27,6 +27,14 @@ export default [
       'playwright-report/**',
       'test-results/**',
       '.cache/**',
+      // Wrangler's build cache. `unstable_dev` (the Worker integration tests)
+      // writes bundled Worker output here, so after any `npm run test:mcp` these
+      // generated files contributed ~2,650 errors to `npm run lint` — one of the
+      // four authoritative validation commands. Not style debt: it made the
+      // command unusable, and it concretely buried a real single-line error in
+      // `mcp-server/src/schemas.ts` during BL-108. Generated output is never
+      // ours to lint.
+      '**/.wrangler/**',
       'node_modules/**',
       '**/node_modules/**',
       'public/**',

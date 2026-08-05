@@ -42,6 +42,7 @@ const { redisGet, redisSet, redisDel, redisTtl, MockRedis } = vi.hoisted(() => {
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
 
 import { handleSearchRadar, handleGetLatestInsights } from '../../src/tools/radar-live';
+import { MAX_WIRE } from '../../../src/utils/radar-feed-bounds';
 import type { Env } from '../../src/worker';
 
 // The radar tool handlers return a discriminated success/error union:
@@ -581,5 +582,111 @@ describe('get_latest_insights', () => {
 
     expect(wide(result).isError).toBe(true);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BL-109 — wire bound + dedupe on the LIVE handler
+// ---------------------------------------------------------------------------
+
+describe('search_radar — BL-109 wire bound and dedupe', () => {
+  /**
+   * These exercise `handleSearchRadar` specifically. The companion file
+   * `radar-bounds-mirror.test.ts` covers the bound through the OFFLINE handler, which
+   * by design has no FYI/wire dedupe — so the dedupe leg is only reachable here, and a
+   * regression in it (FYI spread without deduping against itself) survived the first
+   * implementation of BL-109 precisely because nothing on this path asserted it.
+   *
+   * Fixtures deliberately exceed MAX_WIRE; every pre-existing radar fixture is 2-5
+   * items, which is why the missing bound went unnoticed for so long.
+   */
+
+  it('caps the wire tier at MAX_WIRE while keeping every FYI item', async () => {
+    const fyi = Array.from({ length: 6 }, (_, i) =>
+      makeInoreaderItem(`fyi-${i}`, 900 - i, 'GST-PE-MA', true)
+    );
+    const wire = [
+      {
+        folder: 'GST-PE-MA',
+        items: Array.from({ length: 40 }, (_, i) =>
+          makeInoreaderItem(`wire-${i}`, 500 - i, 'GST-PE-MA')
+        ),
+      },
+    ];
+    setupHappyInoreaderResponses(fyi, wire);
+
+    const result = await handleSearchRadar(baseEnv, {});
+    const payload = wide(result).structuredContent as {
+      matches: Array<{ tier: string }>;
+      totalMatched: number;
+      returned: number;
+    };
+
+    expect(payload.matches.filter((m) => m.tier === 'wire')).toHaveLength(MAX_WIRE);
+    expect(payload.matches.filter((m) => m.tier === 'fyi')).toHaveLength(6);
+    // Truncation is self-describing: returned < totalMatched.
+    expect(payload.returned).toBeLessThan(payload.totalMatched);
+  });
+
+  it('dedupes FYI against ITSELF, not only wire against FYI', async () => {
+    // Two FYI entries for the same canonical URL — the same article annotated from two
+    // subscribed feeds, which is normal in an aggregator. `makeInoreaderItem` derives
+    // `canonical` from the id, so the collision is built by overriding it.
+    const a = makeInoreaderItem('fyi-a', 900, 'GST-PE-MA', true);
+    const b = {
+      ...makeInoreaderItem('fyi-b', 880, 'GST-PE-MA', true),
+      canonical: [{ href: 'https://example.com/fyi-a' }],
+    };
+    setupHappyInoreaderResponses([a, b], []);
+
+    const result = await handleSearchRadar(baseEnv, {});
+    const payload = wide(result).structuredContent as {
+      matches: Array<{ url: string }>;
+      totalMatched: number;
+    };
+
+    expect(payload.matches).toHaveLength(1);
+    expect(payload.totalMatched).toBe(1);
+  });
+
+  it('drops a wire item whose URL already appears in FYI, and the freed slot is refilled', async () => {
+    // The dedupe must run BEFORE the bound: the cap counts non-duplicates, so a
+    // duplicate must not consume one of the MAX_WIRE slots.
+    const fyi = [makeInoreaderItem('shared-1', 900, 'GST-PE-MA', true)];
+    const wire = [
+      {
+        folder: 'GST-PE-MA',
+        items: [
+          makeInoreaderItem('shared-1', 899, 'GST-PE-MA'),
+          ...Array.from({ length: 40 }, (_, i) =>
+            makeInoreaderItem(`wire-${i}`, 500 - i, 'GST-PE-MA')
+          ),
+        ],
+      },
+    ];
+    setupHappyInoreaderResponses(fyi, wire);
+
+    const result = await handleSearchRadar(baseEnv, {});
+    const payload = wide(result).structuredContent as {
+      matches: Array<{ id: string; tier: string }>;
+    };
+
+    const wireMatches = payload.matches.filter((m) => m.tier === 'wire');
+    expect(wireMatches).toHaveLength(MAX_WIRE);
+    expect(wireMatches.some((m) => m.id === 'shared-1')).toBe(false);
+  });
+
+  it('preserves annotation.gstTake through the summary projection', async () => {
+    // "Every gstTake survives the bound" is claimed in four docs; this is the assertion
+    // behind it. The projection rewrites `summary` and must not disturb `annotation`.
+    const fyi = [makeInoreaderItem('fyi-take', 900, 'GST-PE-MA', true)];
+    setupHappyInoreaderResponses(fyi, []);
+
+    const result = await handleSearchRadar(baseEnv, {});
+    const payload = wide(result).structuredContent as {
+      matches: Array<{ annotation?: { gstTake?: string } }>;
+    };
+
+    expect(payload.matches[0].annotation?.gstTake).toBe('GST take');
   });
 });

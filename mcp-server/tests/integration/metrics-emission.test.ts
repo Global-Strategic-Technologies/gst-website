@@ -22,8 +22,8 @@
  * envelopes because no creds are bound — that's fine; the assertion is on
  * EMISSION, not on inner correctness.
  */
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { Client } from '@modelcontextprotocol/client';
+import { InMemoryTransport } from '@modelcontextprotocol/server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { InMemorySink } from '../../src/metrics/sinks/in-memory';
 import { InMemoryIrlBodyCache } from '../../src/cache/irl-body-cache';

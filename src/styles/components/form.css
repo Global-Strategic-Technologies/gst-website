@@ -145,8 +145,10 @@ Brutalist Tab Bar
   position: relative;
 }
 
+/* The 2px bottom border carries the active accent; the LABEL uses the darker
+   tertiary. --color-primary on --bg-light is 2.06:1 at --text-xs. */
 .brutal-tab--active {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-bottom-color: var(--color-primary);
 }
 
@@ -385,7 +387,9 @@ Brutalist Slider
 .brutal-slider__input {
   appearance: none;
   width: 100%;
-  height: 24px;
+  /* The AA target floor. This shipped as a raw 24px and is the reason the token
+     exists — a documented floor with no name is exactly how the 44px one drifted. */
+  height: var(--touch-target-min-aa);
   background: transparent;
   outline: none;
   cursor: pointer;

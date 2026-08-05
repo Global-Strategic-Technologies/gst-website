@@ -754,25 +754,11 @@ Brutalist FAQ
   margin-bottom: 1rem;
 }
 
-.project-card__cta {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  background: transparent;
-  color: var(--color-primary);
-  border: 2px solid var(--color-primary);
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-top: auto;
-  transition: all var(--transition-normal);
-}
-
-.project-card__cta:hover {
-  background: var(--color-primary);
-  color: var(--bg-dark);
-}
+/* `.project-card__cta` was deleted in BL-096. `.project-card` is the live production
+   card, but PortfolioGrid binds its click handler to the WHOLE card, so no CTA button
+   is ever rendered — the rule's only consumer was the /brand specimen, which therefore
+   documented a control production does not have. It also carried --color-primary on
+   white at 2.06:1, which is how it was found. */
 
 .bullet-icon {
   width: 14px;
@@ -788,9 +774,11 @@ Brutalist Gateway Card (Library/Tools index pages)
 
 ============================== */
 
+/* The card sets NO width. It used to carry `max-width: 600px; margin: 0 auto`,
+   which is page positioning living on a component — it left both hub gateway
+   indexes as one 600px column in a 1504px container, 60% of every row unused
+   (BL-105). `.brutal-gateway-grid` below owns layout instead. */
 .brutal-gateway-card {
-  max-width: 600px;
-  margin: 0 auto var(--spacing-3xl);
   padding: 2rem;
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-top: 3px solid var(--color-primary);
@@ -854,13 +842,69 @@ Brutalist Gateway Card (Library/Tools index pages)
   display: inline-block;
 }
 
+/* Layout follows PortfolioGrid's `.grid` / `.project-card` pairing: an auto-fill
+   grid owns the columns, the card owns only itself. Placed AFTER the base card
+   rules so `no-descending-specificity` is satisfied, and BEFORE the media query
+   below, which it ties with on specificity and must lose to on source order. */
+.brutal-gateway-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: var(--spacing-3xl);
+  margin-bottom: var(--spacing-3xl);
+}
+
+.brutal-gateway-grid > .brutal-gateway-card {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Rows stretch to equal height, so the list absorbs the slack and the CTA lands
+   at the bottom keeping its own margin — `margin-top: auto` would bottom-align
+   too, but the tallest card in each row would resolve it to 0 and silently lose
+   that gap. Same lever as `.hub-card p { flex-grow: 1 }`. */
+.brutal-gateway-grid .brutal-gateway-card__features {
+  flex-grow: 1;
+}
+
+/* The CTA and badge are inline-block, centred by the card's text-align. Flex
+   blockifies them and `align-items: stretch` would span both across the card —
+   the "Planned" badge would become a full-width bar. Fixing it per item rather
+   than with `align-items: center` on the card, which would shrink-wrap the ul. */
+.brutal-gateway-grid .brutal-gateway-card__cta,
+.brutal-gateway-grid .brutal-gateway-card__badge {
+  align-self: center;
+}
+
 @media (max-width: 768px) {
+  /* Single column below 768, as PortfolioGrid does. This also has to revert
+     `display` — leaving the card as a flex column would keep the CTA/badge
+     alignment above in play — and restore the 600px cap the card used to set
+     itself, so everything at and below this width renders exactly as before.
+     Must stay AFTER the base rules: `> .brutal-gateway-card` ties them on
+     specificity (0,2,0) and wins on source order alone. */
   .brutal-gateway-card {
     padding: 1.5rem;
   }
 
   .brutal-gateway-card h2 {
     font-size: 1.15rem;
+  }
+
+  .brutal-gateway-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .brutal-gateway-grid > .brutal-gateway-card {
+    display: block;
+    /* `width: 100%` is load-bearing, not redundant. Auto inline margins on a GRID
+       ITEM absorb the free space before alignment runs, which disables the default
+       `justify-self: stretch` — the card then sizes shrink-to-fit rather than
+       filling the track and being clamped by max-width. Between ~600 and 768px
+       that made the three library cards render at three different widths with
+       three different left edges, where master had one. */
+    width: 100%;
+    max-width: 600px;
+    margin-inline: auto;
   }
 }
 

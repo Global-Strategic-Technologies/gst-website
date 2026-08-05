@@ -32,3 +32,30 @@ The URL-state contract has four load-bearing parts:
 - Error paths emit no deeplink (`isError` responses have no data to land on); Diligence URL state takes precedence over its localStorage on page-load init, with localStorage as the return-tomorrow fallback.
 - Post-decision renames composed cleanly: `search_radar_cache` → `search_radar_offline` (BL-032 Phase 4b) kept the same encoder and mirrored shape.
 - **Revisit trigger**: if BL-033 external clients (or any consumer outside operator control) come to depend on stable shared URLs, the 2026-05-06 backward-compat decision flips — breaking URL changes would then need shims or versioned params, and this ADR gets a dated append recording the reversal.
+
+---
+
+## Note 2026-08-05 — the invariant was enforced on inputs only (BL-109)
+
+**Not a reversal.** No input is re-added; decision 3 stands exactly as written.
+
+Decision 3 stripped tool inputs with no website counterpart — Radar's `query` / `tier` / `since` /
+`limit`, Portfolio's `limit`. What went unnoticed is that the invariant was only ever enforced on
+one side of the request: the **inputs** matched the page's filter UI, while the **outputs** did not
+match what the page renders.
+
+`/hub/radar` caps its wire tier at `MAX_WIRE = 30` with a `MIN_PER_CATEGORY = 3` quota, and FYI at
+`FYI_MAX_COUNT = 15` — at most 45 items. `search_radar` applied **no** wire bound and returned ~46
+wire items plus FYI. `radar/CONTRACT.md`'s justification for dropping `limit` even asserted the
+opposite ("the website renders all items in the cache"), so the discrepancy was documented as the
+reason for a decision rather than caught as a defect.
+
+It surfaced only when BL-108 doubled tool responses and a real client's tool-result ceiling was
+exceeded — i.e. as an availability failure, not as a mirror violation. The tools now apply the
+page's own bound from a shared module ([`src/utils/radar-feed-bounds.ts`](../../utils/radar-feed-bounds.ts)),
+which is the mirror being enforced on output for the first time.
+
+**Reading for the next capability-mirror question**: "does the tool accept only what the page
+offers?" is half the invariant. The other half is "does the tool return only what the page shows?"
+— and a _shared implementation_ is what makes the second half hold, rather than two code paths that
+agree on the day they are written.

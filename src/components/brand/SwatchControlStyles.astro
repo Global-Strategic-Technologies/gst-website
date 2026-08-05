@@ -117,19 +117,51 @@
     color: var(--swatch-label-b);
   }
 
+  /* 24px tall for WCAG 2.5.8 (AA) — the track was the input itself at 6px, which
+     `target-size` rated 137 serious nodes on /brand, the only genuine AA target
+     failure the BL-096 sweep found anywhere. The 6px PAINT is unchanged: the input
+     goes transparent and the track pseudo-elements carry it.
+
+     Same recipe as `.brutal-slider__input` (form.css) — which is why the tech-debt
+     calculator's range inputs already passed. The alternative, keeping 6px and
+     expanding the hit area with a negative margin (as ThemeToggle does), is wrong
+     here: these rows sit at a ~15.5px pitch, so 24px hit boxes would overlap and
+     steal each other's clicks. ThemeToggle has no stacked neighbours. */
   :global(.swatch-slider) {
     flex: 1;
-    height: 6px;
+    height: var(--touch-target-min-aa);
     appearance: none;
-    background: var(--border-light);
+    background: transparent;
     outline: none;
     cursor: pointer;
+    /* Chrome's UA sheet gives range inputs `margin: 2px`. Zeroed to match
+       `.brutal-slider__input` exactly, so the 24px box is the whole target. */
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Kept as separate rules, matching form.css. Grouping vendor pseudo-elements in
+     one selector list is the classic trap — a browser drops the WHOLE list on the
+     one it does not know. LightningCSS (astro.config.mjs) would split it here, but
+     the grouped form breaks the moment it is copied into a plain .css file. */
+  :global(.swatch-slider)::-webkit-slider-runnable-track {
+    height: 6px;
+    background: light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  :global(.swatch-slider)::-moz-range-track {
+    height: 6px;
+    background: light-dark(var(--border-light), var(--border-dark-default));
   }
 
   :global(.swatch-slider)::-webkit-slider-thumb {
     appearance: none;
     width: 10px;
     height: 14px;
+    /* (6 - 14) / 2. Required once the runnable-track is explicitly styled: Chrome
+       then positions the thumb against that track's top edge instead of centring
+       it on the input. Firefox centres on ::-moz-range-track unaided. */
+    margin-top: -4px;
     background: var(--text-secondary);
     border: none;
     cursor: grab;

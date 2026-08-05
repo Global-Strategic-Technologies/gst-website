@@ -98,10 +98,26 @@ describe('generate_information_request_list_xlsx — handler', () => {
     // format" error for arbitrary binary mimeTypes. Until BL-046 ships a
     // proper file-delivery surface, the tool returns text + structuredContent
     // only; the canonical download path is the Hub page.
+    //
+    // BL-108: `content` is now two text blocks — caption + serialized payload —
+    // and this tool is the sole `textOmit` site, so block 1 carries the marker in
+    // place of the base64 rather than ~17 KB (≈4,500-6,000 tokens) of blob the
+    // model cannot use.
     const result = await handleGenerateIrlXlsxTool({});
-    expect(result.content).toHaveLength(1);
+    expect(result.content).toHaveLength(2);
     expect(result.content[0].type).toBe('text');
     expect((result.content[0] as { text: string }).text).toMatch(/Generated.*workbook/i);
+
+    const mirrored = JSON.parse((result.content[1] as { text: string }).text) as Record<
+      string,
+      unknown
+    >;
+    expect(mirrored.base64).toMatch(
+      /^\[omitted from text channel: \d+ B; read structuredContent\./
+    );
+    expect(mirrored.filename).toBe((result.structuredContent as { filename: string }).filename);
+    // The real blob still reaches programmatic consumers.
+    expect(typeof (result.structuredContent as { base64: unknown }).base64).toBe('string');
   });
 
   it('text summary directs the recipient to the Hub page download surface', async () => {
@@ -213,6 +229,33 @@ describe('generate_information_request_list_xlsx — handler', () => {
     const result = await handleGenerateIrlXlsxTool({});
     const payload = result.structuredContent as { canonicalUrl: string };
     expect(payload.canonicalUrl).toMatch(/\/hub\/library\/information-request-list\/?$/);
+  });
+
+  // BL-109 — the download surface must be a FIELD, not only prose.
+  //
+  // A client acceptance probe asked where to download the workbook and got the library
+  // ARTICLE url, because `downloadUrl` existed only inside the caption string while the
+  // payload carried `canonicalUrl`. Two different pages. Directing the recipient to the
+  // download surface is this tool's entire purpose, so it cannot live in one channel.
+  it('exposes downloadUrl (the Hub GENERATOR page) as a payload field, distinct from canonicalUrl', async () => {
+    const result = await handleGenerateIrlXlsxTool({ targetName: 'Acme Health' });
+    const payload = result.structuredContent as { downloadUrl: string; canonicalUrl: string };
+
+    expect(payload.downloadUrl).toMatch(/\/hub\/tools\/information-request-list-generator\//);
+    expect(payload.downloadUrl).not.toBe(payload.canonicalUrl);
+    // The generator link carries this call's args, which is what makes it worth having.
+    expect(payload.downloadUrl).toMatch(/[?&]target=Acme\+Health(&|$)/);
+  });
+
+  it('downloadUrl equals the URL already present in the caption — the two must not drift', async () => {
+    // Falsifiable both ways: if the caption's URL is regenerated independently, or if
+    // the payload field is pointed at a different page, this fails. That drift IS the
+    // defect BL-109 fixed.
+    const result = await handleGenerateIrlXlsxTool({ targetName: 'Acme Health' });
+    const payload = result.structuredContent as { downloadUrl: string };
+    const caption = (result.content[0] as { text: string }).text;
+
+    expect(caption).toContain(payload.downloadUrl);
   });
 
   it('includeSections filters the workbook — sectionCount and summary count reflect the subset', async () => {

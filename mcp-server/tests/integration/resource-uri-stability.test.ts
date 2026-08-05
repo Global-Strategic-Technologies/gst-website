@@ -16,7 +16,7 @@ import {
   type JSONRPCRequest,
   type JSONRPCResponse,
   type JSONRPCErrorResponse,
-} from '@modelcontextprotocol/sdk/types.js';
+} from '@modelcontextprotocol/server';
 import { createServer } from '../../src/server';
 import { registerLocalOnlyTools } from '../../src/tools/_local-only';
 import { LIBRARY_ENTRIES } from '../../src/content/library-loader';

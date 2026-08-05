@@ -13,7 +13,7 @@
  * them here).
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import {
   IrlBodyCacheSizeExceededError,
@@ -84,7 +84,7 @@ export function registerPrepareIrlBodyTool(
     {
       title: 'Compute canonical irlBodyHash for compose_dossier_envelope preflight',
       description: TOOL_DESCRIPTION,
-      inputSchema: PrepareIrlBodyInputSchema.shape,
+      inputSchema: PrepareIrlBodyInputSchema,
       annotations: {
         // BL-076 audit R-2: cache write is a side effect. Idempotent stays
         // true (same body in → same cache state by construction).

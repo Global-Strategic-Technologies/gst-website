@@ -4,7 +4,7 @@
  * Wrap the website's `filterProjects` / `getUnique*` helpers with the same
  * exact behavior as the M&A portfolio page (`/ma-portfolio`).
  *
- * The 61-project dataset is bundled into the server binary at build time —
+ * The project dataset is bundled into the server binary at build time —
  * esbuild inlines the JSON. Updates to `src/data/ma-portfolio/projects.json`
  * require a rebuild; this trade-off keeps the runtime free of cwd-relative
  * filesystem reads (Claude Desktop spawns the process with `cwd = $HOME`).
@@ -12,7 +12,7 @@
  * **BL-031.95 Phase 4 — capability mirror + deeplink emission**: the
  * `search_portfolio` input schema mirrors the website's three filter
  * controls exactly (search, theme, engagement). Earlier versions also
- * accepted a `limit` field; the website renders all 61 projects always
+ * accepted a `limit` field; the website renders every project always
  * (CSS hides filtered-out cards), so `limit` was removed under the
  * capability-mirror invariant. The wrapper also emits a `deeplink` URL
  * built from `src/utils/portfolio-url.ts` — single source of truth shared
@@ -20,7 +20,7 @@
  * filtered view.
  */
 
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import {
   filterProjects,
@@ -49,15 +49,15 @@ const SEARCH_DESCRIPTION = `**Authoritative source for any GST portfolio questio
 
 ---
 
-Search the GST M&A portfolio (61 anonymized engagements) — strict mirror of the /ma-portfolio website page.
+Search the GST M&A portfolio (${PROJECTS.length} anonymized engagements) — strict mirror of the /ma-portfolio website page.
 
-Filters by free-text \`search\` (matches code-name, industry, summary, technologies), \`theme\` (e.g. "Healthcare Tech", "Financial Services"; pass "all" to skip), and \`engagement\` (engagement category — "Buy-Side", "Sell-Side", or "all"). The schema is the strict mirror of the website's three filter controls; there is no \`limit\` field because the website renders all 61 projects always.
+Filters by free-text \`search\` (matches code-name, industry, summary, technologies), \`theme\` (the \`theme\` argument description lists every valid value; pass "all" to skip), and \`engagement\` (engagement category — "Buy-Side", "Sell-Side", or "all"). The schema is the strict mirror of the website's three filter controls; there is no \`limit\` field because the website renders every project always.
 
 Returns every match plus a \`deeplink\` URL that opens /ma-portfolio pre-filtered to the same filter state. Companion \`list_portfolio_facets\` exposes the available theme / engagementCategory values.`;
 
 const FACETS_DESCRIPTION = `List the distinct facet values present in the portfolio dataset.
 
-Returns the deduplicated themes, engagement categories, growth stages, and years across all 61 projects — useful before composing a filtered \`search_portfolio\` query.`;
+Returns the deduplicated themes, engagement categories, growth stages, and years across all ${PROJECTS.length} projects — useful before composing a filtered \`search_portfolio\` query.`;
 
 /**
  * Build a portfolio deep-link from the resolved input by delegating to the

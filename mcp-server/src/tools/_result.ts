@@ -1,37 +1,60 @@
 /**
  * Tool-result constructors — the single place any MCP tool response is built
- * (BL-090). One rule, stated once:
+ * (BL-090, amended by BL-108). One rule, stated once:
  *
- *   **`structuredContent` is the machine channel. `content` is the model channel.**
+ *   **`structuredContent` is the machine channel. `content` is the model channel,
+ *   and it carries the data too.**
  *
  * Before BL-090 every tool hand-rolled its result literal — 34 of them across 13
  * files, in three different spellings, with `as unknown as Record<string, unknown>`
  * copy-pasted 16 times. Success paths dumped the payload into BOTH channels
  * (`JSON.stringify(payload, null, 2)` in `content[0].text` *and* the object in
- * `structuredContent`), roughly doubling every response: on a full
- * `search_portfolio` that is 143 KB on the wire where 61 KB suffices, the escaped
- * text copy being the larger of the two. Meanwhile not one of the 18 error returns
- * set `structuredContent` at all — two of them hand-`JSON.stringify`d a structured
- * error *into the text channel* because no structured error convention existed.
+ * `structuredContent`), roughly doubling every response. Meanwhile not one of the
+ * 18 error returns set `structuredContent` at all — two of them
+ * hand-`JSON.stringify`d a structured error *into the text channel* because no
+ * structured error convention existed.
  *
- * A live probe against production settled which channel clients actually read:
- * `generate_information_request_list_xlsx` is the one tool whose two channels
- * deliberately differ, and the client surfaced its `structuredContent`, discarding
- * the text summary entirely. The duplicate was never reaching the model.
+ * ## BL-108 — why `content` carries the payload again
+ *
+ * BL-090 replaced the text copy with a one-line caption, on the evidence of a live
+ * probe: `generate_information_request_list_xlsx` was called against production and
+ * the client surfaced its `structuredContent`, discarding the text summary. That
+ * generalised **one client** to "the client". It is true of Claude Code and FALSE of
+ * Claude Desktop, which surfaces `content` and was left reading bare counts —
+ * `search_portfolio` returned "11 portfolio matches." with no rows for three weeks.
+ *
+ * The 2026-07-28 spec has a clause for exactly this, which ADR-0011 recorded itself
+ * as knowingly deviating from:
+ *
+ *   > For backwards compatibility, a tool that returns structured content SHOULD
+ *   > also return the serialized JSON in a TextContent block.
+ *
+ * So `content` is now `[caption, compact serialized JSON]`. Compact, never
+ * `JSON.stringify(payload, null, 2)` — the pretty-printing was the bloat BL-090
+ * correctly identified (81 KB of the old 143 KB `search_portfolio` response); the
+ * duplication itself was not. Measured: 61 KB → 127 KB, against 143 KB pre-BL-090.
  *
  * Rationale, evidence and the rejected alternatives: src/docs/adr/0011-tool-response-channel-policy.md
  *
  * ## Invariants
  *
  * 1. `structuredContent` is canonical on EVERY path — success and failure alike.
- * 2. `content` is the model channel: a one-line caption on success; on failure the
- *    caller's text **verbatim**, never truncated or reformatted. Several tools emit
- *    multi-line diagnostics that `gst_irl_ingestion` explicitly instructs the model
- *    to read and retry on ("emit the error VERBATIM"), so transforming failure text
- *    would silently degrade an LLM-facing retry surface. Verbatim is the ONLY
- *    behavior precisely so no call site can get that wrong.
+ * 2. `content` is the model channel. On success: a one-line caption in block 0, and
+ *    the serialized payload in block 1. On failure: the caller's text **verbatim**,
+ *    never truncated or reformatted. Several tools emit multi-line diagnostics that
+ *    `gst_irl_ingestion` explicitly instructs the model to read and retry on ("emit
+ *    the error VERBATIM"), so transforming failure text would silently degrade an
+ *    LLM-facing retry surface. Verbatim is the ONLY behavior precisely so no call
+ *    site can get that wrong.
  * 3. Nothing outside this module builds a result literal — enforced mechanically by
  *    tests/integration/tool-result-constructors.test.ts, not by convention.
+ *
+ * ## Channel divergence — the sharp edge of Invariant 1
+ *
+ * `structuredContent` is returned **by reference** (asserted in `_result.test.ts`)
+ * while block 1 is a **snapshot taken at construction**. Mutating a payload after
+ * calling `toolOk` therefore desynchronises the two channels silently. Don't. Build
+ * the payload, then hand it over.
  *
  * ## Why this module imports nothing
  *
@@ -136,18 +159,100 @@ export interface ToolFailOptions {
   readonly suppressStructured?: boolean;
 }
 
+/** Options for {@link toolOk}. */
+export interface ToolOkOptions<T> {
+  /**
+   * Keys omitted from the **text mirror only**. `structuredContent` still carries
+   * the real value, so Invariant 1 is untouched and programmatic consumers are
+   * unaffected.
+   *
+   * Reserved for opaque blobs the model cannot act on. The only call site is
+   * `generate_information_request_list_xlsx`, whose base64 `.xlsx` is ~17 KB — which
+   * looks negligible until priced in the unit the model channel is actually billed
+   * in: at ~3-4 chars/token that is **4,500-6,000 tokens on every call**, for bytes
+   * Claude Desktop provably cannot render (BREAKING_CHANGES.md 0.3.9) and which the
+   * Hub download page exists to serve instead.
+   *
+   * Omitted keys are **kept, with a marker value** — never deleted — so the model
+   * can see the field exists and where to read it.
+   *
+   * If you are reaching for this on a *non-binary* payload, that is the signal the
+   * rule needs revisiting rather than the option needs applying.
+   */
+  readonly textOmit?: readonly (keyof T & string)[];
+}
+
+/**
+ * Length of the omitted VALUE — for the sole call site, the base64 string, NOT
+ * the workbook it decodes to (the payload's own `byteLength` field means that,
+ * and the two differ by ~4/3).
+ *
+ * Total-function by construction: `JSON.stringify(undefined)` returns `undefined`
+ * rather than a string, so the `?? ''` is load-bearing. This module is the single
+ * chokepoint for every tool response and `ARCHITECTURE.md` promises handlers
+ * return structured errors rather than throwing — a `TypeError` raised here would
+ * escape as an unhandled exception on a path nothing else guards.
+ *
+ * Counts UTF-16 code units, which is exact for base64 and near-enough for any
+ * other opaque blob; this is a diagnostic hint for the model, not an accounting
+ * figure.
+ */
+function omissionMarker(key: string, value: unknown): string {
+  const serialized = typeof value === 'string' ? value : (JSON.stringify(value) ?? '');
+  return `[omitted from text channel: ${serialized.length} B; read structuredContent.${key}]`;
+}
+
 /**
  * Build a success result.
  *
- * `payload` is the truth and goes to `structuredContent` untouched. `summary` is a
- * one-line human caption for the model channel — lead with the count, no JSON, no
- * embedded newlines. There is no length cap: two tools carry genuinely long
+ * `payload` is the truth and goes to `structuredContent` untouched — **by reference**
+ * (see the channel-divergence note in the module docstring).
+ *
+ * `summary` is a one-line human caption for block 0 — lead with the count, no JSON,
+ * no embedded newlines. There is no length cap: two tools carry genuinely long
  * captions (a Hub download URL the model is told to relay; an explanation of the
  * `NN-II` request keys), and truncating those would break documented behavior.
+ *
+ * Block 1 is the serialized payload, per the spec's backwards-compatibility clause.
+ * It deep-equals `structuredContent` **except** at any declared `textOmit` key,
+ * where the key is present carrying {@link omissionMarker}'s string.
  */
-export function toolOk<T extends object>(payload: T, summary: string): ToolOkResult {
+export function toolOk<T extends object>(
+  payload: T,
+  summary: string,
+  options?: ToolOkOptions<T>
+): ToolOkResult {
+  const omit = options?.textOmit ?? [];
+
+  // Serialize the payload directly when nothing is omitted — the overwhelmingly
+  // common path. Cloning first would copy a 61 KB `search_portfolio` payload on
+  // every call to change nothing.
+  let mirrorText: string;
+  if (omit.length === 0) {
+    mirrorText = JSON.stringify(payload);
+  } else {
+    // Shallow spread: `structuredContent` is contractually an object, so a
+    // root-level array payload cannot occur (it would mirror as `{"0":…}` here
+    // while the fast path above emits `[…]`).
+    const mirror: Record<string, unknown> = {
+      ...(payload as unknown as Record<string, unknown>),
+    };
+    for (const key of omit) {
+      // `hasOwnProperty`, not `in`: `in` walks the prototype chain, so an omitted
+      // key that happens to share a name with an `Object.prototype` member would
+      // "exist" and hand a function to the marker.
+      if (Object.prototype.hasOwnProperty.call(mirror, key)) {
+        mirror[key] = omissionMarker(key, mirror[key]);
+      }
+    }
+    mirrorText = JSON.stringify(mirror);
+  }
+
   return {
-    content: [{ type: 'text', text: summary }],
+    content: [
+      { type: 'text', text: summary },
+      { type: 'text', text: mirrorText },
+    ],
     structuredContent: payload as unknown as Record<string, unknown>,
   };
 }

@@ -18,7 +18,16 @@ const pkg = JSON.parse(readFileSync(resolve(here, 'package.json'), 'utf8'));
 
 const externals = [
   // Keep MCP SDK + native deps external — they ship as installed npm packages.
-  '@modelcontextprotocol/sdk',
+  //
+  // BOTH the bare specifier and the subpath wildcard are listed on purpose.
+  // esbuild matches externals by exact specifier unless a `*` is present, so a
+  // bare entry alone would externalize `@modelcontextprotocol/server` while
+  // BUNDLING `@modelcontextprotocol/server/stdio` — leaving two copies of the
+  // SDK in one process, with `instanceof` checks failing across the boundary.
+  // (The pre-BL-106 list carried only the bare `@modelcontextprotocol/sdk` and
+  // therefore externalized nothing at all: every import of it was a subpath.)
+  '@modelcontextprotocol/server',
+  '@modelcontextprotocol/server/*',
   '@cfworker/json-schema',
   'zod',
 ];

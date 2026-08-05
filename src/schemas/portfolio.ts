@@ -52,7 +52,7 @@ export const ProjectSchema = z.object({
     .string()
     .min(1)
     .describe(
-      'High-level theme (e.g., "Healthcare Tech", "Financial Services"). One of the values surfaced by the website\'s Theme filter chips.'
+      'High-level theme (e.g., "Healthcare", "Finance"). One of the values surfaced by the website\'s Theme filter chips.'
     ),
   summary: z.string().min(1).describe('One-line plain-text engagement summary.'),
   arr: z.string().min(1).describe('Display-format ARR string (e.g., "$220,000,000").'),
@@ -75,7 +75,7 @@ export const ProjectSchema = z.object({
     'Granular engagement type (Value Creation | Technical Assessment | Technical Diligence). Optional.'
   ),
   // challenge and solution use .nullish() because existing records use
-  // `null` to mean "field intentionally empty" (10 of 57 projects today).
+  // `null` to mean "field intentionally empty" (a minority of records).
   challenge: z.string().nullish().describe('Optional engagement challenge narrative.'),
   solution: z.string().nullish().describe('Optional engagement solution narrative.'),
   engagementCategory: EngagementCategorySchema.optional().describe(

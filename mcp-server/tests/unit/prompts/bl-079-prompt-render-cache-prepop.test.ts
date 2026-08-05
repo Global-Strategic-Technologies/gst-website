@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { registerPrompts } from '../../../src/prompts/_registry';
 import { InMemoryIrlBodyCache } from '../../../src/cache/irl-body-cache';
 import { computeIrlBodyHash } from '../../../src/schemas/compose-dossier-envelope';

@@ -35,7 +35,7 @@
  */
 
 import { z } from 'zod';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
@@ -260,6 +260,13 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
     byteLength: buffer.byteLength,
     sectionCount,
     bulletCount: totalBullets,
+    // BL-109: the Hub GENERATOR url, with this call's args pre-filled — the surface the
+    // partner actually downloads from. It previously existed only inside the caption
+    // string, so a client that reads the payload got `canonicalUrl` instead, which is
+    // the library ARTICLE page: a different URL. Directing the recipient to the download
+    // surface is this tool's whole purpose (BREAKING_CHANGES 0.3.9), so it belongs in
+    // the payload, not only in prose. Same defect class as BL-108, one layer down.
+    downloadUrl: downloadHref,
     canonicalUrl: IRL_CANONICAL_URL,
   };
 
@@ -275,16 +282,23 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
   // ephemeral Worker-hosted file path), the canonical download surface
   // for the IRL workbook is the Hub page at
   //   https://globalstrategic.tech/hub/tools/information-request-list-generator/
-  // The tool below returns a text summary + structuredContent:
+  // The tool returns structuredContent + a two-block `content` (BL-108):
   //   - structuredContent: the full payload including the base64 blob and
-  //     `canonicalUrl`. **This is what the model actually receives** — BL-090
-  //     probed this exact tool against production (its two channels differ, so
-  //     it discriminates) and the client returned the structured object, not the
-  //     summary. Anything the model must act on has to be a field here.
-  //   - Text content: the same facts as prose — filename, section/bullet counts,
-  //     Hub-page URL. Retained as the caption for clients that render `content`
-  //     and as the human-readable fallback; do not assume the model reads it.
-  return toolOk(payload, summary);
+  //     `canonicalUrl`. Programmatic consumers read this; every base64 assertion
+  //     in this tool's test file does too.
+  //   - content[0]: the prose caption — filename, section/bullet counts, Hub URL.
+  //   - content[1]: the serialized payload, with `base64` replaced by a marker.
+  //
+  // **`textOmit` makes this the ONE tool whose two channels differ — again.**
+  // That asymmetry is exactly what misled BL-090: it probed this tool precisely
+  // because the channels discriminated, saw the client surface `structuredContent`,
+  // and generalised "clients discard `content`" from n=1. That conclusion was false
+  // for Claude Desktop and cost three weeks of count-only tool results (BL-108).
+  // So: DO NOT run the next which-channel-does-the-client-read probe here. Use any
+  // other tool, where the channels agree.
+  //
+  // The omission itself is justified in tokens, not bytes — see ToolOkOptions.textOmit.
+  return toolOk(payload, summary, { textOmit: ['base64'] });
 }
 
 export function registerGenerateIrlXlsxTool(
@@ -296,7 +310,7 @@ export function registerGenerateIrlXlsxTool(
     {
       title: 'Generate Information Request List (.xlsx)',
       description: TOOL_DESCRIPTION,
-      inputSchema: GenerateIrlXlsxInputSchema.shape,
+      inputSchema: GenerateIrlXlsxInputSchema,
       annotations: {
         readOnlyHint: true,
         idempotentHint: false, // each call uses `new Date()` → new filename

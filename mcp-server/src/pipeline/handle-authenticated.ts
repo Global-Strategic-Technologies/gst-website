@@ -15,7 +15,11 @@
  * would-be import cycle worker.ts → oauth/* → worker.ts.
  */
 
-import { createMcpHandler } from 'agents/mcp';
+// Narrowed from `agents/mcp` (BL-106): that barrel carries the whole Durable
+// Object / RPC / event-store surface including the now-`@deprecated`,
+// feature-frozen `McpAgent`. `agents/mcp/server` exports only the stateless
+// handler and is the target Cloudflare's own deprecation notice names.
+import { createMcpHandler } from 'agents/mcp/server';
 import { createServer } from '../server';
 import type { AuthSuccess } from '../auth/bearer';
 import { withCors } from '../auth/cors';
@@ -244,19 +248,110 @@ export async function handleAuthenticated(
       }
     : undefined;
 
+  // BL-106: the SDK v2 handler takes a FACTORY, not an instance. Our
+  // per-request `createServer(env, {...})` construction was already the right
+  // shape, so this is a wrapper, not a restructure — the radar-live tools'
+  // `env` closure capture is unaffected.
+  // Set by the server factory below. Stays `'no-factory-run'` when the handler
+  // refuses a request before dispatch — the state that matters most, because a
+  // modern-only Worker rejecting every legacy client would otherwise emit no
+  // era signal at all.
+  let requestEra: 'legacy' | 'modern' | 'no-factory-run' = 'no-factory-run';
+
   const mcp = createMcpHandler(
-    createServer(env, {
-      scopes: auth.scopes,
-      radarSource: 'worker',
-      metricsSink,
-      keyOwner: auth.keyOwner,
-      audit,
-      // BL-033 Slice 5: hand the boundary's already-computed rate-limit
-      // result to the tool wrapper so it can emit the 80%-consumed soft-limit
-      // notification WITHOUT a second Upstash round-trip. `null` (graceful
-      // skip) → undefined (the optional field), so no warning fires.
-      rateLimit: rlResult ?? undefined,
-    })
+    (mcpCtx) => {
+      // BL-106 follow-up — the era discriminator, which the original change
+      // specified and then dropped. The SDK hands the factory the era it
+      // classified this request as, which turns "what protocol version are
+      // our callers on?" from an inference into a query. Its absence is why
+      // the 0.44.0 regression had to be diagnosed by reproducing symptoms.
+      //
+      // Captured into the outer scope rather than logged here, so it rides
+      // the existing `mcp.request` line below. That is not just tidier: the
+      // factory does NOT run for a request the handler refuses (an
+      // unsupported protocol version is rejected before dispatch), so a
+      // dedicated line inside the factory would go silent in exactly the
+      // failure it exists to detect. `no-factory-run` makes that state
+      // visible instead of absent.
+      requestEra = mcpCtx.era;
+      return createServer(env, {
+        scopes: auth.scopes,
+        radarSource: 'worker',
+        metricsSink,
+        keyOwner: auth.keyOwner,
+        audit,
+        // BL-033 Slice 5: hand the boundary's already-computed rate-limit
+        // result to the tool wrapper so it can emit the 80%-consumed soft-limit
+        // notification WITHOUT a second Upstash round-trip. `null` (graceful
+        // skip) → undefined (the optional field), so no warning fires.
+        rateLimit: rlResult ?? undefined,
+      });
+    },
+    {
+      // Serve BOTH protocol eras. The modern lane handles 2026-07-28; the
+      // compatibility lane pins a 2025-era instance from this same factory
+      // for clients that open with `initialize`.
+      //
+      // BL-106 shipped this as `'reject'` (modern-only) on the reasoning that
+      // the remote surface had no external clients. That reasoning was about
+      // the wrong thing: it asked *who is contractually a client* and not
+      // *what does the client software speak*. **Claude Desktop speaks
+      // `2025-11-25`** — the spec revision is a week old and its client has
+      // not moved — so within hours of the production deploy every tool call
+      // failed with `-32022 Unsupported protocol version: 2025-11-25`. The
+      // symptom was misleading: Claude Desktop still displayed the tool list
+      // from its cache, so it surfaced as "failed to call tool <name>" rather
+      // than as a connection error, which points at the tool and not the
+      // handshake.
+      //
+      // The identical active-client argument that kept stdio on its legacy
+      // lane (see src/index.ts) applied here too and was not made, because
+      // "no external clients" was read as "no clients". Reverted to serving
+      // both eras; see ADR-0013's 2026-08-04 amendment.
+      //
+      // Do NOT flip this back to `'reject'` without first confirming, from
+      // telemetry rather than inference, that no caller is opening with
+      // `initialize`. The `era` discriminator below is what makes that
+      // checkable.
+      legacy: 'stateless',
+
+      // `cors.ts` owns origin policy exclusively — these two options are what
+      // make that true, and both are load-bearing:
+      //
+      //  - `allowedOriginHostnames: '*'` disables the handler's OWN origin
+      //    gate. Without it the accepted set defaults to the localhost trio
+      //    (localhost / 127.0.0.1 / [::1]); `mcp.globalstrategic.tech` is
+      //    neither localhost nor *.workers.dev, so EVERY request carrying
+      //    `Origin: https://claude.ai` would be answered 403 — precisely the
+      //    browser-client case the allowlist exists to serve. The legacy
+      //    handler had no such gate, so this would have been a new failure
+      //    mode introduced by the migration rather than a pre-existing one.
+      //  - `corsOptions: false` stops the handler emitting its own CORS
+      //    headers, which default to `Access-Control-Allow-Origin: *`.
+      //    `withCors` only overwrites that for allowlisted origins, so
+      //    no-Origin and disallowed-origin responses were shipping the
+      //    wildcard that ARCHITECTURE.md § CORS (Q5) calls deliberately
+      //    forbidden. Pre-existing defect, closed here.
+      //
+      // Consequence worth knowing: after this the handler performs no origin
+      // or host gating at all (host validation also no-ops on a custom
+      // domain). `src/auth/cors.ts` is the single origin authority.
+      allowedOriginHostnames: '*',
+      corsOptions: false,
+
+      // Out-of-band handler errors are otherwise invisible: the SDK answers
+      // the client with a bare `-32603 Internal server error` and the reason
+      // never reaches our logs. Route it to safeLog so `wrangler tail` shows
+      // the cause. Reporting only — this never alters the wire response.
+      onerror: (err: Error) => {
+        safeLog({
+          event: 'mcp.handler.error',
+          success: false,
+          errorCode: 'mcp-handler-error',
+          reason: (err?.message ?? String(err)).slice(0, 300),
+        });
+      },
+    }
   );
   const response = await mcp(request, env, ctx);
   const durationMs = Date.now() - startedAt;
@@ -269,6 +364,7 @@ export async function handleAuthenticated(
     status: response.status,
     durationMs,
     success: response.status < 400,
+    era: requestEra,
   });
 
   const withRl = rlResult ? withRateLimitHeaders(response, rlResult, rlPolicy) : response;

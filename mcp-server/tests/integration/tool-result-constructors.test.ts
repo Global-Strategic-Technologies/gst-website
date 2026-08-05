@@ -270,17 +270,29 @@ describe('BL-090 — success captions are captions, not payloads', () => {
         }
       }
       const args = code.slice(start, i);
-      // Split on the first top-level comma.
+      // Split ALL top-level arguments and take the second — the caption.
+      //
+      // This used to `slice(j + 1)` from the first top-level comma, i.e. take
+      // "everything after the payload". That was equivalent while `toolOk` had
+      // exactly two parameters. BL-108 added a third (`options`), so the old form
+      // swallowed it into the caption: `toolOk(payload, summary, { textOmit: [...] })`
+      // yielded the caption `summary, { textOmit: ['base64'] }`. Nothing failed —
+      // the assertions below simply started checking a string that is not a caption,
+      // which is the quiet way a guard stops guarding.
+      const topLevel: string[] = [];
       let d = 0;
+      let argStart = 0;
       for (let j = 0; j < args.length; j++) {
         const ch = args[j];
         if (ch === '(' || ch === '[' || ch === '{') d++;
         else if (ch === ')' || ch === ']' || ch === '}') d--;
         else if (ch === ',' && d === 0) {
-          captions.push(args.slice(j + 1).trim());
-          break;
+          topLevel.push(args.slice(argStart, j));
+          argStart = j + 1;
         }
       }
+      topLevel.push(args.slice(argStart));
+      if (topLevel.length >= 2) captions.push(topLevel[1].trim());
     }
     return captions;
   }

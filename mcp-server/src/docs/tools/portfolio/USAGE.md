@@ -2,7 +2,7 @@
 
 A complete, reproducible end-to-end example of using the [`@gst/mcp-server`](../../../../README.md) `search_portfolio` tool for a real-shaped task: pulling matched past engagements and synthesising them into a one-page comparable-engagements memo for an analyst preparing for a partner meeting.
 
-This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client; the dataset is bundled into the server binary at build time and contains 61 anonymized engagements.
+This document is a **stakeholder orientation aid** — it answers "what does it actually look like to use this" without requiring the reader to install the server first. Every input and output below is reproducible by anyone with the MCP server registered in their Claude client; the dataset is bundled into the server binary at build time. (Counts are deliberately not quoted here — `list_portfolio_facets` reports the live figures.)
 
 > Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input reference) | [`../contracts/README.md`](../README.md) (registry of all per-tool contracts).
 
@@ -20,7 +20,7 @@ An analyst is supporting a partner meeting in 60 minutes on a healthcare-tech bu
 In the pre-MCP workflow, the analyst would:
 
 1. Open `globalstrategic.tech/ma-portfolio` in a browser.
-2. Click "Buy-Side" in the Engagement chip row, then "Healthcare Tech" in the Theme chip row.
+2. Click "Buy-Side" in the Engagement chip row, then "Healthcare" in the Theme chip row.
 3. Scan the resulting cards, click each to expand the modal, copy summary / challenge / solution text into a doc.
 4. Re-read the captured text, find the throughline, write the synthesis paragraph manually.
 5. Re-open the page if the partner asks for a sibling theme.
@@ -37,11 +37,11 @@ Inside any Claude client where the GST MCP server is registered (Claude Desktop,
 
 Claude identifies that the `mcp__gst__search_portfolio` tool fits the request and calls it once. For orientation, here is what Claude derives — the full per-field reference is in [`CONTRACT.md`](./CONTRACT.md):
 
-| Schema field | Resolved value    | Source phrase                         |
-| ------------ | ----------------- | ------------------------------------- |
-| `search`     | _(omitted)_       | (no free-text qualifier in the prose) |
-| `theme`      | `Healthcare Tech` | "healthcare-tech"                     |
-| `engagement` | `Buy-Side`        | "buy-side engagements"                |
+| Schema field | Resolved value | Source phrase                         |
+| ------------ | -------------- | ------------------------------------- |
+| `search`     | _(omitted)_    | (no free-text qualifier in the prose) |
+| `theme`      | `Healthcare`   | "healthcare"                          |
+| `engagement` | `Buy-Side`     | "buy-side engagements"                |
 
 That's the entire input surface. The MCP tool's schema mirrors the website's three filter controls exactly — `search`, `theme`, `engagement` — so prompt engineering is trivial.
 
@@ -62,13 +62,13 @@ If the analyst doesn't know what the valid theme values are, Claude calls `mcp__
   matches: Project[],          // every project passing the three filters
   totalMatched: number,        // === matches.length
   returned: number,            // === matches.length (no `limit`; mirrors the website)
-  deeplink: string,            // e.g. "https://globalstrategic.tech/ma-portfolio?theme=Healthcare%20Tech&eng=Buy-Side"
+  deeplink: string,            // e.g. "https://globalstrategic.tech/ma-portfolio?theme=Healthcare&eng=Buy-Side"
 }
 ```
 
 For the analyst's healthcare + Buy-Side call, the response in this scenario contains 4 matched engagements: codenames `Aurora`, `Helios`, `Kestrel`, `Triton` (illustrative — exact codenames come from the bundled dataset), each with `summary`, `challenge`, `solution`, `technologies`, `arr`, `growthStage`, `year`.
 
-The `deeplink` is `https://globalstrategic.tech/ma-portfolio?theme=Healthcare+Tech&eng=Buy-Side`. The analyst pastes this into the meeting prep deck; clicking it later opens the `/ma-portfolio` page with both filter chips already active and the same 4 cards rendered.
+The `deeplink` is `https://globalstrategic.tech/ma-portfolio?theme=Healthcare&eng=Buy-Side`. The analyst pastes this into the meeting prep deck; clicking it later opens the `/ma-portfolio` page with both filter chips already active and the same 4 cards rendered.
 
 ---
 
@@ -76,7 +76,7 @@ The `deeplink` is `https://globalstrategic.tech/ma-portfolio?theme=Healthcare+Te
 
 With the matches in conversation context, Claude composes the memo in the GST Take voice:
 
-> **Comparable engagements (Healthcare Tech, Buy-Side).** Four prior engagements anchor the read:
+> **Comparable engagements (Healthcare, Buy-Side).** Four prior engagements anchor the read:
 >
 > - **Aurora** — $180M ARR, Established Market Leader. Cloud migration + EHR consolidation.
 > - **Helios** — $95M ARR, Scaling Growth. Patient-access platform, post-merger integration.
@@ -85,7 +85,7 @@ With the matches in conversation context, Claude composes the memo in the GST Ta
 >
 > **Pattern across the deals.** The recurring lever is **claims-and-coding workflow modernization** — three of four engagements converged on the same value driver, regardless of the headline thesis. Tech-stack throughline: Snowflake / dbt for the data warehouse, FHIR-aligned interop layers for clinical data, and a Kubernetes-on-AWS posture in 3 of 4. **What to watch**: in every healthcare buy-side that didn't hit synergy targets, the gap was always integration-team headcount, not technology. The platform was usually fine; the operators couldn't move fast enough to consolidate.
 >
-> _Open in Hub_: [Healthcare Tech / Buy-Side](https://globalstrategic.tech/ma-portfolio?theme=Healthcare+Tech&eng=Buy-Side)
+> _Open in Hub_: [Healthcare / Buy-Side](https://globalstrategic.tech/ma-portfolio?theme=Healthcare&eng=Buy-Side)
 
 The `deeplink` URL at the bottom lets the analyst forward the memo to a colleague who can click through to the same filtered portfolio view.
 
@@ -97,7 +97,7 @@ Once the memo is in hand, follow-ups become single sentences. Each is a single t
 
 | Pivot                               | Prompt                                                    | What changes                                               |
 | ----------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------- |
-| Pivot to a different theme          | _"Same shape but for fintech buy-side."_                  | Single-call response with `theme: 'Financial Services'`    |
+| Pivot to a different theme          | _"Same shape but for fintech buy-side."_                  | Single-call response with `theme: 'Finance'`               |
 | Add a free-text qualifier           | _"Now narrow to ones involving Snowflake."_               | Single call with `search: 'Snowflake'` plus the same chips |
 | Drop the engagement filter          | _"Open it up to sell-side too — combined buy/sell view."_ | Single call with `engagement: 'all'`                       |
 | Re-shape (already-in-context items) | _"Compress to 3 bullets — codename, lever, watch-out."_   | No tool call; pure rewriting in-conversation               |

@@ -12,6 +12,7 @@
  */
 
 import type { RadarFyiItem, RadarWireItem, RadarFeedItem, RadarCategory } from './types';
+import { stripHtml, truncate } from '../../utils/html-text';
 
 export const CATEGORIES: Record<string, RadarCategory> = {
   'pe-ma': {
@@ -36,32 +37,9 @@ export const CATEGORIES: Record<string, RadarCategory> = {
   },
 };
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&mdash;/g, '\u2014')
-    .replace(/&ndash;/g, '\u2013')
-    .replace(/&rsquo;/g, '\u2019')
-    .replace(/&lsquo;/g, '\u2018')
-    .replace(/&rdquo;/g, '\u201D')
-    .replace(/&ldquo;/g, '\u201C')
-    .replace(/&hellip;/g, '\u2026')
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function truncate(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength).replace(/\s+\S*$/, '') + '...';
-}
+// BL-109: `stripHtml` / `truncate` moved to `src/utils/html-text.ts` so the MCP radar
+// handlers can share `stripHtml` without taking a runtime import on this display module.
+// Behaviour is unchanged; `snapshotToFyiItem` below still calls `truncate(stripHtml(\u2026), 250)`.
 
 /**
  * Merge FYI and Wire items into a single chronological feed.

@@ -35,11 +35,11 @@ The `_archive/` README carries the admission criteria and the frozen-links polic
 
 ## Archived
 
-- **2026-07-15 → 2026-07-17 (BL-088, complete)**: all 32 closed-initiative docs distilled into the maintained surface (`mcp-server/src/docs/ARCHITECTURE.md`, [`src/docs/adr/`](../adr/README.md), doc folds, `prompts/irl-ingestion.md`) and moved to [`_archive/`](_archive/README.md) under the lifecycle above — see the [archived BL-088 record](_archive/MCP_DOCS_DISTILLATION_BL-088.md) for the disposition table and wave ledger. This directory now holds only living reference docs.
+- **2026-07-15 → 2026-07-17 (BL-088, complete)**: all 32 closed-initiative docs distilled into the maintained surface (`mcp-server/src/docs/ARCHITECTURE.md`, [`src/docs/adr/`](../adr/README.md), doc folds, `prompts/irl-ingestion.md`) and moved to [`_archive/`](_archive/README.md) under the lifecycle above — see the [archived BL-088 record](_archive/MCP_DOCS_DISTILLATION_BL-088.md) for the disposition table and wave ledger. That reduced the directory to living reference docs only. BL-106 re-entered under step 1 on 2026-08-03 and completed the full cycle on 2026-08-04 — distilled into [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) and `mcp-server/src/docs/ARCHITECTURE.md`, then archived — so the directory is back to living references only.
 - **2026-04-18**: completed initiative documents (Platform Hardening V1, Hub Tools Brutalist Migration, Site-Wide Brutalist Migration, Favicon & Icons, Design System Initiatives 1-5) were consolidated and **removed** (pre-convention). View originals via `git show` — see the note at the top of [BACKLOG.md](./BACKLOG.md) for instructions.
 
 ---
 
 <- Back to [Master Documentation Index](../README.md)
 
-_Last Updated: July 17, 2026 (BL-088 closed — directory reduced to living references only)_
+_Last Updated: August 4, 2026 (BL-106 closed — distilled and archived; directory back to living references only)_

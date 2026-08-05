@@ -1,8 +1,5 @@
-import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
-import type {
-  Transport,
-  TransportSendOptions,
-} from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { JSONRPCMessage } from '@modelcontextprotocol/server';
+import type { Transport, TransportSendOptions } from '@modelcontextprotocol/server';
 
 /**
  * Paired-pipe Transport for in-process protocol-roundtrip tests.

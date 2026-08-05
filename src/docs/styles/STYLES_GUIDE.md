@@ -281,6 +281,52 @@ import '../../styles/my-component.css';
 ---
 ```
 
+### Card grids: the grid owns the columns, the card owns itself
+
+A card must **not** set `max-width` / `margin: 0 auto` on itself. That is page positioning
+living on a component, and it silently defeats any layout the card is later dropped into —
+`.brutal-gateway-card` carried `max-width: 600px` and so rendered as one centred column in a
+1504px container, wasting 60% of every row on both hub gateway indexes (BL-105).
+
+The established pairing, in `PortfolioGrid.astro` (`.grid` / `.project-card`) and
+`cards.css` (`.brutal-gateway-grid` / `.brutal-gateway-card`):
+
+```css
+.my-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(<floor>, 1fr));
+  gap: var(--spacing-…);
+}
+@media (max-width: 768px) {
+  .my-grid {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+`auto-fill` with a floor beats fixed column counts: `.container` is a flat `max-width: 1600px`
+with no responsive override, so `repeat(3, 1fr)` yields 368px cards at a 1280 viewport and
+283px at 1025 — narrower than the same card on a phone. The 768px `1fr` override is also what
+stops the `minmax()` floor forcing horizontal scroll on small screens; do not remove it.
+
+**Two traps when the cards become flex children for equal-height rows:**
+
+- Bottom-align the CTA with `flex-grow: 1` on the element above it, **not** `margin-top: auto`
+  on the CTA. The tallest card in each row resolves an auto margin to 0 and silently loses the
+  gap above its CTA.
+- `inline-block` children (CTAs, badges) are blockified by flex and stretch to the full card
+  width under the default `align-items: stretch`. Give those items `align-self: center` — not
+  `align-items: center` on the card, which shrink-wraps the content list too.
+
+And one trap in the **single-column fallback**, which is where BL-105 nearly shipped a regression:
+
+- Centring a capped card with `margin-inline: auto` needs an explicit `width: 100%` alongside it.
+  Auto inline margins on a **grid item** absorb the free space before alignment runs, which
+  disables the default `justify-self: stretch` — the card then sizes shrink-to-fit instead of
+  filling the track and being clamped by `max-width`. It only shows between the cap and the
+  breakpoint (600–768px here), so a check at 480px sees nothing wrong. Assert **uniformity**
+  across all cards, not one card's upper bound.
+
 ### Variable Usage Priority
 
 1. **Design system variables** for colors, spacing, typography, transitions
@@ -460,7 +506,7 @@ Additional breakpoints used sparingly:
 
 ### Touch Targets
 
-Interactive controls clear **44×44px** — WCAG 2.5.5, Level AAA. Use the `--touch-target-min` token, never a raw `44px`:
+**Two floors, and the difference is a ruling, not a preference.** The guarded component families clear **44×44px** (WCAG 2.5.5, AAA) via `--touch-target-min`; everywhere else the bar is **24×24px** (2.5.8, AA) via `--touch-target-min-aa`. Never a raw `44px` or `24px` — see [BRAND_GUIDELINES § Accessibility](./BRAND_GUIDELINES.md#accessibility) for which controls sit where and why the AAA sweep was scoped back. The AA floor is enforced by axe's `target-size` on every route `accessibility.test.ts` scans, so dropping below it fails CI.
 
 ```css
 .my-control {
@@ -468,7 +514,9 @@ Interactive controls clear **44×44px** — WCAG 2.5.5, Level AAA. Use the `--to
 }
 ```
 
-It is a **floor, not a fixed size**. Components may sit above it where the design calls for it — the ICG wizard nav uses 48px, the diligence-machine document action uses 52px — and those stay as they are. What must never happen is a page-local rule resolving *below* it: `.brutal-choice-btn--unsure` (36px) and a techpar mobile action bar (40px) both did exactly that, silently out-specifying the base rule. [touch-target-floor.test.ts](../../../tests/integration/touch-target-floor.test.ts) now fails on any `min-height` / `min-width` that resolves under the token for a `brutal-btn`, `brutal-choice-btn` or `cta-button` selector, including inside Astro `<style>` blocks. It scans declarations that exist, so it catches a bad override — it cannot tell you a component has no floor at all, which is the shape that let `.brutal-btn` sit at 33px in the first place.
+It is a **floor, not a fixed size**. Components may sit above it where the design calls for it — the ICG wizard nav uses 48px, the diligence-machine document action uses 52px — and those stay as they are. What must never happen is a page-local rule resolving *below* it: `.brutal-choice-btn--unsure` (36px) and a techpar mobile action bar (40px) both did exactly that, silently out-specifying the base rule. [touch-target-floor.test.ts](../../../tests/integration/touch-target-floor.test.ts) fails on any `min-height`, `min-width`, `height` or `width` resolving under the token on a guarded selector, including inside Astro `<style>` blocks. It scans declarations that exist, so it catches a bad override — it cannot tell you a component has no floor at all, which is the shape that let `.brutal-btn` sit at 33px in the first place. That gap is covered by the rendered-geometry sweep in [brand-page.test.ts](../../../tests/e2e/brand-page.test.ts) § Touch targets.
+
+Use **`min-height`, not `min-width`**, unless the control is a fixed-size icon button: a `min-width` sweep clips `.brutal-segmented` (`max-width: 320px; overflow: hidden`) and stops the radar pills wrapping.
 
 Beware `display` overrides on a button that inherits the floor: swapping `inline-flex` for `inline-block` drops `align-items: center`, leaving the label top-aligned above dead space.
 

@@ -21,7 +21,9 @@ name: Deploy MCP Worker — production
 on:
   push:
     branches: [master]
-    # Paths intentionally MATCH `test-mcp-server.yml` exactly. The production
+    # Paths MIRROR `test-mcp-server.yml`. The invariant is a subset relation — prod
+    # may deploy on less than is tested, never on more — and it is asserted by
+    # `tests/integration/workflow-paths-parity.test.ts`. The production
     # deploy must never fire on a commit the MCP test suite did not also run
     # on (audit gap #7, 2026-05-31): originally the prod workflow's paths
     # included its own filename so the workflow could "self-validate on
@@ -33,14 +35,26 @@ on:
     paths:
       - 'mcp-server/**'
       - '!mcp-server/**/*.md'
-      - 'src/utils/diligence-engine.ts'
-      - 'src/utils/filterLogic.ts'
-      # IRL generator pipeline the MCP tool/prompt bundle via prebuild codegen.
-      - 'src/utils/irl/**'
+      # Website modules the Worker VALUE-imports at runtime. Globs, not an
+      # enumeration — see the identical block in `test-mcp-server.yml` for why.
+      # BL-109 widened that list and MUST widen this one in lockstep: leaving prod
+      # narrow would let a master merge touching only e.g. `src/utils/techpar-engine.ts`
+      # run the MCP suite, go green, auto-deploy STAGING via the workflow_run chain —
+      # and never fire production, leaving the two environments silently divergent on
+      # Worker runtime code. `tests/integration/workflow-paths-parity.test.ts` asserts
+      # the subset relation so the next drift is loud.
+      #
+      # Consequence accepted: a website-only `src/utils/**` edit now queues a production
+      # Worker deploy. It waits on the `mcp-production` environment approval like any
+      # other, and a no-op redeploy is cheaper than an undetected divergence.
+      - 'src/utils/**'
+      - 'src/schemas/**'
+      - 'src/data/common/**'
+      - 'src/data/diligence-machine/**'
+      - 'src/data/infrastructure-cost-governance/**'
       - 'src/data/irl/**'
-      - 'src/schemas/diligence.ts'
-      - 'src/schemas/portfolio.ts'
       - 'src/data/ma-portfolio/projects.json'
+      - 'src/lib/inoreader/types.ts'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/test-mcp-server.yml'

@@ -176,9 +176,10 @@ Neutral black at fixed alpha, for modal backdrops, drawer shadows and inset dept
 
 ## Touch Targets
 
-| Variable             | Value  | Usage                                                                                                                                                         |
-| -------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--touch-target-min` | `44px` | WCAG 2.5.5 (AAA) minimum for interactive controls. A floor, not a fixed size — components may sit above it; page-local overrides must never resolve below it. |
+| Variable                | Value  | Usage                                                                                                                                                                                                                   |
+| ----------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--touch-target-min`    | `44px` | WCAG 2.5.5 (AAA) minimum for interactive controls. A floor, not a fixed size — components may sit above it; page-local overrides must never resolve below it.                                                           |
+| `--touch-target-min-aa` | `24px` | WCAG 2.5.8 (AA) minimum, for controls the ruling leaves at AA rather than AAA — the palette rail tabs and the swatch editor's sliders. Enforced by axe's `target-size` on every scanned route, not by the source guard. |
 
 ## Gap Variables
 

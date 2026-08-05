@@ -45,3 +45,13 @@ Per-client radar caps are **per-client fairness + thin cache-cold defense-in-dep
 - **Tier change semantics**: a client whose tier changes reuses the same Redis limiter keys; the new ceiling applies on the next window evaluation (no key migration).
 - **Enforcement testing**: tier-ceiling enforcement (like the base limiter) is validated against staging Upstash, not in CI (no live Redis in unit runs); unit tests pin the tier config, the `minRemainingRatio` signal, the header/claim shapes, and the soft-limit emit contract.
 - **Revisit triggers**: a pilot contracting a genuinely committed rate SLA (promotes ceilings from capability config to a ratified quota — out of scope per directive); a client requiring guaranteed (not best-effort) soft-limit delivery (would need an ack'd backpressure channel the MCP spec doesn't define today); per-tool (vs per-tool-class) ceilings if a single tool needs independent budgeting.
+
+## Amendment — 2026-08-04 (BL-106): the soft-limit channel now rides a deprecated feature
+
+The 80%-consumed soft-limit warning is a `notifications/message`, which requires the MCP **Logging** capability. Protocol revision `2026-07-28` **deprecates Logging** (SEP-2577), under a twelve-month floor — so this decision's in-band signal is on a clock we do not control.
+
+[ADR-0013](0013-mcp-2026-07-28-modern-only-worker.md) decision 5 keeps it, and the reasoning is worth restating here because it is this ADR's channel that is at stake: folding the signal into the `RateLimit-*` response headers is **not** a like-for-like swap. Headers reach client _code_; the notification reaches the _model's context_. Collapsing them removes a signal rather than a concept, so the header fallback this ADR already documents does not make the notification redundant.
+
+Verified survivable on the SDK v2 path — the compat adapter intercepts only JSON-RPC requests, so notifications pass through unaltered. Two implementation notes from BL-106: the notifier moved from v1's flat `extra.sendNotification` to `ctx.mcpReq.notify`, and locating it by duck-typing would have failed **silently** (the emit is contractually non-throwing), so `with-metrics.ts` now derives its view from the SDK's own `ServerContext` type and a rename is a compile error.
+
+**Revisit trigger** (in addition to those above): SEP-2577's Logging removal moves from deprecated to scheduled — at which point the choice is the `RateLimit-*` headers, an ack'd backpressure channel if the spec defines one by then, or dropping the in-band warning.

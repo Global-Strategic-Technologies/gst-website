@@ -1,7 +1,7 @@
 ---
 tool: search_radar_offline
 version: v1
-lastAuthored: 2026-07-27
+lastAuthored: 2026-08-05
 schema: mcp-server/src/tools/radar-offline.ts
 enumParity:
   - tableHeading: '`category`'
@@ -27,7 +27,7 @@ enumParity:
 >
 > **Used by prompts** (BL-031.75): [`gst_radar_brief_today`](../../../prompts/radar-brief-today.ts) (daily / pre-meeting digest of recent annotated FYI items, summarized in the GST Take voice). The prompt's argsSchema mirrors the same single `category` filter. Earlier versions accepted a `sinceHours` argument; removed in BL-031.95 Phase 3.A under the capability-mirror invariant — see [Capability-mirror invariant](#capability-mirror-invariant) below.
 >
-> **Version**: `v1` | **Last authored**: 2026-07-27 (the `search_radar_offline` input contract itself is unchanged since 2026-05-02; the date moved with the BL-091 revision of the live-tool surface documented below)
+> **Version**: `v1` | **Last authored**: 2026-08-05 (the `search_radar_offline` input contract itself is unchanged since 2026-05-02; the date moved with the BL-091 revision of the live-tool surface documented below)
 >
 > **Registry**: see [`../contracts/README.md`](../README.md) for the "what is an input contract" narrative, the cross-tool registry, and the per-tool spec template.
 
@@ -69,8 +69,8 @@ The four categories mirror exactly the four filter pills on `/hub/radar` and the
 ```typescript
 {
   matches: Array<SnapshotItem & { tier: 'fyi' | 'wire' }>,
-  totalMatched: number,           // === matches.length
-  returned: number,               // === matches.length (no limit; mirrors website)
+  totalMatched: number,           // items matching the request BEFORE the display bound
+  returned: number,               // === matches.length, after the wire bound (BL-109)
   oldestItemDaysAgo: number | null, // freshness signal; null when matches is empty (BL-031.95)
   snapshotInfo: {
     fyiLastSeededAt: string | null,
@@ -99,7 +99,7 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 1. **`query` (free-text)**: the website has no search box. The cache is small enough that filtering by category alone is sufficient.
 2. **`tier` (`fyi` | `wire`)**: the website renders a unified feed via `mergeFeed(fyi, wire)`. There's no website surface to deep-link into a tier-specific view; the MCP Resources `gst://radar/fyi/latest` and `gst://radar/wire/latest` remain available for prompts that need a tier-specific snapshot embedding.
 3. **`since` (ISO date)**: the offline snapshot is a point-in-time capture (seeded via `npm run radar:seed`). A `since` filter beyond the captured window would filter against items that aren't in the snapshot anyway. The website surfaces no time-window filter — items are sorted by `publishedAt` newest-first, so users naturally see recent items at the top.
-4. **`limit` (default 20, max 100)**: the website renders all items in the cache (the cache is small enough that pagination isn't needed). A tool-level `limit` would create a deep-link that doesn't match what the user sees on the page.
+4. **`limit` (default 20, max 100)**: a tool-level `limit` would create a deep-link that doesn't match what the user sees on the page. **Amended 2026-08-05 (BL-109)** — this entry's original justification also claimed "the website renders all items in the cache (the cache is small enough that pagination isn't needed)". That was **factually wrong**: `/hub/radar` caps the wire tier at `MAX_WIRE = 30` with a `MIN_PER_CATEGORY = 3` quota, and FYI at `FYI_MAX_COUNT = 15` — ≤45 items, never the full cache. The tool meanwhile applied **no** wire bound and returned ~46 wire items, so the mirror was broken in the tool's favour and nobody noticed until a client's tool-result ceiling was exceeded. The tool now applies the page's own bound via the shared [`src/utils/radar-feed-bounds.ts`](../../../../../src/utils/radar-feed-bounds.ts). **The input surface is unchanged** — no `limit` was re-added; this is the mirror being enforced on _output_ for the first time.
 
 **Future extension**: if a real consumer need emerges (e.g., the BL-032 live `search_radar` tool can reach further than 24h, so a `since` filter has new value), grow the website's filter UI **and** the MCP tool's input schema in lockstep. The capability-mirror invariant is the contract; it should never be violated unilaterally on either side.
 
@@ -146,9 +146,13 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 
 ```typescript
 {
-  matches: SnapshotItem[],   // FYI + Wire merged, deduped by URL, sorted newest-first
-  totalMatched: number,
-  returned: number,
+  matches: SnapshotItem[],   // FYI + Wire merged, deduped by URL, sorted newest-first.
+                             // Wire capped at MAX_WIRE=30 (>=MIN_PER_CATEGORY=3 per
+                             // category), mirroring /hub/radar; FYI whole. `summary` is
+                             // plain text — source HTML stripped at the tool boundary
+                             // (the snapshot/Resource path keeps it raw). BL-109.
+  totalMatched: number,      // matched the request BEFORE the wire bound
+  returned: number,          // === matches.length, after it; differing = truncated
   oldestItemDaysAgo: number | null,   // null when `matches` is empty
   liveInfo: {
     wireFetchedAt: string | null,     // ISO 8601; null when that tier had nothing cached

@@ -4,6 +4,8 @@
 >
 > Tool names, prompt names, and Resource URIs are part of the package's public contract — pinned client conversations, agent code, and external clients (BL-033) all reference them by name. A rename or removal here is a breaking change for every consumer.
 >
+> **Scope widened under BL-106 (2026-08-03)**: the **protocol revision a transport serves** is also part of that contract. Dropping an era is breaking for any client speaking it, even when no tool, prompt, or Resource URI moves — and such a change leaves the manifest hash below untouched, so that guard will not catch it. Entries of this kind must say which transport changed and how to roll it back.
+>
 > **Every entry in this file ships with a corresponding `version` bump in [`package.json`](./package.json) and is mirrored in the [archived BL-032 initiative doc](../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md) Q-section that triggered it (entries after 2026-07-17 cite the maintained [`ARCHITECTURE.md`](./src/docs/ARCHITECTURE.md) instead).** BL-032.5 Phase 4 formalizes the discipline with the **manifest-hash test** at [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) — the hash is computed over the registered Library/Regulation/Radar URIs + prompt `name@version` tuples; any drift fails the test and surfaces the new hash in the error message.
 
 ---
@@ -26,6 +28,86 @@ If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.46.0 — 2026-08-05 — BL-109 — the radar tools apply the website's display bound
+
+**`search_radar` and `search_radar_offline` return fewer items, and a smaller `summary`.** Both changes make the tools match `/hub/radar`, which they had never done on output.
+
+**Who this affects**: anyone reading every element of `matches`. `totalMatched` now reports the pre-bound count while `returned` reports the post-bound one, so truncation is visible in the payload and in the caption (`"30 of 46 radar items"`). Consumers reading `summary` as HTML get plain text instead — nothing in this repo did.
+
+**Why.** `/hub/radar` caps the wire tier at `MAX_WIRE = 30` (with a `MIN_PER_CATEGORY = 3` quota) and FYI at `FYI_MAX_COUNT = 15`, so it renders **≤45 items**. `search_radar` applied **no** wire bound and returned 61. Under 0.45.0's two-channel response that produced a **143,027-character** result which exceeded a real client's tool-result ceiling — the tool became unusable, not merely large. 0.45.0's risk note framed the doubling as wire cost; this is the failure mode it missed.
+
+Two levers, both "mirror what the page does". Measured on a production-shaped corpus (15 FYI + 46 wire, realistic HTML summaries):
+
+|                             | chars      |            |
+| --------------------------- | ---------- | ---------- |
+| before (61 items, raw HTML) | 134,370    |            |
+| + wire bound only           | 99,834     | −25.7%     |
+| **+ HTML strip (shipped)**  | **78,737** | **−41.4%** |
+
+The bound alone would likely not have cleared the ceiling. `summary` carried Inoreader's **raw untruncated HTML** on every item — the page renders no summary at all for wire items and stripped-and-truncated text for FYI — so stripping markup is the larger lever and costs no meaning. It is **not** truncated: unlike the page's 250-char display cut, feed prose has analytical value to an LLM.
+
+**FYI is untouched**, so every `gstTake` survives. The strip happens at the **tool boundary only** — `/radar/snapshot`, the `gst://radar/*` Resources and the cron cache still carry raw source bytes.
+
+**No input change.** No `limit` was re-added; ADR-0005's capability-mirror decision stands. This is that invariant being enforced on _output_ for the first time — see its 2026-08-05 note. The bound now lives in [`src/utils/radar-feed-bounds.ts`](../src/utils/radar-feed-bounds.ts), called by both the website page and the tools, so the two cannot drift.
+
+**Also in this release**: `generate_information_request_list_xlsx` gains **`downloadUrl`** on its payload — the Hub _generator_ URL with the caller's args pre-filled. It previously existed only inside the caption string while the payload carried `canonicalUrl` (the library _article_ page), so a payload-reading client was handed the wrong URL for the tool's entire purpose. `canonicalUrl` is unchanged. And `search_radar`'s description now marks `search_radar_offline` **stdio-only** — it was advertising a tool the remote surface does not register.
+
+`get_latest_insights` gets the same `summary` projection — the two radar tools are a documented capability mirror, and a model composing across them would otherwise see one FYI item as plain text from one and raw HTML from the other.
+
+`gst_information_request_list`'s body now names `structuredContent.downloadUrl` as the link to relay, replacing "the Hub download link in its text summary" — the channel D2 showed to be insufficient. Directive intent is unchanged (direct the partner to the Hub generator page), only the field it names, so **`promptVersion` stays at `0.0.7`** and the manifest hash is unaffected.
+
+**No manifest change** — tool names, prompt names and Resource URIs are untouched.
+
+---
+
+## 0.45.0 — 2026-08-04 — BL-108 — tool results carry the payload in `content` again
+
+**Every successful tool response changes shape.** `content` goes from one block to two: `content[0].text` is the same one-line caption as before, byte-identical, and **`content[1].text` is the compact serialized payload**. `structuredContent` is unchanged and remains canonical. Failure results are untouched — still a single block carrying the verbatim message.
+
+**Who this affects**: any consumer that assumed `content` had exactly one element. Within this repo that was five test assertions, plus the caption-extractor in `tests/integration/tool-result-constructors.test.ts` (which took "everything after the first comma" and so silently swallowed the new third argument); `scripts/Invoke-McpRequest.ps1` and the smoke commands below read `structuredContent` and are unaffected. Consumers reading `content[0].text` for the caption are also unaffected — index 0 did not move.
+
+**Why.** Between 0.43.0 and this release, `content` carried a caption and nothing else. **Claude Desktop reads `content`**, so for three weeks it received `"11 portfolio matches."` with no rows and `"15 themes, 2 engagement categories, 6 growth stages, 5 years."` with no values, and reported `search_portfolio` as broken. The MCP spec has a clause for exactly this — _"a tool that returns structured content SHOULD also return the serialized JSON in a TextContent block"_ — which [ADR-0011](../src/docs/adr/0011-tool-response-channel-policy.md) recorded itself as knowingly deviating from. The serialization is **compact**, never pretty-printed: the indentation was BL-090's real finding, the duplication was not.
+
+**Measured wire cost** — `search_portfolio` (all 65) 61,529 → 127,599 B (×2.07); `compose_dossier_envelope` 16,581 → 33,290 B (×2.01); `list_portfolio_facets` 597 → 1,105 B (×1.85). Against the 143,403 B pre-BL-090 baseline this lands ~11% below where BL-090 started, not back at it. The audit stream's `outputBytes` will step up accordingly — expected, not a regression signal.
+
+**One exception**: `generate_information_request_list_xlsx` omits its base64 blob from `content[1]` only, replacing it with a marker string; `structuredContent.base64` is untouched. ~17 KB of base64 is ~4,500-6,000 tokens the model cannot use, of a payload Claude Desktop cannot render (see 0.3.9 below). Note this makes it the sole tool whose two channels differ — the property that produced BL-090's wrong generalisation.
+
+**Not a `content[1]` precedent**: 0.3.8 below also used a `content[1]`, but for a **`resource`** block carrying the .xlsx as a blob, reverted in 0.3.9. Unrelated mechanism, unrelated payload.
+
+**Also in this release**: the `search_portfolio` theme vocabulary is now derived from `projects.json` rather than hand-written. The descriptions had been advertising `"Healthcare Tech"`, `"Financial Services"` and `"Life Sciences"` — none of which are real themes — including in the `tools/list` argument description, which is the only portfolio vocabulary a cold LLM call can see. The `gst_irl_ingestion` body carried the same two invented values; corrected in place.
+
+**No manifest change.** Tool names, prompt names and Resource URIs are untouched, and `gst_irl_ingestion` stays at `0.21.1` — the prompt edit replaced illustrative data values inside directives whose semantics and structure are unchanged, which is the BL-086 L0/L1 no-bump class. (Contrast BL-064, which _introduced_ that Step 2 batching directive and did bump.) The three one-shot body hashes in `tests/integration/irl-ingestion-body-hash-stability.test.ts` are rebaselined; the manifest hash above is unchanged.
+
+---
+
+## 0.44.1 — 2026-08-04 — BL-106 — **REVERTED**: the Worker serves both protocol eras again
+
+**This undoes the breaking change in 0.44.0, roughly an hour after it reached production, because it broke production.** 0.44.0 deployed at 17:56 UTC on 2026-08-04 (the stanza below is dated 08-03, when the change was written). The remote Worker serves protocol `2025-11-25` again alongside `2026-07-28` (`legacy: 'stateless'`).
+
+0.44.0's stanza said "who this affects: nobody known at ship time." That was wrong within the hour. **Claude Desktop speaks `2025-11-25`** — the spec revision was a week old and its client had not moved — so its `initialize` was refused with `-32022` and every tool call failed. It presented as `failed to call tool list_portfolio_facets`, not as a connection error, because the client still displayed its cached tool list; the symptom pointed at a tool rather than at the handshake.
+
+The error was in the question asked, not the evidence gathered. "No external clients" was verified and true; what mattered was _what protocol version the client software speaks_, which is a different question whenever the consumers are your own team using third-party tools.
+
+Also shipped here: the `era` discriminator (`mcp.request.era`, `legacy` / `modern`), which was specified for 0.44.0, dropped during implementation, and whose absence meant this had to be diagnosed by reproducing symptoms instead of reading a log. Plus two regression tests pinning the legacy handshake and the exact `tools/call` that failed.
+
+See [ADR-0013](../src/docs/adr/0013-mcp-2026-07-28-modern-only-worker.md) § Amendment 2026-08-04. **No manifest change** — tool names, prompt names and Resource URIs are untouched, so the manifest hash is unchanged and could not have caught this.
+
+---
+
+## 0.44.0 — 2026-08-03 — BL-106 — the remote Worker serves protocol `2026-07-28` only
+
+**Breaking, transport-scoped.** The Worker at `mcp.globalstrategic.tech` no longer serves protocol revision `2025-11-25`: a client opening with an `initialize` handshake is answered with the unsupported-protocol-version error naming the modern revisions. **stdio is unaffected** and continues to serve the legacy era — see [ADR-0013](../src/docs/adr/0013-mcp-2026-07-28-modern-only-worker.md) for why the two transports differ.
+
+No tool name, prompt name, or Resource URI changed, so **the manifest hash above is unchanged** — the guard that normally catches breaking changes cannot see this one, which is why the file's scope note was widened in the same commit.
+
+Who this affects: nobody known at ship time. The website consumes `GET /radar/snapshot` over plain HTTP rather than MCP RPC, and no M2M or OAuth clients are provisioned. The change exists because `agents` deprecated the SDK-v1 handler path we were on, with removal in its next major.
+
+**Rollback**: set `legacy: 'stateless'` on the `createMcpHandler` options in `src/pipeline/handle-authenticated.ts`. Note stdio's equivalent token is `'serve'`, not `'stateless'` — the two enums differ.
+
+Shipped alongside (non-breaking): `Mcp-Method` / `Mcp-Name` added to the CORS preflight allowlist; `ttlMs` / `cacheScope` published on library and regulation resource reads; migration from `@modelcontextprotocol/sdk@1.30.0` to `@modelcontextprotocol/server@2.0.0`.
 
 ---
 

@@ -282,54 +282,13 @@ const { projects } = Astro.props;
     }
   }
 
-  @media (max-width: 768px) {
-    .project-modal {
-      width: 95%;
-      padding: 1.5rem;
-      max-height: 90vh;
-    }
-
-    .modal-close {
-      top: 1rem;
-      right: 1rem;
-      padding: 0.65rem;
-    }
-
-    .modal-metrics {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-
-    .modal-title {
-      font-size: var(--text-2xl);
-    }
-  }
-
-  @media (max-width: 480px) {
-    .project-modal {
-      width: 100%;
-      padding: 1.25rem;
-      max-height: 95vh;
-    }
-
-    .modal-close {
-      top: 0.75rem;
-      right: 0.75rem;
-      padding: 0.6rem;
-      min-width: 40px;
-      min-height: 40px;
-    }
-
-    .modal-title {
-      font-size: var(--text-xl);
-    }
-
-    .modal-metrics {
-      grid-template-columns: 1fr;
-      margin-bottom: 1rem;
-      padding-bottom: 1rem;
-    }
-  }
+  /* The `.project-modal` / `.modal-*` responsive overrides that used to sit here were
+     DEAD and were deleted in BL-096. This component's \3c style> is Astro-scoped and it
+     renders no modal markup — the only `.modal-close` in the repo is
+     ProjectModal.astro:11 — so these rules carried this component's scope id and could
+     never match anything. Two of them (min-width/min-height: 40px) surfaced as
+     touch-target violations, which is how they were found. Modal styling lives in
+     ProjectModal.astro. */
 </style>
 
 <script is:inline>

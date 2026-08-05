@@ -20,8 +20,8 @@ import {
   type JSONRPCRequest,
   type JSONRPCResponse,
   type JSONRPCErrorResponse,
-} from '@modelcontextprotocol/sdk/types.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+} from '@modelcontextprotocol/server';
+import { McpServer } from '@modelcontextprotocol/server';
 import { registerRadarResources } from '../../src/resources/radar';
 import type { SnapshotReader } from '../../src/content/radar-snapshot-reader';
 import type { SnapshotItem } from '../../src/content/radar-transform';

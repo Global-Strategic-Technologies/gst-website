@@ -1,9 +1,15 @@
 /**
- * Accessibility E2E Tests — axe-core WCAG 2.1 AA scanning.
+ * Accessibility E2E Tests — axe-core WCAG 2.1 AA + 2.2 AA scanning.
  *
- * Scans 9 critical pages for accessibility violations.
+ * Scans 22 critical pages for accessibility violations.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
+ *
+ * The 2.2 AA tag (`target-size`) was added 2026-08-03 once /brand's palette editor
+ * was fixed — see the tag rationale in helpers/a11y.ts. BL-096 predicted it would
+ * "hard-fail until BL-103 is resolved"; measured, 21 of the 22 routes were already
+ * clean and /brand was the sole failure. Recorded because the prediction was
+ * pessimistic and the cost of the guard was close to zero.
  *
  * Run locally: npm run test:a11y
  */
@@ -17,10 +23,16 @@ interface A11yPage {
   /** Selectors dropped from the scan. Every entry needs a reason — see /brand. */
   exclude?: string[];
   /**
-   * Selector that must be present before scanning. Only needed for pages whose
-   * real content arrives after navigation — i.e. a `server:defer` island, where
-   * scanning on `load` would audit the skeleton placeholder instead of the DOM
-   * a user ends up with. Pages without this keep the original `load` wait.
+   * Selector that must be present before scanning. Two uses:
+   *
+   *   1. Pages whose real content arrives after navigation — a `server:defer` island or
+   *      a d3-rendered map — where scanning on `load` audits a placeholder.
+   *   2. HEAVY pages, where `load` blocks on every subresource and, under worker
+   *      contention against one dev server, times out the navigation itself rather
+   *      than the assertion. `h1` is enough: it proves the document rendered without
+   *      waiting on images and fonts.
+   *
+   * Pages without this keep the original `load` wait.
    */
   waitFor?: string;
 }
@@ -33,6 +45,60 @@ const PAGES: A11yPage[] = [
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
+  // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline). Deliberately NOT excluded here are the
+  // dev-only gateway cards on /hub/library and /hub/tools (rendered under
+  // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting
+  // zero rather than excluding them is the honest choice: a violation in markup that
+  // never ships would otherwise become a baseline CI can never clear.
+  { name: 'Privacy', path: '/privacy/' },
+  { name: 'Terms', path: '/terms/' },
+  { name: 'Booking Confirmed', path: '/booking-confirmed/' },
+  // Reached the way 404-page.test.ts reaches it — `/404` directly can 308 under
+  // trailingSlash before the error page renders.
+  { name: '404', path: '/this-page-does-not-exist' },
+  { name: 'Hub Library', path: '/hub/library/' },
+  {
+    name: 'Library — Business Architectures',
+    path: '/hub/library/business-architectures/',
+    waitFor: 'h1',
+  },
+  { name: 'Library — IRL', path: '/hub/library/information-request-list/' },
+  { name: 'Library — VDR Structure', path: '/hub/library/vdr-structure/', waitFor: 'h1' },
+  { name: 'Hub Tools', path: '/hub/tools/' },
+  {
+    name: 'IRL Generator',
+    path: '/hub/tools/information-request-list-generator/',
+    waitFor: 'h1',
+  },
+  { name: 'Diligence Machine', path: '/hub/tools/diligence-machine/', waitFor: 'h1' },
+  { name: 'ICG', path: '/hub/tools/infrastructure-cost-governance/', waitFor: 'h1' },
+  {
+    name: 'Regulatory Map',
+    path: '/hub/tools/regulatory-map/',
+    // The map is d3-rendered after two blocking fetches, so `load` can resolve with an
+    // empty <svg>. Wait for a painted country path instead of the lifecycle.
+    waitFor: '#mapSvg path',
+    exclude: [
+      // Adding this route surfaced two REAL findings, both about the same unanswered
+      // question — how the map is exposed to assistive tech — so both are filed as
+      // BL-102 rather than settled inside a route addition:
+      //
+      //   - aria-prohibited-attr (110 nodes): every `.country-path` carries BOTH
+      //     `role="presentation"` AND `aria-label="<country>"`. A global ARIA attribute
+      //     suppresses the presentation role, so it is genuinely ambiguous whether 110
+      //     country names are announced or silent. Deleting the labels and deleting the
+      //     role are both defensible and produce opposite experiences.
+      //   - nested-interactive (1): the <svg> is `role="img"` — "treat as one image" —
+      //     while holding focusable descendants.
+      //
+      // EXCLUDED rather than baselined, deliberately. The 110 tracks the number of
+      // country paths in the topojson, so a baseline would be a data-derived number
+      // that breaks the day the map data changes — the same fixture-count trap that
+      // nearly shipped on the radar feed. Scoped to the SVG only: the search, filter
+      // chips, region cards and compliance panel all stay in scope.
+      '#mapSvg',
+    ],
+  },
   {
     name: 'Radar',
     path: '/hub/radar/',
@@ -69,9 +135,17 @@ const PAGES: A11yPage[] = [
   {
     name: 'Brand',
     path: '/brand/',
+    // The swatch controls are injected inside a requestIdleCallback, so `load` can
+    // resolve with ZERO .swatch-slider nodes in the DOM — measured at 2 runs in 5,
+    // all present by +300ms. Those sliders are the reason `target-size` is enabled
+    // at all (BL-103), and four documents now say the AA floor is machine-enforced
+    // rather than asserted, so the scan must not race the surface it enforces.
+    waitFor: '.swatch-slider',
     // Scoped rather than baselined into KNOWN_SERIOUS, which is documented as
     // design debt that "can only decrease" — the wrong contract for a page whose
     // job is exhibiting components, including deliberately non-conformant ones.
+    // NOTE /brand no longer has a KNOWN_SERIOUS entry at all (BL-096, 2026-08-03);
+    // these exclusions are the only instrument left on it, which is the intent.
     exclude: [
       // 12 lazy same-origin iframes across the four group documents (BL-097 —
       // one document per component group, embedded at three widths each). axe
@@ -98,59 +172,30 @@ const PAGES: A11yPage[] = [
 
 /**
  * Pre-existing violations that require design-level fixes (not ARIA attributes).
- * Tracked here as a ratchet — count can only decrease over time.
- * Each entry documents the violation ID and the max allowed node count.
+ * Tracked as a ratchet — each entry is a MAX node count that can only decrease.
+ *
+ * **It is empty, and that is the finished state, not an un-filled one.**
+ *
+ * It held 16 entries until 2026-08-03, every one of them `{ 'color-contrast': 1 }`, and
+ * every one of them the SAME node: the header's active nav link, `--color-primary`
+ * (#05cd99) on #f5f5f5 = 1.88:1. It appeared once per route because every route has a
+ * header. BL-096 § Still owed closed it by moving the ink to `--color-tertiary`
+ * (light-dark(#02724f, #05cd99) — 5.47:1 in light, unchanged in dark), so all 16 went to
+ * zero together and the entries were deleted rather than zero-valued.
+ *
+ * Deleting beats zeroing: with no entry, a future violation on these routes fails as an
+ * UNKNOWN serious violation — louder than sitting under a baseline of 0. `/brand/` was
+ * emptied the same way earlier in BL-096 (13 → absent).
+ *
+ * Keep the mechanism. Two guards flank it and both still matter the moment anything is
+ * added back: the ratchet fails on EXCEEDING a baseline, and the stale-baseline guard
+ * below fails on falling under one. Between them, an entry of `n` asserts exactly `n` —
+ * which is how the earlier rot was caught (tech-debt-calculator carried 14 against a
+ * real 1; techpar 4 against 1; ma-portfolio 2 against 1).
  */
-const KNOWN_SERIOUS: Record<string, Record<string, number>> = {
-  '/services/': { 'color-contrast': 1 },
-  '/about/': { 'color-contrast': 1 },
-  '/ma-portfolio/': { 'color-contrast': 2 },
-  '/hub/': { 'color-contrast': 1 },
-  '/hub/tools/techpar/': { 'color-contrast': 4 },
-  '/hub/tools/tech-debt-calculator/': { 'color-contrast': 14 },
-  // /hub/radar, added 2026-08-02 with the route. Both nodes are --color-primary
-  // (#05cd99) contrast, i.e. design-level token calls, not ARIA fixes:
-  //
-  //   1. a[href="/hub/"].active — the site-wide ACTIVE NAV LINK, #05cd99 on
-  //      #f5f5f5 = 1.88:1. Not radar-specific; it is the same violation already
-  //      baselined above on /hub/, surfacing here because this route is also
-  //      under /hub. Fixing it is a header change affecting every page.
-  //   2. .filter-btn.active — #ffffff on #05cd99 = 2.05:1, the "All" pill.
-  //      Radar-local, and the worse offender of the two in practice because the
-  //      pills are the page's only interactive control.
-  //
-  // Both are real text failing AA — deliberately NOT excluded, since an
-  // exclusion would hide them, whereas this ratchet keeps them counted and can
-  // only decrease. Raised as a design item rather than decided inside a test
-  // change, matching the /brand -> BL-096 precedent below.
-  //
-  // Both live in the page SHELL, so the count is content-independent: measured
-  // identical with an empty feed and with a 6-item one. (The island's own
-  // `nested-interactive` finding is content-dependent and is handled by a
-  // scoped exclusion above, not here — see the note on that entry.)
-  '/hub/radar/': { 'color-contrast': 2 },
-  // /brand, added 2026-07-29. The intent was to land it with no baseline at all;
-  // the discovery run said otherwise, and the honest move is to record the number
-  // rather than widen the exclusions until the prediction comes true.
-  //
-  // 8 of the 13 are .a11y-badge--pass/--fail, which IS page-local (styled in
-  // brand.astro, used only in BrandAccessibility.astro). What does NOT work is
-  // merely inverting it: contrast ratio is symmetric, so filling the badge with the
-  // semantic token and using the page background as text colour is the same colour
-  // pair and the identical 4.25:1 for --color-success on white. A filled badge with
-  // a DIFFERENT foreground is a real option (#000 on #2e8b57 is 4.95:1), as are
-  // changing the token light values or clearing WCAG's large-text threshold — which
-  // is 18.66px bold, not 14px, so --text-2xs is nowhere near it. All three are
-  // design calls on a page whose job is exhibiting the system, so they go to BL-096
-  // rather than getting decided inside a touch-target change.
-  //
-  // The other 5 are .brutal-tab__label, .brand-tag, .project-card__cta,
-  // .brutal-reg-card__scope and .brutal-map-tap-bar__action — real components,
-  // already partly baselined on other routes.
-  '/brand/': { 'color-contrast': 13 },
-};
+const KNOWN_SERIOUS: Record<string, Record<string, number>> = {};
 
-test.describe('Accessibility — WCAG 2.1 AA', () => {
+test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
   for (const pg of PAGES) {
     test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
       if (pg.waitFor) {
@@ -202,6 +247,26 @@ test.describe('Accessibility — WCAG 2.1 AA', () => {
         ratchetBreaches,
         `Ratchet breached on ${pg.name}:\n${formatViolations(ratchetBreaches)}`
       ).toHaveLength(0);
+
+      // Stale-baseline guard. The ratchet only ever failed on EXCEEDING a baseline, so a
+      // too-generous one passed forever — and three of seven had rotted into slack by
+      // 2026-08-03 (tech-debt-calculator carried 14 against a real 1). This is the same
+      // mechanism FLOOR_EXCEPTIONS uses for its allowlist, applied to the other one:
+      // fixing a violation now FAILS until the number comes down with it.
+      const slack = Object.entries(knownForPage)
+        .map(([id, max]) => {
+          const actual = results.serious.find((v) => v.id === id)?.nodes ?? 0;
+          return { id, max, actual };
+        })
+        .filter(({ max, actual }) => actual < max);
+
+      expect(
+        slack,
+        `Baseline is now slack on ${pg.name} — the violation was fixed but KNOWN_SERIOUS ` +
+          `was not ratcheted down. Lower it to the measured count (or delete the entry ` +
+          `entirely when it reaches 0, so a future one fails as UNKNOWN):\n  ` +
+          slack.map((e) => `${e.id}: baseline ${e.max}, actual ${e.actual}`).join('\n  ')
+      ).toEqual([]);
 
       // Log known serious for visibility
       const knownSerious = results.serious.filter((v) => v.id in knownForPage);

@@ -425,6 +425,17 @@ import '../styles/components/progress.css';
     margin-bottom: var(--spacing-lg);
   }
 
+  /* The gateway grid ships a `margin-bottom: var(--spacing-3xl)` for the hub index
+     pages, where a "Return to Hub" link follows it. On /brand that 48px orphans the
+     specimen's <code> caption — it lands closer to the NEXT subgroup heading than to
+     the specimen it describes. Collapsed to the 4px every other specimen uses.
+     A `.brand-component-item` wrapper is not an option: `align-items: flex-start`
+     would make the grid's inline size indefinite and collapse auto-fill to one
+     max-content track (see the comment on the specimen itself). */
+  .brand-content .brutal-gateway-grid {
+    margin-bottom: var(--spacing-xs);
+  }
+
   .brand-card-grid--single {
     grid-template-columns: 1fr;
     max-width: 400px;
@@ -733,6 +744,12 @@ import '../styles/components/progress.css';
     text-align: right;
   }
 
+  /* Text is --text-primary, NOT the semantic token: at --text-2xs (10.4px) the
+     semantic colours land at 3.90:1 on this row's --bg-light-alt surface. The border
+     carries pass/fail instead. Deliberately not a filled badge with dark ink either —
+     /brand is the one page with a runtime palette switcher, palettes override
+     --color-error, and black on palette 4's #9f1239 is 2.5:1. axe only scans the
+     default palette, so that regression would never have been caught. */
   .a11y-badge {
     font-size: var(--text-2xs);
     font-weight: var(--font-weight-bold);
@@ -740,22 +757,20 @@ import '../styles/components/progress.css';
     letter-spacing: 0.06em;
     padding: 2px var(--spacing-xs);
     border: 1px solid;
+    color: var(--text-primary);
   }
 
   .a11y-badge--pass {
-    color: var(--color-success);
     border-color: var(--color-success);
   }
 
   /* Currently unused — kept deliberately: the contrast tables need it the moment a
      token lands between the AA and AAA thresholds, or fails for normal text. */
   .a11y-badge--warn {
-    color: var(--color-warning);
     border-color: var(--color-warning);
   }
 
   .a11y-badge--fail {
-    color: var(--color-error);
     border-color: var(--color-error);
   }
 
@@ -1189,10 +1204,12 @@ import '../styles/components/progress.css';
     margin: 0;
   }
 
+  /* --color-tertiary, matching .brand-tag--theme below, which already measures
+     ~5.2:1 on a tinted surface. The base variant used --color-primary at ~1.95:1. */
   .brand-tag {
     font-family: var(--font-family-mono);
     background: var(--accent-dark-bg);
-    color: var(--color-primary);
+    color: var(--color-tertiary);
     padding: var(--spacing-xs) var(--spacing-md);
     border-radius: 0;
     font-size: var(--text-xs);

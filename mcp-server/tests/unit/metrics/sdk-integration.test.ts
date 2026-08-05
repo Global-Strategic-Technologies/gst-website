@@ -17,9 +17,9 @@
  * SDK's own `McpServer` + `Client` types. The bigger end-to-end integration
  * test (Step 7) will exercise the full `createServer` → `Client` round-trip.
  */
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/client';
+import { InMemoryTransport } from '@modelcontextprotocol/server';
+import { McpServer } from '@modelcontextprotocol/server';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { InMemorySink } from '../../../src/metrics/sinks/in-memory';
@@ -115,7 +115,14 @@ describe('M4 — withToolMetrics typecheck + runtime against real McpServer', ()
     const result = await client.callTool({ name: 'ok_tool', arguments: {} });
 
     expect(result.structuredContent).toEqual({ matches: ['a', 'b'], totalMatched: 2 });
-    expect(result.content).toEqual([{ type: 'text', text: '2 matches.' }]);
+    // BL-108: both channels carry the payload over a REAL client round-trip. This
+    // is the assertion that would have caught the Claude Desktop outage — under
+    // BL-090 it read `toEqual([{ text: '2 matches.' }])`, i.e. it actively pinned
+    // the shape that starved `content`-reading clients of data.
+    expect(result.content).toEqual([
+      { type: 'text', text: '2 matches.' },
+      { type: 'text', text: '{"matches":["a","b"],"totalMatched":2}' },
+    ]);
     await client.close();
   });
 
