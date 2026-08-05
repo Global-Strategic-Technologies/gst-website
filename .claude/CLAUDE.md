@@ -316,7 +316,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 ## 🚢 Deployment
 
 - **Website**: Vercel — auto-deploys on push to `master`, preview deploys for PRs. Build `npm run build`, output `dist`. Trailing-slash canonicalization lives in `vercel.json` (`trailingSlash: true`) — NOT in `astro.config.mjs` (`'always'` breaks the dev server)
-- **MCP Worker**: fully CI/CD — **staging auto-deploys** on a green MCP test run (`deploy-mcp-staging.yml`); **production** deploys on master merges touching Worker source, gated by the `mcp-production` GitHub Environment approval, latest-wins concurrency (`deploy-mcp-production.yml`); manual rollback via `rollback-mcp.yml`. **Never instruct anyone to manually rebuild/redeploy the Worker** — merge and let the pipeline run. Details: [mcp-server/src/docs/operations/DEPLOY.md](mcp-server/src/docs/operations/DEPLOY.md)
+- **MCP Worker**: fully CI/CD — **staging auto-deploys** on a green MCP test run from a same-repo push (`deploy-mcp-staging.yml`; fork `pull_request` runs are refused — BL-111); **production** deploys on master merges touching Worker source, gated by the `mcp-production` GitHub Environment approval, latest-wins concurrency (`deploy-mcp-production.yml`); manual rollback via `rollback-mcp.yml`. **Never instruct anyone to manually rebuild/redeploy the Worker** — merge and let the pipeline run. Details: [mcp-server/src/docs/operations/DEPLOY.md](mcp-server/src/docs/operations/DEPLOY.md)
 
 ## 💡 Common Tasks
 

@@ -2,7 +2,16 @@ name: Deploy MCP Worker — staging
 
 # BL-037 Phase A — automated staging deploy on green MCP test suite.
 #
-# Gating: this workflow has NO `paths:` filter of its own. Gating lives
+# Gating: TWO conditions, and both matter.
+#
+#   1. Path gating lives upstream in `test-mcp-server.yml` (see below).
+#   2. The job `if:` additionally requires the triggering run to be a `push`
+#      from THIS repository — BL-111 defect 2. Without it, a fork PR reaches a
+#      secret-bearing deploy of attacker-controlled code. `branches:` below does
+#      not close it: that filter matches the FORK's branch name. See the job
+#      condition for the full reasoning.
+#
+# On path gating: this workflow has NO `paths:` filter of its own. Gating lives
 # upstream in `.github/workflows/test-mcp-server.yml` (its `paths:` block
 # already excludes website-only changes — Astro pages, components, styles).
 # `workflow_run` does not honor consumer-side `paths:`, so adding one here
@@ -25,7 +34,8 @@ on:
     # short-circuited by a filter mismatch (BL-037 follow-up after BL-038
     # surfaced two gaps: `feature-*` didn't match slash-style branches, and
     # `master` was missing so the merge commit never got staging validation).
-    branches: [master, dev, 'feat/**', 'fix/**', 'feature/**']
+    # `dev` retired 2026-05-31 (CLAUDE.md § Branch Strategy) — dropped BL-111.
+    branches: [master, 'feat/**', 'fix/**', 'feature/**']
 
 permissions:
   contents: read
@@ -41,7 +51,35 @@ concurrency:
 
 jobs:
   deploy-staging:
-    if: github.event.workflow_run.conclusion == 'success'
+    # BL-111 defect 2 — the two extra clauses are a SECURITY fix, not tidying.
+    #
+    # `test-mcp-server.yml` fires on `pull_request`, including from forks. A
+    # `workflow_run` consumer runs in the BASE repo with CLOUDFLARE_API_TOKEN
+    # and SENTRY_AUTH_TOKEN in scope, and `branches:` above matches the
+    # TRIGGERING run's head_branch — which for a fork PR is the FORK's branch
+    # name. So `branches:` alone does not keep fork content out.
+    #
+    # The realistic path is not a bypass, it is a maintainer doing the normal
+    # thing: clicking "approve and run workflows" so a contribution's tests
+    # execute. That click then reached this deploy. GitHub's control cannot
+    # express "run the tests but do not deploy" — only this `if` can. And note
+    # `npm ci` below runs the fork's lifecycle scripts with both tokens already
+    # in the job env, so the exposure lands a step BEFORE the deploy.
+    #
+    #   event == 'push'                     excludes pull_request runs entirely,
+    #                                       which is the only way fork content
+    #                                       arrives (a push inside a fork runs in
+    #                                       the fork's own Actions and emits no
+    #                                       workflow_run here). It also stops
+    #                                       staging deploying same-repo PR runs,
+    #                                       which carry a synthetic merge SHA
+    #                                       belonging to no branch.
+    #   head_repository == github.repository  defence in depth if `event` is ever
+    #                                       loosened.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
