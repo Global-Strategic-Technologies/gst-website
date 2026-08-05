@@ -65,11 +65,18 @@ jobs:
     # express "run the tests but do not deploy" — only this `if` can.
     #
     # And the exposure is not merely "attacker code reaches staging". The deploy
-    # step below runs `npm run deploy:staging` = `node scripts/deploy.mjs`, a
-    # file the fork controls, in the step that holds BOTH tokens — arbitrary code
-    # with the credentials, not just a deployed artifact. Separately, `npm ci`
-    # writes the `nm-v1-...` cache key that test.yml and test-mcp-server.yml also
-    # restore, so a poisoned cache outlives this run.
+    # step below runs `npm run deploy:staging` = `node scripts/deploy.mjs
+    # staging`, a file the FORK controls, in the step that holds BOTH tokens —
+    # arbitrary code with the credentials, not just a deployed artifact. That
+    # much is unconditional and is the argument this `if` rests on.
+    #
+    # A second, NARROWER path, stated with its conditions because the broad
+    # version is not true: on a cache MISS this job's `npm ci` runs the fork's
+    # root lifecycle scripts and the post step saves the result under the shared
+    # `nm-v1-...` key that test.yml and test-mcp-server.yml restore. The key is
+    # lockfile-hashed, so a fork adding a DEPENDENCY changes the key and poisons
+    # nothing; it bites when the fork changes `package.json` scripts instead,
+    # which the key does not see.
     #
     # (An earlier revision said `npm ci` itself ran with both tokens in the job
     # env. It does not — they are step-scoped to the deploy. Corrected rather

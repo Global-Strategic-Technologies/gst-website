@@ -23,10 +23,10 @@
 #   0  a run for this SHA concluded `success`
 #   1  every run terminal, none successful — the suite genuinely failed
 #   2  bad or missing input, or a missing dependency (`gh`, `node`)
-#   3  cap reached, a run was seen but never reached a verdict -> re-run
-#   4  cap reached, no run ever appeared               -> check for a skipped run
-#   5  cap reached, gh failing at the transport layer  -> fix the credential
-#   6  cap reached, gh ok but the body was unreadable  -> often transient, re-run
+#   3  cap reached, a run was seen but reached no verdict -> re-run the deploy
+#   4  cap reached, no run ever appeared                  -> check for a skip
+#   5  cap reached, gh failing at the transport layer     -> fix the credential
+#   6  cap reached, gh ok but the body was unreadable     -> transient, re-run
 #
 # 5 and 6 describe where the poll ENDED, not the whole window: a run observed in
 # flight outranks a late API blip, because "the suite was still going" and "the
