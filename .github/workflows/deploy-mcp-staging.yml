@@ -97,6 +97,29 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
+    # BL-111 defect 2, structural half. The `if:` above governs WHICH runs may
+    # deploy; this governs WHICH JOBS CAN READ THE CREDENTIALS AT ALL, and the
+    # second does not depend on anyone keeping the first correct.
+    #
+    # Before this, the job bound no environment, so `secrets.CLOUDFLARE_API_TOKEN`
+    # resolved at REPOSITORY level — readable by every job in every workflow in
+    # this repo, present and future, for a token that can deploy the production
+    # Worker (Cloudflare scopes `Workers Scripts: Edit` per ACCOUNT; there is no
+    # per-script granularity, so a staging-only deploy token is not expressible).
+    # Production already bound `mcp-production`; staging was the only hole, and
+    # the repository-level copies existed solely to serve it.
+    #
+    # NO protection rules on `mcp-staging` — deliberately. Required reviewers
+    # would defeat the point of an unattended post-merge staging deploy. The
+    # scoping alone is the win.
+    #
+    # NOTE the collision that cost us an hour: `[env.staging]` in wrangler.toml
+    # is a CLOUDFLARE Worker environment (what gets deployed where). This is a
+    # GITHUB Actions Environment (which jobs may read which secrets). Same word,
+    # unrelated systems. See DEPLOY.md § Two things called "environment".
+    environment:
+      name: mcp-staging
+      url: https://mcp-staging.globalstrategic.tech/health
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7

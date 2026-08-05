@@ -1,7 +1,7 @@
 # Secrets Inventory
 
 > **Status**: living document — update on every secret add/rotate/retire.
-> **Scope**: every secret/env-var that lives in Vercel, Cloudflare Workers, or Upstash for the website + MCP Worker.
+> **Scope**: every secret/env-var that lives in Vercel, Cloudflare Workers, Upstash, or **GitHub Actions** for the website + MCP Worker. (GitHub Actions was outside this doc's stated scope until BL-111 — the CI/CD deploy credentials were inventoried nowhere.)
 > **Sister docs**:
 >
 > - [`mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md`](../../../mcp-server/src/docs/operations/_archive/BL-032_8_SOAK_GATE.md) — Phase B retirement window (ran 2026-05-17 → 2026-05-27, ✅ closed; archived 2026-05-31)
@@ -147,6 +147,39 @@ npx wrangler secret delete MCP_KEY_WEBSITE_RADAR --env production
 ```
 
 Non-secret variables (URLs, feature flags) live in `wrangler.toml` under `[env.<name>.vars]` and `[vars]` — those are checked into git. Anything sensitive must be a `secret`, never a `var`.
+
+### GitHub Actions (CI/CD deploy credentials) — BL-111
+
+**Location**: GitHub → Settings. **Two scopes, and the distinction is the whole point**:
+
+| Scope                   | Where                                      | Readable by                                         |
+| ----------------------- | ------------------------------------------ | --------------------------------------------------- |
+| **Repository secrets**  | Settings → Secrets and variables → Actions | **every job in every workflow**, present and future |
+| **Environment secrets** | Settings → Environments → `<name>`         | only a job declaring `environment: <name>`          |
+
+An environment copy **shadows** a repository copy of the same name for jobs that bind it. So adding an environment secret while the repository copy still exists changes nothing — the repository one stays readable by everything else. **Deleting the repository copy is what closes the gap.**
+
+| Secret                  | Repo-level          | `mcp-staging` | `mcp-production` | `mcp-production-rollback`            |
+| ----------------------- | ------------------- | ------------- | ---------------- | ------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`  | ⚠️ pending deletion | ✅            | ✅               | ✅                                   |
+| `CLOUDFLARE_ACCOUNT_ID` | ⚠️ pending deletion | ✅            | ✅               | ✅                                   |
+| `SENTRY_AUTH_TOKEN`     | ⚠️ pending deletion | ✅            | ✅               | ❌ (rollback uploads no source maps) |
+| `MCP_PROBE_KEY`         | ✅ **keep**         | ❌            | ❌               | ❌                                   |
+
+`MCP_PROBE_KEY` stays repository-level on purpose — `latency-probe.yml` binds no environment and legitimately needs it.
+
+**Read** (names only — GitHub never returns values):
+
+```powershell
+gh api repos/:owner/:repo/actions/secrets --jq '.secrets[].name'
+gh api repos/:owner/:repo/environments/mcp-staging/secrets --jq '.secrets[].name'
+```
+
+**Rotation caveat**: these values cannot be copied between scopes — GitHub will not reveal an existing secret. Rotating means minting a **new** token at the provider (Cloudflare / Sentry show a value once, at creation) and pasting it in.
+
+**Cloudflare token scope, checked rather than assumed**: `Workers Scripts: Edit` is scoped per **account**, with no per-script granularity — so the staging deploy token can also deploy the production Worker. Issuing a _separate_ token per environment buys independent revocation and nothing more; the blast radius is identical. Do not describe the staging token as "staging-only".
+
+> ⚠️ **Not a GitHub Actions Environment**: `[env.staging]` / `[env.production]` in `wrangler.toml` are **Cloudflare Worker** environments (deploy targets), and `Preview` / `Production` in the GitHub Environments list are **Vercel's**. Three unrelated uses of one word — see [DEPLOY.md § Two things called "environment"](../../../mcp-server/src/docs/operations/DEPLOY.md).
 
 ### Upstash (DB connection strings + tokens)
 

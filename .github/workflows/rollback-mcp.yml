@@ -77,9 +77,15 @@ jobs:
       # Production rollbacks bind a separate environment from the deploy
       # workflow so the reviewer list can diverge. Operator one-time
       # setup: Settings → Environments → New environment named
-      # `mcp-production-rollback` with required reviewers. Staging
-      # rollbacks bind no environment.
-      name: ${{ inputs.environment == 'production' && 'mcp-production-rollback' || '' }}
+      # `mcp-production-rollback` with required reviewers.
+      #
+      # BL-111: the staging arm used to be the empty string — no environment,
+      # so its secrets resolved at REPOSITORY level, which is what made those
+      # copies readable by every job in the repo. It now binds `mcp-staging`
+      # (no protection rules), so this workflow no longer needs a
+      # repository-level token to exist for it. Rollback needs only the two
+      # Cloudflare values, both present on that environment.
+      name: ${{ inputs.environment == 'production' && 'mcp-production-rollback' || 'mcp-staging' }}
       url: ${{ inputs.environment == 'production' && 'https://mcp.globalstrategic.tech/health' || 'https://mcp-staging.globalstrategic.tech/health' }}
 
     steps:
