@@ -15,7 +15,12 @@
  * `workflow-paths-parity.test.ts`: `yaml` is transitive-only, and a direct dependency for
  * one assertion is the worse trade.
  *
- * **THE PARSER MUST NOT FAIL OPEN, AND IT DID — FIVE TIMES, ACROSS TWO REVIEW ROUNDS.**
+ * Equivalence checked, not assumed: across all 12 workflows the hand parser and the real
+ * `yaml` parser agree exactly — 15 jobs vs 15, identical environment bindings (including
+ * the rollback ternary), identical secret references, no top-level `env:` in either. That
+ * agreement is what justifies not taking the dependency; re-run it if the parser changes.
+ *
+ * **THE PARSER MUST NOT FAIL OPEN, AND IT DID — SEVEN TIMES, ACROSS THREE REVIEW ROUNDS.**
  * Each was proved by dropping a rogue workflow holding an unbound deploy secret and
  * watching the suite stay green:
  *
@@ -31,6 +36,13 @@
  *   5. The workflow-level `env:` check sliced everything above `jobs:`. YAML mapping keys
  *      are unordered, so a top-level `env:` written *below* `jobs:` was outside the parse
  *      window — the exact hole that assertion was added to close.
+ *   6. The `secrets: inherit` guard added to close (5)'s round shipped without a trailing-
+ *      comment allowance — one function below the docstring rule saying trailing comments
+ *      are legal everywhere. `secrets: inherit # needs everything` passed green.
+ *   7. Membership tested only `secrets.NAME`. `secrets['NAME']` is valid expression syntax,
+ *      so an unbound job holding the production token via the index form was invisible —
+ *      and the positive pairing could not see it either, since the rogue simply never
+ *      entered the holders list, which stayed exactly the three expected entries.
  *
  * So the rules this file is built on, each bought with a green mutation:
  *
@@ -38,9 +50,13 @@
  *     unparsed structure, not something to absorb.
  *   - **Compute by complement, never by position.**
  *   - **Pair every negative assertion with a positive one** proving its subject was found —
- *     "no violations" and "nothing examined" are the same green. Note (4): necessary, not
- *     sufficient. A rogue absorbed into a legitimate job satisfies both.
- *   - **Trailing comments are legal everywhere**, and were the difference in (2) and (4).
+ *     "no violations" and "nothing examined" are the same green. Necessary, NOT sufficient:
+ *     (4) and (7) both satisfy the pairing while hiding a rogue.
+ *   - **Trailing comments are legal everywhere** — the difference in (2), (4) and (6).
+ *   - **Match every syntax the platform accepts**, not the one this repo happens to use:
+ *     `.yml`/`.yaml`, `secrets.X`/`secrets['X']`, inline/block `environment:`.
+ *   - **What cannot be resolved gets asserted absent, not assumed away** — `secrets:
+ *     inherit` and `secrets[<expr>]` are named exclusions with their own tests.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -73,6 +89,27 @@ interface Job {
 
 /** Strip comment-only lines so a `secrets.X` mention inside a comment isn't a reference. */
 const stripComments = (lines: string[]) => lines.filter((l) => !l.trimStart().startsWith('#'));
+
+/**
+ * Does this body read `secret`?
+ *
+ * BOTH forms. `secrets['NAME']` is valid GitHub expression syntax and a plain
+ * `.includes('secrets.NAME')` never sees it — an unbound job holding the
+ * production-capable token via the index form passed this suite 9/9 green. The positive
+ * pairing cannot catch it either: the rogue simply never enters the holders list, which
+ * stays exactly the three expected entries.
+ */
+const referencesSecret = (body: string, secret: string): boolean =>
+  body.includes(`secrets.${secret}`) ||
+  new RegExp(String.raw`secrets\[\s*['"]` + secret).test(body);
+
+/**
+ * `secrets[<expression>]` with a non-literal index — `secrets[matrix.env]`, the shape a
+ * staging/production matrix produces. No membership test can resolve the name, so this gets
+ * the same treatment as `secrets: inherit`: asserted absent rather than pretended-about.
+ */
+const dynamicSecretIndex = (body: string): boolean =>
+  [...body.matchAll(/secrets\[\s*([^\]]*)\]/g)].some((m) => !/^['"]/.test(m[1].trim()));
 
 /**
  * Resolve the environment names a `name:` value can produce.
@@ -130,6 +167,8 @@ interface Parsed {
   workflowLevelSecretRefs: string[];
   /** Workflows using `secrets: inherit`, which no membership test can see. */
   secretsInheritUsers: string[];
+  /** Workflows indexing `secrets[<expr>]` with a non-literal — name unresolvable. */
+  dynamicIndexUsers: string[];
 }
 
 function parseWorkflows(): Parsed {
@@ -137,6 +176,7 @@ function parseWorkflows(): Parsed {
   const workflows: string[] = [];
   const workflowLevelSecretRefs: string[] = [];
   const secretsInheritUsers: string[] = [];
+  const dynamicIndexUsers: string[] = [];
 
   // `.ya?ml` — GitHub accepts both, and matching only `.yml` let a rogue `.yaml` workflow
   // holding an unbound deploy secret pass this suite untouched.
@@ -211,22 +251,30 @@ function parseWorkflows(): Parsed {
 
     const outside = stripComments(lines.filter((_, i) => !attributed.has(i))).join('\n');
     for (const secret of DEPLOY_SECRETS) {
-      if (outside.includes(`secrets.${secret}`)) workflowLevelSecretRefs.push(workflow);
+      if (referencesSecret(outside, secret)) workflowLevelSecretRefs.push(workflow);
     }
     // `secrets: inherit` hands a called workflow every secret the caller can read, with no
     // `secrets.NAME` token anywhere for the membership test to find. The repo uses no
     // reusable workflows, so the honest guard is that it stays that way — modelling the
     // inheritance properly would mean resolving `uses:` targets.
-    if (/^\s*secrets:\s*inherit\s*$/m.test(stripComments(lines).join('\n'))) {
+    //
+    // `(#.*)?` — this guard shipped WITHOUT it, one function below the docstring rule
+    // saying trailing comments are legal everywhere, and `secrets: inherit # needs
+    // everything` passed 9/9 green. Sixth instance.
+    if (/^\s*secrets:\s*inherit\s*(#.*)?$/m.test(stripComments(lines).join('\n'))) {
       secretsInheritUsers.push(workflow);
+    }
+    if (jobs.some((j) => j.workflow === workflow && dynamicSecretIndex(j.body))) {
+      dynamicIndexUsers.push(workflow);
     }
   }
 
-  return { jobs, workflows, workflowLevelSecretRefs, secretsInheritUsers };
+  return { jobs, workflows, workflowLevelSecretRefs, secretsInheritUsers, dynamicIndexUsers };
 }
 
 describe('workflow secret scoping (BL-111 D2)', () => {
-  const { jobs, workflows, workflowLevelSecretRefs, secretsInheritUsers } = parseWorkflows();
+  const { jobs, workflows, workflowLevelSecretRefs, secretsInheritUsers, dynamicIndexUsers } =
+    parseWorkflows();
 
   it('extracts at least one job from every workflow file', () => {
     // The property that actually fails open. A job-count floor cannot catch one workflow
@@ -237,7 +285,7 @@ describe('workflow secret scoping (BL-111 D2)', () => {
   });
 
   it('finds the deploy jobs it is meant to be checking', () => {
-    const holders = jobs.filter((j) => DEPLOY_SECRETS.some((s) => j.body.includes(`secrets.${s}`)));
+    const holders = jobs.filter((j) => DEPLOY_SECRETS.some((s) => referencesSecret(j.body, s)));
     expect(holders.map((j) => `${j.workflow}:${j.name}`).sort()).toEqual([
       'deploy-mcp-production.yml:deploy-production',
       'deploy-mcp-staging.yml:deploy-staging',
@@ -246,7 +294,7 @@ describe('workflow secret scoping (BL-111 D2)', () => {
   });
 
   it.each(DEPLOY_SECRETS)('every job referencing %s binds a GitHub Environment', (secret) => {
-    const referencing = jobs.filter((j) => j.body.includes(`secrets.${secret}`));
+    const referencing = jobs.filter((j) => referencesSecret(j.body, secret));
     expect(
       referencing.length,
       `no job references ${secret} — assertion would be vacuous`
@@ -301,13 +349,20 @@ describe('workflow secret scoping (BL-111 D2)', () => {
     expect(secretsInheritUsers).toEqual([]);
   });
 
+  it('indexes secrets only by literal name, never by expression', () => {
+    // `secrets[matrix.env]` — the shape a staging/production matrix produces — cannot be
+    // resolved to a name by any membership test. Same honest treatment as `secrets:
+    // inherit`: assert it absent rather than pretend the check would see it.
+    expect(dynamicIndexUsers).toEqual([]);
+  });
+
   it('confines MCP_PROBE_KEY to the one workflow whose repo-level residency is justified', () => {
     // The inverse assertion. MCP_PROBE_KEY is excluded from DEPLOY_SECRETS because
     // latency-probe.yml binds no environment and legitimately needs it — pinning it here
     // stops that exemption quietly expanding to a job that also holds deploy authority.
     const holders = [
       ...new Set(
-        jobs.filter((j) => j.body.includes('secrets.MCP_PROBE_KEY')).map((j) => j.workflow)
+        jobs.filter((j) => referencesSecret(j.body, 'MCP_PROBE_KEY')).map((j) => j.workflow)
       ),
     ];
     expect(holders).toEqual(['latency-probe.yml']);
