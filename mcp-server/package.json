@@ -30,11 +30,11 @@
   },
   "dependencies": {
     "@cfworker/json-schema": "^4.1.1",
-    "@cloudflare/workers-oauth-provider": "0.8.2",
+    "@cloudflare/workers-oauth-provider": "0.8.3",
     "@modelcontextprotocol/server": "2.0.0",
     "@sentry/cloudflare": "^10.65.0",
     "@upstash/ratelimit": "^2.0.5",
-    "@upstash/redis": "^1.35.0",
+    "@upstash/redis": "^1.38.1",
     "agents": "^0.20.1",
     "fflate": "^0.8.3",
     "xlsx-js-style": "^1.2.0",
