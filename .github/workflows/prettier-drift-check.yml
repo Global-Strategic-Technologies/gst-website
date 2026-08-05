@@ -73,17 +73,23 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # `gh issue create --label` fails if the label doesn't exist.
-          # Pre-create idempotently; --force is a no-op if it already
-          # exists with the same settings.
-          gh label create prettier-drift \
-            --color "fbca04" \
-            --description "Latent prettier-check drift surfaced by the weekly cron" \
-            --force
-          gh label create tech-debt \
-            --color "d73a4a" \
-            --description "Accumulated technical debt requiring cleanup" \
-            --force
+          # `gh issue create --label` fails if the label doesn't exist. Pre-create
+          # them; `--force` updates an existing label rather than erroring, so
+          # this is idempotent.
+          #
+          # BL-111 found this step's shape carries a defect worth fixing here too:
+          # under the default `bash -e` a transient `gh label create` failure
+          # aborts, and because the Issue step below is a SEPARATE step gated on
+          # the same condition, a failed step means the Issue is never opened —
+          # drift goes unreported for exactly the blip the pre-create exists to
+          # prevent. Warn and continue instead; the create below then falls back
+          # to filing unlabeled, because filing beats routing.
+          ensure_label() {
+            gh label create "$1" --color "$2" --description "$3" --force \
+              || echo "::warning::could not ensure label '$1'; the drift Issue may file unlabeled"
+          }
+          ensure_label prettier-drift fbca04 "Latent prettier-check drift surfaced by the weekly cron"
+          ensure_label tech-debt d73a4a "Accumulated technical debt requiring cleanup"
 
       - name: Open or update drift Issue
         if: steps.drift.outputs.drift_found == 'true'
@@ -103,15 +109,17 @@ jobs:
           EOF
           )"
           # Look for an existing open Issue with the label; update if found,
-          # create new otherwise.
-          EXISTING=$(gh issue list --label "prettier-drift" --state open --json number --jq '.[0].number')
+          # create new otherwise. `|| true` because `gh issue list --label` also
+          # errors on a label that does not exist — under `bash -e` that would
+          # abort the step, so the same blip that skipped the pre-create would
+          # take the lookup down with it (BL-111).
+          EXISTING=$(gh issue list --label "prettier-drift" --state open --json number --jq '.[0].number' || true)
+          TITLE="Prettier drift detected ($(date -u +%Y-%m-%d))"
           if [ -n "$EXISTING" ]; then
             gh issue edit "$EXISTING" --body "$BODY"
             echo "Updated existing Issue #$EXISTING"
           else
-            NEW=$(gh issue create \
-              --title "Prettier drift detected ($(date -u +%Y-%m-%d))" \
-              --label "tech-debt,prettier-drift" \
-              --body "$BODY")
+            NEW=$(gh issue create --title "$TITLE" --label "tech-debt,prettier-drift" --body "$BODY" \
+              || gh issue create --title "$TITLE" --body "$BODY")
             echo "Opened new Issue: $NEW"
           fi

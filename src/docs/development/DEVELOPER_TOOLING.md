@@ -902,4 +902,4 @@ Two manual steps are required to complete Phase 2:
 
 ---
 
-**Last Updated**: August 5, 2026 (BL-109 — `test-mcp-server.yml`'s `paths` allowlist replaced with directory globs after the hand-maintained enumeration drifted twice)
+**Last Updated**: August 5, 2026 (BL-111 — the production deploy's pre-flight guard extracted to `scripts/await-mcp-test-run.sh` with an exit-code contract, staging refuses fork-triggered runs, and the deploy-failure notification was made to actually fire)

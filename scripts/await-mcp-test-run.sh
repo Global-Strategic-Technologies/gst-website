@@ -25,8 +25,12 @@
 #   2  bad or missing input, or a missing dependency (`gh`, `node`)
 #   3  cap reached, runs present but unfinished        -> re-run the deploy
 #   4  cap reached, no run ever appeared               -> check for a skipped run
-#   5  persistent transport failure (gh non-zero)      -> fix the credential
-#   6  no parseable response (gh ok, body unreadable)  -> often transient, re-run
+#   5  cap reached, gh failing at the transport layer  -> fix the credential
+#   6  cap reached, gh ok but the body was unreadable  -> often transient, re-run
+#
+# 5 and 6 describe where the poll ENDED, not the whole window: a run observed in
+# flight outranks a late API blip, because "the suite was still going" and "the
+# credential is dead" have opposite operator actions.
 #
 # 3 and 4 are distinct because their operator actions are OPPOSITE and one is
 # dangerous: told to `workflow_dispatch` on a 3, an operator deploys with no
@@ -81,6 +85,25 @@ if [[ ! "$REPO" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
   echo "await-mcp-test-run: REPO must be owner/name, got '${REPO}'" >&2
   exit 2
 fi
+# The numeric inputs get the same discipline, because both failures are silent
+# and both are misread by the incident table. A non-integer POLL_CAP_S makes
+# every `[ -ge ]` an error under `set -e`... except the comparison is the loop's
+# only exit, so the loop never terminates and the step is KILLED at
+# `timeout-minutes: 6` with NO exit code — the one row the table calls a script
+# bug. A non-numeric POLL_EVERY_S makes `sleep` fail, which under `set -e` is
+# exit 1: "the suite ran and FAILED on this SHA. Do not deploy."
+if [[ ! "$POLL_CAP_S" =~ ^[0-9]+$ ]]; then
+  echo "await-mcp-test-run: POLL_CAP_S must be whole seconds, got '${POLL_CAP_S}'" >&2
+  exit 2
+fi
+# Fractional is allowed (the tests poll at 0.2 s), and so is 0 — the cap is
+# wall-clock, so a zero interval spins for POLL_CAP_S and stops. Under the sleep
+# accumulator this replaced, 0 would have looped forever; the coverage case for
+# the wall-clock cap is exactly that.
+if [[ ! "$POLL_EVERY_S" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+  echo "await-mcp-test-run: POLL_EVERY_S must be a non-negative number, got '${POLL_EVERY_S}'" >&2
+  exit 2
+fi
 
 # Dependency probes, and they are not ceremony: this step runs BEFORE
 # `actions/setup-node`, so it relies on the runner's preinstalled toolchain.
@@ -124,6 +147,15 @@ SECONDS=0
 last_parsed=0
 last_transport=0
 count=""
+
+# The one thing worth remembering ACROSS attempts, and only this: that a run for
+# this SHA was seen in flight at least once. "The suite was still going" (3) and
+# "the credential is dead" (5) have opposite operator actions, so a late API
+# blip must not overwrite an observation the poll already made. This does not
+# reopen the stale-count hole — exit 4 still requires a LIVE final observation
+# of count == 0; a remembered sighting can only ever route to 3, the code whose
+# advice is "re-run", which is safe to be wrong about.
+ever_saw_run=0
 
 while :; do
   last_parsed=0
@@ -177,6 +209,9 @@ while :; do
     last_parsed=1
     set -- $total
     count="$1"; any_success="$2"; any_pending="$3"
+    if [ "$count" != "0" ]; then
+      ever_saw_run=1
+    fi
 
     if [ "$any_success" = "1" ]; then
       echo "await-mcp-test-run: MCP Server Test Suite passed on ${TARGET_SHA} (${SECONDS}s)"
@@ -205,6 +240,14 @@ if [ "$last_parsed" = "1" ]; then
     exit 4
   fi
   echo "await-mcp-test-run: ${WORKFLOW} still running on ${TARGET_SHA} after ${POLL_CAP_S}s — re-run this deploy; do NOT workflow_dispatch." >&2
+  exit 3
+fi
+
+# The final attempt told us nothing — but if the poll ever SAW a run for this
+# SHA, that outranks the blip that ended it. Reporting 5 here would tell the
+# operator not to re-run when re-running is the entire remedy.
+if [ "$ever_saw_run" = "1" ]; then
+  echo "await-mcp-test-run: a ${WORKFLOW} run for ${TARGET_SHA} was seen in flight, but the API stopped answering before it resolved — re-run this deploy; do NOT workflow_dispatch." >&2
   exit 3
 fi
 
