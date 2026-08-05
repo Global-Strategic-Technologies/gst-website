@@ -156,7 +156,10 @@ jobs:
         # script's header is the authority.
         if: github.event_name == 'push'
         # Bounds the poll independently of the script's own 300 s cap — defence
-        # against a hang, not a second cap. The JOB budget stays at 10 min:
+        # against a hang, not a second cap. That cap is WALL-CLOCK, deliberately:
+        # a sleep accumulator plus 31 round trips can exceed 360 s under degraded
+        # API latency, and the step would then be KILLED with no exit code at all
+        # — in the one place an operator reads exit codes. The JOB budget stays at 10 min:
         # measured, the deploy tail is ~37 s (worst case ~2.5 min), so 5 + 2.5
         # fits with margin. Approval wait is excluded from timeout-minutes.
         timeout-minutes: 6
@@ -200,9 +203,9 @@ jobs:
 
       - name: Open Issue on deploy failure
         # Audit gap #10: production deploy failures had no operator
-        # notification path. Opens a P1-labeled Issue with the run URL +
-        # SHA so the failure surfaces in the GitHub Issues view rather
-        # than only in the Actions tab.
+        # notification path. Opens an Issue labeled `incident` +
+        # `mcp-prod-deploy` with the run URL + SHA so the failure surfaces
+        # in the GitHub Issues view rather than only in the Actions tab.
         if: failure() && github.ref == 'refs/heads/master'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -213,26 +216,29 @@ jobs:
           # not exist, so this step failed silently for its whole life — the repo
           # has one Issue (#96, 2026-04-19) despite repeated deploy failures, and
           # run 30975740442 shows `failure` on this very step. Pre-create the
-          # labels idempotently; `--force` is a no-op when they already exist.
-          # Same pattern and same root cause as prettier-drift-check.yml.
+          # labels; `--force` updates an existing label rather than erroring, so
+          # this is idempotent. Same pattern and root cause as
+          # prettier-drift-check.yml.
           #
-          # Gated on the SAME `if:` as the issue creation below, deliberately: run
-          # unconditionally, a transient `gh label create` failure would fail the
-          # whole production deploy — a notification fix breaking the thing it
-          # exists to report on.
-          gh label create incident \
-            --color "b60205" \
-            --description "Production or recovery incident requiring operator action" \
-            --force
-          gh label create mcp-prod-deploy \
-            --color "1d76db" \
-            --description "MCP Worker production deploy pipeline" \
-            --force
+          # TWO degradations, because this step must not be able to mute itself:
+          #
+          #   `|| echo ::warning::` — the default `run:` shell is `bash -e`, so a
+          #   transient label failure would abort BEFORE `gh issue create` runs.
+          #   The notification would go silent in exactly the case it exists to
+          #   report on, which is the failure this whole defect is about.
+          #
+          #   `|| gh issue create` unlabeled — and if a label genuinely could not
+          #   be ensured, filing without labels beats not filing. Routing is worth
+          #   less than the operator learning production is broken.
+          ensure_label() {
+            gh label create "$1" --color "$2" --description "$3" --force \
+              || echo "::warning::could not ensure label '$1'; the incident Issue may file unlabeled"
+          }
+          ensure_label incident b60205 "Production or recovery incident requiring operator action"
+          ensure_label mcp-prod-deploy 1d76db "MCP Worker production deploy pipeline"
 
-          gh issue create \
-            --title "🚨 Production MCP deploy failed at ${DEPLOYED_SHA:0:7}" \
-            --label "incident,mcp-prod-deploy" \
-            --body "$(cat <<EOF
+          TITLE="🚨 Production MCP deploy failed at ${DEPLOYED_SHA:0:7}"
+          BODY="$(cat <<EOF
           **Workflow run**: $RUN_URL
           **SHA**: \`$DEPLOYED_SHA\`
           **Triggered by**: @${{ github.actor }}
@@ -253,7 +259,7 @@ jobs:
           | 4 | no suite run ever appeared for this SHA | check whether the upstream paths filter legitimately skipped it. This is the **only** case where \`workflow_dispatch\` is right |
           | 5 | GitHub API unreachable throughout | dead token, revoked permission or outage. Re-running will not help — fix the credential |
           | 6 | API responded but no body was parseable | usually a transient proxy/interstitial. **Re-run first** |
-          | *(none — step killed at 6 min)* | the poll's own 5 min cap should have fired first, so the loop did not terminate | script bug; do not re-run, read the log |
+          | *(none — step killed at 6 min)* | the poll's own 5 min cap is WALL-CLOCK, so it always fires first; reaching 6 min means the loop did not terminate | script bug; do not re-run, read the log |
 
           **Operator actions**:
           1. Open the run URL above and read the failing step's log.
@@ -264,3 +270,6 @@ jobs:
           Close this Issue once the production state is verified clean.
           EOF
           )"
+
+          gh issue create --title "$TITLE" --label "incident,mcp-prod-deploy" --body "$BODY" \
+            || gh issue create --title "$TITLE" --body "$BODY"

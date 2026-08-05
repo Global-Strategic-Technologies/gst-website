@@ -22,7 +22,7 @@
 #
 #   0  a run for this SHA concluded `success`
 #   1  every run terminal, none successful — the suite genuinely failed
-#   2  bad or missing input (unset/malformed SHA, unset repo)
+#   2  bad or missing input, or a missing dependency (`gh`, `node`)
 #   3  cap reached, runs present but unfinished        -> re-run the deploy
 #   4  cap reached, no run ever appeared               -> check for a skipped run
 #   5  persistent transport failure (gh non-zero)      -> fix the credential
@@ -33,11 +33,17 @@
 # test verification at all. 5 and 6 split for the same reason — don't re-run vs
 # re-run first.
 #
+# Guarded by `tests/integration/await-mcp-test-run.test.ts`, which drives this
+# script against a stubbed `gh` and asserts the exit CODE for every branch.
+# There is no shell lint in this repo, so that matrix is the only pre-merge
+# check this file has — keep it exhaustive rather than trimming it once the
+# script looks finished.
+#
 # ## Inputs (env)
 #
 #   TARGET_SHA   required, 40 hex chars
 #   REPO         defaults to $GITHUB_REPOSITORY; required when that is unset
-#   POLL_CAP_S   total seconds to wait (default 300)
+#   POLL_CAP_S   WALL-CLOCK seconds to wait (default 300)
 #   POLL_EVERY_S seconds between attempts (default 10)
 #   GH_TOKEN     read by `gh` from the environment
 #
@@ -55,18 +61,38 @@ POLL_EVERY_S="${POLL_EVERY_S:-10}"
 # malformed SHA is worse: it yields a legitimate total_count of 0 and polls for
 # five minutes before reporting absence. (Same discipline as smoke-probe.sh:
 # "Validate before any curl.")
+#
+# `[[ =~ ]]` rather than `grep -Eq`, deliberately: grep matches per LINE, so a
+# SHA of "<40 hex>\nanything" passes a `^...$` grep and reaches the URL. Bash's
+# ERE has no multiline mode, so ^ and $ anchor the whole string.
 if [ -z "$TARGET_SHA" ]; then
   echo "await-mcp-test-run: TARGET_SHA is required" >&2
   exit 2
 fi
-if ! printf '%s' "$TARGET_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
-  echo "await-mcp-test-run: TARGET_SHA must be 40 lowercase hex chars, got '$TARGET_SHA'" >&2
+if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "await-mcp-test-run: TARGET_SHA must be 40 lowercase hex chars, got '${TARGET_SHA}'" >&2
   exit 2
 fi
 if [ -z "$REPO" ]; then
   echo "await-mcp-test-run: REPO (or GITHUB_REPOSITORY) is required" >&2
   exit 2
 fi
+if [[ ! "$REPO" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]]; then
+  echo "await-mcp-test-run: REPO must be owner/name, got '${REPO}'" >&2
+  exit 2
+fi
+
+# Dependency probes, and they are not ceremony: this step runs BEFORE
+# `actions/setup-node`, so it relies on the runner's preinstalled toolchain.
+# Absent either binary the script would otherwise burn the full cap and then
+# blame a proxy (6) or a dead credential (5) — a misdiagnosis pointing the
+# operator at the wrong repair. Missing tools are input problems: exit 2.
+for dep in gh node; do
+  if ! command -v "$dep" >/dev/null 2>&1; then
+    echo "await-mcp-test-run: '${dep}' is not on PATH — this step runs before setup-node and depends on the preinstalled runner toolchain" >&2
+    exit 2
+  fi
+done
 
 # `head_sha` is an exact server-side match, so absence is a first-class signal
 # (total_count == 0) rather than an empty-string inference. It also removes the
@@ -79,11 +105,30 @@ API="repos/${REPO}/actions/workflows/${WORKFLOW}/runs?head_sha=${TARGET_SHA}&eve
 
 echo "await-mcp-test-run: waiting up to ${POLL_CAP_S}s for ${WORKFLOW} on ${TARGET_SHA}"
 
-saw_transport=0   # any attempt where gh exited 0
-saw_parseable=0   # any attempt whose body we could read
-elapsed=0
+# WALL-CLOCK, not a sleep accumulator. The step carries `timeout-minutes: 6`
+# and each attempt costs a round trip (~0.6 s measured), so 30 sleeps of 10 s
+# plus 31 round trips can exceed 360 s under degraded API latency — the step
+# would be KILLED mid-poll and emit no exit code at all, in the one place an
+# operator reads exit codes. `SECONDS` counts real time, so the script's own
+# cap always fires first and the step timeout stays what it is meant to be: a
+# hang defence.
+SECONDS=0
+
+# Per-attempt state, RESET each iteration. The cap arms below are decided by
+# the FINAL attempt, not by aggregate flags: a `count` surviving from an
+# earlier attempt would let a since-dead API report exit 4 ("no run ever
+# appeared"), which is the one code whose operator action is `workflow_dispatch`
+# — deploying with no verification at all. The asymmetry is deliberate. A blip
+# on the last attempt costs a wrong-but-safe 5 or 6 (a wasted re-run); a stale
+# count costs an unverified production deploy.
+last_parsed=0
+last_transport=0
+count=""
 
 while :; do
+  last_parsed=0
+  last_transport=0
+
   # `set -e` would abort on a non-zero gh exit, which would turn an API error
   # into an abort rather than a retry. Wrapping in `if !` suspends that. NOTE:
   # smoke-probe.sh uses `curl ... || echo ""`, which collapses error into empty
@@ -92,13 +137,18 @@ while :; do
   if ! resp="$(gh api "$API" 2>/dev/null)"; then
     resp=""
   else
-    saw_transport=1
+    last_transport=1
   fi
 
   # Parsed with node rather than `gh api --jq`, deliberately: --jq makes gh exit
   # non-zero on a parse failure, which would collapse the transport and parse
   # cases back into one code. Node is present on GitHub runners and locally, so
   # the stub matrix can exercise this path.
+  #
+  # A body that parses as JSON but carries no `workflow_runs` ARRAY — a GitHub
+  # error object served with a 200, say — is a PARSE failure, not "count 0".
+  # Treating it as count 0 would land it on exit 4 and send the operator to
+  # `workflow_dispatch` over an API defect.
   total=""
   if [ -n "$resp" ]; then
     total="$(printf '%s' "$resp" | node -e '
@@ -107,11 +157,14 @@ while :; do
       process.stdin.on("end", () => {
         try {
           const j = JSON.parse(raw);
-          const runs = Array.isArray(j.workflow_runs) ? j.workflow_runs : [];
-          const anySuccess = runs.some((r) => r.conclusion === "success");
-          const anyPending = runs.some((r) => r.status !== "completed");
+          if (!j || !Array.isArray(j.workflow_runs) || typeof j.total_count !== "number") {
+            process.exit(9);
+          }
+          const runs = j.workflow_runs;
+          const anySuccess = runs.some((r) => r && r.conclusion === "success");
+          const anyPending = runs.some((r) => !r || r.status !== "completed");
           process.stdout.write(
-            [j.total_count ?? 0, anySuccess ? 1 : 0, anyPending ? 1 : 0].join(" ")
+            [j.total_count, anySuccess ? 1 : 0, anyPending ? 1 : 0].join(" ")
           );
         } catch {
           process.exit(9);
@@ -121,12 +174,12 @@ while :; do
   fi
 
   if [ -n "$total" ]; then
-    saw_parseable=1
+    last_parsed=1
     set -- $total
     count="$1"; any_success="$2"; any_pending="$3"
 
     if [ "$any_success" = "1" ]; then
-      echo "await-mcp-test-run: MCP Server Test Suite passed on ${TARGET_SHA} (${elapsed}s)"
+      echo "await-mcp-test-run: MCP Server Test Suite passed on ${TARGET_SHA} (${SECONDS}s)"
       exit 0
     fi
     # Continue while nothing has succeeded AND (nothing appeared OR something is
@@ -138,27 +191,27 @@ while :; do
     fi
   fi
 
-  if [ "$elapsed" -ge "$POLL_CAP_S" ]; then
+  if [ "$SECONDS" -ge "$POLL_CAP_S" ]; then
     break
   fi
   sleep "$POLL_EVERY_S"
-  elapsed=$((elapsed + POLL_EVERY_S))
 done
 
-# Cap reached. Four outcomes, distinguished because their operator actions differ.
-if [ "$saw_parseable" = "0" ]; then
-  if [ "$saw_transport" = "0" ]; then
-    echo "await-mcp-test-run: no successful API response in ${POLL_CAP_S}s — dead token, revoked permission, or a GitHub outage. Re-running will not help; fix the credential." >&2
-    exit 5
+# Cap reached. Four outcomes, distinguished because their operator ACTIONS
+# differ — and decided by what the final attempt actually observed.
+if [ "$last_parsed" = "1" ]; then
+  if [ "$count" = "0" ]; then
+    echo "await-mcp-test-run: no ${WORKFLOW} run ever appeared for ${TARGET_SHA} in ${POLL_CAP_S}s — most likely list-visibility lag. Check whether the upstream suite legitimately skipped this commit before using workflow_dispatch." >&2
+    exit 4
   fi
-  echo "await-mcp-test-run: API responded but no body was parseable in ${POLL_CAP_S}s — often a proxy or interstitial returning non-JSON, and usually transient. Re-run first." >&2
-  exit 6
+  echo "await-mcp-test-run: ${WORKFLOW} still running on ${TARGET_SHA} after ${POLL_CAP_S}s — re-run this deploy; do NOT workflow_dispatch." >&2
+  exit 3
 fi
 
-if [ "${count:-0}" = "0" ]; then
-  echo "await-mcp-test-run: no ${WORKFLOW} run ever appeared for ${TARGET_SHA} in ${POLL_CAP_S}s — most likely list-visibility lag. Check whether the upstream suite legitimately skipped this commit before using workflow_dispatch." >&2
-  exit 4
+if [ "$last_transport" = "0" ]; then
+  echo "await-mcp-test-run: no successful API response in ${POLL_CAP_S}s — dead token, revoked permission, or a GitHub outage. Re-running will not help; fix the credential." >&2
+  exit 5
 fi
 
-echo "await-mcp-test-run: ${WORKFLOW} still running on ${TARGET_SHA} after ${POLL_CAP_S}s — re-run this deploy; do NOT workflow_dispatch." >&2
-exit 3
+echo "await-mcp-test-run: API responded but no body was parseable in ${POLL_CAP_S}s — often a proxy or interstitial returning non-JSON, and usually transient. Re-run first." >&2
+exit 6

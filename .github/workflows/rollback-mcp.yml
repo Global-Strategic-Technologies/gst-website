@@ -164,25 +164,25 @@ jobs:
           # `incident` / `mcp-rollback` / `P1` existed, so `gh issue create --label`
           # errored and this notification never fired. That matters more here than
           # anywhere else — this is the RECOVERY path, the loudest thing in the
-          # pipeline, and it was mute. Pre-create idempotently; `--force` is a
-          # no-op when a label already exists.
-          gh label create incident \
-            --color "b60205" \
-            --description "Production or recovery incident requiring operator action" \
-            --force
-          gh label create mcp-rollback \
-            --color "5319e7" \
-            --description "MCP Worker rollback pipeline" \
-            --force
-          gh label create P1 \
-            --color "b60205" \
-            --description "Highest severity — act now" \
-            --force
+          # pipeline, and it was mute. Pre-create the labels; `--force` updates an
+          # existing label rather than erroring, so this is idempotent.
+          #
+          # Both degradations matter more here than on the deploy path, for the
+          # same reason the step's own comment gives: under `bash -e` a transient
+          # `gh label create` failure would abort before the Issue is attempted,
+          # and a label that could not be ensured must degrade to an UNLABELED
+          # Issue rather than to silence. See deploy-mcp-production.yml for the
+          # full reasoning.
+          ensure_label() {
+            gh label create "$1" --color "$2" --description "$3" --force \
+              || echo "::warning::could not ensure label '$1'; the incident Issue may file unlabeled"
+          }
+          ensure_label incident b60205 "Production or recovery incident requiring operator action"
+          ensure_label mcp-rollback 5319e7 "MCP Worker rollback pipeline"
+          ensure_label P1 b60205 "Highest severity — act now"
 
-          gh issue create \
-            --title "🚨 MCP rollback FAILED on ${{ inputs.environment }} → ${{ inputs.target-sha }}" \
-            --label "incident,mcp-rollback,P1" \
-            --body "$(cat <<EOF
+          TITLE="🚨 MCP rollback FAILED on ${{ inputs.environment }} → ${{ inputs.target-sha }}"
+          BODY="$(cat <<EOF
           **Workflow run**: $RUN_URL
           **Environment**: \`${{ inputs.environment }}\`
           **Version ID**: \`${{ inputs.version-id }}\`
@@ -204,3 +204,6 @@ jobs:
           Close this Issue once the rollback target is verified clean on \`/health\`.
           EOF
           )"
+
+          gh issue create --title "$TITLE" --label "incident,mcp-rollback,P1" --body "$BODY" \
+            || gh issue create --title "$TITLE" --body "$BODY"
