@@ -160,6 +160,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          # BL-111 defect 3, same root cause as deploy-mcp-production.yml: none of
+          # `incident` / `mcp-rollback` / `P1` existed, so `gh issue create --label`
+          # errored and this notification never fired. That matters more here than
+          # anywhere else — this is the RECOVERY path, the loudest thing in the
+          # pipeline, and it was mute. Pre-create idempotently; `--force` is a
+          # no-op when a label already exists.
+          gh label create incident \
+            --color "b60205" \
+            --description "Production or recovery incident requiring operator action" \
+            --force
+          gh label create mcp-rollback \
+            --color "5319e7" \
+            --description "MCP Worker rollback pipeline" \
+            --force
+          gh label create P1 \
+            --color "b60205" \
+            --description "Highest severity — act now" \
+            --force
+
           gh issue create \
             --title "🚨 MCP rollback FAILED on ${{ inputs.environment }} → ${{ inputs.target-sha }}" \
             --label "incident,mcp-rollback,P1" \

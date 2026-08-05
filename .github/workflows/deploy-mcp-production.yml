@@ -192,6 +192,26 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           DEPLOYED_SHA: ${{ github.sha }}
         run: |
+          # BL-111 defect 3: `gh issue create --label` ERRORS on a label that does
+          # not exist, so this step failed silently for its whole life — the repo
+          # has one Issue (#96, 2026-04-19) despite repeated deploy failures, and
+          # run 30975740442 shows `failure` on this very step. Pre-create the
+          # labels idempotently; `--force` is a no-op when they already exist.
+          # Same pattern and same root cause as prettier-drift-check.yml.
+          #
+          # Gated on the SAME `if:` as the issue creation below, deliberately: run
+          # unconditionally, a transient `gh label create` failure would fail the
+          # whole production deploy — a notification fix breaking the thing it
+          # exists to report on.
+          gh label create incident \
+            --color "b60205" \
+            --description "Production or recovery incident requiring operator action" \
+            --force
+          gh label create mcp-prod-deploy \
+            --color "1d76db" \
+            --description "MCP Worker production deploy pipeline" \
+            --force
+
           gh issue create \
             --title "🚨 Production MCP deploy failed at ${DEPLOYED_SHA:0:7}" \
             --label "incident,mcp-prod-deploy" \
