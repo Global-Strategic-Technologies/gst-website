@@ -71,7 +71,10 @@
  *     inherit` and `secrets[<expr>]` are named exclusions with their own tests.
  *   - **Prefer removing a precondition to matching a syntax.** Ten paths in, the pattern is
  *     clear: every syntax match invites the next variant. Asserting no job-level `uses:`
- *     ends the `secrets: inherit` class outright; the keyword regex is only belt.
+ *     ends the `secrets: inherit` class **at the key indent every workflow here uses** —
+ *     not outright. Below that indent the keyword regex is the primary control, not a
+ *     belt. Bounding the claim matters more than the rule reading cleanly: the unqualified
+ *     version was written here and corrected only at the assertion 350 lines down.
  *
  * **The method that actually works is none of the above — it is the differential check.**
  * Vigilance produced ten fail-open paths; running this parser against the real `yaml`
@@ -423,11 +426,11 @@ describe('workflow secret scoping (BL-111 D2)', () => {
     // exists removes the precondition entirely. Step-level `uses:` (actions/checkout etc.)
     // is a list item under `steps:` and is not matched.
     //
-    // Indent assumption, stated because it bounds the claim: `/^ {4}uses:/` matches the
-    // CANONICAL job-key indent. A reusable call written with six-space job keys evades
-    // this specific assertion (the `secrets: inherit` keyword belt still catches it, and a
-    // call passing no secrets is harmless). "Ends the class outright" means at the indent
-    // every workflow in this repo uses.
+    // Indent assumption, stated because it bounds the claim. Job NAMES sit at two spaces;
+    // the keys WITHIN a job — `runs-on:`, `uses:`, `steps:` — sit at four, which is what
+    // this matches and what every workflow here uses. A reusable call whose job keys sit
+    // deeper evades this specific assertion; the `secrets: inherit` keyword regex is the
+    // control that catches it there, and a call passing no secrets is harmless either way.
     expect(
       reusableWorkflowCallers,
       'A reusable workflow call is the precondition for `secrets: inherit`, which no ' +
