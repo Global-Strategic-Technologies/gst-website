@@ -28,14 +28,26 @@ on:
     paths:
       - 'mcp-server/**'
       - '!mcp-server/**/*.md'
-      - 'src/utils/diligence-engine.ts'
-      - 'src/utils/filterLogic.ts'
-      # IRL generator pipeline the MCP tool/prompt bundle via prebuild codegen.
-      - 'src/utils/irl/**'
+      # Website modules the Worker VALUE-imports at runtime. Globs, not an
+      # enumeration: the hand-maintained list drifted twice (BL-109 found
+      # radar-url.ts missing since it was introduced, and would have added three
+      # more one-by-one). A PR touching only an unlisted file runs ZERO mcp tests,
+      # so the guard is absent on exactly the change it exists to catch — and the
+      # gap is invisible because a workflow that never fires reports nothing.
+      #
+      # Consequence: a website-only edit under these globs now runs the MCP suite and
+      # (on master) a no-op staging redeploy. Expected, not a misfire — the alternative
+      # is guessing which website edits reach the Worker bundle.
+      # `deploy-mcp-production.yml` MUST carry the same list; asserted by
+      # `tests/integration/workflow-paths-parity.test.ts`.
+      - 'src/utils/**'
+      - 'src/schemas/**'
+      - 'src/data/common/**'
+      - 'src/data/diligence-machine/**'
+      - 'src/data/infrastructure-cost-governance/**'
       - 'src/data/irl/**'
-      - 'src/schemas/diligence.ts'
-      - 'src/schemas/portfolio.ts'
       - 'src/data/ma-portfolio/projects.json'
+      - 'src/lib/inoreader/types.ts'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/test-mcp-server.yml'
@@ -49,14 +61,20 @@ on:
     paths:
       - 'mcp-server/**'
       - '!mcp-server/**/*.md'
-      - 'src/utils/diligence-engine.ts'
-      - 'src/utils/filterLogic.ts'
-      # IRL generator pipeline the MCP tool/prompt bundle via prebuild codegen.
-      - 'src/utils/irl/**'
+      # Website modules the Worker VALUE-imports at runtime. Globs, not an
+      # enumeration: the hand-maintained list drifted twice (BL-109 found
+      # radar-url.ts missing since it was introduced, and would have added three
+      # more one-by-one). A PR touching only an unlisted file runs ZERO mcp tests,
+      # so the guard is absent on exactly the change it exists to catch — and the
+      # gap is invisible because a workflow that never fires reports nothing.
+      - 'src/utils/**'
+      - 'src/schemas/**'
+      - 'src/data/common/**'
+      - 'src/data/diligence-machine/**'
+      - 'src/data/infrastructure-cost-governance/**'
       - 'src/data/irl/**'
-      - 'src/schemas/diligence.ts'
-      - 'src/schemas/portfolio.ts'
       - 'src/data/ma-portfolio/projects.json'
+      - 'src/lib/inoreader/types.ts'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/test-mcp-server.yml'

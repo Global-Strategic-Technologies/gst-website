@@ -231,6 +231,33 @@ describe('generate_information_request_list_xlsx — handler', () => {
     expect(payload.canonicalUrl).toMatch(/\/hub\/library\/information-request-list\/?$/);
   });
 
+  // BL-109 — the download surface must be a FIELD, not only prose.
+  //
+  // A client acceptance probe asked where to download the workbook and got the library
+  // ARTICLE url, because `downloadUrl` existed only inside the caption string while the
+  // payload carried `canonicalUrl`. Two different pages. Directing the recipient to the
+  // download surface is this tool's entire purpose, so it cannot live in one channel.
+  it('exposes downloadUrl (the Hub GENERATOR page) as a payload field, distinct from canonicalUrl', async () => {
+    const result = await handleGenerateIrlXlsxTool({ targetName: 'Acme Health' });
+    const payload = result.structuredContent as { downloadUrl: string; canonicalUrl: string };
+
+    expect(payload.downloadUrl).toMatch(/\/hub\/tools\/information-request-list-generator\//);
+    expect(payload.downloadUrl).not.toBe(payload.canonicalUrl);
+    // The generator link carries this call's args, which is what makes it worth having.
+    expect(payload.downloadUrl).toMatch(/[?&]target=Acme\+Health(&|$)/);
+  });
+
+  it('downloadUrl equals the URL already present in the caption — the two must not drift', async () => {
+    // Falsifiable both ways: if the caption's URL is regenerated independently, or if
+    // the payload field is pointed at a different page, this fails. That drift IS the
+    // defect BL-109 fixed.
+    const result = await handleGenerateIrlXlsxTool({ targetName: 'Acme Health' });
+    const payload = result.structuredContent as { downloadUrl: string };
+    const caption = (result.content[0] as { text: string }).text;
+
+    expect(caption).toContain(payload.downloadUrl);
+  });
+
   it('includeSections filters the workbook — sectionCount and summary count reflect the subset', async () => {
     const result = await handleGenerateIrlXlsxTool({ includeSections: ['00', '01'] });
     const payload = result.structuredContent as { sectionCount: number };

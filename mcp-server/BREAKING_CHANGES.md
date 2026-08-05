@@ -31,6 +31,38 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.46.0 — 2026-08-05 — BL-109 — the radar tools apply the website's display bound
+
+**`search_radar` and `search_radar_offline` return fewer items, and a smaller `summary`.** Both changes make the tools match `/hub/radar`, which they had never done on output.
+
+**Who this affects**: anyone reading every element of `matches`. `totalMatched` now reports the pre-bound count while `returned` reports the post-bound one, so truncation is visible in the payload and in the caption (`"30 of 46 radar items"`). Consumers reading `summary` as HTML get plain text instead — nothing in this repo did.
+
+**Why.** `/hub/radar` caps the wire tier at `MAX_WIRE = 30` (with a `MIN_PER_CATEGORY = 3` quota) and FYI at `FYI_MAX_COUNT = 15`, so it renders **≤45 items**. `search_radar` applied **no** wire bound and returned 61. Under 0.45.0's two-channel response that produced a **143,027-character** result which exceeded a real client's tool-result ceiling — the tool became unusable, not merely large. 0.45.0's risk note framed the doubling as wire cost; this is the failure mode it missed.
+
+Two levers, both "mirror what the page does". Measured on a production-shaped corpus (15 FYI + 46 wire, realistic HTML summaries):
+
+|                             | chars      |            |
+| --------------------------- | ---------- | ---------- |
+| before (61 items, raw HTML) | 134,370    |            |
+| + wire bound only           | 99,834     | −25.7%     |
+| **+ HTML strip (shipped)**  | **78,737** | **−41.4%** |
+
+The bound alone would likely not have cleared the ceiling. `summary` carried Inoreader's **raw untruncated HTML** on every item — the page renders no summary at all for wire items and stripped-and-truncated text for FYI — so stripping markup is the larger lever and costs no meaning. It is **not** truncated: unlike the page's 250-char display cut, feed prose has analytical value to an LLM.
+
+**FYI is untouched**, so every `gstTake` survives. The strip happens at the **tool boundary only** — `/radar/snapshot`, the `gst://radar/*` Resources and the cron cache still carry raw source bytes.
+
+**No input change.** No `limit` was re-added; ADR-0005's capability-mirror decision stands. This is that invariant being enforced on _output_ for the first time — see its 2026-08-05 note. The bound now lives in [`src/utils/radar-feed-bounds.ts`](../src/utils/radar-feed-bounds.ts), called by both the website page and the tools, so the two cannot drift.
+
+**Also in this release**: `generate_information_request_list_xlsx` gains **`downloadUrl`** on its payload — the Hub _generator_ URL with the caller's args pre-filled. It previously existed only inside the caption string while the payload carried `canonicalUrl` (the library _article_ page), so a payload-reading client was handed the wrong URL for the tool's entire purpose. `canonicalUrl` is unchanged. And `search_radar`'s description now marks `search_radar_offline` **stdio-only** — it was advertising a tool the remote surface does not register.
+
+`get_latest_insights` gets the same `summary` projection — the two radar tools are a documented capability mirror, and a model composing across them would otherwise see one FYI item as plain text from one and raw HTML from the other.
+
+`gst_information_request_list`'s body now names `structuredContent.downloadUrl` as the link to relay, replacing "the Hub download link in its text summary" — the channel D2 showed to be insufficient. Directive intent is unchanged (direct the partner to the Hub generator page), only the field it names, so **`promptVersion` stays at `0.0.7`** and the manifest hash is unaffected.
+
+**No manifest change** — tool names, prompt names and Resource URIs are untouched.
+
+---
+
 ## 0.45.0 — 2026-08-04 — BL-108 — tool results carry the payload in `content` again
 
 **Every successful tool response changes shape.** `content` goes from one block to two: `content[0].text` is the same one-line caption as before, byte-identical, and **`content[1].text` is the compact serialized payload**. `structuredContent` is unchanged and remains canonical. Failure results are untouched — still a single block carrying the verbatim message.

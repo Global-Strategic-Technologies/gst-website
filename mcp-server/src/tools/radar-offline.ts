@@ -42,7 +42,12 @@ import {
   type RadarCategory,
   type SnapshotItem,
 } from '../content/radar-snapshot';
-import { oldestItemDaysAgo } from '../content/radar-transform';
+import {
+  oldestItemDaysAgo,
+  projectItemForModel,
+  RADAR_CATEGORIES,
+} from '../content/radar-transform';
+import { boundWireItems } from '../../../src/utils/radar-feed-bounds';
 import { serializeToParams as serializeRadarUrl } from '../../../src/utils/radar-url';
 import { RadarCategoryEnum } from '../schemas';
 import { HUB_BASE } from '../config';
@@ -60,7 +65,7 @@ const TOOL_DESCRIPTION = `Search the locally-cached GST Radar snapshot — stric
 
 Reads from \`.cache/inoreader/\` populated by \`npm run radar:seed\`. Never makes live Inoreader API calls — protects the shared 200 req/day budget.
 
-Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"); omit for all categories. Output mirrors the website's unified FYI + Wire feed sorted by \`publishedAt\` newest-first, plus a \`deeplink\` URL that opens /hub/radar pre-filtered to the same category.
+Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"); omit for all categories. Output mirrors the website's unified FYI + Wire feed sorted by \`publishedAt\` newest-first, plus a \`deeplink\` URL that opens /hub/radar pre-filtered to the same category. **The Wire tier is capped at 30 items** (up to 3 slots reserved per category so no category is crowded out), as /hub/radar does; the snapshot's FYI tier is returned whole. \`returned\` counts after the cap, \`totalMatched\` before it — differing values mean the feed was truncated. Item \`summary\` is plain text (source HTML stripped).
 
 If the snapshot is missing, returns a structured error with instructions. Companion to the gst://radar/... Resources.`;
 
@@ -96,22 +101,40 @@ export async function handleRadarOfflineTool(input: SearchRadarOfflineInput) {
     return toolFail('snapshot-missing', SNAPSHOT_MISSING_MESSAGE);
   }
 
+  // BL-109: bound the wire tier to the website's display cap, as `search_radar` now
+  // does — capability mirror between the two tools (see the module docstring). Applied
+  // BEFORE the category filter, across all categories, for the reason documented in
+  // `src/utils/radar-feed-bounds.ts`.
+  //
+  // Two deliberate asymmetries with the live tool, both pre-existing and preserved:
+  //   - No FYI/wire dedupe. This tool concatenates the two snapshot tiers; introducing
+  //     a dedupe here would be a behaviour change beyond BL-109's scope.
+  //   - No FYI cap. The offline snapshot tier is intentionally exempt from the freshness
+  //     gate's `FYI_MAX_COUNT` (`radar-transform.ts` — "the offline snapshot tier is
+  //     intentionally exempt"), so FYI passes through whole.
+  const boundedWire = wire ? boundWireItems(wire.items, RADAR_CATEGORIES) : [];
+
   const tagged: Array<SnapshotItem & { tier: 'fyi' | 'wire' }> = [];
   if (fyi) {
     for (const item of fyi.items) tagged.push({ ...item, tier: 'fyi' });
   }
-  if (wire) {
-    for (const item of wire.items) tagged.push({ ...item, tier: 'wire' });
-  }
+  for (const item of boundedWire) tagged.push({ ...item, tier: 'wire' });
 
   const matched = tagged
     .filter((item) => categoryMatches(item, input.category))
-    .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
+    .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1))
+    .map(projectItemForModel);
+
+  // `totalMatched` counts what matched the request BEFORE the display bound, so
+  // `returned` vs `totalMatched` reveals truncation. Mirrors `search_radar`.
+  const unboundedMatchCount =
+    (fyi?.items ?? []).filter((item) => categoryMatches(item, input.category)).length +
+    (wire?.items ?? []).filter((item) => categoryMatches(item, input.category)).length;
 
   const deeplink = buildRadarDeeplink(input);
   const payload = {
     matches: matched,
-    totalMatched: matched.length,
+    totalMatched: unboundedMatchCount,
     returned: matched.length,
     // BL-031.95 follow-up: freshness signal at the envelope. `null` when
     // matches is empty; otherwise rolling 24h-bucketed age of the oldest.
@@ -124,7 +147,13 @@ export async function handleRadarOfflineTool(input: SearchRadarOfflineInput) {
     },
     deeplink,
   };
-  return toolOk(payload, `${matched.length} radar items from the local snapshot.`);
+  // BL-109: "N of M", matching `search_radar`. Flipping `totalMatched` to the pre-bound
+  // count is only useful if the model-facing caption surfaces it — a caption reading
+  // "30 radar items" hides the truncation the field exists to reveal.
+  return toolOk(
+    payload,
+    `${payload.returned} of ${payload.totalMatched} radar items from the local snapshot.`
+  );
 }
 
 /**

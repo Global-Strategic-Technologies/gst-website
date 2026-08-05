@@ -149,6 +149,18 @@ FYI (curated) items age out under a **dual cap** enforced Worker-side, so a cura
 - Removing annotations (highlights/notes) in Inoreader still removes the item on the next refresh.
 - Constants live in `radar-transform.ts` — tune both in one place.
 
+### Wire Display Bound
+
+The **wire** tier has its own cap, and unlike the FYI caps above it is a _display_ bound applied at render/serve time rather than a retention rule:
+
+- **`MAX_WIRE = 30`** — at most 30 wire items in the bounded set.
+- **`MIN_PER_CATEGORY = 3`** — each category is guaranteed up to 3 slots _before_ chronological fill, so a category whose items are all older is not pushed past the cap entirely. This is also why the category pills can filter **client-side** over the already-bounded set and still have something to show.
+- Both live in [`src/utils/radar-feed-bounds.ts`](../../utils/radar-feed-bounds.ts) and are applied by **both** `/hub/radar` and the MCP `search_radar` / `search_radar_offline` tools.
+
+**BL-109 (2026-08-05)**: this bound was inline in `RadarFeed.astro` and the MCP tools applied **none** — `search_radar` returned ~46 wire items where the page renders 30. Under BL-108's two-channel tool response that produced a 143,027-character result which exceeded a real client's tool-result ceiling. Extracting it made the mirror real; measured on a production-shaped corpus the tool response fell 41.4% (134,370 → 78,737 chars), of which the bound accounts for 25.7 points and stripping raw HTML out of `summary` for the rest.
+
+**Order is load-bearing**: dedupe wire against FYI → bound **globally** → merge → apply the category filter. Bounding before the dedupe lets duplicates consume slots; bounding after the category filter returns up to `MAX_WIRE` items of one category where the page shows a handful.
+
 > **Offline tier is exempt (by design).** The seeded offline snapshot (`npm run radar:seed`, the `search_radar_offline` tool, the `gst_radar_brief_today` prompt embed) uses static fixture timestamps for deterministic, budget-free CI/dev. `filterFreshFyi` is **not** applied there — see the header note in `mcp-server/src/content/radar-snapshot.ts`.
 
 ## Page UX Features
@@ -183,6 +195,7 @@ src/
 ├── lib/inoreader/
 │   ├── types.ts                  # TypeScript interfaces (RadarFyiItem, RadarWireItem, ...)
 │   └── transform.ts             # MCP-snapshot adapters + CATEGORIES + mergeFeed
+│                                 #   (stripHtml/truncate moved to src/utils/html-text.ts, BL-109)
 ├── pages/hub/radar/
 │   └── index.astro               # Main Radar page (SSR + ISR + unified feed)
 scripts/
@@ -210,7 +223,7 @@ Local development consumes **zero** Inoreader budget on either path: the website
 
 **Website path**: the website no longer holds an Inoreader cache (post-BL-032.8 Phase B). For offline radar development, point Vercel preview deploys / `npm run dev` at the staging MCP Worker by setting `MCP_RADAR_SNAPSHOT_URL=https://mcp-staging.globalstrategic.tech/radar/snapshot` in your local `.env`. The Worker keeps the snapshot warm via its own cron-driven cache (`mcp:radar:cache:wire` / `:fyi` in the MCP Upstash DB, 6h TTL).
 
-**Website path, with no secret at all**: `npm run radar:stub` serves a fixed offline snapshot on `127.0.0.1:8787` — 6 wire + 2 FYI items across two categories, all 8 of which render. (FYI items carry their own URLs deliberately: `RadarFeed` dedupes wire entries whose URL also appears in FYI, so reusing one would silently drop a wire item.) Point the site at it in `.env`:
+**Website path, with no secret at all**: `npm run radar:stub` serves a fixed offline snapshot on `127.0.0.1:8787` — 6 wire + 2 FYI items across two categories, all 8 of which render. (FYI items carry their own URLs deliberately: `RadarFeed` dedupes wire entries whose URL also appears in FYI, so reusing one would silently drop a wire item. That dedupe must stay **ahead** of the wire bound — the cap counts non-duplicates; see § Wire Display Bound.) Point the site at it in `.env`:
 
 ```dotenv
 MCP_RADAR_SNAPSHOT_URL=http://127.0.0.1:8787/radar/snapshot

@@ -59,7 +59,7 @@ Claude calls `mcp__gst__search_radar_offline` once with `{}` (no filter) and get
     // ...
   ],
   totalMatched: number,
-  returned: number,        // === totalMatched (no `limit`; mirrors website)
+  returned: number,        // after the wire bound; < totalMatched means truncated (BL-109)
   snapshotInfo: { fyiLastSeededAt, wireLastSeededAt },
   deeplink: string,        // e.g. "https://globalstrategic.tech/hub/radar?category=enterprise-tech"
 }
