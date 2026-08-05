@@ -801,7 +801,9 @@ Retained rather than pruned — not because its findings lack a home (both are d
 
 **Unblocked, not undertaken**: [BL-092](#bl-092-mcp-server--declare-outputschema-on-the-tool-surface-candidate)'s blocker is retired by SDK v2. It stays separate — it would not have fixed this bug, and it turns on Desktop behaviour still unverified.
 
-**Open, for the operator**: only a Claude Desktop call against the deployed Worker settles the fix. Staging auto-deploys on a green MCP run.
+**Verified in production 2026-08-05** — `/health` reports `0.45.0` at `gitSha 1c63043`, and a real Claude Desktop call returned all 11 Healthcare engagements with codenames, ARR, industries, engagement categories and the `deeplink`, against the "11 portfolio matches." it had been returning. It also resolved `theme=Healthcare` on the first attempt with no trial-and-error, which is the second defect closing.
+
+This is the verification that mattered, and it is the one neither CI nor the author could perform: every one of the 1,986 tests, and the live stdio probe taken during implementation, runs through a client that reads `structuredContent` — i.e. a client that was never broken. The bug was only ever visible from the surface that reads `content`.
 
 ---
 
