@@ -834,6 +834,29 @@ Measured on a production-shaped corpus: 134,370 → 78,737 chars (**−41.4%**),
 
 ---
 
+### BL-111: CI — three defects in the MCP deploy chain ✅ CLOSED 2026-08-05
+
+**Source**: two consecutive production deploy failures, on unrelated commits | **Shipped**: three commits, CI only (no `@gst/mcp-server` version change)
+
+**D1 — the production guard raced the test suite and lost.** It queried the API once, with no wait and no retry, and treated "not yet" as "never". Both workflows fire on the same push and start in the same second: `8f5a9112` failed 74 s before the suite went green, `b450ff9b` 78 s before. Masked for months because approving `mcp-production` usually takes longer than the ~2 min the suite needs; the operator now approves promptly, so it failed every time. Replaced with a bounded poll on an exact `head_sha` query, extracted to `scripts/await-mcp-test-run.sh`.
+
+**D2 — the staging chain trusted fork-triggered runs (security).** `test-mcp-server.yml` fires on `pull_request` including from forks; `deploy-mcp-staging.yml` chained off it with `workflow_run`, which executes in the base repo with `CLOUDFLARE_API_TOKEN` and `SENTRY_AUTH_TOKEN` in scope, gated only on `conclusion == 'success'` and a `branches:` filter that matches the _fork's_ branch name. Two escalations beyond "deploys to staging": `npm ci` runs the fork's lifecycle scripts with both tokens already in the job env, one step _before_ the deploy; and staging binds no environment, so the Cloudflare token resolves at repository level — the same one production uses. Closed with `event == 'push'` plus a same-repository check.
+
+**D3 — the deploy-failure notification had never fired, once.** `gh issue create --label` errors on a label that does not exist; `incident`, `mcp-prod-deploy`, `mcp-rollback` and `P1` were never created. The repo has one Issue (#96, 2026-04-19) despite repeated deploy failures, and run `30975740442` shows `failure` on the notifier step itself. Audit gap #10's remedy was inert from the day it shipped. `rollback-mcp.yml` — the _recovery_ path — was mute for the same reason.
+
+**Findings worth remembering**
+
+1. **"Approve and run workflows" on a fork PR silently approves a deploy.** The GitHub control cannot express "run the tests but do not deploy"; only the workflow's own `if` can. The approval-mode setting narrows _who reaches the button_ and lapses after a contributor's first merge — it was never the control.
+2. **Three diagnoses of mine were wrong and were corrected by measurement, not argument.** The race mechanism (the run was absent from the query, not merely unconcluded — `'not-found'` comes from an empty-value default, whereas an in-progress run renders `null`); the timeout claim (a 5-min poll would "run at the ceiling" of a 10-min budget — the last successful deploy took **37 seconds**); and the label fix (dropping `--label` was strictly worse than the `--force` precedent already in `prettier-drift-check.yml`).
+3. **The same predicate bug appeared three times in three different costumes** — `head -1` selecting a `cancelled` run ahead of a `success`; a loop exiting as soon as _any_ run completed; and error-into-absence laundering at the cap. Each fix created the next. The 13-case stub matrix exists because the repo has no shellcheck and that matrix is the script's only pre-merge guard.
+4. **A requirement outgrew its mechanism silently.** "Branch the incident guidance on the exit code" was unimplementable: the guard step has no `id:` and a failing `run:` exports nothing. It only became load-bearing when the guidance went from one paragraph to a branch per code. Resolved with a static decision table keyed on the code the runner already prints.
+
+**Operator actions recommended, not code**: switch fork-PR approval to "all external contributors"; bind `environment: mcp-staging` and move both tokens to environment secrets, so they are unreadable by any job that does not bind the environment.
+
+**Filed, not built**: a scheduled `/health.gitSha` vs master-HEAD drift detector. It would catch silent production staleness from any cause — the class behind both D1 and the month-behind incident of 2026-06.
+
+---
+
 ### BL-110: MCP Server — `jurisdiction` filter granularity (candidate)
 
 **Source**: BL-109 client-acceptance probe | **Effort**: small | **Status**: Candidate
