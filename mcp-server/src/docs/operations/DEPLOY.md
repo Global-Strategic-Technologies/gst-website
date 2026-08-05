@@ -18,6 +18,26 @@
 
 ---
 
+## Two things called "environment" — read this once
+
+This doc, `wrangler.toml` and the GitHub Actions workflows all use the word "environment" for **two unrelated systems**. Confusing them costs an hour, so:
+
+|             | **Cloudflare Worker environment**                                         | **GitHub Actions Environment**                                        |
+| ----------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Declared in | `mcp-server/wrangler.toml` — `[env.staging]`, `[env.production]`          | GitHub → Settings → Environments                                      |
+| Answers     | _"deploy to WHICH Worker?"_ — script name, KV, R2, Queues, vars, triggers | _"WHICH JOBS may read WHICH secrets?"_ — plus optional approval gates |
+| Selected by | `wrangler deploy --env staging`                                           | `environment:` on a workflow **job**                                  |
+| staging     | `[env.staging]` → `gst-mcp-staging`                                       | `mcp-staging` — no protection rules                                   |
+| production  | `[env.production]` → `gst-mcp`                                            | `mcp-production` — required reviewer                                  |
+
+**They are independent.** A job can deploy to the Cloudflare staging Worker while binding no GitHub Environment at all — which is exactly what staging did until BL-111, and why its deploy token sat at repository level readable by every job in the repo.
+
+Rule of thumb: **`wrangler.toml` decides where code goes; the `environment:` key decides who holds the keys.**
+
+(`Preview` and `Production` in the GitHub Environments list are **Vercel's**, for the website. A third use of the word, unrelated to the Worker.)
+
+---
+
 # Part A — Initial Setup (one-time)
 
 These steps stand up the infrastructure the Worker needs. Done once per operator. Each subsection is self-contained — work through them top-to-bottom.

@@ -157,4 +157,4 @@ Unit & Integration ──┘        (docs-integrity + MCP suite run in parallel 
 ## Deployment
 
 - **Website**: Vercel auto-deploys on push to `master`; preview deploys for PRs. Build `npm run build`, output `dist/`. Radar page uses ISR. Security headers via `vercel.json` + `src/middleware.ts`. Env vars: `PUBLIC_SENTRY_DSN` (client), `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` (build-time source maps)
-- **MCP Worker**: fully CI/CD — staging auto-deploys on a green MCP test run; production deploys gated by the `mcp-production` GitHub Environment approval; manual rollback workflow. See [mcp-server/src/docs/operations/DEPLOY.md](mcp-server/src/docs/operations/DEPLOY.md)
+- **MCP Worker**: fully CI/CD — staging auto-deploys on a green MCP test run from a same-repo push (fork PRs are refused — BL-111); production deploys gated by the `mcp-production` GitHub Environment approval; manual rollback workflow. See [mcp-server/src/docs/operations/DEPLOY.md](mcp-server/src/docs/operations/DEPLOY.md)
