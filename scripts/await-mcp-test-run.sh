@@ -235,11 +235,21 @@ done
 # Cap reached. Four outcomes, distinguished because their operator ACTIONS
 # differ — and decided by what the final attempt actually observed.
 if [ "$last_parsed" = "1" ]; then
-  if [ "$count" = "0" ]; then
+  # Exit 4 demands BOTH halves: a LIVE final observation of count == 0, and no
+  # sighting anywhere in the window. It is the only code whose operator action is
+  # `workflow_dispatch` — deploying with no verification — so "no run ever
+  # appeared" has to mean it. The list endpoint's own failure mode is lying about
+  # absence (that is what the message below calls list-visibility lag); if it can
+  # lie at the start of the window it can lie at the end, and a late `total_count`
+  # of 0 must not erase a run this poll already watched running.
+  #
+  # The arm is therefore MONOTONE: a remembered sighting can only ever route to 3,
+  # with no exception. Nothing the poll saw can be undone by what it saw later.
+  if [ "$count" = "0" ] && [ "$ever_saw_run" = "0" ]; then
     echo "await-mcp-test-run: no ${WORKFLOW} run ever appeared for ${TARGET_SHA} in ${POLL_CAP_S}s — most likely list-visibility lag. Check whether the upstream suite legitimately skipped this commit before using workflow_dispatch." >&2
     exit 4
   fi
-  echo "await-mcp-test-run: ${WORKFLOW} still running on ${TARGET_SHA} after ${POLL_CAP_S}s — re-run this deploy; do NOT workflow_dispatch." >&2
+  echo "await-mcp-test-run: ${WORKFLOW} was seen running on ${TARGET_SHA} and had not reached a verdict after ${POLL_CAP_S}s — re-run this deploy; do NOT workflow_dispatch." >&2
   exit 3
 fi
 

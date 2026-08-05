@@ -109,10 +109,16 @@ jobs:
           EOF
           )"
           # Look for an existing open Issue with the label; update if found,
-          # create new otherwise. `|| true` because `gh issue list --label` also
-          # errors on a label that does not exist — under `bash -e` that would
-          # abort the step, so the same blip that skipped the pre-create would
-          # take the lookup down with it (BL-111).
+          # create new otherwise. `|| true` covers a TRANSIENT list failure, which
+          # under `bash -e` would otherwise abort the step through the command
+          # substitution and report no drift at all. The trade it makes, stated
+          # because it is not free: a failed lookup reads as "no existing Issue",
+          # so the create path files a duplicate. A duplicate Issue is a better
+          # outcome than silence — the same call this workflow's label handling
+          # makes (BL-111).
+          #
+          # It is NOT here because a missing label errors: checked on gh 2.86.0,
+          # `gh issue list --label <nonexistent>` exits 0 with empty output.
           EXISTING=$(gh issue list --label "prettier-drift" --state open --json number --jq '.[0].number' || true)
           TITLE="Prettier drift detected ($(date -u +%Y-%m-%d))"
           if [ -n "$EXISTING" ]; then

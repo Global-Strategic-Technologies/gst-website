@@ -201,6 +201,16 @@ describe('await-mcp-test-run.sh — cap arms (opposite operator actions)', () =>
     expect(run({ targetSha: SHA, repo: 'o/r' }).code).toBe(6);
   });
 
+  it('exits 3, not 4, when a live count of 0 contradicts a run already seen', () => {
+    // The cap arm is monotone: exit 4 needs BOTH a live final `count == 0` AND no sighting
+    // in the window. The list endpoint's documented failure mode is lying about absence —
+    // "list-visibility lag" is exit 4's own message — so a late 0 must not erase a run this
+    // poll watched running, because 4 is the code that authorises an unverified deploy.
+    writeStub(`  1) ${body(PENDING)} ;;
+  *) ${body(ABSENT)} ;;`);
+    expect(run({ targetSha: SHA, repo: 'o/r' }).code).toBe(3);
+  });
+
   it('exits 3, not 5, when a run was seen in flight before the API stopped answering', () => {
     // 3 says "re-run this deploy"; 5 says "re-running will not help, fix the credential".
     // Opposite actions, so a late blip must not overwrite an observation the poll already
@@ -264,6 +274,10 @@ describe('await-mcp-test-run.sh — inputs are validated before the first API ca
     const r = run({ repo: 'o/r' });
     expect(r.code).toBe(2);
     expect(r.output).toContain('TARGET_SHA is required');
+    // The block's headline is "before the first API call", and only this proves it: every
+    // other case here would also exit 2 by polling to a verdict against a stub that never
+    // should have been reached.
+    expect(r.attempts).toBe(0);
   });
 
   it('exits 2 on an empty REPO with no GITHUB_REPOSITORY', () => {
