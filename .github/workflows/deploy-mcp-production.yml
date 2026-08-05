@@ -13,6 +13,23 @@ name: Deploy MCP Worker — production
 #      required-reviewer approval, so a fully autonomous chain isn't the
 #      intended UX anyway. Operator review is the production gate.
 #
+# BL-111 re-examined chaining off the TEST SUITE (not staging) and rejected it
+# too — the reasons are different from the two above, so they are recorded here
+# rather than re-derived from "staging does it, why not production":
+#   3. FORK TRUST. `test-mcp-server.yml` fires on `pull_request`, including from
+#      forks. A `workflow_run` consumer runs in the BASE repo with repository
+#      secrets in scope, so chaining production off it would put a fork PR one
+#      maintainer click ("approve and run workflows") away from a secret-bearing
+#      production deploy. Fixing a 75-second race by widening the production
+#      trust boundary is a bad trade. See deploy-mcp-staging.yml's job `if`.
+#   4. LOUD -> SILENT. A broken guard here is a red run plus an auto-opened
+#      incident Issue. A mis-wired `workflow_run` produces NOTHING — no run, no
+#      Issue, production silently drifting behind master. That is the failure
+#      class that once left production a month behind.
+#   5. `workflows: ['MCP Server Test Suite']` is a literal string match against
+#      that workflow's `name:`. A rename breaks the chain silently, and nothing
+#      asserts the two agree.
+#
 # Reviewer gate: GitHub Settings → Environments → `mcp-production` must be
 # configured with Required reviewers ≥ 1 BEFORE this workflow can deploy.
 # Without the environment configured, the job will fail at job-start with a
@@ -126,28 +143,28 @@ jobs:
         # GitHub API for a successful MCP test run on this exact SHA before
         # proceeding. `workflow_dispatch` bypasses this check (operator
         # explicitly accountable for the re-deploy).
+        #
+        # BL-111: this used to be a SINGLE API query with no wait and no retry,
+        # which treated "not yet" as "never". Both workflows fire on the same
+        # push and start in the same second, so it raced the suite and lost —
+        # twice in a row on unrelated commits, 74 s and 78 s early. It was
+        # masked for months because approving `mcp-production` usually takes a
+        # human longer than the ~2 min the suite needs.
+        #
+        # Now a bounded poll on an exact `head_sha` query. Exit codes and the
+        # operator action for each are in the failure-Issue body below; the
+        # script's header is the authority.
         if: github.event_name == 'push'
+        # Bounds the poll independently of the script's own 300 s cap — defence
+        # against a hang, not a second cap. The JOB budget stays at 10 min:
+        # measured, the deploy tail is ~37 s (worst case ~2.5 min), so 5 + 2.5
+        # fits with margin. Approval wait is excluded from timeout-minutes.
+        timeout-minutes: 6
         env:
           GH_TOKEN: ${{ github.token }}
-          DEPLOYED_SHA: ${{ github.sha }}
-        run: |
-          echo "Checking MCP Server Test Suite for SHA $DEPLOYED_SHA"
-          # Query last 30 runs of the MCP test workflow on master; filter
-          # for the deployed SHA + success conclusion. 30 is enough to
-          # cover ~a day of typical activity even if other branches were
-          # busy. If no match, hard-fail before consuming any deploy minutes.
-          CONCLUSION=$(gh api \
-            "repos/${{ github.repository }}/actions/workflows/test-mcp-server.yml/runs?branch=master&per_page=30" \
-            --jq ".workflow_runs[] | select(.head_sha == \"$DEPLOYED_SHA\") | .conclusion" \
-            | head -1)
-          if [ "$CONCLUSION" = "success" ]; then
-            echo "OK: MCP Server Test Suite passed on $DEPLOYED_SHA"
-            exit 0
-          fi
-          echo "REFUSING TO DEPLOY: MCP Server Test Suite did not pass on $DEPLOYED_SHA"
-          echo "  observed conclusion: '${CONCLUSION:-not-found}'"
-          echo "If you need to deploy a workflow-only change, use workflow_dispatch."
-          exit 1
+          TARGET_SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: bash scripts/await-mcp-test-run.sh
 
       - uses: actions/setup-node@v6
         with:
@@ -223,13 +240,26 @@ jobs:
           The production MCP deploy workflow failed. Most likely cause is one of:
           - \`wrangler deploy\` failure (Cloudflare API error, credential expiry)
           - Smoke probe gap (/health.gitSha didn't match within 70s)
-          - Test-suite verification step (no green MCP test run on this SHA)
+          - Test-suite verification step — see the code table below
+
+          **If the "Verify MCP Server Test Suite" step failed**, the runner logs
+          \`Process completed with exit code N\` at the end of that step. Read N, then:
+
+          | N | meaning | action |
+          |---|---|---|
+          | 1 | the suite ran and FAILED on this SHA | fix the failure. Do **not** deploy. |
+          | 2 | script bug (bad/missing input) | read the step log; this is not a deploy problem |
+          | 3 | suite still running when the guard gave up | **re-run this deploy.** Do NOT workflow_dispatch |
+          | 4 | no suite run ever appeared for this SHA | check whether the upstream paths filter legitimately skipped it. This is the **only** case where \`workflow_dispatch\` is right |
+          | 5 | GitHub API unreachable throughout | dead token, revoked permission or outage. Re-running will not help — fix the credential |
+          | 6 | API responded but no body was parseable | usually a transient proxy/interstitial. **Re-run first** |
+          | *(none — step killed at 6 min)* | the poll's own 5 min cap should have fired first, so the loop did not terminate | script bug; do not re-run, read the log |
 
           **Operator actions**:
           1. Open the run URL above and read the failing step's log.
           2. If \`wrangler deploy\` failed: deploy IS NOT on the Worker; re-run after fix.
           3. If smoke probe failed: deploy IS on the Worker but \`/health\` didn't reflect it. Check \`mcp.globalstrategic.tech/health\` manually; consider invoking the rollback workflow.
-          4. If pre-deploy verification failed: a workflow-only commit slipped past the gate. Use \`workflow_dispatch\` to deploy with explicit operator accountability.
+          4. If pre-deploy verification failed: read the exit code and use the table above. \`workflow_dispatch\` is correct for **code 4 only** — it deploys with NO test verification, so reaching for it on a code 3 (suite merely still running) reopens the very gap this guard exists to close.
 
           Close this Issue once the production state is verified clean.
           EOF
