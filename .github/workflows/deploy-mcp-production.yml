@@ -255,7 +255,7 @@ jobs:
           |---|---|---|
           | 1 | the suite ran and FAILED on this SHA | fix the failure. Do **not** deploy. |
           | 2 | script bug (bad/missing input) | read the step log; this is not a deploy problem |
-          | 3 | suite still running when the guard gave up | **re-run this deploy.** Do NOT workflow_dispatch |
+          | 3 | a suite run was seen but never reached a verdict before the guard gave up | **re-run this deploy.** Do NOT workflow_dispatch |
           | 4 | no suite run ever appeared for this SHA | check whether the upstream paths filter legitimately skipped it. This is the **only** case where \`workflow_dispatch\` is right |
           | 5 | GitHub API unreachable throughout | dead token, revoked permission or outage. Re-running will not help — fix the credential |
           | 6 | API responded but no body was parseable | usually a transient proxy/interstitial. **Re-run first** |

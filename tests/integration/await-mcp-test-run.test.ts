@@ -208,7 +208,14 @@ describe('await-mcp-test-run.sh — cap arms (opposite operator actions)', () =>
     // poll watched running, because 4 is the code that authorises an unverified deploy.
     writeStub(`  1) ${body(PENDING)} ;;
   *) ${body(ABSENT)} ;;`);
-    expect(run({ targetSha: SHA, repo: 'o/r' }).code).toBe(3);
+    // capS 3 rather than the 1 s default: this case needs at least two attempts inside the
+    // window to mean anything, and a cold node start can swallow a one-second budget whole.
+    const r = run({ targetSha: SHA, repo: 'o/r', capS: '3' });
+    expect(r.code).toBe(3);
+    // Without this the case can pass vacuously: at one attempt the final state is
+    // `count != 0` and the un-fixed script also exits 3. The sighting has to PRECEDE the
+    // live zero for the assertion above to mean anything.
+    expect(r.attempts).toBeGreaterThan(1);
   });
 
   it('exits 3, not 5, when a run was seen in flight before the API stopped answering', () => {

@@ -62,9 +62,18 @@ jobs:
     # The realistic path is not a bypass, it is a maintainer doing the normal
     # thing: clicking "approve and run workflows" so a contribution's tests
     # execute. That click then reached this deploy. GitHub's control cannot
-    # express "run the tests but do not deploy" — only this `if` can. And note
-    # `npm ci` below runs the fork's lifecycle scripts with both tokens already
-    # in the job env, so the exposure lands a step BEFORE the deploy.
+    # express "run the tests but do not deploy" — only this `if` can.
+    #
+    # And the exposure is not merely "attacker code reaches staging". The deploy
+    # step below runs `npm run deploy:staging` = `node scripts/deploy.mjs`, a
+    # file the fork controls, in the step that holds BOTH tokens — arbitrary code
+    # with the credentials, not just a deployed artifact. Separately, `npm ci`
+    # writes the `nm-v1-...` cache key that test.yml and test-mcp-server.yml also
+    # restore, so a poisoned cache outlives this run.
+    #
+    # (An earlier revision said `npm ci` itself ran with both tokens in the job
+    # env. It does not — they are step-scoped to the deploy. Corrected rather
+    # than dropped: the real mechanism is stronger and checkable from this file.)
     #
     #   event == 'push'                     excludes pull_request runs entirely,
     #                                       which is the only way fork content

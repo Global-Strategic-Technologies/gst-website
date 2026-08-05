@@ -23,7 +23,7 @@
 #   0  a run for this SHA concluded `success`
 #   1  every run terminal, none successful — the suite genuinely failed
 #   2  bad or missing input, or a missing dependency (`gh`, `node`)
-#   3  cap reached, runs present but unfinished        -> re-run the deploy
+#   3  cap reached, a run was seen but never reached a verdict -> re-run
 #   4  cap reached, no run ever appeared               -> check for a skipped run
 #   5  cap reached, gh failing at the transport layer  -> fix the credential
 #   6  cap reached, gh ok but the body was unreadable  -> often transient, re-run
@@ -137,13 +137,13 @@ echo "await-mcp-test-run: waiting up to ${POLL_CAP_S}s for ${WORKFLOW} on ${TARG
 # hang defence.
 SECONDS=0
 
-# Per-attempt state, RESET each iteration. The cap arms below are decided by
-# the FINAL attempt, not by aggregate flags: a `count` surviving from an
-# earlier attempt would let a since-dead API report exit 4 ("no run ever
-# appeared"), which is the one code whose operator action is `workflow_dispatch`
-# — deploying with no verification at all. The asymmetry is deliberate. A blip
-# on the last attempt costs a wrong-but-safe 5 or 6 (a wasted re-run); a stale
-# count costs an unverified production deploy.
+# Per-attempt state, RESET each iteration. The cap arms below are decided by the
+# FINAL attempt, save for the single remembered fact declared just after this: a
+# `count` surviving from an earlier attempt would let a since-dead API report
+# exit 4 ("no run ever appeared"), which is the one code whose operator action is
+# `workflow_dispatch` — deploying with no verification at all. The asymmetry is
+# deliberate. A blip on the last attempt costs a wrong-but-safe 5 or 6 (a wasted
+# re-run); a stale count costs an unverified production deploy.
 last_parsed=0
 last_transport=0
 count=""
@@ -160,6 +160,12 @@ ever_saw_run=0
 while :; do
   last_parsed=0
   last_transport=0
+  # Reset too, so the comment above is structurally true rather than incidentally
+  # true. `count` is only read under `last_parsed = 1`, which already guarantees
+  # this iteration assigned it — but that is a property of the current arms, and
+  # the whole class of defect here has been state outliving the attempt that
+  # produced it.
+  count=""
 
   # `set -e` would abort on a non-zero gh exit, which would turn an API error
   # into an abort rather than a retry. Wrapping in `if !` suspends that. NOTE:
