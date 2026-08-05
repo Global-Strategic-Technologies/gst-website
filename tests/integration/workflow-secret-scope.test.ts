@@ -78,7 +78,9 @@
  *
  * **The method that actually works is none of the above — it is the differential check.**
  * Vigilance produced ten fail-open paths; running this parser against the real `yaml`
- * parser and diffing the results produced a fact. Rules 1-6 are what the diffs taught;
+ * parser and diffing the results produced a fact. The rules above are what the diffs taught
+ * — stated without an ordinal, because the numbered version was written as "Rules 1-6" in
+ * the same commit that added the seventh, and undercounted from birth;
  * the diff is what to re-run.
  */
 import { describe, it, expect } from 'vitest';
