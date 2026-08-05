@@ -20,7 +20,7 @@
  * the rollback ternary), identical secret references, no top-level `env:` in either. That
  * agreement is what justifies not taking the dependency; re-run it if the parser changes.
  *
- * **THE PARSER MUST NOT FAIL OPEN, AND IT DID — SEVEN TIMES, ACROSS THREE REVIEW ROUNDS.**
+ * **THE PARSER MUST NOT FAIL OPEN, AND IT DID — TEN TIMES, ACROSS FOUR REVIEW ROUNDS.**
  * Each was proved by dropping a rogue workflow holding an unbound deploy secret and
  * watching the suite stay green:
  *
@@ -43,6 +43,18 @@
  *      so an unbound job holding the production token via the index form was invisible —
  *      and the positive pairing could not see it either, since the rogue simply never
  *      entered the holders list, which stayed exactly the three expected entries.
+ *   8. The `secrets[<expr>]` guard added to close (7) scanned job bodies ONLY, not the
+ *      `outside` complement — so a top-level `env:` indexing by expression passed green.
+ *      That is (5) recurring inside its own round's fix, 200 lines below the rule
+ *      "compute by complement, never by position".
+ *   9. Membership was case-SENSITIVE. GitHub documents secret names as case-insensitive,
+ *      so `secrets.cloudflare_api_token` in an unbound job was invisible — the direct
+ *      counterexample to rule "match every syntax the platform accepts", sitting inside
+ *      the function that rule was written for.
+ *  10. `secrets: "inherit"` (quoted) and `secrets ['NAME']` (space before bracket) both
+ *      evaded. Syntax whack-a-mole is why (10) is answered structurally as well: the
+ *      `reusableWorkflowCallers` assertion removes inheritance's PRECONDITION — a
+ *      job-level `uses:` — rather than chasing spellings of the keyword.
  *
  * So the rules this file is built on, each bought with a green mutation:
  *
@@ -57,6 +69,14 @@
  *     `.yml`/`.yaml`, `secrets.X`/`secrets['X']`, inline/block `environment:`.
  *   - **What cannot be resolved gets asserted absent, not assumed away** — `secrets:
  *     inherit` and `secrets[<expr>]` are named exclusions with their own tests.
+ *   - **Prefer removing a precondition to matching a syntax.** Ten paths in, the pattern is
+ *     clear: every syntax match invites the next variant. Asserting no job-level `uses:`
+ *     ends the `secrets: inherit` class outright; the keyword regex is only belt.
+ *
+ * **The method that actually works is none of the above — it is the differential check.**
+ * Vigilance produced ten fail-open paths; running this parser against the real `yaml`
+ * parser and diffing the results produced a fact. Rules 1-6 are what the diffs taught;
+ * the diff is what to re-run.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -100,8 +120,14 @@ const stripComments = (lines: string[]) => lines.filter((l) => !l.trimStart().st
  * stays exactly the three expected entries.
  */
 const referencesSecret = (body: string, secret: string): boolean =>
-  body.includes(`secrets.${secret}`) ||
-  new RegExp(String.raw`secrets\[\s*['"]` + secret).test(body);
+  // Case-INSENSITIVE, and tolerant of whitespace around `.` and `[`. GitHub documents
+  // secret names as not case-sensitive, so an unbound job reading
+  // `secrets.cloudflare_api_token` is a real reference this must see — the direct
+  // counterexample to this file's own rule about matching what the PLATFORM accepts.
+  // Interpolating `secret` into a RegExp is safe because GitHub secret names are limited
+  // to letters, digits and underscores; DEPLOY_SECRETS is a literal list above regardless.
+  new RegExp(String.raw`secrets\s*\.\s*` + secret, 'i').test(body) ||
+  new RegExp(String.raw`secrets\s*\[\s*['"]\s*` + secret, 'i').test(body);
 
 /**
  * `secrets[<expression>]` with a non-literal index — `secrets[matrix.env]`, the shape a
@@ -109,7 +135,7 @@ const referencesSecret = (body: string, secret: string): boolean =>
  * the same treatment as `secrets: inherit`: asserted absent rather than pretended-about.
  */
 const dynamicSecretIndex = (body: string): boolean =>
-  [...body.matchAll(/secrets\[\s*([^\]]*)\]/g)].some((m) => !/^['"]/.test(m[1].trim()));
+  [...body.matchAll(/secrets\s*\[\s*([^\]]*)\]/g)].some((m) => !/^['"]/.test(m[1].trim()));
 
 /**
  * Resolve the environment names a `name:` value can produce.
@@ -169,6 +195,8 @@ interface Parsed {
   secretsInheritUsers: string[];
   /** Workflows indexing `secrets[<expr>]` with a non-literal — name unresolvable. */
   dynamicIndexUsers: string[];
+  /** Workflows with a job-level `uses:` — the precondition for `secrets: inherit`. */
+  reusableWorkflowCallers: string[];
 }
 
 function parseWorkflows(): Parsed {
@@ -177,6 +205,7 @@ function parseWorkflows(): Parsed {
   const workflowLevelSecretRefs: string[] = [];
   const secretsInheritUsers: string[] = [];
   const dynamicIndexUsers: string[] = [];
+  const reusableWorkflowCallers: string[] = [];
 
   // `.ya?ml` — GitHub accepts both, and matching only `.yml` let a rogue `.yaml` workflow
   // holding an unbound deploy secret pass this suite untouched.
@@ -261,20 +290,48 @@ function parseWorkflows(): Parsed {
     // `(#.*)?` — this guard shipped WITHOUT it, one function below the docstring rule
     // saying trailing comments are legal everywhere, and `secrets: inherit # needs
     // everything` passed 9/9 green. Sixth instance.
-    if (/^\s*secrets:\s*inherit\s*(#.*)?$/m.test(stripComments(lines).join('\n'))) {
+    const whole = stripComments(lines).join('\n');
+    // `['"]?` — YAML parses `secrets: "inherit"` to the same scalar. Widening the keyword
+    // match is the cheap half; the structural half is `reusableWorkflowCallers` below, which
+    // asserts the PRECONDITION for inheritance is absent rather than chasing syntax.
+    if (/^\s*secrets:\s*['"]?inherit['"]?\s*(#.*)?$/m.test(whole)) {
       secretsInheritUsers.push(workflow);
     }
-    if (jobs.some((j) => j.workflow === workflow && dynamicSecretIndex(j.body))) {
+    // Job-level `uses:` (4-space indent, directly under a job) is a reusable-workflow call.
+    // Step-level `uses:` is a list item under `steps:` and is not matched.
+    if (/^ {4}uses:/m.test(whole)) {
+      reusableWorkflowCallers.push(workflow);
+    }
+    // `outside` too, NOT just job bodies. Shipping this check over job bodies alone was
+    // fail-open path 8 — the workflow-level blind spot recurring inside the fix whose own
+    // docstring rule is "compute by complement, never by position", 200 lines above.
+    if (
+      dynamicSecretIndex(outside) ||
+      jobs.some((j) => j.workflow === workflow && dynamicSecretIndex(j.body))
+    ) {
       dynamicIndexUsers.push(workflow);
     }
   }
 
-  return { jobs, workflows, workflowLevelSecretRefs, secretsInheritUsers, dynamicIndexUsers };
+  return {
+    jobs,
+    workflows,
+    workflowLevelSecretRefs,
+    secretsInheritUsers,
+    dynamicIndexUsers,
+    reusableWorkflowCallers,
+  };
 }
 
 describe('workflow secret scoping (BL-111 D2)', () => {
-  const { jobs, workflows, workflowLevelSecretRefs, secretsInheritUsers, dynamicIndexUsers } =
-    parseWorkflows();
+  const {
+    jobs,
+    workflows,
+    workflowLevelSecretRefs,
+    secretsInheritUsers,
+    dynamicIndexUsers,
+    reusableWorkflowCallers,
+  } = parseWorkflows();
 
   it('extracts at least one job from every workflow file', () => {
     // The property that actually fails open. A job-count floor cannot catch one workflow
@@ -354,6 +411,14 @@ describe('workflow secret scoping (BL-111 D2)', () => {
     // resolved to a name by any membership test. Same honest treatment as `secrets:
     // inherit`: assert it absent rather than pretend the check would see it.
     expect(dynamicIndexUsers).toEqual([]);
+  });
+
+  it('calls no reusable workflow, the precondition for secrets inheritance', () => {
+    // The structural complement to the `secrets: inherit` keyword match. Chasing every
+    // spelling of the keyword is syntax whack-a-mole; asserting that no job-level `uses:`
+    // exists removes the precondition entirely. Step-level `uses:` (actions/checkout etc.)
+    // is a list item under `steps:` and is not matched.
+    expect(reusableWorkflowCallers).toEqual([]);
   });
 
   it('confines MCP_PROBE_KEY to the one workflow whose repo-level residency is justified', () => {
