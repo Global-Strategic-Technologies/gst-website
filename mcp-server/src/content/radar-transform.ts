@@ -14,6 +14,9 @@
  */
 
 import type { InoreaderItem } from '../../../src/lib/inoreader/types';
+// Dependency-free website leaf (BL-109) — see `src/utils/html-text.ts` for why the
+// helper lives there rather than in `src/lib/inoreader/transform.ts`.
+import { stripHtml } from '../../../src/utils/html-text';
 
 export type RadarCategory = 'pe-ma' | 'enterprise-tech' | 'ai-automation' | 'security';
 
@@ -204,4 +207,28 @@ export function toSnapshotItem(item: InoreaderItem, tier: 'fyi' | 'wire'): Snaps
           }
         : undefined,
   };
+}
+
+/**
+ * Project a snapshot item down to what a *model* should receive (BL-109).
+ *
+ * `toSnapshotItem` above sets `summary` to Inoreader's **raw, untruncated HTML**. That
+ * is correct for the snapshot: `/radar/snapshot`, the `gst://radar/*` Resources and the
+ * cron cache all want the source bytes, and the website applies its own strip at render
+ * time. It is wrong for a tool result — markup the model cannot use, on every item, in a
+ * response that BL-108 sends through two channels.
+ *
+ * So the strip happens **here, at the tool boundary only**. Do NOT move it into
+ * `toSnapshotItem`: that would silently rewrite the snapshot for every other consumer.
+ *
+ * `stripHtml` is meaning-lossless (tags and entities out, prose intact); it deliberately
+ * does not truncate, because unlike the website's 250-char display cut, feed prose has
+ * analytical value to an LLM.
+ *
+ * `summary` is optional and stays `undefined` when absent — this must not manufacture an
+ * empty string on every item that lacks one.
+ */
+export function projectItemForModel<T extends SnapshotItem>(item: T): T {
+  if (item.summary === undefined) return item;
+  return { ...item, summary: stripHtml(item.summary) };
 }

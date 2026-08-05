@@ -260,6 +260,13 @@ export async function handleGenerateIrlXlsxTool(input: GenerateIrlXlsxInput) {
     byteLength: buffer.byteLength,
     sectionCount,
     bulletCount: totalBullets,
+    // BL-109: the Hub GENERATOR url, with this call's args pre-filled — the surface the
+    // partner actually downloads from. It previously existed only inside the caption
+    // string, so a client that reads the payload got `canonicalUrl` instead, which is
+    // the library ARTICLE page: a different URL. Directing the recipient to the download
+    // surface is this tool's whole purpose (BREAKING_CHANGES 0.3.9), so it belongs in
+    // the payload, not only in prose. Same defect class as BL-108, one layer down.
+    downloadUrl: downloadHref,
     canonicalUrl: IRL_CANONICAL_URL,
   };
 

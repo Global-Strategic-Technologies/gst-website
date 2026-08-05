@@ -63,8 +63,11 @@ import {
 import { serializeToParams as serializeRadarUrl } from '../../../src/utils/radar-url';
 import { RadarCategoryEnum } from '../schemas';
 import { HUB_BASE } from '../config';
+import { boundWireItems } from '../../../src/utils/radar-feed-bounds';
 import {
   oldestItemDaysAgo,
+  projectItemForModel,
+  RADAR_CATEGORIES,
   type SnapshotItem,
   type RadarCategory,
 } from '../content/radar-transform';
@@ -103,9 +106,9 @@ type GetLatestInsightsInput = z.infer<typeof GetLatestInsightsInputSchema>;
 
 const SEARCH_RADAR_DESCRIPTION = `Live GST Radar search — strict mirror of the website's /hub/radar page; calls Inoreader directly with a 6h Upstash cache.
 
-Sister tool: \`search_radar_offline\` (same shape, reads from a frozen local snapshot — for dev/CI/budget-exhausted contexts).
+Sister tool: \`search_radar_offline\` — same shape, reads from a frozen local snapshot. **Registered on the stdio transport only**, so it is not callable over the remote (HTTP) server; use it for dev/CI/budget-exhausted contexts when running the server locally.
 
-Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"); omit for all categories. Output: unified FYI + Wire feed sorted by \`publishedAt\` newest-first, with \`fetchedAt\` timestamp + \`cacheHit\` flag + \`degraded\` flag + \`deeplink\` URL. When \`liveInfo.degraded\` is true the results come from the cached snapshot (up to 6h old) because the Inoreader budget circuit is open — treat them as stale-but-real, and check \`fetchedAt\` for age.
+Input: optional \`category\` (one of "pe-ma", "enterprise-tech", "ai-automation", "security"); omit for all categories. Output: unified FYI + Wire feed sorted by \`publishedAt\` newest-first, with \`fetchedAt\` timestamp + \`cacheHit\` flag + \`degraded\` flag + \`deeplink\` URL. **The Wire tier is capped at 30 items** (with up to 3 slots reserved per category so no category is crowded out), mirroring what /hub/radar renders. The curated FYI tier passes through this tool uncapped — though it is already limited upstream to the 15 freshest annotated items. \`returned\` is the count after that cap and \`totalMatched\` the count before it — when they differ, the feed was truncated and the \`deeplink\` opens the full view. Item \`summary\` is plain text (source HTML is stripped). When \`liveInfo.degraded\` is true the results come from the cached snapshot (up to 6h old) because the Inoreader budget circuit is open — treat them as stale-but-real, and check \`fetchedAt\` for age.
 
 Failure modes return \`isError: true\` with a machine-readable \`error\` field in \`structuredContent\` (\`config-missing\` | \`token-missing\` | \`token-stale\` | \`inoreader-rate-limit\` | \`upstream-error\` | \`network-timeout\` | \`service-unavailable\`) — so agents can distinguish "Inoreader stale token, retry later" from "Inoreader rate limit, circuit broken" from "transient network error." \`content[0].text\` carries the human-readable message. A broken circuit only returns an error when there is ALSO no cached snapshot to serve; otherwise you get cached results flagged \`degraded\`.
 
@@ -229,29 +232,63 @@ export async function handleSearchRadar(env: Env, input: SearchRadarInput, keyOw
     fyiView = tierView(fyi);
   }
 
-  // Merge + dedupe + sort, mirroring the website's unified feed.
+  // Merge + dedupe + BOUND + sort, mirroring the website's unified feed — including
+  // its display cap, which this tool did not apply until BL-109. The order below is
+  // load-bearing in two places; see `src/utils/radar-feed-bounds.ts` for why.
+  //
+  //   dedupe against FYI → bound globally → merge → apply input.category
+  //
   const seen = new Set<string>();
-  const merged: Array<SnapshotItem & { tier: 'fyi' | 'wire' }> = [];
+  // FYI dedupes against ITSELF too, not just wire against FYI. The same article
+  // annotated from two subscribed feeds arrives as two FYI entries sharing a canonical
+  // URL — realistic in an aggregator. An earlier revision of this change seeded `seen`
+  // from FYI and then spread `fyiView.items` unconditionally, which reintroduced those
+  // duplicates into `matches` and double-counted them in `unboundedMatchCount`.
+  const dedupedFyi: SnapshotItem[] = [];
   for (const item of fyiView.items) {
-    if (!seen.has(item.url || item.id)) {
-      seen.add(item.url || item.id);
-      merged.push({ ...item, tier: 'fyi' });
+    const key = item.url || item.id;
+    if (!seen.has(key)) {
+      seen.add(key);
+      dedupedFyi.push(item);
     }
   }
+  const dedupedWire: SnapshotItem[] = [];
   for (const item of wireView.items) {
-    if (!seen.has(item.url || item.id)) {
-      seen.add(item.url || item.id);
-      merged.push({ ...item, tier: 'wire' });
+    const key = item.url || item.id;
+    if (!seen.has(key)) {
+      seen.add(key);
+      dedupedWire.push(item);
     }
   }
+
+  // Bound BEFORE the category filter, across all categories: the website's category
+  // pills filter client-side over the already-bounded set, which is the whole reason
+  // MIN_PER_CATEGORY exists. Bounding after the filter would return up to MAX_WIRE
+  // items of one category where the page shows a handful.
+  const boundedWire = boundWireItems(dedupedWire, RADAR_CATEGORIES);
+
+  const merged: Array<SnapshotItem & { tier: 'fyi' | 'wire' }> = [
+    ...dedupedFyi.map((item) => ({ ...item, tier: 'fyi' as const })),
+    ...boundedWire.map((item) => ({ ...item, tier: 'wire' as const })),
+  ];
 
   const matched = merged
     .filter((item) => categoryMatches(item, input.category))
-    .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
+    .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1))
+    .map(projectItemForModel);
+
+  // `totalMatched` counts what matched the REQUEST before the display bound — i.e. the
+  // category-filtered but unbounded set — so `returned` vs `totalMatched` tells a caller
+  // truncation happened. (Counting `merged.length` instead would report the whole feed
+  // on a filtered call.) Same pairing `search_regulations` uses, and it is what makes the
+  // existing "N of M radar items" caption below mean something other than "45 of 45".
+  const unboundedMatchCount =
+    dedupedFyi.filter((item) => categoryMatches(item, input.category)).length +
+    dedupedWire.filter((item) => categoryMatches(item, input.category)).length;
 
   const payload = {
     matches: matched,
-    totalMatched: matched.length,
+    totalMatched: unboundedMatchCount,
     returned: matched.length,
     // BL-031.95 follow-up: freshness signal at the envelope so callers
     // don't have to scan every item's date. `null` when matches is
@@ -311,7 +348,11 @@ export async function handleGetLatestInsights(
     .filter((item) => categoryMatches(item, input.category))
     .slice()
     .sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1))
-    .slice(0, limit);
+    .slice(0, limit)
+    // BL-109: same summary projection as `search_radar`. Without this, one FYI item
+    // comes back as plain text from one tool and raw Inoreader HTML from the other —
+    // the two are documented as a capability mirror and a model may compose across them.
+    .map(projectItemForModel);
 
   const payload = {
     items: filtered,

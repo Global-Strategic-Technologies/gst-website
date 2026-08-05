@@ -34,7 +34,7 @@ Claude calls `mcp__gst__search_radar` with `{ category: 'enterprise-tech' }`. Th
     // ...
   ],
   totalMatched: number,
-  returned: number,           // === totalMatched
+  returned: number,           // after the wire bound; < totalMatched means truncated (BL-109)
   liveInfo: {
     wireFetchedAt: '2026-05-04T18:30:00.000Z',
     wireCacheHit: false,      // FALSE on first call within 6h, TRUE thereafter

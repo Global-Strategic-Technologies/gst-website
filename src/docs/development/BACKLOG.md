@@ -807,6 +807,47 @@ This is the verification that mattered, and it is the one neither CI nor the aut
 
 ---
 
+### BL-109: MCP Server — radar display bound + two payload defects ✅ CLOSED 2026-08-05
+
+**Source**: the first structured client-acceptance probe, run from a second client (Claude Desktop "Cowork") after BL-108 shipped | **Shipped**: `@gst/mcp-server` 0.46.0 | **Decisions**: [ADR-0005](../adr/0005-hub-url-state-deeplink-contract.md) § Note 2026-08-05
+
+The probe passed P1–P4 and P7 — confirming BL-108's channel fix on a **second** client — and surfaced three defects. **One was introduced by BL-108 and its risk was framed wrongly.**
+
+**D1 — `search_radar` exceeded a client's tool-result ceiling.** 143,027 characters; the probe's harness spilled to a file and recovered, but a client without a filesystem fallback hard-fails. BL-108's risk note called the doubling _wire cost_ — bytes and audit `outputBytes`. The real failure mode is **crossing client tool-result ceilings, which makes the tool unusable**, the very class BL-108 existed to fix.
+
+The fix is **not** what it first appeared to be. The initial plan re-added a `limit` input and argued it was a justified reversal of the capability-mirror invariant. That rested on a false premise: `/hub/radar` does **not** render all 61 items — it caps wire at `MAX_WIRE = 30` with a `MIN_PER_CATEGORY = 3` quota and FYI at `FYI_MAX_COUNT = 15`, so **≤45**. The tool applied no wire bound at all. **The mirror was already broken in the tool's favour; bounding it restores the mirror rather than reversing it** — no input change, no ADR reversal, and the two lockout tests that exist to keep `limit` out keep passing untouched.
+
+Measured on a production-shaped corpus: 134,370 → 78,737 chars (**−41.4%**), of which the count bound is 25.7 points and stripping raw HTML out of `summary` is the rest. **The bound alone (99,834) would likely not have cleared the ceiling** — `summary` carried Inoreader's raw untruncated HTML on every item, where the page renders none for wire and stripped text for FYI. FYI is untouched, so every `gstTake` survives.
+
+**D2 — the IRL download URL never reached the payload.** `generate_information_request_list_xlsx` built the Hub _generator_ URL with the caller's args pre-filled and used it **only in the caption string**; the payload carried `canonicalUrl`, the library _article_ page. A payload-reading client got the wrong URL for the tool's entire purpose. BL-108's defect class one layer down.
+
+**D3 — `search_radar` advertised `search_radar_offline`**, which is stdio-only and absent from the remote surface.
+
+**Findings worth remembering**
+
+1. **A capability mirror has two halves.** "Does the tool accept only what the page offers?" was enforced; "does the tool return only what the page shows?" was not, and `radar/CONTRACT.md` documented the discrepancy _as the reason for a decision_ rather than catching it as a defect. A **shared implementation** is what makes the second half hold — two code paths agree only on the day they are written.
+2. **The CI `paths` allowlist would have hidden the guard.** `test-mcp-server.yml` fires on an explicit allowlist of website files the Worker bundles. The new shared leaves were not on it, so a future PR editing only the bounder would have run **no** MCP tests — the guard silently absent on exactly the change it exists to catch, on a required check gating the staging deploy. `src/utils/radar-url.ts` had been missing since it was introduced; all three are now listed.
+3. **Ordering is load-bearing in two places**, and only one is obvious: dedupe against FYI → bound **globally** → merge → apply the category filter. Bounding after the category filter returns up to `MAX_WIRE` items of one category where the page shows a handful — a bug invisible on the unfiltered call, i.e. on the first test anyone would write.
+4. **`RadarFeed.astro`'s call site remains uncovered**, before and after. Astro components cannot be imported by vitest; the guards are `astro check`, the deletion of the inline block, and review. Stated rather than implied.
+
+**Open, for the operator**: rerun the acceptance probe's P5 and P7 after deploy. P7 is only settled by a client that previously hit its ceiling.
+
+---
+
+### BL-110: MCP Server — `jurisdiction` filter granularity (candidate)
+
+**Source**: BL-109 client-acceptance probe | **Effort**: small | **Status**: Candidate
+
+**As an** analyst asking for "EU data-privacy frameworks", **I want** member-state law surfaced alongside EU-level instruments **so that** a jurisdiction query does not silently omit the national implementations that actually bind the target.
+
+**What**: `search_regulations` with `jurisdiction: "eu"` + `category: "data-privacy"` returns `totalMatched: 1` — GDPR alone — against 70 data-privacy records. Regulation records carry ISO region codes (`['DEU']`, `['GBR']`, …), so `eu` plausibly resolves to EU-_level_ instruments only and correctly excludes Germany's BDSG and friends. That may be exactly right as semantics and still wrong as ergonomics.
+
+**Investigate first**: read the jurisdiction→region mapping before changing anything; the answer may be a description fix rather than a filter change.
+
+**Recorded from the same probe**: the probe's own acceptance criterion demanded article-number citations from `search_regulations`. `Article`/`Art.` appears **0 times** across all 123 regulation records — the data has never carried them. The server was correct and the criterion was invented; do not re-derive it as a defect.
+
+---
+
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype
