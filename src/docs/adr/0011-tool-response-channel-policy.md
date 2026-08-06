@@ -150,6 +150,40 @@ Sole call site: `generate_information_request_list_xlsx`, whose base64 `.xlsx` m
 
 `tests/integration/protocol-era-worker.test.ts` now asserts, on a **2025-era** `tools/call`, that `content` has two blocks and that block 1 parses to `structuredContent`. Nothing previously asserted anything about the model-visible channel carrying data, which is why a three-week outage sat under a green suite. `protocol-roundtrip.test.ts`'s `parseToolResult` enforces the same agreement for every tool it exercises.
 
+## Note 2026-08-06 BL-112: response size is now measured, and the budgets are policy
+
+The table above was a one-off measurement. Nothing enforced it, and nothing measured any other tool — so `search_radar` grew to 143,027 characters and broke a client (BL-109) while the suite stayed green, exactly as BL-108 had done for the channel contract.
+
+`mcp-server/tests/integration/tool-response-budget.test.ts` now measures **every registered tool**, enumerated from a live `tools/list` against the stdio surface (the Worker registers 15 of 17; the two stdio-only radar tools would otherwise escape). **A tool with no budget entry fails the suite**, so a new tool cannot ship without a size decision.
+
+**Three rules, each of which cost something to learn.**
+
+**Budgets are policy, not client limits.** No client ceiling is documented anywhere in this repo — every reference to 143,027 is an observation _of a failure_, and the true ceiling is unknown and strictly below it. A budget set there would pass a response that still breaks the client. So each budget is today's measurement plus headroom, and raising one is a decision to argue in the PR that raises it, not a step to green.
+
+**Data-scaling tools budget per-item width; fixed-shape tools budget the envelope.** An absolute budget on `search_portfolio` (~1,965 B/entry) reddens after roughly a dozen routine portfolio additions on a data-only PR — the coupling TEST_BEST_PRACTICES §6 warns about, and a ratchet whose natural fix ratifies whatever happened. Per-item width is flat as a dataset grows and moves only when the shape does. It is also the right instrument on the evidence: BL-109's defect was **width, not count**.
+
+**The unit is UTF-8 bytes**, computed exactly as `metrics/with-metrics.ts` computes the audit log's `outputBytes`, so a red test and an audit record are comparable. Characters are recorded alongside, never compared to bytes.
+
+**A correction to the table above.** `search_portfolio` measures **127,709 B / 127,599 chars**. The `127,599 B` recorded above is therefore the **character** count labelled as bytes — the same chars/bytes conflation that recurred repeatedly while BL-112 was being planned. The ×2.07 ratio is unaffected. Left in place rather than silently rewritten, because the mislabelling is the more useful record.
+
+**Measured 2026-08-06 at 0.47.0** (envelope, UTF-8 bytes; per-item where the response scales):
+
+| tool                                     | envelope      | per item                        |
+| ---------------------------------------- | ------------- | ------------------------------- |
+| `search_regulations` (`limit: 120`)      | **355,728 B** | 2,964 B × 120                   |
+| `search_portfolio` (all 65)              | 127,709 B     | 1,965 B × 65                    |
+| `search_radar`                           | 114,815 B     | 2,551 B × 45                    |
+| `search_radar_offline` / `_cache`        | 104,455 B     | 2,321 B × 45                    |
+| `get_latest_insights`                    | 40,219 B      | 2,681 B × 15                    |
+| `generate_diligence_agenda`              | 32,540 B      | —                               |
+| `list_irl_requests`                      | 22,694 B      | 339 B × 67                      |
+| `generate_information_request_list_xlsx` | 18,586 B      | — (×1.05 — the `textOmit` tool) |
+| everything else                          | < 20,000 B    | —                               |
+
+`search_regulations` at its schema max is **~2.5× the response that already broke a client**. That is recorded here flagged, not ratified: bounding it is open (BL-112) because the capability mirror cannot supply a number — the page renders one region at a time, and the largest holds 10 frameworks, below the tool's own default of 20.
+
+**The guard is proven, not assumed.** Reverting BL-109's `stripHtml` at the tool boundary takes `search_radar` from 114,815 B to 258,505 B and turns all four radar budgets red. The first version of the fixture did _not_ catch it — clean prose in a single `<p>` made stripping nearly free — which is the "fixture too small to see the bug" failure BL-109 itself recorded, reproduced inside the guard built to prevent it. The fixture now carries production markup density.
+
 ### Consequence for BL-092 (`outputSchema`)
 
 The blocker recorded under _"Constraint this places on a future `outputSchema`"_ — that the SDK client validates `structuredContent` whenever present with no `isError` guard, so declaring a schema would throw on every error result — **is retired in SDK v2**. `@modelcontextprotocol/client` now guards both branches with `&& !result.isError` (`dist/index.cjs:4155-4156`), and the server mirrors it. BL-092 may proceed without the workaround this ADR required of it. It remains a separate initiative: it would not have fixed this bug, since it turns on client behaviour we have not verified.

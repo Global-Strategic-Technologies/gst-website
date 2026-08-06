@@ -19,17 +19,7 @@ import {
 import { createServer } from '../../src/server';
 import { registerLocalOnlyTools } from '../../src/tools/_local-only';
 import { createPairedTransports, type PairedHalf } from '../helpers/paired-transport';
-
-interface CallToolContent {
-  type: string;
-  text?: string;
-}
-
-interface CallToolResultPayload {
-  content: CallToolContent[];
-  isError?: boolean;
-  structuredContent?: unknown;
-}
+import { parseToolResult, type CallToolResultPayload } from '../helpers/tool-envelope';
 
 interface ToolDescriptor {
   name: string;
@@ -124,59 +114,13 @@ describe('protocol roundtrip', () => {
     return 'error' in msg;
   }
 
-  /**
-   * Read a tool's payload off the wire.
-   *
-   * BL-090 shipped the payload in `structuredContent` ONLY, with `content[0]` a
-   * one-line caption. This docstring used to claim that made "a regression back to
-   * double-sending fail here rather than silently doubling every response" — and
-   * that framing was exactly backwards. Double-sending is what the MCP spec asks
-   * for ("a tool that returns structured content SHOULD also return the serialized
-   * JSON in a TextContent block"), and its absence is what left Claude Desktop —
-   * a `content`-reading client — with bare counts for three weeks (BL-108).
-   *
-   * So the shape is now: `content[0]` the caption, `content[1]` the serialized
-   * payload, `structuredContent` canonical. This helper asserts all three, and in
-   * particular that block 1 agrees with `structuredContent` — the two channels
-   * diverging is the failure mode that replaces "doubling" as the thing to fear.
-   */
-  function parseToolResult<T>(result: CallToolResultPayload): T {
-    const block = result.content[0];
-    if (!block || block.type !== 'text' || !block.text) {
-      throw new Error('expected first content block to be a non-empty text caption');
-    }
-    if (block.text.trimStart().startsWith('{')) {
-      throw new Error(
-        `content[0] must be a caption, not a JSON dump (BL-090): ${block.text.slice(0, 80)}`
-      );
-    }
-    const structured = (result as { structuredContent?: unknown }).structuredContent;
-    if (structured === undefined) {
-      throw new Error('expected structuredContent — it is the canonical channel (BL-090)');
-    }
-
-    const mirror = result.content[1];
-    if (!mirror || mirror.type !== 'text' || !mirror.text) {
-      throw new Error(
-        'expected content[1] to carry the serialized payload (BL-108) — a `content`-only client sees nothing without it'
-      );
-    }
-    let mirrored: unknown;
-    try {
-      mirrored = JSON.parse(mirror.text);
-    } catch {
-      throw new Error(`content[1] must be serialized JSON (BL-108): ${mirror.text.slice(0, 80)}`);
-    }
-    // Unconditional: every tool this suite exercises (generate_diligence_agenda,
-    // search_portfolio, list_portfolio_facets, validate_irl_provenance) agrees
-    // across both channels. `generate_information_request_list_xlsx` is the sole
-    // `textOmit` site and is legitimately asymmetric — it is not routed through
-    // this helper, and would need an explicit exemption here if it ever were.
-    if (JSON.stringify(mirrored) !== JSON.stringify(structured)) {
-      throw new Error('content[1] and structuredContent disagree — the channels have diverged');
-    }
-    return structured as T;
-  }
+  // `parseToolResult` now lives in `../helpers/tool-envelope` (BL-112). It was
+  // local to this file while this was the only suite asserting the envelope
+  // contract; it is now asserted here, in `protocol-era-worker.test.ts`, and in
+  // `tool-response-budget.test.ts`. The docstring that used to sit here — including
+  // why double-sending is correct rather than the regression BL-090 took it for —
+  // moved with it, along with the `textOmit` exemption, which is now a parameter
+  // rather than a comment explaining which tool is not routed through the helper.
 
   beforeEach(async () => {
     nextId = 1;

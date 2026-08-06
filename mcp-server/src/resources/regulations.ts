@@ -1,7 +1,7 @@
 /**
  * MCP Resources: gst://regulations/<jurisdiction>/<framework-id>
  *
- * One Resource per regulatory framework (120 total). Bodies are emitted as
+ * One Resource per regulatory framework (123 total). Bodies are emitted as
  * pretty-printed JSON; agents that want a structured object should JSON.parse
  * the text content. The full Regulation schema (id, name, regions,
  * effectiveDate, summary, category, keyRequirements, penalties) is preserved.

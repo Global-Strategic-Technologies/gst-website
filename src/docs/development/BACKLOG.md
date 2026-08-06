@@ -830,7 +830,7 @@ Measured on a production-shaped corpus: 134,370 → 78,737 chars (**−41.4%**),
 3. **Ordering is load-bearing in two places**, and only one is obvious: dedupe against FYI → bound **globally** → merge → apply the category filter. Bounding after the category filter returns up to `MAX_WIRE` items of one category where the page shows a handful — a bug invisible on the unfiltered call, i.e. on the first test anyone would write.
 4. **`RadarFeed.astro`'s call site remains uncovered**, before and after. Astro components cannot be imported by vitest; the guards are `astro check`, the deletion of the inline block, and review. Stated rather than implied.
 
-**Open, for the operator**: rerun the acceptance probe's P5 and P7 after deploy. P7 is only settled by a client that previously hit its ceiling.
+**Open, for the operator**: moved to **BL-112**, which absorbed it — this stanza is closed and closed stanzas get pruned, so the live task was scheduled for deletion.
 
 ---
 
@@ -867,6 +867,30 @@ Measured on a production-shaped corpus: 134,370 → 78,737 chars (**−41.4%**),
 **What is _not_ achievable, checked rather than assumed**: a staging-only Cloudflare token. `Workers Scripts: Edit` is scoped per **account** with no per-script granularity, so the staging token can deploy the production Worker. Minting a _separate_ token for `mcp-staging` still buys independent revocation, and that is the whole of what it buys — the blast radius is unchanged.
 
 **Noted, not built and not filed**: a scheduled `/health.gitSha` vs master-HEAD drift detector. It would catch silent production staleness from any cause — the class behind both D1 and the month-behind incident of 2026-06. Recorded here only; there is no issue or backlog entry for it, and this stanza is prunable, so it needs filing if it is wanted.
+
+---
+
+### BL-112: MCP Server — tool-response size is measured ✅ CLOSED 2026-08-06
+
+**Source**: asked "what is the radar truncation?", which turned out to be the wrong question | **Shipped**: `@gst/mcp-server` 0.47.0, prompt `gst_irl_ingestion` 0.22.0
+
+**The question behind it.** Two tools had shipped broken to real users while CI was green — BL-108 (counts, no rows) and BL-109 (143,027 characters, past a client's ceiling) — and **both were found by the operator in Claude Desktop**. Every test in the suite called a handler and inspected the return value; none asked the question that had actually broken twice: _can a client consume this?_
+
+**What that blindness was hiding.** `gst_irl_ingestion` Step 3 instructed a single batched `search_regulations` call with a worked example of `limit: 50`. Measured: **~154,000 characters — 1.08× the response that had already exceeded a client's ceiling** — in a client-facing dossier workflow. `search_regulations`' own description called the full-corpus response one that "fits comfortably in context"; at its schema max it is ~348,000 characters. Both now state measured sizes. The corpus was also documented as 120 frameworks in ten places while being 123.
+
+**The guard**: `tool-response-budget.test.ts` measures every registered tool, enumerated from a live `tools/list` on the stdio surface (the Worker registers 15 of 17). A tool with no budget entry fails the suite.
+
+**Findings worth remembering**
+
+1. **The bound could not be derived, and that was the finding.** Two drafts centred on bounding `search_regulations` by the capability mirror, the way BL-109 bounded radar. The page renders one region at a time and the largest holds **10** frameworks — _below the existing default of 20_, so `.max(10).default(20)` is an incoherent contract. No client ceiling is documented either. The blocker was never that a tool is unbounded; it is that **nobody has a defensible number and the repo produced no data to get one**. So the work became the measurement.
+2. **A budget set at the failing observation cannot prevent the failure.** 143,027 is the size that _broke_ a client; the true ceiling is unknown and strictly below it. Budgets are therefore policy — today's measurement plus headroom — and say so in the constants, or they become a number that looks like evidence and is an assumption.
+3. **Per-item width, not absolute bytes, for data-scaling tools.** An absolute budget on `search_portfolio` reddens after ~13 routine portfolio additions on a data-only PR, and its natural fix ("bump the number") ratifies whatever happened — TEST_BEST_PRACTICES §6. Width is flat under growth and moves only on shape, and it is what BL-109's defect actually was.
+4. **The guard did not catch the defect it was built for, on the first try.** Reverting BL-109's `stripHtml` left it green: the fixture wrapped clean prose in one `<p>`, so stripping was nearly free. That is the "fixture too small to see the bug" failure BL-109's own test header records — reproduced inside the guard written to prevent it, and found only by running the mutation rather than trusting the design. With production markup density the same mutation takes `search_radar` from 114,815 B to 258,505 B and reddens all four radar budgets. **A guard is a hypothesis until a mutation kills it.**
+5. **ADR-0011's `127,599 B` was characters.** Measured: 127,709 bytes, 127,599 chars. The chars/bytes conflation recurred four times while planning this, including in a paragraph claiming to have just corrected it. Left in place in the ADR with a note, because the mislabelling is the more useful record.
+
+**Absorbed from BL-109** (its stanza is closed and prunable): rerun the acceptance probe's P5 and P7. **P7 is only settled by a client that previously hit its ceiling**, i.e. one re-runs `search_radar` and reports whether the result still writes to a file instead of inlining. The probe's acceptance criteria are **held by the operator and deliberately uncommitted**, so ask rather than hunt.
+
+**Left open, deliberately**: bounding `search_regulations` (finding 1 — needs a number nobody has); bounding `search_portfolio` (an ADR-0005 decision; the guard makes its growth visible); `search_radar_cache`, documented as "removed in 0.2.0" and still registered at 0.47.0; and BL-110, which would change what `jurisdiction: "eu"` resolves to and therefore every number recorded here.
 
 ---
 

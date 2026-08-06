@@ -20,9 +20,19 @@
  * **What this catches**: any non-trivial change to the `gst_irl_ingestion`
  * prompt body — including the kind of soft-directive regressions that
  * existing string-match tests miss. The diagnostic forces the change
- * author to (1) verify the body change is intentional, (2) regenerate
- * the live-exercise transcript in the golden file, and (3) update the
+ * author to (1) verify the body change is intentional and (2) update the
  * hashes here.
+ *
+ * It used to say (2) was "regenerate the live-exercise transcript in the
+ * golden file". That instruction was stale and is removed (BL-112): the
+ * golden file itself records, as a statement of constraint under BL-108,
+ * that it is a **historical transcript, not a current-body snapshot** —
+ * re-recording needs a human-driven live exercise against a real MCP
+ * client and cannot happen in-session or in CI, and nothing depends on it
+ * being current (`golden-snapshots.test.ts` asserts existence, four
+ * frontmatter keys and `promptName` — never `version` or body). Telling
+ * authors to do the impossible is how the un-actioned "PENDING re-record"
+ * marker sat there from BL-045 to BL-108.
  *
  * **When to update the EXPECTED hashes**: when you've intentionally
  * changed the prompt body — e.g., a v0.0.X version bump landed via the
@@ -264,12 +274,27 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // structural rewrite. Preserving that batching clause verbatim is precisely what
 // keeps this edit in the no-bump class; delete it and the bump is owed. Holding the
 // version steady also keeps the resource/prompt manifest hash unchanged.
+//
+// BL-112 rebaseline (prompt v0.21.1 → v0.22.0, 2026-08-06): this one IS a bump, and
+// the line above says why. Step 3's worked example moved `limit: 50` → `limit: 20`,
+// which alone would be the no-bump class — but the edit also ADDS directives (keep
+// `limit` at or near its default; on `returned < totalMatched`, narrow by category
+// and issue a second batched call rather than raising `limit`), and that recovery
+// path supersedes the old absolute "batched into a single call". New semantics, so
+// the bump is owed under this file's own rule, and `EXPECTED_MANIFEST_HASH` in
+// manifest-stability.test.ts moves with it.
+//
+// Why the edit: `search_regulations` at `limit: 50` returns ~154,000 characters —
+// 1.08x the 143,027-character response that already exceeded a real client's
+// tool-result ceiling (BL-109). The prompt was instructing a call that lands past a
+// known failure point, in a client-facing dossier workflow. Same 3 one-shot hashes
+// drift; the interactive body carries no Step 3 worked example.
 const EXPECTED_HASH_INTERACTIVE =
   'de70481c9ef59babc8bd2282c2d0867d25833e944fb42547771b3c66132e881c';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '54aa125b5fb5f5852d68780e35ece6358eb8ab34fea541e3500e86e88ec40f56';
+  '3fe58f20eb187c7f8566c279c692a09e701443e350f40d67787a1f0a5e181172';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '4b30a35a3ca6b1a8edc38d2cbedec5c374f803a1bbf615fb02ea1237ebdca68d';
+  '1ff26f006e891fcc1802b500c141a1327d7da96decb512fa1d00a84679cd45af';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '6ad7aeb685c273bca6137e5cee65422e93d13c2e7ae91da2cd1b22a61d48dfd3';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
@@ -283,7 +308,7 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'a23bc49fda6e4ec96fd98533e2fa167f25e60fe0b4bd1e41d5491e1fbd66864f';
+  '616a1a88afb9456d4c0bcaae22a3fbadbdeabd2d3d705e038bb2d0c04dd88551';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
   '869175c9fc58193e75d95ffe52d89c3618bcc2d6ff6bc094f8ca10a06604eeff';
 

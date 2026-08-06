@@ -28,6 +28,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
+import { parseToolResult, type CallToolResultPayload } from '../helpers/tool-envelope';
 
 const TEST_KEY = 'test-token-rp';
 const MODERN_VERSION = '2026-07-28';
@@ -261,11 +262,16 @@ describe('BL-106 — Worker protocol era', () => {
     //
     // Shape-based, never row counts: `projects.json` is edited routinely
     // (TEST_BEST_PRACTICES §6), and a count here would fail on unrelated PRs.
+    //
+    // BL-112 routes this through the shared `parseToolResult` so the contract has one
+    // definition rather than three. It is asserted HERE as well as in
+    // `protocol-roundtrip.test.ts` because this is the 2025-era codec path — the one
+    // Claude Desktop actually spoke when BL-108 broke — so the shared assertion has to
+    // hold on both eras or it is not the contract.
+    const parsed = parseToolResult<{ themes?: unknown }>(result as CallToolResultPayload);
     expect(result.content).toHaveLength(2);
     expect(result.content?.[0].text).toMatch(/themes/);
-    const mirrored = JSON.parse(result.content?.[1].text ?? '') as { themes?: unknown };
-    expect(mirrored).toEqual(result.structuredContent);
-    expect(Array.isArray(mirrored.themes)).toBe(true);
+    expect(Array.isArray(parsed.themes)).toBe(true);
   });
 
   it('accepts the legacy notifications/initialized that follows the handshake', async () => {
