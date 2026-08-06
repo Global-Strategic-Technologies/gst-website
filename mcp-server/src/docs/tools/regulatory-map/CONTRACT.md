@@ -62,7 +62,7 @@ Filters AND across facets and OR within a facet — `{jurisdiction: ['eu','us'],
 
 ### `jurisdiction` valid values
 
-The 38 distinct jurisdiction codes are listed by `list_regulation_facets`. They follow two patterns:
+The distinct jurisdiction codes are listed by `list_regulation_facets` — deliberately not counted here, because the hardcoded "38" this replaced had gone stale unnoticed alongside the 120-vs-123 corpus count (BL-112). They follow two patterns:
 
 - **2-letter country codes** (top-level): `eu`, `us`, `ca`, `gb`, `au`, `br`, `cn`, `jp`, etc.
 - **2-segment sub-region codes**: `us-ca` (California), `us-co` (Colorado), `ca-ab` (Alberta), `ca-qc` (Quebec), etc. Sub-regions are detected by URI structure (`<country>-<XX>-<framework>`) for `us-` and `ca-` prefixes only.

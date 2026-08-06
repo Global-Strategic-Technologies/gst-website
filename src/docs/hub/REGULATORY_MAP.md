@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, and industry compliance regulations across 123 regulations in 29 jurisdictions. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
+The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, and industry compliance regulations across 123 regulations, spanning every jurisdiction enumerated by `list_regulation_facets`. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
 
 **Entry point**: `src/pages/hub/tools/regulatory-map/index.astro`
 
