@@ -1,6 +1,11 @@
 # MCP Server — Testing
 
-Vitest suite for the `@gst/mcp-server` workspace. Proves engine parity and schema integrity for the tools exposed over the MCP stdio transport: `generate_diligence_agenda`, `search_portfolio`, `list_portfolio_facets`.
+Vitest suite for the `@gst/mcp-server` workspace. Proves engine parity and schema integrity for the tools exposed over the MCP transports — **17 tools** as of 0.47.0 (15 on the Worker, plus `search_radar_offline` and `search_radar_cache` registered only on stdio). `protocol-roundtrip.test.ts` holds the authoritative name list; this line named three of them and had done so for many releases (corrected under BL-112).
+
+Two suites are worth knowing about before adding a tool, because both fail when a new tool ignores them:
+
+- **`tests/integration/protocol-roundtrip.test.ts`** — the tool/prompt/Resource inventory and the response-envelope contract.
+- **`tests/integration/tool-response-budget.test.ts`** — every registered tool's response **size**. A tool with no budget entry fails the suite, so a new tool cannot ship without a size decision. See [ADR-0011 § Note 2026-08-06](../../../../src/docs/adr/0011-tool-response-channel-policy.md) for why budgets are policy rather than client limits.
 
 The workspace is self-contained — its tests, coverage thresholds, and CI workflow are independent of any consuming project.
 

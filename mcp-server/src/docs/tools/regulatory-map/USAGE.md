@@ -6,7 +6,7 @@ This document is a **stakeholder orientation aid** — it answers "what does it 
 
 > Companion docs: [`CONTRACT.md`](./CONTRACT.md) (per-field input + URI taxonomy reference) | [`../contracts/README.md`](../README.md) (registry of all per-tool contracts).
 
-> **The deal in this document is hypothetical.** No real client, target, or codename. Framework names, IDs, and effective dates are real — they come from the 120 JSON files in `src/data/regulatory-map/` — but the example deal context is illustrative.
+> **The deal in this document is hypothetical.** No real client, target, or codename. Framework names, IDs, and effective dates are real — they come from the 123 JSON files in `src/data/regulatory-map/` — but the example deal context is illustrative.
 
 ---
 
@@ -164,7 +164,7 @@ These are operations that previously required manual compilation across the wiza
 | Sub-region detection       | Manual lookup (is Quebec under CA-QC or CA-PQ? UK under GB or UK?) | `list_regulation_facets` answers it once; jurisdiction codes are then exact                            |
 | Engine drift risk          | Two surfaces (web + MCP) → divergence possible                     | Both surfaces read from the same `src/data/regulatory-map/*.json` — by construction, identical content |
 
-The 120-framework dataset is not new. The category taxonomy is not new. **What is new is putting both inside the conversation that's drafting the kickoff brief, prepping the compliance interview, or pinning frameworks for tomorrow's session** — without any context-switch, with stable URIs the model can cite by reference.
+The 123-framework dataset is not new. The category taxonomy is not new. **What is new is putting both inside the conversation that's drafting the kickoff brief, prepping the compliance interview, or pinning frameworks for tomorrow's session** — without any context-switch, with stable URIs the model can cite by reference.
 
 ---
 

@@ -353,7 +353,7 @@ give it an explicit `-text` override rather than relying on verbatim storage.
 See [.prettierignore](../../../.prettierignore) for the full list. Notable entries:
 
 - **Hand-curated data files**: `src/data/ma-portfolio/projects.json`, `src/data/canada-provinces.json`
-- **Regulatory map content collection**: `src/data/regulatory-map/` (120 JSON files curated manually)
+- **Regulatory map content collection**: `src/data/regulatory-map/` (123 JSON files curated manually)
 - **Lock files**: `package-lock.json`
 - **Generated output**: `dist/`, `.astro/`, `.vercel/`, `coverage/`, `playwright-report/`, `test-results/`
 - **Archived initiative docs**: `src/docs/development/_archive/` (added 2026-07-15, BL-088) — archived docs are frozen verbatim point-in-time records; letting the pre-commit hook reformat them at `git mv` time would contradict the archive-verbatim policy and bloat move diffs

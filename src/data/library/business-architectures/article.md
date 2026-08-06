@@ -171,7 +171,7 @@ A common diligence pattern: a company announces a transition from monolith to mi
 
 **What it is.** External forces, standards, and competitive dynamics that shape what's possible and what's required before a single internal decision gets made.
 
-**Why it matters.** No company's technology exists in a vacuum. Industry structure dictates which architectural choices create competitive advantage and which simply keep the lights on. Regulatory requirements can turn a minor design decision into a material compliance liability. (GST's [Regulatory Map](https://globalstrategic.tech/hub/tools/regulatory-map) tracks 120 frameworks across data privacy, AI governance, cybersecurity, and industry compliance.)
+**Why it matters.** No company's technology exists in a vacuum. Industry structure dictates which architectural choices create competitive advantage and which simply keep the lights on. Regulatory requirements can turn a minor design decision into a material compliance liability. (GST's [Regulatory Map](https://globalstrategic.tech/hub/tools/regulatory-map) tracks 123 frameworks across data privacy, AI governance, cybersecurity, and industry compliance.)
 
 **Business meaning:** which business models are viable · where margins concentrate · how defensible advantage can be built · which constraints are non-negotiable.
 

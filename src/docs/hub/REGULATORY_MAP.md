@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, and industry compliance regulations across 120 regulations in 29 jurisdictions. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
+The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, and industry compliance regulations across 123 regulations, spanning every jurisdiction enumerated by `list_regulation_facets`. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
 
 **Entry point**: `src/pages/hub/tools/regulatory-map/index.astro`
 
@@ -20,7 +20,7 @@ User (Map UI)
 │     CompliancePanel.astro       ← Regulation detail panel (cards, requirements, penalties)
 │
 ├── src/data/regulatory-map/
-│     *.json                      ← 120 regulation files (Zod-validated at build time)
+│     *.json                      ← 123 regulation files (Zod-validated at build time)
 │
 ├── src/data/canada-provinces.json ← TopoJSON for Canadian province boundaries (simplified)
 │
@@ -125,13 +125,13 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 
 ---
 
-## Regulation Coverage (120 regulations)
+## Regulation Coverage (123 regulations)
 
-The map covers four categories of regulation: **data privacy** (69), **cybersecurity** (20), **AI governance** (19), and **industry compliance** (12). All categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from multiple categories.
+The map covers four categories of regulation: **data privacy** (70), **cybersecurity** (20), **AI governance** (21), and **industry compliance** (12). All categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from multiple categories.
 
 ---
 
-### Data Privacy Regulations (69)
+### Data Privacy Regulations (70)
 
 #### Multi-Country (2)
 
@@ -218,7 +218,7 @@ The map covers four categories of regulation: **data privacy** (69), **cybersecu
 | `TZ-EPDA.json` | Tanzania | PDP Act |
 | `UG-DPPA.json` | Uganda | Data Protection and Privacy Act 2019 |
 
-#### Latin America (7)
+#### Latin America (8)
 
 | File | Country | Law |
 |------|---------|-----|
@@ -229,6 +229,7 @@ The map covers four categories of regulation: **data privacy** (69), **cybersecu
 | `UY-LAW18331.json` | Uruguay | Law 18.331 |
 | `PE-LAW29733.json` | Peru | Law 29.733 |
 | `EC-LOPDP.json` | Ecuador | LOPDP |
+| `CL-LEY21719.json` | Chile | Ley 21.719 |
 
 #### Central & South Asia (3)
 
@@ -249,7 +250,7 @@ The map covers four categories of regulation: **data privacy** (69), **cybersecu
 
 ---
 
-### AI Governance Regulations (19)
+### AI Governance Regulations (21)
 
 #### Multi-Country (2)
 
@@ -258,7 +259,7 @@ The map covers four categories of regulation: **data privacy** (69), **cybersecu
 | `EU-AI-ACT.json` | EU Artificial Intelligence Act (Regulation 2024/1689) | 27 EU member states | 2024-08-01 |
 | `US-EXEC-AI.json` | US Executive Order on Safe, Secure, and Trustworthy AI (EO 14110) | 51 US jurisdictions | 2023-10-30 |
 
-#### National AI Laws (8)
+#### National AI Laws (10)
 
 | File | Country | Law | Effective |
 |------|---------|-----|-----------|
@@ -270,6 +271,8 @@ The map covers four categories of regulation: **data privacy** (69), **cybersecu
 | `JP-AI-PROMOTION.json` | Japan | AI Promotion Act | 2025-06-04 |
 | `PE-AI-LAW31814.json` | Peru | AI Promotion Law (Law 31814) | 2023-07-05 |
 | `BR-AI-ACT.json` | Brazil | AI Act (PL 2338/2023) | 2025-07-01 |
+| `GB-AI-FRAMEWORK.json` | United Kingdom | Pro-Innovation Approach to AI Regulation | 2024-02-06 |
+| `US-NIST-AI-RMF.json` | United States | NIST AI Risk Management Framework 1.0 | 2023-01-26 |
 
 #### US State AI Laws (9)
 
@@ -601,4 +604,4 @@ Prioritized list of regulations and jurisdictions for future phases:
 ---
 
 **Created:** March 2026
-**Last updated:** March 2026 (120 regulations across 4 categories, URL bookmarking, shipped features documented)
+**Last updated:** March 2026 (123 regulations across 4 categories, URL bookmarking, shipped features documented)

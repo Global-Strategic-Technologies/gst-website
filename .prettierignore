@@ -17,7 +17,7 @@ package-lock.json
 src/data/ma-portfolio/projects.json
 src/data/canada-provinces.json
 
-# Regulatory map (120 files, curated manually)
+# Regulatory map (123 files, curated manually)
 src/data/regulatory-map/
 
 # Public static assets (topojson, minified, generated)

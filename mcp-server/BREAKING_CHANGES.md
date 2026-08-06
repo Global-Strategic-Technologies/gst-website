@@ -13,7 +13,7 @@
 ## Current manifest hash
 
 ```
-26dce144d2cc433b045f088869c66896e28fe62fb1ba10b660e1d96eb3724b6f
+e8d76ac01d2ec7d3b2f69cb5eed491338608fe641eff0251e807aafb14548a7b
 ```
 
 Computed over (sorted):
@@ -22,12 +22,38 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below) + `gst_irl_ingestion` at `0.21.1` (meta-fence stale version literal replaced with a server-derived placeholder — see the 0.38.0 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below) + `gst_irl_ingestion` at `0.22.0` (Step 3 no longer instructs a `limit` that exceeds a client ceiling — see the 0.47.0 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.47.0 — 2026-08-06 — BL-112 — `gst_irl_ingestion` stops instructing a call that exceeds a client's ceiling
+
+**`gst_irl_ingestion` 0.21.1 → 0.22.0.** No tool, Resource URI or input schema changes; the manifest hash moves solely on that prompt's `name@version` tuple.
+
+**Who this affects**: anyone pinned to `gst_irl_ingestion@0.21.1`. Step 3's guidance changed, not its shape — the batched-array directive is preserved.
+
+**Why.** Step 3's worked example specified `limit: 50` on `search_regulations` while instructing a single batched call across every jurisdiction in IRL Section 09. Measured against the real 123-record corpus, that returns **~153,200 characters** — **1.07×** the 143,027-character response that had already exceeded a real client's tool-result ceiling in 0.46.0. The prompt was steering a client-facing dossier workflow into a call that lands past a known failure point.
+
+Measured, `search_regulations` envelope (both channels, real data):
+
+| `limit`                 | envelope chars | vs the 143,027 that failed |
+| ----------------------- | -------------- | -------------------------- |
+| 20 (default)            | ~61,300        | 0.43×                      |
+| **50 (was instructed)** | **~153,200**   | **1.07×**                  |
+| 120 (schema max)        | ~355,700       | 2.49×                      |
+
+**What changed.** The worked example moves to `limit: 20`, and Step 3 gains two directives: keep `limit` at or near its default, and on `returned < totalMatched` **narrow by category and issue a second batched call rather than raising `limit`**. That recovery path supersedes the previous absolute "batched into a single call" — new semantics, which is why the version moves rather than holding steady as the BL-108 rebaseline did.
+
+`search_regulations`' own description carried the same false steer — _"the full 120-framework response fits comfortably in context"_ — and now states the measured sizes instead. **The tool's inputs are unchanged**: no bound was added, because the mirror cannot supply one (the page renders a single region, whose largest holds 10 frameworks — below the existing default of 20) and no client ceiling is documented. That decision is deliberately open; see BL-112.
+
+**Also corrected**: the corpus is **123** frameworks, not 120. ~31 statements across 20 files said otherwise, including `list_regulation_facets`' own contract while the tool returned 123 at runtime. Note the consequence, unchanged by this release: with 123 records and `limit` capped at 120, `search_regulations` cannot return the full dataset in one call.
+
+**Manifest-hash impact**: hash changes from `26dce144…` to `e8d76ac0…` — solely the `gst_irl_ingestion` name@version tuple. Updated in `tests/integration/manifest-stability.test.ts` and the "Current manifest hash" section above.
 
 ---
 

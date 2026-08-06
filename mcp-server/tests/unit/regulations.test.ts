@@ -51,10 +51,10 @@ describe('regulation-loader URI taxonomy', () => {
     expect(entry!.frameworkId).toBe('cccs');
   });
 
-  it('produces 120 distinct URIs', () => {
+  it('produces 123 distinct URIs', () => {
     const uris = new Set(REGULATION_ENTRIES.map((e) => e.uri));
     expect(uris.size).toBe(REGULATION_ENTRIES.length);
-    expect(uris.size).toBeGreaterThanOrEqual(120);
+    expect(uris.size).toBeGreaterThanOrEqual(123);
   });
 });
 

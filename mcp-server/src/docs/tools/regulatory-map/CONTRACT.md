@@ -12,7 +12,7 @@ enumParity:
 
 > **Tools**:
 >
-> - `search_regulations` — faceted search across the 120-framework GST Regulatory Map; returns matched frameworks with their resolved Resource URI.
+> - `search_regulations` — faceted search across the 123-framework GST Regulatory Map; returns matched frameworks with their resolved Resource URI.
 > - `list_regulation_facets` — enumerates distinct jurisdictions and categories present in the dataset.
 >
 > Companion to the `gst://regulations/<jurisdiction>/<framework-id>` MCP Resources, which return the full per-framework JSON body.
@@ -20,7 +20,7 @@ enumParity:
 > **Sources of truth** (the contract cites these; it does not duplicate them):
 >
 > - **Validation**: [`src/schemas/regulatory-map.ts`](../../../../../src/schemas/regulatory-map.ts) — `RegulationSchema`, `RegulationCategorySchema`, `RegulationSearchInputSchema`, `RegulationFacetsInputSchema`
-> - **Framework dataset**: [`src/data/regulatory-map/*.json`](../../../../../src/data/regulatory-map/) — 120 individual JSON files, one per framework
+> - **Framework dataset**: [`src/data/regulatory-map/*.json`](../../../../../src/data/regulatory-map/) — 123 individual JSON files, one per framework
 > - **Engine / loader**: [`mcp-server/src/content/regulation-loader.ts`](../../../content/regulation-loader.ts) — URI parsing (`SUB_REGION_RE`), slug index, `loadRegulationByUri`
 > - **Tool wrapper**: [`mcp-server/src/tools/regulations.ts`](../../../tools/regulations.ts) — search filtering, facet enumeration, `jurisdictionToRegion()` deep-link normalization (V2 fix: lowercase alpha-2 → uppercase alpha-3)
 >
@@ -39,12 +39,12 @@ enumParity:
 
 ## `search_regulations` — field overview
 
-| Field          | Type                        | Required | Default | Notes                                                                                          |
-| -------------- | --------------------------- | -------- | ------- | ---------------------------------------------------------------------------------------------- |
-| `jurisdiction` | `string \| string[]`        | no       | —       | Exact match against parsed jurisdiction code. Accepts a single string or an array (see below). |
-| `category`     | `enum(4) \| Array<enum(4)>` | no       | —       | One of `data-privacy`, `ai-governance`, `industry-compliance`, `cybersecurity`; or an array.   |
-| `query`        | string                      | no       | —       | Free-text substring match across `id`, `name`, `summary`                                       |
-| `limit`        | int                         | no       | 20      | Cap on returned matches; max 120                                                               |
+| Field          | Type                        | Required | Default | Notes                                                                                                                                                                                                                                            |
+| -------------- | --------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `jurisdiction` | `string \| string[]`        | no       | —       | Exact match against parsed jurisdiction code. Accepts a single string or an array (see below).                                                                                                                                                   |
+| `category`     | `enum(4) \| Array<enum(4)>` | no       | —       | One of `data-privacy`, `ai-governance`, `industry-compliance`, `cybersecurity`; or an array.                                                                                                                                                     |
+| `query`        | string                      | no       | —       | Free-text substring match across `id`, `name`, `summary`                                                                                                                                                                                         |
+| `limit`        | int                         | no       | 20      | Cap on returned matches; max 120. **Note the corpus is 123** — so a single call cannot return the full dataset. Deliberately unchanged in BL-112: raising the max grows an already-large response (see below), and the mirror supplies no bound. |
 
 Filters AND across facets and OR within a facet — `{jurisdiction: ['eu','us'], category: ['data-privacy']}` returns data-privacy frameworks whose `jurisdiction ∈ {eu, us}`. Empty input (`{}`) returns the first 20 frameworks, useful as a sanity check or browse-mode call.
 
@@ -62,7 +62,7 @@ Filters AND across facets and OR within a facet — `{jurisdiction: ['eu','us'],
 
 ### `jurisdiction` valid values
 
-The 38 distinct jurisdiction codes are listed by `list_regulation_facets`. They follow two patterns:
+The distinct jurisdiction codes are listed by `list_regulation_facets` — deliberately not counted here, because the hardcoded "38" this replaced had gone stale unnoticed alongside the 120-vs-123 corpus count (BL-112). They follow two patterns:
 
 - **2-letter country codes** (top-level): `eu`, `us`, `ca`, `gb`, `au`, `br`, `cn`, `jp`, etc.
 - **2-segment sub-region codes**: `us-ca` (California), `us-co` (Colorado), `ca-ab` (Alberta), `ca-qc` (Quebec), etc. Sub-regions are detected by URI structure (`<country>-<XX>-<framework>`) for `us-` and `ca-` prefixes only.
@@ -116,7 +116,7 @@ Use the `uri` from each match with `resources/read` (or with the `mcp__gst__reso
 {
   jurisdictions: string[],     // sorted, distinct
   categories: string[],        // sorted, the 4 canonical categories
-  totalFrameworks: number      // total count, currently 120
+  totalFrameworks: number      // total count, currently 123
 }
 ```
 
@@ -147,6 +147,15 @@ URIs are decoupled from filenames — renaming `EU-GDPR.json` to anything else w
 - **Facet symmetry is not enforced**: the result of `list_regulation_facets` lists the categories _that exist in the dataset today_, not the canonical four. If a future framework introduces a fifth category, the facet list will surface it without a code change. The Zod `RegulationCategorySchema` would need an explicit update to match.
 - **Empty `query` and empty `jurisdiction` semantics differ**: omitting `jurisdiction` returns all jurisdictions; passing `jurisdiction: ""` produces an empty match because the exact-match comparison fails on the empty string. Idiomatic usage: omit fields that aren't filtering rather than passing empty strings.
 - **`search_regulations` does not paginate**. `limit` caps the response; `totalMatched` tells the caller how much was elided. To page through all matches, call again with progressively narrower filters rather than offsetting (no offset parameter today).
+- **Response size scales steeply with `limit`, and the tool used to say otherwise.** Measured 2026-08-06 against the real corpus (envelope = both channels + framing):
+
+  | `limit`      | envelope | vs the 143,027-char response that exceeded a real client's ceiling (BL-109) |
+  | ------------ | -------- | --------------------------------------------------------------------------- |
+  | 20 (default) | ~61,300  | 0.43×                                                                       |
+  | 50           | ~153,200 | **1.07×**                                                                   |
+  | 120 (max)    | ~355,700 | **2.49×**                                                                   |
+
+  The description previously advised that _"the full 120-framework response fits comfortably in context — prefer broader filters"_, and `gst_irl_ingestion` Step 3 instructed a batched call at `limit: 50`. Both were corrected in BL-112. **Keep `limit` at or near its default and narrow by category; when `returned < totalMatched`, issue a second narrowed call rather than raising `limit`.** No bound was added to the schema — the capability mirror cannot supply one (the page renders a single region, the largest holding 10 frameworks, below the default of 20) and no client ceiling is documented. That decision is open; `tests/integration/tool-response-budget.test.ts` records the current size so it is visible rather than assumed.
 
 ---
 

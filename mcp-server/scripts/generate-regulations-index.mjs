@@ -4,7 +4,7 @@
 // plain TS imports — the same source-of-truth, no env-specific loader plumbing.
 //
 // Why codegen vs. runtime fs reads: Claude Desktop spawns the binary with
-// `cwd = $HOME`, so cwd-relative reads break. Why codegen vs. 120 explicit
+// `cwd = $HOME`, so cwd-relative reads break. Why codegen vs. 123 explicit
 // imports: maintenance — adding/removing a regulation or article should not
 // require editing the loader.
 //
