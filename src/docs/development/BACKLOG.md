@@ -894,11 +894,19 @@ Measured on a production-shaped corpus: 134,370 → 78,737 chars (**−41.4%**),
 
 ### BL-113: MCP Server — settle the client tool-result ceiling (candidate)
 
-**Source**: BL-109's acceptance probe, orphaned inside its closed stanza and rescued by BL-112 | **Effort**: small (one probe run) | **Status**: Candidate · deferred with triggers
+**Source**: BL-109's acceptance probe, orphaned inside its closed stanza and rescued by BL-112 | **Effort**: small (one probe run) | **Status**: Candidate · **half-settled 2026-08-06** — see the run record below
 
 ⏸️ **Do not pick this up because it is "unblocked".** It needs a specific client and a specific person, not an available afternoon.
 
 **The task**: rerun the acceptance probe's **P5 and P7**. P7 is only settled by **a client that previously hit its ceiling** — it re-runs `search_radar` and reports whether the result still writes to a file instead of inlining (the observable recorded at BL-109's D1). The probe's acceptance criteria are **held by the operator and were deliberately not committed to this repo**, so ask rather than hunt for them.
+
+**Run record — 2026-08-06T15:04Z, Claude Desktop, against 0.47.0.** Both target probes passed. **P5** returned the xlsx envelope (13,059 B, 10 sections / 67 bullets). **P7** returned 32 items — `degraded: false`, `wireCacheHit: true` — with no spill to a file.
+
+The run landed **~3.5 minutes after the production deploy finished** (deploy run `31113193707` completed 15:00:42Z; staging and production both carried `7e5d4268`), so the probe's own `environment: NOT VISIBLE` caveat does not weaken it: either backend was 0.47.0.
+
+**What it settles, and what it does not.** 32 items is **not** the worst case — `MAX_WIRE = 30` plus `FYI_MAX_COUNT = 15` allows 45, and only 2 FYI items cleared the freshness gate that day. At the per-item widths measured in BL-112 the run carried **~82,000 B** against a **114,815 B** worst case. That gap is a scheduling accident, not headroom by design.
+
+So the ceiling is now known to be **above ~82,000 B** — the first evidence that post-`stripHtml` radar is consumable end-to-end on a real client, and enough to retire BL-109's specific failure. It is **not** evidence that the full 45-item response clears. **Remaining work: one P7 run on a day the FYI tier fills.** Until then every budget in `tool-response-budget.test.ts` stays policy, and the two bounding decisions below stay open.
 
 **Why it still matters after BL-112.** BL-112 measured every tool, but a measurement is not a limit: **no client ceiling is documented anywhere in this repo**. The one empirical datum — 143,027 characters — is an observation _of a failure_, so the true ceiling is unknown and strictly below it. Every budget shipped in `tool-response-budget.test.ts` is therefore policy. This probe is the only thing that could turn "a client's ceiling" into a number, and two open bounding decisions wait on it: `search_regulations` (355,728 B at its schema max, ~2.5× the failing observation) and `search_portfolio` (127,709 B and unbounded by ADR-0005).
 
@@ -917,6 +925,8 @@ Measured on a production-shaped corpus: 134,370 → 78,737 chars (**−41.4%**),
 **Investigate first**: read the jurisdiction→region mapping before changing anything; the answer may be a description fix rather than a filter change.
 
 **Recorded from the same probe**: the probe's own acceptance criterion demanded article-number citations from `search_regulations`. `Article`/`Art.` appears **0 times** across all 123 regulation records — the data has never carried them. The server was correct and the criterion was invented; do not re-derive it as a defect.
+
+**It recurred on 2026-08-06** — the same criterion failed the same probe again, and the finding was re-derived from scratch by an agent that had this stanza available. Re-deriving it costs a corpus grep every run and reliably produces a FAIL against a bar the tool never claimed: the shipped description enumerates exactly `scope`, `keyRequirements`, and `penalties`, and advertises no citation field. **The durable fix is to amend the probe's criteria, which are held by the operator** — not to author citations into 123 records. Authoring them is a sourcing project, not a code change, and a model-generated article number is worse than a blank one: a blank invites verification, a wrong citation suppresses it. Do not open that project on the strength of a probe criterion alone; it needs a client asking for it.
 
 ---
 
