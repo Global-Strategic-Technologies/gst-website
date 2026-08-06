@@ -830,7 +830,7 @@ Measured on a production-shaped corpus: 134,370 → 78,737 chars (**−41.4%**),
 3. **Ordering is load-bearing in two places**, and only one is obvious: dedupe against FYI → bound **globally** → merge → apply the category filter. Bounding after the category filter returns up to `MAX_WIRE` items of one category where the page shows a handful — a bug invisible on the unfiltered call, i.e. on the first test anyone would write.
 4. **`RadarFeed.astro`'s call site remains uncovered**, before and after. Astro components cannot be imported by vitest; the guards are `astro check`, the deletion of the inline block, and review. Stated rather than implied.
 
-**Open, for the operator**: moved to **BL-112**, which absorbed it — this stanza is closed and closed stanzas get pruned, so the live task was scheduled for deletion.
+**Open, for the operator**: moved to **BL-113**. It sat here inside a closed stanza, and closed stanzas get pruned — so a live task was queued for silent deletion. Rescued by BL-112; the work itself is unchanged.
 
 ---
 
@@ -876,7 +876,7 @@ Measured on a production-shaped corpus: 134,370 → 78,737 chars (**−41.4%**),
 
 **The question behind it.** Two tools had shipped broken to real users while CI was green — BL-108 (counts, no rows) and BL-109 (143,027 characters, past a client's ceiling) — and **both were found by the operator in Claude Desktop**. Every test in the suite called a handler and inspected the return value; none asked the question that had actually broken twice: _can a client consume this?_
 
-**What that blindness was hiding.** `gst_irl_ingestion` Step 3 instructed a single batched `search_regulations` call with a worked example of `limit: 50`. Measured: **~154,000 characters — 1.08× the response that had already exceeded a client's ceiling** — in a client-facing dossier workflow. `search_regulations`' own description called the full-corpus response one that "fits comfortably in context"; at its schema max it is ~348,000 characters. Both now state measured sizes. The corpus was also documented as 120 frameworks in ten places while being 123.
+**What that blindness was hiding.** `gst_irl_ingestion` Step 3 instructed a single batched `search_regulations` call with a worked example of `limit: 50`. Measured: **~153,200 characters — 1.07× the response that had already exceeded a client's ceiling** — in a client-facing dossier workflow. `search_regulations`' own description called the full-corpus response one that "fits comfortably in context"; at its schema max it is ~355,700 characters. Both now state measured sizes. The corpus was also documented as 120 frameworks in ten places while being 123.
 
 **The guard**: `tool-response-budget.test.ts` measures every registered tool, enumerated from a live `tools/list` on the stdio surface (the Worker registers 15 of 17). A tool with no budget entry fails the suite.
 
@@ -888,9 +888,21 @@ Measured on a production-shaped corpus: 134,370 → 78,737 chars (**−41.4%**),
 4. **The guard did not catch the defect it was built for, on the first try.** Reverting BL-109's `stripHtml` left it green: the fixture wrapped clean prose in one `<p>`, so stripping was nearly free. That is the "fixture too small to see the bug" failure BL-109's own test header records — reproduced inside the guard written to prevent it, and found only by running the mutation rather than trusting the design. With production markup density the same mutation takes `search_radar` from 114,815 B to 258,505 B and reddens all four radar budgets. **A guard is a hypothesis until a mutation kills it.**
 5. **ADR-0011's `127,599 B` was characters.** Measured: 127,709 bytes, 127,599 chars. The chars/bytes conflation recurred four times while planning this, including in a paragraph claiming to have just corrected it. Left in place in the ADR with a note, because the mislabelling is the more useful record.
 
-**Absorbed from BL-109** (its stanza is closed and prunable): rerun the acceptance probe's P5 and P7. **P7 is only settled by a client that previously hit its ceiling**, i.e. one re-runs `search_radar` and reports whether the result still writes to a file instead of inlining. The probe's acceptance criteria are **held by the operator and deliberately uncommitted**, so ask rather than hunt.
+**Open items moved out, not held here.** This stanza is closed and closed stanzas get pruned — which is exactly how BL-109 orphaned its operator probe. Keeping BL-109's loop _inside_ another closed stanza would have rebuilt that trap one stanza down. So the live work is filed as **BL-113** (candidate) and the standing decisions are recorded where they belong: bounding `search_regulations` in [ADR-0011's 2026-08-06 note](../adr/0011-tool-response-channel-policy.md) and this tool's [CONTRACT.md](../../../mcp-server/src/docs/tools/regulatory-map/CONTRACT.md); bounding `search_portfolio` under ADR-0005, with the guard making its growth visible. BL-110 remains a live coupling: it would change what `jurisdiction: "eu"` resolves to and therefore every number recorded here.
 
-**Left open, deliberately**: bounding `search_regulations` (finding 1 — needs a number nobody has); bounding `search_portfolio` (an ADR-0005 decision; the guard makes its growth visible); `search_radar_cache`, documented as "removed in 0.2.0" and still registered at 0.47.0; and BL-110, which would change what `jurisdiction: "eu"` resolves to and therefore every number recorded here.
+---
+
+### BL-113: MCP Server — settle the client tool-result ceiling (candidate)
+
+**Source**: BL-109's acceptance probe, orphaned inside its closed stanza and rescued by BL-112 | **Effort**: small (one probe run) | **Status**: Candidate · deferred with triggers
+
+⏸️ **Do not pick this up because it is "unblocked".** It needs a specific client and a specific person, not an available afternoon.
+
+**The task**: rerun the acceptance probe's **P5 and P7**. P7 is only settled by **a client that previously hit its ceiling** — it re-runs `search_radar` and reports whether the result still writes to a file instead of inlining (the observable recorded at BL-109's D1). The probe's acceptance criteria are **held by the operator and were deliberately not committed to this repo**, so ask rather than hunt for them.
+
+**Why it still matters after BL-112.** BL-112 measured every tool, but a measurement is not a limit: **no client ceiling is documented anywhere in this repo**. The one empirical datum — 143,027 characters — is an observation _of a failure_, so the true ceiling is unknown and strictly below it. Every budget shipped in `tool-response-budget.test.ts` is therefore policy. This probe is the only thing that could turn "a client's ceiling" into a number, and two open bounding decisions wait on it: `search_regulations` (355,728 B at its schema max, ~2.5× the failing observation) and `search_portfolio` (127,709 B and unbounded by ADR-0005).
+
+**Also open, related**: `search_radar_cache` is documented as "removed in mcp-server@0.2.0" and is still registered at 0.47.0 — a deprecated alias that BL-112 had to budget precisely because the coverage rule keys on what is registered rather than on what ought to exist.
 
 ---
 

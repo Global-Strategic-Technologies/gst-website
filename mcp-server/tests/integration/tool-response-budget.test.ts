@@ -343,8 +343,13 @@ interface ToolBudget {
 
 /**
  * Budgets, measured 2026-08-06 against the real data files at
- * `@gst/mcp-server` 0.47.0. Headroom is ~25% on absolute budgets and ~20% on
- * per-item widths unless a note says otherwise.
+ * `@gst/mcp-server` 0.47.0. Headroom is **~25-35% over the measured value**, and
+ * that is a real constraint rather than a stated aspiration: an earlier draft
+ * claimed "~25%" while shipping budgets 8× to 44× the measurement, which cannot
+ * trip and is therefore decorative. Two exceptions, each carrying its reason in
+ * its own note: `search_portfolio`'s envelope ceiling is a deliberate growth alarm
+ * on an unbounded tool, and `search_regulations`' records a size already flagged as
+ * suspicious rather than endorsed.
  *
  * Three of these have recorded baselines in ADR-0011 (`search_portfolio`,
  * `compose_dossier_envelope`, `list_portfolio_facets`). The rest are fresh
@@ -359,7 +364,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       kind: 'perItem',
       itemsKey: 'matches',
       maxBytesPerItem: 2400,
-      maxEnvelopeBytes: 200_000,
+      maxEnvelopeBytes: 170_000,
     },
     note: 'ADR-0011 baseline: 127,599 B over 65 projects = ~1,963 B/entry. Unbounded by ADR-0005 (the page renders every project), so the envelope ceiling is a growth alarm, not a contract.',
   },
@@ -371,7 +376,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       maxBytesPerItem: 3600,
       maxEnvelopeBytes: 420_000,
     },
-    note: 'Measured at the SCHEMA MAX, not the default — the exposure is invisible at limit 20 (~61,600 B). At 120 the envelope is ~348,000 B, i.e. ~2.4x the 143,027-char response that already broke a client. This budget records that reality flagged as suspicious; it does NOT ratify it. Bounding the tool is open (BL-112) — the capability mirror cannot supply a number (the page renders one region, largest = 10 frameworks, below the default of 20).',
+    note: 'Measured at the SCHEMA MAX, not the default — the exposure is invisible at limit 20 (~61,600 B). At 120 the envelope is ~355,700 B, i.e. ~2.4x the 143,027-char response that already broke a client. This budget records that reality flagged as suspicious; it does NOT ratify it. Bounding the tool is open (BL-112) — the capability mirror cannot supply a number (the page renders one region, largest = 10 frameworks, below the default of 20).',
   },
   search_radar: {
     args: {},
@@ -413,25 +418,25 @@ const BUDGETS: Record<string, ToolBudget> = {
     budget: {
       kind: 'perItem',
       itemsKey: 'requests',
-      maxBytesPerItem: 1200,
-      maxEnvelopeBytes: 60_000,
+      maxBytesPerItem: 450,
+      maxEnvelopeBytes: 30_000,
     },
     note: 'Scales with an authored document (src/data/irl/information-request-list.md, ~6.4 KB), unprojected. A watch rather than an exposure, but nothing else watches it.',
   },
   // --- fixed shape: budget the whole envelope ---
   list_portfolio_facets: {
     args: {},
-    budget: { kind: 'absolute', maxEnvelopeBytes: 4000 },
+    budget: { kind: 'absolute', maxEnvelopeBytes: 1500 },
     note: 'ADR-0011 baseline: 597 B payload -> 1,105 B envelope.',
   },
   list_regulation_facets: {
     args: {},
-    budget: { kind: 'absolute', maxEnvelopeBytes: 12_000 },
+    budget: { kind: 'absolute', maxEnvelopeBytes: 2000 },
     note: 'Facet lists over 123 frameworks; grows with distinct jurisdictions, not with framework bodies.',
   },
   compute_techpar: {
     args: { ...TECHPAR_INPUTS, _audit: buildPartnerSuppliedTechParAudit('quick') },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 12_000 },
+    budget: { kind: 'absolute', maxEnvelopeBytes: 6000 },
     note: 'Fixed-shape calculator. Fixture from tests/unit/techpar.test.ts; the metrics-emission args table is minimal and does not satisfy the schema.',
   },
   estimate_tech_debt_cost: {
@@ -439,28 +444,28 @@ const BUDGETS: Record<string, ToolBudget> = {
       ...TECH_DEBT_INPUTS,
       _audit: { mttrSource: 'irl-stated', incidentsSource: 'irl-stated' },
     },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 12_000 },
+    budget: { kind: 'absolute', maxEnvelopeBytes: 2000 },
     note: 'Fixed-shape calculator. Fixture from tests/unit/tech-debt.test.ts.',
   },
   assess_infrastructure_cost_governance: {
     args: { answers: ICG_ANSWERS, companyStage: 'series-bc' },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 20_000 },
+    budget: { kind: 'absolute', maxEnvelopeBytes: 24_000 },
     note: 'Output scales with the authored question bank, not with caller input. Fixture from tests/unit/icg.test.ts.',
   },
   generate_diligence_agenda: {
     args: VALID_DILIGENCE_PAYLOAD,
-    budget: { kind: 'absolute', maxEnvelopeBytes: 120_000 },
+    budget: { kind: 'absolute', maxEnvelopeBytes: 43_000 },
     note: 'Topic count scales with dimension combinatorics, bounded by the authored question bank. Same payload the protocol round-trip uses.',
   },
   generate_information_request_list_xlsx: {
     args: { articleUri: 'gst://library/vdr-structure' },
     textOmit: ['base64'],
-    budget: { kind: 'absolute', maxEnvelopeBytes: 60_000 },
+    budget: { kind: 'absolute', maxEnvelopeBytes: 25_000 },
     note: 'The ONLY channel-asymmetric tool: its ~17 KB base64 workbook rides in structuredContent but is omitted from the text channel via toolOk textOmit, so the envelope is ~payload + 17 KB rather than ~2x. That asymmetry is why the shared helper needed a real exemption parameter instead of a comment saying this tool is not routed through it.',
   },
   prepare_irl_body: {
     args: { filledIrl: SAMPLE_IRL },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 8000 },
+    budget: { kind: 'absolute', maxEnvelopeBytes: 400 },
     note: 'Returns a 16-hex hash and a fill-ratio precheck, not the body — so the response is fixed-shape even though the INPUT scales. Input-size-driven tools budget the chosen fixture, and this fixture is deliberately small: the tool exists so the body does NOT travel again.',
   },
   validate_irl_provenance: {
@@ -474,8 +479,8 @@ const BUDGETS: Record<string, ToolBudget> = {
     budget: {
       kind: 'perItem',
       itemsKey: 'verdicts',
-      maxBytesPerItem: 2000,
-      maxEnvelopeBytes: 40_000,
+      maxBytesPerItem: 620,
+      maxEnvelopeBytes: 1400,
     },
     note: 'Scales with CALLER-supplied citations — it echoes a verdict per citation, so a caller passing 500 gets 500 back. Per-item width is the right unit precisely because the count is the caller’s choice, not a dataset property.',
   },
@@ -486,7 +491,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       const prepared = await call('prepare_irl_body', { filledIrl: SAMPLE_IRL });
       return { ...baseEnvelopeInput(), irlBodyHash: prepared.irlBodyHash };
     },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 60_000 },
+    budget: { kind: 'absolute', maxEnvelopeBytes: 6000 },
     note: 'ADR-0011 baseline: 16,581 -> 33,290 B. Scales with the composed dossier, i.e. with input. This budget is a TEST-ONLY regression signal and must never be read as a runtime output cap — nothing in the handler enforces it.',
   },
 };
@@ -559,9 +564,14 @@ describe('tool response budgets (BL-112)', () => {
     fetchSpy.mockReset();
     vi.stubGlobal('fetch', fetchSpy);
 
-    // Circuit closed, no cached snapshot, OAuth token present. Inoreader is
-    // never reached: `fetchSpy` returns an empty stream for every call, so the
-    // live radar tools resolve to an empty-but-successful tier.
+    // Circuit closed, no cached snapshot, OAuth token present. Inoreader is never
+    // reached over the network — `fetchSpy` below serves a production-shaped corpus
+    // by URL, so the live radar tools resolve a real 15-FYI + 46-wire feed.
+    //
+    // This comment previously said the stub "returns an empty stream for every call,
+    // so the live radar tools resolve to an empty-but-successful tier" — true of an
+    // earlier draft, false of the code beneath it, and a description of exactly the
+    // configuration that makes the per-item budgets measure nothing.
     redisGet.mockImplementation(async (key: string) =>
       key === 'mcp:inoreader:access_token' ? 'upstash-access-token' : null
     );
@@ -739,14 +749,22 @@ describe('tool response budgets (BL-112)', () => {
           Array.isArray(items),
           `${tool}: budget names items key '${spec.budget.itemsKey}' but the payload has no such array`
         ).toBe(true);
+        // ASSERT non-empty, never skip. `if (count > 0)` was the vacuity path:
+        // emptying the Inoreader fixture left the whole suite green with
+        // `search_radar` and `get_latest_insights` — the two tools with the actual
+        // client-breaking history — measuring nothing at all. A guard that goes
+        // quiet when its input disappears is the failure this file exists to stop.
         const count = (items as unknown[]).length;
-        if (count > 0) {
-          const perItem = m.envelopeBytes / count;
-          expect(
-            perItem,
-            `${detail} — ${perItem.toFixed(0)} B per item over ${count} items. Per-item width moves when the SHAPE changes, so this is a field-width regression, not dataset growth.`
-          ).toBeLessThanOrEqual(spec.budget.maxBytesPerItem);
-        }
+        expect(
+          count,
+          `${tool}: budget names items key '${spec.budget.itemsKey}' but it is EMPTY — the per-item budget would pass having measured nothing. Check the fixture reached the handler.`
+        ).toBeGreaterThan(0);
+
+        const perItem = m.envelopeBytes / count;
+        expect(
+          perItem,
+          `${detail} — ${perItem.toFixed(0)} B per item over ${count} items. Per-item width moves when the SHAPE changes, so this is a field-width regression, not dataset growth.`
+        ).toBeLessThanOrEqual(spec.budget.maxBytesPerItem);
       }
     });
   }

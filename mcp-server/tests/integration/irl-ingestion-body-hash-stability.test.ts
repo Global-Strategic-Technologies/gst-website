@@ -284,17 +284,17 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // the bump is owed under this file's own rule, and `EXPECTED_MANIFEST_HASH` in
 // manifest-stability.test.ts moves with it.
 //
-// Why the edit: `search_regulations` at `limit: 50` returns ~154,000 characters —
-// 1.08x the 143,027-character response that already exceeded a real client's
+// Why the edit: `search_regulations` at `limit: 50` returns ~153,200 characters —
+// 1.07x the 143,027-character response that already exceeded a real client's
 // tool-result ceiling (BL-109). The prompt was instructing a call that lands past a
 // known failure point, in a client-facing dossier workflow. Same 3 one-shot hashes
 // drift; the interactive body carries no Step 3 worked example.
 const EXPECTED_HASH_INTERACTIVE =
   'de70481c9ef59babc8bd2282c2d0867d25833e944fb42547771b3c66132e881c';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '3fe58f20eb187c7f8566c279c692a09e701443e350f40d67787a1f0a5e181172';
+  '9dc42acfe7c817eee6d2934c24b2f1dda503d176fa179b031ab44b57de4d30b4';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '1ff26f006e891fcc1802b500c141a1327d7da96decb512fa1d00a84679cd45af';
+  '3aabb53d1e85d7ef61343c98597fc025fac71a582d32de3e20329d39c1a41ecd';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '6ad7aeb685c273bca6137e5cee65422e93d13c2e7ae91da2cd1b22a61d48dfd3';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
@@ -308,7 +308,7 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '616a1a88afb9456d4c0bcaae22a3fbadbdeabd2d3d705e038bb2d0c04dd88551';
+  'd604fc8b2401194311e69f5e1465130f4fe5549ed4a9541b1c5db83da476b085';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
   '869175c9fc58193e75d95ffe52d89c3618bcc2d6ff6bc094f8ca10a06604eeff';
 

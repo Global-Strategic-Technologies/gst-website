@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, and industry compliance regulations across 120 regulations in 29 jurisdictions. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
+The Regulatory Map is an interactive D3.js world map that visualizes global data privacy, AI, and industry compliance regulations across 123 regulations in 29 jurisdictions. Users click highlighted countries, US states, or Canadian provinces to view regulation details in a side panel. Regions with multiple applicable regulations (e.g., an EU member state with both GDPR and the AI Act) display all of them.
 
 **Entry point**: `src/pages/hub/tools/regulatory-map/index.astro`
 
@@ -20,7 +20,7 @@ User (Map UI)
 │     CompliancePanel.astro       ← Regulation detail panel (cards, requirements, penalties)
 │
 ├── src/data/regulatory-map/
-│     *.json                      ← 120 regulation files (Zod-validated at build time)
+│     *.json                      ← 123 regulation files (Zod-validated at build time)
 │
 ├── src/data/canada-provinces.json ← TopoJSON for Canadian province boundaries (simplified)
 │
@@ -125,7 +125,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 
 ---
 
-## Regulation Coverage (120 regulations)
+## Regulation Coverage (123 regulations)
 
 The map covers four categories of regulation: **data privacy** (69), **cybersecurity** (20), **AI governance** (19), and **industry compliance** (12). All categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from multiple categories.
 
@@ -601,4 +601,4 @@ Prioritized list of regulations and jurisdictions for future phases:
 ---
 
 **Created:** March 2026
-**Last updated:** March 2026 (120 regulations across 4 categories, URL bookmarking, shipped features documented)
+**Last updated:** March 2026 (123 regulations across 4 categories, URL bookmarking, shipped features documented)

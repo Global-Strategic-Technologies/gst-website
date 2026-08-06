@@ -37,15 +37,15 @@ in lockstep when the registry shape changes.
 
 **Who this affects**: anyone pinned to `gst_irl_ingestion@0.21.1`. Step 3's guidance changed, not its shape — the batched-array directive is preserved.
 
-**Why.** Step 3's worked example specified `limit: 50` on `search_regulations` while instructing a single batched call across every jurisdiction in IRL Section 09. Measured against the real 123-record corpus, that returns **~154,000 characters** — **1.08×** the 143,027-character response that had already exceeded a real client's tool-result ceiling in 0.46.0. The prompt was steering a client-facing dossier workflow into a call that lands past a known failure point.
+**Why.** Step 3's worked example specified `limit: 50` on `search_regulations` while instructing a single batched call across every jurisdiction in IRL Section 09. Measured against the real 123-record corpus, that returns **~153,200 characters** — **1.07×** the 143,027-character response that had already exceeded a real client's tool-result ceiling in 0.46.0. The prompt was steering a client-facing dossier workflow into a call that lands past a known failure point.
 
 Measured, `search_regulations` envelope (both channels, real data):
 
 | `limit`                 | envelope chars | vs the 143,027 that failed |
 | ----------------------- | -------------- | -------------------------- |
-| 20 (default)            | ~61,500        | 0.43×                      |
-| **50 (was instructed)** | **~154,000**   | **1.08×**                  |
-| 120 (schema max)        | ~348,000       | 2.43×                      |
+| 20 (default)            | ~61,300        | 0.43×                      |
+| **50 (was instructed)** | **~153,200**   | **1.07×**                  |
+| 120 (schema max)        | ~355,700       | 2.49×                      |
 
 **What changed.** The worked example moves to `limit: 20`, and Step 3 gains two directives: keep `limit` at or near its default, and on `returned < totalMatched` **narrow by category and issue a second batched call rather than raising `limit`**. That recovery path supersedes the previous absolute "batched into a single call" — new semantics, which is why the version moves rather than holding steady as the BL-108 rebaseline did.
 

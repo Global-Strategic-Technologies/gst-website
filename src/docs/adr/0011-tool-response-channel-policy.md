@@ -178,7 +178,10 @@ The table above was a one-off measurement. Nothing enforced it, and nothing meas
 | `generate_diligence_agenda`              | 32,540 B      | —                               |
 | `list_irl_requests`                      | 22,694 B      | 339 B × 67                      |
 | `generate_information_request_list_xlsx` | 18,586 B      | — (×1.05 — the `textOmit` tool) |
-| everything else                          | < 20,000 B    | —                               |
+| `assess_infrastructure_cost_governance`  | 18,154 B      | —                               |
+| everything else                          | < 5,000 B     | —                               |
+
+Named rather than folded into "everything else": `assess_infrastructure_cost_governance` is the **tightest** budget in the suite, and its response scales with the authored question bank — so a question-bank edit is the most likely thing to trip this suite first, and the reader should not have to hunt for which tool that is.
 
 `search_regulations` at its schema max is **~2.5× the response that already broke a client**. That is recorded here flagged, not ratified: bounding it is open (BL-112) because the capability mirror cannot supply a number — the page renders one region at a time, and the largest holds 10 frameworks, below the tool's own default of 20.
 

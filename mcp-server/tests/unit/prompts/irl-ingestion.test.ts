@@ -95,7 +95,7 @@ describe('gst_irl_ingestion', () => {
     // v0.21.1: stale promptVersion literal in META_JSON_FENCE_DIRECTIVE replaced
     // with a server-derived placeholder (BL-049 closeout).
     // v0.22.0: Step 3 stopped instructing `limit: 50` on `search_regulations` — a
-    // ~154,000-character response, 1.08x the size that had already exceeded a real
+    // ~153,200-character response, 1.07x the size that had already exceeded a real
     // client's tool-result ceiling (BL-112).
     expect(irlIngestionPrompt.version).toBe('0.22.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);

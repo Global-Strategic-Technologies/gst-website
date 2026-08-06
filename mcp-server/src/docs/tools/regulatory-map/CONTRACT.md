@@ -151,8 +151,8 @@ URIs are decoupled from filenames — renaming `EU-GDPR.json` to anything else w
 
   | `limit`      | envelope | vs the 143,027-char response that exceeded a real client's ceiling (BL-109) |
   | ------------ | -------- | --------------------------------------------------------------------------- |
-  | 20 (default) | ~61,500  | 0.43×                                                                       |
-  | 50           | ~154,000 | **1.08×**                                                                   |
+  | 20 (default) | ~61,300  | 0.43×                                                                       |
+  | 50           | ~153,200 | **1.07×**                                                                   |
   | 120 (max)    | ~355,700 | **2.49×**                                                                   |
 
   The description previously advised that _"the full 120-framework response fits comfortably in context — prefer broader filters"_, and `gst_irl_ingestion` Step 3 instructed a batched call at `limit: 50`. Both were corrected in BL-112. **Keep `limit` at or near its default and narrow by category; when `returned < totalMatched`, issue a second narrowed call rather than raising `limit`.** No bound was added to the schema — the capability mirror cannot supply one (the page renders a single region, the largest holding 10 frameworks, below the default of 20) and no client ceiling is documented. That decision is open; `tests/integration/tool-response-budget.test.ts` records the current size so it is visible rather than assumed.
