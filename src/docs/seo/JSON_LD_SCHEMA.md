@@ -514,7 +514,7 @@ per-tool parameters. Everything else is a constant inside the helper.
 |-------|-------|
 | **File** | `src/pages/hub/tools/regulatory-map/index.astro` |
 | **datePublished** | 2026-01-15 |
-| **featureList** | 120+ regulations across 4 categories, Interactive D3 world map, Jurisdiction-specific compliance details, Data privacy/AI governance/cybersecurity/industry compliance |
+| **featureList** | 123 regulations across 4 categories, Interactive D3 world map, Jurisdiction-specific compliance details, Data privacy/AI governance/cybersecurity/industry compliance |
 | **knowsAbout** | Regulatory Compliance, Data Privacy, AI Governance, Technical Due Diligence, M&A Tech Strategy |
 
 #### 6. Information Request List Generator

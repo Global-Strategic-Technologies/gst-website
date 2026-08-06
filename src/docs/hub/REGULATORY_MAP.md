@@ -127,11 +127,11 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 
 ## Regulation Coverage (123 regulations)
 
-The map covers four categories of regulation: **data privacy** (69), **cybersecurity** (20), **AI governance** (19), and **industry compliance** (12). All categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from multiple categories.
+The map covers four categories of regulation: **data privacy** (70), **cybersecurity** (20), **AI governance** (21), and **industry compliance** (12). All categories share the same data schema, rendering pipeline, and region code system. A single region may have multiple regulations from multiple categories.
 
 ---
 
-### Data Privacy Regulations (69)
+### Data Privacy Regulations (70)
 
 #### Multi-Country (2)
 
@@ -249,7 +249,7 @@ The map covers four categories of regulation: **data privacy** (69), **cybersecu
 
 ---
 
-### AI Governance Regulations (19)
+### AI Governance Regulations (21)
 
 #### Multi-Country (2)
 

@@ -318,7 +318,23 @@ const makeTier = (tier: 'fyi' | 'wire', count: number, offset = 0) => ({
  * `absolute` — the response has a fixed shape. Budget the whole envelope.
  */
 type BudgetKind =
-  | { kind: 'perItem'; itemsKey: string; maxBytesPerItem: number; maxEnvelopeBytes: number }
+  | {
+      kind: 'perItem';
+      itemsKey: string;
+      /**
+       * The item count this budget was measured at — asserted, not assumed.
+       *
+       * `count > 0` rules out an empty list but pins nothing about SCALE. Changing
+       * `search_regulations`' args from `{ limit: 120 }` to `{ limit: 20 }` left the
+       * whole suite green while the measured exposure fell from 355,728 B to
+       * 61,261 B, silently falsifying the note that says "measured at the SCHEMA
+       * MAX". Prose cannot defend an invariant a one-token edit can break, so the
+       * scale is encoded here.
+       */
+      minItems: number;
+      maxBytesPerItem: number;
+      maxEnvelopeBytes: number;
+    }
   | { kind: 'absolute'; maxEnvelopeBytes: number };
 
 interface ToolBudget {
@@ -363,6 +379,7 @@ const BUDGETS: Record<string, ToolBudget> = {
     budget: {
       kind: 'perItem',
       itemsKey: 'matches',
+      minItems: 65,
       maxBytesPerItem: 2400,
       maxEnvelopeBytes: 170_000,
     },
@@ -373,16 +390,18 @@ const BUDGETS: Record<string, ToolBudget> = {
     budget: {
       kind: 'perItem',
       itemsKey: 'matches',
+      minItems: 120,
       maxBytesPerItem: 3600,
       maxEnvelopeBytes: 420_000,
     },
-    note: 'Measured at the SCHEMA MAX, not the default — the exposure is invisible at limit 20 (~61,600 B). At 120 the envelope is ~355,700 B, i.e. ~2.4x the 143,027-char response that already broke a client. This budget records that reality flagged as suspicious; it does NOT ratify it. Bounding the tool is open (BL-112) — the capability mirror cannot supply a number (the page renders one region, largest = 10 frameworks, below the default of 20).',
+    note: 'Measured at the SCHEMA MAX, not the default — the exposure is invisible at limit 20 (~61,300 B). At 120 the envelope is ~355,700 B, i.e. ~2.49x the 143,027-char response that already broke a client. This budget records that reality flagged as suspicious; it does NOT ratify it. Bounding the tool is open — see ADR-0011 § Note 2026-08-06 and BL-113 — the capability mirror cannot supply a number (the page renders one region, largest = 10 frameworks, below the default of 20).',
   },
   search_radar: {
     args: {},
     budget: {
       kind: 'perItem',
       itemsKey: 'matches',
+      minItems: 45,
       maxBytesPerItem: 3200,
       maxEnvelopeBytes: 150_000,
     },
@@ -393,6 +412,7 @@ const BUDGETS: Record<string, ToolBudget> = {
     budget: {
       kind: 'perItem',
       itemsKey: 'matches',
+      minItems: 45,
       maxBytesPerItem: 2900,
       maxEnvelopeBytes: 150_000,
     },
@@ -403,14 +423,21 @@ const BUDGETS: Record<string, ToolBudget> = {
     budget: {
       kind: 'perItem',
       itemsKey: 'matches',
+      minItems: 45,
       maxBytesPerItem: 2900,
       maxEnvelopeBytes: 150_000,
     },
-    note: 'Deprecated alias that tail-calls the offline handler. Budgeted because it is REGISTERED — the coverage rule keys on what tools/list returns, not on what ought to exist. Its removal (documented as "removed in 0.2.0", still present at 0.47.0) is flagged in BL-112, not absorbed.',
+    note: 'Deprecated alias that tail-calls the offline handler. Budgeted because it is REGISTERED — the coverage rule keys on what tools/list returns, not on what ought to exist. Its removal (documented as "removed in 0.2.0", still present at 0.47.0) is flagged in BL-113, not absorbed.',
   },
   get_latest_insights: {
     args: { limit: 30 },
-    budget: { kind: 'perItem', itemsKey: 'items', maxBytesPerItem: 3400, maxEnvelopeBytes: 60_000 },
+    budget: {
+      kind: 'perItem',
+      itemsKey: 'items',
+      minItems: 15,
+      maxBytesPerItem: 3400,
+      maxEnvelopeBytes: 60_000,
+    },
     note: 'Measured 2,681 B per item — WIDER than the wire tiers because FYI items carry the GST annotation (gstTake) that wire items do not. A 2,200 budget copied from search_radar tripped on exactly that, which is the guard distinguishing shape from noise. Called at schema max 30, though the FYI tier caps upstream at FYI_MAX_COUNT=15 — so the max-input rule is inert here. Recorded so a future lift of that cap is measured rather than assumed.',
   },
   list_irl_requests: {
@@ -418,6 +445,7 @@ const BUDGETS: Record<string, ToolBudget> = {
     budget: {
       kind: 'perItem',
       itemsKey: 'requests',
+      minItems: 67,
       maxBytesPerItem: 450,
       maxEnvelopeBytes: 30_000,
     },
@@ -479,6 +507,7 @@ const BUDGETS: Record<string, ToolBudget> = {
     budget: {
       kind: 'perItem',
       itemsKey: 'verdicts',
+      minItems: 2,
       maxBytesPerItem: 620,
       maxEnvelopeBytes: 1400,
     },
@@ -757,8 +786,11 @@ describe('tool response budgets (BL-112)', () => {
         const count = (items as unknown[]).length;
         expect(
           count,
-          `${tool}: budget names items key '${spec.budget.itemsKey}' but it is EMPTY — the per-item budget would pass having measured nothing. Check the fixture reached the handler.`
-        ).toBeGreaterThan(0);
+          `${tool}: expected at least ${spec.budget.minItems} items in '${spec.budget.itemsKey}' but got ${count}. ` +
+            `The budget was measured at that scale; a smaller input measures a smaller response and the per-item ` +
+            `budget passes having proven nothing. If the input genuinely changed, re-measure and move minItems ` +
+            `deliberately — do not lower it to go green.`
+        ).toBeGreaterThanOrEqual(spec.budget.minItems);
 
         const perItem = m.envelopeBytes / count;
         expect(

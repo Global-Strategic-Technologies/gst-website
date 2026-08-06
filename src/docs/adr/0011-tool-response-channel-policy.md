@@ -181,9 +181,9 @@ The table above was a one-off measurement. Nothing enforced it, and nothing meas
 | `assess_infrastructure_cost_governance`  | 18,154 B      | —                               |
 | everything else                          | < 5,000 B     | —                               |
 
-Named rather than folded into "everything else": `assess_infrastructure_cost_governance` is the **tightest** budget in the suite, and its response scales with the authored question bank — so a question-bank edit is the most likely thing to trip this suite first, and the reader should not have to hunt for which tool that is.
+Named rather than folded into "everything else": `assess_infrastructure_cost_governance` is the budget **most likely to trip first**, because its response scales with the authored question bank — so a question-bank edit is the most likely thing to trip this suite first, and the reader should not have to hunt for which tool that is.
 
-`search_regulations` at its schema max is **~2.5× the response that already broke a client**. That is recorded here flagged, not ratified: bounding it is open (BL-112) because the capability mirror cannot supply a number — the page renders one region at a time, and the largest holds 10 frameworks, below the tool's own default of 20.
+`search_regulations` at its schema max is **~2.5× the response that already broke a client**. That is recorded here flagged, not ratified: bounding it is open (BL-113) because the capability mirror cannot supply a number — the page renders one region at a time, and the largest holds 10 frameworks, below the tool's own default of 20.
 
 **The guard is proven, not assumed.** Reverting BL-109's `stripHtml` at the tool boundary takes `search_radar` from 114,815 B to 258,505 B and turns all four radar budgets red. The first version of the fixture did _not_ catch it — clean prose in a single `<p>` made stripping nearly free — which is the "fixture too small to see the bug" failure BL-109 itself recorded, reproduced inside the guard built to prevent it. The fixture now carries production markup density.
 
