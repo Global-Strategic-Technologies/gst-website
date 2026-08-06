@@ -51,7 +51,7 @@ Measured, `search_regulations` envelope (both channels, real data):
 
 `search_regulations`' own description carried the same false steer — _"the full 120-framework response fits comfortably in context"_ — and now states the measured sizes instead. **The tool's inputs are unchanged**: no bound was added, because the mirror cannot supply one (the page renders a single region, whose largest holds 10 frameworks — below the existing default of 20) and no client ceiling is documented. That decision is deliberately open; see BL-112.
 
-**Also corrected**: the corpus is **123** frameworks, not 120. Ten sites said otherwise, including `list_regulation_facets`' own contract while the tool returned 123 at runtime. Note the consequence, unchanged by this release: with 123 records and `limit` capped at 120, `search_regulations` cannot return the full dataset in one call.
+**Also corrected**: the corpus is **123** frameworks, not 120. ~31 statements across 20 files said otherwise, including `list_regulation_facets`' own contract while the tool returned 123 at runtime. Note the consequence, unchanged by this release: with 123 records and `limit` capped at 120, `search_regulations` cannot return the full dataset in one call.
 
 **Manifest-hash impact**: hash changes from `26dce144…` to `e8d76ac0…` — solely the `gst_irl_ingestion` name@version tuple. Updated in `tests/integration/manifest-stability.test.ts` and the "Current manifest hash" section above.
 

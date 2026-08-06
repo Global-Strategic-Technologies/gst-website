@@ -352,7 +352,27 @@ type BudgetKind =
       maxBytesPerItem: number;
       maxEnvelopeBytes: number;
     }
-  | { kind: 'absolute'; maxEnvelopeBytes: number };
+  | {
+      kind: 'absolute';
+      /**
+       * The envelope size this budget was measured at — the same floor the
+       * `perItem` branch carries, for the same reason, found the same way.
+       *
+       * "Fixed shape" was the justification for having no floor here, and it is
+       * wrong for two of these tools by their own notes: `generate_diligence_agenda`
+       * "scales with dimension combinatorics" and `compose_dossier_envelope` "scales
+       * with the composed dossier, i.e. with input". Editing the dimension enums in
+       * the diligence fixture drops it 32,540 → 26,240 B (−19%) and hollowing the
+       * envelope fixture drops it 4,454 → 4,010 B — both silently green before this.
+       *
+       * Lower stakes than the per-item floors (it degrades an alarm rather than
+       * disarming a mutation proof), but this is the fourth time the same shape has
+       * been found in this file, and "the other branch is fine" is what was said
+       * each of the previous three times.
+       */
+      minEnvelopeBytes: number;
+      maxEnvelopeBytes: number;
+    };
 
 interface ToolBudget {
   /** Arguments for the call. Data-scaling tools are called at their worst realistic input. */
@@ -487,17 +507,17 @@ const BUDGETS: Record<string, ToolBudget> = {
   // --- fixed shape: budget the whole envelope ---
   list_portfolio_facets: {
     args: {},
-    budget: { kind: 'absolute', maxEnvelopeBytes: 1500 },
+    budget: { kind: 'absolute', minEnvelopeBytes: 1000, maxEnvelopeBytes: 1500 },
     note: 'ADR-0011 baseline: 597 B payload -> 1,105 B envelope.',
   },
   list_regulation_facets: {
     args: {},
-    budget: { kind: 'absolute', maxEnvelopeBytes: 2000 },
+    budget: { kind: 'absolute', minEnvelopeBytes: 1300, maxEnvelopeBytes: 2000 },
     note: 'Facet lists over 123 frameworks; grows with distinct jurisdictions, not with framework bodies.',
   },
   compute_techpar: {
     args: { ...TECHPAR_INPUTS, _audit: buildPartnerSuppliedTechParAudit('quick') },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 6000 },
+    budget: { kind: 'absolute', minEnvelopeBytes: 4000, maxEnvelopeBytes: 6000 },
     note: 'Fixed-shape calculator. Fixture from tests/unit/techpar.test.ts; the metrics-emission args table is minimal and does not satisfy the schema.',
   },
   estimate_tech_debt_cost: {
@@ -505,28 +525,28 @@ const BUDGETS: Record<string, ToolBudget> = {
       ...TECH_DEBT_INPUTS,
       _audit: { mttrSource: 'irl-stated', incidentsSource: 'irl-stated' },
     },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 2000 },
+    budget: { kind: 'absolute', minEnvelopeBytes: 1300, maxEnvelopeBytes: 2000 },
     note: 'Fixed-shape calculator. Fixture from tests/unit/tech-debt.test.ts.',
   },
   assess_infrastructure_cost_governance: {
     args: { answers: ICG_ANSWERS, companyStage: 'series-bc' },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 24_000 },
+    budget: { kind: 'absolute', minEnvelopeBytes: 16000, maxEnvelopeBytes: 24_000 },
     note: 'Output scales with the authored question bank, not with caller input. Fixture from tests/unit/icg.test.ts.',
   },
   generate_diligence_agenda: {
     args: VALID_DILIGENCE_PAYLOAD,
-    budget: { kind: 'absolute', maxEnvelopeBytes: 43_000 },
+    budget: { kind: 'absolute', minEnvelopeBytes: 29000, maxEnvelopeBytes: 43_000 },
     note: 'Topic count scales with dimension combinatorics, bounded by the authored question bank. Same payload the protocol round-trip uses.',
   },
   generate_information_request_list_xlsx: {
     args: { articleUri: 'gst://library/vdr-structure' },
     textOmit: ['base64'],
-    budget: { kind: 'absolute', maxEnvelopeBytes: 25_000 },
+    budget: { kind: 'absolute', minEnvelopeBytes: 16500, maxEnvelopeBytes: 25_000 },
     note: 'The ONLY channel-asymmetric tool: its ~17 KB base64 workbook rides in structuredContent but is omitted from the text channel via toolOk textOmit, so the envelope is ~payload + 17 KB rather than ~2x. That asymmetry is why the shared helper needed a real exemption parameter instead of a comment saying this tool is not routed through it.',
   },
   prepare_irl_body: {
     args: { filledIrl: SAMPLE_IRL },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 400 },
+    budget: { kind: 'absolute', minEnvelopeBytes: 200, maxEnvelopeBytes: 400 },
     note: 'Returns a 16-hex hash and a fill-ratio precheck, not the body — so the response is fixed-shape even though the INPUT scales. Input-size-driven tools budget the chosen fixture, and this fixture is deliberately small: the tool exists so the body does NOT travel again.',
   },
   validate_irl_provenance: {
@@ -554,8 +574,8 @@ const BUDGETS: Record<string, ToolBudget> = {
       const prepared = await call('prepare_irl_body', { filledIrl: SAMPLE_IRL });
       return { ...baseEnvelopeInput(), irlBodyHash: prepared.irlBodyHash };
     },
-    budget: { kind: 'absolute', maxEnvelopeBytes: 6000 },
-    note: 'ADR-0011 baseline: 16,581 -> 33,290 B. Scales with the composed dossier, i.e. with input. This budget is a TEST-ONLY regression signal and must never be read as a runtime output cap — nothing in the handler enforces it.',
+    budget: { kind: 'absolute', minEnvelopeBytes: 4000, maxEnvelopeBytes: 6000 },
+    note: 'Measured 4,454 B on this fixture. ADR-0011 records 16,581 -> 33,290 B on a realistic dossier — 5.5x this budget, so do NOT read that baseline as passing: the fixture here is far smaller than a real composition. Scales with the composed dossier, i.e. with input. This budget is a TEST-ONLY regression signal and must never be read as a runtime output cap — nothing in the handler enforces it.',
   },
 };
 
@@ -570,8 +590,16 @@ describe('tool response budgets (BL-112)', () => {
    * BL-109 measured `134,370 -> 78,737` on a corpus that was never committed, so the
    * numbers could not be reproduced and the follow-up question could not be answered
    * without redoing the work. Printing the table means the current figures are always
-   * one test run away, and can be pasted into a commit message or a doc without
+   * one command away, and can be pasted into a commit message or a doc without
    * anyone re-deriving them.
+   *
+   * **It does not print under a plain `npm run test:mcp`** — this vitest setup
+   * swallows `console` from both a test body and `afterAll`. Run:
+   *
+   *   npx vitest run tests/integration/tool-response-budget.test.ts --disableConsoleIntercept
+   *
+   * Stated because "always one test run away" was the claim, and it was wrong
+   * without the flag.
    */
   const measurements: {
     tool: string;
@@ -805,6 +833,13 @@ describe('tool response budgets (BL-112)', () => {
       });
 
       expect(m.envelopeBytes, detail).toBeLessThanOrEqual(spec.budget.maxEnvelopeBytes);
+
+      if (spec.budget.kind === 'absolute') {
+        expect(
+          m.envelopeBytes,
+          `${detail} — BELOW the ${spec.budget.minEnvelopeBytes} B floor this budget was measured at. The fixture got smaller, so the ceiling above is measuring less than it claims. Re-measure and move the floor deliberately — do not lower it to go green.`
+        ).toBeGreaterThanOrEqual(spec.budget.minEnvelopeBytes);
+      }
 
       if (spec.budget.kind === 'perItem') {
         const items = payload[spec.budget.itemsKey];
