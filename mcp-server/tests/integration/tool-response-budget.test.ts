@@ -332,6 +332,23 @@ type BudgetKind =
        * scale is encoded here.
        */
       minItems: number;
+      /**
+       * The per-item width this budget was measured at — a FLOOR, asserted beside
+       * the ceiling.
+       *
+       * `minItems` pins how many items are measured; nothing pinned how wide they
+       * are. Collapsing `rawFeedHtml` to a one-line summary kept every count at
+       * 45/45/45/15 and the suite at 18/18 green while 60-70% of the measured
+       * exposure vanished — and, stacked with the `stripHtml` revert, left BL-109's
+       * defect passing too. That is worse than a low number: it disarms the
+       * mutation proof the `search_radar` note cites as its reason to be trusted.
+       *
+       * Width is the axis this file calls primary ("BL-109's defect was width, not
+       * count"), so it is the axis that must not be defended by prose alone. The
+       * band is two-sided: the ceiling catches a regression, the floor catches the
+       * fixture being quietly hollowed out beneath it.
+       */
+      minBytesPerItem: number;
       maxBytesPerItem: number;
       maxEnvelopeBytes: number;
     }
@@ -358,14 +375,23 @@ interface ToolBudget {
 }
 
 /**
- * Budgets, measured 2026-08-06 against the real data files at
- * `@gst/mcp-server` 0.47.0. Headroom is **~25-35% over the measured value**, and
- * that is a real constraint rather than a stated aspiration: an earlier draft
- * claimed "~25%" while shipping budgets 8× to 44× the measurement, which cannot
- * trip and is therefore decorative. Two exceptions, each carrying its reason in
- * its own note: `search_portfolio`'s envelope ceiling is a deliberate growth alarm
- * on an unbounded tool, and `search_regulations`' records a size already flagged as
- * suspicious rather than endorsed.
+ * Budgets, measured 2026-08-06 against the real data files at `@gst/mcp-server`
+ * 0.47.0. Headroom differs **by axis**, and stating it that way is the second
+ * correction this header has needed — the first draft claimed "~25%" while
+ * shipping budgets 8× to 44× the measurement, and the replacement claimed a flat
+ * 25-35% band that the data contradicted in seven places while naming two
+ * exceptions that were the wrong two. A file arguing that prose cannot defend an
+ * invariant should not open with prose the numbers disagree with.
+ *
+ * - **Per-item widths run +21-35% over measured**, tightly and deliberately: this
+ *   is the axis BL-109 actually failed on, and a two-sided band (floor and
+ *   ceiling) is what keeps it honest.
+ * - **Envelope ceilings are coarser** — a growth alarm, not a contract. On small
+ *   fixed-shape responses they cannot be held to any tight band without flaking on
+ *   an ordinary edit: a 222 B response cannot carry a 30% ceiling meaningfully.
+ *   `search_portfolio`'s is deliberately loose because the tool is unbounded by
+ *   ADR-0005, and `search_regulations`' records a size already flagged as
+ *   suspicious rather than endorsed.
  *
  * Three of these have recorded baselines in ADR-0011 (`search_portfolio`,
  * `compose_dossier_envelope`, `list_portfolio_facets`). The rest are fresh
@@ -380,6 +406,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       kind: 'perItem',
       itemsKey: 'matches',
       minItems: 65,
+      minBytesPerItem: 1800,
       maxBytesPerItem: 2400,
       maxEnvelopeBytes: 170_000,
     },
@@ -391,6 +418,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       kind: 'perItem',
       itemsKey: 'matches',
       minItems: 120,
+      minBytesPerItem: 2700,
       maxBytesPerItem: 3600,
       maxEnvelopeBytes: 420_000,
     },
@@ -402,6 +430,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       kind: 'perItem',
       itemsKey: 'matches',
       minItems: 45,
+      minBytesPerItem: 2300,
       maxBytesPerItem: 3200,
       maxEnvelopeBytes: 150_000,
     },
@@ -413,6 +442,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       kind: 'perItem',
       itemsKey: 'matches',
       minItems: 45,
+      minBytesPerItem: 2100,
       maxBytesPerItem: 2900,
       maxEnvelopeBytes: 150_000,
     },
@@ -424,6 +454,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       kind: 'perItem',
       itemsKey: 'matches',
       minItems: 45,
+      minBytesPerItem: 2100,
       maxBytesPerItem: 2900,
       maxEnvelopeBytes: 150_000,
     },
@@ -435,6 +466,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       kind: 'perItem',
       itemsKey: 'items',
       minItems: 15,
+      minBytesPerItem: 2400,
       maxBytesPerItem: 3400,
       maxEnvelopeBytes: 60_000,
     },
@@ -446,6 +478,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       kind: 'perItem',
       itemsKey: 'requests',
       minItems: 67,
+      minBytesPerItem: 300,
       maxBytesPerItem: 450,
       maxEnvelopeBytes: 30_000,
     },
@@ -508,6 +541,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       kind: 'perItem',
       itemsKey: 'verdicts',
       minItems: 2,
+      minBytesPerItem: 410,
       maxBytesPerItem: 620,
       maxEnvelopeBytes: 1400,
     },
@@ -797,6 +831,15 @@ describe('tool response budgets (BL-112)', () => {
           perItem,
           `${detail} — ${perItem.toFixed(0)} B per item over ${count} items. Per-item width moves when the SHAPE changes, so this is a field-width regression, not dataset growth.`
         ).toBeLessThanOrEqual(spec.budget.maxBytesPerItem);
+
+        // The FLOOR. Without it the fixture can be hollowed out beneath the ceiling:
+        // collapsing the radar HTML to a one-liner held every count at 45/45/45/15
+        // and kept the suite green while 60-70% of the exposure vanished — and, worse,
+        // left BL-109's own defect passing when stacked with the strip revert.
+        expect(
+          perItem,
+          `${detail} — ${perItem.toFixed(0)} B per item is BELOW the ${spec.budget.minBytesPerItem} B floor this budget was measured at. The fixture or the projection got narrower, so the ceiling above is no longer measuring anything. Re-measure and move the floor deliberately — do not lower it to go green.`
+        ).toBeGreaterThanOrEqual(spec.budget.minBytesPerItem);
       }
     });
   }

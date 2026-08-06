@@ -218,7 +218,7 @@ The map covers four categories of regulation: **data privacy** (70), **cybersecu
 | `TZ-EPDA.json` | Tanzania | PDP Act |
 | `UG-DPPA.json` | Uganda | Data Protection and Privacy Act 2019 |
 
-#### Latin America (7)
+#### Latin America (8)
 
 | File | Country | Law |
 |------|---------|-----|
@@ -229,6 +229,7 @@ The map covers four categories of regulation: **data privacy** (70), **cybersecu
 | `UY-LAW18331.json` | Uruguay | Law 18.331 |
 | `PE-LAW29733.json` | Peru | Law 29.733 |
 | `EC-LOPDP.json` | Ecuador | LOPDP |
+| `CL-LEY21719.json` | Chile | Ley 21.719 |
 
 #### Central & South Asia (3)
 
@@ -258,7 +259,7 @@ The map covers four categories of regulation: **data privacy** (70), **cybersecu
 | `EU-AI-ACT.json` | EU Artificial Intelligence Act (Regulation 2024/1689) | 27 EU member states | 2024-08-01 |
 | `US-EXEC-AI.json` | US Executive Order on Safe, Secure, and Trustworthy AI (EO 14110) | 51 US jurisdictions | 2023-10-30 |
 
-#### National AI Laws (8)
+#### National AI Laws (10)
 
 | File | Country | Law | Effective |
 |------|---------|-----|-----------|
@@ -270,6 +271,8 @@ The map covers four categories of regulation: **data privacy** (70), **cybersecu
 | `JP-AI-PROMOTION.json` | Japan | AI Promotion Act | 2025-06-04 |
 | `PE-AI-LAW31814.json` | Peru | AI Promotion Law (Law 31814) | 2023-07-05 |
 | `BR-AI-ACT.json` | Brazil | AI Act (PL 2338/2023) | 2025-07-01 |
+| `GB-AI-FRAMEWORK.json` | United Kingdom | Pro-Innovation Approach to AI Regulation | 2024-02-06 |
+| `US-NIST-AI-RMF.json` | United States | NIST AI Risk Management Framework 1.0 | 2023-01-26 |
 
 #### US State AI Laws (9)
 
