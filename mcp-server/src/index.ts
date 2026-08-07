@@ -35,6 +35,7 @@
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { createServer } from './server';
 import { registerLocalOnlyTools } from './tools/_local-only';
+import { stdioSnapshotReader } from './content/radar-snapshot-reader-stdio';
 
 // The factory runs per connection, so BOTH registrations must live inside it.
 // Pre-BL-106 this file built one instance and called `registerLocalOnlyTools`
@@ -43,7 +44,12 @@ import { registerLocalOnlyTools } from './tools/_local-only';
 serveStdio(
   () => {
     try {
-      const server = createServer();
+      // `radarReader` is supplied HERE rather than resolved inside
+      // `createServer`: `stdioSnapshotReader` is node:fs-backed, and importing
+      // it from the transport-portable factory would put the filesystem reader
+      // back in the Worker bundle. It feeds prompt embeds; radar Resources get
+      // the same reader via `registerLocalOnlyTools` below.
+      const server = createServer({}, { radarReader: stdioSnapshotReader });
       // stdio-only: offline radar tool + radar Resources backed by the node:fs
       // reader (BL-032 Q12). The Worker registers radar Resources separately
       // with the Upstash-backed reader and never touches these.

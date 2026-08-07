@@ -135,5 +135,8 @@ export function readWireSnapshotByCategory(category: RadarCategory): SnapshotTie
   };
 }
 
-export const SNAPSHOT_MISSING_MESSAGE =
-  'Radar snapshot not found. Run `npm run radar:seed` from the gst-website repo root to populate the local cache.';
+// The text moved to `radar-messages.ts` (node-free, zero imports) so prompt
+// modules can surface it without importing this node:fs-backed module. The
+// historical name is re-exported here, unchanged, so existing callers
+// (`tools/radar-offline.ts`) and their assertions keep working.
+export { SNAPSHOT_MISSING_STDIO as SNAPSHOT_MISSING_MESSAGE } from './radar-messages';

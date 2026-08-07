@@ -14,6 +14,27 @@ import tseslint from 'typescript-eslint';
 import astro from 'eslint-plugin-astro';
 import prettier from 'eslint-config-prettier';
 
+/**
+ * Shared `no-restricted-imports` pattern banning the live Inoreader client
+ * from mcp-server source (ADR-0004 / BL-031.5).
+ *
+ * Referenced by BOTH the `mcp-server/src/**` block and the narrower
+ * `mcp-server/src/prompts/**` block. The restatement is mandatory: flat config
+ * REPLACES a rule's options when a later object sets the same rule id for a
+ * matched file, so a prompts-scoped block that listed only its own pattern
+ * would quietly drop this ban for every prompt module.
+ */
+const INOREADER_CLIENT_PATTERN = {
+  group: [
+    '**/lib/inoreader/client',
+    '**/lib/inoreader/client.ts',
+    '../../src/lib/inoreader/client*',
+    '../../../src/lib/inoreader/client*',
+  ],
+  message:
+    'mcp-server/src/** must not import the live Inoreader client. Read from the cached snapshot via mcp-server/src/content/radar-snapshot.ts instead. See src/docs/adr/0004-hub-surface-resources-import-restriction.md.',
+};
+
 export default [
   // ── Ignores (replaces .eslintignore in flat config) ───────────────
   {
@@ -194,22 +215,50 @@ export default [
   // would burn the shared 200 req/day budget. Radar tools/resources read
   // exclusively from the seeded snapshot. Enforced structurally here:
   // mcp-server/src/** cannot import the live client.
+  //
+  // Extracted to a const because the prompts-scoped block below has to
+  // restate it (flat config replaces rule options rather than merging them),
+  // and two hand-maintained copies would drift.
   {
     files: ['mcp-server/src/**/*.{ts,mts}'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [INOREADER_CLIENT_PATTERN] }],
+    },
+  },
+
+  // ── Worker-bundle safety: prompts must not reach the fs-backed reader ──
+  // `content/radar-snapshot.ts` imports node:fs / node:path / node:url and
+  // resolves its cache directory from `import.meta.url`, which is `undefined`
+  // in the Worker bundle. `prompts/embed.ts` imported it, so every remote
+  // `prompts/get gst_radar_brief_today` failed with a JSON-RPC -32603 while
+  // stdio worked perfectly. Prompt modules take a `SnapshotReader` from
+  // `_registry.ts` now; reaching for the reader directly reopens the bug.
+  //
+  // This block RESTATES the Inoreader pattern above. It is not redundant: in
+  // flat config, a later object setting the same rule id for a matched file
+  // REPLACES the earlier options rather than merging them, so listing only the
+  // radar pattern here would silently delete the ADR-0004 protection for every
+  // prompt module — adding a guard while removing one.
+  {
+    files: ['mcp-server/src/prompts/**/*.{ts,mts}'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
+            INOREADER_CLIENT_PATTERN,
             {
+              // Anchored to the exact module. A bare `**/content/radar-snapshot*`
+              // would also match `radar-snapshot-reader`, which `_registry.ts`
+              // legitimately imports for the `SnapshotReader` type.
               group: [
-                '**/lib/inoreader/client',
-                '**/lib/inoreader/client.ts',
-                '../../src/lib/inoreader/client*',
-                '../../../src/lib/inoreader/client*',
+                '**/content/radar-snapshot',
+                '**/content/radar-snapshot.ts',
+                '../content/radar-snapshot',
+                '../content/radar-snapshot.ts',
               ],
               message:
-                'mcp-server/src/** must not import the live Inoreader client. Read from the cached snapshot via mcp-server/src/content/radar-snapshot.ts instead. See src/docs/adr/0004-hub-surface-resources-import-restriction.md.',
+                'mcp-server/src/prompts/** must not import content/radar-snapshot — it is node:fs-backed and throws in the Worker bundle (JSON-RPC -32603 on prompts/get). Take a SnapshotReader from _registry.ts, or import the message constants from content/radar-messages.ts.',
             },
           ],
         },

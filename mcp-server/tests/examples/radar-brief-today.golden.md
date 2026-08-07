@@ -1,18 +1,21 @@
 ---
 promptName: gst_radar_brief_today
-version: 0.0.3
+version: 0.0.4
 recordedAt: 2026-05-03
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_radar_brief_today`
 
-V7 sign-off recording (v0.0.1) carried forward to v0.0.3 — two layered changes since V7:
+V7 sign-off recording (v0.0.1) carried forward to v0.0.4 — three layered changes since V7:
 
 - **v0.0.2 (BL-031.95 Phase 3.A capability-mirror refactor)**: removed the `sinceHours` argument because the underlying cache has a 24h TTL and the website (`/hub/radar`) surfaces no time filter. The prompt now mirrors the website's filter UI exactly: a single optional `category` field. Engine output (digest by category, GST Take voice, "what to watch" closings, cross-category synthesis) is unchanged from v0.0.1; the body's "filter by recency" instruction was retired.
-- **v0.0.3 (BL-031.95 Phase 5, this commit)**: closing "Open in Hub" footer added — `https://globalstrategic.tech/hub/radar?category=<args.category>` (or the bare `/hub/radar` URL when no category was supplied). The footer URL is constructed deterministically by the prompt body from the input `category` since this prompt orchestrates the `gst://radar/fyi/latest` Resource directly (not the Tool); the same shape the Tool wrapper would emit via `src/utils/radar-url.ts` (BL-031.95 Phase 3.B).
+- **v0.0.4 (Worker-rendering fix, this commit)**: Step 2's degraded-path discriminator changed from a phrase-match on `'Radar snapshot not found'` to a structural check ("is the second message a TEXT block?"), and the stdio-only `npm run radar:seed` remediation was dropped from the body. Both because the prompt did not render at all over HTTP — `prompts/get` returned `-32603` from the node:fs-backed reader — and the wording that phrase matched was the stdio one, so the stop-and-surface instruction would have failed silently on the Worker even after the render was fixed. Trials (a) and (b) are unaffected (they exercise the items-present path); trial (c)'s recorded output is updated below.
+- **v0.0.3 (BL-031.95 Phase 5)**: closing "Open in Hub" footer added — `https://globalstrategic.tech/hub/radar?category=<args.category>` (or the bare `/hub/radar` URL when no category was supplied). The footer URL is constructed deterministically by the prompt body from the input `category` since this prompt orchestrates the `gst://radar/fyi/latest` Resource directly (not the Tool); the same shape the Tool wrapper would emit via `src/utils/radar-url.ts` (BL-031.95 Phase 3.B).
 
-A fresh senior-consultant V-trial against the v0.0.3 body lands naturally on the next mcp-server restart per the no-deferred-tech-debt principle (CLAUDE.md § 4a) — the `dist/index.js` running subprocess can't be reloaded mid-session. The body change is local (one closing footer); the three pre-existing trial paths (a, b, c) all carry through unchanged.
+**Senior-consultant sign-off, v0.0.4 (2026-08-07)**: the three degraded-path literals and the revised Step 2 were reviewed and approved in-session; `lastReviewedAt` is set to that date. This closes the deferred-verification stanza that stood here from v0.0.3 ("a fresh V-trial lands naturally on the next mcp-server restart") — that was the deferred-work pattern Directive 6 exists to prevent, and the v0.0.3 footer change it covered is now several months old.
+
+What the sign-off did and did not cover: the reviewed surface is the **degraded path** — the wording a user sees when there is nothing to embed, and the instruction that makes the model surface it verbatim instead of fabricating. Trials (a) and (b) exercise the items-present path and are unchanged by v0.0.4; their v0.0.1 recordings carry forward. A full model-in-the-loop re-trial of (a)/(b) against a live Worker is worth doing on the next real radar curation cycle, but nothing in v0.0.4 alters what the model receives on that path.
 
 ## Input — Trial (a) category filter
 
@@ -54,12 +57,16 @@ All four categories represented (PE/M&A, Enterprise Tech, AI/Automation, Securit
 
 ## Model output — Trial (c)
 
+The degraded path is **transport-specific as of v0.0.4**. On the local stdio path the text is unchanged from the v0.0.1 recording:
+
 ```
 Radar snapshot not found. Run `npm run radar:seed` from the gst-website
 repo root to populate the local cache.
 ```
 
-Surfaced verbatim. No fabricated items. No stack trace. The BL-031.5 structured-error wiring (`SNAPSHOT_MISSING_MESSAGE` in `mcp-server/src/content/radar-snapshot.ts`) propagates correctly into the prompt expansion via `embedFyiRadarSnapshot()`.
+On the Worker the same trial surfaces `SNAPSHOT_UNAVAILABLE_REMOTE` (cold Upstash cache) or `NO_FRESH_CURATED_ITEMS` (tier read fine, nothing inside the 30-day freshness window) instead — a remote user has no repo in which to run a seed script. All three live in `mcp-server/src/content/radar-messages.ts`; the block is selected by `_registry.ts`, which is the only layer that knows the transport, and wrapped by `embedFyiRadarSnapshot()`.
+
+Surfaced verbatim in every case. No fabricated items, no stack trace. Note that v0.0.4 changed **how the model recognizes this state**: Step 2 keys on the second message being a TEXT block rather than on any phrase inside it, because the v0.0.3 phrase-match (`'Radar snapshot not found'`) matched only the stdio wording and would have failed silently on the Worker.
 
 ## Verification notes
 

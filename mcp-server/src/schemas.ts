@@ -133,7 +133,10 @@ export {
 
 // ─── Radar shared enums (also used by prompts/radar-brief-today.ts) ──────
 
-import { RADAR_CATEGORIES, type RadarCategory } from './content/radar-snapshot';
+// Sourced from `radar-transform` (the original definition) rather than the
+// `radar-snapshot` re-export: `radar-snapshot.ts` imports node:fs/path/url and
+// must stay out of the Worker bundle, and this module is reachable from it.
+import { RADAR_CATEGORIES, type RadarCategory } from './content/radar-transform';
 
 /**
  * Radar feed categories — matches the four GST-prefixed Inoreader folders

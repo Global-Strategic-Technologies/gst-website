@@ -5,7 +5,13 @@
  * summarized in the GST Take voice. Embeds the FYI snapshot inline as
  * the second message (Commit 5 / V1 finding 1) so the model has the
  * canonical items without `resources/read`. Never makes live Inoreader
- * calls.
+ * calls — on the Worker the registry supplies a CACHE-ONLY reader
+ * precisely so a model-initiated `prompts/get` cannot spend the shared
+ * Inoreader budget on a cold cache.
+ *
+ * The block itself is resolved by `_registry.ts`, not here: the choice of
+ * reader AND of degraded-state wording is transport-specific, and this
+ * module cannot see which transport it is running on.
  *
  * **BL-031.95 Phase 3 — capability mirror**: argsSchema mirrors the
  * /hub/radar website's filter UI (single `category` pill). The earlier
@@ -23,7 +29,7 @@ import { z } from 'zod';
 import { RadarCategoryEnum } from '../schemas';
 import type { GstPrompt } from './types';
 import { enumFromWire } from './wire-shape';
-import { authorialIntentLine, embedFyiRadarSnapshot } from './embed';
+import { authorialIntentLine } from './embed';
 
 // Optional-field pattern for wire-shape-wrapped args — applies `.optional()`
 // at BOTH levels:
@@ -53,11 +59,12 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Daily / pre-meeting digest of the most recent annotated FYI radar items, summarized in the GST Take voice.',
-  version: '0.0.3',
-  lastReviewedAt: '2026-05-03',
+  version: '0.0.4',
+  lastReviewedAt: '2026-08-07',
   orchestrates: ['gst://radar/fyi/latest'] as const,
   argsSchema,
-  build: (args) => ({
+  needsFyiSnapshot: true,
+  build: (args, fyiEmbed) => ({
     messages: [
       {
         role: 'user',
@@ -73,7 +80,7 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
               ? `  Filter to items where \`category === "${args.category}"\`.`
               : '  Use all categories (pe-ma, enterprise-tech, ai-automation, security).',
             '',
-            "Step 2. If the next message is a text block containing 'Radar snapshot not found' (instead of an embedded resource), surface that text to the user verbatim and STOP. Do not fabricate items. The user needs to run `npm run radar:seed` from the gst-website repo root.",
+            'Step 2. If the next message is a plain TEXT block rather than an embedded resource, no items are available: surface that text to the user verbatim and STOP. Do not fabricate items, and do not add remediation advice of your own — the text already states what applies to this deployment.',
             '',
             'Step 3. Group the in-scope items by category. Within each category, surface 3-5 items at most (more than that is digest-overload — the analyst will read the full feed if they want comprehensive coverage). Sort within each group by `publishedAt` newest-first.',
             '',
@@ -89,10 +96,14 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
           ].join('\n'),
         },
       },
-      {
-        role: 'user',
-        content: embedFyiRadarSnapshot(),
-      },
+      // Resolved by `_registry.ts` — see `GstPrompt.build`. Omitted entirely
+      // when absent rather than falling back to a locally-imported constant:
+      // choosing the text here would mean choosing it without knowing the
+      // transport, which is how remote clients ended up being told to run a
+      // local seed script. Unreachable in production (the registry always
+      // supplies a block for `needsFyiSnapshot` prompts); reachable from unit
+      // tests that call `build(args)` with one argument.
+      ...(fyiEmbed ? [{ role: 'user' as const, content: fyiEmbed }] : []),
     ],
   }),
 };

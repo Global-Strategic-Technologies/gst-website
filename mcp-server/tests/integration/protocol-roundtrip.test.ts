@@ -18,6 +18,7 @@ import {
 } from '@modelcontextprotocol/server';
 import { createServer } from '../../src/server';
 import { registerLocalOnlyTools } from '../../src/tools/_local-only';
+import { stdioSnapshotReader } from '../../src/content/radar-snapshot-reader-stdio';
 import { createPairedTransports, type PairedHalf } from '../helpers/paired-transport';
 import { parseToolResult, type CallToolResultPayload } from '../helpers/tool-envelope';
 
@@ -124,8 +125,11 @@ describe('protocol roundtrip', () => {
 
   beforeEach(async () => {
     nextId = 1;
-    const server = createServer();
-    registerLocalOnlyTools(server); // mirror src/index.ts (stdio entrypoint) — BL-032 Q12
+    // Mirror src/index.ts (stdio entrypoint) — BL-032 Q12. The `radarReader`
+    // is part of that mirror: the stdio entrypoint supplies it so prompt
+    // embeds read through the same node:fs reader as the local-only tools.
+    const server = createServer({}, { radarReader: stdioSnapshotReader });
+    registerLocalOnlyTools(server);
     const pair = createPairedTransports();
     client = pair.client;
     await server.connect(pair.server);
@@ -148,6 +152,61 @@ describe('protocol roundtrip', () => {
       // a fresh `tools/list` to prove the connection is in initialized state.
       const res = await rpc('tools/list', {});
       expect(isErrorResponse(res)).toBe(false);
+    });
+
+    // Prompt RENDERING coverage. Before this, no test in the repo issued a
+    // `prompts/get` on any transport — `prompts-args-shape.test.ts` stops at
+    // `prompts/list` — which is how `gst_radar_brief_today` shipped broken on
+    // the Worker for every remote client.
+    //
+    // Scope honestly: this lane runs under Node, where `node:fs` resolves, so
+    // it would NOT have caught that particular bug. The Worker-lane cases in
+    // `protocol-era-worker.test.ts` are the guard for transport-specific
+    // rendering failures. This one covers the general build-throws class on
+    // the stdio path, which was equally uncovered.
+    it('prompts/get renders every registered prompt without an error', async () => {
+      const list = await rpc('prompts/list', {});
+      expect(isErrorResponse(list)).toBe(false);
+      if (isErrorResponse(list)) return;
+
+      const prompts = (list.result as unknown as { prompts: Array<{ name: string }> }).prompts;
+      expect(prompts.length).toBeGreaterThan(0);
+
+      // Minimal VALID args — several prompts have required fields, so `{}`
+      // would fail validation and prove nothing about rendering.
+      const ARGS: Record<string, Record<string, unknown>> = {
+        gst_diligence_kickoff: { targetName: 'Acme' },
+        gst_target_quick_look: {
+          targetName: 'Acme',
+          productType: 'b2b-saas',
+          arr: '25000000',
+          stage: 'series-b',
+          hqJurisdiction: 'us-ca',
+        },
+        gst_comparable_engagements_memo: { targetDescription: 'vertical SaaS bolt-on' },
+        gst_regulatory_exposure_brief: {
+          targetJurisdictions: 'eu,us-ca',
+          dataCategories: 'data-privacy',
+          productType: 'b2b-saas',
+        },
+        gst_architecture_layer_review: { targetSummary: 'healthcare RCM SaaS on AWS' },
+        gst_radar_brief_today: {},
+        gst_diligence_handoff_memo: { targetName: 'Acme' },
+        gst_information_request_list: { targetName: 'Acme' },
+        gst_irl_ingestion: { targetName: 'Acme', mode: 'extract-only' },
+      };
+
+      for (const { name } of prompts) {
+        const args = ARGS[name];
+        expect(args, `no minimal args registered for prompt ${name}`).toBeTruthy();
+        const res = await rpc('prompts/get', { name, arguments: args });
+        expect(isErrorResponse(res), `prompts/get ${name} errored`).toBe(false);
+        if (isErrorResponse(res)) continue;
+        const messages = (res.result as unknown as { messages: unknown[] }).messages;
+        expect(messages.length, `prompts/get ${name} returned no messages`).toBeGreaterThanOrEqual(
+          1
+        );
+      }
     });
 
     it('tools/list returns the registered tools with input schemas', async () => {

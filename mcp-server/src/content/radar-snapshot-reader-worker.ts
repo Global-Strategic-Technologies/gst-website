@@ -118,3 +118,50 @@ export function createWorkerSnapshotReader(env: Env): SnapshotReader {
     },
   };
 }
+
+/**
+ * Worker SnapshotReader that reads the Upstash cache and NOTHING ELSE.
+ *
+ * Used for prompt embeds. `createWorkerSnapshotReader` above falls through to
+ * the live readers whenever the breaker is closed, which is correct for a
+ * `resources/read` an analyst asked for by URI — but a prompt expansion is
+ * model-initiated, so wiring prompts to it would let `prompts/get` spend the
+ * shared Zone-1 Inoreader budget on a cold cache. `gst_radar_brief_today`'s
+ * own docstring promises it "never makes live Inoreader calls"; this reader is
+ * what keeps that true on the Worker.
+ *
+ * No `settle`, no `handleInoreaderFailure`, no breaker check — deliberately.
+ * The cached readers reach only `readTierFromCache`, so they cannot produce an
+ * `InoreaderFailure` for the breaker to learn from (their `cache-empty` is not
+ * assignable to it, by design), and there is no upstream call to gate.
+ *
+ * **Availability tradeoff, accepted:** `readFyiCached` has no repopulation
+ * path and the Cron cadence equals the 6h cache TTL, so there is a window in
+ * which a prompt renders its degraded block while `resources/read` of the same
+ * URI would have refilled the cache live. The two surfaces can disagree. That
+ * is the price of not handing the model an egress lever, and the reason the
+ * degraded states carry distinct wording: an operator can tell "cache cold"
+ * from "curation has gone quiet" without reading logs.
+ */
+export function createWorkerCachedSnapshotReader(env: Env): SnapshotReader {
+  const toTier =
+    (tier: 'fyi' | 'wire') =>
+    (result: CachedTierResult): SnapshotTier | null =>
+      result.ok ? { tier, items: result.items, lastSeededAt: result.fetchedAt } : null;
+
+  return {
+    async readFyi(): Promise<SnapshotTier | null> {
+      return toTier('fyi')(await readFyiCached(env));
+    },
+
+    async readWire(): Promise<SnapshotTier | null> {
+      return toTier('wire')(await readWireCached(env));
+    },
+
+    async readWireByCategory(category: RadarCategory): Promise<SnapshotTier | null> {
+      const wire = toTier('wire')(await readWireCached(env));
+      if (!wire) return null;
+      return { ...wire, items: wire.items.filter((item) => item.category === category) };
+    },
+  };
+}

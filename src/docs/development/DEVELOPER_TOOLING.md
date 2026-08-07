@@ -392,6 +392,19 @@ The [eslint.config.mjs](../../../eslint.config.mjs) uses the modern **flat confi
 - **Browser globals are declared per-directory**: `window`, `document`, `navigator`, DOM types — all available in `src/**` and `tests/e2e/**` without import.
 - **Node globals are declared for scripts**: `process`, `console`, `fetch`, `Buffer`, `TextDecoder`, `AbortSignal`, … — available in `scripts/**` and any `**/*.{cjs,mjs}` (which covers `mcp-server/scripts/**`), plus `vitest.config.ts`, `playwright.config.ts`, `eslint.config.mjs`. Import-less web-standard globals a Node 22 script legitimately uses get added to this list (`eslint.config.mjs` § Per-file overrides) rather than suppressed inline.
 
+### Import bans (`no-restricted-imports`)
+
+Two config objects set this rule, both scoped to mcp-server source. **They overlap deliberately, and the overlap is load-bearing**: in flat config, when a later object sets the same rule id for a file the earlier object also matched, the later object's options **replace** the earlier ones rather than merging. A narrower block that lists only its own pattern therefore *deletes* the broader ban for the files it matches.
+
+| Scope                        | Bans                            | Why                                                                                                                                                                                                                                                            |
+| ---------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mcp-server/src/**`          | the live Inoreader client       | Radar reads come from the cached snapshot; a live call burns the shared upstream budget. ADR-0004 / BL-031.5.                                                                                                                                                   |
+| `mcp-server/src/prompts/**`  | `content/radar-snapshot` — **plus a restatement of the Inoreader ban** | That module is `node:fs`-backed and resolves its cache dir from `import.meta.url`, which is `undefined` in the Worker bundle. `prompts/embed.ts` imported it, so every remote `prompts/get gst_radar_brief_today` failed with JSON-RPC `-32603` while stdio worked. Fixed in mcp-server 0.48.0. |
+
+The shared Inoreader pattern lives in a top-level `INOREADER_CLIENT_PATTERN` const referenced by both blocks, so the mandatory duplication can't drift. If you add a third scoped block, restate every pattern that applies to its files and add it to the const rather than copying the literal.
+
+The radar pattern is anchored to the exact module (`**/content/radar-snapshot`, `…/radar-snapshot.ts`) — a bare `radar-snapshot*` glob would also match `radar-snapshot-reader`, which prompt code legitimately imports for the `SnapshotReader` type.
+
 ### Ignored files
 
 The following files are explicitly excluded from linting:
