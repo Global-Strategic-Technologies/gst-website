@@ -252,7 +252,7 @@ gh api repos/<owner>/<repo>/actions/runs/<run-id>/jobs \
 
 Add `/attempts/<n>` before `/jobs` to inspect an earlier attempt — a re-run overwrites the top-level view, so the original evidence is only reachable that way.
 
-**Read the step _names_, not the count.** A non-zero step count does not mean the job did any of your work: `Set up job` is the runner's own provisioning step and appears in the list alongside real steps on every job, successful ones included. The 2m42s attempt below had exactly one step, and it was `Set up job` — checkout and everything after it never appeared. A count alone cannot tell that apart from an ordinary cancelled job, which is why the command prints names.
+**Read the step _names_, not the count.** A non-zero step count does not mean the job did any of your work: `Set up job` is the runner's own provisioning step, and whenever the step list is non-empty it is the **first** entry — including on successful jobs, where it sits alongside the real steps. The 2m42s attempt below had exactly one step, and it was `Set up job` — checkout and everything after it never appeared. A count alone cannot tell that apart from an ordinary cancelled job, which is why the command prints names.
 
 Three shapes, all observed on run `31117388132` during the 2026-08-06 outage. Bracketed lists are what the command above prints:
 
