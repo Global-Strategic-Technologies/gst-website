@@ -847,10 +847,15 @@ Open the run on the Actions tab and expand the **Detect Code Changes** job's "Lo
 - **`duplicate=false` when a prior successful run had the same content**: the prior run may have failed or been cancelled (only `success` conclusions dedupe), or the tree hash differs (one file changed that you didn't realize — check `git diff <prior-sha>..HEAD --stat`). Manual re-runs via the UI intentionally bypass dedup via `do_not_skip: ["workflow_dispatch", ...]`
 - **`duplicate=true` but you wanted a re-run**: trigger via "Re-run all jobs" in the Actions UI (uses `workflow_dispatch`, bypasses dedup) rather than pushing a no-op commit
 - **PR blocked with a cancelled push-event check alongside a successful pull_request-event check**: the workflow's concurrency group must be scoped by `github.event_name` — without it, the two events collide in the same group and `cancel-in-progress: true` cancels the first-started run. Immediate fix: `gh run rerun <cancelled-run-id>` on the cancelled run (safe because the sibling has already completed). Durable fix: confirm the workflow's `concurrency.group` includes `github.event_name`
-
-- **A check sits `in_progress` with no logs, or `queued` with no jobs at all**: not a paths-filter problem — check [githubstatus.com](https://www.githubstatus.com) first, then see [TROUBLESHOOTING.md § "A check is stuck"](../testing/TROUBLESHOOTING.md#a-check-is-stuck--running-for-minutes-with-no-logs-or-queued-with-no-job-at-all). Runs wedged during an Actions incident can report contradictory states to `gh run list`/`cancel`/`rerun` and may be unrecoverable; close+reopen is the remedy
-
 Never remove the positive `**` catch-all when adding more negations — with `predicate-quantifier: 'every'`, a negation-only list always produces `code=false` regardless of the actual changeset.
+
+### "A check never finishes — no logs, or no job at all"
+
+Distinct from the gate-decision symptoms above: the check does not report a wrong _answer_, it reports **no** answer. Check [githubstatus.com](https://www.githubstatus.com) before investigating anything in this repo — during an Actions incident no config change helps.
+
+Full triage (step-name vs step-count, the three job shapes, and why re-running during an incident is counterproductive) lives in [TROUBLESHOOTING.md § "A check is stuck"](../testing/TROUBLESHOOTING.md#a-check-is-stuck--running-for-minutes-with-no-logs-or-queued-with-no-job-at-all).
+
+**This is not the `gh run rerun` case above.** That remedy applies to a check that ran and was _cancelled by a concurrency collision_, where a sibling run has already completed. A run wedged by an incident may instead report contradictory states to `gh run list` / `cancel` / `rerun` and be unrecoverable — there, close+reopen the PR is the remedy, since `reopened` creates fresh runs.
 
 ### "I need to temporarily skip the hook"
 

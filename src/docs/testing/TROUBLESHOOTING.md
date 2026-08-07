@@ -247,25 +247,29 @@ curl -s https://www.githubstatus.com/api/v2/incidents/unresolved.json  # open in
 
 ```bash
 gh api repos/<owner>/<repo>/actions/runs/<run-id>/jobs \
-  --jq '.jobs[] | "\(.status)/\(.conclusion // "-") steps=\(.steps|length) runner_id=\(.runner_id) \(.name)"'
+  --jq '.jobs[] | "\(.status)/\(.conclusion // "-") runner_id=\(.runner_id) \(.name) [\(.steps|map(.name)|join(", "))]"'
 ```
 
 Add `/attempts/<n>` before `/jobs` to inspect an earlier attempt — a re-run overwrites the top-level view, so the original evidence is only reachable that way.
 
+**Read the step _names_, not the count.** A non-zero `steps` does not mean the job did any of your work: `Set up job` is the runner's own provisioning step and is counted like any other. Attempt 1 below had `steps=1`, and that one step was `Set up job` — checkout and everything after it never appeared. A count alone cannot tell that apart from an ordinary cancelled job, which is why the command prints names.
+
 Three shapes, all observed on run `31117388132` during the 2026-08-06 outage:
 
-| shape                               | meaning                                                                 |
-| ----------------------------------- | ----------------------------------------------------------------------- |
-| `steps=0`, `runner_id` non-zero     | a runner was allocated but handed no work — no logs because no step ran |
-| `steps=0`, `runner_id=0`            | no runner was ever assigned                                             |
-| `steps` non-zero, still `cancelled` | started, then killed mid-flight                                         |
+| shape                           | meaning                                                                 |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| `steps=0`, `runner_id` non-zero | a runner was allocated but handed no work — no logs because no step ran |
+| `steps=0`, `runner_id=0`        | no runner was ever assigned                                             |
+| steps are **only** `Set up job` | a runner picked it up but never got past provisioning                   |
+
+`runner_id=null` is a fourth, benign case — the downstream jobs that report `skipped` because their gate never produced outputs. The command lists every job, so expect nulls in the same output.
 
 **Do not read the durations as a timeout constant.** The same job's three attempts were cancelled after **2m42s, 7m48s and 15m04s**. Expect minutes rather than seconds, expect `cancelled`, and expect downstream jobs `skipped` — but do not wait on a specific number.
 
 **A `queued` run with no jobs at all is a separate failure** from a push that produced no run at all:
 
-- **Run exists, no job records** — job creation failed inside the Actions backend. Runs `31117340328` and `31117389676` sat this way for over a day.
-- **No run at all** — the triggering webhook was dropped. GitHub's 2026-08-06T20:34Z update (while processing ~15% of webhooks) states these cannot be replayed: "Customers may need to repeat the triggering action by pushing a new commit, updating the pull request, or manually re-running."
+- **Run exists, no job records** — job creation failed inside the Actions backend. Runs `31117340328` and `31117389676` sat this way for the better part of a day (still `queued`, zero jobs, 23h later).
+- **No run at all** — the triggering webhook was dropped. GitHub's 2026-08-06T20:34Z `investigating` update reported "processing approximately 15% of webhooks, so many events such as pushes and pull requests are not triggering workflow runs". The 2026-08-07T02:03Z `monitoring` update states such triggers are not replayed automatically: "Customers may need to repeat the triggering action by pushing a new commit, updating the pull request, or manually re-running the workflow where applicable."
 
 **Do not keep re-running during an incident.** Attempts cost minutes and end the same way; while webhooks are throttled a re-run may also be dropped before it starts. Wait for the incident to reach `monitoring`/`resolved`, then re-run once.
 
@@ -274,8 +278,6 @@ Three shapes, all observed on run `31117388132` during the 2026-08-06 outage:
 **Remedy: close and reopen the PR.** This does _not_ cancel the wedged runs — they stay `queued` indefinitely — but `reopened` triggers **fresh** `pull_request` runs with new IDs, which is what unblocks the checks. It is the same fix documented for a PR stuck BLOCKED after "Update branch" (see [DEVELOPER_TOOLING.md](../development/DEVELOPER_TOOLING.md)). It works only for workflows whose `pull_request:` trigger lists `reopened` — the repo's CI workflows do. Prefer it over pushing an empty commit, which moves HEAD and invalidates the implementation-review marker the push gate requires.
 
 **Useful control:** a green Vercel check on the same commit confirms the site still **builds** on independent infrastructure. It does not run the test suite, lint, or type-check (`vercel.json` sets no `buildCommand`, so the Astro preset runs `astro build` only), so on a docs-only diff it proves little beyond "not a build break".
-
-**Useful control:** if Vercel's checks are green on the same commit while Actions is stuck, that is strong evidence the diff is fine — Vercel builds on its own infrastructure.
 
 ---
 
