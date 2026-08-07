@@ -850,6 +850,14 @@ Open the run on the Actions tab and expand the **Detect Code Changes** job's "Lo
 
 Never remove the positive `**` catch-all when adding more negations — with `predicate-quantifier: 'every'`, a negation-only list always produces `code=false` regardless of the actual changeset.
 
+### "A check never finishes — no logs, or no job at all"
+
+Distinct from the gate-decision symptoms above: the check does not report a wrong _answer_, it reports **no** answer. Check [githubstatus.com](https://www.githubstatus.com) before investigating anything in this repo — during an Actions incident no config change helps.
+
+Full triage (step-name vs step-count, the three job shapes, and why re-running during an incident is counterproductive) lives in [TROUBLESHOOTING.md § "A check is stuck"](../testing/TROUBLESHOOTING.md#a-check-is-stuck--running-for-minutes-with-no-logs-or-queued-with-no-job-at-all).
+
+**This is not the `gh run rerun` case above.** That remedy applies to a check that ran and was _cancelled by a concurrency collision_, where a sibling run has already completed. A run wedged by an incident may instead report contradictory states to `gh run list` / `cancel` / `rerun` and be unrecoverable — there, close+reopen the PR is the remedy, since `reopened` creates fresh runs.
+
 ### "I need to temporarily skip the hook"
 
 **Don't.** The hook exists for a reason. If you genuinely have an emergency:
