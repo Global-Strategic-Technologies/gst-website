@@ -243,7 +243,7 @@ curl -s https://www.githubstatus.com/api/v2/status.json          # overall indic
 curl -s https://www.githubstatus.com/api/v2/incidents/unresolved.json  # open incidents
 ```
 
-**Read the job's step count and runner — together they separate "slow" from "never started":**
+**Read the job's step names and runner — together they separate "slow" from "never started":**
 
 ```bash
 gh api repos/<owner>/<repo>/actions/runs/<run-id>/jobs \
@@ -252,17 +252,17 @@ gh api repos/<owner>/<repo>/actions/runs/<run-id>/jobs \
 
 Add `/attempts/<n>` before `/jobs` to inspect an earlier attempt — a re-run overwrites the top-level view, so the original evidence is only reachable that way.
 
-**Read the step _names_, not the count.** A non-zero `steps` does not mean the job did any of your work: `Set up job` is the runner's own provisioning step and is counted like any other. Attempt 1 below had `steps=1`, and that one step was `Set up job` — checkout and everything after it never appeared. A count alone cannot tell that apart from an ordinary cancelled job, which is why the command prints names.
+**Read the step _names_, not the count.** A non-zero step count does not mean the job did any of your work: `Set up job` is the runner's own provisioning step and appears in the list alongside real steps on every job, successful ones included. The 2m42s attempt below had exactly one step, and it was `Set up job` — checkout and everything after it never appeared. A count alone cannot tell that apart from an ordinary cancelled job, which is why the command prints names.
 
-Three shapes, all observed on run `31117388132` during the 2026-08-06 outage:
+Three shapes, all observed on run `31117388132` during the 2026-08-06 outage. Bracketed lists are what the command above prints:
 
-| shape                           | meaning                                                                 |
-| ------------------------------- | ----------------------------------------------------------------------- |
-| `steps=0`, `runner_id` non-zero | a runner was allocated but handed no work — no logs because no step ran |
-| `steps=0`, `runner_id=0`        | no runner was ever assigned                                             |
-| steps are **only** `Set up job` | a runner picked it up but never got past provisioning                   |
+| shape                            | meaning                                                                 |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| `[]`, `runner_id` non-zero       | a runner was allocated but handed no work — no logs because no step ran |
+| `[]`, `runner_id=0`              | no runner was ever assigned                                             |
+| `[Set up job]` and nothing after | a runner picked it up but never got past provisioning                   |
 
-`runner_id=null` is a fourth, benign case — the downstream jobs that report `skipped` because their gate never produced outputs. The command lists every job, so expect nulls in the same output.
+`runner_id=null` with `[]` is a fourth, benign case — the downstream jobs that report `skipped` because their gate never produced outputs. The command lists every job, so expect these in the same output.
 
 **Do not read the durations as a timeout constant.** The same job's three attempts were cancelled after **2m42s, 7m48s and 15m04s**. Expect minutes rather than seconds, expect `cancelled`, and expect downstream jobs `skipped` — but do not wait on a specific number.
 
