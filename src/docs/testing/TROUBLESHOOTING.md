@@ -102,16 +102,19 @@ See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readin
 
 **Symptom:** A vitest command that passed moments ago returns `Test Files N failed (N)` / `Tests no tests`, with a `TypeError: Cannot read properties of undefined (reading 'config')` at the top-level `describe`. **Files your change never touched fail identically.**
 
-**Likely cause:** Two vitest processes running concurrently in the same working directory. They share the vite transform cache under `node_modules/.vite`, and a collision there kills collection before any test is registered. Common when an agent, an IDE test runner, or a second terminal starts a run while one is already going.
+**Likely cause:** A second vitest process running concurrently — an agent, an IDE test runner, or another terminal starting a run while one is already going.
 
-**How to tell it apart from a real failure** — all four hold for contention, none hold for content:
+**The mechanism is not established.** Candidates include Vite's dep-optimizer rewriting `node_modules/.vite/deps` mid-run, and two vitest instances leaving the runner's worker state undefined (which is what a `reading 'config'` TypeError at `describe` usually smells like). Note the two workspaces have **separate** caches — `node_modules/.vite` and `mcp-server/node_modules/.vite` — so a root `npm run test:run` concurrent with `npm run test:mcp` shares no cache at all, and a shared-cache story cannot explain that pairing. Treat concurrency as the observed trigger and the rest as explanation, not evidence.
 
-1. **The phase.** Failure is at _collection_ — zero tests gathered, so no assertion ever executed. A broken import or bad config fails the same way, but see 2–4.
-2. **The blast radius.** Files unrelated to your change fail too. Content defects are selective; cache collisions are not.
-3. **Reproducibility.** Content fails deterministically on every run. Re-run the same command with nothing else running — contention clears, content does not.
-4. **No test name exists to capture.** That is a consequence of 1, and it is why the usual "capture the failing test name before you re-run" rule needs a substitute here.
+**Phase first:** the failure is at _collection_ — zero tests gathered, so no assertion ever executed. A broken import or a bad config does the same, so the phase narrows it without settling it. These three do the discriminating:
+
+1. **Blast radius.** Files unrelated to your change fail too. Content defects are selective; this is not.
+2. **Reproducibility.** Content fails deterministically. Re-run with nothing else running — contention clears, content does not.
+3. **No test name exists to capture.** A consequence of the phase, and the reason the usual "capture the failing test name" rule needs a substitute here.
 
 **Solution:** Ensure only one vitest process is running, then re-run. If it persists across serial runs, it is not this — treat it as a real failure and debug the import graph.
+
+**Related:** ["npm run test:all hangs or times out"](#npm-run-testall-hangs-or-times-out) covers resource exhaustion _within_ one run; this entry is contention _between_ runs.
 
 **Record it even though it's benign.** [CLAUDE.md](../../../.claude/CLAUDE.md) requires capturing evidence before a re-run, because a green re-run destroys it (this is why BL-106's unreproduced flake stayed open). When collection fails there is no test name, so capture the **signature** instead: the phase, the full set of failing files, and what else was running. Observed 2026-08-06, where it was first misdiagnosed as a permanently broken local vitest install — the misdiagnosis was corrected only when the same command later passed in the same shell.
 
@@ -229,7 +232,9 @@ cat .github/workflows/test.yml
 
 ### "A check is stuck — running for minutes with no logs, or queued with no job at all"
 
-**Symptom:** A job that normally takes seconds sits `in_progress` for many minutes and its log page is empty; or a run stays `queued` while `gh run view` shows no jobs. Downstream jobs report `skipping` because the job they gate on never produced its outputs.
+**Symptom:** A job that normally takes seconds sits `in_progress` for many minutes and its log page is empty; or a run stays `queued` while `gh run view` shows no jobs. Downstream jobs report `skipped` because the job they gate on never produced its outputs.
+
+Distinct from ["Workflow shows red X but tests passed locally"](#workflow-shows-red-x-but-tests-passed-locally), which is about a _red result_. This entry is about _no result_.
 
 **First: is it your repo or GitHub?** Check the incident feed before investigating anything local — during an Actions incident this is not a repo problem and no config change will help:
 
@@ -238,21 +243,37 @@ curl -s https://www.githubstatus.com/api/v2/status.json          # overall indic
 curl -s https://www.githubstatus.com/api/v2/incidents/unresolved.json  # open incidents
 ```
 
-**Read the job's step count — it separates "slow" from "never started":**
+**Read the job's step count and runner — together they separate "slow" from "never started":**
 
 ```bash
 gh api repos/<owner>/<repo>/actions/runs/<run-id>/jobs \
-  --jq '.jobs[] | "\(.status)/\(.conclusion // "-") steps=\(.steps|length) \(.name)"'
+  --jq '.jobs[] | "\(.status)/\(.conclusion // "-") steps=\(.steps|length) runner_id=\(.runner_id) \(.name)"'
 ```
 
-- `steps=0` **with a runner assigned** — the job was allocated but handed no work. There are no logs because no step ran. GitHub reaps these at **~15 minutes** with conclusion `cancelled`.
-- **No jobs at all** on a `queued` run — worse. Job creation is event-driven, so a throttled webhook layer leaves a bare run object nothing ever materialises. Observed 2026-08-06 while GitHub was processing ~15% of webhooks.
+Add `/attempts/<n>` before `/jobs` to inspect an earlier attempt — a re-run overwrites the top-level view, so the original evidence is only reachable that way.
 
-**Do not keep re-running during an incident.** Each attempt costs ~15 minutes and ends the same way; if webhooks are throttled it is also likely to be dropped before it starts. Wait for the incident to reach `monitoring`/`resolved`, then re-run once.
+Three shapes, all observed on run `31117388132` during the 2026-08-06 outage:
 
-**Runs wedged by an incident may be unrecoverable.** After the 2026-08-06 outage the same run reported three contradictory states — `gh run list` said `queued`, `gh run cancel` said "Cannot cancel a workflow run that is completed", and `gh run rerun` said "cannot be rerun; This workflow is already running". No retry fixes that.
+| shape                               | meaning                                                                 |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| `steps=0`, `runner_id` non-zero     | a runner was allocated but handed no work — no logs because no step ran |
+| `steps=0`, `runner_id=0`            | no runner was ever assigned                                             |
+| `steps` non-zero, still `cancelled` | started, then killed mid-flight                                         |
 
-**Remedy: close and reopen the PR.** This abandons the corrupted runs and triggers fresh `pull_request` runs with new IDs — the same fix documented for a PR stuck BLOCKED after "Update branch" (see [DEVELOPER_TOOLING.md](../development/DEVELOPER_TOOLING.md)). Prefer it over pushing an empty commit, which moves HEAD and invalidates the implementation-review marker the push gate requires.
+**Do not read the durations as a timeout constant.** The same job's three attempts were cancelled after **2m42s, 7m48s and 15m04s**. Expect minutes rather than seconds, expect `cancelled`, and expect downstream jobs `skipped` — but do not wait on a specific number.
+
+**A `queued` run with no jobs at all is a separate failure** from a push that produced no run at all:
+
+- **Run exists, no job records** — job creation failed inside the Actions backend. Runs `31117340328` and `31117389676` sat this way for over a day.
+- **No run at all** — the triggering webhook was dropped. GitHub's 2026-08-06T20:34Z update (while processing ~15% of webhooks) states these cannot be replayed: "Customers may need to repeat the triggering action by pushing a new commit, updating the pull request, or manually re-running."
+
+**Do not keep re-running during an incident.** Attempts cost minutes and end the same way; while webhooks are throttled a re-run may also be dropped before it starts. Wait for the incident to reach `monitoring`/`resolved`, then re-run once.
+
+**Runs wedged by an incident may be unrecoverable.** After the 2026-08-06 outage one run reported three contradictory states — `gh run list` said `queued`, `gh run cancel` said "Cannot cancel a workflow run that is completed", and `gh run rerun` said "cannot be rerun; This workflow is already running". No retry fixes that.
+
+**Remedy: close and reopen the PR.** This does _not_ cancel the wedged runs — they stay `queued` indefinitely — but `reopened` triggers **fresh** `pull_request` runs with new IDs, which is what unblocks the checks. It is the same fix documented for a PR stuck BLOCKED after "Update branch" (see [DEVELOPER_TOOLING.md](../development/DEVELOPER_TOOLING.md)). It works only for workflows whose `pull_request:` trigger lists `reopened` — the repo's CI workflows do. Prefer it over pushing an empty commit, which moves HEAD and invalidates the implementation-review marker the push gate requires.
+
+**Useful control:** a green Vercel check on the same commit confirms the site still **builds** on independent infrastructure. It does not run the test suite, lint, or type-check (`vercel.json` sets no `buildCommand`, so the Astro preset runs `astro build` only), so on a docs-only diff it proves little beyond "not a build break".
 
 **Useful control:** if Vercel's checks are green on the same commit while Actions is stuck, that is strong evidence the diff is fine — Vercel builds on its own infrastructure.
 
@@ -502,16 +523,16 @@ npx playwright install --with-deps
 
 ## Quick Reference
 
-| Problem           | Command                                                                           |
-| ----------------- | --------------------------------------------------------------------------------- |
-| Run all tests     | `npm run test:all`                                                                |
-| Run specific test | `npx playwright test -g "test name"`                                              |
-| Debug test        | `npx playwright test --debug`                                                     |
-| View headed       | `npx playwright test --headed`                                                    |
-| Check coverage    | `npm run test:coverage`                                                           |
-| Clear Playwright  | `rm -rf ~/.cache/ms-playwright`                                                   |
-| Run on Firefox    | `npx playwright test --project=firefox`                                           |
-| Is GitHub down?   | `curl -s https://www.githubstatus.com/api/v2/status.json`                         |
-| Stuck CI job?     | `gh api repos/<owner>/<repo>/actions/runs/<id>/jobs --jq '.jobs[].steps\|length'` |
+| Problem           | Command                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ |
+| Run all tests     | `npm run test:all`                                                                                           |
+| Run specific test | `npx playwright test -g "test name"`                                                                         |
+| Debug test        | `npx playwright test --debug`                                                                                |
+| View headed       | `npx playwright test --headed`                                                                               |
+| Check coverage    | `npm run test:coverage`                                                                                      |
+| Clear Playwright  | `rm -rf ~/.cache/ms-playwright`                                                                              |
+| Run on Firefox    | `npx playwright test --project=firefox`                                                                      |
+| Is GitHub down?   | `curl -s https://www.githubstatus.com/api/v2/status.json`                                                    |
+| Stuck CI job?     | [Diagnosing a stuck check](#a-check-is-stuck--running-for-minutes-with-no-logs-or-queued-with-no-job-at-all) |
 
 See [README.md](./README.md) for more commands.
