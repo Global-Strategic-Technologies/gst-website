@@ -348,7 +348,7 @@ describe('touch-target floor — selector anchoring', () => {
   });
 
   it('ignores an Astro :global() descendant', () => {
-    // Real shape: ThemeToggle.astro:54 — another component's DOM, never this rule's target.
+    // Real shape: ThemeToggleButton.astro — another component's DOM, never this rule's target.
     expect(
       findFloorViolations(`.theme-toggle :global(.theme-toggle-icon) { height: 10px; }`, 44)
     ).toEqual([]);

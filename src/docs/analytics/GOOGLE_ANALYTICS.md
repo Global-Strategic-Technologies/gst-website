@@ -252,10 +252,10 @@ onclick handlers rendered by its presentational inners `src/components/HeaderLog
 Tracks navigation clicks on:
 
 - Logo (destination: "/")
-- Services link (destination: "/#services")
+- Services link (destination: "/services")
 - M&A Portfolio link (destination: "/ma-portfolio")
-- About link (destination: "/#about")
-- Contact link (destination: "/#contact")
+- Hub link (destination: "/hub")
+- About link (destination: "/about")
 
 The `/brand` specimens render these same components through their demo props, which drop the
 onclick handlers — specimen clicks never emit `navigation_click`.
