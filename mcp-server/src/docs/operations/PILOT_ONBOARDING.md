@@ -1,6 +1,6 @@
 # Runbook — Pilot client onboarding
 
-lastReviewedAt: 2026-08-02
+lastReviewedAt: 2026-08-08
 
 The end-to-end playbook for bringing a BL-033 external-pilot client onto the GST MCP server. It stitches together mechanics that already ship — this doc is the ordered checklist, not new capability. **Business/legal steps (NDA, DPA, kickoff) are out of engineering scope and flagged as such.**
 
@@ -42,14 +42,14 @@ The provisioning script prints a ready-to-send onboarding email covering the end
 
 ## 3. What the client gets — guarantees to communicate
 
-- **Audit trail**: tool calls are written to a tamper-evident, hash-chained, immutable log (7-yr retention). Deliberately not "every call" — capture is best-effort at the enqueue hop (ADR-0009 documents the first-hop loss window), and the fail-closed `writeAndAwait` seam is the lever for a client who contracts guaranteed capture. Don't promise more than that in writing. Per-client SIEM export is a later slice; the guarantee exists now. See [AUDIT_LOG.md](AUDIT_LOG.md) / [ADR-0009](../../../../src/docs/adr/0009-compliance-audit-log-hash-chain.md).
+- **Audit trail — a capability, NOT a live guarantee** ([ADR-0014](../../../../src/docs/adr/0014-deactivate-audit-pipeline.md)): the tamper-evident, hash-chained, immutable log (7-yr retention) exists as built-and-tested capability, but the capture pipeline is **deactivated** pending the first compliance-requiring client — re-enabling is a config revert plus verification ([AUDIT_LOG.md § Re-enable](AUDIT_LOG.md)). **Do not promise active audit capture in writing.** If the client's contract requires it, re-enable before kickoff; capture is then best-effort at the enqueue hop (ADR-0009's documented loss window), with the fail-closed `writeAndAwait` seam as the lever for contracted guaranteed capture. Per-client SIEM export is a later slice. See [AUDIT_LOG.md](AUDIT_LOG.md) / [ADR-0009](../../../../src/docs/adr/0009-compliance-audit-log-hash-chain.md).
 - **Status transparency**: [status.mcp.globalstrategic.tech](https://status.mcp.globalstrategic.tech) — uptime, dependency health, per-tool latency, audit health. See [STATUS_PAGE.md](STATUS_PAGE.md). Note: latency is **observability, not a ratified SLA** (no pilot SLA is contractually committed — BL-033 directive).
 - **Sandbox** — a synthetic-data sandbox environment (zero real client data) for integration testing is **deferred (AC 282)**; until it ships, integration is against production with a narrow-scope credential.
 
 ## 4. Kickoff + monitoring
 
 - [ ] Joint kickoff call (business).
-- [ ] Confirm the client's first tool calls land in the audit log and appear on the status page's tool-latency panel (per-key attribution is via `keyOwner`).
+- [ ] If the client's contract requires audit capture: re-enable the audit pipeline per [AUDIT_LOG.md § Re-enable procedure](AUDIT_LOG.md) **before** kickoff, then confirm their first tool calls land in the audit log. Either way, confirm the calls appear on the status page's tool-latency panel (per-key attribution is via `keyOwner`).
 - [ ] Track invocations/month against the success metric.
 
 ## Out of scope (deferred / business)

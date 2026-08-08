@@ -19,7 +19,10 @@ interface FakeRedisLike {
   store: Map<string, unknown>;
   get<T>(key: string): Promise<T | null>;
   mget<T extends unknown[]>(...keys: string[]): Promise<T>;
-  multi(): { set(k: string, v: unknown): unknown; exec(): Promise<unknown[]> };
+  multi(): {
+    set(k: string, v: unknown, opts?: { ex?: number }): unknown;
+    exec(): Promise<unknown[]>;
+  };
 }
 
 vi.mock('../../../src/lib/upstash-clients', () => ({
@@ -32,11 +35,13 @@ vi.mock('../../../src/lib/single-flight-lock', () => ({
 }));
 
 // Import AFTER the mocks are registered.
-import { consumeAuditBatch } from '../../../src/audit/consumer';
+import { consumeAuditBatch, SEQOF_TTL_SECONDS } from '../../../src/audit/consumer';
 import { acquire } from '../../../src/lib/single-flight-lock';
 
 class FakeRedis implements FakeRedisLike {
   store = new Map<string, unknown>();
+  /** TTL (opts.ex) recorded per key on exec — `undefined` = written with no TTL. */
+  ttls = new Map<string, number | undefined>();
   async get<T>(key: string): Promise<T | null> {
     return (this.store.get(key) as T) ?? null;
   }
@@ -44,15 +49,19 @@ class FakeRedis implements FakeRedisLike {
     return keys.map((k) => this.store.get(k) ?? null) as T;
   }
   multi() {
-    const ops: Array<[string, unknown]> = [];
+    const ops: Array<[string, unknown, { ex?: number } | undefined]> = [];
     const store = this.store;
+    const ttls = this.ttls;
     const tx = {
-      set(k: string, v: unknown) {
-        ops.push([k, v]);
+      set(k: string, v: unknown, opts?: { ex?: number }) {
+        ops.push([k, v, opts]);
         return tx;
       },
       async exec() {
-        for (const [k, v] of ops) store.set(k, v);
+        for (const [k, v, opts] of ops) {
+          store.set(k, v);
+          ttls.set(k, opts?.ex);
+        }
         return [];
       },
     };
@@ -165,6 +174,18 @@ describe('happy path', () => {
     expect(chain[1].entryId).toBe('b');
     // Chain linkage: entry 1's prevHash == entry 0's entryHash.
     expect(chain[1].prevHash).toBe(chain[0].entryHash);
+  });
+
+  it('bounds seqOf ledger keys with SEQOF_TTL_SECONDS; chain tip intentionally has none', async () => {
+    // ADR-0014: the seqOf TTL is what keeps the ledger from growing without
+    // bound; the tip's ABSENCE of a TTL is equally load-bearing (chain
+    // resumability). Pin both so neither regresses silently.
+    await run(makeBatch([entry('a'), entry('b')]));
+    const fake = state.redis as FakeRedis;
+    expect(fake.ttls.get('mcp:audit:seqof:test:a')).toBe(SEQOF_TTL_SECONDS);
+    expect(fake.ttls.get('mcp:audit:seqof:test:b')).toBe(SEQOF_TTL_SECONDS);
+    expect(fake.ttls.has('mcp:audit:chain-tip:test')).toBe(true); // was written…
+    expect(fake.ttls.get('mcp:audit:chain-tip:test')).toBeUndefined(); // …without a TTL
   });
 
   it('assigns seq by sorted entryId, independent of arrival order', async () => {

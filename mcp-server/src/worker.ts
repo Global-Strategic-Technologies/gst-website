@@ -174,11 +174,13 @@ export interface Env {
   // so emission becomes a no-op rather than throwing.
   METRICS?: import('@cloudflare/workers-types').AnalyticsEngineDataset;
 
-  // BL-033 Slice 3a — compliance audit-log bindings. Bound per environment in
-  // wrangler.toml (queues + R2 bucket the operator provisions; see
-  // operations/AUDIT_LOG.md). Absent in stdio / tests / unprovisioned envs →
-  // audit emission is a no-op (fetch path skips the sink; the queue consumer
-  // never fires).
+  // BL-033 Slice 3a — compliance audit-log bindings. AUDIT_QUEUE is
+  // intentionally UNBOUND in all envs since 2026-08-08 (ADR-0014: pipeline
+  // deactivated until the first compliance-requiring client) → audit emission
+  // is a no-op (fetch path skips the sink; the queue consumer never fires).
+  // The optional types stay so re-enable is a config-only wrangler.toml
+  // revert. AUDIT_R2 remains bound (historical chain; inert without a
+  // consumer). See operations/AUDIT_LOG.md.
   //   - AUDIT_QUEUE: producer binding; the fetch handler enqueues one
   //     `AuditEntry` per tool call off the latency path.
   //   - AUDIT_R2: immutable/versioned bucket the queue consumer hash-chains
@@ -704,6 +706,9 @@ const wrappedFetch = withSentry(sentryOptions, { fetch: handler.fetch! }).fetch;
 // Sentry-envelope lifecycle. Unlike `scheduled`, it must NEVER swallow a
 // failure: `consumeAuditBatch` re-queues the batch (`retryAll`) on any error
 // so no audit record is silently dropped (see its docstring + ADR-0009).
+// Currently DEAD code by configuration (ADR-0014: no [[queues.consumers]]
+// binding exists, so the platform never invokes `queue`). Retained
+// deliberately so re-enabling the pipeline is a wrangler.toml-only revert.
 export default {
   fetch: wrappedFetch,
   scheduled: handler.scheduled,

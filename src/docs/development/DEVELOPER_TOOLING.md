@@ -36,6 +36,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Deploy MCP Worker to staging           | `cd mcp-server && npm run deploy:staging` (Phase 6 — staging URL: `mcp-staging.globalstrategic.tech`) |
 | Deploy MCP Worker to production        | `cd mcp-server && npm run deploy:production` (Phase 6 — production URL: `mcp.globalstrategic.tech`) |
 | Provision an MCP client credential     | `cd mcp-server && npm run provision:client -- --name "<client>" --tier free-pilot [--dry-run]` (admin key via `MCP_ADMIN_KEY` env var — never a flag; runbook: [PILOT_ONBOARDING.md](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md)) |
+| Purge leaked audit seqof keys (ADR-0014) | `cd mcp-server && npm run purge:audit-seqof [-- --execute]` (dry-run by default; creds via `UPSTASH_MCP_REST_URL`/`UPSTASH_MCP_REST_TOKEN` env vars — never flags; runbook: [AUDIT_LOG.md § Deactivation](../../../mcp-server/src/docs/operations/AUDIT_LOG.md)) |
 
 **Authoritative local validation sequence** (what CI runs, in the same order):
 

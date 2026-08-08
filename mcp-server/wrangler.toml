@@ -76,28 +76,18 @@ binding = "OAUTH_KV"
 id = "580b8f1f9067410b93d6f1faa3edfed0"
 
 # ---------------------------------------------------------------------------
-# Compliance audit log — Queue + R2 (BL-033 Slice 3a)
+# Compliance audit log — DEACTIVATED 2026-08-08 (ADR-0014); R2 binding retained
 # ---------------------------------------------------------------------------
-# The fetch handler enqueues one `AuditEntry` per tool call to AUDIT_QUEUE
-# (off the latency path via ctx.waitUntil); the `queue` consumer in
-# src/audit/consumer.ts hash-chains each entry and writes it as an immutable
-# object to AUDIT_R2. First-of-kind Queue + R2 bindings in this repo — the
-# operator MUST provision them per env BEFORE deploy (a [[queues.consumers]]
-# referencing a missing queue fails `wrangler deploy`). See
-# src/docs/operations/AUDIT_LOG.md. Top-level blocks are for `wrangler dev`
-# (miniflare simulates Queues + R2 in-process; no remote resource touched).
-[[queues.producers]]
-binding = "AUDIT_QUEUE"
-queue = "audit-log-dev"
-
-[[queues.consumers]]
-queue = "audit-log-dev"
-max_concurrency = 1          # single writer → linear hash chain (see ADR-0009)
-max_batch_size = 100
-max_batch_timeout = 5
-max_retries = 5
-dead_letter_queue = "audit-log-dlq-dev"
-
+# The BL-033 Slice 3a pipeline (AUDIT_QUEUE producer → queue consumer in
+# src/audit/consumer.ts → hash-chained immutable AUDIT_R2 objects) is unbound
+# in ALL envs: no client consumes the audit product and the seqOf ledger was
+# growing the Upstash free tier without bound. The queue producer/consumer
+# blocks are removed; the producer gate in handle-authenticated.ts sees
+# `env.AUDIT_QUEUE === undefined` and audit becomes a no-op. The Cloudflare
+# queue resources (audit-log-{dev,staging,production} + their DLQs) and the
+# R2 buckets are RETAINED — do not garbage-collect them; the re-enable
+# procedure depends on them existing. Re-enable = revert this wrangler.toml
+# hunk + src/docs/operations/AUDIT_LOG.md § Re-enable procedure.
 [[r2_buckets]]
 binding = "AUDIT_R2"
 bucket_name = "gst-mcp-audit-dev"
@@ -209,24 +199,10 @@ dataset = "mcp_events_staging"
 binding = "OAUTH_KV"
 id = "580b8f1f9067410b93d6f1faa3edfed0"
 
-# Compliance audit log — staging Queue + R2 (BL-033 Slice 3a). Provision
-# BEFORE this merges (staging auto-deploys): `wrangler queues create
-# audit-log-staging` + `... audit-log-dlq-staging` + `wrangler r2 bucket
-# create gst-mcp-audit-staging` (then add a Bucket Lock rule at 7yr retention
-# in the R2 dashboard; versioning not needed — create-only writes). See
-# src/docs/operations/AUDIT_LOG.md.
-[[env.staging.queues.producers]]
-binding = "AUDIT_QUEUE"
-queue = "audit-log-staging"
-
-[[env.staging.queues.consumers]]
-queue = "audit-log-staging"
-max_concurrency = 1
-max_batch_size = 100
-max_batch_timeout = 5
-max_retries = 5
-dead_letter_queue = "audit-log-dlq-staging"
-
+# Compliance audit log — DEACTIVATED 2026-08-08 (ADR-0014). Queue producer/
+# consumer blocks removed (see the top-level audit comment); the provisioned
+# audit-log-staging queue + its DLQ are RETAINED for re-enable. R2 binding
+# stays (bucket holds the immutable historical chain under Bucket Lock).
 [[env.staging.r2_buckets]]
 binding = "AUDIT_R2"
 bucket_name = "gst-mcp-audit-staging"
@@ -289,24 +265,11 @@ dataset = "mcp_events"
 binding = "OAUTH_KV"
 id = "13c9e9f590244408ab7fe8cdf650766d"
 
-# Compliance audit log — production Queue + R2 (BL-033 Slice 3a). Provision
-# BEFORE the production deploy runs: `wrangler queues create
-# audit-log-production` + `... audit-log-dlq-production` + `wrangler r2 bucket
-# create gst-mcp-audit-production` (then add a Bucket Lock rule at 7yr SEC
-# 17a-4 retention in the R2 dashboard; versioning not needed — create-only
-# writes). See src/docs/operations/AUDIT_LOG.md.
-[[env.production.queues.producers]]
-binding = "AUDIT_QUEUE"
-queue = "audit-log-production"
-
-[[env.production.queues.consumers]]
-queue = "audit-log-production"
-max_concurrency = 1
-max_batch_size = 100
-max_batch_timeout = 5
-max_retries = 5
-dead_letter_queue = "audit-log-dlq-production"
-
+# Compliance audit log — DEACTIVATED 2026-08-08 (ADR-0014). Queue producer/
+# consumer blocks removed (see the top-level audit comment); the provisioned
+# audit-log-production queue + its DLQ are RETAINED for re-enable. R2 binding
+# stays (bucket holds the immutable historical chain under the 7yr SEC 17a-4
+# Bucket Lock).
 [[env.production.r2_buckets]]
 binding = "AUDIT_R2"
 bucket_name = "gst-mcp-audit-production"

@@ -159,9 +159,11 @@ describe('buildStatusHtml — BL-033 Slice 4 panels', () => {
     expect(html).toContain('<td>5</td>');
     expect(html).toContain('<td>12</td>');
     expect(html).toContain('as of 2026-07-26T14:00:00.000Z');
-    // Audit panel present.
+    // Audit panel present, with the ADR-0014 deactivation annotation the
+    // AUDIT_LOG.md § Deactivation Verify step tells the operator to look for.
     expect(html).toContain('Audit log');
     expect(html).toContain('<td>42</td>');
+    expect(html).toContain('Pipeline deactivated 2026-08-08');
     // Surface-not-ratify: latency values are NOT wrapped in the badge color spans.
     expect(html).not.toMatch(/color:#0a7d4f[^<]*>\s*5\s*</);
     expect(html).not.toContain('500ms');
