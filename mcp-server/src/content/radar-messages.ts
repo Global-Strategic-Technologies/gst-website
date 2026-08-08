@@ -50,10 +50,15 @@ export const SNAPSHOT_UNAVAILABLE_REMOTE =
   'Radar snapshot unavailable — the shared cache is currently empty. It is refreshed by a scheduled job every 6 hours. While the Inoreader budget circuit breaker is open, no read refreshes the cache (that is deliberate — it protects the shared upstream budget), so this state can persist until the breaker closes. No items are available to report right now.';
 
 /**
- * Either transport: the tier was read successfully but holds no items inside
- * the freshness window. Distinct from "unavailable" — nothing is broken, the
- * curated tier is simply empty, which is the expected steady state whenever
- * curation pauses for more than 30 days.
+ * The tier was read successfully but holds no items. Distinct from
+ * "unavailable" — nothing is broken, the curated tier is simply empty.
+ *
+ * Worker-only in practice: the 30-day freshness gate (`filterFreshFyi`) runs
+ * on the live read path, and `radar-snapshot.ts` documents that it is
+ * deliberately NOT applied to the seeded offline snapshot. So the mechanism
+ * sentence is scoped to the live surface rather than stated flatly — on stdio
+ * an empty tier means the seed contained no annotated items, which is a
+ * different cause and would make a flat "aged out" claim wrong.
  */
 export const NO_FRESH_CURATED_ITEMS =
-  'No curated radar items in the last 30 days. Curated (FYI) items age out 30 days after they are annotated, and none currently fall inside that window. This is the expected state when curation has paused — it is not an error, and there are no items to report.';
+  'No curated radar items to report — the feed was read successfully and is empty. On the live surface, curated (FYI) items age out 30 days after they are annotated, so an empty tier there means curation has paused rather than that anything is broken. On a local seeded snapshot it means the seed carried no annotated items.';

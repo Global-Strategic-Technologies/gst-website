@@ -31,8 +31,11 @@ const INOREADER_CLIENT_PATTERN = {
     '../../src/lib/inoreader/client*',
     '../../../src/lib/inoreader/client*',
   ],
+  // Deliberately does NOT name `content/radar-snapshot.ts` as the alternative:
+  // this message also renders inside the Worker-reachable scope below, where
+  // that module is itself banned. Read through a `SnapshotReader` instead.
   message:
-    'mcp-server/src/** must not import the live Inoreader client. Read from the cached snapshot via mcp-server/src/content/radar-snapshot.ts instead. See src/docs/adr/0004-hub-surface-resources-import-restriction.md.',
+    'mcp-server/src/** must not import the live Inoreader client. Read cached data through a SnapshotReader (content/radar-snapshot-reader.ts) instead. See src/docs/adr/0004-hub-surface-resources-import-restriction.md.',
 };
 
 export default [
@@ -240,7 +243,17 @@ export default [
   // radar pattern here would silently delete the ADR-0004 protection for every
   // prompt module — adding a guard while removing one.
   {
-    files: ['mcp-server/src/prompts/**/*.{ts,mts}'],
+    // Scoped to every module that is reachable from the Worker and has no
+    // legitimate reason to touch the fs-backed reader. `tools/_local-only.ts`
+    // and `tools/radar-offline.ts` are deliberately NOT listed — they are the
+    // stdio-only surface and importing it is their job.
+    files: [
+      'mcp-server/src/prompts/**/*.{ts,mts}',
+      'mcp-server/src/resources/**/*.{ts,mts}',
+      'mcp-server/src/server.ts',
+      'mcp-server/src/worker.ts',
+      'mcp-server/src/content/radar-snapshot-reader-worker.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',

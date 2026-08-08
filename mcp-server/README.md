@@ -171,7 +171,11 @@ Each prompt module under [`src/prompts/`](src/prompts/) exports a uniform shape 
 
 The local server reads exclusively from `<repo>/.cache/inoreader/`, populated by `npm run radar:seed` from the repo root (deterministic mock fixtures; clear with `npm run radar:unseed`). **No live Inoreader API calls are made** — the shared 200 req/day budget is protected. The ESLint `no-restricted-imports` rule on `mcp-server/src/**` enforces this structurally: importing the live client (`src/lib/inoreader/client`) fails lint.
 
-If the snapshot is missing, Radar Resources return a structured error with the message: `Radar snapshot not found. Run `npm run radar:seed` from the gst-website repo root to populate the local cache.` Tools return the same error shape with `isError: true`.
+If the snapshot is missing, the surfaces return a structured error rather than throwing — but **the wording differs by surface**, and each is worded for the deployment it can actually reach:
+
+- **Radar Resources** carry the dual-transport text in [`src/resources/radar.ts`](src/resources/radar.ts) ("Radar snapshot is not yet populated…"), which covers both the local seed and the Worker's 6-hourly Cron, because a Resource is served identically on both and its handler cannot tell them apart.
+- **The offline tool** (`search_radar_offline`, stdio-only) returns `Radar snapshot not found. Run `npm run radar:seed` from the gst-website repo root to populate the local cache.` with `isError: true`.
+- **Prompt embeds** select a transport-specific message from [`src/content/radar-messages.ts`](src/content/radar-messages.ts) — the seed instruction on stdio, Cron/retry wording on the Worker, and a distinct message when the tier reads fine but holds no fresh items. See [BREAKING_CHANGES.md § 0.48.0](BREAKING_CHANGES.md).
 
 ### Content sources
 

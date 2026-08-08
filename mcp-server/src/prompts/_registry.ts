@@ -125,12 +125,13 @@ export function registerPrompts(
   const { radarReader, messages = DEFAULT_RADAR_MESSAGES } = options;
   for (const prompt of ALL_PROMPTS) {
     assertPromptInvariants(prompt);
-    // BL-045 PR B: instrument `gst_irl_ingestion`'s server-side-observable
-    // signals (forceTools usage) at the build seam. Wrap the build function
-    // with a forceTools sniffer; the wrapper emits the `force_tools_used`
-    // counter then delegates to the original build. Other prompts pass
-    // through unchanged.
     // EVERY prompt is wrapped, not just the ones needing async work.
+    //
+    // Two things happen in here. BL-045 PR B instruments
+    // `gst_irl_ingestion`'s server-side-observable signals (forceTools usage,
+    // BL-079 cache pre-population) at the build seam, for that prompt only.
+    // Separately, any prompt declaring `needsFyiSnapshot` gets its content
+    // block resolved below.
     //
     // The SDK's `PromptCallback` is `(args, ctx: ServerContext)` and
     // `withPromptMetrics` forwards `...args`, so handing it a two-parameter

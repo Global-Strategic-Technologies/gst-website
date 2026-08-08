@@ -19,6 +19,7 @@ import {
 import { createServer } from '../../src/server';
 import { registerLocalOnlyTools } from '../../src/tools/_local-only';
 import { stdioSnapshotReader } from '../../src/content/radar-snapshot-reader-stdio';
+import { minimalArgsFor } from '../helpers/prompt-args';
 import { createPairedTransports, type PairedHalf } from '../helpers/paired-transport';
 import { parseToolResult, type CallToolResultPayload } from '../helpers/tool-envelope';
 
@@ -172,34 +173,9 @@ describe('protocol roundtrip', () => {
       const prompts = (list.result as unknown as { prompts: Array<{ name: string }> }).prompts;
       expect(prompts.length).toBeGreaterThan(0);
 
-      // Minimal VALID args — several prompts have required fields, so `{}`
-      // would fail validation and prove nothing about rendering.
-      const ARGS: Record<string, Record<string, unknown>> = {
-        gst_diligence_kickoff: { targetName: 'Acme' },
-        gst_target_quick_look: {
-          targetName: 'Acme',
-          productType: 'b2b-saas',
-          arr: '25000000',
-          stage: 'series-b',
-          hqJurisdiction: 'us-ca',
-        },
-        gst_comparable_engagements_memo: { targetDescription: 'vertical SaaS bolt-on' },
-        gst_regulatory_exposure_brief: {
-          targetJurisdictions: 'eu,us-ca',
-          dataCategories: 'data-privacy',
-          productType: 'b2b-saas',
-        },
-        gst_architecture_layer_review: { targetSummary: 'healthcare RCM SaaS on AWS' },
-        gst_radar_brief_today: {},
-        gst_diligence_handoff_memo: { targetName: 'Acme' },
-        gst_information_request_list: { targetName: 'Acme' },
-        gst_irl_ingestion: { targetName: 'Acme', mode: 'extract-only' },
-      };
-
       for (const { name } of prompts) {
-        const args = ARGS[name];
-        expect(args, `no minimal args registered for prompt ${name}`).toBeTruthy();
-        const res = await rpc('prompts/get', { name, arguments: args });
+        // Shared with the Worker-lane suite — see tests/helpers/prompt-args.ts.
+        const res = await rpc('prompts/get', { name, arguments: minimalArgsFor(name) });
         expect(isErrorResponse(res), `prompts/get ${name} errored`).toBe(false);
         if (isErrorResponse(res)) continue;
         const messages = (res.result as unknown as { messages: unknown[] }).messages;

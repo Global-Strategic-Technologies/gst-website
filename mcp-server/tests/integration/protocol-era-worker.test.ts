@@ -29,6 +29,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { parseToolResult, type CallToolResultPayload } from '../helpers/tool-envelope';
+import { minimalArgsFor } from '../helpers/prompt-args';
 
 const TEST_KEY = 'test-token-rp';
 const MODERN_VERSION = '2026-07-28';
@@ -209,36 +210,10 @@ describe('BL-106 — Worker protocol era', () => {
     const prompts = (list.result as { prompts: Array<{ name: string }> }).prompts;
     expect(prompts).toHaveLength(9);
 
-    // Minimal VALID args per prompt — several have required fields, so `{}`
-    // would fail argument validation and prove nothing about rendering. These
-    // are the shapes verified against production on 2026-08-07. A new prompt
-    // added without an entry here fails the lookup below rather than silently
-    // skipping, which is the point.
-    const ARGS: Record<string, Record<string, unknown>> = {
-      gst_diligence_kickoff: { targetName: 'Acme' },
-      gst_target_quick_look: {
-        targetName: 'Acme',
-        productType: 'b2b-saas',
-        arr: '25000000',
-        stage: 'series-b',
-        hqJurisdiction: 'us-ca',
-      },
-      gst_comparable_engagements_memo: { targetDescription: 'vertical SaaS bolt-on' },
-      gst_regulatory_exposure_brief: {
-        targetJurisdictions: 'eu,us-ca',
-        dataCategories: 'data-privacy',
-        productType: 'b2b-saas',
-      },
-      gst_architecture_layer_review: { targetSummary: 'healthcare RCM SaaS on AWS' },
-      gst_radar_brief_today: {},
-      gst_diligence_handoff_memo: { targetName: 'Acme' },
-      gst_information_request_list: { targetName: 'Acme' },
-      gst_irl_ingestion: { targetName: 'Acme', mode: 'extract-only' },
-    };
-
     for (const { name } of prompts) {
-      const args = ARGS[name];
-      expect(args, `no minimal args registered for prompt ${name}`).toBeTruthy();
+      // Shared with the paired-transport suite — see tests/helpers/prompt-args.ts.
+      // Throws (rather than skipping) when a new prompt has no entry.
+      const args = minimalArgsFor(name);
       const res = await readJsonRpc(
         await worker.fetch('/mcp', {
           ...modernRequest('prompts/get', { 'Mcp-Name': name }),

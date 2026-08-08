@@ -105,7 +105,7 @@ This is not decoration. `embed.ts` used to call the `node:fs` reader directly, w
 You don't write any networking code. The SDK's `server.registerPrompt(...)` hooks into two MCP wire calls:
 
 - **`prompts/list`** — when Claude Desktop connects, it asks "what prompts do you have?" The SDK responds with `name`, `description`, `argsSchema` for every registered prompt. Desktop renders them in the slash-menu picker.
-- **`prompts/get`** — when the user invokes one (types `/gst_diligence_kickoff`, fills the form, hits enter), Desktop sends the args. The SDK validates against the prompt's `argsSchema`, runs your `build(args)` function, and ships the resulting `{ messages: [...] }` back over stdio.
+- **`prompts/get`** — when the user invokes one (types `/gst_diligence_kickoff`, fills the form, hits enter), Desktop sends the args. The SDK validates against the prompt's `argsSchema`, runs the registered callback — the metrics-wrapped, arity-1 closure the registry built around your `build` — and ships the resulting `{ messages: [...] }` back over the transport.
 
 Desktop then splices those messages into the active conversation, and the model proceeds.
 
@@ -159,9 +159,9 @@ The system from your keystroke to the model's first response:
 
 3. **You hit enter.** Desktop ships a `prompts/get` request over stdio: `{ name: 'gst_diligence_kickoff', arguments: { targetName: 'Acme', ... } }`.
 
-4. **The SDK on the GST server side** receives the request, validates the arguments against the prompt's `argsSchema` (rejects with a clean error if anything's malformed), and calls your registered `build(args)` function.
+4. **The SDK on the GST server side** receives the request, validates the arguments against the prompt's `argsSchema` (rejects with a clean error if anything's malformed), and calls the registered callback, which resolves any injected block (see § Who resolves the embed) and then calls your `build`.
 
-5. **`build(args)` returns** `{ messages: [{ role: 'user', content: { type: 'text', text: '...' } }] }`. The text is constructed from the args.
+5. **`build(args, fyiEmbed?)` returns** `{ messages: [{ role: 'user', content: { type: 'text', text: '...' } }] }`. The text is constructed from the args.
 
 6. **The SDK ships the messages back** over stdio. Desktop splices them into your active conversation. From the model's perspective, it just received a user message saying "do these things."
 
