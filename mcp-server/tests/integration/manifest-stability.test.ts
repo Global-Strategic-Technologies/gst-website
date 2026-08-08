@@ -133,7 +133,16 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // promptVersion literal in META_JSON_FENCE_DIRECTIVE replaced with a
 // server-derived placeholder). Drifts solely from that one prompt
 // name@version tuple.
-const EXPECTED_MANIFEST_HASH = 'e8d76ac01d2ec7d3b2f69cb5eed491338608fe641eff0251e807aafb14548a7b';
+// Radar prompt Worker-fix rebaseline: gst_radar_brief_today v0.0.3 → v0.0.4.
+// Step 2 of the body stopped keying the degraded path on the literal phrase
+// 'Radar snapshot not found' (the stdio message) and now keys on the block
+// being TEXT rather than an embedded resource — the phrase never appears in
+// the Worker's degraded wording, so the stop-and-surface instruction silently
+// failed on the transport where the snapshot is most often unavailable. The
+// stdio-only `npm run radar:seed` remediation was dropped from the body for
+// the same reason. Drifts solely from that one prompt name@version tuple;
+// tool names and URIs are unchanged.
+const EXPECTED_MANIFEST_HASH = 'ccda7822a34aa22d2f43fe1c7559c68ea7f992b3be1092fb58c6e6f200cd0d70';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

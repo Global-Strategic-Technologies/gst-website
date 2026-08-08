@@ -43,6 +43,15 @@ const CATEGORY_LABELS: Readonly<Record<RadarCategory, string>> = {
   security: 'Security',
 };
 
+// Deliberately NOT the shared constant from `content/radar-messages.ts`.
+// This string is embedded in a published Resource body, so its wording is a
+// client-facing surface; rewording it to match the prompt-side messages would
+// change what existing consumers read. It is also intentionally dual-transport
+// prose, because a Resource is served identically on stdio and Worker and the
+// reader cannot tell which one it is on — unlike the prompt path, where the
+// registry selects a transport-specific message. The two states this file
+// distinguishes are already structural (`{ error }` vs `{ itemCount: 0 }`),
+// so nothing depends on the text matching.
 const SNAPSHOT_MISSING_MESSAGE =
   'Radar snapshot is not yet populated. On the local stdio path: run `npm run radar:seed`. On the Worker path: the 6-hourly Cron refreshes the Upstash cache. Note that while the Inoreader budget circuit breaker is open, no read refreshes the cache (that is deliberate — it protects the shared upstream budget), so this state can persist until the breaker closes.';
 

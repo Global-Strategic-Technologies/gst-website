@@ -13,7 +13,7 @@
 ## Current manifest hash
 
 ```
-e8d76ac01d2ec7d3b2f69cb5eed491338608fe641eff0251e807aafb14548a7b
+ccda7822a34aa22d2f43fe1c7559c68ea7f992b3be1092fb58c6e6f200cd0d70
 ```
 
 Computed over (sorted):
@@ -22,12 +22,35 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below) + `gst_irl_ingestion` at `0.22.0` (Step 3 no longer instructs a `limit` that exceeds a client ceiling — see the 0.47.0 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.0` (Step 3 no longer instructs a `limit` that exceeds a client ceiling — see the 0.47.0 stanza below), and `gst_radar_brief_today` at `0.0.4` (degraded-path discriminator made structural so it works on the Worker — see the 0.48.0 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.48.0 — 2026-08-07 — `gst_radar_brief_today` renders on the Worker, and its degraded path stops giving remote clients local advice
+
+**`gst_radar_brief_today` 0.0.3 → 0.0.4.** No tool, Resource URI or input schema changes; the manifest hash moves solely on that prompt's `name@version` tuple.
+
+**Who this affects**: every remote client. The prompt did not work at all over HTTP — `prompts/get` returned JSON-RPC `-32603` on production, 100% of the time, while the same prompt worked correctly on local stdio.
+
+**Why.** `prompts/embed.ts` called `readFyiSnapshot()` from `content/radar-snapshot.ts`, which resolves its cache directory from `fileURLToPath(import.meta.url)`. In the Worker bundle `import.meta.url` is `undefined`, so the call threw `The "path" argument must be of type string or an instance of URL. Received undefined`. Lazily — the module imported cleanly and only threw when a model actually expanded the prompt, which is why nothing surfaced at boot.
+
+Nothing caught it because **no test in this package issued a `prompts/get` on any transport**: `prompts-args-shape.test.ts` stops at `prompts/list`, and the Worker suite covered tools and Resources. The May 2026 senior-consultant V-trial that signed the prompt off ran against Claude Desktop on stdio, where the reader is correct. Both surfaces were verified; the combination never was.
+
+**What changed.**
+
+- The snapshot is now injected. `_registry.ts` resolves the block and hands it to `build`, because only the registry knows the transport — and therefore which reader and which degraded wording apply. `embedFyiRadarSnapshot` takes an already-read tier instead of reading one.
+- **Step 2 of the body no longer keys on a phrase.** It said to look for a text block containing `Radar snapshot not found` — the stdio message. That phrase does not appear in the Worker's degraded text, so the stop-and-surface instruction would have failed silently on the transport where the snapshot is most often unavailable, leaving the model free to fabricate items. It now keys on the block being TEXT rather than an embedded resource, which holds regardless of wording. **This is the change that moves the version.**
+- The body's `npm run radar:seed` remediation is gone. A remote user has no repo to run it in. Degraded text is now transport-specific (`content/radar-messages.ts`), and distinguishes a cold cache from a curated tier that has simply aged out under the 30-day freshness gate.
+- On the Worker the prompt reads through a **cache-only** reader (`createWorkerCachedSnapshotReader`). A prompt expansion is model-initiated, so it must not be able to spend the shared Inoreader budget on a cold cache — the prompt's own docstring has always promised it never makes live calls.
+
+**Accepted tradeoff**: the cache-only reader has no repopulation path and the Cron cadence equals the 6h cache TTL, so there is a window where `prompts/get` renders degraded while `resources/read` of the same URI would have refilled live. The two surfaces can disagree. That is the price of not handing the model an egress lever.
+
+**Manifest-hash impact**: hash changes from `e8d76ac0…` to `ccda7822…` — solely the `gst_radar_brief_today` name@version tuple. Updated in `tests/integration/manifest-stability.test.ts` and the "Current manifest hash" section above.
 
 ---
 

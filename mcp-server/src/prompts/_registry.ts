@@ -21,6 +21,9 @@ import { handlePrepareIrlBodyTool } from '../tools/prepare-irl-body';
 import { safeLog } from '../auth/safe-logger';
 import { computeIrlBodyHash } from '../schemas/compose-dossier-envelope';
 import { UPSTASH_KEY_PREFIX } from '../cache/irl-body-cache';
+import { NO_FRESH_CURATED_ITEMS, SNAPSHOT_MISSING_STDIO } from '../content/radar-messages';
+import type { SnapshotReader } from '../content/radar-snapshot-reader';
+import { embedFyiRadarSnapshot } from './embed';
 import type { GstPrompt } from './types';
 import { diligenceKickoffPrompt } from './diligence-kickoff';
 import { targetQuickLookPrompt } from './target-quick-look';
@@ -90,67 +93,110 @@ function assertPromptInvariants(prompt: GstPrompt, now: Date = new Date()): void
   }
 }
 
+/** Transport-supplied dependencies for prompts that embed the FYI Radar tier. */
+export interface RegisterPromptsOptions {
+  /**
+   * Reader for the FYI tier. Omitted by callers that register no radar-backed
+   * prompt path (and by tests) — a prompt declaring `needsFyiSnapshot` then
+   * renders its "unavailable" block rather than throwing.
+   *
+   * The Worker supplies a CACHE-ONLY reader deliberately: see
+   * `createWorkerCachedSnapshotReader`.
+   */
+  radarReader?: SnapshotReader;
+  /**
+   * Degraded-state wording for the two non-item states. Defaults to the stdio
+   * pair, matching the no-`ctx` `createServer()` path; the Worker overrides it
+   * with remote-appropriate remediation.
+   */
+  messages?: { unavailable: string; empty: string };
+}
+
+const DEFAULT_RADAR_MESSAGES = {
+  unavailable: SNAPSHOT_MISSING_STDIO,
+  empty: NO_FRESH_CURATED_ITEMS,
+} as const;
+
 export function registerPrompts(
   server: McpServer,
-  metrics: MetricsContext = NOOP_METRICS_CONTEXT
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT,
+  options: RegisterPromptsOptions = {}
 ): void {
+  const { radarReader, messages = DEFAULT_RADAR_MESSAGES } = options;
   for (const prompt of ALL_PROMPTS) {
     assertPromptInvariants(prompt);
-    // BL-045 PR B: instrument `gst_irl_ingestion`'s server-side-observable
-    // signals (forceTools usage) at the build seam. Wrap the build function
-    // with a forceTools sniffer; the wrapper emits the `force_tools_used`
-    // counter then delegates to the original build. Other prompts pass
-    // through unchanged.
-    const wrappedBuild =
-      prompt.name === 'gst_irl_ingestion'
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          async (args: any) => {
-            emitForceToolsUsed(metrics, args?.forceTools);
-            // BL-079 Part B — prompt-render-time cache pre-population.
-            //
-            // When the operator supplied `filledIrl` as a prompt arg, write
-            // the body to the shared IrlBodyCache BEFORE returning the
-            // rendered prompt body to the model. This is the structural fix
-            // for the model output stream emission ceiling: subsequent
-            // `compose_dossier_envelope` and `validate_irl_provenance` calls
-            // can read the EXACT operator-pasted bytes from cache via
-            // `irlBodyHash` without the model ever emitting the body.
-            //
-            // ALT-D PATTERN: reuse `handlePrepareIrlBodyTool` so the size
-            // cap, the BL-077a read-after-write probe, the `bl077.cache.set`
-            // safeLog instrumentation, and the `IrlBodyCacheWriteFailedError`
-            // surfacing logic are inherited for free.
-            //
-            // SYNC AWAIT (audit revision — NOT fire-and-forget): Cloudflare
-            // Workers terminate pending I/O at request completion unless
-            // `ctx.waitUntil` extends them. The ~50–100ms Upstash PUT cost
-            // is unmeasurable next to model TTFT on a 50KB prompt body.
-            //
-            // Failure is non-fatal — prompt render still completes; model
-            // falls through to legacy `prepare_irl_body` path on the first
-            // cache-miss. The `bl079.cache.preload.failed` safeLog event
-            // surfaces the failure for `wrangler tail` correlation.
-            if (args?.filledIrl && metrics.irlBodyCache) {
-              try {
-                await handlePrepareIrlBodyTool({ filledIrl: args.filledIrl }, metrics);
-              } catch (err) {
-                const hash = computeIrlBodyHash(args.filledIrl);
-                safeLog({
-                  event: 'bl079.cache.preload.failed',
-                  key: `${UPSTASH_KEY_PREFIX}${hash}`,
-                  storeId:
-                    'storeId' in metrics.irlBodyCache
-                      ? (metrics.irlBodyCache as { storeId?: number }).storeId
-                      : undefined,
-                  reason: err instanceof Error ? err.message.slice(0, 300) : String(err),
-                  success: false,
-                  errorCode: 'bl079-preload-failed',
-                });
-              }
-            }
-            return prompt.build(args);
+    // EVERY prompt is wrapped, not just the ones needing async work.
+    //
+    // Two things happen in here. BL-045 PR B instruments
+    // `gst_irl_ingestion`'s server-side-observable signals (forceTools usage,
+    // BL-079 cache pre-population) at the build seam, for that prompt only.
+    // Separately, any prompt declaring `needsFyiSnapshot` gets its content
+    // block resolved below.
+    //
+    // The SDK's `PromptCallback` is `(args, ctx: ServerContext)` and
+    // `withPromptMetrics` forwards `...args`, so handing it a two-parameter
+    // `build` directly would alias the per-request `ServerContext` into the
+    // `fyiEmbed` slot. Wrapping uniformly means every registered callback has
+    // arity 1 and the SDK's second argument is never aliased. It also keeps
+    // `build` assignable to `PromptCallback` by arity widening, with no cast.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wrappedBuild = async (args: any) => {
+      if (prompt.name === 'gst_irl_ingestion') {
+        emitForceToolsUsed(metrics, args?.forceTools);
+        // BL-079 Part B — prompt-render-time cache pre-population.
+        //
+        // When the operator supplied `filledIrl` as a prompt arg, write
+        // the body to the shared IrlBodyCache BEFORE returning the
+        // rendered prompt body to the model. This is the structural fix
+        // for the model output stream emission ceiling: subsequent
+        // `compose_dossier_envelope` and `validate_irl_provenance` calls
+        // can read the EXACT operator-pasted bytes from cache via
+        // `irlBodyHash` without the model ever emitting the body.
+        //
+        // ALT-D PATTERN: reuse `handlePrepareIrlBodyTool` so the size
+        // cap, the BL-077a read-after-write probe, the `bl077.cache.set`
+        // safeLog instrumentation, and the `IrlBodyCacheWriteFailedError`
+        // surfacing logic are inherited for free.
+        //
+        // SYNC AWAIT (audit revision — NOT fire-and-forget): Cloudflare
+        // Workers terminate pending I/O at request completion unless
+        // `ctx.waitUntil` extends them. The ~50–100ms Upstash PUT cost
+        // is unmeasurable next to model TTFT on a 50KB prompt body.
+        //
+        // Failure is non-fatal — prompt render still completes; model
+        // falls through to legacy `prepare_irl_body` path on the first
+        // cache-miss. The `bl079.cache.preload.failed` safeLog event
+        // surfaces the failure for `wrangler tail` correlation.
+        if (args?.filledIrl && metrics.irlBodyCache) {
+          try {
+            await handlePrepareIrlBodyTool({ filledIrl: args.filledIrl }, metrics);
+          } catch (err) {
+            const hash = computeIrlBodyHash(args.filledIrl);
+            safeLog({
+              event: 'bl079.cache.preload.failed',
+              key: `${UPSTASH_KEY_PREFIX}${hash}`,
+              storeId:
+                'storeId' in metrics.irlBodyCache
+                  ? (metrics.irlBodyCache as { storeId?: number }).storeId
+                  : undefined,
+              reason: err instanceof Error ? err.message.slice(0, 300) : String(err),
+              success: false,
+              errorCode: 'bl079-preload-failed',
+            });
           }
-        : prompt.build;
+        }
+      }
+
+      // Resolve the FYI block HERE, not inside `build`. Only this layer knows
+      // which transport it is on, and therefore which reader to read through
+      // and which degraded-state wording applies. A prompt module deciding for
+      // itself would have to import the message constants directly and would
+      // hand remote clients the stdio `npm run radar:seed` remediation.
+      const fyiEmbed = prompt.needsFyiSnapshot
+        ? embedFyiRadarSnapshot((await radarReader?.readFyi()) ?? null, messages)
+        : undefined;
+      return prompt.build(args, fyiEmbed);
+    };
     server.registerPrompt(
       prompt.name,
       {

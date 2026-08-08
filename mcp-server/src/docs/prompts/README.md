@@ -38,19 +38,20 @@ A file like [`mcp-server/src/prompts/diligence-kickoff.ts`](../../prompts/dilige
 }
 ```
 
-Every prompt module has the same seven fields, defined by the `GstPrompt<TArgs>` interface in [`types.ts`](../../prompts/types.ts). That uniformity is the foundation — it lets the rest of the system treat prompts generically.
+Every prompt module has the same seven fields — plus one optional eighth, `needsFyiSnapshot` — defined by the `GstPrompt<TArgs>` interface in [`types.ts`](../../prompts/types.ts). That uniformity is the foundation — it lets the rest of the system treat prompts generically.
 
 What each field does:
 
-| Field            | Purpose                                                                                                                                                        |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`           | What the user types (`/gst_diligence_kickoff`). Must match `/^gst_[a-z][a-z_]*$/`.                                                                             |
-| `description`    | Renders next to the name in the slash-menu picker.                                                                                                             |
-| `version`        | Bumped on non-trivial body changes so two analysts running "the same prompt" at different times can compare.                                                   |
-| `lastReviewedAt` | When a senior consultant last signed off on the body. Vitest fails when older than 12 months.                                                                  |
-| `orchestrates`   | Manifest of every Tool name + Resource URI scheme this prompt expects the model to use. Two purposes: docs at a glance, and drift detection.                   |
-| `argsSchema`     | Zod schema describing the slash-menu form fields. Composes from existing `mcp-server/src/schemas.ts` source-of-truth schemas — no per-prompt schema authoring. |
-| `build(args)`    | Pure function: parsed args → messages spliced into the conversation.                                                                                           |
+| Field                    | Purpose                                                                                                                                                                                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                   | What the user types (`/gst_diligence_kickoff`). Must match `/^gst_[a-z][a-z_]*$/`.                                                                                                                                                                                        |
+| `description`            | Renders next to the name in the slash-menu picker.                                                                                                                                                                                                                        |
+| `version`                | Bumped on non-trivial body changes so two analysts running "the same prompt" at different times can compare.                                                                                                                                                              |
+| `lastReviewedAt`         | When a senior consultant last signed off on the body. Vitest fails when older than 12 months.                                                                                                                                                                             |
+| `orchestrates`           | Manifest of every Tool name + Resource URI scheme this prompt expects the model to use. Two purposes: docs at a glance, and drift detection.                                                                                                                              |
+| `argsSchema`             | Zod schema describing the slash-menu form fields. Composes from existing `mcp-server/src/schemas.ts` source-of-truth schemas — no per-prompt schema authoring.                                                                                                            |
+| `needsFyiSnapshot`       | _Optional._ Declares that the prompt embeds the FYI Radar tier. The registry reads it to decide whether to resolve a snapshot block before calling `build`. Declarative because a `prompt.name === '…'` check in the registry is a special case at one, a pattern at two. |
+| `build(args, fyiEmbed?)` | Pure, **synchronous** function: parsed args → messages spliced into the conversation. `fyiEmbed` is an already-resolved content block, supplied only to prompts declaring `needsFyiSnapshot` — see "Who resolves the embed" below.                                        |
 
 ### Part 2: A central registry imports them all
 
@@ -63,19 +64,39 @@ export const ALL_PROMPTS = [
   // ...
 ];
 
-export function registerPrompts(server: McpServer) {
+export function registerPrompts(
+  server: McpServer,
+  metrics: MetricsContext = NOOP_METRICS_CONTEXT,
+  options: RegisterPromptsOptions = {} // { radarReader?, messages? }
+) {
+  const { radarReader, messages = DEFAULT_RADAR_MESSAGES } = options;
   for (const prompt of ALL_PROMPTS) {
     assertPromptInvariants(prompt);
+    // EVERY prompt is wrapped in an arity-1 closure — see below.
+    const wrappedBuild = async (args) => {
+      const fyiEmbed = prompt.needsFyiSnapshot
+        ? embedFyiRadarSnapshot((await radarReader?.readFyi()) ?? null, messages)
+        : undefined;
+      return prompt.build(args, fyiEmbed);
+    };
     server.registerPrompt(
       prompt.name,
       { description: prompt.description, argsSchema: prompt.argsSchema },
-      prompt.build
+      withPromptMetrics(prompt.name, metrics, wrappedBuild)
     );
   }
 }
 ```
 
-`registerPrompts(server)` is called once at server boot from [`server.ts`](../../server.ts), alongside `registerDiligenceTool(server)`, `registerLibraryResources(server)`, etc. It's a peer concern, not a special primitive.
+`registerPrompts(server, metrics, options)` is called from [`server.ts`](../../server.ts) **per connection** (the factory runs per client, not once at process boot — BL-106), alongside `registerDiligenceTool(server)`, `registerLibraryResources(server)`, etc. It's a peer concern, not a special primitive.
+
+#### Who resolves the embed, and why it isn't the prompt
+
+A prompt module cannot see which transport it is running on. The FYI Radar tier is read through a `SnapshotReader` that differs by transport — `node:fs`-backed on stdio, Upstash-backed on the Worker — and the text shown when there is nothing to embed differs too (a remote user has no repo in which to run `npm run radar:seed`). So the **registry** resolves the block and hands it to `build`.
+
+This is not decoration. `embed.ts` used to call the `node:fs` reader directly, which resolves its cache directory from `import.meta.url` — `undefined` in the Worker bundle. Every remote `prompts/get gst_radar_brief_today` failed with JSON-RPC `-32603` while stdio worked perfectly, and no test caught it because none issued a `prompts/get` on any transport. An ESLint rule now bans `content/radar-snapshot` from `mcp-server/src/prompts/**`.
+
+**Every prompt is wrapped in an arity-1 closure**, not only those needing async work. The SDK's `PromptCallback` is `(args, ctx)`, and the metrics wrapper forwards `...args` — so registering a two-parameter `build` directly would alias the per-request `ServerContext` into the `fyiEmbed` slot. Uniform wrapping also keeps `build` assignable to `PromptCallback` by arity widening, with no cast.
 
 `assertPromptInvariants` runs at module-load time — fail-fast on naming / version / freshness / orchestrates violations rather than silently degrading at runtime.
 
@@ -84,7 +105,7 @@ export function registerPrompts(server: McpServer) {
 You don't write any networking code. The SDK's `server.registerPrompt(...)` hooks into two MCP wire calls:
 
 - **`prompts/list`** — when Claude Desktop connects, it asks "what prompts do you have?" The SDK responds with `name`, `description`, `argsSchema` for every registered prompt. Desktop renders them in the slash-menu picker.
-- **`prompts/get`** — when the user invokes one (types `/gst_diligence_kickoff`, fills the form, hits enter), Desktop sends the args. The SDK validates against the prompt's `argsSchema`, runs your `build(args)` function, and ships the resulting `{ messages: [...] }` back over stdio.
+- **`prompts/get`** — when the user invokes one (types `/gst_diligence_kickoff`, fills the form, hits enter), Desktop sends the args. The SDK validates against the prompt's `argsSchema`, runs the registered callback — the metrics-wrapped, arity-1 closure the registry built around your `build` — and ships the resulting `{ messages: [...] }` back over the transport.
 
 Desktop then splices those messages into the active conversation, and the model proceeds.
 
@@ -138,9 +159,9 @@ The system from your keystroke to the model's first response:
 
 3. **You hit enter.** Desktop ships a `prompts/get` request over stdio: `{ name: 'gst_diligence_kickoff', arguments: { targetName: 'Acme', ... } }`.
 
-4. **The SDK on the GST server side** receives the request, validates the arguments against the prompt's `argsSchema` (rejects with a clean error if anything's malformed), and calls your registered `build(args)` function.
+4. **The SDK on the GST server side** receives the request, validates the arguments against the prompt's `argsSchema` (rejects with a clean error if anything's malformed), and calls the registered callback, which resolves any injected block (see § Who resolves the embed) and then calls your `build`.
 
-5. **`build(args)` returns** `{ messages: [{ role: 'user', content: { type: 'text', text: '...' } }] }`. The text is constructed from the args.
+5. **`build(args, fyiEmbed?)` returns** `{ messages: [{ role: 'user', content: { type: 'text', text: '...' } }] }`. The text is constructed from the args.
 
 6. **The SDK ships the messages back** over stdio. Desktop splices them into your active conversation. From the model's perspective, it just received a user message saying "do these things."
 

@@ -1,5 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import { radarBriefTodayPrompt } from '../../../src/prompts/radar-brief-today';
+import { embedFyiRadarSnapshot } from '../../../src/prompts/embed';
+import type { SnapshotTier } from '../../../src/content/radar-transform';
+
+/**
+ * Sentinel wording, not the real constants — these assertions are about WHICH
+ * message the embed selects, and pinning the production text here would make
+ * them fail on every copy edit.
+ */
+const MESSAGES = { unavailable: 'UNAVAILABLE-SENTINEL', empty: 'EMPTY-SENTINEL' };
+
+const TIER: SnapshotTier = {
+  tier: 'fyi',
+  items: [
+    {
+      id: 'tag:google.com,2005:reader/item/0001',
+      title: 'Kubernetes won the container decade',
+      url: 'https://example.test/k8s',
+      source: 'Example Wire',
+      category: 'enterprise-tech',
+      publishedAt: '2026-07-15T18:17:02.000Z',
+      annotatedAt: '2026-07-15T20:01:28.000Z',
+    },
+  ],
+  lastSeededAt: '2026-08-07T18:00:34.000Z',
+};
 
 describe('gst_radar_brief_today', () => {
   it('uses the gst_ slash-menu prefix', () => {
@@ -56,30 +81,76 @@ describe('gst_radar_brief_today', () => {
     }
   });
 
-  it('handles snapshot-missing path explicitly (instructs the model not to fabricate)', () => {
+  it('discriminates the degraded path STRUCTURALLY, not by phrase', () => {
     const parsed = radarBriefTodayPrompt.argsSchema.parse({});
     const allText = radarBriefTodayPrompt
       .build(parsed)
       .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
       .join('\n');
-    expect(allText.toLowerCase()).toContain('radar snapshot not found');
+    // The body used to tell the model to look for the literal phrase
+    // 'Radar snapshot not found'. That phrase is the STDIO message; on the
+    // Worker the degraded text says something else entirely, so the
+    // stop-and-surface instruction silently failed on the one transport
+    // where the snapshot is most likely to be unavailable — leaving the
+    // model free to fabricate items. Key on the block being TEXT instead.
+    expect(allText).toContain('TEXT block');
+    expect(allText.toLowerCase()).toContain('verbatim');
     expect(allText.toLowerCase()).toContain('fabricate');
+    // And the stdio-only remediation must not be baked into the body: a
+    // remote user has no repo to run it in.
+    expect(allText).not.toContain('radar:seed');
   });
 
-  it('embeds the FYI radar snapshot as the second message (or surfaces structured-error text when missing)', () => {
+  it('omits the second message entirely when no embed is supplied', () => {
     const parsed = radarBriefTodayPrompt.argsSchema.parse({});
-    const result = radarBriefTodayPrompt.build(parsed);
-    expect(result.messages.length).toBeGreaterThanOrEqual(2);
+    // Unreachable in production — `_registry.ts` always resolves a block for
+    // a `needsFyiSnapshot` prompt. Pinned because the alternative (falling
+    // back to a constant inside the prompt module) would mean choosing the
+    // wording without knowing the transport.
+    expect(radarBriefTodayPrompt.build(parsed).messages).toHaveLength(1);
+  });
+
+  it('splices a supplied embed as the second message', () => {
+    const parsed = radarBriefTodayPrompt.argsSchema.parse({});
+    const result = radarBriefTodayPrompt.build(parsed, embedFyiRadarSnapshot(TIER, MESSAGES));
+    expect(result.messages).toHaveLength(2);
     const second = result.messages[1].content;
-    // Either an embedded snapshot (cache present) or the structured-error text
-    // block (cache deleted) — both are valid; the prompt body teaches the
-    // model to discriminate.
-    expect(['resource', 'text']).toContain(second.type);
+    expect(second.type).toBe('resource');
     if (second.type === 'resource') {
       expect(second.resource.uri).toBe('gst://radar/fyi/latest');
-    } else if (second.type === 'text') {
-      expect(second.text.toLowerCase()).toContain('radar snapshot not found');
     }
+  });
+
+  describe('embedFyiRadarSnapshot — three distinct states', () => {
+    it('null tier → the transport-supplied "unavailable" text', () => {
+      const block = embedFyiRadarSnapshot(null, MESSAGES);
+      expect(block.type).toBe('text');
+      if (block.type === 'text') expect(block.text).toBe(MESSAGES.unavailable);
+    });
+
+    it('tier present but zero items → the "empty" text, not "unavailable"', () => {
+      // Worker-only in practice: `radar-snapshot.ts` documents that the FYI
+      // freshness gate is deliberately NOT applied offline, so a stdio reader
+      // cannot produce an aged-out empty tier. Exercised at the embed level
+      // for exactly that reason.
+      const block = embedFyiRadarSnapshot({ ...TIER, items: [] }, MESSAGES);
+      expect(block.type).toBe('text');
+      if (block.type === 'text') expect(block.text).toBe(MESSAGES.empty);
+    });
+
+    it('tier with items → an embedded resource carrying the snapshot', () => {
+      const block = embedFyiRadarSnapshot(TIER, MESSAGES);
+      expect(block.type).toBe('resource');
+      if (block.type === 'resource') {
+        expect(block.resource.uri).toBe('gst://radar/fyi/latest');
+        // The resource union is text-or-blob; the snapshot is always the
+        // text arm, but narrow rather than assert it.
+        expect('text' in block.resource).toBe(true);
+        if ('text' in block.resource) {
+          expect(block.resource.text).toContain('Kubernetes won the container decade');
+        }
+      }
+    });
   });
 
   describe('BL-031.95 Phase 3.A — capability-mirror invariant', () => {
@@ -89,8 +160,8 @@ describe('gst_radar_brief_today', () => {
     // 24h TTL and the website surfaces no time filter. These tests lock
     // the contract.
 
-    it('prompt is at v0.0.3 (post-Phase-5 deeplink-surface body update; v0.0.2 was the Phase-3.A capability-mirror refactor)', () => {
-      expect(radarBriefTodayPrompt.version).toBe('0.0.3');
+    it('prompt is at v0.0.4 (Step-2 discriminator made structural so the degraded path works on the Worker; v0.0.3 was the Phase-5 deeplink surface)', () => {
+      expect(radarBriefTodayPrompt.version).toBe('0.0.4');
     });
 
     it('argsSchema rejects pre-Phase-3 `sinceHours` field (no longer accepted)', () => {

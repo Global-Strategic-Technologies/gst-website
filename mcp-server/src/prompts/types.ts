@@ -14,6 +14,7 @@
 
 import type { z } from 'zod';
 import type { GetPromptResult } from '@modelcontextprotocol/server';
+import type { EmbedResult } from './embed';
 
 export interface GstPrompt<TArgs extends z.ZodObject<z.ZodRawShape> = z.ZodObject<z.ZodRawShape>> {
   /** Slash-menu name. Must match `/^gst_[a-z_]+$/`. */
@@ -36,6 +37,29 @@ export interface GstPrompt<TArgs extends z.ZodObject<z.ZodRawShape> = z.ZodObjec
   orchestrates: ReadonlyArray<string>;
   /** Zod schema for the slash-menu form fields. Compose from existing schemas. */
   argsSchema: TArgs;
-  /** Builds the user/assistant messages spliced into the conversation. */
-  build: (args: z.infer<TArgs>) => GetPromptResult;
+  /**
+   * Declares that this prompt embeds the FYI Radar tier. `_registry.ts` reads
+   * it to decide whether to resolve a snapshot block before calling `build`.
+   *
+   * Declarative rather than a `prompt.name === '…'` check in the registry:
+   * one name-match is a special case, two would be a pattern.
+   */
+  needsFyiSnapshot?: true;
+  /**
+   * Builds the user/assistant messages spliced into the conversation.
+   *
+   * Synchronous by contract. Any async work — reading a snapshot, writing the
+   * IRL body cache — happens in `_registry.ts`'s wrapper, which is where the
+   * transport and its bindings are known. Keeping `build` sync is also what
+   * lets every prompt unit test call it directly and read `.messages` without
+   * awaiting.
+   *
+   * `fyiEmbed` is the ALREADY-RESOLVED content block, supplied only to prompts
+   * declaring `needsFyiSnapshot`. The registry resolves it because only the
+   * registry knows which transport (and therefore which reader and which
+   * degraded-state wording) applies; a prompt module choosing for itself would
+   * have to import the constants directly and would ship stdio remediation
+   * advice to remote clients.
+   */
+  build: (args: z.infer<TArgs>, fyiEmbed?: EmbedResult) => GetPromptResult;
 }

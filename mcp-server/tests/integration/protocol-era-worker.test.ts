@@ -29,6 +29,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { parseToolResult, type CallToolResultPayload } from '../helpers/tool-envelope';
+import { minimalArgsFor } from '../helpers/prompt-args';
 
 const TEST_KEY = 'test-token-rp';
 const MODERN_VERSION = '2026-07-28';
@@ -185,6 +186,96 @@ describe('BL-106 — Worker protocol era', () => {
     const radarResult = radar.result as { ttlMs?: number; cacheScope?: string };
     expect(radarResult.ttlMs).toBe(0);
     expect(radarResult.cacheScope).toBe('private');
+  });
+
+  // REGRESSION GUARD — the prompt-rendering incident.
+  //
+  // `prompts/get gst_radar_brief_today` returned JSON-RPC -32603 ("The
+  // \"path\" argument must be of type string or an instance of URL. Received
+  // undefined") on production for every remote client, while working
+  // perfectly on stdio. The prompt's embed helper called the node:fs-backed
+  // `readFyiSnapshot()`, which resolves its cache dir from `import.meta.url`
+  // — undefined in the Worker bundle. Lazily, so the module imported fine and
+  // only threw when a model actually expanded the prompt.
+  //
+  // Nothing caught it because NO test in this repo issued a `prompts/get` on
+  // ANY transport: `prompts-args-shape.test.ts` covers `prompts/list`, and
+  // this Worker suite covered tools and resources. The paired-transport
+  // roundtrip added alongside this one would NOT have caught it either — it
+  // runs under Node, where `node:fs` exists. This lane is the only one that
+  // reproduces the failure, which is what makes these the load-bearing cases.
+  it('renders every prompt over the Worker lane without a rendering error', async () => {
+    const list = await readJsonRpc(await worker.fetch('/mcp', modernRequest('prompts/list')));
+    expect(list.error).toBeUndefined();
+    const prompts = (list.result as { prompts: Array<{ name: string }> }).prompts;
+    expect(prompts).toHaveLength(9);
+
+    for (const { name } of prompts) {
+      // Shared with the paired-transport suite — see tests/helpers/prompt-args.ts.
+      // Throws (rather than skipping) when a new prompt has no entry.
+      const args = minimalArgsFor(name);
+      const res = await readJsonRpc(
+        await worker.fetch('/mcp', {
+          ...modernRequest('prompts/get', { 'Mcp-Name': name }),
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'prompts/get',
+            params: {
+              name,
+              arguments: args,
+              _meta: {
+                'io.modelcontextprotocol/protocolVersion': MODERN_VERSION,
+                'io.modelcontextprotocol/clientInfo': { name: 'gst-test-client', version: '1.0.0' },
+                'io.modelcontextprotocol/clientCapabilities': {},
+              },
+            },
+          }),
+        })
+      );
+      expect(res.error, `prompts/get ${name} returned a JSON-RPC error`).toBeUndefined();
+      const messages = (res.result as { messages?: unknown[] }).messages;
+      expect(messages, `prompts/get ${name} returned no messages`).toBeTruthy();
+      expect(messages!.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('serves the radar prompt degraded rather than throwing when no cache is bound', async () => {
+    const res = await readJsonRpc(
+      await worker.fetch('/mcp', {
+        ...modernRequest('prompts/get', { 'Mcp-Name': 'gst_radar_brief_today' }),
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'prompts/get',
+          params: {
+            name: 'gst_radar_brief_today',
+            arguments: {},
+            _meta: {
+              'io.modelcontextprotocol/protocolVersion': MODERN_VERSION,
+              'io.modelcontextprotocol/clientInfo': { name: 'gst-test-client', version: '1.0.0' },
+              'io.modelcontextprotocol/clientCapabilities': {},
+            },
+          },
+        }),
+      })
+    );
+
+    expect(res.error).toBeUndefined();
+    const messages = (
+      res.result as { messages: Array<{ content: { type: string; text?: string } }> }
+    ).messages;
+    // `unstable_dev` binds no Upstash, so the cache-only reader returns null
+    // and the second message is the degraded TEXT block. Either shape is a
+    // pass; the -32603 is the failure.
+    expect(messages).toHaveLength(2);
+    const second = messages[1].content;
+    expect(['resource', 'text']).toContain(second.type);
+    if (second.type === 'text') {
+      // The remote wording — NOT the stdio `npm run radar:seed` remediation,
+      // which is the specific thing a Worker client must never be told.
+      expect(second.text).not.toContain('radar:seed');
+    }
   });
 
   // REGRESSION GUARD — this is the incident test. BL-106 shipped the Worker

@@ -24,7 +24,7 @@
 import type { EmbeddedResource, TextContent } from '@modelcontextprotocol/server';
 import { loadLibraryByUri } from '../content/library-loader';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
-import { readFyiSnapshot, SNAPSHOT_MISSING_MESSAGE } from '../content/radar-snapshot';
+import type { SnapshotTier } from '../content/radar-transform';
 
 /** Result of an embed helper — either an embedded Resource or a structured-error text block. */
 export type EmbedResult = EmbeddedResource | TextContent;
@@ -110,17 +110,38 @@ export function embedIrlGeneratorSource(): EmbedResult {
 }
 
 /**
- * Load the FYI Radar snapshot and return an `EmbeddedResource` content
- * block. Returns the canonical snapshot-missing error (matching the
- * Resource handler in BL-031.5) when `.cache/inoreader/` is empty.
+ * Wrap an already-read FYI Radar tier as a content block.
  *
- * The model is instructed (in `gst_radar_brief_today`'s body) to surface
- * the error verbatim and not fabricate items.
+ * This helper does NOT read the snapshot itself. It used to, via the
+ * node:fs-backed `readFyiSnapshot()`, which resolves its cache directory from
+ * `import.meta.url` — `undefined` in the Worker bundle, so every remote
+ * `prompts/get` on `gst_radar_brief_today` failed with a JSON-RPC -32603
+ * ("The \"path\" argument must be of type string or an instance of URL")
+ * while the same read succeeded on stdio. The caller now supplies the tier,
+ * read through the `SnapshotReader` appropriate to its transport, and the
+ * messages appropriate to that transport with it.
+ *
+ * Three states, because "no data" is not one condition:
+ *
+ *   - `null`            → the read failed / the cache is cold  → `unavailable`
+ *   - `items.length===0`→ read fine, nothing inside the 30-day
+ *                         freshness window                     → `empty`
+ *   - otherwise         → the snapshot, as an embedded Resource
+ *
+ * The model is instructed (in `gst_radar_brief_today`'s body) to surface a
+ * text block verbatim and stop, rather than fabricate items. That instruction
+ * keys on the block being TEXT rather than on any phrase inside it, so these
+ * three strings can differ per transport without breaking it.
  */
-export function embedFyiRadarSnapshot(): EmbedResult {
-  const snapshot = readFyiSnapshot();
+export function embedFyiRadarSnapshot(
+  snapshot: SnapshotTier | null,
+  messages: { unavailable: string; empty: string }
+): EmbedResult {
   if (!snapshot) {
-    return { type: 'text', text: SNAPSHOT_MISSING_MESSAGE };
+    return { type: 'text', text: messages.unavailable };
+  }
+  if (snapshot.items.length === 0) {
+    return { type: 'text', text: messages.empty };
   }
   return {
     type: 'resource',

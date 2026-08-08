@@ -28,7 +28,16 @@ import { registerPrepareIrlBodyTool } from './tools/prepare-irl-body';
 import { registerLibraryResources } from './resources/library';
 import { registerRegulationResources } from './resources/regulations';
 import { registerRadarResources } from './resources/radar';
-import { createWorkerSnapshotReader } from './content/radar-snapshot-reader-worker';
+import {
+  createWorkerCachedSnapshotReader,
+  createWorkerSnapshotReader,
+} from './content/radar-snapshot-reader-worker';
+import {
+  NO_FRESH_CURATED_ITEMS,
+  SNAPSHOT_MISSING_STDIO,
+  SNAPSHOT_UNAVAILABLE_REMOTE,
+} from './content/radar-messages';
+import type { SnapshotReader } from './content/radar-snapshot-reader';
 import { registerPrompts } from './prompts/_registry';
 import { DEFAULT_SCOPES } from './auth/scopes';
 import {
@@ -72,6 +81,20 @@ export interface ServerFactoryOptions {
    * Avoids double-registration in stdio + Upstash-bound dev runs.
    */
   radarSource?: 'worker';
+
+  /**
+   * SnapshotReader used for PROMPT embeds on the stdio path.
+   *
+   * Supplied by the stdio entrypoint (`index.ts`), never resolved here: the
+   * stdio reader is backed by node:fs, and importing it in this module would
+   * put the filesystem reader back into the Worker bundle — which is exactly
+   * how `gst_radar_brief_today` came to fail remotely with a -32603.
+   *
+   * Ignored when `radarSource === 'worker'`; the Worker builds its own
+   * cache-only reader from `env`. Omitted by tests, in which case a prompt
+   * needing the snapshot renders its "unavailable" block.
+   */
+  radarReader?: SnapshotReader;
 
   /**
    * BL-032.75 Phase 1 — typed-metric emission sink. Each Tool / Resource /
@@ -260,8 +283,35 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
     registerRadarResources(server, createWorkerSnapshotReader(env), env, scopes, metrics);
   }
 
-  // Prompts
-  registerPrompts(server, metrics);
+  // Prompts. `gst_radar_brief_today` embeds the FYI tier, and both the reader
+  // and the degraded-state wording are transport-specific — so they are
+  // resolved HERE and passed in, rather than chosen inside the prompt module
+  // (which cannot see its transport, and which previously reached for the
+  // node:fs reader and broke every remote `prompts/get` with a -32603).
+  //
+  // Worker: the CACHE-ONLY reader. A prompt expansion is model-initiated, so
+  // it must not be able to spend Inoreader budget on a cold cache — see
+  // `createWorkerCachedSnapshotReader`.
+  //
+  // `server.ts` must never import `stdioSnapshotReader`: that would pull
+  // node:fs into the Worker bundle, which is the bug class this fix closes.
+  // The stdio entrypoint supplies it via `ctx.radarReader` instead.
+  registerPrompts(
+    server,
+    metrics,
+    ctx.radarSource === 'worker'
+      ? {
+          radarReader: createWorkerCachedSnapshotReader(env),
+          messages: {
+            unavailable: SNAPSHOT_UNAVAILABLE_REMOTE,
+            empty: NO_FRESH_CURATED_ITEMS,
+          },
+        }
+      : {
+          radarReader: ctx.radarReader,
+          messages: { unavailable: SNAPSHOT_MISSING_STDIO, empty: NO_FRESH_CURATED_ITEMS },
+        }
+  );
 
   return server;
 }
