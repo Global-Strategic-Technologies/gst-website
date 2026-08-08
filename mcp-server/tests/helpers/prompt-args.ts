@@ -4,10 +4,14 @@
  * lane, `protocol-roundtrip.test.ts` on the paired-transport lane).
  *
  * Shared rather than duplicated because a stale copy fails in the wrong
- * direction: the `assertPromptArgs` guard below catches a prompt with NO
- * entry, but two hand-maintained copies would let a prompt that GAINS a
- * required field keep passing in one lane while the other silently starts
- * testing argument validation instead of rendering.
+ * direction: `minimalArgsFor` below catches a prompt with NO entry, but two
+ * hand-maintained copies would let a prompt that GAINS a required field keep
+ * passing in one lane while the other silently starts testing argument
+ * validation instead of rendering.
+ *
+ * `prompt-args-coverage.test.ts` asserts this map's key set matches
+ * `ALL_PROMPTS`, so a newly registered prompt fails there — naming this file —
+ * rather than inside whichever rendering lane happens to run first.
  *
  * `{}` is not usable here — several prompts have required fields, so an
  * empty payload would fail validation and prove nothing about whether the

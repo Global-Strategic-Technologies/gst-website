@@ -229,19 +229,21 @@ export default [
     },
   },
 
-  // ── Worker-bundle safety: prompts must not reach the fs-backed reader ──
+  // ── Worker-bundle safety: no Worker-reachable module may reach the
+  //    fs-backed reader ──
   // `content/radar-snapshot.ts` imports node:fs / node:path / node:url and
   // resolves its cache directory from `import.meta.url`, which is `undefined`
   // in the Worker bundle. `prompts/embed.ts` imported it, so every remote
   // `prompts/get gst_radar_brief_today` failed with a JSON-RPC -32603 while
-  // stdio worked perfectly. Prompt modules take a `SnapshotReader` from
-  // `_registry.ts` now; reaching for the reader directly reopens the bug.
+  // stdio worked perfectly. Consumers take a `SnapshotReader` instead;
+  // reaching for the fs reader directly from any of these files reopens the
+  // bug class.
   //
   // This block RESTATES the Inoreader pattern above. It is not redundant: in
   // flat config, a later object setting the same rule id for a matched file
   // REPLACES the earlier options rather than merging them, so listing only the
   // radar pattern here would silently delete the ADR-0004 protection for every
-  // prompt module — adding a guard while removing one.
+  // file in scope — adding a guard while removing one.
   {
     // Scoped to every module that is reachable from the Worker and has no
     // legitimate reason to touch the fs-backed reader. `tools/_local-only.ts`
@@ -264,14 +266,25 @@ export default [
               // Anchored to the exact module. A bare `**/content/radar-snapshot*`
               // would also match `radar-snapshot-reader`, which `_registry.ts`
               // legitimately imports for the `SnapshotReader` type.
+              //
+              // The bare `./radar-snapshot` forms are load-bearing, not
+              // padding: a file living INSIDE `content/` writes a sibling
+              // specifier, which none of the `content/`-prefixed patterns
+              // match. Without them the rule was inert on exactly the file it
+              // was extended to cover (`radar-snapshot-reader-worker.ts`) —
+              // and a clean lint run cannot tell "no violators" from "pattern
+              // never matches", so verify this group by planting an import
+              // rather than by reading green output.
               group: [
                 '**/content/radar-snapshot',
                 '**/content/radar-snapshot.ts',
                 '../content/radar-snapshot',
                 '../content/radar-snapshot.ts',
+                './radar-snapshot',
+                './radar-snapshot.ts',
               ],
               message:
-                'mcp-server/src/prompts/** must not import content/radar-snapshot — it is node:fs-backed and throws in the Worker bundle (JSON-RPC -32603 on prompts/get). Take a SnapshotReader from _registry.ts, or import the message constants from content/radar-messages.ts.',
+                'Worker-reachable modules must not import content/radar-snapshot — it is node:fs-backed and throws in the Worker bundle (JSON-RPC -32603 on prompts/get). Read through a SnapshotReader instead (prompts get one from _registry.ts; the Worker builds one via createWorkerCachedSnapshotReader), or import the message constants from content/radar-messages.ts.',
             },
           ],
         },
