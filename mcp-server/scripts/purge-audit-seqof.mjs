@@ -195,7 +195,11 @@ async function runCli() {
   }
 
   if (!opts.execute) {
-    process.stdout.write('\nDRY RUN — nothing deleted. Re-run with --execute to delete.\n');
+    process.stdout.write(
+      valid.length === 0
+        ? '\nDRY RUN — nothing to delete.\n'
+        : '\nDRY RUN — nothing deleted. Re-run with --execute to delete.\n'
+    );
   } else if (valid.length === 0) {
     process.stdout.write('\nNothing to delete.\n');
   } else {

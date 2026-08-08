@@ -35,7 +35,7 @@ One-time cleanup after the deactivation deploy, in the decommission-runbook shap
 
 **Verify**
 
-- The execute run reports 0 remaining `seqof` keys and prints both `mcp:audit:chain-tip:{staging,production}` values (survival proof).
+- The execute run reports 0 remaining `seqof` keys and prints all three `mcp:audit:chain-tip:{dev,staging,production}` keys (survival proof — `dev` typically "(absent)"; the staging/production values must be present).
 - Upstash console (gst-mcp DB) storage drops by roughly the dry-run's reported KB.
 - `/status` shows the "Pipeline deactivated 2026-08-08 — ADR-0014" annotation; "Batches processed (24h)" decays to 0; the chain-tip `lastSeq` retains its historical value.
 
@@ -54,7 +54,7 @@ Trigger: the first client whose contract requires compliance audit capture — r
 
 ## Provisioning (one-time per environment) — REQUIRED BEFORE DEPLOY
 
-⚠️ **Sequencing matters.** `wrangler.toml` already declares `[[queues.consumers]]`/`[[queues.producers]]`/`[[r2_buckets]]` for `AUDIT_QUEUE`/`AUDIT_R2`. A consumer binding that references a **missing** queue makes `wrangler deploy` fail — and **staging auto-deploys on merge to `master`**. So the staging resources MUST exist **before this PR merges**; the production resources before the production deploy runs.
+⚠️ **Sequencing matters.** `wrangler.toml` declares (after the ADR-0014 re-enable revert — today only the `[[r2_buckets]]` half is present) `[[queues.consumers]]`/`[[queues.producers]]`/`[[r2_buckets]]` for `AUDIT_QUEUE`/`AUDIT_R2`. A consumer binding that references a **missing** queue makes `wrangler deploy` fail — and **staging auto-deploys on merge to `master`**. So the staging resources MUST exist **before this PR merges**; the production resources before the production deploy runs.
 
 Do staging first, then production. Non-secret names live in `wrangler.toml` (committed); nothing here is a secret, so **no `wrangler secret put` and no SECRETS_INVENTORY row** (Queue/R2 are bindings; the consumer reuses the existing `UPSTASH_MCP_REST_*` creds).
 
