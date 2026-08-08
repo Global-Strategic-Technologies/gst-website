@@ -5,7 +5,7 @@
  * centred 600px column, because the card set `max-width: 600px; margin: 0 auto` on
  * itself. In a 1504px container that left 60% of every row empty and made
  * `/hub/tools/` ~4795px tall. `.brutal-gateway-grid` now owns the columns, following
- * PortfolioGrid's `.grid` / `.project-card` pairing.
+ * the portfolio pairing — `.grid` (PortfolioGrid.astro) with `.project-card` (cards.css).
  *
  * Assertions are RELATIONSHIPS, never pixel constants: the column width falls out of
  * `minmax(420px, 1fr)` against a container width, so a hardcoded 469 would rot the

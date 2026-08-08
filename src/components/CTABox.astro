@@ -1,0 +1,127 @@
+---
+// CTABox.astro — the consultation CTA box: bordered panel with heading,
+// description, CalendarBridge booking button and optional email line.
+// Production renders it via CTASection.astro, which keeps the singleton
+// `id="contact"` section shell, the `.cta-section` spacing, and the script
+// wiring `trackCTA` to window. This component is the presentational inner
+// both that wrapper and the /brand specimen render, so the specimen cannot
+// drift from production (BL-095 AC-2).
+//
+// `demoHref` exists so /brand can exhibit this as a live specimen instead of
+// the hand-rolled replica it used to carry (BL-095); it is set nowhere else.
+// Passing it keeps the booking link in-page AND drops both trackCTA onclicks
+// (and the booking `target`/`rel`) — a specimen click must never emit a real
+// `cta_click` event. Only handlers are suppressed, never markup.
+export interface Props {
+  title: string;
+  description: string;
+  buttonText?: string;
+  bookingUrl?: string;
+  emailAddress?: string;
+  emailText?: string;
+  /** Demo-only booking-href override; passing it also drops the analytics onclicks. */
+  demoHref?: string;
+}
+
+const {
+  title,
+  description,
+  buttonText = 'BOOK_CALENDAR_SLOT()',
+  bookingUrl = 'https://calendarbridge.com/book/globalstrategictech/',
+  emailAddress,
+  emailText = 'Or reach out directly',
+  demoHref,
+} = Astro.props;
+
+const isDemo = demoHref !== undefined;
+const buttonAttrs = isDemo
+  ? { href: demoHref }
+  : {
+      href: bookingUrl,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      onclick: "trackCTA('calendarbridge', 'cta-section')",
+    };
+const emailAttrs = isDemo ? {} : { onclick: "trackCTA('email', 'cta-section')" };
+---
+
+<div class="cta-box">
+  <h2 class="brutal-cta__title">{title}</h2>
+  <p class="brutal-cta__description">{description}</p>
+  <a class="cta-button" {...buttonAttrs}>{buttonText}</a>
+  {
+    emailAddress && (
+      <p class="cta-email">
+        {emailText} &mdash;
+        <a href={`mailto:${emailAddress}`} {...emailAttrs}>
+          {emailAddress}
+        </a>
+      </p>
+    )
+  }
+</div>
+
+<style>
+  .cta-box {
+    background: var(--cta-box-bg);
+    border: 2px solid var(--color-primary);
+    padding: 4rem;
+    max-width: 800px;
+    margin: 0 auto;
+    /* Moved here from `.cta-section` (CTASection.astro) in the BL-095
+       extraction: production centered this text by inheritance from the
+       wrapper, which the /brand specimen does not render. Computed-identical
+       in production — the box is the wrapper's only content. */
+    text-align: center;
+    position: relative;
+  }
+
+  .cta-box h2 {
+    font-size: 2.5rem;
+    color: light-dark(var(--text-primary), var(--text-dark-primary));
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+  }
+
+  .cta-box p {
+    color: var(--cta-box-text);
+    font-size: var(--text-lg);
+    margin-bottom: 2.5rem;
+  }
+
+  .cta-email {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-top: 1.5rem;
+    margin-bottom: 0;
+  }
+
+  .cta-email a {
+    color: light-dark(var(--color-tertiary-dark), var(--color-primary));
+    text-decoration: none;
+    font-family: var(--font-family-mono);
+    transition: border-bottom var(--transition-fast);
+    border-bottom: 1px solid transparent;
+  }
+
+  .cta-email a:hover {
+    border-bottom-color: currentColor;
+  }
+
+  @media (max-width: 480px) {
+    .cta-box {
+      padding: 2rem;
+    }
+
+    .cta-box h2 {
+      font-size: var(--text-2xl);
+      line-height: 1.3;
+      margin-bottom: 1rem;
+    }
+
+    .cta-box p {
+      font-size: var(--text-sm);
+      margin-bottom: 1.5rem;
+    }
+  }
+</style>

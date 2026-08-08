@@ -84,26 +84,11 @@ const { projects } = Astro.props;
     font-size: var(--text-base);
   }
 
-  .project-card {
-    background: light-dark(var(--bg-light), var(--bg-dark-secondary));
-    border: 1px solid light-dark(var(--border-light), var(--border-dark));
-    padding: 1.5rem;
-    cursor: pointer;
-    transition: all var(--transition-normal);
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    z-index: 1;
-  }
-
-  .project-card:hover {
-    border-color: var(--color-primary);
-  }
-
-  .project-card:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-  }
+  /* .project-card is styled GLOBALLY in src/styles/components/cards.css —
+     the single definition both this grid and the /brand specimen consume
+     (BL-095 closeout; a scoped duplicate here used to shadow it and the two
+     drifted). The interior below stays scoped: its /brand documentation is
+     the converged replica pair noted in cards.css. */
 
   .card-header {
     display: flex;
@@ -189,6 +174,7 @@ const { projects } = Astro.props;
     margin: 1rem 0;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -250,9 +236,7 @@ const { projects } = Astro.props;
       gap: 1rem;
     }
 
-    .project-card {
-      padding: 1rem;
-    }
+    /* .project-card's 480px padding lives with its global rule in cards.css */
 
     .card-header {
       margin-bottom: 0.75rem;
