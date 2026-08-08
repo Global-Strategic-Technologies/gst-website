@@ -1,6 +1,6 @@
 # ADR-0009: Compliance-grade audit log — hash-chained, R2-immutable, Upstash-sequenced
 
-- **Status**: Accepted (2026-07-26)
+- **Status**: Accepted (2026-07-26). Amended 2026-08-08: pipeline **deactivated** until the first compliance-requiring client — see [ADR-0014](0014-deactivate-audit-pipeline.md); the `seqOf` ledger keys now carry the 30-day TTL this ADR's Consequences (b) ratified.
 - **Source initiative**: BL-033 Slice 3a (external-pilot audit logging; the BL-033 stanza in [`../development/BACKLOG.md`](../development/BACKLOG.md) remains the open initiative tracker — this slice closes the **emission + durable-store** half of its Audit-logging AC block, deferring signed-URL export, the quarterly integrity-check automation, and the `?audit_full_payload=true` retention flag)
 
 ## Context

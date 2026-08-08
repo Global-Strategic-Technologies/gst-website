@@ -1,18 +1,18 @@
 # Runbook — Status page (`/status` + `status.mcp.globalstrategic.tech`)
 
-lastReviewedAt: 2026-07-26
+lastReviewedAt: 2026-08-08
 
 Public, unauthenticated server-rendered HTML at `mcp.globalstrategic.tech/status` and, since BL-033 Slice 4, at the dedicated subdomain **`status.mcp.globalstrategic.tech`** (its root `/`). Source: `src/observability/status-page.ts` (`buildStatusHtml`). Never throws — every degraded source renders as an unknown/placeholder.
 
 ## What it shows
 
-| Panel                                                         | Source                                       | Notes                                                                                         |
-| ------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Header badge + env/version/gitSha                             | `buildHealthPayload` (live probes)           | `version` is the deploy-injected `env.VERSION` (BL-033 Slice 4); `gitSha` the deployed commit |
-| Substrate (Upstash, Inoreader, radar freshness, Zone-1 spend) | `buildHealthPayload`                         | freshness + spend carry **ratified-SLO badges** (12h / 70-90%)                                |
-| SLO alerts                                                    | `mcp:alerts:last-eval` (evaluator cron)      | the 7 canonical rules, per-rule state                                                         |
-| **Tool latency (server-side, 7d)**                            | `mcp:status:metrics:<env>` (evaluator cron)  | per-tool p50/p95/p99 + sample count                                                           |
-| **Audit log**                                                 | `mcp:status:metrics:<env>` + audit chain tip | records committed (`lastSeq`), 24h batches/records, last-processed                            |
+| Panel                                                         | Source                                       | Notes                                                                                                                                                                            |
+| ------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Header badge + env/version/gitSha                             | `buildHealthPayload` (live probes)           | `version` is the deploy-injected `env.VERSION` (BL-033 Slice 4); `gitSha` the deployed commit                                                                                    |
+| Substrate (Upstash, Inoreader, radar freshness, Zone-1 spend) | `buildHealthPayload`                         | freshness + spend carry **ratified-SLO badges** (12h / 70-90%)                                                                                                                   |
+| SLO alerts                                                    | `mcp:alerts:last-eval` (evaluator cron)      | the 7 canonical rules, per-rule state                                                                                                                                            |
+| **Tool latency (server-side, 7d)**                            | `mcp:status:metrics:<env>` (evaluator cron)  | per-tool p50/p95/p99 + sample count                                                                                                                                              |
+| **Audit log**                                                 | `mcp:status:metrics:<env>` + audit chain tip | **historical** — pipeline deactivated 2026-08-08 (ADR-0014); `lastSeq` shows the retained chain tip, 24h batches/records decay to 0; the panel carries a deactivation annotation |
 
 ## Data flow — precompute, not live-query
 
@@ -23,6 +23,7 @@ Consequences:
 - **Staging shows "unavailable"** for the latency + audit panels — staging deliberately runs no cron (`wrangler.toml`), exactly like the existing alert table. Live verification is on **production**.
 - On a fresh prod deploy the panels populate within ~15 min (first cron run). Until then: "metrics unavailable — the evaluator cron populates every 15 min".
 - Requires `CF_AE_TOKEN` + `CF_ACCOUNT_ID` bound in prod (already are, for the alert evaluator). Unbound → AE query fails open → latency panel "unavailable"; the audit `lastSeq` (from Upstash) still renders.
+- Since the ADR-0014 deactivation, the audit panel's AE-derived counters (24h batches/records) legitimately read 0 and `lastSeq` is static — that is the expected steady state, not a fault.
 
 ## Surface, don't ratify (BL-033 operator directive)
 
@@ -40,6 +41,6 @@ Contrast the freshness/spend rows, which DO carry badges — those are signed-of
 
 ## Related
 
-- `AUDIT_LOG.md` — the audit pipeline whose health this page surfaces.
+- `AUDIT_LOG.md` — the audit pipeline whose historical state this page surfaces (deactivated 2026-08-08, ADR-0014; the runbook holds the re-enable procedure).
 - `SENTRY_ALERT_RULES.md` — the alert rules whose last-run this page shows.
 - `LATENCY_PROBE.md` — the client-side latency probe (CI artifact; distinct from the server-side AE p50/p95 shown here).
