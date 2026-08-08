@@ -23,7 +23,8 @@
     "deploy:production": "node scripts/deploy.mjs production",
     "irl:extract": "node scripts/extract-irl-markdown.mjs",
     "provision:client": "node scripts/provision-client.mjs",
-    "ae:baseline": "node scripts/invoke-ae-baseline.mjs"
+    "ae:baseline": "node scripts/invoke-ae-baseline.mjs",
+    "purge:audit-seqof": "node scripts/purge-audit-seqof.mjs"
   },
   "engines": {
     "node": ">=22"
