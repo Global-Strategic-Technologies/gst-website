@@ -52,6 +52,19 @@ interface SeqMeta {
 const SEQ_PAD = 16;
 const LOCK_TTL_SECONDS = 30;
 
+/**
+ * seqOf ledger TTL — the ADR-0009-ratified hardening ("should carry a TTL
+ * longer than max queue retention"), added by ADR-0014. The bound COMPOSES:
+ * a message can sit out the main queue's retention, land in the DLQ, and sit
+ * out the DLQ's retention before a manual replay (AUDIT_LOG.md § Failure
+ * modes), so the window since the seqOf commit is main + DLQ retention —
+ * 14 + 14 = 28 days at the Cloudflare Queues platform maximum, 4 + 4 = 8 days
+ * at our unset wrangler.toml defaults. 30 days clears the platform max; do
+ * NOT lower it toward the single-queue 14-day figure. The chain tip
+ * deliberately carries NO TTL (one key per env; chain resumability).
+ */
+export const SEQOF_TTL_SECONDS = 30 * 24 * 60 * 60;
+
 function tipKey(envName: string): string {
   return `mcp:audit:chain-tip:${envName}`;
 }
@@ -169,7 +182,7 @@ export async function consumeAuditBatch(
     if (freshMeta.length > 0) {
       const tx = redis.multi();
       for (const { entryId, meta } of freshMeta) {
-        tx.set(seqOfKey(envName, entryId), meta);
+        tx.set(seqOfKey(envName, entryId), meta, { ex: SEQOF_TTL_SECONDS });
       }
       tx.set(tipKey(envName), { lastSeq: seq, lastHash: prevHash } satisfies ChainTip);
       await tx.exec();
