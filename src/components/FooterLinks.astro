@@ -1,0 +1,112 @@
+---
+// FooterLinks.astro — the footer's link row. Production renders it once, inside
+// Footer.astro's `.footer-top` (the `role="contentinfo"` shell and ThemeToggle
+// stay there — this component is the presentational inner both that shell and
+// the /brand specimen render, so the specimen cannot drift from production
+// (BL-095 AC-2).
+//
+// `links` exists so /brand can exhibit this as a live specimen instead of the
+// hand-rolled replica it used to carry (BL-095); it is set nowhere else. The
+// override keeps specimen links in-page (Breadcrumb `crumbs` precedent). No
+// analytics handlers exist on these links in production, so the demo branch
+// differs only in destinations.
+interface Props {
+  links?: { label: string; href: string; target?: string; rel?: string }[];
+}
+
+const PRODUCTION_LINKS: NonNullable<Props['links']> = [
+  {
+    label: 'LinkedIn',
+    href: 'https://www.linkedin.com/company/global-strategic-technologies/',
+    target: '_blank',
+    rel: 'noopener noreferrer',
+  },
+  { label: 'Privacy', href: '/privacy/' },
+  { label: 'Terms', href: '/terms/' },
+  {
+    label: 'Contact',
+    href: "mailto:contact@globalstrategic.tech?subject=GST%20%7C%20Global%20Strategic%20Tech%20%7C%20https%3A%2F%2Fglobalstrategic.tech&body=Hi%20GST%2C%20I%20have%20a%20question%2Fcomment%2Finsight%20I'd%20like%20to%20share",
+  },
+];
+
+const { links = PRODUCTION_LINKS } = Astro.props;
+---
+
+<div class="footer-links">
+  {
+    links.map((link) => (
+      <a href={link.href} target={link.target} rel={link.rel}>
+        {link.label}
+      </a>
+    ))
+  }
+</div>
+
+<style>
+  .footer-links {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition:
+      color var(--transition-fast),
+      border-bottom var(--transition-fast);
+    position: relative;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid transparent;
+  }
+
+  .footer-links a:hover {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  .footer-links a:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0.25rem;
+  }
+
+  .footer-links a:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0.25rem;
+  }
+
+  .footer-links a:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  @media (max-width: 480px) {
+    .footer-links {
+      gap: 1rem;
+      flex: 1;
+      justify-content: flex-start;
+    }
+
+    .footer-links a {
+      font-size: var(--text-xs);
+    }
+  }
+
+  /* Tablet (480px - 768px) */
+  @media (min-width: 480px) and (max-width: 767px) {
+    .footer-links {
+      gap: 1.25rem;
+    }
+  }
+
+  /* Desktop (768px+) */
+  @media (min-width: 768px) {
+    .footer-links {
+      gap: 2rem;
+    }
+  }
+</style>

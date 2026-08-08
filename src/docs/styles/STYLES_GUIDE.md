@@ -54,16 +54,22 @@ teaches the wrong thing — which is worse than having no specimen. Every specim
 one of three mechanisms, in this order of preference (BL-095):
 
 1. **Render the real component.** Structurally cannot drift. The default, and what to do for anything
-   renderable in isolation — `Breadcrumb`, `StatsBar`, `WireItem`, `TableOfContents`, `DeltaIcon` and
-   `CompositeLogo` are live components on `/brand`, not copies of them. (The header *lockup* specimen
-   is not: only the `DeltaIcon` inside it is real, and the wordmark beside it is an inline-styled
-   replica under mechanism 2 — `Header` carries a `role="banner"` landmark and sticky positioning, so
-   it cannot render twice.)
-2. **Replica + parity guard.** Only for components that genuinely cannot render twice — those that
-   hardcode a singleton DOM `id` (`Header`, `ThemeToggle`, `CTASection`, the portfolio family). Add a
-   test in `tests/e2e/brand-page.test.ts` § "Site chrome specimens match production" comparing the
-   specimen's computed styles against the live component **on the same page**, never against literal
-   values, so the pin cannot go stale. Add a source comment naming the file to keep it in sync with.
+   renderable in isolation — `Breadcrumb`, `StatsBar`, `WireItem`, `TableOfContents`, `DeltaIcon`,
+   `CompositeLogo`, `HeaderLogo`, `HeaderNavLinks`, `ThemeToggleButton` and `FooterLinks` are live
+   components on `/brand`, not copies of them. **A singleton shell does not exempt its contents**: when
+   a component cannot render twice only because of its wrapper (`Header`'s `role="banner"` + sticky
+   shell, `ThemeToggle`'s `#themeToggle` + bound script), extract the presentational inner into its own
+   component — the wrapper keeps the id/script/landmark, the inner carries the markup and scoped styles,
+   and `/brand` renders the inner (BL-095 AC-2). Demo-facing props on such inners follow one rule:
+   passing the override keeps links in-page AND drops any analytics handler, so a specimen click never
+   emits a real tracking event (see `HeaderNavLinks.astro`'s docblock for why the production branch is
+   literal markup, not a data model).
+2. **Replica + parity guard.** Only for components that genuinely cannot render twice *and* have no
+   extractable presentational inner yet (`CTASection`, the portfolio family — singleton DOM `id`s with
+   runtime-owning scripts). Add a test in `tests/e2e/brand-page.test.ts` § "Site chrome specimens match
+   production" comparing the specimen's computed styles against the live component **on the same page**,
+   never against literal values, so the pin cannot go stale. Add a source comment naming the file to
+   keep it in sync with.
 3. **Plain CSS class, no component.** Most `.brutal-*` specimens: the class lives in
    `src/styles/components/*.css` with no `.astro` component behind it, so writing the markup *is*
    rendering the real thing. Nothing to converge on.
@@ -73,8 +79,8 @@ Two things that make replicas drift silently, both of which have happened:
 - **Astro `<style>` is scoped**, so a production component's styles never reach a replica of it on
   another page. That is why replicas carry inline styles, and why they diverge unnoticed.
 - **Read the media queries, not just the base rule.** `.footer-links` is `gap: 0.75rem` at the top of
-  `Footer.astro` and `gap: 2rem` under `@media (min-width: 768px)` — the desktop value is the one a
-  desktop specimen must match.
+  `FooterLinks.astro` and `gap: 2rem` under `@media (min-width: 768px)` — the desktop value is the one
+  a desktop specimen had to match, and missing it is how the old replica drifted.
 
 ---
 

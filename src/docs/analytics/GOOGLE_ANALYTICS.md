@@ -245,15 +245,20 @@ TypeScript utility module providing type-safe event tracking functions:
 
 ### Header Component
 
-**File:** `src/components/Header.astro`
+**Files:** `src/components/Header.astro` (wires `trackNavigation` to `window`), with the inline
+onclick handlers rendered by its presentational inners `src/components/HeaderLogo.astro` and
+`src/components/HeaderNavLinks.astro` (BL-095 AC-2)
 
 Tracks navigation clicks on:
 
 - Logo (destination: "/")
-- Services link (destination: "/#services")
+- Services link (destination: "/services")
 - M&A Portfolio link (destination: "/ma-portfolio")
-- About link (destination: "/#about")
-- Contact link (destination: "/#contact")
+- Hub link (destination: "/hub")
+- About link (destination: "/about")
+
+The `/brand` specimens render these same components through their demo props, which drop the
+onclick handlers — specimen clicks never emit `navigation_click`.
 
 ### CTA Section Component
 

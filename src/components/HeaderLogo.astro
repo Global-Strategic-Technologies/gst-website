@@ -1,0 +1,100 @@
+---
+// HeaderLogo.astro — the site logo lockup: primary-colored DeltaIcon beside the
+// "GST" wordmark with its pulsing dot. Production renders it once, inside
+// Header.astro's nav (the sticky `.site-header` banner shell stays there —
+// this component is the presentational inner both that shell and the /brand
+// specimen render, so the specimen cannot drift from production (BL-095 AC-2).
+//
+// `href` exists so /brand can exhibit this as a live specimen instead of the
+// hand-rolled replica it used to carry (BL-095); it is set nowhere else.
+// Tracking keys off prop PRESENCE, not value: when `href` is passed — even
+// `href="/"` — the trackNavigation onclick is omitted, because a specimen
+// click must never emit a real `navigation_click` event.
+import DeltaIcon from './DeltaIcon.astro';
+
+interface Props {
+  /** Demo-only href override; passing it also drops the analytics onclick. */
+  href?: string;
+}
+
+const isDemo = Astro.props.href !== undefined;
+const href = Astro.props.href ?? '/';
+const trackAttrs = isDemo ? {} : { onclick: "trackNavigation('/', 'Logo')" };
+---
+
+<div class="logo-wrapper">
+  <DeltaIcon size={32} class="delta-icon" />
+  <a href={href} class="logo" aria-label="GST" {...trackAttrs}>G<span>S</span>T</a>
+</div>
+
+<style>
+  .logo-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* :global() needed — .delta-icon is on a DeltaIcon child component
+     whose rendered <svg> gets DeltaIcon's scope, not HeaderLogo's */
+  .logo-wrapper :global(.delta-icon) {
+    width: 1em;
+    height: 1em;
+    display: block;
+    flex-shrink: 0;
+    color: var(--color-primary);
+    font-size: var(--text-3xl);
+  }
+
+  .logo {
+    font-size: var(--text-3xl);
+    font-weight: 900;
+    font-family: var(--font-family-mono);
+    color: var(--text-primary);
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    height: 2rem;
+    text-decoration: none;
+    border-bottom: none;
+    transition: color var(--transition-fast);
+  }
+
+  .logo:hover {
+    color: var(--color-primary);
+  }
+
+  .logo:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+  }
+
+  .logo span {
+    color: var(--color-primary);
+  }
+
+  .logo::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--color-primary);
+    display: block;
+    animation: pulse 2s infinite;
+  }
+
+  /* @keyframes pulse is defined in src/styles/components/skeleton.css (shared
+     with the skeleton loaders) */
+
+  @media (max-width: 768px) {
+    .logo {
+      font-size: var(--text-2xl);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .logo {
+      font-size: var(--text-xl);
+    }
+  }
+</style>

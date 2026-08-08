@@ -489,133 +489,40 @@ test.describe('Brand Page', () => {
   });
 
   /**
-   * The site-chrome specimens are hand-rolled replicas rather than the real
-   * components (Header/ThemeToggle both carry singleton ids, so they cannot be
-   * rendered twice on one page). These assert PARITY against the live components
-   * BaseLayout renders on this same page — no magic numbers, so they cannot go
-   * stale when those components change — see BL-095 for the durable fix.
+   * The site-chrome specimens render the REAL components (BL-095 AC-2 —
+   * HeaderLogo/HeaderNavLinks/ThemeToggleButton/FooterLinks are the
+   * presentational inners that Header/ThemeToggle/Footer compose), so the
+   * per-specimen parity guards this section used to carry are gone with the
+   * replicas they guarded: a specimen that IS the component cannot drift from
+   * it. What remains is the one carrier that still has no component behind it.
    */
   test.describe('Site chrome specimens match production', () => {
     /**
-     * Asserted as PARITY against the live components rendered by BaseLayout on this
-     * same page, not against magic numbers — so the pins cannot go stale when
-     * Header/ThemeToggle change, and colour drift is caught as well as size.
-     */
-    test('logo specimen delta matches the real header delta', async ({ page }) => {
-      const specimen = page.locator('[data-specimen-logo] svg').first();
-      const production = page.locator('.logo-wrapper .delta-icon').first();
-      await expect(specimen).toBeVisible();
-      await expect(production).toBeVisible();
-
-      const [s, p] = await Promise.all([
-        specimen.evaluate((el) => {
-          const r = el.getBoundingClientRect();
-          return { w: Math.round(r.width), color: getComputedStyle(el).color };
-        }),
-        production.evaluate((el) => {
-          const r = el.getBoundingClientRect();
-          return { w: Math.round(r.width), color: getComputedStyle(el).color };
-        }),
-      ]);
-      expect(s.w, 'logo specimen delta width vs real header').toBe(p.w);
-      expect(s.color, 'logo specimen delta color vs real header').toBe(p.color);
-
-      // Lockup gap is its own drift dimension — it regressed once (specimen 8px vs
-      // production 4px) while width and color still matched.
-      const [sGap, pGap] = await Promise.all([
-        page.locator('[data-specimen-logo]').evaluate((el) => getComputedStyle(el).columnGap),
-        page
-          .locator('.logo-wrapper')
-          .first()
-          .evaluate((el) => getComputedStyle(el).columnGap),
-      ]);
-      expect(sGap, 'logo lockup gap vs real header').toBe(pGap);
-    });
-
-    test('theme toggle specimen delta matches the real toggle', async ({ page }) => {
-      const specimen = page.locator('button[title="Theme toggle specimen"] svg').first();
-      const production = page.locator('#themeToggle .theme-toggle-icon').first();
-      await expect(specimen).toBeVisible();
-      await expect(production).toBeVisible();
-
-      const [s, p] = await Promise.all([
-        specimen.evaluate((el) => ({
-          w: Math.round(el.getBoundingClientRect().width),
-          color: getComputedStyle(el).color,
-        })),
-        production.evaluate((el) => ({
-          w: Math.round(el.getBoundingClientRect().width),
-          color: getComputedStyle(el).color,
-        })),
-      ]);
-      expect(s.w, 'toggle specimen delta width vs real toggle').toBe(p.w);
-      expect(s.color, 'toggle specimen delta color vs real toggle').toBe(p.color);
-    });
-
-    /**
-     * Viewport dependency, stated rather than relied on: `Header.astro:180-182`
-     * drops the nav list gap at <=768px and `:202` drops the link size, while the
-     * specimen's inline styles do not respond. `playwright.config.ts` runs this
-     * project desktop-only, so both sides are at their desktop values here. If a
-     * mobile project is ever added, these two tests need viewport-aware pins
-     * rather than a straight comparison.
-     */
-    test('header nav link specimen matches the real header nav', async ({ page }) => {
-      const specimen = page.locator('[data-specimen-nav-links] a').first();
-      const production = page.locator('.site-header nav a:not(.logo)').first();
-      await expect(specimen).toBeVisible();
-      await expect(production).toBeVisible();
-
-      const read = (l: typeof specimen) =>
-        l.evaluate((el) => {
-          const cs = getComputedStyle(el);
-          return { fontSize: cs.fontSize, color: cs.color, letterSpacing: cs.letterSpacing };
-        });
-      const [s, p] = await Promise.all([read(specimen), read(production)]);
-      expect(s.fontSize, 'nav specimen font-size vs real header nav').toBe(p.fontSize);
-      expect(s.color, 'nav specimen color vs real header nav').toBe(p.color);
-      expect(s.letterSpacing, 'nav specimen letter-spacing vs real header nav').toBe(
-        p.letterSpacing
-      );
-
-      // Gap is its own drift dimension (the logo lockup regressed on gap alone
-      // while width and colour matched), which is why the specimen mirrors
-      // production's nav > ul > li structure rather than being a flat <nav>.
-      const [sGap, pGap] = await Promise.all([
-        page.locator('[data-specimen-nav-links] ul').evaluate((el) => getComputedStyle(el).gap),
-        page
-          .locator('.site-header nav ul')
-          .first()
-          .evaluate((el) => getComputedStyle(el).gap),
-      ]);
-      expect(sGap, 'nav specimen list gap vs real header nav').toBe(pGap);
-    });
-
-    /**
-     * The ACTIVE link is its own parity dimension, and the test above is
-     * structurally blind to it: both sides use `.first()`, which is the
-     * non-active "Services" link (`--text-secondary` in both). BL-096 changed the
-     * active ink from `--color-primary` (1.88:1) to `--color-tertiary` and found
-     * the specimen still hardcoding the old token — drift the guard could not see.
+     * `.nav-link` / `.nav-link.active` (typography.css) is a hand-maintained
+     * MIRROR of the header nav treatment with no production consumer — which is
+     * precisely why it drifts unnoticed. It did: BL-096 changed the active ink
+     * from `--color-primary` (1.88:1) to `--color-tertiary` and found this
+     * utility still hardcoding the old token, needing a hand-correction in the
+     * slice that added this test.
      *
-     * This one reads TWO pages, because `/brand` has no active nav link to compare
-     * against: `BaseLayout.astro` passes `Astro.url.pathname` and `Header.astro`
-     * marks `active` only for `/services`, `/ma-portfolio`, `/hub` and `/about`.
-     * That absence is why the test above settled for `.first()` in the first place.
-     *
-     * Asserting the specimen against a resolved `var(--color-tertiary)` would be
-     * cheaper and weaker — it cannot see production moving to some third token.
+     * This reads TWO pages, because `/brand` renders no production-branch nav
+     * (its HeaderNavLinks specimen uses the untracked demo branch, and the live
+     * header marks `active` only for `/services`, `/ma-portfolio`, `/hub` and
+     * `/about`). The production side is the real active link on `/services/`;
+     * the nav-treatment declarations live in `HeaderNavLinks.astro`. Asserting
+     * against a resolved `var(--color-tertiary)` would be cheaper and weaker —
+     * it cannot see production moving to some third token.
      */
-    test('active nav link specimen matches the real active header nav link', async ({ page }) => {
+    test('.nav-link.active utility matches the real active header nav link', async ({ page }) => {
       /**
-       * Transitions are suppressed before every read. `.site-header nav a` declares
-       * `transition: color var(--transition-fast)`, and the theme script re-resolves
-       * `light-dark()` after first paint — so an immediate read samples the animation
-       * rather than the value. It caught this test out with `rgb(4, 181, 134)`, which
-       * is `#05cd99 → #02724f` about a quarter of the way through.
-       *
-       * The test above never hit this because it compares two elements on ONE page,
-       * which transition together. Reading across two navigations does not.
+       * Transitions are suppressed before every read. The nav anchors declare
+       * `transition: color var(--transition-fast)` (HeaderNavLinks.astro), and
+       * the theme script re-resolves `light-dark()` after first paint — so an
+       * immediate read samples the animation rather than the value. It caught
+       * this test out with `rgb(4, 181, 134)`, which is `#05cd99 → #02724f`
+       * about a quarter of the way through. Same-page comparisons never hit
+       * this because both elements transition together; reading across two
+       * navigations does not.
        */
       const freeze = () =>
         page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
@@ -626,58 +533,22 @@ test.describe('Brand Page', () => {
         });
 
       await page.goto('/services/', { waitUntil: 'domcontentloaded' });
-      const production = page.locator('.site-header nav a:not(.logo).active');
+      const production = page.locator('.site-header nav a.active');
       await expect(production).toBeVisible();
       await freeze();
       const p = await readInk(production);
 
       await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
-      const specimen = page.locator('[data-specimen-nav-active]');
-      await expect(specimen).toBeVisible();
-      await freeze();
-      const s = await readInk(specimen);
-
-      expect(s.color, 'active nav specimen ink vs real active header nav link').toBe(p.color);
-      expect(s.borderBottomColor, 'active nav specimen accent vs real active header nav link').toBe(
-        p.borderBottomColor
-      );
-
-      // `.nav-link.active` (typography.css) is a SECOND carrier of the same ink,
-      // rendered as its own specimen beside the replica. It has no production
-      // consumer, which is precisely why it drifts unnoticed — it did, and needed a
-      // hand-correction in the slice that added this test.
       const utility = page.locator('.nav-link.active');
       await expect(utility).toBeVisible();
+      await freeze();
       const u = await readInk(utility);
+
       expect(u.color, '.nav-link.active utility ink vs real active header nav link').toBe(p.color);
-    });
-
-    test('footer link specimen matches the real footer links', async ({ page }) => {
-      const specimen = page.locator('[data-specimen-footer-links] a').first();
-      const production = page.locator('footer .footer-links a').first();
-      await expect(specimen).toBeVisible();
-      await expect(production).toBeVisible();
-
-      const read = (l: typeof specimen) =>
-        l.evaluate((el) => {
-          const cs = getComputedStyle(el);
-          return { fontSize: cs.fontSize, color: cs.color, letterSpacing: cs.letterSpacing };
-        });
-      const [s, p] = await Promise.all([read(specimen), read(production)]);
-      expect(s.fontSize, 'footer specimen font-size vs real footer').toBe(p.fontSize);
-      expect(s.color, 'footer specimen color vs real footer').toBe(p.color);
-      expect(s.letterSpacing, 'footer specimen letter-spacing vs real footer').toBe(
-        p.letterSpacing
-      );
-
-      const [sGap, pGap] = await Promise.all([
-        page.locator('[data-specimen-footer-links]').evaluate((el) => getComputedStyle(el).gap),
-        page
-          .locator('footer .footer-links')
-          .first()
-          .evaluate((el) => getComputedStyle(el).gap),
-      ]);
-      expect(sGap, 'footer specimen gap vs real footer links').toBe(pGap);
+      expect(
+        u.borderBottomColor,
+        '.nav-link.active utility accent vs real active header nav link'
+      ).toBe(p.borderBottomColor);
     });
   });
 

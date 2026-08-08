@@ -1,0 +1,149 @@
+---
+// HeaderNavLinks.astro — the header's nav link list. Production renders it once,
+// inside Header.astro's nav landmark (the sticky `.site-header` banner shell and
+// the `aria-label="Main navigation"` stay there — this component is the
+// presentational inner both that shell and the /brand specimen render, so the
+// specimen cannot drift from production (BL-095 AC-2).
+//
+// The production branch keeps the four <li>s as LITERAL markup, not a data
+// model: the trackNavigation argument strings are not derivable from a link
+// shape (the M&A entry tracks label 'M&A Portfolio' against visible text
+// 'M&A', and destinations are slash-less '/services' vs hrefs '/services/').
+// The canonical documented payload is trackNavigation('/ma-portfolio',
+// 'M&A Portfolio') — see analytics/README.md — and no test pins it, so a
+// derived model could silently change GA4 data.
+//
+// `links` exists so /brand can exhibit this as a live specimen instead of the
+// hand-rolled replica it used to carry (BL-095); it is set nowhere else.
+// Passing it selects a demo branch whose entries render with NO analytics
+// onclick — a specimen click must never emit a real `navigation_click` event.
+
+interface Props {
+  /** Production only: the path used to derive each link's `.active` state. */
+  currentPath?: string;
+  /** Demo-only override; entries render untracked, `.active` from the prop. */
+  links?: { label: string; href: string; active?: boolean }[];
+}
+
+const { currentPath = '/', links } = Astro.props;
+---
+
+{
+  links === undefined ? (
+    <ul>
+      <li>
+        <a
+          href="/services/"
+          onclick="trackNavigation('/services', 'Services')"
+          class={currentPath?.startsWith('/services') ? 'active' : ''}
+        >
+          Services
+        </a>
+      </li>
+      <li>
+        <a
+          href="/ma-portfolio/"
+          onclick="trackNavigation('/ma-portfolio', 'M&A Portfolio')"
+          class={currentPath?.startsWith('/ma-portfolio') ? 'active' : ''}
+        >
+          M&A
+        </a>
+      </li>
+      <li>
+        <a
+          href="/hub/"
+          onclick="trackNavigation('/hub', 'Hub')"
+          class={currentPath?.startsWith('/hub') ? 'active' : ''}
+        >
+          Hub
+        </a>
+      </li>
+      <li>
+        <a
+          href="/about/"
+          onclick="trackNavigation('/about', 'About')"
+          class={currentPath?.startsWith('/about') ? 'active' : ''}
+        >
+          About
+        </a>
+      </li>
+    </ul>
+  ) : (
+    <ul>
+      {links.map((link) => (
+        <li>
+          <a href={link.href} class={link.active ? 'active' : ''}>
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  ul {
+    display: flex;
+    gap: 3rem;
+    list-style: none;
+  }
+
+  a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition:
+      color var(--transition-fast),
+      border-bottom var(--transition-fast);
+    position: relative;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid transparent;
+  }
+
+  /* Ink is --color-tertiary, not --color-primary: #05cd99 on the #f5f5f5 header
+     measures 1.88:1, and at 14px/700 (10.5pt — under the 14pt-bold large-text
+     threshold) the bar is 4.5:1. --color-tertiary is light-dark(#02724f, #05cd99),
+     so light theme gets 5.47:1 and dark is unchanged. The accent keeps
+     --color-primary, per the .brutal-tab--active treatment (BL-096). */
+  a:hover {
+    color: var(--color-tertiary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  a:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0.25rem;
+  }
+
+  /* Same treatment as :hover above — the two states are one visual design, and
+     leaving hover on --color-primary would LOWER contrast on the active link. */
+  a.active {
+    color: var(--color-tertiary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  @media (max-width: 768px) {
+    ul {
+      gap: 1.5rem;
+    }
+
+    a {
+      font-size: var(--text-xs);
+    }
+  }
+
+  @media (max-width: 480px) {
+    ul {
+      gap: 1rem;
+    }
+
+    a {
+      font-size: var(--text-xs);
+      letter-spacing: 0.05em;
+    }
+  }
+</style>
