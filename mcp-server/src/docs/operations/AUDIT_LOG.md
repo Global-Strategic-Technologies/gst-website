@@ -24,7 +24,7 @@ One-time cleanup after the deactivation deploy, in the decommission-runbook shap
 **Steps**
 
 1. Confirm the producer is a no-op: purge-script dry-run for a baseline count, make an authenticated `tools/call` against the env, wait ~15 s, dry-run again — the count must be unchanged.
-2. Confirm the queue consumer detached: `npx wrangler queues info audit-log-<env>`. If a consumer subscription is still attached (wrangler does not remove it when the `[[queues.consumers]]` block disappears), remove it: `npx wrangler queues consumer remove audit-log-<env> gst-mcp`.
+2. Detach the orphaned queue consumer. **Observed on the 2026-08-08 staging deploy**: removing the config blocks detaches the **producer** binding but wrangler does NOT remove the **consumer** subscription — it stays attached to the Worker. Harmless (no producer → no messages) but remove it so remote state matches config: `npx wrangler queues info audit-log-<env>` to confirm, then `npx wrangler queues consumer remove audit-log-<env> <worker>` where `<worker>` is the env's Worker name (`gst-mcp-staging` / `gst-mcp` for production). Staging was detached 2026-08-08 (0 producers / 0 consumers); production needs this after its gated deploy.
 3. Purge the leaked ledger keys:
    ```
    cd mcp-server
