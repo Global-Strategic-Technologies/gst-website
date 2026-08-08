@@ -8,6 +8,7 @@ import HeaderLogo from '../HeaderLogo.astro';
 import HeaderNavLinks from '../HeaderNavLinks.astro';
 import ThemeToggleButton from '../ThemeToggleButton.astro';
 import FooterLinks from '../FooterLinks.astro';
+import CTABox from '../CTABox.astro';
 import type { RadarWireItem } from '../../lib/inoreader/types';
 
 /**
@@ -277,8 +278,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     {
       /* TYPOGRAPHY specimen — sizes here are illustrative, deliberately smaller than
          production so the type relationship reads in a narrow column. Do NOT converge
-         these on CTASection.astro. The specimen that IS converged on it, and that
-         carries the sync obligation, is the `.cta-box` one under Layout Containers. */
+         these on CTABox.astro. The specimen that shows the real thing is the CTA Box
+         one under Layout Containers, which renders CTABox itself and so carries no
+         sync obligation at all. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
@@ -2155,17 +2157,29 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
 
     <h4 class="brutal-label brand-subgroup-title">CTA Box</h4>
     {
-      /* Replica of CTASection.astro — deferred: hardcodes id="contact". Keep in sync (BL-095 AC-2). */
+      /* The real component (BL-095 AC-2), not a replica — the box
+         CTASection.astro wraps (the wrapper keeps its singleton id="contact"
+         and the trackCTA window wiring). `demoHref` keeps the booking link
+         in-page AND drops the analytics onclicks: a specimen click must not
+         emit a real `cta_click` event. The full-width wrapper div gives the
+         box a definite containing block — `.brand-component-item` is a
+         flex column with align-items:flex-start, so without it the 800px
+         reading measure would shrink to fit (see the indefinite-inline-size
+         comment on the gateway grid in brand.astro). */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div class="cta-box">
-          <h2>Ready to Get Started?</h2>
-          <p>Strategic technology advisory for high-stakes environments.</p>
-          <a class="cta-button" href="#ui-library">Schedule a Call</a>
+        <div class="brand-cta-specimen">
+          <CTABox
+            title="Ready to Get Started?"
+            description="Strategic technology advisory for high-stakes environments."
+            buttonText="Schedule a Call"
+            demoHref="#ui-library"
+          />
         </div>
         <code class="brand-code"
-          >.cta-box — primary border, centered layout, heading + description + CTA button</code
+          >.cta-box — primary border, 800px centered reading measure, heading + description + CTA
+          button. Rendered by CTABox.astro, the box CTASection.astro wraps</code
         >
       </div>
     </div>

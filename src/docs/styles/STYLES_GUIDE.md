@@ -294,8 +294,13 @@ living on a component, and it silently defeats any layout the card is later drop
 `.brutal-gateway-card` carried `max-width: 600px` and so rendered as one centred column in a
 1504px container, wasting 60% of every row on both hub gateway indexes (BL-105).
 
-The established pairing, in `PortfolioGrid.astro` (`.grid` / `.project-card`) and
-`cards.css` (`.brutal-gateway-grid` / `.brutal-gateway-card`):
+**Exception — centered reading measures.** A prose/CTA box that IS a single centered reading
+measure (`.cta-box` in `CTABox.astro`) legitimately carries `max-width` + `margin: 0 auto`:
+it is never dropped into a grid, and the cap is its typography, not page positioning. The
+ban is on grid *cards* positioning themselves.
+
+The established pairing — `.grid` (`PortfolioGrid.astro`) with `.project-card` (`cards.css`),
+and `.brutal-gateway-grid` / `.brutal-gateway-card` (both `cards.css`):
 
 ```css
 .my-grid {

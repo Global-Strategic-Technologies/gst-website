@@ -1,117 +1,33 @@
 ---
-// Note: trackCTA is imported in the <script> block below to wire it to
-// window for inline onclick handlers — the frontmatter does not need it.
+// CTASection.astro — the production CTA shell: singleton `id="contact"`
+// section landmark, `.cta-section` spacing, and the script wiring trackCTA
+// to window for the inline onclick handlers CTABox renders. The visual box
+// lives in CTABox.astro so /brand can render the same component without
+// duplicating this wrapper's singleton id (BL-095 AC-2). `demoHref` is
+// excluded from this wrapper's Props so no page can reach the demo branch
+// through it.
+import CTABox from './CTABox.astro';
+import type { Props as CTABoxProps } from './CTABox.astro';
 
-interface Props {
-  title: string;
-  description: string;
-  buttonText?: string;
-  bookingUrl?: string;
-  emailAddress?: string;
-  emailText?: string;
-}
-
-const {
-  title,
-  description,
-  buttonText = 'BOOK_CALENDAR_SLOT()',
-  bookingUrl = 'https://calendarbridge.com/book/globalstrategictech/',
-  emailAddress,
-  emailText = 'Or reach out directly',
-} = Astro.props;
+type Props = Omit<CTABoxProps, 'demoHref'>;
 ---
 
 <section class="cta-section" id="contact" aria-label="Schedule a consultation">
   <div class="container">
-    <div class="cta-box">
-      <h2 class="brutal-cta__title">{title}</h2>
-      <p class="brutal-cta__description">{description}</p>
-      <a
-        href={bookingUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="cta-button"
-        onclick="trackCTA('calendarbridge', 'cta-section')">{buttonText}</a
-      >
-      {
-        emailAddress && (
-          <p class="cta-email">
-            {emailText} &mdash;
-            <a href={`mailto:${emailAddress}`} onclick="trackCTA('email', 'cta-section')">
-              {emailAddress}
-            </a>
-          </p>
-        )
-      }
-    </div>
+    <CTABox {...Astro.props} />
   </div>
 </section>
 
 <style>
   .cta-section {
     padding: 4rem 0;
-    text-align: center;
-  }
-
-  .cta-box {
-    background: var(--cta-box-bg);
-    border: 2px solid var(--color-primary);
-    padding: 4rem;
-    max-width: 800px;
-    margin: 0 auto;
-    position: relative;
-  }
-
-  .cta-box h2 {
-    font-size: 2.5rem;
-    color: light-dark(var(--text-primary), var(--text-dark-primary));
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-  }
-
-  .cta-box p {
-    color: var(--cta-box-text);
-    font-size: var(--text-lg);
-    margin-bottom: 2.5rem;
-  }
-
-  .cta-email {
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    margin-top: 1.5rem;
-    margin-bottom: 0;
-  }
-
-  .cta-email a {
-    color: light-dark(var(--color-tertiary-dark), var(--color-primary));
-    text-decoration: none;
-    font-family: var(--font-family-mono);
-    transition: border-bottom var(--transition-fast);
-    border-bottom: 1px solid transparent;
-  }
-
-  .cta-email a:hover {
-    border-bottom-color: currentColor;
+    /* text-align: center moved onto `.cta-box` (CTABox.astro) in the BL-095
+       extraction — computed-identical, the box is this section's only content. */
   }
 
   @media (max-width: 480px) {
     .cta-section {
       padding: 2.5rem 0;
-    }
-
-    .cta-box {
-      padding: 2rem;
-    }
-
-    .cta-box h2 {
-      font-size: var(--text-2xl);
-      line-height: 1.3;
-      margin-bottom: 1rem;
-    }
-
-    .cta-box p {
-      font-size: var(--text-sm);
-      margin-bottom: 1.5rem;
     }
   }
 </style>

@@ -262,9 +262,14 @@ onclick handlers — specimen clicks never emit `navigation_click`.
 
 ### CTA Section Component
 
-**File:** `src/components/CTASection.astro`
+**Files:** `src/components/CTASection.astro` (wires `trackCTA` to `window`, keeps the singleton
+`id="contact"` shell), with the inline onclick handlers rendered by its presentational inner
+`src/components/CTABox.astro` (BL-095 AC-2)
 
-Tracks CalendarBridge booking button clicks with location metadata.
+Tracks CalendarBridge booking button clicks (and the email link) with location metadata.
+
+The `/brand` specimen renders `CTABox` through its `demoHref` prop, which drops both onclick
+handlers — specimen clicks never emit `cta_click`.
 
 ### Project Modal Component
 
