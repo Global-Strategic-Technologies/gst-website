@@ -18,11 +18,11 @@
   border-bottom: 2px solid transparent;
 }
 
-/* Mirrors Header.astro's `.site-header nav a:not(.logo)` states. Ink is
+/* Mirrors the header nav link states (HeaderNavLinks.astro). Ink is
    --color-tertiary for the contrast reason documented there; the accent stays
    --color-primary. This utility has no production consumer — it renders only as
-   the /brand specimen (BrandUILibrary.astro:70) — but it must not teach an ink
-   production stopped using. */
+   the /brand specimen (BrandUILibrary.astro) — but it must not teach an ink
+   production stopped using; brand-page.test.ts guards it cross-page. */
 .nav-link:hover {
   color: var(--color-tertiary);
   border-bottom-color: var(--color-primary);

@@ -1,23 +1,12 @@
 ---
+import FooterLinks from './FooterLinks.astro';
 import ThemeToggle from './ThemeToggle.astro';
 ---
 
 <footer role="contentinfo">
   <div class="container">
     <div class="footer-top">
-      <div class="footer-links">
-        <a
-          href="https://www.linkedin.com/company/global-strategic-technologies/"
-          target="_blank"
-          rel="noopener noreferrer">LinkedIn</a
-        >
-        <a href="/privacy/">Privacy</a>
-        <a href="/terms/">Terms</a>
-        <a
-          href="mailto:contact@globalstrategic.tech?subject=GST%20%7C%20Global%20Strategic%20Tech%20%7C%20https%3A%2F%2Fglobalstrategic.tech&body=Hi%20GST%2C%20I%20have%20a%20question%2Fcomment%2Finsight%20I'd%20like%20to%20share"
-          >Contact</a
-        >
-      </div>
+      <FooterLinks />
       <ThemeToggle />
     </div>
   </div>
@@ -40,45 +29,17 @@ import ThemeToggle from './ThemeToggle.astro';
     gap: 0.75rem;
   }
 
-  .footer-links {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-  }
-
-  .footer-links a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-family: var(--font-family-mono);
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    transition:
-      color var(--transition-fast),
-      border-bottom var(--transition-fast);
-    position: relative;
-    padding-bottom: 0.25rem;
-    border-bottom: 2px solid transparent;
-  }
-
-  .footer-links a:hover {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-  }
-
-  .footer-links a:focus {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 0.25rem;
-  }
-
-  .footer-links a:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 0.25rem;
-  }
-
-  .footer-links a:focus:not(:focus-visible) {
-    outline: none;
+  /* :global() needed — .theme-toggle is rendered by the ThemeToggleButton
+     child component (via ThemeToggle), whose <button> gets that component's
+     scope, not Footer's. The rule lives HERE because it is footer-fit, not
+     intrinsic to the button: it recenters the 44px hit box so the MARGIN box
+     stays 13.6px and `.footer-top` is unmoved (WCAG 2.5.5 measures the
+     target, not the paint — the height rule itself is in ThemeToggleButton).
+     Never add height/min-height/width/min-width here: the touch-target floor
+     scan guards this selector's last compound (`.theme-toggle`), and a
+     sub-44px value would fail it, correctly. */
+  .footer-top :global(.theme-toggle) {
+    margin-block: calc((0.85rem - var(--touch-target-min)) / 2);
   }
 
   @media (max-width: 480px) {
@@ -93,16 +54,6 @@ import ThemeToggle from './ThemeToggle.astro';
       justify-content: space-between;
       margin-bottom: 0.75rem;
     }
-
-    .footer-links {
-      gap: 1rem;
-      flex: 1;
-      justify-content: flex-start;
-    }
-
-    .footer-links a {
-      font-size: var(--text-xs);
-    }
   }
 
   /* Tablet (480px - 768px) */
@@ -115,10 +66,6 @@ import ThemeToggle from './ThemeToggle.astro';
       margin-bottom: 0.75rem;
       gap: 1.25rem;
     }
-
-    .footer-links {
-      gap: 1.25rem;
-    }
   }
 
   /* Desktop (768px+) */
@@ -129,10 +76,6 @@ import ThemeToggle from './ThemeToggle.astro';
 
     .footer-top {
       margin-bottom: 1rem;
-      gap: 2rem;
-    }
-
-    .footer-links {
       gap: 2rem;
     }
   }

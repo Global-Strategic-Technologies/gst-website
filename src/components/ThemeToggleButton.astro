@@ -1,0 +1,100 @@
+---
+// ThemeToggleButton.astro — the theme toggle's visual button: a primary-colored
+// delta glyph with no border or background. Production renders it once, via
+// ThemeToggle.astro, which passes `id`/`testId` and binds the toggle +
+// long-press script to that id. This component is the presentational inner
+// both that wrapper and the /brand specimen render, so the specimen cannot
+// drift from production (BL-095 AC-2).
+//
+// `id`/`testId` are passed only by ThemeToggle.astro; the /brand specimen
+// omits them (plus passes its own title/ariaLabel), so `#themeToggle` and
+// `[data-testid="theme-toggle"]` stay unique and the bound script keeps
+// binding only the production instance. The specimen button is real but
+// intentionally inert. The footer-fit negative margin lives in Footer.astro
+// (the context that needs it), not here.
+import DeltaIcon from './DeltaIcon.astro';
+
+interface Props {
+  id?: string;
+  testId?: string;
+  title?: string;
+  ariaLabel?: string;
+}
+
+const { id, testId, title = 'Toggle dark theme', ariaLabel = 'Toggle dark theme' } = Astro.props;
+---
+
+<button class="theme-toggle" id={id} data-testid={testId} title={title} aria-label={ariaLabel}>
+  <DeltaIcon class="theme-toggle-icon" />
+</button>
+
+<style>
+  .theme-toggle {
+    background: transparent;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: 5rem;
+    transition: color var(--transition-fast);
+    padding: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    /* A real 44px hit box — WCAG 2.5.5 measures the target, not the paint, and
+       the 5rem glyph deliberately overflows it. Padding cannot substitute:
+       `box-sizing: border-box` is global (global.css), so padding would shrink
+       the content box and leave the target at 13.6px. The footer-specific
+       margin-block that keeps `.footer-top` unmoved lives in Footer.astro.
+       See BRAND_GUIDELINES.md § Accessibility. */
+    height: var(--touch-target-min);
+    touch-action: none;
+  }
+
+  .theme-toggle:hover {
+    color: var(--color-primary);
+  }
+
+  .theme-toggle:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0.25rem;
+  }
+
+  .theme-toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0.25rem;
+  }
+
+  .theme-toggle:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* :global() needed — .theme-toggle-icon is on a DeltaIcon child component
+     whose rendered <svg> gets DeltaIcon's scope, not ThemeToggleButton's */
+  .theme-toggle :global(.theme-toggle-icon) {
+    width: 0.67em;
+    height: 0.67em;
+    display: block;
+  }
+
+  .theme-toggle--holding :global(.theme-toggle-icon) {
+    animation: hold-pulse 0.8s ease-in-out infinite;
+  }
+
+  @keyframes hold-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.3);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .theme-toggle--holding :global(.theme-toggle-icon) {
+      animation: none;
+    }
+  }
+</style>

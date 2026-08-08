@@ -198,8 +198,8 @@ export function splitSelectorList(prelude: string): string[] {
  *
  * `:global(...)` is stripped rather than descended into — it is Astro's escape hatch
  * into another component's DOM, so its contents are never this selector's target.
- * `.theme-toggle :global(.theme-toggle-icon)` (ThemeToggle.astro) is exactly that
- * shape, and today it escapes only because `em` declines to resolve.
+ * `.theme-toggle :global(.theme-toggle-icon)` (ThemeToggleButton.astro) is exactly
+ * that shape, and today it escapes only because `em` declines to resolve.
  */
 export function lastCompound(selector: string): string {
   // UNWRAPPED, not deleted and not replaced by a sentinel. All three were tried:

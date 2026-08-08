@@ -1260,7 +1260,8 @@ import '../styles/components/progress.css';
      Replica of CTASection.astro, whose styles are Astro-scoped and so cannot
      reach this page. CTASection is NOT rendered here because it hardcodes
      `id="contact"` (CTASection.astro:24) — a singleton id, the same
-     disqualifier as ThemeToggle's `#themeToggle` (BL-095 AC-2). It also fires
+     disqualifier as ProjectModal's 19 ids (BL-095 AC-2; ThemeToggle escaped
+     it via the ThemeToggleButton extraction, the remedy waiting here). It also fires
      `trackCTA('calendarbridge','cta-section')` from an inline onclick with no
      suppressing prop, so a specimen click would emit a real analytics event.
 

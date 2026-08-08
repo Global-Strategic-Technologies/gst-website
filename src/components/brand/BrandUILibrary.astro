@@ -4,6 +4,10 @@ import TableOfContents from '../TableOfContents.astro';
 import Breadcrumb from '../Breadcrumb.astro';
 import StatsBar from '../StatsBar.astro';
 import WireItem from '../radar/WireItem.astro';
+import HeaderLogo from '../HeaderLogo.astro';
+import HeaderNavLinks from '../HeaderNavLinks.astro';
+import ThemeToggleButton from '../ThemeToggleButton.astro';
+import FooterLinks from '../FooterLinks.astro';
 import type { RadarWireItem } from '../../lib/inoreader/types';
 
 /**
@@ -78,26 +82,16 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <h4 class="brutal-label brand-subgroup-title">Logo</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <!-- Mirrors Header.astro's .logo-wrapper: primary-colored DeltaIcon at 32px
-             (1em of --text-3xl) with a 0.25rem gap. Keep in sync with that file —
-             the brand-page E2E asserts parity against the real header element. -->
-        <div
-          style="display:flex;align-items:center;gap:var(--spacing-xs);color:var(--color-primary);"
-          data-specimen-logo
-        >
-          <DeltaIcon size={32} />
-          <span
-            class="logo"
-            style="font-size:var(--text-3xl);font-weight:900;font-family:var(--font-family-mono);color:var(--text-primary);letter-spacing:-0.05em;text-transform:uppercase;display:flex;align-items:center;gap:var(--spacing-sm);height:2rem;text-decoration:none;border-bottom:none;"
-            data-specimen
-            >G<span style="color:var(--color-primary);">S</span>T<span
-              style="width:8px;height:8px;background:var(--color-primary);display:block;animation:pulse 2s infinite;"
-            ></span></span
-          >
-        </div>
+        {
+          /* The real component (BL-095 AC-2), not a replica — the presentational
+             lockup Header.astro composes. `href` keeps the link in-page AND
+             suppresses the trackNavigation onclick: a specimen click must not
+             emit a real `navigation_click` event. */
+        }
+        <HeaderLogo href="#ui-library" />
         <code class="brand-code"
           >.logo — monospace, 900 weight, uppercase, -0.05em tracking, primary "S" accent, pulsing
-          dot</code
+          dot. Rendered by HeaderLogo.astro, the lockup Header.astro composes</code
         >
       </div>
     </div>
@@ -106,41 +100,23 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item">
         {
-          /* Replica of Header.astro's `.site-header nav` — kept because Header
-             carries a `role="banner"` landmark and sticky positioning, so it
-             cannot render twice (BL-095 AC-2). Structure mirrors production
-             (nav > ul > li) so the parity guard in brand-page.test.ts can
-             compare the list gap, which is its own drift dimension. */
+          /* The real component (BL-095 AC-2), not a replica — the link list
+             Header.astro composes inside its nav landmark (a styled list is
+             not a landmark, so no aria-label is needed here). `links` keeps
+             the entries in-page AND selects the untracked demo branch: a
+             specimen click must not emit a real `navigation_click` event. */
         }
-        <nav data-specimen-nav-links aria-label="Nav link brutalist demo">
-          <ul style="display:flex;gap:3rem;list-style:none;margin:0;padding:0;">
-            <li>
-              <a
-                href="#ui-library"
-                style="color:var(--text-secondary);text-decoration:none;font-weight:var(--font-weight-bold);font-family:var(--font-family-mono);font-size:var(--text-sm);text-transform:uppercase;letter-spacing:0.1em;padding-bottom:0.25rem;border-bottom:2px solid transparent;transition:color var(--transition-fast),border-bottom var(--transition-fast);"
-                >Services</a
-              >
-            </li>
-            <li>
-              <a
-                href="#ui-library"
-                data-specimen-nav-active
-                style="color:var(--color-tertiary);text-decoration:none;font-weight:var(--font-weight-bold);font-family:var(--font-family-mono);font-size:var(--text-sm);text-transform:uppercase;letter-spacing:0.1em;padding-bottom:0.25rem;border-bottom:2px solid var(--color-primary);transition:color var(--transition-fast),border-bottom var(--transition-fast);"
-                >M&amp;A</a
-              >
-            </li>
-            <li>
-              <a
-                href="#ui-library"
-                style="color:var(--text-secondary);text-decoration:none;font-weight:var(--font-weight-bold);font-family:var(--font-family-mono);font-size:var(--text-sm);text-transform:uppercase;letter-spacing:0.1em;padding-bottom:0.25rem;border-bottom:2px solid transparent;transition:color var(--transition-fast),border-bottom var(--transition-fast);"
-                >Hub</a
-              >
-            </li>
-          </ul>
-        </nav>
+        <HeaderNavLinks
+          links={[
+            { label: 'Services', href: '#ui-library' },
+            { label: 'M&A', href: '#ui-library', active: true },
+            { label: 'Hub', href: '#ui-library' },
+          ]}
+        />
         <code class="brand-code"
-          >nav a — monospace, uppercase, bold, 2px underline on active/hover. Values shown are the
-          desktop ones; Header.astro narrows the size and list gap below 768px</code
+          >Rendered by HeaderNavLinks.astro, the link list Header.astro composes — monospace,
+          uppercase, bold, 2px primary underline + tertiary ink on active/hover, narrower size and
+          gap below 768px</code
         >
       </div>
     </div>
@@ -149,40 +125,22 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item">
         {
-          /* Replica of Footer.astro's `.footer-links` — kept because Footer
-             renders ThemeToggle, whose singleton `#themeToggle` cannot appear
-             twice (BL-095 AC-2). `.footer-links` sits on the CONTAINER here, as
-             it does in production (Footer.astro:8); it used to be on an <a>,
-             which made the caption a lie and the parity selector a trap. */
+          /* The real component (BL-095 AC-2), not a replica — the link row
+             Footer.astro composes. Footer itself still cannot render twice
+             (it embeds the singleton ThemeToggle), but its links no longer
+             need it to. `links` keeps the entries in-page (Breadcrumb
+             `crumbs` precedent). */
         }
-        {
-          /* `.footer-links` here is DOCUMENTARY — Footer.astro's rule is Astro-scoped
-            and cannot reach this page, so the inline styles below do the work. */
-        }
-        <div
-          class="footer-links"
-          data-specimen-footer-links
-          style="display:flex;gap:var(--gap-extra-wide);align-items:center;"
-        >
-          <a
-            href="#ui-library"
-            style="color:var(--text-secondary);text-decoration:none;font-family:var(--font-family-mono);font-size:var(--text-sm);font-weight:var(--font-weight-bold);text-transform:uppercase;letter-spacing:0.1em;padding-bottom:0.25rem;border-bottom:2px solid transparent;transition:color var(--transition-fast),border-bottom var(--transition-fast);"
-            >LinkedIn</a
-          >
-          <a
-            href="#ui-library"
-            style="color:var(--text-secondary);text-decoration:none;font-family:var(--font-family-mono);font-size:var(--text-sm);font-weight:var(--font-weight-bold);text-transform:uppercase;letter-spacing:0.1em;padding-bottom:0.25rem;border-bottom:2px solid transparent;transition:color var(--transition-fast),border-bottom var(--transition-fast);"
-            >Privacy</a
-          >
-          <a
-            href="#ui-library"
-            style="color:var(--text-secondary);text-decoration:none;font-family:var(--font-family-mono);font-size:var(--text-sm);font-weight:var(--font-weight-bold);text-transform:uppercase;letter-spacing:0.1em;padding-bottom:0.25rem;border-bottom:2px solid transparent;transition:color var(--transition-fast),border-bottom var(--transition-fast);"
-            >Terms</a
-          >
-        </div>
+        <FooterLinks
+          links={[
+            { label: 'LinkedIn', href: '#ui-library' },
+            { label: 'Privacy', href: '#ui-library' },
+            { label: 'Terms', href: '#ui-library' },
+          ]}
+        />
         <code class="brand-code"
-          >.footer-links a — monospace, uppercase, bold, primary underline-reveal on hover. Values
-          shown are the desktop ones; Footer.astro narrows the size and gap below 768px</code
+          >.footer-links a — monospace, uppercase, bold, primary underline-reveal on hover. Rendered
+          by FooterLinks.astro, which narrows the size and gap below 768px</code
         >
       </div>
     </div>
@@ -212,18 +170,19 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <h4 class="brutal-label brand-subgroup-title">Theme Toggle</h4>
     <div class="brand-component-row">
       <div class="brand-component-item">
-        <!-- Mirrors ThemeToggle.astro: primary-colored delta sized 0.67em of a 5rem
-             font-size (~54px). Keep in sync with .theme-toggle there. -->
-        <button
-          style="background:transparent;border:none;color:var(--color-primary);cursor:pointer;transition:color var(--transition-fast);padding:0;line-height:1;display:flex;align-items:center;"
-          title="Theme toggle specimen"
-          aria-label="Theme toggle specimen"
-        >
-          <DeltaIcon size={54} />
-        </button>
+        {
+          /* The real component (BL-095 AC-2), not a replica — the visual button
+             ThemeToggle.astro wraps. No id/testId here, so `#themeToggle` and
+             `[data-testid="theme-toggle"]` stay unique and the bound script
+             keeps binding only the footer instance; this button is real but
+             intentionally inert. The footer-fit negative margin lives in
+             Footer.astro, so no compensation is needed here. */
+        }
+        <ThemeToggleButton title="Theme toggle specimen" ariaLabel="Theme toggle specimen" />
         <code class="brand-code"
           >.theme-toggle — delta icon, no border/radius, var(--color-primary) color,
-          var(--transition-fast)</code
+          var(--transition-fast), 44px hit box. Rendered by ThemeToggleButton.astro, the button
+          ThemeToggle.astro wraps</code
         >
       </div>
     </div>

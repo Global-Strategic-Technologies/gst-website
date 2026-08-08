@@ -124,9 +124,10 @@
 
      Same recipe as `.brutal-slider__input` (form.css) — which is why the tech-debt
      calculator's range inputs already passed. The alternative, keeping 6px and
-     expanding the hit area with a negative margin (as ThemeToggle does), is wrong
-     here: these rows sit at a ~15.5px pitch, so 24px hit boxes would overlap and
-     steal each other's clicks. ThemeToggle has no stacked neighbours. */
+     expanding the hit area with a negative margin (as the footer does for its
+     ThemeToggleButton), is wrong here: these rows sit at a ~15.5px pitch, so 24px
+     hit boxes would overlap and steal each other's clicks. The theme toggle has no
+     stacked neighbours. */
   :global(.swatch-slider) {
     flex: 1;
     height: var(--touch-target-min-aa);
