@@ -5,7 +5,8 @@
 // lives in CTABox.astro so /brand can render the same component without
 // duplicating this wrapper's singleton id (BL-095 AC-2). `demoHref` is
 // excluded from this wrapper's Props so no page can reach the demo branch
-// through it.
+// through it — a compile-time guard (astro check covers every in-repo
+// caller); the runtime spread would pass an untyped extra through.
 import CTABox from './CTABox.astro';
 import type { Props as CTABoxProps } from './CTABox.astro';
 

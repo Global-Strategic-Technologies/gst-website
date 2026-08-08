@@ -1185,6 +1185,19 @@ import '../styles/components/progress.css';
     font-size: var(--text-lg);
   }
 
+  /* Responsive counterparts of PortfolioGrid's scoped 480px metric-value
+     overrides — this replica half pairs with the `.project-card__*` half in
+     cards.css, whose comment carries the full keep-in-sync ruling. */
+  @media (max-width: 480px) {
+    .brand-metric__value {
+      font-size: var(--text-sm);
+    }
+
+    .brand-metric__value--arr {
+      font-size: var(--text-base);
+    }
+  }
+
   /* ProjectModal.astro styles its metrics differently from the card — smaller,
      wider tracking, secondary colour. The modal specimen uses these so it does
      not borrow the card's treatment and misrepresent the dialog. */

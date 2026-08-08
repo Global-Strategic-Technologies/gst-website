@@ -12,7 +12,7 @@
 // Passing it keeps the booking link in-page AND drops both trackCTA onclicks
 // (and the booking `target`/`rel`) — a specimen click must never emit a real
 // `cta_click` event. Only handlers are suppressed, never markup.
-interface Props {
+export interface Props {
   title: string;
   description: string;
   buttonText?: string;
