@@ -384,10 +384,12 @@ import '../styles/components/progress.css';
 
   /* ── Hover specimens ──
      Cards whose documented behaviour IS the hover transition (trust card,
-     step card, service card, hub gateway card, project card). The rule below
-     is the real mechanism — never simulate it with inline onmouseenter
-     handlers, which freeze the value against theme and palette and teach the
-     wrong pattern to anyone copying this page. */
+     step card, service card, hub gateway card — the project card left this
+     family in the BL-095 closeout, since the real .project-card hover now
+     renders natively via cards.css). The rule below is the real mechanism —
+     never simulate it with inline onmouseenter handlers, which freeze the
+     value against theme and palette and teach the wrong pattern to anyone
+     copying this page. */
   .brand-hover-card {
     padding: var(--spacing-xl);
     border: 2px solid var(--border-light);
