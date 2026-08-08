@@ -150,6 +150,7 @@ export async function buildStatusHtml(env: Env): Promise<string> {
   <tr><th>Metric</th><th>Value</th></tr>
   ${auditRows}
 </table>
+<p class="meta">Pipeline deactivated 2026-08-08 — ADR-0014; counters show historical totals.</p>
 
 <p class="meta">Runbooks: <code>mcp-server/observability/runbooks/</code> · SLO provenance: <code>mcp-server/observability/slo-baselines.md</code> (signed off 2026-07-14) · Evaluator cadence: 15 min</p>
 </body>
