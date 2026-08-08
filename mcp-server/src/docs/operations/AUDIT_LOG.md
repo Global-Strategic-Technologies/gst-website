@@ -14,7 +14,7 @@ The MCP Worker (when the pipeline is bound) writes a **compliance-grade, hash-ch
 
 ## Deactivation (2026-08-08) — ADR-0014
 
-One-time cleanup after the deactivation deploy, in the decommission-runbook shape of DEPLOY.md § BL-032.8 Phase B. Completion: ⬜ (operator checks this off when Verify passes).
+One-time cleanup after the deactivation deploy, in the decommission-runbook shape of DEPLOY.md § BL-032.8 Phase B. Completion: ✅ **2026-08-08** — production deploy approved, consumers detached (staging + production), 1,798 production `seqof` keys purged (~406 KB reclaimed), production chain-tip verified surviving at `lastSeq: 1797`.
 
 **Prerequisites**
 
@@ -35,7 +35,7 @@ One-time cleanup after the deactivation deploy, in the decommission-runbook shap
 
 **Verify**
 
-- The execute run reports 0 remaining `seqof` keys and prints all three `mcp:audit:chain-tip:{dev,staging,production}` keys (survival proof — `dev` typically "(absent)"; the staging/production values must be present).
+- The execute run reports 0 remaining `seqof` keys and prints all three `mcp:audit:chain-tip:{dev,staging,production}` keys (survival proof). **Production must be present**; `dev` and `staging` may legitimately show "(absent)" — the 2026-08-08 purge observed that staging never committed a single audit batch (every ledger key was production traffic), so there is no staging chain to resume.
 - Upstash console (gst-mcp DB) storage drops by roughly the dry-run's reported KB.
 - `/status` shows the "Pipeline deactivated 2026-08-08 — ADR-0014" annotation; "Batches processed (24h)" decays to 0; the chain-tip `lastSeq` retains its historical value.
 
