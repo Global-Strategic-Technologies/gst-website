@@ -327,6 +327,19 @@ test.describe('Brand Page', () => {
         await frames.nth(i).scrollIntoViewIfNeeded();
       }
 
+      // Give each frame its OWN load budget before the shared poll below runs
+      // the actual verification. Without this, all 12 dev-server iframe loads
+      // share the poll's single expect-timeout window — mis-sized on a cold
+      // run, where vite compiles every demo route on demand. Observed twice
+      // (2026-08-08), both times on the day's first parallel run, never solo
+      // and never on a warm server; the poll reported frames "not loaded".
+      for (let i = 0; i < total; i++) {
+        await expect(
+          frames.nth(i).contentFrame().locator('body > *').first(),
+          `frame ${i} loaded a document`
+        ).toBeAttached();
+      }
+
       await expect
         .poll(
           async () =>
