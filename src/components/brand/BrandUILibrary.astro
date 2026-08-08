@@ -708,7 +708,8 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         flags as `nested-interactive` (serious). Operator ruling 2026-08-02: the
         radar component works as intended and is not being changed, so rendering
         it on /brand — a scanned route — would import that finding onto this
-        page for no benefit. Keep in sync (BL-095 AC-2). */
+        page for no benefit (the full ruling lives on the exclusion in
+        accessibility.test.ts). Keep in sync with radar/FyiItem.astro. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
@@ -836,7 +837,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
 
     <h4 class="brutal-label brand-subgroup-title">Search Controls Bar</h4>
     {
-      /* Replica of PortfolioHeader.astro / StickyControls.astro — deferred: both own the portfolio filter runtime (singleton ids + scroll handlers). Keep in sync (BL-095 AC-2). */
+      /* Replica of PortfolioHeader.astro / StickyControls.astro — FINAL classification, not a deferral (STYLES_GUIDE § How a specimen relates to what ships, mechanism 2): both own the portfolio filter runtime (singleton ids + scroll handlers), so a presentational extraction is off the table. Keep in sync with those files. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
@@ -1749,7 +1750,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
 
     <h4 class="brutal-label brand-subgroup-title">Modal Dialog</h4>
     {
-      /* Replica of ProjectModal.astro — deferred: hardcodes 19 singleton ids and publishes a global handler. Keep in sync (BL-095 AC-2). */
+      /* Replica of ProjectModal.astro — FINAL classification, not a deferral (STYLES_GUIDE mechanism 2): hardcodes 19 singleton ids and publishes a global handler, so a presentational extraction is off the table. Keep in sync with that file. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item">
@@ -1808,7 +1809,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
 
     <h4 class="brutal-label brand-subgroup-title">Portfolio Filter Drawer</h4>
     {
-      /* Replica of FilterDrawer.astro — deferred: six singleton ids; its behaviour lives in PortfolioHeader’s script. Keep in sync (BL-095 AC-2). */
+      /* Replica of FilterDrawer.astro — FINAL classification, not a deferral (STYLES_GUIDE mechanism 2): six singleton ids and its behaviour lives in PortfolioHeader’s script, so a presentational extraction is off the table. Keep in sync with that file. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">

@@ -120,7 +120,7 @@ const PAGES: A11yPage[] = [
       // 2026-08-02 — link is keyboard-reachable, Enter navigates without
       // toggling, the mouse case is handled by a stopPropagation, and no
       // screen-reader harm reproduced — and ruled the component works as
-      // intended and is not to be changed. See BACKLOG.md § BL-095.
+      // intended and is not to be changed.
       //
       // Baselining it would also have been quietly broken: KNOWN_SERIOUS is a
       // MAX node count, and the count scales with however many annotated items
