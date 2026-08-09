@@ -278,18 +278,46 @@ So: **filter chips, segmented controls, drawer/search closes, header nav links, 
 
 ### BL-114: Strip the 10 inert `.primary` / `.secondary` class tokens
 
-**Source**: relocated from BL-095's technical context when that initiative closed (2026-08-08) — the record predates the closeout and remains a real obligation | **Effort**: Small (the strip); the _define_ path needs a design decision first | **Status**: Open
+**Source**: relocated from BL-095's technical context when that initiative closed (2026-08-08) — the record predates the closeout and remains a real obligation | **Effort**: Small (the strip); the _define_ path needs a design decision first | **Status**: **CLOSED 2026-08-09** — stripped, not defined
 
 **As a** developer reading page markup, **I want** every class on an element to do something **so that** markup doesn't teach phantom variants.
 
 #### Acceptance Criteria
 
-- [ ] The 10 remaining bare `primary` / `secondary` tokens are stripped (or deliberately defined — see below). Counted rather than estimated, as of 2026-08-08: `Hero.astro` (2), the three `hub/library/*` article pages, `hub/radar/`, three tool pages' back-links, and the IRL generator's submit button (`information-request-list-generator/index.astro:272`) — the one that is not a back-link.
+- [x] The 10 remaining bare `primary` / `secondary` tokens are stripped (or deliberately defined — see below). Counted rather than estimated, as of 2026-08-08: `Hero.astro` (2), the three `hub/library/*` article pages, `hub/radar/`, three tool pages' back-links, and the IRL generator's submit button (`information-request-list-generator/index.astro:272`) — the one that is not a back-link. **Done 2026-08-09**: the inventory was exact — all 10 found where predicted, stripped, none defined.
+  - **An 11th was found and fixed, outside the count**: [STYLES_REMEDIATION_ROADMAP.md § 7](../styles/STYLES_REMEDIATION_ROADMAP.md) carried `class="cta-button secondary"` inside a **prescriptive** template for future tool pages. The stanza only ever counted rendered markup, but a doc that tells the next author to write the phantom variant is the same defect one step upstream — and it would have regrown the count.
+  - **Verified inert before deleting, not assumed**: no rule in `src/styles/**` or any Astro scoped `<style>` selects `.primary` / `.secondary`, and nothing in `tests/` selects them (the one hit is prose in a `brand-page.test.ts` docblock describing this exact debt). So the strip is provably a no-op on rendered appearance.
+  - **Not built**: a repo-wide every-class-has-a-rule guard — filed as [BL-116](#bl-116-site-wide-orphan-class-guard) rather than left in this stanza, which is on a prune path.
+  - **A caption on `/brand` had to move with the markup.** `BrandComponents.astro`'s `.cta-button` code label read "the `primary` / `secondary` words **seen in page markup** are inert" — true when written, false the moment the last occurrence went. `/brand` is the in-repo control surface, so a caption keeping the phantom names alive in the present tense is the same defect the roadmap fix addressed, one step upstream. Reworded to the past tense.
 
 #### Technical Context
 
 - `buttons.css` defines exactly one CTA appearance (`.cta-button`); the bare `primary` / `secondary` tokens seen in `class="cta-button primary"` match no rule in the repo. The `/brand` specimens shed theirs 2026-07-29, and the 9 on the two hub gateway indexes went 2026-08-03.
 - **Stripping is mechanical and behaviour-free; _defining_ them is not** — `.cta-button.secondary` would restyle every "Back to …" link at once and needs a design decision first. Bare unnamespaced globals are also a collision hazard: prefer `.brutal-btn--primary` / `--secondary` when a real two-variant pair is wanted.
+
+---
+
+### BL-116: Site-wide orphan-class guard
+
+**Source**: split out of [BL-114](#bl-114-strip-the-10-inert-primary--secondary-class-tokens) on its closure 2026-08-09 — the observation was written inside a stanza already marked CLOSED, where the next prune wave would have deleted it | **Effort**: Small-Medium — the guard is a port; the per-route JS-hook allowlist is the work | **Status**: Open
+
+**As a** developer reading page markup anywhere on the site, **I want** a class with no rule behind it to fail CI **so that** phantom variants are caught when written rather than by a live DOM audit three months later.
+
+**Why it is filed rather than done.** The same defect has now been found and hand-fixed **three times**: 28 orphan classes on `/brand` (2026-07-29, which also surfaced a live TechPar defect from the identical cause), the 9 on the two hub gateway indexes (BL-105, 2026-08-03), and BL-114's 10 across 8 page files plus a prescriptive doc template (2026-08-09). A defect class that recurs on that cadence is a guard's job, not an audit's.
+
+**Prior art to port, not re-derive**: `tests/e2e/brand-page.test.ts`'s "No orphan classes" check already does this for `/brand`, with an `ALLOWED_UNSTYLED` list for classes that are genuinely JS hooks. Adding to that list is deliberately an explicit act.
+
+#### Acceptance Criteria
+
+- [ ] Every class in the rendered DOM of each scanned route has a CSS rule behind it, or sits in a per-route allowlist with a stated reason
+- [ ] The allowlist follows `ALLOWED_UNSTYLED`'s posture — a JS-hook declaration, not a place to silence findings — and a stale entry fails the suite, per the `FLOOR_EXCEPTIONS` precedent from BL-096
+- [ ] Route coverage is stated, and whatever is excluded says why
+
+#### Technical Context
+
+- **Carry forward the existing guard's documented precision limit**: it counts a class as defined if the name appears in any selector anywhere, including as a descendant qualifier. A site-wide version inherits that, so it will not catch a class defined only under a parent it never actually sits inside.
+- Scope question to settle first: reuse the 22-route axe list from BL-096, or scan a narrower set. The 22 routes are already paid for as a Playwright fixture.
+- **Count files, then count routes — they diverge.** BL-114's 10 tokens sat in 8 files, but one was `Hero.astro`, a shared component rendering on five routes (`index`, `about`, `services`, `404`, `500`). A file-count reading of that recurrence understates the reach, and this guard is scoped by route, not by file.
 
 ---
 

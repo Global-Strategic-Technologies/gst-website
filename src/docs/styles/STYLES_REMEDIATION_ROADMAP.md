@@ -267,7 +267,7 @@ Tracked initiatives to close the gap between documented conventions and actual i
         <!-- Tool-specific content -->
       </div>
     </div>
-    <a href="/hub/tools" class="cta-button secondary">Return to Tools</a>
+    <a href="/hub/tools" class="cta-button">Return to Tools</a>
   </div>
 </section>
 ```
