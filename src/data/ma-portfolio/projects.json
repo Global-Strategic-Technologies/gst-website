@@ -1,5 +1,35 @@
 [
   {
+    "id": "granite",
+    "codeName": "Granite",
+    "industry": "Fund Administration Services",
+    "theme": "Finance",
+    "summary": "Luxembourg-regulated fund administration and AIFM services provider running a fully outsourced, buy-not-build technology estate — commercial platforms consolidating onto SimCorp Domos, hosted in a CSSF-supervised dual Tier IV private cloud with no internal engineering function.",
+    "arr": "$15M",
+    "arrNumeric": 15000000,
+    "currency": "USD",
+    "growthStage": "Mature Enterprise",
+    "year": 2026,
+    "technologies": [
+      "Domos (SimCorp)",
+      "DeMaSy",
+      "Sage BOB",
+      "Cascade",
+      "Canoe Intelligence",
+      "Citrix VDI",
+      "VMware NSX",
+      "Palo Alto Firewalls",
+      "Fortinet",
+      "Veeam",
+      "ThreatLocker",
+      "ManageEngine"
+    ],
+    "engagementType": "Technical Diligence",
+    "challenge": "Assessing whether the target's outsourced technology, data, workflow, and reporting infrastructure supporting Luxembourg AIFM, fund administration, compliance, and governance obligations can scale, whether its security posture is mature and appropriate, and how its AI strategy was developed.",
+    "solution": "Found genuinely resilient outsourced infrastructure (dual Tier IV private cloud, 99.995% availability, tested DR, zero incidents 2023-2025 at ~4% of revenue on technology) with mature CSSF/GDPR-aligned governance, but flagged that the capability is rented rather than owned: no CTO, CIO, or internal IT staff across 67 employees, oversight concentrated in one or two part-time non-specialists, a core platform migration only 2 of 112 fund structures complete with no rollback path, a ~$1M reporting-automation decision parked for the buyer, and resilience claims that are management-asserted without underlying reports, ISO 27001/SOC 2, or cyber insurance.",
+    "engagementCategory": "Buy-Side"
+  },
+  {
     "id": "minerva",
     "codeName": "Minerva",
     "industry": "Utility Billing SaaS",
