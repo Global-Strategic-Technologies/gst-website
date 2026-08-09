@@ -8,7 +8,7 @@
  *
  * Phase 2A YTD arithmetic-consistency rule
  * (BL-045-TECHPAR-YTD-ARITHMETIC-INCONSISTENT) is the highest-value
- * regression target since it caught the v6 StoreForce ytdMonths=4 vs
+ * regression target since it caught the v6 SanFran ytdMonths=4 vs
  * math-correct ytdMonths=3 inversion. Cover both the monthlyAnchor ×
  * ytdMonths balance case and the 10%-tolerance edges.
  *
@@ -119,7 +119,7 @@ describe('runTechParAuditRefinements — YTD math check required (BL-045-TECHPAR
 });
 
 describe('runTechParAuditRefinements — YTD arithmetic consistency (BL-045-TECHPAR-YTD-ARITHMETIC-INCONSISTENT)', () => {
-  it('flags ytdMonths=4 when monthly×3 matches reported YTD (StoreForce v6 regression)', () => {
+  it('flags ytdMonths=4 when monthly×3 matches reported YTD (SanFran v6 regression)', () => {
     const p = baselineQuick();
     p._audit.arr = {
       annualizationSource: 'ytd-annualized-with-period',
@@ -137,7 +137,7 @@ describe('runTechParAuditRefinements — YTD arithmetic consistency (BL-045-TECH
     expect(ruleIds(p)).toContain('BL-045-TECHPAR-YTD-ARITHMETIC-INCONSISTENT');
   });
 
-  it('accepts ytdMonths=3 when monthly×3 matches reported YTD (StoreForce math-correct)', () => {
+  it('accepts ytdMonths=3 when monthly×3 matches reported YTD (SanFran math-correct)', () => {
     const p = baselineQuick();
     p._audit.arr = {
       annualizationSource: 'ytd-annualized-with-period',

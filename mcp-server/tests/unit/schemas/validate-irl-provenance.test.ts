@@ -125,7 +125,7 @@ describe('runIrlProvenanceCheck — verbatim verification', () => {
 });
 
 describe('runIrlProvenanceCheck — encoding drift (BL-049 closeout hardening)', () => {
-  // The v11 StoreForce false-positive class: body and citation carry the
+  // The v11 SanFran false-positive class: body and citation carry the
   // same content but drift on quote style, NBSP, or dash flavor because
   // they were produced by different text pipelines. NBSP is injected
   // via \u00A0 escapes so the drift under test stays visible here.

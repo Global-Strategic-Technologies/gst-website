@@ -2,7 +2,7 @@
  * MCP tool: compose_dossier_envelope (BL-045 PR B forcing-function tightening).
  *
  * Closes the dossier-rendering compliance gap empirically exposed by the
- * v8 + v9 StoreForce traces: the model treats body-text directives
+ * v8 + v9 SanFran traces: the model treats body-text directives
  * (meta fence, (J), (K), self-check) as descriptive context, not as a
  * procedure. This tool externalizes the structure into a tool input so
  * the model can't compose the dossier without producing the envelope.

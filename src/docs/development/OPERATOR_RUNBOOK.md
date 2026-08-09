@@ -65,7 +65,7 @@ The block is emitted at the end of every run. Some fields are **server-authorita
 
 > **Known-good telemetry quirk**: `compose_dossier_envelope` self-reports `{ attempted: 1, succeeded: 0 }` in its own block. That is **intended** — the counter snapshots while the envelope call is still in-flight (BL-071 "I'm reporting on the call I'm inside"). It is not a failure; it's pinned by `tests/integration/bl-071-precheck-derivation.test.ts`.
 
-### Worked example (clean client-ready run — StoreForce, 2026-06-30)
+### Worked example (clean client-ready run — SanFran, 2026-06-30)
 
 ```
 filledIrl: { bytes: 51383, source: partner-paste-verbatim-prepop }

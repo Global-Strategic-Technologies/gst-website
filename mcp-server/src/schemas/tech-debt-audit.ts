@@ -2,7 +2,7 @@
  * BL-045 PR B — MTTR + incident-count fabrication guard for
  * `estimate_tech_debt_cost`.
  *
- * **The failure mode**: the StoreForce live-runs (v2/v3/v4) showed that
+ * **The failure mode**: the SanFran live-runs (v2/v3/v4) showed that
  * when Section 04 of the IRL marks MTTR as OPEN / "not yet tracked" /
  * sprint-scoped-only, the model substitutes a placeholder (24h, 8h, etc.)
  * rather than acknowledging the gap. The engine's linear multiplication

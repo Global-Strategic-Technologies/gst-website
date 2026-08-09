@@ -142,7 +142,12 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // stdio-only `npm run radar:seed` remediation was dropped from the body for
 // the same reason. Drifts solely from that one prompt name@version tuple;
 // tool names and URIs are unchanged.
-const EXPECTED_MANIFEST_HASH = 'ccda7822a34aa22d2f43fe1c7559c68ea7f992b3be1092fb58c6e6f200cd0d70';
+// Deidentification rebaseline (server 0.48.1): gst_irl_ingestion v0.22.0 →
+// v0.22.1. The engagement previously named as the worked-example client is a
+// real client; every occurrence repo-wide was renamed to the SanFran code
+// name. Byte-only rename — no directive, gate, argument, tool, or URI
+// changes. Drifts solely from that one prompt name@version tuple.
+const EXPECTED_MANIFEST_HASH = 'fdc5c599fa55317ed127849b500c20fbdabc1346973debba8659fe9464df087d';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

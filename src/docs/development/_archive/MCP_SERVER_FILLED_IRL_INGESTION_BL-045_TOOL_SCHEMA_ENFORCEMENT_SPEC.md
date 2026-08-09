@@ -32,7 +32,7 @@ The v1 design's prose below is updated inline to reflect these revisions. Sectio
 
 ## Why this exists
 
-Three iterations of body-level enforcement against a real client IRL (PRAXIS-IRL-StoreForce_JLIVET.xlsx) failed to make the model apply BL-045's calibration clauses:
+Three iterations of body-level enforcement against a real client IRL (PRAXIS-IRL-SanFran_JLIVET.xlsx) failed to make the model apply BL-045's calibration clauses:
 
 | Round | Mechanism                                                                                      | Currency miss | Headcount-scope miss | dataSensitivity bucket miss | MTTR-OPEN guard |
 | ----- | ---------------------------------------------------------------------------------------------- | ------------- | -------------------- | --------------------------- | --------------- |
@@ -412,7 +412,7 @@ Step 6a from v4 stays. The Tech Debt tool call MUST include `_audit.mttrSource` 
 | `mcp-server/src/prompts/irl-ingestion.ts`                                                     | Update Step 1 prose + Step 1a worksheet schema to mention `_audit`; update Step 6 / Step 6a similarly. ~40 LOC.                                    |
 | `mcp-server/tests/unit/tools/diligence-audit-refinement.test.ts`                              | NEW — per-refinement unit tests (positive + negative for each calibration). ~250 LOC, ~25 cases.                                                   |
 | `mcp-server/tests/unit/tools/tech-debt-mttr-audit.test.ts`                                    | NEW — MTTR-OPEN guard tests. ~60 LOC, ~6 cases.                                                                                                    |
-| `mcp-server/tests/integration/irl-ingestion-storeforce-audit-cases.test.ts`                   | NEW — golden-test the audit refinements against StoreForce-shape payloads (the four real-world misses become positive tests). ~200 LOC, ~12 cases. |
+| `mcp-server/tests/integration/irl-ingestion-sanfran-audit-cases.test.ts`                   | NEW — golden-test the audit refinements against SanFran-shape payloads (the four real-world misses become positive tests). ~200 LOC, ~12 cases. |
 | `mcp-server/tests/integration/irl-ingestion-body-hash-stability.test.ts`                      | Re-baseline hashes.                                                                                                                                |
 | `mcp-server/tests/unit/prompts/irl-ingestion.test.ts`                                         | Add unit assertions on `_audit` mentions in the body.                                                                                              |
 | `mcp-server/BREAKING_CHANGES.md`                                                              | Document the input-schema extension (additive — legacy callers unaffected).                                                                        |
@@ -443,19 +443,19 @@ Step 6a from v4 stays. The Tech Debt tool call MUST include `_audit.mttrSource` 
 - `dataSensitivity = "low"` with `piiCategoriesPresent = ["phi"]` → REJECT with bucket-PII-mismatch message.
 - `growthStage = "scaling"` with citation containing "Unify migration" + `velocityEvidence = "unknown"` → REJECT with Tier-discipline message.
 
-### Integration tests (StoreForce-shape regression locks)
+### Integration tests (SanFran-shape regression locks)
 
 For each of the four real-world misses observed in v2/v3/v4:
 
-- StoreForce revenueRange — Tier-1 attempt at `25-100m` with `$31M CAD` no conversion → REJECT.
-- StoreForce revenueRange — Tier-1 attempt at `25-100m` with `$31M CAD` + conversion `$22.6M USD` → REJECT with bracket message.
-- StoreForce revenueRange — Tier-1 attempt at `5-25m` with `$31M CAD` + conversion `$22.6M USD` → ACCEPT.
-- StoreForce headcount — Tier-2 attempt at `51-200` with `scope = "total-company"` → REJECT.
-- StoreForce headcount — Tier-2 attempt at `1-50` with `scope = "engineering-only"` → ACCEPT.
-- StoreForce dataSensitivity — Tier-2 attempt at `moderate` with `["employee-pii"]` → REJECT.
-- StoreForce dataSensitivity — Tier-2 attempt at `low` with `["employee-pii"]` → ACCEPT.
-- StoreForce Tech Debt MTTR — `mttrHours = 24, mttrSource = "irl-open"` → REJECT.
-- StoreForce Tech Debt MTTR — `mttrHours = null, mttrSource = "irl-open"` → ACCEPT.
+- SanFran revenueRange — Tier-1 attempt at `25-100m` with `$31M CAD` no conversion → REJECT.
+- SanFran revenueRange — Tier-1 attempt at `25-100m` with `$31M CAD` + conversion `$22.6M USD` → REJECT with bracket message.
+- SanFran revenueRange — Tier-1 attempt at `5-25m` with `$31M CAD` + conversion `$22.6M USD` → ACCEPT.
+- SanFran headcount — Tier-2 attempt at `51-200` with `scope = "total-company"` → REJECT.
+- SanFran headcount — Tier-2 attempt at `1-50` with `scope = "engineering-only"` → ACCEPT.
+- SanFran dataSensitivity — Tier-2 attempt at `moderate` with `["employee-pii"]` → REJECT.
+- SanFran dataSensitivity — Tier-2 attempt at `low` with `["employee-pii"]` → ACCEPT.
+- SanFran Tech Debt MTTR — `mttrHours = 24, mttrSource = "irl-open"` → REJECT.
+- SanFran Tech Debt MTTR — `mttrHours = null, mttrSource = "irl-open"` → ACCEPT.
 
 ### Body-hash stability
 
@@ -499,9 +499,9 @@ Re-baseline the 3 existing hash scenarios (interactive unchanged; both one-shot 
 
 1. Land `AuditMetadataSchema` + `superRefine` on `generate_diligence_agenda` as additive shape (union). Tests.
 2. Update `irl-ingestion.ts` body to demand audited shape.
-3. Live-test against StoreForce IRL. Verify the four misses now produce REJECT diagnostics on attempt and conformant payloads on retry.
+3. Live-test against SanFran IRL. Verify the four misses now produce REJECT diagnostics on attempt and conformant payloads on retry.
 4. Add MTTR-OPEN audit to `estimate_tech_debt_cost`. Tests. Update Step 6 body.
-5. Re-live-test against StoreForce. Verify clean.
+5. Re-live-test against SanFran. Verify clean.
 6. Update BREAKING_CHANGES, manifest hash, body-hash baselines.
 7. Update BL-045 design doc § Acceptance Criteria + § Critical files.
 8. Single commit per stage; PR B branch.
@@ -512,8 +512,8 @@ Re-baseline the 3 existing hash scenarios (interactive unchanged; both one-shot 
 
 After implementation, the empirical hypothesis being tested:
 
-- **If StoreForce live re-test produces correct revenueRange / headcount / dataSensitivity / MTTR-OPEN handling** → tool-schema enforcement is the correct architectural pattern. Propagate to other extraction surfaces in subsequent PRs (TechPar engCost dedup, ICG seeding rules — both currently have "the model knows the rule" failure modes).
-- **If StoreForce live re-test still produces wrong values** → the failure mode is even deeper than tool-schema enforcement, and we should consider running the audit pass as a separate computational step (Option B from prior proposal) rather than relying on the model to produce conformant audit metadata.
+- **If SanFran live re-test produces correct revenueRange / headcount / dataSensitivity / MTTR-OPEN handling** → tool-schema enforcement is the correct architectural pattern. Propagate to other extraction surfaces in subsequent PRs (TechPar engCost dedup, ICG seeding rules — both currently have "the model knows the rule" failure modes).
+- **If SanFran live re-test still produces wrong values** → the failure mode is even deeper than tool-schema enforcement, and we should consider running the audit pass as a separate computational step (Option B from prior proposal) rather than relying on the model to produce conformant audit metadata.
 
 Either outcome is a useful signal. The current state — three rounds of body enforcement, four real-world misses, partner-facing dossier reversal in TechPar — is not acceptable, and the cost of trying tool-schema enforcement is bounded.
 

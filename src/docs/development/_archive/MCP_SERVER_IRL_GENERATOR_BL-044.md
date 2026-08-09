@@ -156,7 +156,7 @@ Verified compatibilities:
 Sheet 1 "Information Request List" (visible, default open view)
 
   Row 1   ⟨Information Request List⟩                                  <- merged A1:E1 (title)
-  Row 2        Target           ⟨StoreForce⟩                          <- col B label, merged C2:E2 value
+  Row 2        Target           ⟨SanFran⟩                          <- col B label, merged C2:E2 value
   Row 3        Engagement       ⟨Value Creation⟩                      <- col B label, merged C3:E3 value
   Row 4        Generated        ⟨2026-05-25⟩                          <- col B label, merged C4:E4 value
   Row 5        Canonical ref    ⟨https://...⟩                         <- col B label, merged C5:E5 value

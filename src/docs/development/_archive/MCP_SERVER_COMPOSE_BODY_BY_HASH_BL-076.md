@@ -69,7 +69,7 @@
 
 ### Empirical motivation
 
-Two live `gst_irl_ingestion` exercises on `gst-mcp-staging` against opus-4-8 (StoreForce IRL, ~9KB filledIrl + ~20–30 claims + ~5–10 gaps) on 2026-06-07 produced `compose_dossier_envelope` wait times of 5–15 minutes BEFORE the server received the call. The first occurrence was misdiagnosed as a transport wedge until the operator visually inspected the Claude Desktop stream and observed the model emitting the tool-call arguments token-by-token. The second occurrence confirmed: this is the model TYPING the payload, not the server waiting.
+Two live `gst_irl_ingestion` exercises on `gst-mcp-staging` against opus-4-8 (SanFran IRL, ~9KB filledIrl + ~20–30 claims + ~5–10 gaps) on 2026-06-07 produced `compose_dossier_envelope` wait times of 5–15 minutes BEFORE the server received the call. The first occurrence was misdiagnosed as a transport wedge until the operator visually inspected the Claude Desktop stream and observed the model emitting the tool-call arguments token-by-token. The second occurrence confirmed: this is the model TYPING the payload, not the server waiting.
 
 ### Root cause
 

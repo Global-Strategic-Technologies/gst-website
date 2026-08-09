@@ -97,7 +97,9 @@ describe('gst_irl_ingestion', () => {
     // v0.22.0: Step 3 stopped instructing `limit: 50` on `search_regulations` — a
     // ~153,200-character response, 1.07x the size that had already exceeded a real
     // client's tool-result ceiling (BL-112).
-    expect(irlIngestionPrompt.version).toBe('0.22.0');
+    // v0.22.1: worked-example client deidentified as SanFran — byte-only rename,
+    // no directive changes (server 0.48.1).
+    expect(irlIngestionPrompt.version).toBe('0.22.1');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -322,7 +324,7 @@ describe('gst_irl_ingestion', () => {
       expect(text).toContain('Step 8 —');
     });
 
-    it('enforces 3-tier extraction discipline (BL-045 PR B recalibration + StoreForce walkthrough)', () => {
+    it('enforces 3-tier extraction discipline (BL-045 PR B recalibration + SanFran walkthrough)', () => {
       // BL-045 PR B (2026-06-02, senior-consultant review Axis 1) recalibrated
       // the rule. The v0.0.4 anti-inference framing collapsed Tier-2 direct
       // derivation into Tier-3 vibes-based inference and forced 'unknown'-
@@ -332,7 +334,7 @@ describe('gst_irl_ingestion', () => {
       // Retired anti-examples (reviewer-confirmed wrong):
       //   - squad-model → operatingModel: product-aligned-teams (v0.0.4 → PR B initial)
       //   - b2b-saas → businessModel: productized-platform (PR B initial → PR B 2nd pass,
-      //     StoreForce walkthrough finding #9 — this mapping IS correct for the canonical
+      //     SanFran walkthrough finding #9 — this mapping IS correct for the canonical
       //     B2B SaaS pattern)
       //
       // Surviving anti-example:
@@ -351,9 +353,9 @@ describe('gst_irl_ingestion', () => {
       expect(text).toMatch(/present-tense capability/);
       // Retired anti-examples must NOT be re-introduced as forbidden mappings.
       // Note: under BL-045 PR B Option A' (tool-schema enforcement), the
-      // StoreForce-shape worked example in Step 1a does reference
+      // SanFran-shape worked example in Step 1a does reference
       // `productized-platform` and `centralized-eng` (correct Tier-2 values
-      // for StoreForce). The assertion below only locks that the term doesn't
+      // for SanFran). The assertion below only locks that the term doesn't
       // appear in an *anti-example* context — the `productized-platform` ban
       // language ("do NOT map b2b-saas → productized-platform") must stay
       // retired. We check the surrounding context, not just the substring.
@@ -363,7 +365,7 @@ describe('gst_irl_ingestion', () => {
       expect(text, 'productized-platform must not appear as a forbidden mapping').not.toMatch(
         /do NOT map.*productized-platform/i
       );
-      // Calibration clauses (StoreForce walkthrough) must be present:
+      // Calibration clauses (SanFran walkthrough) must be present:
       expect(text).toMatch(/Currency normalization/);
       expect(text).toMatch(/headcount.*scope/);
       expect(text).toMatch(/transformationState.*tie-break/);
