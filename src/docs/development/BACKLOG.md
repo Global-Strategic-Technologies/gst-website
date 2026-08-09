@@ -6,7 +6,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
-> - **2026-08-09**: 9 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. Three of them carried live content that did not go with the parent: BL-091's deliberately-cut half-open recovery probe became **[BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)**, BL-111's unbuilt-and-unfiled deploy-drift detector became **[BL-117](#bl-117-mcp-server--deploy-drift-detector-candidate)**, and BL-089's deferred docs-freshness check became **[BL-118](#bl-118-docs-last-updated-freshness-check-candidate)**. A fourth — BL-111's repo-level secret decommission — needed no rescue, already being a Pending row in [SECRETS_INVENTORY § Decommission schedule](../operations/SECRETS_INVENTORY.md). A stanza marked closed is not automatically prunable — read it for live sub-blocks first, and note that all four were found by sweeping for the pattern rather than one per review round.
+> - **2026-08-09**: 9 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. Three of them carried live content that did not go with the parent: BL-091's deliberately-cut half-open recovery probe became **[BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)**, BL-111's unbuilt-and-unfiled deploy-drift detector became **[BL-117](#bl-117-mcp-server--deploy-drift-detector-candidate)**, and BL-089's deferred docs-freshness check became **[BL-118](#bl-118-docs-last-updated-freshness-check-candidate)**. A fourth piece of live content — BL-111's repo-level secret decommission — needed no rescue, already being a Pending row in [SECRETS_INVENTORY § Decommission schedule](../operations/SECRETS_INVENTORY.md). A stanza marked closed is not automatically prunable — read it for live sub-blocks first, and note that all four were found by sweeping for the pattern rather than one per review round.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -776,9 +776,11 @@ Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there i
 
 #### Acceptance Criteria
 
-- [ ] A scheduled job compares production `/health.gitSha` to master HEAD and files an Issue on drift
+- [ ] A scheduled job detects that production is running an older Worker than it should be, and files an Issue
 - [ ] Every failure mode degrades toward filing an Issue, never toward silence
 - [ ] The cadence is stated with its reasoning, not inherited by copy
+
+**Do not write AC1 as "compare `/health.gitSha` to master HEAD"** — the obvious phrasing, and wrong. `gitSha` only advances when a deploy runs, and the production workflow is paths-filtered to `mcp-server/**` minus `*.md`, so a legitimately-behind `gitSha` is the **normal** state after any master merge that misses those paths — which is most of them. That AC would fire constantly and be muted within a week. The comparison needs a baseline that moves only when a deploy should have happened: the last commit touching the deploy-triggering paths, not HEAD. Recorded because this stanza shipped with the wrong phrasing for one commit, and because the repo has been bitten before by a requirement outgrowing its mechanism (BL-111 finding #4).
 
 ---
 
