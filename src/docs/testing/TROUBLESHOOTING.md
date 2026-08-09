@@ -102,7 +102,7 @@ See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readin
 
 **Symptom:** A vitest command that passed moments ago returns `Test Files N failed (N)` / `Tests no tests`, with a `TypeError: Cannot read properties of undefined (reading 'config')` at the top-level `describe`. **Files your change never touched fail identically.**
 
-**Likely cause:** A second vitest process running concurrently — an agent, an IDE test runner, or another terminal starting a run while one is already going.
+**Likely cause:** A second vitest process running concurrently — an agent, an IDE test runner, or another terminal starting a run while one is already going. Read this together with the measured negative below: concurrency correlates with most sightings but has never been made to reproduce it on demand, so it is the first thing to rule out, not the established cause.
 
 **The mechanism is not established.** Candidates include Vite's dep-optimizer rewriting `node_modules/.vite/deps` mid-run, and two vitest instances leaving the runner's worker state undefined (which is what a `reading 'config'` TypeError at `describe` usually smells like). Note the two workspaces have **separate** caches — `node_modules/.vite` and `mcp-server/node_modules/.vite` — so a root `npm run test:run` concurrent with `npm run test:mcp` shares no cache at all, and a shared-cache story cannot explain that pairing. Treat concurrency as the observed trigger and the rest as explanation, not evidence.
 
@@ -114,9 +114,25 @@ See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readin
 
 **Solution:** Ensure only one vitest process is running, then re-run. If it persists across serial runs, it is not this — treat it as a real failure and debug the import graph.
 
+**Concurrency alone does not reproduce it — measured 2026-08-09, ~150 attempts, zero reproductions.** Three shapes were run deliberately against `npm run test:docs`, each capturing full output rather than re-running on failure:
+
+| Shape                                                              | Attempts            | Reproduced |
+| ------------------------------------------------------------------ | ------------------- | ---------- |
+| Concurrent with `npm run test:mcp` (different vitest project)      | 40                  | 0          |
+| Two concurrent `npm run test:docs` (**same** project + dep cache)  | 12 pairs            | 0          |
+| Concurrent with `npx astro check` (content sync + type generation) | 6 rounds × up to 15 | 0          |
+
+So "a second vitest process" is **necessary-at-most, not sufficient** — and the same-project pairing was the sharpest test available, since it is the one shape that genuinely shares `node_modules/.vite`. Whatever the trigger is, plain contention in these three shapes is not it. Do not spend time re-running these; they are done. What is still unmeasured: an IDE test runner (different process supervisor), a run interrupted mid-collection, and low-disk or antivirus interference on Windows.
+
+**This does not overturn concurrency as the observed correlation, but the correlation is weaker than it looked.** Of three sightings on 2026-08-09, **two** coincided with a subagent running vitest in the same directory and **one did not** — the running-process list at the time held nothing newer than the previous day. So concurrency is present in most sightings, absent in at least one, and insufficient in ~150 controlled attempts. A negative reproduction narrows a claim; it does not refute an observation — but neither should the observation be stated more strongly than the count supports.
+
 **Related:** ["npm run test:all hangs or times out"](#npm-run-testall-hangs-or-times-out) covers resource exhaustion _within_ one run; this entry is contention _between_ runs.
 
 **Record it even though it's benign.** [CLAUDE.md](../../../.claude/CLAUDE.md) requires capturing evidence before a re-run, because a green re-run destroys it (this is why BL-106's unreproduced flake stayed open). When collection fails there is no test name, so capture the **signature** instead: the phase, the full set of failing files, and what else was running. Observed 2026-08-06, where it was first misdiagnosed as a permanently broken local vitest install — the misdiagnosis was corrected only when the same command later passed in the same shell.
+
+**Capture means redirect, not scrollback.** The 2026-08-09 sightings were lost three times over precisely because the command was run bare and then re-run. `npm run test:docs > /tmp/td.txt 2>&1; echo "exit=$?"; cat /tmp/td.txt` costs nothing and survives the re-run. Do not pipe through `tail` on the first attempt either — that is how the `Test Files N failed` line, the one that distinguishes this failure from a fast pass, got truncated away twice.
+
+**Two diagnoses of this failure have now been wrong, both asserting a cause without running the check that would prove it** — "permanently broken vitest install" (2026-08-06) and "concurrent `astro check`" (2026-08-09, offered for a sighting that had nothing running in parallel). Given the table above, the honest position is that the trigger is unidentified. State that rather than reaching for the nearest plausible mechanism.
 
 ---
 
