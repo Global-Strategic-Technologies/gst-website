@@ -15,8 +15,9 @@
  *     worst case to ≈840 events/month against the 5k/month budget.
  *   - Fingerprint `['slo-alert', ruleId, severity, utcDate]` — each UTC
  *     day's first breach of a rule opens a NEW issue so the "new issue"
- *     email rule fires (per-period bucketing per the weekly synthetic's
- *     precedent). A multi-day incident therefore opens one issue per day
+ *     email rule fires. The per-period bucketing pattern is inherited
+ *     from the weekly synthetic, removed 2026-08-09; only its source is
+ *     gone, not its reasoning. A multi-day incident opens one issue per day
  *     — expected churn, documented in SENTRY_ALERT_RULES.md.
  *
  * **Budget math at 15-min cadence** (96 firings/day): ≤4 AE SQL reads

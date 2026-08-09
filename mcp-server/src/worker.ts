@@ -35,7 +35,6 @@ import { captureMessage, sentryOptions, withSentry } from './observability/sentr
 import { AnalyticsEngineSink, emit } from './metrics/_index';
 import type { RefreshOutcome } from './cron/radar-refresh';
 import { postSentryCheckIn, postSentryEvent } from './observability/sentry-envelope';
-import { dispatchAlertRuleSynthetic, SYNTHETIC_CRON } from './observability/alert-rule-synthetic';
 import { runAlertEvaluation, ALERT_EVALUATOR_CRON } from './observability/alert-evaluator';
 import { buildStatusHtml } from './observability/status-page';
 import { buildHealthPayload } from './observability/health';
@@ -295,29 +294,6 @@ export const handler: ExportedHandler<Env> = {
         // — the safeLog inside the inner catch is the operator-visible
         // signal on the failure path.
         try {
-          // BL-047 T1 — alert-rule synthetic dispatch.
-          //
-          // Production wrangler.toml registers TWO cron expressions:
-          //   - `0 */6 * * *` → radar-refresh (BL-032.7 cadence)
-          //   - `0 14 * * 1`  → alert-rule synthetic (Mondays 14:00 UTC)
-          //
-          // The synthetic posts a single tagged Sentry event whose only
-          // purpose is to exercise the operator paging path end-to-end.
-          // Its presence in Slack on Monday afternoon is the operator's
-          // weekly proof that the BL-047 T1 alert rules are still wired
-          // — without it, a silently-removed Slack integration would
-          // first surface only on a real outage. See
-          // src/docs/operations/SENTRY_ALERT_RULES.md § Synthetic.
-          //
-          // Synthetic is independent of the radar-refresh dedup lock —
-          // a separate cron expression cannot collide with the radar
-          // firing (different scheduledTime, different lockKey), and
-          // the synthetic itself is idempotent (one fire-and-forget POST).
-          if (event.cron === SYNTHETIC_CRON) {
-            await dispatchAlertRuleSynthetic(env);
-            return;
-          }
-
           // BL-032.75 Phase 3 — SLO alert evaluator (15-min cadence).
           // Same double-fire dedup discipline as the radar path below;
           // distinct lock-key prefix so the two crons can never collide
@@ -353,7 +329,7 @@ export const handler: ExportedHandler<Env> = {
 
           // Explicit-dispatch guard (BL-032.75 Phase 3 restructure): the
           // radar path below historically ran as the unconditional `else`.
-          // With three registered crons, an unrecognized expression (e.g.
+          // With more than one registered cron, an unrecognized expression (e.g.
           // a wrangler.toml edit that didn't update the matching constant)
           // must NOT silently burn Inoreader budget on the radar path.
           if (event.cron !== RADAR_CRON) {
