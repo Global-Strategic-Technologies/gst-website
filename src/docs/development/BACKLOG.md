@@ -747,7 +747,7 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 #### Why "deprioritized + indefinite defer" and not "won't do"
 
-Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there is a written trigger condition for revisit and the deferred work is NOT verification of code currently in scope. Phase D meets both criteria — it's net-new automation with explicit trigger thresholds above, not unfinished verification. The deprioritization stays honest by naming the conditions under which it gets re-evaluated.
+Per CLAUDE.md Directive 6 "No Deferred Tech Debt" (numbered § 4a when this stanza was written): deferral is acceptable when there is a written trigger condition for revisit and the deferred work is NOT verification of code currently in scope. Phase D meets both criteria — it's net-new automation with explicit trigger thresholds above, not unfinished verification. The deprioritization stays honest by naming the conditions under which it gets re-evaluated.
 
 ---
 
