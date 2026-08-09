@@ -1,5 +1,33 @@
 [
   {
+    "id": "dynamo",
+    "codeName": "Dynamo",
+    "industry": "Industrial Inspection Technology",
+    "theme": "Manufacturing",
+    "summary": "Vertically integrated industrial ultrasound company building high-resolution acoustic imaging platforms for asset integrity inspection — downhole well and in-line pipeline tools with proprietary solid-state sensor arrays, edge processing, and a cloud-native machine learning pipeline producing analyst-reviewed 3D point cloud deliverables.",
+    "arr": "$60M",
+    "arrNumeric": 60000000,
+    "currency": "USD",
+    "growthStage": "Expansion Stage",
+    "year": 2026,
+    "technologies": [
+      "AWS",
+      "Terraform",
+      "RDS PostgreSQL",
+      "In-house ML models",
+      "GPU parallel compute",
+      "CloudTrail",
+      "AWS WAF",
+      "Solid-state sensor arrays",
+      "Edge-processing electronics",
+      "3D point cloud visualization"
+    ],
+    "engagementType": "Technical Diligence",
+    "challenge": "Pre-LOI first-impressions diligence: identifying material risks in the target's security posture, infrastructure, and end-to-end customer data journey, and validating the AI strategy, its development methodology, and the measurable business outcomes attributed to it.",
+    "solution": "Found a genuinely AI-native platform — an unusually mature AWS estate (full infrastructure-as-code, fixed-cost parallelized ML at ~$60K per 150-mile run, compute time down from 4 months to under 2 weeks, ~7-fold false-positive reduction) with a contractually sound data flywheel granting full training rights on every dataset ever captured. Flagged that the growth constraint is analyst capacity (79% of ~3,000 work-hours per run in QC), and that the real cost is the carve-out: parent-owned AWS accounts, identity and security tooling exit at close (~$330K/yr IT replacement plus $250K-$500K+/yr standalone security program), all workloads sit in a single region with untested recovery, and AI reliability claims rest on self-produced validation from one parent-affiliated operator.",
+    "engagementCategory": "Buy-Side"
+  },
+  {
     "id": "granite",
     "codeName": "Granite",
     "industry": "Fund Administration Services",
