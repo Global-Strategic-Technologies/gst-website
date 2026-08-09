@@ -4,7 +4,7 @@
     "codeName": "Dynamo",
     "industry": "Industrial Inspection Technology",
     "theme": "Manufacturing",
-    "summary": "Vertically integrated industrial ultrasound company building high-resolution acoustic imaging platforms for asset integrity inspection — downhole well and in-line pipeline tools with proprietary solid-state sensor arrays, edge processing, and a cloud-native machine learning pipeline producing analyst-reviewed 3D point cloud deliverables.",
+    "summary": "Vertically integrated industrial technology company pairing proprietary field-deployed sensing hardware with a cloud-native machine learning pipeline that transforms very large field-collected datasets into analyst-reviewed inspection deliverables for critical-infrastructure operators.",
     "arr": "$60M",
     "arrNumeric": 60000000,
     "currency": "USD",
@@ -24,7 +24,7 @@
     ],
     "engagementType": "Technical Diligence",
     "challenge": "Pre-LOI first-impressions diligence: identifying material risks in the target's security posture, infrastructure, and end-to-end customer data journey, and validating the AI strategy, its development methodology, and the measurable business outcomes attributed to it.",
-    "solution": "Found a genuinely AI-native platform — an unusually mature AWS estate (full infrastructure-as-code, fixed-cost parallelized ML at ~$60K per 150-mile run, compute time down from 4 months to under 2 weeks, ~7-fold false-positive reduction) with a contractually sound data flywheel granting full training rights on every dataset ever captured. Flagged that the growth constraint is analyst capacity (79% of ~3,000 work-hours per run in QC), and that the real cost is the carve-out: parent-owned AWS accounts, identity and security tooling exit at close (~$330K/yr IT replacement plus $250K-$500K+/yr standalone security program), all workloads sit in a single region with untested recovery, and AI reliability claims rest on self-produced validation from one parent-affiliated operator.",
+    "solution": "Found a genuinely AI-native platform — a mature, fully codified cloud estate whose parallelized ML processing runs at fixed cost per job, with per-job compute costs already reduced severalfold through software optimization and a contractually sound data flywheel granting training rights over all captured field data. Flagged that growth is constrained by human review capacity rather than compute, and that the material cost sits in the carve-out: parent-provided cloud accounts, identity, and security tooling exit at close and must be rebuilt as a standalone program, resilience beyond the primary deployment remains untested, and model-reliability claims were management-asserted pending independent third-party verification.",
     "engagementCategory": "Buy-Side"
   },
   {
