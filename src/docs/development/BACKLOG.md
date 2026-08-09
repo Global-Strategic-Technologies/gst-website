@@ -2,13 +2,17 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Two cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Three cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
-> - **2026-08-09**: 10 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-106, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. BL-091's live sub-block — the deliberately-cut half-open recovery probe — was **promoted to [BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)** rather than pruned with its parent.
+> - **2026-08-09**: 9 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. Two of them carried live content that did not go with the parent: BL-091's deliberately-cut half-open recovery probe became **[BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)**, and BL-111's unbuilt-and-unfiled deploy-drift detector became **[BL-117](#bl-117-mcp-server--deploy-drift-detector-candidate)**. A stanza marked closed is not automatically prunable — read it for live sub-blocks first.
 >
-> **Two closed stanzas are deliberately retained**, so don't re-prune them: **BL-034** (MCP-server doc-cleanup catch-all, substantially complete 2026-07-02) survives as a slim stub — it remains the append-target for BL-033-era cleanup items; **BL-098** (radar negative caching) was closed by removing the requirement rather than implementing it, and its own closure note says the reasoning is the point.
+> **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
+>
+> - **BL-034** (MCP-server doc-cleanup catch-all, substantially complete 2026-07-02) — a slim stub that remains the append-target for BL-033-era cleanup items.
+> - **BL-098** (radar negative caching) — closed by removing the requirement rather than implementing it; its own closure note says the reasoning is the point.
+> - **BL-106** (2026-07-28 spec alignment) — retained by its own in-stanza decision, because the unreproduced flake instance behind the CLAUDE.md testing rule is stanza-level evidence with no better home. [`.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) and [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md) both still cite it as open. **This wave deleted it in error and restored it** — the ID list above is the corrected one.
 
 ---
 
@@ -582,6 +586,31 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 
 ---
 
+### BL-106: MCP Server — 2026-07-28 spec alignment ✅ CLOSED 2026-08-04
+
+**Source**: gap analysis of the deployed server against MCP spec revision `2026-07-28` | **Shipped**: `@gst/mcp-server` 0.44.0 (PR #382), **partially reverted in 0.44.1** | **Outcome**: the server speaks `2026-07-28`; **both** transports serve the legacy era too | **Decisions**: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) | **Full analysis**: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)
+
+> ⚠️ **Post-merge incident, 2026-08-04.** The Worker shipped modern-only (`legacy: 'reject'`) and broke every Claude Desktop tool call within about an hour of the production deploy — Claude Desktop speaks `2025-11-25`, so its `initialize` was refused with `-32022`. It surfaced as "failed to call tool `list_portfolio_facets`" because the client still showed a cached tool list, so the symptom pointed at a tool rather than the handshake. Reverted in 0.44.1 (`legacy: 'stateless'`, both eras served).
+>
+> The evidence was right and the question was wrong: "no external clients" was verified, but what governs is _what protocol version the client software speaks_. This stanza's own decision to keep **stdio** on its legacy lane made exactly that argument, and it was not applied to the Worker — the team points Claude Desktop at the remote surface too. The `era` telemetry that would have shown this in one log line was an AC of this initiative that was silently dropped during implementation; it ships in 0.44.1. Full account: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) § Amendment 2026-08-04.
+
+Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because the unreproduced instance behind the [`CLAUDE.md`](../../../.claude/CLAUDE.md) flake rule is stanza-level evidence with no better home, and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury.
+
+**What shipped**: migration to `@modelcontextprotocol/server@2.0.0`; `Mcp-Method` / `Mcp-Name` through the CORS preflight; `ttlMs` / `cacheScope` published on library and regulation reads; `cors.ts` promoted to sole origin authority; production `npm audit` restored to zero (it was already failing on `master`).
+
+**Verified in production 2026-08-04**: `/health` reports `0.44.0` at `gitSha ace6c7c`; the CORS preflight returns `204` allowing `Mcp-Method` / `Mcp-Name` with `Access-Control-Allow-Origin: https://claude.ai` and no wildcard. The authenticated modern round-trip was **not** exercised from here — it needs a bearer token — so that half rests on `tests/integration/protocol-era-worker.test.ts` plus any client session since the deploy.
+
+**Two findings worth remembering** (both cost real time to discover, and neither was predicted by the analysis):
+
+1. The SDK v2 handler runs its **own** Host/Origin gate. Left at its default the accepted set is the localhost trio, so on a custom domain every request carrying `Origin: https://claude.ai` gets a **403** — the exact browser clients the allowlist exists for, and a failure mode the legacy handler did not have. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the fix.
+2. `with-metrics.ts` located its notifier by duck-typing on a field v2 renamed, and the function is contractually non-throwing — so the rate-limit warning would have died **silently**, with the soft-limit tests staying green against their own fake. Both the production view and the fake are now bound to the SDK's `ServerContext` so a rename is a compile error.
+
+**Standing caution**: an unreproduced single-test failure in the mcp suite (`1 failed | 1973 passed`, once, name never captured; seven other full runs green). It fits the documented workerd cold-start flake but that remains an explanation, not evidence. **If a red mcp run appears, capture the failing test name before rerunning** — a rerun destroys it.
+
+**Deferred work extracted to [BL-107](#bl-107-mcp-server--tasks-extension-and-mrtr-candidate)** so it stays visible in the backlog rather than only inside a closed stanza. Declined outright: `x-mcp-header` mirroring; replacing the body-parse rate-limit dispatch with `Mcp-Name` (base64-sentinel values would let an encoded `search_radar` escape the radar tier); dropping the `agents` dependency. RFC 9207 `iss` closed — reasoning distilled into ADR-0013.
+
+---
+
 ### BL-113: MCP Server — settle the client tool-result ceiling (candidate)
 
 **Source**: BL-109's acceptance probe, orphaned inside its closed stanza and rescued by BL-112 | **Effort**: small (one probe run) | **Status**: Candidate · deferred with triggers · **lower bound raised 2026-08-06** — see the run record below
@@ -713,6 +742,26 @@ Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there i
 
 ---
 
+### BL-117: MCP Server — deploy-drift detector (candidate)
+
+**Source**: BL-111 recorded this as "**noted, not built and not filed**", observing that its own stanza was prunable and so the idea needed filing if it was wanted. It was not filed; the 2026-08-09 prune wave is what forced the issue | **Effort**: small — one scheduled workflow | **Status**: Candidate
+
+**As an** operator, **I want** production's deployed sha checked against master's HEAD on a schedule **so that** silent production staleness is caught by a machine rather than by someone noticing.
+
+**What**: a scheduled comparison of `/health.gitSha` against master HEAD, filing an Issue on drift.
+
+**Why it is worth filing rather than dropping**: it catches the _class_ behind two real incidents, not one mechanism — BL-111's D1, and the month-behind production incident of 2026-06. Every fix so far has addressed a specific way the deploy chain can stall; this detects the outcome regardless of cause.
+
+**Prior art in-repo**: `prettier-drift-check.yml` is the closest shape, and BL-111 fixed two defects in it worth not reintroducing — a label-creation failure that aborted the step before the Issue was attempted, and a `gh issue list` lookup whose transient failure aborted through a command substitution. Both now degrade to filing rather than to silence. **Filing beats routing.**
+
+#### Acceptance Criteria
+
+- [ ] A scheduled job compares production `/health.gitSha` to master HEAD and files an Issue on drift
+- [ ] Every failure mode degrades toward filing an Issue, never toward silence
+- [ ] The cadence is stated with its reasoning, not inherited by copy
+
+---
+
 ### BL-115: MCP Server — safe half-open recovery probe (candidate)
 
 **Source**: designed during BL-091 (circuit-breaker-open serves cached radar; closed 2026-07-27, mcp-server 0.42.0) and **deliberately cut** there; promoted from a sub-block to its own stanza when BL-091 was pruned 2026-08-09 | **Effort**: ~1 day | **Status**: Candidate · **do NOT implement the naive version**
@@ -737,7 +786,7 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 
 **What**: no tool declares an `outputSchema` today (verified), which is why `structuredContent` is transmitted but unvalidated. Adding one per tool means authoring output schemas for 16 tools.
 
-**Spec revision `2026-07-28` does NOT move this** — recorded here so it is not re-derived. SEP-2106 loosens the permitted `inputSchema` / `outputSchema` keywords, which reads like an unblock but is orthogonal: the blocker below is a _validation-trigger_ problem (the client validates whenever `structuredContent` is present, with no `isError` guard), not a keyword-strictness one. Established under BL-106 (closed 2026-08-04, stanza pruned — see [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)).
+**Spec revision `2026-07-28` does NOT move this** — recorded here so it is not re-derived. SEP-2106 loosens the permitted `inputSchema` / `outputSchema` keywords, which reads like an unblock but is orthogonal: the blocker below is a _validation-trigger_ problem (the client validates whenever `structuredContent` is present, with no `isError` guard), not a keyword-strictness one. Established under [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04).
 
 **~~Blocked-by constraint~~ — RETIRED 2026-08-04 (BL-108).** The blocker read: the SDK client validates `structuredContent` **whenever present, with no `isError` guard** (v1 `client/index.js`, contradicting its own adjacent comment), so with ADR-0011 Invariant 1 putting `structuredContent` on error results, declaring an `outputSchema` would throw `McpError` client-side on every failure.
 
@@ -757,7 +806,7 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 
 ### BL-107: MCP Server — Tasks extension and MRTR (candidate)
 
-**Source**: extracted from BL-106 on its closure (2026-08-04) so the deferral stays discoverable in the backlog rather than surviving only inside a closed stanza and [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) — BL-106's own stanza was pruned 2026-08-09, and its analysis lives in [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md) | **Effort**: unscoped — size it when a trigger fires | **Status**: Candidate · deferred with triggers | **Depends on**: BL-106 (shipped — the server speaks `2026-07-28`, which is what makes either of these available)
+**Source**: extracted from [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) on its closure (2026-08-04) so the deferral stays discoverable in the backlog rather than surviving only inside a closed stanza and [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) | **Effort**: unscoped — size it when a trigger fires | **Status**: Candidate · deferred with triggers | **Depends on**: BL-106 (shipped — the server speaks `2026-07-28`, which is what makes either of these available)
 
 **As a** consumer running a long GST workflow, **I want** long-running tools to report progress instead of blocking, and tools to ask a clarifying question mid-call **so that** a dossier build neither times out silently nor fails on an input the server could simply have asked for.
 
