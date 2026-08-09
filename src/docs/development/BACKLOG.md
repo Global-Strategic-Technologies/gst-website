@@ -747,7 +747,7 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 #### Why "deprioritized + indefinite defer" and not "won't do"
 
-Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there is a written trigger condition for revisit and the deferred work is NOT verification of code currently in scope. Phase D meets both criteria — it's net-new automation with explicit trigger thresholds above, not unfinished verification. The deprioritization stays honest by naming the conditions under which it gets re-evaluated.
+Per CLAUDE.md Directive 6 "No Deferred Tech Debt" (numbered § 4a when this stanza was written): deferral is acceptable when there is a written trigger condition for revisit and the deferred work is NOT verification of code currently in scope. Phase D meets both criteria — it's net-new automation with explicit trigger thresholds above, not unfinished verification. The deprioritization stays honest by naming the conditions under which it gets re-evaluated.
 
 ---
 
@@ -808,7 +808,11 @@ Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there i
 - [ ] Every failure mode degrades toward filing an Issue, never toward silence
 - [ ] The cadence is stated with its reasoning, not inherited by copy
 
-**Do not write AC1 as "compare `/health.gitSha` to master HEAD"** — the obvious phrasing, and wrong. `gitSha` only advances when a deploy runs, and the production workflow is paths-filtered to `mcp-server/**` minus `*.md`, so a legitimately-behind `gitSha` is the **normal** state after any master merge that misses those paths — which is most of them. That AC would fire constantly and be muted within a week. The comparison needs a baseline that moves only when a deploy should have happened: the last commit touching the deploy-triggering paths, not HEAD. Recorded because this stanza shipped with the wrong phrasing for one commit, and because the repo has been bitten before by a requirement outgrowing its mechanism (BL-111 finding #4).
+**Do not write AC1 as "compare `/health.gitSha` to master HEAD"** — the obvious phrasing, and wrong. `gitSha` only advances when a deploy runs, and the production workflow is **paths-filtered**, so a legitimately-behind `gitSha` is the **normal** state after any master merge that misses those paths — which is most of them. That AC would fire constantly and be muted within a week. The comparison needs a baseline that moves only when a deploy should have happened: the last commit touching the deploy-triggering paths, not HEAD.
+
+**Read the filter from `deploy-mcp-production.yml`, do not assume it.** It is **twelve globs plus one negation**, not the `mcp-server/**` you would guess: it also covers `src/utils/**`, `src/schemas/**`, five `src/data/` entries (four trees plus `ma-portfolio/projects.json`), `src/lib/inoreader/types.ts`, both package manifests, and `test-mcp-server.yml` — the website modules the Worker value-imports at runtime. A baseline computed from `mcp-server/**` alone would miss every deploy triggered by a website glob and report drift that isn't there, which is a smaller version of the same false-positive bug this note exists to prevent. `tests/integration/workflow-paths-parity.test.ts` asserts that **production's paths are a subset of the MCP test-suite's** (not a staging relation — `deploy-mcp-staging.yml` is driven by `workflow_run` and has no consumer-side paths filter), so the production list can widen without any warning appearing here — which is the reason to read it rather than copy it.
+
+Recorded because this stanza shipped with the wrong AC phrasing for one commit, and with the abbreviated filter description for two, and because the repo has been bitten before by a requirement outgrowing its mechanism (BL-111 finding #4).
 
 ---
 
