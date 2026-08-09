@@ -1,5 +1,38 @@
 [
   {
+    "id": "minerva",
+    "codeName": "Minerva",
+    "industry": "Utility Billing SaaS",
+    "theme": "Public Sector",
+    "summary": "Cloud-based multi-tenant utility billing SaaS for municipalities and local governments, built on a 10+ year PHP/Yii LAMP monolith with Node.js Lambda services, an early-stage .NET microservice re-platform on Kubernetes, and a secondary Drupal-based municipal website product.",
+    "arr": "$12M",
+    "arrNumeric": 12000000,
+    "currency": "USD",
+    "growthStage": "Scaling Growth",
+    "year": 2025,
+    "technologies": [
+      "PHP 7.4",
+      "Yii Framework",
+      "Percona XtraDB",
+      "AWS ECS",
+      "AWS Lambda",
+      "Node.js",
+      "Kubernetes (EKS)",
+      ".NET",
+      "Redis",
+      "HAProxy",
+      "Terraform",
+      "Ansible",
+      "Drupal",
+      "OSSEC",
+      "AWS GuardDuty"
+    ],
+    "engagementType": "Technical Diligence",
+    "challenge": "Assessing whether the target's cloud-native architecture, infrastructure, organization, and processes can support the acquirer's expected revenue growth without disproportionate investment, and whether its interfaces and organization can facilitate smooth integration with the acquirer's data platform.",
+    "solution": "Found technology appropriate for current needs (99.5%+ availability, 4.8/5 CSAT) but flagged scaling limits from a shared OLTP/OLAP database bottleneck, no asynchronous processing (1hr+ synchronous report calls), unsupported PHP 7.4, 2,104 third-party library vulnerabilities, no penetration testing, limited APIs hindering product integration, and parent-provided security controls the acquirer must replace post-close.",
+    "engagementCategory": "Buy-Side"
+  },
+  {
     "id": "endurance",
     "codeName": "Endurance",
     "industry": "E-Commerce & Dropship Marketplace",
