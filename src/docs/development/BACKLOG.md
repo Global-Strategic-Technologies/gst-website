@@ -317,6 +317,9 @@ So: **filter chips, segmented controls, drawer/search closes, header nav links, 
 
 - **Carry forward the existing guard's documented precision limit**: it counts a class as defined if the name appears in any selector anywhere, including as a descendant qualifier. A site-wide version inherits that, so it will not catch a class defined only under a parent it never actually sits inside.
 - Scope question to settle first: reuse the 22-route axe list from BL-096, or scan a narrower set. The 22 routes are already paid for as a Playwright fixture.
+- **Count files, then count routes — they diverge.** BL-114's 10 tokens sat in 8 files, but one was `Hero.astro`, a shared component rendering on five routes (`index`, `about`, `services`, `404`, `500`). A file-count reading of that recurrence understates the reach, and this guard is scoped by route, not by file.
+
+---
 
 ### BL-094: Off-scale font-size literals — type-scale ruling + sweep (deferred)
 
