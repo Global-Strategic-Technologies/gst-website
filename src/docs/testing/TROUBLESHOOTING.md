@@ -104,7 +104,7 @@ See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readin
 
 **Likely cause:** A second vitest process running concurrently — an agent, an IDE test runner, or another terminal starting a run while one is already going. Read this together with the measured negative below: concurrency correlates with most sightings but has never been made to reproduce it on demand, so it is the first thing to rule out, not the established cause.
 
-**The mechanism is not established.** Candidates include Vite's dep-optimizer rewriting `node_modules/.vite/deps` mid-run, and two vitest instances leaving the runner's worker state undefined (which is what a `reading 'config'` TypeError at `describe` usually smells like). Note the two workspaces have **separate** caches — `node_modules/.vite` and `mcp-server/node_modules/.vite` — so a root `npm run test:run` concurrent with `npm run test:mcp` shares no cache at all, and a shared-cache story cannot explain that pairing. Treat concurrency as the observed trigger and the rest as explanation, not evidence.
+**The mechanism is not established.** Candidates include Vite's dep-optimizer rewriting `node_modules/.vite/deps` mid-run, and two vitest instances leaving the runner's worker state undefined (which is what a `reading 'config'` TypeError at `describe` usually smells like). Note the two workspaces have **separate** caches — `node_modules/.vite` and `mcp-server/node_modules/.vite` — so a root `npm run test:run` concurrent with `npm run test:mcp` shares no cache at all, and a shared-cache story cannot explain that pairing. Treat everything in this paragraph as explanation, not evidence — and see § What was measured below before treating concurrency itself as settled, because it is not.
 
 **Phase first:** the failure is at _collection_ — zero tests gathered, so no assertion ever executed. A broken import or a bad config does the same, so the phase narrows it without settling it. These three do the discriminating:
 
@@ -114,17 +114,40 @@ See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readin
 
 **Solution:** Ensure only one vitest process is running, then re-run. If it persists across serial runs, it is not this — treat it as a real failure and debug the import graph.
 
-**Concurrency alone does not reproduce it — measured 2026-08-09, ~150 attempts, zero reproductions.** Three shapes were run deliberately against `npm run test:docs`, each capturing full output rather than re-running on failure:
+#### What was measured on 2026-08-09
 
-| Shape                                                              | Attempts            | Reproduced |
-| ------------------------------------------------------------------ | ------------------- | ---------- |
-| Concurrent with `npm run test:mcp` (different vitest project)      | 40                  | 0          |
-| Two concurrent `npm run test:docs` (**same** project + dep cache)  | 12 pairs            | 0          |
-| Concurrent with `npx astro check` (content sync + type generation) | 6 rounds × up to 15 | 0          |
+**The signature, finally captured.** Every prior sighting was lost to a re-run. This one was redirected to a file first:
 
-So "a second vitest process" is **necessary-at-most, not sufficient** — and the same-project pairing was the sharpest test available, since it is the one shape that genuinely shares `node_modules/.vite`. Whatever the trigger is, plain contention in these three shapes is not it. Do not spend time re-running these; they are done. What is still unmeasured: an IDE test runner (different process supervisor), a run interrupted mid-collection, and low-disk or antivirus interference on Windows.
+```
+RUN  v4.1.10 c:/Code/gst-website
+ ❯ tests/integration/docs-variables-sync.test.ts (0 test)
+ ❯ tests/integration/docs-link-integrity.test.ts (0 test)
+ FAIL  tests/integration/docs-link-integrity.test.ts
+TypeError: Cannot read properties of undefined (reading 'config')
+ ❯ tests/integration/docs-link-integrity.test.ts:359:1
+ Test Files  2 failed (2)   Tests  no tests
+ Duration  265ms (transform 58ms, setup 0ms, import 0ms, tests 0ms)
+```
 
-**This does not overturn concurrency as the observed correlation, but the correlation is weaker than it looked.** Of three sightings on 2026-08-09, **two** coincided with a subagent running vitest in the same directory and **one did not** — the running-process list at the time held nothing newer than the previous day. So concurrency is present in most sightings, absent in at least one, and insufficient in ~150 controlled attempts. A negative reproduction narrows a claim; it does not refute an observation — but neither should the observation be stated more strongly than the count supports.
+`import 0ms` and `tests 0ms` are the tell: nothing was ever imported. The line number is the file's final `describe`, not a real fault site.
+
+**A discriminator worth running — it costs one command.** Within the same failing run, files that `import { describe, it, expect } from 'vitest'` fail at their first `describe`; files relying on `globals: true` collect normally. Run one of each: if the split follows import shape rather than file content, it is this failure and not a broken test.
+
+**Concurrency does not reproduce it on demand.** Three shapes, each capturing full output rather than re-running:
+
+| Shape                                                              | Attempts           | Reproduced |
+| ------------------------------------------------------------------ | ------------------ | ---------- |
+| Concurrent with `npm run test:mcp` (different vitest project)      | 40                 | 0          |
+| Two concurrent `npm run test:docs` (**same** project + dep cache)  | 12 pairs           | 0          |
+| Concurrent with `npx astro check` (content sync + type generation) | 6 rounds, ≤15 each | 0          |
+
+Between 58 and 154 executed runs — the third row is bounded, not exact, and in an entry about evidentiary precision that distinction is the point. The same-project pairing is the sharpest of the three, being the only one that genuinely shares the root `node_modules/.vite`; the cross-workspace pairing shares no cache at all, per the caches note above.
+
+**Ruled out by experiment**: drive-letter case of the cwd (`c:` vs `C:` in the RUN header differs between failing and passing runs, but 3/3 pass from a lowercase cwd with a warm cache); pool choice (`forks` and `threads` both fail); `--no-file-parallelism` (fails _more_ files, not fewer); the tool sandbox; duplicate vitest installs (single 4.1.10, no nested copies).
+
+**Leading candidate, unproven: a cold or mid-rewrite `node_modules/.vite`.** The captured failure came on the first run after that directory was deleted, and the next run passed. That is consistent with the dep-optimizer story and would explain both the self-healing re-run and why concurrency correlates — a second process can invalidate the cache. It is **not** established: the decisive experiment is to delete `node_modules/.vite` and run immediately, which was not run here (`rm -rf` is a denied command shape in this repo's agent policy — ask a human to run it). Note `npx vitest run --force` is **not** a substitute; `--force` is not a vitest 4 flag and exits 1 on the CLI parse, which is easily misread as a reproduction.
+
+**On the correlation.** Of three sightings that day, **two** coincided with a subagent running vitest in the same directory and **one did not** — the process list held nothing newer than the previous day. Concurrency is present in most sightings, absent in at least one, and insufficient in every controlled attempt. Treat it as the first thing to rule out, not the cause.
 
 **Related:** ["npm run test:all hangs or times out"](#npm-run-testall-hangs-or-times-out) covers resource exhaustion _within_ one run; this entry is contention _between_ runs.
 
