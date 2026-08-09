@@ -13,7 +13,7 @@
 ## Current manifest hash
 
 ```
-ccda7822a34aa22d2f43fe1c7559c68ea7f992b3be1092fb58c6e6f200cd0d70
+fdc5c599fa55317ed127849b500c20fbdabc1346973debba8659fe9464df087d
 ```
 
 Computed over (sorted):
@@ -22,7 +22,7 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.0` (Step 3 no longer instructs a `limit` that exceeds a client ceiling — see the 0.47.0 stanza below), and `gst_radar_brief_today` at `0.0.4` (degraded-path discriminator made structural so it works on the Worker — see the 0.48.0 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.1` (worked-example client deidentified as SanFran — see the 0.48.1 stanza below), and `gst_radar_brief_today` at `0.0.4` (degraded-path discriminator made structural so it works on the Worker — see the 0.48.0 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
@@ -30,6 +30,16 @@ the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
 
 ---
+
+## 0.48.1 — 2026-08-08 — worked-example client deidentified as SanFran
+
+**`gst_irl_ingestion` 0.22.0 → 0.22.1.** No directive, gate, argument, tool, or Resource URI changes; the manifest hash moves solely on that prompt's `name@version` tuple.
+
+**Who this affects**: no one behaviorally. The engagement previously named as the worked-example client throughout prompt bodies, tool-schema `.describe()` examples, source comments, and docs is a real client, and the name (with associated revenue figures and board-report citations) was being served over the wire in `prompts/get` bodies and `tools/list` schema descriptions. All occurrences repo-wide are renamed to the engagement code name **SanFran**; the figures and citations themselves are unchanged, so every empirical rationale those examples document still holds.
+
+**Why a version bump for a rename**: the prompt-body hash guard is deliberately byte-brittle, and the rename changes body bytes in the Step 3 worked examples and extraction-rules directives. Per the BL-032/BL-043 prompt-iteration discipline, any body change lands with a version bump and lockstep hash updates (`irl-ingestion-body-hash-stability.test.ts` six scenario hashes + the manifest hash above).
+
+**Rollback**: revert the commit; no data or transport implications.
 
 ## 0.48.0 — 2026-08-07 — `gst_radar_brief_today` renders on the Worker, and its degraded path stops giving remote clients local advice
 
@@ -499,7 +509,7 @@ Independently fixes the precheck-iteration emission damage — Part B (prompt-re
 
 **Theme**: closes a structural bug in prompt-argument validation. Per the MCP wire protocol, prompt `arguments` are typed as `Record<string, string>` — every value the client sends is a string regardless of the conceptual type. Claude Desktop's slash-command form renders boolean fields as plain text inputs and ships `"true"` / `"TRUE"` / `"false"` rather than the JSON boolean. Pre-0.30.4, the `gst_irl_ingestion` prompt's `requireVerbatimBody: z.boolean().optional()` field rejected every string form with `expected boolean, received string`. The `arrayFromWire` / `numberFromWire` / `enumFromWire` adapters already existed at [`mcp-server/src/prompts/wire-shape.ts`] for the array / number / enum cases; the boolean case was missing.
 
-Operator hit this on 2026-06-07 when invoking `/gst_irl_ingestion` from Claude Desktop with the StoreForce partner-paste body:
+Operator hit this on 2026-06-07 when invoking `/gst_irl_ingestion` from Claude Desktop with the SanFran partner-paste body:
 
 ```
 Message from server: { error: { code: -32602,
@@ -1131,7 +1141,7 @@ The BL-045-VERIFY block lacked the signal to disambiguate. BL-052 adds it.
 
 ## 0.14.0 — 2026-06-04 — BL-051 — envelope precheck via `validate_irl_provenance` (citation iteration on the fast tool before the heavyweight one)
 
-**Theme**: the v12 StoreForce live exercise empirically established that the `compose_dossier_envelope` tool's input dictation cost (~30KB of claims + gaps + filledIrl + meta JSON) is the workflow throughput bottleneck. When the model iterates citation correctness directly on the envelope, each correction round re-dictates the entire input — minutes per cycle for a per-claim verdict refinement that is fundamentally small. BL-051 redirects the convergence loop to `validate_irl_provenance` (the purpose-built fast verifier — minimal input, per-claim verdict output), then calls the envelope ONCE on the clean set. Net effect: 1 envelope call instead of 2-5, verification rate lifts (each unverified claim got a real correction opportunity), workflow ships minutes faster.
+**Theme**: the v12 SanFran live exercise empirically established that the `compose_dossier_envelope` tool's input dictation cost (~30KB of claims + gaps + filledIrl + meta JSON) is the workflow throughput bottleneck. When the model iterates citation correctness directly on the envelope, each correction round re-dictates the entire input — minutes per cycle for a per-claim verdict refinement that is fundamentally small. BL-051 redirects the convergence loop to `validate_irl_provenance` (the purpose-built fast verifier — minimal input, per-claim verdict output), then calls the envelope ONCE on the clean set. Net effect: 1 envelope call instead of 2-5, verification rate lifts (each unverified claim got a real correction opportunity), workflow ships minutes faster.
 
 **Surface impact** (minor — additive prompt-body directive; no schema/code change):
 
@@ -1153,7 +1163,7 @@ The BL-045-VERIFY block lacked the signal to disambiguate. BL-052 adds it.
 
 ## 0.13.1 — 2026-06-04 — BL-049 partial revert — strand the unreachable xlsx/HMAC infrastructure; preserve the empirically-validated pieces
 
-**Theme**: the BL-049 v12 StoreForce live exercise (2026-06-04) revealed that the **HMAC-receipt + xlsx-canonicalized branch is structurally unreachable in the standard Claude Desktop + stdio topology**. The model executes in Anthropic's cloud-side Linux compute sandbox; the MCP server runs on the operator's host (Windows in this run). Attached files live in the model's sandbox at paths like `/mnt/user-data/uploads/...` that the host MCP server cannot read. Both delivery paths the BL-049 design assumed fail:
+**Theme**: the BL-049 v12 SanFran live exercise (2026-06-04) revealed that the **HMAC-receipt + xlsx-canonicalized branch is structurally unreachable in the standard Claude Desktop + stdio topology**. The model executes in Anthropic's cloud-side Linux compute sandbox; the MCP server runs on the operator's host (Windows in this run). Attached files live in the model's sandbox at paths like `/mnt/user-data/uploads/...` that the host MCP server cannot read. Both delivery paths the BL-049 design assumed fail:
 
 - `xlsxBase64`: the model's tool-call construction truncates strings >~10KB; ~65KB workbooks fail with `Bad compressed size` ZIP errors.
 - `xlsxPath`: the cross-host filesystem boundary — the Windows server cannot resolve a Linux sandbox path.
@@ -1202,7 +1212,7 @@ Surface impact (additive prompt-body directive expansion, no schema/code change)
 
 Prompt: 0.5.2 → 0.5.3 (patch — additive directive clarity, no contract change). Server stays at 0.13.1. Body hashes + manifest hash rebaselined.
 
-**Theme**: closes the two real failure modes the v11 StoreForce live exercise empirically exposed (after re-grounding the original "30 false-positive tier-mismatch" thesis against the actual transcript — see [`src/docs/development/_archive/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`](../src/docs/development/_archive/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) § "Empirical trace — v11 actual outcome"):
+**Theme**: closes the two real failure modes the v11 SanFran live exercise empirically exposed (after re-grounding the original "30 false-positive tier-mismatch" thesis against the actual transcript — see [`src/docs/development/_archive/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md`](../src/docs/development/_archive/MCP_SERVER_IRL_XLSX_CANONICALIZATION_BL-049.md) § "Empirical trace — v11 actual outcome"):
 
 - **Finding A — operator-flow ambiguity.** When xlsx is attached but no `filledIrl` arg is supplied, the model improvises a body. v11's Call 1 passed the blank canonical IRL template; verifier correctly rejected 30 IRL-cited claims. Call 2 (self-correction with the populated body) was prepared but never fired. **Closed by `extract_irl_from_xlsx`** — gives the model an authoritative canonical body so Call 1 IS the successful call.
 - **Finding B — tier-discipline gaming.** Inspecting Call 2's prepared input revealed the model demoted **17 originally-tier-1 claims to tier-2** between calls — converting damning `tier-mismatch:` gaps into routine `provenance-gap:` ones. The tier field was model-declared with no server enforcement. **Closed by `tier-fabrication:` auto-append** — the verifier derives effective tier from citation properties (substring → tier-1-literal; `Section --` sentinel → partner-supplied; neither → fabrication); demoting to tier-2 with a non-substring excerpt now produces `tier-fabrication:` instead of being silently absorbed.
@@ -1255,7 +1265,7 @@ Prompt: 0.5.2 → 0.5.3 (patch — additive directive clarity, no contract chang
 
 ## 0.11.0 — 2026-06-03 — BL-045 PR B post-audit forcing-function tightening — `compose_dossier_envelope` tool
 
-**Theme**: closes the dossier-rendering compliance gap empirically exposed by the v8 + v9 StoreForce live runs. v9 produced A-grade content but no top-of-dossier meta JSON fence, no per-section `audit:` fences, and no `(K)` provenance footer — the verbose-mode body-rewrite 2/N + 3/N rendering directives were treated as descriptive context, not as a procedure. **Same finding the v2/v3/v4 dimension-layer traces produced**, now at the rendering layer.
+**Theme**: closes the dossier-rendering compliance gap empirically exposed by the v8 + v9 SanFran live runs. v9 produced A-grade content but no top-of-dossier meta JSON fence, no per-section `audit:` fences, and no `(K)` provenance footer — the verbose-mode body-rewrite 2/N + 3/N rendering directives were treated as descriptive context, not as a procedure. **Same finding the v2/v3/v4 dimension-layer traces produced**, now at the rendering layer.
 
 **The fix** — apply the architectural pattern that solved the dimension-layer fabrication risk: externalize the structure into a tool input. The model can't compose the dossier without the envelope because the envelope IS what the model has to call the tool to produce.
 
@@ -1313,7 +1323,7 @@ Prompt: 0.5.2 → 0.5.3 (patch — additive directive clarity, no contract chang
 **Surface impact**: **Additive**. One new MCP tool registered at server boot; no existing tool changed.
 
 - New tool `validate_irl_provenance` — pure function (no engine call, no Hub deeplink). Input: `{ filledIrl, citations: [{ path, citation }] }`. Output: per-citation verdict bucketed into `verified` / `verified-fuzzy` / `partner-supplied` / `unverified` plus aggregate counts.
-- Matching engine in `src/schemas/validate-irl-provenance.ts` exposes pure `runIrlProvenanceCheck(input)` for unit testing in isolation from the MCP transport. Algorithm: normalize both texts (lowercase, strip markdown noise, flatten dashes, collapse whitespace), test verbatim substring → `verified`. On miss, find the longest contiguous-word run from the excerpt that appears in the IRL; if ≥ `FUZZY_MIN_RUN` (8) → `verified-fuzzy`. Otherwise `unverified`. The 8-word threshold is empirically calibrated from the StoreForce v5+ runs (real paraphrasings ≥12; fabrications ≤4).
+- Matching engine in `src/schemas/validate-irl-provenance.ts` exposes pure `runIrlProvenanceCheck(input)` for unit testing in isolation from the MCP transport. Algorithm: normalize both texts (lowercase, strip markdown noise, flatten dashes, collapse whitespace), test verbatim substring → `verified`. On miss, find the longest contiguous-word run from the excerpt that appears in the IRL; if ≥ `FUZZY_MIN_RUN` (8) → `verified-fuzzy`. Otherwise `unverified`. The 8-word threshold is empirically calibrated from the SanFran v5+ runs (real paraphrasings ≥12; fabrications ≤4).
 - `Section --` + `partner-supplied form input` dual-marker discipline classifies kickoff/handoff partner-form citations as `partner-supplied` (no IRL anchor expected).
 
 **Intended caller**: the model invokes this during its (K) provenance footer + provenance-citation self-check pass, supplying the load-bearing citations from `_audit` blocks. Unverified verdicts feed (J) gap-list `provenance-gap:` entries — the model either removes the dossier claim or honestly marks it open.
@@ -1393,7 +1403,7 @@ Prompt: 0.5.2 → 0.5.3 (patch — additive directive clarity, no contract chang
 
 ## 0.6.0 — 2026-06-03 — BL-045 PR B body rewrite (1/N): wrong-IRL detector pre-flight + (J) gap list + extract-only mode dispatch
 
-**Theme**: with the audit architecture empirically validated across 7 StoreForce runs, BL-045 PR B's remaining work is the design doc's body-rewrite scope. This commit lands the first batch: a structural fill-ratio pre-flight that fires BEFORE any extraction, a (J) gap-list directive emitted in every dossier, and a working `mode: 'extract-only'` dispatch through a new `buildExtractOnlyBody`.
+**Theme**: with the audit architecture empirically validated across 7 SanFran runs, BL-045 PR B's remaining work is the design doc's body-rewrite scope. This commit lands the first batch: a structural fill-ratio pre-flight that fires BEFORE any extraction, a (J) gap-list directive emitted in every dossier, and a working `mode: 'extract-only'` dispatch through a new `buildExtractOnlyBody`.
 
 **Surface impact**: **None — additive prompt-body change**. Behavior:
 
@@ -1419,7 +1429,7 @@ Specific changes:
 
 ## 0.5.1 — 2026-06-02 — BL-045 PR B Phase 2A: TechPar YTD arithmetic-consistency refinement
 
-**Theme**: the StoreForce v6 dossier (post-`0.5.0`) showed `compute_techpar`'s currency + per-field-annualization audit forces declaration but doesn't enforce that the declared period is _correct_. Model declared `ytdMonths: 4` for StoreForce's Apr-2026 board view (assumed calendar-fiscal Jan-Apr); the IRL's recurring-revenue math (`$2.64M CAD/mo × 3 = $7.92M ≈ $7.86M YTD stated`) implies 3 months. Result: TechPar landed at 38.8% "Healthy, just under the 40% PE ceiling" when the math-correct ytdMonths=3 puts it at ~46% "Above zone, every point compresses EBITDA and exit value." A partner-misleading inversion hidden inside one declared field.
+**Theme**: the SanFran v6 dossier (post-`0.5.0`) showed `compute_techpar`'s currency + per-field-annualization audit forces declaration but doesn't enforce that the declared period is _correct_. Model declared `ytdMonths: 4` for SanFran's Apr-2026 board view (assumed calendar-fiscal Jan-Apr); the IRL's recurring-revenue math (`$2.64M CAD/mo × 3 = $7.92M ≈ $7.86M YTD stated`) implies 3 months. Result: TechPar landed at 38.8% "Healthy, just under the 40% PE ceiling" when the math-correct ytdMonths=3 puts it at ~46% "Above zone, every point compresses EBITDA and exit value." A partner-misleading inversion hidden inside one declared field.
 
 **Surface impact**: **ADDITIVE-required** when `annualizationSource: "ytd-annualized-with-period"`. Adds a required `ytdMathCheck` field to the per-monetary-field audit. Callers that already use the default `irl-annualized-stated` source (the partner-supplied path, including `gst_target_quick_look`) are unaffected.
 
@@ -1431,17 +1441,17 @@ For `compute_techpar`:
   - `ytdActualReportedAmount` — what the IRL says YTD is.
   - `ytdActualReportedCitation` — IRL citation for the reported YTD.
 - New handler refinement: `Math.abs(monthlyAnchor × ytdMonths − ytdActualReported) / ytdActualReported` must be ≤ 10%. Rejection diagnostic includes a hinted `ytdMonths` value that would balance the math.
-- For StoreForce: model attempts `ytdMonths: 4` with anchors `$2.64M/mo`, `$7.86M YTD` → handler computes `$10.56M expected vs $7.86M reported, 34% off` → REJECT with hint `ytdMonths = 3 would balance` → model corrects → `$2.64M × 3 = $7.92M ≈ $7.86M, 0.7% off` → ACCEPT → R&D becomes the math-correct $9.68M → TechPar reports ~46% Above zone.
+- For SanFran: model attempts `ytdMonths: 4` with anchors `$2.64M/mo`, `$7.86M YTD` → handler computes `$10.56M expected vs $7.86M reported, 34% off` → REJECT with hint `ytdMonths = 3 would balance` → model corrects → `$2.64M × 3 = $7.92M ≈ $7.86M, 0.7% off` → ACCEPT → R&D becomes the math-correct $9.68M → TechPar reports ~46% Above zone.
 
 **Client migration**:
 
-- `gst_irl_ingestion` Step 4 body updated — worked StoreForce-shape `_audit` example now includes `ytdMathCheck` showing the IRL anchors that balance the math.
+- `gst_irl_ingestion` Step 4 body updated — worked SanFran-shape `_audit` example now includes `ytdMathCheck` showing the IRL anchors that balance the math.
 - `gst_target_quick_look` Step 2 body unaffected — `irl-annualized-stated` defaults don't trip the new refinement.
 - External consumers using `ytd-annualized-with-period` must add `ytdMathCheck`.
 
 **Manifest-hash impact**: unchanged.
 
-**Closes the structural-math gap**: with `0.5.1`, the same fixture should now produce the same TechPar number across runs because the audit metadata both declares the period AND verifies its arithmetic consistency. Cross-run reproducibility becomes empirically testable on the next StoreForce re-test.
+**Closes the structural-math gap**: with `0.5.1`, the same fixture should now produce the same TechPar number across runs because the audit metadata both declares the period AND verifies its arithmetic consistency. Cross-run reproducibility becomes empirically testable on the next SanFran re-test.
 
 **Residual fabrication risk**: model can still fabricate the `monthlyAnchorAmount` value if the citation isn't grounded in the actual IRL body. Phase 2B (`validate_irl_provenance` tool per spec § M6) addresses this — substring-verifies citations against the IRL body. Tracked as the next escalation if v7 reveals citation truthfulness as the remaining failure mode.
 
@@ -1451,7 +1461,7 @@ For `compute_techpar`:
 
 ## 0.5.0 — 2026-06-02 — BL-045 PR B Phase 2: `compute_techpar` audit (currency + per-field annualization)
 
-**Theme**: the StoreForce v5 dossier validated `0.4.0`'s schema enforcement for diligence-agenda + tech-debt — model corrected on first rejection and proceeded with calibrated inputs. But `compute_techpar` was still called with ad-hoc judgments: model converted CAD→USD without declaring a basis, and annualized R&D OpEx from a YTD figure using a different multiplier on each run (v2 ×4 = $9.68M, v3 ×1.2 = $2.9M, v5 ad-hoc = $3.2M — same fixture, three different R&D-as-%-of-ARR readings, swung TechPar zone classification). Per CLAUDE.md § 4a (no deferred tech debt), this is addressed in PR B, not tracked.
+**Theme**: the SanFran v5 dossier validated `0.4.0`'s schema enforcement for diligence-agenda + tech-debt — model corrected on first rejection and proceeded with calibrated inputs. But `compute_techpar` was still called with ad-hoc judgments: model converted CAD→USD without declaring a basis, and annualized R&D OpEx from a YTD figure using a different multiplier on each run (v2 ×4 = $9.68M, v3 ×1.2 = $2.9M, v5 ad-hoc = $3.2M — same fixture, three different R&D-as-%-of-ARR readings, swung TechPar zone classification). Per CLAUDE.md § 4a (no deferred tech debt), this is addressed in PR B, not tracked.
 
 **Surface impact**: **BREAKING** for any consumer that called `compute_techpar` with the legacy input shape. The tool now requires a sibling `_audit` field carrying currency-basis declaration + per-monetary-field annualization provenance.
 
@@ -1471,7 +1481,7 @@ For `compute_techpar`:
 
 **Client migration**:
 
-- `gst_irl_ingestion` Step 4 body migrated — directs the model to supply a worked StoreForce-shape `_audit` example showing CAD→USD conversion + per-field annualization with `ytdMonths`.
+- `gst_irl_ingestion` Step 4 body migrated — directs the model to supply a worked SanFran-shape `_audit` example showing CAD→USD conversion + per-field annualization with `ytdMonths`.
 - `gst_target_quick_look` Step 2 body migrated — directs the model to supply Tier-3 partner-supplied defaults (`monetaryBasis.currency: USD`, `annualizationSource: irl-annualized-stated` for fields sourced from form input).
 - External consumers calling `compute_techpar` directly must upgrade their payloads.
 
@@ -1487,7 +1497,7 @@ For `compute_techpar`:
 
 ## 0.4.0 — 2026-06-02 — BL-045 PR B Option A′: tool-schema enforcement of calibration clauses
 
-**Theme**: three rounds of body-level enforcement (v2/v3/v4) failed to make the model apply BL-045's calibration clauses (currency normalization, headcount scope, dataSensitivity bucket boundaries, growthStage Tier discipline, MTTR-OPEN guard). Real-world testing against a client IRL (StoreForce, 2026-06-02) showed the model treats prompt-body directives as descriptive context, not as a procedure to execute. This PR moves enforcement from prompt body to the tool-input-schema layer, where MCP-SDK rejection of malformed payloads forces the model to retry with conformant inputs.
+**Theme**: three rounds of body-level enforcement (v2/v3/v4) failed to make the model apply BL-045's calibration clauses (currency normalization, headcount scope, dataSensitivity bucket boundaries, growthStage Tier discipline, MTTR-OPEN guard). Real-world testing against a client IRL (SanFran, 2026-06-02) showed the model treats prompt-body directives as descriptive context, not as a procedure to execute. This PR moves enforcement from prompt body to the tool-input-schema layer, where MCP-SDK rejection of malformed payloads forces the model to retry with conformant inputs.
 
 **Surface impact**: **BREAKING** for any consumer that called `generate_diligence_agenda` or `estimate_tech_debt_cost` with the legacy input shape. Both tools now require a sibling `_audit` field carrying per-dimension provenance + calibration metadata.
 
@@ -1516,7 +1526,7 @@ For `estimate_tech_debt_cost`:
 
 **Manifest-hash impact**: unchanged at `84fd0dbd66ea7a78b2de516b0c7f8f7abe5a68eb1f1f99360aaa45145231647e` (prompt `name@version` tuples + URI sets — neither changes here). Tool input schemas changed but they don't contribute to the manifest hash.
 
-**Behavior verification**: see [BL-045 PR B Option A′ spec](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md) for the empirical hypothesis being tested. Re-test against the StoreForce IRL in Claude Desktop expected to show:
+**Behavior verification**: see [BL-045 PR B Option A′ spec](../src/docs/development/_archive/MCP_SERVER_FILLED_IRL_INGESTION_BL-045_TOOL_SCHEMA_ENFORCEMENT_SPEC.md) for the empirical hypothesis being tested. Re-test against the SanFran IRL in Claude Desktop expected to show:
 
 - revenueRange = `5-25m` (CAD→USD conversion forced)
 - headcount = `1-50` (engineering-only scope forced)

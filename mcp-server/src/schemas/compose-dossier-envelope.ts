@@ -3,7 +3,7 @@
  *
  * **The forcing-function pattern, applied to dossier rendering.**
  *
- * v8 + v9 StoreForce traces showed an empirical pattern identical to
+ * v8 + v9 SanFran traces showed an empirical pattern identical to
  * the v2/v3/v4 dimension-layer findings: the model treats prompt-body
  * directives as descriptive context, not as a procedure. Schema-enforced
  * rules (Phase 1/2/2A) force conformance because rejection at the tool
@@ -102,7 +102,7 @@ const RECONSTRUCTION_SOURCES = new Set<(typeof irlSourceValues)[number]>([
 // (structurally damning) from a generic "we couldn't verify this".
 // BL-049 v11 Finding B (KEPT after v0.13.1 partial revert): tier-fabrication
 // surfaced as its own category to close the demote-to-dodge gaming pattern.
-// Empirically validated in the v12 StoreForce live exercise (2026-06-04):
+// Empirically validated in the v12 SanFran live exercise (2026-06-04):
 // model read the verifier's tier-fabrication diagnostic and chose to re-cite
 // rather than relabel a tier-1 fabrication as tier-2 to dodge the discipline
 // check. The verdict is derived from citation properties (substring +

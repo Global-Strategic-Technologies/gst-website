@@ -374,7 +374,7 @@ const PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE = [
 
 // ─── Shared helper: mandatory envelope-composition directive ───────────
 //
-// Per BL-045 PR B post-audit empirical evidence (v8 + v9 StoreForce
+// Per BL-045 PR B post-audit empirical evidence (v8 + v9 SanFran
 // traces): the model treats body-text directives for meta fence + (J) +
 // (K) as descriptive context, not as a procedure. Same finding the
 // v2/v3/v4 dimension-layer traces produced, now at the rendering layer.
@@ -389,7 +389,7 @@ const PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE = [
 
 // ─── BL-051 — citation-iteration precheck directive ────────────────────
 //
-// Empirically established in the v12 StoreForce live exercise: the
+// Empirically established in the v12 SanFran live exercise: the
 // heavyweight `compose_dossier_envelope` tool's tool-input dictation
 // cost (~30KB JSON: full claims array + gaps + filledIrl + meta) makes
 // per-iteration cycles minute-scale. When the model iterates citation
@@ -681,7 +681,7 @@ function buildOneShotBody(args: {
     '',
     `Step 1 — Extract the 13 diligence dimensions from the IRL, then invoke \`generate_diligence_agenda\` with the dimension values AND the required \`_audit\` sibling that carries per-dimension provenance + calibration metadata. ${UNKNOWN_PROPAGATION_RULE}`,
     '',
-    `**Step 1a — Schema-enforced audit shape (the tool REJECTS calls without it).** The \`generate_diligence_agenda\` tool's input schema requires a sibling \`_audit\` field next to the 13 dimensions. Each dimension's audit entry carries \`tier\` (1/2/3) + \`citation\` (in the form "Section NN — <substantial excerpt>") plus dimension-specific calibration fields. Build the \`_audit\` sibling from the calibration rules in Step 1b below; if the shape or any calibration field is wrong the tool returns \`isError: true\` with the BL-045 rule citation naming exactly what to fix — read it and retry. (Pass \`embedToolWorkedExamples: true\` to inline a full StoreForce-shape example payload here.)`,
+    `**Step 1a — Schema-enforced audit shape (the tool REJECTS calls without it).** The \`generate_diligence_agenda\` tool's input schema requires a sibling \`_audit\` field next to the 13 dimensions. Each dimension's audit entry carries \`tier\` (1/2/3) + \`citation\` (in the form "Section NN — <substantial excerpt>") plus dimension-specific calibration fields. Build the \`_audit\` sibling from the calibration rules in Step 1b below; if the shape or any calibration field is wrong the tool returns \`isError: true\` with the BL-045 rule citation naming exactly what to fix — read it and retry. (Pass \`embedToolWorkedExamples: true\` to inline a full SanFran-shape example payload here.)`,
     ...(embedExamples
       ? [
           '',
@@ -749,7 +749,7 @@ function buildOneShotBody(args: {
     '',
     `Step 4 — Invoke \`compute_techpar\` using the architecture and engineering-cost data from IRL Section 02 + Section 03 + Section 07. Key inputs: engineering FTE count (Section 02), product personnel cost (Section 02), annual build/tooling cost (Section 02), monthly hosting + infra spend (Section 03 — annualize the 3-month average), infrastructure headcount (Section 03), material capex (Section 03), average fully-loaded engineering salary (Section 07). Toggle the capex view per the capex bullet in Section 03. ${ENG_COST_DEDUP_RULE}`,
     '',
-    `**Step 4a — TechPar audit shape (the tool REQUIRES \`_audit\` — schema rejection on missing or wrong shape).** The BL-045 Phase-2 audit enforces TWO things for compute_techpar: (1) a SINGLE declared currency basis for all monetary inputs, and (2) PER-FIELD annualization provenance (no more ad-hoc YTD ×4 vs ×1.2 swings across runs on the same fixture). Follow the Critical anti-fabrication rules below to shape \`_audit\`; on a missing or malformed sibling the tool rejects with a structured BL-045 diagnostic naming the failed field and fix — read it and retry. (Pass \`embedToolWorkedExamples: true\` to inline a full StoreForce-shape example payload here.)`,
+    `**Step 4a — TechPar audit shape (the tool REQUIRES \`_audit\` — schema rejection on missing or wrong shape).** The BL-045 Phase-2 audit enforces TWO things for compute_techpar: (1) a SINGLE declared currency basis for all monetary inputs, and (2) PER-FIELD annualization provenance (no more ad-hoc YTD ×4 vs ×1.2 swings across runs on the same fixture). Follow the Critical anti-fabrication rules below to shape \`_audit\`; on a missing or malformed sibling the tool rejects with a structured BL-045 diagnostic naming the failed field and fix — read it and retry. (Pass \`embedToolWorkedExamples: true\` to inline a full SanFran-shape example payload here.)`,
     ...(embedExamples
       ? [
           '',
@@ -796,7 +796,7 @@ function buildOneShotBody(args: {
     '',
     "1. **Currency basis is SINGLE** — all monetary fields must be in the declared currency. Do NOT mix CAD ARR with USD hosting; the engine's percentage calculations are only meaningful when the basis is consistent. If the IRL gives mixed currencies, pre-convert all to one (typically USD) before submitting.",
     '',
-    '2. **YTD annualization REQUIRES `ytdMonths`** — if a monetary field was annualized from a YTD figure (the most common case for IRLs reporting against a partial fiscal year), the audit DEMANDS you declare how many months of YTD actuals you extrapolated. This is the root cause of the cross-run TechPar swings observed in pre-Phase-2 runs (the same fixture produced 9.1% / 13.9% / 31.2% R&D% depending on ad-hoc annualization). The tool rejects `annualizationSource: "ytd-annualized-with-period"` without `ytdMonths`. To find the YTD period: cross-reference the IRL\'s recurring-revenue monthly figure × YTD months → should equal the YTD total. For StoreForce: recurring $2.64M/mo × 3 = $7.92M YTD ≈ $7.86M YTD → ytdMonths = 3.',
+    '2. **YTD annualization REQUIRES `ytdMonths`** — if a monetary field was annualized from a YTD figure (the most common case for IRLs reporting against a partial fiscal year), the audit DEMANDS you declare how many months of YTD actuals you extrapolated. This is the root cause of the cross-run TechPar swings observed in pre-Phase-2 runs (the same fixture produced 9.1% / 13.9% / 31.2% R&D% depending on ad-hoc annualization). The tool rejects `annualizationSource: "ytd-annualized-with-period"` without `ytdMonths`. To find the YTD period: cross-reference the IRL\'s recurring-revenue monthly figure × YTD months → should equal the YTD total. For SanFran: recurring $2.64M/mo × 3 = $7.92M YTD ≈ $7.86M YTD → ytdMonths = 3.',
     '',
     '3. **Estimation-from-headcount is a valid source** — when no IRL line gives the figure but you can derive it from team size × salary, use `annualizationSource: "estimated-from-headcount"` and show the math in the citation. This is honest extraction.',
     '',
@@ -824,7 +824,7 @@ function buildOneShotBody(args: {
           'Example payload shapes:',
           '',
           '```json',
-          '// StoreForce shape: Section 04 MTTR is OPEN, incidents are sprint-scoped',
+          '// SanFran shape: Section 04 MTTR is OPEN, incidents are sprint-scoped',
           '{',
           '  "teamSize": 42, "salary": 135000, "maintenanceBurdenPct": 30, "deployFrequency": "Quarterly+",',
           '  "incidents": null, "mttrHours": null, "remediationBudget": 0, "remediationPct": 0,',
@@ -1068,7 +1068,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.22.0',
+  version: '0.22.1',
   lastReviewedAt: '2026-08-06',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,

@@ -289,16 +289,25 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // tool-result ceiling (BL-109). The prompt was instructing a call that lands past a
 // known failure point, in a client-facing dossier workflow. Same 3 one-shot hashes
 // drift; the interactive body carries no Step 3 worked example.
+//
+// Deidentification rebaseline (prompt v0.22.0 → v0.22.1, server 0.48.1): the
+// engagement previously named as the worked-example client is a real client;
+// all occurrences were renamed to the SanFran code name. Byte-only rename in
+// the Step 3 / extraction-rules worked examples — no directive or semantic
+// change, so by this file's own rule the edit is bump-optional; the bump was
+// taken anyway because the served bytes changed in a client-visible surface
+// and the discipline pins every served-body change to a version. 6 of 7
+// hashes drift (the interactive body carries no worked examples).
 const EXPECTED_HASH_INTERACTIVE =
   'de70481c9ef59babc8bd2282c2d0867d25833e944fb42547771b3c66132e881c';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '9dc42acfe7c817eee6d2934c24b2f1dda503d176fa179b031ab44b57de4d30b4';
+  '92ce4aa8ec226aa7d235ff9ea65a2ba4d352b7ede2d194784d0ec9b1c757dbc7';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '3aabb53d1e85d7ef61343c98597fc025fac71a582d32de3e20329d39c1a41ecd';
+  '05ed4541c93173bdc3146947a8573a0a62cfb11cfa92c6a00712393c41d5107c';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '6ad7aeb685c273bca6137e5cee65422e93d13c2e7ae91da2cd1b22a61d48dfd3';
+  '4169335982a11a7157c8b20e9264e3d9c1aadc7d4976e15b63ed1d478d3954c2';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '2a7f7e4f85c5342ae6a2955a95cde50adaf7eaff337c4d2b04451db7fc557d03';
+  '0dd46bd5752a28896e992439280c4ed74eb5e170f20164569c3034648723a157';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -308,9 +317,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'd604fc8b2401194311e69f5e1465130f4fe5549ed4a9541b1c5db83da476b085';
+  '603ca5119556a8825123df40aa97fe3019a73f56223a9ad0912c8237299b69d4';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '869175c9fc58193e75d95ffe52d89c3618bcc2d6ff6bc094f8ca10a06604eeff';
+  '0e16346225f8625f7490b56e0836477d3e1341ca03d0c7073b4b3e0aa4db99ee';
 
 interface Scenario {
   name: string;

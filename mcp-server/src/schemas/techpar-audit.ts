@@ -1,7 +1,7 @@
 /**
  * BL-045 PR B Phase 2 — calibration audit for `compute_techpar`.
  *
- * **Why this exists**: the v5 StoreForce run (2026-06-02) demonstrated that
+ * **Why this exists**: the v5 SanFran run (2026-06-02) demonstrated that
  * the `generate_diligence_agenda` + `estimate_tech_debt_cost` audit
  * refinements correctly forced model corrections (CAD→USD, scope,
  * dataSensitivity bucket, MTTR-null) — but `compute_techpar` was still
@@ -93,9 +93,9 @@ const citationSchema = z
 /**
  * Phase 2A arithmetic-consistency check for YTD-annualized fields.
  *
- * **Why this exists**: the v6 StoreForce run (2026-06-02) showed the
+ * **Why this exists**: the v6 SanFran run (2026-06-02) showed the
  * audit forces `ytdMonths` declaration but doesn't enforce the period is
- * correct. Model declared `ytdMonths: 4` for StoreForce's Apr-2026 board
+ * correct. Model declared `ytdMonths: 4` for SanFran's Apr-2026 board
  * view (assumed calendar fiscal Jan-Apr), but the IRL's recurring-revenue
  * math (`$2.64M/mo × 3 = $7.92M ≈ $7.86M YTD stated`) implies 3 months.
  * Result: TechPar landed at 38.8% "Healthy" when the math-correct
@@ -266,7 +266,7 @@ export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechP
           message:
             `_audit.${fieldName}.annualizationSource = "ytd-annualized-with-period" but ytdMathCheck was not supplied. ` +
             `Per Phase 2A, the ytdMonths declaration MUST be cross-validated against an IRL anchor. Supply ytdMathCheck: { monthlyAnchorAmount, monthlyAnchorCitation, ytdActualReportedAmount, ytdActualReportedCitation }. ` +
-            `Example for StoreForce ARR: { monthlyAnchorAmount: 2640000, monthlyAnchorCitation: "Section 00 row 10 — Recurring $2.64M CAD/mo Apr-2026", ytdActualReportedAmount: 7860000, ytdActualReportedCitation: "Section 00 row 10 — $7.86M YTD FY27 recurring" } — the handler then verifies monthlyAnchor × ytdMonths matches reportedYTD within 10%.`,
+            `Example for SanFran ARR: { monthlyAnchorAmount: 2640000, monthlyAnchorCitation: "Section 00 row 10 — Recurring $2.64M CAD/mo Apr-2026", ytdActualReportedAmount: 7860000, ytdActualReportedCitation: "Section 00 row 10 — $7.86M YTD FY27 recurring" } — the handler then verifies monthlyAnchor × ytdMonths matches reportedYTD within 10%.`,
         });
       } else if (fieldAudit.ytdMonths !== undefined) {
         const expected = fieldAudit.ytdMathCheck.monthlyAnchorAmount * fieldAudit.ytdMonths;

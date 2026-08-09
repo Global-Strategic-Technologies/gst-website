@@ -270,7 +270,7 @@ function longestContiguousRun(needleWords: string[], haystackWords: string[]): n
  * vocabulary gives ~1e-24 probability of 8-word match by chance)
  * yet short enough that the model can paraphrase a comma-and-or
  * cleanup without losing verification. Calibration based on the
- * StoreForce live runs: the longest run of matching words between
+ * SanFran live runs: the longest run of matching words between
  * model-paraphrased citations and the IRL was ≥12 in every v5+
  * trace; v2-v4 fabrications had runs ≤4.
  */

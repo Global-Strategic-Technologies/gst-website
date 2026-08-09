@@ -5,7 +5,7 @@
  * (v2/v3/v4) failed to make the model apply BL-045's calibration clauses
  * (currency normalization, headcount scope, dataSensitivity bucket
  * boundaries, growthStage Tier discipline, MTTR-OPEN guard). Empirical
- * evidence over a real client IRL (StoreForce, 2026-06-02) showed the
+ * evidence over a real client IRL (SanFran, 2026-06-02) showed the
  * model treats body directives as descriptive context, not as an
  * executable procedure. See the BL-045 design doc § Output structure
  * and the BL-045 review packet § Axis 1.

@@ -117,7 +117,7 @@
 
 Operator merged PRs #249 (boolean coercion) + #250 (slash-command UI optionality) and ran `/gst_irl_ingestion` against staging with the partner-paste path enabled for the first time end-to-end:
 
-- **`filledIrl.bytes: 45220`** — operator's `storeforce.md` was ~50KB; the model's emission to `prepare_irl_body` shed ~12% of the body bytes silently
+- **`filledIrl.bytes: 45220`** — operator's `sanfran.md` was ~50KB; the model's emission to `prepare_irl_body` shed ~12% of the body bytes silently
 - **`hashBindResult: pass-internal`** — degraded from the target `pass-bound`. The server computed `dc115172758827f7` for the model's emission; the prompt directive's `**Body-binding hash:**` was `cdecc612b6101f82` (computed from `args.filledIrl`). The two don't match because the model can't byte-exact relay 50KB through its output stream.
 - **`provenanceVerification: { total: 19, verified: 14, unverified: 5, tierMismatches: 1, tierFabrications: 3 }`** — 5 load-bearing citations don't substring-match the model's lossy reconstruction (content the model dropped during emission); 1 declared tier-1 doesn't verify; 3 declared tier-2 demote-to-fabrication. Material provenance damage.
 - **`defaultFiredFrameworks` missing CCPA / NIST AI RMF / Canada AIDA** — prior successful runs surfaced these; this run dropped them because Section 09 detail didn't survive emission.
