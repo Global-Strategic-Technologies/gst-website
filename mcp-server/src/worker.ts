@@ -329,7 +329,7 @@ export const handler: ExportedHandler<Env> = {
 
           // Explicit-dispatch guard (BL-032.75 Phase 3 restructure): the
           // radar path below historically ran as the unconditional `else`.
-          // With three registered crons, an unrecognized expression (e.g.
+          // With more than one registered cron, an unrecognized expression (e.g.
           // a wrangler.toml edit that didn't update the matching constant)
           // must NOT silently burn Inoreader budget on the radar path.
           if (event.cron !== RADAR_CRON) {

@@ -1,6 +1,6 @@
 # Sentry Alert Rules — `gst-mcp-server` project
 
-**Purpose**: ship the BL-047 T1 operator-paging surface for Inoreader OAuth failures. This doc is the configure-then-verify runbook for the Sentry-side rules; the Worker-side code that feeds them is already wired (see § 5 Provenance).
+**Purpose**: ship the BL-047 T1 operator-paging surface for Inoreader OAuth failures. This doc is the configure-then-verify runbook for the Sentry-side rules; the Worker-side code that feeds them is already wired (see § 8 Provenance).
 
 **Status**: BL-047 T1 deliverable. Sentry alert rules are configured via the Sentry UI (no in-repo source of truth); the structured events the rules subscribe to are owned by Worker code.
 
@@ -157,7 +157,7 @@ Every alert rule + cron monitor in `gst-7o` was audited against live emit sites 
 
 All changes applied via the REST API with a short-lived personal token and re-verified by reading the rules back through the Sentry MCP integration.
 
-## Removal note — the weekly synthetic heartbeat
+## 7. Removal note — the weekly synthetic heartbeat
 
 > **Removed 2026-08-09.** The BL-047 T1 weekly synthetic heartbeat (Worker cron `0 14 * * 1`, Sentry issue rule 3508841) was deleted as not useful — a weekly Issue and email whose only consumer was the operator confirming it arrived.
 >
@@ -165,7 +165,7 @@ All changes applied via the REST API with a short-lived personal token and re-ve
 >
 > Rule number 4 is intentionally vacant; 5 and 6 keep their numbers because other docs cite "§ 5". Recover the dispatcher and its ISO-week algorithm via `git log -- mcp-server/src/observability/alert-rule-synthetic.ts`.
 
-## 7. Provenance
+## 8. Provenance
 
 - Worker emit sites verified 2026-05-30 against [`inoreader-oauth.ts`](../../lib/inoreader-oauth.ts) HEAD on `feature/bl-047-backlog-cleanup`
 - Sentry UI semantics verified 2026-05-30 against `/getsentry/sentry-docs` via Context7 — trigger menu is issue-lifecycle-only; "tag match" lives under IF/filters; "any of the following" OR's multiple triggers
