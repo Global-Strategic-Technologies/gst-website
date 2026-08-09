@@ -165,8 +165,9 @@ export async function postSentryEvent(
      * evaluator fingerprints per `['slo-alert', ruleId, severity, utcDate]`
      * so each day's first breach of a rule creates a NEW Sentry issue
      * (firing the "new issue" email rule) instead of accumulating on a
-     * long-resolved one — same per-period bucketing rationale as the
-     * weekly alert-rule synthetic.
+     * long-resolved one. The per-period bucketing idea came from the
+     * weekly alert-rule synthetic, removed 2026-08-09; the technique
+     * outlived it.
      */
     fingerprint?: string[];
   }

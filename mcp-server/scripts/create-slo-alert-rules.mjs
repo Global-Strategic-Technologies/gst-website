@@ -5,8 +5,10 @@
  * The Sentry UI's Tagged-event key combobox only offers already-indexed
  * tag keys, and `severity` has never been emitted, so the rules cannot be
  * built in the UI until the first breach fires. The API has no such
- * constraint. Payload shapes mirror the working Rule 4 (synthetic,
- * id 3508841) read back via the Sentry MCP on 2026-07-14.
+ * constraint. Payload shapes were mirrored from a working issue rule
+ * read back via the Sentry MCP on 2026-07-14 — the weekly synthetic
+ * heartbeat, since deleted (2026-08-09). The shapes it supplied are
+ * unaffected; only the rule it was copied from is gone.
  *
  * Auth: $env:SENTRY_API_TOKEN — a USER auth token (Settings → User
  * Settings → Auth Tokens) with scopes: project:read + project:write +
@@ -18,7 +20,10 @@
 const ORG = 'gst-7o';
 const PROJECT = 'gst-mcp-server';
 const BASE = `https://us.sentry.io/api/0/projects/${ORG}/${PROJECT}/rules/`;
-// Operator's Sentry user id — read from Rule 4's email action (2026-07-14).
+// Operator's Sentry user id, read on 2026-07-14 from the email action of
+// the then-existing weekly synthetic heartbeat rule (deleted 2026-08-09).
+// The id is still correct; its provenance is recorded here because the
+// rule it was read from no longer exists to check against.
 const OPERATOR_USER_ID = 4422941;
 
 const token = process.env.SENTRY_API_TOKEN;

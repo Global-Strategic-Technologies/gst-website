@@ -1,8 +1,8 @@
 # Sentry Alert Rules — `gst-mcp-server` project
 
-**Purpose**: ship the BL-047 T1 operator-paging surface for Inoreader OAuth failures, plus the weekly synthetic that proves the path is live. This doc is the configure-then-verify runbook for the Sentry-side rules; the Worker-side code that feeds them is already wired (see § 5 Provenance).
+**Purpose**: ship the BL-047 T1 operator-paging surface for Inoreader OAuth failures. This doc is the configure-then-verify runbook for the Sentry-side rules; the Worker-side code that feeds them is already wired (see § 5 Provenance).
 
-**Status**: BL-047 T1 deliverable. Sentry alert rules are configured via the Sentry UI (no in-repo source of truth); the synthetic + the structured events the rules subscribe to are owned by Worker code.
+**Status**: BL-047 T1 deliverable. Sentry alert rules are configured via the Sentry UI (no in-repo source of truth); the structured events the rules subscribe to are owned by Worker code.
 
 ---
 
@@ -41,44 +41,36 @@ Sentry's "WHEN an issue event is captured and **any** of the following occur" se
 
 This adds a workflow step on the operator side: **after completing recovery, the operator MUST mark the Sentry issue Resolved.** The next failure then re-opens the issue and fires the second trigger.
 
-The synthetic uses a different approach (per-week message variation; see § 3) so it does NOT require manual resolve-after-observation.
-
 ### Pre-flight (one-time setup before writing any rule)
 
 1. **Paging channel decision — email or Slack**. GST currently uses **Sentry's built-in email delivery** as the operator paging channel (Slack workspace is not configured 2026-05-30). Email "just works" with no setup beyond Sentry's per-user notification settings; no integration install required. Use Slack only if/when a `globalstrategic` workspace is set up. The per-rule skeleton below works with either action type; the THEN row notes both.
-2. **Default Issue-feed level filter** — Sentry's Issues view hides `info`-level events by default. The synthetic is `info`, so when verifying it in § 4 you'll need to set the level filter to "All" or query `event:alert-rule-synthetic` directly. The alert rule fires regardless; this only matters for human eyeballs on the Issues page.
-3. **(Slack only — future)** If/when Slack is set up: Sentry → Settings → Integrations → Slack → click `Add Workspace` for `globalstrategic` → click `Configure` → add `#mcp-alerts` to the channel allowlist → in Slack, ensure `@Sentry` is in the channel (`/invite @Sentry`) → pin the channel topic with the DEPLOY.md § C.5 deep-link so operators have the recovery procedure one click away. Without these steps the Slack action's channel dropdown will be empty.
+2. **(Slack only — future)** If/when Slack is set up: Sentry → Settings → Integrations → Slack → click `Add Workspace` for `globalstrategic` → click `Configure` → add `#mcp-alerts` to the channel allowlist → in Slack, ensure `@Sentry` is in the channel (`/invite @Sentry`) → pin the channel topic with the DEPLOY.md § C.5 deep-link so operators have the recovery procedure one click away. Without these steps the Slack action's channel dropdown will be empty.
 
 ## 3. Per-rule configuration
 
-The four rules share the same skeleton and differ only in name + tag filter (and Rule 4 has one extra trigger consideration). Configure each at Sentry → Alerts → Create Alert → **Issues** under "Errors".
+The three rules share the same skeleton and differ only in name + tag filter. Configure each at Sentry → Alerts → Create Alert → **Issues** under "Errors".
 
-### Skeleton (all four rules)
+> **Rule number 4 is intentionally vacant.** It was the weekly synthetic heartbeat, removed 2026-08-09 (see § Removal note). Rules 5 and 6 keep their numbers — they are cited as "§ 5" from `README.md` and `BREAKING_CHANGES.md` and carry live Sentry rule ids.
+
+### Skeleton (all three rules)
 
 | Field                                                      | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Project**                                                | `gst-mcp-server`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **Team**                                                   | (the team that owns mcp-server — typically `#mcp`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **Environment**                                            | `production` (staging deliberately runs no cron per BL-032.7, so these signals are production-only)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **WHEN — Alert Builder → Select a trigger**                | Click `+ Add Trigger` twice and pick **`A new issue is created`** AND **`A resolved issue becomes unresolved`** (the screenshot's "any of the following" semantic OR's them — either fires the alert). Rule 4 only needs the first trigger; see Rule 4 note below.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **WHEN — Alert Builder → Select a trigger**                | Click `+ Add Trigger` twice and pick **`A new issue is created`** AND **`A resolved issue becomes unresolved`** (the screenshot's "any of the following" semantic OR's them — either fires the alert).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | **IF — Filters narrow down which events trigger**          | Leave the `any` / `all` dropdown at the top of the IF block on `all` (single filter — match semantic is unchanged either way for one filter). Click the filter search field (placeholder "Any event") → scroll to the section **"FILTER BY EVENT ATTRIBUTES"** and pick **`Tagged event`** → in the **tag-key dropdown TYPE the literal string `event`** (don't pick from the autocomplete list — the dropdown only suggests tags the project's indexer has already seen, and our custom `event` tag may not appear there until first emit; the field accepts arbitrary text) → match `equals` → value `<rule-specific tag from § 1>`. (Sentry's own docs still write this filter as "The event's tags match" — the UI was renamed to `Tagged event`; verified against the live UI 2026-05-30.) |
-| **THEN — Actions to perform**                              | Pick the action that matches the paging channel from § 2 pre-flight step 1. **Email (default 2026-05-30)**: `+ Add Action` → `Send a notification to Suggested Assignees, Team, or Member` → pick the operator user (your Sentry account). **OR Slack (future)**: `+ Add Action` → `Send a notification to a Slack workspace` → workspace `globalstrategic` → channel `#mcp-alerts` → tags `event, environment, level, year-week` (Slack-only field; email has no tag selector). The `year-week` tag is only relevant for Rule 4; harmless on the others.                                                                                                                                                                                                                                       |
-| **Action frequency — Perform actions at most once every…** | `60 minutes` for Rules 1-3 (per-issue debounce; issue-lifecycle triggers fire infrequently by design so 60 min is sufficient). `1 day` for Rule 4 (defense against an accidental Cloudflare double-firing of the synthetic cron).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **THEN — Actions to perform**                              | Pick the action that matches the paging channel from § 2 pre-flight step 1. **Email (default 2026-05-30)**: `+ Add Action` → `Send a notification to Suggested Assignees, Team, or Member` → pick the operator user (your Sentry account). **OR Slack (future)**: `+ Add Action` → `Send a notification to a Slack workspace` → workspace `globalstrategic` → channel `#mcp-alerts` → tags `event, environment, level` (Slack-only field; email has no tag selector).                                                                                                                                                                                                                                                                                                                           |
+| **Action frequency — Perform actions at most once every…** | `60 minutes` for Rules 1-3 (per-issue debounce; issue-lifecycle triggers fire infrequently by design so 60 min is sufficient).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ### Rule-specific values
 
-| Rule | Alert name                                                                                 | Tag filter value (`event` equals)     | Triggers                                                                       | Action frequency |
-| ---- | ------------------------------------------------------------------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------ | ---------------- |
-| 1    | `MCP — Inoreader refresh-token invalid (re-link required)`                                 | `oauth-refresh-invalid-refresh-token` | `A new issue is created` + `A resolved issue becomes unresolved`               | 60 minutes       |
-| 2    | `MCP — Inoreader refresh-token missing (Worker secret + Upstash both empty)`               | `oauth-refresh-token-missing`         | `A new issue is created` + `A resolved issue becomes unresolved`               | 60 minutes       |
-| 3    | `MCP — Inoreader refresh wrote to Inoreader but Upstash write failed (inconsistent state)` | `oauth-refresh-upstash-write-failed`  | `A new issue is created` + `A resolved issue becomes unresolved`               | 60 minutes       |
-| 4    | `MCP — BL-047 T1 weekly synthetic heartbeat`                                               | `alert-rule-synthetic`                | `A new issue is created` **only** — see "Synthetic — why single-trigger" below | 1 day            |
-
-### Synthetic — why single-trigger
-
-The synthetic dispatcher ([`alert-rule-synthetic.ts`](../../observability/alert-rule-synthetic.ts)) appends the ISO year-week (e.g. `2026-W22`) to the Sentry message text. Sentry groups by message, so each week is a fresh fingerprint → a fresh Issue → `A new issue is created` fires every week.
-
-This was a deliberate design choice. The alternative — pair `A new issue is created` with `A resolved issue becomes unresolved` (same as Rules 1-3) — would require the operator to manually mark the synthetic issue Resolved every Monday. That re-introduces the human-in-the-loop the synthetic was designed to remove. The per-week-message approach keeps the synthetic fully automatic: the operator only acts if the page DOESN'T arrive.
+| Rule | Alert name                                                                                 | Tag filter value (`event` equals)     | Triggers                                                         | Action frequency |
+| ---- | ------------------------------------------------------------------------------------------ | ------------------------------------- | ---------------------------------------------------------------- | ---------------- |
+| 1    | `MCP — Inoreader refresh-token invalid (re-link required)`                                 | `oauth-refresh-invalid-refresh-token` | `A new issue is created` + `A resolved issue becomes unresolved` | 60 minutes       |
+| 2    | `MCP — Inoreader refresh-token missing (Worker secret + Upstash both empty)`               | `oauth-refresh-token-missing`         | `A new issue is created` + `A resolved issue becomes unresolved` | 60 minutes       |
+| 3    | `MCP — Inoreader refresh wrote to Inoreader but Upstash write failed (inconsistent state)` | `oauth-refresh-upstash-write-failed`  | `A new issue is created` + `A resolved issue becomes unresolved` | 60 minutes       |
 
 ### Required workflow for Rules 1-3 — mark Resolved after every recovery
 
@@ -93,30 +85,11 @@ If the issue is left Unresolved after recovery, **future occurrences will NOT pa
 
 **Email (default)**: Sentry sends a standard issue-notification email with subject `[gst-7o] {project} {issue title}` containing the event tags, level, environment, and a link back to the Sentry issue. The recovery procedure lives in the issue body via the link — no extra setup needed.
 
-**Slack (future)**: Sentry's Slack action doesn't accept a freeform template — it always sends its standard event card (title from the event message, project, environment, tags, link to the Sentry issue). The pinned channel topic from pre-flight step 3 covers the recovery-link surface. The card's tag list (configured in the THEN action) carries the rule-specific failure mode via the `event` tag.
+**Slack (future)**: Sentry's Slack action doesn't accept a freeform template — it always sends its standard event card (title from the event message, project, environment, tags, link to the Sentry issue). The pinned channel topic from pre-flight step 2 covers the recovery-link surface. The card's tag list (configured in the THEN action) carries the rule-specific failure mode via the `event` tag.
 
-## 4. Acceptance test — first-firing verification
+## 4. Acceptance test
 
-Operator runs once after PR ship + Sentry rules created, before relying on the rules.
-
-```powershell
-# Force-fire the synthetic from a wrangler dev session (skip waiting until Monday)
-cd c:\Code\gst-website\mcp-server
-npx wrangler dev --env production --remote --test-scheduled
-# In a second terminal:
-curl "http://localhost:8787/__scheduled?cron=0+14+*+*+1"
-# Expected:
-#   - Worker Logs: { event: 'alert-rule-synthetic.dispatch', success: true }
-#   - Sentry: new issue with title "alert-rule-synthetic: weekly heartbeat YYYY-Www", tagged event=alert-rule-synthetic + year-week=YYYY-Www
-#   - Email (default paging channel): standard Sentry issue-notification email
-#     to the assigned operator within ~1-5 min (subject contains the event message)
-#   - Slack (future, only when integration installed): standard Sentry card
-#     in #mcp-alerts within ~1 min, with event:alert-rule-synthetic tag visible
-```
-
-Document the first verified firing date in this section once complete:
-
-> **First verified synthetic firing**: **2026-05-30** — force-fire via `wrangler dev --remote` + `curl /__scheduled?cron=...` (per the procedure above) verified the full path end-to-end: Worker dispatch log (`{event:'alert-rule-synthetic.dispatch', success:true}`) → Sentry Issue (`event:alert-rule-synthetic` in `gst-mcp-server`) → Sentry email notification at the operator's address. Total latency ~1 min from force-fire to email arrival.
+**There is no automated first-firing verification.** Until 2026-08-09 this section documented force-firing the weekly synthetic heartbeat, whose arrival proved the whole chain — Worker → Sentry Issue → alert rule → email. That mechanism was removed (see § Removal note), and with it the only self-serve way to confirm the paging path works without waiting for a genuine failure.
 
 For Rules 1-3, the cheapest production-safe verification is: open `mcp-server/scripts/inoreader-auth.mjs`, intentionally bind an invalid `INOREADER_REFRESH_TOKEN` on **staging only**, observe `oauth-refresh-invalid-refresh-token` event in Sentry → Slack page in `#mcp-alerts`. Then restore the real token. (Staging has no cron so this requires manually invoking the refresh path — `npx wrangler dev --env staging --remote` + the equivalent of a radar tool call. Out of scope for this PR; treat as the BL-047 T2 endpoint-arrival validation moment.)
 
@@ -126,10 +99,10 @@ The `*/15 * * * *` alert-evaluator cron ([`alert-evaluator.ts`](../../observabil
 
 **The two email rules** (✅ created 2026-07-14 — **via the REST API, not the UI**; see the as-built note below):
 
-| #   | Name                                | Rule ID | IF (filters)                                                      | Trigger                                                                                                                                                                     | Action frequency |
-| --- | ----------------------------------- | ------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| 5   | `MCP — SLO alert (page severity)`   | 3706338 | tag `event` equals `slo-alert` AND tag `severity` equals `page`   | "A new issue is created" (single trigger — per-day fingerprints make each day's first breach a NEW issue, per the synthetic's precedent; no manual-resolve workflow needed) | 60 min           |
-| 6   | `MCP — SLO alert (ticket severity)` | 3706339 | tag `event` equals `slo-alert` AND tag `severity` equals `ticket` | "A new issue is created"                                                                                                                                                    | 60 min           |
+| #   | Name                                | Rule ID | IF (filters)                                                      | Trigger                                                                                                                                      | Action frequency |
+| --- | ----------------------------------- | ------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 5   | `MCP — SLO alert (page severity)`   | 3706338 | tag `event` equals `slo-alert` AND tag `severity` equals `page`   | "A new issue is created" (single trigger — per-day fingerprints make each day's first breach a NEW issue; no manual-resolve workflow needed) | 60 min           |
+| 6   | `MCP — SLO alert (ticket severity)` | 3706339 | tag `event` equals `slo-alert` AND tag `severity` equals `ticket` | "A new issue is created"                                                                                                                     | 60 min           |
 
 > **As-built note (2026-07-14) — the UI cannot create these rules; use the script.** The
 > UI's `Tagged event` tag-key field is now a strict combobox constrained to tag keys the
@@ -138,11 +111,11 @@ The `*/15 * * * *` alert-evaluator cron ([`alert-evaluator.ts`](../../observabil
 > slo-alert breaches, the key can't be selected before the first breach ever fires — a
 > bootstrap deadlock. The REST API has no such constraint, so the rules were created via
 > [`scripts/create-slo-alert-rules.mjs`](../../../scripts/create-slo-alert-rules.mjs)
-> (payload shapes mirrored from Rule 4's stored config) and verified by reading them back
+> (payload shapes mirrored from a then-existing issue rule's stored config) and verified by reading them back
 > through the Sentry MCP integration. To recreate or modify them, prefer re-running the
 > script with a freshly-minted **personal token** (Permissions: Alerts = Admin,
 > Project = Read, Organization = Read; **revoke after use**) — this also gives Rules 5-6
-> an in-repo source of truth that the § "Status" header disclaims for Rules 1-4.
+> an in-repo source of truth that the § "Status" header disclaims for Rules 1-3.
 
 **Issue-churn expectation**: a multi-day incident opens one issue per rule per UTC day (fingerprint includes the date). That's intended — each day's email is a re-page. Cooldowns (page 2h / ticket 6h, Upstash `SET NX EX`) bound intra-day volume; worst case across all 7 rules is ≈840 events/month against the 5k free-tier budget.
 
@@ -184,6 +157,14 @@ Every alert rule + cron monitor in `gst-7o` was audited against live emit sites 
 
 All changes applied via the REST API with a short-lived personal token and re-verified by reading the rules back through the Sentry MCP integration.
 
+## Removal note — the weekly synthetic heartbeat
+
+> **Removed 2026-08-09.** The BL-047 T1 weekly synthetic heartbeat (Worker cron `0 14 * * 1`, Sentry issue rule 3508841) was deleted as not useful — a weekly Issue and email whose only consumer was the operator confirming it arrived.
+>
+> **Consequence, accepted knowingly**: nothing now verifies that Rules 1–3 can deliver. They have never fired in production (`lastTriggered: null` at removal), so their notification path is unproven and stays that way until a real incident exercises it. Rules 5–6 share the mechanics and have also never fired, so they prove nothing about delivery either. This is a known posture, not an oversight.
+>
+> Rule number 4 is intentionally vacant; 5 and 6 keep their numbers because other docs cite "§ 5". Recover the dispatcher and its ISO-week algorithm via `git log -- mcp-server/src/observability/alert-rule-synthetic.ts`.
+
 ## 7. Provenance
 
 - Worker emit sites verified 2026-05-30 against [`inoreader-oauth.ts`](../../lib/inoreader-oauth.ts) HEAD on `feature/bl-047-backlog-cleanup`
@@ -191,4 +172,3 @@ All changes applied via the REST API with a short-lived personal token and re-ve
 - Inoreader OAuth contract (the failure shapes the rules subscribe to): [`INOREADER_OAUTH_CONTRACT.md`](./INOREADER_OAUTH_CONTRACT.md)
 - BL-047 stanza (the parent ticket): [`BACKLOG.md` § BL-047](../../../../src/docs/development/BACKLOG.md)
 - Sentry envelope path (how the events get to Sentry): [`sentry-envelope.ts`](../../observability/sentry-envelope.ts)
-- Synthetic dispatcher + ISO-week algorithm: [`alert-rule-synthetic.ts`](../../observability/alert-rule-synthetic.ts) (+ unit tests at [`tests/unit/observability/alert-rule-synthetic.test.ts`](../../../tests/unit/observability/alert-rule-synthetic.test.ts))
