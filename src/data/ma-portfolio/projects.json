@@ -1,5 +1,35 @@
 [
   {
+    "id": "sanfran",
+    "codeName": "SanFran",
+    "industry": "Retail Operations SaaS",
+    "theme": "Retail",
+    "summary": "Retail operating-intelligence platform spanning workforce management, task and retail-ops execution, and employee engagement, emerging from a two-product platform unification and pivoting from workflow software toward an agentic AI decision layer for store performance — labor deployment, task prioritization, manager coaching, and store intervention.",
+    "arr": "$25M",
+    "arrNumeric": 25000000,
+    "currency": "USD",
+    "growthStage": "Expansion Stage",
+    "year": 2026,
+    "technologies": [
+      ".NET",
+      "SQL Server",
+      "React",
+      "Elasticsearch",
+      "Azure",
+      "Azure OpenAI",
+      "GitHub Copilot",
+      "Claude Code",
+      "Azure Data Factory",
+      "Azure Postgres + PG Vector (target)",
+      "Cube.js (semantic layer)",
+      "MCP"
+    ],
+    "engagementType": "Value Creation",
+    "challenge": "A PE-backed retail SaaS platform exiting a consuming two-product unification with a strong directional AI thesis but pre-execution reality: analytics running live against transactional SQL Server with no warehouse, star schema, semantic layer, or data engineers; ~500 runtime KPI functions and a custom C# reporting engine blocking cloud-database migration; SDLC velocity unmeasured with QA as a downstream gate; and product judgment concentrated in a single strategist. The mandate: chart the company-level AI and data strategy that converts fifteen years of operating data into a defensible decision layer — and present investors one funded execution story rather than a backlog.",
+    "solution": "Delivered a standalone AI and data strategy assessment and path forward: a current-state diagnosis across four postures (AI strategy coherent but pre-execution, data architecture directional, engineering transitional, org at-risk); an evidence-based competitive benchmark of seven workforce-management vendors built on eight expert interviews, showing the highest-value capability gaps — KPI-to-recommendation, conversational task creation, data explainability — still open market-wide and precisely the ones an agentic layer can own; four guiding policies (own the closed loop, build the evidence base, shift the SDLC left, unify the operating model); a six-layer agentic platform architecture with a proprietary operating-memory intelligence layer as the moat; and seventeen shovel-ready initiatives across quick wins and foundational bets, each mapped to five value-creation levers with a committed six-initiative core, quantified against a $2.8M/yr technical-debt drag absorbing ~12.6 engineering FTEs. Included go-forward org design, data-warehouse and agentic-vendor landscape evaluation, a risk register, and a three-horizon roadmap sequenced against the platform-unification milestone.",
+    "engagementCategory": "Sell-Side"
+  },
+  {
     "id": "dynamo",
     "codeName": "Dynamo",
     "industry": "Industrial Inspection Technology",
