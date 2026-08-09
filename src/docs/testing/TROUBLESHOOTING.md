@@ -104,7 +104,7 @@ See [TEST_BEST_PRACTICES.md #26](./TEST_BEST_PRACTICES.md#26--source-side-readin
 
 **Likely cause:** A second vitest process running concurrently — an agent, an IDE test runner, or another terminal starting a run while one is already going. Read this together with the measured negative below: concurrency correlates with most sightings but has never been made to reproduce it on demand, so it is the first thing to rule out, not the established cause.
 
-**The mechanism is not established.** ~~Vite's dep-optimizer rewriting `node_modules/.vite/deps` mid-run~~ — **refuted 2026-08-09; see § What was measured, that directory does not exist here in either regime.** The surviving candidate is two vitest instances leaving the runner's worker state undefined (which is what a `reading 'config'` TypeError at `describe` usually smells like). Note the two workspaces have **separate** caches — `node_modules/.vite` and `mcp-server/node_modules/.vite` — so a root `npm run test:run` concurrent with `npm run test:mcp` shares no cache at all, and a shared-cache story cannot explain that pairing. Treat everything in this paragraph as explanation, not evidence — and see § What was measured below before treating concurrency itself as settled, because it is not.
+**The mechanism is not established.** ~~Vite's dep-optimizer rewriting `node_modules/.vite/deps` mid-run~~ — **refuted 2026-08-09; see § What was measured, that directory does not exist here in either regime.** A second candidate — two vitest instances leaving the runner's worker state undefined, which is what a `reading 'config'` TypeError at `describe` usually smells like — is **still listed but does not account for the evidence either**: one sighting had no concurrent vitest at all, and it says nothing about why the failure splits by import shape _within a single run_. **No candidate currently survives the record.** Eliminating one did not promote the other; the list was never known to be exhaustive. Note the two workspaces have **separate** caches — `node_modules/.vite` and `mcp-server/node_modules/.vite` — so a root `npm run test:run` concurrent with `npm run test:mcp` shares no cache at all, and a shared-cache story cannot explain that pairing. Treat everything in this paragraph as explanation, not evidence — and see § What was measured below before treating concurrency itself as settled, because it is not.
 
 **Phase first:** the failure is at _collection_ — zero tests gathered, so no assertion ever executed. A broken import or a bad config does the same, so the phase narrows it without settling it. These three do the discriminating:
 
@@ -150,6 +150,8 @@ Verbatim, both FAIL stanzas included — an abridged version of this block was c
 
 **A discriminator worth running — it costs one command.** Within the same failing run, files that `import { describe, it, expect } from 'vitest'` fail at their first `describe`; files relying on `globals: true` collect normally. Run one of each: if the split follows import shape rather than file content, it is this failure and not a broken test.
 
+This is the one solid, reproducible fact in this entry, and it is **unexplained**. Note it is _intra-process_ — 27 files passed and 14 failed inside a single run, one worker pool, one cache state — so any theory appealing to two processes or to cache state has to explain that split, and none so far does. Sample is one session (2026-08-09): a 41-file run, single-file runs of each shape, and a two-file pairing that split one-and-one.
+
 **Concurrency does not reproduce it on demand.** Three shapes, each capturing full output rather than re-running:
 
 | Shape                                                              | Attempts           | Reproduced |
@@ -160,13 +162,13 @@ Verbatim, both FAIL stanzas included — an abridged version of this block was c
 
 Counting individual runs, that is **70–154 executed** (row two is 12 pairs = 24 runs; row three is bounded, not exact). The same-project pairing is the sharpest of the three, being the only one that shares the root `node_modules/.vite`; the cross-workspace pairing shares no cache at all, per the caches note above.
 
-**Ruled out by experiment**: pool choice (`forks` and `threads` both fail); `--no-file-parallelism` (**changes nothing** — the same files fail serially as under default parallelism, which is what rules out intra-run contention); the tool sandbox; duplicate vitest installs (single 4.1.10, no nested copies).
+**Ruled out by experiment**: pool choice (`forks` and `threads` both fail); `--no-file-parallelism` (**changes nothing** — the same files fail serially as under default parallelism, which is what rules out intra-run contention); running outside the agent tool sandbox; duplicate vitest installs (single 4.1.10, no nested copies).
 
 **Not sufficient on its own**: drive-letter case of the cwd. The `RUN` header reads `c:/Code/gst-website` in the captured failure and `C:/…` in passing runs, which looks like a strong lead — two path spellings could plausibly yield two module instances and an undefined runner state. But three consecutive runs from an explicitly lowercase cwd all passed. The case difference is real and unexplained; it is not the trigger by itself.
 
-**Refuted: the dep-cache story, including the dep-optimizer candidate listed further up.** Worth stating plainly because it was the standing theory and it does not survive the record. Failures occurred **before** `node_modules/.vite` was deleted (three of them, against the pre-existing cache), continued for **at least ten runs after** the deletion, and the directory holds only `vitest/` — **no `deps/` at all** — right now, while the suite passes 20/20. Same shape in both regimes, so cache state does not discriminate; and there is no `deps/` for an optimizer to rewrite mid-run.
+**Refuted: the dep-cache story, including the dep-optimizer candidate listed further up.** Worth stating plainly because it was the standing theory and it does not survive the record. Failures occurred **before** `node_modules/.vite` was deleted (three of them, against the pre-existing cache), continued for **at least ten runs after** the deletion, and the directory held only `vitest/` — **no `deps/` at all** — while the suite passed 20/20 immediately afterwards. Same shape in both regimes, so cache state does not discriminate; and there is no `deps/` for an optimizer to rewrite mid-run.
 
-That candidate was drafted here on the claim that the captured failure was "the first run after the directory was deleted." It was roughly the tenth, five minutes later. **Third wrong diagnosis of this failure, by the same mechanism each time: a cause asserted without running the check that would prove it.** The check was cheap and the record was already on disk.
+That candidate was drafted here on the claim that the captured failure was "the first run after the directory was deleted." It was roughly the tenth, five minutes later — a cause asserted without running the check that would prove it, when the check was cheap and the record was already on disk. It is entry 3 in the list of wrong diagnoses below.
 
 One trap while probing: `npx vitest run --force` is **not** a cold-cache substitute. `--force` is not a vitest 4 flag; it exits 1 with `CACError: Unknown option --force`, which reads exactly like a reproduction if you look only at the exit code.
 
@@ -178,7 +180,14 @@ One trap while probing: `npx vitest run --force` is **not** a cold-cache substit
 
 **Capture means redirect, not scrollback.** The 2026-08-09 sightings were lost three times over precisely because the command was run bare and then re-run. Redirect the first attempt to a file — PowerShell `npm run test:docs *> td.txt; "exit=$LASTEXITCODE"; cat td.txt`, or bash `npm run test:docs > td.txt 2>&1; echo "exit=$?"; cat td.txt`. Either costs nothing and survives the re-run. Do not pipe through `tail` on the first attempt either — that is how the `Test Files N failed` line, the one that distinguishes this failure from a fast pass, got truncated away twice.
 
-**Two diagnoses of this failure have now been wrong, both asserting a cause without running the check that would prove it** — "permanently broken vitest install" (2026-08-06) and "concurrent `astro check`" (2026-08-09, offered for a sighting that had nothing running in parallel). Given the table above, the honest position is that the trigger is unidentified. State that rather than reaching for the nearest plausible mechanism.
+**Four diagnoses of this failure have now been wrong**, and the pattern is more useful than any of them:
+
+1. "Permanently broken vitest install" (2026-08-06) — corrected only when the same command later passed in the same shell.
+2. "Concurrent `astro check`" (2026-08-09) — offered for a sighting that had nothing running in parallel.
+3. "Cold `node_modules/.vite`" (2026-08-09) — drafted into this entry, then refuted by its own timeline; the failure preceded the deletion and outlasted it by ten runs.
+4. "Two vitest instances, by elimination" (2026-08-09) — asserted because the other candidates had fallen, not because it explained anything. It doesn't explain the no-concurrency sighting or the intra-run import-shape split.
+
+The first three asserted a cause from a plausible mechanism. The fourth asserted one from **elimination**, which feels more rigorous and is not — a candidate list is only as good as its completeness, and this one's was never established. The honest position is that the trigger is unidentified. State that rather than reaching for the nearest surviving mechanism.
 
 ---
 
