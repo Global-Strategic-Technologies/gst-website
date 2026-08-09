@@ -127,7 +127,7 @@ describe('radar live-store consumers are circuit-breaker aware (BL-091)', () => 
       `${rel} imports a fetch-capable radar reader (readWireLive/readFyiLive) but does not import ` +
         `isCircuitOpen. Every consumer must decide what to do while the Inoreader circuit breaker ` +
         `is open — either skip (cron) or switch to readWireCached/readFyiCached (read surfaces). ` +
-        `See BL-115 / ADR-0006.`
+        `See ADR-0006 / BL-115.`
     ).toBe(true);
   });
 });

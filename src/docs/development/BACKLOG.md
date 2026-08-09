@@ -6,7 +6,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
-> - **2026-08-09**: 9 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. Two of them carried live content that did not go with the parent: BL-091's deliberately-cut half-open recovery probe became **[BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)**, and BL-111's unbuilt-and-unfiled deploy-drift detector became **[BL-117](#bl-117-mcp-server--deploy-drift-detector-candidate)**. A stanza marked closed is not automatically prunable — read it for live sub-blocks first.
+> - **2026-08-09**: 9 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. Three of them carried live content that did not go with the parent: BL-091's deliberately-cut half-open recovery probe became **[BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)**, BL-111's unbuilt-and-unfiled deploy-drift detector became **[BL-117](#bl-117-mcp-server--deploy-drift-detector-candidate)**, and BL-089's deferred docs-freshness check became **[BL-118](#bl-118-docs-last-updated-freshness-check-candidate)**. A fourth — BL-111's repo-level secret decommission — needed no rescue, already being a Pending row in [SECRETS_INVENTORY § Decommission schedule](../operations/SECRETS_INVENTORY.md). A stanza marked closed is not automatically prunable — read it for live sub-blocks first, and note that all four were found by sweeping for the pattern rather than one per review round.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -739,6 +739,26 @@ Per CLAUDE.md § 4a "no deferred tech debt": deferral is acceptable when there i
 - Empirical evidence that (J) gap-list growth is unacceptable in live exercises
 - Confirmation that no one consumes the VERIFY block externally (unlocks L4)
 - Evidence that nobody manually calls `validate_irl_provenance` (unlocks L5)
+
+---
+
+### BL-118: Docs "Last Updated" freshness check (candidate)
+
+**Source**: BL-089's Notes recorded it as a "deferred follow-up (not this item)"; surfaced by the 2026-08-09 prune sweep, which is the only reason it did not go with the stanza | **Effort**: small — the same shape as the guard BL-089 already shipped | **Status**: Candidate
+
+**As a** reader of a doc carrying a "Last Updated" date, **I want** that date to be false-negative-proof **so that** a stale date does not lend confidence to content that has since moved.
+
+**What**: flag docs whose stated "Last Updated" predates their last `git` commit.
+
+**Why it is weaker than the other rescued orphans, recorded so nobody over-invests**: unlike BL-111's drift detector, this carried no promotion trigger and no self-declared prune warning — it was one line of deferral. It is filed rather than dropped because the prune wave that found it also established the rule that a closed stanza gets read for live content first, and dropping this one silently would contradict that in the same commit.
+
+**Prior art**: `tests/integration/docs-link-integrity.test.ts` (BL-089's own guard) already walks both doc trees with an `_archive/` exclusion policy — the traversal is done, and a freshness rule is a second pass over the same file list rather than new machinery.
+
+#### Acceptance Criteria
+
+- [ ] A doc whose "Last Updated" predates its last content commit is flagged
+- [ ] `_archive/` is exempt — frozen-verbatim docs are supposed to have old dates
+- [ ] Formatting-only commits (the prettier hook rewrites files on every commit) do not trip it
 
 ---
 
