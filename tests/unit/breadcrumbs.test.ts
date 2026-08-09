@@ -15,6 +15,7 @@ describe('BREADCRUMB_NAMES', () => {
       'business-architectures',
       'vdr-structure',
       'radar',
+      'mcp',
       'techpar',
       'regulatory-map',
       'tech-debt-calculator',

@@ -30,6 +30,11 @@ const faqItems = [
       "Most buy-side technical diligence engagements are completed in three to six weeks, depending on the complexity of the target's technology stack and the availability of key personnel. We can accommodate accelerated timelines for competitive deal processes when needed.",
   },
   {
+    question: 'Can our AI agents call GST tools directly?',
+    answer:
+      'Yes. GST runs a Model Context Protocol server that exposes the diligence agenda generator, portfolio search, regulatory map, and cost and technical-debt models as callable tools, so an agent in your stack can invoke them with typed inputs and get structured results back. Access is provisioned per client rather than self-serve: GST assigns scopes and a capability tier so a deal team gets exactly the surface it needs. See <a href="/hub/mcp/">the MCP Server page</a> for the tool catalog and tiers.',
+  },
+  {
     question: 'Do you work with companies outside the US?',
     answer:
       'Yes. We regularly support cross-border transactions and have conducted diligence on targets across North America, Europe, and Asia-Pacific. Our frameworks are designed to evaluate distributed teams, multi-region infrastructure, and varying regulatory environments.',
@@ -141,6 +146,25 @@ const faqItems = [
     </div>
   </section>
 
+  <section class="mcp-offer">
+    <div class="container">
+      <div class="mcp-offer__panel brutal-frosted">
+        <span class="mcp-offer__label">For Agent-Enabled Teams</span>
+        <h2 class="brutal-heading-lg">GST Tooling, Callable by Your AI Agents</h2>
+        <p>
+          Deal teams running screening through AI agents hit the same wall: an advisor's frameworks
+          live on a website, and a website is not an interface an agent can use. GST publishes its
+          diligence engine, portfolio record, and regulatory map as a Model Context Protocol server,
+          so your agents call the same tools GST does — typed inputs, structured results, access
+          provisioned per client.
+        </p>
+        <a href="/hub/mcp/" class="cta-button" onclick="trackNavigation('/hub/mcp', 'MCP Server')"
+          >Explore the MCP Server</a
+        >
+      </div>
+    </div>
+  </section>
+
   <section class="audience-section">
     <div class="container">
       <div class="audience-content">
@@ -208,6 +232,39 @@ const faqItems = [
 <style>
   .services-section {
     padding: 2.5rem 0;
+  }
+
+  .mcp-offer {
+    padding: 0 0 2.5rem;
+  }
+
+  .mcp-offer__panel {
+    padding: 2.5rem;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-left: 3px solid var(--color-primary);
+  }
+
+  .mcp-offer__label {
+    display: block;
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-tertiary);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .mcp-offer__panel h2 {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .mcp-offer__panel p {
+    max-width: 800px;
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--spacing-xl);
   }
 
   .services-cards {
@@ -469,7 +526,13 @@ const faqItems = [
 </style>
 
 <script>
-  import { trackEvent } from '../utils/analytics';
+  import { trackEvent, trackNavigation } from '../utils/analytics';
+
+  // The MCP offer section's inline onclick needs this on window; CTASection
+  // wires trackCTA but not trackNavigation.
+  // TODO(phase-3): replace with proper ambient `Window` type declaration.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).trackNavigation = trackNavigation;
 
   document.querySelectorAll('.brutal-faq__item').forEach((item) => {
     item.addEventListener('toggle', () => {

@@ -18,6 +18,7 @@ export const BREADCRUMB_NAMES: Record<string, string> = {
   'business-architectures': 'Business Architectures',
   'vdr-structure': 'VDR Structure',
   radar: 'The Radar',
+  mcp: 'MCP Server',
   techpar: 'TechPar',
   'regulatory-map': 'Regulatory Map',
   'tech-debt-calculator': 'Tech Debt Calculator',

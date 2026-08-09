@@ -201,6 +201,64 @@ const faqItems = [
           </p>
           <span class="hub-card-cta">Read the Perspective →</span>
         </a>
+
+        <a href="/hub/mcp/" class="hub-card brutal-frosted">
+          <div class="hub-card-header">
+            <svg
+              class="hub-card-icon"
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <rect x="6" y="6" width="14" height="14" stroke="currentColor" stroke-width="2"
+              ></rect>
+              <rect x="28" y="6" width="14" height="14" stroke="currentColor" stroke-width="2"
+              ></rect>
+              <rect x="6" y="28" width="14" height="14" stroke="currentColor" stroke-width="2"
+              ></rect>
+              <path
+                d="M35 28V35H28"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+              <line
+                x1="20"
+                y1="13"
+                x2="28"
+                y2="13"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"></line>
+              <line
+                x1="13"
+                y1="20"
+                x2="13"
+                y2="28"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"></line>
+              <line
+                x1="35"
+                y1="20"
+                x2="35"
+                y2="28"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"></line>
+            </svg>
+            <span class="hub-card-label">Interface</span>
+          </div>
+          <h2>MCP Server</h2>
+          <p>
+            The same diligence engine, portfolio record, and regulatory map — callable by your own
+            AI agents over the Model Context Protocol.
+          </p>
+          <span class="hub-card-cta">See the Interface →</span>
+        </a>
       </div>
     </div>
   </section>
@@ -251,9 +309,12 @@ const faqItems = [
     padding: 2.5rem 0;
   }
 
+  /* Two-by-two since the MCP Server card made this a four-card grid; the 1024
+     breakpoint below already declares the same two columns, so only this base
+     rule changed. */
   .hub-cards {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 2.5rem;
   }
 

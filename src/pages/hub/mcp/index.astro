@@ -1,0 +1,895 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../components/hub/HubHeader.astro';
+import DeltaIcon from '../../../components/DeltaIcon.astro';
+
+// Published facts on this page are pinned by
+// `tests/integration/mcp-marketing-parity.test.ts`, which reads this file's
+// MARKUP region against mcp-server source. Tier ceilings and tool names are
+// written as literal markup on purpose — a value interpolated from frontmatter
+// would leave the guard with nothing to compare.
+
+const ACCESS_EMAIL = 'contact@globalstrategic.tech';
+const ACCESS_BODY = [
+  'Name:',
+  'Firm:',
+  'Intended use case:',
+  'Tools of interest:',
+  'Expected monthly volume:',
+  '',
+].join('\n');
+
+/** Prefilled operator-inbox intake — see PILOT_ONBOARDING.md § 0. */
+function accessHref(tier?: string) {
+  const subject = tier
+    ? `GST MCP Server access request (${tier})`
+    : 'GST MCP Server access request';
+  return `mailto:${ACCESS_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(ACCESS_BODY)}`;
+}
+---
+
+<BaseLayout
+  title="MCP Server | GST"
+  description="Connect your AI agents to GST's diligence engine, portfolio record, and regulatory map over the Model Context Protocol. Operator-provisioned access for deal teams."
+  ogTitle="GST MCP Server | Diligence Tools for Your Agents"
+  ogDescription="Fifteen diligence, portfolio, and regulatory tools exposed over the Model Context Protocol, with operator-provisioned access and per-client capability tiers."
+  ogImage="/og-image.png"
+  ogImageAlt="GST MCP Server - Model Context Protocol access to GST diligence tooling"
+  ogUrl="https://globalstrategic.tech/hub/mcp/"
+>
+  <section class="mcp-section">
+    <div class="container">
+      <HubHeader
+        title="MCP Server"
+        subtitle="Your team's AI agents can call the same diligence tools GST uses on client engagements. Ask in plain English and get numbers that stand up in an investment committee."
+      />
+
+      <div class="mcp-headline-stats">
+        <div class="brutal-stat-tile">
+          <div class="brutal-stat-tile__value">15</div>
+          <div class="brutal-stat-tile__label">Tools</div>
+        </div>
+        <div class="brutal-stat-tile">
+          <div class="brutal-stat-tile__value">133</div>
+          <div class="brutal-stat-tile__label">MCP resources</div>
+        </div>
+        <div class="brutal-stat-tile">
+          <div class="brutal-stat-tile__value">9</div>
+          <div class="brutal-stat-tile__label">Guided workflows</div>
+        </div>
+        <div class="brutal-stat-tile">
+          <div class="brutal-stat-tile__value">1</div>
+          <div class="brutal-stat-tile__label">Endpoint to configure</div>
+        </div>
+      </div>
+
+      <div class="mcp-block">
+        <h2 class="brutal-heading-lg">What it is</h2>
+        <p class="mcp-lede">
+          Your analysts already screen deals with AI. But an advisor's frameworks live on a website,
+          so the agent scrapes prose, guesses at the rest, and produces an answer with no number
+          anyone will sign off on. GST publishes its diligence engine, engagement record, and
+          regulatory map as a Model Context Protocol server. The agent calls the same tools GST
+          uses, with typed inputs and structured results, so an associate gets a scoped agenda, a
+          cost benchmark, or a regulatory exposure list in the time it takes to ask for one.
+        </p>
+        <p class="mcp-endpoint">
+          <span class="mcp-endpoint__label">Endpoint</span>
+          <code>https://mcp.globalstrategic.tech/mcp</code>
+        </p>
+      </div>
+
+      <div class="mcp-block">
+        <h2 class="brutal-heading-lg">Where it earns its keep</h2>
+        <div class="mcp-usecases">
+          <article class="brutal-trust-card">
+            <h3>Deal Screening</h3>
+            <p>
+              During initial screening, an analyst's agent calls the diligence agenda tool with the
+              target's profile and returns a starter agenda the IC memo is built around, recovering
+              2 to 4 hours per screened deal.
+            </p>
+          </article>
+          <article class="brutal-trust-card">
+            <h3>Portfolio Monitoring</h3>
+            <p>
+              A daily-running agent at a portfolio-services group polls the radar tools for a single
+              category and surfaces relevant items into the platform-wide knowledge base, without a
+              human curating the feed.
+            </p>
+          </article>
+          <article class="brutal-trust-card">
+            <h3>Pitch Preparation</h3>
+            <p>
+              A banker preparing a sell-side pitch triangulates comparable transactions: which GST
+              engagements involved B2B SaaS targets in a given revenue band, at a given transaction
+              type, with what outcome.
+            </p>
+          </article>
+          <article class="brutal-trust-card">
+            <h3>Programmatic Access</h3>
+            <p>
+              A client's internal tooling (Retool, a Slack bot, a custom dashboard) calls the server
+              directly, treating GST's frameworks as a managed API rather than a site somebody has
+              to visit.
+            </p>
+          </article>
+        </div>
+      </div>
+
+      <div class="mcp-block">
+        <h2 class="brutal-heading-lg">What's exposed</h2>
+        <p class="mcp-note">
+          The server implements all three MCP server primitives: Tools, Resources, and Prompts.
+          Together they give an agent what a good analyst needs on day one: instruments to run the
+          numbers, the reference material to run them against, and a method for what order to do it
+          in.
+        </p>
+
+        <div class="mcp-primitive">
+          <div class="mcp-primitive__head">
+            <h3>Tools</h3>
+            <span class="mcp-primitive__count">15</span>
+          </div>
+          <p class="mcp-primitive__def">
+            The work an associate would otherwise build in a spreadsheet, or wait on an advisor to
+            deliver. Each tool runs a GST model against your deal's parameters and returns figures
+            defensible enough for an IC memo: a scoped diligence agenda, a cost benchmark, a debt
+            estimate, a regulatory exposure list. The model invokes them on its own as the
+            conversation calls for them, so an analyst asks in plain English instead of learning an
+            API. Radar tools are granted separately. <a
+              href="https://modelcontextprotocol.io/docs/concepts/tools"
+              target="_blank"
+              rel="noopener noreferrer">Tools in the MCP spec</a
+            >
+          </p>
+          <div class="mcp-catalog">
+            <div class="mcp-catalog__group">
+              <h4>Diligence agenda</h4>
+              <p class="mcp-catalog__gloss">
+                Turns a target profile into a prioritized diligence agenda with scope and timeline
+                estimates.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />generate_diligence_agenda</li>
+              </ul>
+              <a class="mcp-catalog__try" href="/hub/tools/diligence-machine/"
+                >Try it in a browser</a
+              >
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Engagement history</h4>
+              <p class="mcp-catalog__gloss">
+                Searches GST's engagement record by sector, deal type, stage, and scale, and lists
+                the values each filter accepts.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />search_portfolio</li>
+                <li><DeltaIcon class="bullet-icon" />list_portfolio_facets</li>
+              </ul>
+              <a class="mcp-catalog__try" href="/ma-portfolio/">Try it in a browser</a>
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Regulatory exposure</h4>
+              <p class="mcp-catalog__gloss">
+                Queries 123 regulatory frameworks by jurisdiction, category, and effective date.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />search_regulations</li>
+                <li><DeltaIcon class="bullet-icon" />list_regulation_facets</li>
+              </ul>
+              <a class="mcp-catalog__try" href="/hub/tools/regulatory-map/">Try it in a browser</a>
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Infrastructure cost</h4>
+              <p class="mcp-catalog__gloss">
+                Scores cloud cost governance maturity across six domains and returns a prioritized
+                improvement list.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />assess_infrastructure_cost_governance</li>
+              </ul>
+              <a class="mcp-catalog__try" href="/hub/tools/infrastructure-cost-governance/"
+                >Try it in a browser</a
+              >
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Technology spend</h4>
+              <p class="mcp-catalog__gloss">
+                Benchmarks total technology cost against stage-adjusted ranges and projects a
+                36-month trajectory.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />compute_techpar</li>
+              </ul>
+              <a class="mcp-catalog__try" href="/hub/tools/techpar/">Try it in a browser</a>
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Technical debt</h4>
+              <p class="mcp-catalog__gloss">
+                Estimates the annual carrying cost of technical debt from team size, salary, and
+                delivery metrics.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />estimate_tech_debt_cost</li>
+              </ul>
+              <a class="mcp-catalog__try" href="/hub/tools/tech-debt-calculator/"
+                >Try it in a browser</a
+              >
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Information requests</h4>
+              <p class="mcp-catalog__gloss">
+                Builds a fillable information request list, then ingests the completed file and
+                checks every answer back to its source.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />generate_information_request_list_xlsx</li>
+                <li><DeltaIcon class="bullet-icon" />list_irl_requests</li>
+                <li><DeltaIcon class="bullet-icon" />prepare_irl_body</li>
+                <li><DeltaIcon class="bullet-icon" />validate_irl_provenance</li>
+                <li><DeltaIcon class="bullet-icon" />compose_dossier_envelope</li>
+              </ul>
+              <a class="mcp-catalog__try" href="/hub/tools/information-request-list-generator/"
+                >Try it in a browser</a
+              >
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Radar search</h4>
+              <p class="mcp-catalog__gloss">
+                Searches curated PE, M&amp;A, and enterprise-technology intelligence, filtered by
+                category and recency.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />search_radar</li>
+                <li><DeltaIcon class="bullet-icon" />get_latest_insights</li>
+              </ul>
+              <a class="mcp-catalog__try" href="/hub/radar/">Try it in a browser</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="mcp-primitive">
+          <div class="mcp-primitive__head">
+            <h3>Resources</h3>
+            <span class="mcp-primitive__count">133</span>
+          </div>
+          <p class="mcp-primitive__def">
+            The frameworks behind the numbers, readable in full. An agent working from GST's actual
+            VDR taxonomy, diligence checklists, and regulation corpus grounds its answers in a
+            published method rather than in whatever it absorbed during training, which is the
+            difference between a citation you can check and a confident guess. The host application
+            loads these as context, so they are in the conversation before the model needs them. <a
+              href="https://modelcontextprotocol.io/docs/concepts/resources"
+              target="_blank"
+              rel="noopener noreferrer">Resources in the MCP spec</a
+            >
+          </p>
+          <div class="mcp-catalog">
+            <div class="mcp-catalog__group">
+              <h4>Library <span class="mcp-catalog__count">4</span></h4>
+              <p class="mcp-catalog__gloss">
+                The reference guides behind GST's diligence method, in full.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />Business &amp; Technology Architectures</li>
+                <li><DeltaIcon class="bullet-icon" />Virtual Data Room Structure Guide</li>
+                <li><DeltaIcon class="bullet-icon" />Information Request List</li>
+                <li><DeltaIcon class="bullet-icon" />IRL to tool-input mapping</li>
+              </ul>
+              <code class="mcp-catalog__uri">gst://library/&lt;slug&gt;</code>
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Regulatory frameworks <span class="mcp-catalog__count">123</span></h4>
+              <p class="mcp-catalog__gloss">
+                One document per framework, each with its requirements, penalties, and effective
+                dates.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />Data privacy</li>
+                <li><DeltaIcon class="bullet-icon" />AI governance</li>
+                <li><DeltaIcon class="bullet-icon" />Cybersecurity</li>
+                <li><DeltaIcon class="bullet-icon" />Industry compliance</li>
+              </ul>
+              <code class="mcp-catalog__uri"
+                >gst://regulations/&lt;jurisdiction&gt;/&lt;framework&gt;</code
+              >
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Radar feeds <span class="mcp-catalog__count">6</span></h4>
+              <p class="mcp-catalog__gloss">
+                FYI carries GST-annotated highlights; Wire carries the full stream, whole or by
+                category.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />FYI, annotated highlights</li>
+                <li><DeltaIcon class="bullet-icon" />Wire, all categories</li>
+                <li><DeltaIcon class="bullet-icon" />PE &amp; M&amp;A</li>
+                <li><DeltaIcon class="bullet-icon" />Enterprise tech</li>
+                <li><DeltaIcon class="bullet-icon" />AI &amp; automation</li>
+                <li><DeltaIcon class="bullet-icon" />Security</li>
+              </ul>
+              <code class="mcp-catalog__uri">gst://radar/fyi|wire/&lt;category&gt;</code>
+            </div>
+          </div>
+        </div>
+
+        <div class="mcp-primitive">
+          <div class="mcp-primitive__head">
+            <h3>Prompts</h3>
+            <span class="mcp-primitive__count">9</span>
+          </div>
+          <p class="mcp-primitive__def">
+            Knowing which tool to call is not the hard part. Knowing the order is, and that is what
+            a firm's experience actually buys. Each prompt captures a GST workflow as a sequence, so
+            a first-year associate running a diligence kickoff follows the same progression a GST
+            engagement would. They surface as slash commands in the client, chosen deliberately by a
+            person rather than guessed at by a model. <a
+              href="https://modelcontextprotocol.io/docs/concepts/prompts"
+              target="_blank"
+              rel="noopener noreferrer">Prompts in the MCP spec</a
+            >
+          </p>
+          <div class="mcp-catalog">
+            <div class="mcp-catalog__group">
+              <h4>Deal workflow</h4>
+              <p class="mcp-catalog__gloss">
+                Open a diligence engagement, size up a target quickly, and produce the memos a deal
+                team hands onward.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />gst_diligence_kickoff</li>
+                <li><DeltaIcon class="bullet-icon" />gst_target_quick_look</li>
+                <li><DeltaIcon class="bullet-icon" />gst_diligence_handoff_memo</li>
+                <li><DeltaIcon class="bullet-icon" />gst_comparable_engagements_memo</li>
+              </ul>
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Information requests</h4>
+              <p class="mcp-catalog__gloss">
+                Issue a request list to a target, then ingest what comes back without rekeying it.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />gst_information_request_list</li>
+                <li><DeltaIcon class="bullet-icon" />gst_irl_ingestion</li>
+              </ul>
+            </div>
+            <div class="mcp-catalog__group">
+              <h4>Review &amp; briefing</h4>
+              <p class="mcp-catalog__gloss">
+                Standing reviews: architecture by layer, regulatory exposure, and the day's radar.
+              </p>
+              <ul>
+                <li><DeltaIcon class="bullet-icon" />gst_architecture_layer_review</li>
+                <li><DeltaIcon class="bullet-icon" />gst_regulatory_exposure_brief</li>
+                <li><DeltaIcon class="bullet-icon" />gst_radar_brief_today</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mcp-block">
+        <h2 class="brutal-heading-lg">Capability tiers</h2>
+        <div class="brutal-gateway-grid mcp-tiers">
+          <article class="brutal-gateway-card brutal-frosted">
+            <div class="brutal-gateway-card__header">
+              <h2>free-pilot</h2>
+            </div>
+            <div class="mcp-tier-stats">
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">30</div>
+                <div class="brutal-stat-tile__label">Calls / min</div>
+              </div>
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">300</div>
+                <div class="brutal-stat-tile__label">Calls / day</div>
+              </div>
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">3</div>
+                <div class="brutal-stat-tile__label">Radar / min</div>
+              </div>
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">20</div>
+                <div class="brutal-stat-tile__label">Radar / day</div>
+              </div>
+            </div>
+            <ul class="brutal-gateway-card__features">
+              <li>
+                <DeltaIcon class="bullet-icon" />Evaluation access, narrow scopes, radar excluded by
+                default
+              </li>
+            </ul>
+            <a
+              href={accessHref('free-pilot')}
+              class="cta-button brutal-gateway-card__cta"
+              onclick="trackCTA('mcp-access-free-pilot', 'hub-mcp')">REQUEST_ACCESS()</a
+            >
+          </article>
+
+          <article class="brutal-gateway-card brutal-frosted">
+            <div class="brutal-gateway-card__header">
+              <h2>paid</h2>
+            </div>
+            <div class="mcp-tier-stats">
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">60</div>
+                <div class="brutal-stat-tile__label">Calls / min</div>
+              </div>
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">2000</div>
+                <div class="brutal-stat-tile__label">Calls / day</div>
+              </div>
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">5</div>
+                <div class="brutal-stat-tile__label">Radar / min</div>
+              </div>
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">50</div>
+                <div class="brutal-stat-tile__label">Radar / day</div>
+              </div>
+            </div>
+            <ul class="brutal-gateway-card__features">
+              <li>
+                <DeltaIcon class="bullet-icon" />Production access for a deal team, invoiced per
+                agreement
+              </li>
+            </ul>
+            <a
+              href={accessHref('paid')}
+              class="cta-button brutal-gateway-card__cta"
+              onclick="trackCTA('mcp-access-paid', 'hub-mcp')">REQUEST_ACCESS()</a
+            >
+          </article>
+
+          <article class="brutal-gateway-card brutal-frosted">
+            <div class="brutal-gateway-card__header">
+              <h2>enterprise</h2>
+            </div>
+            <div class="mcp-tier-stats">
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">120</div>
+                <div class="brutal-stat-tile__label">Calls / min</div>
+              </div>
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">10000</div>
+                <div class="brutal-stat-tile__label">Calls / day</div>
+              </div>
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">10</div>
+                <div class="brutal-stat-tile__label">Radar / min</div>
+              </div>
+              <div class="brutal-stat-tile">
+                <div class="brutal-stat-tile__value">150</div>
+                <div class="brutal-stat-tile__label">Radar / day</div>
+              </div>
+            </div>
+            <ul class="brutal-gateway-card__features">
+              <li>
+                <DeltaIcon class="bullet-icon" />Firm-wide access, multiple clients, compliance
+                capabilities on request
+              </li>
+            </ul>
+            <a
+              href={accessHref('enterprise')}
+              class="cta-button brutal-gateway-card__cta"
+              onclick="trackCTA('mcp-access-enterprise', 'hub-mcp')">REQUEST_ACCESS()</a
+            >
+          </article>
+        </div>
+        <p class="brutal-callout">
+          <span class="brutal-callout__title">On these numbers</span>
+          These are tunable, non-contractual capability ceilings, NOT ratified SLA quotas. They are abuse
+          and capacity limits, adjustable per client, and nothing here is a promised allowance.
+        </p>
+      </div>
+
+      <div class="mcp-block">
+        <h2 class="brutal-heading-lg">How access works</h2>
+        <ul class="mcp-facts">
+          <li>
+            <DeltaIcon class="bullet-icon" /><span
+              >Access is operator-provisioned. There is no self-serve signup and no dynamic client
+              registration. A client record is created by GST, with scopes and a tier assigned
+              deliberately.</span
+            >
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" /><span
+              >Machine-to-machine clients authenticate with OAuth 2.1 <code>client_credentials</code
+              >, using a client secret or a registered signing key.</span
+            >
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" /><span
+              >The interactive authorization-code flow, for a person connecting a desktop AI client,
+              requires PKCE with S256, with no exceptions and no plaintext challenge.</span
+            >
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" /><span
+              >Radar tools are granted separately and are excluded from a typical grant, because
+              they draw on a shared third-party research budget.</span
+            >
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" /><span
+              >A tamper-evident, hash-chained audit log with seven-year retention exists as
+              built-and-tested capability. It is activated for a client whose contract requires it,
+              as part of onboarding.</span
+            >
+            {
+              /* Framing is deliberate and load-bearing: the capture pipeline is
+            deactivated (ADR-0014) and PILOT_ONBOARDING.md § 3 says in terms "Do
+            not promise active audit capture in writing." Do not upgrade this
+            sentence into a guarantee. */
+            }
+          </li>
+          <li>
+            <DeltaIcon class="bullet-icon" /><span
+              >Operational health (dependency status, per-tool latency, request volume) is published
+              at <a href="https://status.mcp.globalstrategic.tech"
+                >status.mcp.globalstrategic.tech</a
+              >.</span
+            >
+          </li>
+        </ul>
+
+        <p class="brutal-callout brutal-callout--warning">
+          <span class="brutal-callout__title">Radar content: keep a human in the loop</span>
+          The radar tools and radar resources return third-party article content that GST does not author
+          and does not control. Treat it as source material for a person to read, not as instructions
+          for an agent to act on. Radar output should not be auto-actioned by a client agent without human
+          review.
+        </p>
+      </div>
+
+      <div class="mcp-block mcp-block--cta">
+        <h2 class="brutal-heading-lg">Request access</h2>
+        <p class="mcp-note">
+          Tell GST who you are, what you are building, and roughly how much you expect to call.
+          Provisioning is a conversation, not a signup form, which is also how scopes and a tier get
+          set correctly the first time.
+        </p>
+        <a
+          href={accessHref()}
+          class="cta-button"
+          onclick="trackCTA('mcp-request-access', 'hub-mcp')">REQUEST_MCP_ACCESS()</a
+        >
+      </div>
+
+      <a href="/hub/" class="cta-button" onclick="trackNavigation('/hub', 'Return to Hub')"
+        >Return to Hub</a
+      >
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import { trackCTA, trackNavigation } from '../../../utils/analytics';
+  // TODO(phase-3): replace with proper ambient `Window` type declaration.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).trackCTA = trackCTA;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).trackNavigation = trackNavigation;
+</script>
+
+<style>
+  .mcp-section {
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  /* Sits directly under HubHeader: the scale of the offer, above the fold,
+     before a reader has to parse a sentence. */
+  .mcp-headline-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  .mcp-block {
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  .mcp-block h2 {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .mcp-lede {
+    max-width: 800px;
+    font-size: var(--text-lg);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .mcp-note {
+    max-width: 800px;
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .mcp-endpoint {
+    margin-top: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+  }
+
+  .mcp-endpoint__label {
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+
+  .mcp-endpoint code {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-base);
+    color: var(--color-primary);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    word-break: break-all;
+  }
+
+  .mcp-usecases {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xl);
+  }
+
+  .mcp-catalog {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .mcp-primitive {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  /* Capped to the definition text below it. At full container width the rule
+     read as a page divider detached from the block it heads. */
+  .mcp-primitive__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-md);
+    max-width: 800px;
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .mcp-primitive__head h3 {
+    font-size: var(--text-lg);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .mcp-primitive__count {
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-tertiary);
+  }
+
+  .mcp-primitive__def {
+    max-width: 800px;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  /* Each group is a self-contained card: label, plain-English gloss, the wire
+     identifiers, then either the browser counterpart or the URI shape. The
+     accent border ties them to `.brutal-trust-card` above without importing a
+     hover state these non-interactive blocks shouldn't have. */
+  .mcp-catalog__group {
+    border-left: 3px solid var(--color-primary);
+    padding-left: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mcp-catalog__gloss {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .mcp-catalog__count {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* `auto` rather than a fixed gap so the URI footnotes bottom-align across a
+     row of cards whose lists differ in length, matching `.mcp-catalog__try`. */
+  .mcp-catalog__uri {
+    display: block;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: auto;
+    padding-top: var(--spacing-sm);
+    word-break: break-all;
+  }
+
+  /* Pushed to the bottom so the links align across a row of uneven cards. */
+  .mcp-catalog__try {
+    margin-top: auto;
+    align-self: flex-start;
+    padding-top: var(--spacing-sm);
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .mcp-catalog__group h4 {
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-tertiary);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .mcp-catalog__group ul,
+  .mcp-facts {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .mcp-catalog__group li,
+  .mcp-facts li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .mcp-facts {
+    max-width: 900px;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .mcp-facts li {
+    font-family: inherit;
+    font-size: var(--text-base);
+  }
+
+  .mcp-facts code {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--color-primary);
+  }
+
+  /* Both inline-link families share one underline treatment. Grouped rather than
+     duplicated so every plain `a` selector precedes every `a:hover` one, which
+     is what stylelint's `no-descending-specificity` is asking for. */
+  .mcp-facts a,
+  .mcp-primitive__def a,
+  .mcp-catalog__try {
+    color: light-dark(var(--color-tertiary-dark), var(--color-primary));
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-bottom var(--transition-fast);
+  }
+
+  /* Spec links read as identifiers and should not break across lines. */
+  .mcp-primitive__def a {
+    font-family: var(--font-family-mono);
+    white-space: nowrap;
+  }
+
+  .mcp-facts a:hover,
+  .mcp-primitive__def a:hover,
+  .mcp-catalog__try:hover {
+    border-bottom-color: currentColor;
+  }
+
+  .bullet-icon {
+    color: var(--color-primary);
+    margin-top: 0.35em;
+  }
+
+  /* The shared gateway grid is `repeat(auto-fill, minmax(420px, 1fr))` with a
+     3rem gap, so three tracks need ~1452px of viewport — at 1280/1366/1440 the
+     tier row would break to 2 + 1 orphan. Three tiers have no clean two-column
+     form, so this stacks straight to one below 1024 rather than stepping.
+     NOTE: this rule is what produces the mobile stack. The global single-column
+     rule in cards.css is (0,1,0) and loses to this scoped (0,2,0) selector —
+     deleting this media query does NOT fall back to it. */
+  .mcp-tiers {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+  }
+
+  .mcp-tier-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .mcp-block--cta {
+    border: 2px solid var(--color-primary);
+    border-left-width: 3px;
+    padding: var(--spacing-2xl);
+  }
+
+  .mcp-block--cta .mcp-note {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  @media (max-width: 1024px) {
+    .mcp-tiers {
+      grid-template-columns: 1fr;
+    }
+
+    /* Same cap the gateway card applies to itself below 768 (cards.css), pulled
+       up to where THIS grid starts stacking — otherwise a lone tier card
+       stretches to ~930px between 768 and 1024. */
+    .mcp-tiers > .brutal-gateway-card {
+      width: 100%;
+      max-width: 600px;
+      margin-inline: auto;
+    }
+
+    .mcp-catalog {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .mcp-headline-stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .mcp-block {
+      margin-bottom: var(--spacing-2xl);
+    }
+
+    .mcp-usecases,
+    .mcp-catalog {
+      grid-template-columns: 1fr;
+    }
+
+    .mcp-lede {
+      font-size: var(--text-base);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .mcp-block--cta {
+      padding: var(--spacing-lg);
+    }
+
+    .mcp-tier-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
