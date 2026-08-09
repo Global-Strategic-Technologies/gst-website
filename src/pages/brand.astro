@@ -384,10 +384,12 @@ import '../styles/components/progress.css';
 
   /* ── Hover specimens ──
      Cards whose documented behaviour IS the hover transition (trust card,
-     step card, service card, hub gateway card, project card). The rule below
-     is the real mechanism — never simulate it with inline onmouseenter
-     handlers, which freeze the value against theme and palette and teach the
-     wrong pattern to anyone copying this page. */
+     step card, service card, hub gateway card — the project card left this
+     family in the BL-095 closeout, since the real .project-card hover now
+     renders natively via cards.css). The rule below is the real mechanism —
+     never simulate it with inline onmouseenter handlers, which freeze the
+     value against theme and palette and teach the wrong pattern to anyone
+     copying this page. */
   .brand-hover-card {
     padding: var(--spacing-xl);
     border: 2px solid var(--border-light);
@@ -1183,6 +1185,19 @@ import '../styles/components/progress.css';
     font-size: var(--text-lg);
   }
 
+  /* Responsive counterparts of PortfolioGrid's scoped 480px metric-value
+     overrides — this replica half pairs with the `.project-card__*` half in
+     cards.css, whose comment carries the full keep-in-sync ruling. */
+  @media (max-width: 480px) {
+    .brand-metric__value {
+      font-size: var(--text-sm);
+    }
+
+    .brand-metric__value--arr {
+      font-size: var(--text-base);
+    }
+  }
+
   /* ProjectModal.astro styles its metrics differently from the card — smaller,
      wider tracking, secondary colour. The modal specimen uses these so it does
      not borrow the card's treatment and misrepresent the dialog. */
@@ -1256,49 +1271,22 @@ import '../styles/components/progress.css';
     padding: 0;
   }
 
-  /* ── CTA Box replica ──────────────────────────────────
-     Replica of CTASection.astro, whose styles are Astro-scoped and so cannot
-     reach this page. CTASection is NOT rendered here because it hardcodes
-     `id="contact"` (CTASection.astro:24) — a singleton id, the same
-     disqualifier as ProjectModal's 19 ids (BL-095 AC-2; ThemeToggle escaped
-     it via the ThemeToggleButton extraction, the remedy waiting here). It also fires
-     `trackCTA('calendarbridge','cta-section')` from an inline onclick with no
-     suppressing prop, so a specimen click would emit a real analytics event.
-
-     Values below are CONVERGED to production; keep them that way. Everything
-     except the three marked adaptations is a straight copy of CTASection.astro.
-     Before BL-095 this replica had drifted on background, padding, max-width,
-     both font sizes, both colours and both margins — and dropped the
-     `light-dark()` pair on the heading, so it was wrong in dark theme. */
-  .cta-box {
-    background: var(--cta-box-bg);
-    border: 2px solid var(--color-primary);
-    padding: 4rem;
-    /* ADAPTATION: production is 800px; the brand column is narrower. */
-    max-width: 600px;
-    text-align: center;
-    position: relative;
+  /* The CTA Box specimen renders the real CTABox.astro (BL-095 AC-2) — the
+     replica CSS that lived here is gone with it. This wrapper only gives the
+     box a definite containing block: `.brand-component-item` is a flex column
+     with align-items:flex-start, so without it the 800px reading measure
+     would shrink to fit (same indefinite-inline-size trap as the gateway
+     grid, documented above). It targets itself, never `.cta-box`, so it
+     cannot tie with the component's scoped rule. */
+  .brand-cta-specimen {
+    width: 100%;
   }
 
   /* ADAPTATION: left-align specimens (override global margin: 0 auto) */
-  .brand-component-item .brutal-tool-shell,
-  .brand-component-item .cta-box {
+  .brand-component-item .brutal-tool-shell {
     margin-left: 0;
     margin-right: auto;
     text-align: left;
-  }
-
-  .cta-box h2 {
-    font-size: 2.5rem;
-    color: light-dark(var(--text-primary), var(--text-dark-primary));
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-  }
-
-  .cta-box p {
-    color: var(--cta-box-text);
-    font-size: var(--text-lg);
-    margin-bottom: 2.5rem;
   }
 
   /* Responsive overrides for specimen components.

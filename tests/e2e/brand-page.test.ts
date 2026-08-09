@@ -327,6 +327,19 @@ test.describe('Brand Page', () => {
         await frames.nth(i).scrollIntoViewIfNeeded();
       }
 
+      // Give each frame its OWN load budget before the shared poll below runs
+      // the actual verification. Without this, all 12 dev-server iframe loads
+      // share the poll's single expect-timeout window — mis-sized on a cold
+      // run, where vite compiles every demo route on demand. Observed twice
+      // (2026-08-08), both times on the day's first parallel run, never solo
+      // and never on a warm server; the poll reported frames "not loaded".
+      for (let i = 0; i < total; i++) {
+        await expect(
+          frames.nth(i).contentFrame().locator('body > *').first(),
+          `frame ${i} loaded a document`
+        ).toBeAttached();
+      }
+
       await expect
         .poll(
           async () =>
@@ -490,11 +503,14 @@ test.describe('Brand Page', () => {
 
   /**
    * The site-chrome specimens render the REAL components (BL-095 AC-2 —
-   * HeaderLogo/HeaderNavLinks/ThemeToggleButton/FooterLinks are the
-   * presentational inners that Header/ThemeToggle/Footer compose), so the
-   * per-specimen parity guards this section used to carry are gone with the
-   * replicas they guarded: a specimen that IS the component cannot drift from
-   * it. What remains is the one carrier that still has no component behind it.
+   * HeaderLogo/HeaderNavLinks/ThemeToggleButton/FooterLinks/CTABox are the
+   * presentational inners that Header/ThemeToggle/Footer/CTASection compose),
+   * so the per-specimen parity guards this section used to carry are gone with
+   * the replicas they guarded: a specimen that IS the component cannot drift
+   * from it. What remains are the carriers with no component behind them: the
+   * `.nav-link` utility mirror, and `.project-card`, whose single global rule
+   * both production and the specimen consume and which is pinned cross-page
+   * below so a second (scoped) definition cannot silently return.
    */
   test.describe('Site chrome specimens match production', () => {
     /**
@@ -549,6 +565,76 @@ test.describe('Brand Page', () => {
         u.borderBottomColor,
         '.nav-link.active utility accent vs real active header nav link'
       ).toBe(p.borderBottomColor);
+    });
+
+    /**
+     * `.project-card` is ONE global rule (cards.css) that production
+     * (/ma-portfolio) and the /brand specimen both consume. It used to be two:
+     * an Astro-scoped duplicate in PortfolioGrid.astro out-specified the
+     * global rule on /ma-portfolio while /brand saw only cards.css, so the
+     * specimen rendered #0a0a0a in dark theme against production's #1a1a1a —
+     * drift invisible to every same-page check. This pins the single-definition
+     * state cross-page so a second definition cannot silently return.
+     *
+     * Built to actually discriminate:
+     * - DARK theme, seeded via addInitScript so it survives both navigations
+     *   (TEST_BEST_PRACTICES #19/#21) — BaseLayout applies the class
+     *   synchronously in <head> from localStorage, so it holds from first
+     *   paint. The historical divergence was dark-only; light values were
+     *   identical on both sides by construction.
+     * - transitionDuration is read BEFORE the transition freeze (the freeze
+     *   forces 0s on both sides, which would make that assertion vacuous);
+     *   the freeze precedes only the colour reads, per the lesson in the test
+     *   above.
+     * - ALL `.project-card` nodes on /brand are compared, with a non-zero
+     *   count asserted first so removing a specimen cannot silently reduce
+     *   this to zero comparisons.
+     */
+    test('project-card specimens match the real portfolio card in dark theme', async ({ page }) => {
+      await page.addInitScript(() => {
+        try {
+          localStorage.setItem('theme', 'dark');
+        } catch {
+          /* storage unavailable — the test will fail loudly on the light values */
+        }
+      });
+      const freeze = () =>
+        page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+      const readDuration = (l: ReturnType<typeof page.locator>) =>
+        l.evaluate((el) => getComputedStyle(el).transitionDuration);
+      const readColors = (l: ReturnType<typeof page.locator>) =>
+        l.evaluate((el) => {
+          const cs = getComputedStyle(el);
+          return { background: cs.backgroundColor, borderColor: cs.borderTopColor };
+        });
+
+      await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
+      const production = page.locator('.project-card').first();
+      await expect(production).toBeVisible();
+      const pDuration = await readDuration(production);
+      await freeze();
+      const pColors = await readColors(production);
+
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      const specimens = page.locator('.project-card');
+      const count = await specimens.count();
+      expect(count, 'project-card specimens present on /brand').toBeGreaterThan(0);
+
+      const sDurations: string[] = [];
+      for (let i = 0; i < count; i++) sDurations.push(await readDuration(specimens.nth(i)));
+      await freeze();
+      for (let i = 0; i < count; i++) {
+        const s = await readColors(specimens.nth(i));
+        expect(s.background, `specimen ${i} dark background vs real portfolio card`).toBe(
+          pColors.background
+        );
+        expect(s.borderColor, `specimen ${i} dark border vs real portfolio card`).toBe(
+          pColors.borderColor
+        );
+        expect(sDurations[i], `specimen ${i} transition duration vs real portfolio card`).toBe(
+          pDuration
+        );
+      }
     });
   });
 

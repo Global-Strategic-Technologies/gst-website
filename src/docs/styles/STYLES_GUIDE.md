@@ -55,24 +55,42 @@ one of three mechanisms, in this order of preference (BL-095):
 
 1. **Render the real component.** Structurally cannot drift. The default, and what to do for anything
    renderable in isolation — `Breadcrumb`, `StatsBar`, `WireItem`, `TableOfContents`, `DeltaIcon`,
-   `CompositeLogo`, `HeaderLogo`, `HeaderNavLinks`, `ThemeToggleButton` and `FooterLinks` are live
-   components on `/brand`, not copies of them. **A singleton shell does not exempt its contents**: when
-   a component cannot render twice only because of its wrapper (`Header`'s `role="banner"` + sticky
-   shell, `ThemeToggle`'s `#themeToggle` + bound script), extract the presentational inner into its own
-   component — the wrapper keeps the id/script/landmark, the inner carries the markup and scoped styles,
-   and `/brand` renders the inner (BL-095 AC-2). Demo-facing props on such inners follow one rule:
-   passing the override keeps links in-page AND drops any analytics handler, so a specimen click never
-   emits a real tracking event (see `HeaderNavLinks.astro`'s docblock for why the production branch is
-   literal markup, not a data model).
-2. **Replica + parity guard.** Only for components that genuinely cannot render twice *and* have no
-   extractable presentational inner yet (`CTASection`, the portfolio family — singleton DOM `id`s with
-   runtime-owning scripts). Add a test in `tests/e2e/brand-page.test.ts` § "Site chrome specimens match
-   production" comparing the specimen's computed styles against the live component **on the same page**,
-   never against literal values, so the pin cannot go stale. Add a source comment naming the file to
-   keep it in sync with.
+   `CompositeLogo`, `HeaderLogo`, `HeaderNavLinks`, `ThemeToggleButton`, `FooterLinks` and `CTABox`
+   are live components on `/brand`, not copies of them. **A singleton shell does not exempt its
+   contents**: when a component cannot render twice only because of its wrapper (`Header`'s
+   `role="banner"` + sticky shell, `ThemeToggle`'s `#themeToggle` + bound script, `CTASection`'s
+   `id="contact"`), extract the presentational inner into its own component — the wrapper keeps the
+   id/script/landmark, the inner carries the markup and scoped styles, and `/brand` renders the inner
+   (BL-095 AC-2). Demo-facing props on such inners follow one rule: passing the override keeps links
+   in-page AND drops any analytics handler, so a specimen click never emits a real tracking event
+   (see `HeaderNavLinks.astro`'s docblock for why the production branch is literal markup, not a
+   data model).
+2. **Converged replica — the FINAL classification for the portfolio family** (`ProjectModal`,
+   `PortfolioHeader`, `StickyControls`, `FilterDrawer`), not a deferral: they own the portfolio
+   filter/modal runtime (dozens of singleton ids and bound handlers), and no presentational inner
+   exists to extract without surgery on working production code that would only improve
+   documentation. Their end state is a converged replica + a source comment naming the file to keep
+   in sync with. Guard rule: a parity test (in `tests/e2e/brand-page.test.ts` § "Site chrome
+   specimens match production") compares computed styles against the live component **on the same
+   page** when it renders there, never against literal values; when nothing renders the component on
+   `/brand` — the portfolio family's case — a cross-page guard against a stable production route is
+   the fallback where one exists (the `.project-card` guard is the model), and the sync comment is
+   the floor.
 3. **Plain CSS class, no component.** Most `.brutal-*` specimens: the class lives in
    `src/styles/components/*.css` with no `.astro` component behind it, so writing the markup *is*
    rendering the real thing. Nothing to converge on.
+
+Two standing rulings from the BL-095 closeout (2026-08-08):
+
+- **`/brand` embeds cards, never full `<section>`s.** `WhyClientsTrustUs` / `EngagementFlow` /
+  `WhoWeSupport` / `WhatWeDo` are isolation-safe but each renders a whole section whose heading
+  would pollute the `/brand` TOC (built from `h3[id]`), and the specimen slot wants one card. Their
+  card specimens stay replicas under mechanism 2/3; if one measurably drifts, the remedy is a
+  card-level presentational extraction (mechanism 1's pattern), not embedding the section.
+- **No components are created solely so `/brand` can render them.** The service card, founder bio,
+  hub gateway card and legal typography specimens replicate `pages/*.astro` markup; they convert
+  opportunistically when those pages are componentized for their own reasons, never as standalone
+  specimen work.
 
 Two things that make replicas drift silently, both of which have happened:
 
@@ -294,8 +312,13 @@ living on a component, and it silently defeats any layout the card is later drop
 `.brutal-gateway-card` carried `max-width: 600px` and so rendered as one centred column in a
 1504px container, wasting 60% of every row on both hub gateway indexes (BL-105).
 
-The established pairing, in `PortfolioGrid.astro` (`.grid` / `.project-card`) and
-`cards.css` (`.brutal-gateway-grid` / `.brutal-gateway-card`):
+**Exception — centered reading measures.** A prose/CTA box that IS a single centered reading
+measure (`.cta-box` in `CTABox.astro`) legitimately carries `max-width` + `margin: 0 auto`:
+it is never dropped into a grid, and the cap is its typography, not page positioning. The
+ban is on grid *cards* positioning themselves.
+
+The established pairing — `.grid` (`PortfolioGrid.astro`) with `.project-card` (`cards.css`),
+and `.brutal-gateway-grid` / `.brutal-gateway-card` (both `cards.css`):
 
 ```css
 .my-grid {
@@ -314,6 +337,11 @@ The established pairing, in `PortfolioGrid.astro` (`.grid` / `.project-card`) an
 with no responsive override, so `repeat(3, 1fr)` yields 368px cards at a 1280 viewport and
 283px at 1025 — narrower than the same card on a phone. The 768px `1fr` override is also what
 stops the `minmax()` floor forcing horizontal scroll on small screens; do not remove it.
+And `auto-fill`, not `auto-fit`: `auto-fit` collapses empty tracks, so a sparsely-populated
+grid (the `/brand` specimens sit alone in theirs) stretches its lone card across the whole
+row and documents a width nothing renders. The specimen documents the grid's *behaviour* —
+equal-height rows, bottom-aligned CTA, a surviving empty track — never a width; `/brand`'s
+content column is narrower than `.container` by design, so no number there is "the" card width.
 
 **Two traps when the cards become flex children for equal-height rows:**
 

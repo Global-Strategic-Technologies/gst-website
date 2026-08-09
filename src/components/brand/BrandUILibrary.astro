@@ -8,6 +8,7 @@ import HeaderLogo from '../HeaderLogo.astro';
 import HeaderNavLinks from '../HeaderNavLinks.astro';
 import ThemeToggleButton from '../ThemeToggleButton.astro';
 import FooterLinks from '../FooterLinks.astro';
+import CTABox from '../CTABox.astro';
 import type { RadarWireItem } from '../../lib/inoreader/types';
 
 /**
@@ -277,8 +278,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     {
       /* TYPOGRAPHY specimen — sizes here are illustrative, deliberately smaller than
          production so the type relationship reads in a narrow column. Do NOT converge
-         these on CTASection.astro. The specimen that IS converged on it, and that
-         carries the sync obligation, is the `.cta-box` one under Layout Containers. */
+         these on CTABox.astro. The specimen that shows the real thing is the CTA Box
+         one under Layout Containers, which renders CTABox itself and so carries no
+         sync obligation at all. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
@@ -706,7 +708,8 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         flags as `nested-interactive` (serious). Operator ruling 2026-08-02: the
         radar component works as intended and is not being changed, so rendering
         it on /brand — a scanned route — would import that finding onto this
-        page for no benefit. Keep in sync (BL-095 AC-2). */
+        page for no benefit (the full ruling lives on the exclusion in
+        accessibility.test.ts). Keep in sync with radar/FyiItem.astro. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
@@ -757,61 +760,15 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <!-- 8a-1i. M&A Portfolio -->
     <h3 class="brutal-heading-sm brand-group-title" id="lib-portfolio">M&A Portfolio</h3>
 
-    <h4 class="brutal-label brand-subgroup-title">Project Card</h4>
-    <div class="brand-component-row">
-      <div class="brand-component-item">
-        <div class="brutal-frosted brand-hover-card" style="max-width:280px;" data-specimen>
-          <div
-            style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--spacing-sm);"
-          >
-            <div>
-              <div
-                style="font-size:var(--text-lg);font-family:var(--font-family-mono);font-weight:900;color:var(--text-primary);text-transform:uppercase;"
-              >
-                Meridian
-              </div>
-              <div
-                style="font-size:var(--text-xs);font-family:var(--font-family-mono);color:var(--text-muted);"
-              >
-                Healthcare SaaS
-              </div>
-            </div>
-            <span
-              style="font-size:var(--text-2xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;color:var(--text-muted);border:1px solid var(--border-light);padding:0.125rem var(--spacing-xs);"
-              >2025</span
-            >
-          </div>
-          <div style="display:flex;gap:var(--spacing-lg);margin-bottom:var(--spacing-sm);">
-            <div>
-              <div
-                style="font-size:var(--text-2xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);"
-              >
-                ARR
-              </div><div
-                style="font-family:var(--font-family-mono);font-weight:700;color:var(--color-primary);"
-              >
-                $18M
-              </div>
-            </div>
-            <div>
-              <div
-                style="font-size:var(--text-2xs);font-family:var(--font-family-mono);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);"
-              >
-                Stage
-              </div><div
-                style="font-family:var(--font-family-mono);font-weight:700;color:var(--text-primary);"
-              >
-                Growth
-              </div>
-            </div>
-          </div>
-        </div>
-        <code class="brand-code"
-          >.project-card — brutal-frosted, monospace, primary-border hover, year badge</code
-        >
-      </div>
-    </div>
-
+    {
+      /* The "Project Card" hover specimen that lived here was an inline-styled
+         .brand-hover-card duplicate whose caption claimed `.project-card`.
+         Deleted in the BL-095 closeout: `.project-card` is now a single global
+         rule (cards.css) whose REAL hover — lift + shadow + primary border —
+         renders natively on the "Project Card (Current)" specimen under Cards,
+         so a hand-simulated hover stand-in documented a weaker copy of a
+         behaviour the page already exhibits for real. */
+    }
     <h4 class="brutal-label brand-subgroup-title">Project Modal</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
@@ -880,7 +837,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
 
     <h4 class="brutal-label brand-subgroup-title">Search Controls Bar</h4>
     {
-      /* Replica of PortfolioHeader.astro / StickyControls.astro — deferred: both own the portfolio filter runtime (singleton ids + scroll handlers). Keep in sync (BL-095 AC-2). */
+      /* Replica of PortfolioHeader.astro / StickyControls.astro — FINAL classification, not a deferral (STYLES_GUIDE § How a specimen relates to what ships, mechanism 2): both own the portfolio filter runtime (singleton ids + scroll handlers), so a presentational extraction is off the table. Keep in sync with those files. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
@@ -1793,7 +1750,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
 
     <h4 class="brutal-label brand-subgroup-title">Modal Dialog</h4>
     {
-      /* Replica of ProjectModal.astro — deferred: hardcodes 19 singleton ids and publishes a global handler. Keep in sync (BL-095 AC-2). */
+      /* Replica of ProjectModal.astro — FINAL classification, not a deferral (STYLES_GUIDE mechanism 2): hardcodes 19 singleton ids and publishes a global handler, so a presentational extraction is off the table. Keep in sync with that file. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item">
@@ -1852,7 +1809,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
 
     <h4 class="brutal-label brand-subgroup-title">Portfolio Filter Drawer</h4>
     {
-      /* Replica of FilterDrawer.astro — deferred: six singleton ids; its behaviour lives in PortfolioHeader’s script. Keep in sync (BL-095 AC-2). */
+      /* Replica of FilterDrawer.astro — FINAL classification, not a deferral (STYLES_GUIDE mechanism 2): six singleton ids and its behaviour lives in PortfolioHeader’s script, so a presentational extraction is off the table. Keep in sync with that file. */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
@@ -2155,17 +2112,29 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
 
     <h4 class="brutal-label brand-subgroup-title">CTA Box</h4>
     {
-      /* Replica of CTASection.astro — deferred: hardcodes id="contact". Keep in sync (BL-095 AC-2). */
+      /* The real component (BL-095 AC-2), not a replica — the box
+         CTASection.astro wraps (the wrapper keeps its singleton id="contact"
+         and the trackCTA window wiring). `demoHref` keeps the booking link
+         in-page AND drops the analytics onclicks: a specimen click must not
+         emit a real `cta_click` event. The full-width wrapper div gives the
+         box a definite containing block — `.brand-component-item` is a
+         flex column with align-items:flex-start, so without it the 800px
+         reading measure would shrink to fit (see the indefinite-inline-size
+         comment on the gateway grid in brand.astro). */
     }
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div class="cta-box">
-          <h2>Ready to Get Started?</h2>
-          <p>Strategic technology advisory for high-stakes environments.</p>
-          <a class="cta-button" href="#ui-library">Schedule a Call</a>
+        <div class="brand-cta-specimen">
+          <CTABox
+            title="Ready to Get Started?"
+            description="Strategic technology advisory for high-stakes environments."
+            buttonText="Schedule a Call"
+            demoHref="#ui-library"
+          />
         </div>
         <code class="brand-code"
-          >.cta-box — primary border, centered layout, heading + description + CTA button</code
+          >.cta-box — primary border, 800px centered reading measure, heading + description + CTA
+          button. Rendered by CTABox.astro, the box CTASection.astro wraps</code
         >
       </div>
     </div>
