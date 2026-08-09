@@ -1,7 +1,7 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA + 2.2 AA scanning.
  *
- * Scans 22 critical pages for accessibility violations.
+ * Scans 23 critical pages for accessibility violations.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -45,7 +45,9 @@ const PAGES: A11yPage[] = [
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
-  // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline). Deliberately NOT excluded here are the
+  { name: 'MCP Server', path: '/hub/mcp/' },
+  // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline);
+  // 23 as of the /hub/mcp/ marketing page. Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting
   // zero rather than excluding them is the honest choice: a violation in markup that
