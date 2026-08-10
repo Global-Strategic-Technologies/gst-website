@@ -5,6 +5,8 @@
 > **Status**: BL-032 production deploy shipped 2026-05-12. The canonical URL is now `https://mcp.globalstrategic.tech/mcp`. Staging (`https://mcp-staging.globalstrategic.tech/mcp`) remains for testing changes before they reach production — most consumers should point at production.
 >
 > **For operators issuing keys**: see [`AUTH.md`](./AUTH.md). This doc is for the people RECEIVING those keys.
+>
+> **Verifying that the server actually works once connected?** That is the [UAT suite](../testing/uat/README.md) — per-capability walkthroughs with expected results and run logs. Its [`SETUP.md`](../testing/uat/SETUP.md) sequences credential → connection → first tool call, and links back here for every client and troubleshooting detail this doc owns.
 
 ---
 

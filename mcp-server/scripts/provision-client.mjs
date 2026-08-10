@@ -219,15 +219,20 @@ export function renderOnboardingEmail({ clientId, name, tier, scopes, env = 'pro
     'CONNECTING',
     '',
     // Deliberately limited to what the server actually implements and what we
-    // can hand an external M2M client today. REMOTE_CLIENT_SETUP.md is NOT
+    // can hand an external M2M client today. REMOTE_CLIENT_SETUP.md is still NOT
     // referenced here: it is written for GST team members authenticating with
     // an MCP_KEY_<INITIALS> value at the consent page, which an M2M pilot will
-    // never have, and it documents no client_credentials flow. Point at it
-    // again once a client-facing variant exists (BL-093 docs slice).
+    // never have, and it documents no client_credentials flow.
+    // The UAT setup guide below IS client-safe (BL-119): its §0b/§1b describe the
+    // M2M credential and the bearer flow from the recipient's side, and the
+    // provisioning half links to the operator runbooks rather than reproducing them.
     'Your pipeline exchanges the client ID + secret at /token with',
     'grant_type=client_credentials for a 1-hour access token, then calls the endpoint',
     'above with it as a bearer token. There is no refresh token — request a new one when',
     'it expires.',
+    '',
+    'Full setup walkthrough, plus per-capability acceptance tests you can run to',
+    'confirm your integration works: mcp-server/src/docs/testing/uat/SETUP.md',
     '',
     'WHAT YOU GET',
     '',

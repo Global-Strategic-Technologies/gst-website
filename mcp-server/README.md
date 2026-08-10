@@ -344,6 +344,10 @@ Returns `{ themes, engagementCategories, growthStages, years }` — a snapshot o
 
 ## Smoke test (manual parity check)
 
+> **Running an acceptance pass today? Use [`src/docs/testing/uat/README.md`](src/docs/testing/uat/README.md)** — the maintained, per-capability walkthroughs with a setup guide, uniform conventions and per-case run logs. That suite supersedes this section for anyone verifying the server now.
+>
+> The stanzas below are **historical closure evidence** for BL-031 / BL-031.5 / BL-031.75 / BL-031.95, recorded against those surfaces at those dates and cited as such from the archived initiative docs. They are kept verbatim and are not maintained — several record inputs that no longer exist. Read them as a record of what was verified when, not as instructions.
+
 > **Last verified (BL-031 surface)**: April 27, 2026 — all three BL-031 tools invoked from Claude Code with `gst` server registered via [`.mcp.json`](../.mcp.json). Recorded outputs:
 >
 > - `generate_diligence_agenda` (canonical 13-field payload from this README, with `geographies: ["us", "eu"]`): returned **20 questions across 4 topics**, **4 attention areas** (3 high-relevance: Cross-Border Data Compliance, AI Commodity Risk, Sensitive Data Breach Liability; 1 medium-relevance: Data Classification Maturity Gap), complete `triggerMap` with dimension labels matching [`src/docs/tools/diligence/CONTRACT.md`](src/docs/tools/diligence/CONTRACT.md) field-overview, full `metadata.inputSummary` echo. `topics[]` non-empty.
