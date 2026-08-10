@@ -78,7 +78,7 @@
     "browserslist": "^4.28.6",
     "eslint": "^10.7.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-astro": "^3.0.0",
+    "eslint-plugin-astro": "^3.1.0",
     "husky": "^9.1.7",
     "jsdom": "^30.0.1",
     "lightningcss": "^1.32.0",
@@ -92,7 +92,7 @@
     "stylelint-config-standard": "^40.0.0",
     "stylelint-declaration-strict-value": "^1.11.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.64.0",
+    "typescript-eslint": "^8.66.0",
     "us-atlas": "^3.0.1",
     "vitest": "^4.0.18",
     "world-atlas": "^2.0.2"
