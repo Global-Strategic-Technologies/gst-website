@@ -690,6 +690,66 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 ---
 
+### BL-119: MCP Server — User Acceptance Test Suite
+
+**Source**: operator directive 2026-08-10 — pre-GTM capability verification | **Effort**: Medium — scaffolding, 2 exemplars and the missing IRL/dossier contract this pass; 8 family docs to follow | **Status**: Open
+
+**As a** person evaluating or operating the GST MCP server, **I want** a start-to-finish acceptance walkthrough for every published capability **so that** I can prove the server works from a real client before we take it to market, without reverse-engineering input shapes from the Zod schemas.
+
+> **This is not a BL-093 slice and does not reopen one.** [BL-093](#bl-093-mcp-server--commercialization-phase-4) remains ⏸️ DEFERRED under the standing "the next BL-093 action is a decision about the premise, not a slice pick" instruction. BL-119 is internal verification. That its walkthroughs would also be usable source material for a future public docs surface is an observation about reuse, not a claim on that slice.
+
+**What shipped 2026-08-10**: the suite at [`mcp-server/src/docs/testing/uat/`](../../../mcp-server/src/docs/testing/uat/README.md) — a TOC/index, a shared `SETUP.md` covering both credential paths, a case `TEMPLATE.md`, and two authored exemplars chosen as the extremes: [UAT-01](../../../mcp-server/src/docs/testing/uat/UAT-01-portfolio.md) (simplest — a zero-arg call and data-derived facets) and [UAT-07](../../../mcp-server/src/docs/testing/uat/UAT-07-irl-pipeline.md) (hardest — a five-tool chain passing a hash between calls). Every expected result was written from a live run against production `0.48.1`, not from reading schemas.
+
+#### Acceptance Criteria
+
+**Shared scaffolding**
+
+- [x] A single TOC document indexes every UAT — ✅ `uat/README.md`, carrying a reader-facing Test catalog and a machine-checked capability coverage matrix
+- [x] Setup written once and referenced, never repeated per case — ✅ `uat/SETUP.md`; each case opens with a one-line prerequisite
+- [x] Setup covers obtaining a credential, connecting a client, and the first verified tool call — ✅ both paths: internal `MCP_KEY_*` consent flow and pilot M2M (`client_secret` and `private_key_jwt`)
+- [x] Uniform conventions across cases — ✅ case IDs, three verdicts (Pass/Fail/**Blocked**), two execution modes, run-log columns, all defined once in the README
+
+**Exemplar cases**
+
+- [x] Simplest family authored and executed — ✅ UAT-01, three cases, all Pass against 0.48.1
+- [x] Hardest family authored and executed — ✅ UAT-07; 07.1–07.5 Pass against 0.48.1, including the negative body-cache-miss path
+- [~] UAT-07.6 (`gst_irl_ingestion` prompt) — 🟡 **authored but unexecuted**: invoking a prompt is a client-side capability with no wire equivalent, so it cannot be driven from a headless session. Its run log is empty by design and closes on the first interactive pass
+
+**Tool contracts**
+
+- [x] The five undocumented IRL/dossier tools gain an input contract — ✅ one family contract at [`tools/irl-pipeline/CONTRACT.md`](../../../mcp-server/src/docs/tools/irl-pipeline/CONTRACT.md), picked up automatically by `contract-parity.test.ts`
+- [x] Registry updated — ✅ row added to [`tools/README.md`](../../../mcp-server/src/docs/tools/README.md)
+- [ ] `USAGE.md` for the IRL/dossier family — the only tool family shipping without one; UAT-07 carries the worked examples meanwhile, and the gap is flagged in the registry Status column so it is visible where authors look
+
+**Family coverage** (one document each; the coverage matrix tracks them and CI fails if a registered capability has no row)
+
+- [ ] UAT-02 — Regulatory map (`search_regulations`, `list_regulation_facets`)
+- [ ] UAT-03 — Diligence (`generate_diligence_agenda`; 13 required dimensions with the `unknown` sentinel)
+- [ ] UAT-04 — TechPar (`compute_techpar`; audited inputs, `quick` vs `deepdive`)
+- [ ] UAT-05 — Tech debt (`estimate_tech_debt_cost`; the null-when-not-IRL-stated fabrication guard)
+- [ ] UAT-06 — ICG (`assess_infrastructure_cost_governance`; the −1..3 answer map)
+- [ ] UAT-08 — Radar (`search_radar`, `get_latest_insights`; Blocked when the credential lacks radar scope)
+- [ ] UAT-09 — the nine `gst_*` prompts (expected outputs sourced from `mcp-server/tests/examples/*.golden.md`, not invented)
+- [ ] UAT-10 — Resources (`gst://library/`, `gst://regulations/`, `gst://radar/`)
+
+**Drift guard**
+
+- [x] A registered tool or prompt with no UAT row fails CI — ✅ [`tests/integration/mcp-uat-parity.test.ts`](../../../tests/integration/mcp-uat-parity.test.ts)
+- [x] Bidirectional catalog integrity — ✅ a row pointing at a missing file fails, and so does a `UAT-*.md` the index never lists
+- [x] stdio-only tools stay out of the matrix — ✅ asserted; they are unreachable over the Worker
+- [x] Registry readers have one definition — ✅ [`tests/integration/helpers/mcp-registry.ts`](../../../tests/integration/helpers/mcp-registry.ts), with a sole-definition assertion that goes red when the BL-093 marketing branch lands its own copy, making that rewire mandatory rather than remembered
+
+#### Technical Context
+
+- **Location**: `mcp-server/src/docs/testing/uat/`, nested under testing rather than a new top-level category. `testing/README.md` already arbitrates testing-surface boundaries (its § Integration coverage exists to say what does _not_ live there), so adding a second band continues that file's job. `operations/` was the live alternative — every file there is a human-executed runbook and `LATENCY_PROBE.md` is already a verification procedure — settled by the discriminator that **operations docs are about running the service; UAT is about verifying capability**
+- **Not enum parity**: the guard deliberately does not bind documented enum values to Zod schemas. That mechanism already exists opt-in via `CONTRACT.md` frontmatter (`enumParity`) in `contract-parity.test.ts`, and most of the IRL tuples are module-private — wiring them would mean exporting from server source purely to satisfy a doc test. UAT cases therefore show only the arguments a case sends and link the contract as authority
+- **Excluded**: `search_radar_offline` and `search_radar_cache` are registered only on stdio (`tools/_local-only.ts`), so no remote client can reach them; presenting them as testable would mislead. `search_radar_cache` is additionally a deprecated alias
+- **Cross-links closed**: `PILOT_ONBOARDING.md` § 2 previously stated that the provisioning script's generated email was the only thing sendable to an M2M pilot — true until `SETUP.md` § 0b/1b landed. That paragraph, the email itself (`provision-client.mjs`), and `REMOTE_CLIENT_SETUP.md` now point at the suite; the email pointer carries a unit assertion so it cannot be dropped silently
+- **`mcp-server/README.md` § Smoke test** keeps its heading verbatim and its dated stanzas intact — `_archive/MCP_SERVER_HUB_SURFACE_BL-031_5.md` links that anchor as closure evidence, and the doc-link guard skips `_archive/` as a scan source, so renaming it would break the citation on a green run. A pointer was added above the stanzas instead. Related: the [BL-034 open item](#bl-034-mcp-server--documentation-cleanup-rolling-catch-all-stub) on what a dated verification stanza should say once its numbers rot is now partly answered — new verification goes in the UAT run logs, which carry a version column precisely so they can age without lying
+- **Branch note**: cut from `master` in parallel with the unmerged BL-093 marketing branch, so `mcp-marketing-parity.test.ts`'s private registry readers could not be extracted. The shared helper was written fresh with identical signatures; the sole-definition assertion above is what forces the rewire when both have landed
+
+---
+
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype
