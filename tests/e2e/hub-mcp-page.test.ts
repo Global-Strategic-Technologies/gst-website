@@ -63,6 +63,82 @@ test.describe('MCP Server page', () => {
     expect(decodeURIComponent(href)).toContain('Intended use case:');
   });
 
+  test('copies each URL from its own row and confirms on that button', async ({
+    page,
+    context,
+    browserName,
+  }) => {
+    const rows = [
+      { source: '[data-endpoint-url]', expected: 'https://mcp.globalstrategic.tech/mcp' },
+      { source: '[data-status-url]', expected: 'https://status.mcp.globalstrategic.tech/' },
+    ];
+
+    await expect(page.locator('[data-copy-endpoint]')).toHaveCount(rows.length);
+
+    // Clipboard permissions are Chromium-only in Playwright — granting them on
+    // Firefox/WebKit throws "Unknown permission" (TEST_BEST_PRACTICES § 11), so
+    // the read-back assertion is guarded and the label check runs everywhere.
+    if (browserName === 'chromium') {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    }
+
+    for (const [index, row] of rows.entries()) {
+      const published = (await page.locator(row.source).textContent())?.trim();
+      expect(published).toBe(row.expected);
+
+      const button = page.locator('[data-copy-endpoint]').nth(index);
+      await expect(button).toHaveText('Copy');
+      await button.click();
+      await expect(button).toHaveText('Copied');
+      await expect(button).toHaveClass(/brutal-btn--copied/);
+
+      if (browserName === 'chromium') {
+        // Proves each button copies ITS OWN row, not a hardcoded first element.
+        expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(row.expected);
+      }
+    }
+  });
+
+  test('the status URL is a working link, the endpoint is not', async ({ page }) => {
+    // The status page is meant to be visited; the MCP endpoint is a transport
+    // address that would only error in a browser, so it is deliberately not a link.
+    const statusLink = page.locator('.mcp-endpoint a[href^="https://status.mcp"]');
+    await expect(statusLink).toHaveCount(1);
+    await expect(statusLink).toHaveAttribute('rel', /noopener/);
+    await expect(page.locator('.mcp-endpoint a[href*="mcp.globalstrategic.tech/mcp"]')).toHaveCount(
+      0
+    );
+  });
+
+  test('hides each catalog behind a disclosure that opens on click', async ({ page }) => {
+    // One per primitive: Tools, Resources, Prompts.
+    const disclosures = page.locator('.mcp-disclosure');
+    await expect(disclosures).toHaveCount(3);
+
+    const first = disclosures.first();
+    const grid = first.locator('.mcp-catalog');
+
+    // Collapsed by default: the point is to keep the density out of the way.
+    await expect(grid).toBeHidden();
+    await expect(first.locator('summary')).toBeVisible();
+
+    await first.locator('summary').click();
+    await expect(grid).toBeVisible();
+
+    await first.locator('summary').click();
+    await expect(grid).toBeHidden();
+  });
+
+  test('the disclosure is operable by keyboard', async ({ page }) => {
+    // Native <details> gives this for free, which is the reason for choosing it
+    // over a bespoke toggle. Asserted so a future "improvement" to a div-based
+    // control cannot quietly drop it.
+    const first = page.locator('.mcp-disclosure').first();
+    await first.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(first.locator('.mcp-catalog')).toBeVisible();
+  });
+
   test('carries the human-in-the-loop caveat for radar content', async ({ page }) => {
     // The BL-093 acceptance criterion. Asserted so it cannot be quietly dropped
     // in a future copy edit.
