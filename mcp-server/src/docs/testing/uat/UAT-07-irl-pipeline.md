@@ -147,6 +147,8 @@ This is the one tool in the server whose two response channels deliberately diff
 
 Use a short populated IRL. The one below is what the recorded run used; any body over 200 characters works, but reuse this one if you want the recorded hash to match.
 
+> **The body ends with a trailing newline, and that matters.** The fenced block below is 825 bytes without it and hashes to `6713e3e9a3bd6888`; with it the body is **826 bytes** and hashes to the documented `7aa62168e54409bb`. Hashing is byte-for-byte with no normalisation, so a tester who copies the fence contents literally gets a "wrong" hash and — per the failure table below — goes hunting for smart quotes. Append the newline.
+
 ```markdown
 ## Section 00 — Basics
 

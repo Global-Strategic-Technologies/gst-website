@@ -7,7 +7,9 @@ Nine `gst_*` prompts — typed, versioned macros that orchestrate tools and reso
 
 > **Mode A only.** Invoking a prompt is a client-side capability; there is no wire equivalent, so `Invoke-McpRequest.ps1` cannot drive these. Record Mode B as **Blocked** for every case here rather than Fail.
 
-> **No runs recorded yet.** Every case below is authored but unexecuted, because this document cannot be exercised from a headless session. This is the one family whose verification genuinely requires a human at an interactive client.
+> **Requires an interactive client.** These cases cannot be exercised from a headless or proxied session — see [`SETUP.md` § 3](SETUP.md), which now checks for that before you start. The addendum is **not** required; installing it is neither necessary nor expected.
+
+> **Argument fields are single-line in most web clients.** `customRequests` on UAT-09.1 is documented as newline-separated `NN: text` lines, but a client rendering every argument as a text input cannot express a newline — two requests silently concatenate into one run-on entry. That is a client limitation, not a server defect. Pass a single request, or use a client that supports multi-line arguments; note which you did.
 
 ## What "correct output" means here
 
@@ -50,9 +52,9 @@ Two consequences for a tester:
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                   |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | 9 `gst_*` prompts, no duplicates, no non-`gst_` entries |
 
 ---
 
@@ -70,9 +72,9 @@ Two consequences for a tester:
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                            |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------ |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | Tool invoked not described; `downloadUrl` surfaced, no base64 in chat; 10 sections / 67 requests |
 
 ---
 
@@ -86,12 +88,13 @@ Two consequences for a tester:
 
 - At least one GST tool is called — a quick look that cites no tool output is the model writing from priors.
 - Any named comparable engagement traces to a `search_portfolio` result. Codenames are anonymised and look plausible when invented, so an uncited one is the highest-value thing to catch here.
+- **If the output surfaces any radar-derived material**, it carries the provenance framing described in [UAT-08.3](UAT-08-radar.md) — aggregated third-party reporting, not independently verified. If it surfaces none, this assertion does not apply. (Added after a cycle-2 finding against `gst_radar_brief_today`: the requirement is family-wide, but only one case was checking it.)
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                            |
+| ---------- | ------ | ---- | ------- | ---- | ------- | -------------------------------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | All four orchestrated tools ran; no uncited codenames; 4 parameterised deeplinks |
 
 ---
 
@@ -103,15 +106,18 @@ Two consequences for a tester:
 
 **Expected result**
 
-- `search_portfolio` is called **once** with a batched theme array where several themes apply — not once per theme.
+- `search_portfolio` is called **once per filter combination**, with a batched theme array where several themes apply — not once per theme. Expect roughly one to three calls, plus a `list_portfolio_facets` enumeration first.
+
+  The point of the assertion is that batching happens, not that a specific count is hit. The prompt body budgets "1–3 times"; the recorded golden shows up to six on one run and notes the body was deliberately left unchanged because output quality was good. If you see one call per theme, that is the anti-pattern; a handful of calls across distinct filter combinations is not.
+
 - Every cited engagement appears in that result.
 - The memo ends with an "Open in Hub" footer listing the `deeplink` for each filter combination explored, labelled by filter.
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                          |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ---------------------------------------------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | Arrow/Atlas/Tempo/Oktoberfest all real; Open-in-Hub footer resolves; 3 calls (see budget note) |
 
 ---
 
@@ -129,9 +135,9 @@ Two consequences for a tester:
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                    |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ---------------------------------------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | 6 frameworks named, all in corpus; 2 empty jurisdictions reported as gaps, none invented |
 
 ---
 
@@ -149,9 +155,9 @@ Two consequences for a tester:
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                          |
+| ---------- | ------ | ---- | ------- | ---- | ------- | -------------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | 10 of 13 unknown; `b2b-saas` did not leak into `businessModel` |
 
 ---
 
@@ -163,14 +169,15 @@ Two consequences for a tester:
 
 **Expected result**
 
-- Supplied `agendaJson` / `comparablesJson` are used rather than regenerated.
+- Supplied `agendaJson` / `comparablesJson` are used rather than regenerated. The sharpest way to test this is to plant tracer values that exist nowhere in the GST corpus — an invented codename and ARR figure — and confirm they appear verbatim while zero tool calls fire.
 - The memo separates findings from recommendations and states the transaction side.
+- **If the memo surfaces any radar-derived material**, it carries the [UAT-08.3](UAT-08-radar.md) provenance framing. Same family-wide requirement as UAT-09.2.
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                    |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ---------------------------------------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | Synthetic tracers reused verbatim, zero tool calls; deeplinks omitted with stated reason |
 
 ---
 
@@ -187,9 +194,9 @@ Two consequences for a tester:
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                 |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | Canonical five layers in order under infra/data-heavy bait; 30 cross-layer references |
 
 ---
 
@@ -202,14 +209,17 @@ Two consequences for a tester:
 **Expected result**
 
 - The prompt renders and calls the radar tools. Its remote rendering was specifically fixed once; a template error here is a regression, not a configuration problem.
-- The brief is in GST Take voice and carries the caveat from [UAT-08.3](UAT-08-radar.md): aggregated third-party content, not verified reporting, not to be auto-actioned.
+- The brief is in GST Take voice and closes with a **provenance caveat** after the "Open in Hub" footer: aggregated third-party reporting with GST annotation, not independently verified, confirm against sources before acting or sharing. This is Step 7 of the prompt body as of `0.0.5`.
+
+  > Prompt versions through `0.0.4` emitted no caveat at all, because the body never instructed one — the requirement lived in the backlog, the operator runbook and the marketing copy, and in no executable surface. Found by a cycle-2 production run and fixed in `0.0.5`. A run against `0.0.4` or earlier will legitimately lack it; check the version before filing.
+
 - **Blocked** if the credential lacks radar scope or the upstream budget is exhausted.
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                         |
+| ---------- | ------ | ---- | ------- | ---- | ------- | --------------------------------------------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Fail    | v0.0.4 — no provenance caveat in any form (6 markers absent). Fixed in 0.0.5; re-run required |
 
 ---
 
@@ -236,4 +246,4 @@ Two consequences for a tester:
 
 ---
 
-_Last updated: 2026-08-11 (BL-119 — initial authoring. All cases unexecuted: prompt invocation requires an interactive client.)_
+_Last updated: 2026-08-11 (BL-119 cycle 2 — 09.0–09.8 executed against production; 09.8 failed and drove the `gst_radar_brief_today` 0.0.5 fix. 09.9 still held for a markdown IRL.)_

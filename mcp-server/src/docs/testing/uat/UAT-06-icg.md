@@ -78,7 +78,36 @@ Scores a target's cloud cost-governance maturity across six domains and returns 
 | `answers`      | yes      | all 20 question IDs | Values are integers **−1 to 3**. `-1` means "Not sure" and is penalised, not skipped                   |
 | `companyStage` | no       | `"series-b"`        | Canonical (`seed`…`enterprise`) or ICG-native (`pre-series-b`, `series-bc`, `pe-backed`, `enterprise`) |
 
-Question IDs follow `q<domain>_<n>`: `q1_1`–`q1_3`, `q2_1`–`q2_4`, `q3_1`–`q3_3`, `q4_1`–`q4_3`, `q5_1`–`q5_3`, `q6_1`–`q6_4`. Use `q3_3: -1` and `q5_2: -1` for the two "Not sure" answers.
+Question IDs follow `q<domain>_<n>`: `q1_1`–`q1_3`, `q2_1`–`q2_4`, `q3_1`–`q3_3`, `q4_1`–`q4_3`, `q5_1`–`q5_3`, `q6_1`–`q6_4`.
+
+**Use this map exactly.** Every expected value below is a function of the full twenty, not just the two `-1`s:
+
+```json
+{
+  "q1_1": 2,
+  "q1_2": 3,
+  "q1_3": 1,
+  "q2_1": 3,
+  "q2_2": 2,
+  "q2_3": 1,
+  "q2_4": 2,
+  "q3_1": 2,
+  "q3_2": 1,
+  "q3_3": -1,
+  "q4_1": 1,
+  "q4_2": 2,
+  "q4_3": 0,
+  "q5_1": 1,
+  "q5_2": -1,
+  "q5_3": 2,
+  "q6_1": 2,
+  "q6_2": 1,
+  "q6_3": 0,
+  "q6_4": 3
+}
+```
+
+> **Why this is spelled out.** An earlier revision named only the two `-1` answers and left the other eighteen to the tester. A cycle-1 run reasonably chose different values, got `overallScore` 50 against the recorded 47, and filed a Medium-severity finding against the aggregation formula. Both numbers were correct: the scores differ because `q4_*` differed. Publishing the map is what makes the expectation reproducible.
 
 **Steps**
 
@@ -88,6 +117,7 @@ Question IDs follow `q<domain>_<n>`: `q1_1`–`q1_3`, `q2_1`–`q2_4`, `q3_1`–
 **Expected result**
 
 - `overallScore` is **47** and `maturityLevel` is `"Aware"` — the second of four bands (`Reactive`, `Aware`, `Optimizing`, `Strategic`).
+- The overall score is a **weighted** mean, not a flat average of the six domain percentages. The two foundational domains (`d1`, `d2`) carry weight 1.5; the rest 1.0. This is original design, not drift: `(67×1.5 + 67×1.5 + 22 + 33 + 22 + 50) ÷ 7 = 46.86 → 47`. A flat average of the same scores gives 43.5, so a tester who assumes an unweighted mean will not reproduce this number.
 - `answeredCount` is **20** and `skippedCount` is **2** — the two `-1` answers count as answered **and** as skipped. They are not silently dropped.
 - The two domains carrying a `-1` report `skippedCount: 1` each (`d3`, `d5`) and score lowest at 22%.
 - `showFoundationalFlag` is now **`false`**: both foundational domains (`d1`, `d2`) reached 67%, clearing the threshold that flagged them in UAT-06.1.

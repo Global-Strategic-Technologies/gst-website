@@ -42,7 +42,7 @@ Live market-intelligence feed, drawn from Inoreader through a 6-hour cache. This
 - Sorted by `publishedAt`, newest first.
 - The Wire tier is capped at **30** items, with up to 3 slots reserved per category so no category is crowded out. FYI passes through uncapped but is already limited upstream to the 15 freshest annotated items.
 - `returned` is the count after the cap and `totalMatched` before it. When they differ the feed was truncated, and `deeplink` opens the full view.
-- `liveInfo` carries `fetchedAt`, `cacheHit` and `degraded`.
+- `liveInfo` carries `degraded` plus **per-tier** freshness keys — `wireFetchedAt`, `wireCacheHit`, `fyiFetchedAt`, `fyiCacheHit`. The two tiers cache independently, so one flat `fetchedAt` would be ambiguous about which it described. (`get_latest_insights` returns the flat `fetchedAt` / `cacheHit`, because it serves a single tier.)
 - Item `summary` is plain text — source HTML is stripped.
 
 **Mode differences**
@@ -88,17 +88,18 @@ The distinct `error` codes are the point: they let a tester separate "upstream i
 
 **Expected result**
 
-- Exactly 3 items, all FYI tier.
+- **At most** 3 items, all FYI tier. `limit` is a ceiling, not a quota: the annotated tier is small and frequently holds fewer items than requested. Returning 2 for `limit: 3` is correct — cross-check the total against UAT-08.1's unfiltered feed.
 - Each carries populated annotations — highlight text and a GST Take. An item without them is a Wire item that leaked into the FYI response.
 - Equivalent to `search_radar` filtered to FYI; the two must not disagree about which items are annotated.
 
 **Failure modes**
 
-| Symptom                    | Means                  | Verdict                              |
-| -------------------------- | ---------------------- | ------------------------------------ |
-| More than `limit` items    | Cap not applied        | Fail                                 |
-| Un-annotated items present | Tier filter is leaking | Fail — the annotation is the product |
-| Any error code             | Same table as UAT-08.1 | Per that table                       |
+| Symptom                    | Means                              | Verdict                                 |
+| -------------------------- | ---------------------------------- | --------------------------------------- |
+| More than `limit` items    | Cap not applied                    | Fail                                    |
+| Fewer than `limit` items   | Corpus holds fewer annotated items | **Not a defect** — `limit` is a ceiling |
+| Un-annotated items present | Tier filter is leaking             | Fail — the annotation is the product    |
+| Any error code             | Same table as UAT-08.1             | Per that table                          |
 
 **Run log**
 

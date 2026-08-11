@@ -129,19 +129,23 @@ The distinction is load-bearing rather than bookkeeping. A local stdio build has
 
 ## Verification status
 
-The catalog is complete: all ten documents are authored, covering every tool, prompt and resource family reachable over the Worker.
+All ten documents are authored, and **the suite has now been executed against production across two cycles.**
 
-**No case has yet been recorded against production.** The authoring runs were executed against a local stdio build, which exercises the same handlers but different bindings — and, for two families, materially different ones:
+| Cycle          | Scope                                   | Result                                     |
+| -------------- | --------------------------------------- | ------------------------------------------ |
+| 1 (2026-08-11) | UAT-01 – 08, plus 09.0 / 10.1 discovery | 24 Pass · 0 confirmed defects · 13 not run |
+| 2 (2026-08-11) | UAT-09.1 – 09.8, UAT-10.2 – 10.4        | 10 Pass · **1 Fail** · 1 held              |
 
-| Family                           | Local stdio proves                                | Still needs production                                                     |
-| -------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
-| 01–06, 10 (library, regulations) | Handler behaviour, arithmetic, guards, taxonomies | Transport, auth, and the deployed build                                    |
-| 07 (IRL pipeline)                | The hash contract and the handler chain           | The Upstash-backed body cache, which stdio replaces with an in-process LRU |
-| 08, 10 (radar)                   | Nothing — no Inoreader credentials bind locally   | Everything; all radar cases are currently **Blocked**                      |
-| 09 (prompts)                     | Nothing — prompt invocation is client-side        | Everything; requires an interactive client                                 |
+**One real defect has been found by this suite and fixed**: `gst_radar_brief_today` republished aggregated third-party reporting as finished, forwardable prose with no provenance framing at all. The requirement was written down in three internal places and existed in no executable surface — including the recorded golden, which encoded the same omission, so every comparison against it agreed. Fixed in prompt `0.0.5` with a unit assertion pinning the instruction so the silent-omission mode cannot recur.
 
-A first production cycle is therefore the outstanding work, and UAT-08 and UAT-09 are the two documents that have never been executed at all.
+Cycle 1's two reported findings both dissolved on investigation: the ICG aggregation "discrepancy" was two different answer maps (now published in UAT-06.2), and the radar annotation staleness is editorial supply, confirmed by the operator, not handler behaviour.
+
+**Still outstanding:**
+
+- **UAT-09.8 re-run** against `0.0.5` to confirm the caveat is actually emitted. The unit test proves the instruction is present; only a live run proves the model follows it.
+- **UAT-09.9** (`gst_irl_ingestion`) — held for a populated IRL supplied as **markdown**. Supplying it as a spreadsheet would test a different thing: flattening a workbook is itself a reconstruction, so it could not distinguish a broken verbatim path from simply not using one.
+- **UAT-04.2** (TechPar deep-dive) — the one tool case never executed in any environment.
 
 ---
 
-_Last updated: 2026-08-11 (BL-119 — catalog complete: all ten documents authored; production cycle outstanding)_
+_Last updated: 2026-08-11 (BL-119 — two production cycles complete; one defect found and fixed; suite corrected against seven tester-reported gaps)_

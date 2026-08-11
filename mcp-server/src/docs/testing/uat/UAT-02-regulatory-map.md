@@ -39,7 +39,7 @@ A curated corpus of regulatory frameworks with a faceted search over it. A full 
 - `totalFrameworks` is **123**.
 - The UK is `gb`, not `uk`. California is `us-ca`, not `ca` — `ca` is Canada. Guessing either wrong returns zero matches with no error, which is why this case exists.
 
-> **Known drift**: the `search_regulations` tool description says "120 frameworks". The live corpus is 123 and `totalFrameworks` above is authoritative. Treat the description figure as stale, not as a contradiction to investigate — it is recorded under BL-034.
+> **A drift note that used to live here has been retired.** The `search_regulations` description once said "120 frameworks" against a live corpus of 123; production now says 123 and the two agree. `totalFrameworks` remains authoritative if they ever diverge again.
 
 **Failure modes**
 

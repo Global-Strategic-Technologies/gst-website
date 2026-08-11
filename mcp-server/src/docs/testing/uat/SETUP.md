@@ -70,25 +70,39 @@ Never paste a token into a shell command directly — use the environment variab
 
 ---
 
-## 2. Install the system-prompt addendum (Mode A only)
+## 2. The system-prompt addendum — optional, and not a precondition
 
-[`REMOTE_CLIENT_SETUP.md` § 4](../../operations/REMOTE_CLIENT_SETUP.md) labels this optional. **For UAT it is required**, and the reason is specific: without it, models answer GST-domain questions from training knowledge or conversation memory instead of calling the tools. A case then fails because the model never routed to the server — which tells you nothing about whether the server works, and wastes the run.
+[`REMOTE_CLIENT_SETUP.md` § 4](../../operations/REMOTE_CLIENT_SETUP.md) describes a tool-routing addendum. **You do not need it to run this suite.** Install nothing; change no account settings.
 
-Copy the block from that section into your client's system prompt or custom instructions, then start a new conversation. The addendum has to be in place before the first message of a thread.
+An earlier revision of this document required it. That was wrong, and the reasoning is worth keeping because it applies to any test suite over an LLM surface:
 
-Mode B does not involve a model, so this step does not apply.
+- The addendum biases a model's **spontaneous** routing — whether it reaches for an MCP tool when a user asks an ambiguous domain question. Every case here names the connector in its step text, so that decision is already made by the tester.
+- Prompt cases (UAT-09) invoke from the client's prompt picker. The model makes no routing choice at all, so there is nothing to bias.
+- Decisive: **if a case only passes with the addendum installed, that case is testing the addendum, not the server.** Coupling them made every case depend on an account-settings change that has nothing to do with the capability under test.
+
+Install it if you want to _additionally_ observe spontaneous routing — that is a real production concern, just a different question from the one this suite asks. If you do, note it in the run log, because it changes what a Pass means.
+
+Mode B does not involve a model at all, so none of this applies there.
 
 ---
 
-## 3. Verify the connection
+## 3. Verify the connection — all three surfaces
 
-Every case assumes this passes. In a fresh thread:
+The server exposes **three** capability surfaces: tools, prompts, and resources. A client can reach one and not the others, so check all three now. Two of these steps take seconds and save hours.
+
+**3a. Tools.** In a fresh thread:
 
 > Using the GST connector, list the portfolio facets.
 
-Expect a `list_portfolio_facets` call returning fifteen themes, two engagement categories, six growth stages, and a list of years. If you see the tool call happen and a result come back, you are connected end to end.
+Expect a `list_portfolio_facets` call returning fifteen themes, two engagement categories, six growth stages, and a list of years.
 
-If the tool list is empty, the model answers without calling anything, or you get a 401, stop here and work through [`REMOTE_CLIENT_SETUP.md` § Troubleshoot](../../operations/REMOTE_CLIENT_SETUP.md) — running cases against a broken connection generates noise, not findings.
+**3b. Prompts.** Open the client's prompt picker (in Claude Desktop, the "+" menu under the connector). Expect **nine** `gst_*` prompts, no duplicates, and nothing non-`gst_` under this connector.
+
+**3c. Resources.** Open the client's resource browser. Expect **133** resources — 4 library, 123 regulations, 6 radar.
+
+> **Why 3b and 3c exist.** An earlier revision checked only 3a and told the tester they were "connected end to end". That is false for this server: a client reaching it through a **proxied connector surface** — a bridge or agent session that forwards tool calls only — passes 3a perfectly while seeing zero prompts and zero resources. The first UAT cycle ran that way and did not discover it until UAT-09, by which point two whole families had been recorded Blocked for a reason nobody had a name for. The symptom is _"tools work flawlessly, prompts and resources absent"_, and the verdict for the affected cases is **Blocked, not Fail** — the server is behaving correctly and your client cannot see part of it.
+
+If 3a fails, or you get a 401, stop and work through [`REMOTE_CLIENT_SETUP.md` § Troubleshoot](../../operations/REMOTE_CLIENT_SETUP.md) — running cases against a broken connection generates noise, not findings. If 3a passes but 3b or 3c comes back empty, you can still run UAT-01 through UAT-08; record UAT-09 and UAT-10 as Blocked with the proxied-surface reason and say so up front in your report.
 
 ---
 
@@ -106,18 +120,20 @@ If the tool list is empty, the model answers without calling anything, or you ge
 
 ## 5. Fail vs Blocked
 
-| You observe                               | Verdict     | Do this                                                     |
-| ----------------------------------------- | ----------- | ----------------------------------------------------------- |
-| The call ran; an expectation did not hold | **Fail**    | File it, quoting case ID + version + what you saw           |
-| The model never called the tool (Mode A)  | **Fail**    | Confirm § 2 landed first — if it did not, fix and re-run    |
-| `403` naming a missing scope              | **Blocked** | Your credential is scoped out of this capability, by design |
-| `429`                                     | **Blocked** | Wait the `Retry-After` window and re-run; not a finding     |
-| `401` after an hour on Mode B             | **Blocked** | Your token expired — mint a new one and re-run              |
-| `503` from a radar tool                   | **Blocked** | Upstream degradation; note it and move on                   |
-| You could not connect at all              | **Blocked** | Nothing about the server is under test until § 3 passes     |
+| You observe                                        | Verdict     | Do this                                                                                                                                                                               |
+| -------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The call ran; an expectation did not hold          | **Fail**    | File it, quoting case ID + version + what you saw                                                                                                                                     |
+| The model never called the tool (Mode A)           | **Fail**    | The case step names the connector, so routing was not the issue — file it                                                                                                             |
+| `403` naming a missing scope                       | **Blocked** | Your credential is scoped out of this capability, by design                                                                                                                           |
+| `429`                                              | **Blocked** | Wait the `Retry-After` window and re-run; not a finding                                                                                                                               |
+| `401` after an hour on Mode B                      | **Blocked** | Your token expired — mint a new one and re-run                                                                                                                                        |
+| `503` from a radar tool                            | **Blocked** | Upstream degradation; note it and move on                                                                                                                                             |
+| You could not connect at all                       | **Blocked** | Nothing about the server is under test until § 3 passes                                                                                                                               |
+| Tools work, but **no prompts or resources** appear | **Blocked** | A proxied connector surface — see § 3. Affects UAT-09 and UAT-10 only; the server is fine                                                                                             |
+| Prompt attach fails with a bare "failed to attach" | **Blocked** | Almost always an invalid enum, with the server's field-level reason discarded by the client. Bisect the arguments against the family's `CONTRACT.md`; retrying unchanged always fails |
 
 Anything persistent or unexplained goes to the operator — the escalation criteria are in [`REMOTE_CLIENT_SETUP.md` § When to escalate](../../operations/REMOTE_CLIENT_SETUP.md).
 
 ---
 
-_Last updated: 2026-08-10 (BL-119 — initial authoring)_
+_Last updated: 2026-08-11 (BL-119 — addendum demoted to optional; § 3 now checks all three capability surfaces; two client-shaped symptoms added to § 5. All three changes came from the cycle-1 and cycle-2 UAT runs.)_

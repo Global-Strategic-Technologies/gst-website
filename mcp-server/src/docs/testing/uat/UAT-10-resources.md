@@ -66,9 +66,9 @@ The read-only `gst://` surface: reference documents, per-framework regulatory re
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                     |
+| ---------- | ------ | ---- | ------- | ---- | ------- | --------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | Full 15.9 KB article, 211 lines; folder taxonomy complete |
 
 ---
 
@@ -97,9 +97,10 @@ The read-only `gst://` surface: reference documents, per-framework regulatory re
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                          |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | -------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | GDPR record: 27 regions, 7 keyRequirements, 4%/EUR 20M penalty |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                   |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | GDPR record: 27 regions, 7 keyRequirements, 4%/EUR 20M penalty          |
+| 2026-08-11 | Cowork | prod        | 0.48.1  | A    | Pass    | First production run: all asserted fields verified from the served JSON |
 
 ---
 
@@ -113,7 +114,8 @@ The read-only `gst://` surface: reference documents, per-framework regulatory re
 
 **Expected result**
 
-- **When populated**: `application/json` carrying the FYI snapshot, consistent with what [UAT-08.2](UAT-08-radar.md) returns.
+- **When populated**: `application/json` carrying the FYI snapshot, consistent with what [UAT-08.2](UAT-08-radar.md) returns. `itemCount` equals `items.length`, and each item carries `id, title, url, source, sourceUrl, category, publishedAt, annotatedAt, summary, annotation`.
+- **`category` may be `null` on an annotated item.** It is a legitimate value, not a seeding gap: an FYI item can be annotated before it is categorised. Consumers that group by category are expected to exclude such items and say so rather than bucketing them arbitrarily — which is what `gst_radar_brief_today` does.
 - **When unpopulated**: a structured error naming both remedies by path — `npm run radar:seed` for local stdio, and the 6-hourly Cron refresh for the Worker. It also states the non-obvious interaction: while the Inoreader budget circuit breaker is open, **no read refreshes the cache**, deliberately, so the unpopulated state can persist until the breaker closes. A tester who does not know that would keep retrying.
 - Resource scope is separate from tool scope: `resource:radar:read` is withheld by default just as the radar tools are, and reads the same upstream-funded snapshot.
 
@@ -128,10 +130,11 @@ The read-only `gst://` surface: reference documents, per-framework regulatory re
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                     |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | Unpopulated as expected; error named both remedies and the breaker caveat |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | Unpopulated as expected; error named both remedies and the breaker caveat                            |
+| 2026-08-11 | Cowork | prod        | 0.48.1  | A    | Pass    | **First observation of the populated branch** — 2 items, both annotated, `itemCount` self-consistent |
 
 ---
 
-_Last updated: 2026-08-11 (BL-119 — initial authoring; 10.1, 10.3 and 10.4 executed against local stdio 0.48.1)_
+_Last updated: 2026-08-11 (BL-119 cycle 2 — 10.2–10.4 executed against production; 10.4 exercised the populated branch for the first time in any environment)_
