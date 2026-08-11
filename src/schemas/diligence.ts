@@ -168,12 +168,19 @@ const UNKNOWN_DESC =
   " Pass `'unknown'` (BL-031.95 Phase 2 sentinel) when the agent cannot derive this from supplied context — the engine treats `'unknown'` as a non-eliminating value, widening the agenda conservatively rather than guessing.";
 
 export const UserInputsSchema = z.object({
-  transactionType: z
-    .enum(withUnknown(TRANSACTION_TYPE_IDS))
-    .describe(
-      'Type of M&A or investment transaction being evaluated. Gates carve-out / integration questions; specific values trigger different separation-readiness probes.' +
-        UNKNOWN_DESC
-    ),
+  transactionType: z.enum(withUnknown(TRANSACTION_TYPE_IDS)).describe(
+    'Type of M&A or investment transaction being evaluated. Gates carve-out / integration questions; specific values trigger different separation-readiness probes.' +
+      // BL-119 cycle-2 Gap J: enumerated inline because this field collides
+      // with `transactionContext` on the IRL prompts, whose vocabulary is
+      // engagement POSTURE (`buy-side` / `sell-side` / `value-creation`).
+      // A caller who has just used that prompt reasonably tries `buy-side`
+      // here; it is not a transaction type, and the resulting rejection
+      // surfaces in some clients as a bare "failed to attach" with the
+      // field-level reason discarded. Naming the five values in the
+      // description is the only place the caller reliably sees them.
+      ' Valid values: `full-acquisition` (whole-company purchase) · `majority-stake` (control investment) · `business-integration` (merging into an existing entity) · `carve-out` (separation from a parent) · `venture-series` (priced growth round). NOTE: this is the transaction STRUCTURE, not the engagement posture — `buy-side` / `sell-side` / `value-creation` belong to `transactionContext` on the IRL tools and are rejected here.' +
+      UNKNOWN_DESC
+  ),
   productType: z
     .enum(withUnknown(PRODUCT_TYPE_IDS))
     .describe(
