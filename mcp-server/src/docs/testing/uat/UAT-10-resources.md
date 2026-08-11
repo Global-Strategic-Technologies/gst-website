@@ -62,7 +62,7 @@ The read-only `gst://` surface: reference documents, per-framework regulatory re
 
 - Returns `text/markdown` with the full article body.
 - The four library URIs are `business-architectures`, `vdr-structure`, `information-request-list`, and `irl-tool-input-mapping`.
-- `gst://library/information-request-list` is the canonical source behind [UAT-07.1](UAT-07-irl-pipeline.md)'s question set — the same content, one addressed as a document and one as structured data.
+- `gst://library/information-request-list` is a Library-surface **article**, not the source behind [UAT-07.1](UAT-07-irl-pipeline.md). The tools read `src/data/irl/information-request-list.md` (67 bullets); this article carries 65 and no skip-if directives. They are deliberately decoupled and expected to diverge — **do not cross-check one against the other**, which would produce a false failure.
 
 **Run log**
 

@@ -208,12 +208,12 @@ Two consequences for a tester:
 
 **Expected result**
 
-- The prompt renders and calls the radar tools. Its remote rendering was specifically fixed once; a template error here is a regression, not a configuration problem.
+- The prompt renders. It does **not** call `search_radar` or `get_latest_insights` — it declares `needsFyiSnapshot`, and the registry resolves `gst://radar/fyi/latest` into the second message before the body is built. Watching for a radar tool call and filing its absence is a false Fail. Remote rendering was fixed once specifically, so a template error here is a regression, not a configuration problem.
 - The brief is in GST Take voice and closes with a **provenance caveat** after the "Open in Hub" footer: aggregated third-party reporting with GST annotation, not independently verified, confirm against sources before acting or sharing. This is Step 7 of the prompt body as of `0.0.5`.
 
   > Prompt versions through `0.0.4` emitted no caveat at all, because the body never instructed one — the requirement lived in the backlog, the operator runbook and the marketing copy, and in no executable surface. Found by a cycle-2 production run and fixed in `0.0.5`. A run against `0.0.4` or earlier will legitimately lack it; check the version before filing.
 
-- **Blocked** if the credential lacks radar scope or the upstream budget is exhausted.
+- Prompts are covered by `prompt:*`, not the radar tool scopes, so a credential without radar tool access can still run this. An exhausted budget or empty cache yields the degraded-text branch Step 2 handles — surfaced verbatim, not an error. **Blocked** only if the prompt cannot be invoked at all.
 
 **Run log**
 

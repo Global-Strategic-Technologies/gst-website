@@ -48,8 +48,12 @@ const readme = read(UAT_README);
 /**
  * Rows of the capability coverage matrix: `| \`capability\` | kind | doc | status |`.
  *
- * Anchored on a backticked first cell so the Test-catalog table above it (whose
- * first cell is a markdown link) cannot be mistaken for coverage rows.
+ * Scoped to the table beneath its own heading rather than scanned document-wide.
+ * The same shape as `contract-parity.test.ts#extractIdsFromTable`, and for the
+ * same reason: a document-wide scan silently ingests any other four-column
+ * table someone later adds, then fails with a message naming neither the table
+ * nor the row. Slicing after the heading makes a malformed matrix fail as
+ * "matrix not found" instead of as a phantom capability.
  */
 interface CoverageRow {
   readonly capability: string;
@@ -58,12 +62,27 @@ interface CoverageRow {
   readonly status: string;
 }
 
+const MATRIX_HEADING = 'Capability coverage matrix';
+
 function parseCoverageMatrix(source: string): CoverageRow[] {
+  const headingMatch = source.match(new RegExp(`^(?:##|###)\\s+.*${MATRIX_HEADING}.*$`, 'm'));
+  if (!headingMatch) {
+    throw new Error(`no heading containing "${MATRIX_HEADING}" in ${UAT_README}`);
+  }
+  const after = source.slice(headingMatch.index! + headingMatch[0].length);
+  const tableMatch = after.match(/(?:^\|[^\n]+\r?\n)+/m);
+  if (!tableMatch) {
+    throw new Error(`no markdown table beneath "${MATRIX_HEADING}" in ${UAT_README}`);
+  }
+
   const rows: CoverageRow[] = [];
-  const re = /^\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$/gm;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(source)) !== null) {
-    rows.push({ capability: m[1], kind: m[2], doc: m[3], status: m[4].trim() });
+  for (const line of tableMatch[0].split(/\r?\n/)) {
+    if (!line.startsWith('|')) continue;
+    // Header row and the `---` separator carry no backticked capability.
+    const m = line.match(
+      /^\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*$/
+    );
+    if (m) rows.push({ capability: m[1], kind: m[2], doc: m[3], status: m[4].trim() });
   }
   return rows;
 }

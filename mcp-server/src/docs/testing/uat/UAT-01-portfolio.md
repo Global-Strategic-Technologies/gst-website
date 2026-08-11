@@ -45,7 +45,7 @@ This is the shortest document in the suite and the one to run first. If UAT-01 p
 - Four keys are present: `themes`, `engagementCategories`, `growthStages`, `years`.
 - `themes` holds **15** entries, sorted ascending, beginning `Education`, `Finance`, `Food & Beverage` and ending `Security`, `Software`.
 - `engagementCategories` is exactly `["Buy-Side", "Sell-Side"]`.
-- `growthStages` holds **6** entries in dataset order, beginning `Early-Stage Growth` and ending `Legacy System`.
+- `growthStages` holds **6** entries in **progression** order (`GROWTH_STAGE_PROGRESSION_ORDER` in `src/utils/filterLogic.ts`, not dataset order — the dataset begins `Expansion Stage`), starting `Early-Stage Growth` and ending `Legacy System`.
 - `years` is sorted **descending** — most recent first.
 
 Write down one theme value; UAT-01.3 uses it.

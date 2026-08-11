@@ -143,7 +143,7 @@ Each prompt module under [`src/prompts/`](src/prompts/) exports a uniform shape 
 
 #### Last verified (BL-031.95 surface)
 
-> **Last verified (BL-031.95 surface)**: May 3, 2026 — five prompt body updates + four URL-state surfaces shipped across Phases 1–5 of the [Hub Tools URL State Restoration & MCP Deep-Link Surface](../src/docs/adr/0005-hub-url-state-deeplink-contract.md) initiative (design doc archived). Engineering correctness verified by 317 mcp-server vitest cases + 1101 project vitest cases (mcp-server typecheck + project astro check + project lint clean). The five updated prompts are at v0.0.3 (`gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_radar_brief_today`) and v0.0.2 (`gst_comparable_engagements_memo`). _(`gst_radar_brief_today` has since moved to v0.0.4 — see [`BREAKING_CHANGES.md`](BREAKING_CHANGES.md) § 0.48.0.)_
+> **Last verified (BL-031.95 surface)**: May 3, 2026 — five prompt body updates + four URL-state surfaces shipped across Phases 1–5 of the [Hub Tools URL State Restoration & MCP Deep-Link Surface](../src/docs/adr/0005-hub-url-state-deeplink-contract.md) initiative (design doc archived). Engineering correctness verified by 317 mcp-server vitest cases + 1101 project vitest cases (mcp-server typecheck + project astro check + project lint clean). The five updated prompts are at v0.0.3 (`gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_radar_brief_today`) and v0.0.2 (`gst_comparable_engagements_memo`). _(`gst_radar_brief_today` has since moved to v0.0.5 — see [`BREAKING_CHANGES.md`](BREAKING_CHANGES.md) § 0.48.0.)_
 >
 > **What this initiative changed end-to-end**:
 >

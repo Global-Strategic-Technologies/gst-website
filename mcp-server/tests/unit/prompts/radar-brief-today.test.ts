@@ -185,8 +185,8 @@ describe('gst_radar_brief_today', () => {
         .join('\n');
       expect(body).toMatch(/Step 7\./);
       expect(body).toMatch(/third-party/i);
-      expect(body).toMatch(/not independently verified|not.{0,20}verified/i);
-      expect(body).toMatch(/before being acted on|before.{0,30}acted on/i);
+      expect(body).toMatch(/not independently verified/i);
+      expect(body).toMatch(/before being acted on/i);
     });
 
     it('argsSchema rejects pre-Phase-3 `sinceHours` field (no longer accepted)', () => {

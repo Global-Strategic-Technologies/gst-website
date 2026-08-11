@@ -700,9 +700,9 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 **What shipped**: the suite at [`mcp-server/src/docs/testing/uat/`](../../../mcp-server/src/docs/testing/uat/README.md) — a TOC/index, a shared `SETUP.md` covering both credential paths, a case `TEMPLATE.md`, and **all ten family documents** (2026-08-10: scaffolding + UAT-01 and UAT-07; 2026-08-11: the remaining eight). Every expected result was written from an executed run rather than from reading schemas.
 
-> ✅ **Production-verified across two cycles (2026-08-11), and the suite earned its keep.** The authoring runs were local stdio (a `dist/` build 24 commits behind master), which is why every run log carries an `Env` column. Both production cycles have since landed. Cycle 1's two reported findings dissolved on investigation — the ICG aggregation gap was two different answer maps, and the map's absence from the case was the real defect (now published in UAT-06.2); radar annotation staleness is editorial supply, operator-confirmed.
+> 🟡 **Partially production-verified (2026-08-11), and the suite earned its keep.** The authoring runs were local stdio (a `dist/` build 24 commits behind master), which is why every run log carries an `Env` column. Cycles 2 and 3 covered prompts, resources and the IRL reconstruction path against production; **the eight tool families (UAT-01–08) still have no production run at all**. Cycle 1's two reported findings dissolved on investigation — the ICG aggregation gap was two different answer maps, and the map's absence from the case was the real defect (now published in UAT-06.2); radar annotation staleness is editorial supply, operator-confirmed.
 >
-> **Cycle 2 found the one genuine defect.** `gst_radar_brief_today` emitted deal-team-facing prose over aggregated third-party reporting with no provenance framing at all. The requirement existed in the BL-033 risk line, [`OPERATOR_RUNBOOK.md`](OPERATOR_RUNBOOK.md) and the `/hub/mcp/` marketing copy — and in **no executable surface**, including the recorded golden, which encoded the same omission so every comparison against it agreed. Fixed in prompt `0.0.5` / server `0.48.2`, with a unit assertion pinning the instruction because "nobody could tell it was missing" was the actual failure mode.
+> **Cycle 2 found the one genuine defect.** `gst_radar_brief_today` emitted deal-team-facing prose over aggregated third-party reporting with no provenance framing at all. The requirement existed in the BL-033 risk line, [`OPERATOR_RUNBOOK.md`](OPERATOR_RUNBOOK.md) and the `/hub/mcp/` marketing copy (on the unmerged `feat/mcp-website-marketing` branch) — and in **no executable surface**, including the recorded golden, which encoded the same omission so every comparison against it agreed. Fixed in prompt `0.0.5` / server `0.48.2`, with a unit assertion pinning the instruction because "nobody could tell it was missing" was the actual failure mode.
 
 #### Acceptance Criteria
 
@@ -717,8 +717,11 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 - [x] Simplest family authored and executed — ✅ UAT-01, three cases, all Pass (local stdio 0.48.1)
 - [x] Hardest family authored and executed — ✅ UAT-07; 07.1–07.5 Pass (local stdio 0.48.1), including the negative body-cache-miss path
-- [~] UAT-07.6 / UAT-09 (`gst_irl_ingestion` and the other eight prompts) — 🟡 **authored but unexecuted**: invoking a prompt is a client-side capability with no wire equivalent, so it cannot be driven from a headless session. Run logs are empty by design and close on the first interactive pass
-- [ ] **A production cycle** — the one substantive gap. Every case is authored and every expectation observed, but only against local stdio; see the ⚠️ note above for which families that materially weakens
+- [x] UAT-09 (the nine prompts) — ✅ 09.0–09.8 executed against production in cycle 2; 09.8 failed and drove the `0.0.5` fix
+- [~] **A production cycle** — 🟡 **partial**. Prompts, resources and the IRL reconstruction path ran against production (cycles 2 and 3). **No tool family has a production run** — UAT-01 through UAT-08 run logs all read `local stdio`. Closing this needs one pass over those eight documents against the Worker
+- [ ] **UAT-09.8 re-run against `0.0.5`** — the unit assertion proves the instruction is in the body; only a live run proves the model follows it
+- [ ] **UAT-09.9** — held for a populated IRL supplied as markdown. Cycle 3 exercised the `.xlsx` reconstruction path instead (labelled `UAT-09.9-X`), which cannot test the verbatim assertion by construction
+- [ ] **UAT-04.2** (TechPar deep-dive) — never executed in any environment
 
 **Tool contracts**
 

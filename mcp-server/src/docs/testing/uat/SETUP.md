@@ -114,7 +114,15 @@ If 3a fails, or you get a 401, stop and work through [`REMOTE_CLIENT_SETUP.md` �
 
 **Capture evidence.** For each case, keep the tool call with its arguments and the first ~20 lines of the result. A verdict is a claim; the capture is what makes it checkable later.
 
-**Stay inside the budget.** General tools allow 60 requests/minute and 1000/day; radar tools allow 5/minute and 50/day. A full UAT pass sits well inside that — a retry loop does not. If you hit a 429, wait out the `Retry-After` window rather than hammering.
+**Stay inside the budget — and know that yours depends on your tier.** The figures below are per-client ceilings, not universals:
+
+| Tier         | General /min | General /day | Radar /min | Radar /day |
+| ------------ | ------------ | ------------ | ---------- | ---------- |
+| `free-pilot` | 30           | 300          | 3          | 20         |
+| `paid`       | 60           | 2000         | 5          | 50         |
+| `enterprise` | 120          | 10000        | 10         | 150        |
+
+A full UAT pass sits well inside every one of these — a retry loop does not. If you hit a 429, wait out the `Retry-After` window rather than hammering. A `free-pilot` credential has the tightest radar budget, so UAT-08's three calls are close to a fifth of its daily allowance.
 
 ---
 

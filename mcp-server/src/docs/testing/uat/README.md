@@ -129,23 +129,28 @@ The distinction is load-bearing rather than bookkeeping. A local stdio build has
 
 ## Verification status
 
-All ten documents are authored, and **the suite has now been executed against production across two cycles.**
+All ten documents are authored. **Production coverage is partial, and the split matters:**
 
-| Cycle          | Scope                                   | Result                                     |
-| -------------- | --------------------------------------- | ------------------------------------------ |
-| 1 (2026-08-11) | UAT-01 – 08, plus 09.0 / 10.1 discovery | 24 Pass · 0 confirmed defects · 13 not run |
-| 2 (2026-08-11) | UAT-09.1 – 09.8, UAT-10.2 – 10.4        | 10 Pass · **1 Fail** · 1 held              |
+| Family              | Authoring runs                                           | Production runs         |
+| ------------------- | -------------------------------------------------------- | ----------------------- |
+| UAT-01 – 07 (tools) | `local stdio` — handlers, arithmetic, guards             | **none**                |
+| UAT-08 (radar)      | `local stdio` — all Blocked, no credentials bind locally | **none**                |
+| UAT-09 (prompts)    | n/a                                                      | ✅ 09.0 – 09.8, cycle 2 |
+| UAT-10 (resources)  | 10.1/10.3/10.4 local stdio                               | ✅ 10.2 – 10.4, cycle 2 |
 
-**One real defect has been found by this suite and fixed**: `gst_radar_brief_today` republished aggregated third-party reporting as finished, forwardable prose with no provenance framing at all. The requirement was written down in three internal places and existed in no executable surface — including the recorded golden, which encoded the same omission, so every comparison against it agreed. Fixed in prompt `0.0.5` with a unit assertion pinning the instruction so the silent-omission mode cannot recur.
+**No tool family has a production run yet.** Every UAT-01 through UAT-08 run-log row reads `local stdio`, and each of those documents carries its own "a production run is outstanding" note. The suite's own rule — a case with an empty or non-production run log has not been proven in production — applies to this index too.
 
-Cycle 1's two reported findings both dissolved on investigation: the ICG aggregation "discrepancy" was two different answer maps (now published in UAT-06.2), and the radar annotation staleness is editorial supply, confirmed by the operator, not handler behaviour.
+Cycle 2 (prompts and resources) is the only production evidence, and it is what found the one real defect: `gst_radar_brief_today` republished aggregated third-party reporting with no provenance framing. The requirement was written down in three internal places and existed in no executable surface, including the recorded golden. Fixed in prompt `0.0.5` with a unit assertion pinning the instruction.
 
-**Still outstanding:**
+Cycle 1's two reported findings both dissolved on investigation — the ICG aggregation gap was two different answer maps (the map is now published in UAT-06.2), and radar annotation staleness is editorial supply, operator-confirmed. Cycle 3 exercised the IRL reconstruction path and confirmed the provenance machinery self-labels correctly.
 
-- **UAT-09.8 re-run** against `0.0.5` to confirm the caveat is actually emitted. The unit test proves the instruction is present; only a live run proves the model follows it.
-- **UAT-09.9** (`gst_irl_ingestion`) — held for a populated IRL supplied as **markdown**. Supplying it as a spreadsheet would test a different thing: flattening a workbook is itself a reconstruction, so it could not distinguish a broken verbatim path from simply not using one.
-- **UAT-04.2** (TechPar deep-dive) — the one tool case never executed in any environment.
+**Outstanding:**
+
+- **A production run of UAT-01 through UAT-08** — the largest gap, and the reason `BACKLOG.md` still carries an unchecked production-cycle item.
+- **UAT-09.8 re-run against `0.0.5`** — the unit test proves the instruction is in the body; only a live run proves the model follows it.
+- **UAT-09.9** — held for a populated IRL supplied as **markdown**, not `.xlsx`. Flattening a workbook is itself a reconstruction and cannot exercise the verbatim assertion.
+- **UAT-04.2** (TechPar deep-dive) — never executed in any environment.
 
 ---
 
-_Last updated: 2026-08-11 (BL-119 — two production cycles complete; one defect found and fixed; suite corrected against seven tester-reported gaps)_
+_Last updated: 2026-08-11 (BL-119 — prompts and resources production-verified; tool families still outstanding. One defect found and fixed; suite corrected against tester-reported gaps across three cycles.)_
