@@ -59,8 +59,8 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Daily / pre-meeting digest of the most recent annotated FYI radar items, summarized in the GST Take voice.',
-  version: '0.0.4',
-  lastReviewedAt: '2026-08-07',
+  version: '0.0.5',
+  lastReviewedAt: '2026-08-11',
   orchestrates: ['gst://radar/fyi/latest'] as const,
   argsSchema,
   needsFyiSnapshot: true,
@@ -91,6 +91,18 @@ export const radarBriefTodayPrompt: GstPrompt<typeof argsSchema> = {
             args.category
               ? `Step 6. Append an "Open in Hub" footer with the link \`https://globalstrategic.tech/hub/radar?category=${args.category}\` — opens \`/hub/radar\` filtered to the same category so the analyst can browse the full feed (BL-031.95 Phase 3.B). Use exactly that URL — do not URL-encode the category value (the filter values are already URL-safe slugs).`
               : 'Step 6. Append an "Open in Hub" footer with the link `https://globalstrategic.tech/hub/radar` — opens the unfiltered Radar page so the analyst can browse the full feed (BL-031.95 Phase 3.B).',
+            '',
+            // BL-119 cycle-2 Finding 1. The brief reads as finished analytical
+            // prose and is forwardable as-is, but every item in it is
+            // third-party reporting that GST aggregated and annotated — not
+            // reporting GST verified. The caveat existed in the backlog, the
+            // operator runbook and the marketing copy, and in NO surface that
+            // actually emits the content, so a partner could paste this into a
+            // client email with nothing marking its provenance. It is a step
+            // rather than a Voice note because the v0.0.4 run followed all
+            // seven steps faithfully and emitted no caveat: the model does what
+            // the numbered steps say.
+            'Step 7. Close with a one-line provenance caveat, after the "Open in Hub" footer. State that the brief aggregates third-party reporting with GST annotation, that it is not independently verified, and that items should be confirmed against their sources before being acted on or shared with a client. Keep it to a single sentence in the brief\'s own voice — it is a standing property of the content, not a disclaimer bolted on.',
             '',
             'Voice: pre-meeting briefing. The reader has 90 seconds before walking into a deal call. The brief should leave them sounding informed, not overwhelmed.',
           ].join('\n'),

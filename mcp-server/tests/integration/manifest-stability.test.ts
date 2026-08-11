@@ -32,6 +32,11 @@ import { REGULATION_ENTRIES } from '../../src/content/regulation-loader';
 import { RADAR_URIS } from '../../src/resources/radar';
 import { ALL_PROMPTS } from '../../src/prompts/_registry';
 
+// BL-119 rebaseline: prompt v0.0.4 -> v0.0.5 (gst_radar_brief_today gains
+// Step 7, the provenance caveat). Cycle-2 UAT found the brief emitted no
+// framing at all for aggregated third-party content — the requirement
+// existed in the backlog, the operator runbook and the marketing copy, and
+// in no surface that actually produced the content.
 /**
  * The canonical manifest hash for the current registry shape. This MUST
  * match the value in `mcp-server/BREAKING_CHANGES.md`. Update both in
@@ -147,7 +152,7 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // real client; every occurrence repo-wide was renamed to the SanFran code
 // name. Byte-only rename — no directive, gate, argument, tool, or URI
 // changes. Drifts solely from that one prompt name@version tuple.
-const EXPECTED_MANIFEST_HASH = 'fdc5c599fa55317ed127849b500c20fbdabc1346973debba8659fe9464df087d';
+const EXPECTED_MANIFEST_HASH = '39dda8102a1ab9732da0928af15d1eee1499bd94378536ff03a1606135d99e19';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

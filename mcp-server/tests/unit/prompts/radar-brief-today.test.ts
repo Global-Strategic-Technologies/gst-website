@@ -160,8 +160,33 @@ describe('gst_radar_brief_today', () => {
     // 24h TTL and the website surfaces no time filter. These tests lock
     // the contract.
 
-    it('prompt is at v0.0.4 (Step-2 discriminator made structural so the degraded path works on the Worker; v0.0.3 was the Phase-5 deeplink surface)', () => {
-      expect(radarBriefTodayPrompt.version).toBe('0.0.4');
+    it('prompt is at v0.0.5 (Step 7 provenance caveat; v0.0.4 made the Step-2 discriminator structural so the degraded path works on the Worker)', () => {
+      expect(radarBriefTodayPrompt.version).toBe('0.0.5');
+    });
+
+    /**
+     * BL-119 cycle-2 Finding 1.
+     *
+     * The brief republishes aggregated third-party reporting as finished,
+     * forwardable prose. The requirement that it say so existed in the
+     * backlog, the operator runbook, the marketing copy and the UAT suite —
+     * and in no executable surface, so four prompt versions shipped without
+     * it and the recorded golden encoded the same omission.
+     *
+     * This asserts the instruction is present in the body. It cannot assert
+     * the model emits a caveat (prompts are not deterministic); UAT-09.8 owns
+     * that. What it does own is the failure mode that actually happened:
+     * nobody could tell the instruction was missing.
+     */
+    it('body instructs a provenance caveat on the republished content', () => {
+      const body = radarBriefTodayPrompt
+        .build({}, undefined)
+        .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n');
+      expect(body).toMatch(/Step 7\./);
+      expect(body).toMatch(/third-party/i);
+      expect(body).toMatch(/not independently verified|not.{0,20}verified/i);
+      expect(body).toMatch(/before being acted on|before.{0,30}acted on/i);
     });
 
     it('argsSchema rejects pre-Phase-3 `sinceHours` field (no longer accepted)', () => {
