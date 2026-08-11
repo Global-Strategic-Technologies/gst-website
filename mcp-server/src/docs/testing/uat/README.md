@@ -10,18 +10,18 @@
 
 ## Test catalog
 
-| UAT                                             | Covers                                                                                                                                   | Cases         | Status      |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ----------- |
-| [UAT-01 — Portfolio](UAT-01-portfolio.md)       | `search_portfolio`, `list_portfolio_facets`                                                                                              | UAT-01.1 – .3 | ✅ authored |
-| UAT-02 — Regulatory map                         | `search_regulations`, `list_regulation_facets`                                                                                           | —             | ⏳ pending  |
-| UAT-03 — Diligence                              | `generate_diligence_agenda`                                                                                                              | —             | ⏳ pending  |
-| UAT-04 — TechPar                                | `compute_techpar`                                                                                                                        | —             | ⏳ pending  |
-| UAT-05 — Tech debt                              | `estimate_tech_debt_cost`                                                                                                                | —             | ⏳ pending  |
-| UAT-06 — ICG                                    | `assess_infrastructure_cost_governance`                                                                                                  | —             | ⏳ pending  |
-| [UAT-07 — IRL pipeline](UAT-07-irl-pipeline.md) | `list_irl_requests`, `generate_information_request_list_xlsx`, `prepare_irl_body`, `validate_irl_provenance`, `compose_dossier_envelope` | UAT-07.1 – .6 | ✅ authored |
-| UAT-08 — Radar                                  | `search_radar`, `get_latest_insights`                                                                                                    | —             | ⏳ pending  |
-| UAT-09 — Prompts                                | the nine `gst_*` prompts                                                                                                                 | —             | ⏳ pending  |
-| UAT-10 — Resources                              | `gst://library/`, `gst://regulations/`, `gst://radar/`                                                                                   | —             | ⏳ pending  |
+| UAT                                                 | Covers                                                                                                                                   | Cases         | Status      |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ----------- |
+| [UAT-01 — Portfolio](UAT-01-portfolio.md)           | `search_portfolio`, `list_portfolio_facets`                                                                                              | UAT-01.1 – .3 | ✅ authored |
+| [UAT-02 — Regulatory map](UAT-02-regulatory-map.md) | `search_regulations`, `list_regulation_facets`                                                                                           | UAT-02.1 – .3 | ✅ authored |
+| [UAT-03 — Diligence](UAT-03-diligence.md)           | `generate_diligence_agenda`                                                                                                              | UAT-03.1 – .3 | ✅ authored |
+| [UAT-04 — TechPar](UAT-04-techpar.md)               | `compute_techpar`                                                                                                                        | UAT-04.1 – .2 | ✅ authored |
+| [UAT-05 — Tech debt](UAT-05-tech-debt.md)           | `estimate_tech_debt_cost`                                                                                                                | UAT-05.1 – .3 | ✅ authored |
+| [UAT-06 — ICG](UAT-06-icg.md)                       | `assess_infrastructure_cost_governance`                                                                                                  | UAT-06.1 – .2 | ✅ authored |
+| [UAT-07 — IRL pipeline](UAT-07-irl-pipeline.md)     | `list_irl_requests`, `generate_information_request_list_xlsx`, `prepare_irl_body`, `validate_irl_provenance`, `compose_dossier_envelope` | UAT-07.1 – .6 | ✅ authored |
+| [UAT-08 — Radar](UAT-08-radar.md)                   | `search_radar`, `get_latest_insights`                                                                                                    | UAT-08.1 – .3 | ✅ authored |
+| [UAT-09 — Prompts](UAT-09-prompts.md)               | the nine `gst_*` prompts                                                                                                                 | UAT-09.0 – .9 | ✅ authored |
+| [UAT-10 — Resources](UAT-10-resources.md)           | `gst://library/`, `gst://regulations/`, `gst://radar/`                                                                                   | UAT-10.1 – .4 | ✅ authored |
 
 Supporting documents: [`SETUP.md`](SETUP.md) (do this first) · [`TEMPLATE.md`](TEMPLATE.md) (the skeleton every case follows).
 
@@ -34,35 +34,35 @@ Supporting documents: [`SETUP.md`](SETUP.md) (do this first) · [`TEMPLATE.md`](
      Every tool and prompt registered on the Worker must have a row here. Adding a tool
      without adding its row fails CI — that is the point. -->
 
-| Capability                               | Kind     | UAT                              | Status   |
-| ---------------------------------------- | -------- | -------------------------------- | -------- |
-| `search_portfolio`                       | tool     | [UAT-01](UAT-01-portfolio.md)    | authored |
-| `list_portfolio_facets`                  | tool     | [UAT-01](UAT-01-portfolio.md)    | authored |
-| `search_regulations`                     | tool     | UAT-02                           | pending  |
-| `list_regulation_facets`                 | tool     | UAT-02                           | pending  |
-| `generate_diligence_agenda`              | tool     | UAT-03                           | pending  |
-| `compute_techpar`                        | tool     | UAT-04                           | pending  |
-| `estimate_tech_debt_cost`                | tool     | UAT-05                           | pending  |
-| `assess_infrastructure_cost_governance`  | tool     | UAT-06                           | pending  |
-| `list_irl_requests`                      | tool     | [UAT-07](UAT-07-irl-pipeline.md) | authored |
-| `generate_information_request_list_xlsx` | tool     | [UAT-07](UAT-07-irl-pipeline.md) | authored |
-| `prepare_irl_body`                       | tool     | [UAT-07](UAT-07-irl-pipeline.md) | authored |
-| `validate_irl_provenance`                | tool     | [UAT-07](UAT-07-irl-pipeline.md) | authored |
-| `compose_dossier_envelope`               | tool     | [UAT-07](UAT-07-irl-pipeline.md) | authored |
-| `search_radar`                           | tool     | UAT-08                           | pending  |
-| `get_latest_insights`                    | tool     | UAT-08                           | pending  |
-| `gst_diligence_kickoff`                  | prompt   | UAT-09                           | pending  |
-| `gst_target_quick_look`                  | prompt   | UAT-09                           | pending  |
-| `gst_comparable_engagements_memo`        | prompt   | UAT-09                           | pending  |
-| `gst_regulatory_exposure_brief`          | prompt   | UAT-09                           | pending  |
-| `gst_diligence_handoff_memo`             | prompt   | UAT-09                           | pending  |
-| `gst_architecture_layer_review`          | prompt   | UAT-09                           | pending  |
-| `gst_radar_brief_today`                  | prompt   | UAT-09                           | pending  |
-| `gst_information_request_list`           | prompt   | UAT-09                           | pending  |
-| `gst_irl_ingestion`                      | prompt   | UAT-09                           | pending  |
-| `gst://library/`                         | resource | UAT-10                           | pending  |
-| `gst://regulations/`                     | resource | UAT-10                           | pending  |
-| `gst://radar/`                           | resource | UAT-10                           | pending  |
+| Capability                               | Kind     | UAT                                | Status   |
+| ---------------------------------------- | -------- | ---------------------------------- | -------- |
+| `search_portfolio`                       | tool     | [UAT-01](UAT-01-portfolio.md)      | authored |
+| `list_portfolio_facets`                  | tool     | [UAT-01](UAT-01-portfolio.md)      | authored |
+| `search_regulations`                     | tool     | [UAT-02](UAT-02-regulatory-map.md) | authored |
+| `list_regulation_facets`                 | tool     | [UAT-02](UAT-02-regulatory-map.md) | authored |
+| `generate_diligence_agenda`              | tool     | [UAT-03](UAT-03-diligence.md)      | authored |
+| `compute_techpar`                        | tool     | [UAT-04](UAT-04-techpar.md)        | authored |
+| `estimate_tech_debt_cost`                | tool     | [UAT-05](UAT-05-tech-debt.md)      | authored |
+| `assess_infrastructure_cost_governance`  | tool     | [UAT-06](UAT-06-icg.md)            | authored |
+| `list_irl_requests`                      | tool     | [UAT-07](UAT-07-irl-pipeline.md)   | authored |
+| `generate_information_request_list_xlsx` | tool     | [UAT-07](UAT-07-irl-pipeline.md)   | authored |
+| `prepare_irl_body`                       | tool     | [UAT-07](UAT-07-irl-pipeline.md)   | authored |
+| `validate_irl_provenance`                | tool     | [UAT-07](UAT-07-irl-pipeline.md)   | authored |
+| `compose_dossier_envelope`               | tool     | [UAT-07](UAT-07-irl-pipeline.md)   | authored |
+| `search_radar`                           | tool     | [UAT-08](UAT-08-radar.md)          | authored |
+| `get_latest_insights`                    | tool     | [UAT-08](UAT-08-radar.md)          | authored |
+| `gst_diligence_kickoff`                  | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_target_quick_look`                  | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_comparable_engagements_memo`        | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_regulatory_exposure_brief`          | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_diligence_handoff_memo`             | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_architecture_layer_review`          | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_radar_brief_today`                  | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_information_request_list`           | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_irl_ingestion`                      | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst://library/`                         | resource | [UAT-10](UAT-10-resources.md)      | authored |
+| `gst://regulations/`                     | resource | [UAT-10](UAT-10-resources.md)      | authored |
+| `gst://radar/`                           | resource | [UAT-10](UAT-10-resources.md)      | authored |
 
 **Not in scope**: `search_radar_offline` and `search_radar_cache` are registered only on the local stdio transport. Nobody connecting to `https://mcp.globalstrategic.tech/mcp` can reach them, so presenting them as testable would be misleading. (`search_radar_cache` is additionally a deprecated alias.)
 
@@ -93,7 +93,17 @@ The two modes do not always observe the same thing — a client may surface a to
 
 **One fresh thread per case in Mode A.** Conversation state leaks: a model that already saw the answer in an earlier turn may recite instead of calling the tool, which passes a case that would otherwise fail.
 
-**Record every run.** Each case ends with a run-log table. Fill in a row every time you execute it — date, who ran it, the server version, the mode, the verdict. A case with an empty run log has never been proven, whatever its expectations claim.
+**Record the environment, not just the version.** Run logs carry an `Env` column with one of:
+
+| `Env`         | Means                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------ |
+| `prod`        | `https://mcp.globalstrategic.tech/mcp` — the only environment a Pass can be claimed against      |
+| `staging`     | `https://mcp-staging.globalstrategic.tech/mcp` — validates a build, not the production config    |
+| `local stdio` | A locally-built `mcp-server/dist/index.js`. Same handlers, different bindings and possibly stale |
+
+The distinction is load-bearing rather than bookkeeping. A local stdio build has no Inoreader credentials and an in-process cache instead of Upstash, so radar cases cannot pass there at all and cache-backed cases prove the handler rather than the deployment. It can also be **behind master** — `dist/` is built on demand, so a run against a week-old build is testing week-old code under a current-looking version string. When recording `local stdio`, note the build date.
+
+**Record every run.** Each case ends with a run-log table. Fill in a row every time you execute it — date, tester, environment, version, mode, verdict. A case with an empty run log has never been proven, whatever its expectations claim.
 
 ---
 
@@ -117,4 +127,21 @@ The two modes do not always observe the same thing — a client may surface a to
 
 ---
 
-_Last updated: 2026-08-10 (BL-119 — suite established; UAT-01 and UAT-07 authored, eight documents pending)_
+## Verification status
+
+The catalog is complete: all ten documents are authored, covering every tool, prompt and resource family reachable over the Worker.
+
+**No case has yet been recorded against production.** The authoring runs were executed against a local stdio build, which exercises the same handlers but different bindings — and, for two families, materially different ones:
+
+| Family                           | Local stdio proves                                | Still needs production                                                     |
+| -------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------- |
+| 01–06, 10 (library, regulations) | Handler behaviour, arithmetic, guards, taxonomies | Transport, auth, and the deployed build                                    |
+| 07 (IRL pipeline)                | The hash contract and the handler chain           | The Upstash-backed body cache, which stdio replaces with an in-process LRU |
+| 08, 10 (radar)                   | Nothing — no Inoreader credentials bind locally   | Everything; all radar cases are currently **Blocked**                      |
+| 09 (prompts)                     | Nothing — prompt invocation is client-side        | Everything; requires an interactive client                                 |
+
+A first production cycle is therefore the outstanding work, and UAT-08 and UAT-09 are the two documents that have never been executed at all.
+
+---
+
+_Last updated: 2026-08-11 (BL-119 — catalog complete: all ten documents authored; production cycle outstanding)_

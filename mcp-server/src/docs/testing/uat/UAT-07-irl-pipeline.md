@@ -7,6 +7,8 @@ Five tools that carry an engagement from "we need to ask the target for informat
 
 This is the longest document in the suite and the one most worth running after any change to the IRL surface. Cases must be run **in order** — 07.5 depends on 07.3 having run in the same session.
 
+> **Recorded runs are `local stdio`, not production.** One difference is load-bearing here: the body cache backing 07.3 → 07.5 is an in-process LRU on stdio and Upstash on the Worker. The recorded Pass therefore proves the hash contract and the handler chain, **not** the deployed cache. A production run is outstanding, and it is the run that matters for this family.
+
 ## Scope
 
 | Capability                               | Kind   | Cases    | Contract                                                   |
@@ -59,9 +61,9 @@ This is the longest document in the suite and the one most worth running after a
 
 **Run log**
 
-| Date       | Tester | Version | Mode | Verdict | Notes                                             |
-| ---------- | ------ | ------- | ---- | ------- | ------------------------------------------------- |
-| 2026-08-10 | BL-119 | 0.48.1  | B    | Pass    | 10 sections / 67 bullets; only `00-02` has skipIf |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                             |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------- |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 10 sections / 67 bullets; only `00-02` has skipIf |
 
 ---
 
@@ -127,9 +129,9 @@ This is the one tool in the server whose two response channels deliberately diff
 
 **Run log**
 
-| Date       | Tester | Version | Mode | Verdict | Notes                                                        |
-| ---------- | ------ | ------- | ---- | ------- | ------------------------------------------------------------ |
-| 2026-08-10 | BL-119 | 0.48.1  | B    | Pass    | `bulletCount` 16 — 18 − 1 excluded − 1 skip-if, as predicted |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                        |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------ |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | `bulletCount` 16 — 18 − 1 excluded − 1 skip-if, as predicted |
 
 ---
 
@@ -189,9 +191,9 @@ Keep the hash. UAT-07.4 and UAT-07.5 both need it.
 
 **Run log**
 
-| Date       | Tester | Version | Mode | Verdict | Notes                         |
-| ---------- | ------ | ------- | ---- | ------- | ----------------------------- |
-| 2026-08-10 | BL-119 | 0.48.1  | B    | Pass    | `7aa62168e54409bb`, 826 bytes |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                         |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------- |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | `7aa62168e54409bb`, 826 bytes |
 
 ---
 
@@ -251,9 +253,9 @@ Send three citations — two real, one invented:
 
 **Run log**
 
-| Date       | Tester | Version | Mode | Verdict | Notes                                                                  |
-| ---------- | ------ | ------- | ---- | ------- | ---------------------------------------------------------------------- |
-| 2026-08-10 | BL-119 | 0.48.1  | B    | Pass    | 2 verified / 1 unverified; hash-only mode confirmed cache re-hydration |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                  |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------------------- |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 2 verified / 1 unverified; hash-only mode confirmed cache re-hydration |
 
 ---
 
@@ -311,9 +313,9 @@ Those four array fields are the most common first-call mistake: they are require
 
 **Run log**
 
-| Date       | Tester | Version | Mode | Verdict | Notes                                                                                      |
-| ---------- | ------ | ------- | ---- | ------- | ------------------------------------------------------------------------------------------ |
-| 2026-08-10 | BL-119 | 0.48.1  | B    | Pass    | 3/3 verified, `fixtureFillRatio` 0.24, 826 bytes echoed; bogus-hash path errored correctly |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                      |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------ |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 3/3 verified, `fixtureFillRatio` 0.24, 826 bytes echoed; bogus-hash path errored correctly |
 
 ---
 
@@ -352,9 +354,9 @@ Mode A only. Invoking a prompt is a client-side capability; there is no Mode B e
 
 **Run log**
 
-| Date | Tester | Version | Mode | Verdict | Notes |
-| ---- | ------ | ------- | ---- | ------- | ----- |
-|      |        |         |      |         |       |
+| Date | Tester | Env | Version | Mode | Verdict | Notes |
+| ---- | ------ | --- | ------- | ---- | ------- | ----- |
+|      |        |     |         |      |         |       |
 
 ---
 

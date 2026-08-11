@@ -692,13 +692,15 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 ### BL-119: MCP Server — User Acceptance Test Suite
 
-**Source**: operator directive 2026-08-10 — pre-GTM capability verification | **Effort**: Medium — scaffolding, 2 exemplars and the missing IRL/dossier contract this pass; 8 family docs to follow | **Status**: Open
+**Source**: operator directive 2026-08-10 — pre-GTM capability verification | **Effort**: Medium — catalog complete 2026-08-11; remaining work is a production run, not authoring | **Status**: Open
 
 **As a** person evaluating or operating the GST MCP server, **I want** a start-to-finish acceptance walkthrough for every published capability **so that** I can prove the server works from a real client before we take it to market, without reverse-engineering input shapes from the Zod schemas.
 
 > **This is not a BL-093 slice and does not reopen one.** [BL-093](#bl-093-mcp-server--commercialization-phase-4) remains ⏸️ DEFERRED under the standing "the next BL-093 action is a decision about the premise, not a slice pick" instruction. BL-119 is internal verification. That its walkthroughs would also be usable source material for a future public docs surface is an observation about reuse, not a claim on that slice.
 
-**What shipped 2026-08-10**: the suite at [`mcp-server/src/docs/testing/uat/`](../../../mcp-server/src/docs/testing/uat/README.md) — a TOC/index, a shared `SETUP.md` covering both credential paths, a case `TEMPLATE.md`, and two authored exemplars chosen as the extremes: [UAT-01](../../../mcp-server/src/docs/testing/uat/UAT-01-portfolio.md) (simplest — a zero-arg call and data-derived facets) and [UAT-07](../../../mcp-server/src/docs/testing/uat/UAT-07-irl-pipeline.md) (hardest — a five-tool chain passing a hash between calls). Every expected result was written from a live run against production `0.48.1`, not from reading schemas.
+**What shipped**: the suite at [`mcp-server/src/docs/testing/uat/`](../../../mcp-server/src/docs/testing/uat/README.md) — a TOC/index, a shared `SETUP.md` covering both credential paths, a case `TEMPLATE.md`, and **all ten family documents** (2026-08-10: scaffolding + UAT-01 and UAT-07; 2026-08-11: the remaining eight). Every expected result was written from an executed run rather than from reading schemas.
+
+> ⚠️ **Every recorded run is `local stdio`, not production.** The authoring session's MCP connection was the repo's local `.mcp.json` stdio server, not the Worker — and its `dist/` build was 24 commits behind master. The first `0.48.1` figures recorded on 2026-08-10 were labelled in a way that implied production; corrected 2026-08-11 by adding an `Env` column to every run log. Two families are materially affected: UAT-07's body cache is an in-process LRU on stdio versus Upstash on the Worker, and UAT-08 (radar) cannot run locally at all — no Inoreader credentials bind, so all three radar cases are recorded **Blocked**. **A first production cycle is the outstanding work**, and UAT-08 + UAT-09 have never been executed in any environment.
 
 #### Acceptance Criteria
 
@@ -711,9 +713,10 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 **Exemplar cases**
 
-- [x] Simplest family authored and executed — ✅ UAT-01, three cases, all Pass against 0.48.1
-- [x] Hardest family authored and executed — ✅ UAT-07; 07.1–07.5 Pass against 0.48.1, including the negative body-cache-miss path
-- [~] UAT-07.6 (`gst_irl_ingestion` prompt) — 🟡 **authored but unexecuted**: invoking a prompt is a client-side capability with no wire equivalent, so it cannot be driven from a headless session. Its run log is empty by design and closes on the first interactive pass
+- [x] Simplest family authored and executed — ✅ UAT-01, three cases, all Pass (local stdio 0.48.1)
+- [x] Hardest family authored and executed — ✅ UAT-07; 07.1–07.5 Pass (local stdio 0.48.1), including the negative body-cache-miss path
+- [~] UAT-07.6 / UAT-09 (`gst_irl_ingestion` and the other eight prompts) — 🟡 **authored but unexecuted**: invoking a prompt is a client-side capability with no wire equivalent, so it cannot be driven from a headless session. Run logs are empty by design and close on the first interactive pass
+- [ ] **A production cycle** — the one substantive gap. Every case is authored and every expectation observed, but only against local stdio; see the ⚠️ note above for which families that materially weakens
 
 **Tool contracts**
 
@@ -721,16 +724,16 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 - [x] Registry updated — ✅ row added to [`tools/README.md`](../../../mcp-server/src/docs/tools/README.md)
 - [ ] `USAGE.md` for the IRL/dossier family — the only tool family shipping without one; UAT-07 carries the worked examples meanwhile, and the gap is flagged in the registry Status column so it is visible where authors look
 
-**Family coverage** (one document each; the coverage matrix tracks them and CI fails if a registered capability has no row)
+**Family coverage** (one document each; the coverage matrix tracks them and CI fails if a registered capability has no row) — **complete 2026-08-11; no `pending` rows remain in the matrix**
 
-- [ ] UAT-02 — Regulatory map (`search_regulations`, `list_regulation_facets`)
-- [ ] UAT-03 — Diligence (`generate_diligence_agenda`; 13 required dimensions with the `unknown` sentinel)
-- [ ] UAT-04 — TechPar (`compute_techpar`; audited inputs, `quick` vs `deepdive`)
-- [ ] UAT-05 — Tech debt (`estimate_tech_debt_cost`; the null-when-not-IRL-stated fabrication guard)
-- [ ] UAT-06 — ICG (`assess_infrastructure_cost_governance`; the −1..3 answer map)
-- [ ] UAT-08 — Radar (`search_radar`, `get_latest_insights`; Blocked when the credential lacks radar scope)
-- [ ] UAT-09 — the nine `gst_*` prompts (expected outputs sourced from `mcp-server/tests/examples/*.golden.md`, not invented)
-- [ ] UAT-10 — Resources (`gst://library/`, `gst://regulations/`, `gst://radar/`)
+- [x] UAT-02 — Regulatory map — ✅ 73 jurisdictions / 123 frameworks discoverable; multi-value filtering documented alongside its deeplink trade-off
+- [x] UAT-03 — Diligence — ✅ the all-`unknown` low-context case (28 attention areas) paired against a specified target (4), plus the currency-conversion audit rejection
+- [x] UAT-04 — TechPar — ✅ every headline figure re-derived by hand; `cash` vs `gaap` proven to differ by exactly `rdCapEx`
+- [x] UAT-05 — Tech debt — ✅ the honest-null path and the guard that rejects a placeholder, reporting both violations in one response
+- [x] UAT-06 — ICG — ✅ empty-map structure discovery (the documented remedy for fabricated domain names) contrasted with a scored run; `triggerQuestionAnswered` separates confirmed from assumed gaps
+- [x] UAT-08 — Radar — ✅ authored; all three cases **Blocked** on local stdio (`config-missing`), with the three legitimate non-Pass outcomes tabulated so none is misfiled as a defect
+- [x] UAT-09 — the nine `gst_*` prompts — ✅ authored Mode-A-only, with `mcp-server/tests/examples/*.golden.md` named as the reference and the structure-vs-prose judging rule stated
+- [x] UAT-10 — Resources — ✅ 133 resources (4 + 123 + 6); the tool→resource traceability loop closed via a `uri` from UAT-02.2
 
 **Drift guard**
 

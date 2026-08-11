@@ -7,6 +7,8 @@ The portfolio tools expose GST's anonymized M&A engagement history: a zero-argum
 
 This is the shortest document in the suite and the one to run first. If UAT-01 passes, the connection is genuinely working.
 
+> **Recorded runs are `local stdio`, not production.** The expectations below were observed against a locally-built server, so they describe real handler behaviour but do not yet constitute a production Pass. Portfolio data is bundled at build time and has no external dependency, so these results should hold identically on the Worker — but "should" is not "did". A production run is outstanding.
+
 ## Scope
 
 | Capability              | Kind | Cases              | Contract                                         |
@@ -58,9 +60,9 @@ Write down one theme value; UAT-01.3 uses it.
 
 **Run log**
 
-| Date       | Tester | Version | Mode | Verdict | Notes                                                  |
-| ---------- | ------ | ------- | ---- | ------- | ------------------------------------------------------ |
-| 2026-08-10 | BL-119 | 0.48.1  | B    | Pass    | 15 themes / 2 categories / 6 stages / years descending |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                  |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------ |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 15 themes / 2 categories / 6 stages / years descending |
 
 ---
 
@@ -104,9 +106,9 @@ Write down one theme value; UAT-01.3 uses it.
 
 **Run log**
 
-| Date       | Tester | Version | Mode | Verdict | Notes                                                                     |
-| ---------- | ------ | ------- | ---- | ------- | ------------------------------------------------------------------------- |
-| 2026-08-10 | BL-119 | 0.48.1  | B    | Pass    | 7 matches; one `Finance`-themed match confirmed the multi-field behaviour |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                     |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------- |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 7 matches; one `Finance`-themed match confirmed the multi-field behaviour |
 
 ---
 
@@ -155,9 +157,9 @@ Both fields accept a single string **or** an array; both default to `"all"` when
 
 **Run log**
 
-| Date       | Tester | Version | Mode | Verdict | Notes                                                              |
-| ---------- | ------ | ------- | ---- | ------- | ------------------------------------------------------------------ |
-| 2026-08-10 | BL-119 | 0.48.1  | B    | Pass    | 7 matches, all Healthcare + Buy-Side; deeplink carried both params |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                              |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------ |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 7 matches, all Healthcare + Buy-Side; deeplink carried both params |
 
 ---
 
