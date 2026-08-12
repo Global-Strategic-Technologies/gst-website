@@ -5,8 +5,9 @@ import { buildRegulationSearchText } from '../../src/utils/regulation-search-tex
  * BL-119 cycle 4 (2026-08-12). The regulatory-map page filters by splitting the
  * query on whitespace and requiring every term to be a substring of this text
  * (`index.astro`, `performSearch`). Before the fix the text was the canonical
- * name alone, and no alias in the corpus is a substring of its own record's
- * name — so every common short form returned zero results.
+ * name alone, and a short form is almost never a substring of its record's
+ * formal title — `SB 24-205` is the single exception in the corpus — so common
+ * short forms returned zero results.
  */
 describe('buildRegulationSearchText', () => {
   const colorado = {
