@@ -232,6 +232,18 @@ describe('provision-client — renderOnboardingEmail', () => {
     expect(email).toContain(`${BASE_URLS.production}/mcp`);
   });
 
+  it('points the recipient at the client-safe setup walkthrough', () => {
+    // BL-119. PILOT_ONBOARDING § 2 now tells operators this email is the short
+    // form and the UAT setup guide is the long one it points at; if the pointer
+    // is dropped here, that promise silently breaks and an M2M pilot is back to
+    // having no connection documentation at all.
+    // Deliberately NOT a repo path: the recipient is an external pilot with no
+    // repository access, and the UAT suite has no public URL. Pointing them at a
+    // file they cannot open is worse than telling them who to ask.
+    expect(email).toMatch(/ask your GST contact for the UAT setup guide/i);
+    expect(email).not.toMatch(/mcp-server\/src\/docs/);
+  });
+
   it('carries the PILOT_ONBOARDING § 3 guarantees', () => {
     expect(email).toMatch(/hash-chained/i);
     expect(email).toMatch(/7-year retention/i);

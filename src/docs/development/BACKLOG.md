@@ -690,6 +690,74 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 ---
 
+### BL-119: MCP Server — User Acceptance Test Suite
+
+**Source**: operator directive 2026-08-10 — pre-GTM capability verification | **Effort**: Medium — catalog complete 2026-08-11; remaining work is a production run, not authoring | **Status**: Open
+
+**As a** person evaluating or operating the GST MCP server, **I want** a start-to-finish acceptance walkthrough for every published capability **so that** I can prove the server works from a real client before we take it to market, without reverse-engineering input shapes from the Zod schemas.
+
+> **This is not a BL-093 slice and does not reopen one.** [BL-093](#bl-093-mcp-server--commercialization-phase-4) remains ⏸️ DEFERRED under the standing "the next BL-093 action is a decision about the premise, not a slice pick" instruction. BL-119 is internal verification. That its walkthroughs would also be usable source material for a future public docs surface is an observation about reuse, not a claim on that slice.
+
+**What shipped**: the suite at [`mcp-server/src/docs/testing/uat/`](../../../mcp-server/src/docs/testing/uat/README.md) — a TOC/index, a shared `SETUP.md` covering both credential paths, a case `TEMPLATE.md`, and **all ten family documents** (2026-08-10: scaffolding + UAT-01 and UAT-07; 2026-08-11: the remaining eight). Every expected result was written from an executed run rather than from reading schemas.
+
+> 🟡 **Partially production-verified (2026-08-11), and the suite earned its keep.** The authoring runs were local stdio (a `dist/` build 24 commits behind master), which is why every run log carries an `Env` column. Cycles 2 and 3 covered prompts, resources and the IRL reconstruction path against production; **the eight tool families (UAT-01–08) still have no production run at all**. Cycle 1's two reported findings dissolved on investigation — the ICG aggregation gap was two different answer maps, and the map's absence from the case was the real defect (now published in UAT-06.2); radar annotation staleness is editorial supply, operator-confirmed.
+>
+> **Cycle 2 found the one genuine defect.** `gst_radar_brief_today` emitted deal-team-facing prose over aggregated third-party reporting with no provenance framing at all. The requirement existed in the BL-033 risk line, [`OPERATOR_RUNBOOK.md`](OPERATOR_RUNBOOK.md) and the `/hub/mcp/` marketing copy (on the unmerged `feat/mcp-website-marketing` branch) — and in **no executable surface**, including the recorded golden, which encoded the same omission so every comparison against it agreed. Fixed in prompt `0.0.5` / server `0.48.2`, with a unit assertion pinning the instruction because "nobody could tell it was missing" was the actual failure mode.
+
+#### Acceptance Criteria
+
+**Shared scaffolding**
+
+- [x] A single TOC document indexes every UAT — ✅ `uat/README.md`, carrying a reader-facing Test catalog and a machine-checked capability coverage matrix
+- [x] Setup written once and referenced, never repeated per case — ✅ `uat/SETUP.md`; each case opens with a one-line prerequisite
+- [x] Setup covers obtaining a credential, connecting a client, and the first verified tool call — ✅ both paths: internal `MCP_KEY_*` consent flow and pilot M2M (`client_secret` and `private_key_jwt`)
+- [x] Uniform conventions across cases — ✅ case IDs, three verdicts (Pass/Fail/**Blocked**), two execution modes, run-log columns, all defined once in the README
+
+**Exemplar cases**
+
+- [x] Simplest family authored and executed — ✅ UAT-01, three cases, all Pass (local stdio 0.48.1)
+- [x] Hardest family authored and executed — ✅ UAT-07; 07.1–07.5 Pass (local stdio 0.48.1), including the negative body-cache-miss path
+- [~] UAT-09 (the nine prompts) — 🟡 09.0–09.8 executed against production in cycle 2 (09.8 failed and drove the `0.0.5` fix); **09.9 not run** — see below
+- [~] **A production cycle** — 🟡 **partial**. Prompts, resources and the IRL reconstruction path ran against production (cycles 2 and 3). **No tool family has a production run** — UAT-01 through UAT-08 run logs all read `local stdio`. Closing this needs one pass over those eight documents against the Worker
+- [ ] **UAT-09.8 re-run against `0.0.5`** — the unit assertion proves the instruction is in the body; only a live run proves the model follows it
+- [ ] **UAT-09.9** — held for a populated IRL supplied as markdown. Cycle 3 exercised the `.xlsx` reconstruction path instead, now recorded as [UAT-07.7](../../../mcp-server/src/docs/testing/uat/UAT-07-irl-pipeline.md); it cannot test the verbatim assertion by construction
+- [ ] **UAT-04.2** (TechPar deep-dive) — never executed in any environment
+
+**Tool contracts**
+
+- [x] The five undocumented IRL/dossier tools gain an input contract — ✅ one family contract at [`tools/irl-pipeline/CONTRACT.md`](../../../mcp-server/src/docs/tools/irl-pipeline/CONTRACT.md), picked up automatically by `contract-parity.test.ts`
+- [x] Registry updated — ✅ row added to [`tools/README.md`](../../../mcp-server/src/docs/tools/README.md)
+- [ ] `USAGE.md` for the IRL/dossier family — the only tool family shipping without one; UAT-07 carries the worked examples meanwhile, and the gap is flagged in the registry Status column so it is visible where authors look
+
+**Family coverage** (one document each; the coverage matrix tracks them and CI fails if a registered capability has no row) — **complete 2026-08-11; no `pending` rows remain in the matrix**
+
+- [x] UAT-02 — Regulatory map — ✅ 73 jurisdictions / 123 frameworks discoverable; multi-value filtering documented alongside its deeplink trade-off
+- [x] UAT-03 — Diligence — ✅ the all-`unknown` low-context case (28 attention areas) paired against a specified target (4), plus the currency-conversion audit rejection
+- [x] UAT-04 — TechPar — ✅ every headline figure re-derived by hand; `cash` vs `gaap` proven to differ by exactly `rdCapEx`
+- [x] UAT-05 — Tech debt — ✅ the honest-null path and the guard that rejects a placeholder, reporting both violations in one response
+- [x] UAT-06 — ICG — ✅ empty-map structure discovery (the documented remedy for fabricated domain names) contrasted with a scored run; `triggerQuestionAnswered` separates confirmed from assumed gaps
+- [x] UAT-08 — Radar — ✅ authored; all three cases **Blocked** on local stdio (`config-missing`), with the three legitimate non-Pass outcomes tabulated so none is misfiled as a defect
+- [x] UAT-09 — the nine `gst_*` prompts — ✅ authored Mode-A-only, with `mcp-server/tests/examples/*.golden.md` named as the reference and the structure-vs-prose judging rule stated
+- [x] UAT-10 — Resources — ✅ 133 resources (4 + 123 + 6); the tool→resource traceability loop closed via a `uri` from UAT-02.2
+
+**Drift guard**
+
+- [x] A registered tool or prompt with no UAT row fails CI — ✅ [`tests/integration/mcp-uat-parity.test.ts`](../../../tests/integration/mcp-uat-parity.test.ts)
+- [x] Bidirectional catalog integrity — ✅ a row pointing at a missing file fails, and so does a `UAT-*.md` the index never lists
+- [x] stdio-only tools stay out of the matrix — ✅ asserted; they are unreachable over the Worker
+- [x] Registry readers have one definition — ✅ [`tests/integration/helpers/mcp-registry.ts`](../../../tests/integration/helpers/mcp-registry.ts), with a sole-definition assertion that goes red when the BL-093 marketing branch lands its own copy, making that rewire mandatory rather than remembered
+
+#### Technical Context
+
+- **Location**: `mcp-server/src/docs/testing/uat/`, nested under testing rather than a new top-level category. `testing/README.md` already arbitrates testing-surface boundaries (its § Integration coverage exists to say what does _not_ live there), so adding a second band continues that file's job. `operations/` was the live alternative — every file there is a human-executed runbook and `LATENCY_PROBE.md` is already a verification procedure — settled by the discriminator that **operations docs are about running the service; UAT is about verifying capability**
+- **Not enum parity**: the guard deliberately does not bind documented enum values to Zod schemas. That mechanism already exists opt-in via `CONTRACT.md` frontmatter (`enumParity`) in `contract-parity.test.ts`, and most of the IRL tuples are module-private — wiring them would mean exporting from server source purely to satisfy a doc test. UAT cases therefore show only the arguments a case sends and link the contract as authority
+- **Excluded**: `search_radar_offline` and `search_radar_cache` are registered only on stdio (`tools/_local-only.ts`), so no remote client can reach them; presenting them as testable would mislead. `search_radar_cache` is additionally a deprecated alias
+- **Cross-links closed**: `PILOT_ONBOARDING.md` § 2 previously stated that the provisioning script's generated email was the only thing sendable to an M2M pilot — true until `SETUP.md` § 0b/1b landed. That paragraph, the email itself (`provision-client.mjs`), and `REMOTE_CLIENT_SETUP.md` now point at the suite; the email pointer carries a unit assertion so it cannot be dropped silently
+- **`mcp-server/README.md` § Smoke test** keeps its heading verbatim and its dated stanzas intact — `_archive/MCP_SERVER_HUB_SURFACE_BL-031_5.md` links that anchor as closure evidence, and the doc-link guard skips `_archive/` as a scan source, so renaming it would break the citation on a green run. A pointer was added above the stanzas instead. Related: the [BL-034 open item](#bl-034-mcp-server--documentation-cleanup-rolling-catch-all-stub) on what a dated verification stanza should say once its numbers rot is now partly answered — new verification goes in the UAT run logs, which carry a version column precisely so they can age without lying
+- **Branch note**: cut from `master` in parallel with the unmerged BL-093 marketing branch, so `mcp-marketing-parity.test.ts`'s private registry readers could not be extracted. The shared helper was written fresh with identical signatures; the sole-definition assertion above is what forces the rewire when both have landed
+
+---
+
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype

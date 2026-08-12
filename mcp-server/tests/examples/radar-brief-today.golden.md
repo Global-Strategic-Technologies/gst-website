@@ -1,21 +1,25 @@
 ---
 promptName: gst_radar_brief_today
-version: 0.0.4
+version: 0.0.5
 recordedAt: 2026-05-03
 model: claude-opus-4-7
 ---
 
 # Worked example output for `gst_radar_brief_today`
 
-V7 sign-off recording (v0.0.1) carried forward to v0.0.4 — three layered changes since V7:
+V7 sign-off recording (v0.0.1) carried forward to v0.0.5 — four layered changes since V7:
 
 - **v0.0.2 (BL-031.95 Phase 3.A capability-mirror refactor)**: removed the `sinceHours` argument because the underlying cache has a 24h TTL and the website (`/hub/radar`) surfaces no time filter. The prompt now mirrors the website's filter UI exactly: a single optional `category` field. Engine output (digest by category, GST Take voice, "what to watch" closings, cross-category synthesis) is unchanged from v0.0.1; the body's "filter by recency" instruction was retired.
 - **v0.0.3 (BL-031.95 Phase 5)**: closing "Open in Hub" footer added — `https://globalstrategic.tech/hub/radar?category=<args.category>` (or the bare `/hub/radar` URL when no category was supplied). The footer URL is constructed deterministically by the prompt body from the input `category` since this prompt orchestrates the `gst://radar/fyi/latest` Resource directly (not the Tool); the same shape the Tool wrapper would emit via `src/utils/radar-url.ts` (BL-031.95 Phase 3.B).
 - **v0.0.4 (Worker-rendering fix, this commit)**: Step 2's degraded-path discriminator changed from a phrase-match on `'Radar snapshot not found'` to a structural check ("is the second message a TEXT block?"), and the stdio-only `npm run radar:seed` remediation was dropped from the body. Both because the prompt did not render at all over HTTP — `prompts/get` returned `-32603` from the node:fs-backed reader — and the wording that phrase matched was the stdio one, so the stop-and-surface instruction would have failed silently on the Worker even after the render was fixed. Trials (a) and (b) are unaffected (they exercise the items-present path); trial (c)'s recorded output is updated below.
 
+- **v0.0.5 (BL-119 cycle-2 Finding 1, this commit)**: Step 7 added — a one-line provenance caveat after the "Open in Hub" footer, stating that the brief aggregates third-party reporting with GST annotation, is not independently verified, and should be confirmed against sources before being acted on or shared with a client. **The recorded trial outputs below predate this step and therefore carry no caveat; that absence is expected, not a defect in the recording.**
+
+  Why it took until v0.0.5: the requirement was real and written down in the BL-033 risk line, the operator runbook, and the `/hub/mcp/` marketing copy on the then-unmerged `feat/mcp-website-marketing` branch — but in no executable surface. Not this body, not the other eight prompt bodies, not a tool description, and not this golden. Because the golden encoded the same omission, every comparison against it agreed, and a production run of v0.0.4 (BL-119 cycle 2, 2026-08-11) confirmed the model followed all seven of the steps it was given and emitted nothing. A unit assertion in `tests/unit/prompts/radar-brief-today.test.ts` now pins the instruction's presence in the body, so the silent-omission mode cannot recur; UAT-09.8 owns whether the model actually emits it.
+
 **Senior-consultant sign-off, v0.0.4 (2026-08-07)**: the three degraded-path literals and the revised Step 2 were reviewed and approved in-session; `lastReviewedAt` is set to that date. This closes the deferred-verification stanza that stood here from v0.0.3 ("a fresh V-trial lands naturally on the next mcp-server restart") — that was the deferred-work pattern Directive 6 exists to prevent, and the v0.0.3 footer change it covered is now several months old.
 
-`recordedAt` / `model` in the frontmatter are unchanged on purpose: they date the **model-in-the-loop recording**, and v0.0.4 did not re-run one. Trial (c)'s prose below was rewritten today from the code, not from a fresh invocation, and is marked as such.
+`recordedAt` / `model` in the frontmatter are unchanged on purpose: they date the **model-in-the-loop recording**, and neither v0.0.4 nor v0.0.5 re-ran one. Trial (c)'s prose below was rewritten today from the code, not from a fresh invocation, and is marked as such.
 
 What the sign-off did and did not cover: the reviewed surface is the **degraded path** — the wording a user sees when there is nothing to embed, and the instruction that makes the model surface it verbatim instead of fabricating. Trials (a) and (b) exercise the items-present path and are unchanged by v0.0.4; their v0.0.1 recordings carry forward. A full model-in-the-loop re-trial of (a)/(b) against a live Worker is worth doing on the next real radar curation cycle, but nothing in v0.0.4 alters what the model receives on that path.
 

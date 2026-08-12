@@ -178,6 +178,37 @@ describe('findFalsePositiveMapAbsentClaims', () => {
     expect(offenders).toHaveLength(1);
     expect(offenders[0].matchedHub).toMatch(/NIST/i);
   });
+
+  /**
+   * BL-119 cycle-3. Observed on production: a dossier told a partner the
+   * Colorado AI Act was "absent from the Hub regulatory map" and to file a
+   * coverage request — for a framework the map carries. The record's canonical
+   * name normalizes to `coloradoartificialintelligenceactsb24205`; the idiom a
+   * model actually writes normalizes to `coloradoaiact`. Neither contains the
+   * other, and the record had no aliases, so a covered framework read as
+   * uncovered.
+   *
+   * Same additive alias shape BL-073 established for NIST. Without this test,
+   * deleting the alias would regress the fix on a fully green suite.
+   */
+  it.each(['Colorado AI Act', 'CAIA', 'SB 24-205'])(
+    'BL-119: %s resolves to the Colorado record via the alias path',
+    (idiom) => {
+      const offenders = findFalsePositiveMapAbsentClaims([
+        { category: 'map-absent', entry: `${idiom} — absent from the regulatory map` },
+      ]);
+      expect(offenders).toHaveLength(1);
+      expect(offenders[0].matchedHub).toMatch(/Colorado/i);
+    }
+  );
+
+  it('BL-119: the Colorado canonical name still matches on the substring path', () => {
+    const offenders = findFalsePositiveMapAbsentClaims([
+      { category: 'map-absent', entry: 'Colorado Artificial Intelligence Act — absent' },
+    ]);
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0].matchedHub).toMatch(/Colorado/i);
+  });
 });
 
 describe('runComposeDossierEnvelope — BL-068 false-positive rejection', () => {

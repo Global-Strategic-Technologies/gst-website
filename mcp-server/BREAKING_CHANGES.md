@@ -13,16 +13,16 @@
 ## Current manifest hash
 
 ```
-fdc5c599fa55317ed127849b500c20fbdabc1346973debba8659fe9464df087d
+39dda8102a1ab9732da0928af15d1eee1499bd94378536ff03a1606135d99e19
 ```
 
 Computed over (sorted):
 
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
-- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
+- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.1` (worked-example client deidentified as SanFran — see the 0.48.1 stanza below), and `gst_radar_brief_today` at `0.0.4` (degraded-path discriminator made structural so it works on the Worker — see the 0.48.0 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.1` (worked-example client deidentified as SanFran — see the 0.48.1 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
@@ -30,6 +30,18 @@ the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
 
 ---
+
+## 0.48.2 — 2026-08-11 — `gst_radar_brief_today` labels its own provenance (`0.0.4` → `0.0.5`)
+
+**`gst_radar_brief_today` 0.0.4 → 0.0.5.** No tool, Resource URI or input-schema changes; the manifest hash moves solely on that prompt's `name@version` tuple.
+
+**Who this affects**: anyone who forwards a radar brief. The brief is deal-team-facing prose that reads as finished analysis, and every item in it is third-party reporting GST aggregated and annotated — not reporting GST verified. Through 0.0.4 the output carried no framing of that at all, so a partner could paste it into a client email with nothing marking where it came from or that it needs confirming.
+
+**Why it went unnoticed for four versions.** The requirement was real and written down — in the BL-033 risk line, [`OPERATOR_RUNBOOK.md`](../src/docs/development/OPERATOR_RUNBOOK.md), and the `/hub/mcp/` marketing copy on the then-unmerged `feat/mcp-website-marketing` branch, whose parity test asserts the page tells prospects radar content "should not be auto-actioned". It existed in **no** surface that actually emitted the content: not this prompt body, not any of the other eight, not a tool description, and not the recorded golden. The golden encoded the same omission, so every comparison against it agreed. Found by the BL-119 cycle-2 UAT run, which tested the requirement rather than the recorded output.
+
+**What changed**: a Step 7 instructing a one-line provenance caveat after the "Open in Hub" footer — aggregated third-party reporting with GST annotation, not independently verified, confirm against sources before acting or sharing. It is a numbered step rather than a note in the Voice paragraph because the 0.0.4 run followed all seven of its steps faithfully and still emitted nothing: the model does what the numbered steps say.
+
+**Rollback**: revert the commit and restore the prior manifest hash; no data or transport implications.
 
 ## 0.48.1 — 2026-08-08 — worked-example client deidentified as SanFran
 
