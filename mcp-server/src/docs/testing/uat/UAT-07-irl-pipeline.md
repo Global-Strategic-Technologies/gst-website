@@ -391,7 +391,7 @@ Flatten a filled IRL workbook to markdown yourself, then run the UAT-07.3 → 07
 
 **The accept-set, if you probe it**: `requireVerbatimBody: true` accepts **both** `partner-paste-verbatim` and `partner-paste-verbatim-prepop`, and rejects every reconstruction mode. The field description names only the first; the dual-accept is deliberate (a `-prepop` body is still a verbatim round-trip, pre-populated at prompt-render time).
 
-**Why the pairing matters.** Because `-prepop` is inside the accept-set, a run that mislabels a reconstruction as `-prepop` would pass a gate it should fail **and** skip the provenance-gap disclosure the manual path correctly emits. Whether the prompt path can produce that mislabel — by recording how the bytes reached the tool rather than where they came from — is still open; see the note under UAT-07.6.
+**Why the pairing matters.** Because `-prepop` is inside the accept-set, a run that mislabels a reconstruction as `-prepop` would pass a gate it should fail **and** skip the provenance-gap disclosure the manual path correctly emits. Whether the prompt path can produce that mislabel — by recording how the bytes reached the tool rather than where they came from — is **still open**. Closing it needs one run of `gst_irl_ingestion` with a reconstructed body supplied as the `filledIrl` argument, from a client whose prompt-argument field preserves newlines (a single-line input silently joins the body and answers a different question).
 
 **Failure modes**
 

@@ -129,28 +129,31 @@ The distinction is load-bearing rather than bookkeeping. A local stdio build has
 
 ## Verification status
 
-All ten documents are authored. **Production coverage is partial, and the split matters:**
+All ten documents are authored. **Production coverage is partial.**
 
-| Family              | Authoring runs                                           | Production runs         |
-| ------------------- | -------------------------------------------------------- | ----------------------- |
-| UAT-01 – 07 (tools) | `local stdio` — handlers, arithmetic, guards             | **none**                |
-| UAT-08 (radar)      | `local stdio` — all Blocked, no credentials bind locally | **none**                |
-| UAT-09 (prompts)    | n/a                                                      | ✅ 09.0 – 09.8, cycle 2 |
-| UAT-10 (resources)  | 10.1/10.3/10.4 local stdio                               | ✅ 10.2 – 10.4, cycle 2 |
+> **The run logs are the source of truth, not this section.** A document is production-verified exactly when one of its run-log rows carries `Env: prod` — nothing here overrides that. `tests/integration/mcp-uat-parity.test.ts` derives the answer from those tables and fails if this prose disagrees, because three successive edits to this section drifted out of step with them and each was caught only in review.
 
-**No tool family has a production run yet.** Every UAT-01 through UAT-08 run-log row reads `local stdio`, and each of those documents carries its own "a production run is outstanding" note. The suite's own rule — a case with an empty or non-production run log has not been proven in production — applies to this index too.
+| Family                      | Production evidence                                    |
+| --------------------------- | ------------------------------------------------------ |
+| UAT-01 – 06 (tool families) | **none** — authoring runs only, all `local stdio`      |
+| UAT-07 (IRL pipeline)       | ✅ 07.7 (reconstruction path + verbatim gate), cycle 3 |
+| UAT-08 (radar)              | **none** — Blocked locally, no credentials bind        |
+| UAT-09 (prompts)            | ✅ 09.0 – 09.8, cycle 2                                |
+| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                |
 
-Cycle 2 (prompts and resources) is the only production evidence, and it is what found the one real defect: `gst_radar_brief_today` republished aggregated third-party reporting with no provenance framing. The requirement was written down in three internal places and existed in no executable surface, including the recorded golden. Fixed in prompt `0.0.5` with a unit assertion pinning the instruction.
+**Six of the eight tool families have never run in production.** Each of those documents carries its own "a production run is outstanding" note.
 
-Cycle 1's two reported findings both dissolved on investigation — the ICG aggregation gap was two different answer maps (the map is now published in UAT-06.2), and radar annotation staleness is editorial supply, operator-confirmed. Cycle 3 exercised the IRL reconstruction path and confirmed the provenance machinery self-labels correctly.
+What production evidence exists has already earned its keep. Cycle 2 found the one real defect: `gst_radar_brief_today` republished aggregated third-party reporting with no provenance framing, a requirement written down in three internal places and present in no executable surface — including the recorded golden, so every comparison against it agreed. Fixed in prompt `0.0.5` with a unit assertion pinning the instruction.
+
+Cycle 1's two reported findings both dissolved on investigation — the ICG aggregation gap was two different answer maps (now published in UAT-06.2), and radar annotation staleness is editorial supply, operator-confirmed. Cycle 3 exercised the IRL reconstruction path (UAT-07.7), confirmed the provenance machinery self-labels correctly, and surfaced a `map-absent` false positive on a framework the map does carry.
 
 **Outstanding:**
 
-- **A production run of UAT-01 through UAT-08** — the largest gap, and the reason `BACKLOG.md` still carries an unchecked production-cycle item.
+- **A production run of UAT-01 – 06 and UAT-08** — the largest gap, and the reason `BACKLOG.md` still carries an unchecked production-cycle item.
 - **UAT-09.8 re-run against `0.0.5`** — the unit test proves the instruction is in the body; only a live run proves the model follows it.
-- **UAT-09.9** — held for a populated IRL supplied as **markdown**, not `.xlsx`. Flattening a workbook is itself a reconstruction and cannot exercise the verbatim assertion.
+- **UAT-09.9** — held for a populated IRL supplied as **markdown**, not `.xlsx`. Flattening a workbook is itself a reconstruction and cannot exercise the verbatim assertion; UAT-07.7 covers the reconstruction path instead.
 - **UAT-04.2** (TechPar deep-dive) — never executed in any environment.
 
 ---
 
-_Last updated: 2026-08-11 (BL-119 — prompts and resources production-verified; tool families still outstanding. One defect found and fixed; suite corrected against tester-reported gaps across three cycles.)_
+_Last updated: 2026-08-11 (BL-119 — prompts, resources and the IRL chain production-verified across cycles 2 and 3; six tool families still outstanding. Production status is now derived from the run logs by the parity guard rather than asserted here by hand.)_

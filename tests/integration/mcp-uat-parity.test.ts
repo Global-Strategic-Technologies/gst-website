@@ -210,6 +210,61 @@ describe('UAT setup — published endpoint', () => {
   });
 });
 
+describe('UAT coverage — the index does not overstate production evidence', () => {
+  /**
+   * The index used to assert per-family production status in hand-written
+   * prose, duplicating facts that live in the run-log tables. Three commits
+   * running shipped a mismatch — twice overstating, once understating — each
+   * caught only in review. Prose cannot be kept in step by discipline, so
+   * this derives the answer from the tables instead.
+   *
+   * A document counts as production-verified when it has at least one run-log
+   * row whose `Env` cell is `prod`. The rows are `| date | tester | env | … |`,
+   * so the third pipe-delimited cell is the environment.
+   */
+  const docsWithProdRuns = new Set<string>();
+  for (const file of uatDocsOnDisk) {
+    const body = read(`${UAT_DIR}/${file}`);
+    for (const line of body.split(/\r?\n/)) {
+      if (!line.startsWith('|')) continue;
+      const cells = line.split('|').map((c) => c.trim());
+      // cells[0] is the empty string before the leading pipe.
+      if (cells[3] === 'prod') {
+        docsWithProdRuns.add(file);
+        break;
+      }
+    }
+  }
+
+  it('finds production runs in at least one document', () => {
+    // Vacuity guard: a parser that matched nothing would make the assertion
+    // below pass trivially and re-open the exact drift it exists to close.
+    expect(docsWithProdRuns.size).toBeGreaterThan(0);
+  });
+
+  it.each(uatDocsOnDisk.map((f) => [f] as const))(
+    'the index does not claim %s is production-verified unless its run log says so',
+    (file) => {
+      const claimsProd = new RegExp(
+        `${file.replace(/\./g, '\\.')}[^\\n]*production-verified`,
+        'i'
+      ).test(readme);
+      if (claimsProd) expect(docsWithProdRuns.has(file)).toBe(true);
+    }
+  );
+
+  it('does not assert "no production run" for a document that has one', () => {
+    // The understating direction, which the third drift instance hit. If the
+    // index says nothing has run in production, at least one document must
+    // agree.
+    const claimsNone = /no (?:tool )?famil\w+ (?:has|have) a production run/i.test(readme);
+    if (claimsNone) {
+      const toolDocs = [...docsWithProdRuns].filter((f) => /UAT-0[1-8]/.test(f));
+      expect(toolDocs).toEqual([]);
+    }
+  });
+});
+
 describe('UAT guard — registry readers have a single definition', () => {
   /**
    * Merge-order enforcement, not style policing.
