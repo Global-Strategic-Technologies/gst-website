@@ -369,7 +369,7 @@ Both behaviours must appear in the **same response**. One without the other prov
 >
 > The run remains valid — head/tail fingerprints matched, fill ratio matched an independent count, and 37/37 claims verified against the cached body — but **a larger drift would mean the dossier is bound to bytes that are not the partner's**, and neither the hash-bind nor `requireVerbatimBody` would catch it. The hash binds whatever arrives; the gate checks the label. This field is the only thing that checks the content.
 >
-> **Threshold**: the submitted body being **up to 2 bytes smaller** on a body over 10KB is a recording matter — note it and continue. Anything larger, any delta at all on a body under 10KB, and any delta whose sign is positive (the submitted body being _larger_ than source, which no known transformation produces) is a **Fail**: stop and identify the difference before the dossier is used.
+> **Threshold**: the submitted body being **up to 2 bytes smaller** on a body over 10KB is a recording matter — note it and continue. Anything larger, any delta at all on a body of 10KB or smaller, and any delta whose sign is positive (the submitted body being _larger_ than source, which no known transformation produces) is a **Fail**: stop and identify the difference before the dossier is used.
 
 **Mode differences**
 
@@ -382,7 +382,7 @@ Mode A only. Invoking a prompt is a client-side capability; there is no Mode B e
 | claude.ai **web**  | Refuses the attach outright — _"Failed to attach prompt."_ No request reaches the server (verified: zero Sentry events). At small sizes the same prompt attaches but the field is a single-line input that **strips newlines**, which nothing downstream catches |
 | Claude **Desktop** | Accepts the paste and renders correctly, but delivers the expansion as an **attached document** rather than conversation turns. The model then reasonably reports it has no bound `filledIrl` argument and may decline to proceed                                |
 
-The Desktop path still works — the render fires, the server pre-populates the cache, and the hash in the rendered body is live (confirmable by calling `validate_irl_provenance` with the hash and no body). If the model balks, tell it to proceed on the directive's hash and **not** to reconstruct or re-submit the body. A fallback to `prepare_irl_body` would degrade `irlSource` to `partner-paste-verbatim` and stop the case from testing the prepop path at all.
+The Desktop path still works — the render fires, the server pre-populates the cache, and the hash in the rendered body is live (confirmable by calling `validate_irl_provenance` with the hash and no body). **As of prompt `0.22.2` / server `0.49.1` the body tells the model this itself**, so a balk is now a **finding** rather than the expected behaviour it was on `0.49.0` and earlier — record it, then tell it to proceed on the directive's hash and **not** to reconstruct or re-submit the body. A fallback to `prepare_irl_body` would degrade `irlSource` to `partner-paste-verbatim` and stop the case from testing the prepop path at all.
 
 **Where this leaves the one-shot workflow**: for bodies at real IRL size the operator-side path in [`IRL_PARTNER_PASTE_RUNBOOK.md`](../../../../../src/docs/development/IRL_PARTNER_PASTE_RUNBOOK.md) is the supported route, and this prompt is best reserved for smaller ones.
 
