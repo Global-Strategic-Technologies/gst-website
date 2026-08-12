@@ -7,7 +7,9 @@ Five tools that carry an engagement from "we need to ask the target for informat
 
 This is the longest document in the suite and the one most worth running after any change to the IRL surface. Cases must be run **in order** — 07.5 depends on 07.3 having run in the same session.
 
-> **Partly verified in production.** 07.7 ran on `0.48.1` (cycle 3) and 07.5 on `0.49.0` (cycle 5), so the deployed Upstash-backed body cache — the difference that matters here, against the in-process LRU on stdio — is now exercised. 07.1–07.4 remain `local stdio` recordings, which prove the hash contract and the handler chain but not the deployed cache. **07.6 is the one still outstanding**, and it needs Claude Desktop: the web client renders `filledIrl` as a single-line input and, above roughly 57KB, refuses the attach outright. See [`SETUP.md` § 1a](SETUP.md).
+> **Verified in production where it counts.** 07.7 ran on `0.48.1` (cycle 3), and 07.5 plus **07.6 — the last case in the suite to execute** — on `0.49.0` (cycle 5). The deployed Upstash-backed body cache is therefore exercised, which is the difference that matters here against the in-process LRU on stdio. 07.1–07.4 remain `local stdio` recordings: they prove the hash contract and the handler chain, not the deployed cache.
+>
+> **07.6 needs Claude Desktop, and its client constraints are load-bearing** — read them under that case before attempting it. Neither client handles a real-size IRL body cleanly, and the failure modes are silent rather than loud.
 
 ## Scope
 
