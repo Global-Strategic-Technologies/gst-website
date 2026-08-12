@@ -129,19 +129,19 @@ The distinction is load-bearing rather than bookkeeping. A local stdio build has
 
 ## Verification status
 
-All ten documents are authored, and **every family now has production evidence** as of cycle 4.
+All ten documents are authored, and **every family has production evidence**. As of cycle 5, **UAT-07.6 / 09.9 is the only case never executed anywhere.**
 
 > **The run logs are the source of truth, not this section.** A document is production-verified exactly when one of its run-log rows carries `Env: prod` — nothing here overrides that. `tests/integration/mcp-uat-parity.test.ts` derives the answer from those tables and fails if this prose disagrees, because three successive edits to this section drifted out of step with them and each was caught only in review.
 >
-> **The guard is family-granular, not case-granular.** One `Env: prod` row anywhere in a document flips that whole family to ✅, so a family can be marked verified while one of its cases has never run — exactly the state UAT-02 is in. Per-case gaps live in **Outstanding** below and are only ever caught by reading, never by CI.
+> **The guard is family-granular, not case-granular.** One `Env: prod` row anywhere in a document flips that whole family to ✅, so a family can be marked verified while one of its cases has never run — the state UAT-07 and UAT-09 are in. Per-case gaps live in **Outstanding** below and are only ever caught by reading, never by CI.
 
-| Family                      | Production evidence                                                            |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| UAT-01 – 06 (tool families) | ✅ cycle 4 — every case **except UAT-02.4**, unrunnable until `0.49.0` deploys |
-| UAT-07 (IRL pipeline)       | ✅ 07.7 (reconstruction path + verbatim gate), cycle 3                         |
-| UAT-08 (radar)              | ✅ 08.1 – 08.3, cycle 4 — first live-dependency pass                           |
-| UAT-09 (prompts)            | ✅ 09.0 – 09.8, cycles 2 and 4                                                 |
-| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                                        |
+| Family                      | Production evidence                                                                |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| UAT-01 – 06 (tool families) | ✅ all cases — cycle 4 on `0.48.2`; UAT-02 re-swept and 02.4 first-run on `0.49.0` |
+| UAT-07 (IRL pipeline)       | ✅ 07.7 (cycle 3) and 07.5 (cycle 5) — **07.6 outstanding**                        |
+| UAT-08 (radar)              | ✅ 08.1 – 08.3, cycle 4 — first live-dependency pass                               |
+| UAT-09 (prompts)            | ✅ 09.0 – 09.8, cycles 2 and 4 — **09.9 outstanding** (same run as 07.6)           |
+| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                                            |
 
 Cycle 4 closed the standing gap: **20 cases passed against production `0.48.2`**, converting six tool families from "authored against local stdio" to proven on the Worker, and executing UAT-04.2 for the first time in any environment.
 
@@ -151,12 +151,14 @@ Each cycle has paid for itself, and the pattern is worth naming: **every real de
 
 Cycle 1's two reported findings both dissolved on investigation — the ICG aggregation gap was two different answer maps (now published in UAT-06.2), and radar annotation staleness is editorial supply, operator-confirmed. Cycle 3 exercised the IRL reconstruction path (UAT-07.7) and confirmed the provenance machinery self-labels correctly. Cycle 4's other four observations were suite gaps rather than server defects, and are closed in the cases themselves.
 
-**Outstanding:**
+**Cycle 5 was the acceptance test for the alias fix, and it passed** — 8 Pass, 0 Fail, 1 Blocked on `0.49.0`. The jurisdiction-scoped step of UAT-02.4 returned `totalMatched: 1` where the identical call returned `[]` on `0.48.2`, which is what distinguishes "the alias is now in the index" from "the ranking happened to improve".
 
-- **UAT-02.4** — authored in cycle 4 as the regression case for the alias defect. Cannot pass until `0.49.0` reaches production; it is cycle 5's first task.
-- **UAT-07.6** — Blocked twice now. It needs Claude Desktop's prompt-argument field, because claude.ai web strips newlines from `filledIrl`. Until it runs, whether the prompt path mislabels a reconstruction as `-prepop` stays open.
-- **UAT-09.9** — held for a populated IRL supplied as **markdown**, not `.xlsx`. Flattening a workbook is itself a reconstruction and cannot exercise the verbatim assertion; UAT-07.7 covers the reconstruction path instead.
+It also produced the sharpest piece of testing this exercise has seen. Asked to confirm that a spurious `map-absent` entry had stopped appearing, the tester observed that an absence is consistent with two different worlds — the framework is now recognised, or the check no longer fires for anything — and invented a framework name to separate them. That control is now part of UAT-07.5, and the same reasoning is why UAT-02.4 records `totalMatched` bounds rather than ordering alone: **a positive assertion cannot detect a check that has been switched off.** Cycle 5's other two observations were suite gaps and are closed in the cases; the third (`serverToolCallCounts` reporting `succeeded: 0`) was a non-defect that had been filed three cycles running, now documented in UAT-07.5 and the IRL contract so it stops.
+
+**Outstanding — one case:**
+
+- **UAT-07.6 / UAT-09.9** (the same run, recorded in both). It needs **Claude Desktop**. claude.ai web renders `filledIrl` as a single-line input that strips newlines, and above roughly 57KB refuses the attach entirely — see [`SETUP.md` § 1a](SETUP.md). Until it runs, whether a prompt-argument paste self-labels `partner-paste-verbatim` or `-prepop` stays open, and that distinction decides whether the label records where bytes came from or merely how they arrived.
 
 ---
 
-_Last updated: 2026-08-12 (BL-119 cycle 4 — every family now production-verified; 20 cases passed against `0.48.2`. UAT-02.4 added as the regression case for the `search_regulations` alias defect the cycle found. Production status is derived from the run logs by the parity guard rather than asserted here by hand.)_
+_Last updated: 2026-08-12 (BL-119 cycle 5 — the `0.49.0` alias fix passed its acceptance test, UAT-02 is fully verified, and the cycle-3 dossier loop is closed with a negative control. One case outstanding: UAT-07.6 / 09.9, which needs Claude Desktop. Production status is derived from the run logs by the parity guard rather than asserted here by hand.)_

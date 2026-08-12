@@ -7,7 +7,7 @@ Five tools that carry an engagement from "we need to ask the target for informat
 
 This is the longest document in the suite and the one most worth running after any change to the IRL surface. Cases must be run **in order** — 07.5 depends on 07.3 having run in the same session.
 
-> **Recorded runs are `local stdio`, not production.** One difference is load-bearing here: the body cache backing 07.3 → 07.5 is an in-process LRU on stdio and Upstash on the Worker. The recorded Pass therefore proves the hash contract and the handler chain, **not** the deployed cache. A production run is outstanding, and it is the run that matters for this family.
+> **Partly verified in production.** 07.7 ran on `0.48.1` (cycle 3) and 07.5 on `0.49.0` (cycle 5), so the deployed Upstash-backed body cache — the difference that matters here, against the in-process LRU on stdio — is now exercised. 07.1–07.4 remain `local stdio` recordings, which prove the hash contract and the handler chain but not the deployed cache. **07.6 is the one still outstanding**, and it needs Claude Desktop: the web client renders `filledIrl` as a single-line input and, above roughly 57KB, refuses the attach outright. See [`SETUP.md` § 1a](SETUP.md).
 
 ## Scope
 
@@ -297,8 +297,19 @@ Those four array fields are the most common first-call mistake: they are require
 - `serverCachedBodyBytes` equals UAT-07.3's `byteLength` (**826**) — the cache round-trip, proven end to end.
 - `provenanceFooterMarkdown` renders one line per claim, each ending `[✓ verified]`.
 - `emitInstructions` tells the caller to transcribe the three blocks verbatim and not to hand-edit auto-appended gaps.
+- `serverToolCallCounts.compose_dossier_envelope` reads **`attempted: 1, succeeded: 0`**. **This is correct and is not a defect.** The counter records `attempted` at wrapper entry and `succeeded` at wrapper exit, and this tool snapshots the counters from inside its own handler — so at snapshot time it genuinely has not returned yet. The semantic is deliberate ("I am reporting on the call I am currently inside"); the alternative would show `attempted: 0` for the tool doing the reporting. Every **other** tool in the snapshot reports normally. Testers filed this as a defect in three consecutive cycles, which is why it is written down here.
 
-**Then prove the failure path.** Re-run the identical call with `irlBodyHash` set to `0000000000000000`:
+**Then prove the framework-recognition path both ways.** A `map-absent` gap entry that fails to appear is ambiguous on its own: it is equally consistent with "the framework was recognised" and with "the check stopped firing for anything". Only a negative control separates them.
+
+Re-run the call with `defaultFiredFrameworks` carrying **one framework the regulatory map covers and one that cannot exist** — e.g. `["Colorado AI Act", "Atlantis Algorithmic Fairness Directive 2031"]`:
+
+- **Exactly one** `map-absent` gap entry is auto-appended, naming the invented framework, with follow-up prose directing a coverage request.
+- `autoAppendedGaps` is **1**, not 0 and not 2.
+- The real framework is **retained** in the meta fence's `defaultFiredFrameworks` and generates **no** gap entry — matching is by name against the map, not a blanket accept.
+
+Both behaviours must appear in the **same response**. One without the other proves nothing: all-absent means recognition is broken, none-absent means the check is disabled. This control is why cycle 5's Task C result is trustworthy — the tester added it unprompted after noticing the ambiguity.
+
+**Then prove the body-binding failure path.** Re-run the identical call with `irlBodyHash` set to `0000000000000000`:
 
 - The call **fails** with a body-cache-miss error naming the missing key.
 - The message directs the caller to `prepare_irl_body` and explains the two ways an entry can vanish — LRU eviction on stdio, TTL expiry on the Worker.
@@ -306,19 +317,23 @@ Those four array fields are the most common first-call mistake: they are require
 
 **Failure modes**
 
-| Symptom                                           | Means                                         | Do                                                    |
-| ------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------- |
-| Validation error naming an array field            | You omitted a required-but-may-be-empty array | Send `[]`; not a defect                               |
-| `modelVersion` rejected                           | You sent `unknown` or a shape with no digits  | Send a real model id; not a defect                    |
-| Body-cache miss on the **first** call             | UAT-07.3 was skipped or its entry expired     | Re-run UAT-07.3 and retry                             |
-| The bogus hash **succeeds**                       | The body binding is not enforced              | **Fail — escalate.** The provenance guarantee is void |
-| `serverCachedBodyBytes` ≠ UAT-07.3's `byteLength` | The hash resolved to a different body         | Fail                                                  |
+| Symptom                                           | Means                                         | Do                                                                         |
+| ------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------- |
+| Validation error naming an array field            | You omitted a required-but-may-be-empty array | Send `[]`; not a defect                                                    |
+| `modelVersion` rejected                           | You sent `unknown` or a shape with no digits  | Send a real model id; not a defect                                         |
+| Body-cache miss on the **first** call             | UAT-07.3 was skipped or its entry expired     | Re-run UAT-07.3 and retry                                                  |
+| The bogus hash **succeeds**                       | The body binding is not enforced              | **Fail — escalate.** The provenance guarantee is void                      |
+| `serverCachedBodyBytes` ≠ UAT-07.3's `byteLength` | The hash resolved to a different body         | Fail                                                                       |
+| No `map-absent` for the **invented** framework    | Recognition accepts anything                  | **Fail — escalate.** Every future run's clean gap list becomes meaningless |
+| `map-absent` for the **real** framework           | Recognition is not resolving names to the map | Fail — this is the cycle-3 false positive returning                        |
+| `succeeded: 0` for `compose_dossier_envelope`     | Nothing. In-flight snapshot, by design        | **Not a defect.** See the expected-result note above                       |
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                      |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------ |
-| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 3/3 verified, `fixtureFillRatio` 0.24, 826 bytes echoed; bogus-hash path errored correctly |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 3/3 verified, `fixtureFillRatio` 0.24, 826 bytes echoed; bogus-hash path errored correctly                                                                                                                                                                                                                                                                                                       |
+| 2026-08-12 | Cowork | prod        | 0.49.0  | B    | Pass    | Cycle-5 Task C — closed the cycle-3 loop. Envelope naming the Colorado AI Act produced **no** spurious `map-absent` (`autoAppendedGaps: 0`), framework retained in the meta fence, 3/3 claims verified. Tester added a negative control unprompted — a real + an invented framework in one call produced exactly one `map-absent`, for the invention — which is now a standing part of this case |
 
 ---
 

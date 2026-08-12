@@ -54,6 +54,13 @@ Operators provisioning a client: [`PILOT_ONBOARDING.md` § 1](../../operations/P
 
 The same connector entry works against staging; use a distinct name (`gst-mcp-staging`) so you always know which one a case ran against.
 
+> **Desktop and web are not interchangeable for prompts that take a large text argument.** The connector is identical, but the two clients render prompt-argument forms differently, and both differences bite on `gst_irl_ingestion`'s `filledIrl`:
+>
+> - **claude.ai web renders it as a single-line `<input type="text">`, which strips newlines.** Writing `"A\nB\nC"` and reading it back yields `"ABC"`. A stripped body still hashes cleanly and still satisfies `requireVerbatimBody`, so **nothing downstream catches it** — the run looks successful and the body is mangled.
+> - **Above roughly 57KB, web refuses the attach outright** — "Failed to attach prompt. You can try again.", reproducibly, with no request reaching the server (confirmed 2026-08-12: zero Sentry events and no Worker logs for the attempt). The same paste succeeds in Claude Desktop.
+>
+> **Use Claude Desktop for any case that pastes an IRL body**, and verify `filledIrl.bytes` in the VERIFY block against the file's real size before trusting the run. That byte count is the only integrity check available to you; the hash-bind is not one, because it hashes whatever it received.
+
 Other clients — Claude Code, Cursor, ChatGPT — take an `Authorization: Bearer` header instead of the consent flow; the config snippets are in [`REMOTE_CLIENT_SETUP.md` § 2](../../operations/REMOTE_CLIENT_SETUP.md).
 
 ### 1b. Bearer token — the wire path (Mode B)

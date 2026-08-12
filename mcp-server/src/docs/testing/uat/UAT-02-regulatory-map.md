@@ -5,7 +5,7 @@
 
 A curated corpus of regulatory frameworks with a faceted search over it. A full pass proves the corpus is served rather than recalled — which is the entire point of the family, since a model answering "what does the EU AI Act require?" from training data will sound equally confident whether or not the answer is current.
 
-> **Verified in production** (cycle 4, 2026-08-12, `0.48.2`) for 02.1–02.3. UAT-02.4 is authored but unrun: it is the regression case for the alias defect cycle 4 found, and cannot pass until `0.49.0` deploys.
+> **Fully verified in production.** 02.1–02.3 on `0.48.2` (cycle 4) and re-swept on `0.49.0` (cycle 5); **UAT-02.4 passed on `0.49.0`**, which is the acceptance test for the alias fix cycle 4's Finding 1 exposed. The jurisdiction-scoped step returned `totalMatched: 1` where the identical call returned `[]` on `0.48.2`.
 
 ## Scope
 
@@ -54,6 +54,7 @@ A curated corpus of regulatory frameworks with a faceted search over it. A full 
 | ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 73 jurisdictions, 4 categories, 123 frameworks                                                                                                                                             |
 | 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 73 jurisdictions (incl. sub-national `us-ca`/`ca-qc` and pseudo-jurisdiction `global`), 4 categories, 123 frameworks — agrees with UAT-10.1. UK is `gb`; no `uk` key |
+| 2026-08-12 | Cowork | prod        | 0.49.0  | B    | Pass    | Cycle-5 regression sweep on `0.49.0` — 73 jurisdictions / 4 categories / 123 frameworks, identical to the `0.48.2` run                                                                     |
 
 ---
 
@@ -94,10 +95,11 @@ A curated corpus of regulatory frameworks with a faceted search over it. A full 
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                 |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 1 match, 7 keyRequirements, three-band penalty text                                                   |
-| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 1 match, `effectiveDate` 2024-08-01, 7 keyRequirements, all three penalty bands |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                                     |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 1 match, 7 keyRequirements, three-band penalty text                                                                                                                                       |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 1 match, `effectiveDate` 2024-08-01, 7 keyRequirements, all three penalty bands                                                                                     |
+| 2026-08-12 | Cowork | prod        | 0.49.0  | B    | Pass    | Cycle-5 regression sweep. `totalMatched` still exactly **1** — the assertion most at risk from the alias ranking change did not move, because a facet-only query never reaches the scorer |
 
 ---
 
@@ -136,6 +138,7 @@ A curated corpus of regulatory frameworks with a faceted search over it. A full 
 | Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                                                                      |
 | ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | 2026-08-12 | Cowork | prod | 0.48.2  | B    | Pass    | First production run. All three jurisdictions in ONE call, no sequential fan-out; `filterDeeplink` correctly omits the jurisdiction filter |
+| 2026-08-12 | Cowork | prod | 0.49.0  | B    | Pass    | Cycle-5 regression sweep — one call spanning all three jurisdictions; `filterDeeplink` still omits the multi-value jurisdiction filter     |
 
 ---
 
@@ -168,22 +171,24 @@ Four calls. Run them as separate calls, not one conversation turn — step 3 is 
 - Step 3 returns **exactly one** match, `us-co-ai-act`. An empty result here is the decisive signal that the alias is not in the index at all, rather than merely outranked — that is what it returned before the fix.
 - Step 4 returns **`us-co-ai-act`**. `CAIA` normalizes to exactly four characters, the minimum length the alias matcher accepts, so this is the boundary value: it is the first thing to break if that floor is ever tightened.
 - In every step, the framework named by the query outranks any framework that merely mentions it.
+- **`totalMatched` stays small: 2, 2, 1 and 1 for steps 1–4** (observed on `0.49.0`). Record the number even when the ordering is right. This case is a _positive_ assertion — it checks that the named framework ranks first — and ordering alone cannot detect the opposite failure: an alias matcher loosened until everything matches everything would still rank the named framework first, inside a match set of dozens. A `totalMatched` that has grown by an order of magnitude is the tell, and it is the only one this case has. Treat a large jump as a finding even if every ordering assertion passes.
 
 **Failure modes**
 
-| Symptom                                                       | Means                                                                             | Do                                                                                                   |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Step 1 returns `us-nist-ai-rmf` first                         | The alias regression is back, or the build predates `0.49.0`                      | Check `/health` for the running version before filing; if it is `0.49.0`+, **Fail** — this is severe |
-| Step 3 returns `matches: []`                                  | Aliases are not reachable through the free-text index                             | **Fail** — the same shape as the original defect                                                     |
-| Step 4 returns nothing while steps 1–2 pass                   | The min-length floor was tightened past 4                                         | **Fail** — and note that `gdpr` is the other query sitting on that boundary                          |
-| A named framework appears but below one that only mentions it | Ranking regression rather than an index gap                                       | **Fail**, and record both scores' ordering — the distinction guides the fix                          |
-| The model answers from memory without calling                 | Addendum missing — this family is the one models most often answer from knowledge | Re-check [`SETUP.md` § 2](SETUP.md); not a server defect                                             |
+| Symptom                                                           | Means                                                                             | Do                                                                                                   |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Step 1 returns `us-nist-ai-rmf` first                             | The alias regression is back, or the build predates `0.49.0`                      | Check `/health` for the running version before filing; if it is `0.49.0`+, **Fail** — this is severe |
+| Step 3 returns `matches: []`                                      | Aliases are not reachable through the free-text index                             | **Fail** — the same shape as the original defect                                                     |
+| Step 4 returns nothing while steps 1–2 pass                       | The min-length floor was tightened past 4                                         | **Fail** — and note that `gdpr` is the other query sitting on that boundary                          |
+| Ordering is right but `totalMatched` jumped an order of magnitude | The matcher was loosened; ordering alone cannot detect this                       | **Finding**, even with four green steps. Record the counts and compare against 2 / 2 / 1 / 1         |
+| A named framework appears but below one that only mentions it     | Ranking regression rather than an index gap                                       | **Fail**, and record both scores' ordering — the distinction guides the fix                          |
+| The model answers from memory without calling                     | Addendum missing — this family is the one models most often answer from knowledge | Re-check [`SETUP.md` § 2](SETUP.md); not a server defect                                             |
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------- | ------ | ---- | ------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-12 | Cowork | prod | 0.49.0  | B    | Pass    | **First execution in any environment — the acceptance test for the `0.49.0` alias fix.** All four steps: `us-co-ai-act` first, `eu-ai-act` first, jurisdiction-scoped `totalMatched: 1` (was `[]` on `0.48.2` — the decisive assertion), `CAIA` resolving at the 4-char boundary. `totalMatched` 2 / 2 / 1 / 1. Tester also confirmed `gdpr` still returns `eu-gdpr` first, so both boundary queries hold |
 
 ---
 
