@@ -611,10 +611,21 @@ describe('runIrlProvenanceCheck — BL-120 full-workbook body', () => {
     expect(result.verdicts[0].status).toBe('unverified');
 
     // Measure WHY it fails, so the docs can quote a number that was executed.
-    // This is a property of the two strings, computed here independently of the
-    // module — the module's own behaviour is what the `unverified` assertion
-    // above pins.
-    const words = (s: string): string[] => normalizeForMatching(s).split(' ');
+    //
+    // Deliberately a naive local implementation rather than the module's own
+    // `longestContiguousRun`: calling the module would only assert that the
+    // module agrees with itself, so an off-by-one in the run matcher would
+    // propagate straight into the ADR with this test still green. The module's
+    // real behaviour is pinned by the `unverified` assertion above; this pins
+    // the property of the two strings. Precisely: independent of the RUN
+    // MATCHING, not of normalization — `normalizeForMatching` is shared, since
+    // word boundaries are the thing being counted.
+    const words = (s: string): string[] =>
+      // The module drops empty tokens before counting; match that, or a string
+      // that normalized to nothing would contribute a phantom word.
+      normalizeForMatching(s)
+        .split(' ')
+        .filter((w) => w.length > 0);
     const longestRun = (needle: string[], hay: string[]): number => {
       let best = 0;
       for (let i = 0; i < needle.length; i++) {

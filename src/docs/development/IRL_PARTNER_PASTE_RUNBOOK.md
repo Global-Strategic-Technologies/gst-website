@@ -108,7 +108,7 @@ The script emits:
 - Title line: `# Information Request List — <Target> (filled)` — matches the model's reconstruction-mode preamble.
 - Metadata block: YAML-style blockquotes for engagement context / generated date / canonical reference.
 - Bullet rows: flat list. `- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)`.
-- **The answer is Response and Comments joined into one contiguous span**, Response first, with a period inserted only when Response ends in a letter, digit or closing bracket. Never labelled: a label between the halves breaks any citation reading across the boundary. `0-03` above shows the join.
+- **The answer is Response and Comments joined into one contiguous span**, Response first, with a period inserted unless Response already ends in `.` `?` `!` `:` `;` `,` `…` or a dash — tested after any closing brackets and quotes are peeled off, so `…weekly,"` continues the clause rather than gaining a stray period. Never labelled: a label between the halves breaks any citation reading across the boundary. `0-03` above shows the join.
 - **Source and Note stay outside the answer.** A row whose only content is a file pointer renders `— <NO RESPONSE> (Source: …)`, as `1-03` shows — so a filename can never make a row read as answered, inflate the fill ratio, or open an inclusion gate.
 - Rows with nothing in D/E/F/G emit `— <NO RESPONSE>`. This is a human-readable marker only: no server code parses it and it does **not** become a (J) gap entry — the fill ratio is what accounts for unanswered rows.
 

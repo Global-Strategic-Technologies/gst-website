@@ -330,16 +330,24 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // extractor does (empty Status reads as OPEN, cells are trimmed, the operator
 // script adds a title/metadata preamble the model does not). Prompt-body bytes
 // moved; no name@version tuple did, so EXPECTED_MANIFEST_HASH is unchanged.
+//
+// And a THIRD time, still 0.22.3: the review-fix commit rewrote `joinAnswerSpan`'s
+// period rule but left the contract stating the rule it replaced — 6 of 12
+// realistic cell endings diverged, so a contract-following model would have
+// produced different bytes from the script on exactly the inputs the rewrite
+// existed to fix. The contract now states the shipped rule, and
+// `irl-ingestion-fixtures.test.ts` asserts that sentence so the next rewrite
+// cannot skip it silently.
 const EXPECTED_HASH_INTERACTIVE =
-  '9e8feefdeeb0b552e0abf881baf421fe35558b02893008174849c13202696e91';
+  '8fd9e5247692e2e567b64132b30555958c4b2639df1688b6dc58bfd0d5f64805';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '7b6f65c1d34b5bcb553729925793d3da593b1a1dae55ded75d9434793fca5e18';
+  '49b40bcc0e4329f92e4971c36a02b235a8ed3ea4ffedb1b8339a083e19d9353c';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'b7f3a12d07278393971b6add9557a52d5c461b0a2fb3fdad1451f00da21a40aa';
+  'bd750f7f807b87b79b485105b8f1f0cd72ad5c79c8a0ffd4ef439946e4e5a33b';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '0a86f04265e1384f7d9b091eda1ab7f941e6ff740e0141e44b14eadacc473ad2';
+  'fa3ea54ddad07fc39ba3dc79d4f1498f88a8b9ea096e6f55a53e677394f88395';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'afc64535b35f9bd5c64a486317cdc561001d3010f475fa354704c7150a98ccb8';
+  '62627939a5014273aeb4f7a3992356aa7149973f07cd0cb9f39c33c5116c6372';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -351,9 +359,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'c9a2515c705a24c99a54326d5105b4343e7153e701134016c5d87069bebcf682';
+  '1afec46b55ef4b6de59ec9abba93f7ceebbe0463def15c27c201cac8b7d9e2a0';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  'da220e6e676c27aabd48a67f3445a4619783ce8a3159574c03e1d291367c7ccc';
+  'd3db6b58eaa092a055ee62106d69faea39047f20e0ff380aa55899b5c3e9f5b0';
 
 interface Scenario {
   name: string;

@@ -129,7 +129,26 @@ describe('extract-irl-markdown.mjs — real-Node CLI smoke', () => {
   // that they actually reach the operator, and that the CLI still exits 0 —
   // every one of these is a legitimate state, not a failure.
   describe('operator signals', () => {
-    /** Build a workbook with D/E/F content and run the CLI over it. */
+    /**
+     * Build a workbook with D/E/F content and run the CLI over it.
+     *
+     * The sheet is rewritten via `aoa_to_sheet`, which discards styling,
+     * `!cols`, merges, freeze panes and data validations. That loses nothing
+     * the CLI reads — it takes `wb.Sheets[PRIMARY_SHEET_NAME]` and
+     * `sheet_to_json(sheet, { header: 1, defval: '' })`, i.e. `!ref` plus cell
+     * values, all of which `aoa_to_sheet` sets correctly.
+     *
+     * Two things this does NOT prove, worth knowing before trusting it further:
+     *
+     *   - the sheet name below is a literal that must stay equal to
+     *     `PRIMARY_SHEET_NAME` in the script. If the script's constant drifts,
+     *     the CLI silently falls back to `SheetNames[0]` and every one of these
+     *     cases still passes.
+     *   - the `defval: ''` round trip materializes empty cells that are
+     *     genuinely ABSENT in an on-disk workbook. Behaviourally identical (the
+     *     extractor coerces and trims either way), but this file is not
+     *     byte-representative of one a partner returns.
+     */
     function runOver(rowPatch: (row: (string | number)[]) => void) {
       const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
         targetName: 'CLI Smoke Co',

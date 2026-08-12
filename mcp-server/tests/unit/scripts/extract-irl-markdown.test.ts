@@ -408,8 +408,9 @@ describe('extract-irl-markdown.mjs — full-workbook read (BL-120)', () => {
   });
 
   it('does NOT turn a trailing comma into `,.` — the clause continues instead', () => {
-    // The comma case is why the rule is "add a period after alphanumerics and
-    // closing brackets" rather than "add a period unless one is already there".
+    // A comma is in the "already terminated" set alongside `.` `?` `!` `:` `;`
+    // `…` and dashes, even though it terminates nothing — it means the author's
+    // clause continues, and `foo,. bar` helps no one.
     const rows = buildFilledWorkbookRows(SAMPLE_ARTICLE, {
       '0-01': {
         response: 'Acme Inc,',

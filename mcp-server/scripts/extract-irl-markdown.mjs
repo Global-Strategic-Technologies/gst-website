@@ -49,8 +49,10 @@
  *
  * `<answer>` is column G and column E joined into ONE contiguous span, G
  * first. The join is always a single space, plus a period unless G already
- * ends in `.` `?` `!` `:` `;` `,` once closing brackets and quotes are peeled
- * off — see {@link joinAnswerSpan} for why the rule is phrased that way round.
+ * ends in `.` `?` `!` `:` `;` `,` `…` or a dash once closing brackets and
+ * quotes are peeled off — see {@link joinAnswerSpan} for why the rule is
+ * phrased that way round, and keep it in step with the prompt's
+ * `WORKBOOK_COLUMN_CONTRACT`, which states the same rule to the model.
  *
  * Why one unlabelled span and not a labelled separator: `validate_irl_provenance`
  * matches citation excerpts against this body by normalized substring, falling
@@ -145,10 +147,17 @@ const PRIMARY_SHEET_NAME = 'Information Request List';
  * `“ ”` by default, so quoted Responses arrive curly far more often than
  * straight, and an ASCII-only quote class would miss the common case.
  *
- * Known cosmetic edge, accepted rather than special-cased: a Response ending
- * `…this."` gains its period AFTER the closing quote. Detecting "quoted content
- * that already terminates" needs a parser this does not want, and the
- * normalizer flattens quotes and periods alike, so nothing downstream sees it.
+ * Known cosmetic edge, accepted rather than special-cased: peeling the closing
+ * quote means `…this."` is correctly read as already terminated, but
+ * `…the rating engine”` — quoted content that does NOT terminate — gains its
+ * period AFTER the closing quote rather than inside it. Placing it inside needs
+ * a parser this does not want, and the normalizer flattens quotes and periods
+ * alike, so nothing downstream sees either.
+ *
+ * Whatever this rule becomes, it must be swept into `WORKBOOK_COLUMN_CONTRACT`
+ * in `src/prompts/irl-ingestion.ts` in the same commit. The two paths agreeing
+ * on these bytes is the acceptance property of BL-120, and no test asserts that
+ * prose — a code review caught it drifting once already.
  *
  * @param {string} response Column G, already trimmed.
  * @param {string} comments Column E, already trimmed.

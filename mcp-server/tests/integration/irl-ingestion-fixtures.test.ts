@@ -283,6 +283,29 @@ describe('northwind-workbook-columns-filled-irl.md fixture (BL-120)', () => {
     );
   });
 
+  it('states the join rule the extractor actually implements', () => {
+    // Both paths rendering the same bytes is BL-120's acceptance property, and
+    // it rests on prose no test could previously contradict: a code review
+    // caught `joinAnswerSpan` being rewritten while the contract still
+    // described the rule it replaced — 6 of 12 realistic cell endings diverged,
+    // and a contract-following model would have reproduced the exact `,".`
+    // artifact the rewrite existed to remove.
+    //
+    // This cannot compare prose to code mechanically. What it can do is fail
+    // the moment the rule changes without this assertion being revisited, which
+    // is the step that was skipped.
+    const body = fullBodyText({ filledIrl: WORKBOOK_COLUMNS_FIXTURE });
+    expect(body).toContain(
+      'add a period after G unless G already ends in `.` `?` `!` `:` `;` `,` `…` or a dash'
+    );
+    expect(body).toContain('after peeling off any closing brackets and quotes');
+    // The two endings the earlier phrasing got wrong, named in the contract so
+    // a model reading it produces what the script produces.
+    expect(body).toContain('`14%`');
+    expect(body).toContain('`$4.15M +`');
+    expect(body).toMatch(/including when a closing quote follows the comma/);
+  });
+
   it('verifies citations that read across the Response→Comments boundary', () => {
     // The prompt-path half of the B2 regression: a citation spanning the join,
     // with the joining period dropped, against real extractor bytes.
