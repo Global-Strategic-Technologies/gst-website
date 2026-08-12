@@ -840,9 +840,15 @@ describe('gst_irl_ingestion', () => {
       expect(text).toMatch(/If you doubt you were invoked properly/i);
       expect(text).toMatch(/attached document/i);
       expect(text).toMatch(/do NOT reconstruct/i);
-      // The probe is the alternative to reconstructing — it must be named, or
-      // the model is left with "proceed" and no way to satisfy its doubt.
-      expect(text).toContain('validate_irl_provenance');
+      // The probe is the alternative to reconstructing — it must be named
+      // INSIDE the directive, or the model is left with "proceed" and no way to
+      // satisfy its doubt. Windowed deliberately: a bare
+      // `toContain('validate_irl_provenance')` passes on the pre-fix body,
+      // where the tool is named two dozen times elsewhere, and would assert
+      // nothing.
+      expect(text).toMatch(
+        /If you doubt you were invoked properly[\s\S]{0,1600}validate_irl_provenance/i
+      );
       // And the honest-reporting fallback, so a genuine cache miss does not
       // become a mislabelled run.
       expect(text).toMatch(/cache miss[\s\S]{0,220}partner-paste-verbatim/i);

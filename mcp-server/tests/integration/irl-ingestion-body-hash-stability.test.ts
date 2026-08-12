@@ -304,10 +304,14 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // prompt as an attached document, probe with `validate_irl_provenance` rather
 // than reconstruct, and report `partner-paste-verbatim` honestly on a genuine
 // cache miss. Added by a real 57KB Desktop run that succeeded only after
-// operator intervention. The directive lives in the one-shot prepop block
-// only, so exactly the **2 one-shot verbose** bodies drift (minimal + full);
-// interactive, both extract-only bodies and both compact bodies are unchanged
-// — which is itself the check that the directive landed where intended.
+// operator intervention. The directive lives in the **verbose-only envelope
+// block**, so exactly the 2 one-shot verbose bodies drift (minimal + full);
+// interactive, both extract-only bodies and both compact bodies are unchanged.
+// Note the limit of that signal: interactive and the compact bodies drop the
+// whole verbose envelope block via the `isVerbose` gate, so an edit anywhere
+// inside precheck-or-composition produces this same 2-of-7 signature. It
+// confirms the edit stayed inside that block; it does not by itself localize
+// it to the prepop directives.
 const EXPECTED_HASH_INTERACTIVE =
   'de70481c9ef59babc8bd2282c2d0867d25833e944fb42547771b3c66132e881c';
 const EXPECTED_HASH_ONESHOT_MINIMAL =

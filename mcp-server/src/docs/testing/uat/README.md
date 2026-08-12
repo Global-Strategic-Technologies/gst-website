@@ -165,4 +165,4 @@ It also produced the sharpest piece of testing this exercise has seen. Asked to 
 
 ---
 
-_Last updated: 2026-08-12 (BL-119 cycle 5 — the `0.49.0` alias fix passed its acceptance test, UAT-02 is fully verified, and the cycle-3 dossier loop is closed with a negative control. One case outstanding: UAT-07.6 / 09.9, which needs Claude Desktop. Production status is derived from the run logs by the parity guard rather than asserted here by hand.)_
+_Last updated: 2026-08-12 (BL-119 cycle 5 — the `0.49.0` alias fix passed its acceptance test, UAT-02 is fully verified, and the cycle-3 dossier loop is closed with a negative control. UAT-07.6 / 09.9 closed on a real 57KB body in Claude Desktop, leaving no unexecuted cases. Production status is derived from the run logs by the parity guard rather than asserted here by hand.)_
