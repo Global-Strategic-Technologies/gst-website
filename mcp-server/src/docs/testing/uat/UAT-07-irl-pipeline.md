@@ -423,6 +423,10 @@ Flatten a filled IRL workbook to markdown yourself, then run the UAT-07.3 → 07
 
 **Extraction is your step, and it contaminates everything downstream.** The workbook's canonical layout is seven columns — `A Reference · B Request · C Status · D File Location · E Comments · F Notes · G Response`. **Trust the header row, never an Instructions sheet**: real-world workbooks predate the current generator, and one sample was found documenting a five-column layout with Response in D. An extractor following it would publish source-document filenames as the recipient's answers. Reconcile your row count against the workbook before proceeding, and state any judgement call you made.
 
+**The body shape is now specified, and the prompt states it (BL-120, prompt `0.22.3`).** Every filled row renders as `- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)`, where `<answer>` is **Response and Comments joined into one contiguous unlabelled span**, Response first. Source and Note stay **outside** the answer slot, so a row whose only content is a file pointer reads `— <NO RESPONSE> (Source: …)` and must not be counted as answered. A reconstruction that drops D/E/F is now a **failure of this case**, not a stylistic difference: on the first real workbook measured, doing so discarded 45.2% of the authored characters and rendered 17 answered rows as unanswered. Count the fill ratio over the composed answer span, not over column G alone. See [ADR-0015](../../../../../src/docs/adr/0015-irl-canonical-body-reads-full-workbook.md).
+
+**Re-extracting a workbook processed before 0.49.2 now yields a materially larger body** — expect roughly a 50% increase where Comments was populated (51,788 → 79,079 bytes on the measured sample), which can push it past the ~57KB ceiling claude.ai web will accept as a prompt argument. Use Claude Desktop.
+
 **Expected result — `requireVerbatimBody` omitted**
 
 - The chain succeeds and `serverCachedBodyBytes` equals `prepare_irl_body`'s `byteLength`.
