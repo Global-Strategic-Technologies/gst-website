@@ -298,12 +298,26 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // taken anyway because the served bytes changed in a client-visible surface
 // and the discipline pins every served-body change to a version. 6 of 7
 // hashes drift (the interactive body carries no worked examples).
+// BL-119 cycle 5 rebaseline (prompt v0.22.1 → v0.22.2, server 0.49.1):
+// doubt-handling directive added to the prepop body-submission block — proceed
+// on the `**Body-binding hash:**` directive when a client delivers the expanded
+// prompt as an attached document, probe with `validate_irl_provenance` rather
+// than reconstruct, and report `partner-paste-verbatim` honestly on a genuine
+// cache miss. Added by a real 57KB Desktop run that succeeded only after
+// operator intervention. The directive lives in the **verbose-only envelope
+// block**, so exactly the 2 one-shot verbose bodies drift (minimal + full);
+// interactive, both extract-only bodies and both compact bodies are unchanged.
+// Note the limit of that signal: interactive and the compact bodies drop the
+// whole verbose envelope block via the `isVerbose` gate, so an edit anywhere
+// inside precheck-or-composition produces this same 2-of-7 signature. It
+// confirms the edit stayed inside that block; it does not by itself localize
+// it to the prepop directives.
 const EXPECTED_HASH_INTERACTIVE =
   'de70481c9ef59babc8bd2282c2d0867d25833e944fb42547771b3c66132e881c';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '92ce4aa8ec226aa7d235ff9ea65a2ba4d352b7ede2d194784d0ec9b1c757dbc7';
+  '1cbed076e9dcc37f38535d75253c0fc0ab4f05f88ab42ed4151640994f27f462';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '05ed4541c93173bdc3146947a8573a0a62cfb11cfa92c6a00712393c41d5107c';
+  '7ac3babdd2642997ae19235364da99f7a2f204ed15992a91443e17c6f0ec5cc2';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   '4169335982a11a7157c8b20e9264e3d9c1aadc7d4976e15b63ed1d478d3954c2';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =

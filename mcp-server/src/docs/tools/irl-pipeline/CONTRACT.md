@@ -193,6 +193,8 @@ The pipeline terminus and the largest input surface in the family. Every field b
 
 `percent` is rendered into the meta fence as a 0–1 fraction (`24` → `"fixtureFillRatio": 0.24`).
 
+**`serverToolCallCounts` reports this tool as `attempted: 1, succeeded: 0`, and that is correct.** `attempted` is recorded at wrapper entry and `succeeded` at wrapper exit ([`metrics/with-metrics.ts`](../../../metrics/with-metrics.ts)), and this tool reads the snapshot from **inside its own handler** — so it has not returned yet at the moment it reports. The semantic is deliberate: "I am reporting on the call I am currently inside." The alternative (snapshotting before recording the attempt) would show `attempted: 0` for the tool doing the reporting, which is worse. Every other tool in the snapshot reports normally, and the `precheck.iterations === validate_irl_provenance.succeeded` identity the prompt relies on is unaffected because that is a different tool's row. Consumers must not "correct" this value; BL-119 testers filed it as a defect in three consecutive cycles before it was written down here.
+
 ---
 
 ## Hidden semantics

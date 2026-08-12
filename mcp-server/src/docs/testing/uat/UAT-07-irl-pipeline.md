@@ -7,7 +7,9 @@ Five tools that carry an engagement from "we need to ask the target for informat
 
 This is the longest document in the suite and the one most worth running after any change to the IRL surface. Cases must be run **in order** — 07.5 depends on 07.3 having run in the same session.
 
-> **Recorded runs are `local stdio`, not production.** One difference is load-bearing here: the body cache backing 07.3 → 07.5 is an in-process LRU on stdio and Upstash on the Worker. The recorded Pass therefore proves the hash contract and the handler chain, **not** the deployed cache. A production run is outstanding, and it is the run that matters for this family.
+> **Verified in production where it counts.** 07.7 ran on `0.48.1` (cycle 3), and 07.5 plus **07.6 — the last case in the suite to execute** — on `0.49.0` (cycle 5). The deployed Upstash-backed body cache is therefore exercised, which is the difference that matters here against the in-process LRU on stdio. 07.1–07.4 remain `local stdio` recordings: they prove the hash contract and the handler chain, not the deployed cache.
+>
+> **07.6 needs Claude Desktop, and its client constraints are load-bearing** — read them under that case before attempting it. Neither client handles a real-size IRL body cleanly, and the failure modes are silent rather than loud.
 
 ## Scope
 
@@ -297,8 +299,19 @@ Those four array fields are the most common first-call mistake: they are require
 - `serverCachedBodyBytes` equals UAT-07.3's `byteLength` (**826**) — the cache round-trip, proven end to end.
 - `provenanceFooterMarkdown` renders one line per claim, each ending `[✓ verified]`.
 - `emitInstructions` tells the caller to transcribe the three blocks verbatim and not to hand-edit auto-appended gaps.
+- `serverToolCallCounts.compose_dossier_envelope` reads **`attempted: 1, succeeded: 0`**. **This is correct and is not a defect.** The counter records `attempted` at wrapper entry and `succeeded` at wrapper exit, and this tool snapshots the counters from inside its own handler — so at snapshot time it genuinely has not returned yet. The semantic is deliberate ("I am reporting on the call I am currently inside"); the alternative would show `attempted: 0` for the tool doing the reporting. Every **other** tool in the snapshot reports normally. Testers filed this as a defect in three consecutive cycles, which is why it is written down here.
 
-**Then prove the failure path.** Re-run the identical call with `irlBodyHash` set to `0000000000000000`:
+**Then prove the framework-recognition path both ways.** A `map-absent` gap entry that fails to appear is ambiguous on its own: it is equally consistent with "the framework was recognised" and with "the check stopped firing for anything". Only a negative control separates them.
+
+Re-run the call with `defaultFiredFrameworks` carrying **one framework the regulatory map covers and one that cannot exist** — e.g. `["Colorado AI Act", "Atlantis Algorithmic Fairness Directive 2031"]`:
+
+- **Exactly one** `map-absent` gap entry is auto-appended, naming the invented framework, with follow-up prose directing a coverage request.
+- `autoAppendedGaps` is **1**, not 0 and not 2.
+- The real framework is **retained** in the meta fence's `defaultFiredFrameworks` and generates **no** gap entry — matching is by name against the map, not a blanket accept.
+
+Both behaviours must appear in the **same response**. One without the other proves nothing: all-absent means recognition is broken, none-absent means the check is disabled. This control is why cycle 5's Task C result is trustworthy — the tester added it unprompted after noticing the ambiguity.
+
+**Then prove the body-binding failure path.** Re-run the identical call with `irlBodyHash` set to `0000000000000000`:
 
 - The call **fails** with a body-cache-miss error naming the missing key.
 - The message directs the caller to `prepare_irl_body` and explains the two ways an entry can vanish — LRU eviction on stdio, TTL expiry on the Worker.
@@ -306,19 +319,23 @@ Those four array fields are the most common first-call mistake: they are require
 
 **Failure modes**
 
-| Symptom                                           | Means                                         | Do                                                    |
-| ------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------- |
-| Validation error naming an array field            | You omitted a required-but-may-be-empty array | Send `[]`; not a defect                               |
-| `modelVersion` rejected                           | You sent `unknown` or a shape with no digits  | Send a real model id; not a defect                    |
-| Body-cache miss on the **first** call             | UAT-07.3 was skipped or its entry expired     | Re-run UAT-07.3 and retry                             |
-| The bogus hash **succeeds**                       | The body binding is not enforced              | **Fail — escalate.** The provenance guarantee is void |
-| `serverCachedBodyBytes` ≠ UAT-07.3's `byteLength` | The hash resolved to a different body         | Fail                                                  |
+| Symptom                                           | Means                                         | Do                                                                         |
+| ------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------- |
+| Validation error naming an array field            | You omitted a required-but-may-be-empty array | Send `[]`; not a defect                                                    |
+| `modelVersion` rejected                           | You sent `unknown` or a shape with no digits  | Send a real model id; not a defect                                         |
+| Body-cache miss on the **first** call             | UAT-07.3 was skipped or its entry expired     | Re-run UAT-07.3 and retry                                                  |
+| The bogus hash **succeeds**                       | The body binding is not enforced              | **Fail — escalate.** The provenance guarantee is void                      |
+| `serverCachedBodyBytes` ≠ UAT-07.3's `byteLength` | The hash resolved to a different body         | Fail                                                                       |
+| No `map-absent` for the **invented** framework    | Recognition accepts anything                  | **Fail — escalate.** Every future run's clean gap list becomes meaningless |
+| `map-absent` for the **real** framework           | Recognition is not resolving names to the map | Fail — this is the cycle-3 false positive returning                        |
+| `succeeded: 0` for `compose_dossier_envelope`     | Nothing. In-flight snapshot, by design        | **Not a defect.** See the expected-result note above                       |
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                      |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------ |
-| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 3/3 verified, `fixtureFillRatio` 0.24, 826 bytes echoed; bogus-hash path errored correctly |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 3/3 verified, `fixtureFillRatio` 0.24, 826 bytes echoed; bogus-hash path errored correctly                                                                                                                                                                                                                                                                                                       |
+| 2026-08-12 | Cowork | prod        | 0.49.0  | B    | Pass    | Cycle-5 Task C — closed the cycle-3 loop. Envelope naming the Colorado AI Act produced **no** spurious `map-absent` (`autoAppendedGaps: 0`), framework retained in the meta fence, 3/3 claims verified. Tester added a negative control unprompted — a real + an invented framework in one call produced exactly one `map-absent`, for the invention — which is now a standing part of this case |
 
 ---
 
@@ -340,26 +357,54 @@ Those four array fields are the most common first-call mistake: they are require
 - The dossier carries the meta fence as its first content, a `(J)` gap list, and a `(K)` provenance footer as its last section.
 - When `filledIrl` arrives as a prompt argument, the body cache is pre-populated at render time — `prepare_irl_body` need not be called separately, and `irlSource` is a `partner-paste-verbatim` variant rather than a reconstruction.
 - Claims in `(K)` carry tier labels and verification marks, exactly as in UAT-07.5.
+- **`irlSource` reads `partner-paste-verbatim-prepop`, and that is the strongest form, not a weaker one.** It means the server hashed and cached the operator's bytes at render time, so the body never round-tripped through model emission. Two independent signals should agree with it: `hashBindResult: pass-bound` (the model copied the hash from the server's `**Body-binding hash:**` directive rather than computing one), and **no `provenance-gap` entry in (J)** — that auto-append fires only for `model-reconstruction-*` sources, so its absence is the server's own gap logic concurring. A `-prepop` label with a `provenance-gap` beside it would be a contradiction worth escalating.
+
+  > **What this case does and does not settle.** Passing it establishes that when the operator pastes a **genuine verbatim body**, the `-prepop` label is honest — server-witnessed at the argument boundary, not a bare restatement of how the bytes travelled. It does **not** settle whether a _reconstructed_ body supplied through the same argument would also be labelled `-prepop`, because this case never supplies one. That remains open and is described under UAT-07.7; the two are complementary, and only the 07.7-shaped run can close it.
+
+- **Do not expect an unanswered IRL cell to appear in (J).** The gap list records _analysis_ gaps — defaulted dimensions, extraction-only omissions, currency assumptions — not cells the partner left blank. A `<NO RESPONSE>` bullet that no tool needed produces no entry; the fill ratio is what accounts for it. (Recorded because it was predicted wrongly during the first execution.)
+
+> **Compare `filledIrl.bytes` against the source file's real size, every time.** Under prepop this figure is the server's own `serverCachedBodyBytes` measurement of the cache entry, not a model self-report, which makes it the one trustworthy integrity check available to an operator. The first execution came back **56,906** against a **56,907**-byte source.
+>
+> **That one-byte gap is systematic, not a one-off.** UAT-07.7 recorded "byte-exact 56906" for the same engagement IRL the day before, through a completely different submission path. Two independent paths landing on the same figure points at the **file or read boundary** — the local copy being one byte larger than what both runs saw — rather than at any one client's clipboard. It was chased and not localized: ruled out were every newline variant, eleven encoding and normalization forms, every truncation prefix, all ~56,600 single-character deletions, and equal-width dash substitutions. A plain trailing-newline drop produces the right byte count but the wrong hash. What remains is either a length-reducing **substitution** — a multi-byte character replaced by a shorter one, which the deletion sweep does not cover — or two or more edits netting minus one. Do not search only for pairs. **Open.**
+>
+> The run remains valid — head/tail fingerprints matched, fill ratio matched an independent count, and 37/37 claims verified against the cached body — but **a larger drift would mean the dossier is bound to bytes that are not the partner's**, and neither the hash-bind nor `requireVerbatimBody` would catch it. The hash binds whatever arrives; the gate checks the label. This field is the only thing that checks the content.
+>
+> **Threshold**: the submitted body being **up to 2 bytes smaller** on a body over 10KB is a recording matter — note it and continue. Anything larger, any delta at all on a body of 10KB or smaller, and any delta whose sign is positive (the submitted body being _larger_ than source, which no known transformation produces) is a **Fail**: stop and identify the difference before the dossier is used.
 
 **Mode differences**
 
 Mode A only. Invoking a prompt is a client-side capability; there is no Mode B equivalent, so record Mode B as **Blocked** rather than Failed for this case.
 
+**Client constraints — read before attempting.** This case pastes a large body into a prompt-argument form, and no client handles that cleanly at real IRL size:
+
+| Client             | Behaviour at ~57KB                                                                                                                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| claude.ai **web**  | Refuses the attach outright — _"Failed to attach prompt."_ No request reaches the server (verified: zero Sentry events). At small sizes the same prompt attaches but the field is a single-line input that **strips newlines**, which nothing downstream catches |
+| Claude **Desktop** | Accepts the paste and renders correctly, but delivers the expansion as an **attached document** rather than conversation turns. The model then reports it has no bound `filledIrl` argument and may decline to proceed                                           |
+
+The Desktop path still works — the render fires, the server pre-populates the cache, and the hash in the rendered body is live (confirmable by calling `validate_irl_provenance` with the hash and no body). **As of prompt `0.22.2` / server `0.49.1` the body tells the model this itself**, so a balk is now a **finding** rather than the expected behaviour it was on `0.49.0` and earlier — record it, then tell it to proceed on the directive's hash and **not** to reconstruct or re-submit the body. A fallback to `prepare_irl_body` would degrade `irlSource` to `partner-paste-verbatim` and stop the case from testing the prepop path at all.
+
+**Where this leaves the one-shot workflow**: for bodies at real IRL size the operator-side path in [`IRL_PARTNER_PASTE_RUNBOOK.md`](../../../../../src/docs/development/IRL_PARTNER_PASTE_RUNBOOK.md) is the supported route, and this prompt is best reserved for smaller ones.
+
 **Failure modes**
 
-| Symptom                                      | Means                                                               | Do                                          |
-| -------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------- |
-| The dossier has no meta fence / (J) / (K)    | The envelope tool was not called — the failure it exists to prevent | Fail — quote the run                        |
-| A reconstruction `irlSource` despite pasting | The pre-population write did not land                               | Fail; the operator runbook has the recovery |
-| The run stops early citing fill ratio        | Expected when the IRL is too sparse — a `halt` status               | Not a defect; use a fuller body             |
+| Symptom                                                                               | Means                                                                        | Do                                                                                                                               |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| The dossier has no meta fence / (J) / (K)                                             | The envelope tool was not called — the failure it exists to prevent          | Fail — quote the run                                                                                                             |
+| A reconstruction `irlSource` despite pasting                                          | The pre-population write did not land                                        | Fail; the operator runbook has the recovery                                                                                      |
+| The run stops early citing fill ratio                                                 | Expected when the IRL is too sparse — a `halt` status                        | Not a defect; use a fuller body                                                                                                  |
+| `filledIrl.bytes` ≠ the source file's size                                            | The body was altered between the file and the server — see the note above    | Within the threshold above: record and continue. Outside it: **Fail** — the dossier is bound to bytes that are not the partner's |
+| `toolErrors` shows an `arg-shape-rejection` that then **succeeded on identical args** | The client called the tool before loading its schema — deferred tool loading | Not a server defect. It lands in `toolErrors` where it reads like our tool rejecting valid input; note it and move on            |
+| The model reports a hash from an earlier attempt                                      | Stale context after restarting a run in the same thread                      | Start a **fresh** thread. Cross-check any hash against the `**Body-binding hash:**` directive in the current render              |
 
 **Further reading**: [`OPERATOR_RUNBOOK.md`](../../../../../src/docs/development/OPERATOR_RUNBOOK.md) for run tiers, reading the VERIFY block, client-ready gating and failure recovery; [`IRL_PARTNER_PASTE_RUNBOOK.md`](../../../../../src/docs/development/IRL_PARTNER_PASTE_RUNBOOK.md) for turning a partner's filled `.xlsx` into the markdown body this case pastes.
 
 **Run log**
 
-| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 2026-08-12 | Cowork | prod | 0.48.2  | A    | Blocked | Attempted in production; could not execute. The case needs Claude Desktop's prompt-argument field — claude.ai web renders `filledIrl` as `<input type="text">` and strips newlines (re-verified: `"A\nB\nC"` read back as `"ABC"`), and the tester's session automates Chrome only. Body staged and hash-verified; feeding a knowingly newline-stripped body would answer a different question. The `-prepop` mislabel question stays open |
+| Date       | Tester   | Env  | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------- | -------- | ---- | ------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-12 | Cowork   | prod | 0.48.2  | A    | Blocked | Attempted in production; could not execute. The case needs Claude Desktop's prompt-argument field — claude.ai web renders `filledIrl` as `<input type="text">` and strips newlines (re-verified: `"A\nB\nC"` read back as `"ABC"`), and the tester's session automates Chrome only. Body staged and hash-verified; feeding a knowingly newline-stripped body would answer a different question. The `-prepop` mislabel question stays open                                                                                                                                                                                                                                                                      |
+| 2026-08-12 | Operator | prod | 0.49.0  | A    | Pass    | **First execution in any environment.** `irlSource: partner-paste-verbatim-prepop` — the prompt-argument paste yields server-witnessed provenance, answering the question open since cycle 3. `hashBindResult: pass-bound`; **37/37 claims verified**, 0 unverified / 0 tierMismatches / 0 tierFabrications; precheck converged in 2 iterations; `gatesElided: []`. (J) carried **no `map-absent`** (closing the cycle-3 false positive on a real dossier) and **no `provenance-gap`** — the latter is the server independently agreeing this was a verbatim run. `filledIrl.bytes` 56,906 against a 56,907-byte source: a 1-byte drift the field exists to surface, unexplained — see the note under this case |
 
 ---
 

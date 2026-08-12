@@ -259,6 +259,23 @@ describe('applyFilters — curated aliases (BL-119 cycle 4 / 2026-08-12)', () =>
     expect(hyphen.length).toBe(REGULATION_ENTRIES.length);
     expect(hyphen[0].data.id).toBe('ae-pdpl');
   });
+
+  it('pins the length floor from BELOW — a 3-character query does not alias-match', () => {
+    // BL-119 cycle 5, Gap X. Every other assertion here pins the floor from
+    // ABOVE: `CAIA` and `gdpr` both normalize to exactly 4, so TIGHTENING the
+    // floor breaks them loudly. Nothing pinned it from below — LOOSENING it
+    // from 4 to 3 would widen alias matching across the whole corpus and every
+    // existing test would still pass, because a looser floor only ever adds
+    // matches.
+    //
+    // `cai` is the probe: three normalized characters, and a strict prefix of
+    // the normalized alias `caia`. At the current floor it reaches no bucket at
+    // all and the corpus returns nothing. At a floor of 3 it would prefix-match
+    // that alias and surface the Colorado record. So the pair below brackets
+    // the constant exactly — `cai` empty, `caia` resolving.
+    expect(applyFilters({ query: 'cai', limit: 10 })).toEqual([]);
+    expect(applyFilters({ query: 'caia', limit: 10 })[0].data.id).toBe('us-co-ai-act');
+  });
 });
 
 describe('RegulationSearchInputSchema (tool input contract)', () => {

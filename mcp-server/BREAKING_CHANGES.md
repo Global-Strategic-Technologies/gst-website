@@ -13,7 +13,7 @@
 ## Current manifest hash
 
 ```
-39dda8102a1ab9732da0928af15d1eee1499bd94378536ff03a1606135d99e19
+cbb14874b7d1b976ce92fe9a41a9390b986368f1d3b8f99be5c7791ae917a1d7
 ```
 
 Computed over (sorted):
@@ -22,12 +22,34 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.1` (worked-example client deidentified as SanFran — see the 0.48.1 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.2` (doubt-handling directive — see the 0.49.1 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.49.1 — 2026-08-12 — `gst_irl_ingestion` proceeds when it doubts its own invocation (`0.22.1` → `0.22.2`)
+
+**Prompt body change only.** No tool, argument, or Resource URI changes; the manifest hash moves solely on that prompt's `name@version` tuple.
+
+**Who this affects**: anyone running the one-shot IRL ingestion with a real-size body. Nobody's inputs change; the model's behaviour under one specific ambiguity does.
+
+**Why**: BL-119 cycle 5 executed this prompt against a genuine 56,907-byte engagement IRL in Claude Desktop — the first real-size run in any environment. It succeeded (37/37 claims verified, `pass-bound`, `irlSource: partner-paste-verbatim-prepop`), but only after operator intervention. Above some size the client delivers the expanded prompt as an **attached document** rather than conversation turns, so the model concluded it was _reading_ a render rather than _holding_ bound arguments, and stopped to ask whether it should continue.
+
+The instinct is correct — it declined to act on provenance it could not account for. The problem is the recovery it proposed: call `prepare_irl_body` with the body text it can see. That path **completes successfully** and silently downgrades `irlSource` from server-witnessed `partner-paste-verbatim-prepop` to model-asserted `partner-paste-verbatim`. The dossier looks identical and carries a weaker audit grade. An operator who does not know the difference will accept it, and `requireVerbatimBody` will not object because both labels sit inside its accept-set.
+
+So the failure mode is not a broken run. It is **a good model being talked out of the strong path, invisibly.**
+
+**What changed**: a directive telling the model that the attached-document appearance is a client rendering artifact and says nothing about whether the render occurred; that the `**Body-binding hash:**` directive is itself the evidence it did; and that if it wants confirmation it should probe with `validate_irl_provenance` using the hash and no body rather than reconstruct. It falls back to `prepare_irl_body` only on a genuine cache miss, and reports `partner-paste-verbatim` honestly if it does.
+
+This is the same shape as the 0.48.2 radar caveat: behaviour that was correct, known, and written down in no executable surface.
+
+**Manifest-hash impact**: rebaselined to `cbb14874…a1d7`. Tool names and Resource URIs are untouched.
+
+**Rollback**: revert the commit and restore the prior hash; no data, transport, or schema implications.
 
 ---
 

@@ -99,7 +99,10 @@ describe('gst_irl_ingestion', () => {
     // client's tool-result ceiling (BL-112).
     // v0.22.1: worked-example client deidentified as SanFran — byte-only rename,
     // no directive changes (server 0.48.1).
-    expect(irlIngestionPrompt.version).toBe('0.22.1');
+    // v0.22.2: doubt-handling directive — proceed on the binding hash when a
+    // client delivers the expanded prompt as an attached document, and probe
+    // with `validate_irl_provenance` rather than reconstruct (server 0.49.1).
+    expect(irlIngestionPrompt.version).toBe('0.22.2');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -821,6 +824,34 @@ describe('gst_irl_ingestion', () => {
       expect(text).toContain('prepare_irl_body');
       expect(text).toContain('SKIP `prepare_irl_body`');
       expect(text).toContain('partner-paste-verbatim-prepop');
+    });
+
+    it('one-shot body tells the model to proceed when it doubts its own invocation (BL-119 cycle 5)', () => {
+      // A real 57KB Desktop run succeeded only after operator intervention:
+      // the client delivered the expanded prompt as an attached document, the
+      // model concluded it was reading a render rather than holding bound
+      // arguments, and offered to call `prepare_irl_body` with the body it
+      // could see. That recovery COMPLETES — and silently downgrades irlSource
+      // from server-witnessed `-prepop` to model-asserted, past a
+      // `requireVerbatimBody` gate that accepts both. The directive is pinned
+      // here because the failure it prevents is invisible in the output: the
+      // dossier looks identical and the audit grade is weaker.
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toMatch(/If you doubt you were invoked properly/i);
+      expect(text).toMatch(/attached document/i);
+      expect(text).toMatch(/do NOT reconstruct/i);
+      // The probe is the alternative to reconstructing — it must be named
+      // INSIDE the directive, or the model is left with "proceed" and no way to
+      // satisfy its doubt. Windowed deliberately: a bare
+      // `toContain('validate_irl_provenance')` passes on the pre-fix body,
+      // where the tool is named two dozen times elsewhere, and would assert
+      // nothing.
+      expect(text).toMatch(
+        /If you doubt you were invoked properly[\s\S]{0,1600}validate_irl_provenance/i
+      );
+      // And the honest-reporting fallback, so a genuine cache miss does not
+      // become a mislabelled run.
+      expect(text).toMatch(/cache miss[\s\S]{0,220}partner-paste-verbatim/i);
     });
 
     it('interactive body instructs the model to call prepare_irl_body FIRST', () => {

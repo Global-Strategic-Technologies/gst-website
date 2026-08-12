@@ -129,34 +129,42 @@ The distinction is load-bearing rather than bookkeeping. A local stdio build has
 
 ## Verification status
 
-All ten documents are authored, and **every family now has production evidence** as of cycle 4.
+All ten documents are authored, **every family has production evidence, and as of cycle 5 every case in the suite has been executed at least once.**
 
 > **The run logs are the source of truth, not this section.** A document is production-verified exactly when one of its run-log rows carries `Env: prod` — nothing here overrides that. `tests/integration/mcp-uat-parity.test.ts` derives the answer from those tables and fails if this prose disagrees, because three successive edits to this section drifted out of step with them and each was caught only in review.
 >
-> **The guard is family-granular, not case-granular.** One `Env: prod` row anywhere in a document flips that whole family to ✅, so a family can be marked verified while one of its cases has never run — exactly the state UAT-02 is in. Per-case gaps live in **Outstanding** below and are only ever caught by reading, never by CI.
+> **The guard is family-granular, not case-granular.** One `Env: prod` row anywhere in a document flips that whole family to ✅, so a family can be marked verified while one of its cases has never run. That was the state UAT-07 and UAT-09 were in until cycle 5. Per-case gaps live in **Outstanding** below and are only ever caught by reading, never by CI.
 
-| Family                      | Production evidence                                                            |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| UAT-01 – 06 (tool families) | ✅ cycle 4 — every case **except UAT-02.4**, unrunnable until `0.49.0` deploys |
-| UAT-07 (IRL pipeline)       | ✅ 07.7 (reconstruction path + verbatim gate), cycle 3                         |
-| UAT-08 (radar)              | ✅ 08.1 – 08.3, cycle 4 — first live-dependency pass                           |
-| UAT-09 (prompts)            | ✅ 09.0 – 09.8, cycles 2 and 4                                                 |
-| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                                        |
+| Family                      | Production evidence                                                                 |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| UAT-01 – 06 (tool families) | ✅ all cases — cycle 4 on `0.48.2`; UAT-02 re-swept and 02.4 first-run on `0.49.0`  |
+| UAT-07 (IRL pipeline)       | ✅ 07.5 – 07.7, cycles 3 and 5 — **07.6 closed**, the last case in the suite to run |
+| UAT-08 (radar)              | ✅ 08.1 – 08.3, cycle 4 — first live-dependency pass                                |
+| UAT-09 (prompts)            | ✅ 09.0 – 09.9, cycles 2, 4 and 5 — 09.9 is the same run as 07.6                    |
+| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                                             |
 
 Cycle 4 closed the standing gap: **20 cases passed against production `0.48.2`**, converting six tool families from "authored against local stdio" to proven on the Worker, and executing UAT-04.2 for the first time in any environment.
 
 > **On the cycle-4 headline.** The report's summary line reads "18 Pass"; its own verdict table and per-case evidence log carry **20**. The run-log rows below follow the per-case evidence, which is why twenty `prod` rows sit behind a report that says eighteen.
 
-Each cycle has paid for itself, and the pattern is worth naming: **every real defect so far has been a claim that was true in our documentation and false in an executable surface.** Cycle 2 found `gst_radar_brief_today` republishing aggregated third-party reporting with no provenance framing — a requirement written down in three internal places and present in no shipped surface, including the recorded golden, so every comparison against it agreed. Cycle 4 found `search_regulations` never reading the curated `aliases` field: the data was added in BL-073 for `compose_dossier_envelope` and wired into exactly one consumer, so `"Colorado AI Act"` returned a voluntary federal framework in place of a statute carrying $20,000 per violation. Both were invisible to the test suite because the tests encoded the same omission.
+Each cycle has paid for itself, and the pattern is worth naming: **every real defect so far has been a claim that was true in our documentation and false in an executable surface.** Three have surfaced so far. Cycle 2 found `gst_radar_brief_today` republishing aggregated third-party reporting with no provenance framing — a requirement written down in three internal places and present in no shipped surface, including the recorded golden, so every comparison against it agreed. Cycle 4 found `search_regulations` never reading the curated `aliases` field: the data was added in BL-073 for `compose_dossier_envelope` and wired into exactly one consumer, so `"Colorado AI Act"` returned a voluntary federal framework in place of a statute carrying $20,000 per violation. Cycle 5 found the third in `gst_irl_ingestion`: the body had no instruction for the case where a client delivers the expanded prompt as an attached document, so the model concluded it held no bound arguments and offered a recovery that completes while silently downgrading `irlSource` from server-witnessed to model-asserted, past a gate that accepts both labels. None was visible to the test suite, though for two different reasons: cycle 2 was encoded — the recorded golden carried the same omission, so every comparison against it agreed — while cycles 4 and 5 were simply uncovered, the disambiguation case that would have caught the alias defect being the one UAT-02.4 was written to add. Fixed in prompt `0.0.5`, server `0.49.0` and prompt `0.22.2` respectively.
 
 Cycle 1's two reported findings both dissolved on investigation — the ICG aggregation gap was two different answer maps (now published in UAT-06.2), and radar annotation staleness is editorial supply, operator-confirmed. Cycle 3 exercised the IRL reconstruction path (UAT-07.7) and confirmed the provenance machinery self-labels correctly. Cycle 4's other four observations were suite gaps rather than server defects, and are closed in the cases themselves.
 
-**Outstanding:**
+**Cycle 5 was the acceptance test for the alias fix, and it passed** — the Cowork session tallied 8 Pass, 0 Fail, 1 Blocked, that Blocked row predating the `0.49.0` run and since closed. The jurisdiction-scoped step of UAT-02.4 returned `totalMatched: 1` where the identical call returned `[]` on `0.48.2`, which is what distinguishes "the alias is now in the index" from "the ranking happened to improve".
 
-- **UAT-02.4** — authored in cycle 4 as the regression case for the alias defect. Cannot pass until `0.49.0` reaches production; it is cycle 5's first task.
-- **UAT-07.6** — Blocked twice now. It needs Claude Desktop's prompt-argument field, because claude.ai web strips newlines from `filledIrl`. Until it runs, whether the prompt path mislabels a reconstruction as `-prepop` stays open.
-- **UAT-09.9** — held for a populated IRL supplied as **markdown**, not `.xlsx`. Flattening a workbook is itself a reconstruction and cannot exercise the verbatim assertion; UAT-07.7 covers the reconstruction path instead.
+It also produced the sharpest piece of testing this exercise has seen. Asked to confirm that a spurious `map-absent` entry had stopped appearing, the tester observed that an absence is consistent with two different worlds — the framework is now recognised, or the check no longer fires for anything — and invented a framework name to separate them. That control is now part of UAT-07.5, and the same reasoning is why UAT-02.4 records `totalMatched` bounds rather than ordering alone: **a positive assertion cannot detect a check that has been switched off.** Cycle 5's other two observations were suite gaps and are closed in the cases; the third (`serverToolCallCounts` reporting `succeeded: 0`) was a non-defect that had been filed three cycles running, now documented in UAT-07.5 and the IRL contract so it stops.
+
+**UAT-07.6 / 09.9 closed on `0.49.0`** — the last case in the suite to run, and it settled **half** of a question open since cycle 3. A prompt-argument paste self-labels **`partner-paste-verbatim-prepop`**, which is the _strongest_ provenance form rather than a weaker one: the server hashes and caches the operator's bytes at render time, so the body never round-trips through model emission. Two signals corroborated it independently — `hashBindResult: pass-bound`, and **no `provenance-gap` entry in (J)**, that auto-append firing only for reconstruction sources. 37/37 claims verified, and no `map-absent`, closing the cycle-3 false positive on a real client-shaped dossier rather than a fixture.
+
+**Outstanding — no unexecuted cases. One open question and three operational findings, all recorded in the cases themselves:**
+
+- **Whether a _reconstructed_ body supplied through the `filledIrl` argument would also be labelled `-prepop`.** UAT-07.6 pasted a genuine verbatim body, so it cannot answer this by construction — it establishes only that the label is honest for a real paste. The question matters because `-prepop` sits inside `requireVerbatimBody`'s accept-set: a reconstruction mislabelled that way would pass a gate it should fail and skip the provenance-gap disclosure. Closing it needs the 07.7-shaped run described under that case.
+
+- **No client runs the one-shot IRL workflow cleanly at real body size.** Web refuses the attach above ~57KB and strips newlines below it; Desktop accepts the paste but delivers the render as an attached document, so the model reports having no bound argument. **The prompt-side half is fixed** in `0.22.2` — the body now tells the model to proceed on the binding hash and probe rather than reconstruct — but the client behaviour itself is unchanged and outside our control. Both are documented in [`SETUP.md` § 1a](SETUP.md) and UAT-07.6. For real IRLs the operator-side path in `IRL_PARTNER_PASTE_RUNBOOK.md` is the supported route.
+- **A one-byte drift between the pasted body and its source file went unexplained.** `filledIrl.bytes` (server-measured under prepop) read 56,906 against a 56,907-byte file. It was chased hard and not localized. The run stayed valid, but the episode is the argument for that field existing — it is the only check that looks at content rather than labels.
+- **`transactionContext` has no documented precedence rule** between the operator's argument and the target's own answer in the IRL body. They agreed on this run and it resolved sensibly; they will not always agree.
 
 ---
 
-_Last updated: 2026-08-12 (BL-119 cycle 4 — every family now production-verified; 20 cases passed against `0.48.2`. UAT-02.4 added as the regression case for the `search_regulations` alias defect the cycle found. Production status is derived from the run logs by the parity guard rather than asserted here by hand.)_
+_Last updated: 2026-08-12 (BL-119 cycle 5 — the `0.49.0` alias fix passed its acceptance test, UAT-02 is fully verified, and the cycle-3 dossier loop is closed with a negative control. UAT-07.6 / 09.9 closed on a real 57KB body in Claude Desktop, leaving no unexecuted cases. Production status is derived from the run logs by the parity guard rather than asserted here by hand.)_
