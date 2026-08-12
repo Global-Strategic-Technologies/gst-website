@@ -122,8 +122,11 @@ function scoreQuery(entry: RegulationEntry, query: string): number {
   // defines (see `RegulationSchema.aliases`) — so "SB 24-205", "SB24205" and
   // en-dash variants all resolve. The canonical name keeps its raw comparison
   // so existing rankings are untouched. The length floor is load-bearing: `''`
-  // (any punctuation-only query) `startsWith`-matches every alias. Strict `<`
-  // matters — `caia` and `gdpr` both normalize to exactly 4.
+  // (any punctuation-only query) `startsWith`-matches every alias. The
+  // comparison is INCLUSIVE of the floor, and that matters — `caia` and `gdpr`
+  // both normalize to exactly 4, so requiring one more character silently
+  // un-fixes the `CAIA` lookup and drops `gb-dpa` out of `gdpr`'s second rank.
+  // Both are pinned by tests.
   const qNorm = normalizeFrameworkName(q);
   if (qNorm.length >= HUB_MATCH_MIN_LENGTH) {
     for (const rawAlias of d.aliases ?? []) {

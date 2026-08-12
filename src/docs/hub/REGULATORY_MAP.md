@@ -108,6 +108,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 |-------|------|------------|
 | `id` | string | Required, unique identifier |
 | `name` | string | Required, full regulation name |
+| `aliases` | string[] | Optional, common short forms. Searched by this page and by the MCP tools; must be unique across the corpus |
 | `regions` | string[] | ISO 3166-1 alpha-3 (countries), ISO 3166-2 (US-XX, CA-XX) |
 | `effectiveDate` | string | ISO 8601 date format |
 | `summary` | string | Required, regulation description |
@@ -434,7 +435,7 @@ On desktop, the compliance panel has `position: sticky` and its `max-height` is 
 1. Create a new JSON file in `src/data/regulatory-map/` following the naming convention: `{COUNTRY_CODE}-{LAW_ABBREVIATION}.json` (e.g., `JP-APPI.json`)
 2. Populate all required fields matching the schema above
 3. Use valid region codes — verify country alpha-3 codes exist in `src/utils/countryCodeMap.ts`, US state codes in `src/utils/fipsToStateCode.ts`, or Canadian province codes in `src/utils/canadianProvinceMap.ts`
-4. **Add `aliases` if the framework has a common short form that is not a substring of its formal name.** "Colorado Artificial Intelligence Act (SB 24-205)" is the worked example — people write "Colorado AI Act", which matches none of its title. Without the alias, that query finds nothing here and, worse, can find a *different* framework whose summary mentions this one (BL-119 cycle 4). Aliases must be unique across the corpus; a build-time guard fails if two entries normalize to the same one.
+4. **Add `aliases` if the framework has a common short form that is not a substring of its formal name.** "Colorado Artificial Intelligence Act (SB 24-205)" is the worked example — people write "Colorado AI Act", which matches none of its title. Without the alias, that query finds nothing here and, worse, can find a *different* framework whose summary mentions this one (BL-119 cycle 4). Aliases must be unique across the corpus; a duplicate guard fails if two entries normalize to the same one — but it runs as the **mcp-server** workspace's prebuild, so `npm run test:mcp` is what surfaces a collision. The root `npm run build` is `astro build` and will not.
 5. Run `npm run build` — Zod validation will catch schema errors at build time
 6. The map will automatically highlight the new regions and display regulation cards on click
 

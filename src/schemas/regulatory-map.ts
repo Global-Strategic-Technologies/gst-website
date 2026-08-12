@@ -31,8 +31,9 @@ export const RegulationSchema = z.object({
       'BL-073 — alternative names a person or model may use that should match this framework. ' +
         'Add when the common short form has no substring overlap with the canonical name. ' +
         'Example: "UK GDPR" for the canonical "UK Data Protection Act 2018". ' +
-        'A duplicate-alias detection guard in `scripts/generate-regulations-index.mjs` fails ' +
-        'the build if any normalized alias appears in two entries. ' +
+        'A duplicate-alias detection guard in `mcp-server/scripts/generate-regulations-index.mjs` ' +
+        "fails if any normalized alias appears in two entries — it runs as that workspace's " +
+        'prebuild/pretest, so `npm run test:mcp` surfaces a collision and the root build does not. ' +
         // BL-119 cycle 4: this describe() previously named ONE consumer and ONE
         // match rule, and that is exactly how the field ended up wired into one
         // of three. A fix that added aliases here was verified against
