@@ -231,9 +231,9 @@ describe('applyFilters — curated aliases (BL-119 cycle 4 / 2026-08-12)', () =>
   });
 
   it('resolves the acronym "CAIA" — the min-length boundary value', () => {
-    // Normalizes to exactly 4 characters, the same length as the floor, so an
-    // off-by-one in the guard (`<=` instead of `<`) silently un-fixes this.
-    // Before: zero results.
+    // Normalizes to exactly 4 characters, the same length as the floor, so
+    // tightening the guard to require 5 normalized characters silently
+    // un-fixes this. Before: zero results.
     const results = applyFilters({ query: 'CAIA', limit: 10 });
     expect(results[0].data.id).toBe('us-co-ai-act');
   });
