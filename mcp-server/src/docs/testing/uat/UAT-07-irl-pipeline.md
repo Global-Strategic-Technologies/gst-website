@@ -19,6 +19,7 @@ This is the longest document in the suite and the one most worth running after a
 | `validate_irl_provenance`                | tool   | UAT-07.4 | [CONTRACT.md](../../tools/irl-pipeline/CONTRACT.md)        |
 | `compose_dossier_envelope`               | tool   | UAT-07.5 | [CONTRACT.md](../../tools/irl-pipeline/CONTRACT.md)        |
 | `gst_irl_ingestion`                      | prompt | UAT-07.6 | [prompts/irl-ingestion.md](../../prompts/irl-ingestion.md) |
+| the reconstruction path + verbatim gate  | chain  | UAT-07.7 | [CONTRACT.md](../../tools/irl-pipeline/CONTRACT.md)        |
 
 ---
 
@@ -362,4 +363,55 @@ Mode A only. Invoking a prompt is a client-side capability; there is no Mode B e
 
 ---
 
-_Last updated: 2026-08-10 (BL-119 — initial authoring; 07.1–07.5 executed against 0.48.1, 07.6 requires an interactive client)_
+## UAT-07.7 — The reconstruction path and the verbatim gate
+
+**Goal**: Proves the pipeline labels a body it did not receive verbatim, and that the accuracy-critical gate refuses to certify one. This is the path an operator takes when the partner returns a filled `.xlsx` rather than markdown, and it is where provenance is easiest to overstate.
+
+**Input**
+
+Flatten a filled IRL workbook to markdown yourself, then run the UAT-07.3 → 07.4 → 07.5 chain over it. Two fields carry the whole case:
+
+| Field                 | Value for this case                | Constraint a tester must respect                                                                                |
+| --------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `irlSource`           | `"model-reconstruction-from-xlsx"` | Flattening a workbook **is** a reconstruction. Labelling it as a paste is the failure this case exists to catch |
+| `requireVerbatimBody` | `false`, then `true`               | Run it both ways — the second run is the gate test                                                              |
+
+**Extraction is your step, and it contaminates everything downstream.** The workbook's canonical layout is seven columns — `A Reference · B Request · C Status · D File Location · E Comments · F Notes · G Response`. **Trust the header row, never an Instructions sheet**: real-world workbooks predate the current generator, and one sample was found documenting a five-column layout with Response in D. An extractor following it would publish source-document filenames as the recipient's answers. Reconcile your row count against the workbook before proceeding, and state any judgement call you made.
+
+**Expected result — `requireVerbatimBody` omitted**
+
+- The chain succeeds and `serverCachedBodyBytes` equals `prepare_irl_body`'s `byteLength`.
+- The server **auto-appends a `provenance-gap:` entry** to `(J)` naming the reconstruction limitation and stating that verbatim-body authority does not hold in this mode. You do not author that category — the tool owns it.
+- `autoAppendedGaps` is ≥ 1.
+
+**Expected result — `requireVerbatimBody: true`**
+
+- The identical call is **rejected**, naming the cause, the remedy (paste the IRL as markdown so the bytes round-trip verbatim) and the escape hatch (omit the flag for drafting runs).
+- A success here is high-severity: the gate exists so an accuracy-critical deliverable cannot rest on a body the model assembled.
+
+**The accept-set, if you probe it**: `requireVerbatimBody: true` accepts **both** `partner-paste-verbatim` and `partner-paste-verbatim-prepop`, and rejects every reconstruction mode. The field description names only the first; the dual-accept is deliberate (a `-prepop` body is still a verbatim round-trip, pre-populated at prompt-render time).
+
+**Why the pairing matters.** Because `-prepop` is inside the accept-set, a run that mislabels a reconstruction as `-prepop` would pass a gate it should fail **and** skip the provenance-gap disclosure the manual path correctly emits. Whether the prompt path can produce that mislabel — by recording how the bytes reached the tool rather than where they came from — is still open; see the note under UAT-07.6.
+
+**Failure modes**
+
+| Symptom                                       | Means                                          | Do                                                         |
+| --------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
+| No `provenance-gap` entry on a reconstruction | The disclosure is not firing                   | **Fail — escalate.** The dossier overstates its provenance |
+| `requireVerbatimBody: true` **succeeds**      | The gate is not enforcing                      | **Fail — escalate**                                        |
+| `fillRatio` over 100%                         | You divided by 67 against an extended workbook | Not a defect — see the note below                          |
+
+**On `fillRatio`**: the denominator is the rows **actually present in sections 00–09**, not the canonical 67. Workbooks are often _extended_ with engagement-specific sections (10, 11), which the prompt contract excludes from the pre-flight, and may carry more canonical rows than the base list. Dividing by 67 against an extended workbook yields a nonsensical percentage.
+
+**On pre-populated rows**: a workbook may arrive with rows GST pre-filled from existing source documents rather than answered by the recipient. Nothing in the provenance vocabulary distinguishes the two, so a dossier counting them as partner answers makes a claim it cannot support. Mark them inline when you flatten (e.g. `[pre-populated, not recipient-confirmed]`) and say so in your report.
+
+**Run log**
+
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                                                  |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | 134/134 rows; byte-exact 56906; `autoAppendedGaps: 2` (provenance-gap + an unprompted `map-absent` on Colorado AI Act) |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Pass    | `requireVerbatimBody: true` rejected the reconstruction; accept-set probe confirmed the dual-accept                    |
+
+---
+
+_Last updated: 2026-08-11 (BL-119 — 07.1–07.5 authored against local stdio; 07.7 added and executed against production in cycle 3. 07.6 still requires an interactive client whose prompt-argument field preserves newlines.)_

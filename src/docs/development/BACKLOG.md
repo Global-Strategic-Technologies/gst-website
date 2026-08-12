@@ -717,10 +717,10 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 - [x] Simplest family authored and executed — ✅ UAT-01, three cases, all Pass (local stdio 0.48.1)
 - [x] Hardest family authored and executed — ✅ UAT-07; 07.1–07.5 Pass (local stdio 0.48.1), including the negative body-cache-miss path
-- [x] UAT-09 (the nine prompts) — ✅ 09.0–09.8 executed against production in cycle 2; 09.8 failed and drove the `0.0.5` fix
+- [~] UAT-09 (the nine prompts) — 🟡 09.0–09.8 executed against production in cycle 2 (09.8 failed and drove the `0.0.5` fix); **09.9 not run** — see below
 - [~] **A production cycle** — 🟡 **partial**. Prompts, resources and the IRL reconstruction path ran against production (cycles 2 and 3). **No tool family has a production run** — UAT-01 through UAT-08 run logs all read `local stdio`. Closing this needs one pass over those eight documents against the Worker
 - [ ] **UAT-09.8 re-run against `0.0.5`** — the unit assertion proves the instruction is in the body; only a live run proves the model follows it
-- [ ] **UAT-09.9** — held for a populated IRL supplied as markdown. Cycle 3 exercised the `.xlsx` reconstruction path instead (labelled `UAT-09.9-X`), which cannot test the verbatim assertion by construction
+- [ ] **UAT-09.9** — held for a populated IRL supplied as markdown. Cycle 3 exercised the `.xlsx` reconstruction path instead, now recorded as [UAT-07.7](../../../mcp-server/src/docs/testing/uat/UAT-07-irl-pipeline.md); it cannot test the verbatim assertion by construction
 - [ ] **UAT-04.2** (TechPar deep-dive) — never executed in any environment
 
 **Tool contracts**

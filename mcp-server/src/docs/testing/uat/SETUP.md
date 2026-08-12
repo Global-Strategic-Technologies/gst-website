@@ -116,13 +116,14 @@ If 3a fails, or you get a 401, stop and work through [`REMOTE_CLIENT_SETUP.md` �
 
 **Stay inside the budget — and know that yours depends on your tier.** The figures below are per-client ceilings, not universals:
 
-| Tier         | General /min | General /day | Radar /min | Radar /day |
-| ------------ | ------------ | ------------ | ---------- | ---------- |
-| `free-pilot` | 30           | 300          | 3          | 20         |
-| `paid`       | 60           | 2000         | 5          | 50         |
-| `enterprise` | 120          | 10000        | 10         | 150        |
+| Tier                   | General /min | General /day | Radar /min | Radar /day |
+| ---------------------- | ------------ | ------------ | ---------- | ---------- |
+| `free-pilot`           | 30           | 300          | 3          | 20         |
+| `paid`                 | 60           | 2000         | 5          | 50         |
+| `enterprise`           | 120          | 10000        | 10         | 150        |
+| internal (`MCP_KEY_*`) | 60           | 1000         | 5          | 50         |
 
-A full UAT pass sits well inside every one of these — a retry loop does not. If you hit a 429, wait out the `Retry-After` window rather than hammering. A `free-pilot` credential has the tightest radar budget, so UAT-08's three calls are close to a fifth of its daily allowance.
+A full UAT pass sits well inside every one of these — a retry loop does not. If you hit a 429, wait out the `Retry-After` window rather than hammering. If you hold an internal `MCP_KEY_*` (§ 0a) you are on the internal row; a `free-pilot` pilot credential has the tightest radar budget, where UAT-08's three calls are close to a fifth of the daily allowance.
 
 ---
 
