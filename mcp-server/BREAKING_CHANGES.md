@@ -8,6 +8,10 @@
 >
 > **Every entry in this file ships with a corresponding `version` bump in [`package.json`](./package.json) and is mirrored in the [archived BL-032 initiative doc](../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md) Q-section that triggered it (entries after 2026-07-17 cite the maintained [`ARCHITECTURE.md`](./src/docs/ARCHITECTURE.md) instead).** BL-032.5 Phase 4 formalizes the discipline with the **manifest-hash test** at [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) — the hash is computed over the registered Library/Regulation/Radar URIs + prompt `name@version` tuples; any drift fails the test and surfaces the new hash in the error message.
 
+> **Prompt-version bumps vs. in-place hash rebaselines** (recorded 2026-08-12, BL-120): bump the prompt `version` when the **previous body bytes have been served**; rebaseline the `EXPECTED_HASH_*` constants in place when they have not. A prompt version is a _published_ identity — it is what this file's manifest hash binds and what the dossier meta fence reports as `promptVersion` for run auditability, and both consumers only ever see served bytes. Minting a version for a byte-state no client ever received manufactures history for exactly the reader the version exists to serve. BL-120 moved all 7 body hashes **three times** inside `0.22.3` on that basis, with each move recorded in the ledger comment in `tests/integration/irl-ingestion-body-hash-stability.test.ts`.
+>
+> The edge that makes this checkable: **staging auto-deploys on a green MCP test run from a same-repo push.** So an unpushed branch is still free to rebaseline in place; the moment it is pushed those bytes are served, and any further body change owes a version bump.
+
 ---
 
 ## Current manifest hash

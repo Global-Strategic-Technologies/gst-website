@@ -976,6 +976,23 @@ describe('gst_irl_ingestion', () => {
       );
     });
 
+    it.each(ALL_MODES)('%s body states the shipped join rule', (_label, args) => {
+      // Coverage matters here specifically: the interactive body is in scope
+      // because it can reconstruct from a workbook, so the rule vanishing from
+      // it would reintroduce the gap this contract closes — silently, since the
+      // agreement check in `irl-ingestion-fixtures.test.ts` reads one body.
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain(
+        'add a period after G unless G already ends in `.` `?` `!` `:` `;` `,` `…` or a dash'
+      );
+      expect(text).toContain('after peeling off any closing brackets and quotes');
+      // The endings the rule's earlier phrasing got wrong, named so a model
+      // reading the contract produces what the script produces.
+      expect(text).toContain('`14%`');
+      expect(text).toContain('`$4.15M +`');
+      expect(text).toMatch(/including when a closing quote follows the comma/);
+    });
+
     it('states that Status does not gate inclusion (OPEN rows still contribute)', () => {
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toMatch(/Status does \*\*not\*\* gate inclusion/i);

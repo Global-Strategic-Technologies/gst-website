@@ -43,6 +43,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
 import { runIrlProvenanceCheck } from '../../src/schemas/validate-irl-provenance';
+// Imported so the join-rule table below checks the contract against the code
+// that implements it, rather than against a restatement of the rule.
+import { extractIrlMarkdownFromRows } from '../../scripts/extract-irl-markdown.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SELL_SIDE_FIXTURE = readFileSync(
@@ -283,27 +286,73 @@ describe('northwind-workbook-columns-filled-irl.md fixture (BL-120)', () => {
     );
   });
 
-  it('states the join rule the extractor actually implements', () => {
+  describe('the contract and the extractor agree on the join rule', () => {
     // Both paths rendering the same bytes is BL-120's acceptance property, and
-    // it rests on prose no test could previously contradict: a code review
-    // caught `joinAnswerSpan` being rewritten while the contract still
-    // described the rule it replaced — 6 of 12 realistic cell endings diverged,
-    // and a contract-following model would have reproduced the exact `,".`
-    // artifact the rewrite existed to remove.
+    // it rested on prose no test could contradict: a code review caught
+    // `joinAnswerSpan` being rewritten while the contract still described the
+    // rule it replaced — 6 of 12 realistic cell endings diverged, and a
+    // contract-following model would have reproduced the exact `,".` artifact
+    // the rewrite existed to remove.
     //
-    // This cannot compare prose to code mechanically. What it can do is fail
-    // the moment the rule changes without this assertion being revisited, which
-    // is the step that was skipped.
-    const body = fullBodyText({ filledIrl: WORKBOOK_COLUMNS_FIXTURE });
-    expect(body).toContain(
-      'add a period after G unless G already ends in `.` `?` `!` `:` `;` `,` `…` or a dash'
+    // Text-presence alone would be a tripwire someone updates reflexively. So
+    // each ending below is checked TWICE from one table: the contract names the
+    // hard ones, and the extractor emits the period-or-not the contract claims.
+    // Either half drifting fails, which is the property that was missing.
+    const JOIN_CASES: Array<{ ending: string; response: string; period: boolean }> = [
+      { ending: 'a letter', response: 'Acme Inc', period: true },
+      { ending: 'a percent', response: 'Voluntary attrition was 14%', period: true },
+      { ending: 'a plus', response: 'Hosting spend is $4.15M +', period: true },
+      { ending: 'a closing bracket', response: 'value-creation (post-close)', period: true },
+      {
+        ending: 'an unterminated curly quote',
+        response: 'They call it “the rating engine”',
+        period: true,
+      },
+      { ending: 'a period', response: 'Acme Inc.', period: false },
+      { ending: 'a question mark', response: 'Who owns this?', period: false },
+      { ending: 'a semicolon', response: 'Flat; unaudited;', period: false },
+      { ending: 'a comma', response: 'Acme Inc,', period: false },
+      { ending: 'a quoted comma', response: '"we ship weekly,"', period: false },
+      { ending: 'a bracketed period', response: 'Revenue was flat (FY26.)', period: false },
+      { ending: 'an ellipsis', response: 'ADRs, BDRs, Designs, APIs, AC, …', period: false },
+      { ending: 'a dash', response: 'Three named, one pending —', period: false },
+    ];
+
+    /** Minimal 7-column workbook carrying one filled row. */
+    function bulletFor(response: string, comments: string): string {
+      const { markdown } = extractIrlMarkdownFromRows([
+        ['Target', 'Acme Co'],
+        ['Reference', 'Request', 'Status', 'File Location', 'Comments', 'Notes', 'Response'],
+        ['0-01', 'Company name', 'CLOSED', '', comments, '', response],
+      ]);
+      const line = markdown.split('\n').find((l: string) => l.startsWith('- 0-01 '));
+      if (!line) throw new Error('no bullet emitted');
+      return line;
+    }
+
+    it.each(JOIN_CASES)(
+      'a Response ending in $ending: extractor adds a period = $period',
+      ({ response, period }) => {
+        expect(bulletFor(response, 'Comments text')).toBe(
+          `- 0-01 Company name [CLOSED] — ${response}${period ? '.' : ''} Comments text`
+        );
+      }
     );
-    expect(body).toContain('after peeling off any closing brackets and quotes');
-    // The two endings the earlier phrasing got wrong, named in the contract so
-    // a model reading it produces what the script produces.
-    expect(body).toContain('`14%`');
-    expect(body).toContain('`$4.15M +`');
-    expect(body).toMatch(/including when a closing quote follows the comma/);
+
+    it('the contract states that rule, and names the endings it is easiest to get wrong', () => {
+      const body = fullBodyText({ filledIrl: WORKBOOK_COLUMNS_FIXTURE });
+      expect(body).toContain(
+        'add a period after G unless G already ends in `.` `?` `!` `:` `;` `,` `…` or a dash'
+      );
+      expect(body).toContain('after peeling off any closing brackets and quotes');
+      expect(body).toMatch(/including when a closing quote follows the comma/);
+      // Every ending the contract names by example must be one the table above
+      // actually pins, so the two halves cannot describe different rules.
+      for (const named of ['14%', '$4.15M +']) {
+        expect(body).toContain(`\`${named}\``);
+        expect(JOIN_CASES.some((c) => c.response.includes(named))).toBe(true);
+      }
+    });
   });
 
   it('verifies citations that read across the Response→Comments boundary', () => {
