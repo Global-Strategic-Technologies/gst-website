@@ -470,7 +470,7 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 
 - **Category filter UI** — Filter chips for data privacy, AI governance, industry compliance, cybersecurity. Updates map highlighting and panel cards in real time.
 - **Regulation timeline/tracker** — Horizontal scrollable timeline with Today marker and filter-aware display.
-- **Search/filter** — Text search across regulation names, summaries, and key requirements with keyboard navigation and map integration.
+- **Search/filter** — Text search across regulation names and their curated short forms (`aliases`) with keyboard navigation and map integration. Summaries and key requirements are **not** searched: the inline client index is deliberately lightweight and carries neither field (`RegulationIndexEntry` in `src/utils/fetchRegulations.ts`). The search text is built by the shared `buildRegulationSearchText` helper, which the MCP `search_regulations` tool mirrors (BL-119 cycle 4).
 - **Region bookmarking/sharing** — URL state encoding (`?region=DEU&filter=ai-governance`) with copy-link button in panel header.
 - **Cybersecurity frameworks** — 20 cybersecurity regulations including NIS2 (EU), CIRCIA (US), SOCI Act (Australia), and 17 more.
 - **Industry compliance expansion** — 12 regulations including DORA, SOX, GLBA, Basel III, AMLD6, MiFID II.

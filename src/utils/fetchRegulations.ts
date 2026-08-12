@@ -4,6 +4,15 @@ import type { Regulation } from '../types/regulatory-map';
 export interface RegulationIndexEntry {
   id: string;
   name: string;
+  /**
+   * Curated short forms (BL-073). Carried into the index so the page's search
+   * can reach a framework by the name people actually type — BL-119 cycle 4
+   * found "Colorado AI Act" returning nothing here. The index stores the raw
+   * aliases rather than a precomputed search string: `buildRegulationSearchText`
+   * is the shared builder, and materializing its output per entry would roughly
+   * double the payload for no gain.
+   */
+  aliases?: string[];
   effectiveDate: string;
   category: string;
   regions: string[];
@@ -61,6 +70,7 @@ export function buildRegulationIndex(regulations: Regulation[]): RegulationIndex
   const regs: RegulationIndexEntry[] = regulations.map((r) => ({
     id: r.id,
     name: r.name,
+    aliases: r.aliases,
     effectiveDate: r.effectiveDate,
     category: r.category,
     regions: r.regions,

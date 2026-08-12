@@ -19,7 +19,7 @@
 Computed over (sorted):
 
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
-- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
+- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
 - **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.1` (worked-example client deidentified as SanFran — see the 0.48.1 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
@@ -28,6 +28,36 @@ If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.49.0 — 2026-08-12 — `search_regulations` matches curated aliases
+
+**No tool, prompt, or Resource URI changes.** Ranking behaviour only, plus a `SEARCH_DESCRIPTION` rewrite.
+
+**Who this affects**: anyone who asks `search_regulations` for a framework by its **common short form** rather than its formal title — which is nearly everyone, since formal titles read like "Colorado Artificial Intelligence Act (SB 24-205)" and people write "Colorado AI Act". Also the `/hub/tools/regulatory-map/` page, fixed in the same commit.
+
+**Why**: `scoreQuery` scored free-text against `id`, `name` and `summary` only. It never read `aliases`, and **no alias in the corpus is a substring of its own record's name**, so every curated alias was unreachable. Because a summary mention scores 5 and a non-match scores 0, a framework that merely _named_ another one in its prose outranked the framework itself. Measured against the real corpus before the fix:
+
+| query                   | returned                                           |
+| ----------------------- | -------------------------------------------------- |
+| `Colorado AI Act`       | `us-nist-ai-rmf` — wrong answer, and the only one  |
+| `EU AI Act`             | `kr-ai-basic-act` — wrong answer, and the only one |
+| `Australia Privacy Act` | nothing                                            |
+| `NIST AI RMF`           | nothing                                            |
+| `CAIA`                  | nothing                                            |
+
+The Colorado case is the sharp one: a voluntary federal framework carrying no statutory penalties was returned in place of a state statute carrying **$20,000 per violation**, to an agent composing a partner-facing dossier. A confident wrong answer is worse than the `map-absent` gap entry it replaced, because that at least told the partner the framework was missing.
+
+**Why it went unnoticed**: `aliases` was added in BL-073 for `compose_dossier_envelope`, and the field's own docstring names that consumer. A BL-119 cycle-3 fix added the Colorado aliases and tested them against exactly that consumer. Search was a second index against the same data that nobody had wired up, and no test or UAT case covered free-text disambiguation. Found by the BL-119 cycle-4 UAT run, which probed one record five ways.
+
+**What changed**: aliases are folded into the existing **name** bucket, scored as the best match across the record's aliases (not the sum), reusing the same 80/40/20 weights. They compare on **normalized** form via `normalizeFrameworkName` — the semantic their docstring defines — so `SB 24-205`, `SB24205` and en-dash variants all resolve. A normalized query shorter than `HUB_MATCH_MIN_LENGTH` (4, now exported from `compose-dossier-envelope.ts`) skips the alias bucket, because an all-punctuation query normalizes to `''` and would otherwise prefix-match every alias — `query: "-"` legitimately matches all 123 ids and must not be hijacked.
+
+Weights were ratified by a before/after ranking diff over the whole corpus rather than by hand: **15 top-hit changes, every one a resolution of a previously wrong or absent result, and no demotions**. `gdpr` still returns `eu-gdpr` first (`gb-dpa`'s alias is literally "UK GDPR", which is why aliases sit in the name bucket rather than above it), `ccpa` and `privacy act` are unchanged, and punctuation-only queries are unchanged.
+
+**Manifest-hash impact: none.** Tool names, prompt names and Resource URIs are untouched, and aliases have never been hash inputs (see § Current manifest hash).
+
+**Rollback**: revert the commit. No data, transport, or schema implications — the corpus JSON is unchanged and `aliases` was already being served in full via `resources/read`.
 
 ---
 

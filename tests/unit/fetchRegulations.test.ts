@@ -94,6 +94,22 @@ describe('buildRegulationIndex', () => {
     expect(index.regs[0]).not.toHaveProperty('penalties');
   });
 
+  it('carries curated aliases into the index (BL-119 cycle 4)', () => {
+    // The page searches this index client-side. Before cycle 4 the index
+    // dropped `aliases`, so a visitor typing a framework's common short form
+    // ("Colorado AI Act") matched nothing — the same defect the MCP tool had
+    // against the same data.
+    const regs = [
+      makeRegulation('us-co-ai-act', ['US-CO'], {
+        aliases: ['Colorado AI Act', 'CAIA', 'SB 24-205'],
+      }),
+    ];
+
+    const index = buildRegulationIndex(regs);
+
+    expect(index.regs[0].aliases).toEqual(['Colorado AI Act', 'CAIA', 'SB 24-205']);
+  });
+
   it('should handle multiple regulations per region', () => {
     const regs = [makeRegulation('gdpr', ['DEU']), makeRegulation('bdsg', ['DEU'])];
 
