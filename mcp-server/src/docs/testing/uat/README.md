@@ -129,19 +129,19 @@ The distinction is load-bearing rather than bookkeeping. A local stdio build has
 
 ## Verification status
 
-All ten documents are authored, and **every family has production evidence**. As of cycle 5, **UAT-07.6 / 09.9 is the only case never executed anywhere.**
+All ten documents are authored, **every family has production evidence, and as of cycle 5 every case in the suite has been executed at least once.**
 
 > **The run logs are the source of truth, not this section.** A document is production-verified exactly when one of its run-log rows carries `Env: prod` — nothing here overrides that. `tests/integration/mcp-uat-parity.test.ts` derives the answer from those tables and fails if this prose disagrees, because three successive edits to this section drifted out of step with them and each was caught only in review.
 >
-> **The guard is family-granular, not case-granular.** One `Env: prod` row anywhere in a document flips that whole family to ✅, so a family can be marked verified while one of its cases has never run — the state UAT-07 and UAT-09 are in. Per-case gaps live in **Outstanding** below and are only ever caught by reading, never by CI.
+> **The guard is family-granular, not case-granular.** One `Env: prod` row anywhere in a document flips that whole family to ✅, so a family can be marked verified while one of its cases has never run . That was the state UAT-07 and UAT-09 were in until cycle 5. Per-case gaps live in **Outstanding** below and are only ever caught by reading, never by CI.
 
-| Family                      | Production evidence                                                                |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| UAT-01 – 06 (tool families) | ✅ all cases — cycle 4 on `0.48.2`; UAT-02 re-swept and 02.4 first-run on `0.49.0` |
-| UAT-07 (IRL pipeline)       | ✅ 07.7 (cycle 3) and 07.5 (cycle 5) — **07.6 outstanding**                        |
-| UAT-08 (radar)              | ✅ 08.1 – 08.3, cycle 4 — first live-dependency pass                               |
-| UAT-09 (prompts)            | ✅ 09.0 – 09.8, cycles 2 and 4 — **09.9 outstanding** (same run as 07.6)           |
-| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                                            |
+| Family                      | Production evidence                                                                 |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| UAT-01 – 06 (tool families) | ✅ all cases — cycle 4 on `0.48.2`; UAT-02 re-swept and 02.4 first-run on `0.49.0`  |
+| UAT-07 (IRL pipeline)       | ✅ 07.5 – 07.7, cycles 3 and 5 — **07.6 closed**, the last case in the suite to run |
+| UAT-08 (radar)              | ✅ 08.1 – 08.3, cycle 4 — first live-dependency pass                                |
+| UAT-09 (prompts)            | ✅ 09.0 – 09.9, cycles 2, 4 and 5 — 09.9 is the same run as 07.6                    |
+| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                                             |
 
 Cycle 4 closed the standing gap: **20 cases passed against production `0.48.2`**, converting six tool families from "authored against local stdio" to proven on the Worker, and executing UAT-04.2 for the first time in any environment.
 
@@ -155,9 +155,13 @@ Cycle 1's two reported findings both dissolved on investigation — the ICG aggr
 
 It also produced the sharpest piece of testing this exercise has seen. Asked to confirm that a spurious `map-absent` entry had stopped appearing, the tester observed that an absence is consistent with two different worlds — the framework is now recognised, or the check no longer fires for anything — and invented a framework name to separate them. That control is now part of UAT-07.5, and the same reasoning is why UAT-02.4 records `totalMatched` bounds rather than ordering alone: **a positive assertion cannot detect a check that has been switched off.** Cycle 5's other two observations were suite gaps and are closed in the cases; the third (`serverToolCallCounts` reporting `succeeded: 0`) was a non-defect that had been filed three cycles running, now documented in UAT-07.5 and the IRL contract so it stops.
 
-**Outstanding — one case:**
+**UAT-07.6 / 09.9 closed on `0.49.0`** — the last case in the suite to run, and it settled a question open since cycle 3. A prompt-argument paste self-labels **`partner-paste-verbatim-prepop`**, which is the _strongest_ provenance form rather than a weaker one: the server hashes and caches the operator's bytes at render time, so the body never round-trips through model emission. Two signals corroborated it independently — `hashBindResult: pass-bound`, and **no `provenance-gap` entry in (J)**, that auto-append firing only for reconstruction sources. 37/37 claims verified, and no `map-absent`, closing the cycle-3 false positive on a real client-shaped dossier rather than a fixture.
 
-- **UAT-07.6 / UAT-09.9** (the same run, recorded in both). It needs **Claude Desktop**. claude.ai web renders `filledIrl` as a single-line input that strips newlines, and above roughly 57KB refuses the attach entirely — see [`SETUP.md` § 1a](SETUP.md). Until it runs, whether a prompt-argument paste self-labels `partner-paste-verbatim` or `-prepop` stays open, and that distinction decides whether the label records where bytes came from or merely how they arrived.
+**Outstanding — no cases. Three operational findings, all recorded in the cases themselves:**
+
+- **No client runs the one-shot IRL workflow cleanly at real body size.** Web refuses the attach above ~57KB and strips newlines below it; Desktop accepts the paste but delivers the render as an attached document, so the model reports having no bound argument. Both are documented in [`SETUP.md` § 1a](SETUP.md) and UAT-07.6. For real IRLs the operator-side path in `IRL_PARTNER_PASTE_RUNBOOK.md` is the supported route.
+- **A one-byte drift between the pasted body and its source file went unexplained.** `filledIrl.bytes` (server-measured under prepop) read 56,906 against a 56,907-byte file. It was chased hard and not localized. The run stayed valid, but the episode is the argument for that field existing — it is the only check that looks at content rather than labels.
+- **`transactionContext` has no documented precedence rule** between the operator's argument and the target's own answer in the IRL body. They agreed on this run and it resolved sensibly; they will not always agree.
 
 ---
 
