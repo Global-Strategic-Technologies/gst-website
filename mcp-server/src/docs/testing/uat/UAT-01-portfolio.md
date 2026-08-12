@@ -7,7 +7,7 @@ The portfolio tools expose GST's anonymized M&A engagement history: a zero-argum
 
 This is the shortest document in the suite and the one to run first. If UAT-01 passes, the connection is genuinely working.
 
-> **Recorded runs are `local stdio`, not production.** The expectations below were observed against a locally-built server, so they describe real handler behaviour but do not yet constitute a production Pass. Portfolio data is bundled at build time and has no external dependency, so these results should hold identically on the Worker — but "should" is not "did". A production run is outstanding.
+> **Verified in production** (cycle 4, 2026-08-12, `0.48.2`). All three cases passed against the Worker; the earlier `local stdio` rows are kept for provenance.
 
 ## Scope
 
@@ -60,9 +60,10 @@ Write down one theme value; UAT-01.3 uses it.
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                  |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------ |
-| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 15 themes / 2 categories / 6 stages / years descending |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                            |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 15 themes / 2 categories / 6 stages / years descending                                                           |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. Stages returned in progression order, not dataset order (dataset begins "Expansion Stage") |
 
 ---
 
@@ -106,9 +107,10 @@ Write down one theme value; UAT-01.3 uses it.
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                     |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------- |
-| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 7 matches; one `Finance`-themed match confirmed the multi-field behaviour |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                    |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 7 matches; one `Finance`-themed match confirmed the multi-field behaviour                                                                |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. `totalMatched` 7 == returned 7; `Eagle` (theme `Finance`) matched on its summary — the multi-field assertion holds |
 
 ---
 
@@ -157,9 +159,10 @@ Both fields accept a single string **or** an array; both default to `"all"` when
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                              |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------ |
-| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 7 matches, all Healthcare + Buy-Side; deeplink carried both params |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                   |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-10 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 7 matches, all Healthcare + Buy-Side; deeplink carried both params                                                                                                      |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 7 matches, every one strictly Healthcare + Buy-Side; 3 overlap with 01.2, so the facet genuinely narrows. Deeplink uses `eng=`, not `engagement=` |
 
 ---
 

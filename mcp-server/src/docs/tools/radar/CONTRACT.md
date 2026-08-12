@@ -142,6 +142,10 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 { category?: 'pe-ma' | 'enterprise-tech' | 'ai-automation' | 'security' }
 ```
 
+**Response size — the unfiltered call is the largest thing this tool emits, and `category` is the only lever.** Measured against the real feed in [`tests/integration/tool-response-budget.test.ts`](../../../../tests/integration/tool-response-budget.test.ts): **114,815 B across 45 items (~2,551 B per item)**, and **258,505 B** if the HTML stripping were reverted. For scale, BL-109 originated in a `search_radar` response of **143,027 characters** that exceeded a real client's tool-result ceiling — so an unfiltered call sits within a factor of 1.25 of a known breaking point, and a client with a tighter ceiling may truncate or persist the result rather than render it (observed in BL-119 cycle 4, where a 61.4 KB response was written to a file instead of returned inline).
+
+There is **no `limit` input to narrow with** — see item 4 of the deliberately-not-offered list above for why the capability mirror supplies none. Pass `category` when the caller's intent is category-scoped, and prefer `get_latest_insights` when only the annotated tier is wanted. The bound is not a defect to report; it is the current envelope, recorded so it is visible rather than assumed.
+
 **`search_radar` response shape**:
 
 ```typescript

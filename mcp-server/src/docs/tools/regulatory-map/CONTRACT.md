@@ -31,7 +31,7 @@ enumParity:
 >
 > Both prompts surface `gst://regulations/<jurisdiction>/<framework-id>` URIs as analyst-pinnable references. Adding new fields to `SearchResult`'s wire shape (e.g., for future enrichment beyond `scope`/`keyRequirements`/`penalties`) should be reflected in the regulatory-exposure-brief body's Step 2 source-grounding instruction.
 >
-> **Version**: `v2` | **Last authored**: 2026-05-27 (multi-value filters)
+> **Version**: `v2` | **Last authored**: 2026-08-12 (alias matching in `query` — BL-119 cycle 4; multi-value filters 2026-05-27)
 >
 > **Registry**: see [`../contracts/README.md`](../README.md).
 

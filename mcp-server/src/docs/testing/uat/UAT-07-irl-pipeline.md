@@ -357,9 +357,9 @@ Mode A only. Invoking a prompt is a client-side capability; there is no Mode B e
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-08-12 | Cowork | prod | 0.48.2  | A    | Blocked | Attempted in production; could not execute. The case needs Claude Desktop's prompt-argument field — claude.ai web renders `filledIrl` as `<input type="text">` and strips newlines (re-verified: `"A\nB\nC"` read back as `"ABC"`), and the tester's session automates Chrome only. Body staged and hash-verified; feeding a knowingly newline-stripped body would answer a different question. The `-prepop` mislabel question stays open |
 
 ---
 

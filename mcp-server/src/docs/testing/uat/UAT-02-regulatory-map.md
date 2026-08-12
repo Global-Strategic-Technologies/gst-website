@@ -5,14 +5,14 @@
 
 A curated corpus of regulatory frameworks with a faceted search over it. A full pass proves the corpus is served rather than recalled — which is the entire point of the family, since a model answering "what does the EU AI Act require?" from training data will sound equally confident whether or not the answer is current.
 
-> **Recorded runs are `local stdio`, not production.** The regulation corpus is bundled at build time with no external dependency, so these results should hold identically on the Worker. A production run is outstanding.
+> **Verified in production** (cycle 4, 2026-08-12, `0.48.2`) for 02.1–02.3. UAT-02.4 is authored but unrun: it is the regression case for the alias defect cycle 4 found, and cannot pass until `0.49.0` deploys.
 
 ## Scope
 
-| Capability               | Kind | Cases              | Contract                                              |
-| ------------------------ | ---- | ------------------ | ----------------------------------------------------- |
-| `list_regulation_facets` | tool | UAT-02.1           | [CONTRACT.md](../../tools/regulatory-map/CONTRACT.md) |
-| `search_regulations`     | tool | UAT-02.2, UAT-02.3 | [CONTRACT.md](../../tools/regulatory-map/CONTRACT.md) |
+| Capability               | Kind | Cases                        | Contract                                              |
+| ------------------------ | ---- | ---------------------------- | ----------------------------------------------------- |
+| `list_regulation_facets` | tool | UAT-02.1                     | [CONTRACT.md](../../tools/regulatory-map/CONTRACT.md) |
+| `search_regulations`     | tool | UAT-02.2, UAT-02.3, UAT-02.4 | [CONTRACT.md](../../tools/regulatory-map/CONTRACT.md) |
 
 ---
 
@@ -50,9 +50,10 @@ A curated corpus of regulatory frameworks with a faceted search over it. A full 
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                          |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 73 jurisdictions, 4 categories, 123 frameworks |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                                      |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 73 jurisdictions, 4 categories, 123 frameworks                                                                                                                                             |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 73 jurisdictions (incl. sub-national `us-ca`/`ca-qc` and pseudo-jurisdiction `global`), 4 categories, 123 frameworks — agrees with UAT-10.1. UK is `gb`; no `uk` key |
 
 ---
 
@@ -93,9 +94,10 @@ A curated corpus of regulatory frameworks with a faceted search over it. A full 
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                               |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | --------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 1 match, 7 keyRequirements, three-band penalty text |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                 |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 1 match, 7 keyRequirements, three-band penalty text                                                   |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 1 match, `effectiveDate` 2024-08-01, 7 keyRequirements, all three penalty bands |
 
 ---
 
@@ -131,10 +133,58 @@ A curated corpus of regulatory frameworks with a faceted search over it. A full 
 
 **Run log**
 
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                                                                      |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-08-12 | Cowork | prod | 0.48.2  | B    | Pass    | First production run. All three jurisdictions in ONE call, no sequential fan-out; `filterDeeplink` correctly omits the jurisdiction filter |
+
+---
+
+## UAT-02.4 — Free-text disambiguation: naming A must not return B
+
+**Goal**: Proves that a query naming one framework returns **that** framework, and not a different one whose summary happens to mention it. This is the case whose absence let a real defect ship: the corpus is 123 records that cross-reference each other constantly in prose, so any framework named inside another's summary is a candidate for the same collision.
+
+> **Why this case exists.** Until `0.49.0`, `search_regulations` scored free-text against `id`, `name` and `summary` only — never against the curated `aliases`. A summary mention scores 5 and a non-match scores 0, so `"Colorado AI Act"` returned **`us-nist-ai-rmf`** (a voluntary federal framework with no statutory penalties, whose summary reads "notably the Colorado AI Act") in place of a Colorado statute carrying **$20,000 per violation**. `"EU AI Act"` failed the same way, returning the Korean AI Basic Act. A confident wrong answer is harder to catch than a stated gap — the previous behaviour at least told a partner the framework was missing. UAT cycle 4 found this by probing one record five ways; this case makes it a standing check.
+
+**Input**
+
+| Field          | Required | Value for this case | Constraint a tester must respect                           |
+| -------------- | -------- | ------------------- | ---------------------------------------------------------- |
+| `query`        | yes      | see steps           | Free text; the point is to use the **common short form**   |
+| `jurisdiction` | no       | `"us-co"`           | Only in step 3, to isolate whether the record is reachable |
+
+**Steps**
+
+Four calls. Run them as separate calls, not one conversation turn — step 3 is diagnostic and only means something on its own.
+
+1. `search_regulations` with `{ "query": "Colorado AI Act" }`
+2. `search_regulations` with `{ "query": "EU AI Act" }`
+3. `search_regulations` with `{ "query": "Colorado AI Act", "jurisdiction": "us-co" }`
+4. `search_regulations` with `{ "query": "CAIA" }`
+
+**Expected result**
+
+- Step 1 returns **`us-co-ai-act`** first — the Colorado Artificial Intelligence Act (SB 24-205). `us-nist-ai-rmf` may also appear, lower down, on its summary mention; that is correct and is not a defect. What matters is the ordering.
+- Step 2 returns **`eu-ai-act`** first — the EU Artificial Intelligence Act (Regulation 2024/1689).
+- Step 3 returns **exactly one** match, `us-co-ai-act`. An empty result here is the decisive signal that the alias is not in the index at all, rather than merely outranked — that is what it returned before the fix.
+- Step 4 returns **`us-co-ai-act`**. `CAIA` normalizes to exactly four characters, the minimum length the alias matcher accepts, so this is the boundary value: it is the first thing to break if that floor is ever tightened.
+- In every step, the framework named by the query outranks any framework that merely mentions it.
+
+**Failure modes**
+
+| Symptom                                                       | Means                                                                             | Do                                                                                                   |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Step 1 returns `us-nist-ai-rmf` first                         | The alias regression is back, or the build predates `0.49.0`                      | Check `/health` for the running version before filing; if it is `0.49.0`+, **Fail** — this is severe |
+| Step 3 returns `matches: []`                                  | Aliases are not reachable through the free-text index                             | **Fail** — the same shape as the original defect                                                     |
+| Step 4 returns nothing while steps 1–2 pass                   | The min-length floor was tightened past 4                                         | **Fail** — and note that `gdpr` is the other query sitting on that boundary                          |
+| A named framework appears but below one that only mentions it | Ranking regression rather than an index gap                                       | **Fail**, and record both scores' ordering — the distinction guides the fix                          |
+| The model answers from memory without calling                 | Addendum missing — this family is the one models most often answer from knowledge | Re-check [`SETUP.md` § 2](SETUP.md); not a server defect                                             |
+
+**Run log**
+
 | Date | Tester | Env | Version | Mode | Verdict | Notes |
 | ---- | ------ | --- | ------- | ---- | ------- | ----- |
 |      |        |     |         |      |         |       |
 
 ---
 
-_Last updated: 2026-08-11 (BL-119 — initial authoring; 02.1 and 02.2 executed against local stdio 0.48.1)_
+_Last updated: 2026-08-12 (BL-119 cycle 4 — 02.1–02.3 executed against production 0.48.2; UAT-02.4 authored as the regression case for the alias defect, pending a `0.49.0` deploy)_

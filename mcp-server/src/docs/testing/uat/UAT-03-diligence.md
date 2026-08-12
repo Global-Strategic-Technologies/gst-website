@@ -5,7 +5,7 @@
 
 One tool with the widest input surface in the server: thirteen dimensions describing a target, each of which gates a different slice of the question set. A full pass proves the two behaviours that make it safe to use on a real deal — that **`unknown` is a supported answer rather than a failure**, and that the calibration audit **rejects a call rather than guessing** when provenance is malformed.
 
-> **Recorded runs are `local stdio`, not production.** The engine is bundled with no external dependency, so these results should hold identically on the Worker. A production run is outstanding.
+> **Verified in production** (cycle 4, 2026-08-12, `0.48.2`). All three cases passed against the Worker; the earlier `local stdio` rows are kept for provenance.
 
 ## Scope
 
@@ -56,9 +56,10 @@ Three dimensions need an extra sub-field: `headcount.scope`, `growthStage.veloci
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                             |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 13 unknowns, 20 questions, 28 attention areas, carve-out surfaced |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                                                                  |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 13 unknowns, 20 questions, 28 attention areas, carve-out surfaced                                                                                                                                                      |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 13 unknowns, 20 questions in 4 topics, 28 attention areas; carve-out (`ci-01`/`ci-02`/`ci-07`) and self-managed-infra questions surfaced despite `unknown` — non-eliminating semantics confirmed |
 
 ---
 
@@ -101,9 +102,10 @@ A EUR-denominated EU healthcare SaaS target: `full-acquisition`, `b2b-saas`, `mo
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                    |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------ |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 0 unknowns, 20 questions, attention areas 28 → 4, GDPR + AI Act surfaced |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                                   |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 0 unknowns, 20 questions, attention areas 28 → 4, GDPR + AI Act surfaced                                                                                                                |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 0 unknowns, still 20 questions — count is NOT the discriminator. Attention areas collapsed 28 → 4, exactly the four the case names; carve-out-only questions gone |
 
 ---
 
@@ -138,9 +140,10 @@ Repeat UAT-03.2 but declare `_audit.revenueRange.nativeCurrency: "EUR"` **withou
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | -------------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | Rejected with `BL-045-CURRENCY-CONVERSION-REQUIRED` + worked example |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                              |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | Rejected with `BL-045-CURRENCY-CONVERSION-REQUIRED` + worked example                                                                               |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. Rejected with `BL-045-CURRENCY-CONVERSION-REQUIRED`, the retry-discipline preamble, the offending path, and a worked example |
 
 ---
 
