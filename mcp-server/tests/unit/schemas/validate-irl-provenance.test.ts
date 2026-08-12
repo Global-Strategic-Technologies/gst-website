@@ -640,6 +640,11 @@ describe('runIrlProvenanceCheck — BL-120 full-workbook body', () => {
     const excerpt = words('$45.2M USD FY26 actual Excludes Q4 acquisitions');
     expect(excerpt.length).toBe(8);
     expect(longestRun(excerpt, words(rejectedBody))).toBe(5); // pre-label half
+    // The post-label half. Asserted because ADR-0015 and the extractor
+    // docstring both say "runs of 5 and 3" — an unasserted 3 in a sentence
+    // whose whole purpose is that its numbers were executed is the same gap in
+    // miniature.
+    expect(longestRun(excerpt.slice(-3), words(rejectedBody))).toBe(3);
     expect(longestRun(excerpt, words(BODY))).toBe(8); // the shipped format: whole span
     expect(FUZZY_MIN_RUN).toBe(8);
   });
