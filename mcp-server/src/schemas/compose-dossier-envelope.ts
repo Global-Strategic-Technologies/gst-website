@@ -134,12 +134,16 @@ const fillRatioSchema = z.object({
     .number()
     .int()
     .min(0)
-    .describe('Numerator: count of Response cells with substantive content.'),
+    .describe(
+      'Numerator: count of request rows whose ANSWER SLOT carries substantive content. The answer slot is Response and Comments joined (BL-120) — a row answered only in Comments counts; a row whose sole content is a `(Source: …)` path or a `(Note: …)` caveat does not. Compose the answer span first, then count: counting the Response column alone under-reports the ratio and puts this value on a different basis from the operator-side extractor.'
+    ),
   totalCells: z
     .number()
     .int()
     .min(1)
-    .describe('Denominator: total Response cells across the 10 canonical IRL sections.'),
+    .describe(
+      'Denominator: total request rows across the 10 canonical IRL sections (optional sections 10/11 excluded).'
+    ),
   status: z
     .enum(fillRatioStatusValues)
     .describe(

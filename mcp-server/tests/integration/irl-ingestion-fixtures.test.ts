@@ -309,8 +309,7 @@ describe('northwind-workbook-columns-filled-irl.md fixture (BL-120)', () => {
     // `extractExcerpt` anchors on the LAST em-dash, so an answer carrying one
     // is only citable from that point onward. Pinned because three of this
     // fixture's answers do (`64 total — 41 product…`, `Latacora, February 2026
-    // — 0 Critical…`), and the prompt warns about the Note-tail version of the
-    // same hazard.
+    // — 0 Critical…`).
     const result = runIrlProvenanceCheck({
       filledIrl: WORKBOOK_COLUMNS_FIXTURE,
       citations: [
@@ -318,6 +317,45 @@ describe('northwind-workbook-columns-filled-irl.md fixture (BL-120)', () => {
       ],
     });
     expect(result.verdicts[0].status).toBe('verified');
+  });
+
+  it('shows what the em-dash truncation actually costs: only the tail is checked', () => {
+    // The hazard the prompt warns about, made concrete. `extractExcerpt` keeps
+    // only the text after the LAST em-dash, so everything a citation says
+    // BEFORE that point is never verified against anything. Here the vendor is
+    // wrong — the fixture says Latacora, the citation says Bishop Fox — and the
+    // verdict is still `verified`, because the check only ever saw
+    // "0 Critical, 3 High (all remediated)".
+    //
+    // Nothing to fix in the matcher: this is `extractExcerpt`'s documented
+    // contract (BL-049 hardening, anchoring on the last em-dash so a citation
+    // echoing a section header does not drag the header in as noise). It is
+    // recorded here because BL-120 put three more prose columns into every
+    // bullet, which makes answers containing em-dashes far more common than
+    // they were — so the failure mode is now much easier to reach.
+    const result = runIrlProvenanceCheck({
+      filledIrl: WORKBOOK_COLUMNS_FIXTURE,
+      citations: [
+        {
+          path: 'pentest-wrong-vendor',
+          citation: 'Section 06 — Bishop Fox, February 2026 — 0 Critical, 3 High (all remediated)',
+        },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('verified');
+    expect(WORKBOOK_COLUMNS_FIXTURE).not.toContain('Bishop Fox');
+    // And the proof that the tail is doing all the work: break the tail and the
+    // same citation fails, while the fabricated head made no difference at all.
+    const broken = runIrlProvenanceCheck({
+      filledIrl: WORKBOOK_COLUMNS_FIXTURE,
+      citations: [
+        {
+          path: 'pentest-broken-tail',
+          citation: 'Section 06 — Latacora, February 2026 — 9 Critical, 8 High (none remediated)',
+        },
+      ],
+    });
+    expect(broken.verdicts[0].status).toBe('unverified');
   });
 });
 

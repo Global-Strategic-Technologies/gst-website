@@ -214,8 +214,11 @@ const WORKBOOK_COLUMN_CONTRACT = [
   '- `<answer>` is **G and E joined into one contiguous span, G first**. The separator is a single space; add a period after G only when G ends in a letter, digit, or a closing `)` `]` `"` `\'` — so a G already ending in `.` `?` `!` `:` `;` gets no second terminator and a G ending in a comma reads `foo, bar` rather than `foo,. bar`. **Do not label the two halves.** A label between them injects a token into the middle of every citation that reads across the boundary, dropping the provenance matcher below its contiguous-run floor and marking faithful citations unverified.',
   '- `(Source:)` and `(Note:)` append only when D / F are non-empty, each preceded by one space. They stay **outside** the answer slot.',
   '- All four content columns empty → `— <NO RESPONSE>`. **D or F present with no answer → `— <NO RESPONSE> (Source: …)`** — a row whose only content is a filename is NOT answered.',
-  '- Status passes through verbatim (`OPEN` / `PARTIAL` / `CLOSED`). Status does **not** gate inclusion: an OPEN row carrying content still contributes its content.',
+  '- Status passes through verbatim (`OPEN` / `PARTIAL` / `CLOSED`); an **empty** Status reads as `OPEN`. Status does **not** gate inclusion: an OPEN row carrying content still contributes its content.',
+  '- Trim every cell. Newlines INSIDE a cell survive, so a multi-line Comments value can push `(Source: …)` onto its own visual line — that is expected, not a rendering bug to work around.',
   '- Section header rows and section intros are omitted from the bullet stream entirely.',
+  '',
+  'One difference from the operator-side `npm run irl:extract`, which renders this same shape: that script also emits an H1 title and a `> Engagement context:` / `> Generated:` / `> Canonical reference:` preamble. Those are a strict superset — non-citation content that no verification reads. **The two paths agree at the bullet level**, which is the level every citation, gate and ratio operates on.',
   '',
   '**Citation hygiene (audit rule, not style): cite from the answer slot only — never from `(Source:)` or `(Note:)`.** Both are inside the body the verifier matches against, so a claim citing a VDR path or a note tail **will verify and will NOT raise a `provenance-gap:`** — presenting the dossier as anchored on a filename. The verifier cannot catch this for you; you are the control. Also avoid quoting an em-dash that appears inside a Note: the excerpt extractor anchors on the LAST em-dash in a citation, so the citation collapses to the note tail.',
 ].join('\n');
@@ -241,11 +244,11 @@ const WRONG_IRL_DETECTOR_PREFLIGHT = [
   '',
   'Then act on the ratio:',
   '',
-  '- **`fillRatio < 15%`** → HALT. Output in (A): `"This looks like an unfilled request IRL or a substantially-empty filled IRL — confirm before proceeding. IRL completeness: <pct>% (<substantive> of <total> Response cells filled). If you intended to run against this artifact, re-submit with explicit acknowledgement."`. Emit NO per-tool sections. STOP after (A).',
+  '- **`fillRatio < 15%`** → HALT. Output in (A): `"This looks like an unfilled request IRL or a substantially-empty filled IRL — confirm before proceeding. IRL completeness: <pct>% (<substantive> of <total> requests answered). If you intended to run against this artifact, re-submit with explicit acknowledgement."`. Emit NO per-tool sections. STOP after (A).',
   '- **`15% ≤ fillRatio < 40%`** → PROCEED with partial-IRL framing. Flag partial-IRL status explicitly in (A). Tighten elision: any tool whose source-IRL sections are ALL empty is skipped automatically; surface the skip in (J) gap list.',
   '- **`fillRatio ≥ 40%`** → PROCEED normally.',
   '',
-  'Surface the computed `fillRatio` as the FIRST sentence of section (A) in all three paths (e.g., `"IRL completeness: 58% (8 of 10 sections substantively filled)."`). This is a structural quality signal the partner reads before any extraction value.',
+  'Surface the computed `fillRatio` as the FIRST sentence of section (A) in all three paths (e.g., `"IRL completeness: 58% (78 of 134 requests answered)."`). This is a structural quality signal the partner reads before any extraction value.',
 ].join('\n');
 
 // ─── Shared helper: tool inclusion gates ───────────────────────────────

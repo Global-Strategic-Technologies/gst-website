@@ -589,6 +589,11 @@ describe('runIrlProvenanceCheck — BL-120 full-workbook body', () => {
     // of the span, splitting an 8-word citation into runs of 5 and 3 — both
     // under FUZZY_MIN_RUN, i.e. unverified, i.e. a `provenance-gap:` line in a
     // dossier whose citation was in fact perfectly faithful.
+    //
+    // The run lengths are asserted, not just described. An earlier draft of the
+    // ADR asserted "a run of 6" from memory; it is 5, and the only reason that
+    // is now known is that the number is computed here. Quoting an unexecuted
+    // number is the exact defect class BL-120 exists to close.
     const rejectedBody = BODY.replace(
       '$45.2M USD FY26 actual. Excludes Q4 acquisitions',
       '$45.2M USD FY26 actual | Comments: Excludes Q4 acquisitions'
@@ -604,6 +609,27 @@ describe('runIrlProvenanceCheck — BL-120 full-workbook body', () => {
       ],
     });
     expect(result.verdicts[0].status).toBe('unverified');
+
+    // Measure WHY it fails, so the docs can quote a number that was executed.
+    // This is a property of the two strings, computed here independently of the
+    // module — the module's own behaviour is what the `unverified` assertion
+    // above pins.
+    const words = (s: string): string[] => normalizeForMatching(s).split(' ');
+    const longestRun = (needle: string[], hay: string[]): number => {
+      let best = 0;
+      for (let i = 0; i < needle.length; i++) {
+        for (let j = 0; j < hay.length; j++) {
+          let k = 0;
+          while (i + k < needle.length && j + k < hay.length && needle[i + k] === hay[j + k]) k++;
+          if (k > best) best = k;
+        }
+      }
+      return best;
+    };
+    const excerpt = words('$45.2M USD FY26 actual Excludes Q4 acquisitions');
+    expect(excerpt.length).toBe(8);
+    expect(longestRun(excerpt, words(rejectedBody))).toBe(5); // pre-label half
+    expect(longestRun(excerpt, words(BODY))).toBe(8); // the shipped format: whole span
     expect(FUZZY_MIN_RUN).toBe(8);
   });
 

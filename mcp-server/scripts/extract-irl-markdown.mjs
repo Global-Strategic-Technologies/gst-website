@@ -48,23 +48,24 @@
  *   - <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)
  *
  * `<answer>` is column G and column E joined into ONE contiguous span, G
- * first. The join is always a single space; a period is inserted after G
- * only when G ends in an alphanumeric or a closing `)` `]` `"` `'` — so a
- * G already ending in `.` `?` `!` `:` `;` gets no second terminator, and a
- * G ending in a comma yields `foo, bar` rather than `foo,. bar`.
+ * first. The join is always a single space, plus a period unless G already
+ * ends in `.` `?` `!` `:` `;` `,` once closing brackets and quotes are peeled
+ * off — see {@link joinAnswerSpan} for why the rule is phrased that way round.
  *
  * Why one unlabelled span and not a labelled separator: `validate_irl_provenance`
  * matches citation excerpts against this body by normalized substring, falling
  * back to an 8-word contiguous run. A label between the two halves injects a
- * token into the middle of every cross-boundary citation — measured at a
- * 6-word run, i.e. UNVERIFIED, which auto-appends `provenance-gap:` to a
- * partner-facing dossier. Cross-boundary citations are the expected shape
- * once answers live partly in each column, so the separator has to vanish
- * under normalization. A period does; a label does not.
+ * token into the middle of every cross-boundary citation, splitting it into two
+ * runs that are each shorter than the floor — 5 and 3 in the counterfactual
+ * pinned at `tests/unit/schemas/validate-irl-provenance.test.ts` — i.e.
+ * UNVERIFIED, which auto-appends `provenance-gap:` to a partner-facing dossier
+ * over a citation that was perfectly faithful. Cross-boundary citations are the
+ * expected shape once answers live partly in each column, so the separator has
+ * to vanish under normalization. A period does; a label does not.
  *
  * Source/Note stay OUTSIDE the answer slot for a different reason: the
- * prompt's pre-flight HALTs a run below 15% substantive Response cells, and
- * several inclusion gates test bare non-emptiness. A row whose only content
+ * prompt's pre-flight HALTs a run below 15% substantively-answered rows, and
+ * several inclusion gates test the same predicate. A row whose only content
  * is a VDR filename must not read as answered, so it renders
  * `— <NO RESPONSE> (Source: …)`. See `src/docs/adr/0015-irl-canonical-body-reads-full-workbook.md`.
  *
@@ -122,16 +123,32 @@ const PRIMARY_SHEET_NAME = 'Information Request List';
  * would inject a token into the middle of every cross-boundary citation and
  * push the fuzzy matcher below its 8-word floor.
  *
- * The separator is always a single space. A period is added only when the
- * Response ends in an alphanumeric or a closing bracket/quote, which is the
- * positive form of two rules at once: a Response already ending in terminal
- * punctuation gets no second terminator, and one ending in a comma yields
- * `foo, bar` rather than `foo,. bar`.
+ * The separator is always a single space. A period is added unless the Response
+ * ALREADY ends in punctuation that terminates or continues the clause —
+ * `. ? ! : ; , …` or a dash — after any closing brackets and quotes have been
+ * peeled off. Two rules fall out of that one test: a Response already ending in
+ * terminal punctuation gets no second terminator, and one ending in a comma
+ * yields `foo, bar` rather than `foo,. bar`.
  *
- * Known cosmetic edge: a Response ending `…this."` satisfies the closing-quote
- * condition and gains a period after the quote. Harmless — the normalizer
- * flattens both — and accepted rather than special-cased, since detecting
- * "quoted content that already terminates" needs a parser this does not want.
+ * The ellipsis and the trailing dash are in that set because a real workbook
+ * put them there: an author who ends a cell `ADRs, BDRs, Designs, APIs, AC, …`
+ * or on a trailing em-dash has left the clause deliberately open, and `….` is
+ * not an improvement. Both were handled correctly by accident under the earlier
+ * inverse phrasing, which is precisely why the replacement had to name them.
+ *
+ * Stated as "unless already terminated" rather than the inverse ("when it ends
+ * in a letter, digit or closing bracket"), because the inverse silently omits
+ * the period after everything else a real cell ends in — `14%`, `$4.15M +`,
+ * a trailing unit or symbol — and it cannot see through a closing quote, so
+ * `"we ship weekly,"` produced exactly the `,".` artifact the comma rule exists
+ * to prevent. Curly quotes matter here specifically: Excel autocorrects `"` to
+ * `“ ”` by default, so quoted Responses arrive curly far more often than
+ * straight, and an ASCII-only quote class would miss the common case.
+ *
+ * Known cosmetic edge, accepted rather than special-cased: a Response ending
+ * `…this."` gains its period AFTER the closing quote. Detecting "quoted content
+ * that already terminates" needs a parser this does not want, and the
+ * normalizer flattens quotes and periods alike, so nothing downstream sees it.
  *
  * @param {string} response Column G, already trimmed.
  * @param {string} comments Column E, already trimmed.
@@ -140,7 +157,10 @@ const PRIMARY_SHEET_NAME = 'Information Request List';
 function joinAnswerSpan(response, comments) {
   if (!response) return comments;
   if (!comments) return response;
-  const needsPeriod = /[\p{L}\p{N})\]"']$/u.test(response);
+  // Peel trailing closers so the test sees the character that actually ends the
+  // clause. `”`/`’` are the curly double/single closers.
+  const core = response.replace(/[)\]}"'”’]+$/u, '');
+  const needsPeriod = core.length > 0 && !/[.?!:;,…—–-]$/u.test(core);
   return `${response}${needsPeriod ? '.' : ''} ${comments}`;
 }
 

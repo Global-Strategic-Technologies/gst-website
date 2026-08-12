@@ -322,16 +322,24 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // even though it carries neither pre-flight nor gates, because its own VERIFY
 // block admits `xlsx-reconstruction` — a path that can reconstruct from a
 // workbook has to know the workbook's shape.
+//
+// Re-baselined once more inside the same version (still 0.22.3) after code
+// review: the envelope schema's fill-ratio field descriptions still defined the
+// numerator as Response cells, section (A)'s completeness sentence still said
+// "Response cells filled", and the contract was silent on three things the
+// extractor does (empty Status reads as OPEN, cells are trimmed, the operator
+// script adds a title/metadata preamble the model does not). Prompt-body bytes
+// moved; no name@version tuple did, so EXPECTED_MANIFEST_HASH is unchanged.
 const EXPECTED_HASH_INTERACTIVE =
-  '567d5932b996a19a21b3f5bd34d258c7ab1c11e1131b2c5f4f0b065dea88727e';
+  '9e8feefdeeb0b552e0abf881baf421fe35558b02893008174849c13202696e91';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'a2c98611de02156b9961430051e2c6ac638e6c70878304cf16538e4065021730';
+  '7b6f65c1d34b5bcb553729925793d3da593b1a1dae55ded75d9434793fca5e18';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '8a3f5b95a600335cf3e0bfa4c99893615f41dacf95400c22c7999f57e65f0c04';
+  'b7f3a12d07278393971b6add9557a52d5c461b0a2fb3fdad1451f00da21a40aa';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '49e6c0a614f70fe905e9795952dee9dd90c13cc40151dd73415470cbcc4b7286';
+  '0a86f04265e1384f7d9b091eda1ab7f941e6ff740e0141e44b14eadacc473ad2';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '7919c46e3c1731ab4304a090211b7b2de8a0f50c9187b8522d2bd00f89d4df0e';
+  'afc64535b35f9bd5c64a486317cdc561001d3010f475fa354704c7150a98ccb8';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -343,9 +351,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'b425152042debbd0f9f0e9a955af61776e31afe997a35f3cb5cab6ec3f58923e';
+  'c9a2515c705a24c99a54326d5105b4343e7153e701134016c5d87069bebcf682';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '24df3b4e98cb335fe88c1e608734fc788645491b8ac611d02334324a980d3fe3';
+  'da220e6e676c27aabd48a67f3445a4619783ce8a3159574c03e1d291367c7ccc';
 
 interface Scenario {
   name: string;

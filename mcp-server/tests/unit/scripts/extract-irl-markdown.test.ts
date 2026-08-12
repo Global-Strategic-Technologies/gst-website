@@ -343,6 +343,70 @@ describe('extract-irl-markdown.mjs — full-workbook read (BL-120)', () => {
     expect(markdown).not.toContain('..');
   });
 
+  it('adds a period after a Response ending in a symbol or unit, not just a letter', () => {
+    // The rule is "unless already terminated", not "when it ends in a letter or
+    // closing bracket" — the latter silently omitted the period after
+    // everything real cells actually end in.
+    const rows = buildFilledWorkbookRows(SAMPLE_ARTICLE, {
+      '0-03': { response: 'Grew 14%', status: 'CLOSED', comments: 'Recurring only' },
+      '1-01': { response: 'Hosting $4.15M +', status: 'CLOSED', comments: 'Excludes egress' },
+    });
+    const { markdown } = extractIrlMarkdownFromRows(rows);
+    expect(bulletFor(markdown, '0-03')).toContain('— Grew 14%. Recurring only');
+    expect(bulletFor(markdown, '1-01')).toContain('— Hosting $4.15M +. Excludes egress');
+  });
+
+  it('leaves a deliberately-open clause open — trailing ellipsis or dash', () => {
+    // Both cases are from the real workbook this change was measured against:
+    // a Response ending `ADRs, BDRs, Designs, APIs, AC, …` must not become
+    // `AC, ….`. Pinned because the earlier phrasing of the rule got these right
+    // by accident, so the rewrite had no test to answer to.
+    const rows = buildFilledWorkbookRows(SAMPLE_ARTICLE, {
+      '0-01': {
+        response: 'ADRs, BDRs, Designs, APIs, AC, …',
+        status: 'CLOSED',
+        comments: 'Direction confirmed',
+      },
+      '0-02': {
+        response: 'Three named, one pending —',
+        status: 'PARTIAL',
+        comments: 'Names in the deck',
+      },
+    });
+    const { markdown } = extractIrlMarkdownFromRows(rows);
+    expect(bulletFor(markdown, '0-01')).toContain(
+      '— ADRs, BDRs, Designs, APIs, AC, … Direction confirmed'
+    );
+    expect(bulletFor(markdown, '0-02')).toContain('— Three named, one pending — Names in the deck');
+    expect(markdown).not.toContain('….');
+  });
+
+  it('sees through a closing quote — including the curly quotes Excel autocorrects to', () => {
+    // Excel turns `"` into `“ ”` by default, so quoted Responses arrive curly
+    // far more often than straight. An ASCII-only quote class missed the common
+    // case, and a trailing `,"` produced the very `,.`-shaped artifact the comma
+    // rule exists to prevent.
+    const rows = buildFilledWorkbookRows(SAMPLE_ARTICLE, {
+      '0-01': {
+        response: 'They call it “the rating engine”',
+        status: 'CLOSED',
+        comments: 'Rewrite deferred twice',
+      },
+      '0-02': { response: '"we ship weekly,"', status: 'CLOSED', comments: 'per the VP Eng' },
+      '0-03': { response: 'Revenue was flat (FY26.)', status: 'CLOSED', comments: 'Unaudited' },
+    });
+    const { markdown } = extractIrlMarkdownFromRows(rows);
+    expect(bulletFor(markdown, '0-01')).toContain(
+      '— They call it “the rating engine”. Rewrite deferred twice'
+    );
+    // Ends in a comma once the quote is peeled → the clause continues.
+    expect(bulletFor(markdown, '0-02')).toContain('— "we ship weekly," per the VP Eng');
+    // Already terminated inside the bracket → no second terminator.
+    expect(bulletFor(markdown, '0-03')).toContain('— Revenue was flat (FY26.) Unaudited');
+    expect(markdown).not.toContain(',.');
+    expect(markdown).not.toContain(',".');
+  });
+
   it('does NOT turn a trailing comma into `,.` — the clause continues instead', () => {
     // The comma case is why the rule is "add a period after alphanumerics and
     // closing brackets" rather than "add a period unless one is already there".
