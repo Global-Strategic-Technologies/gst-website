@@ -242,27 +242,66 @@ describe('UAT coverage — the index does not overstate production evidence', ()
     expect(docsWithProdRuns.size).toBeGreaterThan(0);
   });
 
+  /**
+   * The index's Verification status table, parsed the same heading-scoped way
+   * as the coverage matrix. Each row's Family cell names a UAT range
+   * (`UAT-01 – 06 (tool families)`, `UAT-07 (IRL pipeline)`); the Production
+   * evidence cell either starts with ✅ or does not.
+   *
+   * An earlier version of this guard looked for a document FILENAME and the
+   * phrase "production-verified" on the same line. The index never pairs
+   * those, so eleven of its twelve assertions were vacuous and the twelfth
+   * only matched the exact sentence it had been written against. Reading the
+   * table the index actually contains is what makes the check real.
+   */
+  function parseStatusTable(source: string): Array<{ files: string[]; claimsProd: boolean }> {
+    const heading = source.match(/^(?:##|###)\s+.*Verification status.*$/m);
+    if (!heading) throw new Error(`no "Verification status" heading in ${UAT_README}`);
+    const after = source.slice(heading.index! + heading[0].length);
+    const table = after.match(/(?:^\|[^\n]+\r?\n)+/m);
+    if (!table) throw new Error(`no table beneath "Verification status" in ${UAT_README}`);
+
+    const out: Array<{ files: string[]; claimsProd: boolean }> = [];
+    for (const line of table[0].split(/\r?\n/)) {
+      if (!line.startsWith('|')) continue;
+      const cells = line.split('|').map((c) => c.trim());
+      const family = cells[1] ?? '';
+      const evidence = cells[2] ?? '';
+      // Expand `UAT-01 – 06` into 01..06; a bare `UAT-07` yields just 07.
+      const range = family.match(/UAT-(\d{2})(?:\s*[–-]\s*(\d{2}))?/);
+      if (!range) continue;
+      const lo = Number(range[1]);
+      const hi = range[2] ? Number(range[2]) : lo;
+      const files: string[] = [];
+      for (let n = lo; n <= hi; n++) {
+        const prefix = `UAT-${String(n).padStart(2, '0')}-`;
+        files.push(...uatDocsOnDisk.filter((f) => f.startsWith(prefix)));
+      }
+      out.push({ files, claimsProd: evidence.startsWith('✅') });
+    }
+    return out;
+  }
+
+  const statusRows = parseStatusTable(readme);
+
+  it('parses a status row for every UAT document', () => {
+    // Vacuity guard. The previous version of this check silently matched
+    // nothing; a parser that covers no documents proves nothing about them.
+    const covered = new Set(statusRows.flatMap((r) => r.files));
+    expect([...covered].sort()).toEqual([...uatDocsOnDisk].sort());
+  });
+
   it.each(uatDocsOnDisk.map((f) => [f] as const))(
-    'the index does not claim %s is production-verified unless its run log says so',
+    "the index's production claim for %s matches its run log",
     (file) => {
-      const claimsProd = new RegExp(
-        `${file.replace(/\./g, '\\.')}[^\\n]*production-verified`,
-        'i'
-      ).test(readme);
-      if (claimsProd) expect(docsWithProdRuns.has(file)).toBe(true);
+      const row = statusRows.find((r) => r.files.includes(file));
+      expect(row, `no Verification status row covers ${file}`).toBeDefined();
+      // Both directions: a ✅ requires a prod run-log row, and a prod run-log
+      // row requires a ✅. Overstating misleads; understating buried a real
+      // result for a whole commit.
+      expect(row!.claimsProd).toBe(docsWithProdRuns.has(file));
     }
   );
-
-  it('does not assert "no production run" for a document that has one', () => {
-    // The understating direction, which the third drift instance hit. If the
-    // index says nothing has run in production, at least one document must
-    // agree.
-    const claimsNone = /no (?:tool )?famil\w+ (?:has|have) a production run/i.test(readme);
-    if (claimsNone) {
-      const toolDocs = [...docsWithProdRuns].filter((f) => /UAT-0[1-8]/.test(f));
-      expect(toolDocs).toEqual([]);
-    }
-  });
 });
 
 describe('UAT guard — registry readers have a single definition', () => {
