@@ -102,7 +102,13 @@ describe('gst_irl_ingestion', () => {
     // v0.22.2: doubt-handling directive — proceed on the binding hash when a
     // client delivers the expanded prompt as an attached document, and probe
     // with `validate_irl_provenance` rather than reconstruct (server 0.49.1).
-    expect(irlIngestionPrompt.version).toBe('0.22.2');
+    // v0.22.3: the workbook column contract — seven columns, D/E/F carry
+    // authored content, Comments joins Response into one contiguous answer
+    // span, Source/Note stay outside the answer slot. Before this the prompt
+    // said nothing about the xlsx layout at all, so the reconstruction path
+    // and `npm run irl:extract` agreed only by coincidence (BL-120, server
+    // 0.49.2).
+    expect(irlIngestionPrompt.version).toBe('0.22.3');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -867,6 +873,112 @@ describe('gst_irl_ingestion', () => {
     it('interactive body documents Bl076BodyCacheMissError as the cache-miss diagnostic', () => {
       const text = bodyText(irlIngestionPrompt, {});
       expect(text).toContain('Bl076BodyCacheMissError');
+    });
+  });
+
+  // ─── BL-120 — workbook column contract ─────────────────────────────────
+  //
+  // The prompt previously said nothing about the xlsx layout, so the
+  // reconstruction path and the operator-side `npm run irl:extract` script
+  // agreed only by coincidence — and on the first real filled workbook they
+  // did not. These assertions pin the contract in every served body: a model
+  // reading an attached workbook must compose the same bullet shape the
+  // script emits, count the fill ratio over the same span, and keep source
+  // pointers out of the answer.
+  describe('BL-120 workbook column contract (all modes)', () => {
+    /**
+     * The four bodies that carry the sweep/extraction plan — pre-flight,
+     * inclusion gates and all.
+     */
+    const SWEEP_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
+      ['one-shot verbose', { filledIrl: SAMPLE_FILLED_IRL }],
+      ['one-shot compact', { filledIrl: SAMPLE_FILLED_IRL, verbosity: 'compact' }],
+      ['extract-only', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
+      [
+        'extract-only compact',
+        { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', verbosity: 'compact' },
+      ],
+    ];
+
+    /**
+     * Every served body, interactive included. The interactive body is a
+     * separate, much lighter builder — no pre-flight, no inclusion gates — but
+     * it still carries the column contract, because its own VERIFY block
+     * admits `xlsx-reconstruction` / `model-reconstruction-from-xlsx`. A path
+     * that can reconstruct from a workbook needs to know the workbook's shape.
+     */
+    const ALL_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
+      ['interactive', {}],
+      ...SWEEP_MODES,
+    ];
+
+    it.each(ALL_MODES)('%s body names all seven columns in order', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain(
+        '| Reference | Request | Status | File Location | Comments | Notes | Response |'
+      );
+    });
+
+    it.each(ALL_MODES)('%s body carries the canonical bullet shape', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)');
+    });
+
+    it.each(ALL_MODES)('%s body forbids labelling the Response/Comments join', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('**Do not label the two halves.**');
+      // The reason, not just the rule — a bare prohibition invites a model to
+      // decide it knows better.
+      expect(text).toMatch(/contiguous-run floor|contiguous run floor/i);
+    });
+
+    it.each(ALL_MODES)('%s body warns off the stale Instructions sheet', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('Do NOT trust the Instructions sheet');
+      expect(text).toMatch(/five-column layout with Response in column D/i);
+    });
+
+    it.each(ALL_MODES)(
+      '%s body keeps File Location out of the answer slot (fill-ratio guard)',
+      (_label, args) => {
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toContain('`— <NO RESPONSE> (Source: …)`');
+        expect(text).toMatch(/a row whose only content is a filename is NOT answered/i);
+      }
+    );
+
+    it.each(SWEEP_MODES)(
+      '%s body orders the fill-ratio count after answer composition',
+      (_label, args) => {
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toContain('**Compose the answer span FIRST, then count**');
+        // The divergence this sentence exists to prevent.
+        expect(text).toMatch(/Counting column G alone under-reports the fill ratio/i);
+      }
+    );
+
+    it.each(ALL_MODES)('%s body states the citation-hygiene audit rule', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain(
+        'cite from the answer slot only — never from `(Source:)` or `(Note:)`'
+      );
+      // The residual, stated plainly: the verifier will NOT catch this.
+      expect(text).toContain('will verify and will NOT raise a `provenance-gap:`');
+      expect(text).toContain('you are the control');
+    });
+
+    it.each(SWEEP_MODES)('%s body ties inclusion gates to a substantive answer', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('**"Signal" means a substantive answer**');
+      expect(text).toContain('Section 00 ARR bullet supplies a substantive answer');
+      expect(text).toContain(
+        'Section 04 (SDLC / technical-debt assessment) has ≥1 row with a substantive answer'
+      );
+    });
+
+    it('states that Status does not gate inclusion (OPEN rows still contribute)', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toMatch(/Status does \*\*not\*\* gate inclusion/i);
     });
   });
 });

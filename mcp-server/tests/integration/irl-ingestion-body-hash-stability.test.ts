@@ -312,16 +312,26 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // inside precheck-or-composition produces this same 2-of-7 signature. It
 // confirms the edit stayed inside that block; it does not by itself localize
 // it to the prepop directives.
+// BL-120 rebaseline (prompt v0.22.2 → v0.22.3, server 0.49.2): the workbook
+// column contract — seven columns, D/E/F carry authored content, Comments joins
+// Response into one contiguous answer span, Source/Note stay outside the answer
+// slot — plus the fill-ratio counting order and the substantive-answer wording
+// on inclusion gates 2/4/6. **All 7 hashes drift**, which is itself the check:
+// the contract is deliberately unconditional, so a 6-of-7 or 4-of-7 signature
+// here would mean it failed to reach a served body. Interactive is included
+// even though it carries neither pre-flight nor gates, because its own VERIFY
+// block admits `xlsx-reconstruction` — a path that can reconstruct from a
+// workbook has to know the workbook's shape.
 const EXPECTED_HASH_INTERACTIVE =
-  'de70481c9ef59babc8bd2282c2d0867d25833e944fb42547771b3c66132e881c';
+  '567d5932b996a19a21b3f5bd34d258c7ab1c11e1131b2c5f4f0b065dea88727e';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '1cbed076e9dcc37f38535d75253c0fc0ab4f05f88ab42ed4151640994f27f462';
+  'a2c98611de02156b9961430051e2c6ac638e6c70878304cf16538e4065021730';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '7ac3babdd2642997ae19235364da99f7a2f204ed15992a91443e17c6f0ec5cc2';
+  '8a3f5b95a600335cf3e0bfa4c99893615f41dacf95400c22c7999f57e65f0c04';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '4169335982a11a7157c8b20e9264e3d9c1aadc7d4976e15b63ed1d478d3954c2';
+  '49e6c0a614f70fe905e9795952dee9dd90c13cc40151dd73415470cbcc4b7286';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '0dd46bd5752a28896e992439280c4ed74eb5e170f20164569c3034648723a157';
+  '7919c46e3c1731ab4304a090211b7b2de8a0f50c9187b8522d2bd00f89d4df0e';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -330,10 +340,12 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Rebaselined for BL-055 hash-bind discipline split (prompt 0.5.2 → 0.5.3).
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
+// BL-120: both compact bodies drift too — the column contract sits outside the
+// `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '603ca5119556a8825123df40aa97fe3019a73f56223a9ad0912c8237299b69d4';
+  'b425152042debbd0f9f0e9a955af61776e31afe997a35f3cb5cab6ec3f58923e';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '0e16346225f8625f7490b56e0836477d3e1341ca03d0c7073b4b3e0aa4db99ee';
+  '24df3b4e98cb335fe88c1e608734fc788645491b8ac611d02334324a980d3fe3';
 
 interface Scenario {
   name: string;

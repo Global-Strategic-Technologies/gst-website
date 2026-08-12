@@ -176,6 +176,50 @@ const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
     'Engagement context unspecified — write the dossier in universal voice; the partner can sharpen framing on read. The dossier reads as a balanced read — neither prosecution (buy-side) nor defense (sell-side) nor work plan (value-creation). Surface the same evidence with equal weight on each side and let the partner choose the framing in the cover note.',
 };
 
+// ─── Shared helper: workbook column contract + body composition ────────
+//
+// BL-120. Before this the prompt said NOTHING about the xlsx layout, so
+// the reconstruction path and the operator-side `npm run irl:extract`
+// script agreed only by coincidence — and on the first real filled
+// workbook measured they did not: the script discarded columns D/E/F,
+// losing 45.2% of the authored characters, while an observed model
+// reconstruction captured Comments. Both paths now render the same shape
+// by instruction. See `src/docs/adr/0015-irl-canonical-body-reads-full-workbook.md`.
+//
+// Included in both buildOneShotBody and buildExtractOnlyBody, immediately
+// ahead of the pre-flight, because the fill ratio is computed over the
+// answer span this section defines.
+
+const WORKBOOK_COLUMN_CONTRACT = [
+  '## IRL workbook column contract (READ FIRST if you are reconstructing from an attached .xlsx)',
+  '',
+  'Skip this section when the IRL below is already markdown — it is already in the shape described here. It governs the case where you are reading a `.xlsx` attachment and writing the body yourself.',
+  '',
+  'The workbook has **seven** columns:',
+  '',
+  '| A | B | C | D | E | F | G |',
+  '| --- | --- | --- | --- | --- | --- | --- |',
+  '| Reference | Request | Status | File Location | Comments | Notes | Response |',
+  '',
+  "**Trust the header row of the data sheet. Do NOT trust the Instructions sheet** — workbooks in the wild predate the current generator, and at least one documents a five-column layout with Response in column D. Following it would publish source-document filenames as the recipient's answers.",
+  '',
+  '**D, E and F carry authored content, not metadata.** GST pre-populates research into **Comments (E)**, source pointers into **File Location (D)** and caveats into **Notes (F)**; the recipient confirms by setting Status. On real workbooks Comments frequently holds *the answer* while Response (G) is empty — treat Comments as an answer, not as a side channel.',
+  '',
+  '**Compose each filled row as ONE bullet, in exactly this shape:**',
+  '',
+  '```',
+  '- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)',
+  '```',
+  '',
+  '- `<answer>` is **G and E joined into one contiguous span, G first**. The separator is a single space; add a period after G only when G ends in a letter, digit, or a closing `)` `]` `"` `\'` — so a G already ending in `.` `?` `!` `:` `;` gets no second terminator and a G ending in a comma reads `foo, bar` rather than `foo,. bar`. **Do not label the two halves.** A label between them injects a token into the middle of every citation that reads across the boundary, dropping the provenance matcher below its contiguous-run floor and marking faithful citations unverified.',
+  '- `(Source:)` and `(Note:)` append only when D / F are non-empty, each preceded by one space. They stay **outside** the answer slot.',
+  '- All four content columns empty → `— <NO RESPONSE>`. **D or F present with no answer → `— <NO RESPONSE> (Source: …)`** — a row whose only content is a filename is NOT answered.',
+  '- Status passes through verbatim (`OPEN` / `PARTIAL` / `CLOSED`). Status does **not** gate inclusion: an OPEN row carrying content still contributes its content.',
+  '- Section header rows and section intros are omitted from the bullet stream entirely.',
+  '',
+  '**Citation hygiene (audit rule, not style): cite from the answer slot only — never from `(Source:)` or `(Note:)`.** Both are inside the body the verifier matches against, so a claim citing a VDR path or a note tail **will verify and will NOT raise a `provenance-gap:`** — presenting the dossier as anchored on a filename. The verifier cannot catch this for you; you are the control. Also avoid quoting an em-dash that appears inside a Note: the excerpt extractor anchors on the LAST em-dash in a citation, so the citation collapses to the note tail.',
+].join('\n');
+
 // ─── Shared helper: wrong-IRL detector pre-flight ──────────────────────
 //
 // Per BL-045 design doc § Acceptance Criteria "Wrong-IRL detector".
@@ -191,8 +235,8 @@ const WRONG_IRL_DETECTOR_PREFLIGHT = [
   'Before extracting any dimension or invoking any tool, compute the IRL fill ratio:',
   '',
   '1. Walk the 10 canonical IRL sections (00 BASICS · 01 PRODUCT · 02 SOFTWARE ARCHITECTURE · 03 INFRASTRUCTURE & OPERATIONS · 04 SDLC · 05 DATA, ANALYTICS & AI · 06 SECURITY · 07 PEOPLE & ORGANIZATION · 08 CORPORATE IT · 09 GOVERNANCE & COMPLIANCE). Optional engagement-specific sections (10, 11) do NOT count toward the ratio.',
-  '2. Count `totalResponseCells` = the total number of Response cells (rows tagged with reference IDs like `0-01`, `0-02`, …, `9-NN`).',
-  '3. Count `substantiveCells` = the number of Response cells containing substantive content. Substantive = not blank AND not just `"n/a"` / `"not yet tracked"` / `"open"` / `"--"` / `"TBD"` / one-character placeholders.',
+  '2. Count `totalResponseCells` = the total number of request rows (rows tagged with reference IDs like `0-01`, `0-02`, …, `9-NN`).',
+  '3. Count `substantiveCells` = the number of rows whose **answer slot** carries substantive content. Substantive = not blank AND not just `"n/a"` / `"not yet tracked"` / `"open"` / `"--"` / `"TBD"` / one-character placeholders. **Compose the answer span FIRST, then count** — the answer slot is Response and Comments joined (§ IRL workbook column contract), so a row answered only in Comments counts, and a row whose sole content is a `(Source: …)` path or a `(Note: …)` caveat does NOT. Counting column G alone under-reports the fill ratio and puts the reconstruction path on a different number from the operator-side extractor.',
   '4. `fillRatio = substantiveCells / totalResponseCells` (express as a percentage rounded to nearest integer).',
   '',
   'Then act on the ratio:',
@@ -222,17 +266,19 @@ const INCLUSION_GATES_DIRECTIVE = [
   '',
   'For each orchestrated tool, evaluate the inclusion gate against the filled IRL. If the gate FAILS and the tool is NOT in `forceTools`, elide the tool: skip the invocation, skip the dossier section, and add an entry in (J) gap list ("tool X elided — gate predicate <P> failed; IRL Section <S> would have satisfied").',
   '',
+  '**"Signal" means a substantive answer**, in the same sense the pre-flight counts substantive cells: content in the row\'s **answer slot** (Response + Comments), not merely a non-empty row. A `(Source: VDR/03/financials.xlsx)` pointer or a `(Note: pending)` caveat is not signal — it is a promise of signal. A gate that opens on a filename hands the tool a row it cannot compute from and lands the result in a partner-facing dossier.',
+  '',
   '1. **`generate_diligence_agenda`** — **Always pass.** Every dimension can default to `unknown`; the agenda is still useful as a "what\'s known vs not" inventory.',
   '',
-  '2. **`compute_techpar`** — Pass if `(Section 00 ARR bullet supplies non-empty signal) AND (Section 02 engineering-cost signal OR Section 03 hosting signal)`. The TechPar engine returns null if either `arr` or `infraHostingAnnual` is zero, so the gate must require BOTH a denominator (ARR) AND a numerator (eng-cost OR hosting). Section 07 average salary is a refinement that improves accuracy when both halves of the gate already pass — NOT a sufficient trigger on its own.',
+  '2. **`compute_techpar`** — Pass if `(Section 00 ARR bullet supplies a substantive answer) AND (Section 02 engineering-cost signal OR Section 03 hosting signal)`. The TechPar engine returns null if either `arr` or `infraHostingAnnual` is zero, so the gate must require BOTH a denominator (ARR) AND a numerator (eng-cost OR hosting). Section 07 average salary is a refinement that improves accuracy when both halves of the gate already pass — NOT a sufficient trigger on its own.',
   '',
   '3. **`assess_infrastructure_cost_governance`** — **Always pass.** `companyStage` from Section 00 + seven seeding rules each have fallback-to-`-1` semantics; the dossier section is the value even when most answers default.',
   '',
-  "4. **`estimate_tech_debt_cost`** — Pass if `Section 04 (SDLC / technical-debt assessment) has ≥1 non-empty Response cell`. Section 04 is the canonical Tech Debt input section; if it's wholly empty, no IRL signal supports the calculation.",
+  "4. **`estimate_tech_debt_cost`** — Pass if `Section 04 (SDLC / technical-debt assessment) has ≥1 row with a substantive answer`. Section 04 is the canonical Tech Debt input section; if it's wholly empty, no IRL signal supports the calculation. A Section 04 row carrying only a file pointer or a caveat does not open this gate — the tool would compute a carrying cost in dollars from a row that states nothing.",
   '',
   '5. **`search_regulations`** — Pass if `(Section 09 names ≥1 framework) OR (EU AI Act conditional trigger fires) OR (NIS2 conditional trigger fires)`. The conditional triggers (EU + Section 05 ML/AI; EU + Section 01 NIS2 Annex sector) gap-fill Section 09 when the partner missed a framework that the engagement clearly faces.',
   '',
-  '6. **`search_portfolio`** — Pass if `(Section 00 productType-like signal present) OR (Section 01 industry / competitive landscape signal present)`. Gate passes for any non-trivial IRL; portfolio is the comparables corpus.',
+  '6. **`search_portfolio`** — Pass if `(Section 00 supplies a substantive productType-like answer) OR (Section 01 supplies a substantive industry / competitive-landscape answer)`. Gate passes for any non-trivial IRL; portfolio is the comparables corpus.',
   '',
   '7. **`search_radar`** — **Always pass.** Any non-trivial IRL provides at least a product description or geography that maps to a Radar category. Synthesis directives weight radar output as supplementary context, not load-bearing.',
   '',
@@ -685,6 +731,8 @@ function buildOneShotBody(args: {
     '',
     META_JSON_FENCE_DIRECTIVE,
     '',
+    WORKBOOK_COLUMN_CONTRACT,
+    '',
     WRONG_IRL_DETECTOR_PREFLIGHT,
     '',
     INCLUSION_GATES_DIRECTIVE,
@@ -957,6 +1005,8 @@ function buildExtractOnlyBody(args: {
     '',
     META_JSON_FENCE_DIRECTIVE,
     '',
+    WORKBOOK_COLUMN_CONTRACT,
+    '',
     WRONG_IRL_DETECTOR_PREFLIGHT,
     '',
     INCLUSION_GATES_DIRECTIVE,
@@ -994,6 +1044,13 @@ const INTERACTIVE_BODY = [
   'Step 1. Ask the user:',
   '',
   "> Paste the populated Information Request List your target returned (all 10 sections, in markdown). If you can also share the target name, the engagement context (sell-side / buy-side / value-creation), the partner lead, and an engagement code name, I'll tailor the dossier — but only the filled IRL is required to run the sweep.",
+  '',
+  // BL-120: this body asks for markdown, but the user may well hand over the
+  // `.xlsx` instead — this path's own VERIFY block admits `xlsx-reconstruction`
+  // as a runScenario and `model-reconstruction-from-xlsx` as a source. Without
+  // the contract that reconstruction is unguided, which is how 45% of a real
+  // workbook went missing.
+  WORKBOOK_COLUMN_CONTRACT,
   '',
   'Step 2. Once the user pastes the filled IRL, run the full sweep:',
   `  - Step 2a — Extract the 13 diligence dimensions from the IRL and call \`generate_diligence_agenda\`. The IRL is filled, so derive concrete values; do NOT default to \`'unknown'\`.`,
@@ -1081,7 +1138,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.22.2',
+  version: '0.22.3',
   lastReviewedAt: '2026-08-12',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,

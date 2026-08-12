@@ -161,7 +161,15 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // tells it to proceed on the binding hash and to probe rather than
 // reconstruct. Body-only change — no argument, tool, or URI changes; drifts
 // solely from that one prompt name@version tuple.
-const EXPECTED_MANIFEST_HASH = 'cbb14874b7d1b976ce92fe9a41a9390b986368f1d3b8f99be5c7791ae917a1d7';
+// Workbook-column-contract rebaseline (server 0.49.2): gst_irl_ingestion
+// v0.22.2 → v0.22.3. The prompt previously said nothing about the xlsx layout,
+// so the model-reconstruction path and the operator-side `npm run irl:extract`
+// script agreed only by coincidence — and on the first real filled workbook
+// they did not, the script discarding 45.2% of the authored characters. Both
+// now render the same bullet shape by instruction. Body-only change — no
+// argument, tool, or URI changes; drifts solely from that one prompt
+// name@version tuple.
+const EXPECTED_MANIFEST_HASH = 'f61390ec2fe880eff6f859494d76e5e0e4014f6923cf67f4f8df3b6560f36247';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
