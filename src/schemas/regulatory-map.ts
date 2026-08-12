@@ -28,14 +28,24 @@ export const RegulationSchema = z.object({
     .array(z.string().min(1))
     .optional()
     .describe(
-      'BL-073 — alternative names the model may use that should match this framework. ' +
-        'Add when bidirectional substring matching (used by `findMatchedHubFramework` in ' +
-        '`mcp-server/src/schemas/compose-dossier-envelope.ts`) fails because no normalized ' +
-        'substring overlap exists between the canonical name and the model idiom. ' +
-        'Example: "UK GDPR" for the canonical "UK Data Protection Act 2018". Aliases match ' +
-        'via exact-equality on normalized form (lowercase, non-alphanumeric stripped). ' +
+      'BL-073 — alternative names a person or model may use that should match this framework. ' +
+        'Add when the common short form has no substring overlap with the canonical name. ' +
+        'Example: "UK GDPR" for the canonical "UK Data Protection Act 2018". ' +
         'A duplicate-alias detection guard in `scripts/generate-regulations-index.mjs` fails ' +
-        'the build if any normalized alias appears in two entries.'
+        'the build if any normalized alias appears in two entries. ' +
+        // BL-119 cycle 4: this describe() previously named ONE consumer and ONE
+        // match rule, and that is exactly how the field ended up wired into one
+        // of three. A fix that added aliases here was verified against
+        // `findMatchedHubFramework` alone and shipped with search still blind.
+        // Keep this list complete — adding a consumer means adding a line.
+        'THREE CONSUMERS read this field, with deliberately different match rules — ' +
+        '(1) `findMatchedHubFramework` in `mcp-server/src/schemas/compose-dossier-envelope.ts`: ' +
+        'exact-equality on normalized form (lowercase, non-alphanumeric stripped); ' +
+        '(2) `scoreQuery` in `mcp-server/src/tools/regulations.ts`: normalized substring, folded ' +
+        'into the name-relevance bucket, skipped for queries under 4 normalized characters; ' +
+        '(3) `buildRegulationSearchText` in `src/utils/regulation-search-text.ts`, which feeds the ' +
+        "/hub/tools/regulatory-map/ page's raw term-wise substring filter — no normalization. " +
+        'Verify a change against all three, not whichever one you found first.'
     ),
   regions: z
     .array(

@@ -90,6 +90,7 @@ Each JSON file in `src/data/regulatory-map/` follows this schema:
 {
   "id": "eu-gdpr",
   "name": "General Data Protection Regulation (GDPR)",
+  "aliases": ["Optional: common short forms, e.g. 'UK GDPR'"],
   "regions": ["AUT", "BEL", "BGR", ...],
   "effectiveDate": "2018-05-25",
   "summary": "Description of the regulation...",
@@ -433,8 +434,9 @@ On desktop, the compliance panel has `position: sticky` and its `max-height` is 
 1. Create a new JSON file in `src/data/regulatory-map/` following the naming convention: `{COUNTRY_CODE}-{LAW_ABBREVIATION}.json` (e.g., `JP-APPI.json`)
 2. Populate all required fields matching the schema above
 3. Use valid region codes — verify country alpha-3 codes exist in `src/utils/countryCodeMap.ts`, US state codes in `src/utils/fipsToStateCode.ts`, or Canadian province codes in `src/utils/canadianProvinceMap.ts`
-4. Run `npm run build` — Zod validation will catch schema errors at build time
-5. The map will automatically highlight the new regions and display regulation cards on click
+4. **Add `aliases` if the framework has a common short form that is not a substring of its formal name.** "Colorado Artificial Intelligence Act (SB 24-205)" is the worked example — people write "Colorado AI Act", which matches none of its title. Without the alias, that query finds nothing here and, worse, can find a *different* framework whose summary mentions this one (BL-119 cycle 4). Aliases must be unique across the corpus; a build-time guard fails if two entries normalize to the same one.
+5. Run `npm run build` — Zod validation will catch schema errors at build time
+6. The map will automatically highlight the new regions and display regulation cards on click
 
 No code changes are needed to add new country-level regulations — only the JSON file.
 
@@ -470,7 +472,7 @@ Adding state/province-level rendering for a new country (beyond the US and Canad
 
 - **Category filter UI** — Filter chips for data privacy, AI governance, industry compliance, cybersecurity. Updates map highlighting and panel cards in real time.
 - **Regulation timeline/tracker** — Horizontal scrollable timeline with Today marker and filter-aware display.
-- **Search/filter** — Text search across regulation names and their curated short forms (`aliases`) with keyboard navigation and map integration. Summaries and key requirements are **not** searched: the inline client index is deliberately lightweight and carries neither field (`RegulationIndexEntry` in `src/utils/fetchRegulations.ts`). The search text is built by the shared `buildRegulationSearchText` helper, which the MCP `search_regulations` tool mirrors (BL-119 cycle 4).
+- **Search/filter** — Text search across regulation names and their curated short forms (`aliases`) with keyboard navigation and map integration. Summaries and key requirements are **not** searched: the inline client index is deliberately lightweight and carries neither field (`RegulationIndexEntry` in `src/utils/fetchRegulations.ts`). The search text is built by the shared `buildRegulationSearchText` helper. The MCP `search_regulations` tool searches the same two fields but **matches differently** — it normalizes aliases (stripping non-alphanumerics) and ranks results, where this page does raw term-wise substring matching with no ranking. So `SB24205` resolves through the tool and not here. See [`regulatory-map/CONTRACT.md`](../../../mcp-server/src/docs/tools/regulatory-map/CONTRACT.md).
 - **Region bookmarking/sharing** — URL state encoding (`?region=DEU&filter=ai-governance`) with copy-link button in panel header.
 - **Cybersecurity frameworks** — 20 cybersecurity regulations including NIS2 (EU), CIRCIA (US), SOCI Act (Australia), and 17 more.
 - **Industry compliance expansion** — 12 regulations including DORA, SOX, GLBA, Basel III, AMLD6, MiFID II.
