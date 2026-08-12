@@ -19,7 +19,7 @@
 Computed over (sorted):
 
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
-- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
+- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
 - **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.1` (worked-example client deidentified as SanFran — see the 0.48.1 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
