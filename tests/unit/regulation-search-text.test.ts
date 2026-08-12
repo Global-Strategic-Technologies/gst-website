@@ -27,11 +27,17 @@ describe('buildRegulationSearchText', () => {
   });
 
   it('makes the common short form reachable', () => {
-    // This is the exact query UAT cycle 4 found returning nothing on the page.
+    // These are the exact queries UAT cycle 4 found returning nothing on the
+    // page, and both bind: neither string is a substring of the canonical
+    // name, so each fails if aliases are dropped from the search text.
+    //
+    // Deliberately NOT asserting `SB 24-205` here — it appears verbatim inside
+    // the formal title, so it resolved before the fix and would pass with the
+    // alias term removed. It is the one alias in the corpus that cannot serve
+    // as a regression assertion.
     const text = buildRegulationSearchText(colorado);
     expect(matches(text, 'Colorado AI Act')).toBe(true);
     expect(matches(text, 'CAIA')).toBe(true);
-    expect(matches(text, 'SB 24-205')).toBe(true);
   });
 
   it('does not match an unrelated query', () => {

@@ -132,14 +132,16 @@ The distinction is load-bearing rather than bookkeeping. A local stdio build has
 All ten documents are authored, and **every family now has production evidence** as of cycle 4.
 
 > **The run logs are the source of truth, not this section.** A document is production-verified exactly when one of its run-log rows carries `Env: prod` — nothing here overrides that. `tests/integration/mcp-uat-parity.test.ts` derives the answer from those tables and fails if this prose disagrees, because three successive edits to this section drifted out of step with them and each was caught only in review.
+>
+> **The guard is family-granular, not case-granular.** One `Env: prod` row anywhere in a document flips that whole family to ✅, so a family can be marked verified while one of its cases has never run — exactly the state UAT-02 is in. Per-case gaps live in **Outstanding** below and are only ever caught by reading, never by CI.
 
-| Family                      | Production evidence                                    |
-| --------------------------- | ------------------------------------------------------ |
-| UAT-01 – 06 (tool families) | ✅ all cases, cycle 4                                  |
-| UAT-07 (IRL pipeline)       | ✅ 07.7 (reconstruction path + verbatim gate), cycle 3 |
-| UAT-08 (radar)              | ✅ 08.1 – 08.3, cycle 4 — first live-dependency pass   |
-| UAT-09 (prompts)            | ✅ 09.0 – 09.8, cycles 2 and 4                         |
-| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                |
+| Family                      | Production evidence                                                            |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| UAT-01 – 06 (tool families) | ✅ cycle 4 — every case **except UAT-02.4**, unrunnable until `0.49.0` deploys |
+| UAT-07 (IRL pipeline)       | ✅ 07.7 (reconstruction path + verbatim gate), cycle 3                         |
+| UAT-08 (radar)              | ✅ 08.1 – 08.3, cycle 4 — first live-dependency pass                           |
+| UAT-09 (prompts)            | ✅ 09.0 – 09.8, cycles 2 and 4                                                 |
+| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                                        |
 
 Cycle 4 closed the standing gap: **20 cases passed against production `0.48.2`**, converting six tool families from "authored against local stdio" to proven on the Worker, and executing UAT-04.2 for the first time in any environment.
 

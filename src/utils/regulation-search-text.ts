@@ -4,8 +4,9 @@
  *
  * BL-119 cycle 4 (2026-08-12). The Hub page searched `reg.name` alone, so a
  * visitor typing a framework's common short form — "Colorado AI Act",
- * "EU AI Act", "UK GDPR", "NIST AI RMF" — got zero results, because no alias in
- * the corpus is a substring of its own record's canonical name. The MCP tool
+ * "EU AI Act", "UK GDPR", "NIST AI RMF" — got zero results, because a short
+ * form is almost never a substring of its record's formal title (`SB 24-205`
+ * is the single exception in the corpus). The MCP tool
  * `search_regulations` had the same defect against the same data; both are
  * fixed together, because the page is the capability mirror the tool's contract
  * is written against.

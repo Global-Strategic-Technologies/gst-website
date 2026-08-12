@@ -37,7 +37,7 @@ in lockstep when the registry shape changes.
 
 **Who this affects**: anyone who asks `search_regulations` for a framework by its **common short form** rather than its formal title — which is nearly everyone, since formal titles read like "Colorado Artificial Intelligence Act (SB 24-205)" and people write "Colorado AI Act". Also the `/hub/tools/regulatory-map/` page, fixed in the same commit.
 
-**Why**: `scoreQuery` scored free-text against `id`, `name` and `summary` only. It never read `aliases`, and **no alias in the corpus is a substring of its own record's name**, so every curated alias was unreachable. Because a summary mention scores 5 and a non-match scores 0, a framework that merely _named_ another one in its prose outranked the framework itself. Measured against the real corpus before the fix:
+**Why**: `scoreQuery` scored free-text against `id`, `name` and `summary` only. It never read `aliases`, and **only one of the twelve aliases in the corpus is a substring of its own record's name** (`SB 24-205`, which appears in the Colorado record's formal title), so eleven of the twelve were unreachable. Because a summary mention scores 5 and a non-match scores 0, a framework that merely _named_ another one in its prose outranked the framework itself. Measured against the real corpus before the fix:
 
 | query                   | returned                                           |
 | ----------------------- | -------------------------------------------------- |
