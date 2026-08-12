@@ -16,6 +16,21 @@ export interface ExtractIrlMarkdownResult {
    * coverage sanity check.
    */
   readonly sectionsSeen: readonly string[];
+  /**
+   * BL-120 — refs whose Status says `CLOSED`/`PARTIAL` while every content
+   * column (D/E/F/G) is empty. A genuine contradiction: the row renders
+   * `<NO RESPONSE>` despite claiming an answer. The CLI prints these.
+   */
+  readonly statusContradictions: readonly string[];
+  /**
+   * BL-120 — refs whose answer came from Comments alone (Response empty,
+   * Comments populated). Comments is read as an answer, but workbooks filled
+   * before BL-120 were told Comments was also for caveats, so these are the
+   * rows where a caveat could masquerade as the answer. Enumerated at extract
+   * time because the distinction is unrecoverable from the body afterwards —
+   * the operator can still open the xlsx and check.
+   */
+  readonly commentsSourcedAnswers: readonly string[];
 }
 
 export interface ExtractIrlMarkdownOptions {

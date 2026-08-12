@@ -8,12 +8,16 @@
 >
 > **Every entry in this file ships with a corresponding `version` bump in [`package.json`](./package.json) and is mirrored in the [archived BL-032 initiative doc](../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md) Q-section that triggered it (entries after 2026-07-17 cite the maintained [`ARCHITECTURE.md`](./src/docs/ARCHITECTURE.md) instead).** BL-032.5 Phase 4 formalizes the discipline with the **manifest-hash test** at [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) — the hash is computed over the registered Library/Regulation/Radar URIs + prompt `name@version` tuples; any drift fails the test and surfaces the new hash in the error message.
 
+> **Prompt-version bumps vs. in-place hash rebaselines** (recorded 2026-08-12, BL-120): bump the prompt `version` when the **previous body bytes have been served**; rebaseline the `EXPECTED_HASH_*` constants in place when they have not. A prompt version is a _published_ identity — it is what this file's manifest hash binds and what the dossier meta fence reports as `promptVersion` for run auditability, and both consumers only ever see served bytes. Minting a version for a byte-state no client ever received manufactures history for exactly the reader the version exists to serve. BL-120 moved all 7 body hashes **three times** inside `0.22.3` on that basis, with each move recorded in the ledger comment in `tests/integration/irl-ingestion-body-hash-stability.test.ts`.
+>
+> The edge that makes this checkable: **staging auto-deploys on a green MCP test run from a same-repo push.** So an unpushed branch is still free to rebaseline in place; the moment it is pushed those bytes are served, and any further body change owes a version bump.
+
 ---
 
 ## Current manifest hash
 
 ```
-cbb14874b7d1b976ce92fe9a41a9390b986368f1d3b8f99be5c7791ae917a1d7
+f61390ec2fe880eff6f859494d76e5e0e4014f6923cf67f4f8df3b6560f36247
 ```
 
 Computed over (sorted):
@@ -22,12 +26,43 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.2` (doubt-handling directive — see the 0.49.1 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.3` (workbook column contract — see the 0.49.2 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.49.2 — 2026-08-12 — the canonical IRL body reads the whole workbook (`0.22.2` → `0.22.3`)
+
+**Prompt body change only.** No tool, argument, or Resource URI changes; the manifest hash moves solely on that prompt's `name@version` tuple. The companion change to `scripts/extract-irl-markdown.mjs` is operator tooling, not a served contract.
+
+**Who this affects**: every consumer of an IRL dossier built from a filled workbook — which is the client-facing and regulatory path the runbook recommends. Nobody's inputs change. What changes is which of the recipient's words reach the deliverable.
+
+**Why**: the IRL workbook has seven columns — `A Reference | B Request | C Status | D File Location | E Comments | F Notes | G Response`. `npm run irl:extract` read four of them (A/B/C/G) and discarded D, E and F as "partner-supplied side channels". Measured against a real filled workbook: **26,221 of 57,992 authored characters — 45.2% — were dropped.** 73 of 134 rows carried Comments, 60 carried File Location, 58 carried Notes. Eighteen rows had a Status claiming an answer with an empty Response; in seventeen of them the answer was sitting in a discarded column. Only one row was genuinely unanswered.
+
+The dropped content was not metadata. One `[CLOSED]` row's Comments read _"B2B SaaS (retail workforce management + retail execution platform)"_ — the answer to the question. A dossier built the recommended way told the recipient they had never answered questions they had answered. Same class as the 0.49.0 alias defect: confidently wrong output, in front of a partner.
+
+The cause is a workflow the tooling never learned: GST pre-populates research into Comments, source pointers into File Location and caveats into Notes; the recipient confirms by setting Status.
+
+**Second defect, found while fixing the first**: this prompt contained **no xlsx-reading guidance at all**. The model-reconstruction path and the extractor agreed only by coincidence — and the extractor's own comment claiming its omission matched "the shape the model uses in reconstruction" was false; the observed reconstruction captured Comments.
+
+**What changed**: a **workbook column contract** section in every served body (interactive included — its VERIFY block admits `xlsx-reconstruction`), stating:
+
+- all seven columns, with the warning to **trust the data sheet's header row and never the Instructions sheet** — workbooks in the wild predate the current generator and one documents a five-column layout with Response in column D, which a model following it would publish as the recipient's answers;
+- the composition rule: `- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)`, where `<answer>` is **G and E joined into one contiguous unlabelled span**. A labelled separator injects a token into the middle of every citation reading across the boundary and drops the provenance matcher below its contiguous-run floor — the committed counterfactual measures a longest run of **5** against a floor of 8, i.e. a faithful citation marked unverified and a `provenance-gap:` auto-appended to a partner-facing dossier;
+- **Source and Note stay outside the answer slot**, so a row whose only content is a VDR filename renders `— <NO RESPONSE> (Source: …)` and cannot inflate the fill ratio or open an inclusion gate;
+- the fill ratio is counted over the **composed answer span**, explicitly after composition — counting column G alone puts the two paths on different numbers;
+- inclusion gates 2, 4 and 6 now require a **substantive answer** rather than a non-empty row;
+- **citation hygiene as an audit rule**: cite from the answer slot only, never from `(Source:)` or `(Note:)`.
+
+**Known residual, accepted deliberately**: columns D and F are now inside the body the verifier matches against, so a claim citing a VDR path or a note tail **verifies and raises no `provenance-gap:`**. The mechanical fix would teach `validate_irl_provenance` to reject excerpts matching only inside a `(Source: …)` span — coupling a hardened shared matcher to the body format. That coupling is refused; the prompt handles it by directive, and a unit test pins the residual so a future reader meets it deliberately. See [ADR-0015](../src/docs/adr/0015-irl-canonical-body-reads-full-workbook.md).
+
+**Manifest-hash impact**: rebaselined to `f61390ec…6247`. Tool names and Resource URIs are untouched. **All 7 prompt-body hashes drift** — the contract is unconditional by design, so a partial drift signature would mean it failed to reach a served body.
+
+**Rollback**: revert the commit and restore the prior hashes. No data, transport, or schema implications — but note that bodies extracted under 0.49.2 are materially larger than the same workbook under 0.49.1, so a rollback silently narrows what a re-extraction contains.
 
 ---
 

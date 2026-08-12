@@ -456,4 +456,59 @@ describe('generateIrlXlsxBuffer — Instructions sheet', () => {
     );
     expect(hasPointOfContact).toBe(true);
   });
+
+  // ─── BL-120 — the Instructions sheet must describe what is actually read ──
+  //
+  // The extractor now reads File Location, Comments and Notes into the
+  // deliverable. Recipients were previously told Comments was for "caveats,
+  // follow-ups" and Notes was "free-form scratch space" — publishing either
+  // without saying so is a change they are entitled to see. And because item 4
+  // invited NON-answers into Comments ("scheduled for Q3 refresh",
+  // "confidential, discuss in call"), leaving it there would land those
+  // strings unlabelled in the answer slot, count them as substantive, and open
+  // the inclusion gates on them.
+  describe('BL-120 — column guidance matches what the extractor reads', () => {
+    /** Whole Instructions sheet as one searchable string. */
+    function instructionsText(): string {
+      const buf = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA);
+      const wb = XLSX.read(buf, { type: 'array' });
+      const sheet = wb.Sheets['Instructions'];
+      return Object.entries(sheet)
+        .filter(([k]) => /^[A-Z]+\d+$/.test(k))
+        .map(([, cell]) => (cell as XLSX.CellObject).v)
+        .filter((v): v is string => typeof v === 'string')
+        .join('\n');
+    }
+
+    it('tells the recipient that D, E, F and G are all read into the deliverable', () => {
+      const text = instructionsText();
+      expect(text).toContain('All four of D, E, F and G are read into the deliverable');
+      expect(text).toContain('Response and Comments are combined into the');
+    });
+
+    it('no longer calls Notes "scratch space"', () => {
+      expect(instructionsText()).not.toContain('scratch space');
+    });
+
+    it('describes Comments as part of the answer, not as remarks about it', () => {
+      const text = instructionsText();
+      expect(text).toContain('Read as part of your answer');
+      expect(text).toContain('answers there — not remarks about the answer');
+    });
+
+    it('routes the non-answer examples to Notes, not Comments', () => {
+      const text = instructionsText();
+      const lines = text.split('\n');
+      const exampleIdx = lines.findIndex((l) => l.includes('confidential, discuss in call'));
+      expect(exampleIdx).toBeGreaterThan(-1);
+      // The example sits under the Notes instruction, one line above it.
+      expect(lines[exampleIdx - 1]).toContain(
+        'column F (Notes) for anything that is NOT an answer'
+      );
+    });
+
+    it('keeps the "n/a rather than blank" instruction (the substantive-cell rule depends on it)', () => {
+      expect(instructionsText()).toContain('"n/a" or "not yet tracked"');
+    });
+  });
 });

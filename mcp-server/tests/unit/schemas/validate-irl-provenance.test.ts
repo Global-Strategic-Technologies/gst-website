@@ -21,6 +21,10 @@ import {
   normalizeForMatching,
   runIrlProvenanceCheck,
 } from '../../../src/schemas/validate-irl-provenance';
+// The BL-120 block below cites against a body built by the real extractor, so
+// the matcher is pinned to the bytes an operator actually pastes rather than to
+// a hand-written approximation of them.
+import { extractIrlMarkdownFromRows } from '../../../scripts/extract-irl-markdown.mjs';
 
 const SAMPLE_IRL = `# Information Request List — Acme (returned, 2026-06-03)
 
@@ -497,5 +501,180 @@ describe('runIrlProvenanceCheck — BL-053 array-form citations', () => {
       ],
     });
     expect(result.verdicts[0].matchedSpan).toMatch(/2-element citation array/);
+  });
+});
+
+/**
+ * BL-120 — citations against a body that carries all seven workbook columns.
+ *
+ * The extractor now folds column E (Comments) into the answer alongside column
+ * G (Response), and appends columns D/F as `(Source: …)` / `(Note: …)`. That
+ * puts three new prose columns into the haystack, and it makes citations that
+ * read ACROSS the Response/Comments boundary the expected shape rather than an
+ * exotic one — so the matcher's behaviour over the new body format is a
+ * contract worth pinning, in both directions:
+ *
+ *   - a boundary-spanning citation MUST verify (a false `unverified` here
+ *     auto-appends `provenance-gap:` to a partner-facing dossier);
+ *   - a citation that matches ONLY inside a `(Source: …)` span ALSO verifies,
+ *     which is the initiative's documented residual, not an accident.
+ *
+ * The body is built by the real extractor rather than hand-written, so a change
+ * to the join rule surfaces here rather than drifting silently away from the
+ * bytes an operator actually pastes.
+ */
+describe('runIrlProvenanceCheck — BL-120 full-workbook body', () => {
+  const SOURCE_PATH = 'VDR/03-Financials/arr-bridge-2026.xlsx';
+  const NOTE = 'pending confirmation from the deal team';
+
+  /** Minimal workbook rows in the generator's 7-column layout. */
+  const ROWS: string[][] = [
+    ['Target', 'Acme Co'],
+    ['Reference', 'Request', 'Status', 'File Location', 'Comments', 'Notes', 'Response'],
+    ['', '00 — BASICS'],
+    [
+      '0-03',
+      'Annual recurring revenue',
+      'CLOSED',
+      SOURCE_PATH,
+      'Excludes Q4 acquisitions',
+      NOTE,
+      '$45.2M USD FY26 actual',
+    ],
+  ];
+
+  const { markdown: BODY } = extractIrlMarkdownFromRows(ROWS);
+
+  it('builds the body the extractor actually emits (guard for the cases below)', () => {
+    expect(BODY).toContain(
+      `- 0-03 Annual recurring revenue [CLOSED] — $45.2M USD FY26 actual. Excludes Q4 acquisitions` +
+        ` (Source: ${SOURCE_PATH}) (Note: ${NOTE})`
+    );
+  });
+
+  it('verifies a citation spanning the Response→Comments boundary with the separator dropped', () => {
+    // THE regression. A citing model reproduces the answer as one thought and
+    // will not necessarily reproduce the joining period — so the separator has
+    // to vanish under normalization. A period does (it flattens to a space and
+    // the run collapses); the labelled separator this design rejected did not.
+    const result = runIrlProvenanceCheck({
+      filledIrl: BODY,
+      citations: [
+        {
+          path: 'arr',
+          citation: 'Section 00 row 0-03 — $45.2M USD FY26 actual Excludes Q4 acquisitions',
+        },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('verified');
+    expect(result.unverified).toBe(0);
+  });
+
+  it('verifies the same span when the citation DOES reproduce the joining period', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: BODY,
+      citations: [
+        {
+          path: 'arr',
+          citation: 'Section 00 row 0-03 — $45.2M USD FY26 actual. Excludes Q4 acquisitions',
+        },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('verified');
+  });
+
+  it('would NOT verify that citation under a labelled separator (why the format is unlabelled)', () => {
+    // Counterfactual, kept executable so the reasoning cannot rot into folklore.
+    // A `| Comments:` separator survives normalization as tokens in the middle
+    // of the span, splitting an 8-word citation into runs of 5 and 3 — both
+    // under FUZZY_MIN_RUN, i.e. unverified, i.e. a `provenance-gap:` line in a
+    // dossier whose citation was in fact perfectly faithful.
+    //
+    // The run lengths are asserted, not just described. An earlier draft of the
+    // ADR asserted "a run of 6" from memory; it is 5, and the only reason that
+    // is now known is that the number is computed here. Quoting an unexecuted
+    // number is the exact defect class BL-120 exists to close.
+    const rejectedBody = BODY.replace(
+      '$45.2M USD FY26 actual. Excludes Q4 acquisitions',
+      '$45.2M USD FY26 actual | Comments: Excludes Q4 acquisitions'
+    );
+    expect(rejectedBody).not.toBe(BODY); // the replace landed
+    const result = runIrlProvenanceCheck({
+      filledIrl: rejectedBody,
+      citations: [
+        {
+          path: 'arr',
+          citation: 'Section 00 row 0-03 — $45.2M USD FY26 actual Excludes Q4 acquisitions',
+        },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('unverified');
+
+    // Measure WHY it fails, so the docs can quote a number that was executed.
+    //
+    // Deliberately a naive local implementation rather than the module's own
+    // `longestContiguousRun`: calling the module would only assert that the
+    // module agrees with itself, so an off-by-one in the run matcher would
+    // propagate straight into the ADR with this test still green. The module's
+    // real behaviour is pinned by the `unverified` assertion above; this pins
+    // the property of the two strings. Precisely: independent of the RUN
+    // MATCHING, not of normalization — `normalizeForMatching` is shared, since
+    // word boundaries are the thing being counted.
+    const words = (s: string): string[] =>
+      // The module drops empty tokens before counting; match that, or a string
+      // that normalized to nothing would contribute a phantom word.
+      normalizeForMatching(s)
+        .split(' ')
+        .filter((w) => w.length > 0);
+    const longestRun = (needle: string[], hay: string[]): number => {
+      let best = 0;
+      for (let i = 0; i < needle.length; i++) {
+        for (let j = 0; j < hay.length; j++) {
+          let k = 0;
+          while (i + k < needle.length && j + k < hay.length && needle[i + k] === hay[j + k]) k++;
+          if (k > best) best = k;
+        }
+      }
+      return best;
+    };
+    const excerpt = words('$45.2M USD FY26 actual Excludes Q4 acquisitions');
+    expect(excerpt.length).toBe(8);
+    expect(longestRun(excerpt, words(rejectedBody))).toBe(5); // pre-label half
+    // The post-label half. Asserted because ADR-0015 and the extractor
+    // docstring both say "runs of 5 and 3" — an unasserted 3 in a sentence
+    // whose whole purpose is that its numbers were executed is the same gap in
+    // miniature.
+    expect(longestRun(excerpt.slice(-3), words(rejectedBody))).toBe(3);
+    expect(longestRun(excerpt, words(BODY))).toBe(8); // the shipped format: whole span
+    expect(FUZZY_MIN_RUN).toBe(8);
+  });
+
+  it('ALSO verifies a citation matching only inside (Source:) or (Note:) — the documented residual', () => {
+    // Not a bug to fix here. Columns D and F are in the haystack now, so a
+    // claim citing a VDR path or a note tail verifies and raises no
+    // `provenance-gap:` — presenting the dossier as anchored on a filename.
+    // The mechanical fix would couple this shared matcher to the body format,
+    // which is the coupling ADR-0015 refuses; the prompt handles it by
+    // directive ("cite from the answer slot only"). This test exists so a
+    // future reader meets the residual deliberately rather than in a client
+    // dossier.
+    const result = runIrlProvenanceCheck({
+      filledIrl: BODY,
+      citations: [
+        { path: 'source', citation: `Section 00 row 0-03 — ${SOURCE_PATH}` },
+        { path: 'note', citation: `Section 00 row 0-03 — ${NOTE}` },
+      ],
+    });
+    expect(result.verdicts.map((v) => v.status)).toEqual(['verified', 'verified']);
+  });
+
+  it('still rejects a fabricated figure that appears in no column', () => {
+    const result = runIrlProvenanceCheck({
+      filledIrl: BODY,
+      citations: [
+        { path: 'arr', citation: 'Section 00 row 0-03 — $88.9M USD FY26 actual and growing fast' },
+      ],
+    });
+    expect(result.verdicts[0].status).toBe('unverified');
   });
 });

@@ -333,6 +333,24 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
+### ~~BL-120: The canonical IRL body discarded 45% of the workbook~~ — CLOSED 2026-08-12
+
+**Status**: **Closed in the session that opened it** (prompt `0.22.3` / server `0.49.2`). Recorded rather than pruned because the failure mode generalizes and the fix carries two accepted residuals.
+
+**What it was.** `npm run irl:extract` — the operator path the runbook recommends for client-facing and regulatory deliverables — read four of the workbook's seven columns (A/B/C/G) and discarded **D File Location**, **E Comments** and **F Notes** as "partner-supplied side channels". Measured against a real filled workbook: **26,221 of 57,992 authored characters (45.2%) dropped**; 73 of 134 rows carried Comments, 60 carried File Location, 58 carried Notes; **18 rows had a Status claiming an answer with an empty Response, and in 17 the answer was sitting in a discarded column**. One `[CLOSED]` row's Comments read "B2B SaaS (retail workforce management + retail execution platform)" — the answer. The dossier told the recipient they had never answered it.
+
+The cause was a workflow the tooling never learned: GST pre-populates research into Comments, sources into File Location and caveats into Notes; the recipient confirms by setting Status. Nothing — extractor, prompt, or the workbook's own Instructions sheet — described that.
+
+**Second defect, found while fixing the first.** `irl-ingestion.ts` carried **no xlsx-reading guidance at all**, so the model-reconstruction path and the extractor agreed only by coincidence. The extractor's comment claiming its omission matched "the shape the model uses in reconstruction" was never verified and was false.
+
+**What shipped.** The canonical bullet became `- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)`, where `<answer>` is Response and Comments joined into one contiguous **unlabelled** span; Source/Note stay outside the answer slot so a filename can never make a row read as answered. The prompt gained a workbook column contract in every served body (interactive included), the fill-ratio counting order, substantive-answer wording on inclusion gates 2/4/6, and a citation-hygiene rule. `generate-xlsx.ts` now tells recipients D/E/F are published and routes non-answers to Notes. Rationale, rejected alternatives and both residuals: [ADR-0015](../adr/0015-irl-canonical-body-reads-full-workbook.md).
+
+**The generalizable lesson.** Both defects, and the BL-119 alias defect before them, were **a docstring asserting a fact nobody had executed**. "The same shape the model uses in reconstruction" and "aliases are consumed by `findMatchedHubFramework`" were each written in good faith, each wrong, and each load-bearing for a later decision that trusted them. A comment that claims what another system does is a claim, not documentation.
+
+**What is NOT closed.** Two residuals are accepted and documented rather than fixed — a citation matching only inside a `(Source: …)` span verifies and raises no gap; and workbooks filled before this change legitimately mix research with caveats in Comments (recoverable from the xlsx, and the extractor enumerates the affected refs). Reopen only on the triggers listed in ADR-0015.
+
+---
+
 ### ~~BL-098: Radar negative caching — a failed revalidation is cached as a 200~~ — CLOSED 2026-08-02
 
 **Status**: **Closed by removing the requirement**, not by implementing the acceptance criteria below. Recorded rather than pruned because the reasoning is the interesting part.

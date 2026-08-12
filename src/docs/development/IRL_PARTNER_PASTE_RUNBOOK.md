@@ -59,6 +59,7 @@ The partner returns the `.xlsx` GST generated for them via `gst_information_requ
 - Header rows: target name, engagement context, generated date, canonical URL
 - One row per section header (uppercased), optional section intro, then bullet rows for each request
 - Status column pre-fills `OPEN`; partner promotes to `PARTIAL` or `CLOSED` and fills the Response column
+- **All four content columns — File Location, Comments, Notes and Response — are read into the body** (BL-120). GST pre-populates research into Comments, sources into File Location and caveats into Notes; the recipient confirms via Status. Comments is treated as an answer, not a side channel — see [ADR-0015](../adr/0015-irl-canonical-body-reads-full-workbook.md)
 
 If you received a different workbook layout, **stop and re-issue the canonical `.xlsx`** via `gst_information_request_list_xlsx`. The extract script targets the canonical shape; arbitrary partner spreadsheets won't parse.
 
@@ -98,15 +99,18 @@ The script emits:
 
 - 0-01 Company name [CLOSED] — Acme Solutions Inc. (Delaware C-corp)
 - 0-02 Engagement context [CLOSED] — value-creation, post-close
-- 0-03 Annual recurring revenue [CLOSED] — $45.2M USD (FY26 actual)
+- 0-03 Annual recurring revenue [CLOSED] — $45.2M USD (FY26 actual). Excludes the two acquisitions closed in Q4 (Source: VDR/03-Financials/arr-bridge.xlsx) (Note: unaudited)
 - 1-01 One-paragraph product description [CLOSED] — B2B SaaS for retail workforce mgmt
+- 1-03 Product roadmap snapshot [OPEN] — <NO RESPONSE> (Source: VDR/01-Product/roadmap-FY27.pdf)
 - 10-01 Deal team contacts [CLOSED] — Phil Cunningham (MD), Nishant Patel (Principal)
 ```
 
 - Title line: `# Information Request List — <Target> (filled)` — matches the model's reconstruction-mode preamble.
 - Metadata block: YAML-style blockquotes for engagement context / generated date / canonical reference.
-- Bullet rows: flat list. Reference ID + Request text + `[<Status>]` + ` — <Response>`.
-- Unanswered bullets emit `— <NO RESPONSE>` so the model's gap-extractor flags them rather than silently dropping.
+- Bullet rows: flat list. `- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)`.
+- **The answer is Response and Comments joined into one contiguous span**, Response first, with a period inserted unless Response already ends in `.` `?` `!` `:` `;` `,` `…` or a dash — tested after any closing brackets and quotes are peeled off, so `…weekly,"` continues the clause rather than gaining a stray period. Never labelled: a label between the halves breaks any citation reading across the boundary. `0-03` above shows the join.
+- **Source and Note stay outside the answer.** A row whose only content is a file pointer renders `— <NO RESPONSE> (Source: …)`, as `1-03` shows — so a filename can never make a row read as answered, inflate the fill ratio, or open an inclusion gate.
+- Rows with nothing in D/E/F/G emit `— <NO RESPONSE>`. This is a human-readable marker only: no server code parses it and it does **not** become a (J) gap entry — the fill ratio is what accounts for unanswered rows.
 
 #### Sanity-check the output before pasting
 
@@ -124,6 +128,12 @@ Get-Content C:\tmp\acme-irl.md | Select-String -Pattern '^- (\d+)-' | ForEach-Ob
 Get-Content C:\tmp\acme-irl.md | Select-Object -First 5
 Get-Content C:\tmp\acme-irl.md | Select-Object -Last 5
 ```
+
+**Read the script's stderr — it prints two ref lists and a size note, and this is the one moment you can still open the workbook and check.**
+
+- **"took their answer from Comments because Response was empty"** — these rows' answers came from Comments alone. Comments is read as an answer, but workbooks filled before BL-120 were told Comments was also for caveats, so a caveat can masquerade as _the_ answer here. Once extracted, the two are indistinguishable. Skim these rows in the xlsx before the body goes into a client-facing deliverable. Rows where Response was non-empty are not listed: there, Comments rides alongside a real answer and the row is answered either way.
+- **"claim a Status of CLOSED/PARTIAL but every content column is empty"** — a genuine contradiction. Either the answer never landed, or it is somewhere the script does not read. These render `<NO RESPONSE>`.
+- **A note when the body exceeds ~57KB** — scoped to one thing: **claude.ai web refuses a prompt argument that size outright; use Claude Desktop.** Nothing else is affected (the server body cache accepts 200KB, and the Desktop → prepop path never emits the body). Bodies in the 5–150KB range are normal.
 
 ### Step 3 — Invoke `gst_irl_ingestion` in Claude Desktop
 
@@ -209,10 +219,14 @@ For a normal-sized IRL with normal-sized responses, the 100–150KB range is typ
 The script is unit-tested at [`mcp-server/tests/unit/scripts/extract-irl-markdown.test.ts`] against the `generateIrlXlsxBuffer` generator. Coverage includes:
 
 - Every bullet survives the round-trip with reference / request / status / response intact
-- Empty Response cells emit `— <NO RESPONSE>`
+- Rows with nothing in File Location, Comments, Notes **or** Response emit `— <NO RESPONSE>`
 - Metadata header rows populate the YAML preamble
 - Section header rows + intros are correctly filtered (canonical body is a flat bullet stream, matching the model's reconstruction shape)
 - PARTIAL / OPEN / CLOSED status values pass through verbatim
 - Workbooks with zero bullets fail gracefully (CLI exits 1; library function returns `{ bulletCount: 0 }`)
+- **BL-120**: Comments becomes the answer when Response is empty; the two join contiguously when both are present (against a Response ending in a letter, in terminal punctuation, and in a comma); Source/Note render as suffixes; and a row carrying only a File Location or only a Note still reads `<NO RESPONSE>`
+- **BL-120**: a citation spanning the Response→Comments boundary **with the joining period dropped** verifies through `validate_irl_provenance` — the regression that killed the first, labelled version of this format ([ADR-0015](../adr/0015-irl-canonical-body-reads-full-workbook.md))
 
 The generator is the single source of truth for the workbook shape. If a future canonical-article edit changes the layout, the round-trip tests catch the drift before the extract script ships.
+
+`mcp-server/tests/fixtures/northwind-workbook-columns-filled-irl.md` is verbatim output of this script over a synthetic 7-column workbook, exercised through the **prompt** path in `tests/integration/irl-ingestion-fixtures.test.ts` — that pairing is what would catch the operator path and the model path drifting apart.

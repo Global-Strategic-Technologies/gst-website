@@ -25,6 +25,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as XLSX from 'xlsx-js-style';
 import { generateIrlXlsxBuffer } from '../../../../src/utils/irl/generate-xlsx';
 import type { IRLArticle } from '../../../../src/utils/irl/types';
 
@@ -117,5 +118,128 @@ describe('extract-irl-markdown.mjs — real-Node CLI smoke', () => {
     });
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain('Usage:');
+  });
+
+  // ─── BL-120 — the operator signals on stderr ───────────────────────────
+  //
+  // `IRL_PARTNER_PASTE_RUNBOOK.md` step 2 quotes these strings as an operator
+  // checklist ("read the script's stderr"), so they are a documented interface,
+  // not incidental logging. The underlying ref lists are covered as pure
+  // function output in `extract-irl-markdown.test.ts`; what is covered here is
+  // that they actually reach the operator, and that the CLI still exits 0 —
+  // every one of these is a legitimate state, not a failure.
+  describe('operator signals', () => {
+    /**
+     * Build a workbook with D/E/F content and run the CLI over it.
+     *
+     * The sheet is rewritten via `aoa_to_sheet`, which discards styling,
+     * `!cols`, merges, freeze panes and data validations. That loses nothing
+     * the CLI reads — it takes `wb.Sheets[PRIMARY_SHEET_NAME]` and
+     * `sheet_to_json(sheet, { header: 1, defval: '' })`, i.e. `!ref` plus cell
+     * values, all of which `aoa_to_sheet` sets correctly.
+     *
+     * Two things this does NOT prove, worth knowing before trusting it further:
+     *
+     *   - the sheet name below is a literal that must stay equal to
+     *     `PRIMARY_SHEET_NAME` in the script. If the script's constant drifts,
+     *     the CLI silently falls back to `SheetNames[0]` and every one of these
+     *     cases still passes.
+     *   - the `defval: ''` round trip materializes empty cells that are
+     *     genuinely ABSENT in an on-disk workbook. Behaviourally identical (the
+     *     extractor coerces and trims either way), but this file is not
+     *     byte-representative of one a partner returns.
+     */
+    function runOver(rowPatch: (row: (string | number)[]) => void) {
+      const buf = generateIrlXlsxBuffer(SAMPLE_ARTICLE, {
+        targetName: 'CLI Smoke Co',
+        transactionContext: 'value-creation',
+        generatedAt: new Date('2026-06-07T12:00:00.000Z'),
+        canonicalUrl: 'https://example.test/canonical',
+      });
+      const wb = XLSX.read(buf, { type: 'array' });
+      const sheet = wb.Sheets['Information Request List'];
+      const rows = XLSX.utils.sheet_to_json<(string | number)[]>(sheet, {
+        header: 1,
+        defval: '',
+      });
+      for (const row of rows) rowPatch(row);
+      const patched = XLSX.utils.aoa_to_sheet(rows);
+      const outWb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(outWb, patched, 'Information Request List');
+      const path = join(tempDir, `signals-${Math.abs(hashOf(rows)).toString(36)}.xlsx`);
+      writeFileSync(path, Buffer.from(XLSX.write(outWb, { type: 'array', bookType: 'xlsx' })));
+      return spawnSync(process.execPath, [SCRIPT_PATH, path], {
+        encoding: 'utf8',
+        timeout: 10_000,
+      });
+    }
+    /** Cheap deterministic name so concurrent cases don't collide on a path. */
+    function hashOf(rows: unknown): number {
+      const s = JSON.stringify(rows);
+      let h = 0;
+      for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+      return h;
+    }
+
+    it('names the rows whose answer came from Comments, and still exits 0', () => {
+      const result = runOver((row) => {
+        if (String(row[0]).trim() === '0-01') {
+          row[2] = 'CLOSED';
+          row[4] = 'Acme Solutions Inc., a Delaware C-corp'; // col E
+          row[6] = ''; // col G empty
+        }
+      });
+      expect(result.status).toBe(0);
+      expect(result.stderr).toContain('took their answer from Comments');
+      expect(result.stderr).toContain('0-01');
+      // The reason the operator is being told, not just the fact.
+      expect(result.stderr).toContain('indistinguishable once extracted');
+    });
+
+    it('warns on a CLOSED row with every content column empty, and still exits 0', () => {
+      const result = runOver((row) => {
+        if (String(row[0]).trim() === '0-02') {
+          row[2] = 'CLOSED';
+          row[6] = '';
+        }
+      });
+      expect(result.status).toBe(0);
+      expect(result.stderr).toContain('claim a Status of CLOSED/PARTIAL');
+      expect(result.stderr).toContain('0-02');
+    });
+
+    it('stays silent on both signals for a workbook that triggers neither', () => {
+      const result = runOver((row) => {
+        if (String(row[0]).trim() === '0-01') {
+          row[2] = 'CLOSED';
+          row[6] = 'Acme Solutions Inc.';
+        }
+      });
+      expect(result.status).toBe(0);
+      expect(result.stderr).not.toContain('took their answer from Comments');
+      expect(result.stderr).not.toContain('claim a Status of CLOSED/PARTIAL');
+    });
+
+    it('does NOT emit the ~57KB note for a small body', () => {
+      // The note is scoped strictly to claude.ai web's prompt-argument ceiling.
+      // Firing it on every workbook would contradict the runbook's own
+      // "5-150KB is typical" and train operators to ignore it.
+      const result = runOver(() => {});
+      expect(result.status).toBe(0);
+      expect(result.stderr).not.toContain('57KB');
+    });
+
+    it('emits the ~57KB note, naming Claude Desktop, once the body is large enough', () => {
+      const filler = 'lorem ipsum dolor sit amet '.repeat(1200); // ~32KB per row
+      const result = runOver((row) => {
+        if (/^\d{1,2}-\d{2}$/.test(String(row[0]).trim())) {
+          row[2] = 'CLOSED';
+          row[6] = filler;
+        }
+      });
+      expect(result.status).toBe(0);
+      expect(result.stderr).toContain('exceeds ~57KB');
+      expect(result.stderr).toContain('Claude Desktop');
+    });
   });
 });
