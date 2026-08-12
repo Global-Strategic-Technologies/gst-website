@@ -2,13 +2,13 @@
 
 > **Audience**: anyone modifying `mcp-server/src/prompts/irl-ingestion.ts` or debugging a live ingestion run.
 > **Status**: maintained — update alongside every prompt version bump (version field in the module; history in the conventional-commit log, whose release messages pair prompt + server semver).
-> **Provenance**: distilled from the two archived BL-045 documents — `MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md` (design doc, frozen at v0.1.0-era scope) and its `TOOL_SCHEMA_ENFORCEMENT_SPEC` (the server-0.4.0 `_audit` pivot). The prompt has evolved far past both (currently **v0.21.1**); where this doc and the frozen docs conflict, the shipped code wins and this doc reflects the code.
+> **Provenance**: distilled from the two archived BL-045 documents — `MCP_SERVER_FILLED_IRL_INGESTION_BL-045.md` (design doc, frozen at v0.1.0-era scope) and its `TOOL_SCHEMA_ENFORCEMENT_SPEC` (the server-0.4.0 `_audit` pivot). The prompt has evolved far past both (currently **v0.22.2**); where this doc and the frozen docs conflict, the shipped code wins and this doc reflects the code.
 
 ## What it does
 
 `gst_irl_ingestion` is the bookend to `gst_information_request_list`: the partner sent the universal intake checklist, the target returned it filled, and this prompt ingests the populated IRL and drives every applicable Hub tool surface in one turn — extracting the 13 diligence dimensions, invoking up to 10 orchestrated tools through per-tool inclusion gates, and synthesizing the outputs into a single partner-level dossier with sections (A)–(K), each tool-backed section closing with a state-carrying Hub deeplink. It is scenario-neutral (buy-side, sell-side, value-creation, post-close); `transactionContext` modulates voice only, never tool selection. Two library embeds ride along: the decoupled IRL generator source (`gst://irl/source`, the canonical section taxonomy for reconciling minimally-formatted replies) and `gst://library/vdr-structure` (verbatim VDR folder labels for follow-up requests).
 
-## Contract (v0.21.1 — verified against `irl-ingestion.ts`)
+## Contract (v0.22.2 — verified against `irl-ingestion.ts`)
 
 | Arg                       | Type                                                       | Default                  | Purpose                                                                                                                          |
 | ------------------------- | ---------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
