@@ -150,7 +150,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               id="regulationSearchInput"
               class="brutal-search__input"
               placeholder="Search regulations..."
-              aria-label="Search regulations by name, summary, or requirements"
+              aria-label="Search regulations by name or common short form"
               autocomplete="off"
             />
             <button
@@ -294,12 +294,16 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   import { provinceCodeToName } from '../../../../utils/canadianProvinceMap';
   import { trackEvent } from '../../../../utils/analytics';
   import { escapeHtml } from '../../../../utils/escape-html';
+  import { buildRegulationSearchText } from '../../../../utils/regulation-search-text';
   import * as Sentry from '@sentry/browser';
 
   // --- Lightweight index entry (inlined at build time) ---
+  // Mirrors `RegulationIndexEntry` in utils/fetchRegulations.ts; kept local
+  // because that module reaches `astro:content`. Add fields to both.
   interface RegIndexEntry {
     id: string;
     name: string;
+    aliases?: string[];
     effectiveDate: string;
     category: string;
     regions: string[];
@@ -462,7 +466,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   const searchIndex: SearchableReg[] = regIndexRaw.regs.map((reg) => ({
     reg,
-    searchText: reg.name.toLowerCase(),
+    searchText: buildRegulationSearchText(reg),
   }));
 
   let activeSearchTerm = '';

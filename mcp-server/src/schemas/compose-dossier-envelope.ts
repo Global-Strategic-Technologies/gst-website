@@ -625,7 +625,14 @@ const HUB_FRAMEWORK_INDEX: readonly HubFrameworkIndexEntry[] = REGULATION_ENTRIE
   normalizedAliases: (entry.data.aliases ?? []).map(normalizeFrameworkName),
 }));
 
-const HUB_MATCH_MIN_LENGTH = 4;
+/**
+ * Shortest normalized name/query that may participate in framework matching.
+ *
+ * Exported for `search_regulations` (BL-119 cycle 4): normalization strips all
+ * non-alphanumerics, so a punctuation-only input normalizes to `''` and would
+ * otherwise `startsWith`-match every alias. Both consumers need the same floor.
+ */
+export const HUB_MATCH_MIN_LENGTH = 4;
 
 function matchesEntry(entry: HubFrameworkIndexEntry, normalizedModelName: string): boolean {
   // Canonical-name bidirectional substring — preserved verbatim from pre-BL-073.

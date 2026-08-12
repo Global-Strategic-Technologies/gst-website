@@ -1,7 +1,7 @@
 ---
 tool: search_regulations
 version: v2
-lastAuthored: 2026-05-27
+lastAuthored: 2026-08-12
 schema: src/schemas/regulatory-map.ts
 enumParity:
   - tableHeading: '`category` valid values'
@@ -31,7 +31,7 @@ enumParity:
 >
 > Both prompts surface `gst://regulations/<jurisdiction>/<framework-id>` URIs as analyst-pinnable references. Adding new fields to `SearchResult`'s wire shape (e.g., for future enrichment beyond `scope`/`keyRequirements`/`penalties`) should be reflected in the regulatory-exposure-brief body's Step 2 source-grounding instruction.
 >
-> **Version**: `v2` | **Last authored**: 2026-05-27 (multi-value filters)
+> **Version**: `v2` | **Last authored**: 2026-08-12 (alias matching in `query` — BL-119 cycle 4; multi-value filters 2026-05-27)
 >
 > **Registry**: see [`../contracts/README.md`](../README.md).
 
@@ -43,7 +43,7 @@ enumParity:
 | -------------- | --------------------------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `jurisdiction` | `string \| string[]`        | no       | —       | Exact match against parsed jurisdiction code. Accepts a single string or an array (see below).                                                                                                                                                   |
 | `category`     | `enum(4) \| Array<enum(4)>` | no       | —       | One of `data-privacy`, `ai-governance`, `industry-compliance`, `cybersecurity`; or an array.                                                                                                                                                     |
-| `query`        | string                      | no       | —       | Free-text substring match across `id`, `name`, `summary`                                                                                                                                                                                         |
+| `query`        | string                      | no       | —       | Free-text match across `id`, `name`, curated `aliases`, and `summary` — see § `query` semantics                                                                                                                                                  |
 | `limit`        | int                         | no       | 20      | Cap on returned matches; max 120. **Note the corpus is 123** — so a single call cannot return the full dataset. Deliberately unchanged in BL-112: raising the max grows an already-large response (see below), and the mirror supplies no bound. |
 
 Filters AND across facets and OR within a facet — `{jurisdiction: ['eu','us'], category: ['data-privacy']}` returns data-privacy frameworks whose `jurisdiction ∈ {eu, us}`. Empty input (`{}`) returns the first 20 frameworks, useful as a sanity check or browse-mode call.
@@ -80,7 +80,25 @@ Pass a sub-region code (`us-ca`) to filter to that state/province. Passing the p
 
 ### `query` semantics
 
-Substring match (case-insensitive) against the regulation's `id`, `name`, and `summary` fields. Whitespace-tolerant — multi-word queries match if the substring appears in any of the searched fields.
+Substring match (case-insensitive) against the regulation's `id`, `name`, curated `aliases`, and `summary` fields. Whitespace-tolerant — multi-word queries match if the substring appears in any of the searched fields.
+
+Matches are **ranked**, not merely filtered, and the ranking is the load-bearing part:
+
+| bucket                          | weight |
+| ------------------------------- | ------ |
+| exact `id`                      | 100    |
+| `id` contains query             | 50     |
+| exact `name` **or** exact alias | 80     |
+| `name`/alias starts with query  | 40     |
+| `name`/alias contains query     | 20     |
+| `summary` contains query        | 5      |
+
+Aliases share the name bucket rather than sitting in a tier of their own, and take the **best** match across the record's aliases (not the sum). Two consequences worth knowing:
+
+- **A summary mention is the weakest possible signal, deliberately.** Framework summaries cross-reference each other constantly, so without aliases a query naming framework A could return framework B on a 5-point summary hit while A itself scored 0. That is exactly what happened before BL-119 cycle 4: `"Colorado AI Act"` returned `us-nist-ai-rmf` (whose summary reads "notably the Colorado AI Act") and `"EU AI Act"` returned `kr-ai-basic-act`, while `"Australia Privacy Act"` and `"NIST AI RMF"` returned nothing at all. `aliases` had been added in BL-073 for `compose_dossier_envelope` and was never wired into this index.
+- **Aliases compare on their normalized form** (`normalizeFrameworkName` — lowercase, non-alphanumerics stripped), so `SB 24-205`, `SB24205` and en-dash variants all resolve. `id` and `name` keep raw lowercase comparison. A normalized query shorter than `HUB_MATCH_MIN_LENGTH` (4) skips the alias bucket entirely, because an all-punctuation query normalizes to `''` and would otherwise prefix-match every alias.
+
+**The website mirror matches differently, by design.** `/hub/tools/regulatory-map/` searches name + aliases as raw lowercase term-wise substrings via the shared `buildRegulationSearchText` helper (`src/utils/regulation-search-text.ts`); it does not normalize. So `SB24205` resolves through this tool and not on the page. Unifying would mean hoisting the normalizer out of the mcp-server workspace — recorded here rather than left to be rediscovered.
 
 ---
 

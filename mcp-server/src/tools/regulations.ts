@@ -22,6 +22,7 @@ import {
   listCategories,
   type RegulationEntry,
 } from '../content/regulation-loader';
+import { normalizeFrameworkName, HUB_MATCH_MIN_LENGTH } from '../schemas/compose-dossier-envelope';
 import { encodeFilters } from '../../../src/utils/regulatory-map-url';
 import { HUB_BASE } from '../config';
 import { toolOk } from './_result';
@@ -34,7 +35,7 @@ const SEARCH_DESCRIPTION = `**Authoritative source for any question about a regu
 
 Search the GST Regulatory Map (123 frameworks across data privacy, AI governance, cybersecurity, and industry compliance).
 
-Filters by \`jurisdiction\` (e.g. "eu", "us", "us-ca", "ca-qc"), \`category\` (one of "data-privacy", "ai-governance", "industry-compliance", "cybersecurity"), and free-text \`query\` (matches name, summary, and id). Returns up to \`limit\` matches (default 20, max 120).
+Filters by \`jurisdiction\` (e.g. "eu", "us", "us-ca", "ca-qc"), \`category\` (one of "data-privacy", "ai-governance", "industry-compliance", "cybersecurity"), and free-text \`query\` (matches name, curated aliases, summary, and id). Aliases mean the common short forms resolve to the statute rather than to some other framework that merely mentions it — "Colorado AI Act", "EU AI Act", "UK GDPR", "NIST AI RMF" and "SB 24-205" all reach their own record. Returns up to \`limit\` matches (default 20, max 120).
 
 **Multi-value filters** — both \`jurisdiction\` and \`category\` accept either a single string OR an array of strings (e.g. \`jurisdiction: ["eu", "us", "gb"]\`, \`category: ["data-privacy", "ai-governance"]\`). When multiple values are supplied, the response combines all matches in one call — preferred over sequential per-value fan-out. When arrays contain >1 element, the response's \`filterDeeplink\` omits that filter (the website UI uses single-select chips and cannot represent multi-select); use single-value filters when you need a deeplink that mirrors the agent's filter exactly. Batching beats sequential per-value fan-out, but **broad multi-jurisdiction queries return very large responses** — measured at ~153,200 characters at \`limit: 50\` and ~355,700 at the maximum, against a 143,027-character response that has already exceeded a real client's tool-result ceiling. Keep \`limit\` at or near its default of 20 and narrow by category; raise it deliberately, not as a matter of course.
 
@@ -97,11 +98,46 @@ function scoreQuery(entry: RegulationEntry, query: string): number {
     score += 100; // exact id match
   else if (id.includes(q)) score += 50; // id-contains-query
 
+  // Name bucket, taken as the BEST match over the canonical name and every
+  // curated alias (BL-073). Aliases are folded in here rather than given their
+  // own lower tier: no alias in the corpus collides with another record's
+  // canonical name, so a separate tier would add weights without buying
+  // anything — and a measured corpus diff showed the lower tier demoting
+  // `nz-privacy-act` and `br-ai-act` on alias-contains bonuses.
+  //
+  // BL-119 cycle 4 (2026-08-12): before this, `aliases` was read only by
+  // `findMatchedHubFramework`, never by search. Every alias was unreachable —
+  // "Colorado AI Act" returned `us-nist-ai-rmf` (whose summary contains the
+  // phrase, worth 5) because the Colorado record scored 0, and "EU AI Act"
+  // returned `kr-ai-basic-act` the same way. A 5-point wrong answer beat a
+  // 0-point right one.
+  let nameBest = 0;
   if (name === q)
-    score += 80; // exact name match (case-insensitive)
+    nameBest = 80; // exact name match (case-insensitive)
   else if (name.startsWith(q))
-    score += 40; // name-starts-with-query
-  else if (name.includes(q)) score += 20; // name-contains-query
+    nameBest = 40; // name-starts-with-query
+  else if (name.includes(q)) nameBest = 20; // name-contains-query
+
+  // Aliases compare on NORMALIZED form — the semantic their own docstring
+  // defines (see `RegulationSchema.aliases`) — so "SB 24-205", "SB24205" and
+  // en-dash variants all resolve. The canonical name keeps its raw comparison
+  // so existing rankings are untouched. The length floor is load-bearing: `''`
+  // (any punctuation-only query) `startsWith`-matches every alias. The
+  // comparison is INCLUSIVE of the floor, and that matters — `caia` and `gdpr`
+  // both normalize to exactly 4, so requiring one more character silently
+  // un-fixes the `CAIA` lookup and drops `gb-dpa` out of `gdpr`'s second rank.
+  // Both are pinned by tests.
+  const qNorm = normalizeFrameworkName(q);
+  if (qNorm.length >= HUB_MATCH_MIN_LENGTH) {
+    for (const rawAlias of d.aliases ?? []) {
+      const alias = normalizeFrameworkName(rawAlias);
+      if (alias === qNorm) nameBest = Math.max(nameBest, 80);
+      else if (alias.startsWith(qNorm)) nameBest = Math.max(nameBest, 40);
+      else if (alias.includes(qNorm)) nameBest = Math.max(nameBest, 20);
+    }
+  }
+
+  score += nameBest;
 
   if (summary.includes(q)) score += 5; // summary mention is a weak signal
 

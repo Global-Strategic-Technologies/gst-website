@@ -700,9 +700,16 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 **What shipped**: the suite at [`mcp-server/src/docs/testing/uat/`](../../../mcp-server/src/docs/testing/uat/README.md) — a TOC/index, a shared `SETUP.md` covering both credential paths, a case `TEMPLATE.md`, and **all ten family documents** (2026-08-10: scaffolding + UAT-01 and UAT-07; 2026-08-11: the remaining eight). Every expected result was written from an executed run rather than from reading schemas.
 
-> 🟡 **Partially production-verified (2026-08-11), and the suite earned its keep.** The authoring runs were local stdio (a `dist/` build 24 commits behind master), which is why every run log carries an `Env` column. Cycles 2 and 3 covered prompts, resources and the IRL reconstruction path against production; **the eight tool families (UAT-01–08) still have no production run at all**. Cycle 1's two reported findings dissolved on investigation — the ICG aggregation gap was two different answer maps, and the map's absence from the case was the real defect (now published in UAT-06.2); radar annotation staleness is editorial supply, operator-confirmed.
+> ✅ **Fully production-verified (2026-08-12, cycle 4).** Every family now has production evidence. Cycle 4 ran **20 cases against production `0.48.2`**, converting the six remaining tool families from local-stdio authoring runs to proven on the Worker and executing UAT-04.2 for the first time in any environment. The authoring runs had been local stdio (a `dist/` build 24 commits behind master), which is why every run log carries an `Env` column.
 >
-> **Cycle 2 found the one genuine defect.** `gst_radar_brief_today` emitted deal-team-facing prose over aggregated third-party reporting with no provenance framing at all. The requirement existed in the BL-033 risk line, [`OPERATOR_RUNBOOK.md`](OPERATOR_RUNBOOK.md) and the `/hub/mcp/` marketing copy (on the unmerged `feat/mcp-website-marketing` branch) — and in **no executable surface**, including the recorded golden, which encoded the same omission so every comparison against it agreed. Fixed in prompt `0.0.5` / server `0.48.2`, with a unit assertion pinning the instruction because "nobody could tell it was missing" was the actual failure mode.
+> **Note on the cycle-4 headline**: the report's summary line reads "18 Pass" while its own verdict table and per-case evidence log carry **20**. The run logs follow the per-case evidence, so twenty `prod` rows sit behind a report that says eighteen.
+>
+> **Two genuine defects across four cycles, and both are the same shape: a claim that was true in our documentation and false in an executable surface.**
+>
+> - **Cycle 2** — `gst_radar_brief_today` emitted deal-team-facing prose over aggregated third-party reporting with no provenance framing. The requirement existed in the BL-033 risk line, [`OPERATOR_RUNBOOK.md`](OPERATOR_RUNBOOK.md) and the `/hub/mcp/` marketing copy, and in **no executable surface** — including the recorded golden, which encoded the same omission so every comparison against it agreed. Fixed in prompt `0.0.5` / server `0.48.2`, re-run and confirmed in cycle 4.
+> - **Cycle 4** — `search_regulations` never read the curated `aliases` field, so `"Colorado AI Act"` returned `us-nist-ai-rmf` (a voluntary federal framework with no statutory penalties) in place of a statute carrying $20,000 per violation, and `"EU AI Act"` returned the Korean AI Basic Act. The data had been added in BL-073 for `compose_dossier_envelope` and wired into that one consumer; the search index was a second consumer nobody connected, and **a cycle-3 fix of mine closed only the first half**. The website's regulatory-map search was a third. Fixed in `0.49.0` across both surfaces, with UAT-02.4 added as the free-text disambiguation case whose absence let it ship.
+>
+> Cycle 1's two reported findings dissolved on investigation — the ICG aggregation gap was two different answer maps, and the map's absence from the case was the real defect (now published in UAT-06.2); radar annotation staleness is editorial supply, operator-confirmed. Cycle 4's other four observations were suite gaps rather than server defects (one was a tester misreading `_audit.engCost` for the top-level `engCost`, since fixed at the schema's own `.describe()` strings) and are closed in the cases themselves.
 
 #### Acceptance Criteria
 
@@ -717,11 +724,13 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 - [x] Simplest family authored and executed — ✅ UAT-01, three cases, all Pass (local stdio 0.48.1)
 - [x] Hardest family authored and executed — ✅ UAT-07; 07.1–07.5 Pass (local stdio 0.48.1), including the negative body-cache-miss path
-- [~] UAT-09 (the nine prompts) — 🟡 09.0–09.8 executed against production in cycle 2 (09.8 failed and drove the `0.0.5` fix); **09.9 not run** — see below
-- [~] **A production cycle** — 🟡 **partial**. Prompts, resources and the IRL reconstruction path ran against production (cycles 2 and 3). **No tool family has a production run** — UAT-01 through UAT-08 run logs all read `local stdio`. Closing this needs one pass over those eight documents against the Worker
-- [ ] **UAT-09.8 re-run against `0.0.5`** — the unit assertion proves the instruction is in the body; only a live run proves the model follows it
+- [~] UAT-09 (the nine prompts) — 🟡 09.0–09.8 executed against production in cycles 2 and 4; **09.9 not run** — see below
+- [x] **A production cycle** — ✅ **complete (cycle 4, 2026-08-12, `0.48.2`)**. All eight tool families plus prompts, resources and the IRL chain now carry `Env: prod` run-log rows; the parity guard derives the README's status table from them
+- [x] **UAT-09.8 re-run against `0.0.5`** — ✅ Pass. The caveat lands immediately after the "Open in Hub" footer with nothing between them, carrying all four required elements. The unit assertion proved the instruction was in the body; this proves the model follows it
+- [x] **UAT-04.2** (TechPar deep-dive) — ✅ Pass, first execution in any environment. R&D re-based from the three sub-costs (`rdOpEx` ignored, not averaged), zone moved `ahead` → `healthy`, and the deepdive-only ratios populated where quick mode returns null
+- [ ] **UAT-02.4** — authored in cycle 4 as the regression case for the alias defect; cannot pass until `0.49.0` reaches production. Cycle 5's first task
+- [ ] **UAT-07.6** — Blocked twice. Needs Claude Desktop's prompt-argument field, because claude.ai web strips newlines from `filledIrl`. Until it runs, whether the prompt path mislabels a reconstruction as `-prepop` stays open
 - [ ] **UAT-09.9** — held for a populated IRL supplied as markdown. Cycle 3 exercised the `.xlsx` reconstruction path instead, now recorded as [UAT-07.7](../../../mcp-server/src/docs/testing/uat/UAT-07-irl-pipeline.md); it cannot test the verbatim assertion by construction
-- [ ] **UAT-04.2** (TechPar deep-dive) — never executed in any environment
 
 **Tool contracts**
 
@@ -736,7 +745,7 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 - [x] UAT-04 — TechPar — ✅ every headline figure re-derived by hand; `cash` vs `gaap` proven to differ by exactly `rdCapEx`
 - [x] UAT-05 — Tech debt — ✅ the honest-null path and the guard that rejects a placeholder, reporting both violations in one response
 - [x] UAT-06 — ICG — ✅ empty-map structure discovery (the documented remedy for fabricated domain names) contrasted with a scored run; `triggerQuestionAnswered` separates confirmed from assumed gaps
-- [x] UAT-08 — Radar — ✅ authored; all three cases **Blocked** on local stdio (`config-missing`), with the three legitimate non-Pass outcomes tabulated so none is misfiled as a defect
+- [x] UAT-08 — Radar — ✅ authored, and all three cases Pass in production (cycle 4) after being **Blocked** on local stdio (`config-missing`); the three legitimate non-Pass outcomes stay tabulated so none is misfiled as a defect, and UAT-08.1 now records that its ~115 KB response is the expected envelope rather than a fault
 - [x] UAT-09 — the nine `gst_*` prompts — ✅ authored Mode-A-only, with `mcp-server/tests/examples/*.golden.md` named as the reference and the structure-vs-prose judging rule stated
 - [x] UAT-10 — Resources — ✅ 133 resources (4 + 123 + 6); the tool→resource traceability loop closed via a `uri` from UAT-02.2
 

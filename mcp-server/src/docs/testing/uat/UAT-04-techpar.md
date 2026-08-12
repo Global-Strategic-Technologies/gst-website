@@ -5,7 +5,7 @@
 
 Benchmarks a target's technology spend against stage-specific peer ranges. A full pass proves the arithmetic is checkable by hand — which matters more here than anywhere else in the suite, because the output is a number a partner will put in front of an investment committee.
 
-> **Recorded runs are `local stdio`, not production.** The engine is bundled with no external dependency, so these results should hold identically on the Worker. A production run is outstanding.
+> **Verified in production** (cycle 4, 2026-08-12, `0.48.2`). Both cases passed against the Worker — UAT-04.2 for the first time in any environment.
 
 ## Scope
 
@@ -39,6 +39,8 @@ Benchmarks a target's technology spend against stage-specific peer ranges. A ful
 
 `_audit.monetaryBasis` declares the currency for **all** monetary inputs at once; a non-USD currency requires `conversionRate`. Each monetary field needs an `annualizationSource` from the named enum — ad-hoc annualisation is not accepted, which is the guard against a monthly figure silently entering an annual field.
 
+> **`engCost` and `_audit.engCost` are different fields with opposite rules.** The row above is about the **top-level** `engCost` / `prodCost` / `toolingCost`: required in both modes, ignored by the engine in `quick`. Their `_audit` counterparts are **optional**, required only in `deepdive`, and `quick` mode actively **rejects** them (`BL-045-TECHPAR-QUICK-MODE-AUDIT-OVERSPECIFIED`) — supplying audit provenance for an input the engine ignored would be misleading metadata. The tool description for `_audit.engCost` therefore reads "Omit for quick mode" while this table says "required"; both are correct. A cycle-4 tester read the `_audit` string as governing the top-level field and filed the apparent contradiction, so do not re-file it.
+
 **Steps**
 
 1. Paste the target's financials and ask for a TechPar benchmark.
@@ -55,7 +57,7 @@ Every one of these is checkable by hand:
 - `revenuePerEngineer` is **219,047.62** = 18,400,000 ÷ 84.
 - `rdCapExOfRD` is **9.89%** — CapEx as a share of total R&D, not of ARR. Two similarly-named ratios with different denominators; reading the wrong one is the easiest mistake here.
 - Per-category zones differ from the blended zone: `infraHosting` is `underinvest` (3.98% against an 8–18% band) while `infraPersonnel` is `healthy` (3.48% against 2–6%). A single blended verdict would have hidden both.
-- `stageContext` reports `native: "series_bc"` with `canonical: ["series-b", "series-c"]` — TechPar collapses B and C into one cohort, and says so rather than pretending the input survived intact.
+- `stageContext` reports `native: "series_bc"` with `canonical: ["series-b", "series-c"]` — TechPar collapses B and C into one cohort, and says so rather than pretending the input survived intact. **Note the underscore.** ICG performs the same collapse but spells its native value `series-bc` with a hyphen (UAT-06.2), and both are correct — see `src/data/common/stage-adapters.ts`, which defines the two vocabularies separately. Copying an assertion between the two cases produces a mismatch that looks like drift and is not.
 - `gap.underinvestGap` is populated (~2.37M) while `gap.cumulative36` and `annualExcess` are 0, consistent with an `ahead` verdict.
 
 **Failure modes**
@@ -69,9 +71,10 @@ Every one of these is checkable by hand:
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                        |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 32.18% / `ahead`; totals, per-engineer and GAAP delta all re-derived by hand |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                               |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 32.18% / `ahead`; totals, per-engineer and GAAP delta all re-derived by hand                                                                        |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 32.1848% / `ahead`; every headline figure re-derived by hand, including `rdCapExOfRD` 9.89% against total R&D rather than ARR |
 
 ---
 
@@ -100,9 +103,9 @@ Repeat UAT-04.1 with `mode: "deepdive"`, supplying real `engCost`, `prodCost` an
 
 **Run log**
 
-| Date | Tester | Env | Version | Mode | Verdict | Notes |
-| ---- | ------ | --- | ------- | ---- | ------- | ----- |
-|      |        |     |         |      |         |       |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                                                       |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-12 | Cowork | prod | 0.48.2  | B    | Pass    | **First execution in any environment.** R&D re-based to 5,300,000 — `rdOpEx` ignored, not averaged; zone moved `ahead` → `healthy`; `engPctOfRD` 71.698 and `prodPctOfRD` 20.755, both null in quick mode. Omitting `_audit.engCost` rejected with `BL-045-TECHPAR-DEEPDIVE-AUDIT-REQUIRED` |
 
 ---
 

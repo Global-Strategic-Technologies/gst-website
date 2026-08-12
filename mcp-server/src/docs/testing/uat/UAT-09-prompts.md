@@ -217,9 +217,10 @@ Two consequences for a tester:
 
 **Run log**
 
-| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                         |
-| ---------- | ------ | ---- | ------- | ---- | ------- | --------------------------------------------------------------------------------------------- |
-| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Fail    | v0.0.4 — no provenance caveat in any form (6 markers absent). Fixed in 0.0.5; re-run required |
+| Date       | Tester | Env  | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                         |
+| ---------- | ------ | ---- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | Cowork | prod | 0.48.1  | A    | Fail    | v0.0.4 — no provenance caveat in any form (6 markers absent). Fixed in 0.0.5; re-run required                                                                                                                                                                 |
+| 2026-08-12 | Cowork | prod | 0.48.2  | A    | Pass    | **First execution of `0.0.5` anywhere.** Caveat present at char 3031, immediately after the "Open in Hub" footer at 2978 with nothing between them; all four required elements present. Closes the cycle-2 Fail. Zero radar tool calls, as the case now warns |
 
 ---
 

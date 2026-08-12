@@ -13,7 +13,7 @@
 | UAT                                                 | Covers                                                                                                                                   | Cases         | Status      |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ----------- |
 | [UAT-01 — Portfolio](UAT-01-portfolio.md)           | `search_portfolio`, `list_portfolio_facets`                                                                                              | UAT-01.1 – .3 | ✅ authored |
-| [UAT-02 — Regulatory map](UAT-02-regulatory-map.md) | `search_regulations`, `list_regulation_facets`                                                                                           | UAT-02.1 – .3 | ✅ authored |
+| [UAT-02 — Regulatory map](UAT-02-regulatory-map.md) | `search_regulations`, `list_regulation_facets`                                                                                           | UAT-02.1 – .4 | ✅ authored |
 | [UAT-03 — Diligence](UAT-03-diligence.md)           | `generate_diligence_agenda`                                                                                                              | UAT-03.1 – .3 | ✅ authored |
 | [UAT-04 — TechPar](UAT-04-techpar.md)               | `compute_techpar`                                                                                                                        | UAT-04.1 – .2 | ✅ authored |
 | [UAT-05 — Tech debt](UAT-05-tech-debt.md)           | `estimate_tech_debt_cost`                                                                                                                | UAT-05.1 – .3 | ✅ authored |
@@ -129,31 +129,34 @@ The distinction is load-bearing rather than bookkeeping. A local stdio build has
 
 ## Verification status
 
-All ten documents are authored. **Production coverage is partial.**
+All ten documents are authored, and **every family now has production evidence** as of cycle 4.
 
 > **The run logs are the source of truth, not this section.** A document is production-verified exactly when one of its run-log rows carries `Env: prod` — nothing here overrides that. `tests/integration/mcp-uat-parity.test.ts` derives the answer from those tables and fails if this prose disagrees, because three successive edits to this section drifted out of step with them and each was caught only in review.
+>
+> **The guard is family-granular, not case-granular.** One `Env: prod` row anywhere in a document flips that whole family to ✅, so a family can be marked verified while one of its cases has never run — exactly the state UAT-02 is in. Per-case gaps live in **Outstanding** below and are only ever caught by reading, never by CI.
 
-| Family                      | Production evidence                                    |
-| --------------------------- | ------------------------------------------------------ |
-| UAT-01 – 06 (tool families) | **none** — authoring runs only, all `local stdio`      |
-| UAT-07 (IRL pipeline)       | ✅ 07.7 (reconstruction path + verbatim gate), cycle 3 |
-| UAT-08 (radar)              | **none** — Blocked locally, no credentials bind        |
-| UAT-09 (prompts)            | ✅ 09.0 – 09.8, cycle 2                                |
-| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                |
+| Family                      | Production evidence                                                            |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| UAT-01 – 06 (tool families) | ✅ cycle 4 — every case **except UAT-02.4**, unrunnable until `0.49.0` deploys |
+| UAT-07 (IRL pipeline)       | ✅ 07.7 (reconstruction path + verbatim gate), cycle 3                         |
+| UAT-08 (radar)              | ✅ 08.1 – 08.3, cycle 4 — first live-dependency pass                           |
+| UAT-09 (prompts)            | ✅ 09.0 – 09.8, cycles 2 and 4                                                 |
+| UAT-10 (resources)          | ✅ 10.2 – 10.4, cycle 2                                                        |
 
-**Six of the eight tool families have never run in production.** Each of those documents carries its own "a production run is outstanding" note.
+Cycle 4 closed the standing gap: **20 cases passed against production `0.48.2`**, converting six tool families from "authored against local stdio" to proven on the Worker, and executing UAT-04.2 for the first time in any environment.
 
-What production evidence exists has already earned its keep. Cycle 2 found the one real defect: `gst_radar_brief_today` republished aggregated third-party reporting with no provenance framing, a requirement written down in three internal places and present in no executable surface — including the recorded golden, so every comparison against it agreed. Fixed in prompt `0.0.5` with a unit assertion pinning the instruction.
+> **On the cycle-4 headline.** The report's summary line reads "18 Pass"; its own verdict table and per-case evidence log carry **20**. The run-log rows below follow the per-case evidence, which is why twenty `prod` rows sit behind a report that says eighteen.
 
-Cycle 1's two reported findings both dissolved on investigation — the ICG aggregation gap was two different answer maps (now published in UAT-06.2), and radar annotation staleness is editorial supply, operator-confirmed. Cycle 3 exercised the IRL reconstruction path (UAT-07.7), confirmed the provenance machinery self-labels correctly, and surfaced a `map-absent` false positive on a framework the map does carry.
+Each cycle has paid for itself, and the pattern is worth naming: **every real defect so far has been a claim that was true in our documentation and false in an executable surface.** Cycle 2 found `gst_radar_brief_today` republishing aggregated third-party reporting with no provenance framing — a requirement written down in three internal places and present in no shipped surface, including the recorded golden, so every comparison against it agreed. Cycle 4 found `search_regulations` never reading the curated `aliases` field: the data was added in BL-073 for `compose_dossier_envelope` and wired into exactly one consumer, so `"Colorado AI Act"` returned a voluntary federal framework in place of a statute carrying $20,000 per violation. Both were invisible to the test suite because the tests encoded the same omission.
+
+Cycle 1's two reported findings both dissolved on investigation — the ICG aggregation gap was two different answer maps (now published in UAT-06.2), and radar annotation staleness is editorial supply, operator-confirmed. Cycle 3 exercised the IRL reconstruction path (UAT-07.7) and confirmed the provenance machinery self-labels correctly. Cycle 4's other four observations were suite gaps rather than server defects, and are closed in the cases themselves.
 
 **Outstanding:**
 
-- **A production run of UAT-01 – 06 and UAT-08** — the largest gap, and the reason `BACKLOG.md` still carries an unchecked production-cycle item.
-- **UAT-09.8 re-run against `0.0.5`** — the unit test proves the instruction is in the body; only a live run proves the model follows it.
+- **UAT-02.4** — authored in cycle 4 as the regression case for the alias defect. Cannot pass until `0.49.0` reaches production; it is cycle 5's first task.
+- **UAT-07.6** — Blocked twice now. It needs Claude Desktop's prompt-argument field, because claude.ai web strips newlines from `filledIrl`. Until it runs, whether the prompt path mislabels a reconstruction as `-prepop` stays open.
 - **UAT-09.9** — held for a populated IRL supplied as **markdown**, not `.xlsx`. Flattening a workbook is itself a reconstruction and cannot exercise the verbatim assertion; UAT-07.7 covers the reconstruction path instead.
-- **UAT-04.2** (TechPar deep-dive) — never executed in any environment.
 
 ---
 
-_Last updated: 2026-08-11 (BL-119 — prompts, resources and the IRL chain production-verified across cycles 2 and 3; six tool families still outstanding. Production status is now derived from the run logs by the parity guard rather than asserted here by hand.)_
+_Last updated: 2026-08-12 (BL-119 cycle 4 — every family now production-verified; 20 cases passed against `0.48.2`. UAT-02.4 added as the regression case for the `search_regulations` alias defect the cycle found. Production status is derived from the run logs by the parity guard rather than asserted here by hand.)_

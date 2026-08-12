@@ -5,7 +5,7 @@
 
 Scores a target's cloud cost-governance maturity across six domains and returns prioritised recommendations. A full pass proves two things: that the framework's **taxonomy is discoverable** rather than something a model recites, and that the tool distinguishes a **confirmed gap** from an **assumed** one.
 
-> **Recorded runs are `local stdio`, not production.** The engine is bundled with no external dependency, so these results should hold identically on the Worker. A production run is outstanding.
+> **Verified in production** (cycle 4, 2026-08-12, `0.48.2`). Both cases passed against the Worker, and UAT-06.2 reproduced `overallScore` 47 on the first attempt — closing the cycle-1 Gap A.
 
 ## Scope
 
@@ -61,9 +61,10 @@ Scores a target's cloud cost-governance maturity across six domains and returns 
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                  |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 6 canonical domains, 20 questions, all `triggerQuestionAnswered:false` |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                     |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | --------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 6 canonical domains, 20 questions, all `triggerQuestionAnswered:false`                                    |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 6 canonical domains, 27 recommendations, every one `triggerQuestionAnswered: false` |
 
 ---
 
@@ -123,7 +124,7 @@ Question IDs follow `q<domain>_<n>`: `q1_1`–`q1_3`, `q2_1`–`q2_4`, `q3_1`–
 - `showFoundationalFlag` is now **`false`**: both foundational domains (`d1`, `d2`) reached 67%, clearing the threshold that flagged them in UAT-06.1.
 - Recommendations drop from 27 to **12** — answering a question at or above its threshold retires its recommendation.
 - **Every** surviving recommendation now carries `triggerQuestionAnswered: true`. Contrast with UAT-06.1: this is the field that separates "we confirmed this gap" from "we assumed it".
-- `stageContext` reports `native: "series-bc"` with `canonical: ["series-b", "series-c"]` — ICG collapses B and C, and says so.
+- `stageContext` reports `native: "series-bc"` with `canonical: ["series-b", "series-c"]` — ICG collapses B and C, and says so. **Note the hyphen.** TechPar performs the same collapse but spells its native value `series_bc` with an underscore (UAT-04.1), and both are correct — see `src/data/common/stage-adapters.ts`, which defines the two vocabularies separately. Copying an assertion between the two cases produces a mismatch that looks like drift and is not.
 - Recommendations are ordered impact-then-effort: `high`/`quick-win` first, `low`/`project` last.
 
 **Failure modes**
@@ -137,9 +138,10 @@ Question IDs follow `q<domain>_<n>`: `q1_1`–`q1_3`, `q2_1`–`q2_4`, `q3_1`–
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                              |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 47 "Aware", 2 skipped, 12 recs all `triggerQuestionAnswered:true`, stage collapsed |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                   |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 47 "Aware", 2 skipped, 12 recs all `triggerQuestionAnswered:true`, stage collapsed                                                                                                                                                      |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. **Gap A closed** — the published answer map reproduces `overallScore` 47 / "Aware" on the first attempt; weighted mean re-derived by hand (flat average gives 43.5). 12 recs, all `triggerQuestionAnswered: true` |
 
 ---
 

@@ -5,7 +5,7 @@
 
 Estimates the annual carrying cost of accumulated technical debt. A full pass proves the arithmetic and, more importantly, the **fabrication guard**: two inputs that a target frequently cannot supply are required to be `null` rather than plausibly filled in, and the tool rejects the call if they are not.
 
-> **Recorded runs are `local stdio`, not production.** The engine is bundled with no external dependency, so these results should hold identically on the Worker. A production run is outstanding.
+> **Verified in production** (cycle 4, 2026-08-12, `0.48.2`). All three cases passed against the Worker; the earlier `local stdio` rows are kept for provenance.
 
 ## Scope
 
@@ -60,9 +60,10 @@ Estimates the annual carrying cost of accumulated technical debt. A full pass pr
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                         |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 4,796,230/yr; three components summed; `extractionOnly` empty |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                             |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 4,796,230/yr; three components summed; `extractionOnly` empty                                                     |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 4,796,230.15/yr == totalMonthly × 12; the three components sum exactly to the monthly total |
 
 ---
 
@@ -96,9 +97,10 @@ The enum has four values: `irl-stated` (an explicit figure exists), `irl-open` (
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                 |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | --------------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 4,773,384/yr; `incidentMonthly` 0; other components identical to 05.1 |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                              |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | 4,773,384/yr; `incidentMonthly` 0; other components identical to 05.1                                                                                              |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 4,773,384.00/yr — lower because the component is _gone_, not estimated. `incidentMonthly` 0; direct and contextSwitch byte-identical to 05.1 |
 
 ---
 
@@ -127,9 +129,10 @@ Repeat UAT-05.1's numeric values (`incidents: 3`, `mttrHours: 8`) but declare `_
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                        |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | -------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | Both rule IDs reported in a single rejection |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                    |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Pass    | Both rule IDs reported in a single rejection                                                                                                             |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. Both rule IDs reported in one response — no second round trip — each naming the field, the declared source, and the received value |
 
 ---
 

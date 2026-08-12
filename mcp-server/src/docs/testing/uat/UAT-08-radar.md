@@ -44,6 +44,7 @@ Live market-intelligence feed, drawn from Inoreader through a 6-hour cache. This
 - `returned` is the count after the cap and `totalMatched` before it. When they differ the feed was truncated, and `deeplink` opens the full view.
 - `liveInfo` carries `degraded` plus **per-tier** freshness keys — `wireFetchedAt`, `wireCacheHit`, `fyiFetchedAt`, `fyiCacheHit`. The two tiers cache independently, so one flat `fetchedAt` would be ambiguous about which it described. (`get_latest_insights` returns the flat `fetchedAt` / `cacheHit`, because it serves a single tier.)
 - Item `summary` is plain text — source HTML is stripped.
+- **The response is large, and that is expected.** This is the biggest payload the suite produces. Cycle 4 observed **61.4 KB across 32 items** live; the modelled full-Wire case is **114,815 B across 45 items**, against a BL-109 incident where a 143,027-character `search_radar` response exceeded a real client's tool-result ceiling. Expect the live figure to vary with how many FYI items are curated. A client that truncates it, or writes it to a file rather than rendering it inline, is behaving reasonably and is **not** a Fail. There is no `limit` input to narrow with; `category` (UAT-08.3) is the only lever, and `get_latest_insights` (UAT-08.2) is the small-response alternative. See [`radar/CONTRACT.md` § Live tool surface](../../tools/radar/CONTRACT.md).
 
 **Mode differences**
 
@@ -64,9 +65,10 @@ The distinct `error` codes are the point: they let a tester separate "upstream i
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                 |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | `config-missing` — Inoreader credentials are not bound on a local stdio build; expected, not a defect |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                                                                                                  |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | `config-missing` — Inoreader credentials are not bound on a local stdio build; expected, not a defect                                                                                                                                                  |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. Wire 30 + FYI 2 = 32 returned against 62 matched; per-tier `liveInfo` keys confirmed; zero HTML across all 32 summaries. Response was 61.4 KB — large enough that the client persisted it to a file rather than rendering inline |
 
 ---
 
@@ -103,9 +105,10 @@ The distinct `error` codes are the point: they let a tester separate "upstream i
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                      |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | ---------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | `config-missing` — same local-stdio limitation as UAT-08.1 |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                                          |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | `config-missing` — same local-stdio limitation as UAT-08.1                                                                                                                     |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. `limit: 3` returned 2 — a ceiling, not a quota. Same two FYI items as 08.1, so the tools do not disagree; flat `fetchedAt`/`cacheHit` shape as specified |
 
 ---
 
@@ -142,9 +145,10 @@ The distinct `error` codes are the point: they let a tester separate "upstream i
 
 **Run log**
 
-| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                     |
-| ---------- | ------ | ----------- | ------- | ---- | ------- | --------------------------------------------------------- |
-| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | `config-missing` — not reachable from a local stdio build |
+| Date       | Tester | Env         | Version | Mode | Verdict | Notes                                                                                                                                                 |
+| ---------- | ------ | ----------- | ------- | ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-11 | BL-119 | local stdio | 0.48.1  | B    | Blocked | `config-missing` — not reachable from a local stdio build                                                                                             |
+| 2026-08-12 | Cowork | prod        | 0.48.2  | B    | Pass    | First production run. 3 `pe-ma` items, verified a strict subset of 08.1; deeplink carries the category. Whole family cost exactly 3 calls, no retries |
 
 ---
 
