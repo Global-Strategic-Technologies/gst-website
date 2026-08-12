@@ -61,21 +61,22 @@ Every body shape mandates a closing **`BL-045-VERIFY`** fenced YAML block — th
 
 Prompt versions from the commit log (release commits pair prompt + server semver):
 
-| Prompt version | Milestone                                                                                                                                                                  |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0.0.1–0.0.5    | Born as `gst_diligence_sweep` (BL-032.6 Scenario 7); live-exercise refinements, deeplink coverage.                                                                         |
-| 0.1.0          | BL-045 PR B: renamed `gst_irl_ingestion`; `mode`/`verbosity`/`forceTools` args; `_audit` tool-schema enforcement lands (server 0.4.0 — the SanFran pivot).                 |
-| 0.2.0          | Body rewrite: fill-ratio pre-flight, 9 inclusion gates, meta fence, (J)/(K), extract-only dispatch, tool-error degradation.                                                |
-| 0.3.0–0.4.0    | `compose_dossier_envelope` forcing function; hash-bind + schema hardening (server 0.11–0.12).                                                                              |
-| 0.5.3          | BL-049 empirically-validated subset: derived-tier discipline, `BL-045-VERIFY` block, verifier hardening (ADR-0003).                                                        |
-| 0.6.x          | BL-051: envelope precheck via `validate_irl_provenance` (converge citations cheap, envelope once).                                                                         |
-| 0.7.x–0.9.0    | BL-053 array-form citations; BL-056/058/060/061/062 VERIFY-block enrichment (precheck, toolErrors, compaction, trigger families).                                          |
-| 0.10.0–0.12.0  | BL-059 tier-discipline Rule 0; BL-063 server-side `defaultFiredFrameworks` enforcement; BL-064 batch-call discipline.                                                      |
-| 0.13.0–0.16.0  | BL-067/072 citation regex + xlsx-reconstruction provenance-gap; BL-070 `requireVerbatimBody`; BL-071 server-sourced `toolCallCounts`.                                      |
-| 0.17.0–0.18.0  | BL-076 body-by-hash via `prepare_irl_body` (ADR-0002); BL-079 prompt-render cache pre-pop + skip-prepare directive.                                                        |
-| 0.19.0–0.20.0  | BL-086 L0–L2 simplification: worked-example payloads elided behind `embedToolWorkedExamples`; authorial-intent reword.                                                     |
-| 0.21.0–0.21.1  | Taxonomy decoupled to the `gst://irl/source` generator-source embed (library article retired from the reconciliation role); server-derived meta-fence version placeholder. |
-| 0.22.0–0.22.1  | Step 3 `limit` capped to the client tool-result display ceiling (server 0.47.0); worked-example client deidentified as SanFran, byte-only rename (server 0.48.1).          |
+| Prompt version | Milestone                                                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0.0.1–0.0.5    | Born as `gst_diligence_sweep` (BL-032.6 Scenario 7); live-exercise refinements, deeplink coverage.                                                                           |
+| 0.1.0          | BL-045 PR B: renamed `gst_irl_ingestion`; `mode`/`verbosity`/`forceTools` args; `_audit` tool-schema enforcement lands (server 0.4.0 — the SanFran pivot).                   |
+| 0.2.0          | Body rewrite: fill-ratio pre-flight, 9 inclusion gates, meta fence, (J)/(K), extract-only dispatch, tool-error degradation.                                                  |
+| 0.3.0–0.4.0    | `compose_dossier_envelope` forcing function; hash-bind + schema hardening (server 0.11–0.12).                                                                                |
+| 0.5.3          | BL-049 empirically-validated subset: derived-tier discipline, `BL-045-VERIFY` block, verifier hardening (ADR-0003).                                                          |
+| 0.6.x          | BL-051: envelope precheck via `validate_irl_provenance` (converge citations cheap, envelope once).                                                                           |
+| 0.7.x–0.9.0    | BL-053 array-form citations; BL-056/058/060/061/062 VERIFY-block enrichment (precheck, toolErrors, compaction, trigger families).                                            |
+| 0.10.0–0.12.0  | BL-059 tier-discipline Rule 0; BL-063 server-side `defaultFiredFrameworks` enforcement; BL-064 batch-call discipline.                                                        |
+| 0.13.0–0.16.0  | BL-067/072 citation regex + xlsx-reconstruction provenance-gap; BL-070 `requireVerbatimBody`; BL-071 server-sourced `toolCallCounts`.                                        |
+| 0.17.0–0.18.0  | BL-076 body-by-hash via `prepare_irl_body` (ADR-0002); BL-079 prompt-render cache pre-pop + skip-prepare directive.                                                          |
+| 0.19.0–0.20.0  | BL-086 L0–L2 simplification: worked-example payloads elided behind `embedToolWorkedExamples`; authorial-intent reword.                                                       |
+| 0.21.0–0.21.1  | Taxonomy decoupled to the `gst://irl/source` generator-source embed (library article retired from the reconciliation role); server-derived meta-fence version placeholder.   |
+| 0.22.0–0.22.1  | Step 3 `limit` capped to the client tool-result display ceiling (server 0.47.0); worked-example client deidentified as SanFran, byte-only rename (server 0.48.1).            |
+| 0.22.2         | Doubt-handling directive: proceed on the binding hash when a client delivers the expanded prompt as an attached document, and probe rather than reconstruct (server 0.49.1). |
 
 ## Operating it
 

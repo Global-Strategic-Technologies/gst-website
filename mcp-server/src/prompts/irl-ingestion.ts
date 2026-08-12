@@ -456,6 +456,19 @@ const ENVELOPE_COMPOSITION_DIRECTIVE = [
   '- `claims` — EVERY load-bearing claim the dossier will make: every monetary figure (ARR, hosting, R&D, salary, carry cost), every headcount number, every regulatory framework cited, every TechPar verdict, every ICG maturity score, every comparable code name surfaced in (G), every TechPar/Tech Debt/ICG headline number from (C)/(D)/(E). Each carries `{claim, citation, tier}`. The tool renders (K) from this array AND runs an internal `validate_irl_provenance` pass.',
   '- `gaps` — categorized entries you have already identified, using the enum: `defaulted-dimension` (any dimension defaulted to `unknown`), `extraction-only` (Tech Debt MTTR null, ICG defaults, etc.), `gate-elided` (each tool whose gate failed and was not forced), `conditional-trigger` (EU AI Act / NIS2 fired without explicit Section 09 backing), `currency-assumption` (TechPar run in non-USD basis), `map-absent` (regulatory frameworks named but not in the Map). Do NOT pre-populate `provenance-gap`, `tier-mismatch`, or `tier-fabrication` — the tool auto-appends those based on the citation verdicts.',
   '- **Body submission — partner-paste prepop mode (this path)**: a `**Body-binding hash:**` directive appears above, and the server has ALREADY pre-populated the IRL body cache at prompt-render time from the operator-supplied `filledIrl` arg. **SKIP `prepare_irl_body`** — pass the directive value as `irlBodyHash` directly to `compose_dossier_envelope` AND every `validate_irl_provenance` call. The IRL body is no longer a public input field on this tool — it is fetched server-side from the cache via `irlBodyHash`. Report `irlSource: partner-paste-verbatim-prepop` (the strongest provenance form — the body never round-tripped through model emission). Report `filledIrl.bytes` as the value the envelope output returns in `serverCachedBodyBytes` (the server measures the cache entry; under prepop there is no model emission to self-measure).',
+  // BL-119 cycle 5. A real 57KB run in Claude Desktop surfaced this: above
+  // some size the client delivers the expanded prompt as an ATTACHED DOCUMENT
+  // rather than conversation turns, so the model concludes it is *reading* a
+  // render rather than *holding* bound arguments, and stops to ask whether it
+  // should proceed. The instinct is good — it is refusing to act on provenance
+  // it cannot account for. But the recovery it proposes is to call
+  // `prepare_irl_body` with the body it can see, which completes successfully
+  // and silently downgrades `irlSource` from server-witnessed
+  // (`-prepop`) to model-asserted (`partner-paste-verbatim`). An operator who
+  // does not know the difference will accept it. The right behaviour was known
+  // and lived nowhere executable — the same failure shape as the BL-119 cycle-2
+  // radar caveat — so it is a numbered directive here rather than a runbook note.
+  "- **If you doubt you were invoked properly, proceed anyway — do NOT reconstruct.** Some clients deliver a large expanded prompt as an attached document rather than as conversation turns, so this body may reach you looking like a transcript you are reading rather than arguments you were called with. That appearance is a client rendering artifact and says nothing about whether the render happened. The `**Body-binding hash:**` directive above is the evidence that it did: the server computed it from the operator's `filledIrl` argument and pre-populated the cache in the same request. Proceed on that hash. **Do NOT call `prepare_irl_body`, and do NOT re-emit or reconstruct the body**, even if you can see its text — doing so replaces server-witnessed provenance with your own assertion and quietly weakens the audit grade the operator asked for. If you want to confirm the cache is live before committing to the run, call `validate_irl_provenance` with the directive hash and ONE citation and no body; a `verified` verdict proves the entry exists server-side. Only if that probe returns a cache miss should you fall back to `prepare_irl_body`, and if you do, report `irlSource: partner-paste-verbatim` honestly rather than `-prepop`.",
   "- `irlBodyHash` — copy verbatim from the prompt body's `**Body-binding hash:**` directive. That is the partner-authoritative `pass-bound` form. The envelope tool verifies `sha256(rehydratedBody).slice(0,16) === irlBodyHash` after cache re-hydrate and rejects on mismatch. In your VERIFY block, report `hashBindResult: pass-bound`. See § Step 5 — verification harness for the discipline rules.",
   "- `irlSource` — REQUIRED. Pass `partner-paste-verbatim-prepop` on this path (the directive appears above, you skipped `prepare_irl_body`, the server pre-populated the cache from the operator's prompt arg). Match this value in `filledIrl.source` of the VERIFY block.",
   '- `requireVerbatimBody` — accuracy-critical run gate. If the operator invoked this prompt with `requireVerbatimBody: true`, you MUST pass that value through VERBATIM to `compose_dossier_envelope.requireVerbatimBody`. In that mode the server REFUSES any `irlSource` other than the partner-paste forms (`partner-paste-verbatim` or `partner-paste-verbatim-prepop`); both are accepted, so on this prepop path the gate passes. If the operator did not set the flag, omit `requireVerbatimBody` from the tool call (defaults to false — drafting / exploration mode).',
@@ -1068,8 +1081,8 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.22.1',
-  lastReviewedAt: '2026-08-06',
+  version: '0.22.2',
+  lastReviewedAt: '2026-08-12',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   build: (args) => {

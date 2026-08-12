@@ -152,7 +152,16 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // real client; every occurrence repo-wide was renamed to the SanFran code
 // name. Byte-only rename — no directive, gate, argument, tool, or URI
 // changes. Drifts solely from that one prompt name@version tuple.
-const EXPECTED_MANIFEST_HASH = '39dda8102a1ab9732da0928af15d1eee1499bd94378536ff03a1606135d99e19';
+// Doubt-handling rebaseline (server 0.49.1): gst_irl_ingestion v0.22.1 →
+// v0.22.2. A real 57KB Desktop run (BL-119 cycle 5) showed the client
+// delivering a large expanded prompt as an attached document, which led the
+// model to conclude it was reading a render rather than holding bound
+// arguments and to offer a `prepare_irl_body` fallback that silently
+// downgrades irlSource from server-witnessed to model-asserted. The body now
+// tells it to proceed on the binding hash and to probe rather than
+// reconstruct. Body-only change — no argument, tool, or URI changes; drifts
+// solely from that one prompt name@version tuple.
+const EXPECTED_MANIFEST_HASH = 'cbb14874b7d1b976ce92fe9a41a9390b986368f1d3b8f99be5c7791ae917a1d7';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
