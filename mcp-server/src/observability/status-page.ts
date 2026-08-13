@@ -177,7 +177,12 @@ export async function buildStatusHtml(env: Env): Promise<string> {
         return `<tr><td>${esc(r.id)}</td><td>${state}</td><td>${esc(r.severity)}</td><td>${esc(r.summary)}</td></tr>`;
       })
       .join('') ??
-    '<tr><td colspan="4">No evaluation summary yet — the evaluator cron runs every 15 minutes.</td></tr>';
+    // BL-122 — `readLastEval` returns null for an absent key AND an unreachable
+    // Upstash, so naming only the cron asserts a cause. During an outage the
+    // summary probably exists and simply could not be read, while the Substrate
+    // panel above already says Upstash is unreachable. Same fabricated-default
+    // family as the badges, expressed in copy: hedge the cause, don't invent it.
+    '<tr><td colspan="4">No evaluation summary readable — either the cron has not run yet, or Upstash is unreachable (see Substrate above).</td></tr>';
 
   return `<!doctype html>
 <html lang="en">

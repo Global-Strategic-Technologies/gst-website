@@ -62,15 +62,22 @@ Five instances of this bug were found one at a time by reading the rendered page
 
 The procedure: enumerate every function whose value reaches this page, and ask each one _"what do you return when Upstash is unavailable?"_
 
-| Reader                  | Returns when unavailable                   | Row              | Verdict                                                                                                          |
-| ----------------------- | ------------------------------------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `probeMcp`              | `'degraded'`                               | Upstash          | **Real verdict** — it attempts a write; an unbound secret means the substrate genuinely is unusable, not unknown |
-| `readInoreaderStatus`   | `status: 'unknown'`                        | Inoreader        | Was falling into the `!== 'degraded'` ok arm — the page printed the same word in two colours                     |
-| `probeRadarSnapshotAge` | `null`                                     | Radar freshness  | Was rendering `STALE`                                                                                            |
-| `readInoreaderSpend`    | `total: 0`                                 | Zone-1 budget    | Was rendering a fabricated `0/100 (0%)`                                                                          |
-| `isCircuitOpen`         | `null` → collapsed to `circuitOpen: false` | Circuit breaker  | Was rendering an observed `closed`                                                                               |
-| `readLastEval`          | `null`                                     | SLO alerts       | Correct — distinct "No evaluation summary yet"                                                                   |
-| `readStatusMetrics`     | `null`                                     | I/O wait + audit | Correct — distinct "metrics unavailable"                                                                         |
+| Reader                  | Returns when unavailable                   | Row              | Verdict                                                                                                                                                 |
+| ----------------------- | ------------------------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `probeMcp`              | `'degraded'`                               | Upstash          | **Real verdict** — it attempts a write; an unbound secret means the substrate genuinely is unusable, not unknown                                        |
+| `readInoreaderStatus`   | `status: 'unknown'`                        | Inoreader        | Was falling into the `!== 'degraded'` ok arm — the page printed the same word in two colours                                                            |
+| `probeRadarSnapshotAge` | `null`                                     | Radar freshness  | Was rendering `STALE`                                                                                                                                   |
+| `readInoreaderSpend`    | `total: 0`                                 | Zone-1 budget    | Was rendering a fabricated `0/100 (0%)`                                                                                                                 |
+| `isCircuitOpen`         | `null` → collapsed to `circuitOpen: false` | Circuit breaker  | Was rendering an observed `closed`                                                                                                                      |
+| `readLastEval`          | `null`                                     | SLO alerts       | Distinct empty state — but it returns `null` for an absent key **and** an unreachable Upstash, so the copy hedges the cause rather than naming the cron |
+| `readStatusMetrics`     | `null`                                     | I/O wait + audit | Correct — distinct "metrics unavailable"                                                                                                                |
+
+**Two readers feed `/health` but render nothing here** — listed so their absence reads as scope, not as a clean bill of health:
+
+- **`readAclSelfCheck`** returns `{ status: 'unknown' }` for unbound, missing key, and throw alike — the _identical shape_ to `readInoreaderStatus`, one of the rows this defect was actually found in. **An ACL row added to this page later walks straight into the same trap.**
+- **`readRefreshHealth`** — ask the same question before it gets a row.
+
+**The header badge is a third consumer, not just the rows.** `probeMcp` and `readInoreaderStatus` also feed the derived `health.ok` behind `OPERATIONAL` / `DEGRADED`, which has its own deliberate semantics: `inoreader: 'unknown'` is intentionally _not_ degraded (it means "no recent traffic"), so `ok` stays true. One reader does not map to one row.
 
 The four middle rows now carry `read`/`evaluated` signals so the display can tell a measurement from a default. **`circuitOpen` and `inoreaderSpend.total` keep their fail-open values** — that behaviour is correct and other consumers depend on it; the signal sits _beside_ the value rather than replacing it.
 

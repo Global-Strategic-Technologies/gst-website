@@ -733,7 +733,7 @@ Expected (right after first deploy, before any radar traffic):
 
 ```json
 {
-  "ok": false,
+  "ok": true,
   "version": "0.1.0",
   "gitSha": "abc1234",
   "phase": "BL-032 Phase 5 (observability)",
@@ -746,7 +746,7 @@ Expected (right after first deploy, before any radar traffic):
 
 `gitSha` shows the 7-character short SHA of the commit you deployed (matches `git rev-parse --short HEAD` at deploy time). If it shows `"unknown"`, the deploy bypassed the `npm run deploy:staging` wrapper script — `npx wrangler deploy --env staging` directly skips the GIT_SHA injection.
 
-`ok: false` is **expected** initially because `inoreader: 'unknown'` — but `inoreader: 'unknown'` is NOT a degraded signal, just "no recent traffic." It flips to `'ok'` after the first successful radar-tool call (B.3.6 below).
+`ok: true` here even though `inoreader: 'unknown'`, because **`unknown` is not a degraded signal** — it means "no recent traffic", not "broken". `ok` is derived as `upstashMcp === 'ok' && inoreader !== 'degraded'`, and `health.test.ts` asserts exactly this case. (This sample previously showed `ok: false` with the unknown named as its cause, which contradicted that behaviour; corrected under BL-122.) `inoreader` flips to `'ok'` after the first successful radar-tool call (B.3.6 below). Note the payload is abridged — the live response also carries `circuitOpen`/`circuitRead`, `inoreaderSpend`, `aclSelfCheck` and refresh-token health.
 
 `upstashMcp: 'ok'` confirms the MCP DB is reachable (rate-limiter, circuit-breaker, and OAuth-token writes all land here). If it's `'degraded'`, see [§ A.3](#a3--upstash--provision-the-mcp-database) for which secrets to verify.
 

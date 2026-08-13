@@ -103,7 +103,10 @@ describe('buildStatusHtml', () => {
 
   it('renders a graceful placeholder before the first evaluation', async () => {
     const html = await buildStatusHtml(ENV);
-    expect(html).toContain('No evaluation summary yet');
+    // Copy hedges the cause: `readLastEval` returns null for an absent key AND
+    // an unreachable Upstash, so naming only the cron would assert one.
+    expect(html).toContain('No evaluation summary readable');
+    expect(html).toContain('Upstash is unreachable');
   });
 
   it('HTML-escapes summary content (rule summaries can embed observed strings)', async () => {
