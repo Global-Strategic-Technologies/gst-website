@@ -333,6 +333,36 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
+### BL-123: `gst_irl_ingestion` takes its inputs and its own provenance claims on trust
+
+**Source**: production run 2026-08-13 (Kestrel IRL) — hash mismatch investigation | **Effort**: Medium | **Status**: Open
+
+**As an** operator running the IRL sweep from a real client, **I want** the server to refuse a body the client destroyed on the way in and to compute the provenance grade itself **so that** a dossier cannot look clean while resting on mangled input or on a claim nobody checked.
+
+**What it is.** Four findings in one surface, sharing one theme: the prompt trusts claims about its own inputs — from the client, and from the model.
+
+1. **Claude Desktop flattens `filledIrl` and nothing notices.** Every prompt-argument field renders as a single-line `<input>`, so a pasted multi-line markdown IRL loses every newline. Reproduced against the production artifact: 141 newlines → 0, byte length −1, content differing at **140 positions**. The server hashes what it received and reports it honestly; the markdown structure the dossier depends on is simply gone. Same reader-collapse shape as the six status-page defects [BL-122](#bl-122-mcp-server--misc-ux-pass-audit-levels-prompt-doc-status-page--closed-2026-08-13) closed — a degraded input converted into a plausible success before anything downstream can see it. Repair is impossible: `\n → " "` is lossy.
+2. **The provenance grade is model-asserted, and its evidence is a copyable string.** `irlSource: partner-paste-verbatim-prepop` rests on the _presence_ of the `**Body-binding hash:**` directive, which survives export — so a replayed payload asserts the strong form. Narrower than first framed: outside the 4-hour TTL a replay fails loudly, and inside it the bytes really are partner-supplied. What is forgeable is the claim that _this run_ was freshly invoked — and the fact that the grade is self-reported at all. BL-121 already did this conversion for `toolCallCounts`; `irlSource` never got it.
+3. **The VDR article is embedded whole on every render** — 16.3 KB for a 9-row folder-label table.
+4. **Argument descriptions bury the default past the form's truncation point.** Six of eight fields; an operator reading `requireVerbatimBody` never learns it defaults to false.
+
+**Scope correction worth keeping.** Three further payload cuts were investigated and rejected on evidence: the workbook column contract is mandated in every body by [ADR-0015](../adr/0015-irl-canonical-body-reads-full-workbook.md) and the wrong-IRL pre-flight depends on its vocabulary; Steps 1b/4a/6a were deliberately retained by BL-086 as fabrication guards and total ~7.5 KB, not the 20.2 KB an early measurement suggested. Recorded so they are not re-proposed.
+
+#### Acceptance Criteria
+
+- [ ] A structurally destroyed body is refused at every entry point it can arrive through — prompt render, `prepare_irl_body`, and `validate_irl_provenance` — with the render halt being what the operator actually sees
+- [ ] The refusal test is narrow and certain (zero newlines above a byte floor), not a ratio heuristic that could reject a legitimately long-lined IRL
+- [ ] `irlSource` is **capped** by server-held provenance metadata rather than derived from it — an asserted `-prepop` is downgraded when the metadata says otherwise, reconstruction claims pass through untouched, and nothing is ever promoted
+- [ ] The `requireVerbatimBody` gate still rejects a reconstruction run (the inversion an early design would have shipped)
+- [ ] A replayed payload can no longer claim `partner-paste-verbatim-prepop`
+- [ ] The provenance store degrades quietly when unavailable and never falls back to in-memory on the Worker
+- [ ] Every argument description leads with its valid values and its default, ahead of the prose
+- [ ] The VDR taxonomy is inlined with a drift guard against the canonical Library article
+- [ ] The operator-facing newline hazard is documented in both IRL runbooks
+- [ ] Payload reduction measured and reported as actuals, not the estimate
+
+---
+
 ### ~~BL-121: The server-authoritative tool-call counter could not survive the Worker~~ — CLOSED 2026-08-12
 
 **Status**: **Closed in the session that opened it** (prompt `0.22.4` / server `0.49.3`, [ADR-0016](../adr/0016-run-scoped-durable-tool-call-counters.md)). Recorded rather than pruned because the failure mode is a repeat and the fix carries an accepted residual.

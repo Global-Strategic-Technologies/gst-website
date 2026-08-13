@@ -364,15 +364,15 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // again; the `run` scope definition now states the window and the body-keying
 // in every body.
 const EXPECTED_HASH_INTERACTIVE =
-  '375bf5db2065426b2a1b9f2f5d14c77b3c33129246d78724c06c989c5313879e';
+  'b810154588f8e35ac61ed637d1e766af6894bed4e44069b912e17fbcf530912b';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '6edf638290ce2ac69ee9bfc44aebf559e923b31417d72d0cc835332c7052b79a';
+  'd83789ae0afe3413d1055b9db9133ccb08719501af9ca378b0315c176d9fdfc9';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'ec75b5ef36f8c3b945c8a382d311d2395b9a0b329cf29b8548f825c50401aea8';
+  '8476915b996fb434b4890947d7c9cbf4f99153971f9ccf33f6732831aabb1726';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'cc80cec5067ddc7bd10e26a654302aa9f472916be45b69b4eadff9a1280968c7';
+  'c83a6afecec562492ca47f7803f915578282510faa143eacf8f97d6d08afbb86';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'e351f1c4ab10871044651b13e49e67bc8e33b20002d38346cc6389aafd823b75';
+  '332843f8bfa695a395ccfc7ed965ef221f1ba1171184afca7dedaf79ffc71314';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -384,11 +384,11 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  'a761a0767ac1149bf71a1b73c1b832e53125b6bb3df6c480cee2d59c987d3167';
+  '424bcdbc7d8a916f237b8f4da9ef2d77fb1a3841c651a20431a07584e9980f21';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  '7544ec80748bb597c54ddf08e9d6ce9675e627e7dc5f55a83726cafbc9c98e01';
+  '060c6cc59d31b4c4d464878136c21809aae568c10534be02883aea5768c8ed60';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
-  'd5523884f69575d674e1f0f44e265dfa23ebc9e4384a958d2e4fa3bea45042f8';
+  '219d607047bf1b2f4a6c0b1eef30473e8bd7530cfa70cca0ed0c9075b5319e00';
 // extract-only is exempt from the audit gate, so its body is byte-identical at
 // every level. Reference the constant rather than repeating the literal: that
 // makes the scenario name's claim structural instead of two values that can

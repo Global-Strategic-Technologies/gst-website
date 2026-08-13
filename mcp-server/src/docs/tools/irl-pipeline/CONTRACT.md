@@ -174,6 +174,16 @@ The pipeline terminus and the largest input surface in the family. Every field b
 
 **`irlSource`**: `partner-paste-verbatim` · `partner-paste-verbatim-prepop` · `model-reconstruction-from-xlsx` · `model-reconstruction-trimmed` · `placeholder`. The two reconstruction modes auto-append a `provenance-gap:` entry, because in those modes the model controls both the body and its hash — the hash-bind guarantees nothing about fidelity to a partner source.
 
+**`irlSource` is CAPPED by the server, not taken at face value (BL-123).** The value you pass is an assertion; the tool checks it against a server-held provenance record for the body hash and applies a **monotone downgrade** before anything reads it:
+
+- An asserted `partner-paste-verbatim-prepop` is capped to `partner-paste-verbatim` when the record shows the body was written by `prepare_irl_body` rather than by the prompt render. A `provenance-gap:` entry discloses the cap.
+- If no record is readable (absent, expired, or the store is unavailable), a `-prepop` assertion stands but is disclosed as unverified. Other assertions get no marker.
+- **Nothing is ever promoted**, and reconstruction / `placeholder` assertions pass through untouched — the server can disprove the strongest claim but cannot substantiate the weaker ones, since it never sees where the model obtained bytes it merely relayed.
+
+Both internal consumers — the `requireVerbatimBody` gate and the reconstruction disclosure — read the **capped** value, so `Bl070VerbatimBodyRequiredError` quotes the capped value in its message rather than what you asserted. Because a cap only weakens and the gate accepts both partner-paste forms, capping never changes a gate outcome. See [ADR-0018](../../../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md).
+
+**`prepare_irl_body` rejects a structurally destroyed body.** A body with zero newline characters and more than 2,000 bytes is refused as `invalid-input` before a hash is minted or anything is cached — the signature of a client whose argument field collapsed a multi-line paste to one line. `validate_irl_provenance` refuses the same shape on its direct-body branch.
+
 **`defaultFiredFrameworks` must not overlap `conditionalTriggersFired`.** The partition is the point: one list is "enumerated in Section 09", the other is "fired despite not being enumerated".
 
 ### Output shape

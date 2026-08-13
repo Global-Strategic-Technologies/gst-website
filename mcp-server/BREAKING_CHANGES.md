@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-a9efbba23d5c1c489cbfdd507ec46e86918ba8943ef7a976a0c1dede8c9d52a6
+7d7d8e00ddf6504e79d9706fefde6044ddaccbd2bec5cc59705ee487c5fd1bd5
 ```
 
 Computed over (sorted):
@@ -26,12 +26,37 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.23.0` (audit levels replace the verbosity axis — see the 0.50.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.24.0` (flattened-body refusal, capped `irlSource`, inlined VDR taxonomy — see the 0.51.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.51.0 — 2026-08-13 — a flattened IRL body is refused, and `irlSource` is capped by the server (`0.23.0` → `0.24.0`)
+
+**Additive on the tool surfaces; behaviour-changing on the prompt render.** Manifest hash moves on the prompt tuple. Nothing is removed from any input schema.
+
+**What was wrong.** Two defects, one shape — the prompt took claims about its own inputs on trust.
+
+First, **Claude Desktop renders every prompt argument as a single-line input**, so pasting a multi-line markdown IRL collapses every newline to a space before the server sees it. Measured on the production artifact that surfaced this: 141 newlines became 0, the byte length moved by −1, and the content differed at 140 positions. Nothing detected it — the server hashed what it received, cached it and reported the hash honestly, so the run produced a dossier citing a document structure that no longer existed. The −1 delta made it read like an off-by-one; it is total loss of line structure.
+
+Second, **`irlSource: partner-paste-verbatim-prepop` was a model assertion whose only evidence was a copyable string** — the presence of the `**Body-binding hash:**` directive, which survives export. Narrower than it sounds: outside the 4-hour TTL a replay fails loudly, and inside it the bytes really are operator-supplied. What was forgeable is the claim that _this run_ was freshly invoked, plus the fact that the grade was self-reported at all.
+
+**What changed.**
+
+- **A body with zero newlines and more than 2,000 bytes is refused** at all four surfaces it can arrive through: the prompt render halts with an explanation in a single 1.8 KB message (no resource embeds beside a refusal), and `prepare_irl_body`, `validate_irl_provenance` and the registry prepop each reject it. Repair is impossible — `
+ → " "` is lossy — so refusal is the only correct response. The check tests for _total_ collapse deliberately: a real IRL already runs ~560 bytes/line, so a ratio heuristic would false-positive on legitimate bodies.
+- **`irlSource` is now CAPPED against server-held provenance, never derived.** A new `mcp:irl-body-prov:<irlBodyHash>` record (first-write-wins, 4 h) says whether the prompt render or `prepare_irl_body` wrote the body. An asserted `-prepop` is capped to `partner-paste-verbatim` when the record says `prepare-tool`; nothing is ever promoted; reconstruction and `placeholder` assertions pass through untouched. **Full derivation was rejected** — it would have handed every xlsx-reconstruction run a partner-paste grade and inverted the `requireVerbatimBody` gate that exists to catch reconstructions.
+- **New output on the envelope**: a gap-list entry disclosing a cap, and separately one disclosing a `-prepop` claim that could not be verified. This is an **output-shape addition**, and the manifest hash does not see input/output shape — so this ledger entry is the only record. The unverified marker fires **only** for `-prepop` assertions; marking every metadata-absent run would have grown every rendered gap list in the suite.
+- **The 16.3 KB `gst://library/vdr-structure` embed is gone**, replaced by the nine-row folder table it existed to supply. A rendered `standard` payload measured on the production artifact goes **153.8 KB → 139.5 KB**, and builds now return two messages rather than three. The URI stays in the body as a provenance caption; a drift guard pins the inlined table against the canonical article.
+- **Every argument description leads with its valid values and its default.** Six of eight previously buried the default past the form's truncation point — an operator reading `requireVerbatimBody` saw "Set true for accuracy-critical work — a regulatory deliverable," and never learned it defaults to false.
+
+**Rollout is order-free in both directions.** Every new input is optional and every new output additive; a `0.50.0` client against a `0.51.0` server sees a slightly longer gap list and nothing else. Provenance records minted before deploy do not exist, so runs in the first four hours take the metadata-absent path and carry the model's assertion labelled unverified — self-closing once the TTL turns over.
+
+**Operator impact.** The newline hazard is now documented in both IRL runbooks: a paste into a single-line client field will be refused, and the fix is to attach the file and use interactive mode.
 
 ---
 

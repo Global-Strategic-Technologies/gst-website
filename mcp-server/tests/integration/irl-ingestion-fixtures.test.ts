@@ -490,14 +490,65 @@ describe('cross-fixture invariants', () => {
     }
   });
 
-  it('every fixture build embeds the two Library resources as subsequent messages', () => {
+  it('every fixture build embeds the IRL generator source as its second message', () => {
+    // BL-123: two messages, not three. The VDR article stopped being embedded
+    // when its nine-row taxonomy was inlined into the body.
     for (const fx of [SELL_SIDE_FIXTURE, SPARSE_FIXTURE, WORKBOOK_COLUMNS_FIXTURE]) {
       const result = irlIngestionPrompt.build({ filledIrl: fx });
-      expect(result.messages.length).toBe(3);
-      const r1 = result.messages[1].content;
-      const r2 = result.messages[2].content;
-      expect(r1.type).toBe('resource');
-      expect(r2.type).toBe('resource');
+      expect(result.messages.length).toBe(2);
+      expect(result.messages[1].content.type).toBe('resource');
     }
+  });
+
+  // ─── BL-123 — the flattened-body halt ────────────────────────────────────
+  //
+  // The production failure this whole item exists for: Claude Desktop renders
+  // each prompt argument as a single-line input, so a pasted multi-line IRL
+  // arrives with every newline collapsed to a space. Measured on the real
+  // artifact: 141 newlines → 0, and the run completed looking clean.
+  describe('flattened body halt', () => {
+    /** The exact transformation the client performs. Not a synthetic approximation. */
+    const flatten = (body: string): string => body.replace(/\n/g, ' ').trim();
+
+    it('renders the halt instead of the sweep, in exactly one message', () => {
+      const result = irlIngestionPrompt.build({ filledIrl: flatten(SELL_SIDE_FIXTURE) });
+      // One message: no resource embeds beside a refusal.
+      expect(result.messages.length).toBe(1);
+      const text = result.messages[0].content;
+      expect(text.type).toBe('text');
+      if (text.type !== 'text') return;
+      expect(text.text).toContain('halted before extraction');
+      expect(text.text).toContain('no line breaks at all');
+      // The sweep must be entirely gone — not merely prefixed with a warning.
+      expect(text.text).not.toContain('Sweep plan');
+      expect(text.text).not.toContain('Body-binding hash');
+    });
+
+    it('tells the operator it is a client limitation, not their error', () => {
+      const result = irlIngestionPrompt.build({ filledIrl: flatten(SELL_SIDE_FIXTURE) });
+      const text = result.messages[0].content;
+      if (text.type !== 'text') throw new Error('expected text');
+      expect(text.text).toContain('client limitation, not an error on your part');
+    });
+
+    it('forbids the three recoveries that would convert a caught failure into a silent one', () => {
+      const result = irlIngestionPrompt.build({ filledIrl: flatten(SELL_SIDE_FIXTURE) });
+      const text = result.messages[0].content;
+      if (text.type !== 'text') throw new Error('expected text');
+      expect(text.text).toContain('Do NOT reconstruct');
+      expect(text.text).toContain('Do NOT proceed with the flattened text');
+      expect(text.text).toContain('prepare_irl_body');
+    });
+
+    it('leaves an intact multi-line body completely unaffected', () => {
+      // The paired negative: without it, a predicate that fired on everything
+      // would pass every assertion above.
+      const result = irlIngestionPrompt.build({ filledIrl: SELL_SIDE_FIXTURE });
+      expect(result.messages.length).toBe(2);
+      const text = result.messages[0].content;
+      if (text.type !== 'text') throw new Error('expected text');
+      expect(text.text).not.toContain('halted before extraction');
+      expect(text.text).toContain('Sweep plan');
+    });
   });
 });
