@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-f61390ec2fe880eff6f859494d76e5e0e4014f6923cf67f4f8df3b6560f36247
+d8ce6a7fe28cb3ce5dabb1f84ad92dff93ad35ef5e141f700994e7b7d17c3055
 ```
 
 Computed over (sorted):
@@ -26,12 +26,34 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.3` (workbook column contract — see the 0.49.2 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.4` (scope-conditional counter identities — see the 0.49.3 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.49.3 — 2026-08-12 — the server-authoritative counter survives the Worker (`0.22.3` → `0.22.4`)
+
+**Prompt body change + a new Upstash key family.** No tool, argument, or Resource URI changes; the manifest hash moves solely on that prompt's `name@version` tuple. Output-shape change is **additive**: `compose_dossier_envelope` now returns `countersScope` alongside `serverToolCallCounts`.
+
+**What was wrong.** BL-071 made the server authoritative for tool-call counts so the BL-045-VERIFY block would stop depending on the model's memory of its own behaviour, and pinned the operator check `precheck.iterations === serverToolCallCounts.validate_irl_provenance.succeeded`. That identity holds on stdio, where `createServer` runs once per process. **On the remote Worker it cannot**: `createServer` runs per HTTP request, so a fresh `InMemoryToolCallCounters` is built for every call and the envelope's snapshot can only ever contain the request it is inside. Observed on the 2026-08-12 Kestrel production run — the envelope reported `validate_irl_provenance` as all-`null` while the model honestly reported `precheck.iterations: 2`. The prompt was directing operators to fail runs on a check that could not pass, on the transport the team actually uses.
+
+**What changed.**
+
+- Counts for the three IRL-pipeline tools (`validate_irl_provenance`, `compose_dossier_envelope`, `prepare_irl_body`) now accumulate in Upstash under `mcp:irl-run-counts:<irlBodyHash>`, TTL 4h (matched to the BL-076 body cache, so a counter never outlives the body it counts).
+- `compose_dossier_envelope` returns **`countersScope`**: `session` (stdio), `run` (Worker + durable store read successfully), `request` (no store bound, or the read failed). Every regime that cannot support the identities now says so rather than reporting a false green.
+- The prompt states each identity conditionally, pins the transport-classed `errorsEncountered` subset closed (`transport-timeout`, `transport-disconnect`), and replaces the `attemptsTotal === attempted` equality with a reconciliation that stays arithmetic: durable writes happen at wrapper exit, so an attempt that never reached the server was never countable.
+
+**Rollout is order-free.** A 0.22.3 client reading a 0.49.3 server sees one unknown field it ignores; a 0.22.4 client reading a 0.49.2 server gets no `countersScope` and is told to report `null` rather than infer one.
+
+**Failure posture is quiet** — a counter fault never fails a run (`retry: false` on its Redis client keeps a brownout off the response path). Consequence, accepted deliberately: a write lost mid-run under-reports while scope still reads `run`, which is a false red an operator investigates. False greens are what this change refuses.
+
+**Rollback**: revert the commit and restore the prior hashes. The Upstash keys expire on their own; nothing reads them after a revert.
+
+**Version discipline — the first exercise of the rule recorded in this file's header.** `0.22.3` shipped in PR #414 and staging auto-deployed on the green test run, so those bytes have been **served**. That makes this a version **bump**, not an in-place rebaseline — unlike the three moves BL-120 made inside `0.22.3` while it was still unpushed.
 
 ---
 

@@ -29,6 +29,12 @@ import {
   computeIrlBodyHash,
   type ComposeDossierEnvelopeInput,
 } from '../../src/schemas/compose-dossier-envelope';
+import { Client } from '@modelcontextprotocol/client';
+import { InMemoryTransport } from '@modelcontextprotocol/server';
+import { createServer } from '../../src/server';
+import type { RunCallCounters } from '../../src/metrics/run-call-counters';
+import type { ToolCallCounterEntry, ToolCallCounterEvent } from '../../src/metrics/with-metrics';
+import type { Env } from '../../src/worker';
 
 const SAMPLE_IRL = `# IRL — BL-071-TestCo
 
@@ -75,7 +81,17 @@ function baseEnvelopeInput(): ComposeDossierEnvelopeInput {
   };
 }
 
-describe('BL-071 — precheck derivation identity', () => {
+/**
+ * The STDIO topology: one long-lived process, so a single
+ * `InMemoryToolCallCounters` spans the whole session and the identity holds
+ * from the in-process map alone.
+ *
+ * BL-121 relabelled this suite. It was previously read as proving the identity
+ * universally — but sharing one counter map across both handlers *is* what
+ * stdio is, and the Worker builds a fresh map per request. The Worker suite
+ * below is the one that models the transport the team actually uses.
+ */
+describe('BL-071 — precheck derivation identity (stdio topology)', () => {
   it('serverToolCallCounts mirrors withToolMetrics counter increments across success / rejected / errored', async () => {
     const counters = new InMemoryToolCallCounters();
     const metrics: MetricsContext = {
@@ -237,5 +253,287 @@ describe('BL-071 — precheck derivation identity', () => {
     // would have classified it as rejected. (We don't wrap with metrics here
     // so we just assert the structured rejection text directly.)
     void Bl076BodyCacheMissError; // referenced to keep the import live
+  });
+});
+
+// ─── BL-121 — the WORKER topology ────────────────────────────────────────
+//
+// The suite above shares one counter map between handlers. That is stdio: one
+// process, one map, whole session. The Worker builds a fresh `createServer` —
+// and therefore a fresh `InMemoryToolCallCounters` — for EVERY HTTP request,
+// so the envelope's snapshot can only ever hold its own request and the
+// BL-071 identity is structurally unsatisfiable from that map alone. Observed
+// in production 2026-08-12: `validate_irl_provenance: {attempted: null, …}`
+// while the model honestly reported `precheck.iterations: 2`.
+//
+// These cases drive TWO `createServer` calls sharing one durable store, which
+// is what a real request pair is. Hand-building two `MetricsContext`s would
+// re-encode the topology by assertion — the same stand-in that hid the bug —
+// and could not catch a wiring fault in `server.ts`, which is where it lived.
+
+/** In-memory `RunCallCounters` reproducing the real contract, `{}` and all. */
+class FakeRunCounters implements RunCallCounters {
+  readonly rows = new Map<string, Record<string, ToolCallCounterEntry>>();
+  /** Flip to make `snapshot` report the store as unreadable. */
+  unreadable = false;
+  recordCalls = 0;
+
+  async record(runKey: string, toolName: string, event: ToolCallCounterEvent): Promise<void> {
+    this.recordCalls++;
+    const row = this.rows.get(runKey) ?? {};
+    const entry = (row[toolName] ??= { attempted: 0, succeeded: 0, rejected: 0, errored: 0 });
+    entry.attempted++;
+    if (event === 'success') entry.succeeded++;
+    else if (event === 'rejected') entry.rejected++;
+    else if (event === 'errored') entry.errored++;
+    this.rows.set(runKey, row);
+  }
+
+  async snapshot(runKey: string): Promise<Record<string, ToolCallCounterEntry> | null> {
+    // `null` is reserved for "unreadable"; a missing row is `{}` — the same
+    // distinction `UpstashRunCallCounters` has to reconstruct, because
+    // `hgetall` returns null for a missing key.
+    if (this.unreadable) return null;
+    return this.rows.get(runKey) ?? {};
+  }
+}
+
+/**
+ * One Worker HTTP request: its own `createServer`, hence its own in-process
+ * counter map. The durable store and the body cache are the substrate that
+ * outlives it.
+ */
+async function openRequest(
+  runCounters: RunCallCounters | undefined,
+  bodyCache: InMemoryIrlBodyCache
+): Promise<Client> {
+  const env: Env = {};
+  const server = createServer(env, {
+    // A bound metricsSink is what puts `createServer` on the Worker path.
+    metricsSink: { write: () => undefined },
+    keyOwner: 'bl-121-test',
+    irlBodyCache: bodyCache,
+    runCounters,
+  });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await server.connect(serverTransport);
+  const client = new Client({ name: 'bl-121-worker-topology', version: '0.0.0' });
+  await client.connect(clientTransport);
+  return client;
+}
+
+function countsOf(result: unknown): {
+  counts: Record<string, ToolCallCounterEntry>;
+  scope: string | undefined;
+} {
+  const structured = (result as { structuredContent?: Record<string, unknown> })
+    .structuredContent as {
+    serverToolCallCounts?: Record<string, ToolCallCounterEntry>;
+    countersScope?: string;
+  };
+  return { counts: structured?.serverToolCallCounts ?? {}, scope: structured?.countersScope };
+}
+
+const ARR_CITATION = 'Section 00 — Annual recurring revenue: $45.2M';
+
+describe('BL-121 — precheck derivation identity (Worker topology)', () => {
+  it('holds across requests: validate in requests 1 and 2, compose in request 3', async () => {
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+    const hash = computeIrlBodyHash(SAMPLE_IRL);
+    await bodyCache.set(hash, SAMPLE_IRL);
+
+    // Two verification calls, each in its OWN request — the shape that made
+    // the in-process map useless.
+    for (const path of ['a', 'b']) {
+      const client = await openRequest(durable, bodyCache);
+      await client.callTool({
+        name: 'validate_irl_provenance',
+        arguments: { irlBodyHash: hash, citations: [{ path, citation: ARR_CITATION }] },
+      });
+    }
+
+    // Compose in a third request. Its own map knows nothing of the two above.
+    const composeClient = await openRequest(durable, bodyCache);
+    const result = await composeClient.callTool({
+      name: 'compose_dossier_envelope',
+      arguments: baseEnvelopeInput(),
+    });
+    const { counts, scope } = countsOf(result);
+
+    expect(scope).toBe('run');
+    // THE identity, on the transport where it previously could not hold.
+    expect(counts.validate_irl_provenance).toEqual({
+      attempted: 2,
+      succeeded: 2,
+      rejected: 0,
+      errored: 0,
+    });
+    // The envelope still reports itself in-flight, from the in-process map.
+    expect(counts.compose_dossier_envelope).toEqual({
+      attempted: 1,
+      succeeded: 0,
+      rejected: 0,
+      errored: 0,
+    });
+  });
+
+  it('cross-request re-call merges to {attempted: 2, succeeded: 1}', async () => {
+    // The arithmetic `CONTRACT.md` and the prompt's `N / N−1` wording both
+    // document, executed rather than asserted. A single-request test can never
+    // reach it: the first call has to COMPLETE (durable {1,1}) before the
+    // second reads it back.
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+    await bodyCache.set(computeIrlBodyHash(SAMPLE_IRL), SAMPLE_IRL);
+
+    const first = await openRequest(durable, bodyCache);
+    const firstResult = await first.callTool({
+      name: 'compose_dossier_envelope',
+      arguments: baseEnvelopeInput(),
+    });
+    // Fresh run: durable empty, only this call's in-flight delta.
+    expect(countsOf(firstResult).counts.compose_dossier_envelope).toEqual({
+      attempted: 1,
+      succeeded: 0,
+      rejected: 0,
+      errored: 0,
+    });
+
+    const second = await openRequest(durable, bodyCache);
+    const secondResult = await second.callTool({
+      name: 'compose_dossier_envelope',
+      arguments: baseEnvelopeInput(),
+    });
+    expect(countsOf(secondResult).counts.compose_dossier_envelope).toEqual({
+      attempted: 2,
+      succeeded: 1,
+      rejected: 0,
+      errored: 0,
+    });
+  });
+
+  it('degrades honestly to `request` scope when no durable store is bound', async () => {
+    const bodyCache = new InMemoryIrlBodyCache();
+    const hash = computeIrlBodyHash(SAMPLE_IRL);
+    await bodyCache.set(hash, SAMPLE_IRL);
+
+    const validateClient = await openRequest(undefined, bodyCache);
+    await validateClient.callTool({
+      name: 'validate_irl_provenance',
+      arguments: { irlBodyHash: hash, citations: [{ path: 'a', citation: ARR_CITATION }] },
+    });
+
+    const composeClient = await openRequest(undefined, bodyCache);
+    const result = await composeClient.callTool({
+      name: 'compose_dossier_envelope',
+      arguments: baseEnvelopeInput(),
+    });
+    const { counts, scope } = countsOf(result);
+
+    // Today's behaviour, now NAMED rather than silent: the earlier request's
+    // call is absent and the label says the identity cannot hold.
+    expect(scope).toBe('request');
+    expect(counts.validate_irl_provenance).toBeUndefined();
+    // And the run still succeeds — a missing counter weakens a report, it does
+    // not corrupt a dossier.
+    expect((result as { isError?: boolean }).isError).toBeUndefined();
+  });
+
+  it('downgrades `run` to `request` when the store is bound but unreadable', async () => {
+    // Without this branch, a bound-but-unreadable store reports `run` over
+    // request-scoped numbers — every earlier row missing under a label
+    // promising the identity holds. A total false red.
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+    const hash = computeIrlBodyHash(SAMPLE_IRL);
+    await bodyCache.set(hash, SAMPLE_IRL);
+
+    const validateClient = await openRequest(durable, bodyCache);
+    await validateClient.callTool({
+      name: 'validate_irl_provenance',
+      arguments: { irlBodyHash: hash, citations: [{ path: 'a', citation: ARR_CITATION }] },
+    });
+
+    durable.unreadable = true;
+    const composeClient = await openRequest(durable, bodyCache);
+    const result = await composeClient.callTool({
+      name: 'compose_dossier_envelope',
+      arguments: baseEnvelopeInput(),
+    });
+    expect(countsOf(result).scope).toBe('request');
+  });
+
+  it('keys a validate call by its explicit hash, not the inline body', async () => {
+    // `validate_irl_provenance` gives `filledIrl` precedence for MATCHING and
+    // does NOT cross-check the two fields against each other, so preferring
+    // the body for KEYING would split one run across two counter keys.
+    //
+    // The two args must DISAGREE for this to test anything. An earlier draft
+    // passed `filledIrl: SAMPLE_IRL` with its own hash — both branches of
+    // `runKeyOf` then return the same string, so inverting the precedence
+    // left the test green. Caught by running that inversion deliberately;
+    // an assertion that cannot fail is the exact defect class BL-121 exists
+    // to close, one layer up.
+    //
+    // Disagreeing args are the realistic interactive shape: the model inlines
+    // a body it reconstructed while still copying the bound hash from the
+    // prompt directive. The bound hash is the run — that is what compose
+    // reads back.
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+    const boundHash = computeIrlBodyHash(SAMPLE_IRL);
+    await bodyCache.set(boundHash, SAMPLE_IRL);
+    const driftedBody = `${SAMPLE_IRL}\n- A row the bound body does not carry\n`;
+    expect(computeIrlBodyHash(driftedBody)).not.toBe(boundHash);
+
+    const client = await openRequest(durable, bodyCache);
+    await client.callTool({
+      name: 'validate_irl_provenance',
+      arguments: {
+        filledIrl: driftedBody,
+        irlBodyHash: boundHash,
+        citations: [{ path: 'a', citation: ARR_CITATION }],
+      },
+    });
+
+    expect(durable.rows.get(boundHash)?.validate_irl_provenance?.succeeded).toBe(1);
+    expect(durable.rows.has(computeIrlBodyHash(driftedBody))).toBe(false);
+  });
+
+  it('counts a differently-bodied validate under a different key — a true short count', async () => {
+    // If a model verifies body A and composes body B, the run legitimately
+    // comes up short: it validated bytes it did not submit. Forcing both onto
+    // one key would manufacture agreement the run never earned — a false
+    // green, which is worse than the honest gap.
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+    const composedHash = computeIrlBodyHash(SAMPLE_IRL);
+    await bodyCache.set(composedHash, SAMPLE_IRL);
+    const otherBody = `${SAMPLE_IRL}\n- Extra row the composed body does not have\n`;
+
+    const validateClient = await openRequest(durable, bodyCache);
+    await validateClient.callTool({
+      name: 'validate_irl_provenance',
+      arguments: { filledIrl: otherBody, citations: [{ path: 'a', citation: ARR_CITATION }] },
+    });
+
+    const composeClient = await openRequest(durable, bodyCache);
+    const result = await composeClient.callTool({
+      name: 'compose_dossier_envelope',
+      arguments: baseEnvelopeInput(),
+    });
+
+    // Recorded — under the other body's key, reachable rather than merged.
+    expect(durable.rows.get(computeIrlBodyHash(otherBody))?.validate_irl_provenance).toBeDefined();
+    expect(countsOf(result).counts.validate_irl_provenance).toBeUndefined();
+  });
+
+  it('does not durably count tools that belong to no run', async () => {
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+    const client = await openRequest(durable, bodyCache);
+    await client.callTool({ name: 'list_regulation_facets', arguments: {} });
+    expect(durable.recordCalls).toBe(0);
   });
 });
