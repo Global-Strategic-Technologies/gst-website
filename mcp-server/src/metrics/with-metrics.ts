@@ -38,6 +38,7 @@ import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
 import type { MetricSink } from './sinks/_interface';
 import type { IrlBodyCache } from '../cache/irl-body-cache';
+import type { RunCallCounters } from './run-call-counters';
 import type { AuditContext } from '../audit/audit-sink';
 import { newEntryId } from '../audit/redaction';
 import { AUDIT_SCHEMA_VERSION, type AuditEntry, type AuditOutcome } from '../audit/entry';
@@ -59,8 +60,49 @@ export interface MetricsContext {
    * Desktop session); per-request in the Worker path (each fetch handler
    * builds a fresh `InMemoryToolCallCounters`). Undefined in tests / default
    * NOOP context — backward-compatible no-op.
+   *
+   * **BL-121**: that per-request scope on the Worker is why this map alone
+   * cannot satisfy the BL-071 identity there — see {@link runCounters}.
    */
   readonly counters?: ToolCallCounters;
+  /**
+   * BL-121 — durable, run-scoped counter accumulator. Survives isolate
+   * rotation, so `compose_dossier_envelope` can read counts recorded by
+   * `validate_irl_provenance` calls made in EARLIER requests. Without it the
+   * BL-071 identity `precheck.iterations === validate_irl_provenance.succeeded`
+   * is structurally unsatisfiable on the Worker, however correct the wrapper is.
+   *
+   * Bound on the Worker path when Upstash is available; absent on stdio (where
+   * {@link counters} already spans the session) and in tests. See
+   * `src/docs/adr/0016-run-scoped-durable-tool-call-counters.md`.
+   */
+  readonly runCounters?: RunCallCounters;
+  /**
+   * BL-121 — resolves the durable run key for a tool call, or `undefined` when
+   * the call belongs to no run. Only the IRL tools carry one, so every other
+   * tool skips the durable write entirely and pays nothing.
+   *
+   * Lives at the `createServer` wiring site because that is the only place
+   * that knows both the tool registry and how each tool's args yield a key.
+   */
+  readonly runKeyOf?: (toolName: string, args: readonly unknown[]) => string | undefined;
+  /**
+   * BL-121 — which regime the counters are in, and therefore whether the
+   * BL-071 precheck identities can be checked at all. Decided at context
+   * construction, where the transport and the Upstash binding are both known.
+   *
+   * **Deliberately not inferred from whether a durable read returned data**:
+   * `compose_dossier_envelope` writes its own row before reading, so the run
+   * key is non-empty on every Worker call and such an inference would collapse
+   * to a constant — labelling every run checkable whether or not it is.
+   *
+   *   - `'session'` — stdio; the in-process map spans the session. Identity holds.
+   *   - `'run'` — Worker with durable counters. Identity holds.
+   *   - `'request'` — Worker without them, or the read failed. Identity does
+   *     NOT hold; the prompt tells the model not to fabricate and the operator
+   *     to stand down rather than fail a good run.
+   */
+  readonly countersScope?: CountersScope;
   /**
    * BL-076 — optional IRL-body cache. When present, `prepare_irl_body` writes
    * the body keyed by its canonical 16-hex hash on every call;
@@ -156,6 +198,12 @@ export interface ToolCallCounters {
   record(toolName: string, event: ToolCallCounterEvent): void;
   snapshot(): Record<string, ToolCallCounterEntry>;
 }
+
+/**
+ * BL-121 — the regime a run's counters are in. See
+ * `MetricsContext.countersScope` for how each value is reached.
+ */
+export type CountersScope = 'session' | 'run' | 'request';
 
 /**
  * Default in-process accumulator. Map mutations are safe because:
@@ -376,10 +424,31 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
       ctx.counters?.record(name, 'attempted');
       maybeWarnSoftLimit(ctx.rateLimit, args);
     }
+
+    // BL-121 — the durable record happens at wrap EXIT, never here. A Redis
+    // round-trip in front of `inner` would let an Upstash brownout stall the
+    // tool call itself, which is exactly what the counter's fail-quiet posture
+    // promises it will not do. The cost is stated in ADR-0016: a call whose
+    // isolate dies mid-handler is lost durably, where an entry write would
+    // have caught it. Every other outcome — structured rejection, thrown
+    // error — still reaches an exit path below.
+    const recordDurable = async (event: ToolCallCounterEvent): Promise<void> => {
+      if (eventType !== 'tool_invocation' || !ctx.runCounters || !ctx.runKeyOf) return;
+      const runKey = ctx.runKeyOf(name, args);
+      if (!runKey) return;
+      // Awaited, and the reason is narrow: `ctx.waitUntil` IS threaded on this
+      // path and does not cancel, but it gives no ordering guarantee against
+      // the NEXT request — and the next request is precisely who reads this.
+      // `record` never throws; it swallows and safeLogs.
+      await ctx.runCounters.record(runKey, name, event);
+    };
+
     try {
       const result = await inner(...args);
       if (eventType === 'tool_invocation') {
-        ctx.counters?.record(name, detectCounterOutcome(result, false));
+        const outcome = detectCounterOutcome(result, false);
+        ctx.counters?.record(name, outcome);
+        await recordDurable(outcome);
       }
       // B1 fix: detectOutcome MUST NOT take down the caller. A buggy projection
       // (e.g. accessing a field on an unexpected result shape) defaults to
@@ -412,7 +481,9 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
       return result;
     } catch (err) {
       if (eventType === 'tool_invocation') {
-        ctx.counters?.record(name, detectCounterOutcome(undefined, true));
+        const outcome = detectCounterOutcome(undefined, true);
+        ctx.counters?.record(name, outcome);
+        await recordDurable(outcome);
       }
       emit(ctx.sink, {
         event_type: eventType,

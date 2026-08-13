@@ -29,7 +29,13 @@
  */
 
 import type { McpServer } from '@modelcontextprotocol/server';
-import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
+import {
+  NOOP_METRICS_CONTEXT,
+  withToolMetrics,
+  type CountersScope,
+  type MetricsContext,
+  type ToolCallCounterEntry,
+} from '../metrics/_index';
 import { irlIngestionPrompt } from '../prompts/irl-ingestion';
 import {
   Bl063CertificationNotRegulationError,
@@ -103,8 +109,22 @@ export async function handleComposeDossierEnvelopeTool(
     // itself shows `attempted: 1, succeeded: 0` because the wrap is still
     // in-flight at snapshot time (audit M1 — desired semantic: "I'm reporting
     // on the call I'm currently inside").
-    const serverToolCallCounts = metrics?.counters?.snapshot();
-    const result = serverToolCallCounts ? { ...baseResult, serverToolCallCounts } : baseResult;
+    //
+    // BL-121 — merge the durable run-scoped counts over the per-request map,
+    // and report which regime the numbers are in.
+    const inProcess = metrics?.counters?.snapshot();
+    const durable = metrics?.runCounters
+      ? await metrics.runCounters.snapshot(engineInput.irlBodyHash ?? '')
+      : undefined;
+    // A `null` snapshot means the store could not be READ (not "no calls") —
+    // reporting `run` over per-request numbers would claim the identity holds
+    // while every earlier row is missing, which is a total false red.
+    const countersScope: CountersScope | undefined =
+      durable === null && metrics?.countersScope === 'run' ? 'request' : metrics?.countersScope;
+    const serverToolCallCounts = mergeCounts(inProcess, durable ?? undefined);
+    const result = serverToolCallCounts
+      ? { ...baseResult, serverToolCallCounts, ...(countersScope ? { countersScope } : {}) }
+      : baseResult;
     return toolOk(result, 'Dossier envelope composed.');
   } catch (error) {
     // BL-045 PR B audit BL-2 → ALT-1: surface hash-bind diagnostic
@@ -129,6 +149,48 @@ export async function handleComposeDossierEnvelopeTool(
     const message = error instanceof Error ? error.message : String(error);
     return toolFail('internal-error', `Failed to compose dossier envelope: ${message}`);
   }
+}
+
+/**
+ * BL-121 — combine the durable run-scoped counts with the per-request map.
+ *
+ * **Neither "durable + in-process" nor "durable over in-process" is correct.**
+ * The per-request map accumulates *every* call made in this request, not just
+ * the one in flight — so plain addition double-counts a completed same-request
+ * call, and plain override loses the envelope's own in-flight attempt (the
+ * `{attempted: 1, succeeded: 0}` shape `CONTRACT.md` documents).
+ *
+ * The rule:
+ *   - outcomes (`succeeded` / `rejected` / `errored`) come from durable, which
+ *     is the only view that spans requests;
+ *   - `attempted` = durable `attempted` + the **in-flight delta** from
+ *     in-process (`attempted − succeeded − rejected − errored`), which is 1
+ *     for the call currently inside the wrapper and 0 for completed ones.
+ *
+ * With no durable snapshot at all — stdio, unbound Upstash, or an unreadable
+ * store — the in-process map is used wholesale, which is exactly right in the
+ * one regime where it already spans the session (stdio) and honestly partial
+ * in the others (reported as `countersScope: 'request'`).
+ *
+ * Worked example, the supported re-call path: a first compose succeeds
+ * (durable `{attempted: 1, succeeded: 1}`), the model re-calls with updated
+ * arrays, and the second call's snapshot reads durable `{1,1}` plus its own
+ * in-flight delta of 1 → `{attempted: 2, succeeded: 1}` — the `N / N−1` shape
+ * the prompt already documents.
+ */
+export function mergeCounts(
+  inProcess: Record<string, ToolCallCounterEntry> | undefined,
+  durable: Record<string, ToolCallCounterEntry> | undefined
+): Record<string, ToolCallCounterEntry> | undefined {
+  if (!durable) return inProcess;
+  const out: Record<string, ToolCallCounterEntry> = {};
+  for (const [tool, entry] of Object.entries(durable)) out[tool] = { ...entry };
+  for (const [tool, live] of Object.entries(inProcess ?? {})) {
+    const inFlight = live.attempted - live.succeeded - live.rejected - live.errored;
+    const base = (out[tool] ??= { attempted: 0, succeeded: 0, rejected: 0, errored: 0 });
+    base.attempted += Math.max(0, inFlight);
+  }
+  return out;
 }
 
 export function registerComposeDossierEnvelopeTool(

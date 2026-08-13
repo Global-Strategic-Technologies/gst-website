@@ -34,6 +34,7 @@ export {
   type ToolCallCounterEntry,
   type ToolCallCounterEvent,
   type ToolCallCounters,
+  type CountersScope,
 } from './with-metrics';
 export { NoopSink, type MetricSink } from './sinks/_interface';
 export {
