@@ -1,7 +1,7 @@
 ---
 tool: compose_dossier_envelope
 version: v1
-lastAuthored: 2026-08-10
+lastAuthored: 2026-08-13
 schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 ---
 
@@ -154,7 +154,7 @@ The pipeline terminus and the largest input surface in the family. Every field b
 | `promptVersion`            | `/^\d+\.\d+\.\d+$/` — **optional**                              | server overrides it from the registry; not load-bearing |
 | `modelVersion`             | `/^[a-z][a-z0-9_-]*\d[a-z0-9_-]*$/`                             | e.g. `claude-opus-5`; bare `unknown` is rejected        |
 | `mode`                     | `full` \| `extract-only`                                        |                                                         |
-| `verbosity`                | `verbose` \| `compact`                                          |                                                         |
+| `auditLevel`               | `standard` \| `enhanced` \| `debug`                             | Selects which markdown blocks come back — see Output    |
 | `transactionContext`       | `sell-side` \| `buy-side` \| `value-creation` \| `unknown`      |                                                         |
 | `fillRatio`                | `{ percent 0–100, substantiveCells ≥0, totalCells ≥1, status }` | `status`: `halt` \| `partial` \| `ok`                   |
 | `gatesPassed`              | array of the orchestrated-tool enum                             | may be empty                                            |
@@ -180,9 +180,13 @@ The pipeline terminus and the largest input surface in the family. Every field b
 
 ```typescript
 {
-  metaFenceMarkdown: string,        // paste verbatim as the dossier's first content
-  gapListMarkdown: string,          // paste verbatim as section (J)
-  provenanceFooterMarkdown: string, // paste verbatim as section (K)
+  // BL-122 — the two optional blocks are OMITTED (key absent, never `undefined`)
+  // at levels that must not render them. `emitInstructions` names exactly the
+  // blocks the response carried; a block that is absent was withheld
+  // deliberately and must not be reconstructed.
+  metaFenceMarkdown?: string,        // auditLevel 'debug' only — dossier's first content
+  gapListMarkdown: string,           // every level — paste verbatim as section (J)
+  provenanceFooterMarkdown?: string, // 'enhanced' and above — paste verbatim as section (K)
   provenanceVerification: { total, verified, verifiedFuzzy, partnerSupplied,
                             unverified, autoAppendedGaps, tierMismatches, tierFabrications },
   serverCachedBodyBytes: number,    // echoes prepare_irl_body's byteLength — cache round-trip proof

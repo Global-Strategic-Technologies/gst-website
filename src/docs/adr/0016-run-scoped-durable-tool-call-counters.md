@@ -1,6 +1,6 @@
 # ADR-0016: Tool-call counters are run-scoped and durable; every regime that cannot support the audit identity says so
 
-- **Status**: Accepted 2026-08-12 (prompt `0.22.4`, server `0.49.3`)
+- **Status**: Accepted 2026-08-12 (prompt `0.22.4`, server `0.49.3`); **validated on the production Worker 2026-08-13** — four separate MCP requests returned `countersScope: run` with `validate_irl_provenance: {attempted: 2, succeeded: 2}` accumulated across earlier requests, and a re-call returned the documented `{2, 1}` merge shape. A run against the same endpoint minutes earlier, pre-deploy, reproduced the original defect. See the [BL-121 stanza](../development/BACKLOG.md).
 - **Source initiative**: BL-121 (see the stanza in [`BACKLOG.md`](../development/BACKLOG.md); repairs the remote half of BL-071, whose in-process counter is described in [`ARCHITECTURE.md`](../../../mcp-server/src/docs/ARCHITECTURE.md))
 
 ## Context

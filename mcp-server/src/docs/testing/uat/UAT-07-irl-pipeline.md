@@ -287,18 +287,18 @@ Those four array fields are the most common first-call mistake: they are require
 
 **Steps**
 
-1. Call with the hash from UAT-07.3, `mode: "full"`, `verbosity: "compact"`, `transactionContext: "buy-side"`, a `fillRatio` of `{ percent: 24, substantiveCells: 16, totalCells: 67, status: "partial" }`, two `gatesPassed`, one `gatesElided`, empty arrays for the other two, three `claims` (two tier-1, one tier-2), and one `extraction-only` gap.
+1. Call with the hash from UAT-07.3, `mode: "full"`, `auditLevel: "debug"`, `transactionContext: "buy-side"`, a `fillRatio` of `{ percent: 24, substantiveCells: 16, totalCells: 67, status: "partial" }`, two `gatesPassed`, one `gatesElided`, empty arrays for the other two, three `claims` (two tier-1, one tier-2), and one `extraction-only` gap.
 
 **Expected result**
 
-- Three markdown blocks come back: `metaFenceMarkdown`, `gapListMarkdown`, `provenanceFooterMarkdown`.
+- Three markdown blocks come back: `metaFenceMarkdown`, `gapListMarkdown`, `provenanceFooterMarkdown`. **`debug` is deliberate here** — this case exists to prove the emitted envelope, and it is the only level that returns all three. At `enhanced` the meta fence is absent; at `standard` so is the provenance footer. That is the feature, not a failure: re-run at `debug` before filing.
 - In the meta fence, `fixtureFillRatio` is **`0.24`** — `percent: 24` is rendered as a 0–1 fraction, not echoed as `24`.
 - `promptVersion` appears in the fence with a **server-derived** value regardless of what you passed. Do not assert a specific version number here; assert only that it is present and semver-shaped.
 - `provenanceVerification` reports `verified: 3, unverified: 0` for the three real claims, with `autoAppendedGaps: 0`.
 - The tier-2 claim (a derivation — an annualised figure computed from a monthly one) verifies against the same bullet as its tier-1 source. Tier is a discipline label, not a different matching rule.
 - `serverCachedBodyBytes` equals UAT-07.3's `byteLength` (**826**) — the cache round-trip, proven end to end.
 - `provenanceFooterMarkdown` renders one line per claim, each ending `[✓ verified]`.
-- `emitInstructions` tells the caller to transcribe the three blocks verbatim and not to hand-edit auto-appended gaps.
+- `emitInstructions` names exactly the blocks this response carried — three, at `debug` — tells the caller to transcribe them verbatim, states that a block not listed was withheld deliberately and must not be reconstructed, and says not to hand-edit auto-appended gaps.
 - `serverToolCallCounts.compose_dossier_envelope` reads **`attempted: 1, succeeded: 0`**. **This is correct and is not a defect.** The counter records `attempted` at wrapper entry and `succeeded` at wrapper exit, and this tool snapshots the counters from inside its own handler — so at snapshot time it genuinely has not returned yet. The semantic is deliberate ("I am reporting on the call I am currently inside"); the alternative would show `attempted: 0` for the tool doing the reporting. Every **other** tool in the snapshot reports normally. Testers filed this as a defect in three consecutive cycles, which is why it is written down here.
 - **Read `countersScope` before judging any count (BL-121, prompt `0.22.4`).** The envelope now returns it alongside `serverToolCallCounts`, and it states how far back the snapshot reaches: `session` (stdio), `run` (remote + the durable run-scoped store live — every call against this IRL body, across requests), `request` (remote with no readable store — only the envelope's own request). **Against the remote Worker, expect `run`.** The BL-071 precheck identities (`iterations === succeeded`, and the two reconciliations that replaced the flat `attemptsTotal`/`errorsEncountered` equalities) are checkable under `session` and `run` only; under `request` they are not, and a VERIFY block showing a visible gap there is the **correct** output — a model that closed the gap fabricated it.
 - **`attempted: 2, succeeded: 1` on a re-called envelope is the merge rule working, not a double count.** The first call completes and lands `{1,1}` in the durable row; the second reads that back and adds its own in-flight attempt. Executed in `tests/integration/bl-071-precheck-derivation.test.ts` → "cross-request re-call merges to {attempted: 2, succeeded: 1}", not just asserted here.
@@ -349,11 +349,13 @@ Both behaviours must appear in the **same response**. One without the other prov
 
 **Input**
 
-`gst_irl_ingestion` takes `targetName`, `filledIrl` (≥ 200 chars), `transactionContext`, `partnerLead`, `projectCodeName`, `mode`, `verbosity`, `forceTools`, `requireVerbatimBody` — all optional. See [`prompts/irl-ingestion.md`](../../prompts/irl-ingestion.md).
+`gst_irl_ingestion` takes `filledIrl` (≥ 200 chars), `targetName`, `transactionContext`, `partnerLead`, `projectCodeName`, `mode`, `auditLevel`, `requireVerbatimBody` — all optional, and rendered in that order by the client form. See [`prompts/irl-ingestion.md`](../../prompts/irl-ingestion.md).
+
+**`auditLevel` decides what the dossier carries.** `standard` (the default) is a clean partner-facing document — no meta fence, no `(K)` footer, no `RUN-AUDIT` block. `enhanced` adds `(K)` and the per-section audit fences. `debug` adds the meta fence and the run-audit block. Provenance verification runs identically at every level, so a `standard` dossier is fully verified but not self-evidencing. **Run this case at `debug`** — its expectations below read the audit surface.
 
 **Steps**
 
-1. Open a fresh thread and invoke the `gst_irl_ingestion` prompt with the UAT-07.3 body as `filledIrl`, `transactionContext: "buy-side"`, `mode: "full"`.
+1. Open a fresh thread and invoke the `gst_irl_ingestion` prompt with the UAT-07.3 body as `filledIrl`, `transactionContext: "buy-side"`, `mode: "full"`, `auditLevel: "debug"`.
 
 **Expected result**
 

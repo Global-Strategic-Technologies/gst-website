@@ -358,11 +358,19 @@ function emptyByCategory(): Record<InoreaderEgressCategory, number> {
 export async function readInoreaderSpend(env: Env): Promise<{
   total: number;
   byCategory: Record<InoreaderEgressCategory, number>;
+  /**
+   * BL-122 — `false` when the counters could NOT be read (client unbound, or
+   * the mget threw). `total: 0` is returned in that case as a safe default,
+   * but 0 is indistinguishable from a genuine zero-spend day, so a consumer
+   * that reports the number must say it is unverified rather than publish a
+   * fabricated `0/100 (0%)` as if it had been measured.
+   */
+  read: boolean;
 }> {
   const byCategory = emptyByCategory();
 
   const redis = createMcpClient(env);
-  if (!redis) return { total: 0, byCategory };
+  if (!redis) return { total: 0, byCategory, read: false };
 
   try {
     const date = todayUtc();
@@ -380,9 +388,9 @@ export async function readInoreaderSpend(env: Env): Promise<{
       byCategory[cat] = toFiniteNumber(values[i + 1]);
     });
 
-    return { total, byCategory };
+    return { total, byCategory, read: true };
   } catch {
-    return { total: 0, byCategory };
+    return { total: 0, byCategory, read: false };
   }
 }
 

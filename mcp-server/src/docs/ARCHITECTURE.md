@@ -272,7 +272,7 @@ The contract is fail-open throughout: **metrics never break a tool call**. Emiss
 
 ### Run-scoped durable tool-call counters (BL-121)
 
-The BL-071 counter that feeds the dossier's `BL-045-VERIFY` block is an `InMemoryToolCallCounters` map, and **`createServer` runs per HTTP request** on the Worker (§ Register-once, transport-twice) — so on the remote transport that map could only ever hold the request the envelope tool was inside, and the operator identity `precheck.iterations === serverToolCallCounts.validate_irl_provenance.succeeded` was structurally unsatisfiable. The same rotation is why the IRL body cache moved to Upstash under BL-076; the counters were left behind until a production run surfaced it.
+The BL-071 counter that feeds the dossier's `RUN-AUDIT` block is an `InMemoryToolCallCounters` map, and **`createServer` runs per HTTP request** on the Worker (§ Register-once, transport-twice) — so on the remote transport that map could only ever hold the request the envelope tool was inside, and the operator identity `precheck.iterations === serverToolCallCounts.validate_irl_provenance.succeeded` was structurally unsatisfiable. The same rotation is why the IRL body cache moved to Upstash under BL-076; the counters were left behind until a production run surfaced it.
 
 The three IRL-pipeline tools (`validate_irl_provenance`, `compose_dossier_envelope`, `prepare_irl_body`) now also accumulate in Upstash, one hash per run:
 
@@ -288,7 +288,7 @@ The run key is the IRL body hash, not a session id: "these bytes" is the audit s
 
 SLO targets are measured, not guessed. `npm -w @gst/mcp-server run ae:baseline` (`scripts/invoke-ae-baseline.mjs`) pulls a trailing-7-day window from the AE SQL API and emits paste-ready baseline tables plus proposed targets, pre-applying the per-metric-kind calibration rules (latency = p95 × 1.5; availability = 0.5% sustained error-budget floor; freshness = 2 × the 6h radar cron = 43,200 s; throughput handled by the rolling traffic-spike alert rather than a fixed SLO).
 
-Results live in `observability/slo-baselines.md` with operator sign-off (2026-07-14). Key signed-off targets: `cron-radar` p95 ≤ 899 ms, radar-refresh cron p95 ≤ ~37 s, error rate < 0.5% sustained, snapshot age ≤ 12 h, Zone-1 spend ticket > 70/day, page > 90/day. Tool/resource/prompt latency SLOs are explicitly deferred: the baseline window showed 100% cron-driven production traffic (team usage runs the local stdio server), so those calibrate when real client traffic exists.
+Results live in `observability/slo-baselines.md` with operator sign-off (2026-07-14). Key signed-off targets: `cron-radar` p95 ≤ 899 ms, radar-refresh cron p95 ≤ ~37 s, error rate < 0.5% sustained, snapshot age ≤ 12 h, Zone-1 spend ticket > 70/day, page > 90/day. Tool/resource/prompt latency SLOs are explicitly deferred, and **BL-122 corrected the reason**: the earlier reading blamed absent client traffic, but in-Worker `duration_ms` measures **I/O wait only** — Workers freeze the clock outside I/O — so compute-time latency is unmeasurable at that vantage point regardless of traffic. Calibration has to come from the client-observed probe.
 
 ### Alerting
 
@@ -300,7 +300,7 @@ Each rule links a runbook in `observability/runbooks/` (7 files: Symptom / Diagn
 
 ### Status page
 
-`GET /status` (`src/observability/status-page.ts`) renders server-side HTML from two sources the Worker already holds: the live `buildHealthPayload()` probes and the evaluator's `mcp:alerts:last-eval` summary — overall status, env/version, dependency health, snapshot age vs the 12 h SLO, Zone-1 spend vs cap, and the per-rule alert table. No client JS, no secrets, and it never throws (degraded sources render as unknowns).
+`GET /status` (`src/observability/status-page.ts`) renders server-side HTML from three sources the Worker already holds: the live `buildHealthPayload()` probes, the evaluator's `mcp:alerts:last-eval` summary, and the precomputed `mcp:status:metrics:<env>` cache — overall status, env/version, dependency health, snapshot age vs the 12 h SLO, Zone-1 spend vs cap, and the per-rule alert table. No client JS, no secrets, and it never throws (a degraded source renders as a placeholder rather than throwing; note the alert table separately has a NAMED `unknown` state for a rule that could not evaluate — BL-122).
 
 ### Sentry envelope delivery
 

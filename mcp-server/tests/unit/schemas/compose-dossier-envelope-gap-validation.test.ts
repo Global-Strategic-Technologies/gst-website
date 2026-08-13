@@ -52,7 +52,7 @@ function baseInput(
     promptVersion: '0.4.0',
     modelVersion: 'claude-opus-4-7',
     mode: 'full',
-    verbosity: 'verbose',
+    auditLevel: 'debug',
     transactionContext: 'value-creation',
     fillRatio: { percent: 92, substantiveCells: 46, totalCells: 50, status: 'ok' },
     gatesPassed: [],

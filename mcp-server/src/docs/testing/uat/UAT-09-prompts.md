@@ -228,16 +228,17 @@ Two consequences for a tester:
 
 **Goal**: Proves the largest published workflow runs end to end. This is the same run as [UAT-07.6](UAT-07-irl-pipeline.md); recorded in both places because it is both the prompt family's hardest case and the IRL pipeline's one-shot path.
 
-**Input**: `targetName`, `filledIrl` (≥ 200 chars), `transactionContext`, `partnerLead`, `projectCodeName`, `mode`, `verbosity`, `forceTools`, `requireVerbatimBody`.
+**Input**: `filledIrl` (≥ 200 chars), `targetName`, `transactionContext`, `partnerLead`, `projectCodeName`, `mode`, `auditLevel`, `requireVerbatimBody`. **Run at `auditLevel: "debug"`** — the expectations below read the audit surface, which `standard` deliberately omits.
 
 **Expected result**
 
 - `compose_dossier_envelope` is called at the end — not fabricated in prose.
-- The dossier opens with the meta fence and closes with `(J)` gap list and `(K)` provenance footer.
+- At `auditLevel: "debug"` the dossier opens with the meta fence and closes with `(J)` gap list, `(K)` provenance footer and the `RUN-AUDIT` block.
+- **Level check** (worth one extra run): at `standard` the same invocation produces a dossier with `(J)` but **no** meta fence, `(K)` or run-audit block — and `compose_dossier_envelope` is still called. A `standard` run that skips the envelope is a Fail; a `standard` run that omits those three sections is a Pass.
 - Passing `filledIrl` as a prompt argument pre-populates the body cache at render time, so `irlSource` is a `partner-paste-verbatim` variant rather than a reconstruction.
 - Claims in `(K)` carry tier labels and verification marks.
 
-**Further reading**: [`OPERATOR_RUNBOOK.md`](../../../../../src/docs/development/OPERATOR_RUNBOOK.md) for run tiers, the VERIFY block, and client-ready gating.
+**Further reading**: [`OPERATOR_RUNBOOK.md`](../../../../../src/docs/development/OPERATOR_RUNBOOK.md) for run tiers, the `RUN-AUDIT` block, and client-ready gating (which requires `auditLevel: debug`).
 
 **Run log**
 

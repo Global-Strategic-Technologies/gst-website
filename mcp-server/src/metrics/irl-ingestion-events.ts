@@ -1,13 +1,10 @@
 /**
  * BL-045 PR B — IRL-ingestion-specific metric event emitters.
  *
- * Three events introduced by `gst_irl_ingestion`:
- *
- * - `force_tools_used` — **server-side observable now**. Fired from the
- *   prompt build seam (`_registry.ts` wrap or direct call from
- *   `irlIngestionPrompt.build`) when `args.forceTools` is non-empty. The
- *   counter is the most actionable signal of partner-override frequency
- *   — high values flag inclusion gates that are too strict in practice.
+ * Two events introduced by `gst_irl_ingestion`. (A third,
+ * `force_tools_used`, was removed with the `forceTools` arg under BL-122 —
+ * the arg was inert: its value never reached the prompt body, so the counter
+ * measured a switch that did nothing.)
  *
  * - `wrong_irl_detected` — **model-side**. The model evaluates the
  *   wrong-IRL pre-flight at runtime (compute fill ratio, branch into
@@ -33,31 +30,6 @@ import { guardEvent } from './guard';
 import type { MetricsContext } from './with-metrics';
 
 const PROMPT_NAME = 'gst_irl_ingestion';
-
-/**
- * Emit one `force_tools_used` event when a `gst_irl_ingestion` invocation
- * supplies a non-empty `forceTools` array. Idempotent counter — one event
- * per invocation regardless of how many tools the array contained (count
- * is carried elsewhere via the meta JSON fence the model emits).
- *
- * Called from the prompt build seam at server side, before the prompt
- * body is returned to the model. No-op when `forceTools` is empty.
- */
-export function emitForceToolsUsed(
-  ctx: MetricsContext,
-  forceTools: readonly string[] | undefined
-): void {
-  if (!forceTools || forceTools.length === 0) return;
-  const event = guardEvent({
-    event_type: 'force_tools_used',
-    name: PROMPT_NAME,
-    keyOwner: ctx.keyOwner,
-    outcome: 'applied',
-  });
-  if (event !== null) {
-    ctx.sink.write(event);
-  }
-}
 
 /**
  * Emit one `wrong_irl_detected` event when the model's pre-flight branch

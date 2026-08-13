@@ -347,7 +347,20 @@ Surfaced by a production run (Kestrel IRL, 2026-08-12): the envelope reported `v
 
 **Two accepted residuals, both named rather than fixed.** A write lost mid-run in an _earlier_ request under-reports while scope still reads `run` — a **false red** an operator investigates and traces to a brownout. And a repeat ingestion of **identical bytes** inside the 4h window accumulates onto the same row, so the count reads long of that invocation; making it per-invocation would need an invocation id, which is the speculative half this change declined, and would dissolve the cross-request continuity that is the point. Both are documented in the prompt, the ADR, `CONTRACT.md` and UAT-07, and the second is executed in the integration suite. The first draft enumerated three causes of a count _short_ of memory and none for a count _long_ of it — asymmetric coverage of a symmetric failure, caught in review, and the same over-claiming this ticket exists to correct.
 
-**Verification still owed to a human**: re-run the Kestrel IRL through Claude Desktop against production after deploy and confirm the VERIFY block carries `countersScope: run` with `validate_irl_provenance` matching `precheck.iterations`. Every automated test here runs against a fake Redis and a _simulated_ per-request topology — a simulation standing in for the real transport is what hid this in the first place.
+**Verified live against production 2026-08-13** (`0.49.3` / `gitSha 4c6ec58`, prompt `0.22.4`), over the remote Worker via four separate MCP requests — `prepare_irl_body`, two `validate_irl_provenance` calls, then `compose_dossier_envelope`. This mattered because every automated test runs against a fake Redis and a _simulated_ per-request topology, and a simulation standing in for the real transport is what hid the defect in the first place.
+
+A run against the same endpoint ~15 minutes earlier, before the production approval gate was released, captured the defect itself: `serverToolCallCounts` held only `compose_dossier_envelope: {attempted: 1, succeeded: 0}`, `validate_irl_provenance` was absent despite two verified calls moments before, and no `countersScope` field existed. After the deploy:
+
+```json
+"serverToolCallCounts": {
+  "prepare_irl_body":         { "attempted": 1, "succeeded": 1 },
+  "validate_irl_provenance":  { "attempted": 2, "succeeded": 2 },
+  "compose_dossier_envelope": { "attempted": 1, "succeeded": 0 }
+},
+"countersScope": "run"
+```
+
+The BL-071 identity holds across requests, the canary row is present, and the envelope correctly reports itself in-flight. A re-call then returned `compose_dossier_envelope: {attempted: 2, succeeded: 1}` with `validate_irl_provenance` unchanged at `{2, 2}` — the merge rule adding durable counts to the in-flight attempt without double-counting, which `CONTRACT.md` and UAT-07 document and which had until then only been executed against a fake.
 
 ---
 
@@ -866,22 +879,55 @@ Per CLAUDE.md Directive 6 "No Deferred Tech Debt" (numbered § 4a when this stan
 
 ---
 
+### BL-122: MCP Server — misc UX pass (audit levels, prompt doc, status page) — CLOSED 2026-08-13
+
+**Source**: operator review of `gst_irl_ingestion` and `status.mcp.globalstrategic.tech` | **Effort**: ~1 day | **Status**: Closed — shipped at prompt 0.23.0 / server 0.50.0 | **Architecture**: [ADR-0017](../adr/0017-audit-levels-enforced-in-the-tool-response.md)
+
+**As a** partner running an IRL ingestion, **I want** the dossier to read as a client deliverable by default and the status page to publish only numbers that mean what they say, **so that** I am not hand-stripping audit apparatus out of partner-facing output, or reading a latency panel that cannot measure latency.
+
+**Retained rather than pruned** because three of its findings are the kind that get re-derived expensively:
+
+1. **`verbosity: compact` was broken in the opposite direction from how it read.** It elided the _correctness_ pipeline (hash bind, provenance precheck, envelope composition) while keeping the operator artifacts on — so it disabled the provenance chain and then demanded an audit report on it. Making it the default, which is what the request originally asked for, would have shipped dossiers with provenance verification silently off. The generalisable lesson: when one switch controls three concerns, check which of them it is actually wired to before flipping its default.
+2. **`forceTools` had never worked.** Its value was read once for a telemetry counter and never interpolated into the prompt body, so the model was told to honour an override it was never shown. An argument can be fully plumbed at the schema layer, fully documented, and still be inert.
+3. **The status page's zeros were not missing data.** Cloudflare Workers freeze the clock outside I/O, so `Date.now() - startedAt` measures I/O wait and reports exactly `0` for any handler that performs no I/O. Ten of fifteen tools read 0 with healthy sample counts. The number is unfixable — there is no unfrozen timer in a Worker — so the panel was relabelled to what it measures and rows with no measurable wait are omitted.
+
+#### Acceptance Criteria
+
+- [x] `auditLevel: 'standard' | 'enhanced' | 'debug'` replaces `verbosity`, defaulting to a clean partner-facing dossier
+- [x] The envelope chain runs at every audit level — no argument value can switch provenance verification off
+- [x] Suppression is enforced by what `compose_dossier_envelope` returns, not by prompt prose (the mechanism this codebase already established does not work)
+- [x] `extract-only` is exempt from the gate; the rule is stated on the builder axis, since `build()` dispatches on `filledIrl` absence before any mode check
+- [x] `forceTools` and `embedToolWorkedExamples` removed; `forceToolsApplied` retained on the envelope input for callers that genuinely override a gate
+- [x] Argument surface 10 → 8, `filledIrl` at index 0, every description leading with its valid values and naming no backlog ids
+- [x] `prompts/irl-ingestion.md` rewritten so no bare backlog id carries meaning; ids confined to a closing archaeology ledger
+- [x] Status page: latency panel relabelled, filtered on `p99 > 0` at render, with the two empty states distinguishable; audit panel hidden while `AUDIT_QUEUE` is unbound
+- [x] Alert table gained a fourth state: a rule that could not reach its data source renders `unknown` (slate) rather than a green `ok`, so an unverified check stops looking like a passing one. Two arms that hid it behind a fabricated default were found in review — `radar-snapshot-stale` (null age) and `inoreader-budget-exhausted` (unread counters reported as `0/100`)
+- [x] Operator runbooks migrated — signoff runs invoke `auditLevel: debug`
+
+#### Technical Context
+
+- The filter is on the **measurement**, not a tool-name allowlist: the query is `GROUP BY blob2` with no tool list in the code, so an allowlist would drift the first time a tool gained or lost an I/O path. `p99` not `p50`, so a cache-miss-only network path survives.
+- It is applied at **render**, never in `computeToolLatency`: `toolLatency === []` has to keep meaning "no events in the window", or the page asserts zero invocations in a window that had hundreds.
+- `BL-045-VERIFY` → `RUN-AUDIT` in live code and docs. Historical ledgers keep the old label deliberately — renaming a dated record falsifies it.
+
+---
+
 ### BL-087: `gst_irl_ingestion` — Prompt-Shrink L3–L5 (reserved)
 
 **Source**: reserved successor scope from BL-086 (Option D workflow simplification, L2 verified + shipped 2026-06-30 at prompt v0.19.0 / mcp-server 0.32.0). BL-086 deliberately **stopped at L2**; the three deeper cuts were deferred here pending empirical evidence. | **Architecture & plan**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](_archive/MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) (§ L3–L5 + capability-preservation matrix) | **Status**: Reserved — do NOT start without a promotion trigger firing
 
 **Deferred scope**:
 
-- **L3** — (J) gap-list semantic change (more honest gap reporting; shifts operator readability). Ships with a `precheckCitations` restore arg.
-- **L4** — VERIFY-block removal from default output. Ships with an `emitVerifyBlock` restore arg. Asymmetric risk: external consumers of the VERIFY audit surface can't be proven absent.
-- **L5** — `validate_irl_provenance` tool unregistration — the only non-arg-reversible cut.
-- Sugar: collapse the restore args into an `auditLevel: 'standard' | 'enhanced' | 'debug'` enum if both L3 and L4 ship.
+- **L3** — (J) gap-list semantic change (more honest gap reporting; shifts operator readability). Ships with a `precheckCitations` restore arg. **Still reserved.**
+- ~~**L4** — VERIFY-block removal from default output.~~ **SHIPPED under BL-122 (2026-08-13)**, together with the `auditLevel` sugar below. The asymmetric risk it flagged — "external consumers of the VERIFY audit surface can't be proven absent" — was real and materialised _internally_: `OPERATOR_RUNBOOK.md`'s client-ready gating checklist reads that block. It shipped with a coordinated migration rather than a silent removal (signoff runs invoke `auditLevel: debug`), not because the risk was absent but because it was found and paid.
+- **L5** — `validate_irl_provenance` tool unregistration — the only non-arg-reversible cut. **Still reserved, and now harder**: BL-122 made the envelope precheck unconditional, so the verifier is on the critical path at every audit level. Unregistering it would remove a tool the prompt now always directs.
+- ~~Sugar: collapse the restore args into an `auditLevel` enum if both L3 and L4 ship.~~ **Shipped under BL-122** — taken with L4 alone rather than waiting for L3, because the restore-arg-per-cut shape was the thing making the surface complex. Note the stated precondition (both L3 and L4) was therefore _not_ met; recorded so the deviation is visible rather than inferred.
 
 **Promotion triggers** (any one):
 
-- Empirical evidence that (J) gap-list growth is unacceptable in live exercises
-- Confirmation that no one consumes the VERIFY block externally (unlocks L4)
-- Evidence that nobody manually calls `validate_irl_provenance` (unlocks L5)
+- Empirical evidence that (J) gap-list growth is unacceptable in live exercises (L3)
+- ~~Confirmation that no one consumes the VERIFY block externally (unlocks L4)~~ — fired 2026-08-13; see BL-122
+- Evidence that nobody manually calls `validate_irl_provenance` (unlocks L5) — note this is now a higher bar, since the precheck directs it on every run
 
 ---
 

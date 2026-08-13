@@ -45,11 +45,10 @@ export const EVENT_TYPES = [
   // themselves live in R2, never in AE. `name` = 'audit-consumer', `seq`
   // (double2) carries the batch entry count.
   'audit_batch',
-  // BL-045 PR B — IRL-ingestion-specific events. `force_tools_used` is
-  // server-side-observable at prompt build time; `wrong_irl_detected` and
-  // `gate_elided` are model-side outcomes that require client-side
-  // correlation (`prompt_span` precedent) to land in production.
-  'force_tools_used',
+  // BL-045 PR B — IRL-ingestion-specific events. Both are model-side outcomes
+  // that require client-side correlation (`prompt_span` precedent) to land in
+  // production. (`force_tools_used` was removed with the inert `forceTools`
+  // arg under BL-122.)
   'wrong_irl_detected',
   'gate_elided',
 ] as const;
@@ -219,14 +218,11 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   // BL-045 PR B counter events. The `outcome` field carries the discriminator
   // that downstream SQL aggregates over.
   //
-  // `force_tools_used`: emitted at prompt-build time when args.forceTools is
-  //   non-empty. `outcome` is always `applied` (counter-only; success implied).
   // `wrong_irl_detected`: emitted by client correlation when the model's
   //   pre-flight returned `halt` or `partial`. `outcome` carries the verdict.
   // `gate_elided`: emitted by client correlation when an inclusion gate's
-  //   predicate failed and the tool was NOT in forceTools. `outcome` is always
-  //   `elided` (the tool name is carried in `name`).
-  force_tools_used: ['applied'],
+  //   predicate failed. `outcome` is always `elided` (the tool name is
+  //   carried in `name`).
   wrong_irl_detected: ['halt', 'partial', 'ok'],
   gate_elided: ['elided'],
 };

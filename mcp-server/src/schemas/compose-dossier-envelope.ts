@@ -36,7 +36,7 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { REGULATION_ENTRIES } from '../content/regulation-loader';
 import { CONDITIONAL_TRIGGER_NAMES } from '../prompts/extraction-rules';
-import { ORCHESTRATED_TOOLS } from '../prompts/irl-ingestion';
+import { ORCHESTRATED_TOOLS, auditLevelValues, type AuditLevel } from '../prompts/irl-ingestion';
 import {
   citationFieldSchema,
   runIrlProvenanceCheck,
@@ -63,7 +63,6 @@ export function computeIrlBodyHash(filledIrl: string): string {
 // ─── Enums shared with the prompt body's args ──────────────────────────
 
 const modeValues = ['full', 'extract-only'] as const;
-const verbosityValues = ['verbose', 'compact'] as const;
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
 const fillRatioStatusValues = ['halt', 'partial', 'ok'] as const;
 const tierValues = ['1', '2', '3'] as const;
@@ -241,7 +240,11 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
       'Your model id at invocation time, e.g., "claude-opus-4-7". The tool validates the shape (lowercase, contains at least one digit chunk) to reject obvious hallucinations; the model is the only party that knows this value so it cannot be server-derived.'
     ),
   mode: z.enum(modeValues).describe('Execution mode the prompt args specified.'),
-  verbosity: z.enum(verbosityValues).describe('Output verbosity the prompt args specified.'),
+  auditLevel: z
+    .enum(auditLevelValues)
+    .describe(
+      'Must be one of: standard · enhanced · debug. The audit level the prompt run is at. It selects which markdown blocks come back: gapListMarkdown always, provenanceFooterMarkdown at enhanced and above, metaFenceMarkdown at debug. Provenance verification runs identically at every level.'
+    ),
   transactionContext: z
     .enum(transactionContextValues)
     .describe('Engagement context the prompt args specified.'),
@@ -299,10 +302,15 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     .describe(
       'Section-09 enumerated regulatory frameworks the partner is subject to (GDPR, UK GDPR, PIPEDA, POPIA, etc.). MUST be partitioned from conditionalTriggersFired (no overlap). MUST be regulatory frameworks only — certifications (SOC 2, ISO 27001, PCI-DSS) are REJECTED. Unbacked entries (absent from Hub regulatory map) auto-degrade to `map-absent:` gap entries.'
     ),
-  // BL-045 PR B audit MA-5: forceToolsApplied tightened to the same enum.
+  // Tightened to the orchestrated-tool enum so the field cannot drift from the
+  // prompt's tool list. `gst_irl_ingestion` applies no gate overrides and always
+  // sends `[]`; the field stays required so a caller that DOES override has a
+  // declared place to record it.
   forceToolsApplied: z
     .array(z.enum(ORCHESTRATED_TOOLS))
-    .describe('Echo of the `forceTools` arg the prompt was invoked with. Empty array if none.'),
+    .describe(
+      'Tool names whose inclusion gate was deliberately overridden for this run. Required, and `[]` when none were — which is every run of `gst_irl_ingestion`.'
+    ),
   claims: z
     .array(claimSchema)
     .min(1)
@@ -378,9 +386,19 @@ export interface ServerToolCallCountEntry {
 }
 
 export interface ComposeDossierEnvelopeResult {
-  metaFenceMarkdown: string;
+  /**
+   * BL-122 — returned at `auditLevel: 'debug'` only; the key is ABSENT at the
+   * other levels, not set to `undefined`. `tsconfig` does not enable
+   * `exactOptionalPropertyTypes`, so an explicit `undefined` would type-check
+   * — and would then diverge the two response channels, since
+   * `structuredContent` is returned by reference while the text mirror goes
+   * through `JSON.stringify`, which drops undefined-valued keys. Build with a
+   * conditional spread.
+   */
+  metaFenceMarkdown?: string;
   gapListMarkdown: string;
-  provenanceFooterMarkdown: string;
+  /** BL-122 — `auditLevel: 'enhanced'` and above. Omitted, never `undefined`. */
+  provenanceFooterMarkdown?: string;
   provenanceVerification: {
     total: number;
     verified: number;
@@ -396,7 +414,7 @@ export interface ComposeDossierEnvelopeResult {
   /**
    * BL-071 — server-authoritative snapshot of tool calls (attempted /
    * succeeded / rejected / errored per tool). The model MUST copy this object
-   * VERBATIM into the BL-045-VERIFY block `toolCallCounts` field. The server
+   * VERBATIM into the RUN-AUDIT block `toolCallCounts` field. The server
    * counts are the source of truth; model self-narration of `toolCallCounts`
    * has demonstrated drift (sonnet fabricated a tool call; opus omitted one; a
    * third run reported the same event in two YAML surfaces inconsistently).
@@ -486,7 +504,7 @@ export function renderMetaFence(
     `  "promptVersion": "${serverDerivedPromptVersion}",`,
     `  "modelVersion": ${JSON.stringify(input.modelVersion)},`,
     `  "mode": "${input.mode}",`,
-    `  "verbosity": "${input.verbosity}",`,
+    `  "auditLevel": "${input.auditLevel}",`,
     `  "transactionContext": "${input.transactionContext}",`,
     `  "fixtureFillRatio": ${input.fillRatio.percent / 100},`,
     `  "fixtureFillRatioStatus": "${input.fillRatio.status}",`,
@@ -565,17 +583,43 @@ export function renderProvenanceFooter(
   return lines.join('\n');
 }
 
-const EMIT_INSTRUCTIONS = [
-  'TRANSCRIPTION DISCIPLINE — the three markdown blocks above are the dossier envelope:',
-  '',
-  '1. `metaFenceMarkdown` — paste verbatim as the FIRST content of the dossier (before section A).',
-  '2. `gapListMarkdown` — paste verbatim as section `(J)`, between (I) synthesis and (K) provenance footer.',
-  '3. `provenanceFooterMarkdown` — paste verbatim as section `(K)`, the LAST section of the dossier.',
-  '',
-  'Auto-appended `provenance-gap:` entries in `gapListMarkdown` reflect claims whose excerpts the tool could not verify against the IRL — do NOT edit or remove them; the partner needs to see what was flagged.',
-  '',
-  'If you discover additional gaps or claims after transcribing the envelope, re-call `compose_dossier_envelope` with the updated arrays rather than editing the markdown by hand.',
-].join('\n');
+/**
+ * BL-122 — the emit contract is LEVEL-AWARE, and this is the enforcement point
+ * for the whole audit-level feature.
+ *
+ * Suppressing the operator artifacts through prompt-body prose would not work:
+ * this tool exists precisely because the model treats body directives as
+ * descriptive context and only tool output as procedure. So the instructions
+ * name exactly the blocks that were actually returned, and the blocks that must
+ * not be rendered are omitted from the response entirely — leaving nothing to
+ * transcribe and no instruction to transcribe it.
+ */
+function buildEmitInstructions(auditLevel: AuditLevel): string {
+  const blocks: string[] = [];
+  if (auditLevel === 'debug') {
+    blocks.push(
+      '`metaFenceMarkdown` - paste verbatim as the FIRST content of the dossier (before section A).'
+    );
+  }
+  blocks.push('`gapListMarkdown` - paste verbatim as section `(J)`, after (I) synthesis.');
+  if (auditLevel === 'enhanced' || auditLevel === 'debug') {
+    blocks.push(
+      '`provenanceFooterMarkdown` - paste verbatim as section `(K)`, the LAST section of the dossier.'
+    );
+  }
+  const count = blocks.length === 1 ? 'one block' : `${blocks.length} blocks`;
+  return [
+    `TRANSCRIPTION DISCIPLINE - at auditLevel \`${auditLevel}\` this envelope carries ${count}:`,
+    '',
+    ...blocks.map((b, i) => `${i + 1}. ${b}`),
+    '',
+    'Those are the only envelope blocks in this response. A block not listed above was deliberately withheld at this audit level - do NOT reconstruct it, and do NOT write a section for it.',
+    '',
+    'Auto-appended `provenance-gap:` entries in `gapListMarkdown` reflect claims whose excerpts the tool could not verify against the IRL - do NOT edit or remove them; the partner needs to see what was flagged. Verification runs identically at every audit level.',
+    '',
+    'If you discover additional gaps or claims after transcribing the envelope, re-call `compose_dossier_envelope` with the updated arrays rather than editing the markdown by hand.',
+  ].join('\n');
+}
 
 // ─── Engine (pure) ──────────────────────────────────────────────────────
 
@@ -1170,13 +1214,26 @@ export function runComposeDossierEnvelope(
 
   const allGaps = [...input.gaps, ...autoAppended];
 
+  // BL-122 - CONDITIONAL SPREAD, not `key: cond ? x : undefined`. An explicit
+  // undefined type-checks (tsconfig has no exactOptionalPropertyTypes) but
+  // diverges the two channels: structuredContent is returned by reference while
+  // the text mirror is built with JSON.stringify, which drops undefined keys.
+  const { auditLevel } = input;
   return {
-    metaFenceMarkdown: renderMetaFence(
-      { ...input, defaultFiredFrameworks: backedFrameworks },
-      serverContext.promptVersion
-    ),
+    ...(auditLevel === 'debug'
+      ? {
+          metaFenceMarkdown: renderMetaFence(
+            { ...input, defaultFiredFrameworks: backedFrameworks },
+            serverContext.promptVersion
+          ),
+        }
+      : {}),
     gapListMarkdown: renderGapList(allGaps),
-    provenanceFooterMarkdown: renderProvenanceFooter(input.claims, verification.verdicts),
+    ...(auditLevel === 'enhanced' || auditLevel === 'debug'
+      ? {
+          provenanceFooterMarkdown: renderProvenanceFooter(input.claims, verification.verdicts),
+        }
+      : {}),
     provenanceVerification: {
       total: verification.total,
       verified: verification.verified,
@@ -1188,6 +1245,6 @@ export function runComposeDossierEnvelope(
       tierFabrications,
     },
     serverCachedBodyBytes: Buffer.byteLength(input.filledIrl, 'utf8'),
-    emitInstructions: EMIT_INSTRUCTIONS,
+    emitInstructions: buildEmitInstructions(auditLevel),
   };
 }

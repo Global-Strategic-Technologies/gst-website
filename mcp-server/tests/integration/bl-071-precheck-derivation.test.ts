@@ -56,7 +56,7 @@ function baseEnvelopeInput(): ComposeDossierEnvelopeInput {
     promptVersion: '0.16.0',
     modelVersion: 'claude-opus-4-8',
     mode: 'full',
-    verbosity: 'verbose',
+    auditLevel: 'debug',
     transactionContext: 'value-creation',
     fillRatio: { percent: 92, substantiveCells: 46, totalCells: 50, status: 'ok' },
     gatesPassed: ['generate_diligence_agenda', 'compute_techpar'],

@@ -12,13 +12,21 @@
  * strict superset of what renders here (spend detail, ACL self-check,
  * refresh-token health). This page shows: overall status, env/version/
  * gitSha, Upstash + Inoreader status, radar snapshot age vs the 12h SLO,
- * Zone-1 spend vs the daily cap, the per-rule alert table, per-tool latency,
- * and audit-log health. No key names, no correlation ids, no token material.
+ * Zone-1 spend vs the daily cap, the per-rule alert table, and per-tool
+ * upstream I/O wait. No key names, no correlation ids, no token material.
+ * The audit-log panel renders only while the audit pipeline is bound
+ * (ADR-0014 deactivated it; see `auditActive` below).
  *
- * **Surface, don't ratify** (BL-033 operator directive): the tool-latency
- * panel renders raw p50/p95/p99 as PLAIN values — no badges, no pass/fail
- * threshold, no ratified SLA (contrast the freshness/spend rows, which ARE
- * signed-off SLOs). The tool-latency SLO stays deferred (`slo-baselines.md`).
+ * **Surface, don't ratify** (BL-033 operator directive, still in force): the
+ * I/O-wait panel renders raw p50/p95/p99 as PLAIN values — no badges, no
+ * pass/fail threshold, no ratified SLA (contrast the freshness/spend rows,
+ * which ARE signed-off SLOs). The SLO stays deferred (`slo-baselines.md`).
+ *
+ * **What the number is** (BL-122): `duration_ms` is `Date.now() - startedAt`
+ * around the handler, and Workers freeze the clock outside I/O — so it
+ * measures I/O wait, never compute. A handler that touches no network scores
+ * exactly 0 however much work it does, which is why rows with `p99Ms === 0`
+ * are filtered out at render rather than published as if they were fast.
  *
  * BL-033 Slice 4 fronts this page at `status.mcp.globalstrategic.tech`
  * (a `custom_domain` route → `worker.ts` serves status at the subdomain root);
@@ -51,10 +59,28 @@ async function readLastEval(env: Env): Promise<AlertEvaluationSummary | null> {
   }
 }
 
+/**
+ * Four visually distinct alert states — each colour means one thing:
+ *   green  #0a7d4f  ok           — checked, and fine
+ *   slate  #8a9bb0  unknown      — could NOT check (data source unreachable)
+ *   amber  #946200  eval-error   — the rule itself threw
+ *   red    #b3261e  BREACHED     — checked, and not fine
+ * `unknown` is muted rather than alarming: nothing is known to be wrong, but
+ * nothing was verified either. It must never read as green — an unverified
+ * check displaying `ok` is monitoring that has silently stopped monitoring.
+ */
+const STATE_COLOR = {
+  ok: '#0a7d4f',
+  unknown: '#8a9bb0',
+  evalError: '#946200',
+  breached: '#b3261e',
+} as const;
+
+const stateSpan = (color: string, text: string): string =>
+  `<span style="color:${color};font-weight:600">${text}</span>`;
+
 const badge = (ok: boolean, okText: string, badText: string): string =>
-  ok
-    ? `<span style="color:#0a7d4f;font-weight:600">${okText}</span>`
-    : `<span style="color:#b3261e;font-weight:600">${badText}</span>`;
+  ok ? stateSpan(STATE_COLOR.ok, okText) : stateSpan(STATE_COLOR.breached, badText);
 
 /** Render the /status HTML. Never throws — degraded sources render as unknowns. */
 export async function buildStatusHtml(env: Env): Promise<string> {
@@ -64,44 +90,99 @@ export async function buildStatusHtml(env: Env): Promise<string> {
     readStatusMetrics(env),
   ]);
 
-  // Tool latency — PLAIN values, no badges/thresholds (surface, don't ratify).
-  // toolLatency null → AE unbound / query failed; [] → no traffic in window.
-  const latencyRows =
-    metrics?.toolLatency == null
-      ? '<tr><td colspan="5">metrics unavailable — the evaluator cron populates every 15 min (needs CF_AE_TOKEN bound; staging has no cron)</td></tr>'
-      : metrics.toolLatency.length === 0
-        ? '<tr><td colspan="5">no tool_invocation events in the last 7 days</td></tr>'
-        : metrics.toolLatency
-            .map(
-              (r) =>
-                `<tr><td>${esc(r.name)}</td><td>${esc(r.p50Ms)}</td><td>${esc(r.p95Ms)}</td><td>${esc(r.p99Ms)}</td><td>${esc(r.n)}</td></tr>`
-            )
-            .join('');
+  // Upstream I/O wait — PLAIN values, no badges/thresholds (surface, don't ratify).
+  //
+  // BL-122: the filter is applied HERE, at render, and never inside
+  // `computeToolLatency`. `toolLatency === []` must keep meaning exactly one
+  // thing — "no tool_invocation events in the window" — because the empty-state
+  // copy below asserts it. Filtering at compute time would overload `[]` to
+  // also mean "traffic existed, none of it measurable", and the page would then
+  // claim zero invocations in a window that had hundreds. Keeping the
+  // unfiltered rows in scope is also what lets the two empty states differ.
+  //
+  // Filter on the MEASUREMENT (`p99Ms > 0`), never on a tool-name allowlist:
+  // the query is `GROUP BY blob2` with no tool list anywhere, so an allowlist
+  // would need hand-maintaining and would drift the first time a tool gained or
+  // lost an I/O path. `p99` and not `p50` — a tool that only reaches the
+  // network on a cache miss has `p50 = 0` and a real `p99`, and must survive.
+  const measured = metrics?.toolLatency?.filter((r) => r.p99Ms > 0);
+  let latencyRows: string;
+  if (metrics?.toolLatency == null || measured == null) {
+    latencyRows =
+      '<tr><td colspan="5">metrics unavailable — the evaluator cron populates every 15 min (needs CF_AE_TOKEN bound; staging has no cron)</td></tr>';
+  } else if (metrics.toolLatency.length === 0) {
+    latencyRows = '<tr><td colspan="5">no tool_invocation events in the last 7 days</td></tr>';
+  } else if (measured.length === 0) {
+    latencyRows = `<tr><td colspan="5">${esc(metrics.toolLatency.length)} tools invoked, none with measurable I/O wait — expected on a quiet week (see note below)</td></tr>`;
+  } else {
+    latencyRows = measured
+      .map(
+        (r) =>
+          `<tr><td>${esc(r.name)}</td><td>${esc(r.p50Ms)}</td><td>${esc(r.p95Ms)}</td><td>${esc(r.p99Ms)}</td><td>${esc(r.n)}</td></tr>`
+      )
+      .join('');
+  }
 
-  const a = metrics?.audit;
-  const auditRows =
-    metrics == null
+  // BL-122 — the audit pipeline is deactivated (ADR-0014), and an unbound
+  // AUDIT_QUEUE is the same signal `handle-authenticated.ts` uses to no-op the
+  // producer. Hiding the panel on that signal means it returns by itself when
+  // the binding comes back; no code change is needed to re-enable it.
+  const auditActive = env.AUDIT_QUEUE != null;
+  // Only built when the panel renders — see `auditActive` above.
+  const a = auditActive ? metrics?.audit : undefined;
+  const auditRows = !auditActive
+    ? ''
+    : metrics == null
       ? '<tr><td colspan="2">metrics unavailable — the evaluator cron populates every 15 min</td></tr>'
       : `<tr><td>Records committed (chain tip)</td><td>${esc(a?.lastSeq ?? '—')}</td></tr>` +
         `<tr><td>Batches processed (24h)</td><td>${esc(a?.batches24h ?? '—')}</td></tr>` +
         `<tr><td>Records committed (24h)</td><td>${esc(a?.records24h ?? '—')}</td></tr>` +
         `<tr><td>Last batch processed</td><td>${esc(a?.lastProcessedAt ?? '—')}</td></tr>`;
 
-  const snapshotOk =
-    health.radarSnapshotAgeSeconds !== null &&
-    health.radarSnapshotAgeSeconds <= FRESHNESS_MAX_AGE_SECONDS;
+  // BL-122 — three outcomes, not two. A null age means Upstash was unbound or
+  // unreachable, the value was malformed, or the cache is cold: freshness is
+  // UNVERIFIABLE. Reporting it as `STALE` asserts a verdict nobody reached —
+  // the same defect as the budget row below, erring alarming instead of
+  // reassuring. Both now say `unknown` for an unreadable source.
+  //
+  // Hoisted to a local const so the null check narrows for BOTH uses:
+  // TypeScript's aliased-condition narrowing does not reach through a mutable
+  // property access, so reading `health.radarSnapshotAgeSeconds` directly
+  // forced the predicate to be written twice — a divergence waiting to happen.
+  const snapshotAge = health.radarSnapshotAgeSeconds;
+  const snapshotRead = snapshotAge !== null;
+  const snapshotOk = snapshotRead && snapshotAge <= FRESHNESS_MAX_AGE_SECONDS;
   const spendPct = Math.round((health.inoreaderSpend.total / ZONE1_DAILY_HARD_CAP) * 100);
+  // BL-122 — `read === false` means the counters were unreachable and `total`
+  // is a default, not a measurement. Rendering `0%` in green would assert a
+  // number nobody read; the same reasoning as the alert table's `unknown`.
+  const spendRead = health.inoreaderSpend.read !== false;
 
   const alertRows =
     lastEval?.rules
       .map((r) => {
+        // Order matters: a rule that threw, and a rule that could not reach
+        // its data source, must BOTH escape the ok/breached binary before it
+        // is applied — otherwise either renders as a green `ok` it never earned.
+        //
+        // The overlap is unreachable today (`evaluateRule` sets `error` only in
+        // its catch arm and `evaluated` only in its try arm), so the precedence
+        // is defensive rather than load-bearing. `eval-error` wins because a
+        // crashed rule is the more specific and more actionable fault.
         const state = r.error
-          ? '<span style="color:#946200;font-weight:600">eval-error</span>'
-          : badge(!r.breached, 'ok', r.suppressed ? 'breached (cooldown)' : 'BREACHED');
+          ? stateSpan(STATE_COLOR.evalError, 'eval-error')
+          : r.evaluated === false
+            ? stateSpan(STATE_COLOR.unknown, 'unknown')
+            : badge(!r.breached, 'ok', r.suppressed ? 'breached (cooldown)' : 'BREACHED');
         return `<tr><td>${esc(r.id)}</td><td>${state}</td><td>${esc(r.severity)}</td><td>${esc(r.summary)}</td></tr>`;
       })
       .join('') ??
-    '<tr><td colspan="4">No evaluation summary yet — the evaluator cron runs every 15 minutes.</td></tr>';
+    // BL-122 — `readLastEval` returns null for an absent key AND an unreachable
+    // Upstash, so naming only the cron asserts a cause. During an outage the
+    // summary probably exists and simply could not be read, while the Substrate
+    // panel above already says Upstash is unreachable. Same fabricated-default
+    // family as the badges, expressed in copy: hedge the cause, don't invent it.
+    '<tr><td colspan="4">No evaluation summary readable — either the cron has not run yet, or Upstash is unreachable (see Substrate above).</td></tr>';
 
   return `<!doctype html>
 <html lang="en">
@@ -126,10 +207,10 @@ export async function buildStatusHtml(env: Env): Promise<string> {
 <table>
   <tr><th>Surface</th><th>State</th><th>Detail</th></tr>
   <tr><td>Upstash (MCP DB)</td><td>${badge(health.upstashMcp === 'ok', 'ok', 'degraded')}</td><td>write-probe</td></tr>
-  <tr><td>Inoreader</td><td>${badge(health.inoreader !== 'degraded', esc(health.inoreader), 'degraded')}</td><td>last observed ${esc(health.inoreaderObservedSecondsAgo)}s ago (${esc(health.inoreaderObservedSource)})</td></tr>
-  <tr><td>Radar snapshot freshness</td><td>${badge(snapshotOk, 'fresh', 'STALE')}</td><td>age ${esc(health.radarSnapshotAgeSeconds)}s vs SLO ${FRESHNESS_MAX_AGE_SECONDS}s (12h)</td></tr>
-  <tr><td>Inoreader Zone-1 budget</td><td>${badge(spendPct < 70, `${spendPct}%`, `${spendPct}%`)}</td><td>${esc(health.inoreaderSpend.total)}/${ZONE1_DAILY_HARD_CAP} today (ticket &gt; 70%, page &gt; 90%)</td></tr>
-  <tr><td>Inoreader circuit breaker</td><td>${badge(!health.circuitOpen, 'closed', 'OPEN')}</td><td>${health.circuitOpen ? 'radar is serving cached snapshots; no upstream calls until the breaker closes' : 'radar reads go upstream on cache miss'}</td></tr>
+  <tr><td>Inoreader</td><td>${health.inoreader === 'unknown' ? stateSpan(STATE_COLOR.unknown, 'unknown') : badge(health.inoreader !== 'degraded', esc(health.inoreader), 'degraded')}</td><td>${health.inoreader === 'unknown' ? 'status unreadable (never observed, or Upstash unreachable)' : `last observed ${esc(health.inoreaderObservedSecondsAgo)}s ago (${esc(health.inoreaderObservedSource)})`}</td></tr>
+  <tr><td>Radar snapshot freshness</td><td>${snapshotRead ? badge(snapshotOk, 'fresh', 'STALE') : stateSpan(STATE_COLOR.unknown, 'unknown')}</td><td>${snapshotRead ? `age ${esc(snapshotAge)}s vs SLO ${FRESHNESS_MAX_AGE_SECONDS}s (12h)` : `age unreadable (snapshot absent or Upstash unreachable) — SLO ${FRESHNESS_MAX_AGE_SECONDS}s (12h)`}</td></tr>
+  <tr><td>Inoreader Zone-1 budget</td><td>${spendRead ? badge(spendPct < 70, `${spendPct}%`, `${spendPct}%`) : stateSpan(STATE_COLOR.unknown, 'unknown')}</td><td>${spendRead ? `${esc(health.inoreaderSpend.total)}/${ZONE1_DAILY_HARD_CAP} today (ticket &gt; 70%, page &gt; 90%)` : `counters unreadable — cap is ${ZONE1_DAILY_HARD_CAP}/day`}</td></tr>
+  <tr><td>Inoreader circuit breaker</td><td>${health.circuitRead === false ? stateSpan(STATE_COLOR.unknown, 'unknown') : badge(!health.circuitOpen, 'closed', 'OPEN')}</td><td>${health.circuitRead === false ? 'breaker state unreadable (Upstash unreachable) — radar behaviour is unchanged, only the readout is unknown' : health.circuitOpen ? 'radar is serving cached snapshots; no upstream calls until the breaker closes' : 'radar reads go upstream on cache miss'}</td></tr>
 </table>
 
 <h2>SLO alerts (last evaluation: ${esc(lastEval?.evaluatedAt)})</h2>
@@ -138,19 +219,22 @@ export async function buildStatusHtml(env: Env): Promise<string> {
   ${alertRows}
 </table>
 
-<h2>Tool latency (server-side, last 7d${metrics?.evaluatedAt ? `, as of ${esc(metrics.evaluatedAt)}` : ''})</h2>
+<h2>Upstream I/O wait per tool (last 7d${metrics?.evaluatedAt ? `, as of ${esc(metrics.evaluatedAt)}` : ''})</h2>
 <table>
   <tr><th>Tool</th><th>p50 ms</th><th>p95 ms</th><th>p99 ms</th><th>samples</th></tr>
   ${latencyRows}
 </table>
-<p class="meta">Raw in-Worker handler latency (observability, not a ratified SLA). Includes synthetic probe traffic. Tool-latency SLO deliberately deferred — see slo-baselines.md.</p>
+<p class="meta">Time the handler spent blocked on Upstash / Inoreader — <strong>not</strong> total handler time. Cloudflare Workers freeze the clock outside I/O (<code>Date.now()</code> returns the time of the last I/O and does not advance during execution), so compute time is unmeasurable here and compute-only tools are <strong>omitted rather than shown as 0</strong>. Observability, not a ratified SLA; includes synthetic probe traffic. For client-observed round-trip latency, which does see compute, use the CI latency probe. SLO deliberately deferred — see slo-baselines.md.</p>
 
-<h2>Audit log (BL-033 Slice 3a)</h2>
+${
+  auditActive
+    ? `<h2>Audit log</h2>
 <table>
   <tr><th>Metric</th><th>Value</th></tr>
   ${auditRows}
-</table>
-<p class="meta">Pipeline deactivated 2026-08-08 — ADR-0014; counters show historical totals.</p>
+</table>`
+    : ''
+}
 
 <p class="meta">Runbooks: <code>mcp-server/observability/runbooks/</code> · SLO provenance: <code>mcp-server/observability/slo-baselines.md</code> (signed off 2026-07-14) · Evaluator cadence: 15 min</p>
 </body>

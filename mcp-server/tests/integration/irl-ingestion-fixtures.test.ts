@@ -127,24 +127,51 @@ describe('helios-grid-sell-side-filled-irl.md fixture', () => {
     expect(body).not.toContain('Open Diligence Wizard');
   });
 
-  it('build() in compact verbosity elides the per-section JSON fence directive', () => {
-    const body = fullBodyText({
+  const atLevel = (auditLevel?: 'standard' | 'enhanced' | 'debug') =>
+    fullBodyText({
       filledIrl: SELL_SIDE_FIXTURE,
       transactionContext: 'sell-side',
-      verbosity: 'compact',
+      ...(auditLevel ? { auditLevel } : {}),
     });
-    expect(body).not.toContain('Per-section JSON fence');
-    expect(body).not.toContain('(K) Provenance footer');
+
+  // THE invariant whose absence let `verbosity: compact` ship incoherent: it
+  // switched off the envelope chain and then still demanded the run-audit block
+  // that reports on those very calls. The chain is correctness machinery and is
+  // not a user-selectable option — assert it at every level.
+  it('emits the full envelope chain at every audit level', () => {
+    for (const level of [undefined, 'enhanced', 'debug'] as const) {
+      const body = atLevel(level);
+      const label = level ?? 'standard (default)';
+      expect(body, `${label}: body-binding hash`).toContain('Body-binding hash');
+      expect(body, `${label}: precheck`).toContain('Envelope precheck');
+      expect(body, `${label}: composition`).toContain('Envelope composition');
+    }
   });
 
-  it('build() in verbose verbosity (default) includes the per-section JSON fence + provenance footer directives', () => {
-    const body = fullBodyText({
-      filledIrl: SELL_SIDE_FIXTURE,
-      transactionContext: 'sell-side',
-    });
-    expect(body).toContain('Per-section JSON fence');
-    expect(body).toContain('(K) Provenance footer');
+  it('standard (the default) emits no meta fence and no run-audit block', () => {
+    const body = atLevel();
+    expect(body).not.toContain('Top-of-dossier meta JSON fence');
+    expect(body).not.toContain('```RUN-AUDIT');
+    expect(body).not.toContain('## Per-section JSON fence');
+    expect(body).not.toContain('## (K) Provenance footer');
+  });
+
+  it('enhanced adds the provenance surfaces but still no meta fence or run-audit block', () => {
+    const body = atLevel('enhanced');
+    expect(body).toContain('## Per-section JSON fence');
+    expect(body).toContain('## (K) Provenance footer');
     expect(body).toContain('Provenance citation self-check');
+    // The level where the two thresholds diverge — the easiest one to get wrong.
+    expect(body).not.toContain('Top-of-dossier meta JSON fence');
+    expect(body).not.toContain('```RUN-AUDIT');
+  });
+
+  it('debug adds the meta fence and the run-audit block on top of enhanced', () => {
+    const body = atLevel('debug');
+    expect(body).toContain('## Per-section JSON fence');
+    expect(body).toContain('## (K) Provenance footer');
+    expect(body).toContain('Top-of-dossier meta JSON fence');
+    expect(body).toContain('```RUN-AUDIT');
   });
 });
 
@@ -432,9 +459,32 @@ describe('northwind-workbook-columns-filled-irl.md fixture (BL-120)', () => {
 });
 
 describe('cross-fixture invariants', () => {
-  it('every fixture build includes the META JSON fence directive (auditable artifact requirement)', () => {
+  // extract-only is EXEMPT from the audit gate. It emits no partner-facing
+  // dossier, its `mode` description promises provenance, and downstream
+  // automation parses the meta fence first — so the full shape ships at every
+  // level, including the default.
+  it('extract-only emits its whole shape at every audit level', () => {
+    for (const level of [undefined, 'enhanced', 'debug'] as const) {
+      const body = fullBodyText({
+        filledIrl: SELL_SIDE_FIXTURE,
+        mode: 'extract-only',
+        ...(level ? { auditLevel: level } : {}),
+      });
+      const label = level ?? 'standard (default)';
+      expect(body, `${label}: meta fence`).toContain('Top-of-dossier meta JSON fence');
+      expect(body, `${label}: (K)`).toContain('## (K) Provenance footer');
+      expect(body, `${label}: self-check`).toContain('Provenance citation self-check');
+      expect(body, `${label}: run-audit`).toContain('```RUN-AUDIT');
+    }
+  });
+
+  it('every fixture build at debug includes the META JSON fence directive', () => {
     for (const fx of [SELL_SIDE_FIXTURE, SPARSE_FIXTURE, WORKBOOK_COLUMNS_FIXTURE]) {
-      const body = fullBodyText({ filledIrl: fx, transactionContext: 'buy-side' });
+      const body = fullBodyText({
+        filledIrl: fx,
+        transactionContext: 'buy-side',
+        auditLevel: 'debug',
+      });
       expect(body).toContain('Top-of-dossier meta JSON fence');
       expect(body).toContain('"promptName": "gst_irl_ingestion"');
     }
