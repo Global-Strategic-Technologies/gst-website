@@ -158,6 +158,7 @@ describe('health-check-failing', () => {
   it('still says what is wrong when it does breach', async () => {
     mockBuildHealth.mockResolvedValue({ ok: false, upstashMcp: 'degraded', inoreader: 'ok' });
     const ev = await rule('health-check-failing').evaluate(makeCtx());
+    expect(ev.breached).toBe(true); // self-contained: the name claims a breach, so assert one
     expect(ev.summary).toContain('upstashMcp=degraded');
     expect(ev.summary).toContain('ok=false');
   });
