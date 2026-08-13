@@ -24,22 +24,71 @@ import {
 function fakeRedis(opts: { failOn?: 'hincrby' | 'expire' | 'hgetall' } = {}) {
   const hashes = new Map<string, Map<string, number>>();
   const expireCalls: Array<{ key: string; ttl: number }> = [];
-  return {
+  /** Commands executed OUTSIDE a transaction, so the pipelining is assertable. */
+  let looseCommands = 0;
+
+  const applyHincrby = (key: string, field: string, by: number) => {
+    if (opts.failOn === 'hincrby') throw new Error('upstash down');
+    const h = hashes.get(key) ?? new Map<string, number>();
+    h.set(field, (h.get(field) ?? 0) + by);
+    hashes.set(key, h);
+    return h.get(field)!;
+  };
+  const applyExpire = (key: string, ttl: number) => {
+    if (opts.failOn === 'expire') throw new Error('upstash down');
+    expireCalls.push({ key, ttl });
+    return 1;
+  };
+
+  /** Round trips actually made — `exec()` counts as ONE, however deep the tx. */
+  const roundTrips = { count: 0 };
+
+  const redis = {
     hashes,
     expireCalls,
+    roundTrips,
+    /** Commands issued OUTSIDE a transaction, so pipelining stays assertable. */
+    get looseCommands() {
+      return looseCommands;
+    },
+    /**
+     * Upstash's pipeline: commands queue on the tx object and all of them
+     * travel in ONE round trip at `exec()`. Modelled rather than aliased onto
+     * the loose methods, because "one wrapper exit costs one round trip" is a
+     * claim the module's docstring makes and the `retry: false` reasoning
+     * depends on — a fake that let three sequential awaits pass would make
+     * that claim untestable, which is how the three-RTT version shipped.
+     */
+    multi() {
+      const queued: Array<() => unknown> = [];
+      const tx = {
+        hincrby(key: string, field: string, by: number) {
+          queued.push(() => applyHincrby(key, field, by));
+          return tx;
+        },
+        expire(key: string, ttl: number) {
+          queued.push(() => applyExpire(key, ttl));
+          return tx;
+        },
+        async exec() {
+          roundTrips.count++;
+          return queued.map((run) => run());
+        },
+      };
+      return tx;
+    },
     hincrby: vi.fn(async (key: string, field: string, by: number) => {
-      if (opts.failOn === 'hincrby') throw new Error('upstash down');
-      const h = hashes.get(key) ?? new Map<string, number>();
-      h.set(field, (h.get(field) ?? 0) + by);
-      hashes.set(key, h);
-      return h.get(field)!;
+      looseCommands++;
+      roundTrips.count++;
+      return applyHincrby(key, field, by);
     }),
     expire: vi.fn(async (key: string, ttl: number) => {
-      if (opts.failOn === 'expire') throw new Error('upstash down');
-      expireCalls.push({ key, ttl });
-      return 1;
+      looseCommands++;
+      roundTrips.count++;
+      return applyExpire(key, ttl);
     }),
     hgetall: vi.fn(async (key: string) => {
+      roundTrips.count++;
       if (opts.failOn === 'hgetall') throw new Error('upstash down');
       const h = hashes.get(key);
       // THE fidelity point: null on a missing key, not {}.
@@ -47,6 +96,7 @@ function fakeRedis(opts: { failOn?: 'hincrby' | 'expire' | 'hgetall' } = {}) {
       return Object.fromEntries(h) as Record<string, number>;
     }),
   };
+  return redis;
 }
 
 type FakeRedis = ReturnType<typeof fakeRedis>;
@@ -98,6 +148,18 @@ describe('UpstashRunCallCounters — record', () => {
       { key: KEY, ttl: RUN_COUNTS_TTL_SECONDS },
       { key: KEY, ttl: RUN_COUNTS_TTL_SECONDS },
     ]);
+  });
+
+  it('costs exactly ONE round trip per wrapper exit', async () => {
+    // The docstring claims this, and `retry: false` above it is justified by
+    // keeping Upstash off the response path — a claim three sequential awaits
+    // quietly falsified, at ~3 RTTs on every instrumented call. Asserted here
+    // rather than trusted, because the comment stating it survived the version
+    // that contradicted it.
+    const redis = fakeRedis();
+    await build(redis).record(RUN, 'validate_irl_provenance', 'success');
+    expect(redis.roundTrips.count).toBe(1);
+    expect(redis.looseCommands).toBe(0);
   });
 
   it('never throws when Upstash is down — a counter fault is not a tool failure', async () => {

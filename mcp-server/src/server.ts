@@ -187,18 +187,27 @@ const RUN_KEYED_TOOLS = new Set([
  * belongs to no run (every non-IRL tool, and any IRL call whose args carry
  * neither a hash nor a body).
  *
- * **The explicit `irlBodyHash` wins over a derived one.** `validate_irl_provenance`
- * gives `filledIrl` precedence for *matching*, and its schema blesses an
- * inline-body path for interactive / xlsx-reconstruction mode — so preferring
- * the body here would key some calls in a run by bytes and others by the
- * bound hash, splitting one run across two counter keys.
+ * **Key by the bytes the call actually operated on — so an inline `filledIrl`
+ * wins over the bound hash.** The count answers exactly one question: *how
+ * many calls verified the bytes compose is about to submit?* A validate call
+ * that received `filledIrl` verified THAT body (`validate-irl-provenance.ts`
+ * gives it precedence for matching and never cross-checks it against the
+ * supplied hash), so it belongs in the composed run's count if and only if
+ * those bytes hash to the composed body.
  *
- * A split can still happen legitimately: if a model validates body A and
- * composes body B, the keys differ and the composed run's count comes up
- * short. **That is a true signal, not a lost count** — it verified bytes it
- * did not submit. Forcing both onto one key would manufacture agreement the
- * run never earned, which is the false green this whole change exists to
- * avoid. The prompt names it as one of the three causes of a short count.
+ * Keying such a call by the bound hash instead would credit the composed run
+ * with a verification that ran on **different bytes** — the identity would
+ * close over work that never touched the submitted body. That is a false
+ * green, which is the one failure mode this whole change refuses. (It also
+ * costs nothing in the common case: when the inline body and the bound hash
+ * agree, both branches produce the same key and there is no split at all.
+ * A split happens only on real disagreement, which is precisely when the two
+ * calls belong to two different bodies.)
+ *
+ * When a legitimate split occurs the composed run's count comes up short.
+ * **That is a true signal, not a lost count** — the model verified bytes it
+ * did not submit — and the prompt names it as one of the causes of a short
+ * count.
  *
  * Re-hashing a body of up to 200KB per call duplicates what
  * `prepare_irl_body` computes anyway; deliberate, and cheap beside the
@@ -212,8 +221,8 @@ function runKeyOf(toolName: string, args: readonly unknown[]): string | undefine
     irlBodyHash?: unknown;
     filledIrl?: unknown;
   };
-  if (typeof irlBodyHash === 'string' && irlBodyHash.length > 0) return irlBodyHash;
   if (typeof filledIrl === 'string' && filledIrl.length > 0) return computeIrlBodyHash(filledIrl);
+  if (typeof irlBodyHash === 'string' && irlBodyHash.length > 0) return irlBodyHash;
   return undefined;
 }
 
@@ -320,9 +329,18 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
   // Unbound Upstash does NOT throw here, deliberately diverging from BL-076's
   // body cache: a missing body corrupts the dossier, a missing counter only
   // weakens a report. Degrade to 'request' and say so.
+  //
+  // Durable counters are a REMOTE concern only, and the `isStdio` branch is
+  // deliberately outermost so that is unambiguous: on stdio the in-process map
+  // already spans the whole session ('session' scope), so a durable store adds
+  // nothing and would only put network I/O into a local process. A
+  // `ctx.runCounters` override supplied WITHOUT a `metricsSink` is therefore
+  // ignored by design rather than by accident — the previous ordering accepted
+  // the override, then silently declined to thread it below.
   const isStdio = ctx.metricsSink === undefined;
-  const runCounters =
-    ctx.runCounters ?? (isStdio ? undefined : UpstashRunCallCounters.fromEnv(env));
+  const runCounters = isStdio
+    ? undefined
+    : (ctx.runCounters ?? UpstashRunCallCounters.fromEnv(env));
   const countersScope: CountersScope = isStdio ? 'session' : runCounters ? 'run' : 'request';
 
   const metrics: MetricsContext =

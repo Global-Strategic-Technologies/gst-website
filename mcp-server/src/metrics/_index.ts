@@ -36,6 +36,12 @@ export {
   type ToolCallCounters,
   type CountersScope,
 } from './with-metrics';
+export {
+  RUN_COUNTS_KEY_PREFIX,
+  RUN_COUNTS_TTL_SECONDS,
+  UpstashRunCallCounters,
+  type RunCallCounters,
+} from './run-call-counters';
 export { NoopSink, type MetricSink } from './sinks/_interface';
 export {
   InMemoryIrlBodyCache,

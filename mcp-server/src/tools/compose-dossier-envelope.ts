@@ -113,8 +113,20 @@ export async function handleComposeDossierEnvelopeTool(
     // BL-121 — merge the durable run-scoped counts over the per-request map,
     // and report which regime the numbers are in.
     const inProcess = metrics?.counters?.snapshot();
+    // An empty run key must SKIP the read, not read the bare prefix. The
+    // schema requires `irlBodyHash`, so this is unreachable today — but if it
+    // ever became reachable, `snapshot('')` would hit the prefix-only key,
+    // return `{}` for it, and report `countersScope: 'run'` over a row nobody
+    // ever wrote. Treating it as an unreadable store degrades to `request`,
+    // which is the honest answer for "no run to look up".
+    // `null` (not `undefined`) on an empty key: `undefined` means "no durable
+    // store bound", which leaves the scope at 'run' and uses the per-request
+    // map wholesale — the exact false green this guard exists to prevent.
+    const runKey = engineInput.irlBodyHash;
     const durable = metrics?.runCounters
-      ? await metrics.runCounters.snapshot(engineInput.irlBodyHash ?? '')
+      ? runKey
+        ? await metrics.runCounters.snapshot(runKey)
+        : null
       : undefined;
     // A `null` snapshot means the store could not be READ (not "no calls") —
     // reporting `run` over per-request numbers would claim the identity holds

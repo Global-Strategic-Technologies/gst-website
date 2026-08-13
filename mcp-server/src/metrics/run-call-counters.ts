@@ -137,17 +137,26 @@ export class UpstashRunCallCounters implements RunCallCounters {
   async record(runKey: string, toolName: string, event: ToolCallCounterEvent): Promise<void> {
     const key = `${RUN_COUNTS_KEY_PREFIX}${runKey}`;
     try {
-      // `attempted` is incremented alongside the outcome in the same call so
-      // one wrapper exit costs one round trip. Their agreement with the
-      // outcome sum is a free integrity check on the row: a torn write shows
-      // up as attempted != succeeded + rejected + errored.
-      await this.redis.hincrby(key, fieldFor(toolName, 'attempted'), 1);
-      await this.redis.hincrby(key, fieldFor(toolName, eventField(event)), 1);
-      // ALWAYS re-issue EXPIRE, never only on first write — inherited from
-      // the BL-032.75 audit fix C1 on the egress counter, where the
-      // "only set TTL when INCR returns 1" optimisation left keys permanent
-      // whenever an isolate died between the two calls. Idempotent and ~free.
-      await this.redis.expire(key, RUN_COUNTS_TTL_SECONDS);
+      // ONE pipelined round trip, not three. Three sequential awaits would put
+      // ~3 RTTs on the response path of every instrumented call, which quietly
+      // undoes the `retry: false` reasoning above — that setting exists to keep
+      // a degraded Upstash off this path, and it cannot do that if the healthy
+      // path already costs three.
+      //
+      // Atomicity is the second reason: `attempted` and the outcome move
+      // together, so they cannot tear. Their agreement with the outcome sum
+      // (`attempted === succeeded + rejected + errored`) is then a real
+      // integrity check on the row rather than a race with itself.
+      //
+      // ALWAYS re-issue EXPIRE, never only on first write — inherited from the
+      // BL-032.75 audit fix C1 on the egress counter, where the "only set TTL
+      // when INCR returns 1" optimisation left keys permanent whenever an
+      // isolate died between the two calls. Idempotent and ~free inside the tx.
+      const tx = this.redis.multi();
+      tx.hincrby(key, fieldFor(toolName, 'attempted'), 1);
+      tx.hincrby(key, fieldFor(toolName, eventField(event)), 1);
+      tx.expire(key, RUN_COUNTS_TTL_SECONDS);
+      await tx.exec();
     } catch {
       safeLog({
         event: 'bl121.run-counters.write-failed',

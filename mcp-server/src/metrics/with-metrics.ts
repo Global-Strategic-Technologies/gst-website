@@ -434,13 +434,27 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
     // error — still reaches an exit path below.
     const recordDurable = async (event: ToolCallCounterEvent): Promise<void> => {
       if (eventType !== 'tool_invocation' || !ctx.runCounters || !ctx.runKeyOf) return;
-      const runKey = ctx.runKeyOf(name, args);
-      if (!runKey) return;
-      // Awaited, and the reason is narrow: `ctx.waitUntil` IS threaded on this
-      // path and does not cancel, but it gives no ordering guarantee against
-      // the NEXT request — and the next request is precisely who reads this.
-      // `record` never throws; it swallows and safeLogs.
-      await ctx.runCounters.record(runKey, name, event);
+      // The key derivation is inside the swallow, not just the write. It
+      // hashes caller-supplied bytes, so a malformed payload could throw —
+      // and on the SUCCESS path that throw would escape into the outer catch,
+      // converting a call that worked into an `errored` one AND double-
+      // recording it. A counter must never be able to fail the call it counts.
+      try {
+        const runKey = ctx.runKeyOf(name, args);
+        if (!runKey) return;
+        // Awaited, and the reason is narrow: `ctx.waitUntil` IS threaded on
+        // this path and does not cancel, but it gives no ordering guarantee
+        // against the NEXT request — and the next request is precisely who
+        // reads this. `record` itself never throws; it swallows and safeLogs.
+        await ctx.runCounters.record(runKey, name, event);
+      } catch {
+        safeLog({
+          event: 'bl121.run-key.derivation-failed',
+          tool: name,
+          success: false,
+          errorCode: 'run-key-derivation',
+        });
+      }
     };
 
     try {

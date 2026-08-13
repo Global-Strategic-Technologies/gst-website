@@ -31,9 +31,15 @@ A hash rather than a key per counter keeps the read to one `HGETALL` and the TTL
 
 The `mcp:` prefix is mandatory, not stylistic — the shared token's ACL is `+@all ~mcp:*`, and BL-076 shipped once with a non-conforming prefix and spent the whole BL-077a/b/c diagnostic chain rediscovering that as `NOPERM`.
 
-**2. The run key is `irlBodyHash`, and a split key is a true signal.** Every tool in an IRL run already carries or derives it, so nothing new is minted or threaded — and it is the _correct_ scope. "These bytes" is what the audit cares about; "this TCP session" is not.
+**2. The run key is the body hash — of the bytes the call actually operated on — and a split key is a true signal.** Every tool in an IRL run already carries or derives it, so nothing new is minted or threaded, and it is the _correct_ scope. "These bytes" is what the audit cares about; "this TCP session" is not.
 
 The consequence is deliberate: if a model validates body A and composes body B, the keys differ and the count comes up short. That is a **finding**, not a lost count — it verified bytes it did not submit. Forcing both onto one key would manufacture agreement the run never earned.
+
+**Precedence follows from that, and it is the opposite of the obvious choice.** `validate_irl_provenance` accepts an inline `filledIrl` _and_ a bound `irlBodyHash`, gives the body precedence for matching, and never cross-checks the two. So when they disagree, the call verified the **inline body** — and keying it by the bound hash would credit the composed run with a verification that ran on different bytes, closing the identity over work that never touched the submitted body. That is a false green, the one outcome this ADR refuses. `runKeyOf` therefore derives from `filledIrl` when present and falls back to `irlBodyHash`.
+
+This costs nothing in the common case: identical bytes hash identically, so a split occurs **only** on real disagreement — precisely when the two calls belong to two different bodies. Both halves are pinned by tests (`keys a validate call by the bytes it actually verified` and `agreeing body and hash produce ONE key`), the second guarding the first from over-correcting into a scheme where every legacy caller emitting both fields loses its counts.
+
+_First shipped inverted_ (bound hash winning), on the reasoning that preferring the body would split a run across two keys. That reasoning was wrong on the case that matters — the split it prevented was the one worth having — and the test written to pin it could not fail, because it supplied a body and a hash that agreed. Caught in review; recorded here because the failure mode (an assertion that cannot fail, guarding a claim that is false) is the same one this whole ADR exists to close, one layer up.
 
 _Rejected: minting a session id_ to cover all 17 tools. It invents an identifier to make a number bigger, with no consumer asking for the other 14 tools' cross-request counts, and it would have made the split-key case silently disappear — trading a true signal for a comfortable one.
 
@@ -84,6 +90,12 @@ The delta is 1 for the call inside the wrapper and 0 for completed ones. On the 
 **The identity is checkable on the transport the team uses**, and every regime where it is not says so in the output rather than presenting request-scoped numbers as if they were session-scoped.
 
 **A false red is accepted where a false green never is.** A write lost mid-run in an _earlier_ request is invisible at compose time: the count under-reports while scope reads `run`. The operator investigates and finds a brownout. That is narrow — the read-failure branch handles the total case — and it is the correct direction to fail.
+
+**A repeat ingestion of identical bytes inside the TTL window accumulates onto the same row, and the count comes up LONG.** The key is the body hash and the row lives 4h, so a second `gst_irl_ingestion` over an unchanged IRL sees the first run's calls included: `precheck.iterations` is per-invocation while durable `succeeded` is per-bytes-per-window, and the identity fails on a perfectly good run. Reachable in normal operation — re-running an IRL after an unsatisfactory dossier is ordinary, and UAT-07 instructs testers to re-run.
+
+Making it per-invocation would require an invocation id, and minting one is the speculative half this ADR declines under decision 2 — it would also dissolve the cross-request continuity that is the entire point. So the behaviour stands and is **named** instead: the prompt enumerates it as the one benign cause of a long count, tells the model to report the served numbers unadjusted with a note, and tells the operator it is not grounds to fail a run once a prior ingestion is confirmed. `tests/integration/bl-071-precheck-derivation.test.ts` → _"accumulates a repeat invocation over IDENTICAL bytes onto the same row"_ executes it.
+
+The first draft enumerated three causes of a count **short** of the model's memory and none for a count **long** of it, while instructing the model not to adjust the numbers — asymmetric coverage of a symmetric failure, which is the same over-claiming this ADR exists to correct. Caught in review.
 
 **`prepare_irl_body` is a store-liveness canary with a known hole.** Its row proves the durable store was live for this run, _except_ on the pre-populated path, where the prompt deliberately tells the model to skip it — so the canary is absent exactly where the strongest provenance path runs. The prompt names the hole rather than relying on the canary.
 

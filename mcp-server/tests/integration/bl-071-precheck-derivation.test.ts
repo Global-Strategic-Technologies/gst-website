@@ -464,28 +464,32 @@ describe('BL-121 — precheck derivation identity (Worker topology)', () => {
     expect(countsOf(result).scope).toBe('request');
   });
 
-  it('keys a validate call by its explicit hash, not the inline body', async () => {
+  it('keys a validate call by the bytes it actually verified, not the bound hash', async () => {
     // `validate_irl_provenance` gives `filledIrl` precedence for MATCHING and
-    // does NOT cross-check the two fields against each other, so preferring
-    // the body for KEYING would split one run across two counter keys.
+    // never cross-checks it against the supplied hash. So when the two
+    // disagree, the call verified the INLINE body — and crediting the composed
+    // run for it would close the identity over bytes that were never
+    // submitted. A false green, which is the one outcome this change refuses.
     //
     // The two args must DISAGREE for this to test anything. An earlier draft
-    // passed `filledIrl: SAMPLE_IRL` with its own hash — both branches of
-    // `runKeyOf` then return the same string, so inverting the precedence
-    // left the test green. Caught by running that inversion deliberately;
-    // an assertion that cannot fail is the exact defect class BL-121 exists
-    // to close, one layer up.
+    // passed `filledIrl: SAMPLE_IRL` alongside its own hash — both branches of
+    // `runKeyOf` then return the same string, so inverting the precedence left
+    // the test green. Caught by running that inversion deliberately; an
+    // assertion that cannot fail is the same defect class BL-121 exists to
+    // close, one layer up. Note that agreement is the COMMON case and costs
+    // nothing: identical bytes produce identical keys either way, so a split
+    // happens only on genuine disagreement.
     //
     // Disagreeing args are the realistic interactive shape: the model inlines
     // a body it reconstructed while still copying the bound hash from the
-    // prompt directive. The bound hash is the run — that is what compose
-    // reads back.
+    // prompt directive.
     const durable = new FakeRunCounters();
     const bodyCache = new InMemoryIrlBodyCache();
     const boundHash = computeIrlBodyHash(SAMPLE_IRL);
     await bodyCache.set(boundHash, SAMPLE_IRL);
     const driftedBody = `${SAMPLE_IRL}\n- A row the bound body does not carry\n`;
-    expect(computeIrlBodyHash(driftedBody)).not.toBe(boundHash);
+    const driftedHash = computeIrlBodyHash(driftedBody);
+    expect(driftedHash).not.toBe(boundHash);
 
     const client = await openRequest(durable, bodyCache);
     await client.callTool({
@@ -497,8 +501,72 @@ describe('BL-121 — precheck derivation identity (Worker topology)', () => {
       },
     });
 
-    expect(durable.rows.get(boundHash)?.validate_irl_provenance?.succeeded).toBe(1);
-    expect(durable.rows.has(computeIrlBodyHash(driftedBody))).toBe(false);
+    // Counted against the bytes verified…
+    expect(durable.rows.get(driftedHash)?.validate_irl_provenance?.succeeded).toBe(1);
+    // …and NOT against the body the envelope will submit.
+    expect(durable.rows.has(boundHash)).toBe(false);
+  });
+
+  it('agreeing body and hash produce ONE key — the split is not the common case', async () => {
+    // Guards the flip above from over-correcting. If an inline body that
+    // matches the bound hash split the run, every legacy caller emitting both
+    // fields would silently lose its counts.
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+    const hash = computeIrlBodyHash(SAMPLE_IRL);
+    await bodyCache.set(hash, SAMPLE_IRL);
+
+    const client = await openRequest(durable, bodyCache);
+    await client.callTool({
+      name: 'validate_irl_provenance',
+      arguments: {
+        filledIrl: SAMPLE_IRL,
+        irlBodyHash: hash,
+        citations: [{ path: 'a', citation: ARR_CITATION }],
+      },
+    });
+
+    expect([...durable.rows.keys()]).toEqual([hash]);
+  });
+
+  it('accumulates a repeat invocation over IDENTICAL bytes onto the same row', async () => {
+    // The run key is the body hash and the TTL is 4h, so a SECOND
+    // `gst_irl_ingestion` invocation over the same bytes inside that window
+    // lands on the first run's row. The count then reads LONG of what the
+    // model did this time, and `precheck.iterations === succeeded` fails on a
+    // perfectly good run.
+    //
+    // This is real behaviour, not a defect to fix here: making it per-
+    // invocation would need an invocation id, and inventing one is the
+    // speculative half this change deliberately left out. What it must not do
+    // is go unnamed — the prompt enumerated three causes of a count SHORT of
+    // memory and none for a count LONG of it, which is the same
+    // over-claiming this ticket exists to correct. Executed here so the
+    // documented cause is a fact rather than an assertion.
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+    const hash = computeIrlBodyHash(SAMPLE_IRL);
+    await bodyCache.set(hash, SAMPLE_IRL);
+
+    for (const invocation of ['first', 'second']) {
+      const client = await openRequest(durable, bodyCache);
+      await client.callTool({
+        name: 'validate_irl_provenance',
+        arguments: { irlBodyHash: hash, citations: [{ path: invocation, citation: ARR_CITATION }] },
+      });
+    }
+
+    const composeClient = await openRequest(durable, bodyCache);
+    const result = await composeClient.callTool({
+      name: 'compose_dossier_envelope',
+      arguments: baseEnvelopeInput(),
+    });
+    const { counts, scope } = countsOf(result);
+
+    expect(scope).toBe('run');
+    // A model that made ONE validate call this invocation would honestly
+    // report `precheck.iterations: 1` against a server count of 2.
+    expect(counts.validate_irl_provenance.succeeded).toBe(2);
   });
 
   it('counts a differently-bodied validate under a different key — a true short count', async () => {

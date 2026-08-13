@@ -1082,6 +1082,23 @@ describe('gst_irl_ingestion', () => {
     );
 
     it.each(VERIFY_MODES)(
+      '%s body names the benign cause of a count LONG of memory',
+      (_label, args) => {
+        // The first draft enumerated three causes of a SHORT count and none
+        // for a long one — while telling the model not to adjust the numbers.
+        // Since the run key is the body hash and the row lives 4h, a repeat
+        // ingestion of identical bytes accumulates, so the model would emit a
+        // count it could not explain and the operator would fail a good run.
+        // Asymmetric coverage of a symmetric failure is the same over-claiming
+        // this whole change exists to correct.
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toMatch(/come up LONG|the count can also come up LONG/i);
+        expect(text).toMatch(/4[- ]hour window/);
+        expect(text).toMatch(/do NOT subtract/i);
+      }
+    );
+
+    it.each(VERIFY_MODES)(
       '%s body scope-qualifies the toolErrors arithmetic check',
       (_label, args) => {
         // `count(toolErrors[T]) === attempted − succeeded` stays false on the

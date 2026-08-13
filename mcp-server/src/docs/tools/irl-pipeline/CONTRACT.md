@@ -208,6 +208,8 @@ The read-failure downgrade is load-bearing: reporting `run` over request-scoped 
 
 **Merge semantics under `run`**: outcomes (`succeeded`/`rejected`/`errored`) come from the durable row; `attempted` is the durable `attempted` plus the in-flight delta from the per-request map (1 for the call inside the wrapper, 0 for completed ones). So a first envelope call in a fresh run reads `{attempted: 1, succeeded: 0}` as documented above, and a **re-call** reads `{attempted: 2, succeeded: 1}` — the first call having completed and landed `{1,1}` durably. Both shapes are executed in `tests/integration/bl-071-precheck-derivation.test.ts`, not merely asserted here.
 
+**Two scope caveats consumers must not read past.** The row is keyed by the IRL body and lives 4h, so (a) a validate call carrying an inline `filledIrl` is counted against **those** bytes, not the bound hash — disagreement means it verified something other than what compose submits, and the count correctly comes up short; and (b) a **repeat ingestion of identical bytes inside the window accumulates onto the same row**, so the count reads long of any single invocation. `precheck.iterations` is per-invocation; durable `succeeded` is per-bytes-per-window. Under `run`, the identity holds for the first ingestion of a given body in the window.
+
 The counters fail **quiet** by design (a counter fault must not fail a tool call), which is the opposite posture from the body cache — a missing body corrupts the dossier, a missing counter only weakens a report. See [ADR-0016](../../../../../src/docs/adr/0016-run-scoped-durable-tool-call-counters.md).
 
 ---

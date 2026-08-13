@@ -352,16 +352,27 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // interactive body carries its own complete copy of both. A 5-of-7 or 2-of-7
 // signature here would mean an edit failed to reach a served body — which is
 // precisely the defect class this change is fixing, one layer down.
+//
+// Re-baselined once IN PLACE, still 0.22.4 (unpushed, so no bytes have been
+// served — the bump-vs-rebaseline rule in BREAKING_CHANGES.md permits this).
+// Code review found the counter guidance asymmetric: three causes were given
+// for a count SHORT of the model's memory and none for a count LONG of it,
+// while the model was told not to adjust the numbers. Since the run key is the
+// IRL body hash and the row lives 4h, a repeat ingestion of identical bytes
+// accumulates onto the same row — so a long count is reachable in ordinary
+// operation and the model had no sanctioned way to report it. All 7 drift
+// again; the `run` scope definition now states the window and the body-keying
+// in every body.
 const EXPECTED_HASH_INTERACTIVE =
-  '24e70e6b79fd6d14cf14139115c655125b26bb20e12be30e519428ae51b10a6e';
+  '5b7381f39c3afa8995389087a7d1b666029db32f2bb5a43de0d00fbbfff30c1f';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '58018d95c0bee453a44fef06b3be7998b17e0a25bb2ebeb11ea21e9a8710583e';
+  '2f6c559a51986ddb79037aded5a3fac6230be7beafdb5ae3924cf179b2706eb4';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'cfc6f75ef9bdd4c048a27efef6238214a9648f40e4c7b50f4f8af520a0217516';
+  '9e7979fb176373e652a9e6c752ff990434f8da9749ec66d5efe1070e326e1235';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'ed64a70c5432db36b86ebcddf577f64ef7aff30f4ccce07723dee9e989b02f6d';
+  'c26dd86a36b2f8424145900707c4e50f7176cebe17eb8e8f8154062391c24e47';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'd2b72781606bdf1bd4c889e0798ee223e4e977a7bb947a337016aef5a5557e24';
+  '5267f113b7b335852143724985c4f83bd04385e2bddb952e147c1594291b5139';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -373,9 +384,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  'a6444c5b8f788655f4f5440662623c87590ff2456a539f6112ec488a4bcab226';
+  '9825399a7bdb03cee46ca2c76ab779913500c58f627685e4e3be36624e4d36f2';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  'e3076cc3f130c0e26c166084498c4aed9273cd87a6a9afe06afe5b30557a70e1';
+  '7ea8788292de3ec1983ec4d1099766f585e33703d90c9a47ccd2c10b945602b7';
 
 interface Scenario {
   name: string;
