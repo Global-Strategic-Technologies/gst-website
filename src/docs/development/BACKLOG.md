@@ -333,6 +333,24 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
+### ~~BL-121: The server-authoritative tool-call counter could not survive the Worker~~ — CLOSED 2026-08-12
+
+**Status**: **Closed in the session that opened it** (prompt `0.22.4` / server `0.49.3`, [ADR-0016](../adr/0016-run-scoped-durable-tool-call-counters.md)). Recorded rather than pruned because the failure mode is a repeat and the fix carries an accepted residual.
+
+**What it was.** BL-071 made the server authoritative for tool-call counts so the `BL-045-VERIFY` block would stop depending on the model's memory of its own behaviour, and pinned the operator check `precheck.iterations === serverToolCallCounts.validate_irl_provenance.succeeded`. That identity holds on stdio. **On the remote Worker it cannot**: `createServer` runs per HTTP request, so a fresh `InMemoryToolCallCounters` is built for every call and the envelope's snapshot can only ever contain the request it is inside.
+
+Surfaced by a production run (Kestrel IRL, 2026-08-12): the envelope reported `validate_irl_provenance` as all-`null` while the model honestly reported `precheck.iterations: 2`. The model was right to refuse to invent the numbers — which left the field as a model assertion, the exact thing BL-071 existed to eliminate, on the transport the team actually uses.
+
+**Three compounding failures, one class — a stdio-shaped claim written as universal.** The prompt asserted the identity holds, with a reason (registered exactly once, so nothing double-counts) that is true and irrelevant to why it fails. It told operators to fail runs on drift against a check that could not pass. And `bl-071-precheck-derivation.test.ts` claimed to prove it while **sharing one counter map across handlers** — a correct stdio test read as universal. The stand-in reproduced the assumption instead of the topology, which is why production found this and the suite did not. The same file had already learned the lesson for BL-076, whose body cache moved to Upstash _because_ isolates rotate between requests; the counters were left behind.
+
+**What shipped.** Durable per-run counters in Upstash (`mcp:irl-run-counts:<irlBodyHash>`, 4 h TTL, `HINCRBY` at wrapper exit, `retry: false`, fail-quiet), a `countersScope` field on the envelope output (`session` / `run` / `request`) so every regime that cannot support the identity says so, and a prompt (`0.22.4`) that states each identity conditionally, pins the transport-classed `errorsEncountered` labels to a closed subset, and enumerates the three causes of a short count. The Worker-topology tests drive **two `createServer` calls sharing one durable store** — hand-building two metrics contexts would have re-encoded the blind spot that hid the bug.
+
+**Two accepted residuals, both named rather than fixed.** A write lost mid-run in an _earlier_ request under-reports while scope still reads `run` — a **false red** an operator investigates and traces to a brownout. And a repeat ingestion of **identical bytes** inside the 4h window accumulates onto the same row, so the count reads long of that invocation; making it per-invocation would need an invocation id, which is the speculative half this change declined, and would dissolve the cross-request continuity that is the point. Both are documented in the prompt, the ADR, `CONTRACT.md` and UAT-07, and the second is executed in the integration suite. The first draft enumerated three causes of a count _short_ of memory and none for a count _long_ of it — asymmetric coverage of a symmetric failure, caught in review, and the same over-claiming this ticket exists to correct.
+
+**Verification still owed to a human**: re-run the Kestrel IRL through Claude Desktop against production after deploy and confirm the VERIFY block carries `countersScope: run` with `validate_irl_provenance` matching `precheck.iterations`. Every automated test here runs against a fake Redis and a _simulated_ per-request topology — a simulation standing in for the real transport is what hid this in the first place.
+
+---
+
 ### ~~BL-120: The canonical IRL body discarded 45% of the workbook~~ — CLOSED 2026-08-12
 
 **Status**: **Closed in the session that opened it** (prompt `0.22.3` / server `0.49.2`). Recorded rather than pruned because the failure mode generalizes and the fix carries two accepted residuals.

@@ -188,12 +188,29 @@ The pipeline terminus and the largest input surface in the family. Every field b
   serverCachedBodyBytes: number,    // echoes prepare_irl_body's byteLength — cache round-trip proof
   emitInstructions: string,
   serverToolCallCounts: Record<string, { attempted, succeeded, rejected, errored }>,
+  countersScope?: 'session' | 'run' | 'request',  // BL-121 — how far back the counts reach
 }
 ```
 
 `percent` is rendered into the meta fence as a 0–1 fraction (`24` → `"fixtureFillRatio": 0.24`).
 
 **`serverToolCallCounts` reports this tool as `attempted: 1, succeeded: 0`, and that is correct.** `attempted` is recorded at wrapper entry and `succeeded` at wrapper exit ([`metrics/with-metrics.ts`](../../../metrics/with-metrics.ts)), and this tool reads the snapshot from **inside its own handler** — so it has not returned yet at the moment it reports. The semantic is deliberate: "I am reporting on the call I am currently inside." The alternative (snapshotting before recording the attempt) would show `attempted: 0` for the tool doing the reporting, which is worse. Every other tool in the snapshot reports normally, and the `precheck.iterations === validate_irl_provenance.succeeded` identity the prompt relies on is unaffected because that is a different tool's row. Consumers must not "correct" this value; BL-119 testers filed it as a defect in three consecutive cycles before it was written down here.
+
+**`countersScope` states how far back `serverToolCallCounts` reaches, and it is not cosmetic (BL-121).** `createServer` runs **per HTTP request** on the Worker, so a fresh `InMemoryToolCallCounters` is built for every call — the in-process map alone can never contain an earlier request's `validate_irl_provenance` calls, and the BL-071 identity was structurally unsatisfiable there until this field existed. The three IRL-pipeline tools now also accumulate durably in Upstash under `mcp:irl-run-counts:<irlBodyHash>` (TTL 4h, matched to the body cache):
+
+| value     | condition                                          | the precheck identities |
+| --------- | -------------------------------------------------- | ----------------------- |
+| `session` | stdio — one process, one map, whole session        | hold                    |
+| `run`     | Worker, Upstash bound, **snapshot read succeeded** | hold                    |
+| `request` | Worker unbound, **or the read failed**             | do not hold             |
+
+The read-failure downgrade is load-bearing: reporting `run` over request-scoped numbers would claim the identity holds while every earlier row is missing. Consumers must branch on this value rather than assuming session scope, and must **not** reconcile a `request`-scoped snapshot against their own record of the run — the visible gap is the information.
+
+**Merge semantics under `run`**: outcomes (`succeeded`/`rejected`/`errored`) come from the durable row; `attempted` is the durable `attempted` plus the in-flight delta from the per-request map (1 for the call inside the wrapper, 0 for completed ones). So a first envelope call in a fresh run reads `{attempted: 1, succeeded: 0}` as documented above, and a **re-call** reads `{attempted: 2, succeeded: 1}` — the first call having completed and landed `{1,1}` durably. Both shapes are executed in `tests/integration/bl-071-precheck-derivation.test.ts`, not merely asserted here.
+
+**Two scope caveats consumers must not read past.** The row is keyed by the IRL body and lives 4h, so (a) a validate call carrying an inline `filledIrl` is counted against **those** bytes, not the bound hash — disagreement means it verified something other than what compose submits, and the count correctly comes up short; and (b) a **repeat ingestion of identical bytes inside the window accumulates onto the same row**, so the count reads long of any single invocation. `precheck.iterations` is per-invocation; durable `succeeded` is per-bytes-per-window. Under `run`, the identity holds for the first ingestion of a given body in the window.
+
+The counters fail **quiet** by design (a counter fault must not fail a tool call), which is the opposite posture from the body cache — a missing body corrupts the dossier, a missing counter only weakens a report. See [ADR-0016](../../../../../src/docs/adr/0016-run-scoped-durable-tool-call-counters.md).
 
 ---
 

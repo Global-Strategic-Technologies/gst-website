@@ -108,7 +108,13 @@ describe('gst_irl_ingestion', () => {
     // said nothing about the xlsx layout at all, so the reconstruction path
     // and `npm run irl:extract` agreed only by coincidence (BL-120, server
     // 0.49.2).
-    expect(irlIngestionPrompt.version).toBe('0.22.3');
+    // v0.22.4: `countersScope` — the BL-071 precheck identities are now stated
+    // as scope-conditional, because on the remote Worker `createServer` runs
+    // per request and the per-request counter map could never satisfy them.
+    // The transport-classed `errorsEncountered` subset is pinned closed so the
+    // reconciliation stays arithmetic rather than a judgement call (BL-121,
+    // server 0.49.3).
+    expect(irlIngestionPrompt.version).toBe('0.22.4');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -997,5 +1003,110 @@ describe('gst_irl_ingestion', () => {
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toMatch(/Status does \*\*not\*\* gate inclusion/i);
     });
+  });
+
+  // ─── BL-121 — scope-conditional counter identities ─────────────────────
+  //
+  // The BL-071 identities were stated flatly, as if the counter always spans
+  // the session. On the remote Worker `createServer` runs per HTTP request,
+  // so the per-request map could never satisfy them — and the prompt told
+  // operators to fail runs on a check that could not pass. Every served body
+  // now carries `countersScope` and states the identities conditionally.
+  //
+  // Coverage is per-body on purpose: the interactive builder keeps its OWN
+  // copy of the VERIFY discipline and never renders the envelope directive,
+  // so a fix landing in only one place is exactly the failure mode here.
+  describe('BL-121 scope-conditional counter identities (all modes)', () => {
+    const VERIFY_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
+      ['interactive', {}],
+      ['one-shot verbose', { filledIrl: SAMPLE_FILLED_IRL }],
+      ['one-shot compact', { filledIrl: SAMPLE_FILLED_IRL, verbosity: 'compact' }],
+      ['extract-only', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
+      [
+        'extract-only compact',
+        { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', verbosity: 'compact' },
+      ],
+    ];
+
+    it.each(VERIFY_MODES)('%s body emits `countersScope` in the VERIFY schema', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('countersScope: session | run | request');
+    });
+
+    it.each(VERIFY_MODES)('%s body defines all three scope values', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      // The `request` definition is the load-bearing one: without it a model
+      // reads an absent tool entry as its own omission and back-fills.
+      expect(text).toMatch(/`session`[^\n]*stdio/i);
+      expect(text).toMatch(/`run`[^\n]*across requests/i);
+      expect(text).toMatch(/`request`[^\n]*own request/i);
+    });
+
+    it.each(VERIFY_MODES)('%s body pins the transport-classed subset CLOSED', (_label, args) => {
+      // Left as examples, an operator counting "transport-classed entries"
+      // has to decide for themselves whether `connection-reset` qualifies —
+      // which puts an arithmetic check back into judgement.
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toMatch(/CLOSED set \(BL-121\): `transport-timeout` and `transport-disconnect`/);
+    });
+
+    it.each(VERIFY_MODES)(
+      '%s body states the reconciliation identities, not the bare equality',
+      (_label, args) => {
+        const text = bodyText(irlIngestionPrompt, args);
+        // attemptsTotal === attempted is no longer true with exit-placed
+        // durable writes: a transport failure never reached the server.
+        expect(text).toContain('`precheck.attemptsTotal − attempted` MUST equal');
+        expect(text).toContain('`rejected + errored + (attemptsTotal − attempted)`');
+      }
+    );
+
+    it.each(VERIFY_MODES)(
+      '%s body tells the model NOT to reconcile under `request` scope',
+      (_label, args) => {
+        // The whole point: an honest gap beats a manufactured agreement.
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toMatch(/[Uu]nder `countersScope: request`/);
+        expect(text).toMatch(/false green/);
+      }
+    );
+
+    it.each(VERIFY_MODES)(
+      '%s body enumerates the three causes of a short count',
+      (_label, args) => {
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toMatch(/exactly three causes/);
+        expect(text).toMatch(/DIFFERENT body than you composed/);
+        expect(text).toMatch(/lost durable write/);
+      }
+    );
+
+    it.each(VERIFY_MODES)(
+      '%s body names the benign cause of a count LONG of memory',
+      (_label, args) => {
+        // The first draft enumerated three causes of a SHORT count and none
+        // for a long one — while telling the model not to adjust the numbers.
+        // Since the run key is the body hash and the row lives 4h, a repeat
+        // ingestion of identical bytes accumulates, so the model would emit a
+        // count it could not explain and the operator would fail a good run.
+        // Asymmetric coverage of a symmetric failure is the same over-claiming
+        // this whole change exists to correct.
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toMatch(/come up LONG|the count can also come up LONG/i);
+        expect(text).toMatch(/4[- ]hour window/);
+        expect(text).toMatch(/do NOT subtract/i);
+      }
+    );
+
+    it.each(VERIFY_MODES)(
+      '%s body scope-qualifies the toolErrors arithmetic check',
+      (_label, args) => {
+        // `count(toolErrors[T]) === attempted − succeeded` stays false on the
+        // Worker for every tool outside the durable set. Shipping it
+        // unqualified would be the same defect in a new place.
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toMatch(/Scope qualifier \(BL-121\)/);
+      }
+    );
   });
 });

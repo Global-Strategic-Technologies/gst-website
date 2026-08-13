@@ -338,16 +338,41 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // existed to fix. The contract now states the shipped rule, and
 // `irl-ingestion-fixtures.test.ts` asserts that sentence so the next rewrite
 // cannot skip it silently.
+//
+// BL-121 rebaseline (prompt v0.22.3 → v0.22.4, server 0.49.3): `countersScope`
+// added to the VERIFY schema, and the BL-071 precheck identities restated as
+// scope-conditional — on the remote Worker `createServer` runs per HTTP request,
+// so the per-request counter map could never satisfy them and the prompt was
+// telling operators to fail runs on a check that could not pass. Also pins the
+// transport-classed `errorsEncountered` subset closed (`transport-timeout`,
+// `transport-disconnect`) so the reconciliation stays arithmetic, and qualifies
+// the `toolErrors` count identity by scope.
+// **All 7 hashes drift**, and that is the check: the VERIFY schema and its
+// discipline rules ship from both builders regardless of verbosity, and the
+// interactive body carries its own complete copy of both. A 5-of-7 or 2-of-7
+// signature here would mean an edit failed to reach a served body — which is
+// precisely the defect class this change is fixing, one layer down.
+//
+// Re-baselined once IN PLACE, still 0.22.4 (unpushed, so no bytes have been
+// served — the bump-vs-rebaseline rule in BREAKING_CHANGES.md permits this).
+// Code review found the counter guidance asymmetric: three causes were given
+// for a count SHORT of the model's memory and none for a count LONG of it,
+// while the model was told not to adjust the numbers. Since the run key is the
+// IRL body hash and the row lives 4h, a repeat ingestion of identical bytes
+// accumulates onto the same row — so a long count is reachable in ordinary
+// operation and the model had no sanctioned way to report it. All 7 drift
+// again; the `run` scope definition now states the window and the body-keying
+// in every body.
 const EXPECTED_HASH_INTERACTIVE =
-  '8fd9e5247692e2e567b64132b30555958c4b2639df1688b6dc58bfd0d5f64805';
+  '5b7381f39c3afa8995389087a7d1b666029db32f2bb5a43de0d00fbbfff30c1f';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '49b40bcc0e4329f92e4971c36a02b235a8ed3ea4ffedb1b8339a083e19d9353c';
+  '2f6c559a51986ddb79037aded5a3fac6230be7beafdb5ae3924cf179b2706eb4';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'bd750f7f807b87b79b485105b8f1f0cd72ad5c79c8a0ffd4ef439946e4e5a33b';
+  '9e7979fb176373e652a9e6c752ff990434f8da9749ec66d5efe1070e326e1235';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'fa3ea54ddad07fc39ba3dc79d4f1498f88a8b9ea096e6f55a53e677394f88395';
+  'c26dd86a36b2f8424145900707c4e50f7176cebe17eb8e8f8154062391c24e47';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '62627939a5014273aeb4f7a3992356aa7149973f07cd0cb9f39c33c5116c6372';
+  '5267f113b7b335852143724985c4f83bd04385e2bddb952e147c1594291b5139';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -359,9 +384,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '1afec46b55ef4b6de59ec9abba93f7ceebbe0463def15c27c201cac8b7d9e2a0';
+  '9825399a7bdb03cee46ca2c76ab779913500c58f627685e4e3be36624e4d36f2';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  'd3db6b58eaa092a055ee62106d69faea39047f20e0ff380aa55899b5c3e9f5b0';
+  '7ea8788292de3ec1983ec4d1099766f585e33703d90c9a47ccd2c10b945602b7';
 
 interface Scenario {
   name: string;

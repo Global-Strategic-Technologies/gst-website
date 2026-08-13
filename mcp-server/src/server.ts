@@ -45,9 +45,13 @@ import {
   InMemoryToolCallCounters,
   NoopSink,
   UpstashIrlBodyCache,
+  type CountersScope,
   type IrlBodyCache,
   type MetricsContext,
+  UpstashRunCallCounters,
+  type RunCallCounters,
 } from './metrics/_index';
+import { computeIrlBodyHash } from './schemas/compose-dossier-envelope';
 import { createCacheStore } from './lib/upstash-cache-store';
 import type { Env } from './worker';
 
@@ -129,6 +133,20 @@ export interface ServerFactoryOptions {
   irlBodyCache?: import('./metrics/_index').IrlBodyCache;
 
   /**
+   * BL-121 — test override for the durable run-scoped counters, mirroring
+   * {@link irlBodyCache}. Production (stdio + Worker entrypoints) must NOT set
+   * this; the auto-construction below owns the stdio-vs-Worker discriminator.
+   *
+   * Integration tests use it to drive the **Worker topology** — two
+   * `createServer` calls, each with its own in-process map, sharing one
+   * durable store — which is the shape the BL-071 identity actually has to
+   * survive. Hand-building two `MetricsContext`s instead would re-encode the
+   * topology by assertion and could not catch a wiring fault in this file,
+   * which is where BL-121's bug lived.
+   */
+  runCounters?: RunCallCounters;
+
+  /**
    * BL-033 Slice 3a — per-request compliance-audit carrier. The Worker passes
    * `{ sink: QueueAuditSink, requestId, ipPrefix, keyOwner }`; stdio / tests /
    * unbound-`AUDIT_QUEUE` omit it (→ no audit emission). Threaded into
@@ -146,6 +164,67 @@ export interface ServerFactoryOptions {
    * Omitted for stdio / tests / graceful-skip (→ no warning).
    */
   rateLimit?: import('./ratelimit/limiter').CheckResult;
+}
+
+/**
+ * BL-121 — the three tools whose calls belong to an identifiable IRL run.
+ *
+ * `validate_irl_provenance` is the one the BL-071 identity counts;
+ * `compose_dossier_envelope` is both a writer and the reader (its own exit
+ * write is what a later re-call reads back); `prepare_irl_body` earns its
+ * place as a **store-liveness canary** — a run with a durable row for it
+ * proves the store was reachable at least once. Note the canary is absent
+ * exactly where the strongest provenance path runs: prepop runs are told to
+ * skip `prepare_irl_body` entirely.
+ */
+const RUN_KEYED_TOOLS = new Set([
+  'validate_irl_provenance',
+  'compose_dossier_envelope',
+  'prepare_irl_body',
+]);
+
+/**
+ * Resolve the durable run key for a tool call, or `undefined` when the call
+ * belongs to no run (every non-IRL tool, and any IRL call whose args carry
+ * neither a hash nor a body).
+ *
+ * **Key by the bytes the call actually operated on — so an inline `filledIrl`
+ * wins over the bound hash.** The count answers exactly one question: *how
+ * many calls verified the bytes compose is about to submit?* A validate call
+ * that received `filledIrl` verified THAT body (`validate-irl-provenance.ts`
+ * gives it precedence for matching and never cross-checks it against the
+ * supplied hash), so it belongs in the composed run's count if and only if
+ * those bytes hash to the composed body.
+ *
+ * Keying such a call by the bound hash instead would credit the composed run
+ * with a verification that ran on **different bytes** — the identity would
+ * close over work that never touched the submitted body. That is a false
+ * green, which is the one failure mode this whole change refuses. (It also
+ * costs nothing in the common case: when the inline body and the bound hash
+ * agree, both branches produce the same key and there is no split at all.
+ * A split happens only on real disagreement, which is precisely when the two
+ * calls belong to two different bodies.)
+ *
+ * When a legitimate split occurs the composed run's count comes up short.
+ * **That is a true signal, not a lost count** — the model verified bytes it
+ * did not submit — and the prompt names it as one of the causes of a short
+ * count.
+ *
+ * Re-hashing a body of up to 200KB per call duplicates what
+ * `prepare_irl_body` computes anyway; deliberate, and cheap beside the
+ * round-trip it guards.
+ */
+function runKeyOf(toolName: string, args: readonly unknown[]): string | undefined {
+  if (!RUN_KEYED_TOOLS.has(toolName)) return undefined;
+  const payload = args[0];
+  if (!payload || typeof payload !== 'object') return undefined;
+  const { irlBodyHash, filledIrl } = payload as {
+    irlBodyHash?: unknown;
+    filledIrl?: unknown;
+  };
+  if (typeof filledIrl === 'string' && filledIrl.length > 0) return computeIrlBodyHash(filledIrl);
+  if (typeof irlBodyHash === 'string' && irlBodyHash.length > 0) return irlBodyHash;
+  return undefined;
 }
 
 /**
@@ -237,6 +316,37 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
     };
   })();
 
+  // BL-121 — durable run-scoped counters, and the regime label that says
+  // whether the BL-071 precheck identities can be checked at all.
+  //
+  // Resolved EAGERLY, unlike the body cache above: `UpstashRunCallCounters
+  // .fromEnv` only reads two env bindings (no I/O), so knowing here whether
+  // the store exists costs nothing — and `countersScope` has to be decided
+  // here, where the transport and the binding are both visible. Deriving it
+  // downstream from "did the durable read return rows" would collapse to a
+  // constant, because `compose_dossier_envelope` writes its own row before
+  // reading, so the key is never empty on the Worker.
+  //
+  // Unbound Upstash does NOT throw here, deliberately diverging from BL-076's
+  // body cache: a missing body corrupts the dossier, a missing counter only
+  // weakens a report. Degrade to 'request' and say so.
+  //
+  // Durable counters are a REMOTE concern only, and the `isStdio` branch is
+  // deliberately outermost so that is unambiguous: on stdio the in-process map
+  // already spans the whole session ('session' scope), so a durable store adds
+  // nothing and would only put network I/O into a local process. A
+  // `ctx.runCounters` override supplied WITHOUT a `metricsSink` is therefore
+  // ignored by design rather than by accident — the previous ordering accepted
+  // the override, then silently declined to thread it below.
+  const isStdio = ctx.metricsSink === undefined;
+  const runCounters = isStdio
+    ? undefined
+    : (ctx.runCounters ?? UpstashRunCallCounters.fromEnv(env));
+  const countersScope: CountersScope = isStdio ? 'session' : runCounters ? 'run' : 'request';
+
+  // NB: the discriminator is spelled inline here rather than reusing `isStdio`
+  // above — a boolean alias does not narrow `ctx.metricsSink` for TypeScript,
+  // and the Worker branch needs it narrowed to non-undefined for `sink`.
   const metrics: MetricsContext =
     ctx.metricsSink === undefined
       ? {
@@ -245,6 +355,7 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
           irlBodyCache,
           audit: ctx.audit,
           rateLimit: ctx.rateLimit,
+          countersScope,
         }
       : {
           sink: ctx.metricsSink,
@@ -253,6 +364,9 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
           irlBodyCache,
           audit: ctx.audit,
           rateLimit: ctx.rateLimit,
+          runCounters: runCounters ?? undefined,
+          runKeyOf,
+          countersScope,
         };
 
   // Tools (transport-portable)

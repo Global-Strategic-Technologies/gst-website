@@ -169,7 +169,15 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // now render the same bullet shape by instruction. Body-only change — no
 // argument, tool, or URI changes; drifts solely from that one prompt
 // name@version tuple.
-const EXPECTED_MANIFEST_HASH = 'f61390ec2fe880eff6f859494d76e5e0e4014f6923cf67f4f8df3b6560f36247';
+// Scope-conditional-counters rebaseline (server 0.49.3): gst_irl_ingestion
+// v0.22.3 → v0.22.4. The BL-071 precheck identities were stated flatly, as if
+// the server-authoritative counter always spanned the session. On the remote
+// Worker `createServer` runs per HTTP request, so the per-request counter map
+// could never satisfy them — the prompt was directing operators to fail runs
+// on a check that could not pass. The VERIFY block now carries `countersScope`
+// and states each identity conditionally. Body-only change — no argument,
+// tool, or URI changes; drifts solely from that one prompt name@version tuple.
+const EXPECTED_MANIFEST_HASH = 'd8ce6a7fe28cb3ce5dabb1f84ad92dff93ad35ef5e141f700994e7b7d17c3055';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
