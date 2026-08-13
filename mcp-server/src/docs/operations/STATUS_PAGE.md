@@ -42,6 +42,15 @@ That made an unverified check indistinguishable from a passing one, which is the
 
 `eval-error` and `unknown` stay separate because they are different faults: one is a bug in the rule, the other is an unreachable dependency.
 
+**Which arms are `unknown`.** Every rule that fails open because its data source was unreachable: the three AE-backed rules (`traffic-spike-detected`, `scope-mismatch-403-rate`, `oauth-refresh-failure-rate`), both Upstash arms of `sentry-envelope-post-failure-rate`, plus two that were **hiding it behind a fabricated default** until BL-122:
+
+- **`radar-snapshot-stale`** — a `null` age (Upstash unbound/unreachable, malformed value, or a cold cache) is _unverifiable_, not fresh. It rendered a green `ok` beside the Substrate panel's red `STALE` for the very same `null`.
+- **`inoreader-budget-exhausted`** — `readInoreaderSpend` returns `total: 0` when the counters cannot be read, which is indistinguishable from a genuine zero-spend day. The rule published `0/100 (0% of daily hard cap)` as a measured figure. `readInoreaderSpend` now returns a `read` flag, and the **Substrate budget row** uses it too, for the same reason.
+
+That second one is worth remembering when auditing for this defect class: it says nothing about failing open, so grepping the summaries for "fail open" will not find it. The tell is a **default value being reported as a measurement**.
+
+`health-check-failing` is genuinely different and stays as-is: `buildHealthPayload` never throws, and an unreachable Upstash sets `upstashMcp: 'degraded'` → a real breach. It always reaches a verdict.
+
 **Alerting is unchanged.** `breached` stays `false` in the unknown case, so no Sentry event fires and a blind check never pages. Display-only. Consequence worth knowing: if AE is misconfigured, several rows go `unknown` at once — the page looks worse without the server having got worse.
 
 ## Surface, don't ratify (BL-033 operator directive)

@@ -148,10 +148,18 @@ const inoreaderBudgetExhausted: AlertRule = {
     const spend = await readInoreaderSpend(env);
     const ratio = spend.total / ZONE1_DAILY_HARD_CAP;
     const breached = ratio >= BUDGET_TICKET_RATIO;
+    // BL-122 — an unread counter defaults to `total: 0`, which is
+    // indistinguishable from a genuine zero-spend day. Publishing
+    // "0/100 (0% of daily hard cap)" as a green `ok` asserts a number nobody
+    // measured; say the counter was unreadable instead.
     return {
       breached,
+      ...(spend.read === false ? { evaluated: false as const } : {}),
       severity: ratio >= BUDGET_PAGE_RATIO ? 'page' : 'ticket',
-      summary: `Inoreader Zone-1 spend at ${spend.total}/${ZONE1_DAILY_HARD_CAP} (${Math.round(ratio * 100)}% of daily hard cap)`,
+      summary:
+        spend.read !== false
+          ? `Inoreader Zone-1 spend at ${spend.total}/${ZONE1_DAILY_HARD_CAP} (${Math.round(ratio * 100)}% of daily hard cap)`
+          : `Inoreader Zone-1 spend counters unreadable (Upstash unbound or read failed) — cap is ${ZONE1_DAILY_HARD_CAP}/day`,
       observed: {
         total: spend.total,
         cap: ZONE1_DAILY_HARD_CAP,
@@ -170,8 +178,15 @@ const radarSnapshotStale: AlertRule = {
     // the health-check-failing rule owns the Upstash-down signal, and a
     // cold cache pre-first-cron is not an incident.
     const breached = age !== null && age > FRESHNESS_MAX_AGE_SECONDS;
+    // BL-122 — a null age is not "fresh". It means Upstash was unbound or
+    // unreachable, the value was malformed, or the cache is cold: freshness is
+    // UNVERIFIABLE, not fine. Failing open (not paging) stays correct — the
+    // health-check-failing rule owns the Upstash-down signal — but rendering a
+    // green `ok` was never part of that argument, and it put this row's `ok`
+    // directly beside the Substrate panel's red STALE for the same null.
     return {
       breached,
+      ...(age === null ? { evaluated: false as const } : {}),
       severity: 'page',
       summary: `Radar FYI snapshot age ${age ?? 'unknown'}s vs ${FRESHNESS_MAX_AGE_SECONDS}s freshness SLO (2× 6h cron)`,
       observed: { ageSeconds: age, sloSeconds: FRESHNESS_MAX_AGE_SECONDS },

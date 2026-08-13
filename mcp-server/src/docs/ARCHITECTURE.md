@@ -300,7 +300,7 @@ Each rule links a runbook in `observability/runbooks/` (7 files: Symptom / Diagn
 
 ### Status page
 
-`GET /status` (`src/observability/status-page.ts`) renders server-side HTML from two sources the Worker already holds: the live `buildHealthPayload()` probes and the evaluator's `mcp:alerts:last-eval` summary — overall status, env/version, dependency health, snapshot age vs the 12 h SLO, Zone-1 spend vs cap, and the per-rule alert table. No client JS, no secrets, and it never throws (degraded sources render as unknowns).
+`GET /status` (`src/observability/status-page.ts`) renders server-side HTML from three sources the Worker already holds: the live `buildHealthPayload()` probes, the evaluator's `mcp:alerts:last-eval` summary, and the precomputed `mcp:status:metrics:<env>` cache — overall status, env/version, dependency health, snapshot age vs the 12 h SLO, Zone-1 spend vs cap, and the per-rule alert table. No client JS, no secrets, and it never throws (a degraded source renders as a placeholder rather than throwing; note the alert table separately has a NAMED `unknown` state for a rule that could not evaluate — BL-122).
 
 ### Sentry envelope delivery
 

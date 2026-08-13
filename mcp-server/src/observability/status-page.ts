@@ -143,6 +143,10 @@ export async function buildStatusHtml(env: Env): Promise<string> {
     health.radarSnapshotAgeSeconds !== null &&
     health.radarSnapshotAgeSeconds <= FRESHNESS_MAX_AGE_SECONDS;
   const spendPct = Math.round((health.inoreaderSpend.total / ZONE1_DAILY_HARD_CAP) * 100);
+  // BL-122 — `read === false` means the counters were unreachable and `total`
+  // is a default, not a measurement. Rendering `0%` in green would assert a
+  // number nobody read; the same reasoning as the alert table's `unknown`.
+  const spendRead = health.inoreaderSpend.read !== false;
 
   const alertRows =
     lastEval?.rules
@@ -150,6 +154,11 @@ export async function buildStatusHtml(env: Env): Promise<string> {
         // Order matters: a rule that threw, and a rule that could not reach
         // its data source, must BOTH escape the ok/breached binary before it
         // is applied — otherwise either renders as a green `ok` it never earned.
+        //
+        // The overlap is unreachable today (`evaluateRule` sets `error` only in
+        // its catch arm and `evaluated` only in its try arm), so the precedence
+        // is defensive rather than load-bearing. `eval-error` wins because a
+        // crashed rule is the more specific and more actionable fault.
         const state = r.error
           ? stateSpan(STATE_COLOR.evalError, 'eval-error')
           : r.evaluated === false
@@ -185,7 +194,7 @@ export async function buildStatusHtml(env: Env): Promise<string> {
   <tr><td>Upstash (MCP DB)</td><td>${badge(health.upstashMcp === 'ok', 'ok', 'degraded')}</td><td>write-probe</td></tr>
   <tr><td>Inoreader</td><td>${badge(health.inoreader !== 'degraded', esc(health.inoreader), 'degraded')}</td><td>last observed ${esc(health.inoreaderObservedSecondsAgo)}s ago (${esc(health.inoreaderObservedSource)})</td></tr>
   <tr><td>Radar snapshot freshness</td><td>${badge(snapshotOk, 'fresh', 'STALE')}</td><td>age ${esc(health.radarSnapshotAgeSeconds)}s vs SLO ${FRESHNESS_MAX_AGE_SECONDS}s (12h)</td></tr>
-  <tr><td>Inoreader Zone-1 budget</td><td>${badge(spendPct < 70, `${spendPct}%`, `${spendPct}%`)}</td><td>${esc(health.inoreaderSpend.total)}/${ZONE1_DAILY_HARD_CAP} today (ticket &gt; 70%, page &gt; 90%)</td></tr>
+  <tr><td>Inoreader Zone-1 budget</td><td>${spendRead ? badge(spendPct < 70, `${spendPct}%`, `${spendPct}%`) : stateSpan(STATE_COLOR.unknown, 'unknown')}</td><td>${spendRead ? `${esc(health.inoreaderSpend.total)}/${ZONE1_DAILY_HARD_CAP} today (ticket &gt; 70%, page &gt; 90%)` : `counters unreadable — cap is ${ZONE1_DAILY_HARD_CAP}/day`}</td></tr>
   <tr><td>Inoreader circuit breaker</td><td>${badge(!health.circuitOpen, 'closed', 'OPEN')}</td><td>${health.circuitOpen ? 'radar is serving cached snapshots; no upstream calls until the breaker closes' : 'radar reads go upstream on cache miss'}</td></tr>
 </table>
 

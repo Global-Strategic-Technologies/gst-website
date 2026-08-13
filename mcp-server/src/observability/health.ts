@@ -146,6 +146,12 @@ interface HealthResponse {
   inoreaderSpend: {
     total: number;
     byCategory: Record<InoreaderEgressCategory, number>;
+    /**
+     * BL-122 — `false` when the counters could not be read. `total` is then a
+     * safe default of 0, not a measurement, so any surface reporting the
+     * number must say so rather than render a fabricated 0%.
+     */
+    read?: boolean;
   };
   /**
    * BL-041 — Worker-side ACL self-check result for the current deploy.

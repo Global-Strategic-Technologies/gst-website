@@ -194,13 +194,16 @@ describe('buildStatusHtml — unverified rules render as unknown', () => {
       ])
     );
     const html = await buildStatusHtml(ENV);
-    const colorOf = (label: string) =>
-      html.match(new RegExp(`color:(#[0-9a-f]{6});font-weight:600">${label}<`))?.[1];
+    // Row-scoped: the Substrate panel renders `ok` spans too, and an unscoped
+    // match would read THAT green — so recolouring only the alert table's `ok`
+    // would slip through.
+    const colorOf = (id: string) =>
+      alertRow(html, id).match(/color:(#[0-9a-f]{6});font-weight:600"/)?.[1];
 
-    const ok = colorOf('ok');
-    const unknown = colorOf('unknown');
-    const breached = colorOf('BREACHED');
-    const evalError = colorOf('eval-error');
+    const ok = colorOf('a');
+    const unknown = colorOf('b');
+    const breached = colorOf('c');
+    const evalError = colorOf('d');
 
     for (const [name, c] of Object.entries({ ok, unknown, breached, evalError })) {
       expect(c, `${name} should render a colour`).toMatch(/^#[0-9a-f]{6}$/);

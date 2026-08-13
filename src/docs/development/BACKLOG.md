@@ -901,6 +901,7 @@ Per CLAUDE.md Directive 6 "No Deferred Tech Debt" (numbered § 4a when this stan
 - [x] Argument surface 10 → 8, `filledIrl` at index 0, every description leading with its valid values and naming no backlog ids
 - [x] `prompts/irl-ingestion.md` rewritten so no bare backlog id carries meaning; ids confined to a closing archaeology ledger
 - [x] Status page: latency panel relabelled, filtered on `p99 > 0` at render, with the two empty states distinguishable; audit panel hidden while `AUDIT_QUEUE` is unbound
+- [x] Alert table gained a fourth state: a rule that could not reach its data source renders `unknown` (slate) rather than a green `ok`, so an unverified check stops looking like a passing one. Two arms that hid it behind a fabricated default were found in review — `radar-snapshot-stale` (null age) and `inoreader-budget-exhausted` (unread counters reported as `0/100`)
 - [x] Operator runbooks migrated — signoff runs invoke `auditLevel: debug`
 
 #### Technical Context

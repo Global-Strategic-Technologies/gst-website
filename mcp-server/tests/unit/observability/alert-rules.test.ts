@@ -103,6 +103,26 @@ describe('inoreader-budget-exhausted', () => {
     expect(ev.breached).toBe(true);
     expect(ev.severity).toBe('page');
   });
+
+  // An unreadable counter defaults to total:0, which is indistinguishable from
+  // a genuine zero-spend day — so the rule must not publish "0/100 (0%)" as a
+  // measured figure. This one is invisible to a grep for "fail open": the
+  // arm reads as a perfectly ordinary success.
+  it('does not report a fabricated 0% when the counters could not be read', async () => {
+    mockReadSpend.mockResolvedValue({ total: 0, byCategory: {}, read: false });
+    const ev = await rule('inoreader-budget-exhausted').evaluate(makeCtx());
+    expect(ev.breached).toBe(false);
+    expect(ev.evaluated).toBe(false);
+    expect(ev.summary).toMatch(/unreadable/i);
+    expect(ev.summary).not.toMatch(/0% of daily hard cap/);
+  });
+
+  it('reports the measured figure when the counters were read', async () => {
+    mockReadSpend.mockResolvedValue({ total: 0, byCategory: {}, read: true });
+    const ev = await rule('inoreader-budget-exhausted').evaluate(makeCtx());
+    expect(ev.evaluated).toBeUndefined();
+    expect(ev.summary).toContain('0/100');
+  });
 });
 
 describe('radar-snapshot-stale', () => {
@@ -121,6 +141,15 @@ describe('radar-snapshot-stale', () => {
     mockProbeAge.mockResolvedValue(null);
     const ev = await rule('radar-snapshot-stale').evaluate(makeCtx());
     expect(ev.breached).toBe(false);
+    // A null age is not "fresh" — it is unverifiable. Rendering it green put
+    // this row's `ok` beside the Substrate panel's red STALE for the same null.
+    expect(ev.evaluated).toBe(false);
+  });
+
+  it('reports a real age as evaluated', async () => {
+    mockProbeAge.mockResolvedValue(3600);
+    const ev = await rule('radar-snapshot-stale').evaluate(makeCtx());
+    expect(ev.evaluated).toBeUndefined();
   });
 });
 
@@ -169,6 +198,8 @@ describe('traffic-spike-detected', () => {
     const ev = await rule('traffic-spike-detected').evaluate(makeCtx());
     expect(ev.breached).toBe(false);
     expect(ev.observed.aeUnavailable).toBe(1);
+    // Fail-open must not read as verified: /status renders this `unknown`.
+    expect(ev.evaluated).toBe(false);
   });
   it('breaches when a key exceeds 10x its trailing hourly mean above the floor', async () => {
     const queryAe = vi
@@ -218,6 +249,12 @@ describe('traffic-spike-detected', () => {
 });
 
 describe('scope-mismatch-403-rate', () => {
+  it('fails open as unevaluated when AE is unavailable', async () => {
+    const ev = await rule('scope-mismatch-403-rate').evaluate(makeCtx());
+    expect(ev.breached).toBe(false);
+    expect(ev.evaluated).toBe(false);
+  });
+
   it('pages above 5 rejected-403s/min over the 15-min window', async () => {
     const queryAe = vi.fn().mockResolvedValue([{ n: '90' }]); // 6/min
     const ev = await rule('scope-mismatch-403-rate').evaluate(makeCtx({ queryAe }));
@@ -232,6 +269,12 @@ describe('scope-mismatch-403-rate', () => {
 });
 
 describe('oauth-refresh-failure-rate', () => {
+  it('fails open as unevaluated when AE is unavailable', async () => {
+    const ev = await rule('oauth-refresh-failure-rate').evaluate(makeCtx());
+    expect(ev.breached).toBe(false);
+    expect(ev.evaluated).toBe(false);
+  });
+
   it('pages above 20% failure with sufficient samples', async () => {
     const queryAe = vi.fn().mockResolvedValue([
       { outcome: 'error', n: '3' },
@@ -255,6 +298,7 @@ describe('sentry-envelope-post-failure-rate', () => {
     const ev = await rule('sentry-envelope-post-failure-rate').evaluate(makeCtx());
     expect(ev.breached).toBe(false);
     expect(ev.observed.upstashUnavailable).toBe(1);
+    expect(ev.evaluated).toBe(false);
   });
   it('tickets above 10% failure with >= 10 attempts', async () => {
     mockCreateMcpClient.mockReturnValue({
