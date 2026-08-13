@@ -56,6 +56,26 @@ That second one is worth remembering when auditing for this defect class: it say
 
 Erring alarming is still erring: the fix is to say the source was unreadable, not to pick whichever wrong answer feels safer.
 
+## Auditing for this defect class — sweep the READERS, not the rows
+
+Five instances of this bug were found one at a time by reading the rendered page, over five review rounds. They all had the identical shape at the identical boundary: **a reader collapses "could not read" into a plausible default before the renderer ever sees it.** Auditing the rows finds them one per pass; auditing the readers finds them all at once.
+
+The procedure: enumerate every function whose value reaches this page, and ask each one _"what do you return when Upstash is unavailable?"_
+
+| Reader                  | Returns when unavailable                   | Row              | Verdict                                                                                                          |
+| ----------------------- | ------------------------------------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `probeMcp`              | `'degraded'`                               | Upstash          | **Real verdict** — it attempts a write; an unbound secret means the substrate genuinely is unusable, not unknown |
+| `readInoreaderStatus`   | `status: 'unknown'`                        | Inoreader        | Was falling into the `!== 'degraded'` ok arm — the page printed the same word in two colours                     |
+| `probeRadarSnapshotAge` | `null`                                     | Radar freshness  | Was rendering `STALE`                                                                                            |
+| `readInoreaderSpend`    | `total: 0`                                 | Zone-1 budget    | Was rendering a fabricated `0/100 (0%)`                                                                          |
+| `isCircuitOpen`         | `null` → collapsed to `circuitOpen: false` | Circuit breaker  | Was rendering an observed `closed`                                                                               |
+| `readLastEval`          | `null`                                     | SLO alerts       | Correct — distinct "No evaluation summary yet"                                                                   |
+| `readStatusMetrics`     | `null`                                     | I/O wait + audit | Correct — distinct "metrics unavailable"                                                                         |
+
+The four middle rows now carry `read`/`evaluated` signals so the display can tell a measurement from a default. **`circuitOpen` and `inoreaderSpend.total` keep their fail-open values** — that behaviour is correct and other consumers depend on it; the signal sits _beside_ the value rather than replacing it.
+
+Adding a row to this page? Run that question against its reader before you write the badge.
+
 `health-check-failing` is genuinely different and stays as-is: `buildHealthPayload` never throws, and an unreachable Upstash sets `upstashMcp: 'degraded'` → a real breach. It always reaches a verdict.
 
 **Alerting is unchanged.** `breached` stays `false` in the unknown case, so no Sentry event fires and a blind check never pages. Display-only. Consequence worth knowing: if AE is misconfigured, several rows go `unknown` at once — the page looks worse without the server having got worse.

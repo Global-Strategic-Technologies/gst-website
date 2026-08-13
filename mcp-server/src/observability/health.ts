@@ -6,6 +6,7 @@
  *   {
  *     ok:                          boolean,
  *     circuitOpen:                 boolean,           // Inoreader breaker state (informational)
+ *     circuitRead:                 boolean,           // BL-122 — false = state unreadable, circuitOpen is a default
  *     version:                     string,            // mcp-server package version
  *     gitSha:                      string,            // deploy-time injected; 'unknown' locally
  *     phase:                       string,
@@ -99,6 +100,13 @@ interface HealthResponse {
    * serving cache". `false` when Upstash gives no signal.
    */
   circuitOpen: boolean;
+  /**
+   * BL-122 — `false` when the breaker state could not be read (Upstash
+   * unbound, or the read threw). `circuitOpen` is then `false` by fail-open
+   * policy, which is right for BEHAVIOUR but is not a measurement — a surface
+   * reporting it must not render `closed` as though it had been observed.
+   */
+  circuitRead?: boolean;
   version: string;
   gitSha: string;
   phase: string;
@@ -321,7 +329,10 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     ok,
     // `null` from `isCircuitOpen` means Upstash gave no signal — report
     // `false` (fail open), consistent with every other breaker consumer.
+    // BL-122: `circuitRead` preserves the distinction the collapse destroys,
+    // so /status can say `unknown` instead of asserting an observed `closed`.
     circuitOpen: circuitState?.open === true,
+    circuitRead: circuitState !== null,
     version: env.VERSION ?? VERSION,
     gitSha: env.GIT_SHA ?? 'unknown',
     phase: 'BL-032 Phase 5 (observability)',

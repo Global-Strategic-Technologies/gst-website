@@ -173,6 +173,53 @@ describe('buildStatusHtml — Substrate rows do not report unread sources as ver
     expect(html).toContain('STALE');
     expect(html).not.toContain('age unreadable');
   });
+
+  // `readInoreaderStatus` returns the literal string 'unknown' when the source
+  // was never observed. The row tested only `!== 'degraded'`, so that landed in
+  // the ok arm and the page printed the SAME WORD in two colours — slate
+  // meaning "unreadable" and green meaning "fine".
+  it('renders an unobserved Inoreader status in the unknown colour, not ok-green', async () => {
+    mockBuildHealth.mockResolvedValue({ ...HEALTHY_PAYLOAD, inoreader: 'unknown' });
+    const html = await buildStatusHtml(ENV);
+    const row = html.match(/<tr><td>Inoreader<\/td>.*?<\/tr>/)?.[0] ?? '';
+    expect(row).toContain('#8a9bb0');
+    expect(row).not.toContain('#0a7d4f');
+    expect(row).toContain('status unreadable');
+  });
+
+  it('still renders a read Inoreader status in ok-green', async () => {
+    mockBuildHealth.mockResolvedValue({ ...HEALTHY_PAYLOAD, inoreader: 'ok' });
+    const html = await buildStatusHtml(ENV);
+    const row = html.match(/<tr><td>Inoreader<\/td>.*?<\/tr>/)?.[0] ?? '';
+    expect(row).toContain('#0a7d4f');
+    expect(row).not.toContain('status unreadable');
+  });
+
+  // `isCircuitOpen` returns null for unbound/threw, which health.ts collapses
+  // to `circuitOpen: false`. Correct for BEHAVIOUR (fail open), but the row
+  // then asserted an observed `closed` plus a detail line claiming radar reads
+  // go upstream — both unknown.
+  it('renders the breaker as unknown when its state could not be read', async () => {
+    mockBuildHealth.mockResolvedValue({
+      ...HEALTHY_PAYLOAD,
+      circuitOpen: false,
+      circuitRead: false,
+    });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('breaker state unreadable');
+    expect(html).not.toContain('radar reads go upstream on cache miss');
+  });
+
+  it('still renders closed when the breaker state was read', async () => {
+    mockBuildHealth.mockResolvedValue({
+      ...HEALTHY_PAYLOAD,
+      circuitOpen: false,
+      circuitRead: true,
+    });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('radar reads go upstream on cache miss');
+    expect(html).not.toContain('breaker state unreadable');
+  });
 });
 
 // BL-122 — a rule that could not check must not render as `ok`. There are
