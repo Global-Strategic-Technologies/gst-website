@@ -139,6 +139,12 @@ export async function buildStatusHtml(env: Env): Promise<string> {
         `<tr><td>Records committed (24h)</td><td>${esc(a?.records24h ?? '—')}</td></tr>` +
         `<tr><td>Last batch processed</td><td>${esc(a?.lastProcessedAt ?? '—')}</td></tr>`;
 
+  // BL-122 — three outcomes, not two. A null age means Upstash was unbound or
+  // unreachable, the value was malformed, or the cache is cold: freshness is
+  // UNVERIFIABLE. Reporting it as `STALE` asserts a verdict nobody reached —
+  // the same defect as the budget row below, erring alarming instead of
+  // reassuring. Both now say `unknown` for an unreadable source.
+  const snapshotRead = health.radarSnapshotAgeSeconds !== null;
   const snapshotOk =
     health.radarSnapshotAgeSeconds !== null &&
     health.radarSnapshotAgeSeconds <= FRESHNESS_MAX_AGE_SECONDS;
@@ -193,7 +199,7 @@ export async function buildStatusHtml(env: Env): Promise<string> {
   <tr><th>Surface</th><th>State</th><th>Detail</th></tr>
   <tr><td>Upstash (MCP DB)</td><td>${badge(health.upstashMcp === 'ok', 'ok', 'degraded')}</td><td>write-probe</td></tr>
   <tr><td>Inoreader</td><td>${badge(health.inoreader !== 'degraded', esc(health.inoreader), 'degraded')}</td><td>last observed ${esc(health.inoreaderObservedSecondsAgo)}s ago (${esc(health.inoreaderObservedSource)})</td></tr>
-  <tr><td>Radar snapshot freshness</td><td>${badge(snapshotOk, 'fresh', 'STALE')}</td><td>age ${esc(health.radarSnapshotAgeSeconds)}s vs SLO ${FRESHNESS_MAX_AGE_SECONDS}s (12h)</td></tr>
+  <tr><td>Radar snapshot freshness</td><td>${snapshotRead ? badge(snapshotOk, 'fresh', 'STALE') : stateSpan(STATE_COLOR.unknown, 'unknown')}</td><td>${snapshotRead ? `age ${esc(health.radarSnapshotAgeSeconds)}s vs SLO ${FRESHNESS_MAX_AGE_SECONDS}s (12h)` : `age unreadable (snapshot absent or Upstash unreachable) — SLO ${FRESHNESS_MAX_AGE_SECONDS}s (12h)`}</td></tr>
   <tr><td>Inoreader Zone-1 budget</td><td>${spendRead ? badge(spendPct < 70, `${spendPct}%`, `${spendPct}%`) : stateSpan(STATE_COLOR.unknown, 'unknown')}</td><td>${spendRead ? `${esc(health.inoreaderSpend.total)}/${ZONE1_DAILY_HARD_CAP} today (ticket &gt; 70%, page &gt; 90%)` : `counters unreadable — cap is ${ZONE1_DAILY_HARD_CAP}/day`}</td></tr>
   <tr><td>Inoreader circuit breaker</td><td>${badge(!health.circuitOpen, 'closed', 'OPEN')}</td><td>${health.circuitOpen ? 'radar is serving cached snapshots; no upstream calls until the breaker closes' : 'radar reads go upstream on cache miss'}</td></tr>
 </table>

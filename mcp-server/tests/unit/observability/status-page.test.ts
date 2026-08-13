@@ -134,6 +134,47 @@ describe('buildStatusHtml', () => {
 const keyedRedis = (byKey: Record<string, unknown>) =>
   ({ get: vi.fn(async (k: string) => byKey[k] ?? null) }) as never;
 
+// BL-122 — the Substrate panel has the same three-outcome problem as the alert
+// table: a source that could not be read must not be reported as a verdict.
+// Both rows below used to publish one — the budget row as a fabricated `0%`
+// (falsely reassuring) and the freshness row as `STALE` (falsely alarming).
+describe('buildStatusHtml — Substrate rows do not report unread sources as verdicts', () => {
+  it('renders the budget row as unknown when the spend counters could not be read', async () => {
+    mockBuildHealth.mockResolvedValue({
+      ...HEALTHY_PAYLOAD,
+      inoreaderSpend: { total: 0, byCategory: {}, read: false },
+    });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('counters unreadable');
+    // The whole point: never publish a default as a measurement.
+    expect(html).not.toContain('0/100 today');
+  });
+
+  it('still renders the measured budget when the counters were read', async () => {
+    mockBuildHealth.mockResolvedValue({
+      ...HEALTHY_PAYLOAD,
+      inoreaderSpend: { total: 14, byCategory: {}, read: true },
+    });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('14/100 today');
+    expect(html).not.toContain('counters unreadable');
+  });
+
+  it('renders freshness as unknown — not STALE — when the age could not be read', async () => {
+    mockBuildHealth.mockResolvedValue({ ...HEALTHY_PAYLOAD, radarSnapshotAgeSeconds: null });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('age unreadable');
+    expect(html).not.toContain('STALE');
+  });
+
+  it('still renders STALE for an age that was read and is genuinely stale', async () => {
+    mockBuildHealth.mockResolvedValue({ ...HEALTHY_PAYLOAD, radarSnapshotAgeSeconds: 50_000 });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('STALE');
+    expect(html).not.toContain('age unreadable');
+  });
+});
+
 // BL-122 — a rule that could not check must not render as `ok`. There are
 // three real conditions (passed / breached / could-not-check) and only two
 // boolean states, so an unreachable data source used to surface as green.

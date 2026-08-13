@@ -16,6 +16,7 @@
  *     inoreaderObservedSource:     'cron' | 'live-tool' | 'http-snapshot' | null,
  *     radarSnapshotAgeSeconds:     number | null,
  *     inoreaderSpend: {                                  // BL-032.75 Phase 0
+ *       read: boolean,                                 // BL-122 — false = counters unreadable, `total` is a default
  *       total:      number,                              // today's Zone-1 spend
  *       byCategory: Record<InoreaderEgressCategory, number>,
  *     },

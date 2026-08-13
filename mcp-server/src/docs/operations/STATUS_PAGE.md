@@ -49,6 +49,13 @@ That made an unverified check indistinguishable from a passing one, which is the
 
 That second one is worth remembering when auditing for this defect class: it says nothing about failing open, so grepping the summaries for "fail open" will not find it. The tell is a **default value being reported as a measurement**.
 
+**The Substrate panel has the same three-outcome problem**, and both of its affected rows now say `unknown` too:
+
+- **Zone-1 budget** — was rendering the fabricated `0/100 (0%)` in green. Falsely _reassuring_.
+- **Radar snapshot freshness** — was rendering `STALE` in red for a null age. Falsely _alarming_, which is the less dangerous direction but still a verdict nobody reached, and it sat directly above a budget row saying `unknown` for the very same unreachable Upstash.
+
+Erring alarming is still erring: the fix is to say the source was unreadable, not to pick whichever wrong answer feels safer.
+
 `health-check-failing` is genuinely different and stays as-is: `buildHealthPayload` never throws, and an unreachable Upstash sets `upstashMcp: 'degraded'` → a real breach. It always reaches a verdict.
 
 **Alerting is unchanged.** `breached` stays `false` in the unknown case, so no Sentry event fires and a blind check never pages. Display-only. Consequence worth knowing: if AE is misconfigured, several rows go `unknown` at once — the page looks worse without the server having got worse.

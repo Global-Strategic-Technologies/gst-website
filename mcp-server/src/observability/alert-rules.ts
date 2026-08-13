@@ -164,6 +164,10 @@ const inoreaderBudgetExhausted: AlertRule = {
         total: spend.total,
         cap: ZONE1_DAILY_HARD_CAP,
         ratioPct: Math.round(ratio * 100),
+        // Marker in the same shape as every other fail-open arm
+        // (aeUnavailable / upstashUnavailable / upstashReadFailed), so the
+        // Sentry extras and AE surface stay greppable.
+        ...(spend.read === false ? { countersUnread: 1 } : {}),
       },
     };
   },

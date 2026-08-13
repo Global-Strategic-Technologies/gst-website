@@ -239,7 +239,7 @@ export async function runAlertEvaluation(
     event: 'alert-evaluator.completed',
     success: true,
     durationMs: Date.now() - startedAt,
-    reason: `breached=${results.filter((r) => r.breached).length} suppressed=${results.filter((r) => r.suppressed).length} errors=${results.filter((r) => r.error !== undefined).length}`,
+    reason: `breached=${results.filter((r) => r.breached).length} suppressed=${results.filter((r) => r.suppressed).length} errors=${results.filter((r) => r.error !== undefined).length} unevaluated=${results.filter((r) => r.evaluated === false).length}`,
   });
 
   return summary;
