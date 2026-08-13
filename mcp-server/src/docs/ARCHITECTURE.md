@@ -270,6 +270,20 @@ This is the same schema the baseline tooling queries — `scripts/invoke-ae-base
 
 The contract is fail-open throughout: **metrics never break a tool call**. Emission is best-effort, the sink never throws, and a wrapped handler behaves identically to an unwrapped one — the cost is one `Date.now()` and one synchronous `sink.write()`. `safeLog` continues to dual-write alongside metric events.
 
+### Run-scoped durable tool-call counters (BL-121)
+
+The BL-071 counter that feeds the dossier's `BL-045-VERIFY` block is an `InMemoryToolCallCounters` map, and **`createServer` runs per HTTP request** on the Worker (§ Register-once, transport-twice) — so on the remote transport that map could only ever hold the request the envelope tool was inside, and the operator identity `precheck.iterations === serverToolCallCounts.validate_irl_provenance.succeeded` was structurally unsatisfiable. The same rotation is why the IRL body cache moved to Upstash under BL-076; the counters were left behind until a production run surfaced it.
+
+The three IRL-pipeline tools (`validate_irl_provenance`, `compose_dossier_envelope`, `prepare_irl_body`) now also accumulate in Upstash, one hash per run:
+
+| key family                         | shape                                                                               | TTL                                                                              | owner                              |
+| ---------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------- |
+| `mcp:irl-run-counts:<irlBodyHash>` | hash, field `<tool>.<attempted\|succeeded\|rejected\|errored>`, `HINCRBY` per event | 4 h (`IRL_BODY_CACHE_TTL_SECONDS` — a counter never outlives the body it counts) | `src/metrics/run-call-counters.ts` |
+
+The run key is the IRL body hash, not a session id: "these bytes" is the audit scope, and every tool in the run already carries or derives it. Writes land at **wrapper exit** (nothing on the entry path, so no round trip in front of the tool call) and are awaited — `waitUntil` gives no ordering guarantee against the _next_ request, which is precisely the read this exists to serve. The client is built with `retry: false` (two fetch attempts, no backoff sleep; the SDK default is six attempts and 4,289 ms of sleep) so an Upstash brownout stays off the response path.
+
+`compose_dossier_envelope` merges the durable row over its per-request map and reports **`countersScope`**: `session` (stdio), `run` (Worker + read succeeded), `request` (unbound, or the read failed). Failure is quiet — a counter fault never fails a tool call, the opposite posture from the body cache, which throws when unbound because a missing body corrupts the dossier while a missing counter only weakens a report. Contract, merge arithmetic, and the rejected alternatives: [ADR-0016](../../../src/docs/adr/0016-run-scoped-durable-tool-call-counters.md) and [`tools/irl-pipeline/CONTRACT.md`](tools/irl-pipeline/CONTRACT.md).
+
 ### SLO baselines & targets
 
 SLO targets are measured, not guessed. `npm -w @gst/mcp-server run ae:baseline` (`scripts/invoke-ae-baseline.mjs`) pulls a trailing-7-day window from the AE SQL API and emits paste-ready baseline tables plus proposed targets, pre-applying the per-metric-kind calibration rules (latency = p95 × 1.5; availability = 0.5% sustained error-budget floor; freshness = 2 × the 6h radar cron = 43,200 s; throughput handled by the rolling traffic-spike alert rather than a fixed SLO).
