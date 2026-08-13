@@ -199,8 +199,13 @@ export function mergeCounts(
   for (const [tool, entry] of Object.entries(durable)) out[tool] = { ...entry };
   for (const [tool, live] of Object.entries(inProcess ?? {})) {
     const inFlight = live.attempted - live.succeeded - live.rejected - live.errored;
+    // Skip BEFORE materialising the row. Creating it first would emit an
+    // all-zero entry for a tool with nothing in flight, and a zeroed row for a
+    // tool the server saw succeed corrodes the absent-vs-zeroed discriminator
+    // the prompt tells the model to use when a count looks short.
+    if (inFlight <= 0) continue;
     const base = (out[tool] ??= { attempted: 0, succeeded: 0, rejected: 0, errored: 0 });
-    base.attempted += Math.max(0, inFlight);
+    base.attempted += inFlight;
   }
   return out;
 }

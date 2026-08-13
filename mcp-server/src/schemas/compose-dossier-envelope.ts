@@ -394,16 +394,30 @@ export interface ComposeDossierEnvelopeResult {
     tierFabrications: number;
   };
   /**
-   * BL-071 — server-authoritative snapshot of every tool call in this session
-   * (attempted / succeeded / rejected / errored per tool). The model MUST copy
-   * this object VERBATIM into the BL-045-VERIFY block `toolCallCounts` field
-   * and derive `precheck.iterations` (== validate_irl_provenance.succeeded),
-   * `precheck.attemptsTotal` (== validate_irl_provenance.attempted), and the
-   * COUNT of `precheck.errorsEncountered` (== validate_irl_provenance.rejected)
-   * from these counts. The server counts are the source of truth; model
-   * self-narration of `toolCallCounts` has demonstrated drift (sonnet fabricated
-   * a tool call; opus omitted one; a third run reported the same event in two
-   * YAML surfaces inconsistently).
+   * BL-071 — server-authoritative snapshot of tool calls (attempted /
+   * succeeded / rejected / errored per tool). The model MUST copy this object
+   * VERBATIM into the BL-045-VERIFY block `toolCallCounts` field. The server
+   * counts are the source of truth; model self-narration of `toolCallCounts`
+   * has demonstrated drift (sonnet fabricated a tool call; opus omitted one; a
+   * third run reported the same event in two YAML surfaces inconsistently).
+   *
+   * **How far back the snapshot reaches is {@link countersScope}, NOT "this
+   * session" (BL-121).** `createServer` runs per HTTP request on the Worker,
+   * so the in-process map alone holds only the envelope's own request; the
+   * three IRL-pipeline tools additionally accumulate durably, keyed by the IRL
+   * body. Read the scope before deriving anything.
+   *
+   * The precheck derivations are therefore conditional, and two of the three
+   * are reconciliations rather than equalities — durable writes land at wrapper
+   * exit, so an attempt that never reached the server was never countable.
+   * Under `session` / `run`:
+   *
+   *   precheck.iterations      === validate_irl_provenance.succeeded
+   *   attemptsTotal − attempted === count(transport-classed errorsEncountered)
+   *   errorsEncountered.length === rejected + errored + (attemptsTotal − attempted)
+   *
+   * Under `request` none of them hold. See ADR-0016 and
+   * `src/docs/tools/irl-pipeline/CONTRACT.md`.
    *
    * `compose_dossier_envelope` itself appears here as `attempted: N, succeeded: N-1`
    * — the envelope tool is in-flight while it computes the snapshot.
@@ -414,6 +428,22 @@ export interface ComposeDossierEnvelopeResult {
    * counters).
    */
   serverToolCallCounts?: Record<string, ServerToolCallCountEntry>;
+  /**
+   * BL-121 — the scope {@link serverToolCallCounts} was gathered at, so a
+   * consumer can tell whether the precheck identities are checkable at all:
+   *
+   *   - `session` — stdio; one process, one counter map, whole session.
+   *   - `run`     — remote + the durable run-scoped store read successfully;
+   *                 every call against this IRL body, across requests, for the
+   *                 4h key TTL. Keyed by the BODY, so a repeat ingestion of
+   *                 identical bytes inside that window shares the row.
+   *   - `request` — remote with no durable store bound, or a store that could
+   *                 not be read. Only the envelope call's own request.
+   *
+   * Declared here rather than left to `toolOk`'s loose payload so the type and
+   * the wire agree — `CONTRACT.md` documents it as part of the result shape.
+   */
+  countersScope?: 'session' | 'run' | 'request';
   /**
    * BL-079 Part B — server-authoritative byte length of the cache-hydrated
    * IRL body. Under `partner-paste-verbatim-prepop` (where the body never

@@ -597,6 +597,30 @@ describe('BL-121 — precheck derivation identity (Worker topology)', () => {
     expect(countsOf(result).counts.validate_irl_provenance).toBeUndefined();
   });
 
+  it('records `prepare_irl_body` under the body key — the store-liveness canary', async () => {
+    // The prompt and UAT-07 both tell operators to read this row as proof the
+    // durable store was live for the run, which makes it a load-bearing
+    // discriminator between "no calls" and "store unreachable" — and nothing
+    // was driving it. A canary nobody exercises is a canary nobody can trust.
+    //
+    // Its known hole is stated where it is relied on rather than here: the
+    // pre-populated path deliberately skips this tool, so the canary is absent
+    // exactly where the strongest provenance path runs.
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+
+    const client = await openRequest(durable, bodyCache);
+    await client.callTool({ name: 'prepare_irl_body', arguments: { filledIrl: SAMPLE_IRL } });
+
+    const row = durable.rows.get(computeIrlBodyHash(SAMPLE_IRL));
+    expect(row?.prepare_irl_body).toEqual({
+      attempted: 1,
+      succeeded: 1,
+      rejected: 0,
+      errored: 0,
+    });
+  });
+
   it('does not durably count tools that belong to no run', async () => {
     const durable = new FakeRunCounters();
     const bodyCache = new InMemoryIrlBodyCache();

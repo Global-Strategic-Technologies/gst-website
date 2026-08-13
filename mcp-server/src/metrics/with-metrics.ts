@@ -38,7 +38,7 @@ import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
 import type { MetricSink } from './sinks/_interface';
 import type { IrlBodyCache } from '../cache/irl-body-cache';
-import type { RunCallCounters } from './run-call-counters';
+import type { RunCallCounters, RunCallOutcomeEvent } from './run-call-counters';
 import type { AuditContext } from '../audit/audit-sink';
 import { newEntryId } from '../audit/redaction';
 import { AUDIT_SCHEMA_VERSION, type AuditEntry, type AuditOutcome } from '../audit/entry';
@@ -432,7 +432,7 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
     // isolate dies mid-handler is lost durably, where an entry write would
     // have caught it. Every other outcome — structured rejection, thrown
     // error — still reaches an exit path below.
-    const recordDurable = async (event: ToolCallCounterEvent): Promise<void> => {
+    const recordDurable = async (event: RunCallOutcomeEvent): Promise<void> => {
       if (eventType !== 'tool_invocation' || !ctx.runCounters || !ctx.runKeyOf) return;
       // The key derivation is inside the swallow, not just the write. It
       // hashes caller-supplied bytes, so a malformed payload could throw —

@@ -48,8 +48,9 @@ import {
   type CountersScope,
   type IrlBodyCache,
   type MetricsContext,
+  UpstashRunCallCounters,
+  type RunCallCounters,
 } from './metrics/_index';
-import { UpstashRunCallCounters } from './metrics/run-call-counters';
 import { computeIrlBodyHash } from './schemas/compose-dossier-envelope';
 import { createCacheStore } from './lib/upstash-cache-store';
 import type { Env } from './worker';
@@ -143,7 +144,7 @@ export interface ServerFactoryOptions {
    * topology by assertion and could not catch a wiring fault in this file,
    * which is where BL-121's bug lived.
    */
-  runCounters?: import('./metrics/run-call-counters').RunCallCounters;
+  runCounters?: RunCallCounters;
 
   /**
    * BL-033 Slice 3a — per-request compliance-audit carrier. The Worker passes
@@ -343,6 +344,9 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
     : (ctx.runCounters ?? UpstashRunCallCounters.fromEnv(env));
   const countersScope: CountersScope = isStdio ? 'session' : runCounters ? 'run' : 'request';
 
+  // NB: the discriminator is spelled inline here rather than reusing `isStdio`
+  // above — a boolean alias does not narrow `ctx.metricsSink` for TypeScript,
+  // and the Worker branch needs it narrowed to non-undefined for `sink`.
   const metrics: MetricsContext =
     ctx.metricsSink === undefined
       ? {

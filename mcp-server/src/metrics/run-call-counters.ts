@@ -78,7 +78,7 @@ const COUNTER_FIELDS = ['attempted', 'succeeded', 'rejected', 'errored'] as cons
  * depends on it silently false — which is the failure class this whole module
  * exists to close. Pinned by a unit test.
  */
-function eventField(event: ToolCallCounterEvent): keyof ToolCallCounterEntry {
+function eventField(event: RunCallOutcomeEvent): keyof ToolCallCounterEntry {
   return event === 'success' ? 'succeeded' : event;
 }
 
@@ -87,9 +87,20 @@ function fieldFor(toolName: string, field: keyof ToolCallCounterEntry): string {
   return `${toolName}.${field}`;
 }
 
+/**
+ * The OUTCOME events a durable row accepts — deliberately narrower than
+ * {@link ToolCallCounterEvent}, which also carries `'attempted'`.
+ *
+ * `record` increments `attempted` itself alongside the outcome, so passing
+ * `'attempted'` here would increment it twice: once literally and once via
+ * {@link eventField}. Narrowing the parameter makes that a compile error
+ * rather than a silently doubled count in an audit surface.
+ */
+export type RunCallOutcomeEvent = Exclude<ToolCallCounterEvent, 'attempted'>;
+
 export interface RunCallCounters {
-  /** Record one counter event against a run. Never throws. */
-  record(runKey: string, toolName: string, event: ToolCallCounterEvent): Promise<void>;
+  /** Record one counter outcome against a run. Never throws. */
+  record(runKey: string, toolName: string, event: RunCallOutcomeEvent): Promise<void>;
   /**
    * Read every counter recorded against a run.
    *
@@ -123,18 +134,28 @@ export class UpstashRunCallCounters implements RunCallCounters {
   /**
    * Build from env, or `null` when Upstash isn't bound.
    *
-   * Uses `retry: false` — two fetch attempts, no backoff sleep. The SDK
-   * default would put ~4.3 s of sleep on the response path of every
-   * instrumented call during a brownout, which would mean a degraded Upstash
-   * degrading the run. That is precisely what the fail-quiet posture promises
-   * it will not do.
+   * Uses `retry: false` — two fetch attempts, no backoff sleep, against an SDK
+   * default of six attempts and `exp(0..4)*50` = 4,289 ms of sleep. During a
+   * brownout that default would sit on the response path of every instrumented
+   * call, which is a degraded Upstash degrading the run.
+   *
+   * **This bounds the retry budget, not total latency.** Two fetch latencies
+   * still land on the response path, awaited at wrapper exit, so a *hung*
+   * Upstash delays an IRL tool call rather than being invisible to it. The
+   * per-request client makes a construction-time `AbortSignal.timeout` the
+   * wrong instrument — the signal would start counting at `createServer`, not
+   * at the write, and would abort spuriously on any tool that ran longer than
+   * the budget, silently losing counts on exactly the slow calls most worth
+   * counting. Recorded as a bounded residual instead of met with a mechanism
+   * that trades a delay for a lost count; fail-quiet still holds, since an
+   * aborted or failed fetch lands in `record`'s catch.
    */
   static fromEnv(env: Env): UpstashRunCallCounters | null {
     const redis = createMcpClient(env, { retry: false });
     return redis ? new UpstashRunCallCounters(redis) : null;
   }
 
-  async record(runKey: string, toolName: string, event: ToolCallCounterEvent): Promise<void> {
+  async record(runKey: string, toolName: string, event: RunCallOutcomeEvent): Promise<void> {
     const key = `${RUN_COUNTS_KEY_PREFIX}${runKey}`;
     try {
       // ONE pipelined round trip, not three. Three sequential awaits would put
