@@ -6,13 +6,13 @@ Public, unauthenticated server-rendered HTML at `mcp.globalstrategic.tech/status
 
 ## What it shows
 
-| Panel                                                         | Source                                       | Notes                                                                                                                                                                            |
-| ------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Header badge + env/version/gitSha                             | `buildHealthPayload` (live probes)           | `version` is the deploy-injected `env.VERSION` (BL-033 Slice 4); `gitSha` the deployed commit                                                                                    |
-| Substrate (Upstash, Inoreader, radar freshness, Zone-1 spend) | `buildHealthPayload`                         | freshness + spend carry **ratified-SLO badges** (12h / 70-90%)                                                                                                                   |
-| SLO alerts                                                    | `mcp:alerts:last-eval` (evaluator cron)      | the 7 canonical rules, per-rule state                                                                                                                                            |
-| **Tool latency (server-side, 7d)**                            | `mcp:status:metrics:<env>` (evaluator cron)  | per-tool p50/p95/p99 + sample count                                                                                                                                              |
-| **Audit log**                                                 | `mcp:status:metrics:<env>` + audit chain tip | **historical** — pipeline deactivated 2026-08-08 (ADR-0014); `lastSeq` shows the retained chain tip, 24h batches/records decay to 0; the panel carries a deactivation annotation |
+| Panel                                                         | Source                                       | Notes                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Header badge + env/version/gitSha                             | `buildHealthPayload` (live probes)           | `version` is the deploy-injected `env.VERSION` (BL-033 Slice 4); `gitSha` the deployed commit                                                                                                                                                              |
+| Substrate (Upstash, Inoreader, radar freshness, Zone-1 spend) | `buildHealthPayload`                         | freshness + spend carry **ratified-SLO badges** (12h / 70-90%)                                                                                                                                                                                             |
+| SLO alerts                                                    | `mcp:alerts:last-eval` (evaluator cron)      | the 7 canonical rules, per-rule state                                                                                                                                                                                                                      |
+| **Upstream I/O wait per tool (7d)**                           | `mcp:status:metrics:<env>` (evaluator cron)  | per-tool p50/p95/p99 + sample count, filtered at render to rows with `p99 > 0`. Two empty states: "no `tool_invocation` events" vs "_N_ tools invoked, none with measurable I/O wait" — the second is the **expected quiet-week state**, not a degradation |
+| **Audit log**                                                 | `mcp:status:metrics:<env>` + audit chain tip | **hidden while the pipeline is deactivated** (ADR-0014). Gated on `env.AUDIT_QUEUE` being unbound — the same signal `handle-authenticated.ts` uses to no-op the producer — so it returns by itself on re-enable, with no code change                       |
 
 ## Data flow — precompute, not live-query
 
@@ -27,13 +27,27 @@ Consequences:
 
 ## Surface, don't ratify (BL-033 operator directive)
 
-The **tool-latency panel renders raw p50/p95/p99 as plain values — no badges, no pass/fail threshold, no SLA.** This is deliberate: the tool/resource/prompt-latency SLO is **explicitly deferred** in `observability/slo-baselines.md` (no client traffic to calibrate against, and no pilot has contracted a latency SLA). Do NOT:
+**Still in force.** The panel survived BL-122, so this rule is load-bearing rather than moot.
+
+The **I/O-wait panel renders raw p50/p95/p99 as plain values — no badges, no pass/fail threshold, no SLA.** This is deliberate: the tool/resource/prompt-latency SLO is **explicitly deferred** in `observability/slo-baselines.md`. Do NOT:
 
 - wire the `p95 < 500ms` figure (a stray phrase in `LATENCY_PROBE.md`) into a badge/breach here;
 - add a "proposed target" column;
 - add a latency-breach alert rule.
 
-Contrast the freshness/spend rows, which DO carry badges — those are signed-off SLOs. The latency numbers are observability only until a pilot conversation defines targets.
+Contrast the freshness/spend rows, which DO carry badges — those are signed-off SLOs. The I/O-wait numbers are observability only until a pilot conversation defines targets.
+
+## What the number actually is (BL-122)
+
+`duration_ms` is `Date.now() - startedAt` around the handler (`src/metrics/with-metrics.ts`), and **Cloudflare Workers freeze the clock outside I/O** as a Spectre mitigation — per Cloudflare's security model, `Date.now()` _"returns the time of the last I/O [and] does not advance during code execution"_. So the panel measures the wall time a handler spent **blocked on Upstash / Inoreader**, never its compute. A handler that touches no network scores exactly `0` however much work it does — `generate_information_request_list_xlsx` builds an entire spreadsheet and reports 0 ms.
+
+There is no workaround: Workers provide no unfrozen timer, so `performance.now()` behaves identically.
+
+**Why omission beats showing `0`.** Ten of fifteen tools read 0 with healthy sample counts (measured 2026-08-13: `search_regulations` 326 samples, 0 ms). Published as-is they read as broken instrumentation or as "instant", and both readings are wrong. Filtering on `p99 > 0` publishes only rows where the metric means something.
+
+**The filter is on the measurement, not a tool list.** The query is `GROUP BY blob2` with no tool list anywhere in the code, so a hardcoded allowlist would need hand-maintaining and would drift the first time a tool gained or lost an I/O path. `p99` rather than `p50` — a tool that only reaches the network on a cache miss has `p50 = 0` and a real `p99`, and must survive.
+
+**It is applied at render, never inside `computeToolLatency`.** `toolLatency === []` has to keep meaning exactly one thing — no `tool_invocation` events in the window — because the empty-state copy asserts it. Filtering at compute time would overload `[]` to also mean "traffic existed, none of it measurable", and the page would claim zero invocations in a window that had hundreds. Keeping the unfiltered rows in scope is also what lets the two empty states differ.
 
 ## Subdomain
 

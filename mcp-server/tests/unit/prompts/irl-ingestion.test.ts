@@ -751,7 +751,7 @@ describe('gst_irl_ingestion', () => {
       expect(r.success).toBe(false);
     });
 
-    // BL-082 follow-up: the schema must mark requireVerbatimBody + forceTools
+    // BL-082 follow-up: the schema must mark requireVerbatimBody
     // as OPTIONAL at the ZodObject seam so Claude Desktop's slash-command form
     // doesn't render them as required fields. ZodObject inspects whether each
     // field's schema is ZodOptional at the TOP level — `booleanFromWire(...)`

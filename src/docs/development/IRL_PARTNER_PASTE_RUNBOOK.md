@@ -124,7 +124,7 @@ Quick checks (the script's stderr already reports bullet count + sections):
 Get-Content C:\tmp\acme-irl.md | Select-String -Pattern '^- (\d+)-' | ForEach-Object { ($_ -split '-')[0] } | Sort-Object -Unique
 
 # Spot-check the head and tail (matches `filledIrl.fingerprint.headChars`
-# / `tailChars` you'll see in the BL-045-VERIFY block).
+# / `tailChars` you'll see in the RUN-AUDIT block).
 Get-Content C:\tmp\acme-irl.md | Select-Object -First 5
 Get-Content C:\tmp\acme-irl.md | Select-Object -Last 5
 ```
@@ -152,7 +152,7 @@ Open the slash-command form for `gst_irl_ingestion`. Fill these fields:
 
 ### Step 4 — Validate the run
 
-Watch for these signals in the dossier and the closing `BL-045-VERIFY` block:
+Watch for these signals in the dossier and the closing `RUN-AUDIT` block. **The block is emitted at `auditLevel: debug` only** — invoke the prompt at that level when the run needs to be signed off; a `standard` run is a draft and produces no block to read.
 
 - **`filledIrl.source: partner-paste-verbatim`** — confirms the paste was taken, not reconstruction.
 - **`firstEnvelopeCall.hashBindResult: pass-bound`** — the strong BL-049 form. (`pass-internal` here would mean the model didn't see the `**Body-binding hash:**` directive from the rendered prompt body; investigate.)

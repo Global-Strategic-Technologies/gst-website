@@ -879,22 +879,54 @@ Per CLAUDE.md Directive 6 "No Deferred Tech Debt" (numbered § 4a when this stan
 
 ---
 
+### BL-122: MCP Server — misc UX pass (audit levels, prompt doc, status page) — CLOSED 2026-08-13
+
+**Source**: operator review of `gst_irl_ingestion` and `status.mcp.globalstrategic.tech` | **Effort**: ~1 day | **Status**: Closed — shipped at prompt 0.23.0 / server 0.50.0 | **Architecture**: [ADR-0017](../adr/0017-audit-levels-enforced-in-the-tool-response.md)
+
+**As a** partner running an IRL ingestion, **I want** the dossier to read as a client deliverable by default and the status page to publish only numbers that mean what they say, **so that** I am not hand-stripping audit apparatus out of partner-facing output, or reading a latency panel that cannot measure latency.
+
+**Retained rather than pruned** because three of its findings are the kind that get re-derived expensively:
+
+1. **`verbosity: compact` was broken in the opposite direction from how it read.** It elided the _correctness_ pipeline (hash bind, provenance precheck, envelope composition) while keeping the operator artifacts on — so it disabled the provenance chain and then demanded an audit report on it. Making it the default, which is what the request originally asked for, would have shipped dossiers with provenance verification silently off. The generalisable lesson: when one switch controls three concerns, check which of them it is actually wired to before flipping its default.
+2. **`forceTools` had never worked.** Its value was read once for a telemetry counter and never interpolated into the prompt body, so the model was told to honour an override it was never shown. An argument can be fully plumbed at the schema layer, fully documented, and still be inert.
+3. **The status page's zeros were not missing data.** Cloudflare Workers freeze the clock outside I/O, so `Date.now() - startedAt` measures I/O wait and reports exactly `0` for any handler that performs no I/O. Ten of fifteen tools read 0 with healthy sample counts. The number is unfixable — there is no unfrozen timer in a Worker — so the panel was relabelled to what it measures and rows with no measurable wait are omitted.
+
+#### Acceptance Criteria
+
+- [x] `auditLevel: 'standard' | 'enhanced' | 'debug'` replaces `verbosity`, defaulting to a clean partner-facing dossier
+- [x] The envelope chain runs at every audit level — no argument value can switch provenance verification off
+- [x] Suppression is enforced by what `compose_dossier_envelope` returns, not by prompt prose (the mechanism this codebase already established does not work)
+- [x] `extract-only` is exempt from the gate; the rule is stated on the builder axis, since `build()` dispatches on `filledIrl` absence before any mode check
+- [x] `forceTools` and `embedToolWorkedExamples` removed; `forceToolsApplied` retained on the envelope input for callers that genuinely override a gate
+- [x] Argument surface 10 → 8, `filledIrl` at index 0, every description leading with its valid values and naming no backlog ids
+- [x] `prompts/irl-ingestion.md` rewritten so no bare backlog id carries meaning; ids confined to a closing archaeology ledger
+- [x] Status page: latency panel relabelled, filtered on `p99 > 0` at render, with the two empty states distinguishable; audit panel hidden while `AUDIT_QUEUE` is unbound
+- [x] Operator runbooks migrated — signoff runs invoke `auditLevel: debug`
+
+#### Technical Context
+
+- The filter is on the **measurement**, not a tool-name allowlist: the query is `GROUP BY blob2` with no tool list in the code, so an allowlist would drift the first time a tool gained or lost an I/O path. `p99` not `p50`, so a cache-miss-only network path survives.
+- It is applied at **render**, never in `computeToolLatency`: `toolLatency === []` has to keep meaning "no events in the window", or the page asserts zero invocations in a window that had hundreds.
+- `BL-045-VERIFY` → `RUN-AUDIT` in live code and docs. Historical ledgers keep the old label deliberately — renaming a dated record falsifies it.
+
+---
+
 ### BL-087: `gst_irl_ingestion` — Prompt-Shrink L3–L5 (reserved)
 
 **Source**: reserved successor scope from BL-086 (Option D workflow simplification, L2 verified + shipped 2026-06-30 at prompt v0.19.0 / mcp-server 0.32.0). BL-086 deliberately **stopped at L2**; the three deeper cuts were deferred here pending empirical evidence. | **Architecture & plan**: [MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md](_archive/MCP_SERVER_IRL_INGESTION_SIMPLIFICATION_BL-086.md) (§ L3–L5 + capability-preservation matrix) | **Status**: Reserved — do NOT start without a promotion trigger firing
 
 **Deferred scope**:
 
-- **L3** — (J) gap-list semantic change (more honest gap reporting; shifts operator readability). Ships with a `precheckCitations` restore arg.
-- **L4** — VERIFY-block removal from default output. Ships with an `emitVerifyBlock` restore arg. Asymmetric risk: external consumers of the VERIFY audit surface can't be proven absent.
-- **L5** — `validate_irl_provenance` tool unregistration — the only non-arg-reversible cut.
-- Sugar: collapse the restore args into an `auditLevel: 'standard' | 'enhanced' | 'debug'` enum if both L3 and L4 ship.
+- **L3** — (J) gap-list semantic change (more honest gap reporting; shifts operator readability). Ships with a `precheckCitations` restore arg. **Still reserved.**
+- ~~**L4** — VERIFY-block removal from default output.~~ **SHIPPED under BL-122 (2026-08-13)**, together with the `auditLevel` sugar below. The asymmetric risk it flagged — "external consumers of the VERIFY audit surface can't be proven absent" — was real and materialised _internally_: `OPERATOR_RUNBOOK.md`'s client-ready gating checklist reads that block. It shipped with a coordinated migration rather than a silent removal (signoff runs invoke `auditLevel: debug`), not because the risk was absent but because it was found and paid.
+- **L5** — `validate_irl_provenance` tool unregistration — the only non-arg-reversible cut. **Still reserved, and now harder**: BL-122 made the envelope precheck unconditional, so the verifier is on the critical path at every audit level. Unregistering it would remove a tool the prompt now always directs.
+- ~~Sugar: collapse the restore args into an `auditLevel` enum if both L3 and L4 ship.~~ **Shipped under BL-122** — taken with L4 alone rather than waiting for L3, because the restore-arg-per-cut shape was the thing making the surface complex. Note the stated precondition (both L3 and L4) was therefore _not_ met; recorded so the deviation is visible rather than inferred.
 
 **Promotion triggers** (any one):
 
-- Empirical evidence that (J) gap-list growth is unacceptable in live exercises
-- Confirmation that no one consumes the VERIFY block externally (unlocks L4)
-- Evidence that nobody manually calls `validate_irl_provenance` (unlocks L5)
+- Empirical evidence that (J) gap-list growth is unacceptable in live exercises (L3)
+- ~~Confirmation that no one consumes the VERIFY block externally (unlocks L4)~~ — fired 2026-08-13; see BL-122
+- Evidence that nobody manually calls `validate_irl_provenance` (unlocks L5) — note this is now a higher bar, since the precheck directs it on every run
 
 ---
 

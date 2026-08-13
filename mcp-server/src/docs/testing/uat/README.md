@@ -131,6 +131,8 @@ The distinction is load-bearing rather than bookkeeping. A local stdio build has
 
 All ten documents are authored, **every family has production evidence, and as of cycle 5 every case in the suite has been executed at least once.**
 
+> ⚠️ **UAT-07.5, 07.6 and 09.9 need a fresh production run (BL-122, prompt 0.23.0 / server 0.50.0).** Their expectations changed with the audit-level work — `auditLevel` replaced `verbosity`, and at the new default (`standard`) the dossier deliberately carries no meta fence, no `(K)` footer and no run-audit block. The existing `prod` run-log rows are **not** evidence for the new expectations, and they have deliberately not been back-dated or removed: they are honest records of a passing run against the prior contract. Re-run those three at `auditLevel: "debug"` and append new rows. Until then the parity guard still reads those families as production-verified, which is correct at family granularity and misleading at case granularity — exactly the gap the note below describes.
+
 > **The run logs are the source of truth, not this section.** A document is production-verified exactly when one of its run-log rows carries `Env: prod` — nothing here overrides that. `tests/integration/mcp-uat-parity.test.ts` derives the answer from those tables and fails if this prose disagrees, because three successive edits to this section drifted out of step with them and each was caught only in review.
 >
 > **The guard is family-granular, not case-granular.** One `Env: prod` row anywhere in a document flips that whole family to ✅, so a family can be marked verified while one of its cases has never run. That was the state UAT-07 and UAT-09 were in until cycle 5. Per-case gaps live in **Outstanding** below and are only ever caught by reading, never by CI.
@@ -157,7 +159,7 @@ It also produced the sharpest piece of testing this exercise has seen. Asked to 
 
 **UAT-07.6 / 09.9 closed on `0.49.0`** — the last case in the suite to run, and it settled **half** of a question open since cycle 3. A prompt-argument paste self-labels **`partner-paste-verbatim-prepop`**, which is the _strongest_ provenance form rather than a weaker one: the server hashes and caches the operator's bytes at render time, so the body never round-trips through model emission. Two signals corroborated it independently — `hashBindResult: pass-bound`, and **no `provenance-gap` entry in (J)**, that auto-append firing only for reconstruction sources. 37/37 claims verified, and no `map-absent`, closing the cycle-3 false positive on a real client-shaped dossier rather than a fixture.
 
-**Outstanding — no unexecuted cases. One open question and three operational findings, all recorded in the cases themselves:**
+**Outstanding — no unexecuted cases, but three cases carry stale production evidence (see the BL-122 note above). One open question and three operational findings, all recorded in the cases themselves:**
 
 - **Whether a _reconstructed_ body supplied through the `filledIrl` argument would also be labelled `-prepop`.** UAT-07.6 pasted a genuine verbatim body, so it cannot answer this by construction — it establishes only that the label is honest for a real paste. The question matters because `-prepop` sits inside `requireVerbatimBody`'s accept-set: a reconstruction mislabelled that way would pass a gate it should fail and skip the provenance-gap disclosure. Closing it needs the 07.7-shaped run described under that case.
 
@@ -167,4 +169,4 @@ It also produced the sharpest piece of testing this exercise has seen. Asked to 
 
 ---
 
-_Last updated: 2026-08-12 (BL-119 cycle 5 — the `0.49.0` alias fix passed its acceptance test, UAT-02 is fully verified, and the cycle-3 dossier loop is closed with a negative control. UAT-07.6 / 09.9 closed on a real 57KB body in Claude Desktop, leaving no unexecuted cases. Production status is derived from the run logs by the parity guard rather than asserted here by hand.)_
+_Last updated: 2026-08-13 (BL-122 — `auditLevel` replaces `verbosity`; UAT-07.5 / 07.6 / 09.9 expectations rewritten and awaiting a fresh `prod` run at `debug`. Previously: 2026-08-12, BL-119 cycle 5 — the `0.49.0` alias fix passed its acceptance test, UAT-02 is fully verified, and the cycle-3 dossier loop is closed with a negative control. UAT-07.6 / 09.9 closed on a real 57KB body in Claude Desktop, leaving no unexecuted cases. Production status is derived from the run logs by the parity guard rather than asserted here by hand.)_
