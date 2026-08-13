@@ -2,7 +2,7 @@
  * BL-121 — run-scoped durable tool-call counters.
  *
  * **The problem.** BL-071 made the server authoritative for tool-call counts
- * so the BL-045-VERIFY block would stop depending on the model's memory of its
+ * so the RUN-AUDIT block would stop depending on the model's memory of its
  * own behaviour. That works on stdio, where `createServer` runs once per
  * process and `InMemoryToolCallCounters` spans the whole session. On the
  * Worker it does not: `createServer` runs **per HTTP request**

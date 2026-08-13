@@ -114,7 +114,7 @@ describe('gst_irl_ingestion', () => {
     // The transport-classed `errorsEncountered` subset is pinned closed so the
     // reconciliation stays arithmetic rather than a judgement call (BL-121,
     // server 0.49.3).
-    expect(irlIngestionPrompt.version).toBe('0.22.4');
+    expect(irlIngestionPrompt.version).toBe('0.23.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -140,21 +140,6 @@ describe('gst_irl_ingestion', () => {
           projectCodeName: 'Cygnet',
         }).success
       ).toBe(true);
-    });
-
-    it('accepts embedToolWorkedExamples as a boolean and via wire-shape string forms', () => {
-      // BL-086 L2 restore arg. Mirrors requireVerbatimBody's booleanFromWire
-      // handling: real boolean, string "true"/"false" (Claude Desktop ships
-      // form fields as strings), and "" (unfilled field) → undefined.
-      for (const v of [true, false, 'true', 'false', '']) {
-        const r = irlIngestionPrompt.argsSchema.safeParse({
-          filledIrl: SAMPLE_FILLED_IRL,
-          embedToolWorkedExamples: v,
-        });
-        expect(r.success, `embedToolWorkedExamples=${JSON.stringify(v)} should parse`).toBe(true);
-      }
-      const empty = irlIngestionPrompt.argsSchema.safeParse({ embedToolWorkedExamples: '' });
-      expect(empty.success && empty.data.embedToolWorkedExamples).toBeUndefined();
     });
 
     it('rejects an invalid transactionContext enum value', () => {
@@ -256,7 +241,7 @@ describe('gst_irl_ingestion', () => {
       expect(text).toContain('MedSig-Marker-XYZ');
     });
 
-    // ─── BL-086 L2 — worked-example deletion + embedToolWorkedExamples ──────
+    // ─── Worked-example payloads are permanently elided ────────────────────
     // Distinctive markers that appear ONLY inside the Step 1a / 4a / 6a worked
     // example JSON payloads (not in the kept calibration/anti-fab/enum prose).
     const WORKED_EXAMPLE_MARKERS = [
@@ -265,7 +250,7 @@ describe('gst_irl_ingestion', () => {
       'Fixture-clean shape', // Step 6a estimate_tech_debt_cost example comment
     ];
 
-    it('elides the Step 1a/4a/6a worked-example payloads from the default one-shot body', () => {
+    it('never emits the Step 1a/4a/6a worked-example payloads (permanently elided)', () => {
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       for (const marker of WORKED_EXAMPLE_MARKERS) {
         expect(
@@ -278,18 +263,6 @@ describe('gst_irl_ingestion', () => {
       expect(text).toContain('Step 1b — Calibration-clause guidance');
       expect(text).toContain('**Critical anti-fabrication rules**');
       expect(text).toContain('null discipline applies to `incidentsSource`');
-    });
-
-    it('restores the worked-example payloads when embedToolWorkedExamples: true', () => {
-      const text = bodyText(irlIngestionPrompt, {
-        filledIrl: SAMPLE_FILLED_IRL,
-        embedToolWorkedExamples: true,
-      });
-      for (const marker of WORKED_EXAMPLE_MARKERS) {
-        expect(text, `restored body should contain worked-example marker: ${marker}`).toContain(
-          marker
-        );
-      }
     });
 
     it('embeds the partner lead in the synthesis attribution when provided', () => {
@@ -600,13 +573,16 @@ describe('gst_irl_ingestion', () => {
   // observability surface.
   describe('BL-056 precheckIterations field present in BL-045-VERIFY block schemas', () => {
     it('one-shot body verify-block schema declares `precheck.iterations` (BL-058 expansion of BL-056)', () => {
-      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, {
+        filledIrl: SAMPLE_FILLED_IRL,
+        auditLevel: 'debug',
+      });
       // BL-058 nested under `precheck:` block; BL-056 raw `precheckIterations:` superseded.
       expect(text).toMatch(/precheck:\s*\n\s*iterations:/);
     });
 
     it('interactive body verify-block schema declares `precheck.iterations` (BL-058 expansion of BL-056)', () => {
-      const text = bodyText(irlIngestionPrompt, {});
+      const text = bodyText(irlIngestionPrompt, { auditLevel: 'debug' });
       expect(text).toMatch(/precheck:\s*\n\s*iterations:/);
     });
   });
@@ -660,12 +636,15 @@ describe('gst_irl_ingestion', () => {
 
     for (const field of expectedFields) {
       it(`one-shot body verify-block schema contains: ${field}`, () => {
-        const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+        const text = bodyText(irlIngestionPrompt, {
+          filledIrl: SAMPLE_FILLED_IRL,
+          auditLevel: 'debug',
+        });
         expect(text).toContain(field);
       });
 
       it(`interactive body verify-block schema contains: ${field}`, () => {
-        const text = bodyText(irlIngestionPrompt, {});
+        const text = bodyText(irlIngestionPrompt, { auditLevel: 'debug' });
         expect(text).toContain(field);
       });
     }
@@ -700,12 +679,15 @@ describe('gst_irl_ingestion', () => {
 
     for (const field of expectedFields) {
       it(`one-shot body verify-block schema contains: ${field}`, () => {
-        const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+        const text = bodyText(irlIngestionPrompt, {
+          filledIrl: SAMPLE_FILLED_IRL,
+          auditLevel: 'debug',
+        });
         expect(text).toContain(field);
       });
 
       it(`interactive body verify-block schema contains: ${field}`, () => {
-        const text = bodyText(irlIngestionPrompt, {});
+        const text = bodyText(irlIngestionPrompt, { auditLevel: 'debug' });
         expect(text).toContain(field);
       });
     }
@@ -781,49 +763,61 @@ describe('gst_irl_ingestion', () => {
       expect(shape.requireVerbatimBody.isOptional()).toBe(true);
     });
 
-    it('BL-082 follow-up: argsSchema marks forceTools as optional at the ZodObject layer (UI introspection)', () => {
-      const shape = irlIngestionPrompt.argsSchema.shape;
-      expect(shape.forceTools.isOptional()).toBe(true);
-    });
-
-    it('BL-082 follow-up: argsSchema accepts an entirely empty object (no requireVerbatimBody, no forceTools)', () => {
-      // Regression guard: the original schema (z.boolean().optional() and
-      // z.array(...).optional()) accepted {} cleanly. After the BL-082 wire-
-      // shape wrapping, the {} case MUST remain accepted — otherwise the
-      // slash-command form blocks submission before any fields are filled.
+    it('BL-082 follow-up: argsSchema accepts an entirely empty object', () => {
+      // Regression guard: the original schema (z.boolean().optional()) accepted
+      // {} cleanly. After the BL-082 wire-shape wrapping, the {} case MUST
+      // remain accepted — otherwise the slash-command form blocks submission
+      // before any fields are filled. The subject is the wire-shape-wrapped
+      // optional, which outlived `forceTools` in `requireVerbatimBody`.
       expect(irlIngestionPrompt.argsSchema.safeParse({}).success).toBe(true);
     });
   });
 
   describe('BL-071 — serverToolCallCounts + precheck-derivation directive', () => {
-    it('one-shot body mentions serverToolCallCounts (envelope-composition directive)', () => {
+    // `serverToolCallCounts` is named by the envelope-composition directive,
+    // which is correctness machinery and ships at EVERY audit level.
+    it('one-shot body mentions serverToolCallCounts at the default level', () => {
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toContain('serverToolCallCounts');
     });
 
-    it('interactive body mentions serverToolCallCounts (envelope-composition directive)', () => {
-      const text = bodyText(irlIngestionPrompt, {});
+    // The interactive path has no envelope-composition directive of its own —
+    // its Step 4 names the tool and the tool returns the counts either way. The
+    // only place that body names `serverToolCallCounts` is the run-audit
+    // region, which is where the counts are actually transcribed, so it is a
+    // `debug` surface there rather than a default one.
+    it('interactive body names serverToolCallCounts at debug', () => {
+      const text = bodyText(irlIngestionPrompt, { auditLevel: 'debug' });
       expect(text).toContain('serverToolCallCounts');
     });
 
-    it('one-shot body mentions precheck.iterations derivation rule', () => {
-      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      expect(text).toContain('precheck.iterations');
+    // The precheck derivation identities and the `errored` counter field are
+    // RUN-AUDIT reporting rules. BL-122 removed the duplicate copy that used to
+    // sit in the envelope-composition directive — two copies of one reporting
+    // contract only drift, and that directive now ships at every level, where
+    // most runs emit no block for those rules to govern. The block's own
+    // section is the single home, so they appear at `debug` only.
+    it.each([
+      ['one-shot', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' as const }],
+      ['interactive', { auditLevel: 'debug' as const }],
+    ])('%s body at debug carries the precheck.iterations derivation rule', (_l, args) => {
+      expect(bodyText(irlIngestionPrompt, args)).toContain('precheck.iterations');
     });
 
-    it('interactive body mentions precheck.iterations derivation rule', () => {
-      const text = bodyText(irlIngestionPrompt, {});
-      expect(text).toContain('precheck.iterations');
+    it.each([
+      ['one-shot', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' as const }],
+      ['interactive', { auditLevel: 'debug' as const }],
+    ])('%s body at debug carries the errored field on toolCallCounts entries', (_l, args) => {
+      expect(bodyText(irlIngestionPrompt, args)).toContain('errored: N');
     });
 
-    it('one-shot body verify-block carries the errored field on toolCallCounts entries', () => {
-      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      expect(text).toContain('errored: N');
-    });
-
-    it('interactive body verify-block carries the errored field on toolCallCounts entries', () => {
-      const text = bodyText(irlIngestionPrompt, {});
-      expect(text).toContain('errored: N');
+    it.each([
+      ['one-shot', { filledIrl: SAMPLE_FILLED_IRL }],
+      ['interactive', {}],
+    ])('%s body at standard emits no run-audit reporting rules', (_l, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).not.toContain('precheck.iterations');
+      expect(text).not.toContain('errored: N');
     });
   });
 
@@ -897,12 +891,12 @@ describe('gst_irl_ingestion', () => {
      * inclusion gates and all.
      */
     const SWEEP_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
-      ['one-shot verbose', { filledIrl: SAMPLE_FILLED_IRL }],
-      ['one-shot compact', { filledIrl: SAMPLE_FILLED_IRL, verbosity: 'compact' }],
+      ['one-shot standard', { filledIrl: SAMPLE_FILLED_IRL }],
+      ['one-shot enhanced', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'enhanced' }],
       ['extract-only', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
       [
-        'extract-only compact',
-        { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', verbosity: 'compact' },
+        'extract-only enhanced',
+        { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', auditLevel: 'enhanced' },
       ],
     ];
 
@@ -1017,14 +1011,18 @@ describe('gst_irl_ingestion', () => {
   // copy of the VERIFY discipline and never renders the envelope directive,
   // so a fix landing in only one place is exactly the failure mode here.
   describe('BL-121 scope-conditional counter identities (all modes)', () => {
+    // Every body that EMITS a run-audit block must carry its full schema.
+    // Re-scoped per BUILDER, not per level: the two gated builders emit it at
+    // `debug` only, while extract-only is exempt from the gate entirely and
+    // emits it at every level (its own `mode` description promises provenance,
+    // and it produces no partner-facing dossier to keep clean).
     const VERIFY_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
-      ['interactive', {}],
-      ['one-shot verbose', { filledIrl: SAMPLE_FILLED_IRL }],
-      ['one-shot compact', { filledIrl: SAMPLE_FILLED_IRL, verbosity: 'compact' }],
-      ['extract-only', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
+      ['interactive debug', { auditLevel: 'debug' }],
+      ['one-shot debug', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' }],
+      ['extract-only standard', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
       [
-        'extract-only compact',
-        { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', verbosity: 'compact' },
+        'extract-only debug',
+        { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', auditLevel: 'debug' },
       ],
     ];
 

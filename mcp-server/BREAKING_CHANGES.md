@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-d8ce6a7fe28cb3ce5dabb1f84ad92dff93ad35ef5e141f700994e7b7d17c3055
+a9efbba23d5c1c489cbfdd507ec46e86918ba8943ef7a976a0c1dede8c9d52a6
 ```
 
 Computed over (sorted):
@@ -26,12 +26,33 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.4` (scope-conditional counter identities — see the 0.49.3 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.23.0` (audit levels replace the verbosity axis — see the 0.50.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.50.0 — 2026-08-13 — audit levels replace the verbosity axis (`0.22.4` → `0.23.0`)
+
+**Breaking on three surfaces**: the prompt's argument list, the `compose_dossier_envelope` input schema, and that tool's **output shape**. Manifest hash moves on the prompt tuple.
+
+**What was wrong.** `verbosity: 'verbose' | 'compact'` conflated three separable concerns on one switch, and had the polarity backwards. `compact` elided the _correctness_ pipeline — the body-binding hash directive, the `validate_irl_provenance` precheck and the `compose_dossier_envelope` composition directive — while leaving the meta fence and the run-audit block on. So it disabled the provenance chain and then demanded an audit report on it, naming fields (`firstEnvelopeCall.irlBodyHash`, `hashBindResult`, `precheck.iterations`) describing calls the mode had just told the model not to make. No UAT exercised it and no production run is recorded with it. Separately, `forceTools` was **inert**: its value was read once for a telemetry counter and never reached the prompt body, so the model was told to honour an override it was never shown.
+
+**What changed.**
+
+- **`auditLevel: 'standard' | 'enhanced' | 'debug'`** replaces `verbosity`, defaulting to `standard`. `standard` is a clean partner-facing dossier; `enhanced` adds the (K) provenance footer, the per-section audit fences and the citation self-check; `debug` adds the run-audit block and the meta fence. **The envelope chain runs at every level** — it stopped being a user-selectable option.
+- **The suppression lives in the tool response, not in prompt prose.** `compose_dossier_envelope` now omits `metaFenceMarkdown` (below `debug`) and `provenanceFooterMarkdown` (below `enhanced`) from its result entirely, and `emitInstructions` names only the blocks actually returned. Both fields are therefore **optional** on `ComposeDossierEnvelopeResult`, and are _omitted_ rather than set to `undefined` — the text mirror is built with `JSON.stringify`, which drops undefined-valued keys, so an explicit `undefined` would diverge the two response channels. A prompt-body "do not transcribe" clause would not have worked: this tool exists because the model treats body directives as descriptive context and only tool output as procedure.
+- **`verbosity` → `auditLevel` on the tool input**, sharing one exported enum with the prompt rather than a hand-maintained parallel literal. This renames a **meta-fence key**, which is an output-shape change: note the manifest-hash guard does not see input/output shape, so this ledger entry is the only record.
+- **`forceTools`, `embedToolWorkedExamples` and the `force_tools_used` metric event are removed.** `forceToolsApplied` stays on the envelope input — required, and `[]` from this prompt — so a caller that does override a gate still has a declared place to record it.
+- The prompt's argument surface goes 10 → 8, `filledIrl` moves to index 0, and every description leads with its valid values and names no backlog ids.
+- The `BL-045-VERIFY` block is renamed **`RUN-AUDIT`**. Historical ledger entries (including the stanzas below) keep the old label deliberately — renaming a dated record falsifies it.
+
+**Rollout is order-free for the running server, but not for an in-flight conversation.** `auditLevel` is required on the tool input with no alias, so a conversation holding a `0.22.4`-rendered body fails validation against a `0.50.0` server; re-invoke the prompt. Acceptable at single-operator scale, stated rather than left to be discovered.
+
+**Operator impact.** A `standard` run emits no run-audit block, and the client-ready gating checklist reads that block — so signoff runs now invoke `auditLevel: 'debug'`. `OPERATOR_RUNBOOK.md` and `IRL_PARTNER_PASTE_RUNBOOK.md` ship the migration with this change.
 
 ---
 

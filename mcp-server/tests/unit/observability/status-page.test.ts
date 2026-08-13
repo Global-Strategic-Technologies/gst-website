@@ -137,36 +137,99 @@ const keyedRedis = (byKey: Record<string, unknown>) =>
 describe('buildStatusHtml — BL-033 Slice 4 panels', () => {
   const METRICS_KEY = 'mcp:status:metrics:production';
 
-  it('renders per-tool latency as PLAIN values (no badge/threshold markup)', async () => {
-    mockCreateMcpClient.mockReturnValue(
-      keyedRedis({
-        [METRICS_KEY]: {
-          evaluatedAt: '2026-07-26T14:00:00.000Z',
-          toolLatency: [{ name: 'search_portfolio', p50Ms: 5, p95Ms: 12, p99Ms: 30, n: 100 }],
-          audit: {
-            lastSeq: 42,
-            batches24h: 7,
-            records24h: 55,
-            lastProcessedAt: '2026-07-26T14:00:00Z',
-          },
+  const withMetrics = (toolLatency: unknown) =>
+    keyedRedis({
+      [METRICS_KEY]: {
+        evaluatedAt: '2026-07-26T14:00:00.000Z',
+        toolLatency,
+        audit: {
+          lastSeq: 42,
+          batches24h: 7,
+          records24h: 55,
+          lastProcessedAt: '2026-07-26T14:00:00Z',
         },
-      })
+      },
+    });
+
+  it('renders per-tool I/O wait as PLAIN values (no badge/threshold markup)', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([{ name: 'search_portfolio', p50Ms: 5, p95Ms: 12, p99Ms: 30, n: 100 }])
     );
     const html = await buildStatusHtml(ENV);
-    // Latency panel present with plain cells.
-    expect(html).toContain('Tool latency');
+    expect(html).toContain('Upstream I/O wait per tool');
     expect(html).toContain('search_portfolio');
     expect(html).toContain('<td>5</td>');
     expect(html).toContain('<td>12</td>');
     expect(html).toContain('as of 2026-07-26T14:00:00.000Z');
-    // Audit panel present, with the ADR-0014 deactivation annotation the
-    // AUDIT_LOG.md § Deactivation Verify step tells the operator to look for.
-    expect(html).toContain('Audit log');
-    expect(html).toContain('<td>42</td>');
-    expect(html).toContain('Pipeline deactivated 2026-08-08');
-    // Surface-not-ratify: latency values are NOT wrapped in the badge color spans.
+    // The footnote has to say what the number actually is, or the panel is
+    // mislabelled exactly the way BL-122 found it.
+    expect(html).toContain('blocked on Upstash');
+    expect(html).toContain('omitted rather than shown as 0');
+    // Surface-not-ratify: values are NOT wrapped in the badge color spans.
     expect(html).not.toMatch(/color:#0a7d4f[^<]*>\s*5\s*</);
     expect(html).not.toContain('500ms');
+  });
+
+  // BL-122 — the filter is on the MEASUREMENT, not a tool-name allowlist.
+  it('omits rows with no measurable I/O wait, keeps the ones that have it', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([
+        { name: 'search_regulations', p50Ms: 0, p95Ms: 0, p99Ms: 0, n: 326 },
+        { name: 'search_radar', p50Ms: 247, p95Ms: 850, p99Ms: 2069, n: 60 },
+      ])
+    );
+    const html = await buildStatusHtml(ENV);
+    expect(html).not.toContain('search_regulations');
+    expect(html).toContain('search_radar');
+    expect(html).toContain('<td>2069</td>');
+  });
+
+  // The case a p50-based filter gets wrong: a tool that only reaches the
+  // network on a cache miss. It has real latency and must survive.
+  it('keeps a conditional-I/O tool whose p50 is 0 but p99 is not', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([{ name: 'get_latest_insights', p50Ms: 0, p95Ms: 0, p99Ms: 443, n: 12 }])
+    );
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('get_latest_insights');
+    expect(html).toContain('<td>443</td>');
+  });
+
+  // The two empty states must stay distinguishable — conflating them is why
+  // the filter lives at render rather than inside computeToolLatency.
+  it('distinguishes "no events" from "events, none measurable"', async () => {
+    mockCreateMcpClient.mockReturnValue(withMetrics([]));
+    const noEvents = await buildStatusHtml(ENV);
+    expect(noEvents).toContain('no tool_invocation events in the last 7 days');
+    expect(noEvents).not.toContain('none with measurable I/O wait');
+
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([
+        { name: 'search_regulations', p50Ms: 0, p95Ms: 0, p99Ms: 0, n: 326 },
+        { name: 'compute_techpar', p50Ms: 0, p95Ms: 0, p99Ms: 0, n: 13 },
+      ])
+    );
+    const noneMeasurable = await buildStatusHtml(ENV);
+    expect(noneMeasurable).toContain('2 tools invoked, none with measurable I/O wait');
+    expect(noneMeasurable).not.toContain('no tool_invocation events in the last 7 days');
+  });
+
+  // ADR-0014 deactivated the audit pipeline; AUDIT_QUEUE is unbound in every
+  // env, and the panel must not advertise a pipeline that is not running.
+  it('hides the audit panel while AUDIT_QUEUE is unbound, shows it when bound', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([{ name: 'search_radar', p50Ms: 1, p95Ms: 2, p99Ms: 3, n: 4 }])
+    );
+    const hidden = await buildStatusHtml(ENV);
+    expect(hidden).not.toContain('Audit log');
+    expect(hidden).not.toContain('<td>42</td>');
+
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([{ name: 'search_radar', p50Ms: 1, p95Ms: 2, p99Ms: 3, n: 4 }])
+    );
+    const bound = await buildStatusHtml({ ...ENV, AUDIT_QUEUE: {} } as unknown as Env);
+    expect(bound).toContain('Audit log');
+    expect(bound).toContain('<td>42</td>');
   });
 
   it('renders "metrics unavailable" when the metrics cache is absent (page still renders)', async () => {

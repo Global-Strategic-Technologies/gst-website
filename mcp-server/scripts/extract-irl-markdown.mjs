@@ -295,7 +295,7 @@ export function extractIrlMarkdownFromRows(rows, opts = {}) {
   // Compose the final markdown. Mirror the head shape the model emits in
   // model-reconstruction mode (single H1 title with "(filled)" tag), so the
   // server's `# Information Request List — ...` substring match in the
-  // BL-045-VERIFY fingerprint capture lines up cleanly across both paths.
+  // RUN-AUDIT fingerprint capture lines up cleanly across both paths.
   const titleTarget = metadata.target || 'IRL';
   const title = `# Information Request List — ${titleTarget} (filled)`;
 

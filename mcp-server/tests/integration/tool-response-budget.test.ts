@@ -209,7 +209,12 @@ const baseEnvelopeInput = (): Record<string, unknown> => ({
   promptVersion: '0.22.0',
   modelVersion: 'claude-opus-4-8',
   mode: 'full',
-  verbosity: 'verbose',
+  // BL-122 - `debug` deliberately: this budget bounds the LARGEST envelope
+  // shape, and the recorded byte measurements were taken with all three
+  // markdown blocks present. Do NOT lower minEnvelopeBytes to accommodate a
+  // smaller `standard` response - hollowing the envelope is precisely the
+  // mutation this floor exists to catch.
+  auditLevel: 'debug',
   transactionContext: 'value-creation',
   irlSource: 'partner-paste-verbatim',
   fillRatio: { percent: 92, substantiveCells: 46, totalCells: 50, status: 'ok' },

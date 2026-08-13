@@ -364,15 +364,15 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // again; the `run` scope definition now states the window and the body-keying
 // in every body.
 const EXPECTED_HASH_INTERACTIVE =
-  '5b7381f39c3afa8995389087a7d1b666029db32f2bb5a43de0d00fbbfff30c1f';
+  '375bf5db2065426b2a1b9f2f5d14c77b3c33129246d78724c06c989c5313879e';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '2f6c559a51986ddb79037aded5a3fac6230be7beafdb5ae3924cf179b2706eb4';
+  '6b5e64cf578443a98646634ad894794fa45eb23c5de657ff215ff1aac59f5c11';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '9e7979fb176373e652a9e6c752ff990434f8da9749ec66d5efe1070e326e1235';
+  '6f54f330d365b0852936e39f4d8f7c183aea99fe232d953a80b949f088ce63f5';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'c26dd86a36b2f8424145900707c4e50f7176cebe17eb8e8f8154062391c24e47';
+  'cc80cec5067ddc7bd10e26a654302aa9f472916be45b69b4eadff9a1280968c7';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '5267f113b7b335852143724985c4f83bd04385e2bddb952e147c1594291b5139';
+  'e351f1c4ab10871044651b13e49e67bc8e33b20002d38346cc6389aafd823b75';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -383,10 +383,14 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // expansion same as verbose.
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
-const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '9825399a7bdb03cee46ca2c76ab779913500c58f627685e4e3be36624e4d36f2';
-const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '7ea8788292de3ec1983ec4d1099766f585e33703d90c9a47ccd2c10b945602b7';
+const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
+  '0261f809ec314bc3d67680a5372e254ca20c2a7db4d1a0d481084d2ecd55a49e';
+const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
+  '3e5f7e76bcb8e886a7157e633d1060c580000e948ddc715c1031a6d9d76bb0bf';
+const EXPECTED_HASH_INTERACTIVE_DEBUG =
+  'd5523884f69575d674e1f0f44e265dfa23ebc9e4384a958d2e4fa3bea45042f8';
+const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
+  'e351f1c4ab10871044651b13e49e67bc8e33b20002d38346cc6389aafd823b75';
 
 interface Scenario {
   name: string;
@@ -433,20 +437,42 @@ const SCENARIOS: Scenario[] = [
     },
     expected: EXPECTED_HASH_EXTRACT_ONLY_FULL,
   },
+  // BL-122 — the two `verbosity: compact` scenarios are replaced by coverage of
+  // all three audit levels. `standard` is the default and is already covered by
+  // the minimal/full scenarios above, so these pin the two levels that ADD to
+  // it, plus an interactive body at debug (the path that could not honour the
+  // level at all until the builder conversion).
   {
-    name: 'one-shot full + verbosity=compact (audit M1)',
+    name: 'one-shot full + auditLevel=enhanced',
     args: {
       targetName: 'TestCo',
       filledIrl: STABLE_FILLED_IRL,
       transactionContext: 'buy-side',
       partnerLead: 'Reid Peryam',
       projectCodeName: 'Cygnet',
-      verbosity: 'compact',
+      auditLevel: 'enhanced',
     },
-    expected: EXPECTED_HASH_ONESHOT_FULL_COMPACT,
+    expected: EXPECTED_HASH_ONESHOT_FULL_ENHANCED,
   },
   {
-    name: 'extract-only full + verbosity=compact (audit M1)',
+    name: 'one-shot full + auditLevel=debug',
+    args: {
+      targetName: 'TestCo',
+      filledIrl: STABLE_FILLED_IRL,
+      transactionContext: 'buy-side',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      auditLevel: 'debug',
+    },
+    expected: EXPECTED_HASH_ONESHOT_FULL_DEBUG,
+  },
+  {
+    name: 'interactive + auditLevel=debug',
+    args: { auditLevel: 'debug' },
+    expected: EXPECTED_HASH_INTERACTIVE_DEBUG,
+  },
+  {
+    name: 'extract-only full + auditLevel=debug (exempt: identical shape at every level)',
     args: {
       targetName: 'TestCo',
       filledIrl: STABLE_FILLED_IRL,
@@ -454,9 +480,9 @@ const SCENARIOS: Scenario[] = [
       partnerLead: 'Reid Peryam',
       projectCodeName: 'Cygnet',
       mode: 'extract-only',
-      verbosity: 'compact',
+      auditLevel: 'debug',
     },
-    expected: EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT,
+    expected: EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG,
   },
 ];
 

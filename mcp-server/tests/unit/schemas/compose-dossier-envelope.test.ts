@@ -50,7 +50,7 @@ function baseInput(): ComposeDossierEnvelopeEngineInput {
     promptVersion: '0.4.0',
     modelVersion: 'claude-opus-4-7',
     mode: 'full',
-    verbosity: 'verbose',
+    auditLevel: 'debug',
     transactionContext: 'value-creation',
     fillRatio: { percent: 92, substantiveCells: 46, totalCells: 50, status: 'ok' },
     gatesPassed: ['generate_diligence_agenda', 'compute_techpar'],
@@ -85,7 +85,7 @@ function baseInput(): ComposeDossierEnvelopeEngineInput {
 }
 
 describe('renderMetaFence', () => {
-  it('emits a JSON code fence with all 12 design-doc fields in order', () => {
+  it('emits a JSON code fence with all 13 fields in order', () => {
     const fence = renderMetaFence(baseInput(), SERVER_CTX.promptVersion);
     expect(fence).toMatch(/^```json\n/);
     expect(fence).toMatch(/\n```$/);
@@ -93,13 +93,14 @@ describe('renderMetaFence', () => {
     expect(fence).toContain('"promptVersion": "0.4.0"');
     expect(fence).toContain('"modelVersion": "claude-opus-4-7"');
     expect(fence).toContain('"mode": "full"');
-    expect(fence).toContain('"verbosity": "verbose"');
+    expect(fence).toContain('"auditLevel": "debug"');
     expect(fence).toContain('"transactionContext": "value-creation"');
     expect(fence).toContain('"fixtureFillRatio": 0.92');
     expect(fence).toContain('"fixtureFillRatioStatus": "ok"');
     expect(fence).toContain('"gatesPassed"');
     expect(fence).toContain('"gatesElided"');
     expect(fence).toContain('"conditionalTriggersFired"');
+    expect(fence).toContain('"defaultFiredFrameworks"');
     expect(fence).toContain('"forceToolsApplied"');
   });
 
@@ -122,13 +123,17 @@ describe('renderMetaFence', () => {
       'promptVersion',
       'modelVersion',
       'mode',
-      'verbosity',
+      'auditLevel',
       'transactionContext',
       'fixtureFillRatio',
       'fixtureFillRatioStatus',
       'gatesPassed',
       'gatesElided',
       'conditionalTriggersFired',
+      // renderMetaFence emits this between conditionalTriggersFired and
+      // forceToolsApplied, but the list pinned only 12 of the 13 keys, so it
+      // was free to move without failing the "deterministic" contract.
+      'defaultFiredFrameworks',
       'forceToolsApplied',
     ];
     const positions = expectedKeys.map((k) => fence.indexOf(`"${k}":`));

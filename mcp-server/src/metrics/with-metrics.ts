@@ -52,7 +52,7 @@ export interface MetricsContext {
    * inner runs) and one `success` | `rejected` | `errored` event at wrap
    * exit. The `compose_dossier_envelope` handler reads the snapshot at
    * envelope-build time and emits it as `serverToolCallCounts` so the model
-   * can copy it verbatim into the BL-045-VERIFY block (closing the empirical
+   * can copy it verbatim into the RUN-AUDIT block (closing the empirical
    * drift where the model self-narrated `toolCallCounts` and either fabricated
    * a tool call or omitted one).
    *
@@ -171,7 +171,7 @@ export interface RateLimitCheck {
 /**
  * BL-071 — server-arithmetic tool-call counter taxonomy.
  *
- * Four states per tool, tracked separately so the BL-045-VERIFY-block
+ * Four states per tool, tracked separately so the RUN-AUDIT-block
  * arithmetic identity `precheck.iterations === validate_irl_provenance.succeeded`
  * (and friends) is derivable from the snapshot the envelope tool emits.
  *
@@ -362,6 +362,21 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
   inner: (...args: TArgs) => TResult | Promise<TResult>
 ): (...args: TArgs) => Promise<TResult> {
   return async (...args: TArgs): Promise<TResult> => {
+    // BL-122 — READ THIS BEFORE TRUSTING `duration_ms`.
+    //
+    // On the Worker this does NOT measure how long the handler took. Cloudflare
+    // freezes the clock outside I/O as a Spectre mitigation: `Date.now()`
+    // "returns the time of the last I/O [and] does not advance during code
+    // execution". So `Date.now() - startedAt` measures the wall time the
+    // handler spent BLOCKED ON I/O, and a handler that performs none scores
+    // exactly 0 however much computation it does.
+    //
+    // There is no workaround — Workers provide no unfrozen timer, so
+    // `performance.now()` behaves identically. The value is still worth
+    // emitting (it is real for I/O-bound handlers, and it feeds the audit
+    // entry), but anything presenting it as "tool latency" is mislabelled:
+    // `/status` publishes only rows with a non-zero p99 and calls it upstream
+    // I/O wait, and client-observed latency comes from the CI probe instead.
     const startedAt = Date.now();
 
     // BL-033 Slice 3a — build + enqueue a compliance audit entry. Gated to
