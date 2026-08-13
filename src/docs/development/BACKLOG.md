@@ -347,7 +347,20 @@ Surfaced by a production run (Kestrel IRL, 2026-08-12): the envelope reported `v
 
 **Two accepted residuals, both named rather than fixed.** A write lost mid-run in an _earlier_ request under-reports while scope still reads `run` — a **false red** an operator investigates and traces to a brownout. And a repeat ingestion of **identical bytes** inside the 4h window accumulates onto the same row, so the count reads long of that invocation; making it per-invocation would need an invocation id, which is the speculative half this change declined, and would dissolve the cross-request continuity that is the point. Both are documented in the prompt, the ADR, `CONTRACT.md` and UAT-07, and the second is executed in the integration suite. The first draft enumerated three causes of a count _short_ of memory and none for a count _long_ of it — asymmetric coverage of a symmetric failure, caught in review, and the same over-claiming this ticket exists to correct.
 
-**Verification still owed to a human**: re-run the Kestrel IRL through Claude Desktop against production after deploy and confirm the VERIFY block carries `countersScope: run` with `validate_irl_provenance` matching `precheck.iterations`. Every automated test here runs against a fake Redis and a _simulated_ per-request topology — a simulation standing in for the real transport is what hid this in the first place.
+**Verified live against production 2026-08-13** (`0.49.3` / `gitSha 4c6ec58`, prompt `0.22.4`), over the remote Worker via four separate MCP requests — `prepare_irl_body`, two `validate_irl_provenance` calls, then `compose_dossier_envelope`. This mattered because every automated test runs against a fake Redis and a _simulated_ per-request topology, and a simulation standing in for the real transport is what hid the defect in the first place.
+
+A run against the same endpoint ~15 minutes earlier, before the production approval gate was released, captured the defect itself: `serverToolCallCounts` held only `compose_dossier_envelope: {attempted: 1, succeeded: 0}`, `validate_irl_provenance` was absent despite two verified calls moments before, and no `countersScope` field existed. After the deploy:
+
+```json
+"serverToolCallCounts": {
+  "prepare_irl_body":         { "attempted": 1, "succeeded": 1 },
+  "validate_irl_provenance":  { "attempted": 2, "succeeded": 2 },
+  "compose_dossier_envelope": { "attempted": 1, "succeeded": 0 }
+},
+"countersScope": "run"
+```
+
+The BL-071 identity holds across requests, the canary row is present, and the envelope correctly reports itself in-flight. A re-call then returned `compose_dossier_envelope: {attempted: 2, succeeded: 1}` with `validate_irl_provenance` unchanged at `{2, 2}` — the merge rule adding durable counts to the in-flight attempt without double-counting, which `CONTRACT.md` and UAT-07 document and which had until then only been executed against a fake.
 
 ---
 
