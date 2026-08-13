@@ -12,13 +12,21 @@
  * strict superset of what renders here (spend detail, ACL self-check,
  * refresh-token health). This page shows: overall status, env/version/
  * gitSha, Upstash + Inoreader status, radar snapshot age vs the 12h SLO,
- * Zone-1 spend vs the daily cap, the per-rule alert table, per-tool latency,
- * and audit-log health. No key names, no correlation ids, no token material.
+ * Zone-1 spend vs the daily cap, the per-rule alert table, and per-tool
+ * upstream I/O wait. No key names, no correlation ids, no token material.
+ * The audit-log panel renders only while the audit pipeline is bound
+ * (ADR-0014 deactivated it; see `auditActive` below).
  *
- * **Surface, don't ratify** (BL-033 operator directive): the tool-latency
- * panel renders raw p50/p95/p99 as PLAIN values — no badges, no pass/fail
- * threshold, no ratified SLA (contrast the freshness/spend rows, which ARE
- * signed-off SLOs). The tool-latency SLO stays deferred (`slo-baselines.md`).
+ * **Surface, don't ratify** (BL-033 operator directive, still in force): the
+ * I/O-wait panel renders raw p50/p95/p99 as PLAIN values — no badges, no
+ * pass/fail threshold, no ratified SLA (contrast the freshness/spend rows,
+ * which ARE signed-off SLOs). The SLO stays deferred (`slo-baselines.md`).
+ *
+ * **What the number is** (BL-122): `duration_ms` is `Date.now() - startedAt`
+ * around the handler, and Workers freeze the clock outside I/O — so it
+ * measures I/O wait, never compute. A handler that touches no network scores
+ * exactly 0 however much work it does, which is why rows with `p99Ms === 0`
+ * are filtered out at render rather than published as if they were fast.
  *
  * BL-033 Slice 4 fronts this page at `status.mcp.globalstrategic.tech`
  * (a `custom_domain` route → `worker.ts` serves status at the subdomain root);
@@ -64,20 +72,44 @@ export async function buildStatusHtml(env: Env): Promise<string> {
     readStatusMetrics(env),
   ]);
 
-  // Tool latency — PLAIN values, no badges/thresholds (surface, don't ratify).
-  // toolLatency null → AE unbound / query failed; [] → no traffic in window.
-  const latencyRows =
-    metrics?.toolLatency == null
-      ? '<tr><td colspan="5">metrics unavailable — the evaluator cron populates every 15 min (needs CF_AE_TOKEN bound; staging has no cron)</td></tr>'
-      : metrics.toolLatency.length === 0
-        ? '<tr><td colspan="5">no tool_invocation events in the last 7 days</td></tr>'
-        : metrics.toolLatency
-            .map(
-              (r) =>
-                `<tr><td>${esc(r.name)}</td><td>${esc(r.p50Ms)}</td><td>${esc(r.p95Ms)}</td><td>${esc(r.p99Ms)}</td><td>${esc(r.n)}</td></tr>`
-            )
-            .join('');
+  // Upstream I/O wait — PLAIN values, no badges/thresholds (surface, don't ratify).
+  //
+  // BL-122: the filter is applied HERE, at render, and never inside
+  // `computeToolLatency`. `toolLatency === []` must keep meaning exactly one
+  // thing — "no tool_invocation events in the window" — because the empty-state
+  // copy below asserts it. Filtering at compute time would overload `[]` to
+  // also mean "traffic existed, none of it measurable", and the page would then
+  // claim zero invocations in a window that had hundreds. Keeping the
+  // unfiltered rows in scope is also what lets the two empty states differ.
+  //
+  // Filter on the MEASUREMENT (`p99Ms > 0`), never on a tool-name allowlist:
+  // the query is `GROUP BY blob2` with no tool list anywhere, so an allowlist
+  // would need hand-maintaining and would drift the first time a tool gained or
+  // lost an I/O path. `p99` and not `p50` — a tool that only reaches the
+  // network on a cache miss has `p50 = 0` and a real `p99`, and must survive.
+  const measured = metrics?.toolLatency?.filter((r) => r.p99Ms > 0);
+  let latencyRows: string;
+  if (metrics?.toolLatency == null || measured == null) {
+    latencyRows =
+      '<tr><td colspan="5">metrics unavailable — the evaluator cron populates every 15 min (needs CF_AE_TOKEN bound; staging has no cron)</td></tr>';
+  } else if (metrics.toolLatency.length === 0) {
+    latencyRows = '<tr><td colspan="5">no tool_invocation events in the last 7 days</td></tr>';
+  } else if (measured.length === 0) {
+    latencyRows = `<tr><td colspan="5">${esc(metrics.toolLatency.length)} tools invoked, none with measurable I/O wait — expected on a quiet week (see note below)</td></tr>`;
+  } else {
+    latencyRows = measured
+      .map(
+        (r) =>
+          `<tr><td>${esc(r.name)}</td><td>${esc(r.p50Ms)}</td><td>${esc(r.p95Ms)}</td><td>${esc(r.p99Ms)}</td><td>${esc(r.n)}</td></tr>`
+      )
+      .join('');
+  }
 
+  // BL-122 — the audit pipeline is deactivated (ADR-0014), and an unbound
+  // AUDIT_QUEUE is the same signal `handle-authenticated.ts` uses to no-op the
+  // producer. Hiding the panel on that signal means it returns by itself when
+  // the binding comes back; no code change is needed to re-enable it.
+  const auditActive = env.AUDIT_QUEUE != null;
   const a = metrics?.audit;
   const auditRows =
     metrics == null
@@ -138,19 +170,22 @@ export async function buildStatusHtml(env: Env): Promise<string> {
   ${alertRows}
 </table>
 
-<h2>Tool latency (server-side, last 7d${metrics?.evaluatedAt ? `, as of ${esc(metrics.evaluatedAt)}` : ''})</h2>
+<h2>Upstream I/O wait per tool (last 7d${metrics?.evaluatedAt ? `, as of ${esc(metrics.evaluatedAt)}` : ''})</h2>
 <table>
   <tr><th>Tool</th><th>p50 ms</th><th>p95 ms</th><th>p99 ms</th><th>samples</th></tr>
   ${latencyRows}
 </table>
-<p class="meta">Raw in-Worker handler latency (observability, not a ratified SLA). Includes synthetic probe traffic. Tool-latency SLO deliberately deferred — see slo-baselines.md.</p>
+<p class="meta">Time the handler spent blocked on Upstash / Inoreader — <strong>not</strong> total handler time. Cloudflare Workers freeze the clock outside I/O (<code>Date.now()</code> returns the time of the last I/O and does not advance during execution), so compute time is unmeasurable here and compute-only tools are <strong>omitted rather than shown as 0</strong>. Observability, not a ratified SLA; includes synthetic probe traffic. For client-observed round-trip latency, which does see compute, use the CI latency probe. SLO deliberately deferred — see slo-baselines.md.</p>
 
-<h2>Audit log (BL-033 Slice 3a)</h2>
+${
+  auditActive
+    ? `<h2>Audit log</h2>
 <table>
   <tr><th>Metric</th><th>Value</th></tr>
   ${auditRows}
-</table>
-<p class="meta">Pipeline deactivated 2026-08-08 — ADR-0014; counters show historical totals.</p>
+</table>`
+    : ''
+}
 
 <p class="meta">Runbooks: <code>mcp-server/observability/runbooks/</code> · SLO provenance: <code>mcp-server/observability/slo-baselines.md</code> (signed off 2026-07-14) · Evaluator cadence: 15 min</p>
 </body>
