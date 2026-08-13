@@ -184,7 +184,14 @@ const healthCheckFailing: AlertRule = {
     return {
       breached,
       severity: upstashDegraded ? 'page' : 'ticket',
-      summary: `Health degraded: upstashMcp=${health.upstashMcp}, inoreader=${health.inoreader}, ok=${String(health.ok)}`,
+      // Neutral prefix, not a verdict. `summary` is authored for the Sentry
+      // event on breach — but /status renders it on EVERY evaluation, and the
+      // rule is almost always `ok`, so a hardcoded "Health degraded:" made the
+      // healthy row read `state: ok · Health degraded: … ok=true`, which is a
+      // self-contradiction an operator has to decode. The breach case loses
+      // nothing: the Sentry issue title already carries the rule id
+      // (`health-check-failing`) and the values below say what is wrong.
+      summary: `Health: upstashMcp=${health.upstashMcp}, inoreader=${health.inoreader}, ok=${String(health.ok)}`,
       observed: {
         ok: health.ok ? 1 : 0,
         upstashMcp: health.upstashMcp,

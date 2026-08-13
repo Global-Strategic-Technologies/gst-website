@@ -142,6 +142,25 @@ describe('health-check-failing', () => {
     const ev = await rule('health-check-failing').evaluate(makeCtx());
     expect(ev.breached).toBe(false);
   });
+
+  // `summary` is authored for the Sentry event on breach, but /status renders
+  // it on EVERY evaluation — and this rule is almost always `ok`. A prefix that
+  // asserts a verdict made the healthy row read `state: ok · Health degraded:
+  // … ok=true`, a self-contradiction the operator had to decode. The prefix
+  // must stay neutral; the values carry the verdict.
+  it('summarises neutrally when healthy — no verdict in the prefix', async () => {
+    mockBuildHealth.mockResolvedValue({ ok: true, upstashMcp: 'ok', inoreader: 'ok' });
+    const ev = await rule('health-check-failing').evaluate(makeCtx());
+    expect(ev.summary).not.toMatch(/degraded|failing|down|unhealthy/i);
+    expect(ev.summary).toContain('ok=true');
+  });
+
+  it('still says what is wrong when it does breach', async () => {
+    mockBuildHealth.mockResolvedValue({ ok: false, upstashMcp: 'degraded', inoreader: 'ok' });
+    const ev = await rule('health-check-failing').evaluate(makeCtx());
+    expect(ev.summary).toContain('upstashMcp=degraded');
+    expect(ev.summary).toContain('ok=false');
+  });
 });
 
 describe('traffic-spike-detected', () => {
