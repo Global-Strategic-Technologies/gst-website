@@ -88,6 +88,17 @@ export type AlertSeverity = 'ticket' | 'page';
 
 export interface AlertEvaluation {
   breached: boolean;
+  /**
+   * BL-122 — absent means the rule reached a real verdict. `false` means it
+   * could NOT check: its data source was unreachable, so the rule failed open.
+   *
+   * `breached` stays `false` in that case (a blind check must not page), which
+   * is why this flag is needed at all — without it /status renders an
+   * unverified rule as `ok`, and monitoring that has silently stopped
+   * monitoring looks identical to monitoring that passed. Display-only: it
+   * changes no alerting behaviour.
+   */
+  evaluated?: false;
   /** Meaningful when `breached`; the non-breach value is the rule's default class. */
   severity: AlertSeverity;
   /** One-line, operator-facing; becomes the Sentry event message on breach. */
@@ -216,6 +227,7 @@ const trafficSpikeDetected: AlertRule = {
       return {
         breached: false,
         severity: 'ticket',
+        evaluated: false,
         summary: 'traffic-spike: AE unavailable (secrets unbound or query failed) — fail open',
         observed: { aeUnavailable: 1 },
       };
@@ -261,6 +273,7 @@ const scopeMismatch403Rate: AlertRule = {
       return {
         breached: false,
         severity: 'page',
+        evaluated: false,
         summary: 'scope-mismatch-403: AE unavailable — fail open',
         observed: { aeUnavailable: 1 },
       };
@@ -288,6 +301,7 @@ const oauthRefreshFailureRate: AlertRule = {
       return {
         breached: false,
         severity: 'page',
+        evaluated: false,
         summary: 'oauth-refresh-failure-rate: AE unavailable — fail open',
         observed: { aeUnavailable: 1 },
       };
@@ -323,6 +337,7 @@ const sentryEnvelopePostFailureRate: AlertRule = {
       return {
         breached: false,
         severity: 'ticket',
+        evaluated: false,
         summary: 'sentry-envelope-post-failure-rate: Upstash unbound — fail open',
         observed: { upstashUnavailable: 1 },
       };
@@ -347,6 +362,7 @@ const sentryEnvelopePostFailureRate: AlertRule = {
       return {
         breached: false,
         severity: 'ticket',
+        evaluated: false,
         summary: 'sentry-envelope-post-failure-rate: counter read failed — fail open',
         observed: { upstashReadFailed: 1 },
       };

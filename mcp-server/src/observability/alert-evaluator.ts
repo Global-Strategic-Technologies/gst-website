@@ -75,6 +75,12 @@ export interface RuleResult {
   severity: AlertEvaluation['severity'];
   summary: string;
   observed: AlertEvaluation['observed'];
+  /**
+   * BL-122 — `false` when the rule could not check (data source unreachable).
+   * Carried through to /status so an unverified rule renders as `unknown`
+   * rather than `ok`. Distinct from `error`, which means evaluate() threw.
+   */
+  evaluated?: false;
   /** Present when the rule's evaluate() threw — fail-open record. */
   error?: string;
 }
@@ -95,6 +101,7 @@ async function evaluateRule(rule: AlertRule, ctx: EvaluatorContext): Promise<Rul
       severity: ev.severity,
       summary: ev.summary,
       observed: ev.observed,
+      ...(ev.evaluated === false ? { evaluated: false as const } : {}),
     };
   } catch (err) {
     return {

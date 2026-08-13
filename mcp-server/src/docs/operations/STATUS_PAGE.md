@@ -10,7 +10,7 @@ Public, unauthenticated server-rendered HTML at `mcp.globalstrategic.tech/status
 | ------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Header badge + env/version/gitSha                             | `buildHealthPayload` (live probes)           | `version` is the deploy-injected `env.VERSION` (BL-033 Slice 4); `gitSha` the deployed commit                                                                                                                                                              |
 | Substrate (Upstash, Inoreader, radar freshness, Zone-1 spend) | `buildHealthPayload`                         | freshness + spend carry **ratified-SLO badges** (12h / 70-90%)                                                                                                                                                                                             |
-| SLO alerts                                                    | `mcp:alerts:last-eval` (evaluator cron)      | the 7 canonical rules, per-rule state                                                                                                                                                                                                                      |
+| SLO alerts                                                    | `mcp:alerts:last-eval` (evaluator cron)      | the 7 canonical rules, per-rule state — **four** states, see below                                                                                                                                                                                         |
 | **Upstream I/O wait per tool (7d)**                           | `mcp:status:metrics:<env>` (evaluator cron)  | per-tool p50/p95/p99 + sample count, filtered at render to rows with `p99 > 0`. Two empty states: "no `tool_invocation` events" vs "_N_ tools invoked, none with measurable I/O wait" — the second is the **expected quiet-week state**, not a degradation |
 | **Audit log**                                                 | `mcp:status:metrics:<env>` + audit chain tip | **hidden while the pipeline is deactivated** (ADR-0014). Gated on `env.AUDIT_QUEUE` being unbound — the same signal `handle-authenticated.ts` uses to no-op the producer — so it returns by itself on re-enable, with no code change                       |
 
@@ -24,6 +24,25 @@ Consequences:
 - On a fresh prod deploy the panels populate within ~15 min (first cron run). Until then: "metrics unavailable — the evaluator cron populates every 15 min".
 - Requires `CF_AE_TOKEN` + `CF_ACCOUNT_ID` bound in prod (already are, for the alert evaluator). Unbound → AE query fails open → latency panel "unavailable"; the audit `lastSeq` (from Upstash) still renders.
 - Since the ADR-0014 deactivation, the audit panel's AE-derived counters (24h batches/records) legitimately read 0 and `lastSeq` is static — that is the expected steady state, not a fault.
+
+## Alert states — four, not two (BL-122)
+
+A rule has three real outcomes, not two: it passed, it breached, or **it could not check**. The third happens when a rule's data source is unreachable (AE secrets unbound, query failed, Upstash down); rules are contractually fail-open, so they return `breached: false` — and until BL-122 that rendered as a green `ok`.
+
+That made an unverified check indistinguishable from a passing one, which is the failure mode worth caring about: monitoring that has silently stopped monitoring, while displaying green. Those arms now set `evaluated: false`, and the page renders a distinct state.
+
+| State        | Colour          | Meaning                                                     |
+| ------------ | --------------- | ----------------------------------------------------------- |
+| `ok`         | green `#0a7d4f` | Evaluated; not breached                                     |
+| `unknown`    | slate `#8a9bb0` | **Could not evaluate** — data source unreachable            |
+| `eval-error` | amber `#946200` | The rule's `evaluate()` threw                               |
+| `BREACHED`   | red `#b3261e`   | Evaluated; breached (`breached (cooldown)` when suppressed) |
+
+`unknown` is muted rather than alarming — nothing is known to be wrong, but nothing was verified. **It must never render green**; a test asserts all four colours differ.
+
+`eval-error` and `unknown` stay separate because they are different faults: one is a bug in the rule, the other is an unreachable dependency.
+
+**Alerting is unchanged.** `breached` stays `false` in the unknown case, so no Sentry event fires and a blind check never pages. Display-only. Consequence worth knowing: if AE is misconfigured, several rows go `unknown` at once — the page looks worse without the server having got worse.
 
 ## Surface, don't ratify (BL-033 operator directive)
 

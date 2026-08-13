@@ -59,10 +59,28 @@ async function readLastEval(env: Env): Promise<AlertEvaluationSummary | null> {
   }
 }
 
+/**
+ * Four visually distinct alert states — each colour means one thing:
+ *   green  #0a7d4f  ok           — checked, and fine
+ *   slate  #8a9bb0  unknown      — could NOT check (data source unreachable)
+ *   amber  #946200  eval-error   — the rule itself threw
+ *   red    #b3261e  BREACHED     — checked, and not fine
+ * `unknown` is muted rather than alarming: nothing is known to be wrong, but
+ * nothing was verified either. It must never read as green — an unverified
+ * check displaying `ok` is monitoring that has silently stopped monitoring.
+ */
+const STATE_COLOR = {
+  ok: '#0a7d4f',
+  unknown: '#8a9bb0',
+  evalError: '#946200',
+  breached: '#b3261e',
+} as const;
+
+const stateSpan = (color: string, text: string): string =>
+  `<span style="color:${color};font-weight:600">${text}</span>`;
+
 const badge = (ok: boolean, okText: string, badText: string): string =>
-  ok
-    ? `<span style="color:#0a7d4f;font-weight:600">${okText}</span>`
-    : `<span style="color:#b3261e;font-weight:600">${badText}</span>`;
+  ok ? stateSpan(STATE_COLOR.ok, okText) : stateSpan(STATE_COLOR.breached, badText);
 
 /** Render the /status HTML. Never throws — degraded sources render as unknowns. */
 export async function buildStatusHtml(env: Env): Promise<string> {
@@ -129,9 +147,14 @@ export async function buildStatusHtml(env: Env): Promise<string> {
   const alertRows =
     lastEval?.rules
       .map((r) => {
+        // Order matters: a rule that threw, and a rule that could not reach
+        // its data source, must BOTH escape the ok/breached binary before it
+        // is applied — otherwise either renders as a green `ok` it never earned.
         const state = r.error
-          ? '<span style="color:#946200;font-weight:600">eval-error</span>'
-          : badge(!r.breached, 'ok', r.suppressed ? 'breached (cooldown)' : 'BREACHED');
+          ? stateSpan(STATE_COLOR.evalError, 'eval-error')
+          : r.evaluated === false
+            ? stateSpan(STATE_COLOR.unknown, 'unknown')
+            : badge(!r.breached, 'ok', r.suppressed ? 'breached (cooldown)' : 'BREACHED');
         return `<tr><td>${esc(r.id)}</td><td>${state}</td><td>${esc(r.severity)}</td><td>${esc(r.summary)}</td></tr>`;
       })
       .join('') ??

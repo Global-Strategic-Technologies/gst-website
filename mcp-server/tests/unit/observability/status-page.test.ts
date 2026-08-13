@@ -134,6 +134,83 @@ describe('buildStatusHtml', () => {
 const keyedRedis = (byKey: Record<string, unknown>) =>
   ({ get: vi.fn(async (k: string) => byKey[k] ?? null) }) as never;
 
+// BL-122 — a rule that could not check must not render as `ok`. There are
+// three real conditions (passed / breached / could-not-check) and only two
+// boolean states, so an unreachable data source used to surface as green.
+describe('buildStatusHtml — unverified rules render as unknown', () => {
+  const withRules = (rules: unknown[]) =>
+    ({
+      get: vi.fn(async () => ({
+        evaluatedAt: '2026-08-13T13:00:00.000Z',
+        env: 'production',
+        rules,
+      })),
+    }) as never;
+
+  const rule = (over: Record<string, unknown>) => ({
+    id: 'traffic-spike-detected',
+    breached: false,
+    suppressed: false,
+    severity: 'ticket',
+    summary: 'x',
+    observed: {},
+    ...over,
+  });
+
+  // Scope to the rule's own <tr>: the Substrate panel above also renders `ok`.
+  const alertRow = (html: string, id: string) =>
+    html.match(new RegExp(`<tr><td>${id}</td>.*?</tr>`))?.[0] ?? '';
+
+  it('renders `unknown`, not `ok`, when the rule could not evaluate', async () => {
+    mockCreateMcpClient.mockReturnValue(withRules([rule({ evaluated: false })]));
+    const row = alertRow(await buildStatusHtml(ENV), 'traffic-spike-detected');
+    expect(row).toContain('>unknown<');
+    expect(row).not.toContain('>ok<');
+  });
+
+  it('still renders `ok` for a rule that genuinely evaluated', async () => {
+    mockCreateMcpClient.mockReturnValue(withRules([rule({})]));
+    const row = alertRow(await buildStatusHtml(ENV), 'traffic-spike-detected');
+    expect(row).toContain('>ok<');
+    expect(row).not.toContain('>unknown<');
+  });
+
+  it('a thrown rule stays `eval-error` — distinct from could-not-check', async () => {
+    mockCreateMcpClient.mockReturnValue(withRules([rule({ error: 'boom', evaluated: false })]));
+    const row = alertRow(await buildStatusHtml(ENV), 'traffic-spike-detected');
+    expect(row).toContain('>eval-error<');
+    expect(row).not.toContain('>unknown<');
+  });
+
+  // The point of the state is that it is visually separable at a glance, so
+  // the colours are part of the contract, not styling incidental to it.
+  it('gives ok / unknown / breached three different colours', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withRules([
+        rule({ id: 'a' }),
+        rule({ id: 'b', evaluated: false }),
+        rule({ id: 'c', breached: true }),
+        rule({ id: 'd', error: 'boom' }),
+      ])
+    );
+    const html = await buildStatusHtml(ENV);
+    const colorOf = (label: string) =>
+      html.match(new RegExp(`color:(#[0-9a-f]{6});font-weight:600">${label}<`))?.[1];
+
+    const ok = colorOf('ok');
+    const unknown = colorOf('unknown');
+    const breached = colorOf('BREACHED');
+    const evalError = colorOf('eval-error');
+
+    for (const [name, c] of Object.entries({ ok, unknown, breached, evalError })) {
+      expect(c, `${name} should render a colour`).toMatch(/^#[0-9a-f]{6}$/);
+    }
+    expect(new Set([ok, unknown, breached, evalError]).size).toBe(4);
+    // `unknown` must not borrow the ok colour — that is the whole defect.
+    expect(unknown).not.toBe(ok);
+  });
+});
+
 describe('buildStatusHtml — BL-033 Slice 4 panels', () => {
   const METRICS_KEY = 'mcp:status:metrics:production';
 
