@@ -125,11 +125,15 @@ describe('compose_dossier_envelope — level-conditional response (BL-122)', () 
   // The channel-divergence guard: structuredContent is returned by reference
   // while the text mirror round-trips through JSON.stringify. If a key were
   // set to an explicit `undefined` the two would disagree about its existence.
+  //
+  // `toStrictEqual`, NOT `toEqual` — the latter ignores undefined-valued
+  // properties, so it passes for the broken `key: cond ? x : undefined` form
+  // too and this guard would be vacuous.
   it.each(['standard', 'enhanced', 'debug'] as const)(
     'survives a JSON round-trip unchanged at %s (both channels agree)',
     (level) => {
       const r = at(level);
-      expect(JSON.parse(JSON.stringify(r))).toEqual(r);
+      expect(JSON.parse(JSON.stringify(r))).toStrictEqual(r);
     }
   );
 
