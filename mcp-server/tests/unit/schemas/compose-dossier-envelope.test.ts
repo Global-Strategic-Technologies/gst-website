@@ -84,6 +84,90 @@ function baseInput(): ComposeDossierEnvelopeEngineInput {
   };
 }
 
+// BL-122 — the level-conditional response IS the enforcement point for the
+// whole audit-level feature. Suppression deliberately does NOT live in prompt
+// prose: this tool exists because the model treats body directives as
+// descriptive context and only tool output as procedure. If these assertions
+// go, the feature can regress to "returns everything at every level" silently.
+describe('compose_dossier_envelope — level-conditional response (BL-122)', () => {
+  const at = (auditLevel: 'standard' | 'enhanced' | 'debug') =>
+    runComposeDossierEnvelope({ ...baseInput(), auditLevel }, SERVER_CTX);
+
+  // `in`, not `toBeUndefined()`. The latter passes for BOTH the correct
+  // conditional-spread implementation and the broken
+  // `key: cond ? x : undefined` one — and only the former keeps the two
+  // response channels agreeing, since the text mirror is built with
+  // JSON.stringify, which drops undefined-valued keys.
+  it.each(['standard', 'enhanced'] as const)(
+    'omits metaFenceMarkdown as an ABSENT key at %s',
+    (level) => {
+      const r = at(level);
+      expect('metaFenceMarkdown' in r).toBe(false);
+    }
+  );
+
+  it('omits provenanceFooterMarkdown as an ABSENT key at standard', () => {
+    expect('provenanceFooterMarkdown' in at('standard')).toBe(false);
+  });
+
+  it('returns provenanceFooterMarkdown at enhanced, and both blocks at debug', () => {
+    expect('provenanceFooterMarkdown' in at('enhanced')).toBe(true);
+    expect('metaFenceMarkdown' in at('debug')).toBe(true);
+    expect('provenanceFooterMarkdown' in at('debug')).toBe(true);
+  });
+
+  it('returns gapListMarkdown at every level — (J) is never gated', () => {
+    for (const level of ['standard', 'enhanced', 'debug'] as const) {
+      expect(at(level).gapListMarkdown, level).toBeTruthy();
+    }
+  });
+
+  // The channel-divergence guard: structuredContent is returned by reference
+  // while the text mirror round-trips through JSON.stringify. If a key were
+  // set to an explicit `undefined` the two would disagree about its existence.
+  it.each(['standard', 'enhanced', 'debug'] as const)(
+    'survives a JSON round-trip unchanged at %s (both channels agree)',
+    (level) => {
+      const r = at(level);
+      expect(JSON.parse(JSON.stringify(r))).toEqual(r);
+    }
+  );
+
+  // emitInstructions is the model-facing half: it must name exactly what came
+  // back, so a withheld block carries no instruction to transcribe it.
+  it('names only the blocks actually returned', () => {
+    const standard = at('standard').emitInstructions;
+    expect(standard).toContain('one block');
+    expect(standard).toContain('gapListMarkdown');
+    expect(standard).not.toContain('metaFenceMarkdown');
+    expect(standard).not.toContain('provenanceFooterMarkdown');
+
+    const enhanced = at('enhanced').emitInstructions;
+    expect(enhanced).toContain('2 blocks');
+    expect(enhanced).toContain('provenanceFooterMarkdown');
+    expect(enhanced).not.toContain('metaFenceMarkdown');
+
+    const debug = at('debug').emitInstructions;
+    expect(debug).toContain('3 blocks');
+    expect(debug).toContain('metaFenceMarkdown');
+    expect(debug).toContain('provenanceFooterMarkdown');
+  });
+
+  it('tells the model not to reconstruct a withheld block', () => {
+    expect(at('standard').emitInstructions).toContain('withheld');
+  });
+
+  // Provenance verification is NOT a level concern — the whole point of the
+  // redesign is that the chain runs identically and only its display varies.
+  it('verifies provenance identically at every level', () => {
+    const counts = (['standard', 'enhanced', 'debug'] as const).map(
+      (l) => at(l).provenanceVerification
+    );
+    expect(counts[1]).toEqual(counts[0]);
+    expect(counts[2]).toEqual(counts[0]);
+  });
+});
+
 describe('renderMetaFence', () => {
   it('emits a JSON code fence with all 13 fields in order', () => {
     const fence = renderMetaFence(baseInput(), SERVER_CTX.promptVersion);

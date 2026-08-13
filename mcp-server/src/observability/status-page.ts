@@ -110,9 +110,11 @@ export async function buildStatusHtml(env: Env): Promise<string> {
   // producer. Hiding the panel on that signal means it returns by itself when
   // the binding comes back; no code change is needed to re-enable it.
   const auditActive = env.AUDIT_QUEUE != null;
-  const a = metrics?.audit;
-  const auditRows =
-    metrics == null
+  // Only built when the panel renders — see `auditActive` above.
+  const a = auditActive ? metrics?.audit : undefined;
+  const auditRows = !auditActive
+    ? ''
+    : metrics == null
       ? '<tr><td colspan="2">metrics unavailable — the evaluator cron populates every 15 min</td></tr>'
       : `<tr><td>Records committed (chain tip)</td><td>${esc(a?.lastSeq ?? '—')}</td></tr>` +
         `<tr><td>Batches processed (24h)</td><td>${esc(a?.batches24h ?? '—')}</td></tr>` +

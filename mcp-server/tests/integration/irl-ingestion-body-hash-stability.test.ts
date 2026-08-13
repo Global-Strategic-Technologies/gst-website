@@ -366,9 +366,9 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 const EXPECTED_HASH_INTERACTIVE =
   '375bf5db2065426b2a1b9f2f5d14c77b3c33129246d78724c06c989c5313879e';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '6b5e64cf578443a98646634ad894794fa45eb23c5de657ff215ff1aac59f5c11';
+  '6edf638290ce2ac69ee9bfc44aebf559e923b31417d72d0cc835332c7052b79a';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '6f54f330d365b0852936e39f4d8f7c183aea99fe232d953a80b949f088ce63f5';
+  'ec75b5ef36f8c3b945c8a382d311d2395b9a0b329cf29b8548f825c50401aea8';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   'cc80cec5067ddc7bd10e26a654302aa9f472916be45b69b4eadff9a1280968c7';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
@@ -384,13 +384,16 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  '0261f809ec314bc3d67680a5372e254ca20c2a7db4d1a0d481084d2ecd55a49e';
+  'a761a0767ac1149bf71a1b73c1b832e53125b6bb3df6c480cee2d59c987d3167';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  '3e5f7e76bcb8e886a7157e633d1060c580000e948ddc715c1031a6d9d76bb0bf';
+  '7544ec80748bb597c54ddf08e9d6ce9675e627e7dc5f55a83726cafbc9c98e01';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
   'd5523884f69575d674e1f0f44e265dfa23ebc9e4384a958d2e4fa3bea45042f8';
-const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  'e351f1c4ab10871044651b13e49e67bc8e33b20002d38346cc6389aafd823b75';
+// extract-only is exempt from the audit gate, so its body is byte-identical at
+// every level. Reference the constant rather than repeating the literal: that
+// makes the scenario name's claim structural instead of two values that can
+// silently drift apart.
+const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG = EXPECTED_HASH_EXTRACT_ONLY_FULL;
 
 interface Scenario {
   name: string;
