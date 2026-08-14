@@ -230,8 +230,6 @@ Two consequences for a tester:
 
 **Input**: `filledIrl` (≥ 200 chars), `targetName`, `transactionContext`, `partnerLead`, `projectCodeName`, `mode`, `auditLevel`, `requireVerbatimBody`. **Run at `auditLevel: "debug"`** — the expectations below read the audit surface, which `standard` deliberately omits.
 
-> ⚠️ **Paste hazard (BL-123)**: Claude Desktop's argument fields are single-line inputs, and on some client versions a multi-line paste arrives with every newline collapsed to a space. The server now **refuses** such a body — the render halts with an explanation instead of producing a dossier. That refusal is **correct behaviour, not a Fail**: record it as `Blocked`, then re-run by attaching the `.md` and invoking without `filledIrl` (interactive mode), or from a client whose argument input accepts multi-line text.
-
 **Expected result**
 
 - `compose_dossier_envelope` is called at the end — not fabricated in prose.

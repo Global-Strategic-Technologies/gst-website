@@ -38,6 +38,7 @@ import { REGULATION_ENTRIES } from '../content/regulation-loader';
 import { CONDITIONAL_TRIGGER_NAMES } from '../prompts/extraction-rules';
 import { ORCHESTRATED_TOOLS, auditLevelValues, type AuditLevel } from '../prompts/irl-ingestion';
 import type { IrlBodyMintedBy } from '../cache/irl-body-provenance';
+import { assessIrlBodyStructure } from '../lib/irl-body-structure';
 import {
   citationFieldSchema,
   runIrlProvenanceCheck,
@@ -546,6 +547,18 @@ export interface ComposeDossierEnvelopeResult {
    * resolved (cache or input) — model copies in any mode for consistency.
    */
   serverCachedBodyBytes?: number;
+  /**
+   * BL-124 — newline count of the same re-hydrated body, beside the byte count.
+   *
+   * A body whose line breaks the client collapsed on the way in (Claude Desktop
+   * renders each prompt argument as a single-line input) is byte-intact but will
+   * NOT hash-match the file on the operator's disk. `newlines: 0` on a
+   * multi-kilobyte body says so in one number, which is the entire diagnostic —
+   * nothing refuses on it, and it is not an error. The byte count alone cannot
+   * carry this: on the artifact that surfaced it, 141 newlines were lost for a
+   * one-byte change in size.
+   */
+  serverCachedBodyNewlines?: number;
   emitInstructions: string;
 }
 
@@ -1310,6 +1323,11 @@ export function runComposeDossierEnvelope(
     throw new Bl068MapAbsentFalsePositiveError(falsePositiveMapAbsent);
   }
 
+  // BL-124 — one measurement, two consumers: the byte count the operator has
+  // always had, and the newline count that explains a hash which will not match
+  // their source file.
+  const bodyStructure = assessIrlBodyStructure(input.filledIrl);
+
   const allGaps = [...input.gaps, ...autoAppended];
 
   // BL-122 - CONDITIONAL SPREAD, not `key: cond ? x : undefined`. An explicit
@@ -1342,7 +1360,8 @@ export function runComposeDossierEnvelope(
       tierMismatches,
       tierFabrications,
     },
-    serverCachedBodyBytes: Buffer.byteLength(input.filledIrl, 'utf8'),
+    serverCachedBodyBytes: bodyStructure.byteLength,
+    serverCachedBodyNewlines: bodyStructure.newlineCount,
     emitInstructions: buildEmitInstructions(auditLevel),
   };
 }

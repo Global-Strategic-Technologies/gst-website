@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-7d7d8e00ddf6504e79d9706fefde6044ddaccbd2bec5cc59705ee487c5fd1bd5
+274afb116524bddc880df730c1441fc7f10b4c64f58405fc9481fae54a041586
 ```
 
 Computed over (sorted):
@@ -26,12 +26,40 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.24.0` (flattened-body refusal, capped `irlSource`, inlined VDR taxonomy — see the 0.51.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.8` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.25.0` (capped `irlSource`, inlined VDR taxonomy, blank-field handling — the flattened-body refusal was withdrawn; see the 0.52.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.52.0 — 2026-08-14 — the flattened-body refusal is withdrawn (`0.24.0` → `0.25.0`)
+
+**Behaviour-restoring on the prompt render; additive everywhere else.** No input is removed, no output shape narrows. Manifest hash moves on three prompt tuples.
+
+**What 0.51.0 got wrong.** It refused any `filledIrl` arriving with zero newlines — the signature of a client collapsing a multi-line paste — on the argument that the resulting dossier "cites a structure that no longer exists". That was reasoned from first principles and never tested against an artifact. Checked afterwards:
+
+- `normalizeForMatching` applies `.replace(/\s+/g, ' ')` **before** both the substring check and the word-run tokenizer. Flattening is the same transformation, so it is a provable no-op for the only check the provenance chain runs.
+- Nothing reads line structure. The only `split(/
+?
+/)` sites parse the IRL generator source and a different prompt's arg; the extractor produces bodies and never consumes one.
+- The hash-bind exists to catch a model substituting a condensed **paraphrase**. Flattening is not paraphrase — every word survives, in order.
+- A real production run on a flattened body produced a sound dossier with a correct 121/122 fill ratio.
+
+**And the cost was total.** The smallest IRL fixture in this repo is 4,256 B against a 2,000 B floor, so the refusal fired at every realistic size — and its own remediation, interactive mode, cannot carry a large body, because that path needs the model to emit the whole thing as a tool argument (~21k output tokens for an 80KB IRL). Operators were left with **no completing path**.
+
+**What changed.**
+
+- **The refusal is gone from all four sites** — the prompt render, `prepare_irl_body`, `validate_irl_provenance`, and the registry prepop. A flattened body is cached, minted `prompt-render`, and keeps full `partner-paste-verbatim-prepop` grade. Not gated on `requireVerbatimBody` either: that flag guarantees "partner-supplied rather than model-reconstructed", which a flattened body satisfies.
+- **The measurement survives as a diagnostic.** New `serverCachedBodyNewlines` on the envelope response, and `filledIrl.newlines` in the RUN-AUDIT block. `newlines: 0` on a multi-kilobyte body means the client collapsed the paste and the body will not hash-match the operator's source file — the one real consequence, and the thing that cost a full session of forensics to establish. Output-shape **addition**; the manifest hash does not see output shape, so this stanza is the only record.
+- **Blank form fields no longer break prompt attachment.** Claude Desktop ships an unfilled field as `""`, so `filledIrl: ""` failed `.min(200)` and the whole `prompts/get` returned `-32602` — surfaced by the client as "Failed to attach prompt" with no diagnostic, which made interactive mode unreachable. A new `stringFromWire` adapter reads `""` as "not supplied", and the three enums now reuse the existing `enumFromWire` (which also brings case-folding). **`stringFromWire` deliberately does not trim its output** — trimming would change `computeIrlBodyHash` and silently break the operator's file comparison.
+- **Same fix on two sibling prompts**: `gst_information_request_list` `0.0.7` → `0.0.8` (`productSummary`, identical `-32602`) and `gst_comparable_engagements_memo` `0.0.2` → `0.0.3` (its two arguments had **no `.describe()` at all**, so Desktop rendered blank uninterpretable fields; the empty-string handling there was already correct and is hygiene only).
+- **The interactive body sanctions splitting a large `prepare_irl_body` call into its own turn.** A production run stalled rather than emit ~21k tokens of body alongside the dossier, and correctly refused to write audit blocks for a call that never happened — it simply had no sanctioned way to split the work.
+- **A tool call the client never delivered** (approval denied or unanswered) is now explicitly excluded from `toolErrors`, whose identity has no transport-subtraction term, and explicitly **included** in `precheck.errorsEncountered`, which is defined as the attempts that never reached the server. A run had invented an out-of-contract `errorClass` because neither block sanctioned it.
+
+**Rollout is order-free in both directions.** Every new input is optional, every new output additive.
 
 ---
 

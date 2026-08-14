@@ -61,7 +61,7 @@
 import { z } from 'zod';
 import type { GstPrompt } from './types';
 import { authorialIntentLine, embedIrlGeneratorSource, IRL_SOURCE_EMBED_URI } from './embed';
-import { arrayFromWire, booleanFromWire } from './wire-shape';
+import { arrayFromWire, booleanFromWire, stringFromWire } from './wire-shape';
 import { irlSectionCatalog } from '../content/irl-section-catalog';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
@@ -133,10 +133,7 @@ const argsSchema = z.object({
     .describe(
       "Set 'true' to include the canonical reference-link row in the workbook header (default: omitted)."
     ),
-  productSummary: z
-    .string()
-    .min(10)
-    .max(500)
+  productSummary: stringFromWire(z.string().min(10).max(500).optional())
     .optional()
     .describe(
       "One-paragraph product description if known. Lets the model compress questions it can answer from context (e.g., if productSummary clearly says 'pure SaaS, no hardware', Section 01 deployment questions can be tightened)."
@@ -341,7 +338,7 @@ export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Configurable per engagement — company/project title, section pick-list, per-question removal (NN-II keys via excludeRequests; see list_irl_requests), custom per-section requests, canonical-row toggle — with the same options as the Hub generator. transactionContext also fires the authored skip-if directives (auto-removing tagged questions). When called with args, also calls generate_information_request_list_xlsx (forwarding the full configuration) and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
-  version: '0.0.7',
+  version: '0.0.8',
   lastReviewedAt: '2026-07-07',
   orchestrates: [IRL_SOURCE_EMBED_URI, XLSX_TOOL_NAME] as const,
   argsSchema,

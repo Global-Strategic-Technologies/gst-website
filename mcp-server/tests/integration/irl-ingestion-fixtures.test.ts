@@ -42,6 +42,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
+import { computeIrlBodyHash } from '../../src/schemas/compose-dossier-envelope';
 import { runIrlProvenanceCheck } from '../../src/schemas/validate-irl-provenance';
 // Imported so the join-rule table below checks the contract against the code
 // that implements it, rather than against a restatement of the rule.
@@ -500,55 +501,44 @@ describe('cross-fixture invariants', () => {
     }
   });
 
-  // ─── BL-123 — the flattened-body halt ────────────────────────────────────
+  // ─── BL-124 — the halt was withdrawn ────────────────────────────────────
   //
-  // The production failure this whole item exists for: Claude Desktop renders
-  // each prompt argument as a single-line input, so a pasted multi-line IRL
-  // arrives with every newline collapsed to a space. Measured on the real
-  // artifact: 141 newlines → 0, and the run completed looking clean.
-  describe('flattened body halt', () => {
-    /** The exact transformation the client performs. Not a synthetic approximation. */
+  // BL-123 refused a body whose line breaks the client had collapsed. That was
+  // wrong: citation verification normalises whitespace away before matching, no
+  // code reads line structure, and the refusal fired at every realistic IRL size
+  // while its own remediation could not carry a large body. These tests are the
+  // inverse of the ones it shipped — without them nothing pins that the
+  // withdrawal actually happened.
+  describe('flattened body is processed normally', () => {
+    /** The exact transformation Claude Desktop's single-line input performs. */
     const flatten = (body: string): string => body.replace(/\n/g, ' ').trim();
 
-    it('renders the halt instead of the sweep, in exactly one message', () => {
+    it('renders the full sweep, not a halt', () => {
       const result = irlIngestionPrompt.build({ filledIrl: flatten(SELL_SIDE_FIXTURE) });
-      // One message: no resource embeds beside a refusal.
-      expect(result.messages.length).toBe(1);
+      expect(result.messages.length).toBe(2);
       const text = result.messages[0].content;
       expect(text.type).toBe('text');
       if (text.type !== 'text') return;
-      expect(text.text).toContain('halted before extraction');
-      expect(text.text).toContain('no line breaks at all');
-      // The sweep must be entirely gone — not merely prefixed with a warning.
-      expect(text.text).not.toContain('Sweep plan');
-      expect(text.text).not.toContain('Body-binding hash');
-    });
-
-    it('tells the operator it is a client limitation, not their error', () => {
-      const result = irlIngestionPrompt.build({ filledIrl: flatten(SELL_SIDE_FIXTURE) });
-      const text = result.messages[0].content;
-      if (text.type !== 'text') throw new Error('expected text');
-      expect(text.text).toContain('client limitation, not an error on your part');
-    });
-
-    it('forbids the three recoveries that would convert a caught failure into a silent one', () => {
-      const result = irlIngestionPrompt.build({ filledIrl: flatten(SELL_SIDE_FIXTURE) });
-      const text = result.messages[0].content;
-      if (text.type !== 'text') throw new Error('expected text');
-      expect(text.text).toContain('Do NOT reconstruct');
-      expect(text.text).toContain('Do NOT proceed with the flattened text');
-      expect(text.text).toContain('prepare_irl_body');
-    });
-
-    it('leaves an intact multi-line body completely unaffected', () => {
-      // The paired negative: without it, a predicate that fired on everything
-      // would pass every assertion above.
-      const result = irlIngestionPrompt.build({ filledIrl: SELL_SIDE_FIXTURE });
-      expect(result.messages.length).toBe(2);
-      const text = result.messages[0].content;
-      if (text.type !== 'text') throw new Error('expected text');
-      expect(text.text).not.toContain('halted before extraction');
       expect(text.text).toContain('Sweep plan');
+      expect(text.text).toContain('Body-binding hash');
+      expect(text.text).not.toContain('halted before extraction');
+    });
+
+    it('binds to the flattened bytes it was actually given', () => {
+      // The hash must describe what the server received. It will not match the
+      // operator's source file — that is the fact `serverCachedBodyNewlines`
+      // exists to explain, and it is information, not an error.
+      const flat = flatten(SELL_SIDE_FIXTURE);
+      const text = irlIngestionPrompt.build({ filledIrl: flat }).messages[0].content;
+      if (text.type !== 'text') throw new Error('expected text');
+      expect(text.text).toContain(computeIrlBodyHash(flat));
+      expect(text.text).not.toContain(computeIrlBodyHash(SELL_SIDE_FIXTURE));
+    });
+
+    it('renders identically in shape to the intact body', () => {
+      const flat = irlIngestionPrompt.build({ filledIrl: flatten(SELL_SIDE_FIXTURE) });
+      const intact = irlIngestionPrompt.build({ filledIrl: SELL_SIDE_FIXTURE });
+      expect(flat.messages.length).toBe(intact.messages.length);
     });
   });
 });

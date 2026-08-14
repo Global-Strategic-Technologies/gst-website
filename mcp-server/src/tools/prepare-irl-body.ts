@@ -21,7 +21,7 @@ import {
 } from '../cache/irl-body-cache';
 import { computeIrlBodyHash } from '../schemas/compose-dossier-envelope';
 import type { IrlBodyMintedBy } from '../cache/irl-body-provenance';
-import { assessIrlBodyStructure, flattenedBodyExplanation } from '../lib/irl-body-structure';
+import { assessIrlBodyStructure } from '../lib/irl-body-structure';
 import {
   PrepareIrlBodyInputSchema,
   type PrepareIrlBodyInput,
@@ -54,16 +54,11 @@ export async function handlePrepareIrlBodyTool(
   // whole purpose is to resist over-claiming.
   mintedBy: IrlBodyMintedBy = 'prepare-tool'
 ) {
-  // BL-123 — refuse a body the client destroyed on the way in. This is the
-  // model-driven entry point; the prompt render has its own halt, and
-  // `validate_irl_provenance` its own rejection. Placed before the hash so a
-  // flattened body never gets a canonical hash minted for it at all.
+  // BL-124 — measured, never refused. The count rides along on the provenance
+  // record so an operator can see `newlines: 0` and understand why this body
+  // will not hash-match the file on their disk. See `lib/irl-body-structure.ts`
+  // for why the BL-123 refusal was withdrawn.
   const structure = assessIrlBodyStructure(payload.filledIrl);
-  if (structure.flattened) {
-    // `invalid-input`, not `internal-error`: the caller is the one who can act,
-    // matching the size-cap partition below.
-    return toolFail('invalid-input', flattenedBodyExplanation(structure));
-  }
 
   const irlBodyHash = computeIrlBodyHash(payload.filledIrl);
   const byteLength = Buffer.byteLength(payload.filledIrl, 'utf8');

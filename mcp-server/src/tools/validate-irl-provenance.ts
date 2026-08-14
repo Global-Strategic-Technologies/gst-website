@@ -30,7 +30,6 @@ import {
 } from '../schemas/validate-irl-provenance';
 import { Bl076BodyCacheMissError } from '../schemas/compose-dossier-envelope';
 import { toolOk, toolFail } from './_result';
-import { assessIrlBodyStructure, flattenedBodyExplanation } from '../lib/irl-body-structure';
 
 const TOOL_DESCRIPTION = `Verify that citations the model emitted (in \`_audit\` blocks, the (K) provenance footer, etc.) actually appear in the supplied filled IRL.
 
@@ -75,15 +74,6 @@ export async function handleValidateIrlProvenanceTool(
     // engine never receives `undefined`.
     let filledIrl: string;
     if (payload.filledIrl) {
-      // BL-123 — the fourth surface a raw body can arrive through, and the one
-      // the interactive path's Step 3a instructs directly. Only the direct-body
-      // branch is checked: a body reached by `irlBodyHash` was already screened
-      // at the write site, so re-checking it here would only add a way for the
-      // two to disagree.
-      const structure = assessIrlBodyStructure(payload.filledIrl);
-      if (structure.flattened) {
-        return toolFail('invalid-input', flattenedBodyExplanation(structure));
-      }
       filledIrl = payload.filledIrl;
     } else if (payload.irlBodyHash) {
       const cached = await metrics.irlBodyCache?.get(payload.irlBodyHash);

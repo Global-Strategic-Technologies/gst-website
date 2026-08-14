@@ -20,7 +20,6 @@ import { handlePrepareIrlBodyTool } from '../tools/prepare-irl-body';
 import { safeLog } from '../auth/safe-logger';
 import { computeIrlBodyHash } from '../schemas/compose-dossier-envelope';
 import { UPSTASH_KEY_PREFIX } from '../cache/irl-body-cache';
-import { assessIrlBodyStructure } from '../lib/irl-body-structure';
 import { NO_FRESH_CURATED_ITEMS, SNAPSHOT_MISSING_STDIO } from '../content/radar-messages';
 import type { SnapshotReader } from '../content/radar-snapshot-reader';
 import { embedFyiRadarSnapshot } from './embed';
@@ -165,24 +164,7 @@ export function registerPrompts(
         // falls through to legacy `prepare_irl_body` path on the first
         // cache-miss. The `bl079.cache.preload.failed` safeLog event
         // surfaces the failure for `wrangler tail` correlation.
-        // BL-123 — skip the prepop entirely for a body the client flattened.
-        // `build` renders a halt for it (that is what the operator sees; this
-        // is defence-in-depth plus a `wrangler tail` signal), and caching bytes
-        // the render has just refused would leave a poisoned entry live for the
-        // 4-hour TTL, ready to satisfy a later hash-bind.
-        const flattened = args?.filledIrl
-          ? assessIrlBodyStructure(args.filledIrl).flattened
-          : false;
-        if (flattened && args?.filledIrl) {
-          safeLog({
-            event: 'bl123.prepop.skipped-flattened',
-            key: `${UPSTASH_KEY_PREFIX}${computeIrlBodyHash(args.filledIrl)}`,
-            byteLength: Buffer.byteLength(args.filledIrl, 'utf8'),
-            success: false,
-            errorCode: 'flattened-body',
-          });
-        }
-        if (args?.filledIrl && !flattened && metrics.irlBodyCache) {
+        if (args?.filledIrl && metrics.irlBodyCache) {
           try {
             // 'prompt-render' is the ONLY mint that can support
             // `partner-paste-verbatim-prepop`: the server computed the hash from

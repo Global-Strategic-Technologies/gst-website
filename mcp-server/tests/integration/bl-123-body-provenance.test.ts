@@ -60,26 +60,29 @@ function makeMetrics(provenance?: IrlBodyProvenanceStore): {
   return { metrics, cache, provenance };
 }
 
-describe('BL-123 — flattened body refusal', () => {
-  it('prepare_irl_body refuses a flattened body as invalid-input', async () => {
-    const { metrics } = makeMetrics(new InMemoryIrlBodyProvenanceStore());
+describe('BL-124 — a flattened body is processed, not refused', () => {
+  it('prepare_irl_body accepts it and caches it', async () => {
+    // BL-123 returned `invalid-input` here. Withdrawn: verification normalises
+    // whitespace away before matching, nothing reads line structure, and the
+    // refusal left operators with no completing path at any realistic IRL size.
+    const { metrics, cache } = makeMetrics(new InMemoryIrlBodyProvenanceStore());
     const result = (await handlePrepareIrlBodyTool(
       { filledIrl: FLATTENED_IRL },
       metrics
     )) as ToolResult;
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('no line breaks at all');
-    expect(result.content[0].text).toContain('client limitation');
+    expect(result.isError).toBeUndefined();
+    expect(await cache.get(computeIrlBodyHash(FLATTENED_IRL))).toBe(FLATTENED_IRL);
   });
 
-  it('refuses BEFORE minting a hash or writing the body to the cache', async () => {
-    // A poisoned cache entry would stay live for the 4-hour TTL, ready to
-    // satisfy a later hash-bind — so the refusal has to precede the write, not
-    // merely follow it.
-    const { metrics, cache } = makeMetrics(new InMemoryIrlBodyProvenanceStore());
+  it('records newlineCount 0 on the provenance record — the surviving diagnostic', async () => {
+    // This is what replaced the refusal: a number an operator can read, which
+    // explains why the body will not hash-match the file on their disk.
+    const store = new InMemoryIrlBodyProvenanceStore();
+    const { metrics } = makeMetrics(store);
     await handlePrepareIrlBodyTool({ filledIrl: FLATTENED_IRL }, metrics);
-    expect(await cache.get(computeIrlBodyHash(FLATTENED_IRL))).toBeNull();
-    expect(cache.size()).toBe(0);
+    const record = await store.read(computeIrlBodyHash(FLATTENED_IRL));
+    expect(record?.newlineCount).toBe(0);
+    expect(record?.byteLength).toBe(Buffer.byteLength(FLATTENED_IRL, 'utf8'));
   });
 
   it('accepts the same body with its line breaks intact', async () => {
@@ -92,25 +95,34 @@ describe('BL-123 — flattened body refusal', () => {
     expect(await cache.get(computeIrlBodyHash(SAMPLE_IRL))).toBe(SAMPLE_IRL);
   });
 
-  it('validate_irl_provenance refuses a flattened body passed directly', async () => {
-    // The fourth surface a raw body can arrive through — the one the
-    // interactive path's Step 3a instructs by name.
+  it('validate_irl_provenance accepts a flattened body passed directly', async () => {
     const { metrics } = makeMetrics();
     const result = (await handleValidateIrlProvenanceTool(
       { filledIrl: FLATTENED_IRL, citations: [{ path: 'x', citation: 'y' }] },
       metrics
     )) as ToolResult;
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('no line breaks at all');
+    expect(result.isError).toBeUndefined();
   });
 
-  it('validate_irl_provenance still accepts an intact body', async () => {
+  it('verifies a citation identically against the flattened and intact bodies', async () => {
+    // The load-bearing evidence for the withdrawal: `normalizeForMatching`
+    // collapses whitespace before matching, so flattening is a provable no-op
+    // for the only check the provenance chain actually runs.
     const { metrics } = makeMetrics();
-    const result = (await handleValidateIrlProvenanceTool(
-      { filledIrl: SAMPLE_IRL, citations: [{ path: 'x', citation: 'y' }] },
+    const citation = [{ path: 'arr', citation: 'Section 00 — A long single-line answer' }];
+    const intact = (await handleValidateIrlProvenanceTool(
+      { filledIrl: SAMPLE_IRL, citations: citation },
       metrics
     )) as ToolResult;
-    expect(result.isError).toBeUndefined();
+    const flat = (await handleValidateIrlProvenanceTool(
+      { filledIrl: FLATTENED_IRL, citations: citation },
+      metrics
+    )) as ToolResult;
+    expect(flat.isError).toBeUndefined();
+    expect(intact.isError).toBeUndefined();
+    expect((flat.structuredContent as { verdicts?: unknown }).verdicts).toEqual(
+      (intact.structuredContent as { verdicts?: unknown }).verdicts
+    );
   });
 });
 
@@ -263,5 +275,64 @@ describe('BL-123 — the cap, end to end through the tool handler', () => {
     // so capping can never change a gate outcome for an honest caller.
     const result = await compose('prepare-tool', 'partner-paste-verbatim-prepop', true);
     expect(result.isError).toBeUndefined();
+  });
+});
+
+describe('BL-124 — serverCachedBodyNewlines', () => {
+  async function composeWith(body: string) {
+    const { metrics } = makeMetrics(new InMemoryIrlBodyProvenanceStore());
+    await handlePrepareIrlBodyTool({ filledIrl: body }, metrics, 'prompt-render');
+    const result = await handleComposeDossierEnvelopeTool(
+      {
+        promptName: 'gst_irl_ingestion',
+        promptVersion: '0.17.0',
+        modelVersion: 'claude-opus-5',
+        mode: 'full',
+        auditLevel: 'debug',
+        transactionContext: 'value-creation',
+        fillRatio: { percent: 92, substantiveCells: 46, totalCells: 50, status: 'ok' },
+        gatesPassed: ['generate_diligence_agenda'],
+        gatesElided: [],
+        conditionalTriggersFired: [],
+        defaultFiredFrameworks: [],
+        forceToolsApplied: [],
+        claims: [
+          { claim: 'Sample', citation: 'Section 00 — A long single-line answer', tier: '3' },
+        ],
+        gaps: [],
+        irlBodyHash: computeIrlBodyHash(body),
+        irlSource: 'partner-paste-verbatim-prepop',
+        requireVerbatimBody: false,
+      },
+      metrics
+    );
+    return result.structuredContent as {
+      serverCachedBodyBytes?: number;
+      serverCachedBodyNewlines?: number;
+    };
+  }
+
+  it('reports 0 for a flattened body — the diagnostic that replaced the halt', async () => {
+    const structured = await composeWith(FLATTENED_IRL);
+    expect(structured.serverCachedBodyNewlines).toBe(0);
+    expect(structured.serverCachedBodyBytes).toBe(Buffer.byteLength(FLATTENED_IRL, 'utf8'));
+  });
+
+  it('reports the real count for an intact body', async () => {
+    const structured = await composeWith(SAMPLE_IRL);
+    expect(structured.serverCachedBodyNewlines).toBe((SAMPLE_IRL.match(/\n/g) ?? []).length);
+    expect(structured.serverCachedBodyNewlines).toBeGreaterThan(0);
+  });
+
+  it('is the ONLY field that separates the two — byte counts alone cannot', async () => {
+    // The production artifact lost 141 newlines for a one-byte change in size.
+    // A byte count on its own would have looked unremarkable, which is exactly
+    // why the newline count is surfaced beside it rather than instead of it.
+    const flat = await composeWith(FLATTENED_IRL);
+    const intact = await composeWith(SAMPLE_IRL);
+    expect(
+      Math.abs((flat.serverCachedBodyBytes ?? 0) - (intact.serverCachedBodyBytes ?? 0))
+    ).toBeLessThan(5);
+    expect(flat.serverCachedBodyNewlines).not.toBe(intact.serverCachedBodyNewlines);
   });
 });

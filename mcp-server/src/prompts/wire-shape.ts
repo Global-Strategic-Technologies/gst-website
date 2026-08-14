@@ -185,3 +185,40 @@ export function enumFromWire<T extends z.ZodTypeAny>(inner: T) {
     return canonicalByLower.get(v.toLowerCase()) ?? v;
   }, inner);
 }
+
+/**
+ * Adapt a `z.string()` schema so an unfilled Claude Desktop form field is
+ * treated as "not supplied" rather than rejected.
+ *
+ * **Why this was needed (BL-124).** Desktop ships blank fields as `""`, not by
+ * dropping the key. An optional string with a length constraint —
+ * `z.string().min(200).optional()` on `gst_irl_ingestion.filledIrl` — therefore
+ * failed `.min(200)` on every render where the operator left it blank, and the
+ * whole `prompts/get` call returned `-32602`. Desktop surfaces that as
+ * "Failed to attach prompt" with no diagnostic, which made interactive mode
+ * unreachable from that client. BL-034 built these adapters for non-string
+ * fields; nobody thought a plain string needed one.
+ *
+ * ─── This adapter must NOT trim the value it returns ──────────────────────
+ *
+ * Every sibling adapter above returns a trimmed value. This one deliberately
+ * does not: it trims ONLY to test emptiness and passes the original string
+ * through byte-for-byte.
+ *
+ * `filledIrl` is hashed — `computeIrlBodyHash(args.filledIrl)` — and that hash
+ * is what an operator compares against the source file on their disk. A body
+ * read from a file normally carries a trailing newline, so a trimming adapter
+ * would silently change the hash and reintroduce exactly the "why doesn't this
+ * match my file?" investigation this work exists to eliminate. Do not
+ * "simplify" this to match the others.
+ *
+ * Optional fields need `.optional()` on BOTH sides, per the note on
+ * `booleanFromWire` above: `stringFromWire(z.string().min(200).optional()).optional()`.
+ */
+export function stringFromWire<S extends z.ZodTypeAny>(inner: S) {
+  return z.preprocess((v) => {
+    if (typeof v !== 'string') return v; // forward-compat / non-string fall-through
+    if (v.trim() === '') return undefined; // empty form field → not supplied
+    return v; // ORIGINAL string — see the no-trim rationale above
+  }, inner);
+}

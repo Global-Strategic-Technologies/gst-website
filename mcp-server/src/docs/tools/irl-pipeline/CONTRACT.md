@@ -182,7 +182,7 @@ The pipeline terminus and the largest input surface in the family. Every field b
 
 Both internal consumers — the `requireVerbatimBody` gate and the reconstruction disclosure — read the **capped** value, so `Bl070VerbatimBodyRequiredError` quotes the capped value in its message rather than what you asserted. Because a cap only weakens and the gate accepts both partner-paste forms, capping never changes a gate outcome. See [ADR-0018](../../../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md).
 
-**`prepare_irl_body` rejects a structurally destroyed body.** A body with zero newline characters and more than 2,000 bytes is refused as `invalid-input` before a hash is minted or anything is cached — the signature of a client whose argument field collapsed a multi-line paste to one line. `validate_irl_provenance` refuses the same shape on its direct-body branch.
+**A body whose line breaks the client destroyed is processed normally (BL-124).** BL-123 briefly refused these; the refusal was withdrawn a day later because citation verification normalises whitespace away before matching, so flattening cannot affect the only check that runs, and the refusal blocked every realistic IRL size with no working alternative. What remains is the measurement: `serverCachedBodyNewlines` below. See [ADR-0018](../../../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md) § Re-validation.
 
 **`defaultFiredFrameworks` must not overlap `conditionalTriggersFired`.** The partition is the point: one list is "enumerated in Section 09", the other is "fired despite not being enumerated".
 
@@ -200,6 +200,10 @@ Both internal consumers — the `requireVerbatimBody` gate and the reconstructio
   provenanceVerification: { total, verified, verifiedFuzzy, partnerSupplied,
                             unverified, autoAppendedGaps, tierMismatches, tierFabrications },
   serverCachedBodyBytes: number,    // echoes prepare_irl_body's byteLength — cache round-trip proof
+  serverCachedBodyNewlines: number, // BL-124 — newline count of the same body. `0` on a multi-KB
+                                    // body means the client collapsed a multi-line paste, so it
+                                    // will not hash-match the operator's source file. Diagnostic
+                                    // only; nothing refuses on it and it is not an error.
   emitInstructions: string,
   serverToolCallCounts: Record<string, { attempted, succeeded, rejected, errored }>,
   countersScope?: 'session' | 'run' | 'request',  // BL-121 — how far back the counts reach

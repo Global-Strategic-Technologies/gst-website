@@ -202,25 +202,28 @@ describe('BL-123 — the registry seam', () => {
     expect(record?.mintedBy).toBe('prompt-render');
   });
 
-  it('does not cache a flattened body the render refuses', async () => {
-    // A cached entry would stay live for the 4-hour TTL and could satisfy a
-    // later hash-bind for bytes the render already rejected.
+  it('prepops a flattened body like any other (BL-124 — the skip was withdrawn)', async () => {
+    // BL-123 skipped the prepop for these and rendered a halt. Both are gone:
+    // the body is cached, minted `prompt-render`, and keeps the strongest
+    // provenance grade — which is what makes the paste path work again.
     const { prompt, cache, provenance } = build();
     const flattened = flatten(LARGE_FILLED_IRL);
     await prompt.build({ filledIrl: flattened });
 
-    expect(await cache.get(computeIrlBodyHash(flattened))).toBeNull();
-    expect(cache.size()).toBe(0);
-    expect(await provenance.read(computeIrlBodyHash(flattened))).toBeNull();
+    expect(await cache.get(computeIrlBodyHash(flattened))).toBe(flattened);
+    expect(cache.size()).toBe(1);
+    const record = await provenance.read(computeIrlBodyHash(flattened));
+    expect(record?.mintedBy).toBe('prompt-render');
+    expect(record?.newlineCount).toBe(0);
   });
 
-  it('still renders the halt body rather than failing the build', async () => {
-    // The registry's skip must not swallow the operator-facing explanation.
+  it('renders the normal sweep for a flattened body, not a halt', async () => {
     const { prompt } = build();
     const result = (await prompt.build({ filledIrl: flatten(LARGE_FILLED_IRL) })) as {
       messages: Array<{ content: { type: string; text?: string } }>;
     };
-    expect(result.messages.length).toBe(1);
-    expect(result.messages[0].content.text).toContain('halted before extraction');
+    expect(result.messages.length).toBe(2);
+    expect(result.messages[0].content.text).toContain('Sweep plan');
+    expect(result.messages[0].content.text).not.toContain('halted before extraction');
   });
 });

@@ -1,6 +1,6 @@
-# ADR-0018: Refuse a structurally destroyed IRL body, and cap the provenance grade rather than derive it
+# ADR-0018: Cap the provenance grade rather than derive it (the flattened-body refusal was withdrawn)
 
-- **Status**: Accepted (2026-08-13, prompt `0.24.0` / server `0.51.0`)
+- **Status**: **Partially accepted** — Decision 2 (cap, not derive) Accepted 2026-08-13 and production-verified. **Decision 1 (refuse a flattened body) REVERTED 2026-08-14** (BL-124, prompt `0.25.0` / server `0.52.0`) — see the re-validation at the foot.
 - **Source initiative**: BL-123 — opened by a production run of `gst_irl_ingestion` (Kestrel IRL, 2026-08-13)
 
 ## Context
@@ -86,3 +86,34 @@ An early measurement put these three at 20.2 KB by splitting the _rendered_ body
 - **A second copy of canonical Library content now exists.** [`vdr-taxonomy-drift-guard.test.ts`](../../../mcp-server/tests/integration/vdr-taxonomy-drift-guard.test.ts) pins the inlined table against the article, with the same deliberate-retirement discipline as the SOP guard.
 - **Stdio is not a degrade path** for the cap, unlike the durable run counters. The pre-deploy gap on Upstash is self-closing: four hours after deploy every live entry carries metadata.
 - **Revisit trigger**: if a client ships a multi-line prompt-argument input, the halt stops firing naturally — no code change needed, and the detector remains correct. If a legitimate newline-free IRL format ever appears, the byte floor is the knob, not the newline test.
+
+---
+
+## Re-validation — 2026-08-14 (BL-124): Decision 1 is withdrawn
+
+**Decision 1 above — refuse a body whose line breaks the client destroyed — was wrong and is reverted.** Decision 2 (cap `irlSource`, never derive it) stands and is unaffected; production confirmed its pass-through arm on 2026-08-14.
+
+### What the original decision got wrong
+
+It asserted that a dossier built on a flattened body "cites a structure that no longer exists". That was reasoned from first principles and never tested. Checked afterwards:
+
+- **Citation verification cannot tell the difference.** [`normalizeForMatching`](../../../mcp-server/src/schemas/validate-irl-provenance.ts) applies `.replace(/\s+/g, ' ')` before both the substring check and the word-run tokenizer — the exact transformation the client performs. Flattening is a provable no-op for the only check the provenance chain runs.
+- **No consumer of line structure exists.** The only `split(/
+?
+/)` sites in the workspace parse the IRL _generator source_ and a different prompt's `customRequests` arg. The extractor produces bodies and never consumes one; the fill-ratio pre-flight keys on `N-NN` reference ids.
+- **Byte-identity was the wrong proxy.** The hash-bind exists to catch the model substituting a condensed **paraphrase**. Flattening is not paraphrase — every word survives, in order.
+- **A real production run on a flattened body produced a sound dossier**, with a correct 121/122 fill ratio and no reported content defect.
+
+### What it cost
+
+The refusal fired at **every realistic IRL size** — the smallest fixture in the repo is 4,256 B against a 2,000 B floor — and its own remediation was unreachable: interactive mode requires the model to emit the whole body as a tool argument (~21k output tokens for an 80KB IRL), and a production run correctly declined rather than crowd out the dossier. Operators were left with **no completing path at all**, in exchange for protecting a property nothing consumed.
+
+### What replaced it
+
+The measurement, as a diagnostic. `serverCachedBodyNewlines` on the envelope response and `filledIrl.newlines` in the RUN-AUDIT block. `newlines: 0` on a multi-kilobyte body says the client collapsed the paste and the body will not hash-match the file on the operator's disk — which is the one genuinely useful fact, and the thing that cost a full session of forensics to establish the first time. Nothing refuses on it.
+
+**Not gated on `requireVerbatimBody` either.** That flag guarantees "partner-supplied rather than a model reconstruction", and a flattened body satisfies it: the bytes are the operator's, and no model reconstructed them.
+
+### The transferable lesson
+
+The harm was asserted, not demonstrated, and a gate was built around the assertion. Before refusing a run, demonstrate the harm against an artifact.

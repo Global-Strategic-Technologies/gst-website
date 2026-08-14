@@ -333,9 +333,35 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
+### BL-124: The flattened-body refusal blocked every working path
+
+**Source**: production runs 2026-08-14, immediately after BL-123 deployed | **Effort**: Medium | **Status**: **Implemented 2026-08-14** (prompt `0.25.0` / server `0.52.0`, [ADR-0018 § Re-validation](../adr/0018-body-integrity-and-capped-provenance.md)) — open pending the post-deploy production confirmation
+
+**As an** operator running the IRL sweep from Claude Desktop, **I want** the prompt to accept the inputs my client actually sends **so that** I have a working path to a dossier at any IRL size.
+
+**What it was.** BL-123 refused a body whose line breaks the client had collapsed. Within a day of deploy it emerged that the harm had been asserted, never demonstrated — `normalizeForMatching` collapses whitespace before matching, so flattening cannot change a verification verdict; nothing else reads line structure; and the hash-bind exists to catch model _paraphrase_, which flattening is not. Meanwhile the refusal fired at every realistic IRL size (smallest repo fixture 4,256 B against a 2,000 B floor), and its own remediation could not carry a large body. **Operators went from one working path to none.**
+
+Forcing operators onto the interactive path then exposed two pre-existing defects nobody had hit while paste worked: blank form fields (`""`) failed schema validation and broke prompt attachment entirely, and a large body cannot reach `prepare_irl_body` in one turn. A third surfaced in the run logs — a client-approval failure had no sanctioned `errorClass`, so a model invented one.
+
+**The `irlSource` cap from BL-123 is untouched** — it fixes a real hole (the model grading its own run) and its pass-through arm is production-verified.
+
+#### Acceptance Criteria
+
+- [x] A flattened body is processed normally at every entry point, keeping full `partner-paste-verbatim-prepop` grade
+- [x] The refusal is not reinstated behind `requireVerbatimBody` — that flag's guarantee is "not a model reconstruction", which a flattened body satisfies
+- [x] The newline count survives as an operator diagnostic (`serverCachedBodyNewlines` / `filledIrl.newlines`), explaining a hash that will not match a source file
+- [x] Blank form fields no longer break prompt attachment, on this prompt and the one sibling with the same defect
+- [x] `stringFromWire` does not trim — a trimmed body would change the binding hash and break the very comparison the diagnostic exists to support
+- [x] The interactive body sanctions splitting a large `prepare_irl_body` call into its own turn
+- [x] An undelivered client call is excluded from `toolErrors` and included in `precheck.errorsEncountered`, preserving both arithmetic identities
+- [x] ADR-0018 carries the reversal in its title, status and index row — not only in an appended note
+- [ ] **Post-deploy production confirmation**: a Desktop paste completes end-to-end and the RUN-AUDIT block shows `newlines: 0`
+
+---
+
 ### BL-123: `gst_irl_ingestion` takes its inputs and its own provenance claims on trust
 
-**Source**: production run 2026-08-13 (Kestrel IRL) — hash mismatch investigation | **Effort**: Medium | **Status**: **Implemented 2026-08-13** (prompt `0.24.0` / server `0.51.0`, [ADR-0018](../adr/0018-body-integrity-and-capped-provenance.md)) — open pending the post-deploy production confirmation, which is the only criterion a test cannot close
+**Source**: production run 2026-08-13 (Kestrel IRL) — hash mismatch investigation | **Effort**: Medium | **Status**: **Implemented 2026-08-13; the refusal half REVERTED 2026-08-14 by [BL-124](#bl-124-the-flattened-body-refusal-blocked-every-working-path). The `irlSource` cap stands and is production-verified.** (prompt `0.24.0` / server `0.51.0`, [ADR-0018](../adr/0018-body-integrity-and-capped-provenance.md)) — open pending the post-deploy production confirmation, which is the only criterion a test cannot close
 
 **As an** operator running the IRL sweep from a real client, **I want** the server to refuse a body the client destroyed on the way in and to compute the provenance grade itself **so that** a dossier cannot look clean while resting on mangled input or on a claim nobody checked.
 
@@ -350,8 +376,8 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 #### Acceptance Criteria
 
-- [x] A structurally destroyed body is refused at every entry point it can arrive through — prompt render, `prepare_irl_body`, and `validate_irl_provenance` — with the render halt being what the operator actually sees
-- [x] The refusal test is narrow and certain (zero newlines above a byte floor), not a ratio heuristic that could reject a legitimately long-lined IRL
+- [~] ~~A structurally destroyed body is refused at every entry point~~ — **superseded by BL-124.** It was, and it was verified in production; then the refusal was withdrawn because the harm was never demonstrated and it blocked every working path.
+- [~] ~~The refusal test is narrow and certain~~ — **superseded by BL-124.** The narrowness was right; refusing at all was not.
 - [x] `irlSource` is **capped** by server-held provenance metadata rather than derived from it — an asserted `-prepop` is downgraded when the metadata says otherwise, reconstruction claims pass through untouched, and nothing is ever promoted
 - [x] The `requireVerbatimBody` gate still rejects a reconstruction run (the inversion an early design would have shipped)
 - [x] The provenance grade stops being a claim nobody checks — an over-strong `-prepop` is caught when the server's own record contradicts it, and an unverifiable one is disclosed rather than accepted silently. **Deliberately not claimed**: a payload replayed inside the 4-hour TTL against a render-minted entry still reads `-prepop`, because the record says the render wrote those bytes and that remains true. `mintedAt` is recorded and surfaced but never compared for freshness. Closing that would need a per-render nonce, which is a separate decision — see [ADR-0018](../adr/0018-body-integrity-and-capped-provenance.md) § Context for why the replay severity is narrower than it first reads

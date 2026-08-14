@@ -177,7 +177,7 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // on a check that could not pass. The VERIFY block now carries `countersScope`
 // and states each identity conditionally. Body-only change — no argument,
 // tool, or URI changes; drifts solely from that one prompt name@version tuple.
-const EXPECTED_MANIFEST_HASH = '7d7d8e00ddf6504e79d9706fefde6044ddaccbd2bec5cc59705ee487c5fd1bd5';
+const EXPECTED_MANIFEST_HASH = '274afb116524bddc880df730c1441fc7f10b4c64f58405fc9481fae54a041586';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
