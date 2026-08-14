@@ -114,7 +114,7 @@ describe('gst_irl_ingestion', () => {
     // The transport-classed `errorsEncountered` subset is pinned closed so the
     // reconciliation stays arithmetic rather than a judgement call (BL-121,
     // server 0.49.3).
-    expect(irlIngestionPrompt.version).toBe('0.24.0');
+    expect(irlIngestionPrompt.version).toBe('0.25.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -152,11 +152,55 @@ describe('gst_irl_ingestion', () => {
       }
     });
 
-    it('rejects an empty targetName (min length 1)', () => {
+    // BL-124 — this used to assert REJECTION. Claude Desktop ships an unfilled
+    // form field as `""` rather than dropping the key, so rejecting it made
+    // every blank optional field fail the whole `prompts/get` call, which the
+    // client surfaces as "Failed to attach prompt" with no diagnostic. `""` now
+    // means "not supplied" on every optional arg.
+    it('treats an empty targetName as not supplied, not as a violation', () => {
       const result = irlIngestionPrompt.argsSchema.safeParse({ targetName: '' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.targetName).toBeUndefined();
+      }
+    });
+
+    it('still rejects a non-empty targetName that violates the min length', () => {
+      // The paired negative: `""` is special-cased as absent, but the length
+      // constraint itself must still bite, or the adapter has swallowed the rule
+      // rather than the blank.
+      const result = irlIngestionPrompt.argsSchema.safeParse({ filledIrl: 'too short' });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].path).toEqual(['targetName']);
+        expect(result.error.issues[0].path).toEqual(['filledIrl']);
+      }
+    });
+
+    it('accepts every optional field blank — the exact shape Desktop sends', () => {
+      // The reproduction for BL-124: a form with nothing filled in.
+      const result = irlIngestionPrompt.argsSchema.safeParse({
+        filledIrl: '',
+        targetName: '',
+        transactionContext: '',
+        partnerLead: '',
+        projectCodeName: '',
+        mode: '',
+        auditLevel: '',
+        requireVerbatimBody: '',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('does NOT trim filledIrl — the hash must match the operator source file', () => {
+      // A trimming adapter would silently change `computeIrlBodyHash`, and the
+      // body-binding hash is exactly what an operator compares against the file
+      // on their disk. A file-read body normally carries a trailing newline.
+      const body = `${'x'.repeat(300)}
+`;
+      const result = irlIngestionPrompt.argsSchema.safeParse({ filledIrl: body });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.filledIrl).toBe(body);
       }
     });
 

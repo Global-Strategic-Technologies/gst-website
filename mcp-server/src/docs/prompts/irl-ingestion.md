@@ -8,44 +8,37 @@
 
 `gst_irl_ingestion` is the bookend to `gst_information_request_list`: the partner sent the universal intake checklist, the target returned it filled, and this prompt ingests the populated IRL and drives every applicable Hub tool surface in one turn — extracting the 13 diligence dimensions, invoking up to 10 orchestrated tools through per-tool inclusion gates, and synthesizing the outputs into a single partner-level dossier with sections (A)–(K), each tool-backed section closing with a state-carrying Hub deeplink. It is scenario-neutral (buy-side, sell-side, value-creation, post-close); `transactionContext` modulates voice only, never tool selection. One library embed rides along — the decoupled IRL generator source (`gst://irl/source`, the canonical section taxonomy for reconciling minimally-formatted replies). The canonical VDR folder taxonomy is **inlined** as a nine-row table in the body rather than embedded as a whole article, with `gst://library/vdr-structure` kept as a provenance caption; that removed 16.3 KB from every render.
 
-## Contract (v0.24.0 — verified against `irl-ingestion.ts`)
+## Contract (v0.25.0 — verified against `irl-ingestion.ts`)
 
 Eight arguments, all optional. Order is load-bearing: Claude Desktop renders the slash-command form in `argsSchema` property order, so the two an operator always supplies come first.
 
-| Arg                   | Type                                                       | Default                  | Purpose                                                                                                                                           |
-| --------------------- | ---------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `filledIrl`           | string ≥ 200 chars                                         | —                        | The populated IRL markdown. Omit → interactive mode (the model asks for a paste). **Must retain its line breaks** — see § Flattened-body refusal. |
-| `targetName`          | string                                                     | inferred from IRL header | Target/client name used throughout the dossier.                                                                                                   |
-| `transactionContext`  | `sell-side` \| `buy-side` \| `value-creation` \| `unknown` | universal voice          | Voice cues only — gates are context-blind by design.                                                                                              |
-| `partnerLead`         | string                                                     | generic attribution      | Attributes the (I) synthesis memo.                                                                                                                |
-| `projectCodeName`     | string                                                     | target name              | Engagement label for synthesis.                                                                                                                   |
-| `mode`                | `full` \| `extract-only`                                   | `full`                   | Full sweep vs. audit-trail JSON payloads with no tool invocations.                                                                                |
-| `auditLevel`          | `standard` \| `enhanced` \| `debug`                        | `standard`               | How much audit apparatus the output carries. See [Audit levels](#audit-levels).                                                                   |
-| `requireVerbatimBody` | boolean (wire-shaped)                                      | false                    | Accuracy-critical gate: dossier composition refuses any run whose body was not pasted verbatim, rather than a reconstruction.                     |
+| Arg                   | Type                                                       | Default                  | Purpose                                                                                                                                                                                |
+| --------------------- | ---------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filledIrl`           | string ≥ 200 chars                                         | —                        | The populated IRL markdown. Omit → interactive mode (the model asks for a paste). Line breaks may be lost to a single-line client field; the run still works — see § Flattened bodies. |
+| `targetName`          | string                                                     | inferred from IRL header | Target/client name used throughout the dossier.                                                                                                                                        |
+| `transactionContext`  | `sell-side` \| `buy-side` \| `value-creation` \| `unknown` | universal voice          | Voice cues only — gates are context-blind by design.                                                                                                                                   |
+| `partnerLead`         | string                                                     | generic attribution      | Attributes the (I) synthesis memo.                                                                                                                                                     |
+| `projectCodeName`     | string                                                     | target name              | Engagement label for synthesis.                                                                                                                                                        |
+| `mode`                | `full` \| `extract-only`                                   | `full`                   | Full sweep vs. audit-trail JSON payloads with no tool invocations.                                                                                                                     |
+| `auditLevel`          | `standard` \| `enhanced` \| `debug`                        | `standard`               | How much audit apparatus the output carries. See [Audit levels](#audit-levels).                                                                                                        |
+| `requireVerbatimBody` | boolean (wire-shaped)                                      | false                    | Accuracy-critical gate: dossier composition refuses any run whose body was not pasted verbatim, rather than a reconstruction.                                                          |
 
 `ORCHESTRATED_TOOLS` (10): `generate_diligence_agenda`, `list_portfolio_facets`, `search_portfolio`, `list_regulation_facets`, `search_regulations`, `compute_techpar`, `assess_infrastructure_cost_governance`, `estimate_tech_debt_cost`, `search_radar`, `compose_dossier_envelope`. The envelope-chain helpers `validate_irl_provenance` and `prepare_irl_body` are directed by the body but sit outside the gate surface.
 
-## Flattened-body refusal
+## Flattened bodies
 
-Claude Desktop renders every prompt argument as a single-line `<input>`. Pasting a multi-line markdown IRL into it collapses **every newline to a space** before the argument reaches the server. Measured on the production run that surfaced this: 141 newlines became 0, the byte length moved by −1 (140 newlines became spaces at no length cost; the trailing one was trimmed), and the content differed at 140 positions. The −1 makes it read like an off-by-one; it is total loss of document structure.
+Some clients — Claude Desktop among them — render each prompt argument as a **single-line input**. Pasting a multi-line markdown IRL into one collapses every newline to a space before the server sees it. Every word survives, in order; the document just becomes one long line.
 
-Nothing caught it before. The server hashed what it received, cached it and reported the hash honestly, so the run produced a dossier citing sections that no longer existed.
+**This is processed normally.** BL-123 briefly refused it; BL-124 withdrew that a day later on evidence:
 
-A body with **zero newline characters and more than 2,000 bytes** is now refused at every surface it can arrive through:
+- Citation verification calls `normalizeForMatching`, which does `\s+ → ' '` **before** matching — the same transformation the client performed. Flattening cannot change a verdict.
+- Nothing else reads line structure. Item enumeration survives on the `- 0-01` prefixes; section headers still match as substrings.
+- The hash-bind exists to catch a model **paraphrasing** the IRL. Flattening is not paraphrase.
+- The refusal fired at every realistic IRL size and its own remediation could not carry a large body, so operators had no completing path at all.
 
-| Surface                   | Behaviour                                                                                                   |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Prompt render             | Full-body halt — one message, ~1.8 KB, no resource embeds beside a refusal. This is what the operator sees. |
-| `prepare_irl_body`        | `invalid-input`, before any hash is minted or the body is cached                                            |
-| `validate_irl_provenance` | `invalid-input` on the direct-body branch                                                                   |
-| Registry prepop           | Skips the cache write and emits a `bl123.prepop.skipped-flattened` log line                                 |
+**What you get instead** is a number: `filledIrl.newlines` in the RUN-AUDIT block, from `serverCachedBodyNewlines` on the envelope. `newlines: 0` on a multi-kilobyte body means the paste was collapsed, and therefore that the body **will not hash-match the file on your disk**. That mismatch is the only real consequence, and explaining it is the entire purpose of the field. It is not an error and nothing acts on it.
 
-**Repair is impossible and is not attempted.** `
- → " "` is lossy — there is no way to tell which of ~13,000 spaces used to be line breaks, and a plausible reconstruction would be indistinguishable from real structure to every downstream check.
-
-**The test is narrow on purpose.** A real filled IRL already runs ~560 bytes/line, because individual answers are long single-line paragraphs — so a bytes-per-line ratio would false-positive on legitimate bodies and block an operator mid-engagement with no override. Total collapse is unambiguous; partial mangling is not detectable without guessing.
-
-**Operator fix**: attach the `.md` or `.xlsx` to the conversation and invoke without `filledIrl` (interactive mode), or use a client whose argument input accepts multi-line text.
+One caveat worth knowing: this is benign for the IRL's current bullet-list shape. A markdown **table** or code block would genuinely be destroyed by flattening, and could not be recovered. No IRL contains one today.
 
 ## Provenance capping
 
@@ -144,6 +137,7 @@ Prompt versions from the commit log (release commits pair prompt + server semver
 | 0.22.4         | `countersScope` added and the counter identities restated as scope-conditional — on the remote Worker `createServer` runs per request, so a per-request counter map could never satisfy them (server 0.49.3, ADR-0016).                                                                                                                                                                                                                                                                               |
 | 0.23.0         | **Audit levels replace the verbosity axis** (server 0.50.0, ADR-0017). `compact` had elided the correctness pipeline while keeping the operator artifacts, so it demanded an audit report on a chain it had just disabled. `forceTools` removed as inert — its value never reached the body. Argument surface 10 → 8; the run-audit block renamed off its old backlog-id label.                                                                                                                       |
 | 0.24.0         | **A flattened body is refused, and `irlSource` is capped by the server** (server 0.51.0, ADR-0018). A client whose argument field collapses a multi-line paste to one line silently destroyed the document structure; the render now halts. The provenance grade stopped being a model assertion taken on trust. The VDR article embed was replaced by the nine-row table it existed to supply (153.8 KB → 139.5 KB), and every argument description now leads with its valid values and its default. |
+| 0.25.0         | **The flattened-body refusal is withdrawn** (server 0.52.0, ADR-0018 re-validation). It protected a property nothing consumes and left operators with no working path; the newline count survives as a diagnostic (`filledIrl.newlines`). Blank form fields no longer break prompt attachment — Desktop ships `""` and every optional arg now reads that as "not supplied". The interactive body sanctions splitting a large `prepare_irl_body` call into its own turn.                               |
 
 ## Operating it
 

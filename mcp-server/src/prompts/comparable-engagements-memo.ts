@@ -17,7 +17,7 @@
 import { z } from 'zod';
 import { EngagementCategorySchema } from '../schemas';
 import type { GstPrompt } from './types';
-import { enumFromWire } from './wire-shape';
+import { enumFromWire, stringFromWire } from './wire-shape';
 import { authorialIntentLine } from './embed';
 
 const argsSchema = z.object({
@@ -25,8 +25,16 @@ const argsSchema = z.object({
     .string()
     .min(10)
     .describe('Free-text description of the target — industry, theme, deal-shape signal.'),
-  theme: z.string().optional(),
-  engagementCategory: enumFromWire(EngagementCategorySchema.optional()).optional(),
+  theme: stringFromWire(z.string().optional())
+    .optional()
+    .describe(
+      'Optional. Defaults to deriving the theme from the description. A short thematic hint to steer the comparables search (e.g. "vertical SaaS consolidation", "carve-out").'
+    ),
+  engagementCategory: enumFromWire(EngagementCategorySchema.optional())
+    .optional()
+    .describe(
+      'Must be one of: Buy-Side · Sell-Side. Defaults to considering both unless the description clearly implies one. Filters the comparable engagements the memo draws on.'
+    ),
 });
 
 const PROMPT_NAME = 'gst_comparable_engagements_memo';
@@ -35,8 +43,8 @@ export const comparableEngagementsMemoPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Identify 3-5 comparable past GST engagements and frame analogically for the current deal.',
-  version: '0.0.2',
-  lastReviewedAt: '2026-05-03',
+  version: '0.0.3',
+  lastReviewedAt: '2026-08-14',
   orchestrates: ['search_portfolio', 'list_portfolio_facets'] as const,
   argsSchema,
   build: (args) => ({

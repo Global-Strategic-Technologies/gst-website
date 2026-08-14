@@ -40,7 +40,7 @@ describe('gst_information_request_list', () => {
     // v0.0.7 = per-question removal (excludeRequests NN-II keys) + BL-044.5
     // directives: transactionContext fires authored skip-if tags; the one-shot
     // body server-computes the combined omission list.
-    expect(informationRequestListPrompt.version).toBe('0.0.7');
+    expect(informationRequestListPrompt.version).toBe('0.0.8');
     expect(informationRequestListPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(informationRequestListPrompt.orchestrates).toEqual([
       IRL_SOURCE_EMBED_URI,
@@ -88,11 +88,15 @@ describe('gst_information_request_list', () => {
       }
     });
 
-    it('rejects an empty targetName (min length 1)', () => {
+    // BL-124 — this used to assert REJECTION. Claude Desktop ships an unfilled
+    // form field as `""`, and `targetName` is optional (its own description says
+    // "Omit to emit the universal template"), so rejecting the blank made the
+    // documented happy path return -32602 and killed prompt attachment outright.
+    it('treats an empty targetName as not supplied, not as a violation', () => {
       const result = informationRequestListPrompt.argsSchema.safeParse({ targetName: '' });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].path).toEqual(['targetName']);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.targetName).toBeUndefined();
       }
     });
 

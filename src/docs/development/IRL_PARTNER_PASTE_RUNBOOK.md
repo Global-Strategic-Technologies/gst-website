@@ -148,15 +148,15 @@ Open the slash-command form for `gst_irl_ingestion`. Fill these fields:
 | `projectCodeName`     | Optional internal code name                                                                                    |
 | `requireVerbatimBody` | **`true`** for client-facing / regulatory / M&A close runs; omit (defaults to `false`) for drafts              |
 
-> ⚠️ **The paste must keep its line breaks — check this before you submit.**
+> ℹ️ **Your paste will probably lose its line breaks, and that is fine.**
 >
-> Claude Desktop renders each prompt argument as a **single-line input field**. Depending on client version, pasting multi-line markdown into it can collapse every newline to a space. When that happens the bytes survive but the document structure does not: section headers, blockquotes and per-item boundaries all become inline text.
+> Claude Desktop renders each prompt argument as a single-line input, so a multi-line paste arrives with every newline collapsed to a space. Every word survives in order; the document becomes one long line.
 >
-> This was a real production failure (2026-08-13). A 79KB IRL lost all 141 of its line breaks, the byte count moved by **one**, and the run completed producing a dossier that cited a structure which no longer existed. Nothing flagged it at the time.
+> **The run works normally.** Citation verification collapses whitespace before matching, so it cannot tell the difference, and nothing downstream reads line structure. A run on a flattened body is a valid run at full `partner-paste-verbatim-prepop` grade.
 >
-> **The server now refuses it.** A body with no line breaks halts the run with an explanation instead of producing a degraded dossier. The collapse cannot be repaired — there is no way to tell which spaces used to be newlines.
+> **The one consequence**: the body will not hash-match the file on your disk, because the bytes genuinely differ. The `RUN-AUDIT` block reports `filledIrl.newlines: 0` so you can see why in one line rather than investigating a hash mismatch.
 >
-> **If the run halts on this**, you did nothing wrong. Either attach the `.md` to the conversation and invoke `gst_irl_ingestion` **without** `filledIrl` (interactive mode walks you through it), or use a client whose argument input accepts multi-line text.
+> (BL-123 briefly refused these runs outright. That was withdrawn in BL-124 — the harm was asserted rather than demonstrated, and the refusal left no working path at any realistic IRL size.)
 
 **Do NOT also attach the xlsx.** With `filledIrl` supplied, the model uses the paste; attaching the xlsx in addition would invite the model to choose reconstruction mode for some tools, defeating the point of the paste.
 

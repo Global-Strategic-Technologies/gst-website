@@ -1,59 +1,55 @@
 /**
- * BL-123 — structural integrity check for a `filledIrl` body.
+ * BL-123 / BL-124 — byte and newline measurement for a `filledIrl` body.
  *
- * **The failure this exists for.** Claude Desktop renders every prompt-argument
- * field as a single-line `<input>`. Pasting a multi-line markdown IRL into it
- * collapses every newline to a space before the argument ever reaches the
- * server. Measured against the production artifact that surfaced this
- * (2026-08-13): 141 newlines became 0, the byte length moved by −1 (140
- * newlines became spaces; the trailing one was trimmed), and the content
- * differed at 140 positions. The byte delta reads like an off-by-one and is
- * not one — it is total loss of line structure.
+ * **What this is now**: two counts, used as an operator diagnostic. Nothing
+ * refuses on them.
  *
- * Nothing downstream could see it. The server hashes what it receives, caches
- * it, and reports the hash honestly, so the run completes looking clean while
- * the section headers, blockquotes and bullet boundaries the dossier depends
- * on are gone.
+ * ─── Why the refusal was withdrawn (read before reinstating it) ───────────
  *
- * **Repair is impossible and must not be attempted.** `\n → " "` is lossy: in a
- * ~79KB body there is no way to tell which of ~13,000 spaces used to be line
- * breaks. The only correct response is refusal.
+ * BL-123 shipped a check that HALTED the run when a body arrived with zero
+ * newlines — the signature of Claude Desktop collapsing a multi-line paste,
+ * because it renders each prompt argument as a single-line input. BL-124
+ * withdrew that halt one day later. The reasoning, so it is not re-derived
+ * from scratch:
  *
- * ─── Why the test is narrow rather than clever ────────────────────────────
+ *   - **Citation verification cannot tell the difference.** `normalizeForMatching`
+ *     in `src/schemas/validate-irl-provenance.ts` applies `.replace(/\s+/g, ' ')`
+ *     before both the substring check and the word-run tokenizer — the exact
+ *     transformation the client performed. Flattening is a provable no-op there.
+ *   - **Nothing else reads line structure.** The only `split(/\r?\n/)` sites in
+ *     this workspace parse the IRL *generator source* and a different prompt's
+ *     `customRequests` arg. The extractor produces bodies and never consumes
+ *     one. The fill-ratio pre-flight keys on `N-NN` reference ids.
+ *   - **Byte-identity was the wrong proxy.** The hash-bind exists to catch the
+ *     model substituting a condensed PARAPHRASE for the partner's text.
+ *     Flattening is not paraphrase: every word survives, in order.
+ *   - **The cost was total.** The smallest IRL fixture in this repo is 4,256 B,
+ *     so the halt fired at every realistic size, and its own remediation
+ *     (interactive mode) cannot carry a large body — that path needs the model
+ *     to emit the whole thing as a tool argument, ~21k output tokens for an
+ *     80KB IRL. Operators were left with no completing path at all.
  *
- * The tempting generalization is a bytes-per-line ratio. It is wrong here. A
- * real filled IRL already runs ~560 bytes/line, because individual answers are
- * long prose paragraphs on one line — so a ratio threshold tight enough to
- * catch partial mangling would false-positive on legitimate bodies and block
- * real operator work. The observed failure is *total* collapse, which is
- * unambiguous: a multi-kilobyte body claiming to be a ten-section markdown
- * document cannot have zero line breaks.
+ * The harm was asserted from first principles and never demonstrated. If you
+ * are considering a refusal again, demonstrate the harm first.
  *
- * So: certainty over cleverness. If you are reading this intending to
- * "improve" the check into a heuristic, the false-positive cost lands on an
- * operator mid-engagement who cannot proceed and has no way to override.
+ * ─── What survived, and why ──────────────────────────────────────────────
+ *
+ * The newline count. A flattened body will not hash-match the file on the
+ * operator's disk, and explaining THAT mismatch is the one thing with residual
+ * value — it cost a full investigation session to work out the first time. It
+ * surfaces as `serverCachedBodyNewlines` on the envelope response and as
+ * `filledIrl.newlines` in the RUN-AUDIT block. `newlines: 0` on a multi-kilobyte
+ * body means the client collapsed the paste. That is information, not an error.
  */
-
-/**
- * Byte floor below which a newline-free body is not treated as flattened.
- *
- * `filledIrl` carries `.min(200)` at the schema, so this floor sits an order of
- * magnitude above the smallest accepted body: a legitimately terse IRL is never
- * caught. Anything past 2KB with no line break at all is a destroyed document,
- * not a compact one.
- */
-export const FLATTENED_BODY_BYTE_FLOOR = 2000;
 
 export interface IrlBodyStructure {
   /** UTF-8 byte length of the body. */
   byteLength: number;
   /**
    * Count of newline CHARACTERS — deliberately not `split('\n').length`, which
-   * returns 1 for a newline-free string and would make the `=== 0` test dead.
+   * returns 1 for a newline-free string and would make a `=== 0` comparison dead.
    */
   newlineCount: number;
-  /** True when the body shows the total-collapse signature described above. */
-  flattened: boolean;
 }
 
 export function assessIrlBodyStructure(body: string): IrlBodyStructure {
@@ -62,28 +58,5 @@ export function assessIrlBodyStructure(body: string): IrlBodyStructure {
   for (let i = 0; i < body.length; i += 1) {
     if (body[i] === '\n') newlineCount += 1;
   }
-  return {
-    byteLength,
-    newlineCount,
-    flattened: newlineCount === 0 && byteLength > FLATTENED_BODY_BYTE_FLOOR,
-  };
-}
-
-/**
- * Operator-facing explanation, shared by every refusal site so the diagnosis
- * reads identically whether it surfaces in a rendered prompt body or a tool
- * error. States that this is a client limitation rather than operator error —
- * the operator did nothing wrong, and telling them so is what stops them
- * retrying the identical paste.
- */
-export function flattenedBodyExplanation(structure: IrlBodyStructure): string {
-  return [
-    `The IRL body arrived with **no line breaks at all** (${structure.byteLength} bytes, 0 newlines).`,
-    '',
-    'This is a client limitation, not an error on your part. Claude Desktop renders each prompt argument as a single-line input field, so pasting a multi-line markdown IRL into it collapses every newline to a space before the server sees it. The bytes are intact but the document structure — section headers, blockquotes, per-item boundaries — is gone, and it cannot be reconstructed: there is no way to tell which spaces used to be line breaks.',
-    '',
-    'A dossier built on this body would look clean and cite a structure that is no longer there, so the run stops here rather than proceeding.',
-    '',
-    '**To proceed**, supply the IRL through a path that preserves newlines — attach the `.md` or `.xlsx` file to the conversation and invoke the prompt without `filledIrl` (interactive mode will walk you through it), or call the prompt from a client whose argument input accepts multi-line text.',
-  ].join('\n');
+  return { byteLength, newlineCount };
 }
