@@ -351,6 +351,7 @@ Forcing operators onto the interactive path then exposed two pre-existing defect
 - [x] The refusal is not reinstated behind `requireVerbatimBody` — that flag's guarantee is "not a model reconstruction", which a flattened body satisfies
 - [x] The newline count survives as an operator diagnostic (`serverCachedBodyNewlines` / `filledIrl.newlines`), explaining a hash that will not match a source file
 - [x] Blank form fields no longer break prompt attachment, on this prompt and the one sibling with the same defect
+- [x] A repo-wide guard asserts that **no optional argument on any registered prompt** either rejects or retains an empty string — the invariant, not nine one-off cases. Zero offenders across all nine prompts; the next prompt to ship this defect fails in CI rather than in an operator's client
 - [x] `stringFromWire` does not trim — a trimmed body would change the binding hash and break the very comparison the diagnostic exists to support
 - [x] The interactive body sanctions splitting a large `prepare_irl_body` call into its own turn
 - [x] An undelivered client call is excluded from `toolErrors` and included in `precheck.errorsEncountered`, preserving both arithmetic identities

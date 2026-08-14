@@ -125,7 +125,7 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
     ).toBe(true);
   });
 
-  it('NO optional argument on ANY registered prompt rejects an empty string', () => {
+  it('NO optional argument on ANY registered prompt rejects or retains an empty string', () => {
     // The repo-wide guard. Desktop ships `""` for every unfilled field, so an
     // optional arg that rejects it makes the whole prompt unattachable — the
     // failure is total, not partial, and it is invisible until an operator hits
@@ -137,11 +137,22 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
         if (!shape[key].isOptional()) continue;
         // `ALL_PROMPTS` is `GstPrompt<any>[]`, so the issue type does not flow.
         const parsed = prompt.argsSchema.safeParse({ [key]: '' }) as
-          | { success: true }
+          | { success: true; data: unknown }
           | { success: false; error: { issues: Array<{ path: Array<string | number> }> } };
-        if (parsed.success) continue;
-        if (parsed.error.issues.some((issue) => issue.path[0] === key)) {
-          offenders.push(`${prompt.name}.${key}`);
+        if (!parsed.success) {
+          if (parsed.error.issues.some((issue) => issue.path[0] === key)) {
+            offenders.push(`${prompt.name}.${key} (rejects "")`);
+          }
+          continue;
+        }
+        // Parsing is not enough: an arg that survives as `""` reads as SUPPLIED
+        // downstream. `gst_information_request_list` branches on
+        // `customRequests !== undefined`, so a blank field there sent the
+        // all-blank form down the one-shot path instead of the interactive one.
+        // The rejection check alone could not see that.
+        const value = (parsed.data as Record<string, unknown>)[key];
+        if (value !== undefined) {
+          offenders.push(`${prompt.name}.${key} (survives as ${JSON.stringify(value)})`);
         }
       }
     }

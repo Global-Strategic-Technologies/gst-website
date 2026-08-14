@@ -105,8 +105,7 @@ const argsSchema = z.object({
     .describe(
       `Comma-separated two-digit section numbers to include, e.g. '00,01,03'. Omit for all sections. Available sections: ${SECTION_CATALOG}.`
     ),
-  customRequests: z
-    .string()
+  customRequests: stringFromWire(z.string().optional())
     .optional()
     .describe(
       `Extra engagement-specific requests to append, one per line as 'NN: request text' (NN = two-digit section number), e.g. '01: Describe your top 3 competitors by ARR'. Sections: ${SECTION_CATALOG}.`
