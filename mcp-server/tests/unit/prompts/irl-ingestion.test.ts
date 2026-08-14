@@ -114,7 +114,7 @@ describe('gst_irl_ingestion', () => {
     // The transport-classed `errorsEncountered` subset is pinned closed so the
     // reconciliation stays arithmetic rather than a judgement call (BL-121,
     // server 0.49.3).
-    expect(irlIngestionPrompt.version).toBe('0.23.0');
+    expect(irlIngestionPrompt.version).toBe('0.24.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -170,10 +170,12 @@ describe('gst_irl_ingestion', () => {
   });
 
   describe('build() — message structure', () => {
-    it('returns three messages in both interactive and one-shot modes (text + IRL embed + VDR embed)', () => {
+    it('returns two messages in both interactive and one-shot modes (text + IRL embed)', () => {
+      // BL-123 dropped the third message: the 16.3KB VDR article is now an
+      // inlined nine-row table in the body, not a whole embedded Resource.
       for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
         const result = irlIngestionPrompt.build(args);
-        expect(result.messages.length).toBe(3);
+        expect(result.messages.length).toBe(2);
       }
     });
 
@@ -190,15 +192,37 @@ describe('gst_irl_ingestion', () => {
       }
     });
 
-    it('embeds the VDR Library Resource as the third message in both modes', () => {
+    it('inlines the VDR folder taxonomy in the body instead of embedding the article (BL-123)', () => {
+      // The nine labels are what section (I) quotes verbatim; the article's
+      // surrounding prose was 16.3KB of payload nothing read. Byte-level
+      // agreement with the canonical Library article is pinned separately by
+      // tests/integration/vdr-taxonomy-drift-guard.test.ts.
       for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
         const result = irlIngestionPrompt.build(args);
-        const third = result.messages[2].content;
-        expect(third.type).toBe('resource');
-        if (third.type === 'resource' && 'text' in third.resource) {
-          expect(third.resource.uri).toBe(VDR_RESOURCE_URI);
-          expect(typeof third.resource.text).toBe('string');
-          expect(third.resource.text.length).toBeGreaterThan(500);
+        expect(
+          result.messages.some(
+            (m) =>
+              m.content.type === 'resource' &&
+              'text' in m.content.resource &&
+              m.content.resource.uri === VDR_RESOURCE_URI
+          )
+        ).toBe(false);
+
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toContain('Canonical VDR folder taxonomy');
+        expect(text).toContain(VDR_RESOURCE_URI); // provenance caption
+        for (const label of [
+          'Product',
+          'Software Architecture',
+          'Infrastructure & Operations',
+          'SDLC',
+          'Data, Analytics & AI',
+          'Security',
+          'People & Organization',
+          'Corporate IT',
+          'Governance & Compliance',
+        ]) {
+          expect(text, `body missing VDR folder label: ${label}`).toContain(label);
         }
       }
     });
@@ -770,6 +794,93 @@ describe('gst_irl_ingestion', () => {
       // before any fields are filled. The subject is the wire-shape-wrapped
       // optional, which outlived `forceTools` in `requireVerbatimBody`.
       expect(irlIngestionPrompt.argsSchema.safeParse({}).success).toBe(true);
+    });
+  });
+
+  /**
+   * BL-123 — argument descriptions lead with their machine facts.
+   *
+   * Claude Desktop's slash-command form truncates each description in a
+   * single-line input. Before this, six of the eight fields buried their
+   * default past the cut: an operator reading `requireVerbatimBody` saw
+   * "Set true for accuracy-critical work — a regulatory deliverable," and never
+   * learned it defaults to false.
+   *
+   * The assertion is on ORDERING, not on a pixel budget. `FORM_TRUNCATION_HINT`
+   * below is an observation of one client's current form styling, which can
+   * change without notice — pinning CI to it would make an external UI tweak
+   * break the build.
+   */
+  describe('BL-123 — argument description convention', () => {
+    /** Approximate visible width of Desktop's argument input. Advisory only. */
+    const FORM_TRUNCATION_HINT = 60;
+
+    const shape = irlIngestionPrompt.argsSchema.shape;
+    const argNames = Object.keys(shape) as (keyof typeof shape)[];
+
+    it('exposes exactly the eight expected arguments, filledIrl first', () => {
+      // Claude Desktop renders fields in argsSchema property order, so index 0
+      // is the field the operator meets first.
+      expect(argNames.length).toBe(8);
+      expect(argNames[0]).toBe('filledIrl');
+    });
+
+    it.each([
+      ['filledIrl', 'Optional.'],
+      ['targetName', 'Optional.'],
+      ['transactionContext', 'Must be one of:'],
+      ['partnerLead', 'Optional.'],
+      ['projectCodeName', 'Optional.'],
+      ['mode', 'Must be one of:'],
+      ['auditLevel', 'Must be one of:'],
+      ['requireVerbatimBody', 'Must be one of:'],
+    ])('%s opens with its machine facts', (name, opener) => {
+      const description = shape[name as keyof typeof shape].description ?? '';
+      expect(description.startsWith(opener), `${name}: "${description.slice(0, 70)}…"`).toBe(true);
+    });
+
+    it('every argument states its default within the first two sentences', () => {
+      // Sentence-scoped, not character-scoped, and the difference is load-bearing.
+      // `transactionContext`'s enum list is 63 characters on its own — longer
+      // than the form's visible width — so a hard character budget would fail a
+      // description that is already correct and could only be satisfied by
+      // deleting the valid values, which are the other half of what the operator
+      // needs. The contract is ORDER: machine facts (values, then default),
+      // then the prose explaining what the field does.
+      for (const name of argNames) {
+        const description = shape[name].description ?? '';
+        const opening = description
+          .split(/(?<=\.)\s+/)
+          .slice(0, 2)
+          .join(' ');
+        expect(
+          opening,
+          `${name}: no default in the opening sentences — "${description.slice(0, 90)}…"`
+        ).toMatch(/Defaults to |Omit to enter/);
+      }
+    });
+
+    it('states the default ahead of the form cut wherever the enum list leaves room', () => {
+      // The fields where the character budget IS achievable — everything whose
+      // opener is not a long enum list. Kept separate from the ordering contract
+      // above so a future long-enum field does not silently relax this one.
+      for (const name of argNames.filter((n) => n !== 'transactionContext')) {
+        const description = shape[name].description ?? '';
+        const defaultAt = description.search(/Defaults to |Omit to enter/);
+        expect(
+          defaultAt,
+          `${name}: default appears ${defaultAt} chars in, past the ~${FORM_TRUNCATION_HINT}-char form cut — "${description.slice(0, 90)}…"`
+        ).toBeLessThan(FORM_TRUNCATION_HINT);
+      }
+    });
+
+    it('no description leaks a bare backlog id at any position', () => {
+      // The operator-facing surface must explain itself; BL- ids are
+      // archaeology and belong in the companion doc's closing ledger.
+      for (const name of argNames) {
+        const description = shape[name].description ?? '';
+        expect(description, `${name} carries a backlog id`).not.toMatch(/\bBL-\d+/);
+      }
     });
   });
 

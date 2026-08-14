@@ -20,6 +20,8 @@ import {
   IrlBodyCacheWriteFailedError,
 } from '../cache/irl-body-cache';
 import { computeIrlBodyHash } from '../schemas/compose-dossier-envelope';
+import type { IrlBodyMintedBy } from '../cache/irl-body-provenance';
+import { assessIrlBodyStructure, flattenedBodyExplanation } from '../lib/irl-body-structure';
 import {
   PrepareIrlBodyInputSchema,
   type PrepareIrlBodyInput,
@@ -42,8 +44,27 @@ The hash is deterministic: same body in, same hash out. No normalization is appl
 
 export async function handlePrepareIrlBodyTool(
   payload: PrepareIrlBodyInput,
-  metrics?: MetricsContext
+  metrics?: MetricsContext,
+  // BL-123 — who is writing this body. OPTIONAL, defaulting to the WEAKER
+  // value, for two reasons. First, ten call sites exist and two of them
+  // (`tests/unit/tools/prepare-irl-body.test.ts`) invoke the handler with a
+  // single argument, so a required parameter is a compile error. Second and
+  // more important: an un-updated caller can then only ever mint the weaker
+  // grade, never the stronger — the safe failure direction for a field whose
+  // whole purpose is to resist over-claiming.
+  mintedBy: IrlBodyMintedBy = 'prepare-tool'
 ) {
+  // BL-123 — refuse a body the client destroyed on the way in. This is the
+  // model-driven entry point; the prompt render has its own halt, and
+  // `validate_irl_provenance` its own rejection. Placed before the hash so a
+  // flattened body never gets a canonical hash minted for it at all.
+  const structure = assessIrlBodyStructure(payload.filledIrl);
+  if (structure.flattened) {
+    // `invalid-input`, not `internal-error`: the caller is the one who can act,
+    // matching the size-cap partition below.
+    return toolFail('invalid-input', flattenedBodyExplanation(structure));
+  }
+
   const irlBodyHash = computeIrlBodyHash(payload.filledIrl);
   const byteLength = Buffer.byteLength(payload.filledIrl, 'utf8');
 
@@ -70,6 +91,19 @@ export async function handlePrepareIrlBodyTool(
     }
     throw error;
   }
+
+  // BL-123 — record what the server witnessed, so `compose_dossier_envelope`
+  // can cap an over-strong `irlSource` claim instead of trusting the model's
+  // assertion. Deliberately AFTER the body write and deliberately not guarded:
+  // the store swallows its own failures, because a missing provenance record
+  // only weakens an audit claim while a missing body corrupts the dossier
+  // (ADR-0016's trade). First-write-wins is enforced inside the store.
+  await metrics?.irlBodyProvenance?.record(irlBodyHash, {
+    mintedBy,
+    mintedAt: new Date().toISOString(),
+    byteLength,
+    newlineCount: structure.newlineCount,
+  });
 
   const result: PrepareIrlBodyOutput = { irlBodyHash, byteLength };
   return toolOk(result, `IRL body hashed (${byteLength} bytes).`);

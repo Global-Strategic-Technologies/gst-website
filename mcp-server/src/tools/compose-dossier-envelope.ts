@@ -45,6 +45,7 @@ import {
   Bl076BodyCacheMissError,
   ComposeDossierEnvelopeInputSchema,
   IrlBodyHashMismatchError,
+  capIrlSource,
   runComposeDossierEnvelope,
   type ComposeDossierEnvelopeEngineInput,
   type ComposeDossierEnvelopeInput,
@@ -95,7 +96,26 @@ export async function handleComposeDossierEnvelopeTool(
     if (filledIrl === null || filledIrl === undefined) {
       throw new Bl076BodyCacheMissError(payload.irlBodyHash);
     }
-    const engineInput: ComposeDossierEnvelopeEngineInput = { ...payload, filledIrl };
+    // BL-123 — cap the model's `irlSource` assertion against what the server
+    // actually witnessed. The substitution happens HERE, on the engine input,
+    // which is what makes the `requireVerbatimBody` gate and the BL-072
+    // reconstruction disclosure both read the capped value rather than the
+    // claim. A read failure returns `null` and means "cannot verify" — the
+    // claim passes through, disclosed as unverified.
+    const provenance = await metrics?.irlBodyProvenance?.read(payload.irlBodyHash);
+    const mintedBy = provenance?.mintedBy ?? null;
+    const { irlSource, capped } = capIrlSource(payload.irlSource, mintedBy);
+    const engineInput: ComposeDossierEnvelopeEngineInput = {
+      ...payload,
+      filledIrl,
+      irlSource,
+      irlSourceAudit: {
+        asserted: payload.irlSource,
+        mintedBy,
+        capped,
+        mintedAt: provenance?.mintedAt ?? null,
+      },
+    };
 
     // BL-045 PR B audit ALT-2: derive `promptVersion` from the prompt
     // module (a leaf import — no circular-dep risk via the registry).

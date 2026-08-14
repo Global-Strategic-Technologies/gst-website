@@ -51,6 +51,11 @@ import {
   UpstashRunCallCounters,
   type RunCallCounters,
 } from './metrics/_index';
+import {
+  InMemoryIrlBodyProvenanceStore,
+  UpstashIrlBodyProvenanceStore,
+  type IrlBodyProvenanceStore,
+} from './cache/irl-body-provenance';
 import { computeIrlBodyHash } from './schemas/compose-dossier-envelope';
 import { createCacheStore } from './lib/upstash-cache-store';
 import type { Env } from './worker';
@@ -131,6 +136,17 @@ export interface ServerFactoryOptions {
    * `InMemoryIrlBodyCache()` here.
    */
   irlBodyCache?: import('./metrics/_index').IrlBodyCache;
+
+  /**
+   * BL-123 — test override for the IRL body provenance store, mirroring
+   * {@link irlBodyCache}. Production (stdio + Worker entrypoints) must NOT set
+   * this; the auto-construction below owns the stdio-vs-Worker discriminator.
+   *
+   * Without this seam the `irlSource` cap path would only be exercisable
+   * against real Upstash, which is precisely the kind of untestable branch
+   * that ships wrong.
+   */
+  irlBodyProvenance?: import('./cache/irl-body-provenance').IrlBodyProvenanceStore;
 
   /**
    * BL-121 — test override for the durable run-scoped counters, mirroring
@@ -316,6 +332,33 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
     };
   })();
 
+  // BL-123 — server-held provenance for cached IRL bodies, so the envelope can
+  // CAP an over-strong `irlSource` claim rather than trusting the model.
+  //
+  // Takes the body cache's dual-impl SHAPE (stdio gets a real in-process store,
+  // because the render and the compose share one process there, so the cap
+  // fully works locally) but the counters' FAILURE SEMANTICS: unbound Upstash
+  // degrades to `undefined` instead of throwing. A missing body corrupts the
+  // dossier; a missing provenance record only weakens an audit claim, and
+  // hard-failing every envelope call on a KV outage would be a far worse
+  // trade than falling back to the model's assertion labelled unverified.
+  //
+  // NEVER in-memory on the Worker: isolates rotate between requests, so the
+  // render's write would be invisible to the compose and every honest prepop
+  // run would silently downgrade.
+  const irlBodyProvenance: IrlBodyProvenanceStore | undefined = (() => {
+    if (ctx.irlBodyProvenance) return ctx.irlBodyProvenance;
+    if (ctx.metricsSink === undefined) return new InMemoryIrlBodyProvenanceStore();
+    // `retry: false` — BL-121's lesson, carried over. This store adds one read
+    // to `compose_dossier_envelope` and a read-then-write to
+    // `prepare_irl_body`, for a value that only labels an audit claim. The SDK
+    // default (six attempts, ~4,289 ms of backoff) would put a degraded Upstash
+    // on the response path of every one of those calls. Failing quiet is the
+    // point; failing quiet AND slow is not.
+    const store = createCacheStore(env, { retry: false });
+    return store ? new UpstashIrlBodyProvenanceStore(store) : undefined;
+  })();
+
   // BL-121 — durable run-scoped counters, and the regime label that says
   // whether the BL-071 precheck identities can be checked at all.
   //
@@ -353,6 +396,7 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
           sink: new NoopSink(),
           counters: new InMemoryToolCallCounters(),
           irlBodyCache,
+          irlBodyProvenance,
           audit: ctx.audit,
           rateLimit: ctx.rateLimit,
           countersScope,
@@ -362,6 +406,7 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
           keyOwner: ctx.keyOwner,
           counters: new InMemoryToolCallCounters(),
           irlBodyCache,
+          irlBodyProvenance,
           audit: ctx.audit,
           rateLimit: ctx.rateLimit,
           runCounters: runCounters ?? undefined,

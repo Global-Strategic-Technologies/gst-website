@@ -37,6 +37,7 @@ import { z } from 'zod';
 import { REGULATION_ENTRIES } from '../content/regulation-loader';
 import { CONDITIONAL_TRIGGER_NAMES } from '../prompts/extraction-rules';
 import { ORCHESTRATED_TOOLS, auditLevelValues, type AuditLevel } from '../prompts/irl-ingestion';
+import type { IrlBodyMintedBy } from '../cache/irl-body-provenance';
 import {
   citationFieldSchema,
   runIrlProvenanceCheck,
@@ -68,9 +69,12 @@ const fillRatioStatusValues = ['halt', 'partial', 'ok'] as const;
 const tierValues = ['1', '2', '3'] as const;
 
 // BL-072 — irlSource: how the bytes in `filledIrl` were assembled. Required.
-// Must match the four enum values the prompt's VERIFY-block sketches list at
-// `src/prompts/irl-ingestion.ts:462,949` — single source of truth between
-// the prompt and this schema.
+// Five values, matching the set the prompt's RUN-AUDIT block sketches list —
+// single source of truth between the prompt and this schema. (Corrected in
+// BL-123: this comment said "four" and cited two line numbers that had long
+// since drifted onto unrelated code.)
+//
+// BL-123 — the model ASSERTS this; the server can cap it. See `capIrlSource`.
 const irlSourceValues = [
   'partner-paste-verbatim',
   // BL-079 Part B — operator pasted the IRL markdown into the prompt arg AND
@@ -376,7 +380,75 @@ export type ComposeDossierEnvelopeInput = z.infer<typeof ComposeDossierEnvelopeI
  */
 export type ComposeDossierEnvelopeEngineInput = ComposeDossierEnvelopeInput & {
   filledIrl: string;
+  /**
+   * BL-123 — what the model ASSERTED as `irlSource`, plus what the server's
+   * provenance record says, so the engine can disclose a cap or an unverifiable
+   * strong claim in the gap list.
+   *
+   * `input.irlSource` itself is already the CAPPED value by the time the engine
+   * sees it — the handler substitutes it, so the `requireVerbatimBody` gate and
+   * the reconstruction disclosure both read the capped form. This field carries
+   * only the audit trail of that substitution.
+   *
+   * OPTIONAL and absent in every engine-level test, which is deliberate: it
+   * means those tests take no gap-append path here at all, so this change
+   * cannot grow the rendered gap list of any existing case. See the additivity
+   * guard in the unit suite.
+   */
+  irlSourceAudit?: IrlSourceAudit;
 };
+
+export type IrlSource = (typeof irlSourceValues)[number];
+
+export interface IrlSourceAudit {
+  /** The value the model claimed, before capping. */
+  asserted: IrlSource;
+  /** `null` when no provenance record could be read — absent, expired, or store unavailable. */
+  mintedBy: IrlBodyMintedBy | null;
+  /**
+   * Whether `capIrlSource` actually downgraded the claim. Carried rather than
+   * re-derived: the cap rule lives in exactly one function, and an engine that
+   * recomputed the predicate would be a second copy to drift.
+   */
+  capped: boolean;
+  /** ISO-8601 mint time when known. Surfaces mint age so a replay is visible. */
+  mintedAt?: string | null;
+}
+
+/**
+ * BL-123 — cap an over-strong `irlSource` claim against server-held provenance.
+ *
+ * **This is a monotone downgrade, and must never become a derivation.** The
+ * server can disprove the strongest claim; it cannot substantiate the weaker
+ * ones. `mintedBy: 'prepare-tool'` is produced identically by an interactive
+ * partner paste relayed through `prepare_irl_body` and by a model
+ * reconstruction from xlsx — the server never sees where the model got the
+ * bytes. A function that DERIVED `irlSource` from this record could therefore
+ * never return `model-reconstruction-from-xlsx`, and would hand every
+ * reconstruction run a partner-paste grade — sailing it straight past the
+ * `requireVerbatimBody` gate that exists to catch exactly that, which
+ * `UAT-07.6` classifies as "the gate is not enforcing → Fail — escalate".
+ *
+ * So the only claim this touches is `partner-paste-verbatim-prepop`, the one
+ * whose entire evidence was the presence of a copyable directive string.
+ * Everything else passes through untouched, and nothing is ever promoted.
+ */
+export function capIrlSource(
+  asserted: IrlSource,
+  mintedBy: IrlBodyMintedBy | null
+): { irlSource: IrlSource; capped: boolean } {
+  if (asserted !== 'partner-paste-verbatim-prepop') {
+    // Never upgraded. A weaker assertion stays weak even when the metadata
+    // would support more — the model may know something the server does not.
+    return { irlSource: asserted, capped: false };
+  }
+  if (mintedBy === 'prepare-tool') {
+    return { irlSource: 'partner-paste-verbatim', capped: true };
+  }
+  // 'prompt-render' confirms it; `null` cannot confirm or refute, so the claim
+  // stands and is disclosed as unverified rather than silently downgraded.
+  return { irlSource: asserted, capped: false };
+}
 
 export interface ServerToolCallCountEntry {
   attempted: number;
@@ -1207,6 +1279,32 @@ export function runComposeDossierEnvelope(
   // false positive from reaching the dossier. Known false-negative: UK
   // GDPR doesn't match GB-DPA under bidirectional substring; covered by
   // separate regulatory-map alias work.
+  // BL-123 — disclose what happened to the model's `irlSource` assertion.
+  // Scoped to `partner-paste-verbatim-prepop` assertions ONLY: that is the sole
+  // claim whose evidence was a copyable string, so it is the only one whose
+  // absence of server backing is worth saying. Marking every metadata-absent
+  // run instead would append a line to every rendered gap list in the suite —
+  // a suite-wide rebaseline in place of an additive change.
+  const audit = input.irlSourceAudit;
+  if (audit && audit.asserted === 'partner-paste-verbatim-prepop') {
+    if (audit.capped) {
+      autoAppended.push({
+        category: 'provenance-gap',
+        entry: `irlSource downgraded by the server: the run reported \`partner-paste-verbatim-prepop\`, but the cached body was written by \`prepare_irl_body\`${audit.mintedAt ? ` at ${audit.mintedAt}` : ''}, not by the prompt render. Recorded as \`partner-paste-verbatim\`. The bytes still hash-bind; what is not established is that the server witnessed them straight from an operator prompt argument.`,
+        followUp:
+          'If a server-witnessed body was intended, re-invoke `gst_irl_ingestion` through the client connector with the IRL in `filledIrl` so the render pre-populates the cache in the same request.',
+      });
+    } else if (audit.mintedBy === null) {
+      autoAppended.push({
+        category: 'provenance-gap',
+        entry:
+          'irlSource `partner-paste-verbatim-prepop` could not be verified: no server provenance record was readable for this body hash (absent, expired, or the store was unavailable). The claim is carried as the model asserted it, unverified.',
+        followUp:
+          'Treat the provenance grade as model-asserted for this run. A fresh invocation through the connector re-mints the record.',
+      });
+    }
+  }
+
   const falsePositiveMapAbsent = findFalsePositiveMapAbsentClaims(input.gaps);
   if (falsePositiveMapAbsent.length > 0) {
     throw new Bl068MapAbsentFalsePositiveError(falsePositiveMapAbsent);

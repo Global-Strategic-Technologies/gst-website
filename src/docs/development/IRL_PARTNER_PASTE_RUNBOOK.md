@@ -148,6 +148,16 @@ Open the slash-command form for `gst_irl_ingestion`. Fill these fields:
 | `projectCodeName`     | Optional internal code name                                                                                    |
 | `requireVerbatimBody` | **`true`** for client-facing / regulatory / M&A close runs; omit (defaults to `false`) for drafts              |
 
+> ⚠️ **The paste must keep its line breaks — check this before you submit.**
+>
+> Claude Desktop renders each prompt argument as a **single-line input field**. Depending on client version, pasting multi-line markdown into it can collapse every newline to a space. When that happens the bytes survive but the document structure does not: section headers, blockquotes and per-item boundaries all become inline text.
+>
+> This was a real production failure (2026-08-13). A 79KB IRL lost all 141 of its line breaks, the byte count moved by **one**, and the run completed producing a dossier that cited a structure which no longer existed. Nothing flagged it at the time.
+>
+> **The server now refuses it.** A body with no line breaks halts the run with an explanation instead of producing a degraded dossier. The collapse cannot be repaired — there is no way to tell which spaces used to be newlines.
+>
+> **If the run halts on this**, you did nothing wrong. Either attach the `.md` to the conversation and invoke `gst_irl_ingestion` **without** `filledIrl` (interactive mode walks you through it), or use a client whose argument input accepts multi-line text.
+
 **Do NOT also attach the xlsx.** With `filledIrl` supplied, the model uses the paste; attaching the xlsx in addition would invite the model to choose reconstruction mode for some tools, defeating the point of the paste.
 
 ### Step 4 — Validate the run

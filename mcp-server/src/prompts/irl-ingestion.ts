@@ -19,8 +19,9 @@
  * article is embedded so the model can reconcile the user's filled bullets
  * back to the IRL section taxonomy (especially when the user pastes a
  * minimally-formatted reply rather than the verbatim IRL skeleton);
- * `gst://library/vdr-structure` is embedded so the synthesis section can
- * use the canonical VDR-folder labels for follow-up requests verbatim.
+ * The `gst://library/vdr-structure` folder taxonomy is INLINED (BL-123) so the
+ * synthesis section can use the canonical VDR-folder labels for follow-up
+ * requests verbatim without embedding the whole 16.3KB article on every render.
  *
  * See: mcp-server/src/docs/prompts/irl-ingestion.md (companion doc)
  */
@@ -28,13 +29,9 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { GstPrompt } from './types';
-import {
-  authorialIntentLine,
-  embedLibraryArticle,
-  embedIrlGeneratorSource,
-  IRL_SOURCE_EMBED_URI,
-} from './embed';
+import { authorialIntentLine, embedIrlGeneratorSource, IRL_SOURCE_EMBED_URI } from './embed';
 import { booleanFromWire } from './wire-shape';
+import { assessIrlBodyStructure, flattenedBodyExplanation } from '../lib/irl-body-structure';
 import {
   UNKNOWN_PROPAGATION_RULE,
   EU_AI_ACT_CONDITIONAL_TRIGGER,
@@ -59,8 +56,50 @@ function computeIrlBodyHashForBody(filledIrl: string): string {
 // IRL taxonomy reference embeds the decoupled generator source
 // (`IRL_SOURCE_EMBED_URI` = gst://irl/source), NOT the library article — so the
 // filled-IRL reconciliation taxonomy stays the canonical list, free of the
-// library page's prose/promo. VDR still embeds its library article Resource.
+// library page's prose/promo.
 const VDR_RESOURCE_URI = 'gst://library/vdr-structure';
+
+/**
+ * BL-123 — the VDR folder taxonomy, inlined.
+ *
+ * Until BL-123 this prompt embedded the whole `gst://library/vdr-structure`
+ * article as a third message on EVERY render: 16.3KB of prose to supply the
+ * nine folder labels section (I) quotes for follow-up document requests. That
+ * is the single largest piece of dead weight in a payload measured at 153.8KB.
+ *
+ * **Why inline and not just cite the URI.** `src/prompts/embed.ts` records the
+ * measured reason the embed existed: when a prompt body says "read
+ * `gst://library/vdr-structure`", the model usually cannot, and falls back to
+ * its training — in V1 it substituted a generic 10-folder PE-diligence taxonomy
+ * for the canonical GST one. Dropping to a bare URI reference would reproduce
+ * that defect exactly. The labels have to be IN the body; only the surrounding
+ * article does not.
+ *
+ * The URI is kept as a provenance caption, which also satisfies the
+ * orchestrates→body invariant (every `orchestrates` entry must appear literally
+ * in the rendered body).
+ *
+ * **This is a second copy of canonical Library content.** Source of truth is
+ * `src/data/library/vdr-structure/article.md`, codegenned into
+ * `src/content/library-data.generated.ts`. A drift guard pins the two together
+ * — see `tests/integration/vdr-taxonomy-drift-guard.test.ts`, modelled on the
+ * SOP dual-source guard.
+ */
+const VDR_FOLDER_TAXONOMY = [
+  `**Canonical VDR folder taxonomy** (from \`${VDR_RESOURCE_URI}\` — use these labels VERBATIM; do NOT substitute a generic PE-diligence taxonomy):`,
+  '',
+  '| #   | Folder                      | Contents                                                                                    |',
+  '| --- | --------------------------- | ------------------------------------------------------------------------------------------- |',
+  '| 01  | Product                     | Roadmap, release history, feature analytics, UX research, backlog health.                   |',
+  '| 02  | Software Architecture       | System design, stack inventory, data models, integration points, code-quality metrics.      |',
+  '| 03  | Infrastructure & Operations | Cloud architecture, monitoring, SLA history, capacity planning.                             |',
+  '| 04  | SDLC                        | Methodology, branching strategy, code review, testing, release process.                     |',
+  '| 05  | Data, Analytics & AI        | Data architecture, pipelines, analytics, ML/AI models, governance.                          |',
+  '| 06  | Security                    | Policies, pen-test results, incident history, access controls, BCP/DR plans.                |',
+  '| 07  | People & Organization       | Org charts, key personnel, headcount census, retention risk, hiring plan.                   |',
+  '| 08  | Corporate IT                | Enterprise systems, internal tools, endpoint management, identity providers, IT operations. |',
+  '| 09  | Governance & Compliance     | Certifications, audit reports, data-privacy controls, regulatory correspondence, licensing. |',
+].join('\n');
 
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
 
@@ -115,34 +154,34 @@ const argsSchema = z.object({
     .min(200)
     .optional()
     .describe(
-      'The populated Information Request List returned by the target — the entire markdown body of the response, including all 10 sections. Omit to enter interactive mode (the model will ask you to paste it).'
+      'Optional. Omit to enter interactive mode (the model will ask you to paste it). The populated Information Request List returned by the target — the entire markdown body, all 10 sections. MUST retain its line breaks: a client whose input field collapses multi-line text to one line destroys the document structure, and the run will refuse it rather than produce a dossier citing sections that no longer exist.'
     ),
   targetName: z
     .string()
     .min(1)
     .optional()
     .describe(
-      "The target / client name as referenced in the filled IRL (e.g., 'MedSig Health'). Omit to let the model infer it from the IRL header."
+      "Optional. Defaults to the name inferred from the IRL header. The target / client name as referenced in the filled IRL (e.g., 'MedSig Health')."
     ),
   transactionContext: z
     .enum(transactionContextValues)
     .optional()
     .describe(
-      'Must be one of: sell-side · buy-side · value-creation · unknown. Engagement context — modulates the voice of the dossier only; it never changes which tools run.'
+      'Must be one of: sell-side · buy-side · value-creation · unknown. Defaults to no voice cue (neutral framing). Engagement context — modulates the voice of the dossier only; it never changes which tools run.'
     ),
   partnerLead: z
     .string()
     .min(1)
     .optional()
     .describe(
-      "Name of the GST partner leading the engagement — used to attribute the synthesis handoff memo (e.g., 'Reid Peryam'). Omit to leave the attribution generic."
+      "Optional. Defaults to a generic attribution. Name of the GST partner leading the engagement — attributes the synthesis handoff memo (e.g., 'Reid Peryam')."
     ),
   projectCodeName: z
     .string()
     .min(1)
     .optional()
     .describe(
-      "Engagement code name for the synthesis handoff section (e.g., 'Cygnet'). Omit to use the target name."
+      "Optional. Defaults to the target name. Engagement code name for the synthesis handoff section (e.g., 'Cygnet')."
     ),
   mode: z
     .enum(modeValues)
@@ -165,7 +204,7 @@ const argsSchema = z.object({
   requireVerbatimBody: booleanFromWire(z.boolean().optional())
     .optional()
     .describe(
-      'Set true for accuracy-critical work — a regulatory deliverable, a transaction close, a post-mortem — where the dossier must be anchored to the partner-supplied IRL text rather than to a model reconstruction of it. When set, dossier composition refuses any run whose body was not pasted verbatim, and tells the operator to re-invoke with the IRL in filledIrl. Defaults to false: drafting and exploration, where the gap list disclosing the reconstruction is enough.'
+      'Must be one of: true · false. Defaults to false (drafting and exploration, where the gap list disclosing a reconstruction is enough). Set true for accuracy-critical work — a regulatory deliverable, a transaction close, a post-mortem — where the dossier must be anchored to the partner-supplied IRL text rather than to a model reconstruction of it. When set, dossier composition refuses any run whose body was not pasted verbatim and tells the operator to re-invoke with the IRL in filledIrl.'
     ),
 });
 
@@ -527,9 +566,9 @@ const ENVELOPE_COMPOSITION_DIRECTIVE = [
   // does not know the difference will accept it. The right behaviour was known
   // and lived nowhere executable — the same failure shape as the BL-119 cycle-2
   // radar caveat — so it is a numbered directive here rather than a runbook note.
-  "- **If you doubt you were invoked properly, proceed anyway — do NOT reconstruct.** Some clients deliver a large expanded prompt as an attached document rather than as conversation turns, so this body may reach you looking like a transcript you are reading rather than arguments you were called with. That appearance is a client rendering artifact and says nothing about whether the render happened. The `**Body-binding hash:**` directive above is the evidence that it did: the server computed it from the operator's `filledIrl` argument and pre-populated the cache in the same request. Proceed on that hash. **Do NOT call `prepare_irl_body`, and do NOT re-emit or reconstruct the body**, even if you can see its text — doing so replaces server-witnessed provenance with your own assertion and quietly weakens the audit grade the operator asked for. If you want to confirm the cache is live before committing to the run, call `validate_irl_provenance` with the directive hash and ONE citation and no body; a `verified` verdict proves the entry exists server-side. Only if that probe returns a cache miss should you fall back to `prepare_irl_body`, and if you do, report `irlSource: partner-paste-verbatim` honestly rather than `-prepop`.",
+  "- **If you doubt you were invoked properly, proceed anyway — do NOT reconstruct.** Some clients deliver a large expanded prompt as an attached document rather than as conversation turns, so this body may reach you looking like a transcript you are reading rather than arguments you were called with. That appearance is a client rendering artifact and says nothing about whether the render happened. The `**Body-binding hash:**` directive above is the evidence that it did: the server computed it from the operator's `filledIrl` argument and pre-populated the cache in the same request. Proceed on that hash. **Do NOT call `prepare_irl_body`, and do NOT re-emit or reconstruct the body**, even if you can see its text — doing so replaces server-witnessed provenance with your own assertion and weakens the audit grade the operator asked for. It is no longer a *silent* weakening — the server records who wrote the cached body and will cap an over-strong `irlSource` claim with a disclosure in the gap list — but the run still loses the strong form, so the instruction stands. If you want to confirm the cache is live before committing to the run, call `validate_irl_provenance` with the directive hash and ONE citation and no body; a `verified` verdict proves the entry exists server-side. Only if that probe returns a cache miss should you fall back to `prepare_irl_body`, and if you do, report `irlSource: partner-paste-verbatim` honestly rather than `-prepop`.",
   "- `irlBodyHash` — copy verbatim from the prompt body's `**Body-binding hash:**` directive. That is the partner-authoritative `pass-bound` form. The envelope tool verifies `sha256(rehydratedBody).slice(0,16) === irlBodyHash` after cache re-hydrate and rejects on mismatch. If you are emitting a RUN-AUDIT block, that is the `hashBindResult: pass-bound` case and the block's own section states the discipline rules.",
-  "- `irlSource` — REQUIRED. Pass `partner-paste-verbatim-prepop` on this path (the directive appears above, you skipped `prepare_irl_body`, the server pre-populated the cache from the operator's prompt arg). If you are emitting a RUN-AUDIT block, `filledIrl.source` must match it.",
+  "- `irlSource` — REQUIRED. Pass `partner-paste-verbatim-prepop` on this path (the directive appears above, you skipped `prepare_irl_body`, the server pre-populated the cache from the operator's prompt arg). **The server checks this claim and may CAP it.** It holds a record of who actually wrote the cached body; if that record says `prepare_irl_body` rather than the prompt render, your `-prepop` is recorded as `partner-paste-verbatim` and the gap list carries a `provenance-gap:` entry saying so. Nothing is ever upgraded, and a reconstruction or `placeholder` claim is never touched. If you are emitting a RUN-AUDIT block and the gap list shows a downgrade, report the **capped** value in `filledIrl.source` so the block and the dossier agree — the gap-list entry is the authoritative statement of what the server established.",
   '- `requireVerbatimBody` — accuracy-critical run gate. If the operator invoked this prompt with `requireVerbatimBody: true`, you MUST pass that value through VERBATIM to `compose_dossier_envelope.requireVerbatimBody`. In that mode the server REFUSES any `irlSource` other than the partner-paste forms (`partner-paste-verbatim` or `partner-paste-verbatim-prepop`); both are accepted, so on this prepop path the gate passes. If the operator did not set the flag, omit `requireVerbatimBody` from the tool call (defaults to false — drafting / exploration mode).',
   '',
   'The tool returns `provenanceVerification` summarizing how many of your claims verified. If `unverified > 0`, the tool has already appended `provenance-gap:` entries to the gap list — read them, and either correct the citation (re-call the tool) or accept the flag (the partner needs to see what was unverifiable).',
@@ -654,6 +693,7 @@ const RUN_AUDIT_DIRECTIVE = [
   "  - `pass-internal` — the envelope tool accepted the call BUT no `**Body-binding hash:**` directive existed in the prompt body (interactive-mode invocation where no `filledIrl` arg was supplied). You computed `sha256(filledIrl).slice(0,16)` of the body bytes you yourself intend to submit. This is the weak form: the hash confirms internal consistency between the body and citations you submit (function 1 of hash-bind), but it does NOT bind to a partner-authoritative source (function 2 is absent). Audit grade: medium — the partner reading the dossier should know that the IRL bytes came from the model's reconstruction (e.g., from an attached xlsx), not from a partner-pasted markdown arg.",
   '  - `IrlBodyHashMismatchError` — the envelope tool REJECTED the call. The `irlBodyHash` you supplied did not equal `sha256(filledIrl).slice(0,16)` of the body you supplied. Re-call with consistent bytes.',
   '- **DO NOT** report `pass-bound` if the prompt body did not contain a `**Body-binding hash:**` directive you could copy from. Reporting `pass-bound` when the directive was absent is a fabricated audit claim. Report `pass-internal` instead — it is honest and the partner sees the provenance limit transparently.',
+  '- `hashBindResult` and `filledIrl.source` answer DIFFERENT questions, and only the second is server-checked. `hashBindResult` is about the hash you supplied: did it come from the directive, or did you compute it yourself. `filledIrl.source` is about where the BYTES came from, and the server holds its own record of that — so an over-strong `-prepop` there is capped with a gap-list disclosure while `hashBindResult` is unaffected. Report both honestly; they can legitimately differ.',
   '- Do NOT add fields not in the schema. Do NOT decorate the block. The operator parses this verbatim.',
 ].join('\n');
 
@@ -819,7 +859,9 @@ function buildOneShotBody(args: {
     '',
     `Step 7 — Invoke \`search_radar\` for the target's product segment + geographies (derive search terms from IRL Section 01 product description and Section 00 geographies). **Surface the \`deeplink\` URL in the dossier** — it opens the Radar feed filtered to that category. Surface the 3-5 most relevant radar items as market-signal context + the deeplink.`,
     '',
-    `Step 8 — Compose the unified dossier. Cross-reference the \`gst://library/vdr-structure\` Library article (embedded later) for VDR-folder labels when surfacing follow-up document requests. Output structure:`,
+    `Step 8 — Compose the unified dossier. Use the canonical VDR folder taxonomy below for VDR-folder labels when surfacing follow-up document requests. Output structure:`,
+    '',
+    VDR_FOLDER_TAXONOMY,
     '',
     '  **(A) Target snapshot** — one-paragraph profile pulled from IRL Section 00 + 01. Quick-look voice — partner-readable, three-sentence orientation. Include any open-question flags where the IRL gave non-definitive answers.',
     '',
@@ -963,7 +1005,7 @@ function buildInteractiveBody(args: { auditLevel: AuditLevel }): string {
   return [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Help the user run the GST Discovery sweep — the bookend to \`gst_information_request_list\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference; \`${VDR_RESOURCE_URI}\` follows for VDR-folder labels in synthesis.`,
+    `Help the user run the GST Discovery sweep — the bookend to \`gst_information_request_list\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference; the VDR folder taxonomy (\`${VDR_RESOURCE_URI}\`) is reproduced inline at Step 3 for synthesis follow-ups.`,
     '',
     'Step 1. Ask the user:',
     '',
@@ -985,7 +1027,9 @@ function buildInteractiveBody(args: { auditLevel: AuditLevel }): string {
     `  - Step 2f — Call \`estimate_tech_debt_cost\` using IRL Section 04 + 07.`,
     `  - Step 2g — Call \`search_radar\` for the target's product segment + geographies.`,
     '',
-    `Step 3. Compose the unified dossier — nine sections (A–I): target snapshot · diligence agenda · architecture · ICG · tech debt · regulatory · comparables · market signal · synthesis. **Every section that pulls from a tool MUST close with that tool's \`deeplink\` URL as an "Open in Hub" link** — TechPar wizard for (C), ICG wizard for (D), Tech Debt Calculator for (E), Regulatory Map for (F, one per framework), portfolio view for (G), Radar feed for (H). The deeplinks open the corresponding Hub surface with state pre-populated; this is the bridge between the read-only dossier and the partner-refinable interactive tool. Reference the canonical VDR taxonomy (\`${VDR_RESOURCE_URI}\`) verbatim for follow-up document requests in the synthesis section.`,
+    `Step 3. Compose the unified dossier — nine sections (A–I): target snapshot · diligence agenda · architecture · ICG · tech debt · regulatory · comparables · market signal · synthesis. **Every section that pulls from a tool MUST close with that tool's \`deeplink\` URL as an "Open in Hub" link** — TechPar wizard for (C), ICG wizard for (D), Tech Debt Calculator for (E), Regulatory Map for (F, one per framework), portfolio view for (G), Radar feed for (H). The deeplinks open the corresponding Hub surface with state pre-populated; this is the bridge between the read-only dossier and the partner-refinable interactive tool. Use the canonical VDR folder taxonomy below verbatim for follow-up document requests in the synthesis section.`,
+    '',
+    VDR_FOLDER_TAXONOMY,
     '',
     `Step 3a. **Envelope precheck — citation iteration via \`validate_irl_provenance\` (BLOCKING).** BEFORE calling \`compose_dossier_envelope\`, converge citation correctness on \`validate_irl_provenance\` first. Assemble your draft \`claims\` array (every load-bearing claim with \`{claim, citation, tier}\`) and call \`validate_irl_provenance\` with \`{filledIrl, citations}\` — pass each claim as a \`{path, citation}\` entry in the \`citations\` array (use the claim label or a short dot-path as \`path\`). **For genuine multi-bullet derivations** (TechPar verdicts citing eng count + hosting + salary; comparables joining portfolio rows; syntheses spanning Section 04 + 07), pass \`citation\` as an array of strings (\`["Section 02 — ...", "Section 03 — ...", ...]\`, 1-8 elements) — each element is verified independently and aggregated (any-unverified wins). For every \`unverified\` entry, re-cite using a verbatim substring of the IRL body (\`Section NN — <exact wording>\`). Re-call to confirm. Repeat until \`(verified + verifiedFuzzy + partnerSupplied) / total ≥ 0.90\` OR you have made 4 precheck iterations. Then — and only then — call \`compose_dossier_envelope\` ONCE on the clean set. The verifier is purpose-built for fast iteration (small input, small output); the envelope is heavyweight (~30KB input per call). Iterating on the cheap tool first lifts first-call verification rate into the 80-90% band and ships the dossier in 1 envelope call instead of 2-5. If a claim genuinely cannot be supported by any IRL substring, accept the \`unverified\` flag — the partner needs to see what was unsupported.`,
     '',
@@ -1064,12 +1108,47 @@ function buildInteractiveBody(args: { auditLevel: AuditLevel }): string {
   ].join('\n');
 }
 
+/**
+ * BL-123 — the body the operator pasted lost every newline in transit, so the
+ * run stops instead of producing a dossier that cites a structure which is no
+ * longer there.
+ *
+ * This is a full body replacement, not a warning prepended to the sweep: a
+ * caveat above 130KB of extraction directives is a caveat the model reads past.
+ * The whole render becomes the refusal.
+ *
+ * It also drops the resource embeds. They exist to support extraction work
+ * that is not going to happen on this path, and shipping library material
+ * beside a refusal is waste — see the message-count assertion in the fixtures
+ * suite, which pins the halt at exactly one message.
+ */
+function buildFlattenedBodyHalt(filledIrl: string): string {
+  const structure = assessIrlBodyStructure(filledIrl);
+  return [
+    'Workflow invocation: `gst_irl_ingestion` — **halted before extraction.**',
+    '',
+    '## The IRL body did not survive the client',
+    '',
+    flattenedBodyExplanation(structure),
+    '',
+    '## What to tell the operator',
+    '',
+    'Report the halt plainly and do NOT attempt any of the following, all of which convert a detected failure into an undetectable one:',
+    '',
+    '- **Do NOT reconstruct the line breaks.** You cannot: the collapse is lossy, and a plausible reconstruction is indistinguishable from the real structure to every downstream check.',
+    '- **Do NOT proceed with the flattened text.** A dossier built on it would cite sections and per-item boundaries that no longer exist.',
+    '- **Do NOT call `prepare_irl_body`, `validate_irl_provenance` or `compose_dossier_envelope`** with this body. They refuse it on the same grounds, and a retry loop only obscures the diagnosis.',
+    '',
+    'Relay the explanation above, including that the operator did nothing wrong, and stop.',
+  ].join('\n');
+}
+
 export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.23.0',
-  lastReviewedAt: '2026-08-12',
+  version: '0.24.0',
+  lastReviewedAt: '2026-08-13',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   build: (args) => {
@@ -1082,6 +1161,22 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
     // default semantics; the Zod arg description states default 'full').
     const mode = args.mode ?? 'full';
     const auditLevel: AuditLevel = args.auditLevel ?? 'standard';
+
+    // BL-123 — dispatch on structural integrity BEFORE the builder axis. A
+    // body the client flattened cannot be extracted from in any mode, so this
+    // precedes the filledIrl-absence check rather than living inside a builder.
+    // Returns early with a single message: no resource embeds beside a refusal.
+    if (args.filledIrl && assessIrlBodyStructure(args.filledIrl).flattened) {
+      return {
+        messages: [
+          {
+            role: 'user',
+            content: { type: 'text', text: buildFlattenedBodyHalt(args.filledIrl) },
+          },
+        ],
+      };
+    }
+
     let bodyText: string;
     if (!args.filledIrl) {
       bodyText = buildInteractiveBody({ auditLevel });
@@ -1100,10 +1195,6 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
         {
           role: 'user',
           content: embedIrlGeneratorSource(),
-        },
-        {
-          role: 'user',
-          content: embedLibraryArticle(VDR_RESOURCE_URI),
         },
       ],
     };

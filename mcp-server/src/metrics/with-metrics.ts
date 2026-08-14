@@ -122,6 +122,24 @@ export interface MetricsContext {
    */
   readonly irlBodyCache?: IrlBodyCache;
   /**
+   * BL-123 — server-held provenance for cached IRL bodies. Records who wrote
+   * each body (`prompt-render` vs `prepare-tool`) so `compose_dossier_envelope`
+   * can CAP an over-strong model-asserted `irlSource` instead of trusting it.
+   *
+   * Undefined means "cannot verify", not "failed": the claim passes through
+   * labelled unverified. Unlike {@link irlBodyCache} an unbound store never
+   * throws — a missing body corrupts the dossier, a missing provenance record
+   * only weakens an audit claim (ADR-0016's trade).
+   *
+   * Scoping:
+   *   - stdio: process-lifetime map. The render and the compose share one
+   *     process, so the cap fully works locally.
+   *   - Worker: Upstash-backed, or absent when unbound. MUST NOT be in-memory —
+   *     isolates rotate, so the render's write would be invisible to the
+   *     compose and every honest prepop run would silently downgrade.
+   */
+  readonly irlBodyProvenance?: import('../cache/irl-body-provenance').IrlBodyProvenanceStore;
+  /**
    * BL-033 Slice 3a — optional compliance audit carrier. When present,
    * `withMetricsCore` builds a full `AuditEntry` (incl. input params +
    * output byte-size) for every `tool_invocation` and enqueues it to the
