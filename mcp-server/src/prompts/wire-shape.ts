@@ -201,9 +201,9 @@ export function enumFromWire<T extends z.ZodTypeAny>(inner: T) {
  *
  * ─── This adapter must NOT trim the value it returns ──────────────────────
  *
- * Every sibling adapter above returns a trimmed value. This one deliberately
- * does not: it trims ONLY to test emptiness and passes the original string
- * through byte-for-byte.
+ * `arrayFromWire` and the numeric/boolean adapters return trimmed or parsed
+ * values. This one deliberately returns the ORIGINAL string: it trims only to
+ * test emptiness. (`enumFromWire` behaves the same way on a lookup miss.)
  *
  * `filledIrl` is hashed — `computeIrlBodyHash(args.filledIrl)` — and that hash
  * is what an operator compares against the source file on their disk. A body

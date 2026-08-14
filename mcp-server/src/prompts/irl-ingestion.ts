@@ -1104,7 +1104,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
   version: '0.25.0',
-  lastReviewedAt: '2026-08-13',
+  lastReviewedAt: '2026-08-14',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   build: (args) => {

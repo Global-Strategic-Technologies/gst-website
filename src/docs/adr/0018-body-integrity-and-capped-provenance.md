@@ -33,6 +33,8 @@ The prompt did carry an escape hatch, a `validate_irl_provenance` probe, but fra
 
 ### 1. Detect total collapse and refuse; never attempt repair
 
+> **REVERTED 2026-08-14 (BL-124) — see [§ Re-validation](#re-validation--2026-08-14-bl-124-decision-1-is-withdrawn) at the foot.** The refusal below was withdrawn one day after it shipped: the harm was asserted rather than demonstrated, and the halt blocked every working path. The detection survives as a diagnostic; nothing refuses. The text is kept unedited because a decision record that quietly rewrites itself is worth less than one that shows the correction.
+
 `assessIrlBodyStructure` ([`mcp-server/src/lib/irl-body-structure.ts`](../../../mcp-server/src/lib/irl-body-structure.ts)) flags a body with **zero newline characters and more than 2,000 bytes**. Enforced at all four surfaces a body can arrive through: the prompt render (a full-body halt, one message, no resource embeds), `prepare_irl_body`, `validate_irl_provenance`, and the registry prepop.
 
 **Repair was rejected outright.** `\n → " "` is lossy — in a 79KB body there is no way to tell which of ~13,000 spaces used to be line breaks. A plausible reconstruction would be indistinguishable from real structure to every downstream check, converting a detected failure into an undetectable one.
@@ -77,15 +79,15 @@ An early measurement put these three at 20.2 KB by splitting the _rendered_ body
 
 ## Consequences
 
-- **Operator-facing**: pasting a multi-line IRL into a single-line client field now halts the run with an explanation rather than producing a degraded dossier. Documented as a hazard in both IRL runbooks.
-- **The halt is cheap**: 1.8 KB in one message, against 139.5 KB for a sweep. No library material ships beside a refusal.
+- ~~**Operator-facing**: pasting a multi-line IRL into a single-line client field now halts the run~~ — **reverted 2026-08-14.** The paste completes normally; the runbooks now say so.
+- ~~**The halt is cheap**: 1.8 KB in one message~~ — **reverted 2026-08-14.** Cheap to render, but it cost the operator every working path, which is the cost that mattered.
 - **`irlSource` on the envelope input remains model-asserted**; both internal consumers read the capped value, and the (J) gap-list text is what reports it. The result object carries no `irlSource` field of its own — the disclosure entry is the output surface. `Bl070VerbatimBodyRequiredError` therefore quotes the capped value in its operator-facing message.
 - **The cap is behaviour-neutral for existing callers.** The `requireVerbatimBody` gate accepts both partner-paste forms, so capping between them never changes a gate outcome — it is visible only as a gap-list entry.
 - **The absent-metadata marker is scoped to `-prepop` assertions only.** Marking every metadata-absent run would append a line to every rendered gap list in the suite, including engine-level fixtures that have no store — a suite-wide rebaseline in place of an additive change. An additivity guard pins this.
 - **`hashBindResult` is not capped.** It exists only as a model-authored RUN-AUDIT line, so there is no asserted value at the tool boundary to compare against; its RUN-AUDIT prose was aligned instead: the `irlSource` input bullet now states that the server may cap the claim and that a capped run must report the capped value in `filledIrl.source`, and a new bullet separates the two questions (`hashBindResult` is about which hash you supplied; `filledIrl.source` is about where the bytes came from, and only the second is server-checked). Without that, a capped run at `auditLevel: debug` would render a RUN-AUDIT block asserting `-prepop` while (J) said the server had downgraded it.
 - **A second copy of canonical Library content now exists.** [`vdr-taxonomy-drift-guard.test.ts`](../../../mcp-server/tests/integration/vdr-taxonomy-drift-guard.test.ts) pins the inlined table against the article, with the same deliberate-retirement discipline as the SOP guard.
 - **Stdio is not a degrade path** for the cap, unlike the durable run counters. The pre-deploy gap on Upstash is self-closing: four hours after deploy every live entry carries metadata.
-- **Revisit trigger**: if a client ships a multi-line prompt-argument input, the halt stops firing naturally — no code change needed, and the detector remains correct. If a legitimate newline-free IRL format ever appears, the byte floor is the knob, not the newline test.
+- ~~**Revisit trigger**: … the byte floor is the knob~~ — **reverted 2026-08-14.** There is no byte floor any more; it was deleted with the refusal, because a threshold nobody consults is an invitation to reinstate the gate.
 
 ---
 
@@ -98,9 +100,7 @@ An early measurement put these three at 20.2 KB by splitting the _rendered_ body
 It asserted that a dossier built on a flattened body "cites a structure that no longer exists". That was reasoned from first principles and never tested. Checked afterwards:
 
 - **Citation verification cannot tell the difference.** [`normalizeForMatching`](../../../mcp-server/src/schemas/validate-irl-provenance.ts) applies `.replace(/\s+/g, ' ')` before both the substring check and the word-run tokenizer — the exact transformation the client performs. Flattening is a provable no-op for the only check the provenance chain runs.
-- **No consumer of line structure exists.** The only `split(/
-?
-/)` sites in the workspace parse the IRL _generator source_ and a different prompt's `customRequests` arg. The extractor produces bodies and never consumes one; the fill-ratio pre-flight keys on `N-NN` reference ids.
+- **No consumer of line structure exists.** The only `split(/\r?\n/)` sites in the workspace parse the IRL _generator source_ and a different prompt's `customRequests` arg. The extractor produces bodies and never consumes one; the fill-ratio pre-flight keys on `N-NN` reference ids.
 - **Byte-identity was the wrong proxy.** The hash-bind exists to catch the model substituting a condensed **paraphrase**. Flattening is not paraphrase — every word survives, in order.
 - **A real production run on a flattened body produced a sound dossier**, with a correct 121/122 fill ratio and no reported content defect.
 

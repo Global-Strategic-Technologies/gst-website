@@ -1,7 +1,8 @@
 /**
- * BL-123 — body-structure refusal at every entry point, and the server-held
- * provenance that lets `compose_dossier_envelope` cap an over-strong
- * `irlSource` claim.
+ * BL-123 / BL-124 — the server-held provenance that lets
+ * `compose_dossier_envelope` cap an over-strong `irlSource` claim, and the
+ * BL-124 inverse tests proving a flattened body is processed rather than
+ * refused (BL-123 briefly refused it; the refusal was withdrawn).
  *
  * Both halves of one production failure. A run through Claude Desktop produced
  * a dossier whose body-binding hash did not match the source file: the client's

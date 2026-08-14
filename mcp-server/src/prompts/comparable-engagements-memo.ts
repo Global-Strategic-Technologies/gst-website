@@ -44,7 +44,7 @@ export const comparableEngagementsMemoPrompt: GstPrompt<typeof argsSchema> = {
   description:
     'Identify 3-5 comparable past GST engagements and frame analogically for the current deal.',
   version: '0.0.3',
-  lastReviewedAt: '2026-05-03',
+  lastReviewedAt: '2026-08-14',
   orchestrates: ['search_portfolio', 'list_portfolio_facets'] as const,
   argsSchema,
   build: (args) => ({

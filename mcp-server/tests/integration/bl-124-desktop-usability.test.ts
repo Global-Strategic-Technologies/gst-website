@@ -19,6 +19,7 @@ import { describe, it, expect } from 'vitest';
 import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
 import { informationRequestListPrompt } from '../../src/prompts/information-request-list';
 import { comparableEngagementsMemoPrompt } from '../../src/prompts/comparable-engagements-memo';
+import { ALL_PROMPTS } from '../../src/prompts/_registry';
 import { computeIrlBodyHash } from '../../src/schemas/compose-dossier-envelope';
 
 /** Validate then render — the two steps `prompts/get` performs, in order. */
@@ -97,10 +98,24 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
     expect(text).not.toContain(computeIrlBodyHash(body.trim()));
   });
 
-  it('the two sibling prompts accept their blank optional fields too', () => {
-    expect(informationRequestListPrompt.argsSchema.safeParse({ productSummary: '' }).success).toBe(
-      true
-    );
+  it('the two sibling prompts accept EVERY optional field blank, not just the changed one', () => {
+    // Probing only the argument you changed is how the first version of this
+    // test passed while `gst_information_request_list` still rejected four
+    // other blank optional args. Use the all-blank shape, as above.
+    expect(
+      informationRequestListPrompt.argsSchema.safeParse({
+        targetName: '',
+        companyName: '',
+        projectName: '',
+        transactionContext: '',
+        includeSections: '',
+        excludeRequests: '',
+        customRequests: '',
+        showCanonicalReference: '',
+        productSummary: '',
+      }).success
+    ).toBe(true);
+
     expect(
       comparableEngagementsMemoPrompt.argsSchema.safeParse({
         targetDescription: 'A mid-market vertical SaaS target in retail workforce management.',
@@ -108,6 +123,32 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
         engagementCategory: '',
       }).success
     ).toBe(true);
+  });
+
+  it('NO optional argument on ANY registered prompt rejects an empty string', () => {
+    // The repo-wide guard. Desktop ships `""` for every unfilled field, so an
+    // optional arg that rejects it makes the whole prompt unattachable — the
+    // failure is total, not partial, and it is invisible until an operator hits
+    // it. Required args are excluded: rejecting `""` there is correct.
+    const offenders: string[] = [];
+    for (const prompt of ALL_PROMPTS) {
+      const shape = prompt.argsSchema.shape as Record<string, { isOptional(): boolean }>;
+      for (const key of Object.keys(shape)) {
+        if (!shape[key].isOptional()) continue;
+        // `ALL_PROMPTS` is `GstPrompt<any>[]`, so the issue type does not flow.
+        const parsed = prompt.argsSchema.safeParse({ [key]: '' }) as
+          | { success: true }
+          | { success: false; error: { issues: Array<{ path: Array<string | number> }> } };
+        if (parsed.success) continue;
+        if (parsed.error.issues.some((issue) => issue.path[0] === key)) {
+          offenders.push(`${prompt.name}.${key}`);
+        }
+      }
+    }
+    expect(
+      offenders,
+      'optional args rejecting "" — wrap them in stringFromWire / enumFromWire'
+    ).toEqual([]);
   });
 
   it('both previously undocumented memo args now carry descriptions', () => {

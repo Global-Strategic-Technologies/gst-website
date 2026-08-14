@@ -61,7 +61,7 @@
 import { z } from 'zod';
 import type { GstPrompt } from './types';
 import { authorialIntentLine, embedIrlGeneratorSource, IRL_SOURCE_EMBED_URI } from './embed';
-import { arrayFromWire, booleanFromWire, stringFromWire } from './wire-shape';
+import { arrayFromWire, booleanFromWire, enumFromWire, stringFromWire } from './wire-shape';
 import { irlSectionCatalog } from '../content/irl-section-catalog';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
@@ -77,27 +77,20 @@ const SECTION_CATALOG = irlSectionCatalog();
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
 
 const argsSchema = z.object({
-  targetName: z
-    .string()
-    .min(1)
+  targetName: stringFromWire(z.string().min(1).optional())
     .optional()
     .describe(
       "The target or client name being diligenced — personalizes the 'Target' row and the download filename (e.g., 'MedSig Health'). Distinct from companyName. Omit to emit the universal template."
     ),
-  companyName: z
-    .string()
-    .min(1)
+  companyName: stringFromWire(z.string().min(1).optional())
     .optional()
     .describe(
       "Requesting company name. Composed into the workbook title as '{Company} {Project} Information Request List' (title only — distinct from targetName)."
     ),
-  projectName: z
-    .string()
-    .min(1)
+  projectName: stringFromWire(z.string().min(1).optional())
     .optional()
     .describe('Project / engagement name. Composed into the title alongside companyName.'),
-  transactionContext: z
-    .enum(transactionContextValues)
+  transactionContext: enumFromWire(z.enum(transactionContextValues).optional())
     .optional()
     .describe(
       'Engagement context. Must be one of: sell-side · buy-side · value-creation · unknown.'
@@ -339,7 +332,7 @@ export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
   description:
     'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Configurable per engagement — company/project title, section pick-list, per-question removal (NN-II keys via excludeRequests; see list_irl_requests), custom per-section requests, canonical-row toggle — with the same options as the Hub generator. transactionContext also fires the authored skip-if directives (auto-removing tagged questions). When called with args, also calls generate_information_request_list_xlsx (forwarding the full configuration) and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
   version: '0.0.8',
-  lastReviewedAt: '2026-07-07',
+  lastReviewedAt: '2026-08-14',
   orchestrates: [IRL_SOURCE_EMBED_URI, XLSX_TOOL_NAME] as const,
   argsSchema,
   build: (args) => {

@@ -42,9 +42,7 @@ in lockstep when the registry shape changes.
 **What 0.51.0 got wrong.** It refused any `filledIrl` arriving with zero newlines — the signature of a client collapsing a multi-line paste — on the argument that the resulting dossier "cites a structure that no longer exists". That was reasoned from first principles and never tested against an artifact. Checked afterwards:
 
 - `normalizeForMatching` applies `.replace(/\s+/g, ' ')` **before** both the substring check and the word-run tokenizer. Flattening is the same transformation, so it is a provable no-op for the only check the provenance chain runs.
-- Nothing reads line structure. The only `split(/
-?
-/)` sites parse the IRL generator source and a different prompt's arg; the extractor produces bodies and never consumes one.
+- Nothing reads line structure. The only `split(/\r?\n/)` sites parse the IRL generator source and a different prompt's arg; the extractor produces bodies and never consumes one.
 - The hash-bind exists to catch a model substituting a condensed **paraphrase**. Flattening is not paraphrase — every word survives, in order.
 - A real production run on a flattened body produced a sound dossier with a correct 121/122 fill ratio.
 

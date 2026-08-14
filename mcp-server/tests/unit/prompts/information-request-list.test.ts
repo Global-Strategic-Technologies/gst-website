@@ -88,11 +88,15 @@ describe('gst_information_request_list', () => {
       }
     });
 
-    it('rejects an empty targetName (min length 1)', () => {
+    // BL-124 — this used to assert REJECTION. Claude Desktop ships an unfilled
+    // form field as `""`, and `targetName` is optional (its own description says
+    // "Omit to emit the universal template"), so rejecting the blank made the
+    // documented happy path return -32602 and killed prompt attachment outright.
+    it('treats an empty targetName as not supplied, not as a violation', () => {
       const result = informationRequestListPrompt.argsSchema.safeParse({ targetName: '' });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].path).toEqual(['targetName']);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.targetName).toBeUndefined();
       }
     });
 

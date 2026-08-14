@@ -61,7 +61,7 @@ export async function handlePrepareIrlBodyTool(
   const structure = assessIrlBodyStructure(payload.filledIrl);
 
   const irlBodyHash = computeIrlBodyHash(payload.filledIrl);
-  const byteLength = Buffer.byteLength(payload.filledIrl, 'utf8');
+  const byteLength = structure.byteLength;
 
   // BL-076 — write the body to the IRL body cache keyed by the canonical
   // hash so `compose_dossier_envelope` can re-hydrate it without the model
