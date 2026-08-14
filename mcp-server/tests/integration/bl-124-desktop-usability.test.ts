@@ -130,29 +130,41 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
     // optional arg that rejects it makes the whole prompt unattachable — the
     // failure is total, not partial, and it is invisible until an operator hits
     // it. Required args are excluded: rejecting `""` there is correct.
+    // **Probe the FIELD schema, not the whole object.** An earlier version did
+    // `argsSchema.safeParse({ [key]: '' })`, which fails on any prompt that has
+    // a required argument — the parse dies on the MISSING required field, the
+    // `path[0] === key` filter finds nothing, and the retention half below never
+    // runs. That silently limited the retention check to the three all-optional
+    // prompts while the test name claimed all nine.
+    interface FieldSchema {
+      isOptional(): boolean;
+      safeParse(v: unknown): { success: boolean; data?: unknown };
+    }
     const offenders: string[] = [];
     for (const prompt of ALL_PROMPTS) {
-      const shape = prompt.argsSchema.shape as Record<string, { isOptional(): boolean }>;
+      const shape = prompt.argsSchema.shape as Record<string, FieldSchema>;
       for (const key of Object.keys(shape)) {
-        if (!shape[key].isOptional()) continue;
-        // `ALL_PROMPTS` is `GstPrompt<any>[]`, so the issue type does not flow.
-        const parsed = prompt.argsSchema.safeParse({ [key]: '' }) as
-          | { success: true; data: unknown }
-          | { success: false; error: { issues: Array<{ path: Array<string | number> }> } };
-        if (!parsed.success) {
-          if (parsed.error.issues.some((issue) => issue.path[0] === key)) {
-            offenders.push(`${prompt.name}.${key} (rejects "")`);
-          }
+        const field = shape[key];
+        if (!field.isOptional()) continue; // required: rejecting "" is correct
+
+        const blank = field.safeParse('');
+        if (!blank.success) {
+          offenders.push(`${prompt.name}.${key} (rejects "")`);
           continue;
         }
+
+        // Skip fields carrying `.default(...)`: they intentionally resolve to a
+        // value rather than `undefined`, which is correct and not retention.
+        // Detected by what the field does with `undefined` itself.
+        const absent = field.safeParse(undefined);
+        if (absent.success && absent.data !== undefined) continue;
+
         // Parsing is not enough: an arg that survives as `""` reads as SUPPLIED
         // downstream. `gst_information_request_list` branches on
         // `customRequests !== undefined`, so a blank field there sent the
         // all-blank form down the one-shot path instead of the interactive one.
-        // The rejection check alone could not see that.
-        const value = (parsed.data as Record<string, unknown>)[key];
-        if (value !== undefined) {
-          offenders.push(`${prompt.name}.${key} (survives as ${JSON.stringify(value)})`);
+        if (blank.data !== undefined) {
+          offenders.push(`${prompt.name}.${key} (survives as ${JSON.stringify(blank.data)})`);
         }
       }
     }
