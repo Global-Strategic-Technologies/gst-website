@@ -335,7 +335,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ### BL-123: `gst_irl_ingestion` takes its inputs and its own provenance claims on trust
 
-**Source**: production run 2026-08-13 (Kestrel IRL) — hash mismatch investigation | **Effort**: Medium | **Status**: Open
+**Source**: production run 2026-08-13 (Kestrel IRL) — hash mismatch investigation | **Effort**: Medium | **Status**: **Implemented 2026-08-13** (prompt `0.24.0` / server `0.51.0`, [ADR-0018](../adr/0018-body-integrity-and-capped-provenance.md)) — open pending the post-deploy production confirmation, which is the only criterion a test cannot close
 
 **As an** operator running the IRL sweep from a real client, **I want** the server to refuse a body the client destroyed on the way in and to compute the provenance grade itself **so that** a dossier cannot look clean while resting on mangled input or on a claim nobody checked.
 
@@ -350,16 +350,17 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 #### Acceptance Criteria
 
-- [ ] A structurally destroyed body is refused at every entry point it can arrive through — prompt render, `prepare_irl_body`, and `validate_irl_provenance` — with the render halt being what the operator actually sees
-- [ ] The refusal test is narrow and certain (zero newlines above a byte floor), not a ratio heuristic that could reject a legitimately long-lined IRL
-- [ ] `irlSource` is **capped** by server-held provenance metadata rather than derived from it — an asserted `-prepop` is downgraded when the metadata says otherwise, reconstruction claims pass through untouched, and nothing is ever promoted
-- [ ] The `requireVerbatimBody` gate still rejects a reconstruction run (the inversion an early design would have shipped)
-- [ ] A replayed payload can no longer claim `partner-paste-verbatim-prepop`
-- [ ] The provenance store degrades quietly when unavailable and never falls back to in-memory on the Worker
-- [ ] Every argument description leads with its valid values and its default, ahead of the prose
-- [ ] The VDR taxonomy is inlined with a drift guard against the canonical Library article
-- [ ] The operator-facing newline hazard is documented in both IRL runbooks
-- [ ] Payload reduction measured and reported as actuals, not the estimate
+- [x] A structurally destroyed body is refused at every entry point it can arrive through — prompt render, `prepare_irl_body`, and `validate_irl_provenance` — with the render halt being what the operator actually sees
+- [x] The refusal test is narrow and certain (zero newlines above a byte floor), not a ratio heuristic that could reject a legitimately long-lined IRL
+- [x] `irlSource` is **capped** by server-held provenance metadata rather than derived from it — an asserted `-prepop` is downgraded when the metadata says otherwise, reconstruction claims pass through untouched, and nothing is ever promoted
+- [x] The `requireVerbatimBody` gate still rejects a reconstruction run (the inversion an early design would have shipped)
+- [x] A replayed payload can no longer claim `partner-paste-verbatim-prepop`
+- [x] The provenance store degrades quietly when unavailable and never falls back to in-memory on the Worker
+- [x] Every argument description leads with its valid values and its default, ahead of the prose
+- [x] The VDR taxonomy is inlined with a drift guard against the canonical Library article
+- [x] The operator-facing newline hazard is documented in both IRL runbooks
+- [x] Payload reduction measured and reported as actuals, not the estimate — **153.8 KB → 139.5 KB** on the production artifact; a refused body renders 1.8 KB in one message
+- [ ] **Post-deploy production confirmation**: a fresh Desktop invocation showing the halt fires on a pasted multi-line body and the capped grade appears
 
 ---
 

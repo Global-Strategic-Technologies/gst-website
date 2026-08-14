@@ -405,6 +405,12 @@ export interface IrlSourceAudit {
   asserted: IrlSource;
   /** `null` when no provenance record could be read — absent, expired, or store unavailable. */
   mintedBy: IrlBodyMintedBy | null;
+  /**
+   * Whether `capIrlSource` actually downgraded the claim. Carried rather than
+   * re-derived: the cap rule lives in exactly one function, and an engine that
+   * recomputed the predicate would be a second copy to drift.
+   */
+  capped: boolean;
   /** ISO-8601 mint time when known. Surfaces mint age so a replay is visible. */
   mintedAt?: string | null;
 }
@@ -1281,7 +1287,7 @@ export function runComposeDossierEnvelope(
   // a suite-wide rebaseline in place of an additive change.
   const audit = input.irlSourceAudit;
   if (audit && audit.asserted === 'partner-paste-verbatim-prepop') {
-    if (audit.mintedBy === 'prepare-tool') {
+    if (audit.capped) {
       autoAppended.push({
         category: 'provenance-gap',
         entry: `irlSource downgraded by the server: the run reported \`partner-paste-verbatim-prepop\`, but the cached body was written by \`prepare_irl_body\`${audit.mintedAt ? ` at ${audit.mintedAt}` : ''}, not by the prompt render. Recorded as \`partner-paste-verbatim\`. The bytes still hash-bind; what is not established is that the server witnessed them straight from an operator prompt argument.`,

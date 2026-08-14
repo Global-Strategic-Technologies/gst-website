@@ -349,7 +349,13 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
   const irlBodyProvenance: IrlBodyProvenanceStore | undefined = (() => {
     if (ctx.irlBodyProvenance) return ctx.irlBodyProvenance;
     if (ctx.metricsSink === undefined) return new InMemoryIrlBodyProvenanceStore();
-    const store = createCacheStore(env);
+    // `retry: false` — BL-121's lesson, carried over. This store adds one read
+    // to `compose_dossier_envelope` and a read-then-write to
+    // `prepare_irl_body`, for a value that only labels an audit claim. The SDK
+    // default (six attempts, ~4,289 ms of backoff) would put a degraded Upstash
+    // on the response path of every one of those calls. Failing quiet is the
+    // point; failing quiet AND slow is not.
+    const store = createCacheStore(env, { retry: false });
     return store ? new UpstashIrlBodyProvenanceStore(store) : undefined;
   })();
 

@@ -104,7 +104,7 @@ export async function handleComposeDossierEnvelopeTool(
     // claim passes through, disclosed as unverified.
     const provenance = await metrics?.irlBodyProvenance?.read(payload.irlBodyHash);
     const mintedBy = provenance?.mintedBy ?? null;
-    const { irlSource } = capIrlSource(payload.irlSource, mintedBy);
+    const { irlSource, capped } = capIrlSource(payload.irlSource, mintedBy);
     const engineInput: ComposeDossierEnvelopeEngineInput = {
       ...payload,
       filledIrl,
@@ -112,6 +112,7 @@ export async function handleComposeDossierEnvelopeTool(
       irlSourceAudit: {
         asserted: payload.irlSource,
         mintedBy,
+        capped,
         mintedAt: provenance?.mintedAt ?? null,
       },
     };

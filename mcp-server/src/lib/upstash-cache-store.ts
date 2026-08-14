@@ -43,8 +43,18 @@ export interface CacheStore {
  * still call Inoreader, just without ISR-style amortization — same
  * graceful-skip pattern as the rate-limiter).
  */
-export function createCacheStore(env: Env): CacheStore | null {
-  const redis = createMcpClient(env);
+export function createCacheStore(
+  env: Env,
+  /**
+   * BL-123 — forwarded to `createMcpClient`. Callers whose store sits on a
+   * tool's response path should pass `{ retry: false }`: the SDK default is six
+   * attempts and ~4,289 ms of backoff sleep, which during an Upstash brownout
+   * would sit in front of every call. BL-121 established this for the run
+   * counters; it applies to any store whose value only labels an audit claim.
+   */
+  opts: { retry?: false } = {}
+): CacheStore | null {
+  const redis = createMcpClient(env, opts);
   if (!redis) return null;
 
   return {

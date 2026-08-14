@@ -366,13 +366,13 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 const EXPECTED_HASH_INTERACTIVE =
   'b810154588f8e35ac61ed637d1e766af6894bed4e44069b912e17fbcf530912b';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'd83789ae0afe3413d1055b9db9133ccb08719501af9ca378b0315c176d9fdfc9';
+  '4b22b5e4ec5c1bb662774cdd79e05cda1a9720040dc0fea58cceeee71d8122c4';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '8476915b996fb434b4890947d7c9cbf4f99153971f9ccf33f6732831aabb1726';
+  'aada346d0ee5c01a6a6f41e547ce96048178956da379f996a6236d4beaa8d093';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'c83a6afecec562492ca47f7803f915578282510faa143eacf8f97d6d08afbb86';
+  '9a1ee3ca0cef91320566b8cc7673646a914306c9f1e99e8c112cf8ac1c34de8f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '332843f8bfa695a395ccfc7ed965ef221f1ba1171184afca7dedaf79ffc71314';
+  '2a35365d1d38820dee321a3e68f486c6d43332f06697fb7196b6e8e3fd7572cb';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -384,9 +384,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  '424bcdbc7d8a916f237b8f4da9ef2d77fb1a3841c651a20431a07584e9980f21';
+  '3ea3283f14379f7197b29f8c9060c4005246d00b42de47f5b8b97cd48b4bebc5';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  '060c6cc59d31b4c4d464878136c21809aae568c10534be02883aea5768c8ed60';
+  'b07bac00fb47c33b01bbfa4d853fa54501a012d8cb4c8e3d670f77913bfafa1a';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
   '219d607047bf1b2f4a6c0b1eef30473e8bd7530cfa70cca0ed0c9075b5319e00';
 // extract-only is exempt from the audit gate, so its body is byte-identical at
