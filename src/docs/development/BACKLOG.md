@@ -354,7 +354,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 - [x] The refusal test is narrow and certain (zero newlines above a byte floor), not a ratio heuristic that could reject a legitimately long-lined IRL
 - [x] `irlSource` is **capped** by server-held provenance metadata rather than derived from it — an asserted `-prepop` is downgraded when the metadata says otherwise, reconstruction claims pass through untouched, and nothing is ever promoted
 - [x] The `requireVerbatimBody` gate still rejects a reconstruction run (the inversion an early design would have shipped)
-- [x] A replayed payload can no longer claim `partner-paste-verbatim-prepop`
+- [x] The provenance grade stops being a claim nobody checks — an over-strong `-prepop` is caught when the server's own record contradicts it, and an unverifiable one is disclosed rather than accepted silently. **Deliberately not claimed**: a payload replayed inside the 4-hour TTL against a render-minted entry still reads `-prepop`, because the record says the render wrote those bytes and that remains true. `mintedAt` is recorded and surfaced but never compared for freshness. Closing that would need a per-render nonce, which is a separate decision — see [ADR-0018](../adr/0018-body-integrity-and-capped-provenance.md) § Context for why the replay severity is narrower than it first reads
 - [x] The provenance store degrades quietly when unavailable and never falls back to in-memory on the Worker
 - [x] Every argument description leads with its valid values and its default, ahead of the prose
 - [x] The VDR taxonomy is inlined with a drift guard against the canonical Library article
