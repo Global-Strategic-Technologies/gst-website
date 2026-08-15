@@ -361,17 +361,59 @@ Seven further defects — an untrimmed enum lookup that fails prompt attachment,
 
 ---
 
-### BL-126: Tool inputs are hashed, bound and verified; the extraction that produces them is not
+### BL-126: `compute_techpar` is mode-conditional and the prompt never named a mode
 
-**Source**: two production sweeps over the same target, 2026-08-14 | **Effort**: Large | **Status**: Recorded — design work, not a patch
+**Source**: two production sweeps over the same target, 2026-08-14 | **Effort**: Medium | **Status**: **Implemented 2026-08-15** (prompt `0.27.0`, server `0.54.0`) — open pending the post-deploy determinism confirmation
 
 **As a** partner shipping a dossier to a client, **I want** two runs over the same IRL to agree on the headline verdicts **so that** the artifact is defensible.
 
-**What it is.** Two sweeps over the same target produced **TechPar 32.6% vs 47.5%** — "healthy, no cost story" against "above the PE ceiling, $84.7M of exit-value drag" — plus **ICG 15/100 vs 3/100**, and 83% vs 84% fill ratio on the byte-identical file. The tools are deterministic; every divergence is model extraction variance. Some is legitimate (one body was 79KB against the other's 52KB and carried merged Comments+Response), but a swing that flips the partner-facing conclusion is not something a footnote covers.
+**What it was.** Two sweeps over identical IRL bytes produced `rdOpEx` of **$4,391,000 and $8,320,000** — and with it TechPar **32.6% "healthy"** against **47.5% "above the PE ceiling"**, an inverted partner-facing verdict.
 
-The asymmetry is the point: everything downstream of extraction is hashed, bound, citation-verified and gap-listed, while extraction itself has no determinism guard at all.
+Neither run misbehaved. `compute_techpar` computes `rdOpEx` as `engCost + prodCost + toolingCost` in `deepdive` and reads the input directly in `quick`; `mode` is a required enum with no default; and the prompt named no mode at all. Step 4 enumerated the Section-02 components — which are `deepdive` inputs — so a model that obeyed it and picked `quick` held three figures the engine discards and whose `_audit` entries the schema rejects, plus a required `rdOpEx` with no documented source. Folding the components in was the only move left. A model that picked `deepdive` found `rdOpEx` ignored and supplied it anyway, from Section 04.
 
-**Trigger**: the next client-facing dossier, or a third run diverging on a headline verdict.
+**Established, and each verified against the artifact that decides:**
+
+- `deepdive` is the only mode the canonical IRL supports: Section 02 asks for exactly the three components, and **no bullet in any section asks for a total R&D OpEx figure**.
+- The SOP that owns which-bullet-feeds-which-input had **zero rows** for `rdOpEx`, `rdCapEx`, `engCost` and `exitMultiple`. `engCost` carries an entire prompt rule and still had none, so the asymmetry predated the field that surfaced it.
+- **An input with no row does not stay empty.** Both divergences were misroutes of bullets the SOP had _already mapped_ elsewhere — run A pulled the Section-02 `prodCost`/`toolingCost` rows into `rdOpEx`; run C pulled Section 04's `remediationBudget` row across tools entirely. Hence the anti-mappings, not just the rows.
+
+**Not established, and deliberately not acted on**: the ICG 15-vs-3 gap (the two runs used different bodies — confounded), and that `-1` is penalised harder than `0` (it is clamped at `Math.max(0, …)`, so an all-`-1` domain scores as an all-`0` one; that claim came from a tool-description string rather than the engine).
+
+**Withdrawn diagnoses**, recorded because the sequence is the substance: (1) _the annualization audit has an escape hatch_ — run A's `_audit` was never in hand and both candidate derivations reconcile under the proposed check; (2) _the runs cited different sections, so model variance_ — they ran under **different prompt bodies**; (3) _`rdOpEx` has no documented source_ — true but incomplete, checked against the SOP and prompt but not the engine; (4) _Section 04's R&D line is the quick-mode source_ — there is no R&D-total bullet in Section 04.
+
+**The transferable lesson**, which is not a fact about `rdOpEx`: every withdrawal came from checking the artifact that _describes_ an input rather than the one that _decides_. The SOP, the prompt, the tool description and the schema each said something the engine did not.
+
+#### Acceptance Criteria
+
+- [x] `gst_irl_ingestion` names its TechPar mode, in **both** bodies — the mode rule is shared, unlike the three extraction rules that render in the full body only
+- [x] The SOP carries mode-conditional rows for all four previously unmapped inputs, plus explicit **anti-mappings** for the two bullet sets that were misrouted
+- [x] A blank Section-02 component is surfaced in (J) rather than given invented provenance — placed in `GAP_LIST_DIRECTIVE` so it reaches extract-only, not in Step 4 which does not
+- [x] The detection signal (`engPctOfRD: 100` with `prodPctOfRD: null`) is named in the SOP and the gap-list rule
+- [ ] **Post-deploy determinism confirmation**: two sweeps over one IRL agree on `rdOpEx`
+
+**Candidate with a trigger — a consequence this change creates.** Fixing the mode to `deepdive` makes the component audits mandatory, and every `_audit.annualizationSource` value asserts that a derivation happened: **there is no value meaning "the IRL does not supply this"**, and the citation regex demands a 20-character excerpt. A partly-filled Section 02 therefore has no honest declaration available. The fix is a TechPar absence source plus nullable money fields and an `extractionOnly` marker, mirroring `tech-debt-audit.ts` — which already solved this one tool over. **Trigger**: the first partly-filled Section 02 reaching `compute_techpar` in `deepdive`.
+
+**Also recorded, not fixed**: the `rdOpEx` synthesis branch is duplicated at `src/utils/techpar-engine.ts:229` and `:374-376`, so a future change to the synthesis rule has two sites. Website-workspace engine code, outside this item's surface.
+
+**Still open, separately**: `_audit.annualizationSource`'s `estimated-from-anchor` and `estimated-from-headcount` branches require only a citation — no multiplier, no anchor, nothing the handler can check. A real hole, and **not** this divergence's cause. **Trigger**: an undeclared multiplier observed in the wild, or a new caller of those branches.
+
+---
+
+### BL-129: `assess_infrastructure_cost_governance` is the only IRL-fed scoring tool with no `_audit`
+
+**Source**: BL-126 design review, 2026-08-15 | **Effort**: Medium | **Status**: Recorded — needs a design pass, not a schema edit
+
+**What it is.** `generate_diligence_agenda`, `compute_techpar` and `estimate_tech_debt_cost` each carry an `_audit` sibling. ICG takes `answers` and `companyStage` and nothing else — twenty score-bearing inputs with zero provenance. This is structural and does not depend on the confounded 15-vs-3 observation.
+
+**Three blockers a design must clear**, all found before any code was written:
+
+- **`gst_target_quick_look` is a live caller with no IRL**, mandating a complete 20-key map where `-1` is the contractually correct "I don't know". A citation-or-silence rule is unsatisfiable there. TechPar already solved this: the `Section -- — partner-supplied form input` escape and `buildPartnerSuppliedTechParAudit()`.
+- **The dominant seeding mode is adjacency inference.** All five `ICG_SEEDING_RULES` mappings score something no bullet states, so a citation requirement is satisfiable only by citing a bullet that does not support the assertion — corrupting the signal the audit exists to create.
+- **Key omission is free.** An absent key scores 0 while `-1` scores −1, so an audit on present keys makes deletion strictly dominant.
+
+**The opening question is a design question, not a schema one**: what are the legitimate provenance modes for a seeded answer — direct citation, named adjacency inference, partner-supplied form input, genuine silence?
+
+**Trigger**: after BL-126's post-deploy confirmation, since the same instrument measures both.
 
 ---
 

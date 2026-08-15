@@ -41,6 +41,7 @@ import {
   UNKNOWN_PROPAGATION_RULE,
   EU_AI_ACT_CONDITIONAL_TRIGGER,
   NIS2_CONDITIONAL_TRIGGER,
+  TECHPAR_MODE_RULE,
   ENG_COST_DEDUP_RULE,
   ICG_SEEDING_RULES,
   MTTR_P1_RULE,
@@ -752,6 +753,11 @@ const GAP_LIST_DIRECTIVE = [
   '- **Tool sections elided** by inclusion gates (if `mode: full`) with the gate that failed and the IRL section that would have satisfied it.',
   '- **Conditional triggers that fired without explicit Section 09 backing** (e.g., NIS2 added because EU geography + regulated sector — partner should confirm with target).',
   '- **Currency / annualization assumptions** the audit forced (e.g., "TechPar run in CAD basis with conversionRate 0.73 — confirm actual basis with partner").',
+  // BL-126 — this rule lives in the gap-list directive rather than in Step 4
+  // deliberately: Step 4 renders in the full body ONLY, and extract-only is
+  // the path whose payloads downstream automation parses. A mitigation that
+  // reaches one of two bodies is the asymmetry this change exists to remove.
+  '- **TechPar components the IRL does not carry.** `compute_techpar` runs in `deepdive`, where the engine synthesizes R&D OpEx from `engCost + prodCost + toolingCost`. If Section 02 leaves a component blank or `n/a`, pass 0 and list it here — naming the component, the Section 02 bullet that would have answered it, and the consequence: **a zeroed component understates total technology cost and moves the zone verdict in the flattering direction, with nothing else marking it.** The one machine-readable tell is `engPctOfRD: 100` with `prodPctOfRD: null` in the tool response. Do NOT instead invent an annualization source for the missing figure — every `_audit.annualizationSource` value asserts that a derivation happened, so there is no honest way to declare a number the IRL never supplied.',
   '- **Map-absent regulatory frameworks** named by the IRL Section 09 but not in the curated Regulatory Map (e.g., Canada AIDA, NIST AI RMF) — flagged for manual tracking rather than fabricated.',
   '',
   'This section is the "ask the target a follow-up" checklist — every item is a concrete deliverable for the next data room request, not an abstract concern. Number each item.',
@@ -942,7 +948,7 @@ function buildOneShotBody(args: {
     '',
     `Step 3 — Pull the regulatory framework bodies the target is exposed to. Call \`list_regulation_facets\` first to enumerate available jurisdictions. Then call \`search_regulations\` **ONCE** with arrays: \`jurisdiction: ["eu", "us-ca", "gb", ...]\` collecting every jurisdiction surfaced by IRL Section 09, and \`category: ["data-privacy", "ai-governance", "cybersecurity", ...]\` collecting the relevant categories. The schema accepts \`string | string[]\` and OR-matches within each facet — one call returns every relevant framework. (Worked example: \`{ jurisdiction: ["eu", "us-ca"], category: ["data-privacy", "ai-governance"], limit: 20 }\`.) **Keep \`limit\` at or near its default of 20.** A broad batch returns a very large response — ~153,200 characters at \`limit: 50\`, against a 143,027-character response that has already exceeded a real client's tool-result ceiling. If \`returned\` is less than \`totalMatched\` the response was truncated: **narrow by category and issue a second batched call — do not raise \`limit\`.** Per-framework name lookup via \`query\` remains a per-name call if a specific framework is missing from the batched response, but jurisdiction + category filtering MUST be batched — **do NOT call \`search_regulations\` once per framework**. **Two conditional triggers — both gap-fill the IRL when the partner's Section 09 list misses them:** (a) ${EU_AI_ACT_CONDITIONAL_TRIGGER} (b) ${NIS2_CONDITIONAL_TRIGGER} **Surface the \`deeplink\` URL from the batched \`search_regulations\` response in the dossier** — it opens the Regulatory Map filtered to the chosen region + category set. Cite article numbers verbatim when summarizing obligations; do NOT invent citations beyond what the framework bodies return.`,
     '',
-    `Step 4 — Invoke \`compute_techpar\` using the architecture and engineering-cost data from IRL Section 02 + Section 03 + Section 07. Key inputs: engineering FTE count (Section 02), product personnel cost (Section 02), annual build/tooling cost (Section 02), monthly hosting + infra spend (Section 03 — annualize the 3-month average), infrastructure headcount (Section 03), material capex (Section 03), average fully-loaded engineering salary (Section 07). Toggle the capex view per the capex bullet in Section 03. ${ENG_COST_DEDUP_RULE}`,
+    `Step 4 — Invoke \`compute_techpar\` using the architecture and engineering-cost data from IRL Section 02 + Section 03 + Section 07. ${TECHPAR_MODE_RULE} Key inputs: engineering FTE count (Section 02), product personnel cost (Section 02), annual build/tooling cost (Section 02), monthly hosting + infra spend (Section 03 — annualize the 3-month average), infrastructure headcount (Section 03), material capex (Section 03), average fully-loaded engineering salary (Section 07). Toggle the capex view per the capex bullet in Section 03. ${ENG_COST_DEDUP_RULE}`,
     '',
     `**Step 4a — TechPar audit shape (the tool REQUIRES \`_audit\` — schema rejection on missing or wrong shape).** The BL-045 Phase-2 audit enforces TWO things for compute_techpar: (1) a SINGLE declared currency basis for all monetary inputs, and (2) PER-FIELD annualization provenance (no more ad-hoc YTD ×4 vs ×1.2 swings across runs on the same fixture). Follow the Critical anti-fabrication rules below to shape \`_audit\`; on a missing or malformed sibling the tool rejects with a structured BL-045 diagnostic naming the failed field and fix — read it and retry.`,
     '',
@@ -1103,7 +1109,14 @@ function buildExtractOnlyBody(args: {
     '',
     'Emit ONE JSON code fence labeled `worksheet: generate_diligence_agenda` containing the 13 dimensions + the `_audit` sibling in the canonical shape (per-dimension tier + citation + dimension-specific calibration fields). Do NOT invoke the tool. This is the payload that would be submitted in full mode.',
     '',
-    "**Step 2 — Per-tool input payloads (REQUIRED, one JSON fence per tool).** For each of the orchestrated tools (`compute_techpar`, `estimate_tech_debt_cost`, `assess_infrastructure_cost_governance`, `search_portfolio`, `search_regulations`, `search_radar`, `list_portfolio_facets`, `list_regulation_facets`), emit a JSON code fence labeled `payload: <tool-name>` containing the audited input payload — including all `_audit` calibration fields per the tool's schema. Use the same currency basis / annualization sources / scope declarations the full-mode invocation would use. Do NOT invoke the tools.",
+    // BL-126 — this step told the model to use "the same annualization sources
+    // the full-mode invocation would use" while withholding the mapping that
+    // sentence refers to: three of the four extraction rules render in the full
+    // body only. That is why one extract-only run sourced `rdOpEx` from Section
+    // 04's remediation bullet — a figure already mapped to a different tool.
+    // The mode rule is shared here so both bodies answer the same question the
+    // same way.
+    `**Step 2 — Per-tool input payloads (REQUIRED, one JSON fence per tool).** For each of the orchestrated tools (\`compute_techpar\`, \`estimate_tech_debt_cost\`, \`assess_infrastructure_cost_governance\`, \`search_portfolio\`, \`search_regulations\`, \`search_radar\`, \`list_portfolio_facets\`, \`list_regulation_facets\`), emit a JSON code fence labeled \`payload: <tool-name>\` containing the audited input payload — including all \`_audit\` calibration fields per the tool's schema. Use the same currency basis / annualization sources / scope declarations the full-mode invocation would use. Do NOT invoke the tools.\n\n${TECHPAR_MODE_RULE}`,
     '',
     'If an inclusion gate fails for a tool (per § Tool inclusion gates of the BL-045 design doc), emit a fence labeled `elided: <tool-name>` with `{ "reason": "<which gate predicate failed>", "irlSection": "<which IRL section would have satisfied it>" }` instead of the payload.',
     '',
@@ -1227,7 +1240,12 @@ function buildInteractiveBody(args: {
     `  - Step 2a — Extract the 13 diligence dimensions from the IRL and call \`generate_diligence_agenda\`. The IRL is filled, so derive concrete values; do NOT default to \`'unknown'\`.`,
     `  - Step 2b — Call \`list_portfolio_facets\` then \`search_portfolio\` ONCE with array filters (\`theme: [...]\`, \`engagement: [...]\` — \`string | string[]\` accepted) to pull 3-5 comparable past engagements in a single call.`,
     `  - Step 2c — Call \`list_regulation_facets\` then \`search_regulations\` ONCE with array filters (\`jurisdiction: [...]\`, \`category: [...]\` — \`string | string[]\` accepted) covering every framework the IRL Section 09 names. Do NOT call once per framework.`,
-    `  - Step 2d — Call \`compute_techpar\` using IRL Section 02 + 03 + 07 inputs.`,
+    // BL-126 — the interactive body calls `compute_techpar` too, and received
+    // neither the mode rule nor `GAP_LIST_DIRECTIVE` (which renders in the full
+    // and extract-only bodies only). Fixing two of the three callers would have
+    // reproduced, on a third path, the same asymmetry this change exists to
+    // close — the mode was unset here as much as anywhere else.
+    `  - Step 2d — Call \`compute_techpar\` using IRL Section 02 + 03 + 07 inputs. ${TECHPAR_MODE_RULE}`,
     `  - Step 2e — Call \`assess_infrastructure_cost_governance\` using IRL Section 03 + 02 + 07.`,
     `  - Step 2f — Call \`estimate_tech_debt_cost\` using IRL Section 04 + 07.`,
     `  - Step 2g — Call \`search_radar\` for the target's product segment + geographies.`,
@@ -1346,7 +1364,7 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.26.0',
+  version: '0.27.0',
   lastReviewedAt: '2026-08-14',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,

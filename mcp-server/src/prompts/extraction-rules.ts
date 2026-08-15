@@ -128,6 +128,32 @@ export const NIS2_CONDITIONAL_TRIGGER =
   '**NIS2**: if Section 00 geographies include the EU AND Section 01 product description names a regulated sector covered by NIS2 Annex I or II (healthcare, energy, transport, banking, digital infrastructure, drinking water, wastewater, public administration, space, postal/courier, waste management, chemicals, food, manufacture of critical products, digital providers, research) — add an NIS2 search (24-hour early-warning + 72-hour incident-notification + supply-chain risk obligations + Director-level personal liability).';
 
 /**
+ * BL-126 — which TechPar mode this prompt runs, and why it is not a choice.
+ *
+ * `compute_techpar` is mode-conditional: `techpar-engine.ts` computes
+ * `rdOpEx` as `engCost + prodCost + toolingCost` in `deepdive` and reads the
+ * `rdOpEx` input directly in `quick`. The prompt named no mode — zero matches
+ * for `deepdive`/`quick` before this rule — and the tool's `mode` is a required
+ * enum with no default, so the model chose it unguided on every call.
+ *
+ * That produced a 1.9× divergence on `rdOpEx` across two runs over identical
+ * IRL bytes, and with it a partner-facing verdict inversion (32.6% "healthy"
+ * vs 47.5% "above the PE ceiling"). Neither run misbehaved. Step 4 enumerates
+ * the Section-02 components, which are `deepdive` inputs; a model that obeyed
+ * it and picked `quick` held three figures the engine discards and whose
+ * `_audit` entries the schema rejects, plus a required `rdOpEx` with no
+ * documented source — so it folded the components in. A model that picked
+ * `deepdive` found `rdOpEx` ignored and supplied it anyway, from Section 04.
+ *
+ * `deepdive` is not a preference: it is the only mode the canonical IRL
+ * supports. Section 02 asks for exactly the three components and **no bullet
+ * anywhere asks for a total R&D OpEx figure**, so `quick`'s required input has
+ * no canonical source by construction.
+ */
+export const TECHPAR_MODE_RULE =
+  '**Run `compute_techpar` in `mode: "deepdive"`. Always.** This is not a judgement call: `deepdive` synthesizes `rdOpEx` from `engCost + prodCost + toolingCost`, which is exactly what IRL Section 02 asks the target for. `quick` instead takes `rdOpEx` as a direct input, and **no IRL bullet anywhere asks for a total R&D OpEx figure** — so in `quick` mode that required input has no source and gets improvised, which is what produced a 1.9× swing and an inverted zone verdict across two runs of the same IRL. **In `deepdive` the `rdOpEx` input is IGNORED entirely** — do not compute one, and in particular do NOT source it from Section 04\'s technical-debt remediation figure: that bullet is the Tech Debt Calculator\'s `remediationBudget`, a different tool, and routing it here has already happened once. If a Section-02 component bullet is blank or `n/a`, pass 0 and surface it in (J) per the gap-list rules — do not invent a provenance source for a figure the IRL does not carry.';
+
+/**
  * SOP § "Section 02 sub-counts → TechPar engCost / infraPersonnel dedup".
  *
  * Governs how the model splits an engineering total across `engCost` and
@@ -171,6 +197,7 @@ export const MTTR_P1_RULE =
  */
 export const EXTRACTION_RULES = {
   UNKNOWN_PROPAGATION_RULE,
+  TECHPAR_MODE_RULE,
   EU_AI_ACT_CONDITIONAL_TRIGGER,
   NIS2_CONDITIONAL_TRIGGER,
   ENG_COST_DEDUP_RULE,

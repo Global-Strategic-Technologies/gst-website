@@ -50,16 +50,16 @@ Load-bearing rationale preserved from the archived BL-043 initiative doc ([archi
 
 ## Section 02 — Software Architecture
 
-| Bullet                                | Feeds                                                                                              |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| High-level architecture diagram       | `gst_architecture_layer_review` Layer 1 grounding                                                  |
-| Technology stack                      | Diligence Machine `techArchetype`; `gst_architecture_layer_review` Layer 1                         |
-| Repository organization               | (qualitative — `gst_architecture_layer_review` Layer 1)                                            |
-| Engineering FTE count                 | TechPar `engFTEs`; Tech Debt Calculator `teamSize`                                                 |
-| Product personnel cost                | TechPar `prodCost` (deep-dive mode); unlocks disaggregated R&D OpEx synthesis                      |
-| Annual build and tooling cost         | TechPar `toolingCost`                                                                              |
-| Third-party dependency overview       | (qualitative — `gst_architecture_layer_review` Layer 1; future tool: vendor-risk scoring)          |
-| Most recent technical-debt assessment | Tech Debt Calculator inputs (`maintPct`, `incidents`, `mttr`); qualitative tone of `targetSummary` |
+| Bullet                                | Feeds                                                                                                       |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| High-level architecture diagram       | `gst_architecture_layer_review` Layer 1 grounding                                                           |
+| Technology stack                      | Diligence Machine `techArchetype`; `gst_architecture_layer_review` Layer 1                                  |
+| Repository organization               | (qualitative — `gst_architecture_layer_review` Layer 1)                                                     |
+| Engineering FTE count                 | TechPar `engFTEs`; Tech Debt Calculator `teamSize`                                                          |
+| Product personnel cost                | TechPar `prodCost` — **`deepdive` mode only**; one of the three components the engine sums into `rdOpEx`    |
+| Annual build and tooling cost         | TechPar `toolingCost` — **`deepdive` mode only**; one of the three components the engine sums into `rdOpEx` |
+| Third-party dependency overview       | (qualitative — `gst_architecture_layer_review` Layer 1; future tool: vendor-risk scoring)                   |
+| Most recent technical-debt assessment | Tech Debt Calculator inputs (`maintPct`, `incidents`, `mttr`); qualitative tone of `targetSummary`          |
 
 ## Section 03 — Infrastructure & Operations
 
@@ -76,17 +76,17 @@ Load-bearing rationale preserved from the archived BL-043 initiative doc ([archi
 
 ## Section 04 — SDLC
 
-| Bullet                                          | Feeds                                                                                             |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Development methodology                         | Diligence Machine `operatingModel` derivation                                                     |
-| Branching strategy and code-review process      | (qualitative — `gst_architecture_layer_review` Layer 2)                                           |
-| Test coverage                                   | Tech Debt Calculator `maintPct` proxy                                                             |
-| Production deployment process                   | Tech Debt Calculator `deployIdx`                                                                  |
-| Production incidents (24-mo quarterly trend)    | Tech Debt Calculator `incidents`, `mttr`; trend supports stability-improving / -worsening framing |
-| Active maintenance burden as % engineering time | Tech Debt Calculator `maintPct`                                                                   |
-| Annual remediation investment plan              | Tech Debt Calculator `remediationBudget`; unlocks payback-months projection                       |
-| Open bugs by severity                           | Tech Debt Calculator `incidents` quality signal                                                   |
-| Engineering operating model                     | Diligence Machine `operatingModel`                                                                |
+| Bullet                                          | Feeds                                                                                                                              |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Development methodology                         | Diligence Machine `operatingModel` derivation                                                                                      |
+| Branching strategy and code-review process      | (qualitative — `gst_architecture_layer_review` Layer 2)                                                                            |
+| Test coverage                                   | Tech Debt Calculator `maintPct` proxy                                                                                              |
+| Production deployment process                   | Tech Debt Calculator `deployIdx`                                                                                                   |
+| Production incidents (24-mo quarterly trend)    | Tech Debt Calculator `incidents`, `mttr`; trend supports stability-improving / -worsening framing                                  |
+| Active maintenance burden as % engineering time | Tech Debt Calculator `maintPct`                                                                                                    |
+| Annual remediation investment plan              | Tech Debt Calculator `remediationBudget`; unlocks payback-months projection. **NOT a TechPar input** — see the anti-mappings below |
+| Open bugs by severity                           | Tech Debt Calculator `incidents` quality signal                                                                                    |
+| Engineering operating model                     | Diligence Machine `operatingModel`                                                                                                 |
 
 ## Section 05 — Data, Analytics & AI
 
@@ -230,6 +230,30 @@ The subtractive content-filter directive engine is live. Directives are authored
 ### Generator custom requests and manual exclusions are NOT canonical (2026-07)
 
 The BL-044 generator lets a partner **filter sections**, **remove individual questions** (`excludeRequests` `NN-II` keys — via the Hub context panes' delta toggles or the MCP tool/prompt; keys discoverable via the `list_irl_requests` MCP tool), and **append ad-hoc `customRequests`** at generation time (all surfaces, via `src/utils/irl/customize-article.ts`). These choices are **engagement-local** — they change neither the generator source nor this mapping. They are exactly the "keep the per-engagement IRL as a local copy if it's truly one-off" path in the operator checklist above; if a custom request recurs across 3+ engagements, promote it to canonical via the row-3 path (which _does_ update this doc), and if a question is _routinely excluded_ for one engagement type, promote that pattern to an authored skip-if directive (which adds a row to the filter-directives table above). The generator cannot mint a brand-new ad-hoc section (e.g., "10 — Marketing Operations") — that still requires the canonical-article edit described in the decision table.
+
+### Mode-conditional inputs, and the four this SOP did not map (BL-126)
+
+`compute_techpar` is **mode-conditional**, and this document did not say so — which is how one IRL produced two different `rdOpEx` figures and an inverted zone verdict across two runs. The engine computes `rdOpEx = engCost + prodCost + toolingCost` in `deepdive` and reads the `rdOpEx` input directly in `quick`.
+
+**`gst_irl_ingestion` runs `deepdive`, always.** That is not a preference: canonical Section 02 asks for exactly the three components, and **no bullet in any section asks for a total R&D OpEx figure** — so `quick`'s required input has no source here by construction.
+
+| TechPar input  | Source under `deepdive` (the mode this SOP governs)                                                                                                                        |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rdOpEx`       | **None — synthesized, never sourced.** The engine sums the three components. Do not supply it                                                                              |
+| `engCost`      | **A derivation, not a bullet**: Section 02 FTE count minus the infra/SRE sub-count, × the Section 07 salary band                                                           |
+| `prodCost`     | Section 02 — "Product personnel cost"                                                                                                                                      |
+| `toolingCost`  | Section 02 — "Annual build and tooling cost"                                                                                                                               |
+| `rdCapEx`      | **No canonical source.** Section 03's capex bullet is _infrastructure_ capex, a different quantity from capitalized R&D. It enters `total` only when `capexView` is `cash` |
+| `exitMultiple` | **No canonical source** — an engagement assumption, not an IRL answer                                                                                                      |
+
+**Anti-mappings.** These bullets look like they answer a TechPar input and do not:
+
+- **Section 04 "Annual investment planned for technical-debt remediation" is NOT `rdOpEx`.** It is the Tech Debt Calculator's `remediationBudget` (row above). A figure phrased as "absorbed within R&D ($2.08M YTD)" is genuinely R&D-shaped, and it has already been routed here once.
+- **Section 02's `prodCost` / `toolingCost` bullets are NOT `rdOpEx`** either. They are two of its three components; folding them into a single figure double-books them under `deepdive`.
+
+**Why the anti-mappings are worth stating.** An input with no row does not stay empty — it attracts the nearest plausible value from rows belonging to other inputs and other tools. Both observed divergences were misroutes of bullets this document had _already mapped_ elsewhere.
+
+**Detection signal.** `engPctOfRD: 100` with `prodPctOfRD: null` in a `compute_techpar` response means R&D OpEx was synthesized from partial components — one or more Section 02 bullets were blank and passed as 0. That understates total technology cost and moves the zone verdict in the flattering direction; nothing else marks it.
 
 ---
 

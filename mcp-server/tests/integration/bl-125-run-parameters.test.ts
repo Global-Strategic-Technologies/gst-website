@@ -406,3 +406,55 @@ describe('BL-125 — a run with no envelope call still reports the body it was g
     expect(text).toContain('measurement: self-reported');
   });
 });
+
+describe('BL-126 — every body that calls compute_techpar names its mode', () => {
+  // `compute_techpar` computes `rdOpEx` as `engCost + prodCost + toolingCost`
+  // in `deepdive` and reads the input directly in `quick`. `mode` is a required
+  // enum with no default and the prompt named none, so the model chose per call
+  // — two runs over one IRL took different branches and produced an inverted
+  // zone verdict (32.6% "healthy" vs 47.5% "above ceiling").
+  //
+  // The bodies are enumerated from the call sites rather than assumed. An
+  // earlier draft of this fix reached the full and extract-only bodies only;
+  // the interactive body calls the tool at its own Step 2d and was left with
+  // the mode unset — the same asymmetry the fix exists to close, on a third
+  // path. The hash suite moving 8 scenarios instead of 12 is what surfaced it.
+  const CALLERS: Array<[string, () => string]> = [
+    ['one-shot', ONE_SHOT],
+    ['extract-only', EXTRACT_ONLY],
+    ['interactive', INTERACTIVE],
+  ];
+
+  it.each(CALLERS)('%s names deepdive as the mode', (_label, build) => {
+    expect(build()).toContain('`mode: "deepdive"`');
+  });
+
+  it.each(CALLERS)('%s warns off the Section 04 remediation figure', (_label, build) => {
+    // Both observed divergences were misroutes of bullets the SOP had ALREADY
+    // mapped elsewhere. Section 04's remediation line is Tech Debt's
+    // `remediationBudget`; it is R&D-shaped enough to attract a model twice.
+    expect(build()).toContain("Section 04's technical-debt remediation figure");
+  });
+
+  it.each(CALLERS)('%s states that rdOpEx is ignored under deepdive', (_label, build) => {
+    expect(build()).toContain('`rdOpEx` input is IGNORED');
+  });
+
+  it('the blank-component gap rule reaches the bodies that emit (J) themselves', () => {
+    // Placed in GAP_LIST_DIRECTIVE, not Step 4 — Step 4 renders in the full
+    // body only, and extract-only is the path whose payloads automation parses.
+    for (const build of [ONE_SHOT, EXTRACT_ONLY]) {
+      const text = build();
+      expect(text).toContain('TechPar components the IRL does not carry');
+      expect(text).toContain('engPctOfRD: 100');
+    }
+  });
+
+  it('does not tell the model to invent provenance for a missing component', () => {
+    // Fixing the mode to deepdive makes the three component audits mandatory,
+    // and every annualizationSource value asserts a derivation happened — there
+    // is no value meaning "the IRL does not supply this". The honest path is a
+    // (J) entry, and the body has to say so or the model fabricates a source.
+    expect(ONE_SHOT()).toContain('do not invent a provenance source');
+  });
+});
