@@ -189,7 +189,14 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // the model to infer them from what rendered, and requireVerbatimBody — inert
 // on every path, with zero render-time readers — is stated where a consumer
 // exists. Body-only on both prompts; no argument, tool or URI shape changed.
-const EXPECTED_MANIFEST_HASH = 'ab675c4b5599f6bc21d89562a04e256c2f0250da89299661399abcb2a6c22bd2';
+// TechPar mode rebaseline (server 0.54.0): gst_irl_ingestion v0.26.0 ->
+// v0.27.0. The prompt named no compute_techpar mode while the tool's `mode` is
+// a required enum with no default, so the model chose it per call — and the
+// engine reads `rdOpEx` directly in `quick` but synthesizes it from three
+// Section-02 components in `deepdive`. Two runs over one IRL took different
+// branches and produced an inverted zone verdict. Body-only change on one
+// prompt; drifts solely from that tuple.
+const EXPECTED_MANIFEST_HASH = '365ff68405d3d3e9dd0ca335cf4eeeeb8d1c9fe84846c5b3eb44b6d98a587d13';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

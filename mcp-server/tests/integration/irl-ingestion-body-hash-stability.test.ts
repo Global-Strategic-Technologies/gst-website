@@ -393,16 +393,28 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // that the FIELD is named at every level. The tool returns it at every level;
 // only the transcription rules are `debug`-scoped. Three one-shot hashes moved
 // a second time when that was split correctly.
+// Rebaselined for BL-126 prompt v0.26.0 -> v0.27.0 (server 0.54.0). All twelve
+// bodies drift: `TECHPAR_MODE_RULE` fixes `compute_techpar` to `deepdive` and
+// now renders in ALL THREE builders, and `GAP_LIST_DIRECTIVE` gained the
+// blank-component rule.
+//
+// Why twelve and not eight: the first implementation put the mode rule in the
+// full body's Step 4 and the extract-only Step 2, and the interactive bodies
+// did not move. That was the tell — `buildInteractiveBody` calls
+// `compute_techpar` at its own Step 2d and had been left with the mode unset,
+// which is the same asymmetry this change exists to close, reproduced on a
+// third path. A hash suite that moves fewer scenarios than the change touches
+// is worth reading as a question rather than a result.
 const EXPECTED_HASH_INTERACTIVE =
-  '9de12ad46f4b65548be27a5136462ec61c5f70714b1b58a3b4e53d15c25d272f';
+  '7baa0d6e694da0e98a7aaede430efa4fe659a55bdbdf7986f52af17221cfe726';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  'ebb198a3f7dd0630295149399626f92a3d27f3a12357e7c241c276907c951d1c';
+  'c0e75da1598ba454a1e10c70d6d14326b3c1cdda9926ee165958a16356d24ddf';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '0e946849bd1c342f7d7f5bdb3aad28a3447cbb2ec8c9682b8d8636d6373608ef';
+  '4f604c85f8ddd76cebc873d299b590f2911d75489473818a69973beab189cbd9';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '655c8ec9fbee24a07254dfeb8e4c4764d7f43bdccddde0c9aca82447f9e6396b';
+  '2c8b4e48e60c813967fa296b02957c900133097faf75a063ebd12f89008fbfb4';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '7ac66eede28cede651b926c55c99732af35b44d6c63f2a79915759a26f103317';
+  'd23f6699c0bc207ca959af898c45b5f1fe81df71569870c06523abe4f3bcc823';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -414,11 +426,11 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  '5174b37548cf97a7c93c5e1e7ee14cc77264790c938852b05f52e0cc592d64ee';
+  '88beb214c31f8cb5fd509e1ce637c7160da384c6681ce8ee93db316a51bcc31f';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  'edca8f1b20781a0fcae1153ce2c7ce41d4d76e983dc65ce3441022b0cd9edc41';
+  '153058290a939b7984e5d41b62f4ad62c36099f4717e30e8c837a64510a775d7';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
-  'eb850cdb5cb5886e96644cf2b7ccf3ade7014c5fe1858138a2ab396516e702a2';
+  '327ab8d022417ed490599c20a408d6c880fa78870cae264dd742705682e494cc';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
 // the resolved level — its meta fence is model-authored (ADR-0017), so it is
 // the one surface where an inferred `auditLevel` lands in the artifact with
@@ -432,15 +444,15 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  '5d4c188ab4b4f1191a46fd8acf3cf42a7d91858824048c5d8e18362680f62e30';
+  '77987176b0893e6504404aefa7cd638ea81eb0b0e9bee54cdd0094c75d310d67';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  '9a8101a7776032b83ba4c9a54513a15ac973df7a6ac9e7f36c031f131fc27a5b';
+  '17946b4f461b3777d2a15c31117faa42d7a37c2edf5d0676b1242074b283f57c';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
 // and `enhanced` rendered byte-identically) without any test noticing.
 const EXPECTED_HASH_INTERACTIVE_ENHANCED =
-  'e99824488e12915121702b0c5949448f31e33fb3aed5f6e3b454162f215f4bbf';
+  '54761d17cab9bdc0363dc67fb1880a9778c477add8e19e5795a0e0955c1cf8cf';
 // BL-125: every other interactive scenario passes NO arguments, so the
 // conditional Step 1 introduced by this change — the only new branching logic
 // in a served body — would have been pinned by nothing. All four tailoring
@@ -448,7 +460,7 @@ const EXPECTED_HASH_INTERACTIVE_ENHANCED =
 // tailoring sentence disappears); `requireVerbatimBody: true` rides along to
 // pin the stated-value bytes on this consumer without a further entry.
 const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
-  '818368b80779d83df35c417b34e6fec509186fc820922075bbf6f6be9ee0650e';
+  '73b6819143e4aa0c67f559e9b143304d2ef6adc058c411c81d046f1e7cc42408';
 
 interface Scenario {
   name: string;

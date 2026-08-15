@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-ab675c4b5599f6bc21d89562a04e256c2f0250da89299661399abcb2a6c22bd2
+365ff68405d3d3e9dd0ca335cf4eeeeb8d1c9fe84846c5b3eb44b6d98a587d13
 ```
 
 Computed over (sorted):
@@ -26,7 +26,7 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below), `gst_irl_ingestion` at `0.26.0` (capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn — and the body now states its own resolved run parameters; see the 0.53.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below), `gst_irl_ingestion` at `0.27.0` (capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters — and `compute_techpar` now runs in a stated mode; see the 0.54.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
@@ -34,6 +34,22 @@ the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
 
 ---
+
+## 0.54.0 — 2026-08-15 — `compute_techpar` gets a mode (`0.26.0` → `0.27.0`)
+
+**Behaviour change on the prompt render; no wire-shape change.** No input removed, no output narrowed. Manifest hash moves on one prompt tuple. A served MCP Resource changes.
+
+**Two runs over one IRL produced an inverted partner-facing verdict** — TechPar 32.6% "healthy" against 47.5% "above the PE ceiling" — driven by `rdOpEx` at $4,391,000 vs $8,320,000 over identical bytes.
+
+Neither run misbehaved. `compute_techpar` synthesizes `rdOpEx` from `engCost + prodCost + toolingCost` in `deepdive` and reads the input directly in `quick`; `mode` is a **required enum with no default**; and the prompt named no mode anywhere. Step 4 enumerated the Section-02 components — which are `deepdive` inputs — so a model that obeyed it and chose `quick` held three figures the engine discards, whose `_audit` entries the schema rejects, plus a required `rdOpEx` with no documented source. Folding the components in was the only move left. A model that chose `deepdive` found `rdOpEx` ignored and supplied it anyway, from Section 04.
+
+**`gst_irl_ingestion` now runs `deepdive`, stated in all three bodies.** Not a preference: canonical Section 02 asks for exactly the three components and **no bullet in any section asks for a total R&D OpEx figure**, so `quick`'s required input has no source here by construction.
+
+**The SOP gained the rows it never had.** `mcp-server/src/docs/library/irl-tool-input-mapping.md` — and its byte-identity twin at `src/data/library/irl-tool-input-mapping/article.md`, both served as `gst://library/irl-tool-input-mapping` — had **zero rows** for `rdOpEx`, `rdCapEx`, `engCost` and `exitMultiple`. They now carry mode-conditional entries plus two explicit **anti-mappings**, because an input with no row does not stay empty: it attracts the nearest plausible value from rows belonging to other inputs and other tools. Both observed divergences were misroutes of bullets already mapped elsewhere — Section 04's remediation line is the Tech Debt Calculator's `remediationBudget`.
+
+**Known consequence, recorded with a trigger** (BL-126 stanza): fixing the mode makes the three component audits mandatory, and every `_audit.annualizationSource` value asserts that a derivation happened — there is **no value meaning "the IRL does not supply this"**. This bites on **every** deepdive call, not just on a partly-filled IRL: `rdOpEx` and its `_audit` are required in both modes while `deepdive` discards the value, so each call declares a source for a field that has none. The prompt uses a `Section --` citation saying exactly that, which is a placeholder the enum forces rather than a claim. The prompt also instructs surfacing a blank Section-02 component in (J) rather than fabricating a source for it. The schema fix — an absence source plus nullable money fields, mirroring `tech-debt-audit.ts` — is recorded with its trigger met.
+
+**Operator-visible**: a blank Section-02 component passes as 0 and **understates total technology cost, moving the zone verdict in the flattering direction**. The tell is `engPctOfRD: 100` with `prodPctOfRD: null` in the response — **sufficient, not exhaustive**: that pattern fires only when both `prodCost` and `toolingCost` are zero, and a blank `toolingCost` alone leaves no KPI signal at all. The (J) gap entry, not the KPI, is the guard.
 
 ## 0.53.0 — 2026-08-14 — the prompt states its own run parameters (`0.25.0` → `0.26.0`, `0.0.8` → `0.0.9`)
 

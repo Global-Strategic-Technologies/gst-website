@@ -128,6 +128,33 @@ export const NIS2_CONDITIONAL_TRIGGER =
   '**NIS2**: if Section 00 geographies include the EU AND Section 01 product description names a regulated sector covered by NIS2 Annex I or II (healthcare, energy, transport, banking, digital infrastructure, drinking water, wastewater, public administration, space, postal/courier, waste management, chemicals, food, manufacture of critical products, digital providers, research) — add an NIS2 search (24-hour early-warning + 72-hour incident-notification + supply-chain risk obligations + Director-level personal liability).';
 
 /**
+ * BL-126 — which TechPar mode this prompt runs, and why it is not a choice.
+ *
+ * `compute_techpar` is mode-conditional: `techpar-engine.ts` computes
+ * `rdOpEx` as `engCost + prodCost + toolingCost` in `deepdive` and reads the
+ * `rdOpEx` input directly in `quick`. The prompt named no mode — zero matches
+ * for `deepdive`/`quick` before this rule — and the tool's `mode` is a required
+ * enum with no default, so the model chose it unguided on every call.
+ *
+ * That produced a 1.9× divergence on `rdOpEx` across two runs over identical
+ * IRL bytes, and with it a partner-facing verdict inversion (32.6% "healthy"
+ * vs 47.5% "above the PE ceiling"). Neither run misbehaved. Step 4 enumerates
+ * the Section-02 components, which are `deepdive` inputs; a model that obeyed
+ * it and picked `quick` held three figures the engine discards and whose
+ * `_audit` entries the schema rejects, plus a required `rdOpEx` with no
+ * documented source — so it folded the components in. A model that picked
+ * `deepdive` found `rdOpEx` ignored and supplied it anyway, from Section 04.
+ *
+ * `deepdive` is not a preference: it is the only mode the canonical IRL
+ * supports. Section 02 asks for the product-personnel and tooling components
+ * directly, and supplies the FTE breakdown `engCost` derives from. **No bullet
+ * anywhere asks for a total R&D OpEx figure**, so `quick`'s required input has
+ * no canonical source by construction.
+ */
+export const TECHPAR_MODE_RULE =
+  '**Run `compute_techpar` in `mode: "deepdive"`. Always.** This is not a judgement call: `deepdive` synthesizes R&D OpEx from `engCost + prodCost + toolingCost`, and IRL Section 02 asks the target for the product-personnel and tooling components directly while `engCost` derives from its FTE breakdown against the Section 07 salary band. `quick` instead takes `rdOpEx` as a direct input, and **no IRL bullet anywhere asks for a total R&D OpEx figure** — so in `quick` mode that required input has no source and gets improvised, which is what produced a 1.9x swing and an inverted zone verdict across two runs of the same IRL. **Wire shape under `deepdive` (the schema requires this even though the engine ignores the value):** pass `rdOpEx: 0` and an `_audit.rdOpEx` of `{ annualizationSource: "irl-annualized-stated", citation: "Section -- — not sourced; deepdive synthesizes R&D OpEx from engCost + prodCost + toolingCost" }`. Both fields are REQUIRED in both modes and the call is rejected without them — do not omit them, and do not compute a real figure for a field the engine discards. In particular do NOT source it from the Section 04 technical-debt remediation figure: that bullet feeds the Tech Debt Calculator input `remediationBudget`, a different tool, and routing it here has already happened once. **On the `_audit.rdOpEx` above**: `irl-annualized-stated` is a placeholder, not a claim. The enum has five values and every one asserts that a derivation happened — there is no value meaning "this field has no source" — so a required audit on a field the engine discards has no honest option. Use the `Section --` citation to say so in words, and treat this as the one sanctioned exception to the rule below. **If a Section-02 COMPONENT bullet (`engCost` / `prodCost` / `toolingCost`) is blank or `n/a`**, pass 0 for that component and say so explicitly in the (J) gap list — name the component, the Section 02 bullet that would have answered it, and the consequence, which is that a zeroed component understates total technology cost and moves the zone verdict in the flattering direction. For those three, do NOT invent an annualization source: they are figures the engine actually uses, so a fabricated provenance there corrupts a number the dossier rests on.';
+
+/**
  * SOP § "Section 02 sub-counts → TechPar engCost / infraPersonnel dedup".
  *
  * Governs how the model splits an engineering total across `engCost` and
@@ -171,6 +198,7 @@ export const MTTR_P1_RULE =
  */
 export const EXTRACTION_RULES = {
   UNKNOWN_PROPAGATION_RULE,
+  TECHPAR_MODE_RULE,
   EU_AI_ACT_CONDITIONAL_TRIGGER,
   NIS2_CONDITIONAL_TRIGGER,
   ENG_COST_DEDUP_RULE,
