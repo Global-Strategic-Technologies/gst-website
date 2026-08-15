@@ -40,7 +40,7 @@ describe('gst_information_request_list', () => {
     // v0.0.7 = per-question removal (excludeRequests NN-II keys) + BL-044.5
     // directives: transactionContext fires authored skip-if tags; the one-shot
     // body server-computes the combined omission list.
-    expect(informationRequestListPrompt.version).toBe('0.0.8');
+    expect(informationRequestListPrompt.version).toBe('0.0.9');
     expect(informationRequestListPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(informationRequestListPrompt.orchestrates).toEqual([
       IRL_SOURCE_EMBED_URI,

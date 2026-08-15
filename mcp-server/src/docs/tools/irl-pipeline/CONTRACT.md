@@ -1,7 +1,7 @@
 ---
 tool: compose_dossier_envelope
 version: v1
-lastAuthored: 2026-08-13
+lastAuthored: 2026-08-14
 schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 ---
 
@@ -21,7 +21,7 @@ schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 >
 > **Used by prompts**: [`gst_information_request_list`](../../prompts/README.md) (emits the intake ask) and [`gst_irl_ingestion`](../../prompts/irl-ingestion.md) (ingests a populated IRL and orchestrates the full dossier sweep).
 >
-> **Version**: `v1` | **Last authored**: 2026-08-10
+> **Version**: `v1` | **Last authored**: 2026-08-14
 >
 > **Registry**: see [`../README.md`](../README.md) for the "what is an input contract" narrative and the cross-tool registry.
 
@@ -184,7 +184,9 @@ Both internal consumers — the `requireVerbatimBody` gate and the reconstructio
 
 **A body whose line breaks the client destroyed is processed normally (BL-124).** BL-123 briefly refused these; the refusal was withdrawn a day later because citation verification normalises whitespace away before matching, so flattening cannot affect the only check that runs, and the refusal blocked every realistic IRL size with no working alternative. What remains is the measurement: `serverCachedBodyNewlines` below. See [ADR-0018](../../../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md) § Re-validation.
 
-**`defaultFiredFrameworks` must not overlap `conditionalTriggersFired`.** The partition is the point: one list is "enumerated in Section 09", the other is "fired despite not being enumerated".
+**`defaultFiredFrameworks` must not overlap `conditionalTriggersFired`.** The partition is by **how the framework was reached**, not by whether Section 09 happens to name it: `conditionalTriggersFired` holds what a named trigger predicate fired, `defaultFiredFrameworks` holds what came in through the Section-09 evidence path and nothing else.
+
+**A framework that fires AND is enumerated in Section 09 goes in `conditionalTriggersFired` only** — the conditional-trigger path wins, and the framework must be removed from `defaultFiredFrameworks`. This is the common case rather than an edge one (a production run hit it with the EU AI Act, which is both an `EU_AI_ACT` trigger and a Section 09 entry on any EU-exposed target). Corrected in BL-125: this line previously described the second list as "fired despite not being enumerated", which read as excluding exactly that case and contradicted `Bl063PartitionViolationError`'s own remediation text.
 
 ### Output shape
 

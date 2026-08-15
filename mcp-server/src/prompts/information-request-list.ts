@@ -60,7 +60,13 @@
 
 import { z } from 'zod';
 import type { GstPrompt } from './types';
-import { authorialIntentLine, embedIrlGeneratorSource, IRL_SOURCE_EMBED_URI } from './embed';
+import {
+  authorialIntentLine,
+  deliveredAsDocumentClause,
+  embeddedTaxonomyFraming,
+  embedIrlGeneratorSource,
+  IRL_SOURCE_EMBED_URI,
+} from './embed';
 import { arrayFromWire, booleanFromWire, enumFromWire, stringFromWire } from './wire-shape';
 import { irlSectionCatalog } from '../content/irl-section-catalog';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
@@ -283,6 +289,10 @@ function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
     '',
     `Deliver the GST Information Request List as a paste-ready artifact the partner can email or attach to a kickoff meeting. The canonical IRL text is embedded inline as the next message (\`${IRL_SOURCE_EMBED_URI}\`) — use it verbatim, preserving the section structure and bullet ordering.`,
     '',
+    embeddedTaxonomyFraming(false),
+    '',
+    deliveredAsDocumentClause({ citesRunParameters: false }),
+    '',
     `Context for the personalization:`,
     `- ${targetClause}`,
     `- ${titleClause}`,
@@ -312,6 +322,10 @@ const INTERACTIVE_BODY = [
   '',
   `Help the user assemble GST's Information Request List for an engagement. The canonical IRL text is embedded inline as the next message (\`${IRL_SOURCE_EMBED_URI}\`).`,
   '',
+  embeddedTaxonomyFraming(false),
+  '',
+  deliveredAsDocumentClause({ citesRunParameters: false }),
+  '',
   'Step 1. Ask the user:',
   '',
   '> What target or client is this for, and is the engagement sell-side, buy-side, or value-creation? If you can share a one-paragraph product summary, I can lightly tune the artifact; otherwise I will emit the universal template.',
@@ -330,7 +344,7 @@ export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Configurable per engagement — company/project title, section pick-list, per-question removal (NN-II keys via excludeRequests; see list_irl_requests), custom per-section requests, canonical-row toggle — with the same options as the Hub generator. transactionContext also fires the authored skip-if directives (auto-removing tagged questions). When called with args, also calls generate_information_request_list_xlsx (forwarding the full configuration) and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
-  version: '0.0.8',
+  version: '0.0.9',
   lastReviewedAt: '2026-08-14',
   orchestrates: [IRL_SOURCE_EMBED_URI, XLSX_TOOL_NAME] as const,
   argsSchema,

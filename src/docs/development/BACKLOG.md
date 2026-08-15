@@ -333,6 +333,74 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
+### BL-125: The prompt states none of its own run parameters
+
+**Source**: post-deploy production testing of BL-124, 2026-08-14, plus seven rounds of design review | **Effort**: Medium | **Status**: **Implemented 2026-08-14** (prompt `0.26.0` / `0.0.9`, server `0.53.0`, [ADR-0017 amendment](../adr/0017-audit-levels-enforced-in-the-tool-response.md)) — open pending the post-deploy production confirmation, which is the only criterion a test cannot close
+
+**As an** operator invoking `gst_irl_ingestion`, **I want** the arguments I set to actually reach the run **so that** `debug` produces a debug artifact and `requireVerbatimBody` enforces the refusal it promises.
+
+**What it is.** The rendered body never states its own resolved `mode`, `auditLevel` or `transactionContext` — no interpolation of those values exists anywhere in the prompt. The model has to infer them from which sections appeared, and in three production runs out of three it inferred `enhanced`, including one the operator ran at `debug`. It then passed `enhanced` to `compose_dossier_envelope`, the tool withheld `metaFenceMarkdown` exactly as contracted, and `promptVersion` came back `null`. **`auditLevel: debug` is unreachable through the model even when the server renders it.**
+
+`requireVerbatimBody` is worse: fourteen occurrences in `mcp-server/src`, **zero render-time readers**, not even a telemetry counter. The server's refusal reads the value from the tool input the model supplies, and the model has never been shown the operator's. This is the `forceTools` failure ADR-0017 line 14 records — _"the model was told to honour an override it was never shown"_ — but deletion was the right answer there and is the wrong one here, because this flag gates a refusal.
+
+Design review of the fix surfaced two more: `build()` dispatches on body-absence before checking `mode`, so `{mode:'extract-only'}` with no body silently renders the interactive builder; and interactive discards every argument except `auditLevel`, so five supplied values are dropped and the model re-asks for what it was given.
+
+Seven further defects — an untrimmed enum lookup that fails prompt attachment, an anti-balk clause present on 1 of 5 rendered bodies, unframed embedded resources, dangling RUN-AUDIT back-references, `enhanced` being a no-op in interactive mode, an unpopulatable `filledIrl` block in extract-only, and a schema description contradicting the BL-063 partition rule — round out the set. All were invisible while BL-123's halt blocked the paths that expose them.
+
+#### Acceptance Criteria
+
+- [x] Every builder states its own resolved run parameters, selected by the rule **"does this surface have a consumer for the value"** — so `auditLevel` appears in extract-only (its meta fence is model-authored, ADR-0017 line 48) while `requireVerbatimBody` does not (no envelope call, not a fence key, not a RUN-AUDIT field)
+- [x] The two prose sites that consume `requireVerbatimBody` point at the stated value rather than asking the model to know an unknowable condition
+- [x] Interactive receives the full argument set, and Step 1's tailoring ask is composed from the arguments genuinely absent — stating a value and then asking for it is the defect, not half of it
+- [x] Interactive discloses that a supplied `mode: extract-only` was not honored
+- [x] `enumFromWire` trims before lookup, matching `booleanFromWire`; the repo-wide guard is extended so no optional enum field on any prompt rejects a whitespace-padded canonical value
+- [x] The anti-balk clause covers all five rendered bodies, in a form whose evidence is structural rather than hash-based — the existing clause argues from a directive three of the five never render
+- [x] `enhanced` yields the same verification discipline on the interactive path as on the paste path; a (K) footer is never emitted without the blocking self-check that backs it
+- [x] The body-hash suite is governed by a stated **coverage rule** — pin builder × level, plus one args-variant per builder at `standard` only — rather than a tally renegotiated per change
+- [ ] **Post-deploy production confirmation**: a `debug` sweep returns a meta fence with a non-null `promptVersion`
+
+---
+
+### BL-126: Tool inputs are hashed, bound and verified; the extraction that produces them is not
+
+**Source**: two production sweeps over the same target, 2026-08-14 | **Effort**: Large | **Status**: Recorded — design work, not a patch
+
+**As a** partner shipping a dossier to a client, **I want** two runs over the same IRL to agree on the headline verdicts **so that** the artifact is defensible.
+
+**What it is.** Two sweeps over the same target produced **TechPar 32.6% vs 47.5%** — "healthy, no cost story" against "above the PE ceiling, $84.7M of exit-value drag" — plus **ICG 15/100 vs 3/100**, and 83% vs 84% fill ratio on the byte-identical file. The tools are deterministic; every divergence is model extraction variance. Some is legitimate (one body was 79KB against the other's 52KB and carried merged Comments+Response), but a swing that flips the partner-facing conclusion is not something a footnote covers.
+
+The asymmetry is the point: everything downstream of extraction is hashed, bound, citation-verified and gap-listed, while extraction itself has no determinism guard at all.
+
+**Trigger**: the next client-facing dossier, or a third run diverging on a headline verdict.
+
+---
+
+### BL-127: Interactive mode silently ignores `mode: extract-only`
+
+**Source**: design review of BL-125, 2026-08-14 | **Effort**: Small | **Status**: Recorded
+
+**What it is.** `build()` dispatches on `filledIrl` being absent before it looks at `mode`, so `{mode:'extract-only'}` with no body renders the interactive builder — which runs a full sweep and mandates the envelope call. `tests/helpers/prompt-args.ts` registers exactly that shape as this prompt's minimal args, so the shared suites render it.
+
+The coherent fix is for interactive to collect the body and _then_ branch, which is a feature rather than a hygiene fix. BL-125 makes the behavior visible instead: the interactive body states the effective mode and discloses that the supplied one was not honored.
+
+**Trigger**: the first operator report of an ignored `extract-only`, or any change to `build()`'s dispatch.
+
+---
+
+### BL-128: The RUN-AUDIT reporting contract exists twice, and the trigger to dedupe it has fired
+
+**Source**: BL-125 implementation + code review, 2026-08-14 | **Effort**: Medium | **Status**: Recorded — **trigger already met**
+
+**What it is.** `RUN_AUDIT_DIRECTIVE` and the interactive body's inline Step 5 are two renderings of one reporting contract. `irl-ingestion.ts` argues against exactly this in its own comments ("two copies of one reporting contract only drift"), and BL-125 scoped the dedupe out with the trigger _"the next edit that would have to be made twice."_
+
+**That trigger fired inside BL-125 itself**: the null-run `filledIrl` rule was written once in the shared directive and once in the interactive copy, in the same commit that named the trigger. Recording it rather than leaving it silently unfired is the point — an unfired trigger on a met condition is how deferred work becomes invisible.
+
+**A second instance to fix at the same time.** The extract-only body carries 13 `compose_dossier_envelope` references inside the shared RUN-AUDIT and meta-fence directives — including an instruction to copy `toolCallCounts` verbatim from that tool's output, in a mode that never calls it. That is the same defect class BL-125 closed for the run-parameter bullets (`copiesToEnvelopeCall`), left standing in the directives those bullets sit beside. Deduping the contract is what makes it fixable in one place instead of thirteen.
+
+**Trigger**: met. Schedule with the next substantive `gst_irl_ingestion` body change, since it carries a prompt version bump and a full hash rebaseline either way.
+
+---
+
 ### BL-124: The flattened-body refusal blocked every working path
 
 **Source**: production runs 2026-08-14, immediately after BL-123 deployed | **Effort**: Medium | **Status**: **Implemented 2026-08-14** (prompt `0.25.0` / server `0.52.0`, [ADR-0018 § Re-validation](../adr/0018-body-integrity-and-capped-provenance.md)) — open pending the post-deploy production confirmation
@@ -356,7 +424,7 @@ Forcing operators onto the interactive path then exposed two pre-existing defect
 - [x] The interactive body sanctions splitting a large `prepare_irl_body` call into its own turn
 - [x] An undelivered client call is excluded from `toolErrors` and included in `precheck.errorsEncountered`, preserving both arithmetic identities
 - [x] ADR-0018 carries the reversal in its title, status and index row — not only in an appended note
-- [ ] **Post-deploy production confirmation**: a Desktop paste completes end-to-end and the RUN-AUDIT block shows `newlines: 0`
+- [x] **Post-deploy production confirmation**: a Desktop paste completes end-to-end and the RUN-AUDIT block shows `newlines: 0` — **confirmed 2026-08-14**. A 51,787-byte flattened paste (141 newlines collapsed, trailing one dropped) bound `740d907b75139083`, ran the full sweep at `irlSource: partner-paste-verbatim-prepop` uncapped, `hashBindResult: pass-bound`, 58/58 claims verified, 0 auto-appended provenance gaps. The same sweep surfaced the defects now tracked as [BL-125](#bl-125-the-prompt-states-none-of-its-own-run-parameters)
 
 ---
 

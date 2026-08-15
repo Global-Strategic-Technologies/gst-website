@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-274afb116524bddc880df730c1441fc7f10b4c64f58405fc9481fae54a041586
+ab675c4b5599f6bc21d89562a04e256c2f0250da89299661399abcb2a6c22bd2
 ```
 
 Computed over (sorted):
@@ -26,12 +26,34 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.8` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.25.0` (capped `irlSource`, inlined VDR taxonomy, blank-field handling — the flattened-body refusal was withdrawn; see the 0.52.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below), `gst_irl_ingestion` at `0.26.0` (capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn — and the body now states its own resolved run parameters; see the 0.53.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.53.0 — 2026-08-14 — the prompt states its own run parameters (`0.25.0` → `0.26.0`, `0.0.8` → `0.0.9`)
+
+**Additive on every wire surface.** No input removed, no output shape narrowed. Manifest hash moves on two prompt tuples. Two behaviour changes an operator will notice, both restoring an argument that was silently discarded.
+
+**`auditLevel: debug` was unreachable through the model.** No builder had ever stated its resolved `mode` / `auditLevel` / `transactionContext` — no interpolation of those values existed anywhere in the prompt — so the model inferred them from which sections rendered. In three production runs of three it reported `enhanced`, including one an operator invoked at `debug`. It then passed `enhanced` to `compose_dossier_envelope`, which withheld `metaFenceMarkdown` exactly as contracted, and `promptVersion` came back `null`. The server had rendered `debug` correctly; the model's self-report overrode it downstream. All three builders now state their resolved values in a Run parameters block, and the meta-fence template points at it instead of listing the enum.
+
+**`requireVerbatimBody` was inert on every path.** Fourteen occurrences in `mcp-server/src`, **zero render-time readers** — not even a telemetry counter. The server's refusal reads the flag from the tool input the _model_ supplies, and the model had never been shown the operator's value, so an operator who set the gate got no gate. This is the `forceTools` shape ADR-0017 records; deletion was right there and wrong here, because this flag gates a refusal rather than an override. Now stated on the one-shot and interactive bodies — and deliberately **not** on extract-only, which invokes no tools and where the flag is neither a meta-fence key nor a RUN-AUDIT field.
+
+**Also fixed, none of them wire-visible:**
+
+- `enumFromWire` tested blankness with `.trim()` but looked up the value **untrimmed**, so `auditLevel: "debug "` — trivially produced by a form paste — failed the whole `prompts/get` with `-32602`, which Desktop renders as "Failed to attach prompt" with no diagnostic. The same total, silent failure 0.52.0 removed, reached by a different input.
+- The interactive builder consulted only `showRunAudit`, so `standard` and `enhanced` rendered byte-identically — yet the dossier still carried (K), because the envelope returns it at `enhanced`. An interactive run emitted a provenance footer **without the blocking self-check that backs it**. See the [ADR-0017 amendment](../src/docs/adr/0017-audit-levels-enforced-in-the-tool-response.md).
+- `build()` passes the whole argument set to the interactive builder instead of `{ auditLevel }` alone; five supplied arguments were being discarded and re-asked for. Step 1's tailoring ask is now composed from what is genuinely absent, and disappears entirely when all four are supplied.
+- The anti-balk clause covered **1 of 5** rendered bodies, because its evidence is the `**Body-binding hash:**` directive only the one-shot body renders. Four production balks across three surfaces on 2026-08-14; a structural variant now covers the rest.
+- Six dangling `RUN-AUDIT` back-references at `standard`/`enhanced`, one pointing at "the block's own section" for rules that were absent.
+- `conditionalTriggersFired`'s `.describe()` — served on the wire in `tools/list` — contradicted the BL-063 partition rule in both its clauses. A framework that fires **and** is named in Section 09 belongs in `conditionalTriggersFired` only; the tool's own `Bl063PartitionViolationError` said so while the description said the opposite.
+- `extract-only` reported `filledIrl: null` while declaring `runScenario: partner-paste`, because the null-run rule fired unconditionally in a mode that never calls the envelope. Absent server measurement is not absent body.
+
+**Body-hash suite**: now governed by a stated coverage rule — pin builder × level, plus one args-variant per builder at `standard` only — rather than a tally. Twelve scenarios. The `EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG` alias is retired: extract-only states its level now, so it is level-varying, and what the alias proxied is asserted directly in `bl-125-run-parameters.test.ts`.
 
 ---
 

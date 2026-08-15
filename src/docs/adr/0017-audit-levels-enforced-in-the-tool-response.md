@@ -56,3 +56,19 @@ _Rejected: a prompt-body clause instructing the model not to transcribe them._ T
 **Response-size budget**: `tool-response-budget.test.ts` bounds the envelope with a two-sided band whose **floor** (`minEnvelopeBytes`) exists to catch hollowing. Its fixture is pinned to `debug` because a size budget must bound the largest shape. **Do not lower that floor** to accommodate a smaller `standard` response — hollowing the envelope is precisely the mutation the floor exists to catch.
 
 **Cites this decision**: `mcp-server/src/prompts/irl-ingestion.ts` (the three-layer split and the builder-axis scope), `mcp-server/src/schemas/compose-dossier-envelope.ts` (`auditLevelValues` import, conditional spread, `buildEmitInstructions`), `mcp-server/src/docs/prompts/irl-ingestion.md` § Audit levels.
+
+---
+
+## Amendment — 2026-08-14 (BL-125, prompt 0.26.0 / server 0.53.0)
+
+Post-deploy testing of BL-124 found two ways this decision was not holding in the rendered artifact. The decision itself stands; both were gaps between it and the code.
+
+**1. The level table above was false on the interactive path.** `buildInteractiveBody` computed only `showRunAudit` and never consulted `showAuditDisplay`, so `standard` and `enhanced` rendered **byte-identically** — no per-section fences, no (K) footer directive, no blocking citation self-check. The dossier still carried (K), because the envelope returns `provenanceFooterMarkdown` at `enhanced` and Step 4 says to transcribe whatever it returns. **So an interactive run emitted a provenance footer without the self-check that backs it**, while a paste run at the same declared level got both — the same declared audit level meaning two different verification disciplines depending only on whether the operator pasted into the form.
+
+The table now holds on all three builders. It escaped notice because the body-hash suite pinned interactive at `standard` and `debug` but never at `enhanced`; that scenario is added, and the near-miss is recorded in that file's ledger.
+
+**2. "Exempt from the gate" did not mean "states no level".** `buildExtractOnlyBody` remains exempt — the directive set it renders is identical at all three levels, which is what the exemption asserts. But this ADR records above that the meta fence in `extract-only` is **model-authored**, because that mode makes no envelope call. That makes it the one surface where `auditLevel` reaches the artifact purely from the model's belief, with nothing to check it — and BL-125 established the belief is unreliable: in three production runs of three the model reported `enhanced`, including one invoked at `debug`.
+
+Extract-only therefore now **states** the resolved level while remaining exempt from gating on it. The consequence is that its body is level-varying for the first time, so the body-hash suite's `EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG` alias — a test-level proxy for the exemption — is retired. What it proxied is asserted directly and more strongly in `bl-125-run-parameters.test.ts`: every level-gated directive extract-only carries is present at all three levels, and the bodies differ only by the stated level. Byte-identity would have broken on any run-parameter addition; presence does not.
+
+**Related, recorded rather than changed.** This ADR already notes that `build()` dispatches on `filledIrl` absence before any mode check, so `{ mode: 'extract-only' }` with no body renders the interactive builder. What it did not address is that the operator's supplied `mode` was then discarded without trace — the model never saw it, so nothing could report the override. The interactive body now states the **effective** mode and discloses that a supplied `extract-only` was not honored. Making that path genuinely honor `extract-only` (collect the body, then branch) is BL-127.

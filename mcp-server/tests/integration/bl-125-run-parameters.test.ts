@@ -1,0 +1,408 @@
+/**
+ * BL-125 — the prompt states its own run parameters, and nothing references a
+ * section that did not render.
+ *
+ * **Why these tests exist.** Post-deploy testing of BL-124 found that no
+ * rendered body ever stated its resolved `mode` / `auditLevel` /
+ * `transactionContext`. The model inferred them from which sections appeared,
+ * and in three production runs out of three it reported `enhanced` — including
+ * one the operator invoked at `debug`. It then passed `enhanced` to
+ * `compose_dossier_envelope`, which withheld `metaFenceMarkdown` exactly as
+ * contracted, so `promptVersion` came back null. `auditLevel: debug` was
+ * unreachable through the model even though the server rendered it correctly.
+ *
+ * `requireVerbatimBody` was worse: fourteen occurrences in `src`, zero
+ * render-time readers. The server's refusal reads the flag from the tool input
+ * the model supplies, and the model had never been shown the operator's value,
+ * so an operator who set it got no gate at all.
+ *
+ * Every case renders through `argsSchema.parse` first, for the reason the
+ * BL-124 suite records: `build()` takes raw args because the SDK has already
+ * validated by then, so calling it directly bypasses Zod and proves nothing.
+ */
+
+import { describe, it, expect } from 'vitest';
+import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
+import { informationRequestListPrompt } from '../../src/prompts/information-request-list';
+
+const BODY = 'x'.repeat(300);
+
+function render(args: Record<string, unknown>): string {
+  const parsed = irlIngestionPrompt.argsSchema.parse(args);
+  const result = irlIngestionPrompt.build(parsed as never);
+  return result.messages.map((m) => (m.content.type === 'text' ? m.content.text : '')).join('\n');
+}
+function renderList(args: Record<string, unknown>): string {
+  const parsed = informationRequestListPrompt.argsSchema.parse(args);
+  const result = informationRequestListPrompt.build(parsed as never);
+  return result.messages.map((m) => (m.content.type === 'text' ? m.content.text : '')).join('\n');
+}
+
+/** The three builders, by the args that select each. */
+const ONE_SHOT = (over: Record<string, unknown> = {}): string =>
+  render({ filledIrl: BODY, ...over });
+const EXTRACT_ONLY = (over: Record<string, unknown> = {}): string =>
+  render({ filledIrl: BODY, mode: 'extract-only', ...over });
+const INTERACTIVE = (over: Record<string, unknown> = {}): string => render({ ...over });
+
+/** The Step 1 blockquote alone — the line the conditional ask is composed into. */
+function step1Ask(body: string): string {
+  const line = body.split('\n').find((l) => l.startsWith('> Paste the populated'));
+  if (line === undefined) throw new Error('Step 1 ask not found');
+  return line;
+}
+
+describe('BL-125 — resolved run parameters are stated, not inferred', () => {
+  it('every builder states its own audit level at every level', () => {
+    for (const build of [ONE_SHOT, EXTRACT_ONLY, INTERACTIVE]) {
+      for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
+        expect(build({ auditLevel }), `${auditLevel} must be stated as a run fact`).toContain(
+          `- Audit level: **${auditLevel}**`
+        );
+      }
+    }
+  });
+
+  it('every builder states its effective mode', () => {
+    expect(ONE_SHOT()).toContain('- Run mode: **full**');
+    expect(EXTRACT_ONLY()).toContain('- Run mode: **extract-only**');
+    expect(INTERACTIVE()).toContain('- Run mode: **full**');
+  });
+
+  it('states the transactionContext enum TOKEN, not just the voice cue', () => {
+    // The envelope's `transactionContext` is a bare z.enum with no wire
+    // adapter, so a `Buy-side` read off the capitalized cue text is rejected.
+    const text = ONE_SHOT({ transactionContext: 'buy-side' });
+    expect(text).toContain('- Engagement context: **buy-side**');
+    expect(text).toContain('bare enum with no case-folding');
+  });
+
+  it('falls back to an explicit instruction when transactionContext is absent', () => {
+    expect(ONE_SHOT()).toContain('- Engagement context: not supplied');
+  });
+
+  it('the meta fence points at the run-parameters block instead of listing enums', () => {
+    const text = ONE_SHOT({ auditLevel: 'debug' });
+    expect(text).toContain('"auditLevel": "<copy from the Run parameters block above');
+    expect(text).not.toContain('"auditLevel": "standard | enhanced | debug"');
+  });
+});
+
+describe('BL-125 — requireVerbatimBody is stated where a consumer exists', () => {
+  it('one-shot and interactive state it; extract-only does NOT', () => {
+    // The selection rule is "does this surface have a consumer for the value".
+    // Extract-only invokes no tools, the flag is not a meta-fence key and not a
+    // RUN-AUDIT field — stating it there would be bytes plus an invitation to
+    // enforce a gate the body forbids reaching.
+    expect(ONE_SHOT()).toContain('- Verbatim-body gate:');
+    expect(INTERACTIVE()).toContain('- Verbatim-body gate:');
+    expect(EXTRACT_ONLY()).not.toContain('Verbatim-body gate');
+  });
+
+  it('extract-only run parameters name no envelope input, in a body that forbids tool calls', () => {
+    // The selection rule governs the WORDING as well as the values. Extract-only
+    // states "In extract-only mode you DO NOT invoke any tools" and "NO tool
+    // invocations" — so a run-parameter bullet reading "Pass `unknown` to
+    // `compose_dossier_envelope.transactionContext`" is the same defect as
+    // stating `requireVerbatimBody` there: an instruction to reach a surface
+    // this body forbids reaching.
+    const params = EXTRACT_ONLY()
+      .split('\n')
+      .filter((l) => /^- (Run mode|Audit level|Engagement context):/.test(l))
+      .join('\n');
+    expect(params).not.toContain('compose_dossier_envelope');
+    expect(params).toContain('the meta fence');
+    // The one-shot equivalents DO name the envelope, which is where they go.
+    const oneShotParams = ONE_SHOT()
+      .split('\n')
+      .filter((l) => /^- (Run mode|Audit level|Engagement context):/.test(l))
+      .join('\n');
+    expect(oneShotParams).toContain('compose_dossier_envelope');
+  });
+
+  it('the supplied-true case is rejected on extract-only too, not just the default', () => {
+    // `build()` spreads `{...args}`, and TS excess-property checks do not fire
+    // on spreads — so the supplied case reaches the builder at runtime even
+    // though its parameter type omits the field. Cover it explicitly.
+    expect(EXTRACT_ONLY({ requireVerbatimBody: 'true' })).not.toContain('Verbatim-body gate');
+    expect(EXTRACT_ONLY({ requireVerbatimBody: 'true' })).not.toContain('requireVerbatimBody');
+  });
+
+  it('extract-only mentions the flag nowhere at all', () => {
+    // Asserted positively so the selection rule is enforced rather than
+    // described: a build that wrongly stated it everywhere would pass a
+    // looser "one-shot contains it" check.
+    expect(EXTRACT_ONLY()).not.toContain('requireVerbatimBody');
+  });
+
+  it('states true and false distinctly, and does not ask for an explicit false', () => {
+    expect(ONE_SHOT({ requireVerbatimBody: 'true' })).toContain('- Verbatim-body gate: **true**');
+    const off = ONE_SHOT();
+    expect(off).toContain('- Verbatim-body gate: **false**');
+    expect(off).toContain('Omit `requireVerbatimBody`');
+  });
+
+  it('the two prose consumers point at the stated value, not an unknowable condition', () => {
+    const text = ONE_SHOT({ auditLevel: 'debug' });
+    expect(text).not.toContain('If the operator invoked this prompt with `requireVerbatimBody');
+    expect(text).toContain('stated in the Run parameters block');
+    expect(INTERACTIVE()).toContain('stated in the Run parameters block');
+  });
+});
+
+describe('BL-125 — interactive no longer discards supplied arguments', () => {
+  const ALL_FOUR = {
+    targetName: 'Kestrel',
+    transactionContext: 'buy-side',
+    partnerLead: 'Reid Peryam',
+    projectCodeName: 'Cygnet',
+  };
+
+  it('states each supplied argument', () => {
+    const text = INTERACTIVE(ALL_FOUR);
+    expect(text).toContain('The target is **Kestrel**');
+    expect(text).toContain('Partner lead: **Reid Peryam**');
+    expect(text).toContain('Engagement code name: **Cygnet**');
+    expect(text).toContain('- Engagement context: **buy-side**');
+  });
+
+  it('drops the tailoring ask entirely when all four are supplied', () => {
+    // Stating a value at the top and then asking the user for it is the
+    // contradictory-prose defect, not half of it.
+    const text = INTERACTIVE(ALL_FOUR);
+    expect(text).toContain('> Paste the populated Information Request List');
+    expect(text).not.toContain("I'll tailor the dossier");
+  });
+
+  it('still asks for everything when nothing is supplied', () => {
+    const text = INTERACTIVE();
+    expect(text).toContain('the target name');
+    expect(text).toContain('the partner lead');
+    expect(text).toContain('an engagement code name');
+    expect(text).toContain("I'll tailor the dossier");
+  });
+
+  it('asks only for what is missing when some are supplied', () => {
+    // Scope the assertion to the Step 1 blockquote. "the target name" also
+    // occurs in the extraction rules further down the body, so a whole-body
+    // `not.toContain` would fail for the wrong reason.
+    const ask = step1Ask(INTERACTIVE({ targetName: 'Kestrel', partnerLead: 'Reid Peryam' }));
+    expect(ask).toContain("I'll tailor the dossier");
+    expect(ask).not.toContain('the target name');
+    expect(ask).not.toContain('the partner lead');
+    expect(ask).toContain('an engagement code name');
+  });
+
+  it('does not tell the model to infer the target from an IRL it does not have', () => {
+    // The one-shot fallback says "infer from the IRL header". There is no IRL
+    // at render time here and Step 1 has not run, so that wording is incoherent
+    // on this path and must not be copied across.
+    const text = INTERACTIVE();
+    expect(text).toContain('Target: not yet supplied');
+    expect(text).not.toContain('Infer the target name from the IRL header');
+  });
+
+  it('discloses that a supplied mode: extract-only was not honored', () => {
+    // `build()` dispatches on body-absence before checking mode, so this
+    // combination lands on the interactive builder (BL-127).
+    const text = render({ mode: 'extract-only' });
+    expect(text).toContain('- Run mode: **full**');
+    expect(text).toContain('cannot honor');
+  });
+});
+
+describe('BL-125 — no body references a section it did not render', () => {
+  it('RUN-AUDIT is not referenced at standard or enhanced', () => {
+    for (const auditLevel of ['standard', 'enhanced'] as const) {
+      expect(ONE_SHOT({ auditLevel }), `${auditLevel} must not mention RUN-AUDIT`).not.toContain(
+        'RUN-AUDIT'
+      );
+    }
+  });
+
+  it('RUN-AUDIT is still referenced at debug, where the block exists', () => {
+    const text = ONE_SHOT({ auditLevel: 'debug' });
+    expect(text).toContain('## Final emission — RUN-AUDIT block');
+    expect(text).toContain('RUN-AUDIT block below');
+  });
+
+  it('the render matrix carries no dangling section reference', () => {
+    // The generalized form of the check above. A throwaway version of this
+    // matrix is what surfaced the RUN-AUDIT back-references and the interactive
+    // `enhanced` no-op during investigation; this is that probe made permanent,
+    // not the artifact that found them. It asserts a RELATION computed at
+    // render time and pins no constants, so it adds nothing to the body-hash
+    // suite's scenario count.
+    //
+    // A section is "dangling" when the body refers to it while its own header
+    // is absent. Probe the interactive run-audit copy by its own header — it
+    // is a separate rendering of the same contract, and using the one-shot
+    // header here false-positives on every interactive@debug body.
+    const SECTIONS: Array<{ label: string; headers: string[]; mention: RegExp }> = [
+      {
+        label: 'RUN-AUDIT',
+        headers: ['## Final emission — RUN-AUDIT block', '## Step 5 — verification harness'],
+        mention: /RUN-AUDIT/,
+      },
+      {
+        label: 'per-section JSON fence',
+        headers: ['## Per-section JSON fence'],
+        mention: /per-section audit fence/i,
+      },
+      {
+        label: 'citation self-check',
+        headers: ['## Provenance citation self-check'],
+        mention: /citation self-check/i,
+      },
+    ];
+
+    const dangling: string[] = [];
+    for (const [buildLabel, build] of [
+      ['one-shot', ONE_SHOT],
+      ['extract-only', EXTRACT_ONLY],
+      ['interactive', INTERACTIVE],
+    ] as const) {
+      for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
+        const text = build({ auditLevel });
+        for (const s of SECTIONS) {
+          const present = s.headers.some((h) => text.includes(h));
+          if (!present && s.mention.test(text)) {
+            dangling.push(
+              `${buildLabel}@${auditLevel} references ${s.label}, which did not render`
+            );
+          }
+        }
+      }
+    }
+    expect(dangling, 'a body must not point at a section it did not render').toEqual([]);
+  });
+});
+
+describe('BL-125 — extract-only remains exempt from the audit-level gate', () => {
+  // Replaces the retired byte-identity alias. Positive presence, not
+  // presence-identity: identity alone passes vacuously if a hollowing edit
+  // deletes a directive at all three levels.
+  // Four of the five directives the one-shot builder gates on audit level.
+  // `PER_SECTION_JSON_FENCE_DIRECTIVE` is the fifth and is legitimately absent
+  // here: it attaches an audit fence to each dossier section, and extract-only
+  // emits no dossier — its output is the payload JSON. Verified against the
+  // builder rather than assumed; an earlier draft of this test asserted all
+  // five and failed, which is the assumption being caught.
+  const GATED_IN_ONE_SHOT_PRESENT_HERE: Array<[string, string]> = [
+    ['meta fence', '## Top-of-dossier meta JSON fence'],
+    ['provenance footer', '## (K) Provenance footer'],
+    ['citation self-check', '## Provenance citation self-check'],
+    ['run audit', '## Final emission — RUN-AUDIT block'],
+  ];
+
+  it('renders every level-gated directive it carries at every audit level', () => {
+    for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
+      const text = EXTRACT_ONLY({ auditLevel });
+      for (const [label, marker] of GATED_IN_ONE_SHOT_PRESENT_HERE) {
+        expect(text, `extract-only@${auditLevel} must carry the ${label}`).toContain(marker);
+      }
+    }
+  });
+
+  it('never carries the per-section dossier fence, at any level', () => {
+    // Stated positively so the absence is a recorded decision rather than an
+    // omission the next reader has to re-derive.
+    for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
+      expect(EXTRACT_ONLY({ auditLevel })).not.toContain('## Per-section JSON fence');
+    }
+  });
+
+  it('differs across levels ONLY by the stated audit level', () => {
+    const a = EXTRACT_ONLY({ auditLevel: 'standard' });
+    const b = EXTRACT_ONLY({ auditLevel: 'enhanced' });
+    expect(a.replace('- Audit level: **standard**', 'X')).toBe(
+      b.replace('- Audit level: **enhanced**', 'X')
+    );
+  });
+});
+
+describe('BL-125 — enhanced means the same thing on both paths', () => {
+  it('the interactive body at enhanced carries the blocking citation self-check', () => {
+    const text = INTERACTIVE({ auditLevel: 'enhanced' });
+    expect(text).toContain('## Provenance citation self-check');
+    expect(text).toContain('## (K) Provenance footer');
+    expect(text).toContain('## Per-section JSON fence');
+  });
+
+  it('standard and enhanced are no longer byte-identical in interactive', () => {
+    // They were, which meant an interactive run emitted a (K) footer without
+    // the self-check that backs it while a paste run at the same declared
+    // level got both.
+    expect(INTERACTIVE({ auditLevel: 'standard' })).not.toBe(
+      INTERACTIVE({ auditLevel: 'enhanced' })
+    );
+  });
+
+  it('all three levels produce distinct bodies on both the paste and interactive paths', () => {
+    for (const build of [ONE_SHOT, INTERACTIVE]) {
+      const bodies = (['standard', 'enhanced', 'debug'] as const).map((l) =>
+        build({ auditLevel: l })
+      );
+      expect(new Set(bodies).size, 'three levels must produce three distinct bodies').toBe(3);
+    }
+  });
+});
+
+describe('BL-125 — the delivered-as-a-document and embed-framing clauses', () => {
+  it('every rendered body tells the model that arriving as a file is not a red flag', () => {
+    // Two forms, deliberately. The one-shot body keeps its pre-existing clause,
+    // whose evidence is the `**Body-binding hash:**` directive it alone
+    // renders. The other four get the structural variant, because a
+    // copy-paste there would assert evidence that does not exist on those
+    // paths — which is the whole reason the second form was written.
+    expect(ONE_SHOT(), 'one-shot keeps the hash-based clause').toContain('proceed anyway');
+    const STRUCTURAL = 'it is not evidence that the workflow was not invoked';
+    for (const [label, text] of [
+      ['extract-only', EXTRACT_ONLY()],
+      ['interactive', INTERACTIVE()],
+      ['IRL-list interactive', renderList({})],
+      ['IRL-list one-shot', renderList({ companyName: 'Kestrel' })],
+    ] as const) {
+      expect(text, `${label} must carry the structural clause`).toContain(STRUCTURAL);
+    }
+  });
+
+  it('the structural variant prescribes no tool probe', () => {
+    // Extract-only forbids tool invocation outright, and the two
+    // gst_information_request_list bodies orchestrate neither IRL-pipeline tool
+    // the existing clause's recovery path uses.
+    for (const text of [renderList({}), renderList({ companyName: 'Kestrel' })]) {
+      expect(text).not.toContain('validate_irl_provenance');
+    }
+  });
+
+  it('says what the embedded second message is, on both prompts', () => {
+    for (const text of [ONE_SHOT(), EXTRACT_ONLY(), INTERACTIVE(), renderList({})]) {
+      expect(text).toContain('blank canonical IRL taxonomy');
+    }
+  });
+
+  it('tells the ingestion prompt specifically that the embed is not the body to sweep', () => {
+    for (const text of [ONE_SHOT(), EXTRACT_ONLY(), INTERACTIVE()]) {
+      expect(text).toContain('NOT the filled IRL and must not be swept');
+    }
+    // The generator prompt has no filled IRL to confuse it with.
+    expect(renderList({})).not.toContain('must not be swept');
+  });
+});
+
+describe('BL-125 — a run with no envelope call still reports the body it was given', () => {
+  it('the shared directive distinguishes "no server measurement" from "no body"', () => {
+    const text = ONE_SHOT({ auditLevel: 'debug' });
+    expect(text).toContain('`filledIrl` when no envelope call ran');
+    expect(text).toContain('measurement: self-reported');
+  });
+
+  it('the interactive copy carries the null-run rule it previously lacked', () => {
+    // It offered `interactive-paste-request` as a runScenario while never
+    // saying what a block for that scenario looks like.
+    const text = INTERACTIVE({ auditLevel: 'debug' });
+    expect(text).toContain('runScenario: interactive-paste-request');
+    expect(text).toContain('measurement: self-reported');
+  });
+});
