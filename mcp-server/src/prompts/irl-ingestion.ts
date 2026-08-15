@@ -757,7 +757,7 @@ const GAP_LIST_DIRECTIVE = [
   // deliberately: Step 4 renders in the full body ONLY, and extract-only is
   // the path whose payloads downstream automation parses. A mitigation that
   // reaches one of two bodies is the asymmetry this change exists to remove.
-  '- **TechPar components the IRL does not carry.** `compute_techpar` runs in `deepdive`, where the engine synthesizes R&D OpEx from `engCost + prodCost + toolingCost`. If Section 02 leaves a component blank or `n/a`, pass 0 and list it here — naming the component, the Section 02 bullet that would have answered it, and the consequence: **a zeroed component understates total technology cost and moves the zone verdict in the flattering direction, with nothing else marking it.** The one machine-readable tell is `engPctOfRD: 100` with `prodPctOfRD: null` in the tool response. Do NOT instead invent an annualization source for the missing figure — every `_audit.annualizationSource` value asserts that a derivation happened, so there is no honest way to declare a number the IRL never supplied.',
+  '- **TechPar components the IRL does not carry** — a zeroed `engCost` / `prodCost` / `toolingCost`, per the component rule in the `compute_techpar` step. Name the component, the Section 02 bullet that would have answered it, and the effect: a zeroed component understates total technology cost and softens the zone verdict.',
   '- **Map-absent regulatory frameworks** named by the IRL Section 09 but not in the curated Regulatory Map (e.g., Canada AIDA, NIST AI RMF) — flagged for manual tracking rather than fabricated.',
   '',
   'This section is the "ask the target a follow-up" checklist — every item is a concrete deliverable for the next data room request, not an abstract concern. Number each item.',
@@ -1247,7 +1247,9 @@ function buildInteractiveBody(args: {
     // and extract-only bodies only). Fixing two of the three callers would have
     // reproduced, on a third path, the same asymmetry this change exists to
     // close — the mode was unset here as much as anywhere else.
-    `  - Step 2d — Call \`compute_techpar\` using IRL Section 02 + 03 + 07 inputs. ${TECHPAR_MODE_RULE}`,
+    `  - Step 2d — Call \`compute_techpar\` using IRL Section 02 + 03 + 07 inputs. ${TECHPAR_MODE_RULE}
+
+${ENG_COST_DEDUP_RULE}`,
     `  - Step 2e — Call \`assess_infrastructure_cost_governance\` using IRL Section 03 + 02 + 07.`,
     `  - Step 2f — Call \`estimate_tech_debt_cost\` using IRL Section 04 + 07.`,
     `  - Step 2g — Call \`search_radar\` for the target's product segment + geographies.`,

@@ -451,7 +451,10 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
     for (const build of [ONE_SHOT, EXTRACT_ONLY]) {
       const text = build();
       expect(text).toContain('TechPar components the IRL does not carry');
-      expect(text).toContain('engPctOfRD: 100');
+      // The detection signature and the full instruction moved into
+      // TECHPAR_MODE_RULE during review — it reaches all three callers, while
+      // this directive reaches two. What stays here is the (J) category entry.
+      expect(text).toContain('softens the zone verdict');
     }
   });
 
@@ -460,13 +463,19 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
     // and every annualizationSource value asserts a derivation happened — there
     // is no value meaning "the IRL does not supply this". The honest path is a
     // (J) entry, and the body has to say so or the model fabricates a source.
-    expect(ONE_SHOT()).toContain('Do NOT invent an annualization source');
+    expect(ONE_SHOT()).toContain('do NOT invent an annualization source');
   });
 
   it('DERIVED — any body instructing a compute_techpar call also states the mode', () => {
-    // The generalising form: enumerate bodies by what they instruct rather than
-    // by a list someone remembered to update. This is what would have caught
-    // the interactive builder without the hash suite tipping it off.
+    // The PREDICATE is derived — bodies are selected by whether they instruct a
+    // `compute_techpar` call, not by a maintained allow-list. The body list
+    // itself is still hardcoded, so a fourth builder is not caught here; the
+    // dispatch-arity assertion below covers that half.
+    //
+    // The verb alternation includes `Run` because that is the verb
+    // TECHPAR_MODE_RULE itself uses, and extract-only names the tool inside a
+    // payload-fence list rather than an imperative — an earlier version of this
+    // regex silently skipped the body it most needed to cover.
     const ALL_BODIES: Array<[string, string]> = [
       ['one-shot standard', ONE_SHOT()],
       ['one-shot debug', ONE_SHOT({ auditLevel: 'debug' })],
@@ -477,8 +486,30 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
     ];
     const offenders = ALL_BODIES.filter(
       ([, text]) =>
-        /(Call|Invoke) `compute_techpar`/.test(text) && !text.includes('`mode: "deepdive"`')
+        /(Call|Invoke|Run) `compute_techpar`/.test(text) && !text.includes('`mode: "deepdive"`')
     ).map(([label]) => label);
     expect(offenders, 'these bodies invoke compute_techpar without stating a mode').toEqual([]);
+  });
+
+  it('DERIVED — build() yields exactly three distinct bodies across the scenario grid', () => {
+    // The half the predicate above cannot reach: a fourth builder would render
+    // a body no caller-check enumerates. Arity is the cheap invariant.
+    const grid: Array<Record<string, unknown>> = [];
+    for (const mode of ['full', 'extract-only']) {
+      for (const auditLevel of ['standard', 'enhanced', 'debug']) {
+        grid.push({ filledIrl: BODY, mode, auditLevel });
+        grid.push({ auditLevel });
+      }
+    }
+    const shapes = new Set(
+      grid.map((a) => {
+        const t = render(a);
+        // Collapse to the builder's identity rather than its bytes.
+        if (t.includes('EXTRACT-ONLY mode')) return 'extract-only';
+        if (t.includes('> Paste the populated')) return 'interactive';
+        return 'one-shot';
+      })
+    );
+    expect(shapes.size, 'a new builder needs a caller-check entry too').toBe(3);
   });
 });

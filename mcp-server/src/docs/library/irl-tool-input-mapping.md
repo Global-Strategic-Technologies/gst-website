@@ -235,16 +235,16 @@ The BL-044 generator lets a partner **filter sections**, **remove individual que
 
 `compute_techpar` is **mode-conditional**, and this document did not say so — which is how one IRL produced two different `rdOpEx` figures and an inverted zone verdict across two runs. The engine computes `rdOpEx = engCost + prodCost + toolingCost` in `deepdive` and reads the `rdOpEx` input directly in `quick`.
 
-**`gst_irl_ingestion` runs `deepdive`, always.** That is not a preference: canonical Section 02 asks for exactly the three components, and **no bullet in any section asks for a total R&D OpEx figure** — so `quick`'s required input has no source here by construction.
+**`gst_irl_ingestion` runs `deepdive`, always.** That is not a preference: canonical Section 02 asks for the product-personnel and tooling components directly and supplies the FTE breakdown `engCost` derives from, while **no bullet in any section asks for a total R&D OpEx figure** — so `quick`'s required input has no source here by construction.
 
-| TechPar input  | Source under `deepdive` (the mode this SOP governs)                                                                                                                        |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `rdOpEx`       | **None — synthesized, never sourced.** The engine sums the three components. Do not supply it                                                                              |
-| `engCost`      | **A derivation, not a bullet**: Section 02 FTE count minus the infra/SRE sub-count, × the Section 07 salary band                                                           |
-| `prodCost`     | Section 02 — "Product personnel cost"                                                                                                                                      |
-| `toolingCost`  | Section 02 — "Annual build and tooling cost"                                                                                                                               |
-| `rdCapEx`      | **No canonical source.** Section 03's capex bullet is _infrastructure_ capex, a different quantity from capitalized R&D. It enters `total` only when `capexView` is `cash` |
-| `exitMultiple` | **No canonical source** — an engagement assumption, not an IRL answer                                                                                                      |
+| TechPar input  | Source under `deepdive` (the mode this SOP governs)                                                                                                                                                                                                                          |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `rdOpEx`       | **No IRL source — synthesized.** Under `deepdive` the engine replaces it with the three components. The schema still REQUIRES the field and its `_audit` in both modes: pass `rdOpEx: 0` with an `_audit.rdOpEx` citing the `Section --` escape. Omitting either is rejected |
+| `engCost`      | **A derivation, not a bullet**: Section 02 FTE count minus the infra/SRE sub-count, × the Section 07 salary band                                                                                                                                                             |
+| `prodCost`     | Section 02 — "Product personnel cost"                                                                                                                                                                                                                                        |
+| `toolingCost`  | Section 02 — "Annual build and tooling cost"                                                                                                                                                                                                                                 |
+| `rdCapEx`      | **No canonical source.** Section 03's capex bullet is _infrastructure_ capex, a different quantity from capitalized R&D. It enters `total` only when `capexView` is `cash`                                                                                                   |
+| `exitMultiple` | **No canonical source** — an engagement assumption, not an IRL answer                                                                                                                                                                                                        |
 
 **Anti-mappings.** These bullets look like they answer a TechPar input and do not:
 

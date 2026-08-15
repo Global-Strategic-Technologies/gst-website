@@ -17,6 +17,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { AuditedTechParInputsSchema } from '../../src/schemas/techpar-audit';
+import { TECHPAR_MODE_RULE } from '../../src/prompts/extraction-rules';
 
 const CITE = 'Section 02 — Engineering FTE count: 58 total, 8 infrastructure / SRE';
 const SOURCED = { annualizationSource: 'irl-annualized-stated' as const, citation: CITE };
@@ -91,5 +92,18 @@ describe('BL-126 — the deepdive payload the prompt describes is accepted', () 
       deepdivePayload({ prodCost: 0, toolingCost: 0 })
     );
     expect(r.success).toBe(true);
+  });
+
+  it('the payload above is the shape the rule actually instructs', () => {
+    // Without this the fixture and the rule can drift apart silently: the file
+    // would keep proving that SOME legal payload parses while the prompt told
+    // the model to build a different one. Bind the two.
+    expect(TECHPAR_MODE_RULE).toContain('`mode: "deepdive"`');
+    expect(TECHPAR_MODE_RULE).toContain('pass `rdOpEx: 0`');
+    expect(TECHPAR_MODE_RULE).toContain('irl-annualized-stated');
+    expect(TECHPAR_MODE_RULE).toContain('Section --');
+    const audit = (deepdivePayload()._audit as Record<string, Record<string, string>>).rdOpEx;
+    expect(audit.annualizationSource).toBe('irl-annualized-stated');
+    expect(audit.citation.startsWith('Section --')).toBe(true);
   });
 });
