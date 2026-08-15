@@ -397,6 +397,12 @@ Neither run misbehaved. `compute_techpar` computes `rdOpEx` as `engCost + prodCo
 
 **Still open, separately**: `_audit.annualizationSource`'s `estimated-from-anchor` and `estimated-from-headcount` branches require only a citation — no multiplier, no anchor, nothing the handler can check. A real hole, and **not** this divergence's cause. **Trigger**: an undeclared multiplier observed in the wild, or a new caller of those branches.
 
+**That trigger is now met — 2026-08-15, first post-fix production run.** The payload declared `engCost: { annualizationSource: "estimated-from-headcount" }` and nothing else. `engCost` was $3,630,000, which is exactly 33 FTE × $110,000 — 42 total engineering less the 9-person Infra/DevOps/DBA group, per `ENG_COST_DEDUP_RULE`, correctly applied. **Neither the 33 nor the $110,000 appears anywhere in the audit.** IRL Section 07 states base-salary bands and says in terms _"base salary only (not fully-loaded)"_, while the schema field is a fully-loaded cost, so a base→loaded multiplier was applied and never declared.
+
+The same payload carries its own control: `infraHostingAnnual` used `ytd-annualized-with-period` and was therefore forced to declare `ytdMonths: 3` **and** a `ytdMathCheck` naming both the monthly anchor and the YTD reported amount — arithmetic a handler can verify. Two fields, one call, opposite audit strength. `estimated-from-headcount` is documented in the module JSDoc as _"derived from team × salary"_ and requires neither term.
+
+This is also the residual variance source the mode fix could not reach: with `mode` pinned, `rdOpEx` is synthesized from three components, and `engCost` — the largest — remains a model derivation with two free parameters and no declaration. **The shape of the fix is already in the file**: mirror the `ytdMonths` / `ytdMathCheck` precedent with a required headcount and rate on this branch.
+
 ---
 
 ### BL-129: `assess_infrastructure_cost_governance` is the only IRL-fed scoring tool with no `_audit`
