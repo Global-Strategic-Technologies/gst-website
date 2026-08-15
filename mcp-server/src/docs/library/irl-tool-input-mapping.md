@@ -249,12 +249,12 @@ The BL-044 generator lets a partner **filter sections**, **remove individual que
 **Anti-mappings.** These bullets look like they answer a TechPar input and do not:
 
 - **Section 04 "Annual investment planned for technical-debt remediation" is NOT `rdOpEx`.** It is the Tech Debt Calculator's `remediationBudget` (row above). A figure phrased as "absorbed within R&D ($2.08M YTD)" is genuinely R&D-shaped, and it has already been routed here once.
-- **Section 02's `prodCost` / `toolingCost` bullets are NOT `rdOpEx`** either. They are two of its three components; folding them into a single figure double-books them under `deepdive`.
+- **The Section 02 product-personnel and tooling bullets are NOT `rdOpEx`** either. They are two of its three components. Folding them into one figure is not double-counting — under `deepdive` a supplied `rdOpEx` is simply replaced, and under `quick` the components are discarded — it is the divergence itself: the same bullets reach the engine as one number in one run and three in another.
 
 **Why the anti-mappings are worth stating.** An input with no row does not stay empty — it attracts the nearest plausible value from rows belonging to other inputs and other tools. Both observed divergences were misroutes of bullets this document had _already mapped_ elsewhere.
 
-**Detection signal.** `engPctOfRD: 100` with `prodPctOfRD: null` in a `compute_techpar` response means R&D OpEx was synthesized from partial components — one or more Section 02 bullets were blank and passed as 0. That understates total technology cost and moves the zone verdict in the flattering direction; nothing else marks it.
+**Detection signal — sufficient, not exhaustive.** `engPctOfRD: 100` with `prodPctOfRD: null` in a `compute_techpar` response means R&D OpEx was synthesized with **both** `prodCost` and `toolingCost` at zero. Partial cases are quieter and more likely: a blank `prodCost` alone gives `prodPctOfRD: null` with `engPctOfRD` under 100, and a blank `toolingCost` alone produces **no KPI tell at all**. Note the IRL asks for product personnel cost only _"if tracked separately from engineering"_, so the partial case is the expected one. In every variant the effect is the same — a smaller R&D OpEx understates total technology cost and moves the zone verdict in the flattering direction — which is why the (J) gap entry, not the KPI, is the guard.
 
 ---
 
-_Last updated: 2026-07-17 (BL-088 PR 4 — folded surviving BL-043 design rationale into § Design provenance; BL-043 initiative doc archived)._
+_Last updated: 2026-08-15 (BL-126 — mode-conditional TechPar rows for the four inputs this document never mapped, plus anti-mappings for the two bullet sets that were misrouted into `rdOpEx`)._

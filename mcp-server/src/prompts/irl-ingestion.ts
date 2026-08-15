@@ -1112,11 +1112,13 @@ function buildExtractOnlyBody(args: {
     // BL-126 — this step told the model to use "the same annualization sources
     // the full-mode invocation would use" while withholding the mapping that
     // sentence refers to: three of the four extraction rules render in the full
-    // body only. That is why one extract-only run sourced `rdOpEx` from Section
-    // 04's remediation bullet — a figure already mapped to a different tool.
+    // body only. One observed run sourced `rdOpEx` from the Section 04
+    // remediation bullet — a figure already mapped to a different tool — which
+    // this asymmetry would explain; the run data is not in the repo, so which
+    // body it used is inference rather than record.
     // The mode rule is shared here so both bodies answer the same question the
     // same way.
-    `**Step 2 — Per-tool input payloads (REQUIRED, one JSON fence per tool).** For each of the orchestrated tools (\`compute_techpar\`, \`estimate_tech_debt_cost\`, \`assess_infrastructure_cost_governance\`, \`search_portfolio\`, \`search_regulations\`, \`search_radar\`, \`list_portfolio_facets\`, \`list_regulation_facets\`), emit a JSON code fence labeled \`payload: <tool-name>\` containing the audited input payload — including all \`_audit\` calibration fields per the tool's schema. Use the same currency basis / annualization sources / scope declarations the full-mode invocation would use. Do NOT invoke the tools.\n\n${TECHPAR_MODE_RULE}`,
+    `**Step 2 — Per-tool input payloads (REQUIRED, one JSON fence per tool).** For each of the orchestrated tools (\`compute_techpar\`, \`estimate_tech_debt_cost\`, \`assess_infrastructure_cost_governance\`, \`search_portfolio\`, \`search_regulations\`, \`search_radar\`, \`list_portfolio_facets\`, \`list_regulation_facets\`), emit a JSON code fence labeled \`payload: <tool-name>\` containing the audited input payload — including all \`_audit\` calibration fields per the tool's schema. Use the same currency basis / annualization sources / scope declarations the full-mode invocation would use. Do NOT invoke the tools.\n\n${TECHPAR_MODE_RULE}\n\n${ENG_COST_DEDUP_RULE}`,
     '',
     'If an inclusion gate fails for a tool (per § Tool inclusion gates of the BL-045 design doc), emit a fence labeled `elided: <tool-name>` with `{ "reason": "<which gate predicate failed>", "irlSection": "<which IRL section would have satisfied it>" }` instead of the payload.',
     '',

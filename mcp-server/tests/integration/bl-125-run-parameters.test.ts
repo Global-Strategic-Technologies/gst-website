@@ -414,7 +414,9 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
   // — two runs over one IRL took different branches and produced an inverted
   // zone verdict (32.6% "healthy" vs 47.5% "above ceiling").
   //
-  // The bodies are enumerated from the call sites rather than assumed. An
+  // This list is hardcoded, so a fourth builder or a new `compute_techpar`
+  // call inside an existing body is NOT caught by it — the derived check at the
+  // end of this block is the one that generalises. An
   // earlier draft of this fix reached the full and extract-only bodies only;
   // the interactive body calls the tool at its own Step 2d and was left with
   // the mode unset — the same asymmetry the fix exists to close, on a third
@@ -433,14 +435,17 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
     // Both observed divergences were misroutes of bullets the SOP had ALREADY
     // mapped elsewhere. Section 04's remediation line is Tech Debt's
     // `remediationBudget`; it is R&D-shaped enough to attract a model twice.
-    expect(build()).toContain("Section 04's technical-debt remediation figure");
+    expect(build()).toContain('the Section 04 technical-debt remediation figure');
   });
 
-  it.each(CALLERS)('%s states that rdOpEx is ignored under deepdive', (_label, build) => {
-    expect(build()).toContain('`rdOpEx` input is IGNORED');
-  });
+  it.each(CALLERS)(
+    '%s states the wire shape for the ignored-but-required rdOpEx',
+    (_label, build) => {
+      expect(build()).toContain('pass `rdOpEx: 0`');
+    }
+  );
 
-  it('the blank-component gap rule reaches the bodies that emit (J) themselves', () => {
+  it('the (J) categories directive reaches the two bodies that render it', () => {
     // Placed in GAP_LIST_DIRECTIVE, not Step 4 — Step 4 renders in the full
     // body only, and extract-only is the path whose payloads automation parses.
     for (const build of [ONE_SHOT, EXTRACT_ONLY]) {
@@ -455,6 +460,25 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
     // and every annualizationSource value asserts a derivation happened — there
     // is no value meaning "the IRL does not supply this". The honest path is a
     // (J) entry, and the body has to say so or the model fabricates a source.
-    expect(ONE_SHOT()).toContain('do not invent a provenance source');
+    expect(ONE_SHOT()).toContain('Do NOT invent an annualization source');
+  });
+
+  it('DERIVED — any body instructing a compute_techpar call also states the mode', () => {
+    // The generalising form: enumerate bodies by what they instruct rather than
+    // by a list someone remembered to update. This is what would have caught
+    // the interactive builder without the hash suite tipping it off.
+    const ALL_BODIES: Array<[string, string]> = [
+      ['one-shot standard', ONE_SHOT()],
+      ['one-shot debug', ONE_SHOT({ auditLevel: 'debug' })],
+      ['extract-only', EXTRACT_ONLY()],
+      ['extract-only debug', EXTRACT_ONLY({ auditLevel: 'debug' })],
+      ['interactive', INTERACTIVE()],
+      ['interactive debug', INTERACTIVE({ auditLevel: 'debug' })],
+    ];
+    const offenders = ALL_BODIES.filter(
+      ([, text]) =>
+        /(Call|Invoke) `compute_techpar`/.test(text) && !text.includes('`mode: "deepdive"`')
+    ).map(([label]) => label);
+    expect(offenders, 'these bodies invoke compute_techpar without stating a mode').toEqual([]);
   });
 });

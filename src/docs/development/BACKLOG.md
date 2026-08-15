@@ -385,15 +385,15 @@ Neither run misbehaved. `compute_techpar` computes `rdOpEx` as `engCost + prodCo
 
 #### Acceptance Criteria
 
-- [x] `gst_irl_ingestion` names its TechPar mode, in **both** bodies — the mode rule is shared, unlike the three extraction rules that render in the full body only
+- [x] `gst_irl_ingestion` names its TechPar mode in **all three** bodies — the first cut reached two, and the interactive builder calls the tool at its own Step 2d. `ENG_COST_DEDUP_RULE` is now shared with extract-only too, since the mode fix makes `engCost` load-bearing there
 - [x] The SOP carries mode-conditional rows for all four previously unmapped inputs, plus explicit **anti-mappings** for the two bullet sets that were misrouted
 - [x] A blank Section-02 component is surfaced in (J) rather than given invented provenance — placed in `GAP_LIST_DIRECTIVE` so it reaches extract-only, not in Step 4 which does not
-- [x] The detection signal (`engPctOfRD: 100` with `prodPctOfRD: null`) is named in the SOP and the gap-list rule
-- [ ] **Post-deploy determinism confirmation**: two sweeps over one IRL agree on `rdOpEx`
+- [x] The detection signal (`engPctOfRD: 100` with `prodPctOfRD: null`) is named in the SOP and the gap-list rule — **as sufficient, not exhaustive**: it fires only when both `prodCost` and `toolingCost` are zero, and a blank `toolingCost` alone leaves no KPI tell at all
+- [ ] **Post-deploy determinism confirmation**: two sweeps over one IRL agree on `rdOpEx`. The approved plan specifies two arms (N `full` + N `extract-only`) if the mode fix does not settle it; a single-arm re-run measures only the body that already produced the defensible answer
 
 **Candidate with a trigger — a consequence this change creates.** Fixing the mode to `deepdive` makes the component audits mandatory, and every `_audit.annualizationSource` value asserts that a derivation happened: **there is no value meaning "the IRL does not supply this"**, and the citation regex demands a 20-character excerpt. A partly-filled Section 02 therefore has no honest declaration available. The fix is a TechPar absence source plus nullable money fields and an `extractionOnly` marker, mirroring `tech-debt-audit.ts` — which already solved this one tool over. **Trigger**: the first partly-filled Section 02 reaching `compute_techpar` in `deepdive`.
 
-**Also recorded, not fixed**: the `rdOpEx` synthesis branch is duplicated at `src/utils/techpar-engine.ts:229` and `:374-376`, so a future change to the synthesis rule has two sites. Website-workspace engine code, outside this item's surface.
+**Also recorded, not fixed**: `gst_target_quick_look` is a fourth `compute_techpar` caller and also states no mode — it only mentions quick-mode audit handling in a parenthetical. Its shape differs (form inputs, no IRL), so it needs its own call rather than this rule; the BL-126 plan claimed `gst_irl_ingestion` was the only caller leaving the mode unstated, which was wrong. And the `rdOpEx` synthesis branch is duplicated at `src/utils/techpar-engine.ts:229` and `:374-376`, so a future change to the synthesis rule has two sites. Website-workspace engine code, outside this item's surface.
 
 **Still open, separately**: `_audit.annualizationSource`'s `estimated-from-anchor` and `estimated-from-headcount` branches require only a citation — no multiplier, no anchor, nothing the handler can check. A real hole, and **not** this divergence's cause. **Trigger**: an undeclared multiplier observed in the wild, or a new caller of those branches.
 
