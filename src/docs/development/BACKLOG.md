@@ -417,6 +417,62 @@ Neither run misbehaved. `compute_techpar` computes `rdOpEx` as `engCost + prodCo
 
 ---
 
+### BL-130: `fillRatio` is model-asserted and nothing checks it — not even against itself
+
+**Source**: BL-126 post-deploy run, 2026-08-15 | **Effort**: Small | **Status**: Recorded — **trigger met**
+
+**What it is.** The meta fence's `fixtureFillRatio` is whatever the model passed in. `compose_dossier_envelope` renders `input.fillRatio.percent / 100` (`mcp-server/src/schemas/compose-dossier-envelope.ts:599`) and measures nothing.
+
+Three checks are absent, in increasing order of cost:
+
+1. **`percent` against `substantiveCells / totalCells`** — arithmetic on three numbers the model already supplies. The schema range-checks each field (`:129-155`) and there is **no `.refine()` or `.superRefine()` anywhere in the file**.
+2. **`status` against `percent`** — the enum's own `.describe()` states the thresholds (`halt` <15, `partial` 15–40, `ok` otherwise) and nothing enforces them, so a halt-ratio run can self-report `ok` and proceed past the wrong-IRL guard.
+3. **`substantiveCells` / `totalCells` against the body** — the handler already re-hydrates `filledIrl` from the cache on the BL-076 path for provenance verification, so the body is in hand at the moment the number is rendered.
+
+**Observed.** The run reported `0.84`; counting the pasted body directly gives **115 substantive of 134 request bullets = 0.858**. The delta is judgment about `[PARTIAL]` rows rather than miscounting, and it changed no behavior (`status: ok`, `gatesElided: []`, all nine gates passed). That is precisely why it is worth recording: the field is load-bearing for the halt and partial-IRL branches and for the first sentence of (A) that the partner reads, and it currently carries no more authority than the model's word. The operator also observed it lower than a prior run over identical bytes; that prior value was not captured, so the **established** finding is the divergence from ground truth, not a run-to-run delta of known size.
+
+Same class as BL-126: a number the model derives over bytes the server holds, with nothing positioned to catch it. Unlike `rdOpEx` the first two fixes are pure arithmetic on inputs already present.
+
+**Trigger**: met. Checks (1) and (2) need no design pass. Check (3) does — what counts as a substantive answer span is prose judgment, per the `substantiveCells` `.describe()`, so a server-side count must reproduce the composed Response + Comments span rule or it will disagree with the model for legitimate reasons.
+
+---
+
+### BL-131: The prompt mandates citing article numbers the regulation data does not contain
+
+**Source**: BL-126 post-deploy run, 2026-08-15 | **Effort**: Small | **Status**: Recorded — **trigger met**
+
+**What it is.** `mcp-server/src/prompts/irl-ingestion.ts:949` (Step 3) closes with _"Cite article numbers verbatim when summarizing obligations; do NOT invent citations beyond what the framework bodies return"_, and `:999` (section (F)) repeats _"citing verbatim article numbers"_.
+
+The regulation records carry `id`, `name`, `summary`, `category`, `regions`, `effectiveDate`, `keyRequirements`, `penalties`. **No article numbers.** Zero of the 123 files under `src/data/regulatory-map/` contain a reference in any form — `Article N`, `Art. N`, or `§ N`.
+
+So the instruction is satisfiable only by invention, sitting inside the prompt whose entire audit architecture exists to prevent invention. The two halves of the same sentence contradict each other: cite article numbers verbatim, but do not invent beyond what the bodies return — and the bodies return none.
+
+**Observed**: the production model declined, summarised from `keyRequirements` instead, and reported the instruction as unsatisfiable. That is the correct refusal, reached unaided — but nothing makes it the likely resolution, and a run that resolves the contradiction the other way produces fabricated legal citations in a partner-facing dossier.
+
+**Scope**: two sites, both in `irl-ingestion.ts`. `regulatory-exposure-brief.ts` does not carry the instruction, and no doc claims the dataset has article numbers.
+
+**Two fixes, not equivalent.** Drop the instruction and cite `keyRequirements` text — cheap and honest, loses precision. Or add article numbers to the dataset — 123 files, real research, and a provenance story of its own. Decide which before writing either.
+
+**Trigger**: met.
+
+---
+
+### BL-132: `search_portfolio`'s deeplink description promises fidelity the encoder deliberately withholds
+
+**Source**: BL-126 post-deploy run, 2026-08-15 | **Effort**: Small | **Status**: Recorded
+
+**What it is.** The tool description (`mcp-server/src/tools/portfolio.ts:56`) says the response returns _"a `deeplink` URL that opens /ma-portfolio pre-filtered to the same filter state"_. For a batched query it does not: `buildPortfolioDeeplink` passes `input.theme[0]` and `input.engagement[0]` (`:76-85`), so a four-theme two-side query yields a URL filtered to the first of each.
+
+The collapse is deliberate and documented in the source comment (BL-064 — the website URL contract is single-value, and widening it needs coordinated changes to `src/utils/portfolio-url.ts` plus the page's hydration logic). **The defect is the description, not the encoder.** The sibling tool already gets this right: `mcp-server/src/tools/regulations.ts:40` states that when arrays carry more than one element the `filterDeeplink` **omits** that filter, and tells the caller to use single-value filters when the link must mirror the query exactly.
+
+**Observed**: the production model passed the link through verbatim rather than hand-building a URL — correct — and flagged the mismatch itself. An agent that trusted the description would present a link narrowed to one theme as the query it actually ran.
+
+**Fix**: state the first-element collapse in the description, mirroring the regulations wording. While there, weigh the honest alternative — omitting the filter entirely when batched, as regulations does — since a link filtered to one of four themes misleads more than a link filtered to none.
+
+**Trigger**: none needed; a description edit.
+
+---
+
 ### BL-127: Interactive mode silently ignores `mode: extract-only`
 
 **Source**: design review of BL-125, 2026-08-14 | **Effort**: Small | **Status**: Recorded
@@ -438,6 +494,8 @@ The coherent fix is for interactive to collect the body and _then_ branch, which
 **That trigger fired inside BL-125 itself**: the null-run `filledIrl` rule was written once in the shared directive and once in the interactive copy, in the same commit that named the trigger. Recording it rather than leaving it silently unfired is the point — an unfired trigger on a met condition is how deferred work becomes invisible.
 
 **A second instance to fix at the same time.** The extract-only body carries 13 `compose_dossier_envelope` references inside the shared RUN-AUDIT and meta-fence directives — including an instruction to copy `toolCallCounts` verbatim from that tool's output, in a mode that never calls it. That is the same defect class BL-125 closed for the run-parameter bullets (`copiesToEnvelopeCall`), left standing in the directives those bullets sit beside. Deduping the contract is what makes it fixable in one place instead of thirteen.
+
+**A third instance, cheap and worth folding in.** The contract never says that `compose_dossier_envelope`'s own entry in the snapshot it emits is **always** `{attempted: 1, succeeded: 0}`. That shape is structural, not a defect: `withToolMetrics` records `attempted` at wrap entry and `succeeded` at wrap exit (`mcp-server/src/metrics/with-metrics.ts:196-204`), and the envelope handler reads the snapshot from inside its own invocation — after its own `attempted`, necessarily before its own `succeeded`. The `attempted`-at-entry ordering is itself deliberate (audit M1, to avoid a confusing `attempted: 0, succeeded: 0`). Production models have now flagged this as a counter bug on more than one run, each time spending operator attention to re-derive that it is benign. One sentence in the deduped contract retires it permanently.
 
 **Trigger**: met. Schedule with the next substantive `gst_irl_ingestion` body change, since it carries a prompt version bump and a full hash rebaseline either way.
 
