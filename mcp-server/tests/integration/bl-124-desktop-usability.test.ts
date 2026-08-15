@@ -20,6 +20,7 @@ import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
 import { informationRequestListPrompt } from '../../src/prompts/information-request-list';
 import { comparableEngagementsMemoPrompt } from '../../src/prompts/comparable-engagements-memo';
 import { ALL_PROMPTS } from '../../src/prompts/_registry';
+import { unwrapToEnumOptions } from '../../src/prompts/wire-shape';
 import { computeIrlBodyHash } from '../../src/schemas/compose-dossier-envelope';
 
 /** Validate then render — the two steps `prompts/get` performs, in order. */
@@ -172,6 +173,57 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
       offenders,
       'optional args rejecting "" — wrap them in stringFromWire / enumFromWire'
     ).toEqual([]);
+  });
+
+  it('NO enum argument on ANY registered prompt rejects a whitespace-padded value', () => {
+    // BL-125 extension of the same invariant, third probe on this loop.
+    // `enumFromWire` tested blankness with `.trim()` but looked the value up
+    // untrimmed, so `"debug "` — trivially produced by a form paste — missed
+    // the canonical map, fell through to the inner `z.enum`, and failed the
+    // whole `prompts/get` with -32602. Desktop renders that as "Failed to
+    // attach prompt" with no diagnostic: the same total, silent failure BL-124
+    // existed to remove, reached by a different input.
+    //
+    // Probing needs a VALID value per field to pad, which means enumerating the
+    // options. `unwrapToEnumOptions` is exported for exactly this and throws on
+    // a non-enum inner, so the try/catch is load-bearing — without it the loop
+    // dies on the first string field and the guard silently covers nothing.
+    // (The alternative, `argsSchema['~standard'].jsonSchema`, was spiked and
+    // rejected: it exposes only `{input, output}` and serialises to `{}`.)
+    interface FieldSchema {
+      isOptional(): boolean;
+      safeParse(v: unknown): { success: boolean; data?: unknown };
+    }
+    const offenders: string[] = [];
+    for (const prompt of ALL_PROMPTS) {
+      const shape = prompt.argsSchema.shape as Record<string, FieldSchema>;
+      for (const key of Object.keys(shape)) {
+        const field = shape[key];
+        let options: readonly string[];
+        try {
+          options = unwrapToEnumOptions(field as unknown as never);
+        } catch {
+          continue; // not an enum field — nothing to pad
+        }
+        if (options.length === 0) continue;
+        const canonical = options[0];
+        for (const padded of [`${canonical} `, ` ${canonical}`, ` ${canonical} `]) {
+          const parsed = field.safeParse(padded);
+          if (!parsed.success) {
+            offenders.push(`${prompt.name}.${key} rejects ${JSON.stringify(padded)}`);
+          } else if (parsed.data !== canonical) {
+            // Accepting but not canonicalising is the quieter failure: the raw
+            // padded string would flow downstream as if it were the enum value.
+            offenders.push(
+              `${prompt.name}.${key} accepts ${JSON.stringify(padded)} as ${JSON.stringify(parsed.data)}`
+            );
+          }
+        }
+      }
+    }
+    expect(offenders, 'enum args must trim before the canonical lookup — see enumFromWire').toEqual(
+      []
+    );
   });
 
   it('both previously undocumented memo args now carry descriptions', () => {
