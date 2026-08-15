@@ -373,7 +373,7 @@ Neither run misbehaved. `compute_techpar` computes `rdOpEx` as `engCost + prodCo
 
 **Established, and each verified against the artifact that decides:**
 
-- `deepdive` is the only mode the canonical IRL supports: Section 02 asks for the product-personnel and tooling components directly and supplies the FTE breakdown `engCost` derives from, and **no bullet in any section asks for a total R&D OpEx figure**.
+- `deepdive` is the only mode the canonical IRL supports: Section 02 asks for the product-personnel and tooling components directly, and supplies the FTE breakdown `engCost` derives from. **No bullet in any section asks for a total R&D OpEx figure**.
 - The SOP that owns which-bullet-feeds-which-input had **zero rows** for `rdOpEx`, `rdCapEx`, `engCost` and `exitMultiple`. `engCost` carries an entire prompt rule and still had none, so the asymmetry predated the field that surfaced it.
 - **An input with no row does not stay empty.** Both divergences were misroutes of bullets the SOP had _already mapped_ elsewhere — run A pulled the Section-02 `prodCost`/`toolingCost` rows into `rdOpEx`; run C pulled Section 04's `remediationBudget` row across tools entirely. Hence the anti-mappings, not just the rows.
 

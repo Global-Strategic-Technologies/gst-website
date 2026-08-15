@@ -146,7 +146,8 @@ export const NIS2_CONDITIONAL_TRIGGER =
  * `deepdive` found `rdOpEx` ignored and supplied it anyway, from Section 04.
  *
  * `deepdive` is not a preference: it is the only mode the canonical IRL
- * supports. Section 02 asks for the product-personnel and tooling components directly and supplies the FTE breakdown `engCost` derives from and **no bullet
+ * supports. Section 02 asks for the product-personnel and tooling components
+ * directly, and supplies the FTE breakdown `engCost` derives from. **No bullet
  * anywhere asks for a total R&D OpEx figure**, so `quick`'s required input has
  * no canonical source by construction.
  */
