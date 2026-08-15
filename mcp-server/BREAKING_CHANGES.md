@@ -49,7 +49,7 @@ Neither run misbehaved. `compute_techpar` synthesizes `rdOpEx` from `engCost + p
 
 **Known consequence, recorded with a trigger** (BL-126 stanza): fixing the mode makes the three component audits mandatory, and every `_audit.annualizationSource` value asserts that a derivation happened — there is **no value meaning "the IRL does not supply this"**. This bites on **every** deepdive call, not just on a partly-filled IRL: `rdOpEx` and its `_audit` are required in both modes while `deepdive` discards the value, so each call declares a source for a field that has none. The prompt uses a `Section --` citation saying exactly that, which is a placeholder the enum forces rather than a claim. The prompt also instructs surfacing a blank Section-02 component in (J) rather than fabricating a source for it. The schema fix — an absence source plus nullable money fields, mirroring `tech-debt-audit.ts` — is recorded with its trigger met.
 
-**Operator-visible**: a blank Section-02 component passes as 0 and **understates total technology cost, moving the zone verdict in the flattering direction**. The tell is `engPctOfRD: 100` with `prodPctOfRD: null` in the response.
+**Operator-visible**: a blank Section-02 component passes as 0 and **understates total technology cost, moving the zone verdict in the flattering direction**. The tell is `engPctOfRD: 100` with `prodPctOfRD: null` in the response — **sufficient, not exhaustive**: that pattern fires only when both `prodCost` and `toolingCost` are zero, and a blank `toolingCost` alone leaves no KPI signal at all. The (J) gap entry, not the KPI, is the guard.
 
 ## 0.53.0 — 2026-08-14 — the prompt states its own run parameters (`0.25.0` → `0.26.0`, `0.0.8` → `0.0.9`)
 

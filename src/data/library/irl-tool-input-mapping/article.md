@@ -235,7 +235,7 @@ The BL-044 generator lets a partner **filter sections**, **remove individual que
 
 `compute_techpar` is **mode-conditional**, and this document did not say so — which is how one IRL produced two different `rdOpEx` figures and an inverted zone verdict across two runs. The engine computes `rdOpEx = engCost + prodCost + toolingCost` in `deepdive` and reads the `rdOpEx` input directly in `quick`.
 
-**`gst_irl_ingestion` runs `deepdive`, always.** That is not a preference: canonical Section 02 asks for the product-personnel and tooling components directly and supplies the FTE breakdown `engCost` derives from, while **no bullet in any section asks for a total R&D OpEx figure** — so `quick`'s required input has no source here by construction.
+**`gst_irl_ingestion` runs `deepdive`, always.** That is not a preference: canonical Section 02 asks for the product-personnel and tooling components directly, and supplies the FTE breakdown `engCost` derives from. **No bullet in any section asks for a total R&D OpEx figure** — so `quick`'s required input has no source here by construction.
 
 | TechPar input  | Source under `deepdive` (the mode this SOP governs)                                                                                                                                                                                                                          |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
