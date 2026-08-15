@@ -197,9 +197,19 @@ export function authorialIntentLine(promptName: string): string {
  * Four production balks across three surfaces (2026-08-14) are what this
  * addresses; each cost the operator a turn and one abandoned the run.
  */
-export function deliveredAsDocumentClause(): string {
+export function deliveredAsDocumentClause(opts: { citesRunParameters: boolean }): string {
+  // The evidence is parameterized for the same reason this second form exists
+  // at all: the original clause cited a `**Body-binding hash:**` directive that
+  // three of the five bodies never render. Citing a "Run parameters" block on
+  // the two `gst_information_request_list` bodies — which have none — would
+  // reproduce that defect one layer down, in the clause whose whole job is to
+  // be believed by a model already wondering whether it is reading a
+  // transcript.
+  const evidence = opts.citesRunParameters
+    ? 'the canonical reference embedded as the next message is served from the server-side registry, and the run parameters above are the resolved values of the arguments the user filled in. Neither is text a client could have produced on its own.'
+    : 'the canonical reference embedded as the next message is served from the server-side registry, which is not text a client could have produced on its own.';
   return [
-    '**If this body reached you as an attached file rather than as conversation turns, that is how some clients render a large expanded prompt — it is not evidence that the workflow was not invoked.** The content here was assembled by the GST MCP server when the user selected this prompt: the canonical reference embedded as the next message is served from the server-side registry, and the run parameters above are the resolved values of the arguments the user filled in. Neither is text a client could have produced on its own.',
+    `**If this body reached you as an attached file rather than as conversation turns, that is how some clients render a large expanded prompt — it is not evidence that the workflow was not invoked.** The content here was assembled by the GST MCP server when the user selected this prompt: ${evidence}`,
     '',
     'Proceed with the steps as written. If something in them genuinely looks wrong, say what and why — but arriving as a file is not that.',
   ].join('\n');

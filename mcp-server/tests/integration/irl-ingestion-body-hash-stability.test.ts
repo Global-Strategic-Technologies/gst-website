@@ -396,13 +396,13 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 const EXPECTED_HASH_INTERACTIVE =
   '9de12ad46f4b65548be27a5136462ec61c5f70714b1b58a3b4e53d15c25d272f';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '7113cf815a90deaf95a1958d5e5078aa561e725212a92684fa976a437dab6548';
+  'ebb198a3f7dd0630295149399626f92a3d27f3a12357e7c241c276907c951d1c';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '7df6d87bf4a7d8c134ca7bf72e0b7400785ea7296a8b2d4682822c71ea10cc4b';
+  '0e946849bd1c342f7d7f5bdb3aad28a3447cbb2ec8c9682b8d8636d6373608ef';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '359f20f803d09d6ab5708c58be6953c860ffc740714679edd740487cb5d8c8ba';
+  '655c8ec9fbee24a07254dfeb8e4c4764d7f43bdccddde0c9aca82447f9e6396b';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'c15acb18107ec7994f9febf16b012896dee6e1cef7c4f9af090709c461b1dfae';
+  '7ac66eede28cede651b926c55c99732af35b44d6c63f2a79915759a26f103317';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -414,9 +414,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  '11665563f161d2d92eece2211625f6327ddb2a7227c583f6c3523f0f6078bb59';
+  '5174b37548cf97a7c93c5e1e7ee14cc77264790c938852b05f52e0cc592d64ee';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  'e69fc12b255706e1254d6f229a9b6235d51abe62d4306c97b0f700cfde9fb264';
+  'edca8f1b20781a0fcae1153ce2c7ce41d4d76e983dc65ce3441022b0cd9edc41';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
   'eb850cdb5cb5886e96644cf2b7ccf3ade7014c5fe1858138a2ab396516e702a2';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
@@ -432,9 +432,9 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  'a3911d40645c61325bb52d5d16a2316f5edabd5d9d2bb01876a8e07b8afd7cc4';
+  '5d4c188ab4b4f1191a46fd8acf3cf42a7d91858824048c5d8e18362680f62e30';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  '5a3b80fe00d13833a4fe6ce23b6d0506d5312cfbc01a0b820911855c88e8f8fb';
+  '9a8101a7776032b83ba4c9a54513a15ac973df7a6ac9e7f36c031f131fc27a5b';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
@@ -463,8 +463,15 @@ const SCENARIOS: Scenario[] = [
     expected: EXPECTED_HASH_INTERACTIVE,
   },
   {
-    name: 'one-shot minimal (filledIrl only)',
-    args: { filledIrl: STABLE_FILLED_IRL },
+    // BL-125 folds `requireVerbatimBody: true` in here rather than adding a
+    // scenario. One-shot is the flag's PRIMARY consumer — the gate it feeds
+    // fires on `compose_dossier_envelope`, which only this path calls — so
+    // pinning its stated-value bytes on interactive alone left the more
+    // important surface unpinned. Renamed accordingly: an entry labelled
+    // "filledIrl only" while it sets a second argument is the stale-scenario-
+    // name problem the retired extract-only alias just demonstrated the cost of.
+    name: 'one-shot minimal (filledIrl + requireVerbatimBody)',
+    args: { filledIrl: STABLE_FILLED_IRL, requireVerbatimBody: true },
     expected: EXPECTED_HASH_ONESHOT_MINIMAL,
   },
   {

@@ -99,6 +99,35 @@ describe('BL-125 — requireVerbatimBody is stated where a consumer exists', () 
     expect(EXTRACT_ONLY()).not.toContain('Verbatim-body gate');
   });
 
+  it('extract-only run parameters name no envelope input, in a body that forbids tool calls', () => {
+    // The selection rule governs the WORDING as well as the values. Extract-only
+    // states "In extract-only mode you DO NOT invoke any tools" and "NO tool
+    // invocations" — so a run-parameter bullet reading "Pass `unknown` to
+    // `compose_dossier_envelope.transactionContext`" is the same defect as
+    // stating `requireVerbatimBody` there: an instruction to reach a surface
+    // this body forbids reaching.
+    const params = EXTRACT_ONLY()
+      .split('\n')
+      .filter((l) => /^- (Run mode|Audit level|Engagement context):/.test(l))
+      .join('\n');
+    expect(params).not.toContain('compose_dossier_envelope');
+    expect(params).toContain('the meta fence');
+    // The one-shot equivalents DO name the envelope, which is where they go.
+    const oneShotParams = ONE_SHOT()
+      .split('\n')
+      .filter((l) => /^- (Run mode|Audit level|Engagement context):/.test(l))
+      .join('\n');
+    expect(oneShotParams).toContain('compose_dossier_envelope');
+  });
+
+  it('the supplied-true case is rejected on extract-only too, not just the default', () => {
+    // `build()` spreads `{...args}`, and TS excess-property checks do not fire
+    // on spreads — so the supplied case reaches the builder at runtime even
+    // though its parameter type omits the field. Cover it explicitly.
+    expect(EXTRACT_ONLY({ requireVerbatimBody: 'true' })).not.toContain('Verbatim-body gate');
+    expect(EXTRACT_ONLY({ requireVerbatimBody: 'true' })).not.toContain('requireVerbatimBody');
+  });
+
   it('extract-only mentions the flag nowhere at all', () => {
     // Asserted positively so the selection rule is enforced rather than
     // described: a build that wrongly stated it everywhere would pass a
@@ -198,10 +227,12 @@ describe('BL-125 — no body references a section it did not render', () => {
   });
 
   it('the render matrix carries no dangling section reference', () => {
-    // The generalized form of the check above, and the one that found both the
-    // RUN-AUDIT back-references and the interactive `enhanced` no-op in the
-    // first place. It asserts a RELATION computed at render time and pins no
-    // constants, so it adds nothing to the body-hash suite's scenario count.
+    // The generalized form of the check above. A throwaway version of this
+    // matrix is what surfaced the RUN-AUDIT back-references and the interactive
+    // `enhanced` no-op during investigation; this is that probe made permanent,
+    // not the artifact that found them. It asserts a RELATION computed at
+    // render time and pins no constants, so it adds nothing to the body-hash
+    // suite's scenario count.
     //
     // A section is "dangling" when the body refers to it while its own header
     // is absent. Probe the interactive run-audit copy by its own header — it

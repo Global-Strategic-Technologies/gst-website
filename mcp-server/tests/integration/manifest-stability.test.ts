@@ -177,6 +177,18 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // on a check that could not pass. The VERIFY block now carries `countersScope`
 // and states each identity conditionally. Body-only change — no argument,
 // tool, or URI changes; drifts solely from that one prompt name@version tuple.
+// Flattened-body-refusal withdrawal (server 0.52.0): gst_irl_ingestion
+// v0.24.0 -> v0.25.0 and gst_information_request_list v0.0.7 -> v0.0.8 — two
+// tuples, not one. Blank form fields stopped failing prompt attachment across
+// both prompts, so both were served new bytes. Recorded late: the 0.52.0 change
+// rebaselined this constant without appending here, which is why the comment
+// above it described a single-tuple drift while two had moved.
+// Run-parameters rebaseline (server 0.53.0): gst_irl_ingestion v0.25.0 ->
+// v0.26.0 and gst_information_request_list v0.0.8 -> v0.0.9. Every builder now
+// states its resolved mode / auditLevel / transactionContext instead of leaving
+// the model to infer them from what rendered, and requireVerbatimBody — inert
+// on every path, with zero render-time readers — is stated where a consumer
+// exists. Body-only on both prompts; no argument, tool or URI shape changed.
 const EXPECTED_MANIFEST_HASH = 'ab675c4b5599f6bc21d89562a04e256c2f0250da89299661399abcb2a6c22bd2';
 
 function computeManifestHash(): string {

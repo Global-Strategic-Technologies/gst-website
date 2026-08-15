@@ -195,6 +195,7 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
       safeParse(v: unknown): { success: boolean; data?: unknown };
     }
     const offenders: string[] = [];
+    let probed = 0;
     for (const prompt of ALL_PROMPTS) {
       const shape = prompt.argsSchema.shape as Record<string, FieldSchema>;
       for (const key of Object.keys(shape)) {
@@ -205,6 +206,7 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
         } catch {
           continue; // not an enum field — nothing to pad
         }
+        probed += 1;
         if (options.length === 0) continue;
         const canonical = options[0];
         for (const padded of [`${canonical} `, ` ${canonical}`, ` ${canonical} `]) {
@@ -224,6 +226,17 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
     expect(offenders, 'enum args must trim before the canonical lookup — see enumFromWire').toEqual(
       []
     );
+    // A vacuity floor, because this guard shipped once covering NOTHING.
+    // `unwrapToEnumOptions` threw for all 60 registered arguments — a registered
+    // field is `ZodOptional(ZodPreprocess)`, and the walk followed `innerType`
+    // only while a preprocess pipe stores its target under `out` — so every
+    // field hit the catch and `offenders` was trivially empty. A green
+    // assertion over an empty probe set is indistinguishable from a green one
+    // over a full set; this line is what tells them apart.
+    expect(
+      probed,
+      'the guard probed no enum fields — it is asserting nothing'
+    ).toBeGreaterThanOrEqual(31);
   });
 
   it('both previously undocumented memo args now carry descriptions', () => {

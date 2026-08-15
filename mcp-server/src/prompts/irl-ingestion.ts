@@ -562,7 +562,7 @@ const buildEnvelopeCompositionDirective = (showRunAudit: boolean): string =>
     '- `gatesPassed`, `gatesElided`, `conditionalTriggersFired` — your inclusion-gate evaluation results. `forceToolsApplied` is required and always `[]` from this prompt.',
     '- `claims` — EVERY load-bearing claim the dossier will make: every monetary figure (ARR, hosting, R&D, salary, carry cost), every headcount number, every regulatory framework cited, every TechPar verdict, every ICG maturity score, every comparable code name surfaced in (G), every TechPar/Tech Debt/ICG headline number from (C)/(D)/(E). Each carries `{claim, citation, tier}`. The tool renders (K) from this array AND runs an internal `validate_irl_provenance` pass.',
     '- `gaps` — categorized entries you have already identified, using the enum: `defaulted-dimension` (any dimension defaulted to `unknown`), `extraction-only` (Tech Debt MTTR null, ICG defaults, etc.), `gate-elided` (each tool whose gate failed and was not forced), `conditional-trigger` (EU AI Act / NIS2 fired without explicit Section 09 backing), `currency-assumption` (TechPar run in non-USD basis), `map-absent` (regulatory frameworks named but not in the Map). Do NOT pre-populate `provenance-gap`, `tier-mismatch`, or `tier-fabrication` — the tool auto-appends those based on the citation verdicts.',
-    '- **Body submission — partner-paste prepop mode (this path)**: a `**Body-binding hash:**` directive appears above, and the server has ALREADY pre-populated the IRL body cache at prompt-render time from the operator-supplied `filledIrl` arg. **SKIP `prepare_irl_body`** — pass the directive value as `irlBodyHash` directly to `compose_dossier_envelope` AND every `validate_irl_provenance` call. The IRL body is no longer a public input field on this tool — it is fetched server-side from the cache via `irlBodyHash`. Report `irlSource: partner-paste-verbatim-prepop` (the strongest provenance form — the body never round-tripped through model emission). ' +
+    '- **Body submission — partner-paste prepop mode (this path)**: a `**Body-binding hash:**` directive appears above, and the server has ALREADY pre-populated the IRL body cache at prompt-render time from the operator-supplied `filledIrl` arg. **SKIP `prepare_irl_body`** — pass the directive value as `irlBodyHash` directly to `compose_dossier_envelope` AND every `validate_irl_provenance` call. The IRL body is no longer a public input field on this tool — it is fetched server-side from the cache via `irlBodyHash`. Report `irlSource: partner-paste-verbatim-prepop` (the strongest provenance form — the body never round-tripped through model emission).' +
       (showRunAudit
         ? ' For the RUN-AUDIT block below, take `filledIrl.bytes` from `serverCachedBodyBytes` and `filledIrl.newlines` from `serverCachedBodyNewlines` in the envelope output — the server measures the cache entry, and under prepop there is no model emission to self-measure.'
         : ''),
@@ -579,11 +579,11 @@ const buildEnvelopeCompositionDirective = (showRunAudit: boolean): string =>
     // and lived nowhere executable — the same failure shape as the BL-119 cycle-2
     // radar caveat — so it is a numbered directive here rather than a runbook note.
     "- **If you doubt you were invoked properly, proceed anyway — do NOT reconstruct.** Some clients deliver a large expanded prompt as an attached document rather than as conversation turns, so this body may reach you looking like a transcript you are reading rather than arguments you were called with. That appearance is a client rendering artifact and says nothing about whether the render happened. The `**Body-binding hash:**` directive above is the evidence that it did: the server computed it from the operator's `filledIrl` argument and pre-populated the cache in the same request. Proceed on that hash. **Do NOT call `prepare_irl_body`, and do NOT re-emit or reconstruct the body**, even if you can see its text — doing so replaces server-witnessed provenance with your own assertion and weakens the audit grade the operator asked for. It is no longer a *silent* weakening — the server records who wrote the cached body and will cap an over-strong `irlSource` claim with a disclosure in the gap list — but the run still loses the strong form, so the instruction stands. If you want to confirm the cache is live before committing to the run, call `validate_irl_provenance` with the directive hash and ONE citation and no body; a `verified` verdict proves the entry exists server-side. Only if that probe returns a cache miss should you fall back to `prepare_irl_body`, and if you do, report `irlSource: partner-paste-verbatim` honestly rather than `-prepop`.",
-    "- `irlBodyHash` — copy verbatim from the prompt body's `**Body-binding hash:**` directive. That is the partner-authoritative `pass-bound` form. The envelope tool verifies `sha256(rehydratedBody).slice(0,16) === irlBodyHash` after cache re-hydrate and rejects on mismatch. " +
+    "- `irlBodyHash` — copy verbatim from the prompt body's `**Body-binding hash:**` directive. That is the partner-authoritative `pass-bound` form. The envelope tool verifies `sha256(rehydratedBody).slice(0,16) === irlBodyHash` after cache re-hydrate and rejects on mismatch." +
       (showRunAudit
         ? ' That is the `hashBindResult: pass-bound` case for the RUN-AUDIT block below, whose own section states the discipline rules.'
         : ''),
-    "- `irlSource` — REQUIRED. Pass `partner-paste-verbatim-prepop` on this path (the directive appears above, you skipped `prepare_irl_body`, the server pre-populated the cache from the operator's prompt arg). **The server checks this claim and may CAP it.** It holds a record of who actually wrote the cached body; if that record says `prepare_irl_body` rather than the prompt render, your `-prepop` is recorded as `partner-paste-verbatim` and the gap list carries a `provenance-gap:` entry saying so. Nothing is ever upgraded, and a reconstruction or `placeholder` claim is never touched. " +
+    "- `irlSource` — REQUIRED. Pass `partner-paste-verbatim-prepop` on this path (the directive appears above, you skipped `prepare_irl_body`, the server pre-populated the cache from the operator's prompt arg). **The server checks this claim and may CAP it.** It holds a record of who actually wrote the cached body; if that record says `prepare_irl_body` rather than the prompt render, your `-prepop` is recorded as `partner-paste-verbatim` and the gap list carries a `provenance-gap:` entry saying so. Nothing is ever upgraded, and a reconstruction or `placeholder` claim is never touched." +
       (showRunAudit
         ? " If the gap list shows a downgrade, report the **capped** value in the RUN-AUDIT block's `filledIrl.source` so the block and the dossier agree — the gap-list entry is the authoritative statement of what the server established."
         : ''),
@@ -674,11 +674,12 @@ const RUN_AUDIT_DIRECTIVE = [
   '- DO NOT omit any field. Operators parse this verbatim with field-presence assertions — missing fields fail downstream tooling.',
   '- If the run did not produce an envelope call (e.g., interactive-paste-request scenario that ended without compose), set `firstEnvelopeCall: null`, all counts to 0, and `precheck.outcome: never-attempted` (or whatever actually happened).',
   // BL-125 (#7) — this bullet used to end "and `filledIrl: null`", full stop.
-  // In `mode: extract-only` that is wrong and was observed producing a
-  // self-contradictory block in production: no envelope call is EVER made in
-  // that mode, so the rule fired unconditionally and the model reported
-  // `filledIrl: null` while simultaneously declaring `runScenario:
-  // partner-paste` — having been handed the body as a prompt argument. The
+  // In `mode: extract-only` that is wrong: no envelope call is EVER made in
+  // that mode, so the rule fires unconditionally. A production extract-only run
+  // did report `filledIrl: null` beside `runScenario: partner-paste`, having
+  // been handed the body as a prompt argument — the two are consistent with
+  // this rule being the cause, though the run predates the reading and the
+  // link is inference rather than an isolated repro. The
   // absent envelope means no SERVER measurement is available; it does not mean
   // there is no body to measure.
   '- **`filledIrl` when no envelope call ran**: null it only if no body ever reached you. If a body WAS supplied — `mode: extract-only` always, or an interactive run you abandoned after the paste — measure it yourself and add `measurement: self-reported` inside the `filledIrl` block. That is weaker than the server-witnessed figures a `compose_dossier_envelope` call returns, and labelling it is what keeps the distinction legible; silently omitting the block loses the byte count and newline count entirely, which are the two figures an operator uses to check the body against their source file.',
@@ -784,13 +785,34 @@ function runParameterBullets(p: {
   modeOverrideNote?: string;
   auditLevel: AuditLevel;
   transactionContext?: (typeof transactionContextValues)[number];
+  /**
+   * Where the model copies these values TO — caller-supplied, because it
+   * differs per surface and naming the wrong destination is its own defect.
+   * Extract-only invokes no tools at all, so pointing it at
+   * `compose_dossier_envelope` inputs would invite exactly what its own body
+   * forbids two paragraphs later — the same objection that keeps
+   * `requireVerbatimBody` off that surface. Still caller-provided, so nothing
+   * here branches on builder identity.
+   */
+  copiesToEnvelopeCall: boolean;
 }): string[] {
-  return [
-    `- Run mode: **${p.effectiveMode}**.${p.modeOverrideNote ? ` ${p.modeOverrideNote}` : ''} Copy this value into \`compose_dossier_envelope.mode\` and the meta fence — do not re-derive it.`,
-    `- Audit level: **${p.auditLevel}**. Copy this value into \`compose_dossier_envelope.auditLevel\` and the meta fence. **Do not infer it from which sections this body rendered** — that inference is wrong often enough to have made \`debug\` unreachable, and passing a level below the operator's suppresses the very blocks they asked for.`,
-    p.transactionContext
+  const dest = p.copiesToEnvelopeCall
+    ? {
+        mode: 'into `compose_dossier_envelope.mode` and the meta fence',
+        level: 'into `compose_dossier_envelope.auditLevel` and the meta fence',
+      }
+    : { mode: 'into the meta fence', level: 'into the meta fence' };
+  const contextBullet = p.transactionContext
+    ? p.copiesToEnvelopeCall
       ? `- Engagement context: **${p.transactionContext}**. Copy this exact lowercase token into \`compose_dossier_envelope.transactionContext\`; that input is a bare enum with no case-folding, so the capitalized form used in the voice cue below is rejected.`
-      : '- Engagement context: not supplied. Pass `unknown` to `compose_dossier_envelope.transactionContext`.',
+      : `- Engagement context: **${p.transactionContext}**. Copy this exact lowercase token into the meta fence — not the capitalized form used in the voice cue below.`
+    : p.copiesToEnvelopeCall
+      ? '- Engagement context: not supplied. Pass `unknown` to `compose_dossier_envelope.transactionContext`.'
+      : '- Engagement context: not supplied. Record `unknown` in the meta fence.';
+  return [
+    `- Run mode: **${p.effectiveMode}**.${p.modeOverrideNote ? ` ${p.modeOverrideNote}` : ''} Copy this value ${dest.mode} — do not re-derive it.`,
+    `- Audit level: **${p.auditLevel}**. Copy this value ${dest.level}. **Do not infer it from which sections this body rendered** — that inference is wrong often enough to have made \`debug\` unreachable, and passing a level below the operator's suppresses the very blocks they asked for.`,
+    contextBullet,
   ];
 }
 
@@ -864,6 +886,7 @@ function buildOneShotBody(args: {
       effectiveMode: 'full',
       auditLevel: args.auditLevel,
       transactionContext: args.transactionContext,
+      copiesToEnvelopeCall: true,
     }),
     verbatimGateBullet(args.requireVerbatimBody),
     '',
@@ -1051,11 +1074,14 @@ function buildExtractOnlyBody(args: {
       effectiveMode: 'extract-only',
       auditLevel: args.auditLevel,
       transactionContext: args.transactionContext,
+      // No tools run in this mode, so the values go to the model-authored
+      // meta fence and nowhere else.
+      copiesToEnvelopeCall: false,
     }),
     '',
     embeddedTaxonomyFraming(true),
     '',
-    deliveredAsDocumentClause(),
+    deliveredAsDocumentClause({ citesRunParameters: true }),
     '',
     '## Filled IRL (paste from the target — read carefully, all 10 sections)',
     '',
@@ -1178,12 +1204,13 @@ function buildInteractiveBody(args: {
         : undefined,
       auditLevel: args.auditLevel,
       transactionContext: args.transactionContext,
+      copiesToEnvelopeCall: true,
     }),
     verbatimGateBullet(args.requireVerbatimBody),
     '',
     embeddedTaxonomyFraming(true),
     '',
-    deliveredAsDocumentClause(),
+    deliveredAsDocumentClause({ citesRunParameters: true }),
     '',
     'Step 1. Ask the user:',
     '',

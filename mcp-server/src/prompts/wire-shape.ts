@@ -127,11 +127,21 @@ export function numberFromWire<S extends z.ZodTypeAny>(inner: S) {
 export function unwrapToEnumOptions(schema: z.ZodTypeAny): readonly string[] {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let s: any = schema;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     if (Array.isArray(s?.options)) return s.options as readonly string[];
-    // ZodOptional / ZodDefault — Zod 4 stores the wrapped schema under
-    // `_def.innerType` (legacy) or `def.innerType` (Zod 4 classic).
-    const inner = s?._def?.innerType ?? s?.def?.innerType;
+    const d = s?._def ?? s?.def;
+    // ZodOptional / ZodDefault wrap under `innerType`. A **ZodPipe** — which is
+    // what `z.preprocess` builds, and therefore what every adapter in this file
+    // returns — wraps under `{ in, out }` with no `innerType` at all.
+    //
+    // BL-125: the walk followed `innerType` only, so it hit the pipe, broke,
+    // and threw for EVERY registered prompt argument. That was invisible while
+    // the sole caller was `enumFromWire` itself, which passes the raw inner
+    // schema before wrapping. The moment the BL-125 guard called it on a
+    // REGISTERED field — `ZodOptional(ZodPipe)` — it threw on all 60, the
+    // guard's catch swallowed each one, and a test that reported success
+    // probed nothing. Following `out` reaches 31 enum fields across 9 prompts.
+    const inner = d?.innerType ?? d?.out;
     if (!inner) break;
     s = inner;
   }

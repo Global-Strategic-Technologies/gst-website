@@ -335,7 +335,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ### BL-125: The prompt states none of its own run parameters
 
-**Source**: post-deploy production testing of BL-124, 2026-08-14, plus seven rounds of design review | **Effort**: Medium | **Status**: Planned
+**Source**: post-deploy production testing of BL-124, 2026-08-14, plus seven rounds of design review | **Effort**: Medium | **Status**: **Implemented 2026-08-14** (prompt `0.26.0` / `0.0.9`, server `0.53.0`, [ADR-0017 amendment](../adr/0017-audit-levels-enforced-in-the-tool-response.md)) — open pending the post-deploy production confirmation, which is the only criterion a test cannot close
 
 **As an** operator invoking `gst_irl_ingestion`, **I want** the arguments I set to actually reach the run **so that** `debug` produces a debug artifact and `requireVerbatimBody` enforces the refusal it promises.
 
@@ -349,14 +349,14 @@ Seven further defects — an untrimmed enum lookup that fails prompt attachment,
 
 #### Acceptance Criteria
 
-- [ ] Every builder states its own resolved run parameters, selected by the rule **"does this surface have a consumer for the value"** — so `auditLevel` appears in extract-only (its meta fence is model-authored, ADR-0017 line 48) while `requireVerbatimBody` does not (no envelope call, not a fence key, not a RUN-AUDIT field)
-- [ ] The two prose sites that consume `requireVerbatimBody` point at the stated value rather than asking the model to know an unknowable condition
-- [ ] Interactive receives the full argument set, and Step 1's tailoring ask is composed from the arguments genuinely absent — stating a value and then asking for it is the defect, not half of it
-- [ ] Interactive discloses that a supplied `mode: extract-only` was not honored
-- [ ] `enumFromWire` trims before lookup, matching `booleanFromWire`; the repo-wide guard is extended so no optional enum field on any prompt rejects a whitespace-padded canonical value
-- [ ] The anti-balk clause covers all five rendered bodies, in a form whose evidence is structural rather than hash-based — the existing clause argues from a directive three of the five never render
-- [ ] `enhanced` yields the same verification discipline on the interactive path as on the paste path; a (K) footer is never emitted without the blocking self-check that backs it
-- [ ] The body-hash suite is governed by a stated **coverage rule** — pin builder × level, plus one args-variant per builder at `standard` only — rather than a tally renegotiated per change
+- [x] Every builder states its own resolved run parameters, selected by the rule **"does this surface have a consumer for the value"** — so `auditLevel` appears in extract-only (its meta fence is model-authored, ADR-0017 line 48) while `requireVerbatimBody` does not (no envelope call, not a fence key, not a RUN-AUDIT field)
+- [x] The two prose sites that consume `requireVerbatimBody` point at the stated value rather than asking the model to know an unknowable condition
+- [x] Interactive receives the full argument set, and Step 1's tailoring ask is composed from the arguments genuinely absent — stating a value and then asking for it is the defect, not half of it
+- [x] Interactive discloses that a supplied `mode: extract-only` was not honored
+- [x] `enumFromWire` trims before lookup, matching `booleanFromWire`; the repo-wide guard is extended so no optional enum field on any prompt rejects a whitespace-padded canonical value
+- [x] The anti-balk clause covers all five rendered bodies, in a form whose evidence is structural rather than hash-based — the existing clause argues from a directive three of the five never render
+- [x] `enhanced` yields the same verification discipline on the interactive path as on the paste path; a (K) footer is never emitted without the blocking self-check that backs it
+- [x] The body-hash suite is governed by a stated **coverage rule** — pin builder × level, plus one args-variant per builder at `standard` only — rather than a tally renegotiated per change
 - [ ] **Post-deploy production confirmation**: a `debug` sweep returns a meta fence with a non-null `promptVersion`
 
 ---
