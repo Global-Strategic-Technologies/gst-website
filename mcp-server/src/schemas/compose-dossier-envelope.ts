@@ -274,11 +274,16 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
   // longer list every Section-09-named framework here (v10 over-
   // populated this field with 7 entries when only EU_AI_ACT was a real
   // conditional trigger).
-  conditionalTriggersFired: z
-    .array(z.enum(CONDITIONAL_TRIGGER_NAMES))
-    .describe(
-      'Named conditional triggers that fired DESPITE not being in Section 09 — currently `EU_AI_ACT` (EU geography + ML/AI use) and `NIS2` (EU geography + regulated sector). Empty array if none. Do NOT list frameworks that ARE in Section 09 — those go in the regulatory subsection prose, not here.'
-    ),
+  conditionalTriggersFired: z.array(z.enum(CONDITIONAL_TRIGGER_NAMES)).describe(
+    // BL-125 (#8) — this description contradicted the BL-063 partition rule
+    // in BOTH its clauses ("fired DESPITE not being in Section 09" and "Do
+    // NOT list frameworks that ARE in Section 09"). The framework that fires
+    // AND is enumerated is the common case, not an edge one — a production
+    // run hit it with the EU AI Act — and the model had to choose which
+    // instruction to break. `Bl063PartitionViolationError` below is the
+    // authoritative statement and this now matches it.
+    'Named conditional triggers that fired — currently `EU_AI_ACT` (EU geography + ML/AI use) and `NIS2` (EU geography + regulated sector). Empty array if none. **A framework that fired AND is also named in Section 09 belongs here and ONLY here**: the conditional-trigger path wins, and it must be omitted from `defaultFiredFrameworks` — listing it in both is rejected as a partition violation.'
+  ),
   // BL-063 server-side enforcement: defaultFiredFrameworks is the
   // Section-09 enumerated regulatory frameworks the partner is subject
   // to. The tool enforces three rules at the schema seam (matching the
