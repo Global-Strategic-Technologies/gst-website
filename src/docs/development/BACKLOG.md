@@ -130,6 +130,71 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ---
 
+### BL-133: Payments Platform — automated MCP access checkout on Cloudflare
+
+**Source**: operator directive 2026-08-15 — build the payment rail as a reusable capability, first consumer being self-serve MCP client purchase + provisioning | **Effort**: ~2–3 weeks engineering across the slices below, plus vendor/tax lead time | **Status**: Open | **Reverses**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, which lists "public checkout / webhook-driven tier automation" as deferred pending a volume trigger — this item is the operator go-decision that supersedes it
+
+**As a** prospective MCP client, **I want** to buy access with a credit card and receive working credentials immediately, **so that** neither I nor the GST operator has to run an email thread to get provisioned — and **as** the GST operator, **I want** that same rail to serve every future productized good or service, **so that** the second thing GST sells does not need a second payments integration.
+
+> **Framing**: the deliverable is a payments capability with MCP access as its first product, not an MCP feature that happens to take money. Every AC below that names MCP should be readable as "the first product wired into the rail." GST already holds a company bank account, so merchant onboarding is a KYC form rather than a corporate-formation dependency — the vendor decision turns on tax handling and hosting fit, not on banking.
+
+#### Acceptance Criteria
+
+**Slice 1 — Vendor selection (decision, ships as an ADR)**
+
+- [ ] Vendors evaluated on a written matrix: **Stripe direct** (+ Stripe Tax), and at least two merchant-of-record options (Paddle, Lemon Squeezy, Polar). Axes: who is the merchant of record for EU/UK VAT and US sales tax, fee structure at GST's expected volume, Workers/`fetch`-native SDK support (no Node built-ins), webhook signature scheme, invoicing + payment-link support for the future remediation use case, subscription/proration support, and exit cost if the rail is re-hosted later
+- [ ] **The tax axis is the decision, not the fees.** Stripe direct means GST registers for and remits EU/UK VAT itself once thresholds are crossed; a merchant of record absorbs that for a higher take rate. Record which liability the operator is accepting — this is a business decision surfaced to the operator, not an engineering pick
+- [ ] Decision captured as an ADR in [`src/docs/adr/`](../adr/README.md) per [TEMPLATE.md](../adr/TEMPLATE.md), including the "when would we switch" trigger
+- [ ] The chosen vendor's SDK verified to run on `workerd` (Web Crypto, no `crypto`/`Buffer` polyfills) before the ADR is accepted — a vendor that only ships a Node SDK forces raw REST + hand-rolled HMAC, which is a cost the matrix must carry rather than discover
+
+**Slice 2 — Checkout + webhook rail on the Worker**
+
+- [ ] Checkout-session creation and webhook receipt both hosted on the existing Cloudflare Worker (`mcp-server/src/worker.ts`), added as a new path branch alongside the `/admin/inoreader/reauth/{start,callback}` pair — the standing precedent for a non-MCP, non-OAuth HTTP endpoint with its own auth semantics. New paths must join the route predicate or they 404 before auth by design
+- [ ] Webhook authenticated by **vendor signature verification (HMAC over the raw body, constant-time compare, timestamp window)** — explicitly NOT `validateAdminKey` (`mcp-server/src/admin/admin-auth.ts`), which is a shared-secret compare and the wrong shape. Raw body must be read before any JSON parse
+- [ ] Webhook handler is **idempotent by event id** (KV or R2 dedupe) — vendors retry, and a double `checkout.completed` must not mint two clients or double-provision
+- [ ] Handler returns 2xx fast and does provisioning work durably; a slow or failing downstream must not turn into a retry storm that provisions N times
+- [ ] Vendor secrets (API key, webhook signing secret) added to [`SECRETS_INVENTORY.md`](../operations/SECRETS_INVENTORY.md) and set via `wrangler secret put` for staging and production separately — never inline (Directive 15). Staging points at the vendor's test mode
+- [ ] Payment events written to the hash-chained audit log ([ADR-0009](../adr/0009-compliance-audit-log-hash-chain.md)) — a paid tier's provenance should be as auditable as its tool calls
+- [ ] Integration tests cover: valid signature → provisioned; bad/absent signature → 401 with nothing provisioned; replayed event id → no second provision; malformed payload → 400. The signature test must be verified to fail with the check removed (a guard proven by mutation, not by passing)
+
+**Slice 3 — Automated enablement (the part that removes the email thread)**
+
+- [ ] Successful payment provisions an M2M client through the existing path — `createM2mClient` / `POST /admin/oauth/m2m-clients` (`mcp-server/src/oauth/m2m-clients.ts`, `mcp-server/src/admin/oauth-clients.ts`) — reusing the tier and scope guardrails already encoded in [`provision-client.mjs`](../../../mcp-server/scripts/provision-client.mjs). **Extract the shared guardrails rather than reimplementing them in the handler**: the script requires an explicit tier (the API silently resolves an absent one to `free-pilot`) and validates scopes against the catalog (the API accepts any non-empty array, so a typo provisions a client that can call nothing). A parity test already binds the script's mirrors to `src/ratelimit/tiers.ts` and `src/oauth/provider.ts` — the extraction must not break it
+- [ ] **`tool:radar:*` / `resource:radar:read` stay excluded from any self-serve purchase** unless the operator explicitly configures a radar-bearing SKU — the script gates them behind `--allow-radar` because they read the Inoreader-funded snapshot, and a checkout page must not become the bypass
+- [ ] **Blocker to resolve first**: the admin API is GET/POST/DELETE only — there is **no PATCH/PUT**, so a tier change today means delete-and-recreate, i.e. a new credential for the client. Renewals, upgrades, downgrades, and lapse-driven demotion all need an in-place tier mutation endpoint. Ship `PATCH /admin/oauth/m2m-clients/:id` (tier + scopes, admin-authed, audit-logged) as part of this slice
+- [ ] Client secret is delivered to the buyer **exactly once**, on the post-checkout return page, over a single-use short-TTL token — never emailed, never re-retrievable, preserving the "secret exists only in the creation response" property that `provision-client.mjs` deliberately protects. The follow-up email carries setup links and the client id, not the secret
+- [ ] Lifecycle events wired end to end: successful renewal keeps the tier; failed payment / cancellation / refund / chargeback demotes or revokes on a defined grace policy, and the policy is published where the buyer sees it before paying
+- [ ] Every paid tier assignment remains traceable to a payment (vendor payment/invoice id recorded on the client record) — carries forward the equivalent BL-093 invoice-traceability AC
+- [ ] [`PILOT_ONBOARDING.md`](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md) § 0 updated: self-serve purchase becomes the primary intake, operator-driven provisioning stays documented as the path for negotiated/enterprise deals. This also closes the 🟡 half-pending intake AC in BL-093
+
+**Slice 4 — Website UX and integration**
+
+- [ ] Purchase surface on the site presenting the tier table and price, built with design-system tokens only; works in light/dark and all 6 palettes; desktop-first responsive; E2E coverage per [TEST_STRATEGY.md](../testing/TEST_STRATEGY.md). Route naming consistent with `/hub/radar` and `/hub/tools/*`
+- [ ] **Copy must not convert capability ceilings into a ratified SLA.** Tiers are "tunable, non-contractual capability ceilings" per [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) / [ADR-0010](../adr/0010-per-client-rate-limit-tiers.md), and selling access against them is exactly where that framing is most likely to erode. SLA ratification stays deferred under [BL-033](#bl-033-mcp-server--external-pilot-phase-3); nothing on a pricing page may ratify one by implication
+- [ ] **CSP updated in BOTH `vercel.json` and `src/middleware.ts`** per [SECURITY_HEADERS.md](../security/SECURITY_HEADERS.md) — the site pins `form-action 'self'` and an explicit `connect-src`, so the vendor's checkout host, JS bundle, and any embedded-payment iframe need `form-action` / `connect-src` / `script-src` / `frame-src` entries. A redirect-to-hosted-checkout flow needs strictly fewer of these than an embedded element; weigh that in Slice 1
+- [ ] Whether the return/confirmation page is a Vercel on-demand route or a static page reading a Worker-issued token is decided explicitly. If an Astro API route is used: `export const prerender = false`, add the route to the `INTERNAL_ENDPOINTS` allowlist in `src/middleware.ts` (deliberately retained, currently empty), and keep the ISR `exclude: [/^\/api\/.+/]` regex in `astro.config.mjs` intact — without it, POSTs to `/api/*` return 403 through Vercel's `_isr` pipeline. A working template survives in git: `git show 606f4848^:src/pages/api/inoreader/refresh.ts`
+- [ ] `src/pages/privacy.astro` and `src/pages/terms.astro` updated for payment-data collection and the purchase terms (refunds, cancellation, what a tier does and does not promise). Note `src/pages/hub/index.astro` currently tells visitors the tools are free — reconcile that copy, and run the Directive-11 `grep tests/` check on every string changed
+- [ ] Purchase flow passes WCAG 2.1 AA (axe-core), with graceful handling of abandoned checkout, declined card, and vendor-outage states
+- [ ] GA4 purchase event consent-gated — depends on [BL-001](#bl-001-cookie-consent-and-gdpr-compliance) if analytics on the funnel are wanted; ship without funnel analytics rather than blocking on it
+
+**Slice 5 — Rail reuse (design constraints only; no second product built here)**
+
+- [ ] Product/SKU definition lives in one place (a typed catalog module) that maps SKU → fulfillment handler, so a future product registers a handler instead of forking the checkout route. MCP access is the first registered SKU
+- [ ] **Payment links / remediation flow**: the vendor selected must support operator-generated one-off payment or invoice links, so an unpaid or lapsed client can be sent a link that, once paid, re-runs the same fulfillment handler and restores the tier — the same rail, not a parallel manual path
+- [ ] Fulfillment handlers that have no credential to issue (a document, an engagement deposit, a one-off deliverable) are supported by the interface, demonstrated by a written second-product sketch — not an implementation
+- [ ] "Client pays an engagement invoice through the web platform" is named as the anticipated second consumer, with the deltas it will need (larger amounts, ACH/bank transfer rather than card, purchase orders, per-client invoice identity) recorded so Slice 1's vendor matrix scores against them **now** rather than after the rail is committed
+
+#### Technical Context
+
+- **The substrate is already built.** Per-client tiers with Upstash-enforced sliding windows and `RateLimit-*` headers (`mcp-server/src/ratelimit/tiers.ts`, ADR-0010), M2M `client_credentials` with hashed secrets, the admin API, per-`keyOwner` Analytics Engine telemetry, and the hash-chained audit log all exist and are tested. `ASSIGNABLE_TIERS` is `['free-pilot', 'paid', 'enterprise']`; the `paid` tier has been enforceable since BL-033 slice 5. What is missing is the money and the automation around it — this item should not rebuild any of the above
+- **This crosses a recorded architectural stance.** [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md) commits to pre-registered clients with no dynamic client registration and no self-serve signup, and BL-093 restates "explicitly NOT self-serve credential issuance." Automated post-payment provisioning is a bounded exception — the operator's checkout is the registration authority, so it is not DCR — but it must be written down: **amend ADR-0008 (or supersede it) in the same PR as Slice 3**, rather than letting code silently contradict an accepted ADR
+- **Payment is not identity.** A card charge authenticates a payment instrument, not an organization. Decide and document what a buyer must supply before credentials are minted (verified email at minimum; firm name and use case if the radar/enterprise SKUs stay operator-gated), and whether any SKU still requires operator review before fulfillment
+- **Abuse surface.** A self-serve endpoint that mints credentials invites card-testing and throwaway-account farming. Rate-limit the checkout-creation endpoint, rely on the vendor's fraud tooling, and keep the low tier's ceilings low enough that a fraudulently-obtained free/entry credential is not worth farming
+- **Hosting split is deliberate**: the Worker owns the money-and-credentials path because that is where `OAUTH_KV`, the audit log, the tier logic, and the admin API already live; the website owns presentation and the return page. Do not split provisioning logic across both
+- **Related items**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) supplies the marketing page, public developer docs, and pricing-presentation ACs this checkout links into — its deferral premise ("a front door is not the bottleneck when nobody is at the gate") is what this operator directive revisits, so re-read that stanza's reasoning before deciding how much of the front door ships alongside. [BL-004](#bl-004-email-capture-system) overlaps on form UX, the email-service choice, and the privacy disclosure — a purchase-receipt sender and a marketing-email sender may or may not be the same vendor; decide once. BL-033's independent pen test remains the hard gate on public listing, and a live payment endpoint strengthens rather than weakens the case for running it
+
+---
+
 ## CSS and Design System
 
 ### BL-102: Regulatory map — how is the map exposed to assistive tech?
@@ -891,7 +956,7 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
   - **Self-serve signup / user directory / dynamic client registration** — [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md) records the stance and its revisit triggers; identity remains delegation over pre-registered clients
   - **Usage-metered billing** — tiers are capability ceilings ([ADR-0010](../adr/0010-per-client-rate-limit-tiers.md)). Trigger: a client asks for usage-based pricing, or invoice disputes require per-call metering (the per-`keyOwner` telemetry is the seam)
   - **SLA ratification** — stays deferred under BL-033 (operator directive); nothing in this stanza may ratify one by implication
-  - **Public checkout / webhook-driven tier automation** — trigger: request-access volume makes operator-driven invoicing the bottleneck
+  - **Public checkout / webhook-driven tier automation** — ~~trigger: request-access volume makes operator-driven invoicing the bottleneck~~ **no longer out of scope**: the operator made a fresh go-decision on 2026-08-15 without waiting for the volume trigger, and it is now filed as [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare). The invoice-first payments ACs above stand for negotiated/enterprise deals; BL-133 owns the card-and-webhook path. Note this decision addresses only the payments bullet — self-serve _signup_/DCR, usage-metered billing, and SLA ratification all remain out of scope as recorded
 
 ---
 
