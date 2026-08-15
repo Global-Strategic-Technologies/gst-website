@@ -558,6 +558,24 @@ The collapse is deliberate and documented in the source comment (BL-064 — the 
 
 ---
 
+### BL-134: The BL-063 partition guard catches double-listing and cannot catch mis-routing
+
+**Source**: production `gst_irl_ingestion` run, 2026-08-15 | **Effort**: Medium | **Status**: Recorded — **trigger met**
+
+**What it is.** `checkBl063Partition` (`mcp-server/src/schemas/compose-dossier-envelope.ts:1005`) throws when a framework appears in **both** `conditionalTriggersFired` and `defaultFiredFrameworks`. Its matching is robust — `normalizeFrameworkName` strips every non-alphanumeric, so `EU_AI_ACT` and `EU AI Act` both normalize to `euaiact` and a duplicate cannot dodge it on formatting.
+
+But the function returns early when **either** array is empty, and more fundamentally it only ever compares the two lists to each other. **Move a framework out of `conditionalTriggersFired` into `defaultFiredFrameworks` and there is nothing to overlap**, so the call passes clean: no error, no auto-appended gap entry, no signal of any kind.
+
+**Observed.** A production run placed `EU AI Act` in `defaultFiredFrameworks` and omitted it from `conditionalTriggersFired`. The run passed, and the model reported in its own footnote that the contract _"appears no longer to hold"_ and that default-firing was _"the more accurate representation when Section 09 names it explicitly"_. It had inferred permission from silence — reasonably, since a schema that rejects one arrangement and accepts another is making a statement.
+
+**The contract says the opposite, unambiguously.** The `conditionalTriggersFired` `.describe()` (`:285`) reads: _"A framework that fired AND is also named in Section 09 belongs here and ONLY here — the conditional-trigger path wins, and it must be omitted from `defaultFiredFrameworks`."_ BL-063 exists because the distinction is load-bearing: a conditionally-triggered framework is one the sweep **discovered** against a partner IRL that failed to list it, and collapsing it into the default set erases exactly the finding the trigger was built to produce.
+
+**Why this is not simply "add a stricter check."** The server cannot tell mis-routing from a legitimately-absent trigger by inspecting the two arrays — that is the information the arrays do not carry. It _could_ evaluate the trigger predicates itself: the body is already cached and re-hydrated in this handler for provenance verification, and both predicates read named IRL sections rather than model judgment — `EU_AI_ACT` is _"Section 05 names any production ML/AI capability AND Section 00 geographies include the EU"_, `NIS2` is _"Section 00 geographies include the EU AND Section 01 names a regulated sector covered by NIS2 Annex I or II"_ (`mcp-server/src/prompts/extraction-rules.ts:117`, `:127`). That would make the trigger set server-derived rather than model-asserted, which is the same move BL-071 made for `precheck.iterations` and the one BL-130 proposes for `fillRatio`. **The opening question is whether the predicates are cheaply evaluable server-side, or whether the fix is a narrower assertion** — e.g. requiring the model to state, per default-fired framework, that no conditional predicate applied to it.
+
+**Trigger**: met.
+
+---
+
 ### BL-127: Interactive mode silently ignores `mode: extract-only`
 
 **Source**: design review of BL-125, 2026-08-14 | **Effort**: Small | **Status**: Recorded
@@ -580,7 +598,13 @@ The coherent fix is for interactive to collect the body and _then_ branch, which
 
 **A second instance to fix at the same time.** The extract-only body carries 13 `compose_dossier_envelope` references inside the shared RUN-AUDIT and meta-fence directives — including an instruction to copy `toolCallCounts` verbatim from that tool's output, in a mode that never calls it. That is the same defect class BL-125 closed for the run-parameter bullets (`copiesToEnvelopeCall`), left standing in the directives those bullets sit beside. Deduping the contract is what makes it fixable in one place instead of thirteen.
 
-**A third instance, cheap and worth folding in.** The contract never says that `compose_dossier_envelope`'s own entry in the snapshot it emits is **always** `{attempted: 1, succeeded: 0}`. That shape is structural, not a defect: `withToolMetrics` records `attempted` at wrap entry and `succeeded` at wrap exit (`mcp-server/src/metrics/with-metrics.ts:196-204`), and the envelope handler reads the snapshot from inside its own invocation — after its own `attempted`, necessarily before its own `succeeded`. The `attempted`-at-entry ordering is itself deliberate (audit M1, to avoid a confusing `attempted: 0, succeeded: 0`). Production models have now flagged this as a counter bug on more than one run, each time spending operator attention to re-derive that it is benign. One sentence in the deduped contract retires it permanently.
+**A third instance, cheap and worth folding in.** The contract never explains two things about `serverToolCallCounts` that production models have now misread on three separate runs, spending operator attention each time to re-derive that nothing is wrong.
+
+**The envelope under-counts itself by exactly one, always.** `withToolMetrics` records `attempted` at wrap entry and `succeeded` at wrap exit (`mcp-server/src/metrics/with-metrics.ts:196-204`), and the envelope handler reads the snapshot from inside its own invocation — after its own `attempted`, necessarily before its own `succeeded`. So its own entry reads **`{attempted: N, succeeded: N−1}`** when the preceding N−1 calls succeeded. The `attempted`-at-entry ordering is deliberate (audit M1, to avoid a confusing `attempted: 0, succeeded: 0`).
+
+> _Correction, 2026-08-15._ This paragraph previously stated the shape was **always** `{attempted: 1, succeeded: 0}`. That is only the first-call case, which was the only case observed when it was written; a later run returned `{attempted: 5, succeeded: 4}`. Generalising from a single observation to "always" is the same error class this stanza's neighbours document, and the fix is the same: state the mechanism, not the one instance of it.
+
+**`countersScope: "run"` does not mean "this conversation".** The run key is the IRL body hash (`mcp-server/src/tools/compose-dossier-envelope.ts:144`), so counters are scoped to the **document** and every sweep over identical bytes shares one bucket until the key expires — across conversations, across clients, across operators. A model that reads "run" as "session" concludes the counter is leaking and says so in its footnote. Naming the derivation in the contract costs one clause and retires the whole class.
 
 **Trigger**: met. Schedule with the next substantive `gst_irl_ingestion` body change, since it carries a prompt version bump and a full hash rebaseline either way.
 
