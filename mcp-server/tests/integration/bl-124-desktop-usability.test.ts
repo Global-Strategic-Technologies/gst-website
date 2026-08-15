@@ -206,8 +206,12 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
         } catch {
           continue; // not an enum field — nothing to pad
         }
-        probed += 1;
+        // Count AFTER the empty check, not before: a zero-option enum would
+        // otherwise count toward the floor while probing nothing — a smaller
+        // instance of the vacuity the floor exists to catch. No such field
+        // exists today; the ordering is what keeps that true.
         if (options.length === 0) continue;
+        probed += 1;
         const canonical = options[0];
         for (const padded of [`${canonical} `, ` ${canonical}`, ` ${canonical} `]) {
           const parsed = field.safeParse(padded);

@@ -387,6 +387,20 @@ The coherent fix is for interactive to collect the body and _then_ branch, which
 
 ---
 
+### BL-128: The RUN-AUDIT reporting contract exists twice, and the trigger to dedupe it has fired
+
+**Source**: BL-125 implementation + code review, 2026-08-14 | **Effort**: Medium | **Status**: Recorded — **trigger already met**
+
+**What it is.** `RUN_AUDIT_DIRECTIVE` and the interactive body's inline Step 5 are two renderings of one reporting contract. `irl-ingestion.ts` argues against exactly this in its own comments ("two copies of one reporting contract only drift"), and BL-125 scoped the dedupe out with the trigger _"the next edit that would have to be made twice."_
+
+**That trigger fired inside BL-125 itself**: the null-run `filledIrl` rule was written once in the shared directive and once in the interactive copy, in the same commit that named the trigger. Recording it rather than leaving it silently unfired is the point — an unfired trigger on a met condition is how deferred work becomes invisible.
+
+**A second instance to fix at the same time.** The extract-only body carries 13 `compose_dossier_envelope` references inside the shared RUN-AUDIT and meta-fence directives — including an instruction to copy `toolCallCounts` verbatim from that tool's output, in a mode that never calls it. That is the same defect class BL-125 closed for the run-parameter bullets (`copiesToEnvelopeCall`), left standing in the directives those bullets sit beside. Deduping the contract is what makes it fixable in one place instead of thirteen.
+
+**Trigger**: met. Schedule with the next substantive `gst_irl_ingestion` body change, since it carries a prompt version bump and a full hash rebaseline either way.
+
+---
+
 ### BL-124: The flattened-body refusal blocked every working path
 
 **Source**: production runs 2026-08-14, immediately after BL-123 deployed | **Effort**: Medium | **Status**: **Implemented 2026-08-14** (prompt `0.25.0` / server `0.52.0`, [ADR-0018 § Re-validation](../adr/0018-body-integrity-and-capped-provenance.md)) — open pending the post-deploy production confirmation
