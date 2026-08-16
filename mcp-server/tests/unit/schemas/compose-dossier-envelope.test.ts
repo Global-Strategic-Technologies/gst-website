@@ -235,15 +235,22 @@ describe('renderMetaFence', () => {
     }
   });
 
-  it('round-trips fillRatio.percent as fixtureFillRatio (percent/100)', () => {
+  // BL-130: `renderMetaFence` is a pure renderer — it emits whatever
+  // `fillRatio` it is handed. Production no longer hands it the model's
+  // values: `runComposeDossierEnvelope` derives them first. This test
+  // covers the renderer's own contract, NOT the end-to-end fence value.
+  // The fixture was `{35, 17, 50}` until BL-130; 17/50 is 34, and leaving
+  // an internally inconsistent example here invited reading it as the
+  // contract.
+  it('renders the fillRatio it is handed as fixtureFillRatio (percent/100)', () => {
     const fence = renderMetaFence(
       {
         ...baseInput(),
-        fillRatio: { percent: 35, substantiveCells: 17, totalCells: 50, status: 'partial' },
+        fillRatio: { percent: 34, substantiveCells: 17, totalCells: 50, status: 'partial' },
       },
       SERVER_CTX.promptVersion
     );
-    expect(fence).toContain('"fixtureFillRatio": 0.35');
+    expect(fence).toContain('"fixtureFillRatio": 0.34');
     expect(fence).toContain('"fixtureFillRatioStatus": "partial"');
   });
 });

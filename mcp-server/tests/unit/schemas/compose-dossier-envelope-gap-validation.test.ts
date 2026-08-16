@@ -443,3 +443,120 @@ describe('BL-070 — requireVerbatimBody gate', () => {
     }
   });
 });
+
+// ─── BL-130 — server-derived fillRatio + disagreement disclosure ────────
+//
+// The model supplies four fields, two of which are pure functions of the
+// other two, and nothing checked them. The tool now derives `percent` and
+// `status` and discloses disagreement rather than rejecting it — rejection
+// would fire on prompt-obedient runs at the rounding boundary, because the
+// prompt has the model round BEFORE applying the halt/partial/ok thresholds.
+//
+// `baseInput` defaults to `irlSource: 'partner-paste-verbatim'`, which fires
+// no other auto-append — load-bearing for the `autoAppendedGaps` counts below.
+describe('BL-130 — fillRatio derivation and disclosure', () => {
+  const withFillRatio = (fillRatio: ComposeDossierEnvelopeEngineInput['fillRatio']) => ({
+    ...baseInput(),
+    fillRatio,
+  });
+
+  it('agreement stays silent and leaves the fence untouched', () => {
+    // 46/50 = 92 exactly, status ok — both arms match.
+    const result = runComposeDossierEnvelope(baseInput(), SERVER_CTX);
+    expect(result.gapListMarkdown).not.toContain('IRL completeness restated');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(0);
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 0.92');
+  });
+
+  it('disagreement is disclosed and the DERIVED figure governs the fence', () => {
+    // 60/134 = 44.78 -> 45 (ok). Model said 84. Status matches (ok/ok), so
+    // the percent arm is the sole firing arm.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 84, substantiveCells: 60, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('IRL completeness restated');
+    expect(result.gapListMarkdown).toContain('derives 45%');
+    // `percent / 100` is unformatted, so 45 renders `0.45` and 40 renders `0.4`.
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 0.45');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+  });
+
+  it('the follow-up directs restating (A) and forbids a corrective re-call', () => {
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 84, substantiveCells: 60, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('IRL completeness: 45% (60 of 134 requests answered)');
+    expect(result.gapListMarkdown).toContain('Do NOT re-call');
+  });
+
+  // ── the boundary pair: a pure STATUS probe ────────────────────────────
+  // Deltas are 1 and 0 against a more-than-1pp rule, so the percent arm
+  // contributes nothing to either case. A version omitting `status` would
+  // pass over an empty set.
+  it('boundary: 52/133 derives 39 (partial), so a reported `ok` discloses', () => {
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 40, substantiveCells: 52, totalCells: 133, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('derives 39% (partial)');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+  });
+
+  it('boundary: 53/134 derives 40 (ok) — prompt-obedient, stays silent', () => {
+    // 39.55 raw. Thresholds apply to the ROUNDED percent, so this is `ok`.
+    // Anchoring on the raw ratio would have rejected this correct run.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 40, substantiveCells: 53, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).not.toContain('IRL completeness restated');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(0);
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 0.4');
+  });
+
+  // ── incoherent counts: two fixtures, and the obvious one proves little ─
+  it('incoherent counts do not override the fence, and disclose exactly once', () => {
+    // 160/134 = 119.4. Overriding would write `1.19` into a partner-facing
+    // fence — the value the schema's own .max(100) exists to prevent.
+    // The 69pp delta means this fires the ordinary arm regardless, so the
+    // negative assertions are what make it discriminating.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 50, substantiveCells: 160, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 0.5');
+    expect(result.gapListMarkdown).toContain('could not be derived');
+    // If the branches were not exclusive, the sibling delta entry would
+    // carry the out-of-domain figure into the partner-facing gap list.
+    expect(result.gapListMarkdown).not.toContain('119');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+  });
+
+  it('minimal incoherence discloses even though BOTH delta arms are silent', () => {
+    // 135/134 -> 101. |100 - 101| = 1, which is not MORE than 1pp, and
+    // 101 -> `ok` matches the reported `ok`. Only an unconditional append
+    // can surface this — a delta-gated disclosure stays silent here, in
+    // exactly the case the guard exists for.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 100, substantiveCells: 135, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('could not be derived');
+    expect(result.gapListMarkdown).toContain('135 substantive of 134 total');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 1');
+  });
+
+  it('the incoherent follow-up does NOT direct restating (A)', () => {
+    // The derived figure there is the out-of-domain number the server just
+    // declined to stand behind; directing a restatement would relocate the
+    // defect from the fence into the dossier prose.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 50, substantiveCells: 160, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('Do NOT restate section (A)');
+  });
+});
