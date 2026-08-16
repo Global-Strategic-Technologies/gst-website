@@ -84,10 +84,7 @@
  * the diff is what to re-run.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-
-const WORKFLOWS = join(process.cwd(), '.github', 'workflows');
+import { workflowFiles, readWorkflow, stripComments } from './helpers/workflow-parse';
 
 /**
  * Secrets that grant deploy authority over the Worker. A job holding any of these is a job
@@ -112,8 +109,8 @@ interface Job {
   environments: string[];
 }
 
-/** Strip comment-only lines so a `secrets.X` mention inside a comment isn't a reference. */
-const stripComments = (lines: string[]) => lines.filter((l) => !l.trimStart().startsWith('#'));
+// `stripComments` (imported above) drops comment-only lines so a `secrets.X` mention inside a
+// comment isn't counted as a reference. It lived here first; it now lives in the shared helper.
 
 /**
  * Does this body read `secret`?
@@ -216,11 +213,13 @@ function parseWorkflows(): Parsed {
   const dynamicIndexUsers: string[] = [];
   const reusableWorkflowCallers: string[] = [];
 
-  // `.ya?ml` — GitHub accepts both, and matching only `.yml` let a rogue `.yaml` workflow
-  // holding an unbound deploy secret pass this suite untouched.
-  for (const workflow of readdirSync(WORKFLOWS).filter((f) => /\.ya?ml$/.test(f))) {
+  // `workflowFiles()` matches `.ya?ml` — GitHub accepts both, and matching only `.yml` let a
+  // rogue `.yaml` workflow holding an unbound deploy secret pass this suite untouched. That is
+  // fail-open #1 in the catalogue above; it now lives in `helpers/workflow-parse.ts` so the
+  // sibling suites inherit the fix rather than re-deriving it.
+  for (const workflow of workflowFiles()) {
     workflows.push(workflow);
-    const lines = readFileSync(join(WORKFLOWS, workflow), 'utf8').split(/\r?\n/);
+    const lines = readWorkflow(workflow);
 
     // `(\s|$)` not `\s*$`: `jobs: # comment` is valid YAML, and the stricter match combined
     // with `continue` silently dropped the whole file. THROW, never skip — every workflow

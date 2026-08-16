@@ -875,7 +875,7 @@ gh api "repos/:owner/:repo/actions/workflows/deploy-mcp-staging.yml/runs?per_pag
   --jq '.workflow_runs[] | "#\(.run_number) \(.conclusion)"'
 ```
 
-As of 2026-08-16 that workflow has **0 cancelled runs in 339**, and 21 skipped. (Cancelled runs on `deploy-mcp-production.yml` are a different, expected thing — see § MCP production deploy.)
+As of 2026-08-16 that workflow has **0 cancelled runs in 339**, and 21 skipped. (Cancelled runs on `deploy-mcp-production.yml` are a different, expected thing — see § Production deploy is latest-wins.)
 
 A skipped run means one clause of the job `if:` in [deploy-mcp-staging.yml](../../../.github/workflows/deploy-mcp-staging.yml) was false. It is a **three-clause AND**, and the arms are not equally benign:
 

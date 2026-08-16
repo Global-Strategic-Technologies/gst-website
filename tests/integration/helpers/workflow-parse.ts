@@ -7,24 +7,38 @@
  *
  * **Equivalence checked, not assumed.** Across all 12 workflow files these extractors and the
  * real `yaml` parser agree exactly — 12 names, 5 `paths` blocks, 10 trigger-scoped `branches`
- * lists, 1 `workflow_run.workflows` list, **zero disagreements** (measured 2026-08-16, not
- * estimated). That agreement is what justifies not taking the dependency; **re-run the
- * differential if any extractor changes.** The method is the one `workflow-secret-scope.test.ts`
- * (lines 79-84) records as the only one that actually worked there: vigilance produced ten
- * fail-open paths, running the hand parser against `yaml` and diffing produced a fact.
+ * lists, 1 `workflow_run.workflows` list, **zero disagreements** (measured, not estimated).
+ * That agreement is what justifies not taking the dependency; **re-run the differential if any
+ * extractor changes.** The method is the one `workflow-secret-scope.test.ts` (lines 79-84)
+ * records as the only one that actually worked there: vigilance produced ten fail-open paths,
+ * running the hand parser against `yaml` and diffing produced a fact.
  *
  * **THESE PARSERS MUST NOT FAIL OPEN.** A parser that returns `[]` or `undefined` for input it
  * cannot read makes every downstream assertion pass vacuously — the caller cannot tell "nothing
  * matched" from "nothing to match". So every function here THROWS on unreadable input rather
  * than returning an empty result, and callers pair each assertion with a non-zero probe.
  *
- * Two shapes bit the sibling file and are handled here from the start:
+ * **The differential is necessary but not sufficient, and that cost a real defect.** It compares
+ * this parser against `yaml` on the CURRENT tree, so it can only see shapes the repo happens to
+ * contain today. It passed clean while `triggerBranches` still had a fail-open: its accumulation
+ * loop was bounded by end-of-file rather than by the trigger block, so rewriting a `branches:`
+ * list in **block-sequence form** (legal YAML, accepted by GitHub) made the reader run past the
+ * trigger and adopt the NEXT trigger's list. A mutation dropping `master` from the push list
+ * then parsed as `['master']` — borrowed from the `pull_request` trigger below it — and the
+ * assertion guarding that exact regression stayed green. Caught in code review, not by the
+ * differential and not by the mutation matrix, because both only exercised shapes already in the
+ * tree. **The structural answer is `workflow-parse-guards.test.ts`**, which drives every throw
+ * path in this file over synthetic fixtures, including shapes the repo does not currently use.
+ * Add a case there for any parsing rule you add here.
+ *
+ * Shapes handled from the start, each because it bit the sibling file or this one:
  *   - trailing comments are legal after any scalar (`name: Foo # note`);
- *   - quoted and bare scalars are the same value (`'master'` === `master`).
- * A third is specific to this repo: `branches:` values are written as **flow sequences on the
- * line after the key**, and `.github/**` is not in `.prettierignore`, so a list that grows past
- * `printWidth: 100` reflows across several lines. Single-line anchoring would silently stop
- * matching on a routine edit, so the flow-sequence reader is multi-line.
+ *   - quoted and bare scalars are the same value (`'master'` === `master`);
+ *   - `branches:` flow sequences reflow across lines once they pass `printWidth: 100`, and
+ *     `.github/**` is not in `.prettierignore`, so single-line anchoring would silently stop
+ *     matching on a routine edit — the reader is multi-line but **bounded to its trigger**;
+ *   - the block-sequence form of `branches:` and the inline form of `paths:` are legal YAML
+ *     that these parsers do NOT read, so they throw rather than return a partial answer.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -41,18 +55,31 @@ export function readWorkflow(file: string): string[] {
   return readFileSync(join(WORKFLOWS_DIR, file), 'utf8').split(/\r?\n/);
 }
 
-/** Drop whole-line comments. Restated rather than imported: the sibling file's `stripComments`
- *  is a module-local `const` with no `export`, and importing a `.test.ts` would re-register its
- *  `describe` blocks in whichever suite imported it. */
+/** Drop whole-line comments. Restated rather than imported from `workflow-secret-scope.test.ts`,
+ *  where it began life as a module-local `const` — importing a `.test.ts` would re-register its
+ *  `describe` blocks in whichever suite imported it. That file now imports THIS one. */
 export const stripComments = (lines: string[]): string[] =>
   lines.filter((l) => !l.trimStart().startsWith('#'));
 
 /** `'master'` -> `master`. Trailing comments are NOT stripped here — callers that must fail
- *  closed (see `workflowVar`) anchor them out instead. */
+ *  closed anchor them out instead. */
 const unquote = (s: string): string => s.trim().replace(/^['"]|['"]$/g, '');
 
+/** A line still inside a 2-space-keyed block (blank lines count as inside). The bound that
+ *  keeps a multi-line read from escaping into the next sibling key. */
+const insideBlock = (lines: string[], idx: number): boolean =>
+  idx < lines.length &&
+  (lines[idx].trim() === '' || lines[idx].length - lines[idx].trimStart().length > 2);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pure, line-based cores. Split out from the file-reading wrappers so
+// `workflow-parse-guards.test.ts` can drive every throw path over synthetic
+// fixtures — including YAML shapes this repo does not currently contain, which
+// is precisely what the `yaml` differential cannot cover.
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Extract EVERY `paths:` list from a workflow.
+ * Extract EVERY `paths:` block from a workflow's lines.
  *
  * All of them, not the first: a workflow with both a push and a pull_request trigger has two,
  * and a drift between the two blocks of one file is a real defect class.
@@ -63,8 +90,7 @@ const unquote = (s: string): string => s.trim().replace(/^['"]|['"]$/g, '');
  * makes vitest print `Test Files 1 failed | Tests no tests` and **exit 1**. The "no tests" line
  * reads like a skip; the exit code is what gates, and it is non-zero.
  */
-export function extractPathBlocks(file: string): string[][] {
-  const lines = readWorkflow(file);
+export function parsePathBlocks(lines: string[], label = '<lines>'): string[][] {
   const blocks: string[][] = [];
 
   for (let i = 0; i < lines.length; i++) {
@@ -78,7 +104,7 @@ export function extractPathBlocks(file: string): string[][] {
         // A list item we could not read is a parser bug, not the end of the block.
         // Ending the loop here would silently truncate and pass vacuously downstream.
         if (/^\s+-\s/.test(line)) {
-          throw new Error(`unparseable list item in ${file}: ${JSON.stringify(line)}`);
+          throw new Error(`unparseable list item in ${label}: ${JSON.stringify(line)}`);
         }
         break; // dedent or a different key — genuinely the end of the list
       }
@@ -87,21 +113,8 @@ export function extractPathBlocks(file: string): string[][] {
     blocks.push(out);
   }
 
-  if (blocks.length === 0) throw new Error(`no 4-space-indented \`paths:\` block in ${file}`);
+  if (blocks.length === 0) throw new Error(`no 4-space-indented \`paths:\` block in ${label}`);
   return blocks;
-}
-
-/** The union of every trigger block — what the workflow can fire on at all. */
-export function extractPaths(file: string): string[] {
-  return [...new Set(extractPathBlocks(file).flat())];
-}
-
-/** Like `extractPathBlocks`, but for workflows that legitimately have no `paths:` filter.
- *  A DISTINCT return, never a swallowed error: catching around `extractPathBlocks` would also
- *  swallow its unparseable-item throw, which is the one signal that must never be lost. */
-export function extractPathBlocksIfAny(file: string): string[][] {
-  const hasBlock = readWorkflow(file).some((l) => /^\s{4}paths:\s*$/.test(l));
-  return hasBlock ? extractPathBlocks(file) : [];
 }
 
 /**
@@ -111,13 +124,13 @@ export function extractPathBlocksIfAny(file: string): string[][] {
  * 6-space `- name:` on every step. A loose match would return a step label and compare it
  * against the `workflow_run` consumer's expectation, which is a green test over a broken chain.
  */
-export function workflowName(file: string): string {
-  const matches = stripComments(readWorkflow(file))
+export function parseWorkflowName(lines: string[], label = '<lines>'): string {
+  const matches = stripComments(lines)
     .map((l) => /^name:\s*(.+?)\s*(?:#.*)?$/.exec(l))
     .filter((m): m is RegExpExecArray => m !== null);
 
   if (matches.length !== 1) {
-    throw new Error(`expected exactly one column-0 \`name:\` in ${file}, found ${matches.length}`);
+    throw new Error(`expected exactly one column-0 \`name:\` in ${label}, found ${matches.length}`);
   }
   return unquote(matches[0][1]);
 }
@@ -131,18 +144,28 @@ export function workflowName(file: string): string {
  * breakage the caller is guarding, and it is the shape this repo has already shipped once
  * (`deploy-mcp-staging.yml` lost `master` from its consumer list; see its own header comment).
  *
- * Reads a flow sequence whether it sits inline (`branches: [a, b]`) or on the following lines,
- * and whether or not Prettier has reflowed it across several.
+ * Two bounds make the scoping real rather than nominal, and the second was missing on first
+ * write — see the fail-open recorded in this module's header:
+ *   1. the SEARCH stops at a dedent to <= 2 spaces (finding the right key);
+ *   2. the multi-line VALUE accumulation is bounded the same way (reading only that key's
+ *      value). Without 2, a `branches:` whose flow sequence never closes inside its own trigger
+ *      keeps consuming until it finds a `]` — which may belong to the next trigger entirely.
+ *
+ * Only the flow-sequence form is read. The block-sequence form throws rather than returning a
+ * partial or borrowed answer.
  */
-export function triggerBranches(file: string, trigger: string): string[] {
-  const lines = stripComments(readWorkflow(file));
+export function parseTriggerBranches(
+  rawLines: string[],
+  trigger: string,
+  label = '<lines>'
+): string[] {
+  const lines = stripComments(rawLines);
   const triggerRe = new RegExp(`^\\s{2}${trigger}:\\s*$`);
 
   const found: string[][] = [];
   for (let i = 0; i < lines.length; i++) {
     if (!triggerRe.test(lines[i])) continue;
 
-    // Walk the trigger's body: 4-space keys, until a dedent to <= 2 spaces.
     for (let j = i + 1; j < lines.length; j++) {
       const line = lines[j];
       if (line.trim() === '') continue;
@@ -152,15 +175,26 @@ export function triggerBranches(file: string, trigger: string): string[] {
       const inline = /^\s{4}branches:\s*(.*)$/.exec(line);
       if (!inline) continue;
 
-      // Value is either on this line or on the following ones; either way accumulate until
-      // the flow sequence closes. Anchoring to one line would break on a Prettier reflow.
       let buf = inline[1].trim();
       let k = j;
-      while (!buf.includes(']') && k + 1 < lines.length) {
-        buf += ' ' + lines[++k].trim();
+      // Value on the following line(s) — but never past this trigger's block.
+      while (buf === '' && insideBlock(lines, k + 1)) buf = lines[++k].trim();
+
+      if (!buf.startsWith('[')) {
+        throw new Error(
+          `\`branches:\` under \`${trigger}:\` in ${label} is not a flow sequence. The ` +
+            'block-sequence form is legal YAML but is not read here, and continuing would ' +
+            "borrow the NEXT trigger's list — a green test over a broken invariant."
+        );
       }
+      while (!buf.includes(']') && insideBlock(lines, k + 1)) buf += ' ' + lines[++k].trim();
+
       const seq = /\[(.*)\]/s.exec(buf);
-      if (!seq) throw new Error(`unreadable \`branches:\` under ${trigger}: in ${file}`);
+      if (!seq) {
+        throw new Error(
+          `unterminated \`branches:\` flow sequence under \`${trigger}:\` in ${label}`
+        );
+      }
       found.push(
         seq[1]
           .split(',')
@@ -173,7 +207,7 @@ export function triggerBranches(file: string, trigger: string): string[] {
 
   if (found.length !== 1) {
     throw new Error(
-      `expected exactly one \`branches:\` under \`${trigger}:\` in ${file}, found ${found.length}`
+      `expected exactly one \`branches:\` under \`${trigger}:\` in ${label}, found ${found.length}`
     );
   }
   return found[0];
@@ -182,17 +216,68 @@ export function triggerBranches(file: string, trigger: string): string[] {
 /** The `workflow_run` consumer's `workflows: [...]` list — which upstream workflow NAMES it
  *  chains off. A literal string match against those workflows' `name:` values, with nothing on
  *  the GitHub side validating it, which is the whole reason the caller asserts it. */
-export function workflowRunWorkflows(file: string): string[] {
-  const lines = stripComments(readWorkflow(file));
-  const matches = lines
+export function parseWorkflowRunWorkflows(lines: string[], label = '<lines>'): string[] {
+  const matches = stripComments(lines)
     .map((l) => /^\s{4}workflows:\s*\[(.*)\]\s*$/.exec(l))
     .filter((m): m is RegExpExecArray => m !== null);
 
   if (matches.length !== 1) {
-    throw new Error(`expected exactly one \`workflows:\` list in ${file}, found ${matches.length}`);
+    throw new Error(
+      `expected exactly one \`workflows:\` list in ${label}, found ${matches.length}`
+    );
   }
   return matches[0][1]
     .split(',')
     .map(unquote)
     .filter((s) => s.length > 0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File-reading wrappers.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function extractPathBlocks(file: string): string[][] {
+  return parsePathBlocks(readWorkflow(file), file);
+}
+
+/** The union of every trigger block — what the workflow can fire on at all. */
+export function extractPaths(file: string): string[] {
+  return [...new Set(extractPathBlocks(file).flat())];
+}
+
+/**
+ * Like `extractPathBlocks`, but for workflows that legitimately have no `paths:` filter.
+ *
+ * A DISTINCT return, never a swallowed error: catching around `extractPathBlocks` would also
+ * swallow its unparseable-item throw, which is the one signal that must never be lost.
+ *
+ * "Has no `paths:` filter" is decided by counting `paths:` KEYS, not block-form keys — otherwise
+ * an inline `paths: ['a', 'b']` (legal YAML) is silently classified as "no filter at all" and its
+ * entries never reach the caller's existence check. That is a fail-open, and it is the same
+ * mistake as the `branches:` one recorded in this module's header, one key over.
+ */
+export function extractPathBlocksIfAny(file: string): string[][] {
+  const lines = readWorkflow(file);
+  const anyKey = lines.filter((l) => /^\s{4}paths:/.test(l)).length;
+  const blockKey = lines.filter((l) => /^\s{4}paths:\s*$/.test(l)).length;
+
+  if (anyKey !== blockKey) {
+    throw new Error(
+      `${file} has an inline \`paths:\` value; only the block-sequence form is parsed, so its ` +
+        'entries would be silently skipped rather than checked'
+    );
+  }
+  return blockKey > 0 ? parsePathBlocks(lines, file) : [];
+}
+
+export function workflowName(file: string): string {
+  return parseWorkflowName(readWorkflow(file), file);
+}
+
+export function triggerBranches(file: string, trigger: string): string[] {
+  return parseTriggerBranches(readWorkflow(file), trigger, file);
+}
+
+export function workflowRunWorkflows(file: string): string[] {
+  return parseWorkflowRunWorkflows(readWorkflow(file), file);
 }
