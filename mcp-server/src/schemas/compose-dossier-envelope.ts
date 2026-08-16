@@ -707,7 +707,7 @@ function buildEmitInstructions(auditLevel: AuditLevel): string {
     '',
     'Auto-appended `provenance-gap:` entries in `gapListMarkdown` are server statements about assertions this tool could not substantiate - unverifiable claim excerpts, unconfirmed provenance grades, and figures it derived differently from yours. Transcribe them and do NOT edit or remove them; the partner needs to see what was flagged. Verification runs identically at every audit level.',
     '',
-    "If you discover additional gaps or claims after transcribing the envelope, re-call `compose_dossier_envelope` with the updated arrays rather than editing the markdown by hand. **Exception: never re-call to correct `fillRatio`.** The server derives it, the derived value already governs the fence, and a corrected re-call deletes the entry recording the disagreement. Act on that entry's follow-up instead.",
+    "If you discover additional gaps or claims after transcribing the envelope, re-call `compose_dossier_envelope` with the updated arrays rather than editing the markdown by hand. **Exception: never re-call merely to align `fillRatio` with the server's derivation.** The server derives it, the derived value already governs the fence, and a corrected re-call deletes the entry recording the disagreement. Act on that entry's follow-up instead.",
   ].join('\n');
 }
 
@@ -1394,7 +1394,7 @@ export function runComposeDossierEnvelope(
       category: 'provenance-gap',
       entry: `IRL completeness could not be derived: the run reported ${input.fillRatio.substantiveCells} substantive of ${input.fillRatio.totalCells} total request rows, which is not internally consistent (the numerator exceeds the denominator). The completeness figure is carried as the run asserted it, underived.`,
       followUp:
-        'Recount the answer spans against the IRL sections actually present (00-09, excluding optional 10/11) and re-run if the counts were mis-taken. Do NOT restate section (A) from a derived figure — none was computed for this run.',
+        'Recount the answer spans against the IRL sections actually present (00-09, excluding optional 10/11). If the counts were mis-taken, correct them in a FRESH ingestion run - do not re-call this tool with adjusted numbers, which would delete this record. Do NOT restate section (A) from a derived figure: none was computed for this run.',
     });
   } else {
     const { derivedPercent, derivedStatus } = fillRatioDerivation;

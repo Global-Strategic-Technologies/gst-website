@@ -161,6 +161,29 @@ describe('compose_dossier_envelope — level-conditional response (BL-122)', () 
     expect(at('standard').emitInstructions).toContain('withheld');
   });
 
+  // BL-130 — both sentences shipped unguarded until this test: reverting them
+  // to their pre-BL-130 wording left the whole suite green. `emitInstructions`
+  // ships at EVERY audit level, so both are asserted at all three.
+  //
+  // The category definition matters because it is the only instruction telling
+  // the model not to edit auto-appended entries, and its old wording scoped
+  // that to claim-citation failures — which excluded the fill-ratio entry, and
+  // already under-described two older appends.
+  //
+  // The re-call exception matters because the sanctioned recovery elsewhere in
+  // this same block is "re-call with corrected arrays"; doing that to align
+  // `fillRatio` deletes the entry recording the disagreement.
+  it.each(['standard', 'enhanced', 'debug'] as const)(
+    'at %s, states what auto-appended entries are and forbids a corrective fillRatio re-call',
+    (level) => {
+      const emit = at(level).emitInstructions;
+      expect(emit).toContain('server statements about assertions this tool could not substantiate');
+      expect(emit).toContain(
+        "never re-call merely to align `fillRatio` with the server's derivation"
+      );
+    }
+  );
+
   // Provenance verification is NOT a level concern — the whole point of the
   // redesign is that the chain runs identically and only its display varies.
   it('verifies provenance identically at every level', () => {

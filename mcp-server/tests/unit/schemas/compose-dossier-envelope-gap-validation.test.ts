@@ -25,6 +25,7 @@ import {
   type ComposeDossierEnvelopeEngineInput,
   type ComposeDossierEnvelopeInput,
   computeIrlBodyHash,
+  deriveFillRatio,
   findFalsePositiveMapAbsentClaims,
   runComposeDossierEnvelope,
 } from '../../../src/schemas/compose-dossier-envelope';
@@ -546,7 +547,41 @@ describe('BL-130 — fillRatio derivation and disclosure', () => {
     expect(result.gapListMarkdown).toContain('could not be derived');
     expect(result.gapListMarkdown).toContain('135 substantive of 134 total');
     expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
-    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 1');
+    // Trailing comma matters: bare `1` also matches `1.01`, which is what an
+    // override would render — the assertion would pass on the defect.
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 1,');
+  });
+
+  // W2 — the `halt` branch is the "this looks like the wrong IRL" signal and
+  // no fixture in the repo went below 34, leaving the `< 15` constant free.
+  it('halt threshold is exercised: 12/100 derives 12 (halt), so a reported partial discloses', () => {
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 20, substantiveCells: 12, totalCells: 100, status: 'partial' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('derives 12% (halt)');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+  });
+
+  // W3 — the tolerance itself was unpinned in both directions. Both fixtures
+  // carry a matching status so the percent arm is the sole firing arm.
+  it('tolerance: a 1pp delta is within rounding and stays silent', () => {
+    // 46/50 = 92; reporting 93 is one point out.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 93, substantiveCells: 46, totalCells: 50, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).not.toContain('IRL completeness restated');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(0);
+  });
+
+  it('tolerance: a 2pp delta is beyond rounding and discloses', () => {
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 94, substantiveCells: 46, totalCells: 50, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('derives 92% (ok)');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
   });
 
   it('the incoherent follow-up does NOT direct restating (A)', () => {
@@ -558,5 +593,41 @@ describe('BL-130 — fillRatio derivation and disclosure', () => {
       SERVER_CTX
     );
     expect(result.gapListMarkdown).toContain('Do NOT restate section (A)');
+  });
+});
+
+// `deriveFillRatio` is exported so the boundary table can be pinned directly
+// rather than routed through the engine once per case. The engine tests above
+// prove the wiring; this proves the arithmetic, including the two endpoints no
+// realistic fixture reaches.
+describe('BL-130 — deriveFillRatio boundary table', () => {
+  const cases: Array<[number, number, number, string]> = [
+    [0, 50, 0, 'halt'], // nothing answered
+    [7, 50, 14, 'halt'], // 14.0 -> just under the halt ceiling
+    [8, 50, 16, 'partial'], // 16.0 -> partial
+    [52, 133, 39, 'partial'], // 39.098 -> rounds to 39, still partial
+    [53, 134, 40, 'ok'], // 39.552 -> rounds to 40, so `ok` per the prompt
+    [50, 50, 100, 'ok'], // fully answered
+  ];
+
+  it.each(cases)('%i/%i derives %i (%s)', (s0, t, pct, status) => {
+    const d = deriveFillRatio({ percent: 0, substantiveCells: s0, totalCells: t, status: 'halt' });
+    expect(d.coherent).toBe(true);
+    expect(d.derivedPercent).toBe(pct);
+    expect(d.derivedStatus).toBe(status);
+  });
+
+  it('declines to derive when the numerator exceeds the denominator', () => {
+    const d = deriveFillRatio({
+      percent: 50,
+      substantiveCells: 160,
+      totalCells: 134,
+      status: 'ok',
+    });
+    expect(d.coherent).toBe(false);
+    expect(Number.isNaN(d.derivedPercent)).toBe(true);
+    // Echoes the caller's status so both drift comparisons stay false — the
+    // primary guard, per the mutation test recorded in the engine comment.
+    expect(d.derivedStatus).toBe('ok');
   });
 });
