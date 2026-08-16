@@ -22,6 +22,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   parsePathBlocks,
+  parsePathBlocksIfAny,
   parseWorkflowName,
   parseTriggerBranches,
   parseWorkflowRunWorkflows,
@@ -123,6 +124,31 @@ on:
       expect(() => parseTriggerBranches(lines(src), 'push', 'fixture')).toThrow(/unterminated/);
     });
 
+    it('THROWS rather than borrowing a neighbour `]` to close an open FLOW sequence', () => {
+      // The flow-form sibling of the block-form bug. The `]` that would close this list lives
+      // in the next trigger; only the trigger bound stops the reader reaching it. Nothing else
+      // pinned that bound, so it is pinned here.
+      const src = `
+on:
+  push:
+    branches: [master, 'feat/**'
+  pull_request:
+    branches: [dev]
+`;
+      expect(() => parseTriggerBranches(lines(src), 'push', 'fixture')).toThrow(/unterminated/);
+    });
+
+    it('THROWS on a duplicated trigger rather than picking one list', () => {
+      const src = `
+on:
+  push:
+    branches: [master]
+  push:
+    branches: [dev]
+`;
+      expect(() => parseTriggerBranches(lines(src), 'push', 'fixture')).toThrow(/found 2/);
+    });
+
     it('tolerates trailing comments and treats quoted and bare scalars alike', () => {
       const src = `
 on:
@@ -188,6 +214,71 @@ on:
       expect(() => parseWorkflowRunWorkflows(lines('on:\n  push:\n'), 'fixture')).toThrow(
         /found 0/
       );
+    });
+
+    it('THROWS on two lists rather than picking one', () => {
+      const src = `
+on:
+  workflow_run:
+    workflows: ['A']
+    workflows: ['B']
+`;
+      expect(() => parseWorkflowRunWorkflows(lines(src), 'fixture')).toThrow(/found 2/);
+    });
+  });
+
+  describe('parsePathBlocksIfAny', () => {
+    // This is the rule the fail-open-fixing commit ADDED, and it was the one rule with no
+    // synthetic-fixture coverage — verified only by a live-tree mutation, the method that
+    // commit argues is insufficient. Closing that is the point of this block.
+    it('THROWS on an inline `paths:` rather than reporting "no paths filter"', () => {
+      // The fail-open shape: classified as unfiltered, so its entries — including a stale
+      // workflow filename — never reach the caller's existence check.
+      const src = `
+on:
+  push:
+    paths: ['mcp-server/**', '.github/workflows/DOES-NOT-EXIST.yml']
+`;
+      expect(() => parsePathBlocksIfAny(lines(src), 'fixture')).toThrow(/inline `paths:` value/);
+    });
+
+    it('THROWS when block and inline forms are mixed across triggers', () => {
+      const src = `
+on:
+  push:
+    paths:
+      - 'a/**'
+  pull_request:
+    paths: ['b/**']
+`;
+      expect(() => parsePathBlocksIfAny(lines(src), 'fixture')).toThrow(/inline `paths:` value/);
+    });
+
+    it('returns [] for a workflow that genuinely has no `paths:` filter', () => {
+      // The tolerance this function exists for — 9 of the 12 real workflows are this shape.
+      expect(
+        parsePathBlocksIfAny(lines('on:\n  push:\n    branches: [master]\n'), 'fixture')
+      ).toEqual([]);
+    });
+
+    it('ignores `paths-ignore:`, which is a different key', () => {
+      const src = `
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+`;
+      expect(parsePathBlocksIfAny(lines(src), 'fixture')).toEqual([]);
+    });
+
+    it('reads block form normally when present', () => {
+      const src = `
+on:
+  push:
+    paths:
+      - 'a/**'
+`;
+      expect(parsePathBlocksIfAny(lines(src), 'fixture')).toEqual([['a/**']]);
     });
   });
 

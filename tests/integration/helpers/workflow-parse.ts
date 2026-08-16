@@ -118,6 +118,31 @@ export function parsePathBlocks(lines: string[], label = '<lines>'): string[][] 
 }
 
 /**
+ * Like `parsePathBlocks`, but for workflows that legitimately have no `paths:` filter.
+ *
+ * A DISTINCT function, never a try/catch around `parsePathBlocks`: catching would also swallow
+ * that parser's unparseable-item throw, which is the one signal that must never be lost.
+ *
+ * "Has no `paths:` filter" is decided by counting `paths:` KEYS against BLOCK-form keys, not by
+ * looking for block form alone — otherwise an inline `paths: ['a', 'b']` (legal YAML) is silently
+ * classified as "no filter at all" and its entries never reach the caller's existence check.
+ * That is a fail-open, and it is the same mistake as the `branches:` one recorded in this
+ * module's header, one key over.
+ */
+export function parsePathBlocksIfAny(lines: string[], label = '<lines>'): string[][] {
+  const anyKey = lines.filter((l) => /^\s{4}paths:/.test(l)).length;
+  const blockKey = lines.filter((l) => /^\s{4}paths:\s*$/.test(l)).length;
+
+  if (anyKey !== blockKey) {
+    throw new Error(
+      `${label} has an inline \`paths:\` value; only the block-sequence form is parsed, so its ` +
+        'entries would be silently skipped rather than checked'
+    );
+  }
+  return blockKey > 0 ? parsePathBlocks(lines, label) : [];
+}
+
+/**
  * The workflow's own `name:` — anchored at **column 0**.
  *
  * Anchoring matters: `test-mcp-server.yml` also carries a 4-space `name:` on its job and
@@ -177,7 +202,13 @@ export function parseTriggerBranches(
 
       let buf = inline[1].trim();
       let k = j;
-      // Value on the following line(s) — but never past this trigger's block.
+      // Value on the following line(s) — but never past this TRIGGER's block. Note the bound
+      // is the trigger, not the `branches:` key itself: an unterminated flow sequence can still
+      // absorb a sibling key inside the same trigger (`branches: [dev,` then `paths: [...]`
+      // yields a junk entry rather than a throw). That shape is invalid YAML which GitHub
+      // rejects outright, so it cannot produce a silently-broken-but-running workflow — it
+      // fails closed. The bound that matters for the fail-open recorded in the header is the
+      // trigger boundary, and that one is exact.
       while (buf === '' && insideBlock(lines, k + 1)) buf = lines[++k].trim();
 
       if (!buf.startsWith('[')) {
@@ -246,28 +277,11 @@ export function extractPaths(file: string): string[] {
 }
 
 /**
- * Like `extractPathBlocks`, but for workflows that legitimately have no `paths:` filter.
- *
- * A DISTINCT return, never a swallowed error: catching around `extractPathBlocks` would also
- * swallow its unparseable-item throw, which is the one signal that must never be lost.
- *
- * "Has no `paths:` filter" is decided by counting `paths:` KEYS, not block-form keys — otherwise
- * an inline `paths: ['a', 'b']` (legal YAML) is silently classified as "no filter at all" and its
- * entries never reach the caller's existence check. That is a fail-open, and it is the same
- * mistake as the `branches:` one recorded in this module's header, one key over.
+ * Like `extractPathBlocks`, but tolerates workflows with no `paths:` filter.
+ * See `parsePathBlocksIfAny` for why that tolerance is key-counted rather than form-sniffed.
  */
 export function extractPathBlocksIfAny(file: string): string[][] {
-  const lines = readWorkflow(file);
-  const anyKey = lines.filter((l) => /^\s{4}paths:/.test(l)).length;
-  const blockKey = lines.filter((l) => /^\s{4}paths:\s*$/.test(l)).length;
-
-  if (anyKey !== blockKey) {
-    throw new Error(
-      `${file} has an inline \`paths:\` value; only the block-sequence form is parsed, so its ` +
-        'entries would be silently skipped rather than checked'
-    );
-  }
-  return blockKey > 0 ? parsePathBlocks(lines, file) : [];
+  return parsePathBlocksIfAny(readWorkflow(file), file);
 }
 
 export function workflowName(file: string): string {
