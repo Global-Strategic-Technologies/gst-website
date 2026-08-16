@@ -1,0 +1,27 @@
+{
+  "projectId": "660c7df6-e99f-4f47-b9f7-b1ab32e52969",
+  "shape": "package",
+  "pkg": "gst-website",
+  "globalName": "GST",
+  "buildCmd": "node .design-sync/build-css.mjs",
+  "cssEntry": ".design-sync/.cache/gst-styles.css",
+  "readmeHeader": ".design-sync/conventions.md",
+  "guidelinesGlob": [
+    "src/docs/styles/STYLES_GUIDE.md",
+    "src/docs/styles/VARIABLES_REFERENCE.md",
+    "src/docs/styles/BRAND_GUIDELINES.md",
+    "src/docs/styles/TYPOGRAPHY_REFERENCE.md"
+  ],
+  "componentSrcMap": {
+    "ButtonSpecimen": ".design-sync/specimens/ButtonSpecimen.tsx",
+    "TypographySpecimen": ".design-sync/specimens/TypographySpecimen.tsx",
+    "CardSpecimen": ".design-sync/specimens/CardSpecimen.tsx",
+    "DataSpecimen": ".design-sync/specimens/DataSpecimen.tsx",
+    "FormSpecimen": ".design-sync/specimens/FormSpecimen.tsx",
+    "FrostedSpecimen": ".design-sync/specimens/FrostedSpecimen.tsx",
+    "ToolShellSpecimen": ".design-sync/specimens/ToolShellSpecimen.tsx",
+    "ColorSpecimen": ".design-sync/specimens/ColorSpecimen.tsx"
+  },
+  "extraEntries": ["./.design-sync/specimens/index.tsx"],
+  "docsDir": ".design-sync/specimen-docs"
+}
