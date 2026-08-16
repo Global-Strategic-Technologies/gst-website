@@ -580,7 +580,7 @@ const BUDGETS: Record<string, ToolBudget> = {
       return { ...baseEnvelopeInput(), irlBodyHash: prepared.irlBodyHash };
     },
     budget: { kind: 'absolute', minEnvelopeBytes: 4200, maxEnvelopeBytes: 6000 },
-    note: 'Measured 4,454 B on this fixture. The floor is 4,200 rather than 4,000 because 4,000 did NOT catch the hollowing this budget cites: emptying the gates arrays lands at 4,030 B, which passed. A floor that misses the mutation its own note claims it catches is the defect this file is about. ADR-0011 records 16,581 -> 33,290 B on a realistic dossier — 5.5x this budget, so do NOT read that baseline as passing: the fixture here is far smaller than a real composition. Scales with the composed dossier, i.e. with input. This budget is a TEST-ONLY regression signal and must never be read as a runtime output cap — nothing in the handler enforces it.',
+    note: 'Measured 5,680 B on this fixture (was 4,454 B before BL-130 added two emitInstructions sentences, which ship twice - structuredContent plus the text mirror; the first draft of that prose hit 6,202 B and this budget caught it). The floor is 4,200 rather than 4,000 because 4,000 did NOT catch the hollowing this budget cites: emptying the gates arrays lands at 4,030 B, which passed. A floor that misses the mutation its own note claims it catches is the defect this file is about. ADR-0011 records 16,581 -> 33,290 B on a realistic dossier — 5.5x this budget, so do NOT read that baseline as passing: the fixture here is far smaller than a real composition. Scales with the composed dossier, i.e. with input. This budget is a TEST-ONLY regression signal and must never be read as a runtime output cap — nothing in the handler enforces it.',
   },
 };
 

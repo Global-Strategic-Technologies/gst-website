@@ -114,7 +114,7 @@ describe('gst_irl_ingestion', () => {
     // The transport-classed `errorsEncountered` subset is pinned closed so the
     // reconciliation stays arithmetic rather than a judgement call (BL-121,
     // server 0.49.3).
-    expect(irlIngestionPrompt.version).toBe('0.27.0');
+    expect(irlIngestionPrompt.version).toBe('0.28.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -1261,5 +1261,56 @@ describe('gst_irl_ingestion', () => {
         expect(text).toMatch(/Scope qualifier \(BL-121\)/);
       }
     );
+  });
+});
+
+// ─── BL-131 — the prompt cannot ask for citations the data lacks ────────
+//
+// Step 3 and section (F) both instructed "cite article numbers verbatim".
+// `Article` / `Art.` / `§` appear ZERO times across all 123 records under
+// `src/data/regulatory-map/` — the instruction was satisfiable only by
+// invention, inside the prompt whose audit architecture exists to prevent
+// invention. A production run declined and reported it; nothing made that
+// the likely resolution.
+//
+// Asserted BOTH ways on purpose: "no body says X" passes identically over
+// an empty or broken render set, which is the BL-124/BL-125 empty-set
+// lesson. The non-zero count and the positive assertion are what make the
+// negative one mean something.
+describe('BL-131 — no body instructs citing article numbers', () => {
+  const RENDER_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
+    ['one-shot standard', { filledIrl: SAMPLE_FILLED_IRL }],
+    ['one-shot enhanced', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'enhanced' }],
+    ['one-shot debug', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' }],
+    ['extract-only standard', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
+    [
+      'extract-only debug',
+      { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', auditLevel: 'debug' },
+    ],
+    ['interactive standard', {}],
+    ['interactive debug', { auditLevel: 'debug' }],
+  ];
+
+  it('probes a non-empty render set (guards the negative assertions below)', () => {
+    expect(RENDER_MODES.length).toBeGreaterThanOrEqual(7);
+    for (const [label, args] of RENDER_MODES) {
+      expect(bodyText(irlIngestionPrompt, args).length, label).toBeGreaterThan(1000);
+    }
+  });
+
+  it.each(RENDER_MODES)('%s does not instruct citing article numbers', (_label, args) => {
+    const body = bodyText(irlIngestionPrompt, args);
+    expect(body).not.toMatch(/cite article numbers/i);
+    expect(body).not.toMatch(/verbatim article numbers/i);
+  });
+
+  it('the one-shot body positively directs quoting keyRequirements instead', () => {
+    // The replacement must be present, or the negative assertions above are
+    // satisfied by a body that simply says nothing about regulatory prose.
+    const body = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+    expect(body).toContain('`keyRequirements`');
+    expect(body).toMatch(/quot\w+ the `keyRequirements` bullets verbatim/i);
+    // The do-not-invent clause is the load-bearing half and must survive.
+    expect(body).toContain('do NOT invent citations');
   });
 });

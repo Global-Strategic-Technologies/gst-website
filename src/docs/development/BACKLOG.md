@@ -470,6 +470,8 @@ Neither run misbehaved. `compute_techpar` computes `rdOpEx` as `engCost + prodCo
 
 _(Two corrections in this paragraph, both the failure mode BL-126 is about. It first asserted the schema field **was** fully-loaded — reading a semantic off the artifact that describes rather than the one that decides. The correction then claimed `irl-ingestion.ts:951` was the **only** statement of the basis on the surface; the string occurs in fourteen files across `src/` and `mcp-server/src/`, twenty tracked repo-wide. An unchecked absence claim is the same error in negative form — and a count asserted inside a note about unchecked claims needs its scope stated, which the first draft of this parenthetical also omitted.)_
 
+**DROPPED 2026-08-15 — won't-fix by operator decision, and this paragraph scopes ONLY the `engCost` disclosure gap above; the `infraHostingAnnual` finding that follows stays open.** _"No one will notice it."_ The residual is ~4% on `rdOpEx` with the zone verdict stable, and the disclosure work it would take is not worth that. Recorded so a met trigger stops reading like scheduled work — **including the "the shape of the fix is already in the file" line further down this stanza**, which describes a fix that will not be built. (Everything below about `engCost` is evidence, not a plan.)
+
 **A second, cleaner instance on `infraHostingAnnual`, where the divergence is the method itself.** Run 1 took `ytd-annualized-with-period` (`ytdMonths: 3`, `ytdMathCheck` anchoring $292,000/mo against $850,000 YTD) and derived $850,000 ÷ 3 × 12 = **$3,400,000**. Run 2 took `monthly-x12` on the same monthly anchor: $292,000 × 12 = **$3,504,000**. Both are arithmetically exact and both cite real IRL anchors (bullet 3-02 carries the $292K/mo and the $850K YTD figures).
 
 **A selection rule already exists, and run 2 ignored it.** Step 4 directs _"monthly hosting + infra spend (Section 03 — annualize the 3-month average)"_ — run 1 is exactly that; run 2 took the Apr-26 point figure × 12 instead. Both runs rendered the full body, so both received it — run 1's `debug` meta fence records `"mode": "full"` directly, and run 2 is established structurally rather than assumed: `build()` dispatches to the interactive builder only when `filledIrl` is absent (see BL-127), both runs supplied it, and `extract-only` invokes no tools while both runs returned a real `compute_techpar` `outputSummary`. `full` is the only remaining branch. So the defect is not a missing rule: it is a rule that **renders in one body only** — the string occurs exactly once in `irl-ingestion.ts`, so the extract-only and interactive builders never see it — and that **failed to bind even where it did render**. `TECHPAR_MODE_RULE` took the opposite route in BL-126: hoisted into the shared `extraction-rules` module, interpolated into all three bodies, and it bound in both runs. That contrast is the cheap fix, and a cheaper one than the schema work above.
@@ -504,7 +506,15 @@ This is also the residual variance source the mode fix could not reach: with `mo
 
 ### BL-130: `fillRatio` is model-asserted and nothing checks it — not even against itself
 
-**Source**: BL-126 post-deploy run, 2026-08-15 | **Effort**: Small | **Status**: Recorded — **trigger met**
+**Source**: BL-126 post-deploy run, 2026-08-15 | **Effort**: Small | **Status**: **Implemented 2026-08-15** (prompt `0.28.0`, server `0.55.0`, [ADR-0018 scope amendment](../adr/0018-body-integrity-and-capped-provenance.md)) — **derived, not validated**, and narrower than "the number is now checked"
+
+**Closed by derivation rather than the check this stanza proposed.** `percent` and `status` are pure functions of the other two fields, so `compose_dossier_envelope` recomputes them and the derived values govern the meta fence; a disagreement appends a `provenance-gap:` entry naming both figures and directing a section (A) restatement. Rejection was designed first and discarded: the pre-flight rounds before applying the thresholds, so a run at 39.6% correctly reports `40 / ok`, and a raw-ratio check would have refused that compliant run on a partner-facing path.
+
+**Check (2) as written here is superseded.** This stanza specifies "`status` against `percent`"; the implementation anchors status to the rounded `substantiveCells / totalCells` instead, because checking a model-asserted status against a model-asserted percent lets a true 39.1% ship as `40 / ok` with both arms passing.
+
+**Two limits, both narrower than the stanza's framing.** `metaFenceMarkdown` renders at `auditLevel: debug` only, so below that the gap entry is the entire disclosure and extract-only is uncovered (it never calls the tool). And the model took its halt/partial branch before this tool was called — derivation makes the artifact correct, it does not change the branch the run took. **Check (3) — recounting against the re-hydrated body — stays open** and is the one that would.
+
+**One implementation note worth keeping.** The incoherent-counts guard (`substantiveCells > totalCells`, which the schema permits and which would derive >100) is carried primarily by returning `NaN`, not by the exclusive branch: a mutation removing the `else` alone leaves the suite green, because `NaN > 1` is false. Removing both is what turns it red. The code comment says so rather than claiming coverage the test lacks.
 
 **What it is.** The meta fence's `fixtureFillRatio` is whatever the model passed in. `compose_dossier_envelope` renders `input.fillRatio.percent / 100` (`mcp-server/src/schemas/compose-dossier-envelope.ts:599`) and measures nothing.
 
@@ -524,7 +534,11 @@ Same class as BL-126: a number the model derives over bytes the server holds, wi
 
 ### BL-131: The prompt mandates citing article numbers the regulation data does not contain
 
-**Source**: BL-126 post-deploy run, 2026-08-15 | **Effort**: Small | **Status**: Recorded — **trigger met**
+**Source**: BL-126 post-deploy run, 2026-08-15 | **Effort**: Small | **Status**: **Implemented 2026-08-15** (prompt `0.28.0`)
+
+**Closed by removing the instruction.** Step 3 and section (F) now direct quoting `keyRequirements` bullets verbatim and identifying each framework by name + `effectiveDate`; the do-not-invent clause — the load-bearing half, and the one the production model actually obeyed — is kept. The corpus fact is now stated inline in the prompt so a future run does not re-derive it.
+
+**The "decide which before writing either" question below was already answered, in [BL-110](#bl-110-mcp-server--jurisdiction-filter-granularity-candidate).** `BACKLOG.md` BL-110 records both that `Article`/`Art.` appears 0 times across all 123 records — with an explicit _"do not re-derive it as a defect"_ — and why authoring citations into those records is not the durable fix: _"a model-generated article number is worse than a blank one: a blank invites verification, a wrong citation suppresses it."_ This item is a genuinely different finding (the **prompt instructing** citation, versus BL-110's **probe criterion demanding** it), so it is not a re-derivation — but **BL-110 carries an open operator action, "amend the probe's citation criterion", which fixing the prompt does NOT close.**
 
 **What it is.** `mcp-server/src/prompts/irl-ingestion.ts:949` (Step 3) closes with _"Cite article numbers verbatim when summarizing obligations; do NOT invent citations beyond what the framework bodies return"_, and `:999` (section (F)) repeats _"citing verbatim article numbers"_.
 
@@ -608,7 +622,15 @@ The coherent fix is for interactive to collect the body and _then_ branch, which
 
 ### BL-128: The RUN-AUDIT reporting contract exists twice, and the trigger to dedupe it has fired
 
-**Source**: BL-125 implementation + code review, 2026-08-14 | **Effort**: Medium | **Status**: Recorded — **trigger already met**
+**Source**: BL-125 implementation + code review, 2026-08-14 | **Effort**: Medium | **Status**: **CLOSED WON'T-FIX 2026-08-15** — trigger met, cost lands on maintenance rather than on any client
+
+**Closed by decision.** The operator's call: _"costs my time, not yours."_ The duplication is real and the trigger did fire; what it buys is not worth the change. Recorded rather than pruned because three things stay true after closing, and a future session should find them stated rather than rediscover them:
+
+- **Production models will keep reporting the self-count shape and `countersScope: run` as defects.** Each report costs a re-derivation. Three separate runs have now done it.
+- **The strongest finding here is untouched, and a merge would not have fixed it.** Both copies are `debug`-gated while the numbers ship at every level, so below `debug` the coverage gap stands: `mode: full` names the counter fields without explaining them, and interactive mentions them nowhere. The remedy this stanza itself identifies — moving the explanation into `emitInstructions` — is not a prompt change and remains available. BL-130 has since edited that exact surface, which lowers the cost of doing it.
+- **Instance 2 stands**: extract-only carries copy-verbatim-from-`compose_dossier_envelope` wording in a mode that never calls it. `RUN_AUDIT_DIRECTIVE`'s null-run bullet partially covers it, so it is salience rather than contradiction.
+
+**One framing to not carry forward.** The triage that opened this described the fix as _deleting_ the dead references. That is wrong and this stanza never said it: extract-only **emits** a RUN-AUDIT block at every level, the directive states `DO NOT omit any field. Operators parse this verbatim with field-presence assertions`, and five BL-121 assertions pin exactly that. The fields are load-bearing; only the copy-from-tool wording is wrong. A future attempt should reword, never delete.
 
 **What it is.** `RUN_AUDIT_DIRECTIVE` and the interactive body's inline Step 5 are two renderings of one reporting contract. `irl-ingestion.ts` argues against exactly this in its own comments ("two copies of one reporting contract only drift"), and BL-125 scoped the dedupe out with the trigger _"the next edit that would have to be made twice."_
 

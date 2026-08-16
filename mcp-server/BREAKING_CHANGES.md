@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-365ff68405d3d3e9dd0ca335cf4eeeeb8d1c9fe84846c5b3eb44b6d98a587d13
+28b148303253108b3d3c6b0808952a228a62bcf78976a365fd62b50b44b216a9
 ```
 
 Computed over (sorted):
@@ -26,12 +26,26 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below), `gst_irl_ingestion` at `0.27.0` (capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters — and `compute_techpar` now runs in a stated mode; see the 0.54.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below), `gst_irl_ingestion` at `0.28.0` (capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters — and `compute_techpar` now runs in a stated mode; see the 0.54.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.55.0 — 2026-08-15 — the server derives `fillRatio`; the prompt stops asking for article numbers (`0.27.0` → `0.28.0`)
+
+**Served output changes; no wire-shape change.** No input removed, no output narrowed, and no new rejection path — but two things a consumer can observe are different.
+
+**`compose_dossier_envelope` now derives `fillRatio.percent` and `.status`** from `substantiveCells` / `totalCells`, rounded to the nearest integer, and the **derived** values are what reach `metaFenceMarkdown`. Callers whose figures disagree by more than 1 percentage point, or whose status disagrees, get a `provenance-gap:` entry appended to `gapListMarkdown` naming both figures — so `autoAppendedGaps` can be one higher than before on the same payload. The fields stay required and are still described as load-bearing: they are the assertion the server compares against.
+
+Rounding first is deliberate. The prompt has the model round before applying the halt/partial/ok thresholds, so a run at 39.6% correctly reports `{percent: 40, status: 'ok'}`; anchoring on the raw ratio would have flagged that prompt-obedient run.
+
+**Incoherent counts are not overridden.** `substantiveCells > totalCells` validates against the schema (no cross-field refinement — a `.superRefine` would publish an empty input schema to clients), and deriving there would exceed the `.max(100)` the same field enforces. That case keeps the caller's values, discloses the inconsistency, and does **not** instruct a section (A) restatement.
+
+**`gst_irl_ingestion` `0.28.0`** stops instructing "cite article numbers verbatim" in Step 3 and section (F). `Article` / `Art.` / `§` appear zero times across all 123 regulatory-map records, so the instruction was satisfiable only by invention. Bodies now direct quoting `keyRequirements` bullets verbatim and identifying frameworks by name + `effectiveDate`. Four one-shot body hashes move; interactive and extract-only are untouched.
 
 ---
 

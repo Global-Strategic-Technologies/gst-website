@@ -1,6 +1,6 @@
 # ADR-0018: Cap the provenance grade rather than derive it (the flattened-body refusal was withdrawn)
 
-- **Status**: **Partially accepted** — Decision 2 (cap, not derive) Accepted 2026-08-13 and production-verified. **Decision 1 (refuse a flattened body) REVERTED 2026-08-14** (BL-124, prompt `0.25.0` / server `0.52.0`) — see the re-validation at the foot.
+- **Status**: **Partially accepted** — Decision 2 (cap, not derive) Accepted 2026-08-13 and production-verified, **scope clarified 2026-08-15** (BL-130 — see the amendment at the foot: cap what you can only bound, derive what you can compute). **Decision 1 (refuse a flattened body) REVERTED 2026-08-14** (BL-124, prompt `0.25.0` / server `0.52.0`) — see the re-validation at the foot.
 - **Source initiative**: BL-123 — opened by a production run of `gst_irl_ingestion` (Kestrel IRL, 2026-08-13)
 
 ## Context
@@ -117,3 +117,22 @@ The measurement, as a diagnostic. `serverCachedBodyNewlines` on the envelope res
 ### The transferable lesson
 
 The harm was asserted, not demonstrated, and a gate was built around the assertion. Before refusing a run, demonstrate the harm against an artifact.
+
+---
+
+## Scope amendment — 2026-08-15 (BL-130): why `fillRatio` is derived, not capped
+
+Decision 2 is titled "cap, not derive" and governs `compose_dossier_envelope`. BL-130 gives the **same tool** a field the server now **derives** and overrides. That looks like a reversal and is not, so the distinction is recorded here rather than left for a future reader to infer.
+
+**The two decisions turn on whether the server can compute the answer.**
+
+- **`irlSource` is a grade the server can only _bound_.** It asserts how the bytes were assembled — whether an operator pasted them into a prompt argument, or a model reconstructed them from an xlsx. The server holds the bytes and a provenance record, but the assembly history is not recoverable from either; it can prove an assertion is _too strong_ and cap it, and cannot compute what the honest value would have been. Deriving there would mean inventing.
+- **`fillRatio.percent` and `.status` are arithmetic.** They are pure functions of `substantiveCells` and `totalCells` — two integers the model supplies in the same payload. The server is not estimating; it is doing the division the model was asked to do, and the result is checkable.
+
+**So the rule Decision 2 actually stands for is: cap what you can only bound, derive what you can compute, and disclose either way.** Both halves of BL-130 obey it — including the one that declines to derive. Where `substantiveCells > totalCells` there is no percentage to compute (the schema permits the shape; no cross-field refinement is possible without publishing an empty input schema to clients), so the tool keeps the caller's range-checked values and discloses the inconsistency, rather than emitting a figure above the `.max(100)` the same field enforces.
+
+**Decision 2's second rationale does not transfer, and that is what makes this safe.** It also rejected full derivation because a derived value would have inverted the `requireVerbatimBody` gate. Nothing equivalent applies here: **no gate reads `fillRatio` at all.** The run takes its halt / partial-IRL branch from the pre-flight, before this tool is called, so deriving the figure changes the artifact and never the control flow. That is also the honest limit of BL-130 — it makes the record correct, not the decision.
+
+**What carries across unchanged** is the disclosure discipline, which is the part of ADR-0018 that generalises: a server correction the partner never sees is worth little. Every `fillRatio` disagreement appends a `provenance-gap:` entry naming both figures, and — because the envelope is called before the dossier prose — directs restating section (A) so the document does not carry two different completeness numbers.
+
+**And the reason it is a disclosure rather than a rejection** is Decision 1's lesson applied in advance. The pre-flight directive has the model round before applying the halt/partial/ok thresholds, so a run at 39.6% correctly reports `40 / ok`. A check anchored on the raw ratio would have refused that compliant run on a partner-facing path — the harm asserted rather than demonstrated, one more time.

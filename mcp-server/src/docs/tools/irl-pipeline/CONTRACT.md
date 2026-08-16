@@ -1,7 +1,7 @@
 ---
 tool: compose_dossier_envelope
 version: v1
-lastAuthored: 2026-08-14
+lastAuthored: 2026-08-15
 schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 ---
 
@@ -21,7 +21,7 @@ schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 >
 > **Used by prompts**: [`gst_information_request_list`](../../prompts/README.md) (emits the intake ask) and [`gst_irl_ingestion`](../../prompts/irl-ingestion.md) (ingests a populated IRL and orchestrates the full dossier sweep).
 >
-> **Version**: `v1` | **Last authored**: 2026-08-14
+> **Version**: `v1` | **Last authored**: 2026-08-15
 >
 > **Registry**: see [`../README.md`](../README.md) for the "what is an input contract" narrative and the cross-tool registry.
 
@@ -148,25 +148,25 @@ The hash is `sha256(filledIrl).slice(0, 16)` with **no normalization** — byte-
 
 The pipeline terminus and the largest input surface in the family. Every field below is required unless marked otherwise.
 
-| Field                      | Type                                                            | Notes                                                   |
-| -------------------------- | --------------------------------------------------------------- | ------------------------------------------------------- |
-| `promptName`               | literal `"gst_irl_ingestion"`                                   | the only shape supported today                          |
-| `promptVersion`            | `/^\d+\.\d+\.\d+$/` — **optional**                              | server overrides it from the registry; not load-bearing |
-| `modelVersion`             | `/^[a-z][a-z0-9_-]*\d[a-z0-9_-]*$/`                             | e.g. `claude-opus-5`; bare `unknown` is rejected        |
-| `mode`                     | `full` \| `extract-only`                                        |                                                         |
-| `auditLevel`               | `standard` \| `enhanced` \| `debug`                             | Selects which markdown blocks come back — see Output    |
-| `transactionContext`       | `sell-side` \| `buy-side` \| `value-creation` \| `unknown`      |                                                         |
-| `fillRatio`                | `{ percent 0–100, substantiveCells ≥0, totalCells ≥1, status }` | `status`: `halt` \| `partial` \| `ok`                   |
-| `gatesPassed`              | array of the orchestrated-tool enum                             | may be empty                                            |
-| `gatesElided`              | array of `{ tool, reason, irlSection }`                         | may be empty                                            |
-| `conditionalTriggersFired` | array of `EU_AI_ACT` \| `NIS2`                                  | may be empty                                            |
-| `defaultFiredFrameworks`   | array of string — **optional**, default `[]`                    | frameworks only; certifications rejected                |
-| `forceToolsApplied`        | array of the orchestrated-tool enum                             | may be empty                                            |
-| `claims`                   | array (min 1) of `{ claim, citation, tier: "1"\|"2"\|"3" }`     | every load-bearing claim the dossier will make          |
-| `gaps`                     | array of `{ category, entry, irlSection?, followUp? }`          | may be empty                                            |
-| `irlBodyHash`              | `/^[a-f0-9]{16}$/`                                              | from `prepare_irl_body`; the sole body reference        |
-| `irlSource`                | see enum below                                                  |                                                         |
-| `requireVerbatimBody`      | boolean — **optional**, default `false`                         | `true` rejects any non-verbatim `irlSource`             |
+| Field                      | Type                                                            | Notes                                                                                       |
+| -------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `promptName`               | literal `"gst_irl_ingestion"`                                   | the only shape supported today                                                              |
+| `promptVersion`            | `/^\d+\.\d+\.\d+$/` — **optional**                              | server overrides it from the registry; not load-bearing                                     |
+| `modelVersion`             | `/^[a-z][a-z0-9_-]*\d[a-z0-9_-]*$/`                             | e.g. `claude-opus-5`; bare `unknown` is rejected                                            |
+| `mode`                     | `full` \| `extract-only`                                        |                                                                                             |
+| `auditLevel`               | `standard` \| `enhanced` \| `debug`                             | Selects which markdown blocks come back — see Output                                        |
+| `transactionContext`       | `sell-side` \| `buy-side` \| `value-creation` \| `unknown`      |                                                                                             |
+| `fillRatio`                | `{ percent 0–100, substantiveCells ≥0, totalCells ≥1, status }` | `status`: `halt` \| `partial` \| `ok`. **`percent` + `status` are server-derived** (BL-130) |
+| `gatesPassed`              | array of the orchestrated-tool enum                             | may be empty                                                                                |
+| `gatesElided`              | array of `{ tool, reason, irlSection }`                         | may be empty                                                                                |
+| `conditionalTriggersFired` | array of `EU_AI_ACT` \| `NIS2`                                  | may be empty                                                                                |
+| `defaultFiredFrameworks`   | array of string — **optional**, default `[]`                    | frameworks only; certifications rejected                                                    |
+| `forceToolsApplied`        | array of the orchestrated-tool enum                             | may be empty                                                                                |
+| `claims`                   | array (min 1) of `{ claim, citation, tier: "1"\|"2"\|"3" }`     | every load-bearing claim the dossier will make                                              |
+| `gaps`                     | array of `{ category, entry, irlSection?, followUp? }`          | may be empty                                                                                |
+| `irlBodyHash`              | `/^[a-f0-9]{16}$/`                                              | from `prepare_irl_body`; the sole body reference                                            |
+| `irlSource`                | see enum below                                                  |                                                                                             |
+| `requireVerbatimBody`      | boolean — **optional**, default `false`                         | `true` rejects any non-verbatim `irlSource`                                                 |
 
 **The four array fields are required but may be empty.** `gatesPassed`, `gatesElided`, `conditionalTriggersFired` and `forceToolsApplied` all have to be present; omitting one is a validation error, passing `[]` is not. This is the most common first-call mistake.
 
@@ -212,7 +212,7 @@ Both internal consumers — the `requireVerbatimBody` gate and the reconstructio
 }
 ```
 
-`percent` is rendered into the meta fence as a 0–1 fraction (`24` → `"fixtureFillRatio": 0.24`).
+**`percent` and `status` are server-derived (BL-130).** The tool recomputes them from `substantiveCells` / `totalCells`, rounded to the nearest integer, and the DERIVED value is what reaches the meta fence as a 0–1 fraction (`24` → `"fixtureFillRatio": 0.24`). The caller's values are the assertion compared against: a disagreement beyond 1 percentage point, or on `status`, appends a `provenance-gap:` entry naming both figures and directing a section (A) restatement — a disclosure, never a rejection. Rounding happens before the threshold comparison, matching the pre-flight directive, so a run at 39.6% correctly resolves to `ok`. Where `substantiveCells > totalCells` no percentage can be derived: the caller's range-checked values are kept, the inconsistency is disclosed, and no restatement is directed.
 
 **`serverToolCallCounts` reports this tool as `attempted: 1, succeeded: 0`, and that is correct.** `attempted` is recorded at wrapper entry and `succeeded` at wrapper exit ([`metrics/with-metrics.ts`](../../../metrics/with-metrics.ts)), and this tool reads the snapshot from **inside its own handler** — so it has not returned yet at the moment it reports. The semantic is deliberate: "I am reporting on the call I am currently inside." The alternative (snapshotting before recording the attempt) would show `attempted: 0` for the tool doing the reporting, which is worse. Every other tool in the snapshot reports normally, and the `precheck.iterations === validate_irl_provenance.succeeded` identity the prompt relies on is unaffected because that is a different tool's row. Consumers must not "correct" this value; BL-119 testers filed it as a defect in three consecutive cycles before it was written down here.
 

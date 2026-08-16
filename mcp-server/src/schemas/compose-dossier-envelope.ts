@@ -132,7 +132,7 @@ const fillRatioSchema = z.object({
     .min(0)
     .max(100)
     .describe(
-      'Computed fill ratio as a 0-100 percentage (substantive cells / total cells from the wrong-IRL pre-flight).'
+      'Computed fill ratio as a 0-100 percentage (substantive cells / total cells from the wrong-IRL pre-flight). SERVER-DERIVED: the tool recomputes this from substantiveCells / totalCells, rounded to the nearest integer, and the derived value governs the meta fence. Send the value your pre-flight computed - it is load-bearing, not decorative: it is the assertion the server compares against, and a disagreement is disclosed as a `provenance-gap:` entry in the gap list rather than rejected. When substantiveCells exceeds totalCells no percentage can be derived, and your value is carried through unchanged with the inconsistency disclosed.'
     ),
   substantiveCells: z
     .number()
@@ -151,7 +151,7 @@ const fillRatioSchema = z.object({
   status: z
     .enum(fillRatioStatusValues)
     .describe(
-      '`halt` if percent < 15; `partial` if 15 <= percent < 40; `ok` otherwise. Drives meta-fence `fixtureFillRatioStatus`.'
+      '`halt` if percent < 15; `partial` if 15 <= percent < 40; `ok` otherwise. Drives meta-fence `fixtureFillRatioStatus`. SERVER-DERIVED alongside `percent`, from the ROUNDED derived percentage, so a run at 39.6% correctly resolves to `ok` rather than `partial`. Send the value your pre-flight computed; a disagreement is disclosed in the gap list, not rejected.'
     ),
 });
 
@@ -705,9 +705,9 @@ function buildEmitInstructions(auditLevel: AuditLevel): string {
     '',
     'Those are the only envelope blocks in this response. A block not listed above was deliberately withheld at this audit level - do NOT reconstruct it, and do NOT write a section for it.',
     '',
-    'Auto-appended `provenance-gap:` entries in `gapListMarkdown` reflect claims whose excerpts the tool could not verify against the IRL - do NOT edit or remove them; the partner needs to see what was flagged. Verification runs identically at every audit level.',
+    'Auto-appended `provenance-gap:` entries in `gapListMarkdown` are server statements about assertions this tool could not substantiate - unverifiable claim excerpts, unconfirmed provenance grades, and figures it derived differently from yours. Transcribe them and do NOT edit or remove them; the partner needs to see what was flagged. Verification runs identically at every audit level.',
     '',
-    'If you discover additional gaps or claims after transcribing the envelope, re-call `compose_dossier_envelope` with the updated arrays rather than editing the markdown by hand.',
+    "If you discover additional gaps or claims after transcribing the envelope, re-call `compose_dossier_envelope` with the updated arrays rather than editing the markdown by hand. **Exception: never re-call merely to align `fillRatio` with the server's derivation.** The server derives it, the derived value already governs the fence, and a corrected re-call deletes the entry recording the disagreement. Act on that entry's follow-up instead.",
   ].join('\n');
 }
 
@@ -1033,6 +1033,51 @@ export function checkBl063Scope(defaultFiredFrameworks: readonly string[]): void
 }
 
 /**
+ * BL-130 — derive `fillRatio.percent` / `.status` server-side.
+ *
+ * The model supplies four fields, of which two are pure functions of the
+ * other two. Nothing checked them: the schema range-checks `percent` and
+ * carries no cross-field refinement (a `.superRefine` would publish an
+ * EMPTY input schema to clients — see schemas/diligence-audit.ts module
+ * JSDoc), so a run could report any percentage against any cell counts.
+ *
+ * **Derive, do not reject.** `irl-ingestion.ts` has the model round to the
+ * nearest integer BEFORE applying the halt/partial/ok thresholds, so a run
+ * at 39.6% correctly reports `{percent: 40, status: 'ok'}`. A check anchored
+ * on the raw ratio would reject that prompt-obedient run on a partner-facing
+ * path. Rounding first dissolves the boundary problem rather than tuning
+ * around it, and the override mirrors `promptVersion`, which this same
+ * schema already server-derives.
+ *
+ * **Incoherent counts are a separate branch, not a large delta.** The schema
+ * bounds `percent` at 100 but puts no upper bound on `substantiveCells` and
+ * no cross-field constraint, so `substantiveCells > totalCells` validates
+ * and would derive >100 — writing e.g. `1.19` into a partner-facing fence,
+ * the exact value `.max(100)` exists to prevent. Overriding there would
+ * REMOVE the only guard the field has, so that case declines to override
+ * and discloses instead. UAT-07 lists "fillRatio over 100%" as an observed
+ * tester symptom, so this is not hypothetical.
+ */
+export interface FillRatioDerivation {
+  readonly coherent: boolean;
+  readonly derivedPercent: number;
+  readonly derivedStatus: (typeof fillRatioStatusValues)[number];
+}
+
+export function deriveFillRatio(
+  fillRatio: ComposeDossierEnvelopeInput['fillRatio']
+): FillRatioDerivation {
+  const { substantiveCells, totalCells } = fillRatio;
+  if (substantiveCells > totalCells) {
+    return { coherent: false, derivedPercent: NaN, derivedStatus: fillRatio.status };
+  }
+  const derivedPercent = Math.round((substantiveCells / totalCells) * 100);
+  // Thresholds apply to the ROUNDED percent, matching the prompt directive.
+  const derivedStatus = derivedPercent < 15 ? 'halt' : derivedPercent < 40 ? 'partial' : 'ok';
+  return { coherent: true, derivedPercent, derivedStatus };
+}
+
+/**
  * Hub-backing partition (BL-063 rule 3 — auto-degrade, NOT reject).
  * Returns the subset of `defaultFiredFrameworks` that have a matching
  * Hub regulatory-map record (Hub-backed) and the subset that does NOT
@@ -1323,6 +1368,47 @@ export function runComposeDossierEnvelope(
     }
   }
 
+  // BL-130 — derive the completeness figure and disclose any disagreement.
+  //
+  // Two guards, and it is worth being precise about which one carries the
+  // weight, because a mutation test says it is not the obvious one. The
+  // PRIMARY guard is `deriveFillRatio` returning `derivedPercent: NaN` and
+  // echoing the model's own status for an incoherent payload: both drift
+  // comparisons below are then false (`NaN > 1` is false), so the delta
+  // entry cannot fire even if the branches were independent.
+  //
+  // The `else` is defence in depth against a future change to that return —
+  // give the incoherent case a real out-of-domain percent and this becomes
+  // the only thing stopping the delta entry from carrying `119%` into the
+  // partner-facing gap list, relocating the defect the first branch exists
+  // to prevent. Removing BOTH is what turns the suite red; removing the
+  // `else` alone does not, which is exactly why the comment says so rather
+  // than claiming a coverage the test does not have.
+  const fillRatioDerivation = deriveFillRatio(input.fillRatio);
+  if (!fillRatioDerivation.coherent) {
+    // Unconditional: NOT routed through the delta comparison below. At the
+    // minimal incoherence ({100, 135, 134, 'ok'} derives 101) the delta is
+    // exactly 1 and the status still matches, so a delta-gated disclosure
+    // would stay silent in precisely the case this guard exists for.
+    autoAppended.push({
+      category: 'provenance-gap',
+      entry: `IRL completeness could not be derived: the run reported ${input.fillRatio.substantiveCells} substantive of ${input.fillRatio.totalCells} total request rows, which is not internally consistent (the numerator exceeds the denominator). The completeness figure is carried as the run asserted it, underived.`,
+      followUp:
+        'Recount the answer spans against the IRL sections actually present (00-09, excluding optional 10/11). If the counts were mis-taken, correct them in a FRESH ingestion run - do not re-call this tool with adjusted numbers, which would delete this record. Do NOT restate section (A) from a derived figure: none was computed for this run.',
+    });
+  } else {
+    const { derivedPercent, derivedStatus } = fillRatioDerivation;
+    const percentDrift = Math.abs(input.fillRatio.percent - derivedPercent) > 1;
+    const statusDrift = input.fillRatio.status !== derivedStatus;
+    if (percentDrift || statusDrift) {
+      autoAppended.push({
+        category: 'provenance-gap',
+        entry: `IRL completeness restated by the server: the run reported ${input.fillRatio.percent}% (${input.fillRatio.status}), and ${input.fillRatio.substantiveCells} of ${input.fillRatio.totalCells} request rows derives ${derivedPercent}% (${derivedStatus}). The derived figure governs the meta fence.`,
+        followUp: `Restate section (A)'s completeness sentence as "IRL completeness: ${derivedPercent}% (${input.fillRatio.substantiveCells} of ${input.fillRatio.totalCells} requests answered)." Do NOT re-call \`compose_dossier_envelope\` to correct \`fillRatio\` — the derived value already governs, and a corrected re-call would delete this record.`,
+      });
+    }
+  }
+
   const falsePositiveMapAbsent = findFalsePositiveMapAbsentClaims(input.gaps);
   if (falsePositiveMapAbsent.length > 0) {
     throw new Bl068MapAbsentFalsePositiveError(falsePositiveMapAbsent);
@@ -1344,7 +1430,24 @@ export function runComposeDossierEnvelope(
     ...(auditLevel === 'debug'
       ? {
           metaFenceMarkdown: renderMetaFence(
-            { ...input, defaultFiredFrameworks: backedFrameworks },
+            {
+              ...input,
+              defaultFiredFrameworks: backedFrameworks,
+              // BL-130 — NESTED override: `renderMetaFence` reads
+              // `input.fillRatio.percent` / `.status`, so a flat sibling
+              // field (copying `defaultFiredFrameworks` above) would be a
+              // silent no-op that every test still passes. Incoherent
+              // counts keep the model's range-checked values.
+              ...(fillRatioDerivation.coherent
+                ? {
+                    fillRatio: {
+                      ...input.fillRatio,
+                      percent: fillRatioDerivation.derivedPercent,
+                      status: fillRatioDerivation.derivedStatus,
+                    },
+                  }
+                : {}),
+            },
             serverContext.promptVersion
           ),
         }
