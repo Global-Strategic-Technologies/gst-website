@@ -23,6 +23,14 @@ on:
     # 'docs/**' + 'chore/**' added 2026-07-15: GitHub "Update branch" pushes also
     # arrive as `synchronize`, so these families need push-trigger coverage or
     # updated PRs stall BLOCKED (observed on PR #316). Lockstep with test.yml.
+    #
+    # `master` in this list is load-bearing beyond CI: `scripts/await-mcp-test-run.sh`
+    # gates every production deploy on a `?event=push` run for the exact SHA, so
+    # dropping it here would fail the pre-flight on every merge.
+    # `tests/integration/workflow-chain-integrity.test.ts` (assertion B) asserts both
+    # halves — master here, and `event=push` there. It reads this list TRIGGER-SCOPED,
+    # because the `pull_request` block below also carries `branches: [master]` and a
+    # union would stay green after master was dropped from exactly this list.
     branches:
       [master, dev, 'feat/**', 'fix/**', 'feature/**', 'dependabot/**', 'docs/**', 'chore/**']
     paths:
