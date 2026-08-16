@@ -34,8 +34,16 @@ concurrency:
   # same ref do NOT cross-cancel. A push to dev with an open PR previously
   # had both events fire with identical group keys; cancel-in-progress
   # then killed the push run, leaving branch protection with a cancelled
-  # required check. Separating the groups lets push run to completion
-  # while skip-duplicate-actions short-circuits the concurrent PR run.
+  # required check. Separating the groups lets both run to completion.
+  #
+  # This comment used to end "...while skip-duplicate-actions short-circuits
+  # the concurrent PR run." That is no longer true and the distinction
+  # matters: the `skip_dup` step that replaced that action queries
+  # `status=success` runs only, and an in-flight run is never `success`, so
+  # nothing short-circuits a CONCURRENT sibling any more. Both events now do
+  # the work when they fire together; this group key is the only thing
+  # keeping them from cancelling each other. See DEVELOPER_TOOLING.md
+  # § Duplicate-run dedup.
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 

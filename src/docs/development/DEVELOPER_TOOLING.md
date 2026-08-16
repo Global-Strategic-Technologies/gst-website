@@ -125,11 +125,12 @@ The GitHub Actions workflow [.github/workflows/test.yml](../../../.github/workfl
 │    │ Two independent checks gate the expensive jobs:            │
 │    │  1. dorny/paths-filter@v4 — does this push/PR touch any   │
 │    │     non-docs files? Outputs `code: true | false`.          │
-│    │  2. fkirc/skip-duplicate-actions@v5 — has a prior run     │
-│    │     already completed successfully with the same TREE     │
-│    │     hash? Outputs `duplicate: true | false`. Catches       │
-│    │     push→PR redundancy: push to dev passes, PR dev→master │
-│    │     fires on a different commit SHA but identical tree.   │
+│    │  2. `skip_dup` — a hand-rolled `gh api` query: does any   │
+│    │     of the last 10 SUCCESSFUL runs of this workflow have  │
+│    │     the same TREE hash? Outputs `duplicate: true|false`.  │
+│    │     Catches push→PR redundancy: push to a branch passes,  │
+│    │     the PR fires on a different commit SHA but identical  │
+│    │     tree.                                                  │
 │    │                                                            │
 │    │ Combined output `should_run = code && !duplicate`.         │
 │    │ Downstream jobs key off should_run.                        │
@@ -169,10 +170,9 @@ The GitHub Actions workflow [.github/workflows/test.yml](../../../.github/workfl
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-All three jobs are **required status checks** on two branch rulesets:
+All three of these jobs are **required status checks** on the `master` ruleset (12237842) — PRs cannot merge until they pass, and `strict_required_status_checks_policy: true` additionally requires the branch to be up to date. A fourth required context, **Verify doc links**, comes from [docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) rather than `test.yml` (see the config table below), so the ruleset lists four contexts while `test.yml` supplies three of them.
 
-- **`master`** (ruleset 12237842) — PRs cannot merge until all checks pass
-- **`feat/**` and `fix/**`** (ruleset 15011377) — pushes to feature/fix branches are blocked until checks pass, shifting test failures left instead of deferring to PR time
+> **A second ruleset used to exist and no longer does.** This section previously documented ruleset `15011377` covering `feat/**` and `fix/**`, which blocked pushes to feature branches until checks passed — shifting test failures left instead of deferring them to PR time. `GET /repos/{owner}/{repo}/rulesets` now returns only `12237842`. Whether that was removed deliberately is **not recorded anywhere**, so this note states the observation rather than a conclusion: if you want push-time gating on feature branches back, it has to be re-created, and if it was retired on purpose, replace this paragraph with that decision.
 
 #### Paths-filter syntax notes (load-bearing)
 
@@ -196,22 +196,24 @@ filters: |
     - '!.claude/**'
 ```
 
-The job also sets `permissions: { contents: read, pull-requests: read }` so paths-filter can use the GitHub API on PR events instead of falling back to git-based detection.
+The job sets `permissions: { contents: read, pull-requests: read, actions: read }`. The first two let paths-filter use the GitHub API on PR events instead of falling back to git-based detection; `actions: read` is what the duplicate-run query below needs to list prior runs of this workflow.
 
 If the gate misbehaves, check the **"Log gate decision"** step output — it prints `code=true/false`, `duplicate=true/false`, `should_run=true/false`, and the JSON-formatted list of matched files, so you can see exactly what the gate saw without having to re-derive the evaluation. If the matched-file count looks suspiciously large (e.g. dozens of files for a single-file push), the `base` configuration is wrong — paths-filter is diffing against the default branch instead of the previous commit.
 
-#### Duplicate-run dedup (fkirc/skip-duplicate-actions)
+#### Duplicate-run dedup (hand-rolled tree-hash query)
 
-The gate job also runs [`fkirc/skip-duplicate-actions@v5`](https://github.com/fkirc/skip-duplicate-actions) before paths-filter, which dedupes on **tree hash** (content) rather than commit SHA. The canonical case it catches: push to `dev` passes all three checks → PR `dev→master` fires the same workflow on a synthetic merge-ref SHA whose tree is identical (since master hasn't moved), so the second run is redundant work on content that's already been validated. The action returns `should_skip=true` and the gate's `duplicate` output is `true`; each downstream job's real steps skip and the "Skipped (docs-only or duplicate run)" step runs instead, reporting success to satisfy branch protection.
+The gate job's `skip_dup` step dedupes on **tree hash** (content) rather than commit SHA. The canonical case it catches: a push to a branch passes all three checks → the PR fires the same workflow on a synthetic merge-ref SHA whose tree is identical (since `master` hasn't moved), so the second run is redundant work on content that's already been validated. When a match is found the gate's `duplicate` output is `true`; each downstream job's real steps skip and the "Skipped (docs-only or duplicate run)" step runs instead, reporting success to satisfy branch protection.
 
-Key configuration choices:
+> **This used to be [`fkirc/skip-duplicate-actions@v5`](https://github.com/fkirc/skip-duplicate-actions)** and is now about 20 lines of shell — the action pinned Node 20, which GitHub deprecated. The replacement is deliberately dumber than what it replaced, and the differences below are behavioural, not cosmetic.
 
-- `concurrent_skipping: 'same_content_newer'` — when push and PR events fire simultaneously on the same commit (e.g. commit to a branch that already has an open PR), the action sees two concurrent runs with identical tree hashes and skips whichever started second. Combined with the event-scoped concurrency group below, this means exactly one run does the work while the other short-circuits; neither cancels the other, so required status checks don't end up in a cancelled state.
-- Workflow-level `concurrency.group` is scoped by `github.event_name` so push and pull_request runs on the same ref don't share a group — they no longer cross-cancel. Previously a push to `dev` with an open PR was cancelled the moment the PR run started, leaving branch protection with a cancelled required check even though the PR run succeeded.
-- `skip_after_successful_duplicate: 'true'` (default) — only skip when the duplicate has a **successful** conclusion. A duplicate of a failed run still triggers a fresh test run.
-- `do_not_skip: '["workflow_dispatch", "schedule", "merge_group"]'` — manual re-runs via the UI use `workflow_dispatch` and intentionally want to re-test; scheduled runs are cron-driven and shouldn't skip; merge-queue runs must run fresh because the queue may have updated `master` between the PR and the merge-queue entry. Notably `push` and `pull_request` are NOT in this list — they dedupe as expected.
+What the shell version actually does ([test.yml](../../../.github/workflows/test.yml), step `skip_dup`): query `actions/workflows/test.yml/runs?status=success&per_page=10`, fetch each run's commit tree hash, and compare against `git rev-parse HEAD^{tree}`. That is the whole mechanism. Consequences worth knowing:
 
-The `actions: write` permission on the gate job is required by skip-duplicate-actions to query prior workflow runs via the REST API.
+- **No concurrency awareness.** The old `concurrent_skipping: 'same_content_newer'` option deduped two _in-flight_ runs against each other. An in-flight run is never `status=success`, so the shell version cannot see one. Simultaneous push and PR events on the same commit now both do the work. What keeps them from cross-cancelling is the workflow-level `concurrency.group`, which is scoped by `github.event_name` — that is still in force ([test.yml](../../../.github/workflows/test.yml)) and is what stopped a push to a branch with an open PR being cancelled the moment the PR run started, leaving branch protection with a cancelled required check.
+- **Only successful runs dedupe** — the `status=success` filter. A duplicate of a failed run still triggers a fresh run. (The old `skip_after_successful_duplicate: 'true'` gave the same behaviour; the option is gone, the behaviour isn't.)
+- **No event exemptions.** The old `do_not_skip: '["workflow_dispatch", "schedule", "merge_group"]'` list does not exist. Nothing is specially exempt now, including manual re-runs — see the troubleshooting section for what that does and does not imply.
+- **Only the last 10 successful runs are examined.** An older duplicate outside that window is simply not found.
+
+Note the archived initiative doc [`_archive/MCP_SERVER_CI_CD_DEPLOY_BL-037.md`](_archive/MCP_SERVER_CI_CD_DEPLOY_BL-037.md) still describes the `fkirc` action. That is **intentional** — archived docs are kept verbatim as a record of what was true when the initiative closed. Do not "correct" them.
 
 ---
 
@@ -858,11 +860,41 @@ Open the run on the Actions tab and expand the **Detect Code Changes** job's "Lo
 - **`should_run=true`, large `matched-files` list (dozens of files for a one-file push)**: paths-filter is diffing against the wrong base. Confirm `base: ${{ github.ref_name }}` is present on the paths-filter step; without it, the action defaults to the repo's default branch (`master`) and the filter sees every unmerged commit on the current branch
 - **`should_run=false` but jobs still ran full flow**: a step is missing the `if: needs.changes.outputs.should_run == 'true'` guard somewhere
 - **`code=true`, sensible file list on a pure docs push**: the filter matched a file you didn't expect — inspect the list. Adjust the negations or add a new one (docs directory? config file? auto-generated artifact? lock file?)
-- **`duplicate=false` when a prior successful run had the same content**: the prior run may have failed or been cancelled (only `success` conclusions dedupe), or the tree hash differs (one file changed that you didn't realize — check `git diff <prior-sha>..HEAD --stat`). Manual re-runs via the UI intentionally bypass dedup via `do_not_skip: ["workflow_dispatch", ...]`
-- **`duplicate=true` but you wanted a re-run**: trigger via "Re-run all jobs" in the Actions UI (uses `workflow_dispatch`, bypasses dedup) rather than pushing a no-op commit
+- **`duplicate=false` when a prior successful run had the same content**: the prior run may have failed or been cancelled (only `success` conclusions dedupe), or the tree hash differs (one file changed that you didn't realize — check `git diff <prior-sha>..HEAD --stat`), or the matching run has fallen outside the 10 most recent successful runs the query examines
+- **`duplicate=true` but you wanted a re-run**: there is **no event exemption any more.** The `do_not_skip` list belonged to `fkirc/skip-duplicate-actions` and did not survive the move to the hand-rolled query, so nothing — including "Re-run all jobs" — is specially exempt. What a UI re-run does is therefore not a special case, it is the ordinary rule applied again: the step re-queries the last 10 successful runs and skips only if one of them still carries this tree hash. Do not assume either outcome; read the `duplicate=` line in the re-run's own gate log. If you need the work to definitely happen, change the tree (this is the one case where a no-op commit is the honest tool, not a workaround)
 - **PR blocked with a cancelled push-event check alongside a successful pull_request-event check**: the workflow's concurrency group must be scoped by `github.event_name` — without it, the two events collide in the same group and `cancel-in-progress: true` cancels the first-started run. Immediate fix: `gh run rerun <cancelled-run-id>` on the cancelled run (safe because the sibling has already completed). Durable fix: confirm the workflow's `concurrency.group` includes `github.event_name`
 
 Never remove the positive `**` catch-all when adding more negations — with `predicate-quantifier: 'every'`, a negation-only list always produces `code=false` regardless of the actual changeset.
+
+### "There are cancelled MCP staging deploys on every PR"
+
+**They are almost certainly `skipped`, not `cancelled`.** GitHub draws both with a grey circle-slash icon and they are indistinguishable at list density. Check before diagnosing:
+
+```bash
+gh api "repos/:owner/:repo/actions/workflows/deploy-mcp-staging.yml/runs?per_page=20" \
+  --jq '.workflow_runs[] | "#\(.run_number) \(.conclusion)"'
+```
+
+As of 2026-08-16 that workflow has **0 cancelled runs in 339**, and 21 skipped. (Cancelled runs on `deploy-mcp-production.yml` are a different, expected thing — see § Production deploy is latest-wins.)
+
+A skipped run means one clause of the job `if:` in [deploy-mcp-staging.yml](../../../.github/workflows/deploy-mcp-staging.yml) was false. It is a **three-clause AND**, and the arms are not equally benign:
+
+- **`event == 'push'` failed** — the upstream run was a `pull_request` event. Routine: the MCP suite fires on both `push` and `pull_request`, both runs are named `MCP Server Test Suite`, and `workflow_run` has no filter for the triggering run's event type, so GitHub creates the consumer run and the job `if:` (BL-111 fork-trust guard) then skips it. Nothing deployed because nothing should have.
+- **`conclusion == 'success'` failed** — and this is **not one thing**. `failure` means the MCP suite went red and the deploy was correctly withheld: that is a real signal, not noise. `cancelled` is benign when it occurs — [test-mcp-server.yml](../../../.github/workflows/test-mcp-server.yml) runs `cancel-in-progress: true`, so a superseded run is cancelled and the *winning* push deploys (verified empirically 2026-05-31). `timed_out` and `action_required` land on the same arm; treat the list as open, not closed. For calibration: of the 21 skips to date, 15 are the `pull_request` arm and 6 are `failure` — **none has yet come from a cancellation**, so do not assume that reading.
+- **`head_repository` failed** — a fork. Unexercised; the repo has no forks.
+
+**Do not diagnose from the consumer run alone.** Its own conclusion is just `skipped`, and you cannot cross-reference by SHA: a `workflow_run` consumer is attributed to the **default branch**, so its `head_sha` and `head_branch` are master's, not the triggering run's (the real SHA is read from the event payload at the checkout step). Read the *triggering* run:
+
+```bash
+gh api "repos/:owner/:repo/actions/runs/<consumer-run-id>" \
+  --jq '.referenced_workflows, .triggering_actor.login'
+gh api "repos/:owner/:repo/actions/workflows/test-mcp-server.yml/runs?per_page=20" \
+  --jq '.workflow_runs[] | "\(.created_at) ev=\(.event) concl=\(.conclusion) br=\(.head_branch)"'
+```
+
+and match on timestamp — the consumer is created 1–3 seconds after the run that triggered it.
+
+**A `branches:` mismatch is not a skip cause.** If the triggering branch isn't in the consumer's `branches:` list, GitHub creates **no run record at all** — there is nothing grey to see. Positive evidence: `dependabot/**`, `docs/**` and `chore/**` upstream runs, including failed ones, produce zero staging rows because those families are deliberately absent from the consumer's list. A silent absence is the failure mode to worry about here, which is why `tests/integration/workflow-chain-integrity.test.ts` asserts `master` is in both branch lists.
 
 ### "A check never finishes — no logs, or no job at all"
 
@@ -924,4 +956,4 @@ Two manual steps are required to complete Phase 2:
 
 ---
 
-**Last Updated**: August 5, 2026 (BL-111 — the production deploy's pre-flight guard extracted to `scripts/await-mcp-test-run.sh` with an exit-code contract, staging refuses fork-triggered runs, and the deploy-failure notification was made to actually fire)
+**Last Updated**: August 16, 2026 (MCP deploy-chain integrity asserted in `tests/integration/workflow-chain-integrity.test.ts`; the duplicate-run dedup section corrected to describe the hand-rolled tree-hash query that replaced `fkirc/skip-duplicate-actions`; ruleset `15011377` recorded as no longer existing; new troubleshooting entry for skipped-vs-cancelled staging deploys)

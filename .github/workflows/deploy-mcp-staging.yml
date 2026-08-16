@@ -35,6 +35,14 @@ on:
     # surfaced two gaps: `feature-*` didn't match slash-style branches, and
     # `master` was missing so the merge commit never got staging validation).
     # `dev` retired 2026-05-31 (CLAUDE.md § Branch Strategy) — dropped BL-111.
+    #
+    # Guarded by `tests/integration/workflow-chain-integrity.test.ts` (assertion C):
+    # `master` must be present, and this list must stay a SUBSET of the suite's push
+    # branches. The subset half is what keeps `dependabot/**` deliberately absent here
+    # from being "fixed" into a list that deploys from branches the suite never tested.
+    # A miss on this filter produces NO run record at all — nothing red, nothing in the
+    # Actions list, staging simply frozen — which is how the BL-038 regression above
+    # went unnoticed in the first place.
     branches: [master, 'feat/**', 'fix/**', 'feature/**']
 
 permissions:

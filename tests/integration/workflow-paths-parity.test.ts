@@ -18,62 +18,16 @@
  * wider (deploy something you did not test).
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-
-const WORKFLOWS = join(process.cwd(), '.github', 'workflows');
+import { extractPathBlocks, extractPaths } from './helpers/workflow-parse';
 
 /**
- * Extract EVERY `paths:` list from a workflow.
- *
- * All of them, not the first: `test-mcp-server.yml` has two (push + pull_request), and
- * the DEVELOPER_TOOLING instruction is "add it to BOTH blocks" — so a drift between the
- * two blocks of one file is the same defect class this test exists to catch.
- *
- * Deliberately a small hand parser rather than a YAML dependency: adding a parser to the
- * website's dependency tree for one assertion is the worse trade. But a hand parser that
- * gives up quietly is worthless here — a partially-parsed list makes the subset assertion
- * pass on the entries it dropped. So an unparseable list item **throws** rather than
- * ending the loop.
- *
- * **The throw happens at collection time, and that does fail CI** — verified, not assumed:
- * double-quoting one entry in `deploy-mcp-production.yml` makes vitest print
- * `Test Files 1 failed | Tests no tests` and **exit 1**. The "no tests" line reads like a
- * skip; the exit code is what gates, and it is non-zero. Worth knowing before anyone
- * "fixes" this parser to fail soft.
+ * The `paths:` extractors moved to `helpers/workflow-parse.ts` so `workflow-chain-integrity.
+ * test.ts` could reuse them instead of growing a third copy of the same indent assumptions.
+ * Their behaviour is unchanged — including the deliberate throw on an unparseable list item —
+ * and THIS SUITE IS THE REGRESSION PROOF for that move: it still passes with no assertion
+ * edited. Read the helper's docstring for why it is a hand parser and what the differential
+ * against the real `yaml` parser measured.
  */
-function extractPathBlocks(file: string): string[][] {
-  const lines = readFileSync(join(WORKFLOWS, file), 'utf8').split(/\r?\n/);
-  const blocks: string[][] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    if (!/^\s{4}paths:\s*$/.test(lines[i])) continue;
-
-    const out: string[] = [];
-    for (const line of lines.slice(i + 1)) {
-      if (/^\s*#/.test(line) || line.trim() === '') continue;
-      const match = /^\s{6}- '(.+)'\s*$/.exec(line);
-      if (!match) {
-        // A list item we could not read is a parser bug, not the end of the block.
-        // Ending the loop here would silently truncate and pass vacuously downstream.
-        if (/^\s+-\s/.test(line)) {
-          throw new Error(`unparseable list item in ${file}: ${JSON.stringify(line)}`);
-        }
-        break; // dedent or a different key — genuinely the end of the list
-      }
-      out.push(match[1]);
-    }
-    blocks.push(out);
-  }
-
-  if (blocks.length === 0) throw new Error(`no 4-space-indented \`paths:\` block in ${file}`);
-  return blocks;
-}
-
-/** The union of every trigger block — what the workflow can fire on at all. */
-function extractPaths(file: string): string[] {
-  return [...new Set(extractPathBlocks(file).flat())];
-}
 
 describe('MCP workflow paths parity', () => {
   const testPaths = extractPaths('test-mcp-server.yml');
