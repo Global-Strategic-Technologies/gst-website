@@ -604,6 +604,12 @@ describe('BL-130 — deriveFillRatio boundary table', () => {
   const cases: Array<[number, number, number, string]> = [
     [0, 50, 0, 'halt'], // nothing answered
     [7, 50, 14, 'halt'], // 14.0 -> just under the halt ceiling
+    // 15.0 exactly — the ceiling itself. `halt` is `< 15`, NOT `<= 15`.
+    // Without this the cutoff can be loosened upward untested: `< 15` -> `< 16`
+    // leaves the whole suite green, and a run at exactly 15% would then report
+    // `halt` — the wrong-IRL signal — on a partner-facing artifact. The table
+    // bracketed 15 without landing on it until this line.
+    [15, 100, 15, 'partial'],
     [8, 50, 16, 'partial'], // 16.0 -> partial
     [52, 133, 39, 'partial'], // 39.098 -> rounds to 39, still partial
     [53, 134, 40, 'ok'], // 39.552 -> rounds to 40, so `ok` per the prompt
