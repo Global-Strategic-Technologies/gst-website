@@ -30,10 +30,11 @@ What we publish instead is two things:
 1. **The CSS design system.** `src/styles/` flattened into one stylesheet — every token,
    `html.dark-theme`, all six `html.palette-N` blocks, and the full `.brutal-*` class
    vocabulary — plus four guideline docs from [`src/docs/styles/`](../styles/README.md).
-2. **Eight specimen galleries.** React components that render GST _markup + classes_
+2. **Ten specimen galleries.** React components that render GST _markup + classes_
    (`ButtonSpecimen`, `TypographySpecimen`, `CardSpecimen`, `DataSpecimen`,
-   `FormSpecimen`, `FrostedSpecimen`, `ToolShellSpecimen`, `ColorSpecimen`). They give the
-   project browsable preview cards and give the agent worked examples.
+   `FormSpecimen`, `FrostedSpecimen`, `ToolShellSpecimen`, `ToolChromeSpecimen`,
+   `NavigationSpecimen`, `ColorSpecimen`). They give the project browsable preview cards
+   and give the agent worked examples.
 
 The design agent therefore writes its own JSX and styles it with our classes. It **cannot**
 import `Header.astro` or any other real component.
@@ -49,8 +50,11 @@ import `Header.astro` or any other real component.
 - **Curate specimen markup from real sources**, never invent it. Ported from
   [`BrandComponents.astro`](../../components/brand/BrandComponents.astro),
   [`BrandUILibrary.astro`](../../components/brand/BrandUILibrary.astro), and
-  [`src/pages/hub/library/index.astro`](../../pages/hub/library/index.astro). The gateway
-  card was invented on the first pass and was wrong.
+  [`src/pages/hub/library/index.astro`](../../pages/hub/library/index.astro), and — for the
+  Slice 2 families — the hub tool pages themselves (`infrastructure-cost-governance`,
+  `techpar`, `diligence-machine`, `tech-debt-calculator`, `regulatory-map`, `services`).
+  Each specimen's header comment names its source. The gateway card was invented on the
+  first pass and was wrong.
 
 ## When you must re-sync
 
@@ -90,7 +94,7 @@ and regenerated — never commit them.
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.design-sync/config.json`        | Converter config + the pinned `projectId`                                                                                                                                                          |
 | `.design-sync/conventions.md`     | **The highest-value file.** Prepended to the uploaded README and inlined into the design agent's system prompt: the class vocabulary, token families, BEM sub-elements, layout and dark-mode rules |
-| `.design-sync/specimens/*.tsx`    | The eight galleries — the markup, single-sourced                                                                                                                                                   |
+| `.design-sync/specimens/*.tsx`    | The ten galleries — the markup, single-sourced                                                                                                                                                     |
 | `.design-sync/specimen-docs/*.md` | Per-specimen `.prompt.md` content the agent reads                                                                                                                                                  |
 | `.design-sync/previews/*.tsx`     | Thin card renderers                                                                                                                                                                                |
 | `.design-sync/build-css.mjs`      | Flattens the stylesheet graph (see below)                                                                                                                                                          |
@@ -137,8 +141,8 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
   `body{background:#fff}`, and the tokens resolve only at `:root` — a nested
   `color-scheme: dark` flips nothing. Dark mode is verified by the probe instead.
 - **What the published system does not cover** — see [BL-135](BACKLOG.md#bl-135-claude-design-sync--correct-it-guard-it-and-publish-the-design-system-rather-than-its-content-level-subset):
-  the class vocabulary conventions.md teaches is a subset of `src/styles` (Slice 2 widens
-  it), and the site chrome (`Header`, `Hero`, `Footer`, section cards) lives in
+  conventions.md now teaches every reusable family in `src/styles` (Slice 2, 2026-08-16 —
+  the page one-offs it deliberately skips are listed in the header itself), but the site chrome (`Header`, `Hero`, `Footer`, section cards) lives in
   Astro-scoped `<style>` blocks that never reach the bundle — the agent cannot reproduce
   it from the CSS alone (Slice 3 publishes it by extraction from the built `/brand` page).
 - **`/brand` remains the human-browsable surface** for the design system; the Design
@@ -148,4 +152,4 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
 
 <- Back to [Development Documentation](./README.md) | [Master Documentation Index](../README.md)
 
-_Last Updated: August 16, 2026 (initial sync — tokens + 8 specimen galleries; BL-135 Slice 1 — defects fixed, CI guards, palettes verified)_
+_Last Updated: August 16, 2026 (initial sync — tokens + 8 specimen galleries; BL-135 Slice 1 — defects fixed, CI guards, palettes verified; Slice 2 — vocabulary widened, 10 galleries)_

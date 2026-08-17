@@ -14,10 +14,10 @@ What ships instead, in two parts:
 
 1. **The CSS design system** — tokens, typography, palettes, and the full `.brutal-*`
    class vocabulary, flattened into `_ds_bundle.css`, plus four styling guideline docs.
-2. **Eight specimen galleries** (`ButtonSpecimen`, `TypographySpecimen`, `CardSpecimen`,
+2. **Ten specimen galleries** (`ButtonSpecimen`, `TypographySpecimen`, `CardSpecimen`,
    `DataSpecimen`, `FormSpecimen`, `FrostedSpecimen`, `ToolShellSpecimen`,
-   `ColorSpecimen`) — React components that render GST _markup + classes_, giving the
-   project browsable preview cards.
+   `ToolChromeSpecimen`, `NavigationSpecimen`, `ColorSpecimen`) — React components that
+   render GST _markup + classes_, giving the project browsable preview cards.
 
 **The specimens are documentation, not UI components.** They are legitimate under
 STYLES_GUIDE mechanism 3: these classes have no `.astro` component behind them, so
@@ -101,13 +101,13 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   **full re-upload** rather than an incremental one — nothing is lost (the `projectId` is in
   `config.json`), it just takes longer.
 - `.design-sync/.cache/review/*.grade.json` (the "8 carried forward" human verdicts) is
-  also gone, so the capture/grade step runs from scratch — **re-grade all eight**.
+  also gone, so the capture/grade step runs from scratch — **re-grade all ten**.
 - `dark-probe.mjs` and `palette-probe.mjs` need `ds-bundle/` — run them only after a full
   `package-build`; both exit non-zero with a pointer here if it is missing.
 
 ## Re-sync risks (what can silently go stale)
 
-- **`conventions.md` and the eight `specimen-docs/*.md` enumerate real class and token
+- **`conventions.md` and the ten `specimen-docs/*.md` enumerate real class and token
   names.** CSS refactors rot them silently — the agent trusts these names and will emit
   unstyled markup for any that disappear. **This is now guarded in CI** (BL-135):
   `tests/integration/design-sync-guards.test.ts` under `npm run test:docs` asserts every
@@ -122,10 +122,14 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   **`.brutal-field__input`, not `.brutal-input`** (D2 in the BL-135 audit — the guard could
   not catch that one because both classes exist; it was caught by diffing against the
   `/brand` source, which is why "curate from the real consumer" below is the rule).
+- **conventions.md uses bullet lists, not tables, for the big enumerations — on purpose.**
+  Prettier pads markdown table cells to the widest cell in the column; with a 400-char
+  dataviz cell in the token table the header hit 31.8 KB (see the ceiling below). The
+  same content as lists is 16 KB. Do not convert them back to tables.
 - **The README header has a hard size ceiling.** The converter prepends `conventions.md`
   to the uploaded README precisely because the consumer truncates the README inline at
   **32,000 characters, cutting the TAIL** (skill `lib/emit.mjs`, `emitReadme`). The
-  header is ~13 KB today. If it outgrows the ceiling, move the overflow into a shipped
+  header is ~16 KB today (Slice 2). If it outgrows the ceiling, move the overflow into a shipped
   guideline doc under `guidelinesGlob` rather than letting the tail (the boilerplate) or,
   worse, the end of the header be cut.
 - **Specimen markup was ported from real sources** — `BrandComponents.astro`,
