@@ -59,6 +59,18 @@ export default [
       // `mcp-server/src/schemas.ts` during BL-108. Generated output is never
       // ours to lint.
       '**/.wrangler/**',
+      // claude.ai/design sync artifacts, same rule as .wrangler above: both are
+      // generated, both are gitignored, and neither is ours to lint. `ds-bundle/`
+      // is the converter's output (it embeds a vendored React UMD build, which
+      // alone contributed ~1,980 errors) and `.ds-sync/` is the skill's staged
+      // scripts + their isolated dep tree. The authored sources under
+      // `.design-sync/` ARE linted — they're hand-written and committed. They
+      // are type-checked separately: the root tsconfig's `**/*` never descends
+      // into dot-directories, so `astro check` does not see them; instead
+      // `tests/integration/design-sync-guards.test.ts` runs
+      // `tsc -p .design-sync` (BL-135). See src/docs/development/CLAUDE_DESIGN_SYNC.md.
+      'ds-bundle/**',
+      '.ds-sync/**',
       'node_modules/**',
       '**/node_modules/**',
       'public/**',

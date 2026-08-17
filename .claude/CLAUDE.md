@@ -152,6 +152,7 @@ Claude Code's permission matcher evaluates compound commands **per-subcommand** 
 - **Start here for any styling work**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) — the single entry point; it links the token catalog ([VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md)) and brand decisions ([BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md))
 - **Palette system**: alternative color palettes in `src/styles/palettes.css` — applied to `<html>` via class, persisted in localStorage
 - **Delta icon**: Use `DeltaIcon.astro` component (inline SVG with `currentColor`) — never `<img>` tags
+- **Published downstream to claude.ai/design**: the tokens + `.brutal-*` vocabulary are synced to a Claude Design project so the design agent builds on-brand UI — see [CLAUDE_DESIGN_SYNC.md](src/docs/development/CLAUDE_DESIGN_SYNC.md). **Renaming a class or token means re-syncing**; it goes stale silently. Never hand-write React versions of `.astro` components for it
 
 ## 🗂️ Project Structure
 
@@ -200,7 +201,7 @@ npm run dev                    # Dev server (http://localhost:4321)
 npm run build                  # Production build
 npm run test:run               # Website unit + integration (once)
 npm run test:mcp               # MCP server suite (delegates to the workspace)
-npm run test:docs              # Docs guards: link/anchor integrity + VARIABLES_REFERENCE↔variables.css parity (required CI check)
+npm run test:docs              # Docs guards: link/anchor integrity + VARIABLES_REFERENCE↔variables.css parity + design-sync name/ROOTS parity (required CI check)
 npm run test:e2e               # Playwright E2E (only when told — see Directive 5)
 npm run lint / lint:css        # ESLint / stylelint
 npm run setup:claude-hooks     # One-time per machine: arm the review-gate hooks
@@ -312,6 +313,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 - **Buttons include frosted-glass** by default (`backdrop-filter: blur(2px)`, semi-transparent backgrounds) — see STYLES_GUIDE.md § Frosted Glass
 - **Responsive design desktop-first** — base styles for desktop, `max-width` breakpoints for smaller screens
 - **Astro `<style>` is scoped by default** — extracting markup into a sibling component silently breaks any class selector targeting it from the source file; restyle in the new component (or use `:global()` deliberately)
+- **Renaming a `.brutal-*` class or a design token? It has a downstream consumer** — the design system is published to claude.ai/design and names classes explicitly, so a rename silently produces unstyled output there. Re-sync per [CLAUDE_DESIGN_SYNC.md](src/docs/development/CLAUDE_DESIGN_SYNC.md)
 
 ## 🚢 Deployment
 
