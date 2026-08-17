@@ -27,7 +27,8 @@
 // <link href> resolves, non-empty slice, ≥1 matched scoped rule for a slice
 // that has cids, and — with --check — a Playwright render of every card with
 // the validator's own floors (height ≥ 8px, screenshot ≥ 5000 bytes) plus the
-// assertion that dark twins actually resolve --bg-light to the dark value.
+// assertion that each dark twin resolves --bg-light to a value different from
+// its own light sibling's (measured, not a literal copied from variables.css).
 //
 // Usage (repo root):  node .design-sync/extract-chrome.mjs [--check]
 /* global document, getComputedStyle -- page.evaluate() callbacks run in the browser. */
@@ -381,6 +382,10 @@ if (CHECK) {
   page.on('requestfailed', (r) => errs.push(`requestfailed: ${r.url()}`));
   mkdirSync(join(OUT, '_screenshots'), { recursive: true });
   let bad = 0;
+  // --bg-light as each light card resolved it, keyed by name. A dark twin
+  // (`<Name>Dark`, always emitted after `<Name>`) passes when its value differs
+  // from its own light sibling's — no dark literal duplicated from variables.css.
+  const lightBg = new Map();
   for (const e of emitted) {
     errs = [];
     await page.goto(pathToFileURL(join(e.dir, `${e.name}.html`)).href, {
@@ -399,7 +404,10 @@ if (CHECK) {
     await page.screenshot({ path: shot, fullPage: true });
     // Same floors as package-validate.mjs: collapsed < 8px, blank png < 5000 bytes.
     const bytes = readFileSync(shot).length;
-    const ok = r.h >= 8 && bytes >= 5000 && errs.length === 0 && (!e.dark || r.bg === '#0a0a0a');
+    if (!e.dark) lightBg.set(e.name, r.bg);
+    const sibling = e.dark ? lightBg.get(e.name.replace(/Dark$/, '')) : undefined;
+    const darkOk = !e.dark || (Boolean(r.bg) && sibling !== undefined && r.bg !== sibling);
+    const ok = r.h >= 8 && bytes >= 5000 && errs.length === 0 && darkOk;
     if (!ok) bad++;
     console.error(
       `  ${ok ? '✓' : '✗'} ${e.name.padEnd(24)} height=${Math.round(r.h)} png=${bytes}B --bg-light=${r.bg} body=${r.bodyBg}${errs.length ? `  ERRORS: ${errs.join(' | ')}` : ''}`

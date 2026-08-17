@@ -152,8 +152,9 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
   `src/styles/**/*.css`; that the `ROOTS` list in `build-css.mjs` reaches every sheet under
   `src/styles/`; that the specimens type-check (`tsc -p .design-sync`); and that every
   chrome slice in `extract-chrome.mjs` still resolves to a route + tag/hook in `.astro`
-  source (a rename fails `test:docs` before anyone re-syncs). The full extraction is not
-  run in CI — it needs a build. The two
+  source (a rename fails `test:docs` before anyone re-syncs); and that `conventions.md`
+  stays under 28,000 chars (the consumer truncates the README it is prepended to at
+  32,000, cutting the tail). The full extraction is not run in CI — it needs a build. The two
   intentional negatives the docs state (`.brutal-card`, `.brutal-hero`) sit in an
   allowlist that fails when it goes stale. The skill's own name check still runs at sync
   time; the vitest is what fires between syncs.

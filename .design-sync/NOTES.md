@@ -154,8 +154,9 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
 - **The README header has a hard size ceiling.** The converter prepends `conventions.md`
   to the uploaded README precisely because the consumer truncates the README inline at
   **32,000 characters, cutting the TAIL** (skill `lib/emit.mjs`, `emitReadme`). The
-  header is ~16 KB today (Slice 2). If it outgrows the ceiling, move the overflow into a shipped
-  guideline doc under `guidelinesGlob` rather than letting the tail (the boilerplate) or,
+  header is ~17.5 KB today (Slice 3); `design-sync-guards.test.ts` guard 5 fails `test:docs`
+  at 28,000 chars. If it outgrows that, move the overflow into a shipped guideline doc under
+  `guidelinesGlob` rather than raising the number and letting the tail (the boilerplate) or,
   worse, the end of the header be cut.
 - **Specimen markup was ported from real sources** — `BrandComponents.astro`,
   `BrandUILibrary.astro`, and `src/pages/hub/library/index.astro` for the gateway card.

@@ -6,7 +6,7 @@
  * unstyled output, and nothing breaks loudly. `CLAUDE_DESIGN_SYNC.md` and
  * `.design-sync/NOTES.md` list this as the standing re-sync risk; before this
  * file the only check lived in the gitignored `.ds-sync/` skill, so a CSS
- * refactor could rot the docs between syncs with no CI signal. Four guards:
+ * refactor could rot the docs between syncs with no CI signal. Five guards:
  *
  *   1. NAME PARITY — every `.class`, BEM `__sub` / `--modifier`, and `--token`
  *      named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx`
@@ -21,6 +21,8 @@
  *   4. CHROME SLICES — every `(page, selector)` in `extract-chrome.mjs`'s `SLICES`
  *      resolves to a route under `src/pages/` and a tag+hook in `.astro` source, so a
  *      rename fails here before anyone re-syncs and hits the extractor's exit-1.
+ *   5. README CEILING — `conventions.md` stays under 28,000 chars; the consumer
+ *      truncates the README it is prepended to at 32,000, cutting the tail.
  *
  * Hand-rolled parsers, proven against fixtures first — same posture as
  * `docs-variables-sync.test.ts` (no markdown/CSS parser dependency by design).
@@ -552,3 +554,21 @@ function tagHasClassToken(source: string, tag: string, cls: string): boolean {
   }
   return false;
 }
+
+// --- Guard 5: the README header stays under the consumer's inline ceiling -----
+
+describe('conventions.md stays under the README inline ceiling', () => {
+  // The converter PREPENDS conventions.md to the uploaded README, and the
+  // consumer truncates that README inline at 32,000 characters, cutting the
+  // TAIL (NOTES.md § re-sync risks). Slice 2 hit 31.8 KB when prettier padded
+  // three enumerations into tables — nothing in CI noticed. 28,000 leaves the
+  // converter's own boilerplate tail ~4 KB of room; if the header outgrows it,
+  // move the overflow into a shipped guideline doc, do not raise the number.
+  const CEILING = 28_000;
+  const conventionsPath = resolve(SYNC_DIR, 'conventions.md');
+
+  it(`conventions.md is under ${CEILING} characters`, () => {
+    const length = readFileSync(conventionsPath, 'utf-8').length;
+    expect(length, `conventions.md is ${length} chars (ceiling ${CEILING})`).toBeLessThan(CEILING);
+  });
+});
