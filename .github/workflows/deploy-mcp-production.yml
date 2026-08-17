@@ -27,8 +27,11 @@ name: Deploy MCP Worker — production
 #      Issue, production silently drifting behind master. That is the failure
 #      class that once left production a month behind.
 #   5. `workflows: ['MCP Server Test Suite']` is a literal string match against
-#      that workflow's `name:`. A rename breaks the chain silently, and nothing
-#      asserts the two agree.
+#      that workflow's `name:`. A rename breaks the chain silently — which is
+#      why `tests/integration/workflow-chain-integrity.test.ts` now asserts the
+#      two agree, and further asserts that the name resolves to the same FILE
+#      that `scripts/await-mcp-test-run.sh` polls below. That test was written
+#      because this comment sat here for months describing an unguarded gap.
 #
 # Reviewer gate: GitHub Settings → Environments → `mcp-production` must be
 # configured with Required reviewers ≥ 1 BEFORE this workflow can deploy.

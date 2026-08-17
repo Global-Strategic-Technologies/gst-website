@@ -270,11 +270,39 @@ This is the same schema the baseline tooling queries — `scripts/invoke-ae-base
 
 The contract is fail-open throughout: **metrics never break a tool call**. Emission is best-effort, the sink never throws, and a wrapped handler behaves identically to an unwrapped one — the cost is one `Date.now()` and one synchronous `sink.write()`. `safeLog` continues to dual-write alongside metric events.
 
+### Run-scoped durable tool-call counters (BL-121)
+
+The BL-071 counter that feeds the dossier's `RUN-AUDIT` block is an `InMemoryToolCallCounters` map, and **`createServer` runs per HTTP request** on the Worker (§ Register-once, transport-twice) — so on the remote transport that map could only ever hold the request the envelope tool was inside, and the operator identity `precheck.iterations === serverToolCallCounts.validate_irl_provenance.succeeded` was structurally unsatisfiable. The same rotation is why the IRL body cache moved to Upstash under BL-076; the counters were left behind until a production run surfaced it.
+
+The three IRL-pipeline tools (`validate_irl_provenance`, `compose_dossier_envelope`, `prepare_irl_body`) now also accumulate in Upstash, one hash per run:
+
+| key family                         | shape                                                                               | TTL                                                                              | owner                              |
+| ---------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------- |
+| `mcp:irl-run-counts:<irlBodyHash>` | hash, field `<tool>.<attempted\|succeeded\|rejected\|errored>`, `HINCRBY` per event | 4 h (`IRL_BODY_CACHE_TTL_SECONDS` — a counter never outlives the body it counts) | `src/metrics/run-call-counters.ts` |
+
+### IRL body provenance (BL-123)
+
+`irlSource` on `compose_dossier_envelope` is a claim the **model** makes about where the bytes came from, and its evidence for the strongest form (`partner-paste-verbatim-prepop`) was that a `**Body-binding hash:**` directive appeared in the prompt body — a string whose presence survives export, so a replayed payload carried the same evidence a fresh invocation did. The server now records what it actually witnessed at the moment the body entered the cache:
+
+| key family                        | shape                                                                     | TTL                                                             | owner                              |
+| --------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------- |
+| `mcp:irl-body-prov:<irlBodyHash>` | JSON `{ mintedBy, mintedAt, byteLength, newlineCount }`, first-write-wins | 4 h (matches the body cache — a record never outlives its body) | `src/cache/irl-body-provenance.ts` |
+
+The envelope tool applies a **monotone downgrade**, never a derivation: an asserted `-prepop` is capped to `partner-paste-verbatim` when the record says `prepare-tool`, nothing is ever promoted, and reconstruction / `placeholder` assertions pass through untouched. That asymmetry is load-bearing — `prepare-tool` is produced identically by an interactive partner paste and by a model reconstruction from xlsx, so a _derived_ value could never be `model-reconstruction-from-xlsx` and would sail every reconstruction run past the `requireVerbatimBody` gate that exists to catch it.
+
+The client is built with `retry: false`, the same bounded retry budget BL-121 established for the sibling counters: this store adds one read to `compose_dossier_envelope` and a read-then-write to `prepare_irl_body`, and the SDK default (six attempts, ~4,289 ms of backoff) would put a degraded Upstash on the response path of all three for a value that only labels an audit claim.
+
+Posture: the store takes the body cache's dual-impl **shape** (stdio gets a real in-process map, so the cap fully works locally and is testable without Upstash) but the counters' **failure semantics** — unbound or unreadable degrades quietly to "cannot verify" rather than throwing. Never in-memory on the Worker: isolates rotate, so the render's write would be invisible to the compose and every honest prepop run would silently downgrade. Rationale and the rejected alternatives: [ADR-0018](../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md).
+
+The run key is the IRL body hash, not a session id: "these bytes" is the audit scope, and every tool in the run already carries or derives it. Writes land at **wrapper exit** (nothing on the entry path, so no round trip in front of the tool call) and are awaited — `waitUntil` gives no ordering guarantee against the _next_ request, which is precisely the read this exists to serve. The client is built with `retry: false` (two fetch attempts, no backoff sleep; the SDK default is six attempts and 4,289 ms of sleep), which keeps a brownout's **retry budget** off the response path — not its total latency: two fetch latencies remain, so a hung Upstash delays a tool call rather than being invisible to it. ADR-0016 §7 records why a construction-time abort signal is the wrong instrument for a per-request client.
+
+`compose_dossier_envelope` merges the durable row over its per-request map and reports **`countersScope`**: `session` (stdio), `run` (Worker + read succeeded), `request` (unbound, or the read failed). Failure is quiet — a counter fault never fails a tool call, the opposite posture from the body cache, which throws when unbound because a missing body corrupts the dossier while a missing counter only weakens a report. Contract, merge arithmetic, and the rejected alternatives: [ADR-0016](../../../src/docs/adr/0016-run-scoped-durable-tool-call-counters.md) and [`tools/irl-pipeline/CONTRACT.md`](tools/irl-pipeline/CONTRACT.md).
+
 ### SLO baselines & targets
 
 SLO targets are measured, not guessed. `npm -w @gst/mcp-server run ae:baseline` (`scripts/invoke-ae-baseline.mjs`) pulls a trailing-7-day window from the AE SQL API and emits paste-ready baseline tables plus proposed targets, pre-applying the per-metric-kind calibration rules (latency = p95 × 1.5; availability = 0.5% sustained error-budget floor; freshness = 2 × the 6h radar cron = 43,200 s; throughput handled by the rolling traffic-spike alert rather than a fixed SLO).
 
-Results live in `observability/slo-baselines.md` with operator sign-off (2026-07-14). Key signed-off targets: `cron-radar` p95 ≤ 899 ms, radar-refresh cron p95 ≤ ~37 s, error rate < 0.5% sustained, snapshot age ≤ 12 h, Zone-1 spend ticket > 70/day, page > 90/day. Tool/resource/prompt latency SLOs are explicitly deferred: the baseline window showed 100% cron-driven production traffic (team usage runs the local stdio server), so those calibrate when real client traffic exists.
+Results live in `observability/slo-baselines.md` with operator sign-off (2026-07-14). Key signed-off targets: `cron-radar` p95 ≤ 899 ms, radar-refresh cron p95 ≤ ~37 s, error rate < 0.5% sustained, snapshot age ≤ 12 h, Zone-1 spend ticket > 70/day, page > 90/day. Tool/resource/prompt latency SLOs are explicitly deferred, and **BL-122 corrected the reason**: the earlier reading blamed absent client traffic, but in-Worker `duration_ms` measures **I/O wait only** — Workers freeze the clock outside I/O — so compute-time latency is unmeasurable at that vantage point regardless of traffic. Calibration has to come from the client-observed probe.
 
 ### Alerting
 
@@ -286,7 +314,7 @@ Each rule links a runbook in `observability/runbooks/` (7 files: Symptom / Diagn
 
 ### Status page
 
-`GET /status` (`src/observability/status-page.ts`) renders server-side HTML from two sources the Worker already holds: the live `buildHealthPayload()` probes and the evaluator's `mcp:alerts:last-eval` summary — overall status, env/version, dependency health, snapshot age vs the 12 h SLO, Zone-1 spend vs cap, and the per-rule alert table. No client JS, no secrets, and it never throws (degraded sources render as unknowns).
+`GET /status` (`src/observability/status-page.ts`) renders server-side HTML from three sources the Worker already holds: the live `buildHealthPayload()` probes, the evaluator's `mcp:alerts:last-eval` summary, and the precomputed `mcp:status:metrics:<env>` cache — overall status, env/version, dependency health, snapshot age vs the 12 h SLO, Zone-1 spend vs cap, and the per-rule alert table. No client JS, no secrets, and it never throws (a degraded source renders as a placeholder rather than throwing; note the alert table separately has a NAMED `unknown` state for a rule that could not evaluate — BL-122).
 
 ### Sentry envelope delivery
 

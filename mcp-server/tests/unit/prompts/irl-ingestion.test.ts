@@ -99,7 +99,22 @@ describe('gst_irl_ingestion', () => {
     // client's tool-result ceiling (BL-112).
     // v0.22.1: worked-example client deidentified as SanFran — byte-only rename,
     // no directive changes (server 0.48.1).
-    expect(irlIngestionPrompt.version).toBe('0.22.1');
+    // v0.22.2: doubt-handling directive — proceed on the binding hash when a
+    // client delivers the expanded prompt as an attached document, and probe
+    // with `validate_irl_provenance` rather than reconstruct (server 0.49.1).
+    // v0.22.3: the workbook column contract — seven columns, D/E/F carry
+    // authored content, Comments joins Response into one contiguous answer
+    // span, Source/Note stay outside the answer slot. Before this the prompt
+    // said nothing about the xlsx layout at all, so the reconstruction path
+    // and `npm run irl:extract` agreed only by coincidence (BL-120, server
+    // 0.49.2).
+    // v0.22.4: `countersScope` — the BL-071 precheck identities are now stated
+    // as scope-conditional, because on the remote Worker `createServer` runs
+    // per request and the per-request counter map could never satisfy them.
+    // The transport-classed `errorsEncountered` subset is pinned closed so the
+    // reconciliation stays arithmetic rather than a judgement call (BL-121,
+    // server 0.49.3).
+    expect(irlIngestionPrompt.version).toBe('0.28.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -127,21 +142,6 @@ describe('gst_irl_ingestion', () => {
       ).toBe(true);
     });
 
-    it('accepts embedToolWorkedExamples as a boolean and via wire-shape string forms', () => {
-      // BL-086 L2 restore arg. Mirrors requireVerbatimBody's booleanFromWire
-      // handling: real boolean, string "true"/"false" (Claude Desktop ships
-      // form fields as strings), and "" (unfilled field) → undefined.
-      for (const v of [true, false, 'true', 'false', '']) {
-        const r = irlIngestionPrompt.argsSchema.safeParse({
-          filledIrl: SAMPLE_FILLED_IRL,
-          embedToolWorkedExamples: v,
-        });
-        expect(r.success, `embedToolWorkedExamples=${JSON.stringify(v)} should parse`).toBe(true);
-      }
-      const empty = irlIngestionPrompt.argsSchema.safeParse({ embedToolWorkedExamples: '' });
-      expect(empty.success && empty.data.embedToolWorkedExamples).toBeUndefined();
-    });
-
     it('rejects an invalid transactionContext enum value', () => {
       const result = irlIngestionPrompt.argsSchema.safeParse({
         transactionContext: 'weird-value',
@@ -152,11 +152,55 @@ describe('gst_irl_ingestion', () => {
       }
     });
 
-    it('rejects an empty targetName (min length 1)', () => {
+    // BL-124 — this used to assert REJECTION. Claude Desktop ships an unfilled
+    // form field as `""` rather than dropping the key, so rejecting it made
+    // every blank optional field fail the whole `prompts/get` call, which the
+    // client surfaces as "Failed to attach prompt" with no diagnostic. `""` now
+    // means "not supplied" on every optional arg.
+    it('treats an empty targetName as not supplied, not as a violation', () => {
       const result = irlIngestionPrompt.argsSchema.safeParse({ targetName: '' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.targetName).toBeUndefined();
+      }
+    });
+
+    it('still rejects a non-empty targetName that violates the min length', () => {
+      // The paired negative: `""` is special-cased as absent, but the length
+      // constraint itself must still bite, or the adapter has swallowed the rule
+      // rather than the blank.
+      const result = irlIngestionPrompt.argsSchema.safeParse({ filledIrl: 'too short' });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].path).toEqual(['targetName']);
+        expect(result.error.issues[0].path).toEqual(['filledIrl']);
+      }
+    });
+
+    it('accepts every optional field blank — the exact shape Desktop sends', () => {
+      // The reproduction for BL-124: a form with nothing filled in.
+      const result = irlIngestionPrompt.argsSchema.safeParse({
+        filledIrl: '',
+        targetName: '',
+        transactionContext: '',
+        partnerLead: '',
+        projectCodeName: '',
+        mode: '',
+        auditLevel: '',
+        requireVerbatimBody: '',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('does NOT trim filledIrl — the hash must match the operator source file', () => {
+      // A trimming adapter would silently change `computeIrlBodyHash`, and the
+      // body-binding hash is exactly what an operator compares against the file
+      // on their disk. A file-read body normally carries a trailing newline.
+      const body = `${'x'.repeat(300)}
+`;
+      const result = irlIngestionPrompt.argsSchema.safeParse({ filledIrl: body });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.filledIrl).toBe(body);
       }
     });
 
@@ -170,10 +214,12 @@ describe('gst_irl_ingestion', () => {
   });
 
   describe('build() — message structure', () => {
-    it('returns three messages in both interactive and one-shot modes (text + IRL embed + VDR embed)', () => {
+    it('returns two messages in both interactive and one-shot modes (text + IRL embed)', () => {
+      // BL-123 dropped the third message: the 16.3KB VDR article is now an
+      // inlined nine-row table in the body, not a whole embedded Resource.
       for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
         const result = irlIngestionPrompt.build(args);
-        expect(result.messages.length).toBe(3);
+        expect(result.messages.length).toBe(2);
       }
     });
 
@@ -190,15 +236,37 @@ describe('gst_irl_ingestion', () => {
       }
     });
 
-    it('embeds the VDR Library Resource as the third message in both modes', () => {
+    it('inlines the VDR folder taxonomy in the body instead of embedding the article (BL-123)', () => {
+      // The nine labels are what section (I) quotes verbatim; the article's
+      // surrounding prose was 16.3KB of payload nothing read. Byte-level
+      // agreement with the canonical Library article is pinned separately by
+      // tests/integration/vdr-taxonomy-drift-guard.test.ts.
       for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
         const result = irlIngestionPrompt.build(args);
-        const third = result.messages[2].content;
-        expect(third.type).toBe('resource');
-        if (third.type === 'resource' && 'text' in third.resource) {
-          expect(third.resource.uri).toBe(VDR_RESOURCE_URI);
-          expect(typeof third.resource.text).toBe('string');
-          expect(third.resource.text.length).toBeGreaterThan(500);
+        expect(
+          result.messages.some(
+            (m) =>
+              m.content.type === 'resource' &&
+              'text' in m.content.resource &&
+              m.content.resource.uri === VDR_RESOURCE_URI
+          )
+        ).toBe(false);
+
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toContain('Canonical VDR folder taxonomy');
+        expect(text).toContain(VDR_RESOURCE_URI); // provenance caption
+        for (const label of [
+          'Product',
+          'Software Architecture',
+          'Infrastructure & Operations',
+          'SDLC',
+          'Data, Analytics & AI',
+          'Security',
+          'People & Organization',
+          'Corporate IT',
+          'Governance & Compliance',
+        ]) {
+          expect(text, `body missing VDR folder label: ${label}`).toContain(label);
         }
       }
     });
@@ -241,7 +309,7 @@ describe('gst_irl_ingestion', () => {
       expect(text).toContain('MedSig-Marker-XYZ');
     });
 
-    // ─── BL-086 L2 — worked-example deletion + embedToolWorkedExamples ──────
+    // ─── Worked-example payloads are permanently elided ────────────────────
     // Distinctive markers that appear ONLY inside the Step 1a / 4a / 6a worked
     // example JSON payloads (not in the kept calibration/anti-fab/enum prose).
     const WORKED_EXAMPLE_MARKERS = [
@@ -250,7 +318,7 @@ describe('gst_irl_ingestion', () => {
       'Fixture-clean shape', // Step 6a estimate_tech_debt_cost example comment
     ];
 
-    it('elides the Step 1a/4a/6a worked-example payloads from the default one-shot body', () => {
+    it('never emits the Step 1a/4a/6a worked-example payloads (permanently elided)', () => {
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       for (const marker of WORKED_EXAMPLE_MARKERS) {
         expect(
@@ -263,18 +331,6 @@ describe('gst_irl_ingestion', () => {
       expect(text).toContain('Step 1b — Calibration-clause guidance');
       expect(text).toContain('**Critical anti-fabrication rules**');
       expect(text).toContain('null discipline applies to `incidentsSource`');
-    });
-
-    it('restores the worked-example payloads when embedToolWorkedExamples: true', () => {
-      const text = bodyText(irlIngestionPrompt, {
-        filledIrl: SAMPLE_FILLED_IRL,
-        embedToolWorkedExamples: true,
-      });
-      for (const marker of WORKED_EXAMPLE_MARKERS) {
-        expect(text, `restored body should contain worked-example marker: ${marker}`).toContain(
-          marker
-        );
-      }
     });
 
     it('embeds the partner lead in the synthesis attribution when provided', () => {
@@ -585,13 +641,16 @@ describe('gst_irl_ingestion', () => {
   // observability surface.
   describe('BL-056 precheckIterations field present in BL-045-VERIFY block schemas', () => {
     it('one-shot body verify-block schema declares `precheck.iterations` (BL-058 expansion of BL-056)', () => {
-      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      const text = bodyText(irlIngestionPrompt, {
+        filledIrl: SAMPLE_FILLED_IRL,
+        auditLevel: 'debug',
+      });
       // BL-058 nested under `precheck:` block; BL-056 raw `precheckIterations:` superseded.
       expect(text).toMatch(/precheck:\s*\n\s*iterations:/);
     });
 
     it('interactive body verify-block schema declares `precheck.iterations` (BL-058 expansion of BL-056)', () => {
-      const text = bodyText(irlIngestionPrompt, {});
+      const text = bodyText(irlIngestionPrompt, { auditLevel: 'debug' });
       expect(text).toMatch(/precheck:\s*\n\s*iterations:/);
     });
   });
@@ -645,12 +704,15 @@ describe('gst_irl_ingestion', () => {
 
     for (const field of expectedFields) {
       it(`one-shot body verify-block schema contains: ${field}`, () => {
-        const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+        const text = bodyText(irlIngestionPrompt, {
+          filledIrl: SAMPLE_FILLED_IRL,
+          auditLevel: 'debug',
+        });
         expect(text).toContain(field);
       });
 
       it(`interactive body verify-block schema contains: ${field}`, () => {
-        const text = bodyText(irlIngestionPrompt, {});
+        const text = bodyText(irlIngestionPrompt, { auditLevel: 'debug' });
         expect(text).toContain(field);
       });
     }
@@ -685,12 +747,15 @@ describe('gst_irl_ingestion', () => {
 
     for (const field of expectedFields) {
       it(`one-shot body verify-block schema contains: ${field}`, () => {
-        const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+        const text = bodyText(irlIngestionPrompt, {
+          filledIrl: SAMPLE_FILLED_IRL,
+          auditLevel: 'debug',
+        });
         expect(text).toContain(field);
       });
 
       it(`interactive body verify-block schema contains: ${field}`, () => {
-        const text = bodyText(irlIngestionPrompt, {});
+        const text = bodyText(irlIngestionPrompt, { auditLevel: 'debug' });
         expect(text).toContain(field);
       });
     }
@@ -754,7 +819,7 @@ describe('gst_irl_ingestion', () => {
       expect(r.success).toBe(false);
     });
 
-    // BL-082 follow-up: the schema must mark requireVerbatimBody + forceTools
+    // BL-082 follow-up: the schema must mark requireVerbatimBody
     // as OPTIONAL at the ZodObject seam so Claude Desktop's slash-command form
     // doesn't render them as required fields. ZodObject inspects whether each
     // field's schema is ZodOptional at the TOP level — `booleanFromWire(...)`
@@ -766,49 +831,148 @@ describe('gst_irl_ingestion', () => {
       expect(shape.requireVerbatimBody.isOptional()).toBe(true);
     });
 
-    it('BL-082 follow-up: argsSchema marks forceTools as optional at the ZodObject layer (UI introspection)', () => {
-      const shape = irlIngestionPrompt.argsSchema.shape;
-      expect(shape.forceTools.isOptional()).toBe(true);
-    });
-
-    it('BL-082 follow-up: argsSchema accepts an entirely empty object (no requireVerbatimBody, no forceTools)', () => {
-      // Regression guard: the original schema (z.boolean().optional() and
-      // z.array(...).optional()) accepted {} cleanly. After the BL-082 wire-
-      // shape wrapping, the {} case MUST remain accepted — otherwise the
-      // slash-command form blocks submission before any fields are filled.
+    it('BL-082 follow-up: argsSchema accepts an entirely empty object', () => {
+      // Regression guard: the original schema (z.boolean().optional()) accepted
+      // {} cleanly. After the BL-082 wire-shape wrapping, the {} case MUST
+      // remain accepted — otherwise the slash-command form blocks submission
+      // before any fields are filled. The subject is the wire-shape-wrapped
+      // optional, which outlived `forceTools` in `requireVerbatimBody`.
       expect(irlIngestionPrompt.argsSchema.safeParse({}).success).toBe(true);
     });
   });
 
+  /**
+   * BL-123 — argument descriptions lead with their machine facts.
+   *
+   * Claude Desktop's slash-command form truncates each description in a
+   * single-line input. Before this, six of the eight fields buried their
+   * default past the cut: an operator reading `requireVerbatimBody` saw
+   * "Set true for accuracy-critical work — a regulatory deliverable," and never
+   * learned it defaults to false.
+   *
+   * The assertion is on ORDERING, not on a pixel budget. `FORM_TRUNCATION_HINT`
+   * below is an observation of one client's current form styling, which can
+   * change without notice — pinning CI to it would make an external UI tweak
+   * break the build.
+   */
+  describe('BL-123 — argument description convention', () => {
+    /** Approximate visible width of Desktop's argument input. Advisory only. */
+    const FORM_TRUNCATION_HINT = 60;
+
+    const shape = irlIngestionPrompt.argsSchema.shape;
+    const argNames = Object.keys(shape) as (keyof typeof shape)[];
+
+    it('exposes exactly the eight expected arguments, filledIrl first', () => {
+      // Claude Desktop renders fields in argsSchema property order, so index 0
+      // is the field the operator meets first.
+      expect(argNames.length).toBe(8);
+      expect(argNames[0]).toBe('filledIrl');
+    });
+
+    it.each([
+      ['filledIrl', 'Optional.'],
+      ['targetName', 'Optional.'],
+      ['transactionContext', 'Must be one of:'],
+      ['partnerLead', 'Optional.'],
+      ['projectCodeName', 'Optional.'],
+      ['mode', 'Must be one of:'],
+      ['auditLevel', 'Must be one of:'],
+      ['requireVerbatimBody', 'Must be one of:'],
+    ])('%s opens with its machine facts', (name, opener) => {
+      const description = shape[name as keyof typeof shape].description ?? '';
+      expect(description.startsWith(opener), `${name}: "${description.slice(0, 70)}…"`).toBe(true);
+    });
+
+    it('every argument states its default within the first two sentences', () => {
+      // Sentence-scoped, not character-scoped, and the difference is load-bearing.
+      // `transactionContext`'s enum list is 63 characters on its own — longer
+      // than the form's visible width — so a hard character budget would fail a
+      // description that is already correct and could only be satisfied by
+      // deleting the valid values, which are the other half of what the operator
+      // needs. The contract is ORDER: machine facts (values, then default),
+      // then the prose explaining what the field does.
+      for (const name of argNames) {
+        const description = shape[name].description ?? '';
+        const opening = description
+          .split(/(?<=\.)\s+/)
+          .slice(0, 2)
+          .join(' ');
+        expect(
+          opening,
+          `${name}: no default in the opening sentences — "${description.slice(0, 90)}…"`
+        ).toMatch(/Defaults to |Omit to enter/);
+      }
+    });
+
+    it('states the default ahead of the form cut wherever the enum list leaves room', () => {
+      // The fields where the character budget IS achievable — everything whose
+      // opener is not a long enum list. Kept separate from the ordering contract
+      // above so a future long-enum field does not silently relax this one.
+      for (const name of argNames.filter((n) => n !== 'transactionContext')) {
+        const description = shape[name].description ?? '';
+        const defaultAt = description.search(/Defaults to |Omit to enter/);
+        expect(
+          defaultAt,
+          `${name}: default appears ${defaultAt} chars in, past the ~${FORM_TRUNCATION_HINT}-char form cut — "${description.slice(0, 90)}…"`
+        ).toBeLessThan(FORM_TRUNCATION_HINT);
+      }
+    });
+
+    it('no description leaks a bare backlog id at any position', () => {
+      // The operator-facing surface must explain itself; BL- ids are
+      // archaeology and belong in the companion doc's closing ledger.
+      for (const name of argNames) {
+        const description = shape[name].description ?? '';
+        expect(description, `${name} carries a backlog id`).not.toMatch(/\bBL-\d+/);
+      }
+    });
+  });
+
   describe('BL-071 — serverToolCallCounts + precheck-derivation directive', () => {
-    it('one-shot body mentions serverToolCallCounts (envelope-composition directive)', () => {
+    // `serverToolCallCounts` is named by the envelope-composition directive,
+    // which is correctness machinery and ships at EVERY audit level.
+    it('one-shot body mentions serverToolCallCounts at the default level', () => {
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       expect(text).toContain('serverToolCallCounts');
     });
 
-    it('interactive body mentions serverToolCallCounts (envelope-composition directive)', () => {
-      const text = bodyText(irlIngestionPrompt, {});
+    // The interactive path has no envelope-composition directive of its own —
+    // its Step 4 names the tool and the tool returns the counts either way. The
+    // only place that body names `serverToolCallCounts` is the run-audit
+    // region, which is where the counts are actually transcribed, so it is a
+    // `debug` surface there rather than a default one.
+    it('interactive body names serverToolCallCounts at debug', () => {
+      const text = bodyText(irlIngestionPrompt, { auditLevel: 'debug' });
       expect(text).toContain('serverToolCallCounts');
     });
 
-    it('one-shot body mentions precheck.iterations derivation rule', () => {
-      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      expect(text).toContain('precheck.iterations');
+    // The precheck derivation identities and the `errored` counter field are
+    // RUN-AUDIT reporting rules. BL-122 removed the duplicate copy that used to
+    // sit in the envelope-composition directive — two copies of one reporting
+    // contract only drift, and that directive now ships at every level, where
+    // most runs emit no block for those rules to govern. The block's own
+    // section is the single home, so they appear at `debug` only.
+    it.each([
+      ['one-shot', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' as const }],
+      ['interactive', { auditLevel: 'debug' as const }],
+    ])('%s body at debug carries the precheck.iterations derivation rule', (_l, args) => {
+      expect(bodyText(irlIngestionPrompt, args)).toContain('precheck.iterations');
     });
 
-    it('interactive body mentions precheck.iterations derivation rule', () => {
-      const text = bodyText(irlIngestionPrompt, {});
-      expect(text).toContain('precheck.iterations');
+    it.each([
+      ['one-shot', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' as const }],
+      ['interactive', { auditLevel: 'debug' as const }],
+    ])('%s body at debug carries the errored field on toolCallCounts entries', (_l, args) => {
+      expect(bodyText(irlIngestionPrompt, args)).toContain('errored: N');
     });
 
-    it('one-shot body verify-block carries the errored field on toolCallCounts entries', () => {
-      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
-      expect(text).toContain('errored: N');
-    });
-
-    it('interactive body verify-block carries the errored field on toolCallCounts entries', () => {
-      const text = bodyText(irlIngestionPrompt, {});
-      expect(text).toContain('errored: N');
+    it.each([
+      ['one-shot', { filledIrl: SAMPLE_FILLED_IRL }],
+      ['interactive', {}],
+    ])('%s body at standard emits no run-audit reporting rules', (_l, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).not.toContain('precheck.iterations');
+      expect(text).not.toContain('errored: N');
     });
   });
 
@@ -821,6 +985,34 @@ describe('gst_irl_ingestion', () => {
       expect(text).toContain('prepare_irl_body');
       expect(text).toContain('SKIP `prepare_irl_body`');
       expect(text).toContain('partner-paste-verbatim-prepop');
+    });
+
+    it('one-shot body tells the model to proceed when it doubts its own invocation (BL-119 cycle 5)', () => {
+      // A real 57KB Desktop run succeeded only after operator intervention:
+      // the client delivered the expanded prompt as an attached document, the
+      // model concluded it was reading a render rather than holding bound
+      // arguments, and offered to call `prepare_irl_body` with the body it
+      // could see. That recovery COMPLETES — and silently downgrades irlSource
+      // from server-witnessed `-prepop` to model-asserted, past a
+      // `requireVerbatimBody` gate that accepts both. The directive is pinned
+      // here because the failure it prevents is invisible in the output: the
+      // dossier looks identical and the audit grade is weaker.
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toMatch(/If you doubt you were invoked properly/i);
+      expect(text).toMatch(/attached document/i);
+      expect(text).toMatch(/do NOT reconstruct/i);
+      // The probe is the alternative to reconstructing — it must be named
+      // INSIDE the directive, or the model is left with "proceed" and no way to
+      // satisfy its doubt. Windowed deliberately: a bare
+      // `toContain('validate_irl_provenance')` passes on the pre-fix body,
+      // where the tool is named two dozen times elsewhere, and would assert
+      // nothing.
+      expect(text).toMatch(
+        /If you doubt you were invoked properly[\s\S]{0,1600}validate_irl_provenance/i
+      );
+      // And the honest-reporting fallback, so a genuine cache miss does not
+      // become a mislabelled run.
+      expect(text).toMatch(/cache miss[\s\S]{0,220}partner-paste-verbatim/i);
     });
 
     it('interactive body instructs the model to call prepare_irl_body FIRST', () => {
@@ -837,5 +1029,288 @@ describe('gst_irl_ingestion', () => {
       const text = bodyText(irlIngestionPrompt, {});
       expect(text).toContain('Bl076BodyCacheMissError');
     });
+  });
+
+  // ─── BL-120 — workbook column contract ─────────────────────────────────
+  //
+  // The prompt previously said nothing about the xlsx layout, so the
+  // reconstruction path and the operator-side `npm run irl:extract` script
+  // agreed only by coincidence — and on the first real filled workbook they
+  // did not. These assertions pin the contract in every served body: a model
+  // reading an attached workbook must compose the same bullet shape the
+  // script emits, count the fill ratio over the same span, and keep source
+  // pointers out of the answer.
+  describe('BL-120 workbook column contract (all modes)', () => {
+    /**
+     * The four bodies that carry the sweep/extraction plan — pre-flight,
+     * inclusion gates and all.
+     */
+    const SWEEP_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
+      ['one-shot standard', { filledIrl: SAMPLE_FILLED_IRL }],
+      ['one-shot enhanced', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'enhanced' }],
+      ['extract-only', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
+      [
+        'extract-only enhanced',
+        { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', auditLevel: 'enhanced' },
+      ],
+    ];
+
+    /**
+     * Every served body, interactive included. The interactive body is a
+     * separate, much lighter builder — no pre-flight, no inclusion gates — but
+     * it still carries the column contract, because its own VERIFY block
+     * admits `xlsx-reconstruction` / `model-reconstruction-from-xlsx`. A path
+     * that can reconstruct from a workbook needs to know the workbook's shape.
+     */
+    const ALL_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
+      ['interactive', {}],
+      ...SWEEP_MODES,
+    ];
+
+    it.each(ALL_MODES)('%s body names all seven columns in order', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain(
+        '| Reference | Request | Status | File Location | Comments | Notes | Response |'
+      );
+    });
+
+    it.each(ALL_MODES)('%s body carries the canonical bullet shape', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)');
+    });
+
+    it.each(ALL_MODES)('%s body forbids labelling the Response/Comments join', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('**Do not label the two halves.**');
+      // The reason, not just the rule — a bare prohibition invites a model to
+      // decide it knows better.
+      expect(text).toMatch(/contiguous-run floor|contiguous run floor/i);
+    });
+
+    it.each(ALL_MODES)('%s body warns off the stale Instructions sheet', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('Do NOT trust the Instructions sheet');
+      expect(text).toMatch(/five-column layout with Response in column D/i);
+    });
+
+    it.each(ALL_MODES)(
+      '%s body keeps File Location out of the answer slot (fill-ratio guard)',
+      (_label, args) => {
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toContain('`— <NO RESPONSE> (Source: …)`');
+        expect(text).toMatch(/a row whose only content is a filename is NOT answered/i);
+      }
+    );
+
+    it.each(SWEEP_MODES)(
+      '%s body orders the fill-ratio count after answer composition',
+      (_label, args) => {
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toContain('**Compose the answer span FIRST, then count**');
+        // The divergence this sentence exists to prevent.
+        expect(text).toMatch(/Counting column G alone under-reports the fill ratio/i);
+      }
+    );
+
+    it.each(ALL_MODES)('%s body states the citation-hygiene audit rule', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain(
+        'cite from the answer slot only — never from `(Source:)` or `(Note:)`'
+      );
+      // The residual, stated plainly: the verifier will NOT catch this.
+      expect(text).toContain('will verify and will NOT raise a `provenance-gap:`');
+      expect(text).toContain('you are the control');
+    });
+
+    it.each(SWEEP_MODES)('%s body ties inclusion gates to a substantive answer', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('**"Signal" means a substantive answer**');
+      expect(text).toContain('Section 00 ARR bullet supplies a substantive answer');
+      expect(text).toContain(
+        'Section 04 (SDLC / technical-debt assessment) has ≥1 row with a substantive answer'
+      );
+    });
+
+    it.each(ALL_MODES)('%s body states the shipped join rule', (_label, args) => {
+      // Coverage matters here specifically: the interactive body is in scope
+      // because it can reconstruct from a workbook, so the rule vanishing from
+      // it would reintroduce the gap this contract closes — silently, since the
+      // agreement check in `irl-ingestion-fixtures.test.ts` reads one body.
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain(
+        'add a period after G unless G already ends in `.` `?` `!` `:` `;` `,` `…` or a dash'
+      );
+      expect(text).toContain('after peeling off any closing brackets and quotes');
+      // The endings the rule's earlier phrasing got wrong, named so a model
+      // reading the contract produces what the script produces.
+      expect(text).toContain('`14%`');
+      expect(text).toContain('`$4.15M +`');
+      expect(text).toMatch(/including when a closing quote follows the comma/);
+    });
+
+    it('states that Status does not gate inclusion (OPEN rows still contribute)', () => {
+      const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+      expect(text).toMatch(/Status does \*\*not\*\* gate inclusion/i);
+    });
+  });
+
+  // ─── BL-121 — scope-conditional counter identities ─────────────────────
+  //
+  // The BL-071 identities were stated flatly, as if the counter always spans
+  // the session. On the remote Worker `createServer` runs per HTTP request,
+  // so the per-request map could never satisfy them — and the prompt told
+  // operators to fail runs on a check that could not pass. Every served body
+  // now carries `countersScope` and states the identities conditionally.
+  //
+  // Coverage is per-body on purpose: the interactive builder keeps its OWN
+  // copy of the VERIFY discipline and never renders the envelope directive,
+  // so a fix landing in only one place is exactly the failure mode here.
+  describe('BL-121 scope-conditional counter identities (all modes)', () => {
+    // Every body that EMITS a run-audit block must carry its full schema.
+    // Re-scoped per BUILDER, not per level: the two gated builders emit it at
+    // `debug` only, while extract-only is exempt from the gate entirely and
+    // emits it at every level (its own `mode` description promises provenance,
+    // and it produces no partner-facing dossier to keep clean).
+    const VERIFY_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
+      ['interactive debug', { auditLevel: 'debug' }],
+      ['one-shot debug', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' }],
+      ['extract-only standard', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
+      [
+        'extract-only debug',
+        { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', auditLevel: 'debug' },
+      ],
+    ];
+
+    it.each(VERIFY_MODES)('%s body emits `countersScope` in the VERIFY schema', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toContain('countersScope: session | run | request');
+    });
+
+    it.each(VERIFY_MODES)('%s body defines all three scope values', (_label, args) => {
+      const text = bodyText(irlIngestionPrompt, args);
+      // The `request` definition is the load-bearing one: without it a model
+      // reads an absent tool entry as its own omission and back-fills.
+      expect(text).toMatch(/`session`[^\n]*stdio/i);
+      expect(text).toMatch(/`run`[^\n]*across requests/i);
+      expect(text).toMatch(/`request`[^\n]*own request/i);
+    });
+
+    it.each(VERIFY_MODES)('%s body pins the transport-classed subset CLOSED', (_label, args) => {
+      // Left as examples, an operator counting "transport-classed entries"
+      // has to decide for themselves whether `connection-reset` qualifies —
+      // which puts an arithmetic check back into judgement.
+      const text = bodyText(irlIngestionPrompt, args);
+      expect(text).toMatch(/CLOSED set \(BL-121\): `transport-timeout` and `transport-disconnect`/);
+    });
+
+    it.each(VERIFY_MODES)(
+      '%s body states the reconciliation identities, not the bare equality',
+      (_label, args) => {
+        const text = bodyText(irlIngestionPrompt, args);
+        // attemptsTotal === attempted is no longer true with exit-placed
+        // durable writes: a transport failure never reached the server.
+        expect(text).toContain('`precheck.attemptsTotal − attempted` MUST equal');
+        expect(text).toContain('`rejected + errored + (attemptsTotal − attempted)`');
+      }
+    );
+
+    it.each(VERIFY_MODES)(
+      '%s body tells the model NOT to reconcile under `request` scope',
+      (_label, args) => {
+        // The whole point: an honest gap beats a manufactured agreement.
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toMatch(/[Uu]nder `countersScope: request`/);
+        expect(text).toMatch(/false green/);
+      }
+    );
+
+    it.each(VERIFY_MODES)(
+      '%s body enumerates the three causes of a short count',
+      (_label, args) => {
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toMatch(/exactly three causes/);
+        expect(text).toMatch(/DIFFERENT body than you composed/);
+        expect(text).toMatch(/lost durable write/);
+      }
+    );
+
+    it.each(VERIFY_MODES)(
+      '%s body names the benign cause of a count LONG of memory',
+      (_label, args) => {
+        // The first draft enumerated three causes of a SHORT count and none
+        // for a long one — while telling the model not to adjust the numbers.
+        // Since the run key is the body hash and the row lives 4h, a repeat
+        // ingestion of identical bytes accumulates, so the model would emit a
+        // count it could not explain and the operator would fail a good run.
+        // Asymmetric coverage of a symmetric failure is the same over-claiming
+        // this whole change exists to correct.
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toMatch(/come up LONG|the count can also come up LONG/i);
+        expect(text).toMatch(/4[- ]hour window/);
+        expect(text).toMatch(/do NOT subtract/i);
+      }
+    );
+
+    it.each(VERIFY_MODES)(
+      '%s body scope-qualifies the toolErrors arithmetic check',
+      (_label, args) => {
+        // `count(toolErrors[T]) === attempted − succeeded` stays false on the
+        // Worker for every tool outside the durable set. Shipping it
+        // unqualified would be the same defect in a new place.
+        const text = bodyText(irlIngestionPrompt, args);
+        expect(text).toMatch(/Scope qualifier \(BL-121\)/);
+      }
+    );
+  });
+});
+
+// ─── BL-131 — the prompt cannot ask for citations the data lacks ────────
+//
+// Step 3 and section (F) both instructed "cite article numbers verbatim".
+// `Article` / `Art.` / `§` appear ZERO times across all 123 records under
+// `src/data/regulatory-map/` — the instruction was satisfiable only by
+// invention, inside the prompt whose audit architecture exists to prevent
+// invention. A production run declined and reported it; nothing made that
+// the likely resolution.
+//
+// Asserted BOTH ways on purpose: "no body says X" passes identically over
+// an empty or broken render set, which is the BL-124/BL-125 empty-set
+// lesson. The non-zero count and the positive assertion are what make the
+// negative one mean something.
+describe('BL-131 — no body instructs citing article numbers', () => {
+  const RENDER_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
+    ['one-shot standard', { filledIrl: SAMPLE_FILLED_IRL }],
+    ['one-shot enhanced', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'enhanced' }],
+    ['one-shot debug', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' }],
+    ['extract-only standard', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
+    [
+      'extract-only debug',
+      { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', auditLevel: 'debug' },
+    ],
+    ['interactive standard', {}],
+    ['interactive debug', { auditLevel: 'debug' }],
+  ];
+
+  it('probes a non-empty render set (guards the negative assertions below)', () => {
+    expect(RENDER_MODES.length).toBeGreaterThanOrEqual(7);
+    for (const [label, args] of RENDER_MODES) {
+      expect(bodyText(irlIngestionPrompt, args).length, label).toBeGreaterThan(1000);
+    }
+  });
+
+  it.each(RENDER_MODES)('%s does not instruct citing article numbers', (_label, args) => {
+    const body = bodyText(irlIngestionPrompt, args);
+    expect(body).not.toMatch(/cite article numbers/i);
+    expect(body).not.toMatch(/verbatim article numbers/i);
+  });
+
+  it('the one-shot body positively directs quoting keyRequirements instead', () => {
+    // The replacement must be present, or the negative assertions above are
+    // satisfied by a body that simply says nothing about regulatory prose.
+    const body = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
+    expect(body).toContain('`keyRequirements`');
+    expect(body).toMatch(/quot\w+ the `keyRequirements` bullets verbatim/i);
+    // The do-not-invent clause is the load-bearing half and must survive.
+    expect(body).toContain('do NOT invent citations');
   });
 });

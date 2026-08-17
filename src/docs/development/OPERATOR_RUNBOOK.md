@@ -2,7 +2,7 @@
 
 > **Audience**: GST operators (consultants) running the `gst_irl_ingestion` dossier sweep in Claude Desktop against the `gst-mcp` server.
 >
-> **What this covers**: how to run a dossier, how to read the closing `BL-045-VERIFY` block, the gating criteria that separate an _internal draft_ from a _client-ready_ deliverable, when to re-run vs. override, the failure-recovery playbook, and the human signoff step before a dossier leaves GST's possession.
+> **What this covers**: how to run a dossier, how to read the closing `RUN-AUDIT` block, the gating criteria that separate an _internal draft_ from a _client-ready_ deliverable, when to re-run vs. override, the failure-recovery playbook, and the human signoff step before a dossier leaves GST's possession.
 >
 > **What this does NOT cover**: the mechanics of converting a partner's filled `.xlsx` into the markdown you paste — that has its own dedicated doc, [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md) (the `npm run irl:extract` workflow). This runbook tells you _when_ to use partner-paste; that one tells you _how_.
 >
@@ -15,7 +15,7 @@
 1. **Decide the tier** — internal draft or client-ready (table below). The tier sets whether you must use partner-paste.
 2. **Prepare the input** — for client-ready runs, convert the partner's `.xlsx` to markdown via [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md) and paste it into `filledIrl`; set `requireVerbatimBody: true`.
 3. **Run** `/gst_irl_ingestion` in Claude Desktop.
-4. **Read the `BL-045-VERIFY` block** at the end of the dossier — trust the **server-authoritative** fields over the model's prose.
+4. **Read the `RUN-AUDIT` block** at the end of the dossier — trust the **server-authoritative** fields over the model's prose.
 5. **Apply the client-ready gate** (checklist below). If any gate fails → re-run or remediate.
 6. **Sign off** — a named human records approval before the dossier leaves GST.
 
@@ -41,27 +41,38 @@ The dividing line is **does the dossier leave the partner's hands unmediated?** 
    npm run irl:extract -- C:\path\to\PARTNER-IRL_filled.xlsx --out C:\tmp\target-irl.md
    ```
    Full workflow, output shape, sanity checks, and edge cases: **[IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md)**.
-3. In Claude Desktop, invoke `/gst_irl_ingestion`. Paste the contents of `target-irl.md` into `filledIrl`, set `requireVerbatimBody: true`, and fill `targetName` / `transactionContext` / `partnerLead`. **Do not also attach the `.xlsx`** — that invites the model back into reconstruction mode for some tools.
+3. In Claude Desktop, invoke `/gst_irl_ingestion`. Paste the contents of `target-irl.md` into `filledIrl`, set `requireVerbatimBody: true`, **set `auditLevel: debug`**, and fill `targetName` / `transactionContext` / `partnerLead`. **Do not also attach the `.xlsx`** — that invites the model back into reconstruction mode for some tools.
+
+> ℹ️ **A paste that loses its line breaks is still a valid run.** Desktop's argument fields are single-line, so a multi-line paste arrives collapsed. Verification normalises whitespace before matching and nothing reads line structure, so the dossier is unaffected — the run keeps full `partner-paste-verbatim-prepop` grade. The only consequence is that the body will not hash-match your source file, and `filledIrl.newlines: 0` in the RUN-AUDIT block tells you that is why. See [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md) § Step 3.
 
 > Why partner-paste for client-ready: only the pasted-verbatim path produces `pass-bound` hash-bind authority (the dossier's claims anchor to the partner's exact bytes). The xlsx-reconstruction path is `pass-internal` — the model controls both the body and the hash — and auto-appends a `provenance-gap:` disclosure (BL-072). Fine for drafts, not defensible for a client/regulator.
 
 ---
 
-## Reading the `BL-045-VERIFY` block
+## Reading the `RUN-AUDIT` block
 
-The block is emitted at the end of every run. Some fields are **server-authoritative** (computed by the tools, cannot be faked by the model); others are model-narrated. **When the two disagree, trust the server fields** — the model's self-report has been observed to drift (BL-074 gap 2; this is exactly why BL-071 made the counts server-sourced).
+**The block is emitted at `auditLevel: debug` only.** That is the whole point of
+the level: `standard` (the default) produces a clean partner-facing dossier with
+no operator apparatus in it, and `enhanced` adds the per-claim provenance
+surfaces without the run telemetry. **A `standard` run is a draft — it has not
+produced a signoff artifact**, and the gating criteria below cannot be evaluated
+against it. Invoke signoff and client-ready runs at `auditLevel: debug`.
 
-| Field                                      | Source              | What it tells you                                                                                             |
-| ------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `filledIrl.source`                         | server              | `partner-paste-verbatim` / `partner-paste-verbatim-prepop` = strong; `model-reconstruction-*` = draft-grade   |
-| `filledIrl.bytes`                          | server              | Full body size. A value far below your pasted file size means truncation — investigate                        |
-| `firstEnvelopeCall.hashBindResult`         | server              | `pass-bound` = anchored to partner bytes; `pass-internal` = model-controlled                                  |
-| `firstEnvelopeCall.provenanceVerification` | server              | `{ total, verified, verifiedFuzzy, unverified, tierMismatches, tierFabrications }` — the claim-by-claim audit |
-| `precheck.outcome`                         | server-derived      | `converged` = citations cleaned before compose                                                                |
-| `toolCallCounts`                           | **server** (BL-071) | Per-tool `attempted/succeeded/rejected/errored`. Authoritative retry ledger                                   |
-| `toolErrors`                               | server              | Each arg-shape rejection + the recovery action taken                                                          |
-| `selfCorrectionCalls`                      | server              | Count of model self-corrections                                                                               |
-| `conditionalTriggers`                      | model + server      | Which regulatory triggers fired/suppressed and why                                                            |
+Provenance verification itself runs identically at every level; the audit level
+governs only how much of it is shown. So a `standard` dossier is not less
+verified — it is less _evidenced_, and the evidence is what signoff reads. Some fields are **server-authoritative** (computed by the tools, cannot be faked by the model); others are model-narrated. **When the two disagree, trust the server fields** — the model's self-report has been observed to drift (BL-074 gap 2; this is exactly why BL-071 made the counts server-sourced).
+
+| Field                                      | Source              | What it tells you                                                                                                                                                                                                                           |
+| ------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filledIrl.source`                         | server              | `partner-paste-verbatim` / `partner-paste-verbatim-prepop` = strong; `model-reconstruction-*` = draft-grade. **Server-capped**: an over-claimed `-prepop` is downgraded and disclosed in (J), so this value is checked, not merely reported |
+| `filledIrl.bytes`                          | server              | Full body size. A value far below your pasted file size means truncation — investigate                                                                                                                                                      |
+| `firstEnvelopeCall.hashBindResult`         | server              | `pass-bound` = anchored to partner bytes; `pass-internal` = model-controlled                                                                                                                                                                |
+| `firstEnvelopeCall.provenanceVerification` | server              | `{ total, verified, verifiedFuzzy, unverified, tierMismatches, tierFabrications }` — the claim-by-claim audit                                                                                                                               |
+| `precheck.outcome`                         | server-derived      | `converged` = citations cleaned before compose                                                                                                                                                                                              |
+| `toolCallCounts`                           | **server** (BL-071) | Per-tool `attempted/succeeded/rejected/errored`. Authoritative retry ledger                                                                                                                                                                 |
+| `toolErrors`                               | server              | Each arg-shape rejection + the recovery action taken                                                                                                                                                                                        |
+| `selfCorrectionCalls`                      | server              | Count of model self-corrections                                                                                                                                                                                                             |
+| `conditionalTriggers`                      | model + server      | Which regulatory triggers fired/suppressed and why                                                                                                                                                                                          |
 
 > **Known-good telemetry quirk**: `compose_dossier_envelope` self-reports `{ attempted: 1, succeeded: 0 }` in its own block. That is **intended** — the counter snapshots while the envelope call is still in-flight (BL-071 "I'm reporting on the call I'm inside"). It is not a failure; it's pinned by `tests/integration/bl-071-precheck-derivation.test.ts`.
 
@@ -82,7 +93,7 @@ This passes every client-ready gate: verbatim source, `pass-bound`, zero unverif
 
 ## Client-ready gating criteria
 
-A dossier is **client-ready only if ALL of the following hold** in the `BL-045-VERIFY` block. Any failure → see "Re-run vs. override" below.
+A dossier is **client-ready only if ALL of the following hold** in the `RUN-AUDIT` block — which means the run must have been invoked at `auditLevel: debug`. Any failure → see "Re-run vs. override" below.
 
 - [ ] `filledIrl.source` is `partner-paste-verbatim` or `partner-paste-verbatim-prepop` (NOT `model-reconstruction-*`)
 - [ ] `firstEnvelopeCall.hashBindResult` is `pass-bound` (NOT `pass-internal`)
@@ -90,6 +101,7 @@ A dossier is **client-ready only if ALL of the following hold** in the `BL-045-V
 - [ ] `provenanceVerification.tierFabrications` is `0` (no unresolved auto-appended `tier-fabrication:` entries)
 - [ ] `precheck.outcome` is `converged`
 - [ ] Retry budgets at/near design floor — `generate_diligence_agenda` and `compose_dossier_envelope` `rejected` counts ≤ ~2 each; no runaway self-correction loop
+- [ ] The run was invoked at `auditLevel: debug` (otherwise there is no block to check, and the dossier is a draft)
 - [ ] **Operator signoff** recorded (see below)
 
 `verifiedFuzzy > 0` is acceptable — fuzzy matches are real matches within the citation window, not failures. `defaultFiredFrameworks` and a populated `(J) Gap list` are expected, not defects.

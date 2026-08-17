@@ -12,6 +12,7 @@
  */
 
 import { z } from 'zod';
+import { stringFromWire } from './wire-shape';
 import type { GstPrompt } from './types';
 import { userInputsShapeFromWire } from './diligence-shape';
 import { authorialIntentLine, embedLibraryArticle } from './embed';
@@ -24,14 +25,12 @@ import { authorialIntentLine, embedLibraryArticle } from './embed';
 const argsSchema = z.object({
   targetName: z.string().min(1),
   ...userInputsShapeFromWire(),
-  agendaJson: z
-    .string()
+  agendaJson: stringFromWire(z.string().optional())
     .optional()
     .describe(
       'Optional pre-generated diligence-agenda JSON. If absent, the prompt will call generate_diligence_agenda.'
     ),
-  comparablesJson: z
-    .string()
+  comparablesJson: stringFromWire(z.string().optional())
     .optional()
     .describe(
       'Optional pre-generated comparable-engagements JSON. If absent, the prompt will call search_portfolio.'

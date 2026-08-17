@@ -16,7 +16,6 @@
 
 import type { McpServer } from '@modelcontextprotocol/server';
 import { NOOP_METRICS_CONTEXT, withPromptMetrics, type MetricsContext } from '../metrics/_index';
-import { emitForceToolsUsed } from '../metrics/irl-ingestion-events';
 import { handlePrepareIrlBodyTool } from '../tools/prepare-irl-body';
 import { safeLog } from '../auth/safe-logger';
 import { computeIrlBodyHash } from '../schemas/compose-dossier-envelope';
@@ -127,9 +126,8 @@ export function registerPrompts(
     assertPromptInvariants(prompt);
     // EVERY prompt is wrapped, not just the ones needing async work.
     //
-    // Two things happen in here. BL-045 PR B instruments
-    // `gst_irl_ingestion`'s server-side-observable signals (forceTools usage,
-    // BL-079 cache pre-population) at the build seam, for that prompt only.
+    // Two things happen in here. BL-079 pre-populates the IRL body cache at
+    // `gst_irl_ingestion`'s build seam, for that prompt only.
     // Separately, any prompt declaring `needsFyiSnapshot` gets its content
     // block resolved below.
     //
@@ -142,7 +140,6 @@ export function registerPrompts(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wrappedBuild = async (args: any) => {
       if (prompt.name === 'gst_irl_ingestion') {
-        emitForceToolsUsed(metrics, args?.forceTools);
         // BL-079 Part B — prompt-render-time cache pre-population.
         //
         // When the operator supplied `filledIrl` as a prompt arg, write
@@ -169,7 +166,13 @@ export function registerPrompts(
         // surfaces the failure for `wrangler tail` correlation.
         if (args?.filledIrl && metrics.irlBodyCache) {
           try {
-            await handlePrepareIrlBodyTool({ filledIrl: args.filledIrl }, metrics);
+            // 'prompt-render' is the ONLY mint that can support
+            // `partner-paste-verbatim-prepop`: the server computed the hash from
+            // the operator's own prompt argument, with no model emission in the
+            // path. It must be passed explicitly — the write site is shared with
+            // the `prepare_irl_body` tool (ALT-D reuse above) and cannot tell the
+            // two callers apart on its own.
+            await handlePrepareIrlBodyTool({ filledIrl: args.filledIrl }, metrics, 'prompt-render');
           } catch (err) {
             const hash = computeIrlBodyHash(args.filledIrl);
             safeLog({

@@ -88,6 +88,17 @@ export type AlertSeverity = 'ticket' | 'page';
 
 export interface AlertEvaluation {
   breached: boolean;
+  /**
+   * BL-122 — absent means the rule reached a real verdict. `false` means it
+   * could NOT check: its data source was unreachable, so the rule failed open.
+   *
+   * `breached` stays `false` in that case (a blind check must not page), which
+   * is why this flag is needed at all — without it /status renders an
+   * unverified rule as `ok`, and monitoring that has silently stopped
+   * monitoring looks identical to monitoring that passed. Display-only: it
+   * changes no alerting behaviour.
+   */
+  evaluated?: false;
   /** Meaningful when `breached`; the non-breach value is the rule's default class. */
   severity: AlertSeverity;
   /** One-line, operator-facing; becomes the Sentry event message on breach. */
@@ -137,14 +148,26 @@ const inoreaderBudgetExhausted: AlertRule = {
     const spend = await readInoreaderSpend(env);
     const ratio = spend.total / ZONE1_DAILY_HARD_CAP;
     const breached = ratio >= BUDGET_TICKET_RATIO;
+    // BL-122 — an unread counter defaults to `total: 0`, which is
+    // indistinguishable from a genuine zero-spend day. Publishing
+    // "0/100 (0% of daily hard cap)" as a green `ok` asserts a number nobody
+    // measured; say the counter was unreadable instead.
     return {
       breached,
+      ...(spend.read === false ? { evaluated: false as const } : {}),
       severity: ratio >= BUDGET_PAGE_RATIO ? 'page' : 'ticket',
-      summary: `Inoreader Zone-1 spend at ${spend.total}/${ZONE1_DAILY_HARD_CAP} (${Math.round(ratio * 100)}% of daily hard cap)`,
+      summary:
+        spend.read !== false
+          ? `Inoreader Zone-1 spend at ${spend.total}/${ZONE1_DAILY_HARD_CAP} (${Math.round(ratio * 100)}% of daily hard cap)`
+          : `Inoreader Zone-1 spend counters unreadable (Upstash unbound or read failed) — cap is ${ZONE1_DAILY_HARD_CAP}/day`,
       observed: {
         total: spend.total,
         cap: ZONE1_DAILY_HARD_CAP,
         ratioPct: Math.round(ratio * 100),
+        // Marker in the same shape as every other fail-open arm
+        // (aeUnavailable / upstashUnavailable / upstashReadFailed), so the
+        // Sentry extras and AE surface stay greppable.
+        ...(spend.read === false ? { countersUnread: 1 } : {}),
       },
     };
   },
@@ -159,8 +182,15 @@ const radarSnapshotStale: AlertRule = {
     // the health-check-failing rule owns the Upstash-down signal, and a
     // cold cache pre-first-cron is not an incident.
     const breached = age !== null && age > FRESHNESS_MAX_AGE_SECONDS;
+    // BL-122 — a null age is not "fresh". It means Upstash was unbound or
+    // unreachable, the value was malformed, or the cache is cold: freshness is
+    // UNVERIFIABLE, not fine. Failing open (not paging) stays correct — the
+    // health-check-failing rule owns the Upstash-down signal — but rendering a
+    // green `ok` was never part of that argument, and it put this row's `ok`
+    // directly beside the Substrate panel's red STALE for the same null.
     return {
       breached,
+      ...(age === null ? { evaluated: false as const } : {}),
       severity: 'page',
       summary: `Radar FYI snapshot age ${age ?? 'unknown'}s vs ${FRESHNESS_MAX_AGE_SECONDS}s freshness SLO (2× 6h cron)`,
       observed: { ageSeconds: age, sloSeconds: FRESHNESS_MAX_AGE_SECONDS },
@@ -184,7 +214,14 @@ const healthCheckFailing: AlertRule = {
     return {
       breached,
       severity: upstashDegraded ? 'page' : 'ticket',
-      summary: `Health degraded: upstashMcp=${health.upstashMcp}, inoreader=${health.inoreader}, ok=${String(health.ok)}`,
+      // Neutral prefix, not a verdict. `summary` is authored for the Sentry
+      // event on breach — but /status renders it on EVERY evaluation, and the
+      // rule is almost always `ok`, so a hardcoded "Health degraded:" made the
+      // healthy row read `state: ok · Health degraded: … ok=true`, which is a
+      // self-contradiction an operator has to decode. The breach case loses
+      // nothing: the Sentry issue title already carries the rule id
+      // (`health-check-failing`) and the values below say what is wrong.
+      summary: `Health: upstashMcp=${health.upstashMcp}, inoreader=${health.inoreader}, ok=${String(health.ok)}`,
       observed: {
         ok: health.ok ? 1 : 0,
         upstashMcp: health.upstashMcp,
@@ -209,6 +246,7 @@ const trafficSpikeDetected: AlertRule = {
       return {
         breached: false,
         severity: 'ticket',
+        evaluated: false,
         summary: 'traffic-spike: AE unavailable (secrets unbound or query failed) — fail open',
         observed: { aeUnavailable: 1 },
       };
@@ -254,6 +292,7 @@ const scopeMismatch403Rate: AlertRule = {
       return {
         breached: false,
         severity: 'page',
+        evaluated: false,
         summary: 'scope-mismatch-403: AE unavailable — fail open',
         observed: { aeUnavailable: 1 },
       };
@@ -281,6 +320,7 @@ const oauthRefreshFailureRate: AlertRule = {
       return {
         breached: false,
         severity: 'page',
+        evaluated: false,
         summary: 'oauth-refresh-failure-rate: AE unavailable — fail open',
         observed: { aeUnavailable: 1 },
       };
@@ -316,6 +356,7 @@ const sentryEnvelopePostFailureRate: AlertRule = {
       return {
         breached: false,
         severity: 'ticket',
+        evaluated: false,
         summary: 'sentry-envelope-post-failure-rate: Upstash unbound — fail open',
         observed: { upstashUnavailable: 1 },
       };
@@ -340,6 +381,7 @@ const sentryEnvelopePostFailureRate: AlertRule = {
       return {
         breached: false,
         severity: 'ticket',
+        evaluated: false,
         summary: 'sentry-envelope-post-failure-rate: counter read failed — fail open',
         observed: { upstashReadFailed: 1 },
       };

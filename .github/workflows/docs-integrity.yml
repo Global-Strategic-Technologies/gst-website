@@ -1,9 +1,16 @@
 name: Docs link integrity
 
-# Runs the documentation link & anchor integrity guard (BL-089) —
-# `tests/integration/docs-link-integrity.test.ts`. It verifies that every
-# relative markdown link and load-bearing `#anchor` across both doc trees
-# resolves, so BL-088's distilled cross-references can't silently rot.
+# Runs `npm run test:docs` — three guard files:
+#   - `tests/integration/docs-link-integrity.test.ts` (BL-089): every relative
+#     markdown link and load-bearing `#anchor` across both doc trees resolves,
+#     so BL-088's distilled cross-references can't silently rot.
+#   - `tests/integration/docs-variables-sync.test.ts`: VARIABLES_REFERENCE.md ↔
+#     variables.css parity.
+#   - `tests/integration/design-sync-guards.test.ts` (BL-135): the claude.ai/design
+#     sync — names the `.design-sync/` docs use exist in src/styles, ROOTS
+#     coverage, specimen typecheck, chrome slices resolve, README ceiling.
+# The authoritative list is `test:docs` in package.json; DEVELOPER_TOOLING.md
+# describes each guard.
 #
 # WHY A DEDICATED WORKFLOW: `test.yml`'s `changes` gate deliberately SKIPS the
 # unit/integration jobs on docs-only diffs — the exact case this guard must fire

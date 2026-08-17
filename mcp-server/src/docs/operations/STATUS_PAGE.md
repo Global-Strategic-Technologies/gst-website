@@ -6,13 +6,13 @@ Public, unauthenticated server-rendered HTML at `mcp.globalstrategic.tech/status
 
 ## What it shows
 
-| Panel                                                         | Source                                       | Notes                                                                                                                                                                            |
-| ------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Header badge + env/version/gitSha                             | `buildHealthPayload` (live probes)           | `version` is the deploy-injected `env.VERSION` (BL-033 Slice 4); `gitSha` the deployed commit                                                                                    |
-| Substrate (Upstash, Inoreader, radar freshness, Zone-1 spend) | `buildHealthPayload`                         | freshness + spend carry **ratified-SLO badges** (12h / 70-90%)                                                                                                                   |
-| SLO alerts                                                    | `mcp:alerts:last-eval` (evaluator cron)      | the 7 canonical rules, per-rule state                                                                                                                                            |
-| **Tool latency (server-side, 7d)**                            | `mcp:status:metrics:<env>` (evaluator cron)  | per-tool p50/p95/p99 + sample count                                                                                                                                              |
-| **Audit log**                                                 | `mcp:status:metrics:<env>` + audit chain tip | **historical** — pipeline deactivated 2026-08-08 (ADR-0014); `lastSeq` shows the retained chain tip, 24h batches/records decay to 0; the panel carries a deactivation annotation |
+| Panel                                                         | Source                                       | Notes                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Header badge + env/version/gitSha                             | `buildHealthPayload` (live probes)           | `version` is the deploy-injected `env.VERSION` (BL-033 Slice 4); `gitSha` the deployed commit                                                                                                                                                              |
+| Substrate (Upstash, Inoreader, radar freshness, Zone-1 spend) | `buildHealthPayload`                         | freshness + spend carry **ratified-SLO badges** (12h / 70-90%)                                                                                                                                                                                             |
+| SLO alerts                                                    | `mcp:alerts:last-eval` (evaluator cron)      | the 7 canonical rules, per-rule state — **four** states, see below                                                                                                                                                                                         |
+| **Upstream I/O wait per tool (7d)**                           | `mcp:status:metrics:<env>` (evaluator cron)  | per-tool p50/p95/p99 + sample count, filtered at render to rows with `p99 > 0`. Two empty states: "no `tool_invocation` events" vs "_N_ tools invoked, none with measurable I/O wait" — the second is the **expected quiet-week state**, not a degradation |
+| **Audit log**                                                 | `mcp:status:metrics:<env>` + audit chain tip | **hidden while the pipeline is deactivated** (ADR-0014). Gated on `env.AUDIT_QUEUE` being unbound — the same signal `handle-authenticated.ts` uses to no-op the producer — so it returns by itself on re-enable, with no code change                       |
 
 ## Data flow — precompute, not live-query
 
@@ -25,15 +25,91 @@ Consequences:
 - Requires `CF_AE_TOKEN` + `CF_ACCOUNT_ID` bound in prod (already are, for the alert evaluator). Unbound → AE query fails open → latency panel "unavailable"; the audit `lastSeq` (from Upstash) still renders.
 - Since the ADR-0014 deactivation, the audit panel's AE-derived counters (24h batches/records) legitimately read 0 and `lastSeq` is static — that is the expected steady state, not a fault.
 
+## Alert states — four, not two (BL-122)
+
+A rule has three real outcomes, not two: it passed, it breached, or **it could not check**. The third happens when a rule's data source is unreachable (AE secrets unbound, query failed, Upstash down); rules are contractually fail-open, so they return `breached: false` — and until BL-122 that rendered as a green `ok`.
+
+That made an unverified check indistinguishable from a passing one, which is the failure mode worth caring about: monitoring that has silently stopped monitoring, while displaying green. Those arms now set `evaluated: false`, and the page renders a distinct state.
+
+| State        | Colour          | Meaning                                                     |
+| ------------ | --------------- | ----------------------------------------------------------- |
+| `ok`         | green `#0a7d4f` | Evaluated; not breached                                     |
+| `unknown`    | slate `#8a9bb0` | **Could not evaluate** — data source unreachable            |
+| `eval-error` | amber `#946200` | The rule's `evaluate()` threw                               |
+| `BREACHED`   | red `#b3261e`   | Evaluated; breached (`breached (cooldown)` when suppressed) |
+
+`unknown` is muted rather than alarming — nothing is known to be wrong, but nothing was verified. **It must never render green**; a test asserts all four colours differ.
+
+`eval-error` and `unknown` stay separate because they are different faults: one is a bug in the rule, the other is an unreachable dependency.
+
+**Which arms are `unknown`.** Every rule that fails open because its data source was unreachable: the three AE-backed rules (`traffic-spike-detected`, `scope-mismatch-403-rate`, `oauth-refresh-failure-rate`), both Upstash arms of `sentry-envelope-post-failure-rate`, plus two that were **hiding it behind a fabricated default** until BL-122:
+
+- **`radar-snapshot-stale`** — a `null` age (Upstash unbound/unreachable, malformed value, or a cold cache) is _unverifiable_, not fresh. It rendered a green `ok` beside the Substrate panel's red `STALE` for the very same `null`.
+- **`inoreader-budget-exhausted`** — `readInoreaderSpend` returns `total: 0` when the counters cannot be read, which is indistinguishable from a genuine zero-spend day. The rule published `0/100 (0% of daily hard cap)` as a measured figure. `readInoreaderSpend` now returns a `read` flag, and the **Substrate budget row** uses it too, for the same reason.
+
+That second one is worth remembering when auditing for this defect class: it says nothing about failing open, so grepping the summaries for "fail open" will not find it. The tell is a **default value being reported as a measurement**.
+
+**The Substrate panel has the same three-outcome problem**, and both of its affected rows now say `unknown` too:
+
+- **Zone-1 budget** — was rendering the fabricated `0/100 (0%)` in green. Falsely _reassuring_.
+- **Radar snapshot freshness** — was rendering `STALE` in red for a null age. Falsely _alarming_, which is the less dangerous direction but still a verdict nobody reached, and it sat directly above a budget row saying `unknown` for the very same unreachable Upstash.
+
+Erring alarming is still erring: the fix is to say the source was unreadable, not to pick whichever wrong answer feels safer.
+
+## Auditing for this defect class — sweep the READERS, not the rows
+
+Five instances of this bug were found one at a time by reading the rendered page, over five review rounds. They all had the identical shape at the identical boundary: **a reader collapses "could not read" into a plausible default before the renderer ever sees it.** Auditing the rows finds them one per pass; auditing the readers finds them all at once.
+
+The procedure: enumerate every function whose value reaches this page, and ask each one _"what do you return when Upstash is unavailable?"_
+
+| Reader                  | Returns when unavailable                   | Row              | Verdict                                                                                                                                                 |
+| ----------------------- | ------------------------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `probeMcp`              | `'degraded'`                               | Upstash          | **Real verdict** — it attempts a write; an unbound secret means the substrate genuinely is unusable, not unknown                                        |
+| `readInoreaderStatus`   | `status: 'unknown'`                        | Inoreader        | Was falling into the `!== 'degraded'` ok arm — the page printed the same word in two colours                                                            |
+| `probeRadarSnapshotAge` | `null`                                     | Radar freshness  | Was rendering `STALE`                                                                                                                                   |
+| `readInoreaderSpend`    | `total: 0`                                 | Zone-1 budget    | Was rendering a fabricated `0/100 (0%)`                                                                                                                 |
+| `isCircuitOpen`         | `null` → collapsed to `circuitOpen: false` | Circuit breaker  | Was rendering an observed `closed`                                                                                                                      |
+| `readLastEval`          | `null`                                     | SLO alerts       | Distinct empty state — but it returns `null` for an absent key **and** an unreachable Upstash, so the copy hedges the cause rather than naming the cron |
+| `readStatusMetrics`     | `null`                                     | I/O wait + audit | Correct — distinct "metrics unavailable"                                                                                                                |
+
+**Two readers feed `/health` but render nothing here** — listed so their absence reads as scope, not as a clean bill of health:
+
+- **`readAclSelfCheck`** returns `{ status: 'unknown' }` for unbound, missing key, and throw alike — the _identical shape_ to `readInoreaderStatus`, one of the rows this defect was actually found in. **An ACL row added to this page later walks straight into the same trap.**
+- **`readRefreshHealth`** — ask the same question before it gets a row.
+
+**The header badge is a third consumer, not just the rows.** `probeMcp` and `readInoreaderStatus` also feed the derived `health.ok` behind `OPERATIONAL` / `DEGRADED`, which has its own deliberate semantics: `inoreader: 'unknown'` is intentionally _not_ degraded (it means "no recent traffic"), so `ok` stays true. One reader does not map to one row.
+
+The four middle rows now carry `read`/`evaluated` signals so the display can tell a measurement from a default. **`circuitOpen` and `inoreaderSpend.total` keep their fail-open values** — that behaviour is correct and other consumers depend on it; the signal sits _beside_ the value rather than replacing it.
+
+Adding a row to this page? Run that question against its reader before you write the badge.
+
+`health-check-failing` is genuinely different and stays as-is: `buildHealthPayload` never throws, and an unreachable Upstash sets `upstashMcp: 'degraded'` → a real breach. It always reaches a verdict.
+
+**Alerting is unchanged.** `breached` stays `false` in the unknown case, so no Sentry event fires and a blind check never pages. Display-only. Consequence worth knowing: if AE is misconfigured, several rows go `unknown` at once — the page looks worse without the server having got worse.
+
 ## Surface, don't ratify (BL-033 operator directive)
 
-The **tool-latency panel renders raw p50/p95/p99 as plain values — no badges, no pass/fail threshold, no SLA.** This is deliberate: the tool/resource/prompt-latency SLO is **explicitly deferred** in `observability/slo-baselines.md` (no client traffic to calibrate against, and no pilot has contracted a latency SLA). Do NOT:
+**Still in force.** The panel survived BL-122, so this rule is load-bearing rather than moot.
+
+The **I/O-wait panel renders raw p50/p95/p99 as plain values — no badges, no pass/fail threshold, no SLA.** This is deliberate: the tool/resource/prompt-latency SLO is **explicitly deferred** in `observability/slo-baselines.md`. Do NOT:
 
 - wire the `p95 < 500ms` figure (a stray phrase in `LATENCY_PROBE.md`) into a badge/breach here;
 - add a "proposed target" column;
 - add a latency-breach alert rule.
 
-Contrast the freshness/spend rows, which DO carry badges — those are signed-off SLOs. The latency numbers are observability only until a pilot conversation defines targets.
+Contrast the freshness/spend rows, which DO carry badges — those are signed-off SLOs. The I/O-wait numbers are observability only until a pilot conversation defines targets.
+
+## What the number actually is (BL-122)
+
+`duration_ms` is `Date.now() - startedAt` around the handler (`src/metrics/with-metrics.ts`), and **Cloudflare Workers freeze the clock outside I/O** as a Spectre mitigation — per Cloudflare's security model, `Date.now()` _"returns the time of the last I/O [and] does not advance during code execution"_. So the panel measures the wall time a handler spent **blocked on Upstash / Inoreader**, never its compute. A handler that touches no network scores exactly `0` however much work it does — `generate_information_request_list_xlsx` builds an entire spreadsheet and reports 0 ms.
+
+There is no workaround: Workers provide no unfrozen timer, so `performance.now()` behaves identically.
+
+**Why omission beats showing `0`.** Ten of fifteen tools read 0 with healthy sample counts (measured 2026-08-13: `search_regulations` 326 samples, 0 ms). Published as-is they read as broken instrumentation or as "instant", and both readings are wrong. Filtering on `p99 > 0` publishes only rows where the metric means something.
+
+**The filter is on the measurement, not a tool list.** The query is `GROUP BY blob2` with no tool list anywhere in the code, so a hardcoded allowlist would need hand-maintaining and would drift the first time a tool gained or lost an I/O path. `p99` rather than `p50` — a tool that only reaches the network on a cache miss has `p50 = 0` and a real `p99`, and must survive.
+
+**It is applied at render, never inside `computeToolLatency`.** `toolLatency === []` has to keep meaning exactly one thing — no `tool_invocation` events in the window — because the empty-state copy asserts it. Filtering at compute time would overload `[]` to also mean "traffic existed, none of it measurable", and the page would claim zero invocations in a window that had hundreds. Keeping the unfiltered rows in scope is also what lets the two empty states differ.
 
 ## Subdomain
 

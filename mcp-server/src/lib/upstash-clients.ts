@@ -27,6 +27,27 @@
 import { Redis } from '@upstash/redis';
 import type { Env } from '../worker';
 
+/** Per-call overrides for {@link createMcpClient}. */
+export interface McpClientOptions {
+  /**
+   * BL-121 — pass `false` to disable retry/backoff for callers that have
+   * already promised to fail quiet.
+   *
+   * The SDK default is 5 `retries`, and the request loop runs
+   * `for (i = 0; i <= attempts; i++)` with the sleep guarded by `i < attempts`
+   * — so the default is **six fetch attempts and five sleeps**
+   * (`exp(0..4) * 50` = 4,289 ms) before a call gives up. Any caller that
+   * awaits such a client puts that whole budget on its own response path
+   * during an Upstash brownout.
+   *
+   * `false` resolves to `{attempts: 1, backoff: () => 0}` — two fetch
+   * attempts, no sleep. Note this is the true floor: `{retries: 1}` yields
+   * the same two attempts *plus* a 50 ms sleep, so it is strictly worse for
+   * a fail-quiet caller. There is no zero-retry setting.
+   */
+  readonly retry?: false;
+}
+
 /**
  * Build a Redis client for the **MCP DB** (read+write on Worker-owned
  * `mcp:*` keys, including `mcp:inoreader:*` token state). Returns null
@@ -36,10 +57,13 @@ import type { Env } from '../worker';
  * (read+write) token — the Worker writes rate-limit counters, the circuit
  * breaker flag, Inoreader-status observations, and Inoreader OAuth tokens
  * through this client.
+ *
+ * Building a second client is free — the SDK is stateless HTTP, so there is
+ * no pool or connection to duplicate.
  */
-export function createMcpClient(env: Env): Redis | null {
+export function createMcpClient(env: Env, opts: McpClientOptions = {}): Redis | null {
   const url = env.UPSTASH_MCP_REST_URL;
   const token = env.UPSTASH_MCP_REST_TOKEN;
   if (!url || !token) return null;
-  return new Redis({ url, token });
+  return new Redis({ url, token, ...(opts.retry === false ? { retry: false } : {}) });
 }

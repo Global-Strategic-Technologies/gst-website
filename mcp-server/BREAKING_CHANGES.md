@@ -8,21 +8,25 @@
 >
 > **Every entry in this file ships with a corresponding `version` bump in [`package.json`](./package.json) and is mirrored in the [archived BL-032 initiative doc](../src/docs/development/_archive/MCP_SERVER_REMOTE_BL-032.md) Q-section that triggered it (entries after 2026-07-17 cite the maintained [`ARCHITECTURE.md`](./src/docs/ARCHITECTURE.md) instead).** BL-032.5 Phase 4 formalizes the discipline with the **manifest-hash test** at [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) — the hash is computed over the registered Library/Regulation/Radar URIs + prompt `name@version` tuples; any drift fails the test and surfaces the new hash in the error message.
 
+> **Prompt-version bumps vs. in-place hash rebaselines** (recorded 2026-08-12, BL-120): bump the prompt `version` when the **previous body bytes have been served**; rebaseline the `EXPECTED_HASH_*` constants in place when they have not. A prompt version is a _published_ identity — it is what this file's manifest hash binds and what the dossier meta fence reports as `promptVersion` for run auditability, and both consumers only ever see served bytes. Minting a version for a byte-state no client ever received manufactures history for exactly the reader the version exists to serve. BL-120 moved all 7 body hashes **three times** inside `0.22.3` on that basis, with each move recorded in the ledger comment in `tests/integration/irl-ingestion-body-hash-stability.test.ts`.
+>
+> The edge that makes this checkable: **staging auto-deploys on a green MCP test run from a same-repo push.** So an unpushed branch is still free to rebaseline in place; the moment it is pushed those bytes are served, and any further body change owes a version bump.
+
 ---
 
 ## Current manifest hash
 
 ```
-fdc5c599fa55317ed127849b500c20fbdabc1346973debba8659fe9464df087d
+28b148303253108b3d3c6b0808952a228a62bcf78976a365fd62b50b44b216a9
 ```
 
 Computed over (sorted):
 
 - **4** Library URIs (`gst://library/business-architectures`, `gst://library/vdr-structure`, `gst://library/information-request-list`, `gst://library/irl-tool-input-mapping`).
-- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`) are NOT in the manifest hash inputs — they're an additive matching layer in `compose_dossier_envelope`'s server-side validation, not a registry shape change.
+- 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.7` (per-question removal + BL-044.5 directives — see the 0.37.0 stanza below), `gst_irl_ingestion` at `0.22.1` (worked-example client deidentified as SanFran — see the 0.48.1 stanza below), and `gst_radar_brief_today` at `0.0.4` (degraded-path discriminator made structural so it works on the Worker — see the 0.48.0 stanza below).
+- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below), `gst_irl_ingestion` at `0.28.0` (capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters — and `compute_techpar` now runs in a stated mode; see the 0.54.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
@@ -30,6 +34,247 @@ the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
 
 ---
+
+## 0.55.0 — 2026-08-15 — the server derives `fillRatio`; the prompt stops asking for article numbers (`0.27.0` → `0.28.0`)
+
+**Served output changes; no wire-shape change.** No input removed, no output narrowed, and no new rejection path — but two things a consumer can observe are different.
+
+**`compose_dossier_envelope` now derives `fillRatio.percent` and `.status`** from `substantiveCells` / `totalCells`, rounded to the nearest integer, and the **derived** values are what reach `metaFenceMarkdown`. Callers whose figures disagree by more than 1 percentage point, or whose status disagrees, get a `provenance-gap:` entry appended to `gapListMarkdown` naming both figures — so `autoAppendedGaps` can be one higher than before on the same payload. The fields stay required and are still described as load-bearing: they are the assertion the server compares against.
+
+Rounding first is deliberate. The prompt has the model round before applying the halt/partial/ok thresholds, so a run at 39.6% correctly reports `{percent: 40, status: 'ok'}`; anchoring on the raw ratio would have flagged that prompt-obedient run.
+
+**Incoherent counts are not overridden.** `substantiveCells > totalCells` validates against the schema (no cross-field refinement — a `.superRefine` would publish an empty input schema to clients), and deriving there would exceed the `.max(100)` the same field enforces. That case keeps the caller's values, discloses the inconsistency, and does **not** instruct a section (A) restatement.
+
+**`gst_irl_ingestion` `0.28.0`** stops instructing "cite article numbers verbatim" in Step 3 and section (F). `Article` / `Art.` / `§` appear zero times across all 123 regulatory-map records, so the instruction was satisfiable only by invention. Bodies now direct quoting `keyRequirements` bullets verbatim and identifying frameworks by name + `effectiveDate`. Four one-shot body hashes move; interactive and extract-only are untouched.
+
+---
+
+## 0.54.0 — 2026-08-15 — `compute_techpar` gets a mode (`0.26.0` → `0.27.0`)
+
+**Behaviour change on the prompt render; no wire-shape change.** No input removed, no output narrowed. Manifest hash moves on one prompt tuple. A served MCP Resource changes.
+
+**Two runs over one IRL produced an inverted partner-facing verdict** — TechPar 32.6% "healthy" against 47.5% "above the PE ceiling" — driven by `rdOpEx` at $4,391,000 vs $8,320,000 over identical bytes.
+
+Neither run misbehaved. `compute_techpar` synthesizes `rdOpEx` from `engCost + prodCost + toolingCost` in `deepdive` and reads the input directly in `quick`; `mode` is a **required enum with no default**; and the prompt named no mode anywhere. Step 4 enumerated the Section-02 components — which are `deepdive` inputs — so a model that obeyed it and chose `quick` held three figures the engine discards, whose `_audit` entries the schema rejects, plus a required `rdOpEx` with no documented source. Folding the components in was the only move left. A model that chose `deepdive` found `rdOpEx` ignored and supplied it anyway, from Section 04.
+
+**`gst_irl_ingestion` now runs `deepdive`, stated in all three bodies.** Not a preference: canonical Section 02 asks for exactly the three components and **no bullet in any section asks for a total R&D OpEx figure**, so `quick`'s required input has no source here by construction.
+
+**The SOP gained the rows it never had.** `mcp-server/src/docs/library/irl-tool-input-mapping.md` — and its byte-identity twin at `src/data/library/irl-tool-input-mapping/article.md`, both served as `gst://library/irl-tool-input-mapping` — had **zero rows** for `rdOpEx`, `rdCapEx`, `engCost` and `exitMultiple`. They now carry mode-conditional entries plus two explicit **anti-mappings**, because an input with no row does not stay empty: it attracts the nearest plausible value from rows belonging to other inputs and other tools. Both observed divergences were misroutes of bullets already mapped elsewhere — Section 04's remediation line is the Tech Debt Calculator's `remediationBudget`.
+
+**Known consequence, recorded with a trigger** (BL-126 stanza): fixing the mode makes the three component audits mandatory, and every `_audit.annualizationSource` value asserts that a derivation happened — there is **no value meaning "the IRL does not supply this"**. This bites on **every** deepdive call, not just on a partly-filled IRL: `rdOpEx` and its `_audit` are required in both modes while `deepdive` discards the value, so each call declares a source for a field that has none. The prompt uses a `Section --` citation saying exactly that, which is a placeholder the enum forces rather than a claim. The prompt also instructs surfacing a blank Section-02 component in (J) rather than fabricating a source for it. The schema fix — an absence source plus nullable money fields, mirroring `tech-debt-audit.ts` — is recorded with its trigger met.
+
+**Operator-visible**: a blank Section-02 component passes as 0 and **understates total technology cost, moving the zone verdict in the flattering direction**. The tell is `engPctOfRD: 100` with `prodPctOfRD: null` in the response — **sufficient, not exhaustive**: that pattern fires only when both `prodCost` and `toolingCost` are zero, and a blank `toolingCost` alone leaves no KPI signal at all. The (J) gap entry, not the KPI, is the guard.
+
+## 0.53.0 — 2026-08-14 — the prompt states its own run parameters (`0.25.0` → `0.26.0`, `0.0.8` → `0.0.9`)
+
+**Additive on every wire surface.** No input removed, no output shape narrowed. Manifest hash moves on two prompt tuples. Two behaviour changes an operator will notice, both restoring an argument that was silently discarded.
+
+**`auditLevel: debug` was unreachable through the model.** No builder had ever stated its resolved `mode` / `auditLevel` / `transactionContext` — no interpolation of those values existed anywhere in the prompt — so the model inferred them from which sections rendered. In three production runs of three it reported `enhanced`, including one an operator invoked at `debug`. It then passed `enhanced` to `compose_dossier_envelope`, which withheld `metaFenceMarkdown` exactly as contracted, and `promptVersion` came back `null`. The server had rendered `debug` correctly; the model's self-report overrode it downstream. All three builders now state their resolved values in a Run parameters block, and the meta-fence template points at it instead of listing the enum.
+
+**`requireVerbatimBody` was inert on every path.** Fourteen occurrences in `mcp-server/src`, **zero render-time readers** — not even a telemetry counter. The server's refusal reads the flag from the tool input the _model_ supplies, and the model had never been shown the operator's value, so an operator who set the gate got no gate. This is the `forceTools` shape ADR-0017 records; deletion was right there and wrong here, because this flag gates a refusal rather than an override. Now stated on the one-shot and interactive bodies — and deliberately **not** on extract-only, which invokes no tools and where the flag is neither a meta-fence key nor a RUN-AUDIT field.
+
+**Also fixed, none of them wire-visible:**
+
+- `enumFromWire` tested blankness with `.trim()` but looked up the value **untrimmed**, so `auditLevel: "debug "` — trivially produced by a form paste — failed the whole `prompts/get` with `-32602`, which Desktop renders as "Failed to attach prompt" with no diagnostic. The same total, silent failure 0.52.0 removed, reached by a different input.
+- The interactive builder consulted only `showRunAudit`, so `standard` and `enhanced` rendered byte-identically — yet the dossier still carried (K), because the envelope returns it at `enhanced`. An interactive run emitted a provenance footer **without the blocking self-check that backs it**. See the [ADR-0017 amendment](../src/docs/adr/0017-audit-levels-enforced-in-the-tool-response.md).
+- `build()` passes the whole argument set to the interactive builder instead of `{ auditLevel }` alone; five supplied arguments were being discarded and re-asked for. Step 1's tailoring ask is now composed from what is genuinely absent, and disappears entirely when all four are supplied.
+- The anti-balk clause covered **1 of 5** rendered bodies, because its evidence is the `**Body-binding hash:**` directive only the one-shot body renders. Four production balks across three surfaces on 2026-08-14; a structural variant now covers the rest.
+- Six dangling `RUN-AUDIT` back-references at `standard`/`enhanced`, one pointing at "the block's own section" for rules that were absent.
+- `conditionalTriggersFired`'s `.describe()` — served on the wire in `tools/list` — contradicted the BL-063 partition rule in both its clauses. A framework that fires **and** is named in Section 09 belongs in `conditionalTriggersFired` only; the tool's own `Bl063PartitionViolationError` said so while the description said the opposite.
+- `extract-only` reported `filledIrl: null` while declaring `runScenario: partner-paste`, because the null-run rule fired unconditionally in a mode that never calls the envelope. Absent server measurement is not absent body.
+
+**Body-hash suite**: now governed by a stated coverage rule — pin builder × level, plus one args-variant per builder at `standard` only — rather than a tally. Twelve scenarios. The `EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG` alias is retired: extract-only states its level now, so it is level-varying, and what the alias proxied is asserted directly in `bl-125-run-parameters.test.ts`.
+
+---
+
+## 0.52.0 — 2026-08-14 — the flattened-body refusal is withdrawn (`0.24.0` → `0.25.0`)
+
+**Behaviour-restoring on the prompt render; additive everywhere else.** No input is removed, no output shape narrows. Manifest hash moves on three prompt tuples.
+
+**What 0.51.0 got wrong.** It refused any `filledIrl` arriving with zero newlines — the signature of a client collapsing a multi-line paste — on the argument that the resulting dossier "cites a structure that no longer exists". That was reasoned from first principles and never tested against an artifact. Checked afterwards:
+
+- `normalizeForMatching` applies `.replace(/\s+/g, ' ')` **before** both the substring check and the word-run tokenizer. Flattening is the same transformation, so it is a provable no-op for the only check the provenance chain runs.
+- Nothing reads line structure. The only `split(/\r?\n/)` sites parse the IRL generator source and a different prompt's arg; the extractor produces bodies and never consumes one.
+- The hash-bind exists to catch a model substituting a condensed **paraphrase**. Flattening is not paraphrase — every word survives, in order.
+- A real production run on a flattened body produced a sound dossier with a correct 121/122 fill ratio.
+
+**And the cost was total.** The smallest IRL fixture in this repo is 4,256 B against a 2,000 B floor, so the refusal fired at every realistic size — and its own remediation, interactive mode, cannot carry a large body, because that path needs the model to emit the whole thing as a tool argument (~21k output tokens for an 80KB IRL). Operators were left with **no completing path**.
+
+**What changed.**
+
+- **The refusal is gone from all four sites** — the prompt render, `prepare_irl_body`, `validate_irl_provenance`, and the registry prepop. A flattened body is cached, minted `prompt-render`, and keeps full `partner-paste-verbatim-prepop` grade. Not gated on `requireVerbatimBody` either: that flag guarantees "partner-supplied rather than model-reconstructed", which a flattened body satisfies.
+- **The measurement survives as a diagnostic.** New `serverCachedBodyNewlines` on the envelope response, and `filledIrl.newlines` in the RUN-AUDIT block. `newlines: 0` on a multi-kilobyte body means the client collapsed the paste and the body will not hash-match the operator's source file — the one real consequence, and the thing that cost a full session of forensics to establish. Output-shape **addition**; the manifest hash does not see output shape, so this stanza is the only record.
+- **Blank form fields no longer break prompt attachment.** Claude Desktop ships an unfilled field as `""`, so `filledIrl: ""` failed `.min(200)` and the whole `prompts/get` returned `-32602` — surfaced by the client as "Failed to attach prompt" with no diagnostic, which made interactive mode unreachable. A new `stringFromWire` adapter reads `""` as "not supplied", and the three enums now reuse the existing `enumFromWire` (which also brings case-folding). **`stringFromWire` deliberately does not trim its output** — trimming would change `computeIrlBodyHash` and silently break the operator's file comparison.
+- **Same fix on two sibling prompts**: `gst_information_request_list` `0.0.7` → `0.0.8` (**six** optional args fixed, in two distinct failure modes. Five returned the identical `-32602` — `targetName`, `companyName`, `projectName`, `transactionContext`, `productSummary` — and `targetName`'s own description reads "Omit to emit the universal template", so the all-blank form was the documented happy path. The sixth, `customRequests`, _accepted_ the blank and **retained** it, which is the quieter mode: its consumer branches on `!== undefined`, so an all-blank form rendered the one-shot body while omitting every argument rendered the interactive one. `transactionContext` additionally gains case-folding by moving to `enumFromWire`: `Buy-Side` now succeeds where it previously failed) and `gst_comparable_engagements_memo` `0.0.2` → `0.0.3` (its two arguments had **no `.describe()` at all**, so Desktop rendered blank uninterpretable fields; the empty-string handling there was already correct and is hygiene only).
+- **The interactive body sanctions splitting a large `prepare_irl_body` call into its own turn.** A production run stalled rather than emit ~21k tokens of body alongside the dossier, and correctly refused to write audit blocks for a call that never happened — it simply had no sanctioned way to split the work.
+- **A tool call the client never delivered** (approval denied or unanswered) is now explicitly excluded from `toolErrors`, whose identity has no transport-subtraction term, and explicitly **included** in `precheck.errorsEncountered`, which is defined as the attempts that never reached the server. A run had invented an out-of-contract `errorClass` because neither block sanctioned it.
+
+**Rollout is order-free in both directions.** Every new input is optional, every new output additive.
+
+---
+
+## 0.51.0 — 2026-08-13 — a flattened IRL body is refused, and `irlSource` is capped by the server (`0.23.0` → `0.24.0`)
+
+**Additive on the tool surfaces; behaviour-changing on the prompt render.** Manifest hash moves on the prompt tuple. Nothing is removed from any input schema.
+
+**What was wrong.** Two defects, one shape — the prompt took claims about its own inputs on trust.
+
+First, **Claude Desktop renders every prompt argument as a single-line input**, so pasting a multi-line markdown IRL collapses every newline to a space before the server sees it. Measured on the production artifact that surfaced this: 141 newlines became 0, the byte length moved by −1, and the content differed at 140 positions. Nothing detected it — the server hashed what it received, cached it and reported the hash honestly, so the run produced a dossier citing a document structure that no longer existed. The −1 delta made it read like an off-by-one; it is total loss of line structure.
+
+Second, **`irlSource: partner-paste-verbatim-prepop` was a model assertion whose only evidence was a copyable string** — the presence of the `**Body-binding hash:**` directive, which survives export. Narrower than it sounds: outside the 4-hour TTL a replay fails loudly, and inside it the bytes really are operator-supplied. What was forgeable is the claim that _this run_ was freshly invoked, plus the fact that the grade was self-reported at all.
+
+**What changed.**
+
+- **A body with zero newlines and more than 2,000 bytes is refused** at all four surfaces it can arrive through: the prompt render halts with an explanation in a single 1.8 KB message (no resource embeds beside a refusal), and `prepare_irl_body`, `validate_irl_provenance` and the registry prepop each reject it. Repair is impossible — `
+ → " "` is lossy — so refusal is the only correct response. The check tests for _total_ collapse deliberately: a real IRL already runs ~560 bytes/line, so a ratio heuristic would false-positive on legitimate bodies.
+- **`irlSource` is now CAPPED against server-held provenance, never derived.** A new `mcp:irl-body-prov:<irlBodyHash>` record (first-write-wins, 4 h) says whether the prompt render or `prepare_irl_body` wrote the body. An asserted `-prepop` is capped to `partner-paste-verbatim` when the record says `prepare-tool`; nothing is ever promoted; reconstruction and `placeholder` assertions pass through untouched. **Full derivation was rejected** — it would have handed every xlsx-reconstruction run a partner-paste grade and inverted the `requireVerbatimBody` gate that exists to catch reconstructions.
+- **New output on the envelope**: a gap-list entry disclosing a cap, and separately one disclosing a `-prepop` claim that could not be verified. This is an **output-shape addition**, and the manifest hash does not see input/output shape — so this ledger entry is the only record. The unverified marker fires **only** for `-prepop` assertions; marking every metadata-absent run would have grown every rendered gap list in the suite.
+- **The 16.3 KB `gst://library/vdr-structure` embed is gone**, replaced by the nine-row folder table it existed to supply. A rendered `standard` payload measured on the production artifact goes **153.8 KB → 139.5 KB**, and builds now return two messages rather than three. The URI stays in the body as a provenance caption; a drift guard pins the inlined table against the canonical article.
+- **Every argument description leads with its valid values and its default.** Six of eight previously buried the default past the form's truncation point — an operator reading `requireVerbatimBody` saw "Set true for accuracy-critical work — a regulatory deliverable," and never learned it defaults to false.
+
+**Rollout is order-free in both directions.** Every new input is optional and every new output additive; a `0.50.0` client against a `0.51.0` server sees a slightly longer gap list and nothing else. Provenance records minted before deploy do not exist, so runs in the first four hours take the metadata-absent path and carry the model's assertion labelled unverified — self-closing once the TTL turns over.
+
+**Operator impact.** The newline hazard is now documented in both IRL runbooks: a paste into a single-line client field will be refused, and the fix is to attach the file and use interactive mode.
+
+---
+
+## 0.50.0 — 2026-08-13 — audit levels replace the verbosity axis (`0.22.4` → `0.23.0`)
+
+**Breaking on three surfaces**: the prompt's argument list, the `compose_dossier_envelope` input schema, and that tool's **output shape**. Manifest hash moves on the prompt tuple.
+
+**What was wrong.** `verbosity: 'verbose' | 'compact'` conflated three separable concerns on one switch, and had the polarity backwards. `compact` elided the _correctness_ pipeline — the body-binding hash directive, the `validate_irl_provenance` precheck and the `compose_dossier_envelope` composition directive — while leaving the meta fence and the run-audit block on. So it disabled the provenance chain and then demanded an audit report on it, naming fields (`firstEnvelopeCall.irlBodyHash`, `hashBindResult`, `precheck.iterations`) describing calls the mode had just told the model not to make. No UAT exercised it and no production run is recorded with it. Separately, `forceTools` was **inert**: its value was read once for a telemetry counter and never reached the prompt body, so the model was told to honour an override it was never shown.
+
+**What changed.**
+
+- **`auditLevel: 'standard' | 'enhanced' | 'debug'`** replaces `verbosity`, defaulting to `standard`. `standard` is a clean partner-facing dossier; `enhanced` adds the (K) provenance footer, the per-section audit fences and the citation self-check; `debug` adds the run-audit block and the meta fence. **The envelope chain runs at every level** — it stopped being a user-selectable option.
+- **The suppression lives in the tool response, not in prompt prose.** `compose_dossier_envelope` now omits `metaFenceMarkdown` (below `debug`) and `provenanceFooterMarkdown` (below `enhanced`) from its result entirely, and `emitInstructions` names only the blocks actually returned. Both fields are therefore **optional** on `ComposeDossierEnvelopeResult`, and are _omitted_ rather than set to `undefined` — the text mirror is built with `JSON.stringify`, which drops undefined-valued keys, so an explicit `undefined` would diverge the two response channels. A prompt-body "do not transcribe" clause would not have worked: this tool exists because the model treats body directives as descriptive context and only tool output as procedure.
+- **`verbosity` → `auditLevel` on the tool input**, sharing one exported enum with the prompt rather than a hand-maintained parallel literal. This renames a **meta-fence key**, which is an output-shape change: note the manifest-hash guard does not see input/output shape, so this ledger entry is the only record.
+- **`forceTools`, `embedToolWorkedExamples` and the `force_tools_used` metric event are removed.** `forceToolsApplied` stays on the envelope input — required, and `[]` from this prompt — so a caller that does override a gate still has a declared place to record it.
+- The prompt's argument surface goes 10 → 8, `filledIrl` moves to index 0, and every description leads with its valid values and names no backlog ids.
+- The `BL-045-VERIFY` block is renamed **`RUN-AUDIT`**. Historical ledger entries (including the stanzas below) keep the old label deliberately — renaming a dated record falsifies it.
+
+**Rollout is order-free for the running server, but not for an in-flight conversation.** `auditLevel` is required on the tool input with no alias, so a conversation holding a `0.22.4`-rendered body fails validation against a `0.50.0` server; re-invoke the prompt. Acceptable at single-operator scale, stated rather than left to be discovered.
+
+**Operator impact.** A `standard` run emits no run-audit block, and the client-ready gating checklist reads that block — so signoff runs now invoke `auditLevel: 'debug'`. `OPERATOR_RUNBOOK.md` and `IRL_PARTNER_PASTE_RUNBOOK.md` ship the migration with this change.
+
+---
+
+## 0.49.3 — 2026-08-12 — the server-authoritative counter survives the Worker (`0.22.3` → `0.22.4`)
+
+**Prompt body change + a new Upstash key family.** No tool, argument, or Resource URI changes; the manifest hash moves solely on that prompt's `name@version` tuple. Output-shape change is **additive**: `compose_dossier_envelope` now returns `countersScope` alongside `serverToolCallCounts`.
+
+**What was wrong.** BL-071 made the server authoritative for tool-call counts so the BL-045-VERIFY block would stop depending on the model's memory of its own behaviour, and pinned the operator check `precheck.iterations === serverToolCallCounts.validate_irl_provenance.succeeded`. That identity holds on stdio, where `createServer` runs once per process. **On the remote Worker it cannot**: `createServer` runs per HTTP request, so a fresh `InMemoryToolCallCounters` is built for every call and the envelope's snapshot can only ever contain the request it is inside. Observed on the 2026-08-12 Kestrel production run — the envelope reported `validate_irl_provenance` as all-`null` while the model honestly reported `precheck.iterations: 2`. The prompt was directing operators to fail runs on a check that could not pass, on the transport the team actually uses.
+
+**What changed.**
+
+- Counts for the three IRL-pipeline tools (`validate_irl_provenance`, `compose_dossier_envelope`, `prepare_irl_body`) now accumulate in Upstash under `mcp:irl-run-counts:<irlBodyHash>`, TTL 4h (matched to the BL-076 body cache, so a counter never outlives the body it counts).
+- `compose_dossier_envelope` returns **`countersScope`**: `session` (stdio), `run` (Worker + durable store read successfully), `request` (no store bound, or the read failed). Every regime that cannot support the identities now says so rather than reporting a false green.
+- The prompt states each identity conditionally, pins the transport-classed `errorsEncountered` subset closed (`transport-timeout`, `transport-disconnect`), and replaces the `attemptsTotal === attempted` equality with a reconciliation that stays arithmetic: durable writes happen at wrapper exit, so an attempt that never reached the server was never countable.
+
+**Rollout is order-free.** A 0.22.3 client reading a 0.49.3 server sees one unknown field it ignores; a 0.22.4 client reading a 0.49.2 server gets no `countersScope` and is told to report `null` rather than infer one.
+
+**Failure posture is quiet** — a counter fault never fails a run (`retry: false` on its Redis client keeps a brownout off the response path). Consequence, accepted deliberately: a write lost mid-run under-reports while scope still reads `run`, which is a false red an operator investigates. False greens are what this change refuses.
+
+**Rollback**: revert the commit and restore the prior hashes. The Upstash keys expire on their own; nothing reads them after a revert.
+
+**Version discipline — the first exercise of the rule recorded in this file's header.** `0.22.3` shipped in PR #414 and staging auto-deployed on the green test run, so those bytes have been **served**. That makes this a version **bump**, not an in-place rebaseline — unlike the three moves BL-120 made inside `0.22.3` while it was still unpushed.
+
+---
+
+## 0.49.2 — 2026-08-12 — the canonical IRL body reads the whole workbook (`0.22.2` → `0.22.3`)
+
+**Prompt body change only.** No tool, argument, or Resource URI changes; the manifest hash moves solely on that prompt's `name@version` tuple. The companion change to `scripts/extract-irl-markdown.mjs` is operator tooling, not a served contract.
+
+**Who this affects**: every consumer of an IRL dossier built from a filled workbook — which is the client-facing and regulatory path the runbook recommends. Nobody's inputs change. What changes is which of the recipient's words reach the deliverable.
+
+**Why**: the IRL workbook has seven columns — `A Reference | B Request | C Status | D File Location | E Comments | F Notes | G Response`. `npm run irl:extract` read four of them (A/B/C/G) and discarded D, E and F as "partner-supplied side channels". Measured against a real filled workbook: **26,221 of 57,992 authored characters — 45.2% — were dropped.** 73 of 134 rows carried Comments, 60 carried File Location, 58 carried Notes. Eighteen rows had a Status claiming an answer with an empty Response; in seventeen of them the answer was sitting in a discarded column. Only one row was genuinely unanswered.
+
+The dropped content was not metadata. One `[CLOSED]` row's Comments read _"B2B SaaS (retail workforce management + retail execution platform)"_ — the answer to the question. A dossier built the recommended way told the recipient they had never answered questions they had answered. Same class as the 0.49.0 alias defect: confidently wrong output, in front of a partner.
+
+The cause is a workflow the tooling never learned: GST pre-populates research into Comments, source pointers into File Location and caveats into Notes; the recipient confirms by setting Status.
+
+**Second defect, found while fixing the first**: this prompt contained **no xlsx-reading guidance at all**. The model-reconstruction path and the extractor agreed only by coincidence — and the extractor's own comment claiming its omission matched "the shape the model uses in reconstruction" was false; the observed reconstruction captured Comments.
+
+**What changed**: a **workbook column contract** section in every served body (interactive included — its VERIFY block admits `xlsx-reconstruction`), stating:
+
+- all seven columns, with the warning to **trust the data sheet's header row and never the Instructions sheet** — workbooks in the wild predate the current generator and one documents a five-column layout with Response in column D, which a model following it would publish as the recipient's answers;
+- the composition rule: `- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)`, where `<answer>` is **G and E joined into one contiguous unlabelled span**. A labelled separator injects a token into the middle of every citation reading across the boundary and drops the provenance matcher below its contiguous-run floor — the committed counterfactual measures a longest run of **5** against a floor of 8, i.e. a faithful citation marked unverified and a `provenance-gap:` auto-appended to a partner-facing dossier;
+- **Source and Note stay outside the answer slot**, so a row whose only content is a VDR filename renders `— <NO RESPONSE> (Source: …)` and cannot inflate the fill ratio or open an inclusion gate;
+- the fill ratio is counted over the **composed answer span**, explicitly after composition — counting column G alone puts the two paths on different numbers;
+- inclusion gates 2, 4 and 6 now require a **substantive answer** rather than a non-empty row;
+- **citation hygiene as an audit rule**: cite from the answer slot only, never from `(Source:)` or `(Note:)`.
+
+**Known residual, accepted deliberately**: columns D and F are now inside the body the verifier matches against, so a claim citing a VDR path or a note tail **verifies and raises no `provenance-gap:`**. The mechanical fix would teach `validate_irl_provenance` to reject excerpts matching only inside a `(Source: …)` span — coupling a hardened shared matcher to the body format. That coupling is refused; the prompt handles it by directive, and a unit test pins the residual so a future reader meets it deliberately. See [ADR-0015](../src/docs/adr/0015-irl-canonical-body-reads-full-workbook.md).
+
+**Manifest-hash impact**: rebaselined to `f61390ec…6247`. Tool names and Resource URIs are untouched. **All 7 prompt-body hashes drift** — the contract is unconditional by design, so a partial drift signature would mean it failed to reach a served body.
+
+**Rollback**: revert the commit and restore the prior hashes. No data, transport, or schema implications — but note that bodies extracted under 0.49.2 are materially larger than the same workbook under 0.49.1, so a rollback silently narrows what a re-extraction contains.
+
+---
+
+## 0.49.1 — 2026-08-12 — `gst_irl_ingestion` proceeds when it doubts its own invocation (`0.22.1` → `0.22.2`)
+
+**Prompt body change only.** No tool, argument, or Resource URI changes; the manifest hash moves solely on that prompt's `name@version` tuple.
+
+**Who this affects**: anyone running the one-shot IRL ingestion with a real-size body. Nobody's inputs change; the model's behaviour under one specific ambiguity does.
+
+**Why**: BL-119 cycle 5 executed this prompt against a genuine 56,907-byte engagement IRL in Claude Desktop — the first real-size run in any environment. It succeeded (37/37 claims verified, `pass-bound`, `irlSource: partner-paste-verbatim-prepop`), but only after operator intervention. Above some size the client delivers the expanded prompt as an **attached document** rather than conversation turns, so the model concluded it was _reading_ a render rather than _holding_ bound arguments, and stopped to ask whether it should continue.
+
+The instinct is correct — it declined to act on provenance it could not account for. The problem is the recovery it proposed: call `prepare_irl_body` with the body text it can see. That path **completes successfully** and silently downgrades `irlSource` from server-witnessed `partner-paste-verbatim-prepop` to model-asserted `partner-paste-verbatim`. The dossier looks identical and carries a weaker audit grade. An operator who does not know the difference will accept it, and `requireVerbatimBody` will not object because both labels sit inside its accept-set.
+
+So the failure mode is not a broken run. It is **a good model being talked out of the strong path, invisibly.**
+
+**What changed**: a directive telling the model that the attached-document appearance is a client rendering artifact and says nothing about whether the render occurred; that the `**Body-binding hash:**` directive is itself the evidence it did; and that if it wants confirmation it should probe with `validate_irl_provenance` using the hash and no body rather than reconstruct. It falls back to `prepare_irl_body` only on a genuine cache miss, and reports `partner-paste-verbatim` honestly if it does.
+
+This is the same shape as the 0.48.2 radar caveat: behaviour that was correct, known, and written down in no executable surface.
+
+**Manifest-hash impact**: rebaselined to `cbb14874…a1d7`. Tool names and Resource URIs are untouched.
+
+**Rollback**: revert the commit and restore the prior hash; no data, transport, or schema implications.
+
+---
+
+## 0.49.0 — 2026-08-12 — `search_regulations` matches curated aliases
+
+**No tool, prompt, or Resource URI changes.** Ranking behaviour only, plus a `SEARCH_DESCRIPTION` rewrite.
+
+**Who this affects**: anyone who asks `search_regulations` for a framework by its **common short form** rather than its formal title — which is nearly everyone, since formal titles read like "Colorado Artificial Intelligence Act (SB 24-205)" and people write "Colorado AI Act". Also the `/hub/tools/regulatory-map/` page, fixed in the same commit.
+
+**Why**: `scoreQuery` scored free-text against `id`, `name` and `summary` only. It never read `aliases`, and **ten of the twelve aliases in the corpus returned nothing or the wrong record**. The two that worked did so by unrelated accidents rather than by design: `SB 24-205` is the one alias that appears verbatim in its own record's formal title, and `UK GDPR` resolved only because `gb-dpa`'s summary happens to mention it — a 5-point hit, the same mechanism that produced the wrong answers below. Because a summary mention scores 5 and a non-match scores 0, a framework that merely _named_ another one in its prose outranked the framework itself. Measured against the real corpus before the fix:
+
+| query                   | returned                                           |
+| ----------------------- | -------------------------------------------------- |
+| `Colorado AI Act`       | `us-nist-ai-rmf` — wrong answer, and the only one  |
+| `EU AI Act`             | `kr-ai-basic-act` — wrong answer, and the only one |
+| `Australia Privacy Act` | nothing                                            |
+| `NIST AI RMF`           | nothing                                            |
+| `CAIA`                  | nothing                                            |
+
+The Colorado case is the sharp one: a voluntary federal framework carrying no statutory penalties was returned in place of a state statute carrying **$20,000 per violation**, to an agent composing a partner-facing dossier. A confident wrong answer is worse than the `map-absent` gap entry it replaced, because that at least told the partner the framework was missing.
+
+**Why it went unnoticed**: `aliases` was added in BL-073 for `compose_dossier_envelope`, and the field's own docstring names that consumer. A BL-119 cycle-3 fix added the Colorado aliases and tested them against exactly that consumer. Search was a second index against the same data that nobody had wired up, and no test or UAT case covered free-text disambiguation. Found by the BL-119 cycle-4 UAT run, which probed one record five ways.
+
+**What changed**: aliases are folded into the existing **name** bucket, scored as the best match across the record's aliases (not the sum), reusing the same 80/40/20 weights. They compare on **normalized** form via `normalizeFrameworkName` — the semantic their docstring defines — so `SB 24-205`, `SB24205` and en-dash variants all resolve. A normalized query shorter than `HUB_MATCH_MIN_LENGTH` (4, now exported from `compose-dossier-envelope.ts`) skips the alias bucket, because an all-punctuation query normalizes to `''` and would otherwise prefix-match every alias — `query: "-"` legitimately matches all 123 ids and must not be hijacked.
+
+Weights were ratified by a before/after ranking diff over the whole corpus rather than by hand: **15 top-hit changes, every one a resolution of a previously wrong or absent result, and no demotions**. `gdpr` still returns `eu-gdpr` first (`gb-dpa`'s alias is literally "UK GDPR", which is why aliases sit in the name bucket rather than above it), `ccpa` and `privacy act` are unchanged, and punctuation-only queries are unchanged.
+
+**Manifest-hash impact: none.** Tool names, prompt names and Resource URIs are untouched, and aliases have never been hash inputs (see § Current manifest hash).
+
+**Rollback**: revert the commit. No data, transport, or schema implications — the corpus JSON is unchanged and `aliases` was already being served in full via `resources/read`.
+
+---
+
+## 0.48.2 — 2026-08-11 — `gst_radar_brief_today` labels its own provenance (`0.0.4` → `0.0.5`)
+
+**`gst_radar_brief_today` 0.0.4 → 0.0.5.** No tool, Resource URI or input-schema changes; the manifest hash moves solely on that prompt's `name@version` tuple.
+
+**Who this affects**: anyone who forwards a radar brief. The brief is deal-team-facing prose that reads as finished analysis, and every item in it is third-party reporting GST aggregated and annotated — not reporting GST verified. Through 0.0.4 the output carried no framing of that at all, so a partner could paste it into a client email with nothing marking where it came from or that it needs confirming.
+
+**Why it went unnoticed for four versions.** The requirement was real and written down — in the BL-033 risk line, [`OPERATOR_RUNBOOK.md`](../src/docs/development/OPERATOR_RUNBOOK.md), and the `/hub/mcp/` marketing copy on the then-unmerged `feat/mcp-website-marketing` branch, whose parity test asserts the page tells prospects radar content "should not be auto-actioned". It existed in **no** surface that actually emitted the content: not this prompt body, not any of the other eight, not a tool description, and not the recorded golden. The golden encoded the same omission, so every comparison against it agreed. Found by the BL-119 cycle-2 UAT run, which tested the requirement rather than the recorded output.
+
+**What changed**: a Step 7 instructing a one-line provenance caveat after the "Open in Hub" footer — aggregated third-party reporting with GST annotation, not independently verified, confirm against sources before acting or sharing. It is a numbered step rather than a note in the Voice paragraph because the 0.0.4 run followed all seven of its steps faithfully and still emitted nothing: the model does what the numbered steps say.
+
+**Rollback**: revert the commit and restore the prior manifest hash; no data or transport implications.
 
 ## 0.48.1 — 2026-08-08 — worked-example client deidentified as SanFran
 

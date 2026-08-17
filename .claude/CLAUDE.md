@@ -152,6 +152,7 @@ Claude Code's permission matcher evaluates compound commands **per-subcommand** 
 - **Start here for any styling work**: [src/docs/styles/STYLES_GUIDE.md](src/docs/styles/STYLES_GUIDE.md) — the single entry point; it links the token catalog ([VARIABLES_REFERENCE.md](src/docs/styles/VARIABLES_REFERENCE.md)) and brand decisions ([BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md))
 - **Palette system**: alternative color palettes in `src/styles/palettes.css` — applied to `<html>` via class, persisted in localStorage
 - **Delta icon**: Use `DeltaIcon.astro` component (inline SVG with `currentColor`) — never `<img>` tags
+- **Published downstream to claude.ai/design**: the tokens + `.brutal-*` vocabulary are synced to a Claude Design project so the design agent builds on-brand UI — see [CLAUDE_DESIGN_SYNC.md](src/docs/development/CLAUDE_DESIGN_SYNC.md). **Renaming a class or token means re-syncing**; it goes stale silently. Never hand-write React versions of `.astro` components for it
 
 ## 🗂️ Project Structure
 
@@ -200,7 +201,7 @@ npm run dev                    # Dev server (http://localhost:4321)
 npm run build                  # Production build
 npm run test:run               # Website unit + integration (once)
 npm run test:mcp               # MCP server suite (delegates to the workspace)
-npm run test:docs              # Docs guards: link/anchor integrity + VARIABLES_REFERENCE↔variables.css parity (required CI check)
+npm run test:docs              # Docs guards: link/anchor integrity + VARIABLES_REFERENCE↔variables.css parity + design-sync name/ROOTS parity (required CI check)
 npm run test:e2e               # Playwright E2E (only when told — see Directive 5)
 npm run lint / lint:css        # ESLint / stylelint
 npm run setup:claude-hooks     # One-time per machine: arm the review-gate hooks
@@ -298,7 +299,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 - **Doc pointers**: see 📚 Testing & CI/CD above — TEST_STRATEGY for what to write, TEST_BEST_PRACTICES before touching E2E
 - **Unit**: fast, isolated, mocked · **Integration**: real dependencies, isolated data · **E2E**: critical user journeys only
 - **Coverage**: 70% line threshold on the covered scopes (see `vitest.config.ts` / mcp-server config for exact include lists)
-- **Never bump a timeout to fix a failing/flaky test** — diagnose the root cause. Known benign flake: the FIRST mcp-server test run of a day can time out on workerd cold-start; rerun before investigating — but **capture the failing test name before you rerun**, because a green rerun destroys the only evidence. An unreproduced single-test failure (`1 failed | 1973 passed`, BL-106, 2026-08-04) is still open for exactly that reason
+- **Never bump a timeout to fix a failing/flaky test** — diagnose the root cause. Known benign flake: the FIRST mcp-server test run of a day can time out on workerd cold-start; rerun before investigating — but **capture the failing test name before you rerun**, because a green rerun destroys the only evidence — and **redirect the suite to a file rather than piping it through `grep`**, which discards the name a step earlier still. Two unreproduced single-test mcp failures are open for exactly that reason (`1 failed | 1973 passed`, 2026-08-04; `1 failed | 2391 passed`, 2026-08-17, lost to a grep pipe) — see the BL-106 standing caution
 - **Pre-existing test debt is not a free pass** — small failing tests in your touched area get fixed in the current PR, not waved through
 - **Playwright: never set `permissions` at project level** in `playwright.config.ts` — desktop permissions crash mobile device contexts; grant per-test with `context.grantPermissions()` guarded by `browserName`
 
@@ -312,6 +313,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 - **Buttons include frosted-glass** by default (`backdrop-filter: blur(2px)`, semi-transparent backgrounds) — see STYLES_GUIDE.md § Frosted Glass
 - **Responsive design desktop-first** — base styles for desktop, `max-width` breakpoints for smaller screens
 - **Astro `<style>` is scoped by default** — extracting markup into a sibling component silently breaks any class selector targeting it from the source file; restyle in the new component (or use `:global()` deliberately)
+- **Renaming a `.brutal-*` class or a design token? It has a downstream consumer** — the design system is published to claude.ai/design and names classes explicitly, so a rename silently produces unstyled output there. Re-sync per [CLAUDE_DESIGN_SYNC.md](src/docs/development/CLAUDE_DESIGN_SYNC.md)
 
 ## 🚢 Deployment
 

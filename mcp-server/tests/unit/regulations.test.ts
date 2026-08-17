@@ -177,6 +177,107 @@ describe('applyFilters relevance ranking (search_regulations)', () => {
   });
 });
 
+describe('applyFilters — curated aliases (BL-119 cycle 4 / 2026-08-12)', () => {
+  // Background: `aliases` was added in BL-073 for `findMatchedHubFramework`
+  // and was read by NOTHING else. `scoreQuery` scored id/name/summary only, so
+  // every alias in the corpus was unreachable through search. Because a summary
+  // mention is worth 5 and a non-matching record scores 0, a framework that
+  // merely NAMED another one in its prose outranked the framework itself:
+  // UAT cycle 4 found "Colorado AI Act" returning `us-nist-ai-rmf` — a
+  // voluntary federal framework with no statutory penalties — in place of a
+  // Colorado statute carrying $20,000 per violation.
+  //
+  // Each assertion below is bound to the verified pre-fix behaviour, so none of
+  // them passes with the alias term removed from `scoreQuery`.
+
+  it('resolves "Colorado AI Act" to the statute, not the framework that mentions it', () => {
+    // Before: `us-nist-ai-rmf` at 5, the sole match.
+    const results = applyFilters({ query: 'Colorado AI Act', limit: 10 });
+    expect(results[0].data.id).toBe('us-co-ai-act');
+  });
+
+  it('resolves the partial "Colorado AI" to the statute', () => {
+    // Before: `us-nist-ai-rmf` at 5, the sole match.
+    const results = applyFilters({ query: 'Colorado AI', limit: 10 });
+    expect(results[0].data.id).toBe('us-co-ai-act');
+  });
+
+  it('finds the statute when scoped to its own jurisdiction', () => {
+    // The decisive isolation from cycle 4: scoped to `us-co`, the exact phrase
+    // matched NOTHING before the fix, proving the alias was not in the index
+    // rather than merely outranked.
+    const results = applyFilters({
+      query: 'Colorado AI Act',
+      jurisdiction: ['us-co'],
+      limit: 10,
+    });
+    expect(results.map((r) => r.data.id)).toEqual(['us-co-ai-act']);
+  });
+
+  it('resolves "EU AI Act" to eu-ai-act, not the Korean framework that mentions it', () => {
+    // The second live instance of the same shape — before: `kr-ai-basic-act`
+    // at 5, the sole match. The EU record's canonical name is "EU Artificial
+    // Intelligence Act (Regulation 2024/1689)", which the query never matched.
+    const results = applyFilters({ query: 'EU AI Act', limit: 10 });
+    expect(results[0].data.id).toBe('eu-ai-act');
+  });
+
+  it('makes frameworks reachable that returned nothing at all', () => {
+    // Before: both queries returned zero results.
+    expect(applyFilters({ query: 'Australia Privacy Act', limit: 10 })[0].data.id).toBe(
+      'au-privacy-act'
+    );
+    expect(applyFilters({ query: 'NIST AI RMF', limit: 10 })[0].data.id).toBe('us-nist-ai-rmf');
+  });
+
+  it('resolves the acronym "CAIA" — the min-length boundary value', () => {
+    // Normalizes to exactly 4 characters, the same length as the floor, so
+    // tightening the guard to require 5 normalized characters silently
+    // un-fixes this. Before: zero results.
+    const results = applyFilters({ query: 'CAIA', limit: 10 });
+    expect(results[0].data.id).toBe('us-co-ai-act');
+  });
+
+  it('ranks gb-dpa second for "gdpr" without displacing eu-gdpr', () => {
+    // The alias here is literally "UK GDPR", which is why the alias bucket sits
+    // at or below the name weights rather than above them. Before the fix
+    // `gb-dpa` scored 5 on a summary mention, tied with nine other records and
+    // ordered by filename — it was not second.
+    const results = applyFilters({ query: 'gdpr', limit: 10 });
+    expect(results[0].data.id).toBe('eu-gdpr');
+    expect(results[1].data.id).toBe('gb-dpa');
+  });
+
+  it('leaves punctuation-only queries untouched', () => {
+    // Normalization strips non-alphanumerics, so these normalize to '' and
+    // would `startsWith`-match every alias without the length floor. `"-"`
+    // legitimately matches every record today (all ids contain a hyphen); the
+    // five alias-bearing records must not be hoisted above the rest.
+    expect(applyFilters({ query: '???', limit: 10 })).toEqual([]);
+
+    const hyphen = applyFilters({ query: '-', limit: 200 });
+    expect(hyphen.length).toBe(REGULATION_ENTRIES.length);
+    expect(hyphen[0].data.id).toBe('ae-pdpl');
+  });
+
+  it('pins the length floor from BELOW — a 3-character query does not alias-match', () => {
+    // BL-119 cycle 5, Gap X. Every other assertion here pins the floor from
+    // ABOVE: `CAIA` and `gdpr` both normalize to exactly 4, so TIGHTENING the
+    // floor breaks them loudly. Nothing pinned it from below — LOOSENING it
+    // from 4 to 3 would widen alias matching across the whole corpus and every
+    // existing test would still pass, because a looser floor only ever adds
+    // matches.
+    //
+    // `cai` is the probe: three normalized characters, and a strict prefix of
+    // the normalized alias `caia`. At the current floor it reaches no bucket at
+    // all and the corpus returns nothing. At a floor of 3 it would prefix-match
+    // that alias and surface the Colorado record. So the pair below brackets
+    // the constant exactly — `cai` empty, `caia` resolving.
+    expect(applyFilters({ query: 'cai', limit: 10 })).toEqual([]);
+    expect(applyFilters({ query: 'caia', limit: 10 })[0].data.id).toBe('us-co-ai-act');
+  });
+});
+
 describe('RegulationSearchInputSchema (tool input contract)', () => {
   it('parses an empty input (defaults applied)', () => {
     const result = RegulationSearchInputSchema.safeParse({});

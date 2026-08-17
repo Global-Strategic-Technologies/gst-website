@@ -7,11 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  emitForceToolsUsed,
-  emitGateElided,
-  emitWrongIrlDetected,
-} from '../../../src/metrics/irl-ingestion-events';
+import { emitGateElided, emitWrongIrlDetected } from '../../../src/metrics/irl-ingestion-events';
 import type { MetricsContext } from '../../../src/metrics/with-metrics';
 import type { MetricEvent } from '../../../src/metrics/_schema';
 
@@ -34,44 +30,11 @@ function makeCtx(): { ctx: MetricsContext; sink: Sink } {
   return { ctx, sink };
 }
 
-describe('emitForceToolsUsed', () => {
-  let ctx: MetricsContext;
-  let sink: Sink;
-  beforeEach(() => {
-    ({ ctx, sink } = makeCtx());
-  });
-
-  it('emits one event when forceTools is non-empty', () => {
-    emitForceToolsUsed(ctx, ['compute_techpar', 'search_radar']);
-    expect(sink.events).toHaveLength(1);
-    expect(sink.events[0]).toMatchObject({
-      event_type: 'force_tools_used',
-      name: 'gst_irl_ingestion',
-      keyOwner: 'RP',
-      outcome: 'applied',
-    });
-  });
-
-  it('emits nothing when forceTools is undefined', () => {
-    emitForceToolsUsed(ctx, undefined);
-    expect(sink.events).toHaveLength(0);
-  });
-
-  it('emits nothing when forceTools is an empty array', () => {
-    emitForceToolsUsed(ctx, []);
-    expect(sink.events).toHaveLength(0);
-  });
-
-  it('emits exactly one event regardless of array length (counter semantics)', () => {
-    emitForceToolsUsed(ctx, [
-      'compute_techpar',
-      'estimate_tech_debt_cost',
-      'assess_infrastructure_cost_governance',
-    ]);
-    expect(sink.events).toHaveLength(1);
-  });
-});
-
+// NOTE: `emitWrongIrlDetected` and `emitGateElided` have no call site in `src`
+// outside their own module — they are pre-wired for the client-correlation path
+// recorded in `_schema.ts`. This file is their ONLY exercise; do not delete it
+// alongside a removed emitter. (`emitForceToolsUsed` went with the inert
+// `forceTools` arg under BL-122.)
 describe('emitWrongIrlDetected', () => {
   let ctx: MetricsContext;
   let sink: Sink;

@@ -142,6 +142,15 @@ The `/hub/radar` page surfaces a single filter (the `category` pill row in [`src
 { category?: 'pe-ma' | 'enterprise-tech' | 'ai-automation' | 'security' }
 ```
 
+**Response size — the unfiltered call is the largest thing this tool emits, and `category` is the only lever.** Two independent measurements, and the difference between them matters:
+
+- **Modelled worst case**: [`tests/integration/tool-response-budget.test.ts`](../../../../tests/integration/tool-response-budget.test.ts) exercises a **production-width fixture** (not the live feed) at **114,815 B across 45 items (~2,551 B per item)**, rising to **258,505 B** if the HTML stripping were reverted. This is the number to plan against, because it reflects a full Wire tier.
+- **Observed live**: BL-119 cycle 4 (2026-08-12, production `0.48.2`) returned **61.4 KB across 32 items** — Wire at its 30-item cap plus only 2 annotated FYI items. Live responses track the FYI tier's editorial supply, so they sit below the modelled figure whenever curation is thin.
+
+For scale, BL-109 originated in a `search_radar` response of **143,027 characters** that exceeded a real client's tool-result ceiling — so the modelled case sits within a factor of 1.25 of a known breaking point. A client with a tighter ceiling may truncate or persist the result rather than render it inline, which is what the cycle-4 tester's client did.
+
+There is **no `limit` input to narrow with** — see item 4 of the deliberately-not-offered list above for why the capability mirror supplies none. Pass `category` when the caller's intent is category-scoped, and prefer `get_latest_insights` when only the annotated tier is wanted. The bound is not a defect to report; it is the current envelope, recorded so it is visible rather than assumed.
+
 **`search_radar` response shape**:
 
 ```typescript

@@ -1,5 +1,16 @@
 # MCP Server — Testing
 
+This directory covers two bands of testing, which answer different questions:
+
+- **Automated** — the Vitest suite, described by the rest of this file. Proves the _code_ is correct, on every push, with no human involved.
+- **Human acceptance** — [`uat/README.md`](uat/README.md). Proves the _deployed server_ does what it claims, from a real client, with a person driving it and recording a verdict against a build. Start at [`uat/SETUP.md`](uat/SETUP.md).
+
+The two do not overlap. A green Vitest run says the handlers behave; it says nothing about whether a connected Claude client can obtain a credential, reach the Worker, and get a usable answer. That is what the UAT suite is for.
+
+---
+
+## Automated suite
+
 Vitest suite for the `@gst/mcp-server` workspace. Proves engine parity and schema integrity for the tools exposed over the MCP transports — **17 tools** as of 0.47.0 (15 on the Worker, plus `search_radar_offline` and `search_radar_cache` registered only on stdio). `protocol-roundtrip.test.ts` holds the authoritative name list; this line named three of them and had done so for many releases (corrected under BL-112).
 
 Two suites are worth knowing about before adding a tool, because both fail when a new tool ignores them:
@@ -136,3 +147,5 @@ The integration suite covers three bands:
 - **Contract guards** — manifest-hash stability and CONTRACT.md/USAGE.md parity, which fail on registry drift rather than on behaviour.
 
 There is still no browser E2E here; the website workspace owns that (Playwright), and this package has no browser surface.
+
+Human verification of the deployed surface lives in [`uat/`](uat/README.md) — outside the Vitest suite by nature, since it exercises a real client against production rather than code in a runner.

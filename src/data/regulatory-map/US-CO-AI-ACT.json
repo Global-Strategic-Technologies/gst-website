@@ -1,6 +1,7 @@
 {
   "id": "us-co-ai-act",
   "name": "Colorado Artificial Intelligence Act (SB 24-205)",
+  "aliases": ["Colorado AI Act", "CAIA", "SB 24-205"],
   "regions": [
     "US-CO"
   ],

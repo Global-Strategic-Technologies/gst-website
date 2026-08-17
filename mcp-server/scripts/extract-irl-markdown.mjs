@@ -37,24 +37,51 @@
  * This script is the **local-operator equivalent**: same conceptual
  * conversion, runs on the operator host where the xlsx already lives.
  *
- * **Output shape**: matches the structure the `gst_irl_ingestion` prompt's
- * body-rendering code expects when `filledIrl` is supplied, and the shape
- * the model emits today in `model-reconstruction-from-xlsx` mode:
+ * **Output shape** — the canonical body. The `gst_irl_ingestion` prompt
+ * instructs the model to produce this same shape when reconstructing from
+ * an attached xlsx, so the two paths agree by instruction rather than by
+ * coincidence (BL-120; before that the prompt said nothing about columns
+ * at all):
  *
  *   # Information Request List — <Target> (filled)
  *
- *   - 0-01 <Request> [<Status>] — <Response>
- *   - 0-02 <Request> [<Status>] — <Response>
- *   ...
- *   - 10-NN <Request> [<Status>] — <Response>
+ *   - <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)
  *
- * Status values are passed through verbatim (`OPEN` / `PARTIAL` / `CLOSED`).
- * Rows whose Response cell is empty emit `— <NO RESPONSE>` so the model
- * (and gap-list emitter) can distinguish "asked but unanswered" from
- * "not asked." Section header rows and section intros are intentionally
- * omitted from the bullet stream — they're rendered as comments at the
- * top so the operator can sanity-check the workbook's section coverage
- * without affecting the canonical body bytes.
+ * `<answer>` is column G and column E joined into ONE contiguous span, G
+ * first. The join is always a single space, plus a period unless G already
+ * ends in `.` `?` `!` `:` `;` `,` `…` or a dash once closing brackets and
+ * quotes are peeled off — see {@link joinAnswerSpan} for why the rule is
+ * phrased that way round, and keep it in step with the prompt's
+ * `WORKBOOK_COLUMN_CONTRACT`, which states the same rule to the model.
+ *
+ * Why one unlabelled span and not a labelled separator: `validate_irl_provenance`
+ * matches citation excerpts against this body by normalized substring, falling
+ * back to an 8-word contiguous run. A label between the two halves injects a
+ * token into the middle of every cross-boundary citation, splitting it into two
+ * runs that are each shorter than the floor — 5 and 3 in the counterfactual
+ * pinned at `tests/unit/schemas/validate-irl-provenance.test.ts` — i.e.
+ * UNVERIFIED, which auto-appends `provenance-gap:` to a partner-facing dossier
+ * over a citation that was perfectly faithful. Cross-boundary citations are the
+ * expected shape once answers live partly in each column, so the separator has
+ * to vanish under normalization. A period does; a label does not.
+ *
+ * Source/Note stay OUTSIDE the answer slot for a different reason: the
+ * prompt's pre-flight HALTs a run below 15% substantively-answered rows, and
+ * several inclusion gates test the same predicate. A row whose only content
+ * is a VDR filename must not read as answered, so it renders
+ * `— <NO RESPONSE> (Source: …)`. See `src/docs/adr/0015-irl-canonical-body-reads-full-workbook.md`.
+ *
+ * Status values pass through verbatim (`OPEN` / `PARTIAL` / `CLOSED`).
+ * `<NO RESPONSE>` is a human-readable marker for "asked but unanswered" —
+ * no server code parses it, and it does NOT become a (J) gap entry (see
+ * `mcp-server/src/docs/testing/uat/UAT-07-irl-pipeline.md`). The fill ratio
+ * is what accounts for unanswered rows. Section header rows and section
+ * intros are omitted from the bullet stream entirely.
+ *
+ * Cells are trimmed, so there is no trailing-newline join artifact — but
+ * newlines INSIDE a cell survive, so a multi-line Comments value can push
+ * `(Source: …)` onto its own visual line, detached from its bullet. That was
+ * always true of column G; it is now reachable from three more columns.
  *
  * **Usage**:
  *
@@ -91,6 +118,62 @@ import XLSX from 'xlsx-js-style';
 const PRIMARY_SHEET_NAME = 'Information Request List';
 
 /**
+ * Join the Response and Comments cells into one contiguous answer span.
+ *
+ * Both are answers (BL-120): GST pre-populates research into Comments and the
+ * recipient confirms via Status, so neither is labelled — a label between them
+ * would inject a token into the middle of every cross-boundary citation and
+ * push the fuzzy matcher below its 8-word floor.
+ *
+ * The separator is always a single space. A period is added unless the Response
+ * ALREADY ends in punctuation that terminates or continues the clause —
+ * `. ? ! : ; , …` or a dash — after any closing brackets and quotes have been
+ * peeled off. Two rules fall out of that one test: a Response already ending in
+ * terminal punctuation gets no second terminator, and one ending in a comma
+ * yields `foo, bar` rather than `foo,. bar`.
+ *
+ * The ellipsis and the trailing dash are in that set because a real workbook
+ * put them there: an author who ends a cell `ADRs, BDRs, Designs, APIs, AC, …`
+ * or on a trailing em-dash has left the clause deliberately open, and `….` is
+ * not an improvement. Both were handled correctly by accident under the earlier
+ * inverse phrasing, which is precisely why the replacement had to name them.
+ *
+ * Stated as "unless already terminated" rather than the inverse ("when it ends
+ * in a letter, digit or closing bracket"), because the inverse silently omits
+ * the period after everything else a real cell ends in — `14%`, `$4.15M +`,
+ * a trailing unit or symbol — and it cannot see through a closing quote, so
+ * `"we ship weekly,"` produced exactly the `,".` artifact the comma rule exists
+ * to prevent. Curly quotes matter here specifically: Excel autocorrects `"` to
+ * `“ ”` by default, so quoted Responses arrive curly far more often than
+ * straight, and an ASCII-only quote class would miss the common case.
+ *
+ * Known cosmetic edge, accepted rather than special-cased: peeling the closing
+ * quote means `…this."` is correctly read as already terminated, but
+ * `…the rating engine”` — quoted content that does NOT terminate — gains its
+ * period AFTER the closing quote rather than inside it. Placing it inside needs
+ * a parser this does not want, and the normalizer flattens quotes and periods
+ * alike, so nothing downstream sees either.
+ *
+ * Whatever this rule becomes, it must be swept into `WORKBOOK_COLUMN_CONTRACT`
+ * in `src/prompts/irl-ingestion.ts` in the same commit. The two paths agreeing
+ * on these bytes is the acceptance property of BL-120, and no test asserts that
+ * prose — a code review caught it drifting once already.
+ *
+ * @param {string} response Column G, already trimmed.
+ * @param {string} comments Column E, already trimmed.
+ * @returns {string} The answer span; empty when both inputs are empty.
+ */
+function joinAnswerSpan(response, comments) {
+  if (!response) return comments;
+  if (!comments) return response;
+  // Peel trailing closers so the test sees the character that actually ends the
+  // clause. `”`/`’` are the curly double/single closers.
+  const core = response.replace(/[)\]}"'”’]+$/u, '');
+  const needsPeriod = core.length > 0 && !/[.?!:;,…—–-]$/u.test(core);
+  return `${response}${needsPeriod ? '.' : ''} ${comments}`;
+}
+
+/**
  * Convert a parsed worksheet (row-major array-of-arrays) into the canonical
  * IRL markdown body shape.
  *
@@ -101,7 +184,8 @@ const PRIMARY_SHEET_NAME = 'Information Request List';
  * @param {Array<Array<string | number>>} rows Row-major sheet contents.
  *   Pulled via `XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })`.
  * @param {{ targetName?: string }} [opts]
- * @returns {{ markdown: string, bulletCount: number, sectionsSeen: string[] }}
+ * @returns {{ markdown: string, bulletCount: number, sectionsSeen: string[],
+ *   statusContradictions: string[], commentsSourcedAnswers: string[] }}
  */
 export function extractIrlMarkdownFromRows(rows, opts = {}) {
   // Metadata captured from header rows (col A = label, col B = value).
@@ -111,27 +195,30 @@ export function extractIrlMarkdownFromRows(rows, opts = {}) {
     generated: undefined,
     canonicalReference: undefined,
   };
-  // Track the previous bullet's `Notes` column (col F) so we can append it
-  // to the prior bullet's Response cleanly when the partner left a Notes
-  // annotation. (Generator-generated workbooks don't pre-fill Notes; the
-  // recipient fills them. The model's model-reconstruction output today
-  // ignores Notes, so we match that — Notes stays out of the canonical
-  // body. Keeping this hook documented so a future revision can add a
-  // `--include-notes` flag without restructuring.)
 
   const bullets = [];
   const sectionsSeen = [];
+  /** Refs whose Status claims an answer but every content column is empty. */
+  const statusContradictions = [];
+  /** Refs whose answer came from Comments alone (G empty, E populated). */
+  const commentsSourcedAnswers = [];
 
   // Column layout (generated by `buildPrimarySheet` in
   // `src/utils/irl/generate-xlsx.ts`):
   //   A Reference | B Request | C Status | D File Location |
   //   E Comments | F Notes    | G Response
-  // We need A (for the reference + section detection), B (request text),
-  // C (status), and G (response). D/E/F are partner-supplied side channels
-  // the canonical body omits — same shape the model uses in reconstruction.
+  //
+  // BL-120: all seven are read. D/E/F were previously discarded as "partner-
+  // supplied side channels", which cost 45.2% of the authored content on the
+  // first real workbook measured — 17 rows whose Status said CLOSED/PARTIAL
+  // had their answer sitting in Comments while the body said <NO RESPONSE>.
+  // GST pre-populates research into E, sources into D and caveats into F; the
+  // recipient confirms by setting Status. The old comment here claimed the
+  // omission matched "the shape the model uses in reconstruction" — that was
+  // never verified and is false: the observed reconstruction captured Comments.
   for (const row of rows) {
     const cells = row.map((c) => String(c ?? '').trim());
-    const [a, b, c, , , , g] = cells;
+    const [a, b, c, d, e, f, g] = cells;
 
     if (!a && !b) continue; // blank separator row
 
@@ -179,11 +266,26 @@ export function extractIrlMarkdownFromRows(rows, opts = {}) {
       // tag so the canonical body's `[<status>]` shape stays consistent
       // for the model's downstream parsing.
       const status = c || 'OPEN';
-      // Empty response → explicit sentinel so the model's gap-extractor
-      // can flag the row instead of silently dropping it. The model in
-      // reconstruction mode does the same thing.
-      const responseFragment = g ? ` — ${g}` : ' — <NO RESPONSE>';
-      bullets.push(`- ${a} ${b} [${status}]${responseFragment}`);
+
+      // The answer slot: Response and Comments as ONE contiguous span, so a
+      // citation reading across the boundary still normalizes to a substring
+      // of the body. See the module docstring for why a labelled separator
+      // cannot be used here.
+      const answer = joinAnswerSpan(g, e);
+
+      // Source/Note deliberately sit OUTSIDE the answer slot: a row carrying
+      // only a filename must not read as answered, or it inflates the
+      // fill ratio and satisfies the bare-non-emptiness inclusion gates.
+      const suffix = `${d ? ` (Source: ${d})` : ''}${f ? ` (Note: ${f})` : ''}`;
+
+      bullets.push(`- ${a} ${b} [${status}] — ${answer || '<NO RESPONSE>'}${suffix}`);
+
+      // Two operator-facing signals, returned rather than printed so they are
+      // testable without spying on stderr.
+      if (!answer && !d && !f && (status === 'CLOSED' || status === 'PARTIAL')) {
+        statusContradictions.push(a);
+      }
+      if (!g && e) commentsSourcedAnswers.push(a);
     }
     // Anything else (section intros, stray free-text rows) is intentionally
     // ignored. The canonical body the model produces in reconstruction mode
@@ -193,7 +295,7 @@ export function extractIrlMarkdownFromRows(rows, opts = {}) {
   // Compose the final markdown. Mirror the head shape the model emits in
   // model-reconstruction mode (single H1 title with "(filled)" tag), so the
   // server's `# Information Request List — ...` substring match in the
-  // BL-045-VERIFY fingerprint capture lines up cleanly across both paths.
+  // RUN-AUDIT fingerprint capture lines up cleanly across both paths.
   const titleTarget = metadata.target || 'IRL';
   const title = `# Information Request List — ${titleTarget} (filled)`;
 
@@ -219,6 +321,8 @@ export function extractIrlMarkdownFromRows(rows, opts = {}) {
     markdown: parts.join('\n'),
     bulletCount: bullets.length,
     sectionsSeen,
+    statusContradictions,
+    commentsSourcedAnswers,
   };
 }
 
@@ -316,10 +420,12 @@ function runCli() {
     );
     process.exit(1);
   }
+  const byteLength = Buffer.byteLength(result.markdown, 'utf8');
+
   if (opts.out) {
     writeFileSync(opts.out, result.markdown, 'utf8');
     process.stderr.write(
-      `Wrote ${Buffer.byteLength(result.markdown, 'utf8')} bytes ` +
+      `Wrote ${byteLength} bytes ` +
         `(${result.bulletCount} bullets across sections [${result.sectionsSeen.join(', ')}]) ` +
         `to ${opts.out}\n`
     );
@@ -327,6 +433,38 @@ function runCli() {
     process.stdout.write(result.markdown);
     process.stderr.write(
       `Extracted ${result.bulletCount} bullets across sections [${result.sectionsSeen.join(', ')}]\n`
+    );
+  }
+
+  // Operator signals. Deliberately NOT failures — every one of these is a
+  // legitimate state that the operator, and only the operator, can resolve
+  // by opening the workbook.
+  if (result.commentsSourcedAnswers.length) {
+    process.stderr.write(
+      `\nNote: ${result.commentsSourcedAnswers.length} row(s) took their answer from Comments ` +
+        `because Response was empty: ${result.commentsSourcedAnswers.join(', ')}\n` +
+        `  Comments is read as an answer. In workbooks filled before BL-120 the Instructions\n` +
+        `  invited caveats there too, so skim these rows in the xlsx before the body is used\n` +
+        `  for a client-facing deliverable — the two are indistinguishable once extracted.\n`
+    );
+  }
+  if (result.statusContradictions.length) {
+    process.stderr.write(
+      `\nWarning: ${result.statusContradictions.length} row(s) claim a Status of CLOSED/PARTIAL ` +
+        `but every content column is empty: ${result.statusContradictions.join(', ')}\n` +
+        `  These render as <NO RESPONSE>. Either the answer never landed, or it is somewhere\n` +
+        `  this script does not read.\n`
+    );
+  }
+  // Scoped strictly to the one thing that actually breaks. Nothing fails
+  // server-side here (the body cache accepts 200KB) and the supported
+  // Desktop → prompt-arg → prepop path never emits the body, so a general
+  // "large body" warning would fire on essentially every real workbook and
+  // contradict the runbook's own "5-150KB is typical".
+  if (byteLength > 57_000) {
+    process.stderr.write(
+      `\nNote: ${byteLength} bytes exceeds ~57KB. claude.ai web refuses a prompt argument this\n` +
+        `  size outright — use Claude Desktop for the paste. Nothing else is affected.\n`
     );
   }
 }

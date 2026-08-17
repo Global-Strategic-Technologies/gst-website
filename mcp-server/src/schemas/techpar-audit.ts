@@ -184,15 +184,28 @@ export const TechParAuditMetadataSchema = z
     infraPersonnel: monetaryFieldAuditSchema,
     rdOpEx: monetaryFieldAuditSchema,
     rdCapEx: monetaryFieldAuditSchema,
+    // These three describe strings state the OPPOSITE requiredness of the
+    // top-level `engCost`/`prodCost`/`toolingCost` inputs, which are plain
+    // required numbers (see `src/schemas/techpar.ts`). That is correct and
+    // deliberate — but read out of context it looks like a contradiction, and
+    // in BL-119 cycle 4 a tester read these strings as applying to the
+    // top-level fields and filed the mismatch as a documentation defect. Each
+    // one now names the field it governs.
     engCost: monetaryFieldAuditSchema
       .optional()
-      .describe('Required when mode = "deepdive". Omit for "quick" mode.'),
+      .describe(
+        'Audit provenance for `_audit.engCost` — NOT the top-level `engCost` input, which is required in both modes. Required when mode = "deepdive". Omit for "quick" mode, which rejects it.'
+      ),
     prodCost: monetaryFieldAuditSchema
       .optional()
-      .describe('Required when mode = "deepdive". Omit for "quick" mode.'),
+      .describe(
+        'Audit provenance for `_audit.prodCost` — NOT the top-level `prodCost` input, which is required in both modes. Required when mode = "deepdive". Omit for "quick" mode, which rejects it.'
+      ),
     toolingCost: monetaryFieldAuditSchema
       .optional()
-      .describe('Required when mode = "deepdive". Omit for "quick" mode.'),
+      .describe(
+        'Audit provenance for `_audit.toolingCost` — NOT the top-level `toolingCost` input, which is required in both modes. Required when mode = "deepdive". Omit for "quick" mode, which rejects it.'
+      ),
   })
   .describe(
     'Calibration audit metadata for compute_techpar. Enforces currency-basis declaration + per-monetary-field annualization provenance.'

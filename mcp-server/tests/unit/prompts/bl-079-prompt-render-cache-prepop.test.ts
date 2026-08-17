@@ -18,6 +18,7 @@ import { describe, it, expect } from 'vitest';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { registerPrompts } from '../../../src/prompts/_registry';
 import { InMemoryIrlBodyCache } from '../../../src/cache/irl-body-cache';
+import { InMemoryIrlBodyProvenanceStore } from '../../../src/cache/irl-body-provenance';
 import { computeIrlBodyHash } from '../../../src/schemas/compose-dossier-envelope';
 import type { MetricsContext } from '../../../src/metrics/_index';
 
@@ -152,5 +153,77 @@ describe('BL-079 Part B — prompt body substring assertions', () => {
     expect(text).not.toContain('SKIP `prepare_irl_body`');
     // L1: no mode-conditional prose either.
     expect(text).not.toContain('if a `**Body-binding hash:**`');
+  });
+});
+
+/**
+ * BL-123 — the registry's own two obligations, exercised THROUGH `registerPrompts`.
+ *
+ * The BL-123 suite calls `handlePrepareIrlBodyTool` directly, which cannot see
+ * either of these: whether the registry passes `'prompt-render'` at all, and
+ * whether it declines to cache a body the render has just refused. This is also
+ * the one enforcement point that swallows its failures into a non-fatal
+ * `safeLog` by design, so nothing else would surface a regression here.
+ */
+describe('BL-123 — the registry seam', () => {
+  const flatten = (body: string): string => body.replace(/\n/g, ' ').trim();
+
+  /**
+   * `SAMPLE_FILLED_IRL` above is ~1.1KB — deliberately below the detector's
+   * 2KB floor, so flattening it is NOT a refusal case. A realistic IRL is tens
+   * of kilobytes; this one is sized like one so the halt path is reachable.
+   */
+  const LARGE_FILLED_IRL = SAMPLE_FILLED_IRL.repeat(3);
+
+  function build() {
+    const cache = new InMemoryIrlBodyCache();
+    const provenance = new InMemoryIrlBodyProvenanceStore();
+    const metrics: MetricsContext = {
+      sink: { write: () => undefined },
+      irlBodyCache: cache,
+      irlBodyProvenance: provenance,
+    };
+    const { server, registeredPrompts } = makeMockServer();
+    registerPrompts(server, metrics);
+    const prompt = registeredPrompts.find((p) => p.name === 'gst_irl_ingestion');
+    if (!prompt) throw new Error('gst_irl_ingestion not registered');
+    return { prompt, cache, provenance };
+  }
+
+  it('mints provenance as `prompt-render`, not the handler default', async () => {
+    // The strong provenance form exists only if the RENDER wrote the body. If
+    // the registry stopped passing the argument, the handler's `prepare-tool`
+    // default would take over and every honest prepop run would silently cap
+    // itself down — a regression with no other visible symptom.
+    const { prompt, provenance } = build();
+    await prompt.build({ filledIrl: SAMPLE_FILLED_IRL });
+
+    const record = await provenance.read(computeIrlBodyHash(SAMPLE_FILLED_IRL));
+    expect(record?.mintedBy).toBe('prompt-render');
+  });
+
+  it('prepops a flattened body like any other (BL-124 — the skip was withdrawn)', async () => {
+    // BL-123 skipped the prepop for these and rendered a halt. Both are gone:
+    // the body is cached, minted `prompt-render`, and keeps the strongest
+    // provenance grade — which is what makes the paste path work again.
+    const { prompt, cache, provenance } = build();
+    const flattened = flatten(LARGE_FILLED_IRL);
+    await prompt.build({ filledIrl: flattened });
+
+    expect(await cache.get(computeIrlBodyHash(flattened))).toBe(flattened);
+    expect(cache.size()).toBe(1);
+    const record = await provenance.read(computeIrlBodyHash(flattened));
+    expect(record?.mintedBy).toBe('prompt-render');
+    expect(record?.newlineCount).toBe(0);
+  });
+
+  it('renders the normal sweep for a flattened body, not a halt', async () => {
+    const { prompt } = build();
+    const result = (await prompt.build({ filledIrl: flatten(LARGE_FILLED_IRL) })) as {
+      messages: Array<{ content: { type: string; text?: string } }>;
+    };
+    expect(result.messages.length).toBe(2);
+    expect(result.messages[0].content.text).toContain('Sweep plan');
+    expect(result.messages[0].content.text).not.toContain('halted before extraction');
   });
 });

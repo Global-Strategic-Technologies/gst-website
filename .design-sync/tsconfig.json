@@ -1,0 +1,24 @@
+{
+  // Type-checks the authored specimen sources. The root tsconfig's `**/*`
+  // include never descends into dot-directories, so `astro check` does not see
+  // these files; this config is what `tests/integration/design-sync-guards.test.ts`
+  // runs (`tsc -p .design-sync --noEmit`). React types come from the repo's
+  // `@types/react` devDependency — the runtime React the bundle needs still
+  // lives only in `.ds-sync/node_modules` (see NOTES.md).
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": [],
+    // The previews import the bundle by package name (`from 'gst-website'`),
+    // which the converter resolves to the extraEntries bundle at build time.
+    // For type-checking, point it at the same source.
+    "baseUrl": ".",
+    "paths": { "gst-website": ["specimens/index.tsx"] }
+  },
+  "include": ["specimens/**/*.tsx", "previews/**/*.tsx"]
+}

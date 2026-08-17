@@ -2320,6 +2320,7 @@ export const REGULATIONS: ReadonlyArray<{ readonly file: string; readonly data: 
     data: {
       id: 'us-co-ai-act',
       name: 'Colorado Artificial Intelligence Act (SB 24-205)',
+      aliases: ['Colorado AI Act', 'CAIA', 'SB 24-205'],
       regions: ['US-CO'],
       effectiveDate: '2026-06-30',
       summary:

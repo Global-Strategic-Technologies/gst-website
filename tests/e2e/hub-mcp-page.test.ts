@@ -149,7 +149,17 @@ test.describe('MCP Server page', () => {
   });
 
   test('links the status page and no developer-docs subdomain', async ({ page }) => {
-    await expect(page.locator('a[href*="status.mcp.globalstrategic.tech"]')).toBeVisible();
+    // The page carries the status link twice on purpose — the endpoint row at the
+    // top and the "How access works" bullet — so this asserts "at least one
+    // renders" rather than a single element. A bare `toBeVisible()` here was a
+    // strict-mode violation once the second link landed, and pinning an exact
+    // count would just break on the next copy edit.
+    const statusLinks = page.locator('a[href*="status.mcp.globalstrategic.tech"]');
+    expect(await statusLinks.count()).toBeGreaterThan(0);
+    await expect(statusLinks.first()).toBeVisible();
+
+    // The real guardrail: the docs subdomain does not exist, so it must never
+    // be linked from here.
     await expect(page.locator('a[href*="docs.mcp.globalstrategic.tech"]')).toHaveCount(0);
   });
 

@@ -37,7 +37,7 @@ One-time cleanup after the deactivation deploy, in the decommission-runbook shap
 
 - The execute run reports 0 remaining `seqof` keys and prints all three `mcp:audit:chain-tip:{dev,staging,production}` keys (survival proof). **Production must be present**; `dev` and `staging` may legitimately show "(absent)" — the 2026-08-08 purge observed that staging never committed a single audit batch (every ledger key was production traffic), so there is no staging chain to resume.
 - Upstash console (gst-mcp DB) storage drops by roughly the dry-run's reported KB.
-- `/status` shows the "Pipeline deactivated 2026-08-08 — ADR-0014" annotation; "Batches processed (24h)" decays to 0; the chain-tip `lastSeq` retains its historical value.
+- `/status` **omits the audit panel entirely** (BL-122). It is gated on `env.AUDIT_QUEUE` being unbound — the same signal the producer gate uses — so a deactivated pipeline is not advertised with a 1970-01-01 last-processed timestamp and zeroed 24h counters. The chain-tip `lastSeq` is still retained in Upstash; it is simply not rendered while the pipeline is off. **On re-enable the panel returns by itself, with no code change** — binding `AUDIT_QUEUE` is sufficient.
 
 **Retained resources — do not garbage-collect**: `audit-log-{dev,staging,production}` + `audit-log-dlq-*` queues (idle queues cost nothing; the re-enable deploy fails without them), the `gst-mcp-audit-*` R2 buckets (immutable history under Bucket Lock), and the chain-tip keys.
 

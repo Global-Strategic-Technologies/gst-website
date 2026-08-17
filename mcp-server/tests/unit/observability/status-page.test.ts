@@ -103,7 +103,10 @@ describe('buildStatusHtml', () => {
 
   it('renders a graceful placeholder before the first evaluation', async () => {
     const html = await buildStatusHtml(ENV);
-    expect(html).toContain('No evaluation summary yet');
+    // Copy hedges the cause: `readLastEval` returns null for an absent key AND
+    // an unreachable Upstash, so naming only the cron would assert one.
+    expect(html).toContain('No evaluation summary readable');
+    expect(html).toContain('Upstash is unreachable');
   });
 
   it('HTML-escapes summary content (rule summaries can embed observed strings)', async () => {
@@ -134,39 +137,270 @@ describe('buildStatusHtml', () => {
 const keyedRedis = (byKey: Record<string, unknown>) =>
   ({ get: vi.fn(async (k: string) => byKey[k] ?? null) }) as never;
 
+// BL-122 — the Substrate panel has the same three-outcome problem as the alert
+// table: a source that could not be read must not be reported as a verdict.
+// Both rows below used to publish one — the budget row as a fabricated `0%`
+// (falsely reassuring) and the freshness row as `STALE` (falsely alarming).
+describe('buildStatusHtml — Substrate rows do not report unread sources as verdicts', () => {
+  it('renders the budget row as unknown when the spend counters could not be read', async () => {
+    mockBuildHealth.mockResolvedValue({
+      ...HEALTHY_PAYLOAD,
+      inoreaderSpend: { total: 0, byCategory: {}, read: false },
+    });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('counters unreadable');
+    // The whole point: never publish a default as a measurement.
+    expect(html).not.toContain('0/100 today');
+  });
+
+  it('still renders the measured budget when the counters were read', async () => {
+    mockBuildHealth.mockResolvedValue({
+      ...HEALTHY_PAYLOAD,
+      inoreaderSpend: { total: 14, byCategory: {}, read: true },
+    });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('14/100 today');
+    expect(html).not.toContain('counters unreadable');
+  });
+
+  it('renders freshness as unknown — not STALE — when the age could not be read', async () => {
+    mockBuildHealth.mockResolvedValue({ ...HEALTHY_PAYLOAD, radarSnapshotAgeSeconds: null });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('age unreadable');
+    expect(html).not.toContain('STALE');
+  });
+
+  it('still renders STALE for an age that was read and is genuinely stale', async () => {
+    mockBuildHealth.mockResolvedValue({ ...HEALTHY_PAYLOAD, radarSnapshotAgeSeconds: 50_000 });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('STALE');
+    expect(html).not.toContain('age unreadable');
+  });
+
+  // `readInoreaderStatus` returns the literal string 'unknown' when the source
+  // was never observed. The row tested only `!== 'degraded'`, so that landed in
+  // the ok arm and the page printed the SAME WORD in two colours — slate
+  // meaning "unreadable" and green meaning "fine".
+  it('renders an unobserved Inoreader status in the unknown colour, not ok-green', async () => {
+    mockBuildHealth.mockResolvedValue({ ...HEALTHY_PAYLOAD, inoreader: 'unknown' });
+    const html = await buildStatusHtml(ENV);
+    const row = html.match(/<tr><td>Inoreader<\/td>.*?<\/tr>/)?.[0] ?? '';
+    expect(row).toContain('#8a9bb0');
+    expect(row).not.toContain('#0a7d4f');
+    expect(row).toContain('status unreadable');
+  });
+
+  it('still renders a read Inoreader status in ok-green', async () => {
+    mockBuildHealth.mockResolvedValue({ ...HEALTHY_PAYLOAD, inoreader: 'ok' });
+    const html = await buildStatusHtml(ENV);
+    const row = html.match(/<tr><td>Inoreader<\/td>.*?<\/tr>/)?.[0] ?? '';
+    expect(row).toContain('#0a7d4f');
+    expect(row).not.toContain('status unreadable');
+  });
+
+  // `isCircuitOpen` returns null for unbound/threw, which health.ts collapses
+  // to `circuitOpen: false`. Correct for BEHAVIOUR (fail open), but the row
+  // then asserted an observed `closed` plus a detail line claiming radar reads
+  // go upstream — both unknown.
+  it('renders the breaker as unknown when its state could not be read', async () => {
+    mockBuildHealth.mockResolvedValue({
+      ...HEALTHY_PAYLOAD,
+      circuitOpen: false,
+      circuitRead: false,
+    });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('breaker state unreadable');
+    expect(html).not.toContain('radar reads go upstream on cache miss');
+  });
+
+  it('still renders closed when the breaker state was read', async () => {
+    mockBuildHealth.mockResolvedValue({
+      ...HEALTHY_PAYLOAD,
+      circuitOpen: false,
+      circuitRead: true,
+    });
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('radar reads go upstream on cache miss');
+    expect(html).not.toContain('breaker state unreadable');
+  });
+});
+
+// BL-122 — a rule that could not check must not render as `ok`. There are
+// three real conditions (passed / breached / could-not-check) and only two
+// boolean states, so an unreachable data source used to surface as green.
+describe('buildStatusHtml — unverified rules render as unknown', () => {
+  const withRules = (rules: unknown[]) =>
+    ({
+      get: vi.fn(async () => ({
+        evaluatedAt: '2026-08-13T13:00:00.000Z',
+        env: 'production',
+        rules,
+      })),
+    }) as never;
+
+  const rule = (over: Record<string, unknown>) => ({
+    id: 'traffic-spike-detected',
+    breached: false,
+    suppressed: false,
+    severity: 'ticket',
+    summary: 'x',
+    observed: {},
+    ...over,
+  });
+
+  // Scope to the rule's own <tr>: the Substrate panel above also renders `ok`.
+  const alertRow = (html: string, id: string) =>
+    html.match(new RegExp(`<tr><td>${id}</td>.*?</tr>`))?.[0] ?? '';
+
+  it('renders `unknown`, not `ok`, when the rule could not evaluate', async () => {
+    mockCreateMcpClient.mockReturnValue(withRules([rule({ evaluated: false })]));
+    const row = alertRow(await buildStatusHtml(ENV), 'traffic-spike-detected');
+    expect(row).toContain('>unknown<');
+    expect(row).not.toContain('>ok<');
+  });
+
+  it('still renders `ok` for a rule that genuinely evaluated', async () => {
+    mockCreateMcpClient.mockReturnValue(withRules([rule({})]));
+    const row = alertRow(await buildStatusHtml(ENV), 'traffic-spike-detected');
+    expect(row).toContain('>ok<');
+    expect(row).not.toContain('>unknown<');
+  });
+
+  it('a thrown rule stays `eval-error` — distinct from could-not-check', async () => {
+    mockCreateMcpClient.mockReturnValue(withRules([rule({ error: 'boom', evaluated: false })]));
+    const row = alertRow(await buildStatusHtml(ENV), 'traffic-spike-detected');
+    expect(row).toContain('>eval-error<');
+    expect(row).not.toContain('>unknown<');
+  });
+
+  // The point of the state is that it is visually separable at a glance, so
+  // the colours are part of the contract, not styling incidental to it.
+  it('gives ok / unknown / breached three different colours', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withRules([
+        rule({ id: 'a' }),
+        rule({ id: 'b', evaluated: false }),
+        rule({ id: 'c', breached: true }),
+        rule({ id: 'd', error: 'boom' }),
+      ])
+    );
+    const html = await buildStatusHtml(ENV);
+    // Row-scoped: the Substrate panel renders `ok` spans too, and an unscoped
+    // match would read THAT green — so recolouring only the alert table's `ok`
+    // would slip through.
+    const colorOf = (id: string) =>
+      alertRow(html, id).match(/color:(#[0-9a-f]{6});font-weight:600"/)?.[1];
+
+    const ok = colorOf('a');
+    const unknown = colorOf('b');
+    const breached = colorOf('c');
+    const evalError = colorOf('d');
+
+    for (const [name, c] of Object.entries({ ok, unknown, breached, evalError })) {
+      expect(c, `${name} should render a colour`).toMatch(/^#[0-9a-f]{6}$/);
+    }
+    expect(new Set([ok, unknown, breached, evalError]).size).toBe(4);
+    // `unknown` must not borrow the ok colour — that is the whole defect.
+    expect(unknown).not.toBe(ok);
+  });
+});
+
 describe('buildStatusHtml — BL-033 Slice 4 panels', () => {
   const METRICS_KEY = 'mcp:status:metrics:production';
 
-  it('renders per-tool latency as PLAIN values (no badge/threshold markup)', async () => {
-    mockCreateMcpClient.mockReturnValue(
-      keyedRedis({
-        [METRICS_KEY]: {
-          evaluatedAt: '2026-07-26T14:00:00.000Z',
-          toolLatency: [{ name: 'search_portfolio', p50Ms: 5, p95Ms: 12, p99Ms: 30, n: 100 }],
-          audit: {
-            lastSeq: 42,
-            batches24h: 7,
-            records24h: 55,
-            lastProcessedAt: '2026-07-26T14:00:00Z',
-          },
+  const withMetrics = (toolLatency: unknown) =>
+    keyedRedis({
+      [METRICS_KEY]: {
+        evaluatedAt: '2026-07-26T14:00:00.000Z',
+        toolLatency,
+        audit: {
+          lastSeq: 42,
+          batches24h: 7,
+          records24h: 55,
+          lastProcessedAt: '2026-07-26T14:00:00Z',
         },
-      })
+      },
+    });
+
+  it('renders per-tool I/O wait as PLAIN values (no badge/threshold markup)', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([{ name: 'search_portfolio', p50Ms: 5, p95Ms: 12, p99Ms: 30, n: 100 }])
     );
     const html = await buildStatusHtml(ENV);
-    // Latency panel present with plain cells.
-    expect(html).toContain('Tool latency');
+    expect(html).toContain('Upstream I/O wait per tool');
     expect(html).toContain('search_portfolio');
     expect(html).toContain('<td>5</td>');
     expect(html).toContain('<td>12</td>');
     expect(html).toContain('as of 2026-07-26T14:00:00.000Z');
-    // Audit panel present, with the ADR-0014 deactivation annotation the
-    // AUDIT_LOG.md § Deactivation Verify step tells the operator to look for.
-    expect(html).toContain('Audit log');
-    expect(html).toContain('<td>42</td>');
-    expect(html).toContain('Pipeline deactivated 2026-08-08');
-    // Surface-not-ratify: latency values are NOT wrapped in the badge color spans.
+    // The footnote has to say what the number actually is, or the panel is
+    // mislabelled exactly the way BL-122 found it.
+    expect(html).toContain('blocked on Upstash');
+    expect(html).toContain('omitted rather than shown as 0');
+    // Surface-not-ratify: values are NOT wrapped in the badge color spans.
     expect(html).not.toMatch(/color:#0a7d4f[^<]*>\s*5\s*</);
     expect(html).not.toContain('500ms');
+  });
+
+  // BL-122 — the filter is on the MEASUREMENT, not a tool-name allowlist.
+  it('omits rows with no measurable I/O wait, keeps the ones that have it', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([
+        { name: 'search_regulations', p50Ms: 0, p95Ms: 0, p99Ms: 0, n: 326 },
+        { name: 'search_radar', p50Ms: 247, p95Ms: 850, p99Ms: 2069, n: 60 },
+      ])
+    );
+    const html = await buildStatusHtml(ENV);
+    expect(html).not.toContain('search_regulations');
+    expect(html).toContain('search_radar');
+    expect(html).toContain('<td>2069</td>');
+  });
+
+  // The case a p50-based filter gets wrong: a tool that only reaches the
+  // network on a cache miss. It has real latency and must survive.
+  it('keeps a conditional-I/O tool whose p50 is 0 but p99 is not', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([{ name: 'get_latest_insights', p50Ms: 0, p95Ms: 0, p99Ms: 443, n: 12 }])
+    );
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('get_latest_insights');
+    expect(html).toContain('<td>443</td>');
+  });
+
+  // The two empty states must stay distinguishable — conflating them is why
+  // the filter lives at render rather than inside computeToolLatency.
+  it('distinguishes "no events" from "events, none measurable"', async () => {
+    mockCreateMcpClient.mockReturnValue(withMetrics([]));
+    const noEvents = await buildStatusHtml(ENV);
+    expect(noEvents).toContain('no tool_invocation events in the last 7 days');
+    expect(noEvents).not.toContain('none with measurable I/O wait');
+
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([
+        { name: 'search_regulations', p50Ms: 0, p95Ms: 0, p99Ms: 0, n: 326 },
+        { name: 'compute_techpar', p50Ms: 0, p95Ms: 0, p99Ms: 0, n: 13 },
+      ])
+    );
+    const noneMeasurable = await buildStatusHtml(ENV);
+    expect(noneMeasurable).toContain('2 tools invoked, none with measurable I/O wait');
+    expect(noneMeasurable).not.toContain('no tool_invocation events in the last 7 days');
+  });
+
+  // ADR-0014 deactivated the audit pipeline; AUDIT_QUEUE is unbound in every
+  // env, and the panel must not advertise a pipeline that is not running.
+  it('hides the audit panel while AUDIT_QUEUE is unbound, shows it when bound', async () => {
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([{ name: 'search_radar', p50Ms: 1, p95Ms: 2, p99Ms: 3, n: 4 }])
+    );
+    const hidden = await buildStatusHtml(ENV);
+    expect(hidden).not.toContain('Audit log');
+    expect(hidden).not.toContain('<td>42</td>');
+
+    mockCreateMcpClient.mockReturnValue(
+      withMetrics([{ name: 'search_radar', p50Ms: 1, p95Ms: 2, p99Ms: 3, n: 4 }])
+    );
+    const bound = await buildStatusHtml({ ...ENV, AUDIT_QUEUE: {} } as unknown as Env);
+    expect(bound).toContain('Audit log');
+    expect(bound).toContain('<td>42</td>');
   });
 
   it('renders "metrics unavailable" when the metrics cache is absent (page still renders)', async () => {

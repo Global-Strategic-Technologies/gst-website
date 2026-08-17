@@ -610,7 +610,7 @@ Additional frosted-glass utilities in `global.css`:
 | `.brutal-frosted`            | 3px                | Standard containers, action bars  |
 | `.brutal-frosted--heavy`     | 6px                | Drawers, sticky bars over content |
 | `.brutal-frosted--blur-only` | 1.5px              | Subtle wet-glass sheen            |
-| `.brutal-frosted--overlay`   | 12px + 92% opacity | Modal/panel overlays              |
+| `.brutal-frosted--overlay`   | 6px + 92% opacity  | Modal/panel overlays              |
 
 ---
 
@@ -986,6 +986,7 @@ Three tiers: `--border-dark-subtle` (0.10), `--border-dark-default` (0.15), `--b
 - [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md) — Complete design token catalog
 - [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) — Typography utility classes
 - [STYLES_REMEDIATION_ROADMAP.md](./STYLES_REMEDIATION_ROADMAP.md) — Tracked initiatives for closing convention gaps
+- [CLAUDE_DESIGN_SYNC.md](../development/CLAUDE_DESIGN_SYNC.md) — This design system is published to claude.ai/design. **Renaming a `.brutal-*` class or a token requires a re-sync** — the published copy names classes explicitly and goes stale silently
 - [Development Backlog](../development/BACKLOG.md) — All open development initiatives
 
 ---

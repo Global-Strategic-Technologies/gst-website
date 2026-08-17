@@ -7,6 +7,7 @@ Strategic documentation for GST website development initiatives, tooling, and op
 | Doc                                                            | Purpose                                                                                                                   |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | [BACKLOG.md](./BACKLOG.md)                                     | Consolidated backlog of all open development initiatives (completed stanzas pruned — see its header note for recovery)    |
+| [CLAUDE_DESIGN_SYNC.md](./CLAUDE_DESIGN_SYNC.md)               | Publishing the design system to claude.ai/design: what ships, when to re-sync, and the rules that keep it from drifting   |
 | [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                 | Authoritative reference for lint, format, hooks, CI, browser targets                                                      |
 | [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md)                   | Running `gst_irl_ingestion` dossiers: run tiers, reading the VERIFY block, client-ready gating, signoff, failure recovery |
 | [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md) | Converting a partner's filled `.xlsx` IRL to canonical markdown via `npm run irl:extract` for the partner-paste path      |
@@ -17,6 +18,7 @@ Strategic documentation for GST website development initiatives, tooling, and op
 
 - **Looking for work to do?** Read [BACKLOG.md](./BACKLOG.md) — grouped by theme, each item is a self-contained user story
 - **Configuring tooling?** Read [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md) first
+- **Renamed a `.brutal-*` class or a design token?** Read [CLAUDE_DESIGN_SYNC.md](./CLAUDE_DESIGN_SYNC.md) — the published design system names classes explicitly and goes stale silently
 - **Running a client-facing dossier?** Read [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md); to prepare the partner-paste input, [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md)
 - **Investigating a performance regression or adding a perf-budgeted page?** Read [PERFORMANCE_OBSERVABILITY.md](./PERFORMANCE_OBSERVABILITY.md)
 - **Setting up Sentry?** Read [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md)

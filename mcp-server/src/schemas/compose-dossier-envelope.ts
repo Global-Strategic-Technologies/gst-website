@@ -36,7 +36,9 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { REGULATION_ENTRIES } from '../content/regulation-loader';
 import { CONDITIONAL_TRIGGER_NAMES } from '../prompts/extraction-rules';
-import { ORCHESTRATED_TOOLS } from '../prompts/irl-ingestion';
+import { ORCHESTRATED_TOOLS, auditLevelValues, type AuditLevel } from '../prompts/irl-ingestion';
+import type { IrlBodyMintedBy } from '../cache/irl-body-provenance';
+import { assessIrlBodyStructure } from '../lib/irl-body-structure';
 import {
   citationFieldSchema,
   runIrlProvenanceCheck,
@@ -63,15 +65,17 @@ export function computeIrlBodyHash(filledIrl: string): string {
 // ─── Enums shared with the prompt body's args ──────────────────────────
 
 const modeValues = ['full', 'extract-only'] as const;
-const verbosityValues = ['verbose', 'compact'] as const;
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
 const fillRatioStatusValues = ['halt', 'partial', 'ok'] as const;
 const tierValues = ['1', '2', '3'] as const;
 
 // BL-072 — irlSource: how the bytes in `filledIrl` were assembled. Required.
-// Must match the four enum values the prompt's VERIFY-block sketches list at
-// `src/prompts/irl-ingestion.ts:462,949` — single source of truth between
-// the prompt and this schema.
+// Five values, matching the set the prompt's RUN-AUDIT block sketches list —
+// single source of truth between the prompt and this schema. (Corrected in
+// BL-123: this comment said "four" and cited two line numbers that had long
+// since drifted onto unrelated code.)
+//
+// BL-123 — the model ASSERTS this; the server can cap it. See `capIrlSource`.
 const irlSourceValues = [
   'partner-paste-verbatim',
   // BL-079 Part B — operator pasted the IRL markdown into the prompt arg AND
@@ -128,22 +132,26 @@ const fillRatioSchema = z.object({
     .min(0)
     .max(100)
     .describe(
-      'Computed fill ratio as a 0-100 percentage (substantive cells / total cells from the wrong-IRL pre-flight).'
+      'Computed fill ratio as a 0-100 percentage (substantive cells / total cells from the wrong-IRL pre-flight). SERVER-DERIVED: the tool recomputes this from substantiveCells / totalCells, rounded to the nearest integer, and the derived value governs the meta fence. Send the value your pre-flight computed - it is load-bearing, not decorative: it is the assertion the server compares against, and a disagreement is disclosed as a `provenance-gap:` entry in the gap list rather than rejected. When substantiveCells exceeds totalCells no percentage can be derived, and your value is carried through unchanged with the inconsistency disclosed.'
     ),
   substantiveCells: z
     .number()
     .int()
     .min(0)
-    .describe('Numerator: count of Response cells with substantive content.'),
+    .describe(
+      'Numerator: count of request rows whose ANSWER SLOT carries substantive content. The answer slot is Response and Comments joined (BL-120) — a row answered only in Comments counts; a row whose sole content is a `(Source: …)` path or a `(Note: …)` caveat does not. Compose the answer span first, then count: counting the Response column alone under-reports the ratio and puts this value on a different basis from the operator-side extractor.'
+    ),
   totalCells: z
     .number()
     .int()
     .min(1)
-    .describe('Denominator: total Response cells across the 10 canonical IRL sections.'),
+    .describe(
+      'Denominator: total request rows across the 10 canonical IRL sections (optional sections 10/11 excluded).'
+    ),
   status: z
     .enum(fillRatioStatusValues)
     .describe(
-      '`halt` if percent < 15; `partial` if 15 <= percent < 40; `ok` otherwise. Drives meta-fence `fixtureFillRatioStatus`.'
+      '`halt` if percent < 15; `partial` if 15 <= percent < 40; `ok` otherwise. Drives meta-fence `fixtureFillRatioStatus`. SERVER-DERIVED alongside `percent`, from the ROUNDED derived percentage, so a run at 39.6% correctly resolves to `ok` rather than `partial`. Send the value your pre-flight computed; a disagreement is disclosed in the gap list, not rejected.'
     ),
 });
 
@@ -237,7 +245,11 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
       'Your model id at invocation time, e.g., "claude-opus-4-7". The tool validates the shape (lowercase, contains at least one digit chunk) to reject obvious hallucinations; the model is the only party that knows this value so it cannot be server-derived.'
     ),
   mode: z.enum(modeValues).describe('Execution mode the prompt args specified.'),
-  verbosity: z.enum(verbosityValues).describe('Output verbosity the prompt args specified.'),
+  auditLevel: z
+    .enum(auditLevelValues)
+    .describe(
+      'Must be one of: standard · enhanced · debug. The audit level the prompt run is at. It selects which markdown blocks come back: gapListMarkdown always, provenanceFooterMarkdown at enhanced and above, metaFenceMarkdown at debug. Provenance verification runs identically at every level.'
+    ),
   transactionContext: z
     .enum(transactionContextValues)
     .describe('Engagement context the prompt args specified.'),
@@ -262,11 +274,16 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
   // longer list every Section-09-named framework here (v10 over-
   // populated this field with 7 entries when only EU_AI_ACT was a real
   // conditional trigger).
-  conditionalTriggersFired: z
-    .array(z.enum(CONDITIONAL_TRIGGER_NAMES))
-    .describe(
-      'Named conditional triggers that fired DESPITE not being in Section 09 — currently `EU_AI_ACT` (EU geography + ML/AI use) and `NIS2` (EU geography + regulated sector). Empty array if none. Do NOT list frameworks that ARE in Section 09 — those go in the regulatory subsection prose, not here.'
-    ),
+  conditionalTriggersFired: z.array(z.enum(CONDITIONAL_TRIGGER_NAMES)).describe(
+    // BL-125 (#8) — this description contradicted the BL-063 partition rule
+    // in BOTH its clauses ("fired DESPITE not being in Section 09" and "Do
+    // NOT list frameworks that ARE in Section 09"). The framework that fires
+    // AND is enumerated is the common case, not an edge one — a production
+    // run hit it with the EU AI Act — and the model had to choose which
+    // instruction to break. `Bl063PartitionViolationError` below is the
+    // authoritative statement and this now matches it.
+    'Named conditional triggers that fired — currently `EU_AI_ACT` (EU geography + ML/AI use) and `NIS2` (EU geography + regulated sector). Empty array if none. **A framework that fired AND is also named in Section 09 belongs here and ONLY here**: the conditional-trigger path wins, and it must be omitted from `defaultFiredFrameworks` — listing it in both is rejected as a partition violation.'
+  ),
   // BL-063 server-side enforcement: defaultFiredFrameworks is the
   // Section-09 enumerated regulatory frameworks the partner is subject
   // to. The tool enforces three rules at the schema seam (matching the
@@ -295,10 +312,15 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     .describe(
       'Section-09 enumerated regulatory frameworks the partner is subject to (GDPR, UK GDPR, PIPEDA, POPIA, etc.). MUST be partitioned from conditionalTriggersFired (no overlap). MUST be regulatory frameworks only — certifications (SOC 2, ISO 27001, PCI-DSS) are REJECTED. Unbacked entries (absent from Hub regulatory map) auto-degrade to `map-absent:` gap entries.'
     ),
-  // BL-045 PR B audit MA-5: forceToolsApplied tightened to the same enum.
+  // Tightened to the orchestrated-tool enum so the field cannot drift from the
+  // prompt's tool list. `gst_irl_ingestion` applies no gate overrides and always
+  // sends `[]`; the field stays required so a caller that DOES override has a
+  // declared place to record it.
   forceToolsApplied: z
     .array(z.enum(ORCHESTRATED_TOOLS))
-    .describe('Echo of the `forceTools` arg the prompt was invoked with. Empty array if none.'),
+    .describe(
+      'Tool names whose inclusion gate was deliberately overridden for this run. Required, and `[]` when none were — which is every run of `gst_irl_ingestion`.'
+    ),
   claims: z
     .array(claimSchema)
     .min(1)
@@ -364,7 +386,75 @@ export type ComposeDossierEnvelopeInput = z.infer<typeof ComposeDossierEnvelopeI
  */
 export type ComposeDossierEnvelopeEngineInput = ComposeDossierEnvelopeInput & {
   filledIrl: string;
+  /**
+   * BL-123 — what the model ASSERTED as `irlSource`, plus what the server's
+   * provenance record says, so the engine can disclose a cap or an unverifiable
+   * strong claim in the gap list.
+   *
+   * `input.irlSource` itself is already the CAPPED value by the time the engine
+   * sees it — the handler substitutes it, so the `requireVerbatimBody` gate and
+   * the reconstruction disclosure both read the capped form. This field carries
+   * only the audit trail of that substitution.
+   *
+   * OPTIONAL and absent in every engine-level test, which is deliberate: it
+   * means those tests take no gap-append path here at all, so this change
+   * cannot grow the rendered gap list of any existing case. See the additivity
+   * guard in the unit suite.
+   */
+  irlSourceAudit?: IrlSourceAudit;
 };
+
+export type IrlSource = (typeof irlSourceValues)[number];
+
+export interface IrlSourceAudit {
+  /** The value the model claimed, before capping. */
+  asserted: IrlSource;
+  /** `null` when no provenance record could be read — absent, expired, or store unavailable. */
+  mintedBy: IrlBodyMintedBy | null;
+  /**
+   * Whether `capIrlSource` actually downgraded the claim. Carried rather than
+   * re-derived: the cap rule lives in exactly one function, and an engine that
+   * recomputed the predicate would be a second copy to drift.
+   */
+  capped: boolean;
+  /** ISO-8601 mint time when known. Surfaces mint age so a replay is visible. */
+  mintedAt?: string | null;
+}
+
+/**
+ * BL-123 — cap an over-strong `irlSource` claim against server-held provenance.
+ *
+ * **This is a monotone downgrade, and must never become a derivation.** The
+ * server can disprove the strongest claim; it cannot substantiate the weaker
+ * ones. `mintedBy: 'prepare-tool'` is produced identically by an interactive
+ * partner paste relayed through `prepare_irl_body` and by a model
+ * reconstruction from xlsx — the server never sees where the model got the
+ * bytes. A function that DERIVED `irlSource` from this record could therefore
+ * never return `model-reconstruction-from-xlsx`, and would hand every
+ * reconstruction run a partner-paste grade — sailing it straight past the
+ * `requireVerbatimBody` gate that exists to catch exactly that, which
+ * `UAT-07.6` classifies as "the gate is not enforcing → Fail — escalate".
+ *
+ * So the only claim this touches is `partner-paste-verbatim-prepop`, the one
+ * whose entire evidence was the presence of a copyable directive string.
+ * Everything else passes through untouched, and nothing is ever promoted.
+ */
+export function capIrlSource(
+  asserted: IrlSource,
+  mintedBy: IrlBodyMintedBy | null
+): { irlSource: IrlSource; capped: boolean } {
+  if (asserted !== 'partner-paste-verbatim-prepop') {
+    // Never upgraded. A weaker assertion stays weak even when the metadata
+    // would support more — the model may know something the server does not.
+    return { irlSource: asserted, capped: false };
+  }
+  if (mintedBy === 'prepare-tool') {
+    return { irlSource: 'partner-paste-verbatim', capped: true };
+  }
+  // 'prompt-render' confirms it; `null` cannot confirm or refute, so the claim
+  // stands and is disclosed as unverified rather than silently downgraded.
+  return { irlSource: asserted, capped: false };
+}
 
 export interface ServerToolCallCountEntry {
   attempted: number;
@@ -374,9 +464,19 @@ export interface ServerToolCallCountEntry {
 }
 
 export interface ComposeDossierEnvelopeResult {
-  metaFenceMarkdown: string;
+  /**
+   * BL-122 — returned at `auditLevel: 'debug'` only; the key is ABSENT at the
+   * other levels, not set to `undefined`. `tsconfig` does not enable
+   * `exactOptionalPropertyTypes`, so an explicit `undefined` would type-check
+   * — and would then diverge the two response channels, since
+   * `structuredContent` is returned by reference while the text mirror goes
+   * through `JSON.stringify`, which drops undefined-valued keys. Build with a
+   * conditional spread.
+   */
+  metaFenceMarkdown?: string;
   gapListMarkdown: string;
-  provenanceFooterMarkdown: string;
+  /** BL-122 — `auditLevel: 'enhanced'` and above. Omitted, never `undefined`. */
+  provenanceFooterMarkdown?: string;
   provenanceVerification: {
     total: number;
     verified: number;
@@ -390,16 +490,30 @@ export interface ComposeDossierEnvelopeResult {
     tierFabrications: number;
   };
   /**
-   * BL-071 — server-authoritative snapshot of every tool call in this session
-   * (attempted / succeeded / rejected / errored per tool). The model MUST copy
-   * this object VERBATIM into the BL-045-VERIFY block `toolCallCounts` field
-   * and derive `precheck.iterations` (== validate_irl_provenance.succeeded),
-   * `precheck.attemptsTotal` (== validate_irl_provenance.attempted), and the
-   * COUNT of `precheck.errorsEncountered` (== validate_irl_provenance.rejected)
-   * from these counts. The server counts are the source of truth; model
-   * self-narration of `toolCallCounts` has demonstrated drift (sonnet fabricated
-   * a tool call; opus omitted one; a third run reported the same event in two
-   * YAML surfaces inconsistently).
+   * BL-071 — server-authoritative snapshot of tool calls (attempted /
+   * succeeded / rejected / errored per tool). The model MUST copy this object
+   * VERBATIM into the RUN-AUDIT block `toolCallCounts` field. The server
+   * counts are the source of truth; model self-narration of `toolCallCounts`
+   * has demonstrated drift (sonnet fabricated a tool call; opus omitted one; a
+   * third run reported the same event in two YAML surfaces inconsistently).
+   *
+   * **How far back the snapshot reaches is {@link countersScope}, NOT "this
+   * session" (BL-121).** `createServer` runs per HTTP request on the Worker,
+   * so the in-process map alone holds only the envelope's own request; the
+   * three IRL-pipeline tools additionally accumulate durably, keyed by the IRL
+   * body. Read the scope before deriving anything.
+   *
+   * The precheck derivations are therefore conditional, and two of the three
+   * are reconciliations rather than equalities — durable writes land at wrapper
+   * exit, so an attempt that never reached the server was never countable.
+   * Under `session` / `run`:
+   *
+   *   precheck.iterations      === validate_irl_provenance.succeeded
+   *   attemptsTotal − attempted === count(transport-classed errorsEncountered)
+   *   errorsEncountered.length === rejected + errored + (attemptsTotal − attempted)
+   *
+   * Under `request` none of them hold. See ADR-0016 and
+   * `src/docs/tools/irl-pipeline/CONTRACT.md`.
    *
    * `compose_dossier_envelope` itself appears here as `attempted: N, succeeded: N-1`
    * — the envelope tool is in-flight while it computes the snapshot.
@@ -410,6 +524,22 @@ export interface ComposeDossierEnvelopeResult {
    * counters).
    */
   serverToolCallCounts?: Record<string, ServerToolCallCountEntry>;
+  /**
+   * BL-121 — the scope {@link serverToolCallCounts} was gathered at, so a
+   * consumer can tell whether the precheck identities are checkable at all:
+   *
+   *   - `session` — stdio; one process, one counter map, whole session.
+   *   - `run`     — remote + the durable run-scoped store read successfully;
+   *                 every call against this IRL body, across requests, for the
+   *                 4h key TTL. Keyed by the BODY, so a repeat ingestion of
+   *                 identical bytes inside that window shares the row.
+   *   - `request` — remote with no durable store bound, or a store that could
+   *                 not be read. Only the envelope call's own request.
+   *
+   * Declared here rather than left to `toolOk`'s loose payload so the type and
+   * the wire agree — `CONTRACT.md` documents it as part of the result shape.
+   */
+  countersScope?: 'session' | 'run' | 'request';
   /**
    * BL-079 Part B — server-authoritative byte length of the cache-hydrated
    * IRL body. Under `partner-paste-verbatim-prepop` (where the body never
@@ -422,6 +552,18 @@ export interface ComposeDossierEnvelopeResult {
    * resolved (cache or input) — model copies in any mode for consistency.
    */
   serverCachedBodyBytes?: number;
+  /**
+   * BL-124 — newline count of the same re-hydrated body, beside the byte count.
+   *
+   * A body whose line breaks the client collapsed on the way in (Claude Desktop
+   * renders each prompt argument as a single-line input) is byte-intact but will
+   * NOT hash-match the file on the operator's disk. `newlines: 0` on a
+   * multi-kilobyte body says so in one number, which is the entire diagnostic —
+   * nothing refuses on it, and it is not an error. The byte count alone cannot
+   * carry this: on the artifact that surfaced it, 141 newlines were lost for a
+   * one-byte change in size.
+   */
+  serverCachedBodyNewlines?: number;
   emitInstructions: string;
 }
 
@@ -452,7 +594,7 @@ export function renderMetaFence(
     `  "promptVersion": "${serverDerivedPromptVersion}",`,
     `  "modelVersion": ${JSON.stringify(input.modelVersion)},`,
     `  "mode": "${input.mode}",`,
-    `  "verbosity": "${input.verbosity}",`,
+    `  "auditLevel": "${input.auditLevel}",`,
     `  "transactionContext": "${input.transactionContext}",`,
     `  "fixtureFillRatio": ${input.fillRatio.percent / 100},`,
     `  "fixtureFillRatioStatus": "${input.fillRatio.status}",`,
@@ -531,17 +673,43 @@ export function renderProvenanceFooter(
   return lines.join('\n');
 }
 
-const EMIT_INSTRUCTIONS = [
-  'TRANSCRIPTION DISCIPLINE — the three markdown blocks above are the dossier envelope:',
-  '',
-  '1. `metaFenceMarkdown` — paste verbatim as the FIRST content of the dossier (before section A).',
-  '2. `gapListMarkdown` — paste verbatim as section `(J)`, between (I) synthesis and (K) provenance footer.',
-  '3. `provenanceFooterMarkdown` — paste verbatim as section `(K)`, the LAST section of the dossier.',
-  '',
-  'Auto-appended `provenance-gap:` entries in `gapListMarkdown` reflect claims whose excerpts the tool could not verify against the IRL — do NOT edit or remove them; the partner needs to see what was flagged.',
-  '',
-  'If you discover additional gaps or claims after transcribing the envelope, re-call `compose_dossier_envelope` with the updated arrays rather than editing the markdown by hand.',
-].join('\n');
+/**
+ * BL-122 — the emit contract is LEVEL-AWARE, and this is the enforcement point
+ * for the whole audit-level feature.
+ *
+ * Suppressing the operator artifacts through prompt-body prose would not work:
+ * this tool exists precisely because the model treats body directives as
+ * descriptive context and only tool output as procedure. So the instructions
+ * name exactly the blocks that were actually returned, and the blocks that must
+ * not be rendered are omitted from the response entirely — leaving nothing to
+ * transcribe and no instruction to transcribe it.
+ */
+function buildEmitInstructions(auditLevel: AuditLevel): string {
+  const blocks: string[] = [];
+  if (auditLevel === 'debug') {
+    blocks.push(
+      '`metaFenceMarkdown` - paste verbatim as the FIRST content of the dossier (before section A).'
+    );
+  }
+  blocks.push('`gapListMarkdown` - paste verbatim as section `(J)`, after (I) synthesis.');
+  if (auditLevel === 'enhanced' || auditLevel === 'debug') {
+    blocks.push(
+      '`provenanceFooterMarkdown` - paste verbatim as section `(K)`, the LAST section of the dossier.'
+    );
+  }
+  const count = blocks.length === 1 ? 'one block' : `${blocks.length} blocks`;
+  return [
+    `TRANSCRIPTION DISCIPLINE - at auditLevel \`${auditLevel}\` this envelope carries ${count}:`,
+    '',
+    ...blocks.map((b, i) => `${i + 1}. ${b}`),
+    '',
+    'Those are the only envelope blocks in this response. A block not listed above was deliberately withheld at this audit level - do NOT reconstruct it, and do NOT write a section for it.',
+    '',
+    'Auto-appended `provenance-gap:` entries in `gapListMarkdown` are server statements about assertions this tool could not substantiate - unverifiable claim excerpts, unconfirmed provenance grades, and figures it derived differently from yours. Transcribe them and do NOT edit or remove them; the partner needs to see what was flagged. Verification runs identically at every audit level.',
+    '',
+    "If you discover additional gaps or claims after transcribing the envelope, re-call `compose_dossier_envelope` with the updated arrays rather than editing the markdown by hand. **Exception: never re-call merely to align `fillRatio` with the server's derivation.** The server derives it, the derived value already governs the fence, and a corrected re-call deletes the entry recording the disagreement. Act on that entry's follow-up instead.",
+  ].join('\n');
+}
 
 // ─── Engine (pure) ──────────────────────────────────────────────────────
 
@@ -625,7 +793,14 @@ const HUB_FRAMEWORK_INDEX: readonly HubFrameworkIndexEntry[] = REGULATION_ENTRIE
   normalizedAliases: (entry.data.aliases ?? []).map(normalizeFrameworkName),
 }));
 
-const HUB_MATCH_MIN_LENGTH = 4;
+/**
+ * Shortest normalized name/query that may participate in framework matching.
+ *
+ * Exported for `search_regulations` (BL-119 cycle 4): normalization strips all
+ * non-alphanumerics, so a punctuation-only input normalizes to `''` and would
+ * otherwise `startsWith`-match every alias. Both consumers need the same floor.
+ */
+export const HUB_MATCH_MIN_LENGTH = 4;
 
 function matchesEntry(entry: HubFrameworkIndexEntry, normalizedModelName: string): boolean {
   // Canonical-name bidirectional substring — preserved verbatim from pre-BL-073.
@@ -855,6 +1030,51 @@ export function checkBl063Scope(defaultFiredFrameworks: readonly string[]): void
   if (offending.length > 0) {
     throw new Bl063CertificationNotRegulationError(offending);
   }
+}
+
+/**
+ * BL-130 — derive `fillRatio.percent` / `.status` server-side.
+ *
+ * The model supplies four fields, of which two are pure functions of the
+ * other two. Nothing checked them: the schema range-checks `percent` and
+ * carries no cross-field refinement (a `.superRefine` would publish an
+ * EMPTY input schema to clients — see schemas/diligence-audit.ts module
+ * JSDoc), so a run could report any percentage against any cell counts.
+ *
+ * **Derive, do not reject.** `irl-ingestion.ts` has the model round to the
+ * nearest integer BEFORE applying the halt/partial/ok thresholds, so a run
+ * at 39.6% correctly reports `{percent: 40, status: 'ok'}`. A check anchored
+ * on the raw ratio would reject that prompt-obedient run on a partner-facing
+ * path. Rounding first dissolves the boundary problem rather than tuning
+ * around it, and the override mirrors `promptVersion`, which this same
+ * schema already server-derives.
+ *
+ * **Incoherent counts are a separate branch, not a large delta.** The schema
+ * bounds `percent` at 100 but puts no upper bound on `substantiveCells` and
+ * no cross-field constraint, so `substantiveCells > totalCells` validates
+ * and would derive >100 — writing e.g. `1.19` into a partner-facing fence,
+ * the exact value `.max(100)` exists to prevent. Overriding there would
+ * REMOVE the only guard the field has, so that case declines to override
+ * and discloses instead. UAT-07 lists "fillRatio over 100%" as an observed
+ * tester symptom, so this is not hypothetical.
+ */
+export interface FillRatioDerivation {
+  readonly coherent: boolean;
+  readonly derivedPercent: number;
+  readonly derivedStatus: (typeof fillRatioStatusValues)[number];
+}
+
+export function deriveFillRatio(
+  fillRatio: ComposeDossierEnvelopeInput['fillRatio']
+): FillRatioDerivation {
+  const { substantiveCells, totalCells } = fillRatio;
+  if (substantiveCells > totalCells) {
+    return { coherent: false, derivedPercent: NaN, derivedStatus: fillRatio.status };
+  }
+  const derivedPercent = Math.round((substantiveCells / totalCells) * 100);
+  // Thresholds apply to the ROUNDED percent, matching the prompt directive.
+  const derivedStatus = derivedPercent < 15 ? 'halt' : derivedPercent < 40 ? 'partial' : 'ok';
+  return { coherent: true, derivedPercent, derivedStatus };
 }
 
 /**
@@ -1122,20 +1342,122 @@ export function runComposeDossierEnvelope(
   // false positive from reaching the dossier. Known false-negative: UK
   // GDPR doesn't match GB-DPA under bidirectional substring; covered by
   // separate regulatory-map alias work.
+  // BL-123 — disclose what happened to the model's `irlSource` assertion.
+  // Scoped to `partner-paste-verbatim-prepop` assertions ONLY: that is the sole
+  // claim whose evidence was a copyable string, so it is the only one whose
+  // absence of server backing is worth saying. Marking every metadata-absent
+  // run instead would append a line to every rendered gap list in the suite —
+  // a suite-wide rebaseline in place of an additive change.
+  const audit = input.irlSourceAudit;
+  if (audit && audit.asserted === 'partner-paste-verbatim-prepop') {
+    if (audit.capped) {
+      autoAppended.push({
+        category: 'provenance-gap',
+        entry: `irlSource downgraded by the server: the run reported \`partner-paste-verbatim-prepop\`, but the cached body was written by \`prepare_irl_body\`${audit.mintedAt ? ` at ${audit.mintedAt}` : ''}, not by the prompt render. Recorded as \`partner-paste-verbatim\`. The bytes still hash-bind; what is not established is that the server witnessed them straight from an operator prompt argument.`,
+        followUp:
+          'If a server-witnessed body was intended, re-invoke `gst_irl_ingestion` through the client connector with the IRL in `filledIrl` so the render pre-populates the cache in the same request.',
+      });
+    } else if (audit.mintedBy === null) {
+      autoAppended.push({
+        category: 'provenance-gap',
+        entry:
+          'irlSource `partner-paste-verbatim-prepop` could not be verified: no server provenance record was readable for this body hash (absent, expired, or the store was unavailable). The claim is carried as the model asserted it, unverified.',
+        followUp:
+          'Treat the provenance grade as model-asserted for this run. A fresh invocation through the connector re-mints the record.',
+      });
+    }
+  }
+
+  // BL-130 — derive the completeness figure and disclose any disagreement.
+  //
+  // Two guards, and it is worth being precise about which one carries the
+  // weight, because a mutation test says it is not the obvious one. The
+  // PRIMARY guard is `deriveFillRatio` returning `derivedPercent: NaN` and
+  // echoing the model's own status for an incoherent payload: both drift
+  // comparisons below are then false (`NaN > 1` is false), so the delta
+  // entry cannot fire even if the branches were independent.
+  //
+  // The `else` is defence in depth against a future change to that return —
+  // give the incoherent case a real out-of-domain percent and this becomes
+  // the only thing stopping the delta entry from carrying `119%` into the
+  // partner-facing gap list, relocating the defect the first branch exists
+  // to prevent. Removing BOTH is what turns the suite red; removing the
+  // `else` alone does not, which is exactly why the comment says so rather
+  // than claiming a coverage the test does not have.
+  const fillRatioDerivation = deriveFillRatio(input.fillRatio);
+  if (!fillRatioDerivation.coherent) {
+    // Unconditional: NOT routed through the delta comparison below. At the
+    // minimal incoherence ({100, 135, 134, 'ok'} derives 101) the delta is
+    // exactly 1 and the status still matches, so a delta-gated disclosure
+    // would stay silent in precisely the case this guard exists for.
+    autoAppended.push({
+      category: 'provenance-gap',
+      entry: `IRL completeness could not be derived: the run reported ${input.fillRatio.substantiveCells} substantive of ${input.fillRatio.totalCells} total request rows, which is not internally consistent (the numerator exceeds the denominator). The completeness figure is carried as the run asserted it, underived.`,
+      followUp:
+        'Recount the answer spans against the IRL sections actually present (00-09, excluding optional 10/11). If the counts were mis-taken, correct them in a FRESH ingestion run - do not re-call this tool with adjusted numbers, which would delete this record. Do NOT restate section (A) from a derived figure: none was computed for this run.',
+    });
+  } else {
+    const { derivedPercent, derivedStatus } = fillRatioDerivation;
+    const percentDrift = Math.abs(input.fillRatio.percent - derivedPercent) > 1;
+    const statusDrift = input.fillRatio.status !== derivedStatus;
+    if (percentDrift || statusDrift) {
+      autoAppended.push({
+        category: 'provenance-gap',
+        entry: `IRL completeness restated by the server: the run reported ${input.fillRatio.percent}% (${input.fillRatio.status}), and ${input.fillRatio.substantiveCells} of ${input.fillRatio.totalCells} request rows derives ${derivedPercent}% (${derivedStatus}). The derived figure governs the meta fence.`,
+        followUp: `Restate section (A)'s completeness sentence as "IRL completeness: ${derivedPercent}% (${input.fillRatio.substantiveCells} of ${input.fillRatio.totalCells} requests answered)." Do NOT re-call \`compose_dossier_envelope\` to correct \`fillRatio\` — the derived value already governs, and a corrected re-call would delete this record.`,
+      });
+    }
+  }
+
   const falsePositiveMapAbsent = findFalsePositiveMapAbsentClaims(input.gaps);
   if (falsePositiveMapAbsent.length > 0) {
     throw new Bl068MapAbsentFalsePositiveError(falsePositiveMapAbsent);
   }
 
+  // BL-124 — one measurement, two consumers: the byte count the operator has
+  // always had, and the newline count that explains a hash which will not match
+  // their source file.
+  const bodyStructure = assessIrlBodyStructure(input.filledIrl);
+
   const allGaps = [...input.gaps, ...autoAppended];
 
+  // BL-122 - CONDITIONAL SPREAD, not `key: cond ? x : undefined`. An explicit
+  // undefined type-checks (tsconfig has no exactOptionalPropertyTypes) but
+  // diverges the two channels: structuredContent is returned by reference while
+  // the text mirror is built with JSON.stringify, which drops undefined keys.
+  const { auditLevel } = input;
   return {
-    metaFenceMarkdown: renderMetaFence(
-      { ...input, defaultFiredFrameworks: backedFrameworks },
-      serverContext.promptVersion
-    ),
+    ...(auditLevel === 'debug'
+      ? {
+          metaFenceMarkdown: renderMetaFence(
+            {
+              ...input,
+              defaultFiredFrameworks: backedFrameworks,
+              // BL-130 — NESTED override: `renderMetaFence` reads
+              // `input.fillRatio.percent` / `.status`, so a flat sibling
+              // field (copying `defaultFiredFrameworks` above) would be a
+              // silent no-op that every test still passes. Incoherent
+              // counts keep the model's range-checked values.
+              ...(fillRatioDerivation.coherent
+                ? {
+                    fillRatio: {
+                      ...input.fillRatio,
+                      percent: fillRatioDerivation.derivedPercent,
+                      status: fillRatioDerivation.derivedStatus,
+                    },
+                  }
+                : {}),
+            },
+            serverContext.promptVersion
+          ),
+        }
+      : {}),
     gapListMarkdown: renderGapList(allGaps),
-    provenanceFooterMarkdown: renderProvenanceFooter(input.claims, verification.verdicts),
+    ...(auditLevel === 'enhanced' || auditLevel === 'debug'
+      ? {
+          provenanceFooterMarkdown: renderProvenanceFooter(input.claims, verification.verdicts),
+        }
+      : {}),
     provenanceVerification: {
       total: verification.total,
       verified: verification.verified,
@@ -1146,7 +1468,8 @@ export function runComposeDossierEnvelope(
       tierMismatches,
       tierFabrications,
     },
-    serverCachedBodyBytes: Buffer.byteLength(input.filledIrl, 'utf8'),
-    emitInstructions: EMIT_INSTRUCTIONS,
+    serverCachedBodyBytes: bodyStructure.byteLength,
+    serverCachedBodyNewlines: bodyStructure.newlineCount,
+    emitInstructions: buildEmitInstructions(auditLevel),
   };
 }

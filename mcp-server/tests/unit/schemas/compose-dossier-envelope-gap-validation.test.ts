@@ -25,6 +25,7 @@ import {
   type ComposeDossierEnvelopeEngineInput,
   type ComposeDossierEnvelopeInput,
   computeIrlBodyHash,
+  deriveFillRatio,
   findFalsePositiveMapAbsentClaims,
   runComposeDossierEnvelope,
 } from '../../../src/schemas/compose-dossier-envelope';
@@ -52,7 +53,7 @@ function baseInput(
     promptVersion: '0.4.0',
     modelVersion: 'claude-opus-4-7',
     mode: 'full',
-    verbosity: 'verbose',
+    auditLevel: 'debug',
     transactionContext: 'value-creation',
     fillRatio: { percent: 92, substantiveCells: 46, totalCells: 50, status: 'ok' },
     gatesPassed: [],
@@ -177,6 +178,37 @@ describe('findFalsePositiveMapAbsentClaims', () => {
     ]);
     expect(offenders).toHaveLength(1);
     expect(offenders[0].matchedHub).toMatch(/NIST/i);
+  });
+
+  /**
+   * BL-119 cycle-3. Observed on production: a dossier told a partner the
+   * Colorado AI Act was "absent from the Hub regulatory map" and to file a
+   * coverage request — for a framework the map carries. The record's canonical
+   * name normalizes to `coloradoartificialintelligenceactsb24205`; the idiom a
+   * model actually writes normalizes to `coloradoaiact`. Neither contains the
+   * other, and the record had no aliases, so a covered framework read as
+   * uncovered.
+   *
+   * Same additive alias shape BL-073 established for NIST. Without this test,
+   * deleting the alias would regress the fix on a fully green suite.
+   */
+  it.each(['Colorado AI Act', 'CAIA', 'SB 24-205'])(
+    'BL-119: %s resolves to the Colorado record via the alias path',
+    (idiom) => {
+      const offenders = findFalsePositiveMapAbsentClaims([
+        { category: 'map-absent', entry: `${idiom} — absent from the regulatory map` },
+      ]);
+      expect(offenders).toHaveLength(1);
+      expect(offenders[0].matchedHub).toMatch(/Colorado/i);
+    }
+  );
+
+  it('BL-119: the Colorado canonical name still matches on the substring path', () => {
+    const offenders = findFalsePositiveMapAbsentClaims([
+      { category: 'map-absent', entry: 'Colorado Artificial Intelligence Act — absent' },
+    ]);
+    expect(offenders).toHaveLength(1);
+    expect(offenders[0].matchedHub).toMatch(/Colorado/i);
   });
 });
 
@@ -410,5 +442,198 @@ describe('BL-070 — requireVerbatimBody gate', () => {
       expect(msg).toContain('partner-paste-verbatim');
       expect(msg).toContain('verbatim-body required');
     }
+  });
+});
+
+// ─── BL-130 — server-derived fillRatio + disagreement disclosure ────────
+//
+// The model supplies four fields, two of which are pure functions of the
+// other two, and nothing checked them. The tool now derives `percent` and
+// `status` and discloses disagreement rather than rejecting it — rejection
+// would fire on prompt-obedient runs at the rounding boundary, because the
+// prompt has the model round BEFORE applying the halt/partial/ok thresholds.
+//
+// `baseInput` defaults to `irlSource: 'partner-paste-verbatim'`, which fires
+// no other auto-append — load-bearing for the `autoAppendedGaps` counts below.
+describe('BL-130 — fillRatio derivation and disclosure', () => {
+  const withFillRatio = (fillRatio: ComposeDossierEnvelopeEngineInput['fillRatio']) => ({
+    ...baseInput(),
+    fillRatio,
+  });
+
+  it('agreement stays silent and leaves the fence untouched', () => {
+    // 46/50 = 92 exactly, status ok — both arms match.
+    const result = runComposeDossierEnvelope(baseInput(), SERVER_CTX);
+    expect(result.gapListMarkdown).not.toContain('IRL completeness restated');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(0);
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 0.92');
+  });
+
+  it('disagreement is disclosed and the DERIVED figure governs the fence', () => {
+    // 60/134 = 44.78 -> 45 (ok). Model said 84. Status matches (ok/ok), so
+    // the percent arm is the sole firing arm.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 84, substantiveCells: 60, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('IRL completeness restated');
+    expect(result.gapListMarkdown).toContain('derives 45%');
+    // `percent / 100` is unformatted, so 45 renders `0.45` and 40 renders `0.4`.
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 0.45');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+  });
+
+  it('the follow-up directs restating (A) and forbids a corrective re-call', () => {
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 84, substantiveCells: 60, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('IRL completeness: 45% (60 of 134 requests answered)');
+    expect(result.gapListMarkdown).toContain('Do NOT re-call');
+  });
+
+  // ── the boundary pair: a pure STATUS probe ────────────────────────────
+  // Deltas are 1 and 0 against a more-than-1pp rule, so the percent arm
+  // contributes nothing to either case. A version omitting `status` would
+  // pass over an empty set.
+  it('boundary: 52/133 derives 39 (partial), so a reported `ok` discloses', () => {
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 40, substantiveCells: 52, totalCells: 133, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('derives 39% (partial)');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+  });
+
+  it('boundary: 53/134 derives 40 (ok) — prompt-obedient, stays silent', () => {
+    // 39.55 raw. Thresholds apply to the ROUNDED percent, so this is `ok`.
+    // Anchoring on the raw ratio would have rejected this correct run.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 40, substantiveCells: 53, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).not.toContain('IRL completeness restated');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(0);
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 0.4');
+  });
+
+  // ── incoherent counts: two fixtures, and the obvious one proves little ─
+  it('incoherent counts do not override the fence, and disclose exactly once', () => {
+    // 160/134 = 119.4. Overriding would write `1.19` into a partner-facing
+    // fence — the value the schema's own .max(100) exists to prevent.
+    // The 69pp delta means this fires the ordinary arm regardless, so the
+    // negative assertions are what make it discriminating.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 50, substantiveCells: 160, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 0.5');
+    expect(result.gapListMarkdown).toContain('could not be derived');
+    // If the branches were not exclusive, the sibling delta entry would
+    // carry the out-of-domain figure into the partner-facing gap list.
+    expect(result.gapListMarkdown).not.toContain('119');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+  });
+
+  it('minimal incoherence discloses even though BOTH delta arms are silent', () => {
+    // 135/134 -> 101. |100 - 101| = 1, which is not MORE than 1pp, and
+    // 101 -> `ok` matches the reported `ok`. Only an unconditional append
+    // can surface this — a delta-gated disclosure stays silent here, in
+    // exactly the case the guard exists for.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 100, substantiveCells: 135, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('could not be derived');
+    expect(result.gapListMarkdown).toContain('135 substantive of 134 total');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+    // Trailing comma matters: bare `1` also matches `1.01`, which is what an
+    // override would render — the assertion would pass on the defect.
+    expect(result.metaFenceMarkdown).toContain('"fixtureFillRatio": 1,');
+  });
+
+  // W2 — the `halt` branch is the "this looks like the wrong IRL" signal and
+  // no fixture in the repo went below 34, leaving the `< 15` constant free.
+  it('halt threshold is exercised: 12/100 derives 12 (halt), so a reported partial discloses', () => {
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 20, substantiveCells: 12, totalCells: 100, status: 'partial' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('derives 12% (halt)');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+  });
+
+  // W3 — the tolerance itself was unpinned in both directions. Both fixtures
+  // carry a matching status so the percent arm is the sole firing arm.
+  it('tolerance: a 1pp delta is within rounding and stays silent', () => {
+    // 46/50 = 92; reporting 93 is one point out.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 93, substantiveCells: 46, totalCells: 50, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).not.toContain('IRL completeness restated');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(0);
+  });
+
+  it('tolerance: a 2pp delta is beyond rounding and discloses', () => {
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 94, substantiveCells: 46, totalCells: 50, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('derives 92% (ok)');
+    expect(result.provenanceVerification.autoAppendedGaps).toBe(1);
+  });
+
+  it('the incoherent follow-up does NOT direct restating (A)', () => {
+    // The derived figure there is the out-of-domain number the server just
+    // declined to stand behind; directing a restatement would relocate the
+    // defect from the fence into the dossier prose.
+    const result = runComposeDossierEnvelope(
+      withFillRatio({ percent: 50, substantiveCells: 160, totalCells: 134, status: 'ok' }),
+      SERVER_CTX
+    );
+    expect(result.gapListMarkdown).toContain('Do NOT restate section (A)');
+  });
+});
+
+// `deriveFillRatio` is exported so the boundary table can be pinned directly
+// rather than routed through the engine once per case. The engine tests above
+// prove the wiring; this proves the arithmetic, including the two endpoints no
+// realistic fixture reaches.
+describe('BL-130 — deriveFillRatio boundary table', () => {
+  const cases: Array<[number, number, number, string]> = [
+    [0, 50, 0, 'halt'], // nothing answered
+    [7, 50, 14, 'halt'], // 14.0 -> just under the halt ceiling
+    // 15.0 exactly — the ceiling itself. `halt` is `< 15`, NOT `<= 15`.
+    // Without this the cutoff can be loosened upward untested: `< 15` -> `< 16`
+    // leaves the whole suite green, and a run at exactly 15% would then report
+    // `halt` — the wrong-IRL signal — on a partner-facing artifact. The table
+    // bracketed 15 without landing on it until this line.
+    [15, 100, 15, 'partial'],
+    [8, 50, 16, 'partial'], // 16.0 -> partial
+    [52, 133, 39, 'partial'], // 39.098 -> rounds to 39, still partial
+    [53, 134, 40, 'ok'], // 39.552 -> rounds to 40, so `ok` per the prompt
+    [50, 50, 100, 'ok'], // fully answered
+  ];
+
+  it.each(cases)('%i/%i derives %i (%s)', (s0, t, pct, status) => {
+    const d = deriveFillRatio({ percent: 0, substantiveCells: s0, totalCells: t, status: 'halt' });
+    expect(d.coherent).toBe(true);
+    expect(d.derivedPercent).toBe(pct);
+    expect(d.derivedStatus).toBe(status);
+  });
+
+  it('declines to derive when the numerator exceeds the denominator', () => {
+    const d = deriveFillRatio({
+      percent: 50,
+      substantiveCells: 160,
+      totalCells: 134,
+      status: 'ok',
+    });
+    expect(d.coherent).toBe(false);
+    expect(Number.isNaN(d.derivedPercent)).toBe(true);
+    // Echoes the caller's status so both drift comparisons stay false — the
+    // primary guard, per the mutation test recorded in the engine comment.
+    expect(d.derivedStatus).toBe('ok');
   });
 });

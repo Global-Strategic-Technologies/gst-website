@@ -17,28 +17,26 @@
  * comment naming a tool satisfies a catalog assertion without the page ever
  * rendering it.
  */
-import { readFileSync, readdirSync, existsSync } from 'fs';
+import { readdirSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { TIER_LIMITS, ASSIGNABLE_TIERS } from '../../mcp-server/src/ratelimit/tiers';
+// Registry readers live in ONE place (`helpers/mcp-registry.ts`). This file
+// carried private copies while it sat unmerged; `mcp-uat-parity.test.ts` holds a
+// guard that goes red on a second definition, which is what forced this rewire
+// on merge rather than leaving two copies to drift apart.
+import {
+  EXPECTED_PROMPT_COUNT,
+  EXPECTED_REMOTE_TOOL_COUNT,
+  LOCAL_ONLY_PATH,
+  read,
+  registeredPromptNames,
+  registeredToolNames,
+  SERVER_PATH,
+} from './helpers/mcp-registry';
 
 const PAGE_PATH = 'src/pages/hub/mcp/index.astro';
-const SERVER_PATH = 'mcp-server/src/server.ts';
-const LOCAL_ONLY_PATH = 'mcp-server/src/tools/_local-only.ts';
-const TOOLS_DIR = 'mcp-server/src/tools';
-const PROMPTS_DIR = 'mcp-server/src/prompts';
-
-/** Registered prompt count (`ALL_PROMPTS` in the prompt registry). */
-const EXPECTED_PROMPT_COUNT = 9;
-
-/** Registered remote tool count. A vacuity guard: an extraction that silently
- *  finds nothing would otherwise make every catalog assertion pass. */
-const EXPECTED_REMOTE_TOOL_COUNT = 15;
 
 // --- Source readers --------------------------------------------------------
-
-function read(path: string): string {
-  return readFileSync(resolve(path), 'utf-8');
-}
 
 /**
  * Reduce an Astro file to what it actually renders: no frontmatter, no
@@ -62,75 +60,6 @@ export function extractAstroMarkup(source: string): string {
       .replace(/<!--[\s\S]*?-->/g, '')
       .replace(/\s+/g, ' ')
   );
-}
-
-/**
- * Tool names registered by a module, anchored on `server.registerTool(`'s first
- * argument. Anchoring matters: four modules repeat their own name inside a
- * `withToolMetrics(...)` call, so a loose snake_case scan overshoots.
- */
-function toolNamesIn(modulePath: string): string[] {
-  const src = read(modulePath);
-  const re = /\bserver\.registerTool\(\s*'([a-z0-9_]+)'/g;
-  const names = new Set<string>();
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(src)) !== null) names.add(m[1]);
-  return [...names];
-}
-
-/**
- * Resolve `register*` imports in an entrypoint to their modules under
- * `mcp-server/src/tools/`, then collect the names those modules register.
- *
- * The path filter is the discriminator: `server.ts` also imports
- * `registerLibraryResources` / `registerRegulationResources` /
- * `registerRadarResources` from `./resources/*` and `registerPrompts` from
- * `./prompts/_registry`, none of which register tools.
- */
-function registeredToolNames(entrypoint: string): string[] {
-  const src = read(entrypoint);
-  const available = new Set(
-    readdirSync(resolve(TOOLS_DIR))
-      .filter((f) => f.endsWith('.ts'))
-      .map((f) => f.replace(/\.ts$/, ''))
-  );
-
-  const names = new Set<string>();
-  const importRe = /import\s*\{[^}]*\}\s*from\s*'([^']+)'/g;
-  let m: RegExpExecArray | null;
-  while ((m = importRe.exec(src)) !== null) {
-    const spec = m[1];
-    const moduleName = spec.replace(/^\.\.?\//, '').replace(/^tools\//, '');
-    // Only specifiers that resolve into the tools directory.
-    const isToolsImport =
-      spec.startsWith('./tools/') || (spec.startsWith('./') && entrypoint === LOCAL_ONLY_PATH);
-    if (!isToolsImport || !available.has(moduleName)) continue;
-    for (const name of toolNamesIn(`${TOOLS_DIR}/${moduleName}.ts`)) names.add(name);
-  }
-  return [...names];
-}
-
-/**
- * Prompt names, read from the `PROMPT_NAME` literal each prompt module declares.
- * Scoped to the modules the registry actually imports, so an orphaned file in
- * the directory cannot inflate the set.
- */
-function registeredPromptNames(): string[] {
-  const registry = read(`${PROMPTS_DIR}/_registry.ts`);
-  const names = new Set<string>();
-  const importRe = /from\s*'\.\/([a-z0-9-]+)'/g;
-  let m: RegExpExecArray | null;
-  while ((m = importRe.exec(registry)) !== null) {
-    let src: string;
-    try {
-      src = read(`${PROMPTS_DIR}/${m[1]}.ts`);
-    } catch {
-      continue;
-    }
-    const nameMatch = src.match(/const PROMPT_NAME = '(gst_[a-z_]+)'/);
-    if (nameMatch) names.add(nameMatch[1]);
-  }
-  return [...names];
 }
 
 // --- Fixtures --------------------------------------------------------------

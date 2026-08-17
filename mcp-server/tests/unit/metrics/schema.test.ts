@@ -38,7 +38,6 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "health_check",
         "cron_outcome",
         "audit_batch",
-        "force_tools_used",
         "wrong_irl_detected",
         "gate_elided",
       ]
@@ -133,9 +132,6 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "skipped-circuit",
           "skipped-budget",
           "deduplicated",
-        ],
-        "force_tools_used": [
-          "applied",
         ],
         "gate_elided": [
           "elided",

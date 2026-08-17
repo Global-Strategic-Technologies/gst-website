@@ -124,6 +124,26 @@ describe('enumFromWire', () => {
   const inner = z.enum(['Buy-Side', 'Sell-Side']);
   const wrapped = enumFromWire(inner);
 
+  it("trims surrounding whitespace — 'Buy-Side ' parses to the canonical member", () => {
+    // BL-125. The blank check used `.trim()` but the canonical lookup did not,
+    // so a trailing space — trivially produced by pasting into a form field —
+    // missed the map, fell through to the inner `z.enum`, and failed the whole
+    // `prompts/get` with -32602. Claude Desktop shows that as "Failed to attach
+    // prompt" with no diagnostic. `booleanFromWire` has had the equivalent case
+    // since it was written; this one had none, which is how the gap survived.
+    expect(wrapped.parse('Buy-Side ')).toBe('Buy-Side');
+    expect(wrapped.parse(' Buy-Side')).toBe('Buy-Side');
+    expect(wrapped.parse('\tbuy-side\n')).toBe('Buy-Side'); // trim AND case-fold
+  });
+
+  it('still rejects a genuinely unknown value, quoting what was sent', () => {
+    // The paired negative: trimming is a matching aid, not a mutation. On a
+    // miss the ORIGINAL string reaches the inner schema so the diagnostic
+    // quotes the caller's input rather than a silently altered form.
+    const r = wrapped.safeParse('  Buy Side  ');
+    expect(r.success).toBe(false);
+  });
+
   it('passes through the canonical value unchanged (forward-compat)', () => {
     const r = wrapped.safeParse('Buy-Side');
     expect(r.success).toBe(true);

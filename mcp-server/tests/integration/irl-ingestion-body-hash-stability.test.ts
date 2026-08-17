@@ -298,16 +298,123 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // taken anyway because the served bytes changed in a client-visible surface
 // and the discipline pins every served-body change to a version. 6 of 7
 // hashes drift (the interactive body carries no worked examples).
+// BL-119 cycle 5 rebaseline (prompt v0.22.1 → v0.22.2, server 0.49.1):
+// doubt-handling directive added to the prepop body-submission block — proceed
+// on the `**Body-binding hash:**` directive when a client delivers the expanded
+// prompt as an attached document, probe with `validate_irl_provenance` rather
+// than reconstruct, and report `partner-paste-verbatim` honestly on a genuine
+// cache miss. Added by a real 57KB Desktop run that succeeded only after
+// operator intervention. The directive lives in the **verbose-only envelope
+// block**, so exactly the 2 one-shot verbose bodies drift (minimal + full);
+// interactive, both extract-only bodies and both compact bodies are unchanged.
+// Note the limit of that signal: interactive and the compact bodies drop the
+// whole verbose envelope block via the `isVerbose` gate, so an edit anywhere
+// inside precheck-or-composition produces this same 2-of-7 signature. It
+// confirms the edit stayed inside that block; it does not by itself localize
+// it to the prepop directives.
+// BL-120 rebaseline (prompt v0.22.2 → v0.22.3, server 0.49.2): the workbook
+// column contract — seven columns, D/E/F carry authored content, Comments joins
+// Response into one contiguous answer span, Source/Note stay outside the answer
+// slot — plus the fill-ratio counting order and the substantive-answer wording
+// on inclusion gates 2/4/6. **All 7 hashes drift**, which is itself the check:
+// the contract is deliberately unconditional, so a 6-of-7 or 4-of-7 signature
+// here would mean it failed to reach a served body. Interactive is included
+// even though it carries neither pre-flight nor gates, because its own VERIFY
+// block admits `xlsx-reconstruction` — a path that can reconstruct from a
+// workbook has to know the workbook's shape.
+//
+// Re-baselined once more inside the same version (still 0.22.3) after code
+// review: the envelope schema's fill-ratio field descriptions still defined the
+// numerator as Response cells, section (A)'s completeness sentence still said
+// "Response cells filled", and the contract was silent on three things the
+// extractor does (empty Status reads as OPEN, cells are trimmed, the operator
+// script adds a title/metadata preamble the model does not). Prompt-body bytes
+// moved; no name@version tuple did, so EXPECTED_MANIFEST_HASH is unchanged.
+//
+// And a THIRD time, still 0.22.3: the review-fix commit rewrote `joinAnswerSpan`'s
+// period rule but left the contract stating the rule it replaced — 6 of 12
+// realistic cell endings diverged, so a contract-following model would have
+// produced different bytes from the script on exactly the inputs the rewrite
+// existed to fix. The contract now states the shipped rule, and
+// `irl-ingestion-fixtures.test.ts` asserts that sentence so the next rewrite
+// cannot skip it silently.
+//
+// BL-121 rebaseline (prompt v0.22.3 → v0.22.4, server 0.49.3): `countersScope`
+// added to the VERIFY schema, and the BL-071 precheck identities restated as
+// scope-conditional — on the remote Worker `createServer` runs per HTTP request,
+// so the per-request counter map could never satisfy them and the prompt was
+// telling operators to fail runs on a check that could not pass. Also pins the
+// transport-classed `errorsEncountered` subset closed (`transport-timeout`,
+// `transport-disconnect`) so the reconciliation stays arithmetic, and qualifies
+// the `toolErrors` count identity by scope.
+// **All 7 hashes drift**, and that is the check: the VERIFY schema and its
+// discipline rules ship from both builders regardless of verbosity, and the
+// interactive body carries its own complete copy of both. A 5-of-7 or 2-of-7
+// signature here would mean an edit failed to reach a served body — which is
+// precisely the defect class this change is fixing, one layer down.
+//
+// Re-baselined once IN PLACE, still 0.22.4 (unpushed, so no bytes have been
+// served — the bump-vs-rebaseline rule in BREAKING_CHANGES.md permits this).
+// Code review found the counter guidance asymmetric: three causes were given
+// for a count SHORT of the model's memory and none for a count LONG of it,
+// while the model was told not to adjust the numbers. Since the run key is the
+// IRL body hash and the row lives 4h, a repeat ingestion of identical bytes
+// accumulates onto the same row — so a long count is reachable in ordinary
+// operation and the model had no sanctioned way to report it. All 7 drift
+// again; the `run` scope definition now states the window and the body-keying
+// in every body.
+// Rebaselined for BL-125 prompt v0.25.0 → v0.26.0 (server 0.53.0). All twelve
+// bodies drift: every builder gained a Run parameters block stating its
+// resolved `mode` / `auditLevel` / `transactionContext` (and, where a consumer
+// exists, `requireVerbatimBody`), the embed-framing and delivered-as-a-document
+// clauses landed on the four uncovered bodies, and the six dangling RUN-AUDIT
+// back-references became conditional.
+//
+// **Coverage rule, replacing the running tally** — pin builder × level, plus
+// one args-variant per builder AT `standard` ONLY. Three builders × three
+// levels = 9, plus 3 variants = twelve scenarios. Without the level qualifier
+// the variant reads as a third axis and the table would have to hold eighteen.
+// Which shape rides the level axis is inverted on interactive by design: every
+// argument there is optional, so the bare form is that builder's canonical
+// shape, and `with-args` is its variant.
+//
+// Three scenarios are new. `interactive@enhanced` closes the gap that let the
+// interactive builder ignore `enhanced` entirely — it computed only
+// `showRunAudit`, so `standard` and `enhanced` rendered byte-identically and
+// nothing here noticed, because the suite pinned interactive at `standard` and
+// `debug` only. `extract-only@enhanced` closes the same gap on the surface
+// this change makes level-varying for the first time. `interactive@with-args`
+// pins the conditional Step 1 — the only new branching logic in a served body
+// — with all four tailoring arguments supplied so it exercises the collapse
+// branch, plus `requireVerbatimBody: true` to pin that stated value.
+//
+// One caught mid-change and worth recording: gating the whole
+// `serverToolCallCounts` paragraph on `showRunAudit` broke BL-071's assertion
+// that the FIELD is named at every level. The tool returns it at every level;
+// only the transcription rules are `debug`-scoped. Three one-shot hashes moved
+// a second time when that was split correctly.
+// Rebaselined for BL-126 prompt v0.26.0 -> v0.27.0 (server 0.54.0). All twelve
+// bodies drift: `TECHPAR_MODE_RULE` fixes `compute_techpar` to `deepdive` and
+// now renders in ALL THREE builders, and `GAP_LIST_DIRECTIVE` gained the
+// blank-component rule.
+//
+// Why twelve and not eight: the first implementation put the mode rule in the
+// full body's Step 4 and the extract-only Step 2, and the interactive bodies
+// did not move. That was the tell — `buildInteractiveBody` calls
+// `compute_techpar` at its own Step 2d and had been left with the mode unset,
+// which is the same asymmetry this change exists to close, reproduced on a
+// third path. A hash suite that moves fewer scenarios than the change touches
+// is worth reading as a question rather than a result.
 const EXPECTED_HASH_INTERACTIVE =
-  'de70481c9ef59babc8bd2282c2d0867d25833e944fb42547771b3c66132e881c';
+  '7baa0d6e694da0e98a7aaede430efa4fe659a55bdbdf7986f52af17221cfe726';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '92ce4aa8ec226aa7d235ff9ea65a2ba4d352b7ede2d194784d0ec9b1c757dbc7';
+  '2b271bac5c18a876a24ba70161721b59490169850fce8661776023203a15910b';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '05ed4541c93173bdc3146947a8573a0a62cfb11cfa92c6a00712393c41d5107c';
+  '5623707170af88b78f75d0826cebd42940d62f3d33ae2f589a9ff3e590f24765';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '4169335982a11a7157c8b20e9264e3d9c1aadc7d4976e15b63ed1d478d3954c2';
+  '2c8b4e48e60c813967fa296b02957c900133097faf75a063ebd12f89008fbfb4';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '0dd46bd5752a28896e992439280c4ed74eb5e170f20164569c3034648723a157';
+  'd23f6699c0bc207ca959af898c45b5f1fe81df71569870c06523abe4f3bcc823';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -316,10 +423,44 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // Rebaselined for BL-055 hash-bind discipline split (prompt 0.5.2 → 0.5.3).
 // Compact bodies include the directive annotations + verify-block schema
 // expansion same as verbose.
-const EXPECTED_HASH_ONESHOT_FULL_COMPACT =
-  '603ca5119556a8825123df40aa97fe3019a73f56223a9ad0912c8237299b69d4';
-const EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT =
-  '0e16346225f8625f7490b56e0836477d3e1341ca03d0c7073b4b3e0aa4db99ee';
+// BL-120: both compact bodies drift too — the column contract sits outside the
+// `isVerbose` gate by design.
+const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
+  '3ea038c2232aad6a5fba98e6fd839c5a3aa3a76ed3c15a3d2ce5166932581ce4';
+const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
+  '452c20cc2e3639b4851bb5e1bbe7f62a4bc2b102218f93ace3748d897fc67419';
+const EXPECTED_HASH_INTERACTIVE_DEBUG =
+  '327ab8d022417ed490599c20a408d6c880fa78870cae264dd742705682e494cc';
+// BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
+// the resolved level — its meta fence is model-authored (ADR-0017), so it is
+// the one surface where an inferred `auditLevel` lands in the artifact with
+// nothing to check it. That makes the body level-VARYING, so this constant is
+// no longer an alias of EXPECTED_HASH_EXTRACT_ONLY_FULL.
+//
+// The alias was a proxy for "exempt from the gate", and it blocked the fix.
+// What it was protecting is now asserted directly, and more strongly, in
+// `bl-125-run-parameters.test.ts`: every level-gated directive extract-only
+// carries is present at all three levels, and the bodies differ across levels
+// only by the stated level. Byte-identity would have broken the moment any run
+// parameter was added; a positive presence assertion does not.
+const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
+  '77987176b0893e6504404aefa7cd638ea81eb0b0e9bee54cdd0094c75d310d67';
+const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
+  '17946b4f461b3777d2a15c31117faa42d7a37c2edf5d0676b1242074b283f57c';
+// BL-125: the suite pinned interactive at `standard` and `debug` but never at
+// `enhanced` — and that gap is precisely why the interactive builder could
+// ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
+// and `enhanced` rendered byte-identically) without any test noticing.
+const EXPECTED_HASH_INTERACTIVE_ENHANCED =
+  '54761d17cab9bdc0363dc67fb1880a9778c477add8e19e5795a0e0955c1cf8cf';
+// BL-125: every other interactive scenario passes NO arguments, so the
+// conditional Step 1 introduced by this change — the only new branching logic
+// in a served body — would have been pinned by nothing. All four tailoring
+// arguments are supplied so the scenario exercises the collapse branch (the
+// tailoring sentence disappears); `requireVerbatimBody: true` rides along to
+// pin the stated-value bytes on this consumer without a further entry.
+const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
+  '73b6819143e4aa0c67f559e9b143304d2ef6adc058c411c81d046f1e7cc42408';
 
 interface Scenario {
   name: string;
@@ -334,8 +475,15 @@ const SCENARIOS: Scenario[] = [
     expected: EXPECTED_HASH_INTERACTIVE,
   },
   {
-    name: 'one-shot minimal (filledIrl only)',
-    args: { filledIrl: STABLE_FILLED_IRL },
+    // BL-125 folds `requireVerbatimBody: true` in here rather than adding a
+    // scenario. One-shot is the flag's PRIMARY consumer — the gate it feeds
+    // fires on `compose_dossier_envelope`, which only this path calls — so
+    // pinning its stated-value bytes on interactive alone left the more
+    // important surface unpinned. Renamed accordingly: an entry labelled
+    // "filledIrl only" while it sets a second argument is the stale-scenario-
+    // name problem the retired extract-only alias just demonstrated the cost of.
+    name: 'one-shot minimal (filledIrl + requireVerbatimBody)',
+    args: { filledIrl: STABLE_FILLED_IRL, requireVerbatimBody: true },
     expected: EXPECTED_HASH_ONESHOT_MINIMAL,
   },
   {
@@ -366,20 +514,47 @@ const SCENARIOS: Scenario[] = [
     },
     expected: EXPECTED_HASH_EXTRACT_ONLY_FULL,
   },
+  // BL-122 — the two `verbosity: compact` scenarios are replaced by coverage of
+  // all three audit levels. `standard` is the default and is already covered by
+  // the minimal/full scenarios above, so these pin the two levels that ADD to
+  // it, plus an interactive body at debug (the path that could not honour the
+  // level at all until the builder conversion).
   {
-    name: 'one-shot full + verbosity=compact (audit M1)',
+    name: 'one-shot full + auditLevel=enhanced',
     args: {
       targetName: 'TestCo',
       filledIrl: STABLE_FILLED_IRL,
       transactionContext: 'buy-side',
       partnerLead: 'Reid Peryam',
       projectCodeName: 'Cygnet',
-      verbosity: 'compact',
+      auditLevel: 'enhanced',
     },
-    expected: EXPECTED_HASH_ONESHOT_FULL_COMPACT,
+    expected: EXPECTED_HASH_ONESHOT_FULL_ENHANCED,
   },
   {
-    name: 'extract-only full + verbosity=compact (audit M1)',
+    name: 'one-shot full + auditLevel=debug',
+    args: {
+      targetName: 'TestCo',
+      filledIrl: STABLE_FILLED_IRL,
+      transactionContext: 'buy-side',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      auditLevel: 'debug',
+    },
+    expected: EXPECTED_HASH_ONESHOT_FULL_DEBUG,
+  },
+  {
+    name: 'interactive + auditLevel=debug',
+    args: { auditLevel: 'debug' },
+    expected: EXPECTED_HASH_INTERACTIVE_DEBUG,
+  },
+  {
+    // BL-125 renamed this: it claimed "identical shape at every level", which
+    // stopped being true when the body began stating its resolved level. The
+    // directive set is still identical across levels — that is what the
+    // exemption means, and it is now asserted directly rather than proxied by
+    // byte-identity. See bl-125-run-parameters.test.ts.
+    name: 'extract-only full + auditLevel=debug (gate-exempt: same directives, stated level differs)',
     args: {
       targetName: 'TestCo',
       filledIrl: STABLE_FILLED_IRL,
@@ -387,9 +562,38 @@ const SCENARIOS: Scenario[] = [
       partnerLead: 'Reid Peryam',
       projectCodeName: 'Cygnet',
       mode: 'extract-only',
-      verbosity: 'compact',
+      auditLevel: 'debug',
     },
-    expected: EXPECTED_HASH_EXTRACT_ONLY_FULL_COMPACT,
+    expected: EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG,
+  },
+  {
+    name: 'extract-only full + auditLevel=enhanced (gate-exempt: same directives, stated level differs)',
+    args: {
+      targetName: 'TestCo',
+      filledIrl: STABLE_FILLED_IRL,
+      transactionContext: 'value-creation',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      mode: 'extract-only',
+      auditLevel: 'enhanced',
+    },
+    expected: EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED,
+  },
+  {
+    name: 'interactive + auditLevel=enhanced',
+    args: { auditLevel: 'enhanced' },
+    expected: EXPECTED_HASH_INTERACTIVE_ENHANCED,
+  },
+  {
+    name: 'interactive with all four tailoring args (conditional Step 1 collapse branch)',
+    args: {
+      targetName: 'TestCo',
+      transactionContext: 'buy-side',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      requireVerbatimBody: true,
+    },
+    expected: EXPECTED_HASH_INTERACTIVE_WITH_ARGS,
   },
 ];
 

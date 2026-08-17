@@ -32,6 +32,11 @@ import { REGULATION_ENTRIES } from '../../src/content/regulation-loader';
 import { RADAR_URIS } from '../../src/resources/radar';
 import { ALL_PROMPTS } from '../../src/prompts/_registry';
 
+// BL-119 rebaseline: prompt v0.0.4 -> v0.0.5 (gst_radar_brief_today gains
+// Step 7, the provenance caveat). Cycle-2 UAT found the brief emitted no
+// framing at all for aggregated third-party content — the requirement
+// existed in the backlog, the operator runbook and the marketing copy, and
+// in no surface that actually produced the content.
 /**
  * The canonical manifest hash for the current registry shape. This MUST
  * match the value in `mcp-server/BREAKING_CHANGES.md`. Update both in
@@ -147,7 +152,51 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // real client; every occurrence repo-wide was renamed to the SanFran code
 // name. Byte-only rename — no directive, gate, argument, tool, or URI
 // changes. Drifts solely from that one prompt name@version tuple.
-const EXPECTED_MANIFEST_HASH = 'fdc5c599fa55317ed127849b500c20fbdabc1346973debba8659fe9464df087d';
+// Doubt-handling rebaseline (server 0.49.1): gst_irl_ingestion v0.22.1 →
+// v0.22.2. A real 57KB Desktop run (BL-119 cycle 5) showed the client
+// delivering a large expanded prompt as an attached document, which led the
+// model to conclude it was reading a render rather than holding bound
+// arguments and to offer a `prepare_irl_body` fallback that silently
+// downgrades irlSource from server-witnessed to model-asserted. The body now
+// tells it to proceed on the binding hash and to probe rather than
+// reconstruct. Body-only change — no argument, tool, or URI changes; drifts
+// solely from that one prompt name@version tuple.
+// Workbook-column-contract rebaseline (server 0.49.2): gst_irl_ingestion
+// v0.22.2 → v0.22.3. The prompt previously said nothing about the xlsx layout,
+// so the model-reconstruction path and the operator-side `npm run irl:extract`
+// script agreed only by coincidence — and on the first real filled workbook
+// they did not, the script discarding 45.2% of the authored characters. Both
+// now render the same bullet shape by instruction. Body-only change — no
+// argument, tool, or URI changes; drifts solely from that one prompt
+// name@version tuple.
+// Scope-conditional-counters rebaseline (server 0.49.3): gst_irl_ingestion
+// v0.22.3 → v0.22.4. The BL-071 precheck identities were stated flatly, as if
+// the server-authoritative counter always spanned the session. On the remote
+// Worker `createServer` runs per HTTP request, so the per-request counter map
+// could never satisfy them — the prompt was directing operators to fail runs
+// on a check that could not pass. The VERIFY block now carries `countersScope`
+// and states each identity conditionally. Body-only change — no argument,
+// tool, or URI changes; drifts solely from that one prompt name@version tuple.
+// Flattened-body-refusal withdrawal (server 0.52.0): gst_irl_ingestion
+// v0.24.0 -> v0.25.0 and gst_information_request_list v0.0.7 -> v0.0.8 — two
+// tuples, not one. Blank form fields stopped failing prompt attachment across
+// both prompts, so both were served new bytes. Recorded late: the 0.52.0 change
+// rebaselined this constant without appending here, which is why the comment
+// above it described a single-tuple drift while two had moved.
+// Run-parameters rebaseline (server 0.53.0): gst_irl_ingestion v0.25.0 ->
+// v0.26.0 and gst_information_request_list v0.0.8 -> v0.0.9. Every builder now
+// states its resolved mode / auditLevel / transactionContext instead of leaving
+// the model to infer them from what rendered, and requireVerbatimBody — inert
+// on every path, with zero render-time readers — is stated where a consumer
+// exists. Body-only on both prompts; no argument, tool or URI shape changed.
+// TechPar mode rebaseline (server 0.54.0): gst_irl_ingestion v0.26.0 ->
+// v0.27.0. The prompt named no compute_techpar mode while the tool's `mode` is
+// a required enum with no default, so the model chose it per call — and the
+// engine reads `rdOpEx` directly in `quick` but synthesizes it from three
+// Section-02 components in `deepdive`. Two runs over one IRL took different
+// branches and produced an inverted zone verdict. Body-only change on one
+// prompt; drifts solely from that tuple.
+const EXPECTED_MANIFEST_HASH = '28b148303253108b3d3c6b0808952a228a62bcf78976a365fd62b50b44b216a9';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

@@ -76,6 +76,44 @@ beforeEach(() => {
   mockCreateMcpClient.mockReturnValue(null);
 });
 
+// BL-122 — the `evaluated` flag has to survive the Upstash round trip, since
+// /status reads it back out of `mcp:alerts:last-eval` rather than from the
+// rule. The key must be OMITTED for evaluated rules, not set to `undefined`:
+// JSON.stringify drops undefined-valued keys, so an assignment would make the
+// persisted shape differ from the in-process one.
+describe('runAlertEvaluation — evaluated flag persistence', () => {
+  it('persists `evaluated: false` and omits the key entirely when evaluated', async () => {
+    const { set } = stubRedis();
+    mockRules.push(
+      makeRule('unknown-rule', () =>
+        Promise.resolve({
+          breached: false,
+          evaluated: false,
+          severity: 'ticket',
+          summary: 'AE unavailable — fail open',
+          observed: {},
+        })
+      ),
+      makeRule('evaluated-rule', healthy)
+    );
+
+    await runAlertEvaluation(ENV);
+
+    const write = set.mock.calls.find((c) => c[0] === LAST_EVAL_KEY);
+    expect(write, 'the summary should be written').toBeDefined();
+    const raw = write![1];
+    const persisted = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+
+    const unknown = persisted.rules.find((r: { id: string }) => r.id === 'unknown-rule');
+    const evaluated = persisted.rules.find((r: { id: string }) => r.id === 'evaluated-rule');
+
+    expect(unknown.evaluated).toBe(false);
+    // `in`, not toBeUndefined() — the latter cannot tell an omitted key from
+    // one explicitly set to undefined, which is the whole distinction here.
+    expect('evaluated' in evaluated).toBe(false);
+  });
+});
+
 describe('runAlertEvaluation', () => {
   it('posts a fingerprinted Sentry event per un-suppressed breach and NEVER a Crons check-in', async () => {
     stubRedis('OK');

@@ -50,7 +50,7 @@ function baseInput(): ComposeDossierEnvelopeEngineInput {
     promptVersion: '0.4.0',
     modelVersion: 'claude-opus-4-7',
     mode: 'full',
-    verbosity: 'verbose',
+    auditLevel: 'debug',
     transactionContext: 'value-creation',
     fillRatio: { percent: 92, substantiveCells: 46, totalCells: 50, status: 'ok' },
     gatesPassed: ['generate_diligence_agenda', 'compute_techpar'],
@@ -84,8 +84,119 @@ function baseInput(): ComposeDossierEnvelopeEngineInput {
   };
 }
 
+// BL-122 — the level-conditional response IS the enforcement point for the
+// whole audit-level feature. Suppression deliberately does NOT live in prompt
+// prose: this tool exists because the model treats body directives as
+// descriptive context and only tool output as procedure. If these assertions
+// go, the feature can regress to "returns everything at every level" silently.
+describe('compose_dossier_envelope — level-conditional response (BL-122)', () => {
+  const at = (auditLevel: 'standard' | 'enhanced' | 'debug') =>
+    runComposeDossierEnvelope({ ...baseInput(), auditLevel }, SERVER_CTX);
+
+  // `in`, not `toBeUndefined()`. The latter passes for BOTH the correct
+  // conditional-spread implementation and the broken
+  // `key: cond ? x : undefined` one — and only the former keeps the two
+  // response channels agreeing, since the text mirror is built with
+  // JSON.stringify, which drops undefined-valued keys.
+  it.each(['standard', 'enhanced'] as const)(
+    'omits metaFenceMarkdown as an ABSENT key at %s',
+    (level) => {
+      const r = at(level);
+      expect('metaFenceMarkdown' in r).toBe(false);
+    }
+  );
+
+  it('omits provenanceFooterMarkdown as an ABSENT key at standard', () => {
+    expect('provenanceFooterMarkdown' in at('standard')).toBe(false);
+  });
+
+  it('returns provenanceFooterMarkdown at enhanced, and both blocks at debug', () => {
+    expect('provenanceFooterMarkdown' in at('enhanced')).toBe(true);
+    expect('metaFenceMarkdown' in at('debug')).toBe(true);
+    expect('provenanceFooterMarkdown' in at('debug')).toBe(true);
+  });
+
+  it('returns gapListMarkdown at every level — (J) is never gated', () => {
+    for (const level of ['standard', 'enhanced', 'debug'] as const) {
+      expect(at(level).gapListMarkdown, level).toBeTruthy();
+    }
+  });
+
+  // The channel-divergence guard: structuredContent is returned by reference
+  // while the text mirror round-trips through JSON.stringify. If a key were
+  // set to an explicit `undefined` the two would disagree about its existence.
+  //
+  // `toStrictEqual`, NOT `toEqual` — the latter ignores undefined-valued
+  // properties, so it passes for the broken `key: cond ? x : undefined` form
+  // too and this guard would be vacuous.
+  it.each(['standard', 'enhanced', 'debug'] as const)(
+    'survives a JSON round-trip unchanged at %s (both channels agree)',
+    (level) => {
+      const r = at(level);
+      expect(JSON.parse(JSON.stringify(r))).toStrictEqual(r);
+    }
+  );
+
+  // emitInstructions is the model-facing half: it must name exactly what came
+  // back, so a withheld block carries no instruction to transcribe it.
+  it('names only the blocks actually returned', () => {
+    const standard = at('standard').emitInstructions;
+    expect(standard).toContain('one block');
+    expect(standard).toContain('gapListMarkdown');
+    expect(standard).not.toContain('metaFenceMarkdown');
+    expect(standard).not.toContain('provenanceFooterMarkdown');
+
+    const enhanced = at('enhanced').emitInstructions;
+    expect(enhanced).toContain('2 blocks');
+    expect(enhanced).toContain('provenanceFooterMarkdown');
+    expect(enhanced).not.toContain('metaFenceMarkdown');
+
+    const debug = at('debug').emitInstructions;
+    expect(debug).toContain('3 blocks');
+    expect(debug).toContain('metaFenceMarkdown');
+    expect(debug).toContain('provenanceFooterMarkdown');
+  });
+
+  it('tells the model not to reconstruct a withheld block', () => {
+    expect(at('standard').emitInstructions).toContain('withheld');
+  });
+
+  // BL-130 — both sentences shipped unguarded until this test: reverting them
+  // to their pre-BL-130 wording left the whole suite green. `emitInstructions`
+  // ships at EVERY audit level, so both are asserted at all three.
+  //
+  // The category definition matters because it is the only instruction telling
+  // the model not to edit auto-appended entries, and its old wording scoped
+  // that to claim-citation failures — which excluded the fill-ratio entry, and
+  // already under-described two older appends.
+  //
+  // The re-call exception matters because the sanctioned recovery elsewhere in
+  // this same block is "re-call with corrected arrays"; doing that to align
+  // `fillRatio` deletes the entry recording the disagreement.
+  it.each(['standard', 'enhanced', 'debug'] as const)(
+    'at %s, states what auto-appended entries are and forbids a corrective fillRatio re-call',
+    (level) => {
+      const emit = at(level).emitInstructions;
+      expect(emit).toContain('server statements about assertions this tool could not substantiate');
+      expect(emit).toContain(
+        "never re-call merely to align `fillRatio` with the server's derivation"
+      );
+    }
+  );
+
+  // Provenance verification is NOT a level concern — the whole point of the
+  // redesign is that the chain runs identically and only its display varies.
+  it('verifies provenance identically at every level', () => {
+    const counts = (['standard', 'enhanced', 'debug'] as const).map(
+      (l) => at(l).provenanceVerification
+    );
+    expect(counts[1]).toEqual(counts[0]);
+    expect(counts[2]).toEqual(counts[0]);
+  });
+});
+
 describe('renderMetaFence', () => {
-  it('emits a JSON code fence with all 12 design-doc fields in order', () => {
+  it('emits a JSON code fence with all 13 fields in order', () => {
     const fence = renderMetaFence(baseInput(), SERVER_CTX.promptVersion);
     expect(fence).toMatch(/^```json\n/);
     expect(fence).toMatch(/\n```$/);
@@ -93,13 +204,14 @@ describe('renderMetaFence', () => {
     expect(fence).toContain('"promptVersion": "0.4.0"');
     expect(fence).toContain('"modelVersion": "claude-opus-4-7"');
     expect(fence).toContain('"mode": "full"');
-    expect(fence).toContain('"verbosity": "verbose"');
+    expect(fence).toContain('"auditLevel": "debug"');
     expect(fence).toContain('"transactionContext": "value-creation"');
     expect(fence).toContain('"fixtureFillRatio": 0.92');
     expect(fence).toContain('"fixtureFillRatioStatus": "ok"');
     expect(fence).toContain('"gatesPassed"');
     expect(fence).toContain('"gatesElided"');
     expect(fence).toContain('"conditionalTriggersFired"');
+    expect(fence).toContain('"defaultFiredFrameworks"');
     expect(fence).toContain('"forceToolsApplied"');
   });
 
@@ -122,13 +234,17 @@ describe('renderMetaFence', () => {
       'promptVersion',
       'modelVersion',
       'mode',
-      'verbosity',
+      'auditLevel',
       'transactionContext',
       'fixtureFillRatio',
       'fixtureFillRatioStatus',
       'gatesPassed',
       'gatesElided',
       'conditionalTriggersFired',
+      // renderMetaFence emits this between conditionalTriggersFired and
+      // forceToolsApplied, but the list pinned only 12 of the 13 keys, so it
+      // was free to move without failing the "deterministic" contract.
+      'defaultFiredFrameworks',
       'forceToolsApplied',
     ];
     const positions = expectedKeys.map((k) => fence.indexOf(`"${k}":`));
@@ -142,15 +258,22 @@ describe('renderMetaFence', () => {
     }
   });
 
-  it('round-trips fillRatio.percent as fixtureFillRatio (percent/100)', () => {
+  // BL-130: `renderMetaFence` is a pure renderer — it emits whatever
+  // `fillRatio` it is handed. Production no longer hands it the model's
+  // values: `runComposeDossierEnvelope` derives them first. This test
+  // covers the renderer's own contract, NOT the end-to-end fence value.
+  // The fixture was `{35, 17, 50}` until BL-130; 17/50 is 34, and leaving
+  // an internally inconsistent example here invited reading it as the
+  // contract.
+  it('renders the fillRatio it is handed as fixtureFillRatio (percent/100)', () => {
     const fence = renderMetaFence(
       {
         ...baseInput(),
-        fillRatio: { percent: 35, substantiveCells: 17, totalCells: 50, status: 'partial' },
+        fillRatio: { percent: 34, substantiveCells: 17, totalCells: 50, status: 'partial' },
       },
       SERVER_CTX.promptVersion
     );
-    expect(fence).toContain('"fixtureFillRatio": 0.35');
+    expect(fence).toContain('"fixtureFillRatio": 0.34');
     expect(fence).toContain('"fixtureFillRatioStatus": "partial"');
   });
 });

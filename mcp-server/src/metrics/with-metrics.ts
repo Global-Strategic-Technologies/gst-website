@@ -38,6 +38,7 @@ import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
 import type { MetricSink } from './sinks/_interface';
 import type { IrlBodyCache } from '../cache/irl-body-cache';
+import type { RunCallCounters, RunCallOutcomeEvent } from './run-call-counters';
 import type { AuditContext } from '../audit/audit-sink';
 import { newEntryId } from '../audit/redaction';
 import { AUDIT_SCHEMA_VERSION, type AuditEntry, type AuditOutcome } from '../audit/entry';
@@ -51,7 +52,7 @@ export interface MetricsContext {
    * inner runs) and one `success` | `rejected` | `errored` event at wrap
    * exit. The `compose_dossier_envelope` handler reads the snapshot at
    * envelope-build time and emits it as `serverToolCallCounts` so the model
-   * can copy it verbatim into the BL-045-VERIFY block (closing the empirical
+   * can copy it verbatim into the RUN-AUDIT block (closing the empirical
    * drift where the model self-narrated `toolCallCounts` and either fabricated
    * a tool call or omitted one).
    *
@@ -59,8 +60,49 @@ export interface MetricsContext {
    * Desktop session); per-request in the Worker path (each fetch handler
    * builds a fresh `InMemoryToolCallCounters`). Undefined in tests / default
    * NOOP context — backward-compatible no-op.
+   *
+   * **BL-121**: that per-request scope on the Worker is why this map alone
+   * cannot satisfy the BL-071 identity there — see {@link runCounters}.
    */
   readonly counters?: ToolCallCounters;
+  /**
+   * BL-121 — durable, run-scoped counter accumulator. Survives isolate
+   * rotation, so `compose_dossier_envelope` can read counts recorded by
+   * `validate_irl_provenance` calls made in EARLIER requests. Without it the
+   * BL-071 identity `precheck.iterations === validate_irl_provenance.succeeded`
+   * is structurally unsatisfiable on the Worker, however correct the wrapper is.
+   *
+   * Bound on the Worker path when Upstash is available; absent on stdio (where
+   * {@link counters} already spans the session) and in tests. See
+   * `src/docs/adr/0016-run-scoped-durable-tool-call-counters.md`.
+   */
+  readonly runCounters?: RunCallCounters;
+  /**
+   * BL-121 — resolves the durable run key for a tool call, or `undefined` when
+   * the call belongs to no run. Only the IRL tools carry one, so every other
+   * tool skips the durable write entirely and pays nothing.
+   *
+   * Lives at the `createServer` wiring site because that is the only place
+   * that knows both the tool registry and how each tool's args yield a key.
+   */
+  readonly runKeyOf?: (toolName: string, args: readonly unknown[]) => string | undefined;
+  /**
+   * BL-121 — which regime the counters are in, and therefore whether the
+   * BL-071 precheck identities can be checked at all. Decided at context
+   * construction, where the transport and the Upstash binding are both known.
+   *
+   * **Deliberately not inferred from whether a durable read returned data**:
+   * `compose_dossier_envelope` writes its own row before reading, so the run
+   * key is non-empty on every Worker call and such an inference would collapse
+   * to a constant — labelling every run checkable whether or not it is.
+   *
+   *   - `'session'` — stdio; the in-process map spans the session. Identity holds.
+   *   - `'run'` — Worker with durable counters. Identity holds.
+   *   - `'request'` — Worker without them, or the read failed. Identity does
+   *     NOT hold; the prompt tells the model not to fabricate and the operator
+   *     to stand down rather than fail a good run.
+   */
+  readonly countersScope?: CountersScope;
   /**
    * BL-076 — optional IRL-body cache. When present, `prepare_irl_body` writes
    * the body keyed by its canonical 16-hex hash on every call;
@@ -79,6 +121,24 @@ export interface MetricsContext {
    *     silently miss across isolate rotations).
    */
   readonly irlBodyCache?: IrlBodyCache;
+  /**
+   * BL-123 — server-held provenance for cached IRL bodies. Records who wrote
+   * each body (`prompt-render` vs `prepare-tool`) so `compose_dossier_envelope`
+   * can CAP an over-strong model-asserted `irlSource` instead of trusting it.
+   *
+   * Undefined means "cannot verify", not "failed": the claim passes through
+   * labelled unverified. Unlike {@link irlBodyCache} an unbound store never
+   * throws — a missing body corrupts the dossier, a missing provenance record
+   * only weakens an audit claim (ADR-0016's trade).
+   *
+   * Scoping:
+   *   - stdio: process-lifetime map. The render and the compose share one
+   *     process, so the cap fully works locally.
+   *   - Worker: Upstash-backed, or absent when unbound. MUST NOT be in-memory —
+   *     isolates rotate, so the render's write would be invisible to the
+   *     compose and every honest prepop run would silently downgrade.
+   */
+  readonly irlBodyProvenance?: import('../cache/irl-body-provenance').IrlBodyProvenanceStore;
   /**
    * BL-033 Slice 3a — optional compliance audit carrier. When present,
    * `withMetricsCore` builds a full `AuditEntry` (incl. input params +
@@ -129,7 +189,7 @@ export interface RateLimitCheck {
 /**
  * BL-071 — server-arithmetic tool-call counter taxonomy.
  *
- * Four states per tool, tracked separately so the BL-045-VERIFY-block
+ * Four states per tool, tracked separately so the RUN-AUDIT-block
  * arithmetic identity `precheck.iterations === validate_irl_provenance.succeeded`
  * (and friends) is derivable from the snapshot the envelope tool emits.
  *
@@ -156,6 +216,12 @@ export interface ToolCallCounters {
   record(toolName: string, event: ToolCallCounterEvent): void;
   snapshot(): Record<string, ToolCallCounterEntry>;
 }
+
+/**
+ * BL-121 — the regime a run's counters are in. See
+ * `MetricsContext.countersScope` for how each value is reached.
+ */
+export type CountersScope = 'session' | 'run' | 'request';
 
 /**
  * Default in-process accumulator. Map mutations are safe because:
@@ -314,6 +380,21 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
   inner: (...args: TArgs) => TResult | Promise<TResult>
 ): (...args: TArgs) => Promise<TResult> {
   return async (...args: TArgs): Promise<TResult> => {
+    // BL-122 — READ THIS BEFORE TRUSTING `duration_ms`.
+    //
+    // On the Worker this does NOT measure how long the handler took. Cloudflare
+    // freezes the clock outside I/O as a Spectre mitigation: `Date.now()`
+    // "returns the time of the last I/O [and] does not advance during code
+    // execution". So `Date.now() - startedAt` measures the wall time the
+    // handler spent BLOCKED ON I/O, and a handler that performs none scores
+    // exactly 0 however much computation it does.
+    //
+    // There is no workaround — Workers provide no unfrozen timer, so
+    // `performance.now()` behaves identically. The value is still worth
+    // emitting (it is real for I/O-bound handlers, and it feeds the audit
+    // entry), but anything presenting it as "tool latency" is mislabelled:
+    // `/status` publishes only rows with a non-zero p99 and calls it upstream
+    // I/O wait, and client-observed latency comes from the CI probe instead.
     const startedAt = Date.now();
 
     // BL-033 Slice 3a — build + enqueue a compliance audit entry. Gated to
@@ -376,10 +457,45 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
       ctx.counters?.record(name, 'attempted');
       maybeWarnSoftLimit(ctx.rateLimit, args);
     }
+
+    // BL-121 — the durable record happens at wrap EXIT, never here. A Redis
+    // round-trip in front of `inner` would let an Upstash brownout stall the
+    // tool call itself, which is exactly what the counter's fail-quiet posture
+    // promises it will not do. The cost is stated in ADR-0016: a call whose
+    // isolate dies mid-handler is lost durably, where an entry write would
+    // have caught it. Every other outcome — structured rejection, thrown
+    // error — still reaches an exit path below.
+    const recordDurable = async (event: RunCallOutcomeEvent): Promise<void> => {
+      if (eventType !== 'tool_invocation' || !ctx.runCounters || !ctx.runKeyOf) return;
+      // The key derivation is inside the swallow, not just the write. It
+      // hashes caller-supplied bytes, so a malformed payload could throw —
+      // and on the SUCCESS path that throw would escape into the outer catch,
+      // converting a call that worked into an `errored` one AND double-
+      // recording it. A counter must never be able to fail the call it counts.
+      try {
+        const runKey = ctx.runKeyOf(name, args);
+        if (!runKey) return;
+        // Awaited, and the reason is narrow: `ctx.waitUntil` IS threaded on
+        // this path and does not cancel, but it gives no ordering guarantee
+        // against the NEXT request — and the next request is precisely who
+        // reads this. `record` itself never throws; it swallows and safeLogs.
+        await ctx.runCounters.record(runKey, name, event);
+      } catch {
+        safeLog({
+          event: 'bl121.run-key.derivation-failed',
+          tool: name,
+          success: false,
+          errorCode: 'run-key-derivation',
+        });
+      }
+    };
+
     try {
       const result = await inner(...args);
       if (eventType === 'tool_invocation') {
-        ctx.counters?.record(name, detectCounterOutcome(result, false));
+        const outcome = detectCounterOutcome(result, false);
+        ctx.counters?.record(name, outcome);
+        await recordDurable(outcome);
       }
       // B1 fix: detectOutcome MUST NOT take down the caller. A buggy projection
       // (e.g. accessing a field on an unexpected result shape) defaults to
@@ -412,7 +528,9 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
       return result;
     } catch (err) {
       if (eventType === 'tool_invocation') {
-        ctx.counters?.record(name, detectCounterOutcome(undefined, true));
+        const outcome = detectCounterOutcome(undefined, true);
+        ctx.counters?.record(name, outcome);
+        await recordDurable(outcome);
       }
       emit(ctx.sink, {
         event_type: eventType,
