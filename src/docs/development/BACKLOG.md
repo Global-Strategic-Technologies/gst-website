@@ -460,6 +460,32 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
+### BL-136: A production advisory sat red for three days because nothing is watching the audit job
+
+**Source**: post-merge check of PR #427, 2026-08-17 | **Effort**: Small | **Status**: Recorded — **the symptom is fixed, the detection gap is not**
+
+**What happened.** `npm audit (production dependencies only)` failed on master and on all six Dependabot branches from ~2026-08-14 to 2026-08-17 with two high advisories in production dependencies (`js-yaml`, `nanoid` — both transitive, both with an in-range patch published). The gate that [DEVELOPER_TOOLING.md § npm audit policy](DEVELOPER_TOOLING.md) calls "the enforced gate" was therefore not enforcing anything for three days, and it was found by a human glancing at a run list, not by the pipeline. The advisories themselves are cleared; **this item is about the three days, not the two packages.**
+
+**Why nothing fired.** Three independent reasons, each sufficient on its own:
+
+- The job is **not a required status check** (the ruleset requires E2E, Unit & Integration, Lint & Type Check, Verify doc links). A red run blocks no merge.
+- It notifies **no one** — no issue, no comment, no Slack. GitHub emails the actor on a failed scheduled run, which is a weak signal buried in ordinary CI mail.
+- **Dependabot could not have caught it**: neither package is a declared dependency in either workspace, so version updates never touch them, and `automated-security-fixes` — the mechanism that _does_ handle transitives — reports `{"enabled": false}` for this repo.
+
+**Three candidate responses, not equivalent.**
+
+1. **Turn on Dependabot security updates.** Closes the detection gap at the source and opens a PR per advisory. Cost: more PR churn, and it will open PRs against dev-only advisories too, which policy tolerates deliberately — worth checking whether that can be scoped before enabling.
+2. **Make the audit job a required check.** Strongest enforcement, and the honest reading of "must stay at zero". Cost that must be accepted with open eyes: a newly-published upstream CVE then blocks _every_ PR until someone patches, including unrelated work. That is a real operational tax and the reason it is not already required.
+3. **Notify on failure.** `deploy-mcp-production.yml` already carries the pattern (`issues: write`, opens an issue on failure). Cheapest, keeps merges unblocked, and converts silence into a tracked artefact — but it is a reminder, not a gate.
+
+(1) and (3) compose well and neither taxes unrelated PRs; (2) is the operator's call about how hard the policy should bite.
+
+**While here**: the same measurement found the doc's dev-tree ledger describing 3 advisories in one chain when the tree carried 9 in two (the `@lhci/cli → … → extract-zip` chain had drifted in unnoticed — dev-only advisories fail nothing, which is the same root cause one layer down). Corrected in the same commit; the wrangler chain has a free in-range fix left to the Dependabot dev-dependencies PR because it moves the deploy toolchain.
+
+**Trigger**: met — this already happened once.
+
+---
+
 ### BL-125: The prompt states none of its own run parameters
 
 **Source**: post-deploy production testing of BL-124, 2026-08-14, plus seven rounds of design review | **Effort**: Medium | **Status**: **Implemented 2026-08-14** (prompt `0.26.0` / `0.0.9`, server `0.53.0`, [ADR-0017 amendment](../adr/0017-audit-levels-enforced-in-the-tool-response.md)) — open pending the post-deploy production confirmation, which is the only criterion a test cannot close
