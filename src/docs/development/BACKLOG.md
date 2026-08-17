@@ -460,6 +460,32 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
+### BL-136: A production advisory sat red for three days because nothing is watching the audit job
+
+**Source**: post-merge check of PR #427, 2026-08-17 | **Effort**: Small | **Status**: Recorded — **the symptom is fixed, the detection gap is not**
+
+**What happened.** `npm audit (production dependencies only)` failed on master and on all six Dependabot branches from ~2026-08-14 to 2026-08-17 with two high advisories in production dependencies (`js-yaml`, `nanoid` — both transitive, both with an in-range patch published). The gate that [DEVELOPER_TOOLING.md § npm audit policy](DEVELOPER_TOOLING.md) calls "the enforced gate" was therefore not enforcing anything for three days, and it was found by a human glancing at a run list, not by the pipeline. The advisories themselves are cleared; **this item is about the three days, not the two packages.**
+
+**Why nothing fired.** Three independent reasons, each sufficient on its own:
+
+- The job is **not a required status check** (the ruleset requires E2E, Unit & Integration, Lint & Type Check, Verify doc links). A red run blocks no merge.
+- It notifies **no one** — no issue, no comment, no Slack. GitHub emails the actor on a failed scheduled run, which is a weak signal buried in ordinary CI mail.
+- **Dependabot could not have caught it**: neither package is a declared dependency in either workspace, so version updates never touch them, and `automated-security-fixes` — the mechanism that _does_ handle transitives — reports `{"enabled": false}` for this repo.
+
+**Three candidate responses, not equivalent.**
+
+1. **Turn on Dependabot security updates.** Closes the detection gap at the source and opens a PR per advisory. Cost: more PR churn, and it will open PRs against dev-only advisories too, which policy tolerates deliberately — worth checking whether that can be scoped before enabling.
+2. **Make the audit job a required check.** Strongest enforcement, and the honest reading of "must stay at zero". Cost that must be accepted with open eyes: a newly-published upstream CVE then blocks _every_ PR until someone patches, including unrelated work. That is a real operational tax and the reason it is not already required.
+3. **Notify on failure.** `deploy-mcp-production.yml` already carries the pattern (`issues: write`, opens an issue on failure). Cheapest, keeps merges unblocked, and converts silence into a tracked artefact — but it is a reminder, not a gate.
+
+(1) and (3) compose well and neither taxes unrelated PRs; (2) is the operator's call about how hard the policy should bite.
+
+**While here**: the same measurement found the doc's dev-tree ledger describing 3 advisories in one chain when the tree carried 9 in two (the `@lhci/cli → … → extract-zip` chain had drifted in unnoticed — dev-only advisories fail nothing, which is the same root cause one layer down). Corrected in the same commit; the wrangler chain has a free in-range fix left to the Dependabot dev-dependencies PR because it moves the deploy toolchain.
+
+**Trigger**: met — this already happened once.
+
+---
+
 ### BL-125: The prompt states none of its own run parameters
 
 **Source**: post-deploy production testing of BL-124, 2026-08-14, plus seven rounds of design review | **Effort**: Medium | **Status**: **Implemented 2026-08-14** (prompt `0.26.0` / `0.0.9`, server `0.53.0`, [ADR-0017 amendment](../adr/0017-audit-levels-enforced-in-the-tool-response.md)) — open pending the post-deploy production confirmation, which is the only criterion a test cannot close
@@ -1130,7 +1156,12 @@ Retained rather than pruned — not because its findings lack a home (both are d
 1. The SDK v2 handler runs its **own** Host/Origin gate. Left at its default the accepted set is the localhost trio, so on a custom domain every request carrying `Origin: https://claude.ai` gets a **403** — the exact browser clients the allowlist exists for, and a failure mode the legacy handler did not have. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the fix.
 2. `with-metrics.ts` located its notifier by duck-typing on a field v2 renamed, and the function is contractually non-throwing — so the rate-limit warning would have died **silently**, with the soft-limit tests staying green against their own fake. Both the production view and the fake are now bound to the SDK's `ServerContext` so a rename is a compile error.
 
-**Standing caution**: an unreproduced single-test failure in the mcp suite (`1 failed | 1973 passed`, once, name never captured; seven other full runs green). It fits the documented workerd cold-start flake but that remains an explanation, not evidence. **If a red mcp run appears, capture the failing test name before rerunning** — a rerun destroys it.
+**Standing caution**: an unreproduced single-test failure in the mcp suite, now seen **twice**, name never captured either time. It fits the documented workerd cold-start flake but that remains an explanation, not evidence.
+
+- **2026-08-04** — `1 failed | 1973 passed`; seven other full runs green.
+- **2026-08-17** — `1 failed | 2391 passed`, during the BL-136 lockfile work. Two later runs passed, **including one deliberately executed against the pre-change lockfile** (stash the lockfile, reinstall, re-run), which is what rules the dependency bump out as the cause. Not the cold-start case either: an earlier `test:mcp` the same session had already passed 2392, so the worker was warm.
+
+**If a red mcp run appears, capture the failing test name before rerunning** — a rerun destroys it. The 2026-08-17 instance was lost a step earlier than that: the suite was run through a `| grep "Test Files|Tests "` pipe, so the name was discarded before anyone could read it. **Redirect the run to a file and grep the file.**
 
 **Deferred work extracted to [BL-107](#bl-107-mcp-server--tasks-extension-and-mrtr-candidate)** so it stays visible in the backlog rather than only inside a closed stanza. Declined outright: `x-mcp-header` mirroring; replacing the body-parse rate-limit dispatch with `Mcp-Name` (base64-sentinel values would let an encoded `search_radar` escape the radar tier); dropping the `agents` dependency. RFC 9207 `iss` closed — reasoning distilled into ADR-0013.
 
