@@ -19,6 +19,17 @@ export const ButtonSpecimen = () => (
         Disabled
       </button>
     </Row>
+    <Row label="Copy feedback state">
+      {/* techpar/index.astro + src/utils/copy-feedback.ts: a copy action adds
+          --copied for ~2s and swaps the label to "Copied!"; the class is the
+          transient teal state, not a variant. */}
+      <button className="brutal-btn brutal-btn--secondary" type="button">
+        Copy link
+      </button>
+      <button className="brutal-btn brutal-btn--secondary brutal-btn--copied" type="button">
+        Copied!
+      </button>
+    </Row>
     <Row label="Full width">
       <button className="brutal-btn brutal-btn--primary brutal-btn--full">Full Width</button>
     </Row>

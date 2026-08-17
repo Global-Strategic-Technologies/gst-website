@@ -38,3 +38,28 @@ export const Row = ({ label, children }: { label: string; children: React.ReactN
     </div>
   </div>
 );
+
+// The GST delta — what DeltaIcon.astro emits, attribute for attribute:
+// stroke="currentColor" so it follows theme and palette, aria-hidden because it
+// is decorative, flex-shrink:0 so a long list item never squashes it. Pass the
+// class the consumer uses (.bullet-icon for list bullets, .delta-chevron for a
+// collapse toggle, .brutal-option-card__icon inside an option card).
+export const Delta = ({ className, size = 14 }: { className: string; size?: number }) => (
+  <svg
+    className={className}
+    viewBox="0 0 64 64"
+    fill="none"
+    width={size}
+    height={size}
+    aria-hidden="true"
+    style={{ flexShrink: 0 }}
+  >
+    <path
+      d="M32 12 L52 52 L12 52 Z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="6"
+      strokeLinejoin="miter"
+    />
+  </svg>
+);

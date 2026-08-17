@@ -15,3 +15,5 @@ export * from './FormSpecimen';
 export * from './FrostedSpecimen';
 export * from './ToolShellSpecimen';
 export * from './ColorSpecimen';
+export * from './ToolChromeSpecimen';
+export * from './NavigationSpecimen';

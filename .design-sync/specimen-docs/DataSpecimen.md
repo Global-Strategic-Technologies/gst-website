@@ -45,4 +45,12 @@ Body text is a bare sibling of `__title`, not a wrapped element.
 </div>
 ```
 
-Also available: `.brutal-bench-table` for tabular data, `.brutal-breadcrumb` for navigation.
+Also available: `.brutal-bench-table` (benchmark rows with an `__active` highlight — ToolChromeSpecimen), `.brutal-breadcrumb` (NavigationSpecimen).
+
+### Editor's pick tag
+
+A small outlined tag in the editor's-pick colour, for curated feed items.
+
+```jsx
+<span className="editors-pick-tag">Editor's Pick</span>
+```

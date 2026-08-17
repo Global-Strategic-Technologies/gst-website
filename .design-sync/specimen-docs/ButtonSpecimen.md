@@ -23,6 +23,9 @@ design system. Only two variants exist — `--primary` and `--secondary`.
 
 {/* Marketing CTA — solid fill, used for the primary page action */}
 <a className="cta-button" href="/contact/">Request diligence</a>
+
+{/* Copy feedback — add --copied for ~2s after a copy action and swap the label; a state, not a variant */}
+<button className="brutal-btn brutal-btn--secondary brutal-btn--copied" type="button">Copied!</button>
 ```
 
 `.brutal-btn` already carries the frosted-glass treatment (`backdrop-filter`, inset
