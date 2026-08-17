@@ -13,9 +13,10 @@
 // Run from the repo root: node .design-sync/build-css.mjs
 import { bundle, browserslistToTargets } from 'lightningcss';
 import browserslist from 'browserslist';
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { inlineRootUrls } from './lib/inline-urls.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, '..');
@@ -58,26 +59,10 @@ const { code } = bundle({
 let css = code.toString();
 
 // Root-absolute url() refs point at public/, which does not exist in the design
-// environment. Inline them so the sheet is self-contained — a mask-image whose
-// URL 404s hides its element entirely rather than merely rendering unmasked.
-let inlined = 0;
-css = css.replace(/url\((['"]?)(\/[^'")]+)\1\)/g, (whole, _q, urlPath) => {
-  const asset = join(REPO, 'public', urlPath);
-  if (!existsSync(asset)) {
-    console.error(`[GST_CSS] ! url(${urlPath}) has no file under public/ — left as-is`);
-    return whole;
-  }
-  const b64 = readFileSync(asset).toString('base64');
-  const mime = urlPath.endsWith('.svg')
-    ? 'image/svg+xml'
-    : urlPath.endsWith('.png')
-      ? 'image/png'
-      : urlPath.endsWith('.woff2')
-        ? 'font/woff2'
-        : 'application/octet-stream';
-  inlined++;
-  return `url("data:${mime};base64,${b64}")`;
-});
+// environment. Inline them so the sheet is self-contained (shared helper —
+// extract-chrome.mjs uses the same one against dist/client/).
+const { css: inlinedCss, inlined } = inlineRootUrls(css, join(REPO, 'public'));
+css = inlinedCss;
 
 writeFileSync(OUT, css);
 console.error(
