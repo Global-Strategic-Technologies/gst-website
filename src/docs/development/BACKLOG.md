@@ -309,7 +309,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-135: Claude Design sync — correct it, guard it, and publish the design system rather than its content-level subset
 
-**Source**: audit of the initial sync (`5ca4012f`, 2026-08-16) the same day it landed — three parallel checks (name accuracy, coverage, specimen fidelity + tooling), plus a read-only listing of the live project confirming remote = local `ds-bundle/` | **Effort**: Slices 1–2 Small (a session); Slice 3 Medium — it is a build-extraction script plus a card-authoring path the converter does not take today; Slice 4 Small | **Status**: Open · Slices 1–2 are unblocked; Slice 3 wants a plan
+**Source**: audit of the initial sync (`5ca4012f`, 2026-08-16) the same day it landed — three parallel checks (name accuracy, coverage, specimen fidelity + tooling), plus a read-only listing of the live project confirming remote = local `ds-bundle/` | **Effort**: Slices 1–2 Small (a session); Slice 3 Medium — it is a build-extraction script plus a card-authoring path the converter does not take today; Slice 4 Small | **Status**: Open · **Slice 1 shipped 2026-08-16**; Slice 2 unblocked; Slice 3 wants a plan
 
 **As a** user of the Claude Design project ([CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md)), **I want** the published system to be correct where it speaks, to fail CI when it goes stale, and to cover the surfaces that make a page look like GST **so that** the design agent produces on-brand output for whole pages rather than on-token cards inside chrome it invented.
 
@@ -322,15 +322,17 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 #### Acceptance Criteria
 
-**Slice 1 — correct and guard (unblocked)**
+**Slice 1 — correct and guard — ✅ shipped 2026-08-16**
 
-- [ ] D1–D6 fixed at the source (`conventions.md`, `FormSpecimen.tsx` + `.md`, `ToolShellSpecimen.md`, `CardSpecimen.tsx`), and D4 fixed in `STYLES_GUIDE.md` too, since that is where it came from; the minor items with them
-- [ ] A vitest under `test:docs` (beside `docs-variables-sync.test.ts`, reusing its CSS-parsing approach) asserts every `` `.class` `` / `className="…"` / `__sub` / `--modifier` / `` `--token` `` named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx` exists in `src/styles/**/*.css` — with an explicit allowlist for the two intentional negatives (`.brutal-card`, `.brutal-hero`) that fails when an entry becomes stale, per the `FLOOR_EXCEPTIONS` posture. It must find D3 on this branch before the fix (prove the guard probes something)
-- [ ] A vitest asserts `ROOTS` in `build-css.mjs` reaches every sheet under `src/styles/**/*.css` via transitive `@import` — set equality, not subset
-- [ ] `.design-sync/**/*.tsx` are either type-checked (an explicit `tsconfig` include + `@types/react` as a devDependency, or a `.design-sync`-local tsconfig run from `test:docs`) or the docs stop implying they are; the eslint.config.mjs comment says which
-- [ ] Palettes verified: the dark-probe pattern extended to toggle `html.palette-0…5` on a real card and print which tokens re-point; the "unverified" caveats in CLAUDE_DESIGN_SYNC.md and NOTES.md replaced by the result
-- [ ] Fresh-clone path documented in NOTES.md — what a re-sync from a new machine costs (re-upload, re-grade), and that `dark-probe.mjs` needs a full `package-build` first
-- [ ] Re-synced; the remote project's `README.md` and `components/specimens/*` reflect the fixes (`list_files` + a `get_file` on README suffices)
+- [x] D1–D6 fixed at the source (`conventions.md`, `FormSpecimen.tsx` + `.md`, `ToolShellSpecimen.md`, `CardSpecimen.tsx`), and D4 fixed in `STYLES_GUIDE.md` too, since that is where it came from; the minor items with them
+- [x] A vitest under `test:docs` (beside `docs-variables-sync.test.ts`, reusing its CSS-parsing approach) asserts every `` `.class` `` / `className="…"` / `__sub` / `--modifier` / `` `--token` `` named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx` exists in `src/styles/**/*.css` — with an explicit allowlist for the two intentional negatives (`.brutal-card`, `.brutal-hero`) that fails when an entry becomes stale, per the `FLOOR_EXCEPTIONS` posture. It must find D3 on this branch before the fix (prove the guard probes something) — it did: the first run reported exactly `.tool-section` and nothing else; a four-way mutation (phantom class, phantom token, phantom modifier, phantom sub-element) was caught before the fixes landed. Lives in `tests/integration/design-sync-guards.test.ts`
+- [x] A vitest asserts `ROOTS` in `build-css.mjs` reaches every sheet under `src/styles/**/*.css` via transitive `@import` — set equality, not subset
+- [x] `.design-sync/**/*.tsx` are either type-checked (an explicit `tsconfig` include + `@types/react` as a devDependency, or a `.design-sync`-local tsconfig run from `test:docs`) or the docs stop implying they are; the eslint.config.mjs comment says which — type-checked: `.design-sync/tsconfig.json` + `@types/react` devDependency, run by the guards test (`tsc -p .design-sync`), proven to catch a `className={42}`
+- [x] Palettes verified: the dark-probe pattern extended to toggle `html.palette-0…5` on a real card and print which tokens re-point; the "unverified" caveats in CLAUDE_DESIGN_SYNC.md and NOTES.md replaced by the result — `palette-probe.mjs`: palette-0 holds `#05cd99`, 1–5 re-point the token AND the painted fill
+- [x] Fresh-clone path documented in NOTES.md — what a re-sync from a new machine costs (re-upload, re-grade), and that `dark-probe.mjs` needs a full `package-build` first
+- [x] Re-synced; the remote project's `README.md` and `components/specimens/*` reflect the fixes (`list_files` + a `get_file` on README suffices) — 53 files written; the remote README confirmed carrying D1/D4/D5 and the `.brutal-field` row
+
+One correction made mid-slice, recorded because it is the class of error this repo tracks: the first draft of the D2 fix described `.brutal-input` as "solid-border" — it is dashed like `.brutal-field__input`; the real differences are width, size and colour. Asserted from memory, caught by looking at the rendered card. Fixed before upload.
 
 **Slice 2 — extend the vocabulary (unblocked; the guard from Slice 1 keeps it honest)**
 

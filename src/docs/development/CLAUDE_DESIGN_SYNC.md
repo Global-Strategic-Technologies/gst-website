@@ -54,13 +54,13 @@ import `Header.astro` or any other real component.
 
 ## When you must re-sync
 
-| You changed                                        | Why it matters                                                                                                                                   |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Any `.brutal-*` class name, or a BEM sub-element   | The uploaded docs name classes explicitly. A renamed class means the agent emits markup that resolves to nothing — **silently unstyled output**. |
-| A design token in `variables.css` / `palettes.css` | Same: tokens are enumerated by name in the conventions header.                                                                                   |
-| Split a new sheet out of `global.css`              | The `ROOTS` list in `.design-sync/build-css.mjs` is hand-maintained; a new sheet not added there stops shipping.                                 |
-| Brand colors, typography scale, or the palettes    | The published system silently diverges from production.                                                                                          |
-| The four docs under `src/docs/styles/`             | They ship verbatim as guidelines.                                                                                                                |
+| You changed                                        | Why it matters                                                                                                                                                 |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Any `.brutal-*` class name, or a BEM sub-element   | The uploaded docs name classes explicitly. A renamed class means the agent emits markup that resolves to nothing — **silently unstyled output**.               |
+| A design token in `variables.css` / `palettes.css` | Same: tokens are enumerated by name in the conventions header.                                                                                                 |
+| Split a new sheet out of `global.css`              | The `ROOTS` list in `.design-sync/build-css.mjs` is hand-maintained; a new sheet not added there stops shipping (CI catches it: `design-sync-guards.test.ts`). |
+| Brand colors, typography scale, or the palettes    | The published system silently diverges from production.                                                                                                        |
+| The four docs under `src/docs/styles/`             | They ship verbatim as guidelines.                                                                                                                              |
 
 Nothing breaks loudly when this is skipped — the design system just quietly goes stale, so
 treat a class rename as a re-sync trigger.
@@ -96,6 +96,8 @@ and regenerated — never commit them.
 | `.design-sync/build-css.mjs`      | Flattens the stylesheet graph (see below)                                                                                                                                                          |
 | `.design-sync/ds-entry.mjs`       | Zero-export bundle entry stub                                                                                                                                                                      |
 | `.design-sync/dark-probe.mjs`     | Verifies dark mode still switches tokens                                                                                                                                                           |
+| `.design-sync/palette-probe.mjs`  | Verifies the six palettes still re-point `--color-primary` and a painted element                                                                                                                   |
+| `.design-sync/tsconfig.json`      | Type-check config for the specimens (`tsc -p .design-sync`, run by the guards test — the root tsconfig never sees dot-directories)                                                                 |
 | `.design-sync/NOTES.md`           | Operational gotchas, hard-won findings, re-sync risks — **read before re-syncing**                                                                                                                 |
 
 ### Why the CSS is flattened
@@ -114,8 +116,18 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
   card and prints which tokens switch. Expected: `--text-primary`, `--bg-light`,
   `--bg-light-alt` and body color switch; `--color-primary` and `--border-light` do not
   (teal is theme-invariant; `--border-light` is a light-only token).
-- **Names**: every class and token named in `conventions.md` and `specimen-docs/` must
-  exist in the built `ds-bundle/_ds_bundle.css`. The skill re-runs this check each sync.
+- **Palettes**: `node .design-sync/palette-probe.mjs` — applies `html.palette-0…5` to the
+  same card and checks that `--color-primary` AND a painted element (the progress-bar
+  fill) re-point under 1–5 and stay put under 0 (the default palette). Verified 2026-08-16:
+  all six behave as expected against the shipped bundle.
+- **Names — guarded in CI.** `tests/integration/design-sync-guards.test.ts` (part of
+  `npm run test:docs`, a required check) asserts every class, BEM sub-element, modifier
+  and token named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx` exists in
+  `src/styles/**/*.css`; that the `ROOTS` list in `build-css.mjs` reaches every sheet under
+  `src/styles/`; and that the specimens type-check (`tsc -p .design-sync`). The two
+  intentional negatives the docs state (`.brutal-card`, `.brutal-hero`) sit in an
+  allowlist that fails when it goes stale. The skill's own name check still runs at sync
+  time; the vitest is what fires between syncs.
 - **The real test**: prompt the design agent for something GST-shaped and check the output
   uses teal accents, `.brutal-*` classes, and `var(--spacing-*)` rather than pixel values.
 
@@ -124,7 +136,11 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
 - **Dark-mode preview cards are not buildable.** The converter's card scaffold hardcodes
   `body{background:#fff}`, and the tokens resolve only at `:root` — a nested
   `color-scheme: dark` flips nothing. Dark mode is verified by the probe instead.
-- **The six palettes are unverified.** They ship, but nothing has exercised them.
+- **What the published system does not cover** — see [BL-135](BACKLOG.md#bl-135-claude-design-sync--correct-it-guard-it-and-publish-the-design-system-rather-than-its-content-level-subset):
+  the class vocabulary conventions.md teaches is a subset of `src/styles` (Slice 2 widens
+  it), and the site chrome (`Header`, `Hero`, `Footer`, section cards) lives in
+  Astro-scoped `<style>` blocks that never reach the bundle — the agent cannot reproduce
+  it from the CSS alone (Slice 3 publishes it by extraction from the built `/brand` page).
 - **`/brand` remains the human-browsable surface** for the design system; the Design
   project exists to steer the agent, not to replace [`/brand`](../../pages/brand.astro).
 
@@ -132,4 +148,4 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
 
 <- Back to [Development Documentation](./README.md) | [Master Documentation Index](../README.md)
 
-_Last Updated: August 16, 2026 (initial sync — tokens + 8 specimen galleries)_
+_Last Updated: August 16, 2026 (initial sync — tokens + 8 specimen galleries; BL-135 Slice 1 — defects fixed, CI guards, palettes verified)_
