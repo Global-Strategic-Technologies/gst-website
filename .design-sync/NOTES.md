@@ -10,7 +10,7 @@ package. The converter builds `_ds_bundle.js` from React exports, so **none of t
 `.astro` components can be imported** — see the "Scope" note in the skill's
 `non-storybook/SKILL.md`.
 
-What ships instead, in two parts:
+What ships instead, in three parts:
 
 1. **The CSS design system** — tokens, typography, palettes, and the full `.brutal-*`
    class vocabulary, flattened into `_ds_bundle.css`, plus four styling guideline docs.
@@ -18,6 +18,11 @@ What ships instead, in two parts:
    `DataSpecimen`, `FormSpecimen`, `FrostedSpecimen`, `ToolShellSpecimen`,
    `ToolChromeSpecimen`, `NavigationSpecimen`, `ColorSpecimen`) — React components that
    render GST _markup + classes_, giving the project browsable preview cards.
+3. **The site chrome, extracted from the production build** (`extract-chrome.mjs`, BL-135
+   Slice 3) — 19 static cards under `components/chrome/` sliced from `dist/client/**`:
+   the real Header/Hero/sections/CTA/Footer (+ dark twins), Breadcrumb, StatsBar,
+   EngagementFlow, the hub tools landing, TOC. Markup **is** production output; nothing is
+   hand-authored. `/brand` is not a source (replicas — STYLES_GUIDE mechanism 2/3).
 
 **The specimens are documentation, not UI components.** They are legitimate under
 STYLES_GUIDE mechanism 3: these classes have no `.astro` component behind them, so
@@ -56,15 +61,26 @@ reimplementation the skill forbids, and STYLES_GUIDE's own drift argument applie
   which invites the design agent to render a gallery row into a real design. Every doc
   opens by telling the agent NOT to import the specimen and gives copyable markup instead.
 
-### The exact commands
+### The exact commands (in this order — it matters)
 
 ```sh
+npm run build                                  # extract-chrome slices dist/client/
 node .design-sync/build-css.mjs
 node .ds-sync/resync.mjs --config .design-sync/config.json \
   --node-modules ./.ds-sync/node_modules \
   --entry ./.design-sync/ds-entry.mjs --out ./ds-bundle \
   --remote .design-sync/.cache/remote-sync.json
+node .design-sync/extract-chrome.mjs --check   # AFTER resync — package-build wipes ds-bundle/
 ```
+
+Then the upload: `finalize_plan` writes must include `components/chrome/*/*` in addition
+to the specimen paths (the resync verdict cannot list them — see below), then `write_files`
+the lot. **Never re-run `package-validate.mjs` after extraction**: it counts `.html` under
+`components/` against `componentCount` (the specimens) and the chrome cards make that a
+harmless, expected mismatch. The extractor runs its own equivalents (marker line, link
+resolution, non-empty slice, ≥1 scoped rule per cid-bearing slice, and with `--check` a
+Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 bytes — plus
+`--bg-light` resolving to `#0a0a0a` on every dark twin).
 
 ## Hard-won findings (don't rediscover these)
 
@@ -88,8 +104,9 @@ node .ds-sync/resync.mjs --config .design-sync/config.json \
 
 ## Known render warns (expected — not new)
 
-- None outstanding. The final run was `render check: 8/8 previews render cleanly`,
-  `validate ✓ bundle is complete`, `8 carried forward / 0 captured / 0 errors`.
+- None outstanding. The latest run (Slice 3, 2026-08-16) was `render check: 10/10
+previews render cleanly`, `validate ✓ bundle is complete`, `10 carried forward / 0
+captured / 0 errors`; `extract-chrome.mjs --check` 19/19 with zero page errors.
 
 ## Re-syncing from a fresh clone (what it costs)
 
@@ -126,6 +143,14 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   Prettier pads markdown table cells to the widest cell in the column; with a 400-char
   dataviz cell in the token table the header hit 31.8 KB (see the ceiling below). The
   same content as lists is 16 KB. Do not convert them back to tables.
+- **Chrome cards are outside `_ds_sync.json`, so nothing detects remote↔local
+  divergence for them.** `remote-diff` derives everything from `sourceHashes`, which
+  covers only bundle components; the chrome dirs are never listed as changed, never
+  deleted, never flagged. If a re-sync skips the manual chrome upload, the remote keeps the
+  previous slices with no signal. The upload step is part of the re-sync, not polish. A
+  renamed landmark/selector in source is caught earlier: `design-sync-guards.test.ts`
+  guard 4 asserts every `SLICES` entry resolves to `.astro` source, and the extractor
+  itself exits 1 naming the selector.
 - **The README header has a hard size ceiling.** The converter prepends `conventions.md`
   to the uploaded README precisely because the consumer truncates the README inline at
   **32,000 characters, cutting the TAIL** (skill `lib/emit.mjs`, `emitReadme`). The
@@ -148,11 +173,14 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   correctly do not (teal is theme-invariant, and `--border-light` is a light-only token).
   `body { background-color: var(--bg-light) }` IS in the shipped bundle, so designs the
   agent builds do go dark correctly.
-  - **Dark-mode preview cards are not buildable**, for two independent reasons: the
+  - **Dark-mode _converter_ cards are not buildable**, for two independent reasons: the
     converter's card scaffold hardcodes `body{background:#fff}`, and the tokens resolve
     only at `:root` — a nested `color-scheme: dark` or `.dark-theme` flips nothing
-    (probed and confirmed). Getting a dark card would mean forking `lib/emit.mjs`, which
-    the skill forbids. Don't burn time re-attempting this; re-run the probe instead.
+    (probed and confirmed). Getting a dark specimen card would mean forking `lib/emit.mjs`,
+    which the skill forbids. Don't burn time re-attempting this; re-run the probe instead.
+    **The chrome cards are different**: their scaffold is ours, and the class sits on the
+    card's own root `<html>` — both reasons answered — so seven ship as dark twins, verified
+    by `extract-chrome.mjs --check` (`--bg-light` → `#0a0a0a`).
 - **The six palettes are VERIFIED (by measurement).** Run `node .design-sync/palette-probe.mjs`
   — it applies `html.palette-0…5` to a real card and checks `--color-primary` plus a painted
   element (`.brutal-progress-bar__fill`). Result 2026-08-16: palette-0 (the default) leaves

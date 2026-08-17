@@ -25,7 +25,7 @@ import them. **GST has no React** — components are `.astro` files, there is no
 `@astrojs/react` integration, and no compiled component package. So the standard path
 does not apply here.
 
-What we publish instead is two things:
+What we publish instead is three things:
 
 1. **The CSS design system.** `src/styles/` flattened into one stylesheet — every token,
    `html.dark-theme`, all six `html.palette-N` blocks, and the full `.brutal-*` class
@@ -35,9 +35,19 @@ What we publish instead is two things:
    `FormSpecimen`, `FrostedSpecimen`, `ToolShellSpecimen`, `ToolChromeSpecimen`,
    `NavigationSpecimen`, `ColorSpecimen`). They give the project browsable preview cards
    and give the agent worked examples.
+3. **The site chrome, extracted from the production build.** ~72% of the site's CSS is
+   Astro-scoped (`data-astro-cid-*` rules) and never reaches `styles.css`, so Header,
+   Hero, Footer, the home-page sections, CTA, StatsBar, Breadcrumb and the hub landing
+   were invisible to the agent. `extract-chrome.mjs` slices `dist/client/**/index.html`
+   (real component renders + their scoped CSS, linked sheets ∪ inline `<style>`) into 19
+   static cards under `components/chrome/` — 12 slices, seven of them also as dark twins.
+   Nothing is hand-authored: the markup **is** production output (STYLES_GUIDE mechanism
+   1 by construction). `/brand` is deliberately not a source — several of its families are
+   documented replicas.
 
 The design agent therefore writes its own JSX and styles it with our classes. It **cannot**
-import `Header.astro` or any other real component.
+import `Header.astro` or any other real component — but it can copy the rendered markup and
+scoped CSS of the real Header from the chrome cards.
 
 ### Two rules that are not negotiable
 
@@ -74,15 +84,25 @@ treat a class rename as a re-sync trigger.
 Invoke the `/design-sync` skill in Claude Code from the repo root. It reads
 `.design-sync/config.json`, so the target project and all prior fixes are reused.
 
-The underlying commands (what the skill runs):
+The underlying commands, **in this order** (the order is load-bearing — see NOTES.md):
 
 ```bash
+npm run build                                      # chrome cards slice dist/client/ — build first
 node .design-sync/build-css.mjs                    # flatten src/styles/ → .cache/gst-styles.css
 node .ds-sync/resync.mjs --config .design-sync/config.json \
   --node-modules ./.ds-sync/node_modules \
   --entry ./.design-sync/ds-entry.mjs --out ./ds-bundle \
-  --remote .design-sync/.cache/remote-sync.json
+  --remote .design-sync/.cache/remote-sync.json    # package-build wipes ds-bundle/, validate runs on the specimens
+node .design-sync/extract-chrome.mjs --check       # AFTER resync: 19 chrome cards + render probe
 ```
+
+Then upload. The resync verdict's `upload` block is derived from `_ds_sync.json` and cannot
+list the chrome cards, so the `finalize_plan` write set must include
+`components/chrome/*/*` alongside the specimen paths — that step is part of the re-sync,
+not optional polish (a skipped chrome upload leaves the remote silently stale, since
+nothing tracks those files). Do **not** re-run `package-validate.mjs` after extraction:
+it compares the `.html` count under `components/` to the specimen count and the chrome
+cards make that a harmless, expected mismatch; the extractor carries its own checks.
 
 `.ds-sync/` holds the skill's staged scripts and an isolated dep tree (including React,
 which this repo does not otherwise have). Both `.ds-sync/` and `ds-bundle/` are gitignored
@@ -90,19 +110,21 @@ and regenerated — never commit them.
 
 ## What lives where (all committed)
 
-| Path                              | Role                                                                                                                                                                                               |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.design-sync/config.json`        | Converter config + the pinned `projectId`                                                                                                                                                          |
-| `.design-sync/conventions.md`     | **The highest-value file.** Prepended to the uploaded README and inlined into the design agent's system prompt: the class vocabulary, token families, BEM sub-elements, layout and dark-mode rules |
-| `.design-sync/specimens/*.tsx`    | The ten galleries — the markup, single-sourced                                                                                                                                                     |
-| `.design-sync/specimen-docs/*.md` | Per-specimen `.prompt.md` content the agent reads                                                                                                                                                  |
-| `.design-sync/previews/*.tsx`     | Thin card renderers                                                                                                                                                                                |
-| `.design-sync/build-css.mjs`      | Flattens the stylesheet graph (see below)                                                                                                                                                          |
-| `.design-sync/ds-entry.mjs`       | Zero-export bundle entry stub                                                                                                                                                                      |
-| `.design-sync/dark-probe.mjs`     | Verifies dark mode still switches tokens                                                                                                                                                           |
-| `.design-sync/palette-probe.mjs`  | Verifies the six palettes still re-point `--color-primary` and a painted element                                                                                                                   |
-| `.design-sync/tsconfig.json`      | Type-check config for the specimens (`tsc -p .design-sync`, run by the guards test — the root tsconfig never sees dot-directories)                                                                 |
-| `.design-sync/NOTES.md`           | Operational gotchas, hard-won findings, re-sync risks — **read before re-syncing**                                                                                                                 |
+| Path                               | Role                                                                                                                                                                                               |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.design-sync/config.json`         | Converter config + the pinned `projectId`                                                                                                                                                          |
+| `.design-sync/conventions.md`      | **The highest-value file.** Prepended to the uploaded README and inlined into the design agent's system prompt: the class vocabulary, token families, BEM sub-elements, layout and dark-mode rules |
+| `.design-sync/specimens/*.tsx`     | The ten galleries — the markup, single-sourced                                                                                                                                                     |
+| `.design-sync/specimen-docs/*.md`  | Per-specimen `.prompt.md` content the agent reads                                                                                                                                                  |
+| `.design-sync/previews/*.tsx`      | Thin card renderers                                                                                                                                                                                |
+| `.design-sync/build-css.mjs`       | Flattens the stylesheet graph (see below)                                                                                                                                                          |
+| `.design-sync/extract-chrome.mjs`  | Slices the production build into the chrome cards (`SLICES` config at the top); `--check` renders each with the validator's floors and asserts dark twins resolve dark                             |
+| `.design-sync/lib/inline-urls.mjs` | Shared `url()` → data-URI inliner used by `build-css.mjs` (assets under `public/`) and `extract-chrome.mjs` (assets under `dist/client/`)                                                          |
+| `.design-sync/ds-entry.mjs`        | Zero-export bundle entry stub                                                                                                                                                                      |
+| `.design-sync/dark-probe.mjs`      | Verifies dark mode still switches tokens                                                                                                                                                           |
+| `.design-sync/palette-probe.mjs`   | Verifies the six palettes still re-point `--color-primary` and a painted element                                                                                                                   |
+| `.design-sync/tsconfig.json`       | Type-check config for the specimens (`tsc -p .design-sync`, run by the guards test — the root tsconfig never sees dot-directories)                                                                 |
+| `.design-sync/NOTES.md`            | Operational gotchas, hard-won findings, re-sync risks — **read before re-syncing**                                                                                                                 |
 
 ### Why the CSS is flattened
 
@@ -128,7 +150,10 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
   `npm run test:docs`, a required check) asserts every class, BEM sub-element, modifier
   and token named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx` exists in
   `src/styles/**/*.css`; that the `ROOTS` list in `build-css.mjs` reaches every sheet under
-  `src/styles/`; and that the specimens type-check (`tsc -p .design-sync`). The two
+  `src/styles/`; that the specimens type-check (`tsc -p .design-sync`); and that every
+  chrome slice in `extract-chrome.mjs` still resolves to a route + tag/hook in `.astro`
+  source (a rename fails `test:docs` before anyone re-syncs). The full extraction is not
+  run in CI — it needs a build. The two
   intentional negatives the docs state (`.brutal-card`, `.brutal-hero`) sit in an
   allowlist that fails when it goes stale. The skill's own name check still runs at sync
   time; the vitest is what fires between syncs.
@@ -137,14 +162,21 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
 
 ### Known limits
 
-- **Dark-mode preview cards are not buildable.** The converter's card scaffold hardcodes
+- **Dark-mode _converter_ cards are not buildable.** The converter's card scaffold hardcodes
   `body{background:#fff}`, and the tokens resolve only at `:root` — a nested
-  `color-scheme: dark` flips nothing. Dark mode is verified by the probe instead.
-- **What the published system does not cover** — see [BL-135](BACKLOG.md#bl-135-claude-design-sync--correct-it-guard-it-and-publish-the-design-system-rather-than-its-content-level-subset):
-  conventions.md now teaches every reusable family in `src/styles` (Slice 2, 2026-08-16 —
-  the page one-offs it deliberately skips are listed in the header itself), but the site chrome (`Header`, `Hero`, `Footer`, section cards) lives in
-  Astro-scoped `<style>` blocks that never reach the bundle — the agent cannot reproduce
-  it from the CSS alone (Slice 3 publishes it by extraction from the built `/brand` page).
+  `color-scheme: dark` flips nothing. The specimen galleries are therefore light-only and
+  dark mode is verified by the probe. The **chrome cards are ours**, so seven of them ship
+  dark twins (`<html class="dark-theme">` on the card's own root — where the tokens resolve).
+- **Chrome cards are static.** Hydrated behaviour (theme toggle, nav menus, TOC scroll-spy)
+  is not included; the agent gets rendered markup + scoped CSS, not scripts.
+- **What a human still has to confirm**: whether the claude.ai/design pane indexes the
+  `components/chrome/*` cards and renders the dark twins. `_ds_manifest.json` is compiled
+  product-side and cannot be checked from the repo — open the project after a sync and
+  look for the "chrome" group.
+- **What the published system does not cover** — see [BL-135](BACKLOG.md#bl-135-claude-design-sync--correct-it-guard-it-and-publish-the-design-system-rather-than-its-content-level-subset)
+  for the record; as of Slice 3 (2026-08-16) the reusable class vocabulary, the tokens, and
+  the site chrome are all published. Still outside: page-specific tool layouts and
+  regulatory-map one-offs (listed in the header as deliberately skipped).
 - **`/brand` remains the human-browsable surface** for the design system; the Design
   project exists to steer the agent, not to replace [`/brand`](../../pages/brand.astro).
 
@@ -152,4 +184,4 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
 
 <- Back to [Development Documentation](./README.md) | [Master Documentation Index](../README.md)
 
-_Last Updated: August 16, 2026 (initial sync — tokens + 8 specimen galleries; BL-135 Slice 1 — defects fixed, CI guards, palettes verified; Slice 2 — vocabulary widened, 10 galleries)_
+_Last Updated: August 16, 2026 (initial sync — tokens + 8 specimen galleries; BL-135 Slice 1 — defects fixed, CI guards, palettes verified; Slice 2 — vocabulary widened, 10 galleries; Slice 3 — site chrome extracted from the build, 19 cards)_

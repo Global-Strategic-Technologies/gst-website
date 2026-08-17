@@ -2,7 +2,7 @@
 
 **This is a CSS design system, not a React component library.** The generated
 notes below are boilerplate and overstate what ships: the only exports on
-`window.GST` are eight `*Specimen` **galleries** — documentation that draws
+`window.GST` are ten `*Specimen` **galleries** — documentation that draws
 every variant of a class family at once. **Never render a `*Specimen` inside a
 design**; copy the markup it shows. There are **no importable UI components**:
 GST's real components are Astro (`.astro`) files, which have no React runtime
@@ -183,6 +183,26 @@ palette. Inline it — the `.delta-chevron` utility animates it as a collapse to
   />
 </svg>
 ```
+
+## Site chrome — rendered production markup
+
+The classes above are the **content-level** vocabulary. The site's chrome — header,
+hero, footer, the home-page sections, CTA band, stats bar, breadcrumb, hub landing —
+is styled by Astro-scoped rules that live in `styles.css` **nowhere**: they are keyed on
+`data-astro-cid-*` attributes and ship only with their component. So those pieces are
+published as **cards extracted from the production build**, under
+`components/chrome/<Name>/`:
+
+`SiteHeader`, `Hero`, `WhoWeSupport`, `WhatWeDo`, `WhyClientsTrustUs`, `CtaSection`,
+`SiteFooter` (each also as a `…Dark` twin), `Breadcrumb`, `StatsBar`, `EngagementFlow`,
+`HubToolsLanding`, `TableOfContents`.
+
+To build a GST **page** rather than a card: `read_file("components/chrome/<Name>/<Name>.prompt.md")`,
+copy the markup **and** the CSS block it carries, and keep the `data-astro-cid-*`
+attributes exactly — the rules key on them. Everything else those pieces need (tokens,
+`.brutal-*` classes) comes from `styles.css`. Hydrated behaviour (theme toggle, menus,
+scroll-spy) is not included. Nothing in these cards is hand-authored: they are slices of
+the built site, re-extracted on every sync.
 
 ## Where the truth lives
 
