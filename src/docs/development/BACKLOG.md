@@ -1156,7 +1156,12 @@ Retained rather than pruned — not because its findings lack a home (both are d
 1. The SDK v2 handler runs its **own** Host/Origin gate. Left at its default the accepted set is the localhost trio, so on a custom domain every request carrying `Origin: https://claude.ai` gets a **403** — the exact browser clients the allowlist exists for, and a failure mode the legacy handler did not have. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the fix.
 2. `with-metrics.ts` located its notifier by duck-typing on a field v2 renamed, and the function is contractually non-throwing — so the rate-limit warning would have died **silently**, with the soft-limit tests staying green against their own fake. Both the production view and the fake are now bound to the SDK's `ServerContext` so a rename is a compile error.
 
-**Standing caution**: an unreproduced single-test failure in the mcp suite (`1 failed | 1973 passed`, once, name never captured; seven other full runs green). It fits the documented workerd cold-start flake but that remains an explanation, not evidence. **If a red mcp run appears, capture the failing test name before rerunning** — a rerun destroys it.
+**Standing caution**: an unreproduced single-test failure in the mcp suite, now seen **twice**, name never captured either time. It fits the documented workerd cold-start flake but that remains an explanation, not evidence.
+
+- **2026-08-04** — `1 failed | 1973 passed`; seven other full runs green.
+- **2026-08-17** — `1 failed | 2391 passed`, during the BL-136 lockfile work. Two later runs passed, **including one deliberately executed against the pre-change lockfile** (stash the lockfile, reinstall, re-run), which is what rules the dependency bump out as the cause. Not the cold-start case either: an earlier `test:mcp` the same session had already passed 2392, so the worker was warm.
+
+**If a red mcp run appears, capture the failing test name before rerunning** — a rerun destroys it. The 2026-08-17 instance was lost a step earlier than that: the suite was run through a `| grep "Test Files|Tests "` pipe, so the name was discarded before anyone could read it. **Redirect the run to a file and grep the file.**
 
 **Deferred work extracted to [BL-107](#bl-107-mcp-server--tasks-extension-and-mrtr-candidate)** so it stays visible in the backlog rather than only inside a closed stanza. Declined outright: `x-mcp-header` mirroring; replacing the body-parse rate-limit dispatch with `Mcp-Name` (base64-sentinel values would let an encoded `search_radar` escape the radar tier); dropping the `agents` dependency. RFC 9207 `iss` closed — reasoning distilled into ADR-0013.
 
