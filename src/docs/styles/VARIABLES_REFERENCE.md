@@ -4,6 +4,8 @@ Complete catalog of all CSS custom properties defined in `src/styles/variables.c
 
 **Source of truth**: `src/styles/variables.css`. This reference is kept in exact parity with it by `tests/integration/docs-variables-sync.test.ts` (run via `npm run test:docs`) — every `:root` token must be documented here, and every documented token must exist there.
 
+**What dark theme does and does not touch.** `html.dark-theme` sets `color-scheme: dark`, which is what makes every `light-dark()` token resolve to its dark value — the block itself carries only `color-scheme` and the RGB-triplet overrides (see [Adding New Variables](#adding-new-variables)). Surfaces and text switch that way: `--text-primary`, `--bg-light`, `--bg-light-alt`. **Two tokens do not.** `--color-primary` holds the same teal in both themes — it is the brand constant, and the **alternative palettes**, not the theme, are what re-point it, so never author a dark variant of it. `--border-light` has no dark counterpart value; dark borders come from the `--border-dark-subtle` / `--border-dark-default` / `--border-dark-prominent` scale, normally paired as `light-dark(var(--border-light), var(--border-dark-default))` — a bare `--border-light` on a dark surface is invisible. (`--color-secondary` and `--color-tertiary` are different again: they genuinely carry per-theme values, listed below.) Verify with `node .design-sync/dark-probe.mjs`, which prints exactly which tokens switch.
+
 ---
 
 ## Primary Colors
