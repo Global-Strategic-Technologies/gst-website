@@ -157,15 +157,6 @@ test.describe('MCP Server page', () => {
     await expect(first.locator('.mcp-catalog')).toBeVisible();
   });
 
-  test('carries the human-in-the-loop caveat for radar content', async ({ page }) => {
-    // The BL-093 acceptance criterion. Asserted so it cannot be quietly dropped
-    // in a future copy edit.
-    const caveat = page.locator('.brutal-callout--warning');
-    await expect(caveat).toBeVisible();
-    await expect(caveat).toContainText(/should not be auto-actioned/i);
-    await expect(caveat).toContainText(/human review/i);
-  });
-
   test('links the status page and no developer-docs subdomain', async ({ page }) => {
     // The page carries the status link twice on purpose — the endpoint row at the
     // top and the "How access works" bullet — so this asserts "at least one

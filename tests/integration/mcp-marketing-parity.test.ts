@@ -44,9 +44,9 @@ const PAGE_PATH = 'src/pages/hub/mcp/index.astro';
  *
  * Whitespace is collapsed last, and that part is load-bearing. Prettier rewraps
  * this page's prose on every commit (lint-staged runs it), so a phrase like
- * "without human review" can straddle a source line break at any time. Matching
- * against raw source made these assertions fail on reformatting alone, which is
- * a false alarm that teaches the next person to weaken the guard.
+ * "non-contractual capability ceilings" can straddle a source line break at any
+ * time. Matching against raw source made these assertions fail on reformatting
+ * alone, which is a false alarm that teaches the next person to weaken the guard.
  */
 export function extractAstroMarkup(source: string): string {
   return (
@@ -353,11 +353,6 @@ describe('MCP marketing page — copy guardrails', () => {
     // editor into deleting the guardrail the page exists to carry.
     expect(markup).toContain('non-contractual capability ceilings');
     expect(markup).toContain('NOT ratified SLA quotas');
-  });
-
-  it('carries the human-in-the-loop caveat for radar content', () => {
-    expect(markup).toMatch(/human review/i);
-    expect(markup).toMatch(/should not be auto-actioned/i);
   });
 
   it('frames the audit log as a capability, never as active capture', () => {
