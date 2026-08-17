@@ -6,7 +6,7 @@
  * unstyled output, and nothing breaks loudly. `CLAUDE_DESIGN_SYNC.md` and
  * `.design-sync/NOTES.md` list this as the standing re-sync risk; before this
  * file the only check lived in the gitignored `.ds-sync/` skill, so a CSS
- * refactor could rot the docs between syncs with no CI signal. Three guards:
+ * refactor could rot the docs between syncs with no CI signal. Four guards:
  *
  *   1. NAME PARITY — every `.class`, BEM `__sub` / `--modifier`, and `--token`
  *      named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx`
@@ -18,6 +18,9 @@
  *      equality: a new sheet that ships nowhere fails here, not in production.
  *   3. TYPECHECK — `tsc -p .design-sync` (the root tsconfig's `**\/*` never
  *      descends into dot-directories, so `astro check` cannot see the specimens).
+ *   4. CHROME SLICES — every `(page, selector)` in `extract-chrome.mjs`'s `SLICES`
+ *      resolves to a route under `src/pages/` and a tag+hook in `.astro` source, so a
+ *      rename fails here before anyone re-syncs and hits the extractor's exit-1.
  *
  * Hand-rolled parsers, proven against fixtures first — same posture as
  * `docs-variables-sync.test.ts` (no markdown/CSS parser dependency by design).
@@ -435,3 +438,117 @@ describe('.design-sync specimen sources type-check', () => {
     expect(result.status, `tsc exited ${result.status}:\n${result.stdout}${result.stderr}`).toBe(0);
   }, 60_000);
 });
+
+// --- Guard 4: chrome extraction slices still resolve to source ----------------
+
+describe('extract-chrome.mjs SLICES resolve to source', () => {
+  // The extractor slices the PRODUCTION BUILD, which is not available in CI. This
+  // guard checks the cheaper invariant: every configured (page, selector) still
+  // has a source behind it — the route exists under src/pages/ and the selector's
+  // tag + class/id appears in .astro source — so a rename fails `test:docs`
+  // before anyone re-syncs and hits the extractor's exit-1.
+  const src = readFileSync(resolve(SYNC_DIR, 'extract-chrome.mjs'), 'utf-8');
+  const slicesBlock = src.match(/export const SLICES = \[([\s\S]*?)\n\];/)?.[1] ?? '';
+  // One object literal per entry: split on the entry boundary, then read the
+  // fields per entry so a malformed entry cannot be swallowed into its neighbour.
+  const entries = slicesBlock.split(/\n\s*\},?\s*\n/).filter((e) => /\bname:\s*'/.test(e));
+  const field = (e: string, k: string) => e.match(new RegExp(`\\b${k}:\\s*'([^']+)'`))?.[1];
+  const slices = entries.map((e) => ({
+    name: field(e, 'name') ?? '?',
+    page: field(e, 'page') ?? '',
+    selector: field(e, 'selector') ?? '',
+    source: field(e, 'source') ?? '',
+  }));
+  const nameCount = (slicesBlock.match(/\bname:\s*'/g) ?? []).length;
+  const astroFiles = [
+    ...walk(resolve(REPO_ROOT, 'src/pages'), '.astro'),
+    ...walk(resolve(REPO_ROOT, 'src/components'), '.astro'),
+    ...walk(resolve(REPO_ROOT, 'src/layouts'), '.astro'),
+  ];
+  const astroSource = astroFiles.map((f) => readFileSync(f, 'utf-8')).join('\n');
+
+  it('parsed a populated SLICES list (sanity — the guard probes something)', () => {
+    expect(slices.length).toBeGreaterThanOrEqual(10);
+    expect(slices.length, 'every name: became an entry — none swallowed').toBe(nameCount);
+    for (const s of slices) {
+      expect(s.page, `${s.name}: page`).not.toBe('');
+      expect(s.selector, `${s.name}: selector`).not.toBe('');
+      expect(
+        existsSync(resolve(REPO_ROOT, s.source)),
+        `${s.name}: source "${s.source}" exists`
+      ).toBe(true);
+    }
+  });
+
+  it('every slice page is a route under src/pages and its selector names a tag+hook present in .astro source', () => {
+    const misses: string[] = [];
+    for (const s of slices) {
+      const route = s.page.replace(/index\.html$/, '');
+      const candidates = [
+        resolve(REPO_ROOT, 'src/pages', route, 'index.astro'),
+        resolve(REPO_ROOT, 'src/pages', `${route.replace(/\/$/, '') || 'index'}.astro`),
+      ];
+      if (!candidates.some((c) => existsSync(c)))
+        misses.push(`${s.name}: no src/pages route for "${s.page}"`);
+      // selector shapes used: tag.class, tag#id, tag[attr="v"]
+      const m = s.selector.match(/^([a-z0-9]+)(?:\.([\w-]+)|#([\w-]+)|\[([\w-]+)="([^"]+)"\])$/);
+      if (!m) {
+        misses.push(`${s.name}: selector shape not understood: ${s.selector}`);
+        continue;
+      }
+      const [, tag, cls, id, attr, val] = m;
+      const found = cls
+        ? tagHasClassToken(astroSource, tag, cls)
+        : id
+          ? new RegExp(`<${tag}\\b[^>]*\\bid="${id}"`).test(astroSource)
+          : new RegExp(`<${tag}\\b[^>]*\\b${attr}="${val}"`).test(astroSource);
+      if (!found)
+        misses.push(
+          `${s.name}: no <${tag}> carrying ${cls ? `class ${cls}` : id ? `id ${id}` : `${attr}="${val}"`} in .astro source`
+        );
+    }
+    expect(misses, misses.join('\n')).toEqual([]);
+  });
+
+  it('class hook is an exact token — a suffix rename or a lookalike elsewhere in the tag does not satisfy it (mutation proof)', () => {
+    expect(tagHasClassToken('<section class="hero">', 'section', 'hero')).toBe(true);
+    expect(tagHasClassToken('<section class="band hero wide">', 'section', 'hero')).toBe(true);
+    expect(
+      tagHasClassToken(
+        '<header class={`site-header${x ? " site-header--static" : ""}`}>',
+        'header',
+        'site-header'
+      )
+    ).toBe(true);
+    expect(tagHasClassToken('<section class="hero-band">', 'section', 'hero')).toBe(false);
+    expect(
+      tagHasClassToken('<section class="who-we-support-v2">', 'section', 'who-we-support')
+    ).toBe(false);
+    expect(tagHasClassToken('<section class="band" data-kind="hero">', 'section', 'hero')).toBe(
+      false
+    );
+    expect(tagHasClassToken('<div class="hero">', 'section', 'hero')).toBe(false);
+  });
+});
+
+/**
+ * True when some `<tag …>` opener in `source` carries `cls` as an EXACT token of
+ * its class attribute — `class="a b"` or an Astro expression `class={`a ${…}`}`.
+ * Tokens are split on whitespace, quotes, backticks and template braces, so
+ * `hero-band` never satisfies `hero`, and a lookalike in another attribute
+ * (`data-kind="hero"`) is never consulted.
+ */
+function tagHasClassToken(source: string, tag: string, cls: string): boolean {
+  const opener = new RegExp(`<${tag}\\b[^>]*>`, 'g');
+  for (const m of source.matchAll(opener)) {
+    // class="…", class={`…`} or Astro's class:list={['a', …]}
+    const attrVal = m[0].match(
+      /\bclass(?::list)?=(?:"([^"]*)"|'([^']*)'|\{((?:[^{}]|\{[^{}]*\})*)\})/
+    );
+    if (!attrVal) continue;
+    const raw = attrVal[1] ?? attrVal[2] ?? attrVal[3] ?? '';
+    const tokens = raw.split(/[\s"'`${}?:,[\]]+/).filter(Boolean);
+    if (tokens.includes(cls)) return true;
+  }
+  return false;
+}
