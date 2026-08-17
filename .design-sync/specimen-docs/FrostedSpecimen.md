@@ -11,7 +11,7 @@ Frosted glass is a core part of the GST aesthetic. Four strengths:
 <div className="brutal-frosted">Standard containers, action bars (3px blur)</div>
 <div className="brutal-frosted brutal-frosted--heavy">Drawers, sticky bars over content (6px)</div>
 <div className="brutal-frosted brutal-frosted--blur-only">Subtle wet-glass sheen (1.5px)</div>
-<div className="brutal-frosted brutal-frosted--overlay">Modal / panel overlays (12px + 92% opacity)</div>
+<div className="brutal-frosted brutal-frosted--overlay">Modal / panel overlays (6px + a 92%-opaque surface)</div>
 ```
 
 Two rules:

@@ -33,7 +33,7 @@ export const ButtonSpecimen = () => (
         Unsure Choice
       </button>
     </Row>
-    <Row label="Legacy CTA">
+    <Row label="Marketing CTA">
       <a className="cta-button" href="#">
         Request diligence
       </a>

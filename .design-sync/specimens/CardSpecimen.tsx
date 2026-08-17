@@ -6,16 +6,19 @@
 import * as React from 'react';
 import { Stack, Row } from './_kit';
 
-// The GST delta bullet — DeltaIcon.astro rendered inline. stroke="currentColor"
-// so it follows theme and palette; .bullet-icon carries the primary color.
+// The GST delta bullet — what DeltaIcon.astro emits, attribute for attribute:
+// stroke="currentColor" so it follows theme and palette (.bullet-icon carries
+// the primary color), aria-hidden because it is decorative, flex-shrink:0 so a
+// long list item never squashes it.
 const BulletDelta = () => (
   <svg
     className="bullet-icon"
     viewBox="0 0 64 64"
     fill="none"
-    xmlns="http://www.w3.org/2000/svg"
     width="14"
     height="14"
+    aria-hidden="true"
+    style={{ flexShrink: 0 }}
   >
     <path
       d="M32 12 L52 52 L12 52 Z"
@@ -42,41 +45,46 @@ const DeltaChevron = () => (
 export const CardSpecimen = () => (
   <Stack>
     <Row label="Recommendation card">
-      <div className="brutal-rec-card" style={{ maxWidth: '600px' }}>
-        <div className="brutal-rec-card__body">
-          <div className="brutal-rec-card__title">
-            <span className="brutal-rec-card__badge brutal-rec-card__badge--high">High</span>
-            <span className="brutal-rec-card__badge brutal-rec-card__badge--effort">Quick Win</span>
-            <button className="brutal-rec-card__na" type="button" title="Mark as not applicable">
-              N/A
-            </button>
-            Deploy a cloud cost visibility dashboard
-            <DeltaChevron />
-          </div>
-          <div className="brutal-rec-card__desc">
-            Implement AWS Cost Explorer, GCP Billing dashboards, or a FinOps platform. Engineering
-            leads need direct access with no approval gate.
+      {/* Sizing lives on a wrapper, never on the card — the grid owns the
+          columns (BrandUILibrary.astro puts max-width on the wrapper too). */}
+      <div style={{ maxWidth: '600px', width: '100%' }}>
+        <div className="brutal-rec-card">
+          <div className="brutal-rec-card__body">
+            <div className="brutal-rec-card__title">
+              <span className="brutal-rec-card__badge brutal-rec-card__badge--high">High</span>
+              <span className="brutal-rec-card__badge brutal-rec-card__badge--effort">
+                Quick Win
+              </span>
+              <button className="brutal-rec-card__na" type="button" title="Mark as not applicable">
+                N/A
+              </button>
+              Deploy a cloud cost visibility dashboard
+              <DeltaChevron />
+            </div>
+            <div className="brutal-rec-card__desc">
+              Implement AWS Cost Explorer, GCP Billing dashboards, or a FinOps platform. Engineering
+              leads need direct access with no approval gate.
+            </div>
           </div>
         </div>
       </div>
     </Row>
 
     <Row label="Attention card">
-      <div
-        className="brutal-attention-card brutal-attention-card--high"
-        style={{ maxWidth: '600px' }}
-      >
-        <div className="brutal-attention-card__header">
-          <h3 className="brutal-attention-card__title">Key-Person Technical Dependencies</h3>
-          <button className="brutal-na-btn" type="button" title="Mark as not applicable">
-            N/A
-          </button>
-          <DeltaChevron />
+      <div style={{ maxWidth: '600px', width: '100%' }}>
+        <div className="brutal-attention-card brutal-attention-card--high">
+          <div className="brutal-attention-card__header">
+            <h3 className="brutal-attention-card__title">Key-Person Technical Dependencies</h3>
+            <button className="brutal-na-btn" type="button" title="Mark as not applicable">
+              N/A
+            </button>
+            <DeltaChevron />
+          </div>
+          <p className="brutal-attention-card__desc">
+            Small engineering teams in on-premise environments often concentrate critical knowledge
+            in 1–2 individuals. Assess key person dependencies and knowledge gaps before close.
+          </p>
         </div>
-        <p className="brutal-attention-card__desc">
-          Small engineering teams in on-premise environments often concentrate critical knowledge in
-          1–2 individuals. Assess key person dependencies and knowledge gaps before close.
-        </p>
       </div>
     </Row>
 

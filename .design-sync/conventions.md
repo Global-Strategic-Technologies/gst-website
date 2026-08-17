@@ -1,9 +1,12 @@
 # GST — read this first
 
 **This is a CSS design system, not a React component library.** The generated
-notes below are boilerplate and overstate what ships: `window.GST` is an **empty
-object** and there are **no importable components**. GST's real components are
-Astro (`.astro`) files, which have no React runtime to bundle.
+notes below are boilerplate and overstate what ships: the only exports on
+`window.GST` are eight `*Specimen` **galleries** — documentation that draws
+every variant of a class family at once. **Never render a `*Specimen` inside a
+design**; copy the markup it shows. There are **no importable UI components**:
+GST's real components are Astro (`.astro`) files, which have no React runtime
+to bundle.
 
 What you get is the complete GST stylesheet — tokens, typography, palettes, and
 the full `.brutal-*` component class vocabulary. **Build with ordinary JSX
@@ -82,7 +85,7 @@ it stays correct across themes and palettes. Never a frozen `rgba()`.
 | Containers    | `.container` (page width), `.brutal-tool-shell` + `--narrow`/`--wide`/`--document`/`--fluid`, with `.brutal-tool-shell__content` inside for responsive padding; `.brutal-panel`; hero text uses `.brutal-hero__title` / `.brutal-hero__description` / `.brutal-hero__trustline` (no bare `.brutal-hero`) |
 | Data          | `.brutal-bench-table`, `.brutal-stat-tile`, `.brutal-callout` (+ `--warning`), `.brutal-progress-bar`, `.brutal-breadcrumb`                                                                                                                                                                              |
 | Forms         | `.brutal-input`, `.brutal-field`, `.brutal-search`, `.brutal-segmented` (+ `--sm`/`--wide`), `.brutal-filter-chip` (+ `--active`), `.brutal-filter-chips`                                                                                                                                                |
-| Frosted glass | `.brutal-frosted` (3px), `--heavy` (6px), `--blur-only` (1.5px), `--overlay` (12px)                                                                                                                                                                                                                      |
+| Frosted glass | `.brutal-frosted` (3px), `--heavy` (6px), `--blur-only` (1.5px), `--overlay` (6px + a 92%-opaque surface, for sheets/drawers)                                                                                                                                                                            |
 | Skeletons     | `.brutal-skeleton-bar` (+ `--sm`), `.brutal-skeleton-dot`                                                                                                                                                                                                                                                |
 | Utilities     | `.flex-center`, `.flex-between`, `.text-uppercase`, `.text-label`, `.interactive`, `.link-interactive`, `.focus-outline`, `.focus-outline-sm`, `.sr-only`, `.delta-chevron`                                                                                                                              |
 
@@ -94,17 +97,17 @@ highlight) — don't re-add it.
 Most families style their **children** via `__` sub-elements. Using the block class
 alone renders unstyled content — the specimen cards show every one of these in place:
 
-| Block                    | Required children                                                                         |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| `.brutal-stat-tile`      | `__value`, `__label`                                                                      |
-| `.brutal-progress-bar`   | `__track`, `__fill` (set `width` inline), `__label`                                       |
-| `.brutal-callout`        | `__title` (then body text as a bare sibling)                                              |
-| `.brutal-rec-card`       | `__body`, `__title`, `__desc`, `__badge` (+ `--high`/`--effort`), `__na`                  |
-| `.brutal-attention-card` | `__header`, `__title`, `__desc`                                                           |
-| `.brutal-gateway-card`   | `__header` (wraps an `<h2>`), `__features` (a `<ul>`), `__cta` (paired with `cta-button`) |
-| `.brutal-field`          | `__label` (NOT `.brutal-label-small`)                                                     |
-| `.brutal-segmented`      | `__btn` (+ `__btn--active`)                                                               |
-| `.brutal-tool-shell`     | `__content`, `__authority`, `__section-label`                                             |
+| Block                    | Required children                                                                                                                                                                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `.brutal-stat-tile`      | `__value`, `__label`                                                                                                                                                                                                                                               |
+| `.brutal-progress-bar`   | `__track`, `__fill` (set `width` inline), `__label`                                                                                                                                                                                                                |
+| `.brutal-callout`        | `__title` (then body text as a bare sibling)                                                                                                                                                                                                                       |
+| `.brutal-rec-card`       | `__body`, `__title`, `__desc`, `__badge` (+ `--high`/`--effort`), `__na`                                                                                                                                                                                           |
+| `.brutal-attention-card` | `__header`, `__title`, `__desc`                                                                                                                                                                                                                                    |
+| `.brutal-gateway-card`   | `__header` (wraps an `<h2>`), `__features` (a `<ul>`), `__cta` (paired with `cta-button`)                                                                                                                                                                          |
+| `.brutal-field`          | `__label` (NOT `.brutal-label-small`), `__input` (NOT `.brutal-input` — the field variant is full-width and larger), `__req`, `__hint` (+ `--warn`); adorned inputs wrap in `__input-wrap` with `__prefix` / `__suffix` and `__input--has-prefix` / `--has-suffix` |
+| `.brutal-segmented`      | `__btn` (+ `__btn--active`)                                                                                                                                                                                                                                        |
+| `.brutal-tool-shell`     | `__content`, `__authority`, `__section-label`                                                                                                                                                                                                                      |
 
 Gateway cards pair the block with `.brutal-frosted` and sit inside
 `.brutal-gateway-grid`.
@@ -168,8 +171,8 @@ palette. Inline it — the `.delta-chevron` utility animates it as a collapse to
 
   <div style={{ display: 'flex', gap: 'var(--gap-normal)', marginTop: 'var(--spacing-xl)' }}>
     <div className="brutal-stat-tile">
-      <span className="brutal-data">42</span>
-      <span className="brutal-label-small">Engagements</span>
+      <div className="brutal-stat-tile__value">42</div>
+      <div className="brutal-stat-tile__label">Engagements</div>
     </div>
   </div>
 </section>

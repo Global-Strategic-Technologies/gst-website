@@ -610,7 +610,7 @@ Additional frosted-glass utilities in `global.css`:
 | `.brutal-frosted`            | 3px                | Standard containers, action bars  |
 | `.brutal-frosted--heavy`     | 6px                | Drawers, sticky bars over content |
 | `.brutal-frosted--blur-only` | 1.5px              | Subtle wet-glass sheen            |
-| `.brutal-frosted--overlay`   | 12px + 92% opacity | Modal/panel overlays              |
+| `.brutal-frosted--overlay`   | 6px + 92% opacity  | Modal/panel overlays              |
 
 ---
 

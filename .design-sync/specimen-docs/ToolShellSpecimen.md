@@ -9,7 +9,7 @@ Copy the markup below.
 assessments, wizards). Use it for any tool-like surface.
 
 ```jsx
-<section className="tool-section">
+<section>
   <div className="container">
     <div className="brutal-tool-shell brutal-tool-shell--narrow">
       <div className="brutal-tool-shell__content">
@@ -22,6 +22,9 @@ assessments, wizards). Use it for any tool-like surface.
   </div>
 </section>
 ```
+
+The outer `<section>` carries no design-system class — each hub page pads its own section
+with tokens (`padding: var(--spacing-3xl) 0`, stepping down to `--spacing-2xl` at 768px, is the common shape). Style that glue yourself.
 
 Width modifiers: `--narrow` (660px), default (700px), `--wide` (760px), `--document`
 (800px), `--fluid` (100%). `__content` supplies the responsive padding — always use it
