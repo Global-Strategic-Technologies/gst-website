@@ -69,8 +69,16 @@ test.describe('MCP Server page', () => {
     browserName,
   }) => {
     const rows = [
-      { source: '[data-endpoint-url]', expected: 'https://mcp.globalstrategic.tech/mcp' },
-      { source: '[data-status-url]', expected: 'https://status.mcp.globalstrategic.tech/' },
+      {
+        source: '[data-endpoint-url]',
+        expected: 'https://mcp.globalstrategic.tech/mcp',
+        accessibleName: 'Copied endpoint URL',
+      },
+      {
+        source: '[data-status-url]',
+        expected: 'https://status.mcp.globalstrategic.tech/',
+        accessibleName: 'Copied status page URL',
+      },
     ];
 
     await expect(page.locator('[data-copy-endpoint]')).toHaveCount(rows.length);
@@ -87,10 +95,20 @@ test.describe('MCP Server page', () => {
       expect(published).toBe(row.expected);
 
       const button = page.locator('[data-copy-endpoint]').nth(index);
-      await expect(button).toHaveText('Copy');
+      const label = button.locator('[data-copy-label]');
+
+      // Asserted on the visible label, not the button: the button also carries
+      // an `.sr-only` suffix that distinguishes the two ("Copy endpoint URL" vs
+      // "Copy status page URL") and must survive the swap.
+      await expect(label).toHaveText('Copy');
       await button.click();
-      await expect(button).toHaveText('Copied');
+      await expect(label).toHaveText('Copied');
       await expect(button).toHaveClass(/brutal-btn--copied/);
+
+      // The accessible name still distinguishes the buttons after the swap, and
+      // still reflects the new state — that pairing is why there is no
+      // `aria-label` here, which would have frozen the name at "Copy …".
+      await expect(button).toHaveAccessibleName(row.accessibleName);
 
       if (browserName === 'chromium') {
         // Proves each button copies ITS OWN row, not a hardcoded first element.

@@ -71,8 +71,8 @@ function accessHref(tier?: string) {
             type="button"
             class="brutal-btn brutal-btn--secondary mcp-endpoint__copy"
             data-copy-endpoint
-            aria-label="Copy endpoint URL"
-            aria-live="polite">Copy</button
+            aria-live="polite"
+            ><span data-copy-label>Copy</span><span class="sr-only"> endpoint URL</span></button
           >
         </p>
         <p class="mcp-endpoint">
@@ -91,8 +91,8 @@ function accessHref(tier?: string) {
             type="button"
             class="brutal-btn brutal-btn--secondary mcp-endpoint__copy"
             data-copy-endpoint
-            aria-label="Copy status page URL"
-            aria-live="polite">Copy</button
+            aria-live="polite"
+            ><span data-copy-label>Copy</span><span class="sr-only"> status page URL</span></button
           >
         </p>
       </div>
@@ -641,6 +641,12 @@ function accessHref(tier?: string) {
       void copyWithFeedback(value, btn, {
         label: 'Copied',
         copiedClass: 'brutal-btn--copied',
+        // Swap only the visible word, leaving the `.sr-only` suffix in place.
+        // That suffix is what distinguishes the two buttons ("Copy endpoint URL"
+        // vs "Copy status page URL") without an `aria-label` — a label would
+        // override the name and stop `aria-live` announcing the change to
+        // "Copied", which is the confirmation a screen-reader user gets.
+        feedbackTarget: btn.querySelector<HTMLElement>('[data-copy-label]') ?? btn,
       });
     });
   });
@@ -894,13 +900,15 @@ function accessHref(tier?: string) {
 
   /* Pushed to the bottom so the links align across a row of uneven cards.
 
-     The colour deliberately overrides the shared link rule below rather than
-     inheriting its accent teal: that teal now belongs to the group heading, and
-     a saturated colour reads as more prominent than a brighter neutral one, so
-     keeping it here made the footer link outrank the heading above it. The
-     uppercase mono treatment and the hover underline still carry the
-     affordance. Declared here rather than in a second `.mcp-catalog__try` block
-     because stylelint forbids duplicate selectors. */
+     The colour overrides the GLOBAL `a` rule in `global.css` (which is
+     `--color-secondary`), not the `.mcp-facts a` / `.mcp-primitive__def a` rule
+     below — those selectors never match this anchor. The accent now belongs to
+     the group heading, and a saturated colour outranks a brighter neutral one,
+     so leaving this link accented made it compete with the heading above it.
+     Note the global `a:hover` still applies, so hover does take the accent —
+     that is fine, it is a hover affordance rather than resting prominence.
+     Declared here rather than in a second `.mcp-catalog__try` block because
+     stylelint forbids duplicate selectors. */
   .mcp-catalog__try {
     margin-top: auto;
     /* `flex-end` rather than `text-align: right`: the anchor is a flex item, so
