@@ -334,6 +334,16 @@ describe('MCP marketing page — published hostnames', () => {
   it('publishes the status page', () => {
     expect(markup).toContain('status.mcp.globalstrategic.tech');
   });
+
+  it('publishes both hostnames in the COPYABLE elements, not just in prose', () => {
+    // Anchored to the `<code>` a reader clicks Copy on. A bare hostname check
+    // passes on the prose links further down the page, so corrupting the value
+    // inside `data-status-url` slipped through until this was added.
+    expect(markup).toContain('<code data-endpoint-url>https://mcp.globalstrategic.tech/mcp</code>');
+    expect(markup).toContain(
+      '<code data-status-url>https://status.mcp.globalstrategic.tech/</code>'
+    );
+  });
 });
 
 describe('MCP marketing page — copy guardrails', () => {
