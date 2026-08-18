@@ -71,7 +71,7 @@ Two rules cover almost everything:
 - **Elevation** — `--shadow-sm/-md/-lg`, `--frost-highlight`, `--frost-edge`, `--scrim-15` … `--scrim-60`
 - **Layering** — `--z-negative`, `--z-base`, `--z-raised`, `--z-sticky`, `--z-dropdown`, `--z-overlay`, `--z-modal`, `--z-modal-overlay`, `--z-skip-nav`
 - **Touch** — `--touch-target-min` (44px, AAA), `--touch-target-min-aa` (24px floor)
-- **Announcement sash** — `--sash-bg` (always `--color-primary`), `--sash-ink` (re-pointed per palette in `palettes.css` for the four whose light-theme primary is a dark hue). The band's borders, its hover and the inverted `__badge` are all `color-mix()` derivations of these two, so the sash follows every palette and both themes with no extra CSS and no literal colours
+- **Announcement sash** — `--sash-bg` (always `--color-primary`), `--sash-ink` (re-pointed per palette in `palettes.css` for the four whose light-theme primary is a dark hue). `__badge` simply swaps the two; the borders and the hover mix `--sash-bg` toward `--bg-dark` (68% / 82%) with `color-mix()`. Nothing in the family is a literal colour, so it follows every palette and both themes with no extra CSS
 - **Dataviz scales** — **Use these for any chart, gauge or scoring band — never invent chart colours.** TechPar: `--techpar-zone-*` (healthy/elevated/critical/underinvest/ahead/above, each + `-bg`), `--techpar-category-*` (infra/personnel/rd-opex/rd-capex), `--techpar-kpi-positive/-negative/-warn`, `--techpar-chart-*` (band/ahead/above/under `-fill`/`-border`, `revenue-line`). ICG: `--icg-maturity-reactive/-aware/-strategic/-optimizing`, `--icg-radar-grid/-label`. Diligence Machine: `--dm-positive/-negative/-success/-warning`, `--dm-results-blue/-tan`, `--dm-methodology-brown`. Regulatory map: `--regmap-category-industry/-cyber`
 
 Need a tint with no token? Use `color-mix(in srgb, var(--color-success) 12%, transparent)` —
@@ -100,7 +100,7 @@ highlight) — don't re-add it.
 families `.brutal-timeline-*`, `.brutal-map-*`, `.brutal-quick-zoom`, `.brutal-reg-card`,
 `.brutal-legend`,
 `.brutal-bottom-sheet`; `.legal-page-*`; the `/brand`-only demo boxes `.brutal-shadow`,
-`.brutal-transition`, `.brutal-interactive`, `.brutal-link-interactive`,
+`.brutal-skeleton-demo`, `.brutal-transition`, `.brutal-interactive`, `.brutal-link-interactive`,
 `.brutal-focus-outline`. If you see one in `styles.css`, that is why it is not here.
 
 ### BEM sub-elements (these are not optional)
@@ -174,7 +174,10 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
   and the band's `width` are one set: the band is centred on the 45° chord of its box, so
   changing one without the others slides it off the corner. The pairs are 200/50/260
   (desktop), 170/42/220 (≤768), 140/34/190 (≤540), 260/68/340 (`--wide`) and 104/26/150
-  (`--card`). Below 512px the page sash is not rendered at all — the header nav, which
+  (`--card`). The responsive steps key on `.brutal-sash-corner:not(.brutal-sash-corner--card)`,
+  which out-specifies `--wide` — so `--wide` holds its triple only above 768px and then
+  follows the page steps down, while `--card` is fixed at every width. Below 512px the page
+  sash is not rendered at all — the header nav, which
   reserves a matching corner for it, has no room left to yield.
 
 ### Brand delta
@@ -254,5 +257,33 @@ the built site, re-extracted on every sync.
 ```
 
 Note the layout glue: flex and gaps written inline, but every _value_ is a token.
+
+### Announcement sash — the one family with no card
+
+Every other family is either drawn by a `*Specimen` gallery or sliced into
+`components/chrome/`. The sash is neither: `BaseLayout.astro` renders it as a
+`<body>`-level sibling **before** `<Header/>`, so the `header.site-header` slice cannot
+contain it, and it has a real component behind it (`Sash.astro`), which rules a specimen
+out. So this is its reference markup, copied verbatim from the built home page rather
+than written by hand:
+
+```jsx
+<div className="brutal-sash-corner">
+  <a
+    className="brutal-sash"
+    href="/hub/mcp/"
+    aria-label="New: MCP Server 2.0 — open the linked page"
+  >
+    <span className="brutal-sash__badge">New</span>
+    <span className="brutal-sash__label">MCP Server</span>
+    <span className="brutal-sash__detail">2.0</span>
+  </a>
+</div>
+```
+
+The corner box must be a child of whatever the sash overlays — `<body>` in production —
+and that element needs `position: relative` unless it is the page itself. When the sash is
+decorative inside a card that is already a link, swap the `<a>` for a
+`<span aria-hidden="true">`; that is what `--card` is for.
 
 ---
