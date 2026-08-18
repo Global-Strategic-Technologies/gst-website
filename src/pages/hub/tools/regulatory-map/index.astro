@@ -1826,10 +1826,15 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     margin-bottom: var(--spacing-md);
   }
 
+  /* Wraps for the same reason the footer link row does: four fixed-width items
+     in a nowrap flex row cannot shrink, so at 320px the last one sat 8px off
+     the right edge in WebKit and the page scrolled sideways. */
   .timeline-legend {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: var(--spacing-lg);
+    row-gap: var(--spacing-sm);
     margin-bottom: var(--spacing-xl);
     font-family: var(--font-family-mono);
     font-size: var(--text-xs);

@@ -32,9 +32,14 @@ const { stats } = Astro.props;
     padding: 0;
   }
 
+  /* minmax(0, 1fr), not 1fr: a bare 1fr track is minmax(auto, 1fr), so each
+     column is floored at its own min-content and the grid can grow past its
+     container rather than letting a label wrap. At 320px that put the second
+     column's edge 13px off-screen in WebKit — whose text runs wider than
+     Chromium's, which is why only one engine showed it. */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
   }
 
@@ -61,7 +66,7 @@ const { stats } = Astro.props;
 
   @media (max-width: 768px) {
     .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .stat-value {
@@ -79,7 +84,7 @@ const { stats } = Astro.props;
     }
 
     .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0;
     }
 

@@ -49,18 +49,18 @@ async function waitForFooterStyles(page: Page) {
 const WIDTHS = [320, 360, 375, 390] as const;
 
 /**
- * Routes whose chrome is the whole site's chrome.
- *
- * `/ma-portfolio/` and `/hub/tools/regulatory-map/` are deliberately NOT here:
- * both render a closed `.filter-drawer`, which is parked at `right: -400px` and
- * counts toward WebKit's `scrollWidth` at 320px (+13px, WebKit only). That is a
- * separate pre-existing defect in the drawer's off-canvas technique — it is not
- * chrome, and folding it in here would either hide it behind a bigger tolerance
- * or make this suite fail for a reason it does not describe. Filed as BL-137,
- * whose acceptance criteria include adding both routes here and deleting this
- * paragraph.
+ * Routes whose chrome is the whole site's chrome, plus the two that carry the
+ * heavier furniture — a StatsBar grid and a filter drawer — since both were
+ * where the remaining overflow actually lived.
  */
-const ROUTES = ['/', '/services/', '/about/', '/hub/'] as const;
+const ROUTES = [
+  '/',
+  '/services/',
+  '/about/',
+  '/hub/',
+  '/ma-portfolio/',
+  '/hub/tools/regulatory-map/',
+] as const;
 
 test.describe('Site chrome at phone widths', () => {
   for (const width of WIDTHS) {
