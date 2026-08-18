@@ -526,13 +526,11 @@ const faqItems = [
 </style>
 
 <script>
-  import { trackEvent, trackNavigation } from '../utils/analytics';
+  import { trackEvent } from '../utils/analytics';
 
-  // The MCP offer section's inline onclick needs this on window; CTASection
-  // wires trackCTA but not trackNavigation.
-  // TODO(phase-3): replace with proper ambient `Window` type declaration.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).trackNavigation = trackNavigation;
+  // The MCP offer section's inline onclick calls `trackNavigation`, which is
+  // NOT wired here: `Header.astro` puts it on `window` and BaseLayout renders
+  // that header on every page. A second assignment here was redundant.
 
   document.querySelectorAll('.brutal-faq__item').forEach((item) => {
     item.addEventListener('toggle', () => {

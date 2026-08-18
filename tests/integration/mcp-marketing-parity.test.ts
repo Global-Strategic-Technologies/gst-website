@@ -311,7 +311,7 @@ describe('MCP marketing page — tier parity', () => {
 
   it('renders the ceilings as one comparison table', () => {
     expect(tableStart, 'tier comparison table not found').toBeGreaterThan(-1);
-    expect(table).toContain('<tbody>');
+    expect(table).toContain('<tbody');
   });
 
   it('publishes every assignable tier identifier, and only those', () => {
@@ -321,23 +321,34 @@ describe('MCP marketing page — tier parity', () => {
     }
   });
 
-  it('orders the tier headers left to right in table-column order', () => {
-    // The headers ARE the column headers, so reordering either half silently
-    // re-attributes every number in the table.
-    const positions = TIER_COLUMNS.map(([id]) =>
-      markup.indexOf(`<code class="mcp-tier__id">${id}</code>`)
-    );
-    expect(positions.every((p) => p > -1)).toBe(true);
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  it('binds each display name to its own identifier, in table-column order', () => {
+    // The headers ARE the column headers, so a reordering of either half — or a
+    // name landing over the wrong identifier — silently re-attributes every
+    // number in the table. Sliced per block (the last one runs to the table, so
+    // it cannot borrow a later tier's name) rather than searched page-wide,
+    // which would pass on any permutation that merely contains all three.
+    const blocks = markup
+      .split('<div class="mcp-tier">')
+      .slice(1)
+      .map((block) => block.split('<table')[0]);
+    expect(blocks, 'one block per assignable tier').toHaveLength(TIER_COLUMNS.length);
+
+    blocks.forEach((block, i) => {
+      const [id, name] = TIER_COLUMNS[i];
+      expect(block).toContain(`<h3 class="mcp-tier__name">${name}</h3>`);
+      expect(block).toContain(`<code class="mcp-tier__id">${id}</code>`);
+    });
   });
 
   it.each(CEILINGS.map(([key, label]) => [label, key] as const))(
     'publishes the %s row, each value under its own tier',
     (label, key) => {
-      const row = new RegExp(`<th scope="row">${label}</th>(.*?)</tr>`).exec(table);
+      const row = new RegExp(`<th[^>]*>${label}</th>(.*?)</tr>`).exec(table);
       expect(row, `no "${label}" row in the tier table`).not.toBeNull();
 
-      const cells = [...row![1].matchAll(/<td data-tier="([^"]+)">([^<]+)<\/td>/g)].map(
+      // Attribute-order-tolerant: the cells also carry an explicit `role`, and
+      // prettier is free to reorder attributes on reformat.
+      const cells = [...row![1].matchAll(/<td[^>]*data-tier="([^"]+)"[^>]*>([^<]+)<\/td>/g)].map(
         (m) => [m[1], m[2]] as const
       );
       // Thousands separators are a display choice; the guard formats the source

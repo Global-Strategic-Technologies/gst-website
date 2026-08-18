@@ -66,6 +66,42 @@ test.describe('MCP Server page', () => {
     }
   });
 
+  test('below the breakpoint, every value names its own tier', async ({ page }) => {
+    // The stacked form is otherwise unrendered by any test: all three Playwright
+    // projects are desktop, so the alignment test above skips out and nothing
+    // exercises the width where the tier headers stop being column headers.
+    //
+    // What this proves is that the prefix RENDERS — a dropped or out-scoped
+    // `::before` rule leaves three unlabelled numbers per row, which is the
+    // regression this form exists to prevent. It cannot prove the prefix is the
+    // RIGHT tier: the content resolves from the same `data-tier` it is compared
+    // against, so the two agree by construction. That half is pinned in
+    // `mcp-marketing-parity.test.ts`, which binds each `data-tier` cell to its
+    // tier's ceilings in `mcp-server` source.
+    await page.setViewportSize({ width: 480, height: 900 });
+
+    const cells = page.locator('.mcp-tier-table tbody td');
+    await expect(cells).toHaveCount(12);
+
+    const mismatched = await page.evaluate(() =>
+      [...document.querySelectorAll('.mcp-tier-table tbody td')]
+        .map((el) => ({
+          tier: el.getAttribute('data-tier') ?? '',
+          // Resolves `content: attr(data-tier)` to the rendered string, so this
+          // fails on an empty or unrendered prefix as well as a wrong one.
+          rendered: getComputedStyle(el, '::before').content,
+        }))
+        .filter(({ tier, rendered }) => !tier || !rendered.includes(tier))
+    );
+    expect(mismatched).toEqual([]);
+
+    // The prefixes are only necessary because the headers have stacked by here.
+    const tiers = page.locator('.mcp-tiers .mcp-tier');
+    const first = await tiers.first().boundingBox();
+    const second = await tiers.nth(1).boundingBox();
+    expect(second!.y).toBeGreaterThan(first!.y);
+  });
+
   test('every tier offers a prefilled access request', async ({ page }) => {
     const ctas = page.locator('.mcp-tiers .mcp-tier__cta');
     await expect(ctas).toHaveCount(EXPECTED_TIERS.length);

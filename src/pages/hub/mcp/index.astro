@@ -446,39 +446,47 @@ function accessHref(tier?: string) {
           column headers. The metric labels are therefore `<th scope="row">` —
           which is what they are, and which is also what gives every value cell
           a header, since axe's `td-has-header` applies to any table larger than
-          3x3. `data-tier` names each value's column for the reader who cannot
-          see the headers above: it is the accessible name below 768px, where
-          the rows stack and the headers are no longer over their columns, and
-          it is what the parity guard binds each ceiling to. */
+          3x3. `data-tier` names each value's column in the markup: it is what
+          the parity guard binds each ceiling to, and below 768px it is printed
+          onto the cell as generated text, where the rows stack and the headers
+          above are no longer over their columns.
+
+          The explicit roles are load-bearing rather than redundant. That same
+          mobile form sets `display: grid` / `flex` on `tr` and `td`, and the
+          major engines derive table semantics from the layout tree, so the
+          whole grid silently degrades to generic containers at exactly the
+          width where a reader most needs the structure. Stating the roles
+          pins them across the display change. */
         }
         <table
           class="brutal-bench-table mcp-tier-table"
+          role="table"
           aria-label="Capability ceilings by tier: Pilot, Deal Team, Firm"
         >
-          <tbody>
-            <tr>
-              <th scope="row">Calls / min</th>
-              <td data-tier="Pilot">30</td>
-              <td data-tier="Deal Team">60</td>
-              <td data-tier="Firm">120</td>
+          <tbody role="rowgroup">
+            <tr role="row">
+              <th scope="row" role="rowheader">Calls / min</th>
+              <td role="cell" data-tier="Pilot">30</td>
+              <td role="cell" data-tier="Deal Team">60</td>
+              <td role="cell" data-tier="Firm">120</td>
             </tr>
-            <tr>
-              <th scope="row">Calls / day</th>
-              <td data-tier="Pilot">300</td>
-              <td data-tier="Deal Team">2,000</td>
-              <td data-tier="Firm">10,000</td>
+            <tr role="row">
+              <th scope="row" role="rowheader">Calls / day</th>
+              <td role="cell" data-tier="Pilot">300</td>
+              <td role="cell" data-tier="Deal Team">2,000</td>
+              <td role="cell" data-tier="Firm">10,000</td>
             </tr>
-            <tr>
-              <th scope="row">Radar / min</th>
-              <td data-tier="Pilot">3</td>
-              <td data-tier="Deal Team">5</td>
-              <td data-tier="Firm">10</td>
+            <tr role="row">
+              <th scope="row" role="rowheader">Radar / min</th>
+              <td role="cell" data-tier="Pilot">3</td>
+              <td role="cell" data-tier="Deal Team">5</td>
+              <td role="cell" data-tier="Firm">10</td>
             </tr>
-            <tr>
-              <th scope="row">Radar / day</th>
-              <td data-tier="Pilot">20</td>
-              <td data-tier="Deal Team">50</td>
-              <td data-tier="Firm">150</td>
+            <tr role="row">
+              <th scope="row" role="rowheader">Radar / day</th>
+              <td role="cell" data-tier="Pilot">20</td>
+              <td role="cell" data-tier="Deal Team">50</td>
+              <td role="cell" data-tier="Firm">150</td>
             </tr>
           </tbody>
         </table>
@@ -704,8 +712,9 @@ function accessHref(tier?: string) {
     border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
-  /* The block's own heading is `--text-lg`-scale rather than a section heading,
-     so it takes a tighter gap to its one line of prose. */
+  /* `.brutal-heading-md` rather than the `-lg` every section above uses, so the
+     block reads as a footnote for the engineer wiring it up; a smaller heading
+     takes a tighter gap to its one line of prose. */
   .mcp-block--engineers h2 {
     margin-bottom: var(--spacing-sm);
   }
