@@ -213,7 +213,13 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     const { scrollTop, clearance } = await page.evaluate(() => {
       const drawer = document.getElementById('filter-drawer') as HTMLElement;
       const content = drawer.querySelector('.drawer-content') as HTMLElement;
-      return { scrollTop: content.scrollTop, clearance: parseFloat(drawer.style.bottom) };
+      // Resolved value, not the inline mechanism: the listener publishes the
+      // clearance as --drawer-footer-clearance and `bottom` reads it, so
+      // drawer.style.bottom is empty.
+      return {
+        scrollTop: content.scrollTop,
+        clearance: parseFloat(getComputedStyle(drawer).bottom),
+      };
     });
 
     // scrollTop must have advanced by at least the clearance amount (up to

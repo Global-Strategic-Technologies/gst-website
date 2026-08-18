@@ -136,15 +136,28 @@ scroll listener in PortfolioHeader.astro can raise `bottom` when the
 
 page footer enters the viewport, keeping the drawer flush with (never
 
-behind) the footer. The box-shadow intentionally uses a clipped offset
+behind) the footer. It raises it by publishing the clearance as this
 
-so it doesn't bleed past the drawer's own bounds onto the footer. */
+element's own `--drawer-footer-clearance`, which `bottom` reads below —
+
+a custom property rather than an inline `bottom` so that the phone
+
+bottom sheet can read the same number to shorten its cap (BL-137). The
+
+box-shadow intentionally uses a clipped offset so it doesn't bleed past
+
+the drawer's own bounds onto the footer. */
 
 .filter-drawer {
+  /* Declared here, not only set from JS, so the cap below has something to
+     read before the listener first runs and so the published design-sync
+     stylesheet is self-contained. The inline setProperty still wins. */
+  --drawer-footer-clearance: 0px;
+
   position: fixed;
   right: -400px;
   top: 133px;
-  bottom: 0;
+  bottom: var(--drawer-footer-clearance, 0);
   width: 350px;
   border-left: 2px solid var(--color-primary);
   box-shadow: -4px 0 20px -4px var(--scrim-15);
@@ -193,6 +206,94 @@ html.dark-theme .filter-chip.chip-unavailable {
 
 html.dark-theme .filter-drawer {
   box-shadow: -4px 0 20px var(--scrim-40);
+}
+
+/* ==============================
+
+Filter Drawer — the production instance on /ma-portfolio
+
+============================== */
+
+/* Keyed on `.portfolio-filter-drawer`, not `.filter-drawer`: /brand renders a
+static specimen carrying only the base class, which must keep its desktop
+appearance and must never be hidden (it has no `.open` to restore it).
+
+These declarations were written into PortfolioHeader.astro and
+StickyControls.astro, neither of which renders the drawer, so Astro's scope
+attribute never matched and none of them ever applied (BL-137). They live here,
+next to the rules they override, so that cannot recur. The one other
+`.portfolio-filter-drawer` rule in the repo is the print-hide in
+pages/ma-portfolio.astro, which is live and unaffected.
+
+This section sits AFTER the dark-theme block on purpose: the dark companion
+below ties with `html.dark-theme .filter-drawer` on specificity (0,2,1), and a
+tie is resolved by source order, so it has to come later or it never applies. */
+
+.portfolio-filter-drawer {
+  /* A closed drawer is off-screen but still in the tab order without this, so
+     keyboard focus walks into controls nobody can see. `visibility` is
+     transitioned alongside `right`: per spec it interpolates as a step function
+     where any progress in (0,1) is `visible`, so the drawer reveals immediately
+     on open and stays visible for the whole slide-out on close. */
+  visibility: hidden;
+  transition:
+    right var(--transition-slow),
+    visibility var(--transition-slow);
+}
+
+.portfolio-filter-drawer.open {
+  visibility: visible;
+}
+
+/* Tablet and below: full-width sheet under the controls row. The shadow rotates
+   with the border it belongs to — a left-edge shadow under a top-edge border
+   reads as a rendering fault. */
+@media (max-width: 768px) {
+  .portfolio-filter-drawer {
+    right: -100%;
+    width: 100%;
+    border-left: none;
+    border-top: 2px solid var(--color-primary);
+    box-shadow: 0 -4px 20px -4px var(--scrim-15);
+  }
+
+  html.dark-theme .portfolio-filter-drawer {
+    box-shadow: 0 -4px 20px var(--scrim-40);
+  }
+}
+
+/* Phones: bottom sheet, anchored to the viewport bottom and sized by its content
+   within three bounds — never taller than 85% of the screen, never taller than
+   the room left above the footer, never shorter than 30%.
+
+   The middle bound is the load-bearing one. With `top: auto` the box's height is
+   content-derived and `top` is what gets solved, so without it the sheet would
+   only move up as the footer scrolled in, never shrink, and its header would
+   leave the top of the screen.
+
+   Percentages, not vh/dvh, and the reason is correctness rather than taste: this
+   element is `position: fixed`, so a percentage resolves against the SAME
+   containing block that `bottom` above resolves against — by construction,
+   whatever that block turns out to be, so the clearance term cancels. `vh` is
+   the large viewport on mobile browsers with retracting toolbars and `dvh` is a
+   third thing again, so either can drift from the offset this cap has to agree
+   with. `dvh` would also have needed an @supports gate: browserslist declares
+   Safari >= 14 and LightningCSS emits viewport units verbatim with no fallback.
+
+   The 30% floor bounds the failure rather than expecting it: if a footer ever
+   occupied more than ~70% of the viewport the sheet keeps a usable height and
+   its top edge clips, instead of the cap going negative and the sheet vanishing.
+   Measured 2026-08-18: the real footer produces 122px of clearance against a
+   478px threshold at 700px tall, so this branch is not reachable today. */
+@media (max-width: 480px) {
+  .portfolio-filter-drawer {
+    top: auto;
+    max-height: clamp(
+      30%,
+      calc(100% - var(--drawer-footer-clearance, 0px) - var(--spacing-md)),
+      85%
+    );
+  }
 }
 
 /* ==============================

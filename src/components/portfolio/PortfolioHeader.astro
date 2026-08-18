@@ -206,7 +206,10 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     display: inline;
   }
 
-  /* Drawer styles moved to FilterDrawer.astro */
+  /* The drawer is rendered by FilterDrawer.astro, so scoped rules here cannot
+     reach it — they compile to `[data-astro-cid-<this file>]` and the element
+     carries the child's id. Its layout lives in
+     src/styles/components/filter.css (BL-137). */
 
   /* Dark Theme Component Overrides */
 
@@ -254,20 +257,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       left: 0.75rem;
       width: 16px;
       height: 16px;
-    }
-
-    .portfolio-filter-drawer {
-      right: -100%;
-      width: 100%;
-      top: 133px;
-      bottom: 0;
-      height: auto;
-      border-left: none;
-      border-top: 2px solid var(--color-primary);
-    }
-
-    .portfolio-filter-drawer.open {
-      right: 0;
     }
   }
 
@@ -341,19 +330,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     .filter-text {
       display: none;
     }
-
-    .portfolio-filter-drawer {
-      right: -100%;
-      bottom: 0;
-      top: auto;
-      width: 100%;
-      height: auto;
-      max-height: 85vh;
-      border-left: none;
-      border-top: 2px solid var(--color-primary);
-    }
-
-    /* Drawer responsive styles moved to FilterDrawer.astro */
   }
 </style>
 
@@ -948,8 +924,15 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
   // Keep the filter drawer's bottom edge above (never behind, never flush
   // against) the page footer. Two coupled behaviours:
-  //   1. Sets `drawer.style.bottom` so the drawer sits FOOTER_GAP_PX above
-  //      the footer's top whenever the footer is within the viewport.
+  //   1. Publishes the clearance as the drawer's own
+  //      `--drawer-footer-clearance`, which `.filter-drawer` consumes as its
+  //      `bottom` (see filter.css), so the drawer sits FOOTER_GAP_PX above the
+  //      footer's top whenever the footer is within the viewport. A custom
+  //      property rather than an inline `bottom` because at <=480px the phone
+  //      bottom sheet reads the same number to shorten its own max-height —
+  //      that sheet sets `top: auto`, so without a clearance-aware cap it
+  //      would only move up as the footer arrived, never shrink, and its
+  //      header would leave the top of the screen (BL-137).
   //   2. When the drawer shrinks (footer entering viewport), advances the
   //      drawer's internal scroll by the same delta so chips at the
   //      drawer's visible bottom stay anchored - they are never cut by the
@@ -973,7 +956,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       const footerInView = footerTop < window.innerHeight;
       const clearance = footerInView ? window.innerHeight - footerTop + FOOTER_GAP_PX : 0;
       const delta = clearance - prevClearance;
-      drawer.style.bottom = clearance + 'px';
+      drawer.style.setProperty('--drawer-footer-clearance', clearance + 'px');
       if (delta !== 0) {
         const content = drawer.querySelector('.drawer-content') as HTMLElement | null;
         if (content) content.scrollTop += delta;
