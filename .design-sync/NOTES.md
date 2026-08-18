@@ -110,6 +110,17 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
   them: upload it, and pass an EMPTY `deletes` set. Deleting the two as orphans would
   remove artifacts this repo neither owns nor can rebuild. Confirmed on the 2026-08-18
   sync: 101 files written, both app-side files still present afterwards.
+- **`_ds_sync.json` matching the remote proves NOTHING about the README.** `auxShaFor()`
+  (`.ds-sync/lib/sync-hashes.mjs`) hashes `README.md` and `guidelines/` from the LOCAL
+  output directory and writes that digest into the sidecar, which is then uploaded. So a
+  remote sidecar that matches local is your own hash echoed back — not a server-side hash
+  over the stored file. `sourceHashes` cannot cover the gap either: every key there is
+  `components/specimens/*`. Worse, the failure is self-perpetuating —
+  `remote-diff.mjs:211` sets `upload.aux` from `remote.auxSha !== local.auxSha`, so a
+  README that landed wrong beside a sidecar that landed right is never re-uploaded. **The
+  only way to confirm the README is `get_file` on it.** Done on the 2026-08-18 sync, and
+  it earned its keep: it caught a sentence still pointing the sash at the `SiteHeader`
+  chrome card, which is exactly what the same commit proved impossible.
 - **The upload set is 101 files, and the two exclusions are deliberate.** Everything under
   `ds-bundle/` except the 8 root dotfiles (local telemetry — `.resync-verdict.json`,
   `.sync-diff.json`, `.render-check.json`, `.review.html`, …) and `_screenshots/` (32
