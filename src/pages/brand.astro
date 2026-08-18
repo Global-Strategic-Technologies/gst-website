@@ -384,9 +384,11 @@ import '../styles/components/progress.css';
 
   /* ── Announcement sash specimens ──
      The sash positions itself against the nearest positioned ancestor and is
-     clipped by its own corner box, so a specimen needs a relative frame big
-     enough to hold the 200px corner. The card frame mirrors a .hub-card:
-     position + overflow are what let the 104px band sit in a card corner. */
+     clipped by its own corner box, so a specimen needs a relative frame. 190px
+     is the handoff's frame height and is deliberately shorter than the 200px
+     corner: the band is what the specimen documents, and it sits in the top
+     ~120px. The card frame mirrors a .hub-card — position + overflow are what
+     let the 104px band sit in a card corner. */
   .brand-sash-frame {
     position: relative;
     width: 320px;

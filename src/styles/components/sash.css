@@ -25,6 +25,11 @@ with the per-palette ink in palettes.css). Borders and hover derive from them
 with color-mix, so the sash follows all six palettes and both themes with no
 extra CSS and no literal colours.
 
+The off-scale rem values below (0.4375, 0.5625, 0.375, 0.0625, 0.3125) are
+deliberate: they are the optical band thicknesses the 45° chord is drawn for, and
+no spacing token lands on them. Everything that DOES land on the scale uses the
+token.
+
 ============================== */
 
 .brutal-sash-corner {
@@ -49,9 +54,9 @@ extra CSS and no literal colours.
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
   box-sizing: border-box;
-  padding: 0.5rem 0;
+  padding: var(--spacing-sm) 0;
   transform: rotate(45deg);
   pointer-events: auto;
   text-decoration: none;
@@ -81,7 +86,7 @@ extra CSS and no literal colours.
 }
 
 .brutal-sash__detail {
-  padding-left: 0.5rem;
+  padding-left: var(--spacing-sm);
   letter-spacing: 0.1em;
   border-left: 1px solid color-mix(in srgb, var(--sash-ink) 45%, transparent);
   opacity: 0.85;
@@ -120,7 +125,7 @@ extra CSS and no literal colours.
 .brutal-sash-corner--card .brutal-sash {
   top: 26px;
   width: 150px;
-  padding: 0.25rem 0;
+  padding: var(--spacing-xs) 0;
   letter-spacing: 0.16em;
 }
 

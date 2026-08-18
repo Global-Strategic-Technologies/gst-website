@@ -538,6 +538,7 @@ Additional breakpoints used sparingly:
 - `@media (min-width: 768px)` — desktop-only styles (used in some components)
 - `@media (min-width: 480px) and (max-width: 767px)` — tablet-only range
 - `@media print` — print stylesheet
+- `540px` / `512px` — the announcement sash only ([sash.css](../../styles/components/sash.css) + the reserve in [HeaderNavLinks.astro](../../components/HeaderNavLinks.astro)). These are not general breakpoints and nothing else should adopt them: a sash tier switches at the width where its **nav reserve fits**, measured on all three engines, and below 512px nothing fits, so the sash hides and the reserve goes to 0. The two files must switch at the same three numbers or a sash page gains a horizontal scrollbar.
 
 ### Touch Targets
 

@@ -19,7 +19,7 @@
 // geometry is keyed off the corner-box modifier so the box size and the band's
 // top/width can never drift apart. Geometry and colour rules live in
 // src/styles/components/sash.css (shared with the /brand specimens), which also
-// documents why the page scale stands down below 440px.
+// documents why the page scale stands down below 512px.
 //
 // Page and wide scale are real links. Card scale is decorative — no href, no
 // analytics, aria-hidden — because the .hub-card around it is already the link
@@ -64,8 +64,14 @@ const spokenLabel =
 // same page arrives in GA4 under two names. `trackNavigation` is put on window
 // by Header.astro, which every page renders through BaseLayout.
 const destination = href ? href.replace(/\/+$/, '') || '/' : '';
+// The handler is an inline attribute, so a lone apostrophe in a future id or
+// href would end the JS string argument early. Registry values are ours, not
+// user input — this just keeps a typo from becoming a broken page.
+const jsString = (value: string) => value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 const trackAttrs =
-  isLink && id ? { onclick: `trackNavigation('${destination}', 'Sash: ${id}')` } : {};
+  isLink && id
+    ? { onclick: `trackNavigation('${jsString(destination)}', 'Sash: ${jsString(id)}')` }
+    : {};
 ---
 
 <div class={cornerClass}>
