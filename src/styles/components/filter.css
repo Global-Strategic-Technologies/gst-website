@@ -257,6 +257,24 @@ tie is resolved by source order, so it has to come later or it never applies. */
     box-shadow: 0 -4px 20px -4px var(--scrim-15);
   }
 
+  /* The sheet needs a real surface, not a sheen. FilterDrawer co-applies
+     `.brutal-frosted--blur-only`, whose --surface-sheen-bg is `transparent` in
+     light theme — a deliberate choice for the 350px desktop panel, which sits
+     beside sparse content and must not add contrast over the green stats band.
+     Full-bleed that same transparency puts the drawer's own title and chips on
+     top of the page title, the search box and the body copy, and neither is
+     readable. --surface-overlay-bg is the design system's answer: the variant
+     documented in global.css for "drawers/panels that slide over content,
+     higher opacity than heavy for readability".
+
+     Specificity is deliberate: co-applied (0,2,0) to beat the utility's (0,1,0)
+     regardless of sheet order. Only `background` is overridden — the dark-theme
+     backdrop-filter tuning at (0,2,1) is left to win, since the opacity does the
+     readability work and the blur radius is cosmetic. */
+  .portfolio-filter-drawer.brutal-frosted--blur-only {
+    background: var(--surface-overlay-bg);
+  }
+
   html.dark-theme .portfolio-filter-drawer {
     box-shadow: 0 -4px 20px var(--scrim-40);
   }

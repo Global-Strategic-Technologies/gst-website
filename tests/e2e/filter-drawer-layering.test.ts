@@ -293,6 +293,26 @@ test.describe('Filter Drawer Mobile Treatment (BL-137)', () => {
       expect(styles.borderLeftWidth).toBe('0px');
       expect(styles.borderTopWidth).toBe('2px');
     });
+
+    test('the full-bleed sheet has an opaque surface, not a sheen', async ({ page }) => {
+      await gotoPortfolio(page);
+      await openFilterDrawer(page);
+
+      // The drawer co-applies .brutal-frosted--blur-only, whose surface token is
+      // `transparent` in light theme. That is right for the 350px desktop panel
+      // and unreadable full-bleed: the drawer's own title and chips render on
+      // top of the page title, the search box and the body copy. Guarding the
+      // alpha rather than the exact colour keeps this about legibility.
+      const alpha = await page.evaluate(() => {
+        const el = document.querySelector('[data-testid="portfolio-filter-drawer"]')!;
+        const bg = getComputedStyle(el).backgroundColor;
+        const m = bg.match(/rgba?\(([^)]+)\)/);
+        if (!m) return 0;
+        const parts = m[1].split(',').map((p) => parseFloat(p));
+        return parts.length === 4 ? parts[3] : 1;
+      });
+      expect(alpha, 'the mobile sheet must not be see-through').toBeGreaterThan(0.85);
+    });
   });
 
   test.describe('at 600px — the tablet band', () => {
