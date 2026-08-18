@@ -264,7 +264,25 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-137: The filter drawer's entire mobile treatment is dead CSS
 
-**Source**: found 2026-08-18 while chasing a WebKit overflow to the wrong cause — the overflow turned out to be a StatsBar grid and a legend row (both fixed in the same session), and this is what the investigation actually turned up | **Effort**: Small — move two rule blocks; the risk is in what they will change once live | **Status**: Open
+**Source**: found 2026-08-18 while chasing a WebKit overflow to the wrong cause — the overflow turned out to be a StatsBar grid and a legend row (both fixed in the same session), and this is what the investigation actually turned up | **Effort**: Small — move two rule blocks; the risk is in what they will change once live | **Status**: **CLOSED 2026-08-18**
+
+**Three things this stanza got wrong, all found by doing the work:**
+
+1. **It undercounted by a factor of four.** `StickyControls.astro:167–448` carried a **second, larger** dead copy — base positioning, `.drawer-header`, `.drawer-title`, `.drawer-close`, `.drawer-content`, `.filter-section`, `.filter-label`, `.filter-chips`, `.filter-chip`, `.clear-filters-btn`, `.portfolio-filter-overlay`, an `[id='filter-drawer'] { position: fixed !important }` stanza and its own 768/480 blocks. That component renders only the sticky search bar. Also dead there: `.filter-toggle`, a class that exists nowhere in the repo. 230 lines deleted, proven a no-op by the build emitting no `portfolio-filter-drawer[data-astro-cid-*]` rule at all afterwards.
+2. **"Both routes" was wrong** — `/hub/tools/regulatory-map/` renders no drawer; it imports `filter.css` only for `.brutal-filter-chip*`. The drawer renders on `/ma-portfolio/` alone, plus a static specimen on `/brand`.
+3. **It was not "move two rule blocks".** Moving them as written ships a broken phone drawer, twice over — see below.
+
+**What the move actually required.**
+
+- **A JS↔CSS coupling change.** The ≤480 sheet sets `top: auto`, so the box's height becomes content-derived and `top` is what gets solved. `initDrawerFooterClearance` only ever moved the drawer up, so the sheet's header and close button would have left the top of the screen as the footer scrolled in. The listener now publishes the clearance as `--drawer-footer-clearance` and the sheet's `max-height` reads it, so the drawer genuinely shrinks. That also restored the premise of the listener's own `scrollTop` coupling, which had been advancing the chip list for a drawer that never changed size.
+- **Percentages, not `vh`/`dvh`.** For a fixed element a percentage resolves against the same containing block as `bottom`, so the clearance term cancels by construction. `dvh` would additionally have needed an `@supports` gate: browserslist declares `Safari >= 14` and LightningCSS emits viewport units verbatim with no fallback, so an unguarded `dvh` would have **dropped the cap while `top: auto` still applied** — the same defect, silently, on a declared support target.
+- **A surface.** Found by the manual pass, which was the first time the sheet had ever rendered: `.brutal-frosted--blur-only`'s `--surface-sheen-bg` is `transparent` in light theme — correct for the 350px desktop panel, illegible full-bleed, with the drawer's title and chips drawn over the page title and body copy. Now uses `--surface-overlay-bg`, the variant global.css documents for exactly this.
+
+**Measured on closure** (400×700, `/ma-portfolio/`): footer 106px, clearance 122px, natural drawer content 763px against a 595px cap. At rest the sheet renders 595px tall with its bottom at the viewport bottom; scrolled to the page bottom it renders 566px with its top at 12px (`--spacing-md`) and the 16px footer gap intact. The 30% floor needs 478px of clearance and is unreachable.
+
+**Verification**: `astro check` 0 errors, `lint` clean, `lint:css` 0 errors (filter.css warning count unchanged at 9), 1579 unit/integration tests, `test:docs` 35. E2E green on all three engines at CI concurrency. The eight failures seen at 16 local workers were dev-server contention — seven Firefox `page.goto` timeouts on routes with no drawer, one `/brand` iframe readiness poll — all passing at `--workers=2`.
+
+**The new tests were proven to probe something before being trusted**: repointing the new rules at a selector nothing carries turns six of the seven red, and removing `.drawer-content`'s scroll region turns the seventh red.
 
 **As a** phone user filtering the portfolio or the regulatory map, **I want** the drawer to use its designed mobile treatment **so that** a panel that was written to be a full-width sheet stops rendering as a desktop side-panel.
 
@@ -285,15 +303,16 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 #### Acceptance Criteria
 
-- [ ] The mobile drawer declarations live where the drawer is rendered, and a rendered measurement proves they apply (`width: 100%` at 375px, `max-height: 85vh` at 480px)
-- [ ] The two "Drawer styles moved to FilterDrawer.astro" comments describe what is actually true, or go
-- [ ] `filter-drawer-layering.test.ts`, `portfolio-filtering.test.ts`, `regulatory-map-mobile.test.ts` and `narrow-viewport-chrome.test.ts` pass on all three engines
-- [ ] The open/closed detection in [`tests/e2e/helpers/portfolio.ts`](../../../tests/e2e/helpers/portfolio.ts) still describes the property the drawer animates — it reads `parseFloat(getComputedStyle(el).right) >= -1`, so restoring `right: -100%` keeps it valid while a switch to `transform` would silently break it
+- [x] The mobile drawer declarations live **where they apply** — `src/styles/components/filter.css`, next to the base rule they override — and rendered measurements prove it. **AC restated on closure**: the original wording ("where the drawer is rendered") named a location, and a scoped block in `FilterDrawer.astro` would have satisfied it while re-creating the fragility one refactor later. A plain stylesheet cannot fall into the trap at all. The binding half was always the measurement, and it is what shipped: `width` equals `clientWidth` at 375px and 600px, `border-left: 0`, `border-top: 2px`, and the cap binds at 400px with the rendered height equal to 85% of the viewport.
+- [x] The comments describe what is true — both replaced with one naming the mechanism (a parent's scoped rule compiles to its own cid; the element carries the child's), and a third added to `StickyControls.astro` where its dead block was.
+- [x] `filter-drawer-layering.test.ts`, `portfolio-filtering.test.ts`, `regulatory-map-mobile.test.ts` and `narrow-viewport-chrome.test.ts` pass on all three engines — plus `portfolio-drawer-scroll`, `mobile-navigation`, `brand-page`, `accessibility` and `analytics`.
+- [x] The open/closed detection still describes the property the drawer animates. No code change was needed: open is still `right: 0`. Its docblock now records that the closed value is `-400px` on desktop and `-100%` at ≤768px, and that a switch to `transform` would silently break the check — the fact the AC was protecting, written down rather than rediscovered.
 
 #### Technical Context
 
-- Expect visible change on two routes once the rules go live: the drawer becomes a full-width sheet on tablets and a bottom sheet under 480px. That is the designed behaviour, but it has never actually shipped, so treat it as a UI change to review rather than a no-op refactor.
-- Worth settling in the same pass: a closed drawer is still in the tab order, so keyboard focus reaches off-screen controls. `visibility: hidden` when closed (with `visibility` in the transition) fixes that and does not disturb the `right`-based open/closed signal.
+- **The visible change is on one route, `/ma-portfolio/`** — not two. Full-width sheet at ≤768px, bottom sheet at ≤480px.
+- **A closed drawer is no longer in the tab order.** `visibility: hidden` with `visibility` in the transition, which does not disturb the `right`-based open/closed signal — its step-function interpolation reveals the drawer the instant `.open` lands and holds it visible through the slide-out. Asserted by focus reachability rather than a CSS proxy.
+- **Two things this left behind for whoever needs them**: `--filter-drawer-bg` (`variables.css:203`) is defined and documented but referenced by nothing — the mobile surface fix used `--surface-overlay-bg` instead, since that is the variant global.css documents for drawers over content. And `top: 133px` in the base rule is still a magic number; at 481–768px it now puts the sheet's top edge 89px above the controls row's bottom, which reads fine with an opaque surface but is unexamined geometry.
 
 ---
 
@@ -337,6 +356,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 #### Technical Context
 
 - **Carry forward the existing guard's documented precision limit**: it counts a class as defined if the name appears in any selector anywhere, including as a descendant qualifier. A site-wide version inherits that, so it will not catch a class defined only under a parent it never actually sits inside.
+- **The inverse case recurs too, and this guard's shape will not see it** (recorded from BL-137's closure, 2026-08-18). A rule whose target element is rendered by a _different_ component is dead — Astro scopes by attribute, so a parent's rule compiles to its own `data-astro-cid-*` while the element carries the child's. An orphan-**class** scan passes it cleanly: the class exists and has rules, they just carry a cid the element will never have. BL-137 was two such piles across two components, one of them 230 lines. Worth deciding whether this guard covers rules-without-elements as well as classes-without-rules, or whether that is a separate check — the trap is now documented in [STYLES_GUIDE § Scoped vs. Global Styles](../styles/STYLES_GUIDE.md), but documentation is not a guard.
 - Scope question to settle first: reuse the 22-route axe list from BL-096, or scan a narrower set. The 22 routes are already paid for as a Playwright fixture.
 - **Count files, then count routes — they diverge.** BL-114's 10 tokens sat in 8 files, but one was `Hero.astro`, a shared component rendering on five routes (`index`, `about`, `services`, `404`, `500`). A file-count reading of that recurrence understates the reach, and this guard is scoped by route, not by file.
 
