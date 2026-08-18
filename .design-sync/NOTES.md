@@ -150,6 +150,18 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
 
 ## Re-sync risks (what can silently go stale)
 
+- **After editing `conventions.md`, grep the WHOLE file for the family you touched — do
+  not review the hunk.** The uploaded README is read as one document by the agent, and a
+  family is usually described in three or four places (token bullet, class-families
+  bullet, BEM line, a rule, sometimes a worked example). Adding one and leaving another
+  stale produces a document that contradicts itself, which no diff shows and which is
+  worse than either sentence alone: a reader who checks the wrong one discards the rest.
+  This is not hypothetical — the 2026-08-18 sash pass shipped exactly that, a bullet still
+  saying "real markup is in the `SiteHeader` chrome card" three paragraphs above a new
+  section explaining why that slice structurally cannot contain it. It survived FOUR
+  review rounds, all of them reading diffs, and was found only by reading the published
+  README end to end. `grep -n "<family>" .design-sync/conventions.md` is the whole check.
+
 - **`conventions.md` and the ten `specimen-docs/*.md` enumerate real class and token
   names.** CSS refactors rot them silently — the agent trusts these names and will emit
   unstyled markup for any that disappear. **This is now guarded in CI** (BL-135):
