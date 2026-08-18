@@ -298,6 +298,17 @@ These variables exist for page sections and UI components that need distinct lig
 | `--about-image-border`   | `var(--bg-dark-secondary)` | `#2a2a2a`                  |
 | `--about-image-text`     | `#404040`                  | `#808080`                  |
 
+### Announcement Sash
+
+The two tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Everything else the band draws — borders, hover, the inverted `__badge` chip — is derived from these with `color-mix()`, so the sash follows all six palettes and both themes with no extra CSS.
+
+| Variable     | Value                  | Usage                                           |
+| ------------ | ---------------------- | ----------------------------------------------- |
+| `--sash-bg`  | `var(--color-primary)` | The band. Colour is never a variant of the sash |
+| `--sash-ink` | `var(--bg-dark)`       | The label, and the inverted badge's background  |
+
+`--sash-ink` is re-pointed in `palettes.css` for `palette-1`, `-2`, `-3` and `-5`, whose light-theme primary is a dark saturated hue: those get `light-dark(var(--text-dark-primary), var(--bg-dark))`. Note the token names read backwards — `--text-dark-primary` is the LIGHT ink, i.e. text _for_ dark surfaces. `palette-0` and `palette-4` inherit the `:root` value deliberately.
+
 ### Miscellaneous
 
 | Variable               | Light                 | Dark                      |

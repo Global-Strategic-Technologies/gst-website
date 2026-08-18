@@ -156,6 +156,7 @@ src/styles/
     ├── table.css            # .brutal-bench-table
     ├── cards.css            # Option cards, trust cards, teaser cards, rec cards, attention cards, FAQ, gateway cards
     ├── form.css             # Input, choice buttons, tab bar, segmented controls, fields, sliders
+    ├── sash.css             # .brutal-sash + .brutal-sash-corner (announcement sash)
     ├── portfolio.css        # .brutal-project-card
     └── map.css              # Legend, timeline, map controls, panel, reg cards
 ```
