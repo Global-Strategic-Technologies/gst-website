@@ -451,12 +451,18 @@ function accessHref(tier?: string) {
           onto the cell as generated text, where the rows stack and the headers
           above are no longer over their columns.
 
-          The explicit roles are load-bearing rather than redundant. That same
-          mobile form sets `display: grid` / `flex` on `tr` and `td`, and the
-          major engines derive table semantics from the layout tree, so the
-          whole grid silently degrades to generic containers at exactly the
-          width where a reader most needs the structure. Stating the roles
-          pins them across the display change. */
+          The explicit roles are INSURANCE, not a fix for a demonstrated defect,
+          and this comment previously claimed otherwise. The mobile form sets
+          `display: grid` / `flex` on `tr` and `td`, which is the shape that
+          has historically dropped table semantics — but measured against
+          Chromium's real accessibility tree over CDP, at 1280 and at 480, with
+          the roles stripped and present, all four roles come back identical
+          (table / rowgroup / row / rowheader / cell). So Chromium does NOT
+          degrade here. Firefox and WebKit were not measured; the roles cost
+          nothing, match the implicit semantics exactly, and are kept for those.
+          Note a trap if anyone tries to guard this: Playwright resolves roles
+          from the DOM, so a `getByRole` assertion passes whether or not the
+          engine actually degrades, and would prove nothing. */
         }
         <table
           class="brutal-bench-table mcp-tier-table"

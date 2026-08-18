@@ -343,12 +343,19 @@ describe('MCP marketing page — tier parity', () => {
   it.each(CEILINGS.map(([key, label]) => [label, key] as const))(
     'publishes the %s row, each value under its own tier',
     (label, key) => {
-      const row = new RegExp(`<th[^>]*>${label}</th>(.*?)</tr>`).exec(table);
+      const row = new RegExp(`<th([^>]*)>${label}</th>(.*?)</tr>`).exec(table);
       expect(row, `no "${label}" row in the tier table`).not.toBeNull();
+
+      // Restored explicitly after the matcher above was loosened for attribute
+      // order: `scope` is what makes the label a header for its own row, and
+      // with no header ROW in this table it is the only thing giving each value
+      // cell a header at all (axe's `td-has-header`, tables larger than 3x3).
+      // The old literal `<th scope="row">` pinned this by accident.
+      expect(row![1], `the "${label}" label must be its row's header`).toContain('scope="row"');
 
       // Attribute-order-tolerant: the cells also carry an explicit `role`, and
       // prettier is free to reorder attributes on reformat.
-      const cells = [...row![1].matchAll(/<td[^>]*data-tier="([^"]+)"[^>]*>([^<]+)<\/td>/g)].map(
+      const cells = [...row![2].matchAll(/<td[^>]*data-tier="([^"]+)"[^>]*>([^<]+)<\/td>/g)].map(
         (m) => [m[1], m[2]] as const
       );
       // Thousands separators are a display choice; the guard formats the source

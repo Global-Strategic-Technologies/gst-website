@@ -83,17 +83,27 @@ test.describe('MCP Server page', () => {
     const cells = page.locator('.mcp-tier-table tbody td');
     await expect(cells).toHaveCount(12);
 
-    const mismatched = await page.evaluate(() =>
+    // `getComputedStyle(…, '::before').content` is engine-dependent for `attr()`:
+    // Chromium and WebKit return the SUBSTITUTED string (`"Deal Team"`), Firefox
+    // returns the declaration verbatim (`attr(data-tier)`). Measured across the
+    // repo's own browser builds — the first version of this test asserted the
+    // substituted form and was deterministically red on `--project=firefox`.
+    //
+    // Both forms are accepted rather than gating Firefox out, so all three
+    // engines still probe the thing that matters: an out-scoped or deleted rule
+    // computes to `none` in every engine and fails everywhere.
+    const unlabelled = await page.evaluate(() =>
       [...document.querySelectorAll('.mcp-tier-table tbody td')]
         .map((el) => ({
           tier: el.getAttribute('data-tier') ?? '',
-          // Resolves `content: attr(data-tier)` to the rendered string, so this
-          // fails on an empty or unrendered prefix as well as a wrong one.
           rendered: getComputedStyle(el, '::before').content,
         }))
-        .filter(({ tier, rendered }) => !tier || !rendered.includes(tier))
+        .filter(
+          ({ tier, rendered }) =>
+            !tier || !(rendered.includes(tier) || rendered.includes('attr(data-tier)'))
+        )
     );
-    expect(mismatched).toEqual([]);
+    expect(unlabelled).toEqual([]);
 
     // The prefixes are only necessary because the headers have stacked by here.
     const tiers = page.locator('.mcp-tiers .mcp-tier');
