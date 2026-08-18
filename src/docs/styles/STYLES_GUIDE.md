@@ -190,14 +190,53 @@ In stylesheets, always import in cascade order:
 
 ### Scoped vs. Global Styles — Decision Tree
 
-| Scenario                                        | Use                                                                           |
-| ----------------------------------------------- | ----------------------------------------------------------------------------- |
-| Design system tokens, resets, page layout       | Global CSS in `src/styles/`                                                   |
-| Single-component visual styles                  | Scoped `<style>` in the `.astro` file                                         |
-| Styling dynamically injected HTML (`innerHTML`) | `:global()` wrapper on the selector                                           |
-| Dark theme color switching                      | `light-dark(light, dark)` inline — preferred over `:global(html.dark-theme)`  |
-| Dark theme non-color overrides (opacity, etc.)  | `:global(html.dark-theme)` prefix — only for properties that aren't colors    |
-| Global keyframes or animations                  | `src/styles/global.css`                                                       |
+| Scenario                                            | Use                                                                           |
+| --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Design system tokens, resets, page layout           | Global CSS in `src/styles/`                                                   |
+| Single-component visual styles                      | Scoped `<style>` in the `.astro` file                                         |
+| **Styling an element a _child_ component renders**  | **Shared module in `src/styles/components/` — see below**                     |
+| Styling dynamically injected HTML (`innerHTML`)     | `:global()` wrapper on the selector                                           |
+| Dark theme color switching                          | `light-dark(light, dark)` inline — preferred over `:global(html.dark-theme)`  |
+| Dark theme non-color overrides (opacity, etc.)      | `:global(html.dark-theme)` prefix — only for properties that aren't colors    |
+| Global keyframes or animations                      | `src/styles/global.css`                                                       |
+
+#### The scoped-rule / foreign-element trap
+
+Astro scopes by **attribute**, not by nesting: a rule written in `Parent.astro` compiles to
+`.thing[data-astro-cid-PARENT]`, and an element rendered by `<Child />` carries the **child's**
+cid. So a parent styling a child's element produces a rule that matches nothing — no error, no
+warning, no unstyled flash. It simply never applies, and the element quietly keeps whatever the
+base rule gave it.
+
+This is not the `/brand` replica drift documented above, and `:global()` is not the fix. It is
+also **not** caught by an orphan-class scan, because the class does exist and does have rules —
+they just carry a cid the element will never have.
+
+**Worked example (BL-137).** `.portfolio-filter-drawer`'s entire mobile treatment lived in
+`PortfolioHeader.astro`'s and `StickyControls.astro`'s scoped blocks, while the element is
+rendered by `FilterDrawer.astro`. Neither parent's rules had ever applied: at 375px the drawer
+computed `width: 350px; border-left: 2px; max-height: none` — the desktop side panel — on a
+route that had shipped a "mobile drawer" for its whole life. Two comments reading
+_"Drawer styles moved to FilterDrawer.astro"_ recorded a move whose declarations were left
+behind.
+
+**Remedy order** — put the rule where it *applies*, not where the markup used to be:
+
+1. If the element is rendered by a child, and the styling is positional or shared, move it to a
+   `src/styles/components/*.css` module. A plain stylesheet cannot fall into this trap at all.
+2. If it genuinely belongs to one component, move it into **that** component's scoped block.
+3. Reach for `:global()` only for markup that has no component to own it — the `innerHTML` case
+   above.
+
+**Prove it with a rendered measurement, not a reading.** Authored CSS looks identical whether it
+applies or not, so the only evidence that a relocation worked is a computed style from a real
+browser. That is why the BL-137 tests assert `getComputedStyle` values at each breakpoint.
+
+**Check the browserslist floor before reaching for a newer CSS feature.** `package.json` declares
+`Safari >= 14`, and LightningCSS down-levels *some* constructs (`light-dark()`) while emitting
+others verbatim with no fallback — viewport units among them. An unsupported unit is therefore
+dropped silently at runtime rather than polyfilled at build time, taking its whole declaration
+with it. BL-137's phone cap is written in percentages partly for that reason.
 
 ### `class:list` — Conditional Classes
 
