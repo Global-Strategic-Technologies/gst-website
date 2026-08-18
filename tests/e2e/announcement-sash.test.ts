@@ -11,13 +11,17 @@
  *
  * Route selection and the `until` window are unit-tested against the registry in
  * `tests/unit/announcements.test.ts`; nothing here re-asserts them, and nothing
- * here pins the announcement's copy, so retiring `mcp-2-0` does not fail this
- * suite — it just skips (see SASH_ROUTE's guard).
+ * here pins the announcement's copy. Retirement is the designed outcome, not a
+ * failure, so the suite reads the registry itself and skips when no
+ * announcement is live on SASH_ROUTE — otherwise every assertion below would
+ * turn a required check red on a calendar date, with no code change and nothing
+ * to fix. The unit suite skips the same way (`describe.skipIf`).
  *
  * Geometry pairs — corner box / band top / band width / nav reserve — per
  * `src/styles/components/sash.css`.
  */
 import { test, expect, type Page } from '@playwright/test';
+import { getActiveAnnouncement } from '../../src/data/announcements';
 
 /**
  * Corner-box size ↔ nav reserve, per breakpoint. Edit with sash.css, or neither.
@@ -31,16 +35,34 @@ const BREAKPOINTS = [
   { name: '540px', width: 540, height: 800, box: 140, reserve: '108px' },
 ] as const;
 
-/** Every width the header is expected to render without a horizontal scrollbar. */
-const NO_OVERFLOW_WIDTHS = [512, 540, 541, 600, 768, 769, 900, 1440] as const;
+/**
+ * Every width the header is expected to render without a horizontal scrollbar.
+ * Starts at 400 rather than 375: below ~390 the header row overflows on EVERY
+ * page, sash or not (pre-existing, measured identical on /services/), and the
+ * stand-down test below covers the narrow end by comparing against a sash-less
+ * page instead of against zero.
+ */
+const NO_OVERFLOW_WIDTHS = [400, 480, 512, 540, 541, 600, 768, 769, 900, 1440] as const;
 
 const SASH_ROUTE = '/hub/';
-const SASH_LESS_ROUTES = ['/services/', '/about/'];
+// /brand/ carries sash SPECIMENS in its body. It belongs here because a
+// descendant :has() match reserved 168px on its real header for a corner that
+// isn't there — the guard is scoped to a direct child of <body> for that reason.
+const SASH_LESS_ROUTES = ['/services/', '/about/', '/brand/'];
 const ANNOUNCED_PAGE = '/hub/mcp/';
 
 const pageSash = (page: Page) => page.locator('.brutal-sash-corner:not(.brutal-sash-corner--card)');
 
+/**
+ * The pages are built from the registry, so with no live entry there is no sash
+ * to assert anything about. Evaluated here in Node against the same clock the
+ * dev server builds with.
+ */
+const NO_LIVE_ANNOUNCEMENT = getActiveAnnouncement(SASH_ROUTE) === null;
+
 test.describe('Announcement sash', () => {
+  test.skip(() => NO_LIVE_ANNOUNCEMENT, 'no announcement is live on this route — nothing renders');
+
   test('the page sash renders in the top-right corner as a link, above the sticky header', async ({
     page,
   }) => {
@@ -143,14 +165,19 @@ test.describe('Announcement sash', () => {
   }
 
   for (const route of SASH_LESS_ROUTES) {
-    test(`${route} renders no sash and no nav reserve (the :has() guard)`, async ({ page }) => {
+    test(`${route} carries no page sash and no nav reserve (the :has() guard)`, async ({
+      page,
+    }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(route);
-      await expect(page.locator('.brutal-sash-corner')).toHaveCount(0);
+
+      // A PAGE sash is a direct child of <body>; /brand's specimens and any
+      // card-scale band are nested, and neither may move the nav.
+      await expect(page.locator('body > .brutal-sash-corner')).toHaveCount(0);
       const reserve = await page
         .locator('.site-header nav ul')
         .evaluate((el) => getComputedStyle(el).paddingRight);
-      expect(reserve, 'a sash-less page must be byte-identical to before').toBe('0px');
+      expect(reserve, 'a page without a page sash must render as it did before').toBe('0px');
     });
   }
 
@@ -164,7 +191,7 @@ test.describe('Announcement sash', () => {
     await page.goto(SASH_ROUTE);
 
     const corner = pageSash(page);
-    await expect(corner).toHaveCount(1, { timeout: 5000 });
+    await expect(corner).toHaveCount(1);
     await expect(corner).toBeHidden();
 
     const reserve = await page
@@ -174,6 +201,20 @@ test.describe('Announcement sash', () => {
 
     // The card-scale band lives inside a card and never meets the nav.
     await expect(page.locator('.brutal-sash-corner--card')).toBeVisible();
+
+    // The outcome, not just the mechanism: at 375px the sash must cost the page
+    // nothing. Compared against a sash-less page rather than against zero,
+    // because the header row itself overflows below ~390px on every page — a
+    // pre-existing bug this component neither caused nor is allowed to worsen.
+    const overflowOf = async (route: string) => {
+      await page.goto(route);
+      return page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+      );
+    };
+    const withSash = await overflowOf(SASH_ROUTE);
+    const without = await overflowOf('/services/');
+    expect(withSash, 'the sash adds no overflow where it stands down').toBeLessThanOrEqual(without);
   });
 
   test('the sash never costs the page a horizontal scrollbar', async ({ page }) => {
