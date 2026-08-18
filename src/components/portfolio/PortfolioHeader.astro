@@ -924,15 +924,8 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
   // Keep the filter drawer's bottom edge above (never behind, never flush
   // against) the page footer. Two coupled behaviours:
-  //   1. Publishes the clearance as the drawer's own
-  //      `--drawer-footer-clearance`, which `.filter-drawer` consumes as its
-  //      `bottom` (see filter.css), so the drawer sits FOOTER_GAP_PX above the
-  //      footer's top whenever the footer is within the viewport. A custom
-  //      property rather than an inline `bottom` because at <=480px the phone
-  //      bottom sheet reads the same number to shorten its own max-height —
-  //      that sheet sets `top: auto`, so without a clearance-aware cap it
-  //      would only move up as the footer arrived, never shrink, and its
-  //      header would leave the top of the screen (BL-137).
+  //   1. Sets `drawer.style.bottom` so the drawer sits FOOTER_GAP_PX above
+  //      the footer's top whenever the footer is within the viewport.
   //   2. When the drawer shrinks (footer entering viewport), advances the
   //      drawer's internal scroll by the same delta so chips at the
   //      drawer's visible bottom stay anchored - they are never cut by the
@@ -956,7 +949,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       const footerInView = footerTop < window.innerHeight;
       const clearance = footerInView ? window.innerHeight - footerTop + FOOTER_GAP_PX : 0;
       const delta = clearance - prevClearance;
-      drawer.style.setProperty('--drawer-footer-clearance', clearance + 'px');
+      drawer.style.bottom = clearance + 'px';
       if (delta !== 0) {
         const content = drawer.querySelector('.drawer-content') as HTMLElement | null;
         if (content) content.scrollTop += delta;

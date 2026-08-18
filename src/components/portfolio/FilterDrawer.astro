@@ -173,13 +173,10 @@ const { uniqueThemes, uniqueEngagementCategories } = Astro.props;
       flex-shrink: 0;
     }
 
-    /* No max-height here: the drawer itself is capped at 85% of the viewport
-       (filter.css), and this element already has `flex: 1; min-height: 0;
-       overflow-y: auto` from the base rule above — so it fills whatever the cap
-       leaves and scrolls. The old `calc(85vh - 60px)` hardcoded this header's
-       height and was compensating for a cap that never applied (BL-137). */
     .drawer-content {
       padding: 1rem;
+      max-height: calc(85vh - 60px);
+      overflow-y: auto;
     }
 
     .filter-chips {

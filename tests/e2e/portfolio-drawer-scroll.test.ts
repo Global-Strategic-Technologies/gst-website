@@ -112,17 +112,14 @@ test.describe('Filter Drawer Background Scroll - MA Portfolio Page', () => {
 
 /**
  * Protects the "drawer bottom sits above the footer on scroll" fix:
- *   - Scroll/resize listener publishes the clearance as the drawer's own
- *     `--drawer-footer-clearance` custom property, which `.filter-drawer`
- *     consumes as its `bottom`, so the drawer's bottom edge stays
- *     FOOTER_GAP_PX above the footer's top as the footer enters view (never
- *     flush, never behind). At ≤480px the same property also shortens the
- *     bottom sheet's cap, which is what keeps its top edge on screen (BL-137).
+ *   - Scroll/resize listener writes `drawer.style.bottom` in px so the
+ *     drawer's bottom edge stays FOOTER_GAP_PX above the footer's top as the
+ *     footer enters view (never flush, never behind).
  *   - `.filter-drawer { overflow: hidden }` + `.drawer-content { min-height: 0 }`
  *     close the flexbox min-height trap so chips can't leak below.
  *
  * FOOTER_GAP_PX, readRects and waitForDrawerGap live in ./helpers/portfolio so
- * the BL-137 mobile-treatment tests can use the same rAF-settle wait instead of
+ * the BL-137 narrow-width tests can use the same rAF-settle wait instead of
  * hand-rolling a second one.
  */
 test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
@@ -213,9 +210,8 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     const { scrollTop, clearance } = await page.evaluate(() => {
       const drawer = document.getElementById('filter-drawer') as HTMLElement;
       const content = drawer.querySelector('.drawer-content') as HTMLElement;
-      // Resolved value, not the inline mechanism: the listener publishes the
-      // clearance as --drawer-footer-clearance and `bottom` reads it, so
-      // drawer.style.bottom is empty.
+      // Resolved value rather than the inline style, so this stays correct if
+      // the clearance is ever delivered some other way.
       return {
         scrollTop: content.scrollTop,
         clearance: parseFloat(getComputedStyle(drawer).bottom),

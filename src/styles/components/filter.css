@@ -136,24 +136,13 @@ scroll listener in PortfolioHeader.astro can raise `bottom` when the
 
 page footer enters the viewport, keeping the drawer flush with (never
 
-behind) the footer. It raises it by publishing the clearance as this
+behind) the footer. The box-shadow intentionally uses a clipped offset
 
-element's own `--drawer-footer-clearance`, which `bottom` reads below —
-
-a custom property rather than an inline `bottom` so that the phone
-
-bottom sheet can read the same number to shorten its cap (BL-137). The
-
-box-shadow intentionally uses a clipped offset so it doesn't bleed past
+so it doesn't bleed past
 
 the drawer's own bounds onto the footer. */
 
 .filter-drawer {
-  /* Declared here, not only set from JS, so the cap below has something to
-     read before the listener first runs and so the published design-sync
-     stylesheet is self-contained. The inline setProperty still wins. */
-  --drawer-footer-clearance: 0px;
-
   /* How far down the drawer starts, and it is not decoration: two FIXED bars
      sit above it — the site header (outside `main`, so it outranks everything
      inside it) and the portfolio's sticky search/filter bar (z-index 9999
@@ -162,25 +151,22 @@ the drawer's own bounds onto the footer. */
      z-index this drawer can carry will lift it over either. Geometry is the
      only lever, which is what this inset is.
 
-     One flat value across both bands, and it is not a perfect clear at the
-     wider one: measured 400x700 the chrome ends at 130, but at 600x800 it ends
-     at 138, so the sheet's top ~5px (its border plus a sliver of padding) sits
-     under the bar there. Cosmetic, and the same overlap the 350px desktop panel
-     has always had at its top-left corner — the controls this inset exists to
-     protect, the FILTERS title and the close button, are clear at both. A
-     second band-specific value would buy 5px of border for another magic
-     number. */
+     Measured 2026-08-18 at 400x700: site header 0-58, sticky bar 58-130. The
+     panel's own top-left corner does overlap the bar's right end by a few px at
+     some widths; that is cosmetic and long-standing. What the inset protects is
+     the FILTERS title and the close button, which are clear at every width.
+
+     Named rather than left as a bare 133px because a previous attempt at a
+     bottom sheet set `top: auto` and lost this clearance without noticing:
+     `elementFromPoint` on the close button returned HEADER.site-header, so the
+     only in-sheet way to dismiss the drawer was not tappable. Anything that
+     changes `top` here has to answer for that. */
   --drawer-top-inset: 133px;
 
   position: fixed;
   right: -400px;
   top: var(--drawer-top-inset);
-
-  /* Bare `0` here and `0px` in the phone cap's calc() below, deliberately and
-     not an oversight: stylelint's length-zero-no-unit forbids the unit here,
-     while inside calc() a unitless zero is a <number> and would make the
-     subtraction invalid. Do not "harmonise" them. */
-  bottom: var(--drawer-footer-clearance, 0);
+  bottom: 0;
   width: 350px;
   border-left: 2px solid var(--color-primary);
   box-shadow: -4px 0 20px -4px var(--scrim-15);
@@ -241,16 +227,18 @@ Filter Drawer — the production instance on /ma-portfolio
 static specimen carrying only the base class, which must keep its desktop
 appearance and must never be hidden (it has no `.open` to restore it).
 
-These declarations were written into PortfolioHeader.astro and
-StickyControls.astro, neither of which renders the drawer, so Astro's scope
-attribute never matched and none of them ever applied (BL-137). They live here,
-next to the rules they override, so that cannot recur. The one other
-`.portfolio-filter-drawer` rule in the repo is the print-hide in
-pages/ma-portfolio.astro, which is live and unaffected.
+Deliberately no responsive rules here. BL-137 found ~270 lines of drawer CSS in
+PortfolioHeader.astro and StickyControls.astro, neither of which renders the
+drawer, so Astro's scope attribute never matched and none of it had ever
+applied — including a full-width sheet at <=768px and a bottom sheet at <=480px.
+Rendering those for the first time showed why nobody had missed them: full-bleed,
+the drawer covers the page header and the controls that opened it, and the
+frosted sheen it is designed around is transparent in light theme. The 350px side
+panel that has always shipped is the better interaction at every width, so the
+dead rules were deleted rather than relocated. Do not "restore" them.
 
-This section sits AFTER the dark-theme block on purpose: the dark companion
-below ties with `html.dark-theme .filter-drawer` on specificity (0,2,1), and a
-tie is resolved by source order, so it has to come later or it never applies. */
+The one other `.portfolio-filter-drawer` rule in the repo is the print-hide in
+pages/ma-portfolio.astro, which is live and unaffected. */
 
 .portfolio-filter-drawer {
   /* A closed drawer is off-screen but still in the tab order without this, so
@@ -266,92 +254,6 @@ tie is resolved by source order, so it has to come later or it never applies. */
 
 .portfolio-filter-drawer.open {
   visibility: visible;
-}
-
-/* Tablet and below: full-width sheet under the controls row. The shadow rotates
-   with the border it belongs to — a left-edge shadow under a top-edge border
-   reads as a rendering fault. */
-@media (max-width: 768px) {
-  .portfolio-filter-drawer {
-    right: -100%;
-    width: 100%;
-    border-left: none;
-    border-top: 2px solid var(--color-primary);
-    box-shadow: 0 -4px 20px -4px var(--scrim-15);
-  }
-
-  /* The sheet needs a real surface, not a sheen. FilterDrawer co-applies
-     `.brutal-frosted--blur-only`, whose --surface-sheen-bg is `transparent` in
-     light theme — a deliberate choice for the 350px desktop panel, which sits
-     beside sparse content and must not add contrast over the green stats band.
-     Full-bleed that same transparency puts the drawer's own title and chips on
-     top of the page title, the search box and the body copy, and neither is
-     readable. --surface-overlay-bg is the design system's answer: the variant
-     documented in global.css for "drawers/panels that slide over content,
-     higher opacity than heavy for readability".
-
-     Specificity is deliberate: co-applied (0,2,0) to beat the utility's (0,1,0)
-     regardless of sheet order. Only `background` is overridden — the dark-theme
-     backdrop-filter tuning at (0,2,1) is left to win, since the opacity does the
-     readability work and the blur radius is cosmetic. */
-  .portfolio-filter-drawer.brutal-frosted--blur-only {
-    background: var(--surface-overlay-bg);
-  }
-
-  html.dark-theme .portfolio-filter-drawer {
-    box-shadow: 0 -4px 20px var(--scrim-40);
-  }
-}
-
-/* Phones: bottom sheet, anchored to the viewport bottom and sized by its content
-   within three bounds — never taller than 85% of the screen, never taller than
-   the room left above the footer, never shorter than 30%.
-
-   The middle bound is the load-bearing one. With `top: auto` the box's height is
-   content-derived and `top` is what gets solved, so without it the sheet would
-   only move up as the footer scrolled in, never shrink, and its header would
-   leave the top of the screen.
-
-   It subtracts --drawer-top-inset, NOT a token-sized gap, and that is the whole
-   reason the sheet stays usable: the inset is what clears the two fixed bars
-   above (see the base rule). Subtracting a 12px gap instead put the sheet's top
-   at y=12 when scrolled to the footer, which slid the FILTERS header and its
-   close button underneath the site header — `elementFromPoint` on the close
-   button returned HEADER.site-header, i.e. the only in-sheet way to dismiss the
-   drawer was not tappable. Subtracting the inset pins the top at 133 in every
-   scroll position, so the sheet is always clear of the chrome, and it makes this
-   middle term always the binding one — which is what the footer listener's
-   scrollTop coupling assumes.
-
-   Percentages, not vh/dvh, and the reason is correctness rather than taste: this
-   element is `position: fixed`, so a percentage resolves against the SAME
-   containing block that `bottom` above resolves against — by construction,
-   whatever that block turns out to be, so the clearance term cancels. `vh` is
-   the large viewport on mobile browsers with retracting toolbars and `dvh` is a
-   third thing again, so either can drift from the offset this cap has to agree
-   with. `dvh` would also have needed an @supports gate: browserslist declares
-   Safari >= 14 and LightningCSS emits viewport units verbatim with no fallback.
-
-   Both outer terms are guard rails, not the working value — measured 2026-08-18
-   at 400x700, the middle term is what binds and the other two are unreachable.
-   The 30% floor bounds the failure rather than expecting it: if a footer ever
-   occupied more than ~70% of the viewport the sheet keeps a usable height and
-   its top edge clips, instead of the cap going negative and the sheet vanishing
-   (the real footer produces 122px against a 478px threshold). The 85% ceiling
-   caps the sheet on a viewport tall enough that the inset stops constraining —
-   which needs 0.15 x height to exceed the inset, i.e. above ~890px, where the
-   drawer's own content is already shorter than the ceiling anyway. Neither is
-   asserted by a test, because contriving a viewport to reach one would be
-   testing the arithmetic rather than the behaviour. */
-@media (max-width: 480px) {
-  .portfolio-filter-drawer {
-    top: auto;
-    max-height: clamp(
-      30%,
-      calc(100% - var(--drawer-footer-clearance, 0px) - var(--drawer-top-inset)),
-      85%
-    );
-  }
 }
 
 /* ==============================

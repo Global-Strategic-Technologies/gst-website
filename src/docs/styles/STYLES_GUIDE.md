@@ -212,13 +212,12 @@ This is not the `/brand` replica drift documented above, and `:global()` is not 
 also **not** caught by an orphan-class scan, because the class does exist and does have rules —
 they just carry a cid the element will never have.
 
-**Worked example (BL-137).** `.portfolio-filter-drawer`'s entire mobile treatment lived in
-`PortfolioHeader.astro`'s and `StickyControls.astro`'s scoped blocks, while the element is
-rendered by `FilterDrawer.astro`. Neither parent's rules had ever applied: at 375px the drawer
-computed `width: 350px; border-left: 2px; max-height: none` — the desktop side panel — on a
-route that had shipped a "mobile drawer" for its whole life. Two comments reading
-_"Drawer styles moved to FilterDrawer.astro"_ recorded a move whose declarations were left
-behind.
+**Worked example (BL-137).** `.portfolio-filter-drawer`'s entire mobile treatment — roughly 270
+lines across `PortfolioHeader.astro` and `StickyControls.astro` — targeted an element rendered by
+`FilterDrawer.astro`. None of it had ever applied: at 375px the drawer computed
+`width: 350px; border-left: 2px` — the desktop side panel — on a route that had shipped a "mobile
+drawer" for its whole life. Two comments reading _"Drawer styles moved to FilterDrawer.astro"_
+recorded a move whose declarations were left behind.
 
 **Remedy order** — put the rule where it *applies*, not where the markup used to be:
 
@@ -227,6 +226,12 @@ behind.
 2. If it genuinely belongs to one component, move it into **that** component's scoped block.
 3. Reach for `:global()` only for markup that has no component to own it — the `innerHTML` case
    above.
+
+**But first ask whether the rule should apply at all.** Dead CSS has usually been dead for a
+long time, and nobody has been missing it. BL-137's rules turned out to be the wrong design once
+rendered — full-bleed, the drawer covered the page header and the control that opened it — so
+they were **deleted, not relocated**. Reviving a rule is a product decision wearing a bug's
+clothing: render it before you assume the original author was right.
 
 **Prove it with a rendered measurement, not a reading.** Authored CSS looks identical whether it
 applies or not, so the only evidence that a relocation worked is a computed style from a real
