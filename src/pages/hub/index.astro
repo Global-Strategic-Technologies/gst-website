@@ -3,6 +3,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Hero from '../../components/Hero.astro';
 import CTASection from '../../components/CTASection.astro';
 import DeltaIcon from '../../components/DeltaIcon.astro';
+import Sash from '../../components/Sash.astro';
+import { getActiveAnnouncement } from '../../data/announcements';
+
+// Null unless an announcement's window is open and lists this route — see
+// src/data/announcements.ts. It gates BOTH sashes on this page, so the page
+// sash and the card sash retire together.
+const announcement = getActiveAnnouncement(Astro.url.pathname);
 
 const faqItems = [
   {
@@ -33,6 +40,8 @@ const faqItems = [
   ogUrl="https://globalstrategic.tech/hub/"
   faqItems={faqItems}
 >
+  {announcement && <Sash slot="sash" {...announcement} />}
+
   <Hero
     title="The GST Hub"
     description="Professional-grade tools, frameworks, and technical perspectives to help you de-risk technology investments and accelerate outcomes."
@@ -203,6 +212,8 @@ const faqItems = [
         </a>
 
         <a href="/hub/mcp/" class="hub-card brutal-frosted">
+          {/* Decorative — the card is already the link, and already tracked. */}
+          {announcement && <Sash label="New" scale="card" />}
           <div class="hub-card-header">
             <svg
               class="hub-card-icon"
@@ -330,6 +341,9 @@ const faqItems = [
     text-decoration: none;
     color: inherit;
     position: relative;
+
+    /* Clips the card-scale sash's rotated band to the corner box. */
+    overflow: hidden;
   }
 
   .hub-card:hover {

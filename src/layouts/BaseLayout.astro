@@ -111,6 +111,16 @@ const isHomepage = currentPath === '/' || currentPath === '';
   </head>
   <body>
     <a href="#main-content" class="skip-nav">Skip to main content</a>
+    {
+      /* Announcement sash (Sash.astro), placed by the PAGE, not by this layout —
+         which pages carry one is the registry's decision (src/data/announcements.ts),
+         and /hub/mcp/ must never carry it. The slot exists because the corner box
+         is absolutely positioned against <body> and has to clear the sticky
+         header: the default slot renders inside <main>, which starts below the
+         header and opens its own stacking context at z-index 1, so a sash there
+         could neither reach the corner nor rise above the header. */
+    }
+    <slot name="sash" />
     <Header currentPath={currentPath} staticHeader={isHubSubPage} />
     <main id="main-content" role="main">
       {
