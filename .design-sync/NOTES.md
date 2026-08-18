@@ -196,7 +196,10 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
 - **The README header has a hard size ceiling.** The converter prepends `conventions.md`
   to the uploaded README precisely because the consumer truncates the README inline at
   **32,000 characters, cutting the TAIL** (skill `lib/emit.mjs`, `emitReadme`). The
-  header is 20,373 characters today (2026-08-18, after the `.brutal-sash` section);
+  header runs around 20k as of 2026-08-18, comfortably inside the ceiling — read the exact
+  figure off the guard rather than from here, since a prose edit moves it and a hand-kept
+  number in this file has already gone stale twice:
+  `node -e "console.log(require('fs').readFileSync('.design-sync/conventions.md','utf-8').length)"`.
   `design-sync-guards.test.ts` guard 5 fails `test:docs` at 28,000 chars. Measure it in
   CHARACTERS, not bytes — the guard does, and the two differ once the prose carries
   non-ASCII. If it outgrows that, move the overflow into a shipped guideline doc under

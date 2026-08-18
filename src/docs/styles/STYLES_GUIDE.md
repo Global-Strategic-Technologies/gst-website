@@ -241,7 +241,7 @@ browser. That is why the BL-137 tests assert `getComputedStyle` values at each b
 `Safari >= 14`, and LightningCSS down-levels *some* constructs (`light-dark()`) while emitting
 others verbatim with no fallback — viewport units among them. An unsupported unit is therefore
 dropped silently at runtime rather than polyfilled at build time, taking its whole declaration
-with it. BL-137's phone cap is written in percentages partly for that reason.
+with it.
 
 ### `class:list` — Conditional Classes
 
