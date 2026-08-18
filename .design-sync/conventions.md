@@ -264,8 +264,9 @@ Every other family is either drawn by a `*Specimen` gallery or sliced into
 `components/chrome/`. The sash is neither: `BaseLayout.astro` renders it as a
 `<body>`-level sibling **before** `<Header/>`, so the `header.site-header` slice cannot
 contain it, and it has a real component behind it (`Sash.astro`), which rules a specimen
-out. So this is its reference markup, copied verbatim from the built home page rather
-than written by hand:
+out. So this is its reference markup, transcribed from the built home page rather than
+written by hand — `class` → `className` and the analytics hook dropped, nothing else
+changed:
 
 ```jsx
 <div className="brutal-sash-corner">
