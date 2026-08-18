@@ -1,0 +1,199 @@
+/* ==============================
+
+Announcement Sash
+
+A clipping corner box plus a rotated band, rendered by Sash.astro from the
+announcement registry (src/data/announcements.ts) and exhibited on /brand.
+Lives here rather than in Sash.astro's scoped \3c style> because the /brand
+specimens use the same classes without rendering the component.
+
+GEOMETRY PAIRS — the band is centred on the 45° chord of its corner box, so the
+corner-box size, the band's `top` and the band's `width` move TOGETHER. Setting
+one without the others slides the band off the corner. The nav reserve in
+HeaderNavLinks.astro (168 / 140 / 108px) is the third member of the set.
+
+  scale          corner box   band width   band top   nav reserve
+  page desktop   200px        260px        50px       168px
+  page ≤768px    170px        220px        42px       140px
+  page ≤540px    140px        190px        34px       108px
+  page <512px    not rendered — the nav has no room to yield (see below)
+  wide           260px        340px        68px       168px (desktop)
+  card           104px        150px        26px       n/a
+
+Colour comes from exactly two tokens, --sash-bg and --sash-ink (variables.css,
+with the per-palette ink in palettes.css). Borders and hover derive from them
+with color-mix, so the sash follows all six palettes and both themes with no
+extra CSS and no literal colours.
+
+============================== */
+
+.brutal-sash-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+
+  /* The box must not eat clicks on the nav underneath it; the band re-enables
+     pointer events for itself. */
+  pointer-events: none;
+  z-index: var(--z-overlay);
+}
+
+.brutal-sash {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  width: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  padding: 0.5rem 0;
+  transform: rotate(45deg);
+  pointer-events: auto;
+  text-decoration: none;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  background: var(--sash-bg);
+  color: var(--sash-ink);
+  border-top: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+  border-bottom: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+  transition: background var(--transition-fast);
+}
+
+/* The chip inverts the same two tokens, so it can never lose contrast either. */
+.brutal-sash__badge {
+  padding: 0.0625rem 0.3125rem;
+  letter-spacing: 0.1em;
+  background: var(--sash-ink);
+  color: var(--sash-bg);
+}
+
+.brutal-sash__label {
+  letter-spacing: inherit;
+}
+
+.brutal-sash__detail {
+  padding-left: 0.5rem;
+  letter-spacing: 0.1em;
+  border-left: 1px solid color-mix(in srgb, var(--sash-ink) 45%, transparent);
+  opacity: 0.85;
+}
+
+/* Hover changes colour only — no transform, no shadow (STYLES_GUIDE § anti-patterns). */
+.brutal-sash:hover,
+.brutal-sash:focus-visible {
+  background: color-mix(in srgb, var(--sash-bg) 82%, var(--bg-dark));
+}
+
+/* Inset: an outside ring would be clipped by the corner box. */
+.brutal-sash:focus-visible {
+  outline: 2px solid var(--sash-ink);
+  outline-offset: -4px;
+}
+
+.brutal-sash-corner--wide {
+  width: 260px;
+  height: 260px;
+}
+
+.brutal-sash-corner--wide .brutal-sash {
+  top: 68px;
+  width: 340px;
+  padding: 0.5625rem 0;
+}
+
+/* Decorative, inside a card that is itself the link — --z-raised, not --z-overlay. */
+.brutal-sash-corner--card {
+  width: 104px;
+  height: 104px;
+  z-index: var(--z-raised);
+}
+
+.brutal-sash-corner--card .brutal-sash {
+  top: 26px;
+  width: 150px;
+  padding: 0.25rem 0;
+  letter-spacing: 0.16em;
+}
+
+/* Documentation only — the unrotated band, so /brand can show it in a row.
+   Never mounted on a page. */
+.brutal-sash--flat {
+  position: static;
+  transform: none;
+  width: auto;
+  display: inline-flex;
+  padding: 0.4375rem 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .brutal-sash-corner:not(.brutal-sash-corner--card) {
+    width: 170px;
+    height: 170px;
+  }
+
+  .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash {
+    top: 42px;
+    width: 220px;
+    padding: 0.4375rem 0;
+    letter-spacing: 0.1em;
+  }
+
+  .brutal-sash__detail {
+    display: none;
+  }
+}
+
+/* 540, not the 480 the handoff specifies. A tier boundary is set by the width at
+   which its NAV RESERVE fits, and the 140px reserve does not fit at 481: a sash
+   page overflowed horizontally by 31px there in Chromium and was still 9px over
+   at 518 in WebKit, whose mono metrics run wider. Measured on all three engines,
+   140 needs ~527 and 108 needs ~495; the boundaries below carry a small margin
+   on top of that. The geometry triple is the handoff's ≤480 tier UNCHANGED —
+   only the width at which it takes over moved. See HeaderNavLinks.astro, which
+   switches at the same three numbers. */
+@media (max-width: 540px) {
+  .brutal-sash-corner:not(.brutal-sash-corner--card) {
+    width: 140px;
+    height: 140px;
+  }
+
+  .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash {
+    top: 34px;
+    width: 190px;
+    padding: 0.375rem 0;
+    letter-spacing: 0.06em;
+  }
+}
+
+/* Below 512px the header nav has no corner left to yield: the logo and the four
+   links already fill the row (at 375px they fill it with ZERO reserve), so any
+   padding-right pushes the nav past the viewport and the whole document scrolls
+   sideways — measured at 64px of overflow on a 375px phone before this rule.
+   512, not the 440 Chromium alone would allow: WebKit still overflowed by 13px
+   at 440 and by 9px at 486.
+   The sash stands down there rather than costing every page a horizontal
+   scrollbar; it is a redundant entry point, and the same destination stays in
+   the nav and in the hub card. HeaderNavLinks.astro drops the reserve to 0 at
+   the same width — the pair is what makes this safe, since :has() still matches
+   a display:none corner box.
+   The card scale is untouched: it lives inside a card and never meets the nav. */
+@media (max-width: 511px) {
+  .brutal-sash-corner:not(.brutal-sash-corner--card) {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brutal-sash {
+    transition: none;
+  }
+}

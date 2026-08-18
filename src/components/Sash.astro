@@ -1,0 +1,87 @@
+---
+// Sash.astro — the announcement sash: a clipping corner box plus a rotated band
+// carrying up to three segments (badge · label · detail).
+//
+// The component is the CONTROL, not the announcement. What it says, where it
+// mounts and when it retires all live in src/data/announcements.ts; a page
+// renders `getActiveAnnouncement(Astro.url.pathname)` and passes the entry
+// through. Announcing the next release is one registry entry.
+//
+// Copy budget — a 45° band cannot grow, so over-budget copy is cut or stepped up
+// a scale, never shrunk with font-size:
+//
+//           badge   label   detail
+//   page    ≤ 4     ≤ 18    ≤ 10
+//   wide    ≤ 4     ≤ 26    ≤ 14
+//   card    —       ≤ 4     —
+//
+// Scale modifiers go on the CORNER BOX, never on the band: the band's per-scale
+// geometry is keyed off the corner-box modifier so the box size and the band's
+// top/width can never drift apart. Geometry and colour rules live in
+// src/styles/components/sash.css (shared with the /brand specimens), which also
+// documents why the page scale stands down below 440px.
+//
+// Page and wide scale are real links. Card scale is decorative — no href, no
+// analytics, aria-hidden — because the .hub-card around it is already the link
+// and is already tracked.
+//
+// Touch note: the band's height (~30px at page scale) is below
+// --touch-target-min. That is acceptable ONLY because the sash is a redundant
+// entry point — the same destination is in the Hub nav and in the hub card. Do
+// not make it the sole path to anything.
+
+interface Props {
+  /** The subject. The one required segment. */
+  label: string;
+  /** Status word, inverted chip, leading. */
+  badge?: string;
+  /** Version or qualifier, rule-separated. Hidden below 768px. */
+  detail?: string;
+  /** Makes the band an <a>. Omit for the decorative card scale. */
+  href?: string;
+  /** 'page' (default) | 'wide' | 'card'. */
+  scale?: 'page' | 'wide' | 'card';
+  /** Full spoken announcement; composed from the segments when absent. */
+  ariaLabel?: string;
+  /** Announcement id — the analytics label is `Sash: <id>`. */
+  id?: string;
+}
+
+const { label, badge, detail, href, scale = 'page', ariaLabel, id } = Astro.props;
+
+const isLink = scale !== 'card' && href !== undefined;
+
+const cornerClass = ['brutal-sash-corner', scale !== 'page' && `brutal-sash-corner--${scale}`]
+  .filter(Boolean)
+  .join(' ');
+
+const spokenLabel =
+  ariaLabel ??
+  `${badge ? `${badge}: ` : ''}${label}${detail ? ` ${detail}` : ''} — open the linked page`;
+
+// Destinations are recorded WITHOUT the trailing slash, matching every other
+// trackNavigation call on the site (see HeaderNavLinks.astro) — otherwise the
+// same page arrives in GA4 under two names. `trackNavigation` is put on window
+// by Header.astro, which every page renders through BaseLayout.
+const destination = href ? href.replace(/\/+$/, '') || '/' : '';
+const trackAttrs =
+  isLink && id ? { onclick: `trackNavigation('${destination}', 'Sash: ${id}')` } : {};
+---
+
+<div class={cornerClass}>
+  {
+    isLink ? (
+      <a class="brutal-sash" href={href} aria-label={spokenLabel} {...trackAttrs}>
+        {badge && <span class="brutal-sash__badge">{badge}</span>}
+        <span class="brutal-sash__label">{label}</span>
+        {detail && <span class="brutal-sash__detail">{detail}</span>}
+      </a>
+    ) : (
+      <span class="brutal-sash" aria-hidden="true">
+        {badge && <span class="brutal-sash__badge">{badge}</span>}
+        <span class="brutal-sash__label">{label}</span>
+        {detail && <span class="brutal-sash__detail">{detail}</span>}
+      </span>
+    )
+  }
+</div>

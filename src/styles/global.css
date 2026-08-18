@@ -13,6 +13,7 @@
 @import './components/table.css';
 @import './components/cards.css';
 @import './components/form.css';
+@import './components/sash.css';
 
 /* Page-specific component CSS — NOT loaded site-wide; imported by the pages that
    use them. Any page rendering these components must import the sheet itself:
