@@ -17,7 +17,6 @@ HeaderNavLinks.astro (168 / 140 / 108px) is the third member of the set.
   page ≤768px    170px        220px        42px       140px
   page ≤540px    140px        190px        34px       108px
   page <512px    not rendered — the nav has no room to yield (see below)
-  wide           260px        340px        68px       168px (desktop)
   card           104px        150px        26px       n/a
 
 Colour comes from exactly two tokens, --sash-bg and --sash-ink (variables.css,
@@ -103,17 +102,6 @@ moves.)
 .brutal-sash:focus-visible {
   outline: 2px solid var(--sash-ink);
   outline-offset: -4px;
-}
-
-.brutal-sash-corner--wide {
-  width: 260px;
-  height: 260px;
-}
-
-.brutal-sash-corner--wide .brutal-sash {
-  top: 68px;
-  width: 340px;
-  padding: 0.5625rem 0;
 }
 
 /* Decorative, inside a card that is itself the link — --z-raised, not --z-overlay. */

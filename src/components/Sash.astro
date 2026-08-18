@@ -12,7 +12,6 @@
 //
 //           badge   label   detail
 //   page    ≤ 4     ≤ 18    ≤ 10
-//   wide    ≤ 4     ≤ 26    ≤ 14
 //   card    —       ≤ 4     —
 //
 // Scale modifiers go on the CORNER BOX, never on the band: the band's per-scale
@@ -21,7 +20,7 @@
 // src/styles/components/sash.css (shared with the /brand specimens), which also
 // documents why the page scale stands down below 512px.
 //
-// Page and wide scale are real links. Card scale is decorative — no href, no
+// Page scale is a real link. Card scale is decorative — no href, no
 // analytics, aria-hidden — because the .hub-card around it is already the link
 // and is already tracked.
 //
@@ -39,8 +38,8 @@ interface Props {
   detail?: string;
   /** Makes the band an <a>. Omit for the decorative card scale. */
   href?: string;
-  /** 'page' (default) | 'wide' | 'card'. */
-  scale?: 'page' | 'wide' | 'card';
+  /** 'page' (default) | 'card'. */
+  scale?: 'page' | 'card';
   /** Full spoken announcement; composed from the segments when absent. */
   ariaLabel?: string;
   /** Announcement id — the analytics label is `Sash: <id>`. */

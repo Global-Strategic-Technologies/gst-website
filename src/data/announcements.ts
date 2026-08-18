@@ -33,7 +33,7 @@ export interface Announcement {
   /** Where the sash links. Its own page must not appear in `routes`. */
   href: string;
   /** Band geometry; defaults to 'page'. */
-  scale?: 'page' | 'wide' | 'card';
+  scale?: 'page' | 'card';
   /** Mount allowlist, matched with or without a trailing slash. */
   routes: string[];
   /** ISO date. The entry is live while this instant is still in the future. */

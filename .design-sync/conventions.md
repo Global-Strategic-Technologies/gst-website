@@ -85,7 +85,7 @@ it stays correct across themes and palettes. Never a frozen `rgba()`.
 - **Containers** — `.container` (page width), `.brutal-tool-shell` + `--narrow`/`--wide`/`--document`/`--fluid`, with `.brutal-tool-shell__content` inside for responsive padding; `.brutal-panel`; hero text uses `.brutal-hero__title` / `.brutal-hero__description` / `.brutal-hero__trustline` (no bare `.brutal-hero`)
 - **Hub-tool chrome** — `.tool-action-bar` (+ `--center`/`--end`/`--bordered`/`--frosted`/`--stack`), `.tool-tab-bar` + `.tool-tab` (+ `--active`), `.tool-wizard-progress` + `.tool-wizard-step` (+ `--completed`/`--active`/`--reachable`), `.tool-wizard-progress-mobile` + `.tool-wizard-dot`, `.tool-methodology` (+ `--delta`), `.tool-bench-note` — see ToolChromeSpecimen
 - **Navigation** — `.brutal-breadcrumb`, `.brutal-tab-bar` + `.brutal-tab` (+ `--active`/`--done`), `.brutal-search`, `.skip-nav`; `.toc` (owned by the `TableOfContents` component — its `__heading/__list/__sublist/__layer/__separator/__chevron` classes ship, but the runtime that builds sublists and sets `is-active` does not)
-- **Announcement sash** — `.brutal-sash-corner` (the clipping corner box) wrapping `.brutal-sash` (the rotated band, which is itself the link); corner variants `--wide` and `--card`; `.brutal-sash--flat` is **documentation only** — the unrotated band, so a gallery can show it in a row. Rendered in production by `Sash.astro` off an announcement registry. It has no card of its own and is NOT in the `SiteHeader` slice — see the reference markup at the end of this file
+- **Announcement sash** — `.brutal-sash-corner` (the clipping corner box) wrapping `.brutal-sash` (the rotated band, which is itself the link); corner variant `--card`; `.brutal-sash--flat` is **documentation only** — the unrotated band, so a gallery can show it in a row. Rendered in production by `Sash.astro` off an announcement registry. It has no card of its own and is NOT in the `SiteHeader` slice — see the reference markup at the end of this file
 - **Data** — `.brutal-bench-table`, `.brutal-stat-tile`, `.brutal-callout` (+ `--warning`), `.brutal-progress-bar`, `.editors-pick-tag`; `.brutal-stat__value/__label` and `.brutal-cta__title/__description` are mono-font **modifiers only** (no block, no size — pair with your own layout)
 - **Forms** — `.brutal-input`, `.brutal-field`, `.brutal-slider`, `.brutal-segmented` (+ `--sm`/`--wide`), `.brutal-filter-chip` (+ `--active`), `.brutal-filter-chips`, `.brutal-filter-drawer`
 - **Frosted glass** — `.brutal-frosted` (3px), `--heavy` (6px), `--blur-only` (1.5px), `--overlay` (6px + a 92%-opaque surface, for sheets/drawers)
@@ -173,10 +173,9 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
 - **The sash's geometry moves in threes.** `.brutal-sash-corner`'s size, the band's `top`
   and the band's `width` are one set: the band is centred on the 45° chord of its box, so
   changing one without the others slides it off the corner. The pairs are 200/50/260
-  (desktop), 170/42/220 (≤768), 140/34/190 (≤540), 260/68/340 (`--wide`) and 104/26/150
-  (`--card`). The responsive steps key on `.brutal-sash-corner:not(.brutal-sash-corner--card)`,
-  which out-specifies `--wide` — so `--wide` holds its triple only above 768px and then
-  follows the page steps down, while `--card` is fixed at every width. Below 512px the page
+  (desktop), 170/42/220 (≤768), 140/34/190 (≤540) and 104/26/150 (`--card`). The
+  responsive steps key on `.brutal-sash-corner:not(.brutal-sash-corner--card)`, so the page
+  scale steps down and `--card` is fixed at every width. Below 512px the page
   sash is not rendered at all — the header nav, which
   reserves a matching corner for it, has no room left to yield.
 
