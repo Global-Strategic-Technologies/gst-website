@@ -456,9 +456,13 @@ function accessHref(tier?: string) {
           `display: grid` / `flex` on `tr` and `td`, which is the shape that
           has historically dropped table semantics — but measured against
           Chromium's real accessibility tree over CDP, at 1280 and at 480, with
-          the roles stripped and present, all four roles come back identical
-          (table / rowgroup / row / rowheader / cell). So Chromium does NOT
-          degrade here. Firefox and WebKit were not measured; the roles cost
+          the roles stripped and present, the five elements come back identical
+          in all four combinations (table / rowgroup / row / rowheader / cell).
+          So Chromium does NOT degrade here. Measure it per element
+          (`DOM.querySelector` then `Accessibility.queryAXTree`) if you re-check:
+          with the roles stripped the `tbody` node is present but IGNORED, so a
+          full-tree read reports it missing and suggests a degradation that a
+          per-element query shows is not there. Firefox and WebKit were not measured; the roles cost
           nothing, match the implicit semantics exactly, and are kept for those.
           Note a trap if anyone tries to guard this: Playwright resolves roles
           from the DOM, so a `getByRole` assertion passes whether or not the
