@@ -368,10 +368,14 @@ test.describe('Filter Drawer Mobile Treatment (BL-137)', () => {
       expect(styles.borderLeftWidth).toBe('0px');
     });
 
-    // The tablet band collides with the same fixed chrome as the phone sheet —
-    // it just starts below it by construction rather than by a computed cap.
-    // Asserted rather than assumed, since width alone would not have caught it.
-    test('the tablet sheet clears the fixed chrome and stays dismissable', async ({ page }) => {
+    // The tablet band meets the same fixed chrome as the phone sheet, it just
+    // starts below it by construction rather than by a computed cap. Named for
+    // what is actually asserted: the inset does NOT fully clear the chrome here
+    // (it ends 8px lower at this band than at 400px, so the sheet's top ~5px of
+    // border sits under the bar — cosmetic, and the same overlap the desktop
+    // panel has always had). What must hold is that the dismiss control is
+    // reachable, which is what this checks.
+    test('the tablet sheet starts at the inset and stays dismissable', async ({ page }) => {
       await gotoPortfolio(page);
       await openFilterDrawer(page);
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));

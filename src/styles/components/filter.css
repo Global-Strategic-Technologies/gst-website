@@ -159,9 +159,17 @@ the drawer's own bounds onto the footer. */
      inside it) and the portfolio's sticky search/filter bar (z-index 9999
      inside `main`, against this drawer's 1001). `main { position: relative;
      z-index: 1 }` in global.css makes `main` a stacking context, so no
-     z-index this drawer can carry will lift it over either. Clearing them by
-     geometry is the only lever, which is what this inset is. Measured at
-     400x700: header 0-58, sticky bar 58-130. */
+     z-index this drawer can carry will lift it over either. Geometry is the
+     only lever, which is what this inset is.
+
+     One flat value across both bands, and it is not a perfect clear at the
+     wider one: measured 400x700 the chrome ends at 130, but at 600x800 it ends
+     at 138, so the sheet's top ~5px (its border plus a sliver of padding) sits
+     under the bar there. Cosmetic, and the same overlap the 350px desktop panel
+     has always had at its top-left corner — the controls this inset exists to
+     protect, the FILTERS title and the close button, are clear at both. A
+     second band-specific value would buy 5px of border for another magic
+     number. */
   --drawer-top-inset: 133px;
 
   position: fixed;
