@@ -163,16 +163,18 @@ describe('MCP marketing page — resource inventory parity', () => {
     expect(markup).toContain(`>${radarCount}<`);
   });
 
-  it('headlines the same numbers it details further down', () => {
-    // The stat row under the page header repeats the tool, resource, and prompt
-    // counts. A reader compares them; they must not drift apart.
+  it('summarises the same numbers it details further down', () => {
+    // The three tiles heading "What's exposed" repeat the tool, resource, and
+    // prompt counts detailed by the primitives below them. A reader compares
+    // them; they must not drift apart. (This used to read the headline stat row
+    // under the page header, which the page no longer carries.)
     const total = resourceTotal;
     // Sliced to the next block rather than regex-matched: a non-greedy match on
     // `</div> </div>` stops at the first tile, which silently narrows the guard.
-    const start = markup.indexOf('<div class="mcp-headline-stats">');
+    const start = markup.indexOf('<div class="mcp-primitive-summary">');
     const statRow =
-      start === -1 ? '' : markup.slice(start, markup.indexOf('<div class="mcp-block"', start));
-    expect(statRow).not.toBe('');
+      start === -1 ? '' : markup.slice(start, markup.indexOf('<div class="mcp-primitive"', start));
+    expect(statRow, 'primitive summary tiles not found').not.toBe('');
     expect(statRow).toContain(`>${EXPECTED_REMOTE_TOOL_COUNT}<`);
     expect(statRow).toContain(`>${total}<`);
     expect(statRow).toContain(`>${EXPECTED_PROMPT_COUNT}<`);
@@ -273,22 +275,21 @@ describe('MCP marketing page — prompt and resource parity', () => {
 
 describe('MCP marketing page — tier parity', () => {
   /**
-   * One tier's card, sliced from its heading to the start of the next card.
-   *
-   * Scoping is the whole point. A page-wide `toContain(String(value))` passes
-   * when ANY tier carries the number, so the free-pilot card could advertise
-   * enterprise's ceilings and stay green — verified by mutation, all 58 tests
-   * passed with the numbers swapped. These are the highest-consequence figures
-   * on a prospect-facing page; they have to be pinned beside their own tier.
+   * The ceilings live in one comparison table whose columns are headed by the
+   * tier blocks ABOVE it, so nothing inside a value cell names its own tier
+   * except `data-tier` — which is exactly what these assertions bind to. The
+   * older shape was three gateway cards, and a page-wide
+   * `toContain(String(value))` passed when ANY tier carried the number: the
+   * free-pilot card could advertise enterprise's ceilings and stay green
+   * (verified by mutation, all 58 tests passed with the numbers swapped).
+   * Scoping each value to its own tier is still the whole point; the anchor
+   * moved from the card to the cell.
    */
-  function tierCard(tier: string): string {
-    const start = markup.indexOf(`<h2>${tier}</h2>`);
-    expect(start).toBeGreaterThan(-1);
-    const next = markup.indexOf('<article class="brutal-gateway-card', start + 1);
-    return markup.slice(start, next === -1 ? markup.length : next);
-  }
+  const tableStart = markup.indexOf('<table class="brutal-bench-table mcp-tier-table"');
+  const table =
+    tableStart === -1 ? '' : markup.slice(tableStart, markup.indexOf('</table>', tableStart));
 
-  /** Ceiling labels, in the order the stat tiles are authored. */
+  /** Ceiling rows, in the order the table authors them. */
   const CEILINGS = [
     ['perMinute', 'Calls / min'],
     ['perDay', 'Calls / day'],
@@ -296,18 +297,56 @@ describe('MCP marketing page — tier parity', () => {
     ['radarPerDay', 'Radar / day'],
   ] as const;
 
-  it.each(ASSIGNABLE_TIERS.map((tier) => [tier] as const))('publishes the %s ceilings', (tier) => {
-    const card = tierCard(tier);
-    const limits = TIER_LIMITS[tier];
+  /**
+   * Config identifier → the display name heading its column, left to right.
+   * The identifiers are still literal markup (now a `<code>` sub-label under
+   * the display name rather than the heading itself); the display names are
+   * what the value cells carry, so both halves are pinned.
+   */
+  const TIER_COLUMNS = [
+    ['free-pilot', 'Pilot'],
+    ['paid', 'Deal Team'],
+    ['enterprise', 'Firm'],
+  ] as const;
 
-    for (const [key, label] of CEILINGS) {
-      // Value bound to its own label as well as its own card, so a transposed
-      // pair (radar/min under calls/min) cannot pass either.
-      expect(card).toContain(
-        `__value">${limits[key]}</div> <div class="brutal-stat-tile__label">${label}<`
-      );
+  it('renders the ceilings as one comparison table', () => {
+    expect(tableStart, 'tier comparison table not found').toBeGreaterThan(-1);
+    expect(table).toContain('<tbody>');
+  });
+
+  it('publishes every assignable tier identifier, and only those', () => {
+    expect(TIER_COLUMNS.map(([id]) => id)).toEqual([...ASSIGNABLE_TIERS]);
+    for (const [id] of TIER_COLUMNS) {
+      expect(markup).toContain(`<code class="mcp-tier__id">${id}</code>`);
     }
   });
+
+  it('orders the tier headers left to right in table-column order', () => {
+    // The headers ARE the column headers, so reordering either half silently
+    // re-attributes every number in the table.
+    const positions = TIER_COLUMNS.map(([id]) =>
+      markup.indexOf(`<code class="mcp-tier__id">${id}</code>`)
+    );
+    expect(positions.every((p) => p > -1)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
+  it.each(CEILINGS.map(([key, label]) => [label, key] as const))(
+    'publishes the %s row, each value under its own tier',
+    (label, key) => {
+      const row = new RegExp(`<th scope="row">${label}</th>(.*?)</tr>`).exec(table);
+      expect(row, `no "${label}" row in the tier table`).not.toBeNull();
+
+      const cells = [...row![1].matchAll(/<td data-tier="([^"]+)">([^<]+)<\/td>/g)].map(
+        (m) => [m[1], m[2]] as const
+      );
+      // Thousands separators are a display choice; the guard formats the source
+      // value the same way rather than accepting either shape.
+      expect(cells).toEqual(
+        TIER_COLUMNS.map(([id, name]) => [name, TIER_LIMITS[id][key].toLocaleString('en-US')])
+      );
+    }
+  );
 
   it('gives each tier a DIFFERENT set of ceilings', () => {
     // Backstop for the failure above: if the cards ever converge on one tier's

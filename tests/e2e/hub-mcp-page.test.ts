@@ -11,8 +11,12 @@ import { test, expect } from '@playwright/test';
 
 const ROUTE = '/hub/mcp/';
 
-/** Tier headings, in the order the cards are authored. */
-const EXPECTED_TIERS = ['free-pilot', 'paid', 'enterprise'] as const;
+/** Tier columns, in the order they are authored: display name + config id. */
+const EXPECTED_TIERS = [
+  { id: 'free-pilot', name: 'Pilot' },
+  { id: 'paid', name: 'Deal Team' },
+  { id: 'enterprise', name: 'Firm' },
+] as const;
 
 test.describe('MCP Server page', () => {
   test.beforeEach(async ({ page }) => {
@@ -31,17 +35,39 @@ test.describe('MCP Server page', () => {
     await expect(crumb).toHaveText('The GST Hub');
   });
 
-  test('renders one gateway card per assignable tier', async ({ page }) => {
-    const cards = page.locator('.mcp-tiers .brutal-gateway-card');
-    await expect(cards).toHaveCount(EXPECTED_TIERS.length);
+  test('renders one column header per assignable tier', async ({ page }) => {
+    const tiers = page.locator('.mcp-tiers .mcp-tier');
+    await expect(tiers).toHaveCount(EXPECTED_TIERS.length);
 
     for (const [index, tier] of EXPECTED_TIERS.entries()) {
-      await expect(cards.nth(index).locator('h2')).toHaveText(tier);
+      await expect(tiers.nth(index).locator('.mcp-tier__name')).toHaveText(tier.name);
+      await expect(tiers.nth(index).locator('.mcp-tier__id')).toHaveText(tier.id);
     }
   });
 
-  test('every tier card offers a prefilled access request', async ({ page }) => {
-    const ctas = page.locator('.mcp-tiers .brutal-gateway-card__cta');
+  test('each tier header sits above its own column of numbers', async ({ page }) => {
+    // The headers and the table are separate elements that have to resolve to
+    // the same four-column split (grid tracks vs `table-layout: fixed`). Get it
+    // wrong and every published ceiling is attributed to the wrong tier, which
+    // no static assertion on the markup can see. Above the 768px breakpoint
+    // only — below it the tiers stack and each cell names its own tier.
+    const width = page.viewportSize()?.width ?? 0;
+    test.skip(width <= 768, 'the four-column form only exists above 768px');
+
+    const cells = page.locator('.mcp-tier-table tbody tr').first().locator('td');
+    for (let i = 0; i < EXPECTED_TIERS.length; i++) {
+      const header = await page.locator('.mcp-tiers .mcp-tier').nth(i).boundingBox();
+      const cell = await cells.nth(i).boundingBox();
+      expect(header, 'tier header must be laid out').not.toBeNull();
+      expect(cell, 'value cell must be laid out').not.toBeNull();
+      // Sub-pixel track rounding is the only tolerance intended here.
+      expect(Math.abs(header!.x - cell!.x)).toBeLessThan(2);
+      expect(Math.abs(header!.width - cell!.width)).toBeLessThan(2);
+    }
+  });
+
+  test('every tier offers a prefilled access request', async ({ page }) => {
+    const ctas = page.locator('.mcp-tiers .mcp-tier__cta');
     await expect(ctas).toHaveCount(EXPECTED_TIERS.length);
 
     for (let i = 0; i < EXPECTED_TIERS.length; i++) {
@@ -49,6 +75,8 @@ test.describe('MCP Server page', () => {
       expect(href).toMatch(/^mailto:/);
       expect(href).toContain('subject=');
       expect(href).toContain('body=');
+      // The tier the link requests is the one whose column it sits in.
+      expect(decodeURIComponent(href ?? '')).toContain(`(${EXPECTED_TIERS[i].id})`);
     }
   });
 
@@ -158,11 +186,10 @@ test.describe('MCP Server page', () => {
   });
 
   test('links the status page and no developer-docs subdomain', async ({ page }) => {
-    // The page carries the status link twice on purpose — the endpoint row at the
-    // top and the "How access works" bullet — so this asserts "at least one
-    // renders" rather than a single element. A bare `toBeVisible()` here was a
-    // strict-mode violation once the second link landed, and pinning an exact
-    // count would just break on the next copy edit.
+    // Once, in the "For your engineers" row. The "How access works" fact names
+    // the status page rather than repeating the URL, so a reader never has to
+    // check whether two printed URLs agree. Asserted as "at least one renders"
+    // rather than an exact count, which would break on the next copy edit.
     const statusLinks = page.locator('a[href*="status.mcp.globalstrategic.tech"]');
     expect(await statusLinks.count()).toBeGreaterThan(0);
     await expect(statusLinks.first()).toBeVisible();
@@ -172,11 +199,27 @@ test.describe('MCP Server page', () => {
     await expect(page.locator('a[href*="docs.mcp.globalstrategic.tech"]')).toHaveCount(0);
   });
 
-  test('returns to the hub', async ({ page }) => {
-    const back = page.locator('.mcp-section > .container > a.cta-button[href="/hub/"]');
-    await expect(back).toBeVisible();
-    await back.click();
+  test('returns to the hub by breadcrumb, not by a second primary CTA', async ({ page }) => {
+    // Back-navigation used to be a `.cta-button` at the foot of the page, giving
+    // it the same weight as the page's conversion. The breadcrumb carries it now,
+    // so the only `.cta-button` left is REQUEST_MCP_ACCESS().
+    await expect(page.locator('.mcp-section .cta-button')).toHaveCount(1);
+    await expect(page.locator('.mcp-section a.cta-button[href="/hub/"]')).toHaveCount(0);
+
+    await page.locator('nav[aria-label="Breadcrumb"] a[href="/hub/"]').click();
     await page.waitForURL('**/hub/');
+  });
+
+  test('puts the endpoint below the argument, not above it', async ({ page }) => {
+    // Nothing here is usable without a provisioned client record, so the
+    // endpoint must not be the first thing under the header.
+    const endpoints = page.locator('.mcp-block--engineers .mcp-endpoints');
+    await expect(endpoints).toHaveCount(1);
+
+    const exposed = await page.locator('.mcp-primitive-summary').boundingBox();
+    const engineers = await endpoints.boundingBox();
+    expect(exposed, "the What's exposed summary must render").not.toBeNull();
+    expect(engineers!.y).toBeGreaterThan(exposed!.y);
   });
 });
 

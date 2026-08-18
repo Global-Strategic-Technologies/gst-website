@@ -44,59 +44,6 @@ function accessHref(tier?: string) {
         subtitle="Use GST's advisory tools with your AI agents. Supercharge your analysis to accelerate and lower costs of decision-making."
       />
 
-      <div class="mcp-headline-stats">
-        <div class="brutal-stat-tile">
-          <div class="brutal-stat-tile__value">15</div>
-          <div class="brutal-stat-tile__label">Tools</div>
-        </div>
-        <div class="brutal-stat-tile">
-          <div class="brutal-stat-tile__value">133</div>
-          <div class="brutal-stat-tile__label">MCP resources</div>
-        </div>
-        <div class="brutal-stat-tile">
-          <div class="brutal-stat-tile__value">9</div>
-          <div class="brutal-stat-tile__label">Guided workflows</div>
-        </div>
-        <div class="brutal-stat-tile">
-          <div class="brutal-stat-tile__value">1</div>
-          <div class="brutal-stat-tile__label">Endpoint to configure</div>
-        </div>
-      </div>
-
-      <div class="mcp-endpoints">
-        <p class="mcp-endpoint">
-          <span class="mcp-endpoint__label">Endpoint</span>
-          <code data-endpoint-url>https://mcp.globalstrategic.tech/mcp</code>
-          <button
-            type="button"
-            class="brutal-btn brutal-btn--secondary mcp-endpoint__copy"
-            data-copy-endpoint
-            aria-live="polite"
-            ><span data-copy-label>Copy</span><span class="sr-only"> endpoint URL</span></button
-          >
-        </p>
-        <p class="mcp-endpoint">
-          <span class="mcp-endpoint__label">Status</span>
-          {
-            /* Unlike the endpoint, this one is meant to be visited, so it is a
-          link as well as a copyable value. */
-          }
-          <a
-            href="https://status.mcp.globalstrategic.tech/"
-            target="_blank"
-            rel="noopener noreferrer"
-            ><code data-status-url>https://status.mcp.globalstrategic.tech/</code></a
-          >
-          <button
-            type="button"
-            class="brutal-btn brutal-btn--secondary mcp-endpoint__copy"
-            data-copy-endpoint
-            aria-live="polite"
-            ><span data-copy-label>Copy</span><span class="sr-only"> status page URL</span></button
-          >
-        </p>
-      </div>
-
       <div class="mcp-block">
         <h2 class="brutal-heading-lg">What it does</h2>
         <p class="mcp-lede">
@@ -105,25 +52,6 @@ function accessHref(tier?: string) {
           project administration.
         </p>
 
-        <ul class="mcp-facts">
-          <li>
-            <DeltaIcon class="bullet-icon" /><span
-              >Assess and benchmark current state financial metrics, technical debt and more</span
-            >
-          </li>
-          <li>
-            <DeltaIcon class="bullet-icon" /><span>Scope regulatory requirements and exposure</span>
-          </li>
-          <li>
-            <DeltaIcon class="bullet-icon" /><span
-              >Expedite and lower the costs of technology diligence and risk assessment</span
-            >
-          </li>
-        </ul>
-      </div>
-
-      <div class="mcp-block">
-        <h2 class="brutal-heading-lg">How it's used</h2>
         <div class="mcp-usecases">
           <article class="brutal-trust-card">
             <h3>Deal Screening</h3>
@@ -134,19 +62,19 @@ function accessHref(tier?: string) {
             </p>
           </article>
           <article class="brutal-trust-card">
-            <h3>Portfolio Monitoring</h3>
+            <h3>Cost Benchmarking</h3>
             <p>
-              A daily-running agent at a portfolio-services group polls the radar tools for a single
-              category and surfaces relevant items into the platform-wide knowledge base, without a
-              human curating the feed.
+              A portfolio operating partner benchmarks total technology spend against stage-adjusted
+              ranges and prices the carrying cost of technical debt, turning "engineering feels
+              slow" into a number the board can act on.
             </p>
           </article>
           <article class="brutal-trust-card">
-            <h3>Pitch Preparation</h3>
+            <h3>Regulatory Exposure</h3>
             <p>
-              A banker preparing a sell-side pitch triangulates comparable transactions: which GST
-              engagements involved B2B SaaS targets in a given revenue band, at a given transaction
-              type, with what outcome.
+              Before bidding on a healthtech target, an agent scopes which frameworks are in play by
+              jurisdiction and effective date, so counsel starts from an exposure list instead of an
+              open question.
             </p>
           </article>
           <article class="brutal-trust-card">
@@ -168,6 +96,26 @@ function accessHref(tier?: string) {
           numbers, the reference material to run them against, and a method for what order to do it
           in.
         </p>
+
+        {
+          /* The counts a reader compares, on the section that explains what they
+          are counts OF. This is the only place the three totals appear together,
+          so `mcp-marketing-parity.test.ts` reads them here. */
+        }
+        <div class="mcp-primitive-summary">
+          <div class="brutal-stat-tile">
+            <div class="brutal-stat-tile__value">15</div>
+            <div class="brutal-stat-tile__label">Tools</div>
+          </div>
+          <div class="brutal-stat-tile">
+            <div class="brutal-stat-tile__value">133</div>
+            <div class="brutal-stat-tile__label">Resources</div>
+          </div>
+          <div class="brutal-stat-tile">
+            <div class="brutal-stat-tile__value">9</div>
+            <div class="brutal-stat-tile__label">Prompts</div>
+          </div>
+        </div>
 
         <div class="mcp-primitive">
           <div class="mcp-primitive__head">
@@ -433,112 +381,108 @@ function accessHref(tier?: string) {
 
       <div class="mcp-block">
         <h2 class="brutal-heading-lg">Capability tiers</h2>
-        <div class="brutal-gateway-grid mcp-tiers">
-          <article class="brutal-gateway-card brutal-frosted">
-            <div class="brutal-gateway-card__header">
-              <h2>free-pilot</h2>
+        <p class="mcp-note">
+          Tiers differ by who is using the server and how broadly, not by which tools you get.
+          Scopes are set per client during provisioning.
+        </p>
+
+        {
+          /* The tier headers and the ceilings table are one comparison object
+          split across two elements, so they must share a column split exactly:
+          four equal tracks here (no column gap) against `table-layout: fixed`
+          below, both resolving to 25%, with the same horizontal padding on the
+          cells. That is what puts each tier above its own numbers, and
+          `hub-mcp-page.test.ts` measures it rather than trusting it. */
+        }
+        <div class="mcp-tiers">
+          <div class="mcp-tier">
+            <div class="mcp-tier__head">
+              <h3 class="mcp-tier__name">Pilot</h3>
             </div>
-            <div class="mcp-tier-stats">
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">30</div>
-                <div class="brutal-stat-tile__label">Calls / min</div>
-              </div>
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">300</div>
-                <div class="brutal-stat-tile__label">Calls / day</div>
-              </div>
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">3</div>
-                <div class="brutal-stat-tile__label">Radar / min</div>
-              </div>
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">20</div>
-                <div class="brutal-stat-tile__label">Radar / day</div>
-              </div>
-            </div>
-            <ul class="brutal-gateway-card__features">
-              <li>
-                <DeltaIcon class="bullet-icon" />Evaluation access, narrow scopes, radar excluded by
-                default
-              </li>
-            </ul>
+            <code class="mcp-tier__id">free-pilot</code>
+            <p class="mcp-tier__note">
+              Evaluation access for a single team. Narrow scopes, radar excluded by default.
+            </p>
             <a
               href={accessHref('free-pilot')}
-              class="cta-button brutal-gateway-card__cta"
-              onclick="trackCTA('mcp-access-free-pilot', 'hub-mcp')">REQUEST_ACCESS()</a
+              class="mcp-tier__cta"
+              onclick="trackCTA('mcp-access-free-pilot', 'hub-mcp')">Request this tier →</a
             >
-          </article>
+          </div>
 
-          <article class="brutal-gateway-card brutal-frosted">
-            <div class="brutal-gateway-card__header">
-              <h2>paid</h2>
+          <div class="mcp-tier">
+            <div class="mcp-tier__head">
+              <h3 class="mcp-tier__name">Deal Team</h3>
+              <span class="brutal-bench-table__label brutal-bench-table__label--score">Typical</span
+              >
             </div>
-            <div class="mcp-tier-stats">
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">60</div>
-                <div class="brutal-stat-tile__label">Calls / min</div>
-              </div>
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">2000</div>
-                <div class="brutal-stat-tile__label">Calls / day</div>
-              </div>
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">5</div>
-                <div class="brutal-stat-tile__label">Radar / min</div>
-              </div>
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">50</div>
-                <div class="brutal-stat-tile__label">Radar / day</div>
-              </div>
-            </div>
-            <ul class="brutal-gateway-card__features">
-              <li>
-                <DeltaIcon class="bullet-icon" />Production access for a deal team, invoiced per
-                agreement
-              </li>
-            </ul>
+            <code class="mcp-tier__id">paid</code>
+            <p class="mcp-tier__note">Production access for a deal team, invoiced per agreement.</p>
             <a
               href={accessHref('paid')}
-              class="cta-button brutal-gateway-card__cta"
-              onclick="trackCTA('mcp-access-paid', 'hub-mcp')">REQUEST_ACCESS()</a
+              class="mcp-tier__cta"
+              onclick="trackCTA('mcp-access-paid', 'hub-mcp')">Request this tier →</a
             >
-          </article>
+          </div>
 
-          <article class="brutal-gateway-card brutal-frosted">
-            <div class="brutal-gateway-card__header">
-              <h2>enterprise</h2>
+          <div class="mcp-tier">
+            <div class="mcp-tier__head">
+              <h3 class="mcp-tier__name">Firm</h3>
             </div>
-            <div class="mcp-tier-stats">
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">120</div>
-                <div class="brutal-stat-tile__label">Calls / min</div>
-              </div>
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">10000</div>
-                <div class="brutal-stat-tile__label">Calls / day</div>
-              </div>
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">10</div>
-                <div class="brutal-stat-tile__label">Radar / min</div>
-              </div>
-              <div class="brutal-stat-tile">
-                <div class="brutal-stat-tile__value">150</div>
-                <div class="brutal-stat-tile__label">Radar / day</div>
-              </div>
-            </div>
-            <ul class="brutal-gateway-card__features">
-              <li>
-                <DeltaIcon class="bullet-icon" />Firm-wide access, multiple clients, compliance
-                capabilities on request
-              </li>
-            </ul>
+            <code class="mcp-tier__id">enterprise</code>
+            <p class="mcp-tier__note">
+              Firm-wide access across multiple clients, compliance capabilities on request.
+            </p>
             <a
               href={accessHref('enterprise')}
-              class="cta-button brutal-gateway-card__cta"
-              onclick="trackCTA('mcp-access-enterprise', 'hub-mcp')">REQUEST_ACCESS()</a
+              class="mcp-tier__cta"
+              onclick="trackCTA('mcp-access-enterprise', 'hub-mcp')">Request this tier →</a
             >
-          </article>
+          </div>
         </div>
+
+        {
+          /* No header row inside the table: the tier headers above ARE the
+          column headers. The metric labels are therefore `<th scope="row">` —
+          which is what they are, and which is also what gives every value cell
+          a header, since axe's `td-has-header` applies to any table larger than
+          3x3. `data-tier` names each value's column for the reader who cannot
+          see the headers above: it is the accessible name below 768px, where
+          the rows stack and the headers are no longer over their columns, and
+          it is what the parity guard binds each ceiling to. */
+        }
+        <table
+          class="brutal-bench-table mcp-tier-table"
+          aria-label="Capability ceilings by tier: Pilot, Deal Team, Firm"
+        >
+          <tbody>
+            <tr>
+              <th scope="row">Calls / min</th>
+              <td data-tier="Pilot">30</td>
+              <td data-tier="Deal Team">60</td>
+              <td data-tier="Firm">120</td>
+            </tr>
+            <tr>
+              <th scope="row">Calls / day</th>
+              <td data-tier="Pilot">300</td>
+              <td data-tier="Deal Team">2,000</td>
+              <td data-tier="Firm">10,000</td>
+            </tr>
+            <tr>
+              <th scope="row">Radar / min</th>
+              <td data-tier="Pilot">3</td>
+              <td data-tier="Deal Team">5</td>
+              <td data-tier="Firm">10</td>
+            </tr>
+            <tr>
+              <th scope="row">Radar / day</th>
+              <td data-tier="Pilot">20</td>
+              <td data-tier="Deal Team">50</td>
+              <td data-tier="Firm">150</td>
+            </tr>
+          </tbody>
+        </table>
+
         <p class="brutal-callout">
           <span class="brutal-callout__title">On these numbers</span>
           These are tunable, non-contractual capability ceilings, NOT ratified SLA quotas. They are abuse
@@ -548,54 +492,117 @@ function accessHref(tier?: string) {
 
       <div class="mcp-block">
         <h2 class="brutal-heading-lg">How access works</h2>
-        <ul class="mcp-facts">
-          <li>
-            <DeltaIcon class="bullet-icon" /><span
-              >Access is operator-provisioned. There is no self-serve signup and no dynamic client
-              registration. A client record is created by GST, with scopes and a tier assigned
-              deliberately.</span
+        <div class="mcp-access">
+          <div>
+            <div class="brutal-label mcp-access__label">Provisioning</div>
+            <ul class="mcp-facts">
+              <li>
+                <DeltaIcon class="bullet-icon" /><span
+                  >Access is operator-provisioned. There is no self-serve signup and no dynamic
+                  client registration. A client record is created by GST, with scopes and a tier
+                  assigned deliberately.</span
+                >
+              </li>
+              <li>
+                <DeltaIcon class="bullet-icon" /><span
+                  >Radar tools are granted separately and are excluded from a typical grant, because
+                  they draw on a shared third-party research budget.</span
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <div class="brutal-label mcp-access__label">Authentication</div>
+            <ul class="mcp-facts">
+              <li>
+                <DeltaIcon class="bullet-icon" /><span
+                  >Machine-to-machine clients authenticate with OAuth 2.1 <code
+                    >client_credentials</code
+                  >, using a client secret or a registered signing key.</span
+                >
+              </li>
+              <li>
+                <DeltaIcon class="bullet-icon" /><span
+                  >The interactive authorization-code flow, for a person connecting a desktop AI
+                  client, requires PKCE with S256, with no exceptions and no plaintext challenge.</span
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <div class="brutal-label mcp-access__label">Operations</div>
+            <ul class="mcp-facts">
+              <li>
+                <DeltaIcon class="bullet-icon" /><span
+                  >A tamper-evident, hash-chained audit log with seven-year retention exists as
+                  built-and-tested capability. It is activated for a client whose contract requires
+                  it, as part of onboarding.</span
+                >
+                {
+                  /* Framing is deliberate and load-bearing: the capture pipeline is
+                deactivated (ADR-0014) and PILOT_ONBOARDING.md § 3 says in terms "Do
+                not promise active audit capture in writing." Do not upgrade this
+                sentence into a guarantee. */
+                }
+              </li>
+              <li>
+                <DeltaIcon class="bullet-icon" /><span
+                  >Operational health (dependency status, per-tool latency, request volume) is
+                  published on the status page.</span
+                >
+                {
+                  /* Named rather than linked: the URL is a copyable value in "For
+                your engineers" directly below, and printing it twice makes the
+                reader check whether the two agree. */
+                }
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="mcp-block mcp-block--engineers">
+        <h2 class="brutal-heading-md">For your engineers</h2>
+        <p class="mcp-engineers__lede">
+          One endpoint to configure, once a client record exists. Credentials arrive with
+          provisioning.
+        </p>
+
+        <div class="mcp-endpoints">
+          <p class="mcp-endpoint">
+            <span class="mcp-endpoint__label">Endpoint</span>
+            <code data-endpoint-url>https://mcp.globalstrategic.tech/mcp</code>
+            <button
+              type="button"
+              class="brutal-btn brutal-btn--secondary mcp-endpoint__copy"
+              data-copy-endpoint
+              aria-live="polite"
+              ><span data-copy-label>Copy</span><span class="sr-only"> endpoint URL</span></button
             >
-          </li>
-          <li>
-            <DeltaIcon class="bullet-icon" /><span
-              >Machine-to-machine clients authenticate with OAuth 2.1 <code>client_credentials</code
-              >, using a client secret or a registered signing key.</span
-            >
-          </li>
-          <li>
-            <DeltaIcon class="bullet-icon" /><span
-              >The interactive authorization-code flow, for a person connecting a desktop AI client,
-              requires PKCE with S256, with no exceptions and no plaintext challenge.</span
-            >
-          </li>
-          <li>
-            <DeltaIcon class="bullet-icon" /><span
-              >Radar tools are granted separately and are excluded from a typical grant, because
-              they draw on a shared third-party research budget.</span
-            >
-          </li>
-          <li>
-            <DeltaIcon class="bullet-icon" /><span
-              >A tamper-evident, hash-chained audit log with seven-year retention exists as
-              built-and-tested capability. It is activated for a client whose contract requires it,
-              as part of onboarding.</span
-            >
+          </p>
+          <p class="mcp-endpoint">
+            <span class="mcp-endpoint__label">Status</span>
             {
-              /* Framing is deliberate and load-bearing: the capture pipeline is
-            deactivated (ADR-0014) and PILOT_ONBOARDING.md § 3 says in terms "Do
-            not promise active audit capture in writing." Do not upgrade this
-            sentence into a guarantee. */
+              /* Unlike the endpoint, this one is meant to be visited, so it is a
+            link as well as a copyable value. */
             }
-          </li>
-          <li>
-            <DeltaIcon class="bullet-icon" /><span
-              >Operational health (dependency status, per-tool latency, request volume) is published
-              at <a href="https://status.mcp.globalstrategic.tech"
-                >status.mcp.globalstrategic.tech</a
-              >.</span
+            <a
+              href="https://status.mcp.globalstrategic.tech/"
+              target="_blank"
+              rel="noopener noreferrer"
+              ><code data-status-url>https://status.mcp.globalstrategic.tech/</code></a
             >
-          </li>
-        </ul>
+            <button
+              type="button"
+              class="brutal-btn brutal-btn--secondary mcp-endpoint__copy"
+              data-copy-endpoint
+              aria-live="polite"
+              ><span data-copy-label>Copy</span><span class="sr-only">
+                status page URL</span
+              ></button
+            >
+          </p>
+        </div>
       </div>
 
       <div class="mcp-block mcp-block--cta">
@@ -611,16 +618,12 @@ function accessHref(tier?: string) {
           onclick="trackCTA('mcp-request-access', 'hub-mcp')">REQUEST_MCP_ACCESS()</a
         >
       </div>
-
-      <a href="/hub/" class="cta-button" onclick="trackNavigation('/hub', 'Return to Hub')"
-        >Return to Hub</a
-      >
     </div>
   </section>
 </BaseLayout>
 
 <script>
-  import { trackCTA, trackNavigation } from '../../../utils/analytics';
+  import { trackCTA } from '../../../utils/analytics';
   import { copyWithFeedback } from '../../../utils/copy-feedback';
 
   // Each button copies the `<code>` in its own row. Read from the DOM rather
@@ -645,8 +648,6 @@ function accessHref(tier?: string) {
   // TODO(phase-3): replace with proper ambient `Window` type declaration.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).trackCTA = trackCTA;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).trackNavigation = trackNavigation;
 </script>
 
 <style>
@@ -658,15 +659,6 @@ function accessHref(tier?: string) {
     --mcp-measure: 800px;
 
     padding-bottom: var(--spacing-3xl);
-  }
-
-  /* Sits directly under HubHeader: the scale of the offer, above the fold,
-     before a reader has to parse a sentence. */
-  .mcp-headline-stats {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-3xl);
   }
 
   .mcp-block {
@@ -682,6 +674,18 @@ function accessHref(tier?: string) {
     font-size: var(--text-lg);
     color: var(--text-secondary);
     line-height: 1.7;
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  /* Three counts, on the section that explains what they are counts OF, capped
+     to the prose measure so they read as a summary of the paragraph above
+     rather than as a headline of their own. */
+  .mcp-primitive-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-md);
+    max-width: var(--mcp-measure);
+    margin-bottom: var(--spacing-2xl);
   }
 
   .mcp-note {
@@ -692,10 +696,28 @@ function accessHref(tier?: string) {
     margin-bottom: var(--spacing-lg);
   }
 
-  /* Sits between HubHeader and the stat row. No `margin-top`: HubHeader already
-     carries `margin-bottom: --spacing-2xl`, and as adjacent siblings in normal
-     flow the two would collapse to the larger of the pair anyway. The group owns
-     the outer spacing so the rows inside stay tight to each other. */
+  /* Closes the page for the engineer who has to configure the thing, below the
+     argument rather than above it: nothing here is usable until a client record
+     exists, so an endpoint above the fold promised self-serve. */
+  .mcp-block--engineers {
+    padding-top: var(--spacing-2xl);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  /* The block's own heading is `--text-lg`-scale rather than a section heading,
+     so it takes a tighter gap to its one line of prose. */
+  .mcp-block--engineers h2 {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .mcp-engineers__lede {
+    max-width: var(--mcp-measure);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--spacing-xl);
+  }
+
   /* A shared three-column grid rather than two independent flex rows: the rows
      must align on all three columns, and with flex the copy buttons landed at
      different x because the two URLs differ in length. `display: contents` on
@@ -706,7 +728,6 @@ function accessHref(tier?: string) {
     grid-template-columns: max-content max-content max-content;
     align-items: center;
     gap: var(--spacing-sm) var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
   }
 
   .mcp-endpoint {
@@ -841,9 +862,11 @@ function accessHref(tier?: string) {
     color: var(--color-tertiary);
   }
 
+  /* `--text-base`: these three paragraphs are the page's actual argument, and
+     they were set smaller than the lede that introduces them. */
   .mcp-primitive__def {
     max-width: var(--mcp-measure);
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     color: var(--text-secondary);
     line-height: 1.7;
     margin-bottom: var(--spacing-lg);
@@ -893,8 +916,8 @@ function accessHref(tier?: string) {
   /* Pushed to the bottom so the links align across a row of uneven cards.
 
      The colour overrides the GLOBAL `a` rule in `global.css` (which is
-     `--color-secondary`), not the `.mcp-facts a` / `.mcp-primitive__def a` rule
-     below — those selectors never match this anchor. The accent now belongs to
+     `--color-secondary`), not the `.mcp-primitive__def a` rule below — that
+     selector never matches this anchor. The accent now belongs to
      the group heading, and a saturated colour outranks a brighter neutral one,
      so leaving this link accented made it compete with the heading above it.
      Note the global `a:hover` still applies, so hover does take the accent —
@@ -973,27 +996,30 @@ function accessHref(tier?: string) {
     overflow-wrap: anywhere;
   }
 
-  /* 800px matches `.mcp-lede` / `.mcp-note` so a list sitting under a paragraph
-     shares its right edge; at 900 the bullets overhung the prose by 100px. */
-  .mcp-facts {
-    max-width: var(--mcp-measure);
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-xl);
+  /* Three labelled groups rather than one six-item list: the facts answer three
+     different questions (who gets access, how a client authenticates, what runs
+     around it), and a reader looking for one of them was scanning all six. */
+  .mcp-access {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-2xl);
   }
 
+  .mcp-access__label {
+    color: var(--color-tertiary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .mcp-facts {
+    gap: var(--spacing-md);
+  }
+
+  /* `--text-sm`, not the `--text-base` this list carried as a full-measure
+     block: a third of the container is a third of the line length, and the
+     facts are reference material rather than the page's argument. */
   .mcp-facts li {
     font-family: inherit;
-    font-size: var(--text-base);
-  }
-
-  /* Only when the list follows prose. `.mcp-facts` carries no top margin of its
-     own because its other use sits directly under an `h2`, which already
-     supplies one at `--spacing-lg` like every other heading on the page;
-     putting the margin on the list would widen that gap too. Matched to the
-     list's own `margin-bottom` so the block is evenly inset top and bottom. */
-  .mcp-lede + .mcp-facts,
-  .mcp-note + .mcp-facts {
-    margin-top: var(--spacing-xl);
+    font-size: var(--text-sm);
   }
 
   .mcp-facts code {
@@ -1002,24 +1028,20 @@ function accessHref(tier?: string) {
     color: var(--color-primary);
   }
 
-  /* Both inline-link families share one underline treatment. Grouped rather than
-     duplicated so every plain `a` selector precedes every `a:hover` one, which
-     is what stylelint's `no-descending-specificity` is asking for. */
-  .mcp-facts a,
+  /* The spec links, and the only inline-link family left on the page: the access
+     facts stopped carrying one when the status URL moved into "For your
+     engineers" as a copyable value. Plain `a` selectors precede every `a:hover`
+     one, which is what stylelint's `no-descending-specificity` asks for. */
   .mcp-primitive__def a {
     color: light-dark(var(--color-tertiary-dark), var(--color-primary));
     text-decoration: none;
     border-bottom: 1px solid transparent;
     transition: border-bottom var(--transition-fast);
-  }
-
-  /* Spec links read as identifiers and should not break across lines. */
-  .mcp-primitive__def a {
+    /* Spec links read as identifiers and should not break across lines. */
     font-family: var(--font-family-mono);
     white-space: nowrap;
   }
 
-  .mcp-facts a:hover,
   .mcp-primitive__def a:hover,
   .mcp-catalog__try:hover {
     border-bottom-color: currentColor;
@@ -1030,23 +1052,140 @@ function accessHref(tier?: string) {
     margin-top: 0.35em;
   }
 
-  /* The shared gateway grid is `repeat(auto-fill, minmax(420px, 1fr))` with a
-     3rem gap, so three tracks need ~1452px of viewport — at 1280/1366/1440 the
-     tier row would break to 2 + 1 orphan. Three tiers have no clean two-column
-     form, so this stacks straight to one below 1024 rather than stepping.
-     NOTE: this rule is what produces the mobile stack. The global single-column
-     rule in cards.css is (0,1,0) and loses to this scoped (0,2,0) selector —
-     deleting this media query does NOT fall back to it. */
+  /* Four equal tracks and NO column gap, so each track is exactly 25% and lines
+     up with the `table-layout: fixed` columns below. `grid-column: 2` on the
+     first tier leaves the label column empty rather than carrying an empty
+     presentational div, and the cells repeat `.brutal-bench-table td`'s
+     horizontal padding so the text edges agree as well as the track edges. */
   .mcp-tiers {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--spacing-xl);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-bottom: var(--spacing-2xl);
   }
 
-  .mcp-tier-stats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .mcp-tier {
+    display: flex;
+    flex-direction: column;
+    border-top: 3px solid var(--color-primary);
+    padding: var(--spacing-lg) var(--spacing-md) 0;
+  }
+
+  .mcp-tier:first-child {
+    grid-column: 2;
+  }
+
+  .mcp-tier__head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
     gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .mcp-tier__name {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  /* The pill carries its own `margin-left` for inline use inside a table cell.
+     Here the flex gap already separates it, so the two would compound. */
+  .mcp-tier__head .brutal-bench-table__label {
+    margin-left: 0;
+  }
+
+  /* The config identifier, set subordinate to the display name: it is what an
+     operator assigns on the client record, not what the tier is called. */
+  .mcp-tier__id {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .mcp-tier__note {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
     margin-bottom: var(--spacing-lg);
+  }
+
+  /* A text link rather than a button: the page has one primary CTA, and three
+     tier buttons competed with it. `margin-top: auto` bottom-aligns the three
+     across notes of different lengths, `align-self` shrink-wraps the box (a
+     flex item stretches otherwise), and the vertical padding is what keeps the
+     target above the 24px AA floor at `--text-xs` — axe's `target-size` scans
+     this route. Colour is the page's accessible link pair, not the global
+     `a` colour: `--color-secondary` measures 2.96:1 at this size on
+     `--bg-light`. */
+  .mcp-tier__cta {
+    margin-top: auto;
+    align-self: flex-start;
+    padding: var(--spacing-sm) 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: light-dark(var(--color-tertiary-dark), var(--color-primary));
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-bottom var(--transition-fast);
+  }
+
+  .mcp-tier__cta:hover {
+    border-bottom-color: currentColor;
+  }
+
+  /* `fixed` so the four columns divide evenly and match the header grid; the
+     bundle's table sizes to content, which would put the tiers off their own
+     numbers by however wide the longest label happens to be. */
+  .mcp-tier-table {
+    table-layout: fixed;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  /* `.brutal-bench-table` styles `td:first-child` as the row label, so the look
+     is restated here for the `<th>` that replaces it. */
+  .mcp-tier-table th {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-family: var(--font-family);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  /* Three tier columns have to agree, and the bundle styles `td:last-child`
+     alone (right-aligned). Left-aligned so the numbers hang off the same edge
+     as the tier names above them. The border restates the bundle's rule in the
+     paired form: the shared one is a bare `--border-light`, which is dark ink
+     at 10% and all but disappears in dark theme. */
+  .mcp-tier-table tbody td {
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    text-align: left;
+    color: var(--text-secondary);
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  /* Deal Team is the typical grant, marked in the numbers as well as in the
+     header above them. Third cell of the row, counting the `<th>`. */
+  .mcp-tier-table tbody td:nth-child(3) {
+    color: var(--color-primary);
+  }
+
+  /* Kept on the prose measure like the lead-in above the tiers: the callout
+     qualifies the table, and at full container width it read as a page-wide
+     banner instead. */
+  .mcp-block .brutal-callout {
+    max-width: var(--mcp-measure);
   }
 
   .mcp-block--cta {
@@ -1060,31 +1199,21 @@ function accessHref(tier?: string) {
   }
 
   @media (max-width: 1024px) {
-    .mcp-tiers {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    /* Same cap the gateway card applies to itself below 768 (cards.css), pulled
-       up to where THIS grid starts stacking — otherwise a lone tier card
-       stretches to ~930px between 768 and 1024. */
-    .mcp-tiers > .brutal-gateway-card {
-      width: 100%;
-      max-width: 600px;
-      margin-inline: auto;
-    }
-
     .mcp-catalog {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
   @media (max-width: 768px) {
-    .mcp-headline-stats {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .mcp-block {
       margin-bottom: var(--spacing-2xl);
+    }
+
+    /* Three columns of `--text-sm` prose stop being readable here, and the
+       groups are short enough that stacking them costs no scanning. */
+    .mcp-access {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--spacing-xl);
     }
 
     .mcp-usecases,
@@ -1109,15 +1238,62 @@ function accessHref(tier?: string) {
       flex-wrap: wrap;
       gap: var(--spacing-md);
     }
+
+    /* A 25% track stops being readable long before the numbers do: at 768 the
+       tier notes get about fifteen characters a line. The tiers stack into
+       full-width blocks, which means they are no longer over their columns and
+       can no longer serve as the table's headers — so each row becomes its own
+       three-across comparison and every value prints the tier it belongs to.
+       The bundle stacks these rows to one column at 480; this replaces that
+       with a form that keeps the comparison, and starts a breakpoint earlier. */
+    .mcp-tiers {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--spacing-xl);
+    }
+
+    .mcp-tier:first-child {
+      grid-column: 1;
+    }
+
+    .mcp-tier-table tbody tr {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--spacing-xs) var(--spacing-md);
+      padding: var(--spacing-md) 0;
+      border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-default));
+    }
+
+    .mcp-tier-table th {
+      grid-column: 1 / -1;
+      padding: 0;
+      border-bottom: none;
+    }
+
+    /* `margin` resets the bundle's `td:last-child` nudge, which would drop the
+       third column out of line once these are grid items. */
+    .mcp-tier-table tbody td {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      margin: 0;
+      padding: 0;
+      border-bottom: none;
+    }
+
+    .mcp-tier-table tbody td::before {
+      content: attr(data-tier);
+      font-family: var(--font-family);
+      font-size: var(--text-2xs);
+      font-weight: var(--font-weight-normal);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
   }
 
   @media (max-width: 480px) {
     .mcp-block--cta {
       padding: var(--spacing-lg);
-    }
-
-    .mcp-tier-stats {
-      grid-template-columns: minmax(0, 1fr);
     }
   }
 </style>
