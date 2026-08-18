@@ -138,9 +138,7 @@ page footer enters the viewport, keeping the drawer flush with (never
 
 behind) the footer. The box-shadow intentionally uses a clipped offset
 
-so it doesn't bleed past
-
-the drawer's own bounds onto the footer. */
+so it doesn't bleed past the drawer's own bounds onto the footer. */
 
 .filter-drawer {
   /* How far down the drawer starts, and it is not decoration: two FIXED bars

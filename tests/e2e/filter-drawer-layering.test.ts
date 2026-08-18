@@ -242,6 +242,10 @@ test.describe('Filter Drawer at narrow widths (BL-137)', () => {
       };
     });
 
+    // Pinned to the panel width, not just "narrower than the viewport": at
+    // 375px a full-bleed sheet is only ~25px wider than the panel, so a range
+    // check would let a partial revival through. This number IS the ruling.
+    expect(m.width, 'the drawer stays the 350px side panel').toBeCloseTo(350, 0);
     expect(m.width, 'the drawer must not span the viewport').toBeLessThan(m.clientWidth);
     expect(m.borderLeftWidth, 'the side panel keeps its left border').toBe('2px');
   });

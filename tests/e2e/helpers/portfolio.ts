@@ -19,10 +19,10 @@ export const FOOTER_GAP_PX = 16;
  * Two properties this relies on, stated because both are load-bearing and
  * neither is obvious from the assertion (BL-137):
  *
- * - **`right` is the property the drawer animates.** Open is `right: 0` at
- *   every width; closed is `-400px` on desktop and `-100%` at ≤768px. A future
- *   switch to `transform` would leave `right` at `0` in both states and this
- *   check would silently pass on a drawer that never opened.
+ * - **`right` is the property the drawer animates.** Open is `right: 0` and
+ *   closed is `-400px`, at every width. A future switch to `transform` would
+ *   leave `right` at `0` in both states and this check would silently pass on a
+ *   drawer that never opened.
  * - **`toBeVisible()` depends on the visibility step function.** The closed
  *   drawer is `visibility: hidden` so its controls stay out of the tab order;
  *   `visibility` is transitioned alongside `right`, and per spec it interpolates

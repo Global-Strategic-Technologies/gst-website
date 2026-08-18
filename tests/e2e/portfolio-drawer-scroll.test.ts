@@ -223,14 +223,14 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     expect(scrollTop).toBeGreaterThanOrEqual(Math.min(clearance, 1));
   });
 
-  test('mobile bottom-sheet drawer keeps gap above footer at page bottom', async ({ page }) => {
-    // Viewport must be set before reload so the 480px media-query styles apply
-    // during the drawer's initial render.
+  test('drawer keeps its gap above the footer at phone width too', async ({ page }) => {
+    // A phone viewport, not a different drawer: the panel is the same 350px
+    // side panel at every width (BL-137). What this covers is the short
+    // viewport, where the footer occupies proportionally more of the screen and
+    // the clearance the listener computes is correspondingly larger. The
+    // viewport is set before navigation so the first render is the measured one.
     await page.setViewportSize({ width: 400, height: 700 });
-    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 10000,
-    });
+    await gotoPortfolio(page);
 
     await openFilterDrawer(page);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
