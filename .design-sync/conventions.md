@@ -71,6 +71,7 @@ Two rules cover almost everything:
 - **Elevation** — `--shadow-sm/-md/-lg`, `--frost-highlight`, `--frost-edge`, `--scrim-15` … `--scrim-60`
 - **Layering** — `--z-negative`, `--z-base`, `--z-raised`, `--z-sticky`, `--z-dropdown`, `--z-overlay`, `--z-modal`, `--z-modal-overlay`, `--z-skip-nav`
 - **Touch** — `--touch-target-min` (44px, AAA), `--touch-target-min-aa` (24px floor)
+- **Announcement sash** — `--sash-bg` (always `--color-primary`), `--sash-ink` (re-pointed per palette in `palettes.css` for the four whose light-theme primary is a dark hue). The band's borders, its hover and the inverted `__badge` are all `color-mix()` derivations of these two, so the sash follows every palette and both themes with no extra CSS and no literal colours
 - **Dataviz scales** — **Use these for any chart, gauge or scoring band — never invent chart colours.** TechPar: `--techpar-zone-*` (healthy/elevated/critical/underinvest/ahead/above, each + `-bg`), `--techpar-category-*` (infra/personnel/rd-opex/rd-capex), `--techpar-kpi-positive/-negative/-warn`, `--techpar-chart-*` (band/ahead/above/under `-fill`/`-border`, `revenue-line`). ICG: `--icg-maturity-reactive/-aware/-strategic/-optimizing`, `--icg-radar-grid/-label`. Diligence Machine: `--dm-positive/-negative/-success/-warning`, `--dm-results-blue/-tan`, `--dm-methodology-brown`. Regulatory map: `--regmap-category-industry/-cyber`
 
 Need a tint with no token? Use `color-mix(in srgb, var(--color-success) 12%, transparent)` —
@@ -84,6 +85,7 @@ it stays correct across themes and palettes. Never a frozen `rgba()`.
 - **Containers** — `.container` (page width), `.brutal-tool-shell` + `--narrow`/`--wide`/`--document`/`--fluid`, with `.brutal-tool-shell__content` inside for responsive padding; `.brutal-panel`; hero text uses `.brutal-hero__title` / `.brutal-hero__description` / `.brutal-hero__trustline` (no bare `.brutal-hero`)
 - **Hub-tool chrome** — `.tool-action-bar` (+ `--center`/`--end`/`--bordered`/`--frosted`/`--stack`), `.tool-tab-bar` + `.tool-tab` (+ `--active`), `.tool-wizard-progress` + `.tool-wizard-step` (+ `--completed`/`--active`/`--reachable`), `.tool-wizard-progress-mobile` + `.tool-wizard-dot`, `.tool-methodology` (+ `--delta`), `.tool-bench-note` — see ToolChromeSpecimen
 - **Navigation** — `.brutal-breadcrumb`, `.brutal-tab-bar` + `.brutal-tab` (+ `--active`/`--done`), `.brutal-search`, `.skip-nav`; `.toc` (owned by the `TableOfContents` component — its `__heading/__list/__sublist/__layer/__separator/__chevron` classes ship, but the runtime that builds sublists and sets `is-active` does not)
+- **Announcement sash** — `.brutal-sash-corner` (the clipping corner box) wrapping `.brutal-sash` (the rotated band, which is itself the link); corner variants `--wide` and `--card`; `.brutal-sash--flat` is **documentation only** — the unrotated band, so a gallery can show it in a row. Rendered in production by `Sash.astro` off an announcement registry — real markup is in the `SiteHeader` chrome card
 - **Data** — `.brutal-bench-table`, `.brutal-stat-tile`, `.brutal-callout` (+ `--warning`), `.brutal-progress-bar`, `.editors-pick-tag`; `.brutal-stat__value/__label` and `.brutal-cta__title/__description` are mono-font **modifiers only** (no block, no size — pair with your own layout)
 - **Forms** — `.brutal-input`, `.brutal-field`, `.brutal-slider`, `.brutal-segmented` (+ `--sm`/`--wide`), `.brutal-filter-chip` (+ `--active`), `.brutal-filter-chips`, `.brutal-filter-drawer`
 - **Frosted glass** — `.brutal-frosted` (3px), `--heavy` (6px), `--blur-only` (1.5px), `--overlay` (6px + a 92%-opaque surface, for sheets/drawers)
@@ -95,7 +97,8 @@ it stays correct across themes and palettes. Never a frozen `rgba()`.
 highlight) — don't re-add it.
 
 **Not documented on purpose** (page one-offs, fine to ignore): the regulatory-map
-families `.brutal-timeline-*`, `.brutal-map-*`, `.brutal-reg-card`, `.brutal-legend`,
+families `.brutal-timeline-*`, `.brutal-map-*`, `.brutal-quick-zoom`, `.brutal-reg-card`,
+`.brutal-legend`,
 `.brutal-bottom-sheet`; `.legal-page-*`; the `/brand`-only demo boxes `.brutal-shadow`,
 `.brutal-transition`, `.brutal-interactive`, `.brutal-link-interactive`,
 `.brutal-focus-outline`. If you see one in `styles.css`, that is why it is not here.
@@ -121,6 +124,7 @@ alone renders unstyled content — the specimen cards show every one of these in
 - **`.brutal-filter-drawer`** — `__header` › `__title`, `__close`; `__content` › `__clear`, `__section` › `__label` + `.brutal-filter-chips`
 - **`.brutal-search`** — `__icon`, `__input`, `__clear`; results are a **sibling** `__results` › `__result` (+ `--active`) › `__result-name`, `__result-meta` › `__category` (+ `--privacy`/`--ai`/`--industry`/`--cyber`); `__no-results`
 - **`.brutal-breadcrumb`** — `__list` (an `<ol>`) › `__item` › link + `__sep`; the current crumb is `<span aria-current="page">` — that attribute is what styles it
+- **`.brutal-sash`** — `__label`, `__badge` (a chip inverting the two sash tokens, so it cannot lose contrast against the band), `__detail` (drops at 768px). The band element carries the href itself; there is no separate link child
 - **`.brutal-bench-table`** — rows of two `<td>`s; `__active` on the highlighted `<tr>`; `__label` (+ `--score`/`--stage`) pills inside the first cell
 - **`.brutal-panel`** — `__header` › `__title`, `__copy` (+ `--copied`), `__count`
 - **`.brutal-tab-bar`** — `.brutal-tab` › `__label`, optional `__icon`, `__badge` (+ `--on`)
@@ -166,6 +170,12 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
   wrap it in `@media (prefers-reduced-motion: reduce)` yourself.
 - **Icons are inline SVG in `currentColor`.** No icon font, no `<img>` icons — see
   "Brand delta" below; other glyphs (search, close, link) are 14–16px stroke SVGs.
+- **The sash's geometry moves in threes.** `.brutal-sash-corner`'s size, the band's `top`
+  and the band's `width` are one set: the band is centred on the 45° chord of its box, so
+  changing one without the others slides it off the corner. The pairs are 200/50/260
+  (desktop), 170/42/220 (≤768), 140/34/190 (≤540), 260/68/340 (`--wide`) and 104/26/150
+  (`--card`). Below 512px the page sash is not rendered at all — the header nav, which
+  reserves a matching corner for it, has no room left to yield.
 
 ### Brand delta
 
