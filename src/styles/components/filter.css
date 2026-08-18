@@ -154,9 +154,24 @@ the drawer's own bounds onto the footer. */
      stylesheet is self-contained. The inline setProperty still wins. */
   --drawer-footer-clearance: 0px;
 
+  /* How far down the drawer starts, and it is not decoration: two FIXED bars
+     sit above it — the site header (outside `main`, so it outranks everything
+     inside it) and the portfolio's sticky search/filter bar (z-index 9999
+     inside `main`, against this drawer's 1001). `main { position: relative;
+     z-index: 1 }` in global.css makes `main` a stacking context, so no
+     z-index this drawer can carry will lift it over either. Clearing them by
+     geometry is the only lever, which is what this inset is. Measured at
+     400x700: header 0-58, sticky bar 58-130. */
+  --drawer-top-inset: 133px;
+
   position: fixed;
   right: -400px;
-  top: 133px;
+  top: var(--drawer-top-inset);
+
+  /* Bare `0` here and `0px` in the phone cap's calc() below, deliberately and
+     not an oversight: stylelint's length-zero-no-unit forbids the unit here,
+     while inside calc() a unitless zero is a <number> and would make the
+     subtraction invalid. Do not "harmonise" them. */
   bottom: var(--drawer-footer-clearance, 0);
   width: 350px;
   border-left: 2px solid var(--color-primary);
@@ -289,6 +304,17 @@ tie is resolved by source order, so it has to come later or it never applies. */
    only move up as the footer scrolled in, never shrink, and its header would
    leave the top of the screen.
 
+   It subtracts --drawer-top-inset, NOT a token-sized gap, and that is the whole
+   reason the sheet stays usable: the inset is what clears the two fixed bars
+   above (see the base rule). Subtracting a 12px gap instead put the sheet's top
+   at y=12 when scrolled to the footer, which slid the FILTERS header and its
+   close button underneath the site header — `elementFromPoint` on the close
+   button returned HEADER.site-header, i.e. the only in-sheet way to dismiss the
+   drawer was not tappable. Subtracting the inset pins the top at 133 in every
+   scroll position, so the sheet is always clear of the chrome, and it makes this
+   middle term always the binding one — which is what the footer listener's
+   scrollTop coupling assumes.
+
    Percentages, not vh/dvh, and the reason is correctness rather than taste: this
    element is `position: fixed`, so a percentage resolves against the SAME
    containing block that `bottom` above resolves against — by construction,
@@ -298,17 +324,23 @@ tie is resolved by source order, so it has to come later or it never applies. */
    with. `dvh` would also have needed an @supports gate: browserslist declares
    Safari >= 14 and LightningCSS emits viewport units verbatim with no fallback.
 
+   Both outer terms are guard rails, not the working value — measured 2026-08-18
+   at 400x700, the middle term is what binds and the other two are unreachable.
    The 30% floor bounds the failure rather than expecting it: if a footer ever
    occupied more than ~70% of the viewport the sheet keeps a usable height and
-   its top edge clips, instead of the cap going negative and the sheet vanishing.
-   Measured 2026-08-18: the real footer produces 122px of clearance against a
-   478px threshold at 700px tall, so this branch is not reachable today. */
+   its top edge clips, instead of the cap going negative and the sheet vanishing
+   (the real footer produces 122px against a 478px threshold). The 85% ceiling
+   caps the sheet on a viewport tall enough that the inset stops constraining —
+   which needs 0.15 x height to exceed the inset, i.e. above ~890px, where the
+   drawer's own content is already shorter than the ceiling anyway. Neither is
+   asserted by a test, because contriving a viewport to reach one would be
+   testing the arithmetic rather than the behaviour. */
 @media (max-width: 480px) {
   .portfolio-filter-drawer {
     top: auto;
     max-height: clamp(
       30%,
-      calc(100% - var(--drawer-footer-clearance, 0px) - var(--spacing-md)),
+      calc(100% - var(--drawer-footer-clearance, 0px) - var(--drawer-top-inset)),
       85%
     );
   }

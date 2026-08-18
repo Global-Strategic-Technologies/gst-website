@@ -1,12 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { FOOTER_GAP_PX, openFilterDrawer, readRects, waitForDrawerGap } from './helpers/portfolio';
+import {
+  FOOTER_GAP_PX,
+  gotoPortfolio,
+  openFilterDrawer,
+  readRects,
+  waitForDrawerGap,
+} from './helpers/portfolio';
 
 test.describe('Filter Drawer Background Scroll - MA Portfolio Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 10000,
-    });
+    await gotoPortfolio(page);
   });
 
   test('should allow background scrolling while filter drawer is open', async ({ page }) => {
@@ -124,10 +127,7 @@ test.describe('Filter Drawer Background Scroll - MA Portfolio Page', () => {
  */
 test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 10000,
-    });
+    await gotoPortfolio(page);
   });
 
   test('drawer bottom keeps a gap above footer top as footer partially enters viewport', async ({

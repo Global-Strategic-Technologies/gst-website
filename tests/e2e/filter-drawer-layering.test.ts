@@ -1,15 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
-import { openFilterDrawer, waitForDrawerGap } from './helpers/portfolio';
+import { gotoPortfolio, openFilterDrawer, waitForDrawerGap } from './helpers/portfolio';
 
 test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
   test.beforeEach(async ({ page }) => {
-    // domcontentloaded is reliable under parallel worker contention; networkidle
-    // can time out when many workers share the same dev server.
-    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
-    // Wait for portfolio initialization
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 10000,
-    });
+    await gotoPortfolio(page);
   });
 
   test('should verify filter drawer is initially hidden with correct positioning', async ({
@@ -234,23 +228,60 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
  * excludes the classic scrollbar gutter, and that gutter differs by engine.
  */
 test.describe('Filter Drawer Mobile Treatment (BL-137)', () => {
-  async function gotoPortfolio(page: Page) {
-    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 10000,
-    });
-  }
-
-  /** Resolve --spacing-md to px. Out-of-flow so it cannot grow the document. */
-  async function spacingMdPx(page: Page): Promise<number> {
-    return page.evaluate(() => {
+  /**
+   * Resolve a length-valued custom property to px, as seen by the drawer.
+   *
+   * The probe is appended INSIDE the drawer, not the body: `--drawer-top-inset`
+   * is declared on `.filter-drawer` rather than `:root`, so a probe elsewhere in
+   * the tree cannot see it and `var()` would fall back to nothing — silently
+   * yielding 0 and making every assertion built on it wrong in the same
+   * direction. Out-of-flow so it cannot affect layout or document height.
+   */
+  async function drawerTokenPx(page: Page, name: string): Promise<number> {
+    const px = await page.evaluate((prop) => {
+      const drawer = document.querySelector('[data-testid="portfolio-filter-drawer"]');
+      if (!drawer) return NaN;
       const probe = document.createElement('div');
-      probe.style.cssText = 'position:fixed;top:-9999px;width:1px;height:var(--spacing-md)';
-      document.body.appendChild(probe);
+      probe.style.cssText = `position:fixed;top:-9999px;width:1px;height:var(${prop})`;
+      drawer.appendChild(probe);
       const h = probe.getBoundingClientRect().height;
       probe.remove();
       return h;
-    });
+    }, name);
+    // A token that resolves to 0 means the probe could not see it. Fail loudly
+    // rather than letting every downstream assertion quietly shift by that much.
+    expect(px, `${name} must resolve to a non-zero length`).toBeGreaterThan(0);
+    return px;
+  }
+
+  /** height === max(30%, min(100% - clearance - inset, 85%)), whichever term binds. */
+  function expectedHeight(innerHeight: number, clearance: number, inset: number): number {
+    return Math.max(
+      0.3 * innerHeight,
+      Math.min(innerHeight - clearance - inset, 0.85 * innerHeight)
+    );
+  }
+
+  /**
+   * Is the element's own centre the thing a tap would land on?
+   *
+   * Geometry is not enough here and that is the lesson this file encodes: the
+   * sheet once rendered with `top: 12`, its header fully inside the viewport and
+   * every rect assertion green, while the site header covered it and the close
+   * button could not be tapped at all. `main { position: relative; z-index: 1 }`
+   * makes `main` a stacking context, so the drawer's z-index cannot lift it over
+   * chrome that lives outside `main`.
+   */
+  async function centreIsHittable(page: Page, testId: string): Promise<boolean> {
+    return page.evaluate((id) => {
+      const el = document.querySelector(`[data-testid="${id}"]`);
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return (
+        !!hit && (hit === el || el.contains(hit) || hit.closest(`[data-testid="${id}"]`) !== null)
+      );
+    }, testId);
   }
 
   test.describe('at 375px — full-width sheet', () => {
@@ -336,6 +367,28 @@ test.describe('Filter Drawer Mobile Treatment (BL-137)', () => {
       expect(Math.abs(styles.width - styles.clientWidth)).toBeLessThanOrEqual(1);
       expect(styles.borderLeftWidth).toBe('0px');
     });
+
+    // The tablet band collides with the same fixed chrome as the phone sheet —
+    // it just starts below it by construction rather than by a computed cap.
+    // Asserted rather than assumed, since width alone would not have caught it.
+    test('the tablet sheet clears the fixed chrome and stays dismissable', async ({ page }) => {
+      await gotoPortfolio(page);
+      await openFilterDrawer(page);
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await waitForDrawerGap(page);
+
+      const topInset = await drawerTokenPx(page, '--drawer-top-inset');
+      const top = await page.evaluate(
+        () =>
+          document.querySelector('[data-testid="portfolio-filter-drawer"]')!.getBoundingClientRect()
+            .top
+      );
+      expect(Math.abs(top - topInset)).toBeLessThanOrEqual(1);
+      expect(
+        await centreIsHittable(page, 'portfolio-drawer-close'),
+        'the close button must be tappable on tablets too'
+      ).toBe(true);
+    });
   });
 
   test.describe('at 400px — the bottom sheet', () => {
@@ -344,25 +397,34 @@ test.describe('Filter Drawer Mobile Treatment (BL-137)', () => {
     // be upper bounds nothing tests, and the scroll probe could not hold.
     test.use({ viewport: { width: 400, height: 700 } });
 
-    test('the 85% cap binds at rest and the sheet is anchored to the viewport bottom', async ({
+    test('the cap binds at rest and the sheet is anchored to the viewport bottom', async ({
       page,
     }) => {
       await gotoPortfolio(page);
       await openFilterDrawer(page);
 
+      const inset = await drawerTokenPx(page, '--drawer-top-inset');
       const box = await page.evaluate(() => {
         const el = document.querySelector('[data-testid="portfolio-filter-drawer"]')!;
         const r = el.getBoundingClientRect();
-        return { height: r.height, bottom: r.bottom, innerHeight: window.innerHeight };
+        return {
+          height: r.height,
+          bottom: r.bottom,
+          innerHeight: window.innerHeight,
+          clearance: parseFloat(getComputedStyle(el).getPropertyValue('--drawer-footer-clearance')),
+        };
       });
 
       // Rendered height, not computed max-height: per CSSOM `max-height` is not
       // among the properties whose resolved value is the used value, so
       // getComputedStyle returns the computed value and a percentage computes to
       // itself — every engine returns the literal `clamp(...)` string. `height`
-      // IS a used value. Since the content exceeds the cap, this single
-      // assertion proves both that the declaration applies and that it binds.
-      expect(Math.abs(box.height - 0.85 * box.innerHeight)).toBeLessThanOrEqual(1);
+      // IS a used value. Since the content exceeds the cap (763px against any of
+      // the three terms at this viewport), this proves the cap both applies and
+      // binds — without assuming WHICH term binds, which the top inset changed.
+      expect(
+        Math.abs(box.height - expectedHeight(box.innerHeight, box.clearance, inset))
+      ).toBeLessThanOrEqual(1);
       expect(Math.abs(box.bottom - box.innerHeight)).toBeLessThanOrEqual(1);
     });
 
@@ -399,7 +461,7 @@ test.describe('Filter Drawer Mobile Treatment (BL-137)', () => {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       await waitForDrawerGap(page);
 
-      const spacingMd = await spacingMdPx(page);
+      const topInset = await drawerTokenPx(page, '--drawer-top-inset');
       const m = await page.evaluate(() => {
         const el = document.querySelector('[data-testid="portfolio-filter-drawer"]')!;
         const header = el.querySelector('.drawer-header')!.getBoundingClientRect();
@@ -415,21 +477,32 @@ test.describe('Filter Drawer Mobile Treatment (BL-137)', () => {
       });
 
       // The height identity, which holds whichever of the clamp's three terms
-      // binds. Asserting `top === spacingMd` instead would only hold while the
-      // MIDDLE term binds; the real clearance sits close enough to that
-      // boundary that a slightly shorter footer would turn it red for no defect.
-      const expected = Math.max(
-        0.3 * m.innerHeight,
-        Math.min(m.innerHeight - m.clearance - spacingMd, 0.85 * m.innerHeight)
-      );
-      expect(Math.abs(m.height - expected)).toBeLessThanOrEqual(1);
+      // binds. Asserting a fixed height instead would only hold in one regime.
+      expect(
+        Math.abs(m.height - expectedHeight(m.innerHeight, m.clearance, topInset))
+      ).toBeLessThanOrEqual(1);
 
-      // The regression this exists for: with a clearance-blind cap the box only
-      // moved up, so its top — and the close button in the header — left the
-      // viewport.
-      expect(m.top).toBeGreaterThanOrEqual(spacingMd - 1);
+      // The sheet shrank rather than sliding up: its top stays at the inset.
+      expect(Math.abs(m.top - topInset)).toBeLessThanOrEqual(1);
       expect(m.headerTop).toBeGreaterThanOrEqual(0);
       expect(m.headerBottom).toBeLessThanOrEqual(m.innerHeight);
+    });
+
+    test('the close button is still tappable when scrolled to the footer', async ({ page }) => {
+      await gotoPortfolio(page);
+      await openFilterDrawer(page);
+
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await waitForDrawerGap(page);
+
+      // The assertion the geometry checks above could not make. Before the cap
+      // subtracted the top inset, every one of them passed while this returned
+      // HEADER.site-header: the sheet's only in-sheet dismiss control sat under
+      // fixed chrome that no z-index it can carry will ever outrank.
+      expect(
+        await centreIsHittable(page, 'portfolio-drawer-close'),
+        'the close button must not be buried under the site header or the sticky bar'
+      ).toBe(true);
     });
 
     test('a closed drawer keeps its controls out of the tab order', async ({ page }) => {

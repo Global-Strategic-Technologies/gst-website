@@ -49,7 +49,22 @@ export async function openFilterDrawer(page: Page): Promise<void> {
   );
 }
 
-/** Read drawer + footer rects in the same paint frame (TEST_BEST_PRACTICES §22). */
+/** Navigate to the portfolio and wait until its filter runtime has bound. */
+export async function gotoPortfolio(page: Page): Promise<void> {
+  await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
+  // domcontentloaded is reliable under parallel worker contention; networkidle
+  // can time out when many workers share the same dev server. The readiness
+  // gate matters because openFilterDrawer clicks the toggle, and PortfolioHeader
+  // binds that listener during init.
+  await page.waitForFunction(
+    () => (window as { __portfolioInitialized?: boolean }).__portfolioInitialized === true,
+    {
+      timeout: 10000,
+    }
+  );
+}
+
+/** Read drawer + footer rects in the same paint frame. */
 export async function readRects(page: Page) {
   return page.evaluate(() => {
     const drawer = document.querySelector('[data-testid="portfolio-filter-drawer"]');
