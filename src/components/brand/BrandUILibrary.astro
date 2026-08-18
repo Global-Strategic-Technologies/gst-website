@@ -9,6 +9,7 @@ import HeaderNavLinks from '../HeaderNavLinks.astro';
 import ThemeToggleButton from '../ThemeToggleButton.astro';
 import FooterLinks from '../FooterLinks.astro';
 import CTABox from '../CTABox.astro';
+import Sash from '../Sash.astro';
 import type { RadarWireItem } from '../../lib/inoreader/types';
 
 /**
@@ -304,6 +305,46 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </div>
         <code class="brand-code"
           >.brutal-cta__title — monospace, uppercase. .brutal-cta__description — monospace</code
+        >
+      </div>
+    </div>
+
+    <h4 class="brutal-label brand-subgroup-title">Announcement Sash</h4>
+    {
+      /* The first two render the REAL component (BL-095 AC-1), not a replica —
+         Sash.astro with no `href` emits the decorative `aria-hidden` band, which
+         is exactly what a specimen wants: no second link to /hub/mcp/ on this
+         page and no analytics event on a specimen click. `--flat` has no
+         component form (it is documentation-only and must never ship on a page),
+         so that one is hand-written. */
+    }
+    <div class="brand-component-row">
+      <div class="brand-component-item">
+        <div class="brand-sash-frame">
+          <Sash badge="New" label="MCP Server" detail="2.0" />
+        </div>
+        <code class="brand-code"
+          >.brutal-sash-corner &gt; .brutal-sash — 200px corner, --z-overlay. Segments: __badge,
+          __label, __detail. Colour is --sash-bg on --sash-ink, always</code
+        >
+      </div>
+      <div class="brand-component-item">
+        <div class="brand-sash-frame brand-sash-frame--card">
+          <Sash label="New" scale="card" />
+        </div>
+        <code class="brand-code"
+          >.brutal-sash-corner--card — 104px corner, --z-raised, inside a card. Decorative: the card
+          itself is the link</code
+        >
+      </div>
+      <div class="brand-component-item">
+        <span class="brutal-sash brutal-sash--flat" aria-hidden="true" data-specimen>
+          <span class="brutal-sash__badge">New</span>
+          <span class="brutal-sash__label">MCP Server</span>
+          <span class="brutal-sash__detail">2.0</span>
+        </span>
+        <code class="brand-code"
+          >.brutal-sash--flat — unrotated band, documentation only. Never mounted on a page</code
         >
       </div>
     </div>

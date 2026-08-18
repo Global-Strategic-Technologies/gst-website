@@ -382,6 +382,27 @@ import '../styles/components/progress.css';
     width: 100%;
   }
 
+  /* ── Announcement sash specimens ──
+     The sash positions itself against the nearest positioned ancestor and is
+     clipped by its own corner box, so a specimen needs a relative frame big
+     enough to hold the 200px corner. The card frame mirrors a .hub-card:
+     position + overflow are what let the 104px band sit in a card corner. */
+  .brand-sash-frame {
+    position: relative;
+    width: 320px;
+    height: 190px;
+    background: var(--bg-light-alt);
+    border: 2px solid var(--border-hairline);
+    overflow: hidden;
+  }
+
+  .brand-sash-frame--card {
+    width: 240px;
+    height: 150px;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-top: 3px solid var(--color-primary);
+  }
+
   /* ── Hover specimens ──
      Cards whose documented behaviour IS the hover transition (trust card,
      step card, service card, hub gateway card — the project card left this
