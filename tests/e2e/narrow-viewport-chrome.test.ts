@@ -34,6 +34,17 @@ async function waitForStyles(page: Page) {
   });
 }
 
+/**
+ * The same wait, for the footer's own styles — the header's arriving says
+ * nothing about a different component's, and these tests measure the footer.
+ */
+async function waitForFooterStyles(page: Page) {
+  await page.waitForFunction(() => {
+    const top = document.querySelector('footer .footer-top');
+    return !!top && getComputedStyle(top).display === 'flex';
+  });
+}
+
 /** 320 is the narrowest width the site is expected to survive; 360/375/390 are current phones. */
 const WIDTHS = [320, 360, 375, 390] as const;
 
@@ -45,7 +56,9 @@ const WIDTHS = [320, 360, 375, 390] as const;
  * counts toward WebKit's `scrollWidth` at 320px (+13px, WebKit only). That is a
  * separate pre-existing defect in the drawer's off-canvas technique — it is not
  * chrome, and folding it in here would either hide it behind a bigger tolerance
- * or make this suite fail for a reason it does not describe.
+ * or make this suite fail for a reason it does not describe. Filed as BL-137,
+ * whose acceptance criteria include adding both routes here and deleting this
+ * paragraph.
  */
 const ROUTES = ['/', '/services/', '/about/', '/hub/'] as const;
 
@@ -69,7 +82,7 @@ test.describe('Site chrome at phone widths', () => {
     test(`at ${width}px the footer theme toggle stays on screen`, async ({ page }) => {
       await page.setViewportSize({ width, height: 700 });
       await page.goto('/services/');
-      await waitForStyles(page);
+      await waitForFooterStyles(page);
 
       // The exact element the regression pushed off-screen. Asserted by its own
       // box, not by the document's scroll width, so it cannot be masked by

@@ -41,15 +41,26 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
 
-    /* Last-resort safety on the narrowest phones: the logo plus four links need
-       ~307px beside the container's 3rem gutters, so below ~330px (~345 in
-       WebKit) the row cannot fit and previously overflowed the viewport. It
-       never wraps at 360px or above — HeaderNavLinks tightens its gap under
-       400px to keep it that way — so this changes nothing on a real phone and
-       simply refuses to push content off-screen on the smallest ones. */
-    flex-wrap: wrap;
-    row-gap: var(--spacing-xs);
+  /* Last-resort safety on the narrowest phones: the logo plus four links need
+     ~307px beside the container's 3rem gutters, so below ~330px (~345 in WebKit)
+     the row cannot fit and previously overflowed the viewport. HeaderNavLinks
+     tightens its gap under the same 400px, which is what keeps the row intact at
+     every width a current phone reports — this only takes over below that.
+
+     Deliberately NOT on the base rule, and the reason is a measurement tool, not
+     tidiness: the sash's 540/512 tiers were derived by finding where the nav
+     reserve fits, using horizontal overflow as the failure signal, and
+     announcement-sash.test.ts still guards them that way from 400px up. A nav
+     that can wrap cannot overflow, so a mis-sized reserve would silently become
+     a two-row header instead of failing. Confined to 400px and below — under the
+     512px stand-down — the two systems provably cannot interact. */
+  @media (max-width: 400px) {
+    .site-header nav {
+      flex-wrap: wrap;
+      row-gap: var(--spacing-xs);
+    }
   }
 
   @media (max-width: 768px) {

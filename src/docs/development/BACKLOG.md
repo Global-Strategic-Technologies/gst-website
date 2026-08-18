@@ -262,6 +262,31 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ---
 
+### BL-137: A closed filter drawer scrolls the page sideways in WebKit at 320px
+
+**Source**: measured 2026-08-18 while fixing the site-chrome overflow the announcement sash surfaced — the chrome fix landed, this did not, and it is the reason two routes are excluded from `narrow-viewport-chrome.test.ts` | **Effort**: Small, but not a one-liner — see the coupled test helper | **Status**: Open
+
+**As a** phone user on Safari, **I want** the pages that carry a filter drawer to stay put horizontally **so that** a panel I have not opened does not make the page scroll sideways.
+
+**The defect.** `.filter-drawer` parks off-canvas with a negative offset — `right: -400px` on a `position: fixed` box 350px wide ([filter.css:143](../../styles/components/filter.css)) — and WebKit counts that box in `document.scrollWidth`. At a 320px viewport the closed drawer's right edge lands at 720px, and the document overflows by **13px**. Chromium and Firefox do not count it, so this is WebKit-only, and it needs a narrow viewport: clean at 360px and above.
+
+Affects the two routes that render the drawer: `/ma-portfolio/` and `/hub/tools/regulatory-map/`.
+
+**Why it was not fixed alongside the chrome overflow** (the rest of the site is clean 320→480 in all three engines as of `5ae73058`): the obvious repair — animate with `transform: translateX()` instead of `right`, which takes the box out of scroll-width accounting — has a coupled consumer. [`tests/e2e/helpers/portfolio.ts:21`](../../../tests/e2e/helpers/portfolio.ts) decides the drawer is open by reading `parseFloat(getComputedStyle(el).right) >= -1`. Change the technique and that helper silently stops describing the thing it measures, taking the drawer's E2E coverage with it. That is a deliberate change to a component with its own animation and layering tests, not a drive-by.
+
+#### Acceptance Criteria
+
+- [ ] A closed `.filter-drawer` contributes nothing to `document.scrollWidth` in all three engines at 320px
+- [ ] The open/closed detection in `tests/e2e/helpers/portfolio.ts` is migrated with the technique, not left reading a property the drawer no longer animates
+- [ ] `/ma-portfolio/` and `/hub/tools/regulatory-map/` are added to `ROUTES` in [`narrow-viewport-chrome.test.ts`](../../../tests/e2e/narrow-viewport-chrome.test.ts), and the exclusion note there is removed rather than reworded
+- [ ] `filter-drawer-layering.test.ts`, `portfolio-filtering.test.ts` and `regulatory-map-mobile.test.ts` still pass on all three engines
+
+#### Technical Context
+
+- Worth checking while in there: a closed drawer is still in the tab order, so keyboard focus can reach controls that are off-screen. `visibility: hidden` when closed (with `visibility` in the transition so it stays animatable) would settle both that and the scroll-width accounting, and is a smaller change than a transform migration — but it moves the open/closed signal in the same way, so the helper travels with it either way.
+
+---
+
 ### BL-114: Strip the 10 inert `.primary` / `.secondary` class tokens
 
 **Source**: relocated from BL-095's technical context when that initiative closed (2026-08-08) — the record predates the closeout and remains a real obligation | **Effort**: Small (the strip); the _define_ path needs a design decision first | **Status**: **CLOSED 2026-08-09** — stripped, not defined
