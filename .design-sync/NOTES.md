@@ -157,8 +157,12 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   stale produces a document that contradicts itself, which no diff shows and which is
   worse than either sentence alone: a reader who checks the wrong one discards the rest.
   This is not hypothetical — the 2026-08-18 sash pass shipped exactly that, a bullet still
-  saying "real markup is in the `SiteHeader` chrome card" three paragraphs above a new
-  section explaining why that slice structurally cannot contain it. It survived FOUR
+  saying "real markup is in the `SiteHeader` chrome card" while a new section 173 lines
+  and seven headings later (lines 88 and 261) explained why that slice structurally cannot
+  contain it. The DISTANCE is the argument for the rule: a contradiction three paragraphs
+  apart would plausibly be caught by rereading the section, which makes the grep look
+  optional; 173 lines apart in a 20,000-character document, a whole-file grep is the only
+  thing that finds it. It survived FOUR
   review rounds, all of them reading diffs, and was found only by reading the published
   README end to end. `grep -n "<family>" .design-sync/conventions.md` is the whole check.
 
