@@ -230,6 +230,15 @@
   --cta-box-text: light-dark(rgba(26, 26, 26, 0.85), rgba(200, 200, 200, 0.8));
   --stat-item-border: light-dark(var(--color-primary), var(--color-primary-20));
 
+  /* Announcement sash (.brutal-sash) — the band and its ink. The band is always
+     --color-primary; the ink is dark by default and is re-pointed per palette in
+     palettes.css for the palettes whose LIGHT-theme primary is a dark saturated
+     hue. Defined here (not in palettes.css) for the same reason
+     --stat-item-border is: variables.css owns the base value, palettes.css owns
+     the per-palette override. */
+  --sash-bg: var(--color-primary);
+  --sash-ink: var(--bg-dark);
+
   /* Misc */
   --checkerboard-line: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.08));
   --theme-toggle-color: light-dark(rgba(74, 74, 74, 0.8), rgba(200, 200, 200, 0.8));
