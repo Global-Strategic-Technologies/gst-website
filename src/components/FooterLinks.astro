@@ -89,6 +89,17 @@ const { links = PRODUCTION_LINKS } = Astro.props;
       gap: 1rem;
       flex: 1;
       justify-content: flex-start;
+
+      /* Four links do not fit one row on a phone, and a flex item's default
+         min-width: auto means this row could neither wrap nor shrink — so it
+         pushed the sibling ThemeToggle past the viewport and every page scrolled
+         sideways below ~376px (~392 in WebKit, whose mono metrics run wider).
+         The toggle was the widest box on the page at those widths, not the nav.
+         Wrapping is the fix that does not shrink the type: the row becomes two
+         lines on the narrowest phones and nothing leaves the screen. */
+      flex-wrap: wrap;
+      row-gap: var(--spacing-sm);
+      min-width: 0;
     }
 
     .footer-links a {

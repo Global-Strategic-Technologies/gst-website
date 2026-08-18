@@ -191,4 +191,16 @@ const { currentPath = '/', links } = Astro.props;
       padding-right: 0;
     }
   }
+
+  /* Below 400px the logo and four links stop fitting one row beside the
+     container's 3rem gutters — 320px leaves only 224px for ~283px of content.
+     Tightening the gap buys back 24px, which keeps the row intact at every
+     width a current phone actually reports (360 and up, both engines). Header
+     .site-header nav carries flex-wrap as the safety below that; this rule is
+     what stops it ever being reached in practice. */
+  @media (max-width: 400px) {
+    ul {
+      gap: 0.5rem;
+    }
+  }
 </style>

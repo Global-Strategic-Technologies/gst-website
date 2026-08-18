@@ -41,6 +41,15 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     display: flex;
     justify-content: space-between;
     align-items: center;
+
+    /* Last-resort safety on the narrowest phones: the logo plus four links need
+       ~307px beside the container's 3rem gutters, so below ~330px (~345 in
+       WebKit) the row cannot fit and previously overflowed the viewport. It
+       never wraps at 360px or above — HeaderNavLinks tightens its gap under
+       400px to keep it that way — so this changes nothing on a real phone and
+       simply refuses to push content off-screen on the smallest ones. */
+    flex-wrap: wrap;
+    row-gap: var(--spacing-xs);
   }
 
   @media (max-width: 768px) {
