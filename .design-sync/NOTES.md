@@ -101,6 +101,21 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
   not `.ds-sync/node_modules`. Specimens take no props, so nothing is lost.
 - Playwright: the repo pins `playwright-core` 1.62.1 → chromium build **1234**, which was
   already in the local cache. No 200MB install was needed.
+- **The bundle root ships `_ds_needs_recompile`, and the upload deletes nothing.** The
+  build emits `_ds_needs_recompile` (`{"by":"design-sync-cli"}`) and does NOT emit
+  `_ds_manifest.json` or `_adherence.oxlintrc.json`, both of which exist on the remote.
+  They are compiled PRODUCT-SIDE from the uploaded files — CLAUDE_DESIGN_SYNC.md § Known
+  limits says the manifest "cannot be checked from the repo", and the adherence config
+  appears nowhere in this repo at all. So the marker is what asks the app to regenerate
+  them: upload it, and pass an EMPTY `deletes` set. Deleting the two as orphans would
+  remove artifacts this repo neither owns nor can rebuild. Confirmed on the 2026-08-18
+  sync: 101 files written, both app-side files still present afterwards.
+- **The upload set is 101 files, and the two exclusions are deliberate.** Everything under
+  `ds-bundle/` except the 8 root dotfiles (local telemetry — `.resync-verdict.json`,
+  `.sync-diff.json`, `.render-check.json`, `.review.html`, …) and `_screenshots/` (32
+  render proofs). The verdict's `upload.components` block lists only specimens, so the
+  `finalize_plan` write set must add `components/chrome/*/*` by hand or the 19 chrome
+  cards silently never ship.
 
 ## Known render warns (expected — not new)
 
@@ -154,8 +169,10 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
 - **The README header has a hard size ceiling.** The converter prepends `conventions.md`
   to the uploaded README precisely because the consumer truncates the README inline at
   **32,000 characters, cutting the TAIL** (skill `lib/emit.mjs`, `emitReadme`). The
-  header is ~17.5 KB today (Slice 3); `design-sync-guards.test.ts` guard 5 fails `test:docs`
-  at 28,000 chars. If it outgrows that, move the overflow into a shipped guideline doc under
+  header is 20,373 characters today (2026-08-18, after the `.brutal-sash` section);
+  `design-sync-guards.test.ts` guard 5 fails `test:docs` at 28,000 chars. Measure it in
+  CHARACTERS, not bytes — the guard does, and the two differ once the prose carries
+  non-ASCII. If it outgrows that, move the overflow into a shipped guideline doc under
   `guidelinesGlob` rather than raising the number and letting the tail (the boilerplate) or,
   worse, the end of the header be cut.
 - **Specimen markup was ported from real sources** — `BrandComponents.astro`,
