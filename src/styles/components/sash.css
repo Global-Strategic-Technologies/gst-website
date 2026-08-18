@@ -25,10 +25,11 @@ with the per-palette ink in palettes.css). Borders and hover derive from them
 with color-mix, so the sash follows all six palettes and both themes with no
 extra CSS and no literal colours.
 
-The off-scale rem values below (0.4375, 0.5625, 0.375, 0.0625, 0.3125) are
-deliberate: they are the optical band thicknesses the 45° chord is drawn for, and
-no spacing token lands on them. Everything that DOES land on the scale uses the
-token.
+Spacing follows the same rule: anything that lands on the scale uses its token,
+and the rest are raw on purpose — they are the optical band thicknesses and
+paddings the 45° chord is drawn for, and no token lands on them. (Deliberately
+not enumerated: a hand-kept list of exceptions goes stale the first time one
+moves.)
 
 ============================== */
 
