@@ -29,6 +29,12 @@ pnpm-debug.log*
 # vercel deployment
 .vercel/
 
+# unoptimised source captures — must never ship (anything under public/ deploys verbatim).
+# These are irreplaceable ORIGINALS, not build inputs: the optimised media in
+# public/images/hub/mcp/ can be regenerated from them via the recipes in BL-138, but nothing
+# regenerates these. Do not delete without checking that stanza first.
+media-raw/
+
 # claude local settings (per-developer)
 .claude/settings.json
 .claude/settings.local.json
