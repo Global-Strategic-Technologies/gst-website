@@ -1158,6 +1158,8 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 
 **Website marketing surface**
 
+> **A follow-on page is filed separately**: the `/hub/mcp/get-started/` onboarding page and its screen-capture media are tracked at [BL-138](#bl-138-the-site-csp-blocks-video-and-the-onboarding-media-has-nowhere-to-live), which also carries a CSP gap this stanza's own allowlist AC below does not cover — `media-src` is undefined site-wide, so `<video>` is denied by the `default-src 'none'` fallback.
+
 - [~] Dedicated page under `/hub` (route naming consistent with `/hub/radar`, `/hub/tools/*`): what the server is, the BL-033 use cases, tier table, links to the public docs + status page, request-access CTA — 🟡 **partial, one half structurally unmeetable**: `/hub/mcp/` ships with the server explainer + endpoint, four use-case cards (four of BL-033's six until the 2026-08-17 revision re-cut two of them — see the closure note at the end of this AC), the tier presentation, the status-page link, and the request-access CTA. **"Links to the public docs" cannot be met** — `docs.mcp.globalstrategic.tech` does not exist (no route in `mcp-server/wrangler.toml`, nothing in `vercel.json`) and its AC block one stanza up is still deferred. Linking it would 404 a prospect, so the page carries an on-page tool catalog instead and the parity test asserts the subdomain is **absent**. This AC closes when the docs site ships. Two recorded deviations from its letter: (a) **"tier table" is rendered as three tier cards** — an operator presentation choice, NOT a missing capability: `.brutal-bench-table` (`src/styles/components/table.css`) exists and is in production on the TechPar and ICG tool pages, but it is two-column with no header-row styling, so a three-tier matrix needed new CSS either way; (b) **the request-access CTA is a prefilled `mailto:`**, not a form — see AC below. **Deviation (a) closed 2026-08-17** by the page's structural revision: the ceilings now render as one `.brutal-bench-table` matrix (four metric rows × three tier columns) under a tier-header row that supplies the column headings, so the AC's literal "tier table" is met. Same revision **re-cut the use-case cards** — Portfolio Monitoring and Pitch Preparation (a portfolio-services group and a sell-side banker, both off-persona for a page written for PE investors and portfolio executives) were replaced by Cost Benchmarking and Regulatory Exposure, so the four cards are no longer four of BL-033's own six
 - [x] MCP offer section on `src/pages/services.astro` (zero MCP marketing exists site-wide today) + cross-link from `src/pages/hub/index.astro` — ✅ a full-width offer panel between the service-lines grid and the audience section (the three-card grid is `repeat(3, 1fr)`, so a fourth card would have orphaned the desktop row), plus an MCP entry in the page's `faqItems` — which feeds the FAQPage JSON-LD automatically. `/hub/` gains a fourth `.hub-card`; its base grid moved `repeat(3, 1fr)` → `repeat(2, 1fr)` (2×2), the only rule that changed since the 1024/768 steps already declared two columns and one
 - [x] Page meets the existing hub-page bar: design-system tokens only, works in light/dark themes and all 6 palettes, desktop-first responsive; E2E coverage per [`TEST_STRATEGY.md`](../testing/TEST_STRATEGY.md); if any existing copy strings change, the Directive-11 `grep tests/` check applies — ✅ built on the section-index archetype (`/hub/tools/index.astro`) over global card families — `.brutal-trust-card` (this is its first production consumer; it was specimen-only), `.brutal-gateway-card`, `.brutal-stat-tile`, `.brutal-callout`. Tokens only, stylelint clean. `tests/e2e/hub-mcp-page.test.ts` covers page shape, both cross-links, and the CTA prefill; the route is added to `tests/e2e/accessibility.test.ts` (22 → 23 routes). **One deviation worth recording**: the tier grid needs a page-scoped `grid-template-columns` override — the shared `.brutal-gateway-grid` is `repeat(auto-fill, minmax(420px, 1fr))` at a 3rem gap, so three tracks need ≈1452px of viewport and the row would have broken to 2 + 1 at 1280/1366/1440. That scoped rule is also what produces the mobile stack, since it out-specifies the global single-column rule in `cards.css`. **Retired 2026-08-17**: the revision dropped `.brutal-gateway-card` from this page entirely, so neither the override nor the deviation exists any more. What replaced it carries its own constraint worth the same note — the tier headers are a grid and the ceilings are a `<table>`, two elements that must resolve to the same four-column split (four equal tracks with NO column gap against `table-layout: fixed`), so `hub-mcp-page.test.ts` measures header-vs-cell geometry rather than trusting the CSS
@@ -1372,6 +1374,79 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 - **Cross-links closed**: `PILOT_ONBOARDING.md` § 2 previously stated that the provisioning script's generated email was the only thing sendable to an M2M pilot — true until `SETUP.md` § 0b/1b landed. That paragraph, the email itself (`provision-client.mjs`), and `REMOTE_CLIENT_SETUP.md` now point at the suite; the email pointer carries a unit assertion so it cannot be dropped silently
 - **`mcp-server/README.md` § Smoke test** keeps its heading verbatim and its dated stanzas intact — `_archive/MCP_SERVER_HUB_SURFACE_BL-031_5.md` links that anchor as closure evidence, and the doc-link guard skips `_archive/` as a scan source, so renaming it would break the citation on a green run. A pointer was added above the stanzas instead. Related: the [BL-034 open item](#bl-034-mcp-server--documentation-cleanup-rolling-catch-all-stub) on what a dated verification stanza should say once its numbers rot is now partly answered — new verification goes in the UAT run logs, which carry a version column precisely so they can age without lying
 - **Branch note**: cut from `master` in parallel with the unmerged BL-093 marketing branch, so `mcp-marketing-parity.test.ts`'s private registry readers could not be extracted. The shared helper was written fresh with identical signatures; the sole-definition assertion above is what forces the rewire when both have landed
+
+---
+
+### BL-138: The site CSP blocks video, and the onboarding media has nowhere to live
+
+**Source**: found 2026-08-19 while producing screen-capture assets for a planned `/hub/mcp/get-started/` onboarding page — the assets were the task, the CSP gap is what the work turned up | **Effort**: Small — a one-directive CSP change, a docs row, an ADR, and a media commit | **Status**: Open | **Depends on**: `/hub/mcp/get-started/` being finalized
+
+**Filed in Infrastructure deliberately.** This section otherwise holds only MCP-server items, but this belongs beside its parent [BL-093](#bl-093-mcp-server--commercialization-phase-4), which owns the `/hub/mcp/` page family, rather than in a website section away from it.
+
+#### The finding: `<video>` is CSP-blocked site-wide
+
+The `SECURITY_HEADERS` const in `src/middleware.ts` (the `Content-Security-Policy` array, ~lines 59-73) and **both** CSP strings in `vercel.json` (the site-wide `/(.*)` rule ~line 59, and the `/brand/responsive-frame/` route exception ~line 72) set `default-src 'none'` and define **no `media-src` directive**. `media-src` is a fetch directive that falls back to `default-src`, so every `<video>`/`<audio>` source is denied — **including same-origin**.
+
+Nothing has caught this because these clips would be the **first `<video>` on the site**; there is no `<video>` or `<audio>` element anywhere in `src/` today. The failure mode is quiet and misleading: the `poster` attribute is fetched with an image destination and so is governed by `img-src` (`'self' https: data:`), which permits it — so **the poster renders while the video silently refuses to load**.
+
+This is a prerequisite for unshipped work, not a live production break.
+
+**It is a guarded edit, not a drift risk.** `tests/unit/security-headers.test.ts` pins both copies: the vercel-vs-middleware parity assertion (~lines 95-101) compares every header by exact string equality, and the frame-route assertion (~lines 154-161) compares the route CSP to the site-wide one after normalizing away `frame-ancestors`. Omitting `media-src` from either file fails the suite immediately.
+
+> Line numbers above will rot and nothing guards them. Search for the symbols instead: the `SECURITY_HEADERS` const in `src/middleware.ts`; the `directives` array inside the `CSP should include required directives` test; the `img-src` row of the CSP Breakdown table in [`SECURITY_HEADERS.md`](../security/SECURITY_HEADERS.md).
+
+#### Where the assets physically are — read this before following any recipe below
+
+The nine optimised outputs and the two raw captures are **untracked, and exist only on the operator's machine**. A fresh clone has none of them. The raw captures are being relocated out of `public/` into a gitignored `media-raw/` at the repo root — that is their destination, not necessarily their present location if this stanza is read mid-change.
+
+**The asymmetry that matters**: the outputs are reproducible from the recipes below; the **two raw captures are not reproducible by anything**. They are recordings of a Claude Desktop session, and every trim window in the recipes (`-ss 4.00 -t 6.00`, `trim=2.9:16.2`) is meaningless against a different recording. Losing an output costs an ffmpeg re-run. Losing a raw capture costs a re-record plus re-derivation of every timing.
+
+#### Decision: the media lives in git
+
+Measured basis at the time of the decision: pack `16.79 MiB`; largest tracked file `package-lock.json` at `0.62 MiB`; the nine keepers total `1.285 MiB` combined. Media-in-git is a real problem for large, frequently re-rendered binaries; these are write-once onboarding captures that change only when Claude Desktop's UI changes.
+
+- **Git LFS rejected** — adds a build-config dependency, and a fresh clone without `git-lfs` installed silently receives pointer files instead of media.
+- **Cloudflare R2 / Vercel Blob rejected** — would require allowlisting an external origin in `media-src`, weakening the `'self'`-only posture; decouples media from code versioning, so a code rollback would not roll back media; preview deploys would share production assets; and it adds a publish step, a cache strategy, and a new secret for [`SECRETS_INVENTORY.md`](../operations/SECRETS_INVENTORY.md).
+
+**Revisit threshold — a judgment call, not a measurement**: if this media set exceeds roughly `25–50 MiB` against today's `16.79 MiB` pack, or shifts from write-once to a regular re-render cadence, move to R2 and allowlist the origin in `media-src`.
+
+**Operator decisions already taken** (do not re-litigate): commit the optimised media to the repo; drop all six GIF variants; move the raw captures to a gitignored folder. The latter two are cleared by the housekeeping accompanying this stanza.
+
+#### Reproduction recipes
+
+Sources: `GST_MCP_Claude_Connection_Verify.mp4` (1506×1170, 10.4s) and `GST_MCP_Claude_Regulations_First_Query.mp4` (1384×760, 18.4s), both relocated to `media-raw/`.
+
+| clip                | output   | duration |
+| ------------------- | -------- | -------- |
+| `connector-enabled` | 1000×952 | 5.1s     |
+| `prompts-resources` | 1000×780 | 6.0s     |
+| `regulations-query` | 1384×730 | 7.7s     |
+
+- **connector-enabled** — from source 1: `-ss 0.25 -t 3.60`, `crop=980:934:0:232`, `tpad=stop_mode=clone:stop_duration=1.5`, then `scale=1000:952`. Poster at master `t=3.2`.
+- **prompts-resources** — from source 1: `-ss 4.00 -t 6.00`, `crop=1006:784:490:112`, then `scale=1000:780`. Poster at master `t=1.6`.
+- **regulations-query** — from source 2, variable-speed concat: `trim=0.8:2.9` at 1×, `trim=2.9:16.2` at 5× (`setpts=(PTS-STARTPTS)/5`), `trim=16.2:18.4` at 1×; then `crop=1384:730:0:0`, `fps=30`, `tpad=stop_mode=clone:stop_duration=0.7`. Native width, no scaling. Poster at `t=7.2`.
+- **All**: `-an`. mp4 `libx264 -profile:v high -crf 30 -preset slow -pix_fmt yuv420p -movflags +faststart` at `fps=15`; webm `libvpx-vp9 -crf 38 -b:v 0 -row-mt 1` at `fps=15`.
+- **GIF pass** (the six deleted variants, recorded so the deletion is reversible) — two-stage from the same master: ffmpeg `fps=$F,scale=$W:$H:flags=lanczos,split[a][b];[a]palettegen=max_colors=$C[p];[b][p]paletteuse=dither=bayer:bayer_scale=3` with `-loop 0`, then `gifsicle -O3 --lossy=60 --colors $C` for the `.min.gif`. Per clip: connector-enabled `fps=12` / `max_colors=128` / `scale=1000:952`; prompts-resources `fps=10` / `max_colors=64` / `scale=1000:780`; regulations-query `fps=10` / `max_colors=64` / native size.
+- **Why the motion-heavy clips use lower settings** — figures are the optimised `.min.gif` (the shipping artifact; the full-size `.gif` is an intermediate). prompts-resources at `fps=12`/128 produced `1.20 MiB`; walking the levers gave `1.03 MiB` (fps 10) then **`0.90 MiB`** (fps 10 + 64 colours). regulations-query went `0.98 MiB` → **`0.67 MiB`** the same way. Scale was never reduced, because text legibility is the binding constraint. Do not "restore" the higher settings.
+- **Both colour stages are real — here is the check that proves it.** The full-size `.gif` files declare a 256-entry global colour table even though `max_colors` was 128/64, because `palettegen` emits a 16×16 palette image and the muxer writes all 256 slots. Counting **distinct RGB triples** rather than slots settles it: the three full-size files held **127 / 64 / 64** distinct colours in those padded tables, which is stage 1 working. The `.min.gif` tables then read 128/64/64 because gifsicle rewrites them. Neither stage is redundant — do not "simplify" the recipe by dropping `max_colors`. If in doubt, count triples, not slots; slot count alone will mislead you.
+- **Tooling** — neither binary ships with the repo or the machine by default. ffmpeg via `winget install Gyan.FFmpeg`. gifsicle has no winget package; use `npx gifsicle` or a standalone install. **Do not `npm install gifsicle` in this repo** — it would dirty `package.json` and the lockfile with a binary-downloading dependency for a one-off task.
+
+#### Three constraints the page inherits
+
+None of these are obvious from the files themselves:
+
+1. **Three different aspect ratios** — 1.05:1, 1.28:1, 1.90:1. The clips cannot share one fixed media slot; one or two would letterbox or crop.
+2. **`regulations-query` needs ≈870px display width**, not the ~520px the other two are comfortable at. Its source window is wider, so its text is ~0.6× their relative size; at 520px it renders around 7 CSS pixels and is unreadable.
+3. **`regulations-query` is speed-edited** — 5× through the middle, where the real query took ~15s. It needs a visible "sped up" label so the page does not imply a response time the server does not deliver.
+
+#### Acceptance criteria
+
+- [ ] `media-src 'self'` added to **both** `vercel.json` CSP strings and to the `SECURITY_HEADERS` CSP array in `src/middleware.ts`, inserted after the `img-src` entry so all three stay diffable
+- [ ] The **full string** `"media-src 'self'"` — not the bare `'media-src'` token, which passes even when the value is wrong or empty — added to the `directives` array in `tests/unit/security-headers.test.ts`, matching the full-form style of the existing `default-src 'none'` entry
+- [ ] A `media-src` row added to the CSP Breakdown table in [`SECURITY_HEADERS.md`](../security/SECURITY_HEADERS.md) after the `img-src` row, and the corresponding Future Considerations entry removed once shipped
+- [ ] The nine media files committed, with a message naming `/hub/mcp/get-started/` — they have no consumer until the page lands, so an unused-asset sweep would otherwise remove them
+- [ ] **ADR-0019** written from [`adr/TEMPLATE.md`](../adr/TEMPLATE.md) with `**Source initiative**: BL-138`, recording the git-vs-object-storage decision, the rejected alternatives, and the revisit threshold — plus its index row added to [`adr/README.md`](../adr/README.md) (0001–0018 exist with no gaps, so 0019 is free)
+- [ ] **The recipes migrated to a durable home.** This file removes completed items (see the note at the top), recoverable only via `git log` — but the recipes and the three page constraints are exactly what is needed _after_ closure, since the whole hosting rationale is that these clips get re-rendered when Claude Desktop's UI changes. A committed build script under `scripts/` is the elegant form (executable documentation that survives pruning); ADR-0019's Consequences section is the fallback. It must live in a **tracked** directory — beside the media in `media-raw/` it would be gitignored along with the files it documents, reproducing the exact problem this criterion exists to solve
 
 ---
 

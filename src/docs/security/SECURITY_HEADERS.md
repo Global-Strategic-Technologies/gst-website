@@ -104,6 +104,7 @@ These third-party domains are deliberately NOT in the CSP allowlist. Re-adding t
 - **Cookie consent banner** (Business Enablement V1): may add a new inline script or external CSS — update CSP when it ships
 - **Email capture** (Business Enablement V1): if using an external email service API, add to connect-src
 - **Nonce-based CSP**: evaluate if the site adds user-generated content or auth — currently not worth the complexity
+- **`media-src` is undefined, so `<video>` is denied site-wide** ([BL-138](../development/BACKLOG.md#bl-138-the-site-csp-blocks-video-and-the-onboarding-media-has-nowhere-to-live)): there is no `media-src` directive in either `vercel.json` or `middleware.ts`, and it falls back to `default-src 'none'`. No page has hit this yet because the site has no `<video>`/`<audio>` element, and the failure is quiet — `poster` is governed by `img-src` and loads, so the still frame appears while the video never plays. Add `media-src 'self'` (both files, plus the `directives` array in `security-headers.test.ts`) when the `/hub/mcp/get-started/` onboarding clips ship
 
 ---
 
