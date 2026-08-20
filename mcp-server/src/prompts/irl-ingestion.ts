@@ -696,7 +696,7 @@ const RUN_AUDIT_DIRECTIVE = [
   // field is load-bearing and five BL-121 assertions pin them. So the envelope-
   // sourced fields get their extract-only values stated once, here, rather than
   // thirteen conditional rewrites scattered through the rules below.
-  '- **`mode: extract-only` — what the envelope-sourced fields are.** This mode invokes no analysis tools and NEVER calls `compose_dossier_envelope`, so every rule below that says *copy verbatim from the envelope output* has nothing to copy from. It is not an omission to repair and not a defect to report. Concretely: `firstEnvelopeCall: null`; `precheck.iterations: 0`, `attemptsTotal: 0`, `outcome: never-attempted`, `errorsEncountered: []`; `countersScope: null`; `toolCallCounts: {}`; `toolErrors: []`; `selfCorrectionCalls: 0`; `totalEnvelopeCalls: 0`; `meaningfulRecallsHaveDifferentInputs: null`. The precheck ↔ counter derivation identities below are full-mode arithmetic and do not apply. `promptVersion` comes from the Run parameters block, and `filledIrl` IS measured — see the next rule; a body reached you in this mode by definition.',
+  '- **`mode: extract-only` — what the envelope-sourced fields are.** This mode invokes no analysis tools and NEVER calls `compose_dossier_envelope`, so every rule below that says *copy verbatim from the envelope output* has nothing to copy from. It is not an omission to repair and not a defect to report. Concretely: `firstEnvelopeCall: null`; `precheck.iterations: 0`, `attemptsTotal: 0`, `outcome: never-attempted`, `errorsEncountered: []`; `countersScope: null`; `toolCallCounts: {}`; `toolErrors: []` **unless the one `prepare_irl_body` call on the deferred arm failed** — that is a real attempt against the server, and a transport or rate-limit failure there belongs in this list like any other, so an empty list is correct BY CONSTRUCTION only on the one-shot arm, which makes no call at all; `selfCorrectionCalls: 0`; `totalEnvelopeCalls: 0`; `meaningfulRecallsHaveDifferentInputs: null`. The precheck ↔ counter derivation identities below are full-mode arithmetic and do not apply. `promptVersion` comes from the Run parameters block, and `filledIrl` IS measured — see the next rule; a body reached you in this mode by definition.',
   '- If the run did not produce an envelope call (e.g., interactive-paste-request scenario that ended without compose), set `firstEnvelopeCall: null`, all counts to 0, and `precheck.outcome: never-attempted` (or whatever actually happened).',
   // BL-125 (#7) — this bullet used to end "and `filledIrl: null`", full stop.
   // In `mode: extract-only` that is wrong: no envelope call is EVER made in
@@ -801,9 +801,11 @@ const GAP_LIST_DIRECTIVE = [
 // It is why `auditLevel` is stated in extract-only — the meta fence there is
 // model-authored (ADR-0017 § "two provenances"), making it the one surface
 // where the value can ONLY come from the model's belief — while
-// `requireVerbatimBody` is not: extract-only invokes no ANALYSIS tool — its one
-// call is `prepare_irl_body`, which computes nothing about the target and
-// reads no gate — the flag is not a meta-fence key and not a RUN-AUDIT field,
+// `requireVerbatimBody` is not: neither extract-only body invokes an ANALYSIS
+// tool, and neither reads a gate — the deferred arm's one call is
+// `prepare_irl_body`, which computes nothing about the target, and the one-shot
+// arm makes no call at all — the flag is not a meta-fence key and not a
+// RUN-AUDIT field,
 // so stating it would be bytes plus an invitation to enforce a gate this body
 // forbids reaching.
 //
@@ -818,8 +820,9 @@ function runParameterBullets(p: {
   /**
    * Where the model copies these values TO — caller-supplied, because it
    * differs per surface and naming the wrong destination is its own defect.
-   * Extract-only invokes no ANALYSIS tool (its one call is `prepare_irl_body`,
-   * which computes nothing about the target), so pointing it at
+   * Neither extract-only body invokes an ANALYSIS tool (the deferred arm's one
+   * call is `prepare_irl_body`, which computes nothing about the target; the
+   * one-shot arm makes no call at all), so pointing it at
    * `compose_dossier_envelope` inputs would invite exactly what its own body
    * forbids two paragraphs later — the same objection that keeps
    * `requireVerbatimBody` off that surface. Still caller-provided, so nothing

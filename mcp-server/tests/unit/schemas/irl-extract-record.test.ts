@@ -356,12 +356,13 @@ describe('excerpt cap — a floor and a token-preservation rule, not a byte coun
   });
 
   it('never produces an excerpt its own schema would reject', () => {
-    // Code review's constructed case: an early space, then one unbroken token
-    // past the cap. Backing up to that space used to be allowed (the floor was
-    // the tier-1 minimum, 20) and yielded a ~22-character flagged excerpt, which
-    // the `excerptTruncated` refinement refuses for being far under half the cap.
-    // Helper and validator now share the half-cap floor, so the hard slice wins.
-    const pathological = `A ${'x'.repeat(400)}`;
+    // The space must sit BETWEEN the old floor (20) and the new one (half the
+    // cap), or the case does not discriminate: review's first input put it at
+    // index 1, below both floors, so old and new code both hard-sliced and the
+    // assertion passed on the unfixed helper. At index 22 the old floor backs up
+    // to a 23-character flagged excerpt — which the refinement refuses — while
+    // the new floor cuts at the cap.
+    const pathological = `${'x'.repeat(22)} ${'y'.repeat(400)}`;
     const { excerpt, truncated } = capIrlExtractExcerpt(pathological);
     expect(truncated).toBe(true);
     expect(excerpt.length * 2).toBeGreaterThanOrEqual(IRL_EXTRACT_EXCERPT_CAP_CHARS);
