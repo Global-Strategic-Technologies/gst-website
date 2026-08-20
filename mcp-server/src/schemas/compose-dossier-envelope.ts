@@ -38,6 +38,7 @@ import { REGULATION_ENTRIES } from '../content/regulation-loader';
 import { CONDITIONAL_TRIGGER_NAMES } from '../prompts/extraction-rules';
 import { ORCHESTRATED_TOOLS, auditLevelValues, type AuditLevel } from '../prompts/irl-ingestion';
 import type { IrlBodyMintedBy } from '../cache/irl-body-provenance';
+import { IRL_SOURCE_VALUES } from './irl-source';
 import { assessIrlBodyStructure } from '../lib/irl-body-structure';
 import {
   citationFieldSchema,
@@ -76,21 +77,12 @@ const tierValues = ['1', '2', '3'] as const;
 // since drifted onto unrelated code.)
 //
 // BL-123 — the model ASSERTS this; the server can cap it. See `capIrlSource`.
-const irlSourceValues = [
-  'partner-paste-verbatim',
-  // BL-079 Part B — operator pasted the IRL markdown into the prompt arg AND
-  // the server pre-populated the IRL body cache at prompt-render time. The
-  // model never emitted the body to `prepare_irl_body` — it skipped that tool
-  // entirely and passed `irlBodyHash` straight to `compose_dossier_envelope`
-  // and `validate_irl_provenance`. Strongest provenance form: the cache
-  // contents are byte-equal to the prompt arg (no model emission roundtrip).
-  // Distinguished from `partner-paste-verbatim` so operators see in the
-  // VERIFY block which path actually ran.
-  'partner-paste-verbatim-prepop',
-  'model-reconstruction-from-xlsx',
-  'model-reconstruction-trimmed',
-  'placeholder',
-] as const;
+//
+// The tuple itself moved to `schemas/irl-source.ts` when the IRL extract record
+// gained an `irlSource` on its `_meta`: two modules needed the same vocabulary
+// and a direct import between them would have closed a cycle through
+// `prompts/irl-ingestion.ts`. Aliased here so every reference below is unchanged.
+const irlSourceValues = IRL_SOURCE_VALUES;
 
 // BL-072 — the reconstruction modes that trigger the provenance-gap
 // auto-append. Explicit Set (not a `startsWith` prefix check) so a future
@@ -937,16 +929,25 @@ export class Bl070VerbatimBodyRequiredError extends Error {
 }
 
 /**
- * BL-076 — thrown when `compose_dossier_envelope` was called with an
+ * BL-076 — thrown when a body-by-hash consumer was called with an
  * `irlBodyHash` that is NOT present in the server-side IRL body cache.
  * Surfaces a structured rejection directing the model to call
  * `prepare_irl_body` first.
  *
+ * **Worded tool-neutrally.** Two tools raise it — `compose_dossier_envelope`
+ * and `validate_irl_provenance` — and since the IRL extract record travels
+ * across sessions while the 4 h body cache does not, the operator who most
+ * often meets this message is one re-validating a record's citations in a later
+ * session through the VERIFIER, not composing a dossier. A message written
+ * entirely in envelope terms told that operator to fix a call they had not made.
+ *
  * Caused by one of:
- *   - Model skipped `prepare_irl_body` and called `compose_dossier_envelope`
+ *   - Model skipped `prepare_irl_body` and called a body-by-hash consumer
  *     directly. Recovery: call `prepare_irl_body` then retry.
  *   - Cache entry was evicted (stdio LRU at capacity) or expired (Worker
- *     Upstash TTL). Recovery: call `prepare_irl_body` again to re-seed.
+ *     Upstash TTL — 4 h). Recovery: call `prepare_irl_body` again to re-seed.
+ *     **This is the normal, expected state for a second-session run against a
+ *     travelling extract record**, not a fault.
  *   - Hash typo / drift. Recovery: re-run `prepare_irl_body` with the
  *     intended body to obtain a fresh canonical hash.
  */
@@ -955,12 +956,19 @@ export class Bl076BodyCacheMissError extends Error {
   constructor(irlBodyHash: string) {
     super(
       `body-cache miss for irlBodyHash="${irlBodyHash}": call ` +
-        `prepare_irl_body({ filledIrl }) first to seed the cache. The body-by-hash ` +
-        `pattern requires the IRL body to be submitted via prepare_irl_body ` +
-        `before compose_dossier_envelope can re-hydrate it for internal provenance ` +
-        `verification. If you already called prepare_irl_body, the cache entry may have ` +
-        `been evicted (stdio LRU capacity exceeded) or expired (Worker TTL); re-call ` +
+        `prepare_irl_body({ filledIrl }) first to seed the cache, then retry this call. ` +
+        `The body-by-hash pattern requires the IRL body to be submitted via ` +
+        `prepare_irl_body before any consumer (compose_dossier_envelope, ` +
+        `validate_irl_provenance) can re-hydrate it for provenance verification. ` +
+        `If you already called prepare_irl_body, the cache entry may have ` +
+        `been evicted (stdio LRU capacity exceeded) or expired (Worker TTL, 4 hours); re-call ` +
         `prepare_irl_body with the same body to re-seed and retry. ` +
+        'A cache miss is EXPECTED when you are working from an IRL extract record carried ' +
+        'over from an earlier session: the record travels through the conversation, the ' +
+        'cached body does not. Re-seed with the paired filled IRL and compare the hash ' +
+        "prepare_irl_body returns against the record's `_meta.irlBodyHash` — equal means the " +
+        'same bytes, different means verification still runs but against a body that is not ' +
+        'byte-identical to the one the record was extracted from, and the output must say so. ' +
         'If this prompt was invoked with `filledIrl` ' +
         'as a prompt arg, the server pre-populates the cache at prompt-render time — ' +
         'if you see this error in that mode, the prepop write likely failed. Check ' +

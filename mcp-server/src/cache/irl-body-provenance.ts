@@ -98,8 +98,18 @@ export interface IrlBodyProvenanceStore {
    *
    * Never throws. A write failure leaves the entry absent, which degrades to
    * the unverified path rather than failing a run.
+   *
+   * **Returns the EFFECTIVE entry** — `existing ?? entry` — or `null` on the
+   * swallowed-error path. Under first-write-wins the timestamp the caller
+   * computed can differ from the one the store kept (reachably: the
+   * render-time prepop may have minted first, and repeat calls inside the 4 h
+   * window hit the same path), so a caller that wants to REPORT the mint time
+   * must report the stored value, not its own clock. Both impls already read
+   * the key inside this method, so handing it back costs zero added round
+   * trips — where a post-write `read()` would add one to a path
+   * `ARCHITECTURE.md § IRL body provenance` flags as cost-sensitive.
    */
-  record(irlBodyHash: string, entry: IrlBodyProvenance): Promise<void>;
+  record(irlBodyHash: string, entry: IrlBodyProvenance): Promise<IrlBodyProvenance | null>;
 
   /** Returns null on miss or on any store error — both mean "cannot verify". */
   read(irlBodyHash: string): Promise<IrlBodyProvenance | null>;
@@ -109,9 +119,13 @@ export interface IrlBodyProvenanceStore {
 export class InMemoryIrlBodyProvenanceStore implements IrlBodyProvenanceStore {
   private readonly store = new Map<string, IrlBodyProvenance>();
 
-  async record(irlBodyHash: string, entry: IrlBodyProvenance): Promise<void> {
-    if (this.store.has(irlBodyHash)) return; // first-write-wins
+  async record(irlBodyHash: string, entry: IrlBodyProvenance): Promise<IrlBodyProvenance | null> {
+    // `.get()` rather than `.has()` so first-write-wins has the stored VALUE to
+    // hand back, matching the Upstash impl's existing value-read.
+    const existing = this.store.get(irlBodyHash);
+    if (existing) return existing; // first-write-wins
     this.store.set(irlBodyHash, entry);
+    return entry;
   }
 
   async read(irlBodyHash: string): Promise<IrlBodyProvenance | null> {
@@ -139,11 +153,11 @@ export class UpstashIrlBodyProvenanceStore implements IrlBodyProvenanceStore {
     this.ttlSeconds = ttlSeconds;
   }
 
-  async record(irlBodyHash: string, entry: IrlBodyProvenance): Promise<void> {
+  async record(irlBodyHash: string, entry: IrlBodyProvenance): Promise<IrlBodyProvenance | null> {
     const key = `${IRL_BODY_PROVENANCE_KEY_PREFIX}${irlBodyHash}`;
     try {
       const existing = await this.store.get<IrlBodyProvenance>(key);
-      if (existing) return; // first-write-wins
+      if (existing) return existing; // first-write-wins
       const ok = await this.store.set(key, entry, this.ttlSeconds);
       safeLog({
         event: 'bl123.provenance.record',
@@ -152,6 +166,9 @@ export class UpstashIrlBodyProvenanceStore implements IrlBodyProvenanceStore {
         success: ok,
         ...(ok ? {} : { errorCode: 'provenance-write-returned-false' }),
       });
+      // A write that returned false left nothing stored — report absence rather
+      // than the entry we failed to persist.
+      return ok ? entry : null;
     } catch (error) {
       // Deliberately swallowed — see the posture note in the module docstring.
       safeLog({
@@ -162,6 +179,7 @@ export class UpstashIrlBodyProvenanceStore implements IrlBodyProvenanceStore {
         success: false,
         errorCode: 'provenance-write-threw',
       });
+      return null;
     }
   }
 

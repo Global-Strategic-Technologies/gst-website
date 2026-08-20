@@ -7,6 +7,8 @@ model: claude-opus-4-7
 
 # Worked example output for `gst_diligence_handoff_memo`
 
+> **Historical transcript, not a current-body snapshot.** This recording predates `v0.1.0` (2026-08-20, [ADR-0019](../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md)). `generate_diligence_agenda`'s `_audit` sibling is now **branch-conditional**: the "every audit entry uses tier 3" instruction this transcript ran under is gone, replaced by an evidence branch citing `Section NN — <excerpt>` at tier 1/2 and a no-evidence branch keeping the `Section --` sentinel. `'unknown'` + tier 3 still survives for uncovered dimensions. Re-recording needs a human-driven live exercise against a real MCP client, so it cannot happen in-session or in CI; `golden-snapshots.test.ts` asserts file existence, four frontmatter keys and `promptName` — never `version` or body — so the stale version above is expected and is not drift to repair.
+
 V8 sign-off recording (v0.0.1) carried forward to v0.0.3 — three layered changes since V8:
 
 - **v0.0.2 (BL-031.95 Phase 2.D)**: `'unknown'` defaulting on every wizard field; fully-populated payloads produce identical engine output to the v0.0.1 baseline. Engine widens the agenda conservatively when fields are unknown.

@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-28b148303253108b3d3c6b0808952a228a62bcf78976a365fd62b50b44b216a9
+e0f045baeecf38c3442e1bbc3d8450199f40a435e0a4bc7c021e3f1bd7bc6dd1
 ```
 
 Computed over (sorted):
@@ -26,12 +26,28 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **16** tool names (`list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **9** prompt `name@version` tuples — `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below), `gst_irl_ingestion` at `0.28.0` (capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters — and `compute_techpar` now runs in a stated mode; see the 0.54.0 stanza below), and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below).
+- **9** prompt `name@version` tuples. **Seven of the nine move in 0.56.0** — `gst_irl_ingestion` to `0.29.0` (the IRL extract record; `extract-only` reachable without `filledIrl`), and the six prompts that now carry `irlEvidencePrecedence()` to `0.1.0`: `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_architecture_layer_review`, `gst_comparable_engagements_memo`, `gst_regulatory_exposure_brief`. Unmoved: `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below) and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below). `gst_irl_ingestion`'s prior milestones: capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters, `compute_techpar` runs in a stated mode, the server derives `fillRatio`.
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.56.0 — 2026-08-20 — the IRL extract record: `extract-only` produces a portable, subject-keyed artifact (`0.28.0` → `0.29.0`, plus six prompts to `0.1.0`)
+
+**Additive; no wire-shape change, no input removed, no output narrowed.** Seven of the nine prompt `name@version` tuples move, so the manifest hash moves with them. What a consumer can observe:
+
+- **`gst_irl_ingestion` honors `mode: extract-only` without `filledIrl`.** `build()` used to dispatch on body-absence before it looked at `mode`, so `{ mode: 'extract-only' }` with no body rendered the interactive builder — a full sweep, hard-stamped `effectiveMode: 'full'` with a disclosure saying the request could not be honored. Interactive now collects the body and _then_ branches; the disclosure and the `modeWasOverridden` plumbing behind it are gone. Four rendered bodies now come out of three builders.
+- **`extract-only`'s primary output is the IRL extract record** — one `record: irl-extract` JSON fence describing the TARGET, keyed by the canonical IRL taxonomy (the workbook `Reference` column: `0-03`, not the `NN-II` exclusion key `list_irl_requests` returns). It carries every answered row with the verbatim IRL request text, a capped verbatim excerpt, normalized units and a `_meta` block that dates and versions itself. The existing `payload: <tool>` fences stay, demoted to a derived projection of it, so full-mode parity is unchanged. Schema: [`src/schemas/irl-extract-record.ts`](./src/schemas/irl-extract-record.ts).
+- **`extract-only` now makes exactly one tool call.** `prepare_irl_body`, on the deferred arm only, to mint the record's hash and provenance record — it computes nothing about the target. The rule was never "no tool invocations"; it is **no ANALYSIS tool invocations**, and five sites that stated the absolute have been reworded. The one-shot arm copies the render-time prepop's `**Body-binding hash:**` directive instead, which is the stronger grade.
+- **`prepare_irl_body` returns an optional `mintedAt`** — the ISO-8601 timestamp the provenance store actually kept, not the call's own clock (the store is first-write-wins). Additive optional field on an interface with no published output schema; absent when no provenance record landed, and a consumer that sees it absent must fall back to a model-asserted timestamp rather than claim a witness.
+- **Six prompts gained `irlEvidencePrecedence()`** and the `consumesTargetEvidence` flag that declares it: resolve inputs from canonical target evidence before synthesizing, cite the reference, and say whether the citations are verified this session or carried asserted-not-verified. `gst_target_quick_look` additionally stopped hardcoding a Tier-3 `Section --` sentinel on TechPar, stopped calling `compute_techpar` with no `mode`, and stopped calling `estimate_tech_debt_cost` without its required `_audit` (that call failed validation as written). `gst_diligence_kickoff` and `gst_diligence_handoff_memo` gained the same evidence branch on `generate_diligence_agenda`'s 13 dimensions; `'unknown'` + tier-3 still survives for dimensions the evidence does not cover.
+- **`gst_target_quick_look` gains `list_regulation_facets` in `orchestrates`.** It was named in the body's Step 4 and missing from the manifest — the registry invariant checks orchestrates→body, not the reverse.
+- **`Bl076BodyCacheMissError`'s message is tool-neutral.** Two tools raise it, and the operator who most often meets it is one re-validating a travelling record in a later session through `validate_irl_provenance` — not composing a dossier.
+
+**No server-side retention was added.** The record is context-borne: it travels by being present in the conversation and downstream prompts consume it from there. There is no addressable server copy and no new cache key. See [ADR-0019](../src/docs/adr/0019-irl-extract-record-subject-indexing.md).
 
 ---
 

@@ -38,12 +38,18 @@ function renderList(args: Record<string, unknown>): string {
   return result.messages.map((m) => (m.content.type === 'text' ? m.content.text : '')).join('\n');
 }
 
-/** The three builders, by the args that select each. */
+/**
+ * The four RENDERED BODIES, by the args that select each — three builders, but
+ * `buildInteractiveBody` has two arms since BL-127 closed, and the deferred arm
+ * is a shape no case here reached before.
+ */
 const ONE_SHOT = (over: Record<string, unknown> = {}): string =>
   render({ filledIrl: BODY, ...over });
 const EXTRACT_ONLY = (over: Record<string, unknown> = {}): string =>
   render({ filledIrl: BODY, mode: 'extract-only', ...over });
 const INTERACTIVE = (over: Record<string, unknown> = {}): string => render({ ...over });
+const INTERACTIVE_EXTRACT_ONLY = (over: Record<string, unknown> = {}): string =>
+  render({ mode: 'extract-only', ...over });
 
 /** The Step 1 blockquote alone — the line the conditional ask is composed into. */
 function step1Ask(body: string): string {
@@ -53,8 +59,8 @@ function step1Ask(body: string): string {
 }
 
 describe('BL-125 — resolved run parameters are stated, not inferred', () => {
-  it('every builder states its own audit level at every level', () => {
-    for (const build of [ONE_SHOT, EXTRACT_ONLY, INTERACTIVE]) {
+  it('every RENDERED BODY states its own audit level at every level', () => {
+    for (const build of [ONE_SHOT, EXTRACT_ONLY, INTERACTIVE, INTERACTIVE_EXTRACT_ONLY]) {
       for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
         expect(build({ auditLevel }), `${auditLevel} must be stated as a run fact`).toContain(
           `- Audit level: **${auditLevel}**`
@@ -63,10 +69,13 @@ describe('BL-125 — resolved run parameters are stated, not inferred', () => {
     }
   });
 
-  it('every builder states its effective mode', () => {
+  it('every RENDERED BODY states its effective mode', () => {
     expect(ONE_SHOT()).toContain('- Run mode: **full**');
     expect(EXTRACT_ONLY()).toContain('- Run mode: **extract-only**');
     expect(INTERACTIVE()).toContain('- Run mode: **full**');
+    // The deferred arm: the body that used to be stamped `full` against the
+    // operator's explicit request, and disclose that it could not honor it.
+    expect(INTERACTIVE_EXTRACT_ONLY()).toContain('- Run mode: **extract-only**');
   });
 
   it('states the transactionContext enum TOKEN, not just the voice cue', () => {
@@ -89,35 +98,85 @@ describe('BL-125 — resolved run parameters are stated, not inferred', () => {
 });
 
 describe('BL-125 — requireVerbatimBody is stated where a consumer exists', () => {
-  it('one-shot and interactive state it; extract-only does NOT', () => {
+  it('the two full bodies state it; NEITHER extract-only arm does', () => {
     // The selection rule is "does this surface have a consumer for the value".
-    // Extract-only invokes no tools, the flag is not a meta-fence key and not a
-    // RUN-AUDIT field — stating it there would be bytes plus an invitation to
-    // enforce a gate the body forbids reaching.
+    // Neither extract-only body invokes an ANALYSIS tool, and neither reads a
+    // gate: the deferred arm's one call is `prepare_irl_body`, and the one-shot
+    // arm makes no call at all (the prepop already minted its provenance). The
+    // flag is not a meta-fence key and not a RUN-AUDIT field either, so stating
+    // it on either would be bytes plus an invitation to enforce a gate the body
+    // forbids reaching. The deferred arm is included because it
+    // takes `requireVerbatimBody` as an argument like every other body and
+    // would otherwise be the one place the rule could silently lapse.
     expect(ONE_SHOT()).toContain('- Verbatim-body gate:');
     expect(INTERACTIVE()).toContain('- Verbatim-body gate:');
     expect(EXTRACT_ONLY()).not.toContain('Verbatim-body gate');
+    expect(INTERACTIVE_EXTRACT_ONLY()).not.toContain('Verbatim-body gate');
+    // Even when the operator explicitly sets it — the value has no consumer here.
+    expect(INTERACTIVE_EXTRACT_ONLY({ requireVerbatimBody: true })).not.toContain(
+      'Verbatim-body gate'
+    );
   });
 
-  it('extract-only run parameters name no envelope input, in a body that forbids tool calls', () => {
+  it('extract-only run parameters name no envelope input, in a body that forbids analysis-tool calls', () => {
     // The selection rule governs the WORDING as well as the values. Extract-only
-    // states "In extract-only mode you DO NOT invoke any tools" and "NO tool
+    // states "you DO NOT invoke any ANALYSIS tool" and "NO ANALYSIS tool
     // invocations" — so a run-parameter bullet reading "Pass `unknown` to
     // `compose_dossier_envelope.transactionContext`" is the same defect as
     // stating `requireVerbatimBody` there: an instruction to reach a surface
-    // this body forbids reaching.
+    // this body forbids reaching. (The absolute was reworded when extract-only
+    // began making one `prepare_irl_body` call to mint the record's provenance;
+    // `compose_dossier_envelope` stays forbidden outright, so the rule this
+    // case tests is unchanged.)
     const params = EXTRACT_ONLY()
       .split('\n')
       .filter((l) => /^- (Run mode|Audit level|Engagement context):/.test(l))
       .join('\n');
     expect(params).not.toContain('compose_dossier_envelope');
     expect(params).toContain('the meta fence');
+    // The destination widened when the extract record landed: the values go to
+    // TWO model-authored artifacts now, and naming only one would leave every
+    // `_meta` field unsourced — the same wrong-destination defect this case
+    // exists to catch, one artifact over.
+    expect(params).toContain('the extract record `_meta`');
+
+    // The DEFERRED arm renders the same block and was never reached here.
+    const deferredParams = INTERACTIVE_EXTRACT_ONLY()
+      .split('\n')
+      .filter((l) => /^- (Run mode|Audit level|Engagement context|Prompt version):/.test(l))
+      .join('\n');
+    expect(deferredParams).not.toContain('compose_dossier_envelope.');
+    expect(deferredParams).toContain('the extract record `_meta`');
+
     // The one-shot equivalents DO name the envelope, which is where they go.
     const oneShotParams = ONE_SHOT()
       .split('\n')
       .filter((l) => /^- (Run mode|Audit level|Engagement context):/.test(l))
       .join('\n');
     expect(oneShotParams).toContain('compose_dossier_envelope');
+  });
+
+  it('BOTH extract-only arms state the prompt version; neither full body does', () => {
+    // The same selection rule, on the field that has no other source. Full mode
+    // lets `compose_dossier_envelope` override `promptVersion` from the
+    // registry, so stating it there would be an invitation to argue with the
+    // server. Extract-only makes no envelope call, and THREE surfaces need the
+    // value — the meta fence, the record's `_meta`, and the RUN-AUDIT block —
+    // so the bullet is their only source.
+    for (const build of [EXTRACT_ONLY, INTERACTIVE_EXTRACT_ONLY]) {
+      const text = build();
+      expect(text).toMatch(/^- Prompt version: \*\*\d+\.\d+\.\d+\*\*/m);
+      expect(text).toContain('the extract record `_meta`');
+    }
+    expect(ONE_SHOT()).not.toContain('- Prompt version:');
+    expect(INTERACTIVE()).not.toContain('- Prompt version:');
+  });
+
+  it('the stated prompt version IS the registered one — a hand-copied literal would drift', () => {
+    expect(EXTRACT_ONLY()).toContain(`- Prompt version: **${irlIngestionPrompt.version}**`);
+    expect(INTERACTIVE_EXTRACT_ONLY()).toContain(
+      `- Prompt version: **${irlIngestionPrompt.version}**`
+    );
   });
 
   it('the supplied-true case is rejected on extract-only too, not just the default', () => {
@@ -202,12 +261,19 @@ describe('BL-125 — interactive no longer discards supplied arguments', () => {
     expect(text).not.toContain('Infer the target name from the IRL header');
   });
 
-  it('discloses that a supplied mode: extract-only was not honored', () => {
-    // `build()` dispatches on body-absence before checking mode, so this
-    // combination lands on the interactive builder (BL-127).
+  it('HONORS a supplied mode: extract-only rather than disclosing an override (BL-127)', () => {
+    // Inverted. `build()` used to dispatch on body-absence BEFORE checking
+    // mode, so this combination rendered a full sweep and disclosed that it
+    // "cannot honor" the request. Interactive now collects the body and THEN
+    // branches, so there is no override left to disclose — and the disclosure
+    // string must be gone, not merely unasserted: a body still saying it cannot
+    // honor extract-only while running extract-only is worse than the defect.
     const text = render({ mode: 'extract-only' });
-    expect(text).toContain('- Run mode: **full**');
-    expect(text).toContain('cannot honor');
+    expect(text).toContain('- Run mode: **extract-only**');
+    expect(text).not.toContain('- Run mode: **full**');
+    expect(text).not.toContain('cannot honor');
+    // Still the interactive arm: it asks for the body first.
+    expect(text).toContain('> Paste the populated');
   });
 });
 
@@ -254,6 +320,17 @@ describe('BL-125 — no body references a section it did not render', () => {
         headers: ['## Provenance citation self-check'],
         mention: /citation self-check/i,
       },
+      {
+        // Added when the deferred arm landed: it swaps out the Steps that
+        // rendered the VDR taxonomy, and the interactive opener said the
+        // taxonomy "is reproduced inline at Step 3". That is precisely the
+        // shape this sweep exists to catch, and it slipped through only
+        // because the matrix below did not render the arm.
+        label: 'VDR folder taxonomy',
+        headers: ['**Canonical VDR folder taxonomy**'],
+        mention:
+          /VDR folder taxonomy \(`gst:\/\/library\/vdr-structure`\)|reproduced inline at Step/,
+      },
     ];
 
     const dangling: string[] = [];
@@ -261,6 +338,7 @@ describe('BL-125 — no body references a section it did not render', () => {
       ['one-shot', ONE_SHOT],
       ['extract-only', EXTRACT_ONLY],
       ['interactive', INTERACTIVE],
+      ['deferred extract-only', INTERACTIVE_EXTRACT_ONLY],
     ] as const) {
       for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
         const text = build({ auditLevel });
@@ -275,6 +353,47 @@ describe('BL-125 — no body references a section it did not render', () => {
       }
     }
     expect(dangling, 'a body must not point at a section it did not render').toEqual([]);
+  });
+
+  it('no extract-only arm both forbids and permits the `prepare_irl_body` call', () => {
+    // The two arms disagree on this call BY DESIGN: the one-shot arm's BL-079
+    // prepop already minted server-witnessed provenance, so calling the tool
+    // would downgrade it to a model assertion; the deferred arm has no prepop
+    // and the call is the only way its record acquires provenance at all. The
+    // hazard is a SHARED directive stating one arm's rule on both — which is
+    // what `extractOnlyProcedureSections` did before it took `mintsOwnProvenance`.
+    //
+    // It is worth a permanent guard because the failure is silently permissive
+    // rather than loud: a model on the one-shot arm that follows a stray "the
+    // ONE exception is `prepare_irl_body`" gets the real stored `mintedAt` back
+    // from first-write-wins, writes `generatedAtSource: "server-witnessed"`
+    // honestly, and contradicts the arm that told it to write "model-asserted".
+    const FORBIDS = '**Do NOT call `prepare_irl_body`**';
+    const PERMITS = 'The ONE exception is `prepare_irl_body`';
+
+    const observed: string[] = [];
+    for (const [arm, build] of [
+      ['one-shot', EXTRACT_ONLY],
+      ['deferred', INTERACTIVE_EXTRACT_ONLY],
+    ] as const) {
+      for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
+        const text = build({ auditLevel });
+        const forbids = text.includes(FORBIDS);
+        const permits = text.includes(PERMITS);
+        observed.push(`${arm}@${auditLevel}: forbids=${forbids} permits=${permits}`);
+      }
+    }
+
+    // Written out rather than computed, so a body that stopped stating EITHER
+    // rule fails here instead of passing an "at most one" check vacuously.
+    expect(observed).toEqual([
+      'one-shot@standard: forbids=true permits=false',
+      'one-shot@enhanced: forbids=true permits=false',
+      'one-shot@debug: forbids=true permits=false',
+      'deferred@standard: forbids=false permits=true',
+      'deferred@enhanced: forbids=false permits=true',
+      'deferred@debug: forbids=false permits=true',
+    ]);
   });
 });
 
@@ -295,29 +414,90 @@ describe('BL-125 — extract-only remains exempt from the audit-level gate', () 
     ['run audit', '## Final emission — RUN-AUDIT block'],
   ];
 
-  it('renders every level-gated directive it carries at every audit level', () => {
-    for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
-      const text = EXTRACT_ONLY({ auditLevel });
-      for (const [label, marker] of GATED_IN_ONE_SHOT_PRESENT_HERE) {
-        expect(text, `extract-only@${auditLevel} must carry the ${label}`).toContain(marker);
+  // BOTH arms, not just the one-shot body. This is the whole point of
+  // parameterizing: the DEFERRED arm lives inside `buildInteractiveBody`, which
+  // is the function that computes `showRunAudit` / `showAuditDisplay`, so it is
+  // the arm where the exemption is newly at risk — and asserting the exemption
+  // over `EXTRACT_ONLY` alone would have left exactly that arm unguarded.
+  const EXTRACT_ONLY_ARMS: Array<[string, (o?: Record<string, unknown>) => string]> = [
+    ['one-shot', EXTRACT_ONLY],
+    ['deferred', INTERACTIVE_EXTRACT_ONLY],
+  ];
+
+  it.each(EXTRACT_ONLY_ARMS)(
+    '%s arm renders every level-gated directive it carries at every audit level',
+    (arm, build) => {
+      for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
+        const text = build({ auditLevel });
+        for (const [label, marker] of GATED_IN_ONE_SHOT_PRESENT_HERE) {
+          expect(text, `${arm} extract-only@${auditLevel} must carry the ${label}`).toContain(
+            marker
+          );
+        }
       }
     }
-  });
+  );
 
-  it('never carries the per-section dossier fence, at any level', () => {
-    // Stated positively so the absence is a recorded decision rather than an
-    // omission the next reader has to re-derive.
-    for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
-      expect(EXTRACT_ONLY({ auditLevel })).not.toContain('## Per-section JSON fence');
+  it.each(EXTRACT_ONLY_ARMS)(
+    '%s arm never carries the per-section dossier fence, at any level',
+    (arm, build) => {
+      // Stated positively so the absence is a recorded decision rather than an
+      // omission the next reader has to re-derive. It attaches audit fences to
+      // dossier sections (C)–(H), which extract-only does not emit — which is
+      // why it is deliberately NOT one of the two constants routed through the
+      // shared `gated`-flag helper.
+      for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
+        expect(build({ auditLevel }), `${arm}@${auditLevel}`).not.toContain(
+          '## Per-section JSON fence'
+        );
+      }
     }
-  });
+  );
 
-  it('differs across levels ONLY by the stated audit level', () => {
-    const a = EXTRACT_ONLY({ auditLevel: 'standard' });
-    const b = EXTRACT_ONLY({ auditLevel: 'enhanced' });
-    expect(a.replace('- Audit level: **standard**', 'X')).toBe(
-      b.replace('- Audit level: **enhanced**', 'X')
-    );
+  it.each(EXTRACT_ONLY_ARMS)(
+    '%s arm differs across levels ONLY by the stated audit level',
+    (_arm, build) => {
+      // All three levels, pairwise against `standard`. `debug` was left to a
+      // separate case, which meant the level that adds the MOST apparatus
+      // everywhere else in this prompt was the one this exemption never checked.
+      const base = build({ auditLevel: 'standard' }).replace('- Audit level: **standard**', 'X');
+      for (const level of ['enhanced', 'debug'] as const) {
+        expect(
+          build({ auditLevel: level }).replace(`- Audit level: **${level}**`, 'X'),
+          `${level} differs from standard by more than the stated level`
+        ).toBe(base);
+      }
+    }
+  );
+
+  it.each(EXTRACT_ONLY_ARMS)(
+    '%s arm renders the two provenance-display directives EXACTLY ONCE',
+    (arm, build) => {
+      // The merge hazard. Both renderings of these two constants are now
+      // reachable from `buildInteractiveBody` — gated in the full arm, ungated
+      // inside the shared extract-only procedure — so they are spread from one
+      // `gated`-flag helper rather than written twice. A count, not a presence
+      // check: a duplicate would satisfy `toContain` and ship two renderings of
+      // one contract under opposite policies, which is the duplication this
+      // file's subject argues against in its own comments.
+      for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
+        const text = build({ auditLevel });
+        for (const marker of ['## (K) Provenance footer', '## Provenance citation self-check']) {
+          const count = text.split(marker).length - 1;
+          expect(count, `${arm}@${auditLevel} renders "${marker}" ${count}x`).toBe(1);
+        }
+      }
+    }
+  );
+
+  it('the full arm still gates those two directives, and renders them exactly once when it does', () => {
+    // The other half of the shared helper: routing both arms through it must
+    // not have made the full arm unconditional.
+    expect(INTERACTIVE({ auditLevel: 'standard' })).not.toContain('## (K) Provenance footer');
+    const enhanced = INTERACTIVE({ auditLevel: 'enhanced' });
+    for (const marker of ['## (K) Provenance footer', '## Provenance citation self-check']) {
+      expect(enhanced.split(marker).length - 1, marker).toBe(1);
+    }
   });
 });
 
@@ -483,6 +663,8 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
       ['extract-only debug', EXTRACT_ONLY({ auditLevel: 'debug' })],
       ['interactive', INTERACTIVE()],
       ['interactive debug', INTERACTIVE({ auditLevel: 'debug' })],
+      ['interactive extract-only', INTERACTIVE_EXTRACT_ONLY()],
+      ['interactive extract-only debug', INTERACTIVE_EXTRACT_ONLY({ auditLevel: 'debug' })],
     ];
     const offenders = ALL_BODIES.filter(
       ([, text]) =>
@@ -491,25 +673,40 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
     expect(offenders, 'these bodies invoke compute_techpar without stating a mode').toEqual([]);
   });
 
-  it('DERIVED — build() yields exactly three distinct bodies across the scenario grid', () => {
-    // The half the predicate above cannot reach: a fourth builder would render
-    // a body no caller-check enumerates. Arity is the cheap invariant.
+  it('DERIVED — build() yields exactly four distinct bodies across the scenario grid', () => {
+    // The half the predicate above cannot reach: a new rendered body would be a
+    // shape no caller-check enumerates. Arity is the cheap invariant.
+    //
+    // TWO fixes landed here together, and either alone is worse than useless.
+    // (a) The grid pushed `{ auditLevel }` — the interactive case with NO
+    //     `mode` — so the deferred body was never rendered and a bumped count
+    //     would have been green over an unexercised shape.
+    // (b) Only then does the discriminator break: it probed `EXTRACT-ONLY mode`
+    //     FIRST, and the deferred body carries BOTH that marker and the paste
+    //     ask, so it folded onto the existing extract-only identity. The paste
+    //     ask is now the outer axis and mode the inner one, which is the actual
+    //     dispatch order.
     const grid: Array<Record<string, unknown>> = [];
     for (const mode of ['full', 'extract-only']) {
       for (const auditLevel of ['standard', 'enhanced', 'debug']) {
         grid.push({ filledIrl: BODY, mode, auditLevel });
-        grid.push({ auditLevel });
+        grid.push({ mode, auditLevel });
       }
     }
     const shapes = new Set(
       grid.map((a) => {
         const t = render(a);
-        // Collapse to the builder's identity rather than its bytes.
-        if (t.includes('EXTRACT-ONLY mode')) return 'extract-only';
-        if (t.includes('> Paste the populated')) return 'interactive';
-        return 'one-shot';
+        // Collapse to the rendered body's identity rather than its bytes.
+        const asksForPaste = t.includes('> Paste the populated');
+        const isExtractOnly = t.includes('EXTRACT-ONLY mode');
+        return `${asksForPaste ? 'interactive' : 'one-shot'}/${isExtractOnly ? 'extract-only' : 'full'}`;
       })
     );
-    expect(shapes.size, 'a new builder needs a caller-check entry too').toBe(3);
+    expect([...shapes].sort(), 'a new rendered body needs a caller-check entry too').toEqual([
+      'interactive/extract-only',
+      'interactive/full',
+      'one-shot/extract-only',
+      'one-shot/full',
+    ]);
   });
 });

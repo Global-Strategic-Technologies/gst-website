@@ -9,7 +9,7 @@
 
 import { z } from 'zod';
 import type { GstPrompt } from './types';
-import { authorialIntentLine, embedLibraryArticle } from './embed';
+import { authorialIntentLine, embedLibraryArticle, irlEvidencePrecedence } from './embed';
 
 const argsSchema = z.object({
   targetSummary: z
@@ -26,9 +26,10 @@ export const architectureLayerReviewPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     "Walk a target through GST's 5-layer architecture framework and surface risks per layer.",
-  version: '0.0.1',
-  lastReviewedAt: '2026-05-01',
+  version: '0.1.0',
+  lastReviewedAt: '2026-08-20',
   orchestrates: ['gst://library/business-architectures'] as const,
+  consumesTargetEvidence: true,
   argsSchema,
   build: (args) => ({
     messages: [
@@ -42,6 +43,8 @@ export const architectureLayerReviewPrompt: GstPrompt<typeof argsSchema> = {
             'Apply the GST 5-layer architecture framework to the following target:',
             '',
             `> ${args.targetSummary}`,
+            '',
+            irlEvidencePrecedence(),
             '',
             'Step 1. The canonical `gst://library/business-architectures` Library article is embedded in the next message. It defines the 5-layer framework — read its layer definitions and use them verbatim. Do NOT substitute a generic architecture taxonomy.',
             '',

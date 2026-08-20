@@ -46,6 +46,23 @@ export interface GstPrompt<TArgs extends z.ZodObject<z.ZodRawShape> = z.ZodObjec
    */
   needsFyiSnapshot?: true;
   /**
+   * Declares that this prompt takes TARGET inputs and must therefore carry
+   * `irlEvidencePrecedence()` — the clause telling the model to resolve inputs
+   * from canonical GST target evidence (a filled IRL, an IRL extract record, a
+   * target document) before synthesizing anything.
+   *
+   * Declared rather than inferred, for the same reason as `needsFyiSnapshot`:
+   * no existing property expresses "takes target inputs", and a
+   * `prompt.name === '…'` check in the registry is a special case at one and a
+   * pattern at two. The guard asserts clause-present ⇔ flag-set across
+   * `ALL_PROMPTS`, so prompt #10 has to make a choice rather than silently
+   * opting out.
+   *
+   * The literal type (matching `needsFyiSnapshot`) is deliberate: there is no
+   * third `false` state for the guard to define.
+   */
+  consumesTargetEvidence?: true;
+  /**
    * Builds the user/assistant messages spliced into the conversation.
    *
    * Synchronous by contract. Any async work — reading a snapshot, writing the

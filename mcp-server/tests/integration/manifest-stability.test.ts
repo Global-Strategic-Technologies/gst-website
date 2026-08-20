@@ -196,7 +196,24 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // Section-02 components in `deepdive`. Two runs over one IRL took different
 // branches and produced an inverted zone verdict. Body-only change on one
 // prompt; drifts solely from that tuple.
-const EXPECTED_MANIFEST_HASH = '28b148303253108b3d3c6b0808952a228a62bcf78976a365fd62b50b44b216a9';
+// IRL extract record (server 0.56.0): SEVEN tuples, and the first entry here
+// that is NOT body-only. gst_irl_ingestion v0.28.0 -> v0.29.0, and six consumer
+// prompts to v0.1.0 — gst_target_quick_look and gst_comparable_engagements_memo
+// and gst_diligence_kickoff and gst_diligence_handoff_memo from v0.0.3,
+// gst_architecture_layer_review and gst_regulatory_exposure_brief from v0.0.1.
+// The minor bump is the honest grade: these prompts now behave differently
+// depending on whether canonical target evidence is in context, which is a
+// behavioural change rather than reworded prose.
+// TWO `orchestrates` arrays also changed in the same commit and are invisible
+// here: gst_target_quick_look and gst_regulatory_exposure_brief each gained
+// `list_regulation_facets`, which both bodies already directed as a
+// jurisdiction-id recovery call while the manifest under-claimed it. This
+// constant hashes prompt `name@version` and resource URIs only — never
+// `orchestrates` — so those two edits moved no bytes here, and the
+// orchestrates-to-body invariant is what guards them. Written down because it is
+// the natural wrong inference: a green run of this test is not evidence that a
+// prompt's tool surface held still.
+const EXPECTED_MANIFEST_HASH = 'e0f045baeecf38c3442e1bbc3d8450199f40a435e0a4bc7c021e3f1bd7bc6dd1';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

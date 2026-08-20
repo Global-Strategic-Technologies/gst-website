@@ -183,16 +183,20 @@ Use a short populated IRL. The one below is what the recorded run used; any body
 - `byteLength` is the UTF-8 length of the body you sent — **826** for the body above.
 - Calling twice with the identical body returns the **identical** hash. No normalisation is applied; it is byte-for-byte, so a single changed space produces a different hash.
 - With the body above verbatim, the hash is `7aa62168e54409bb`.
+- **`mintedAt`** (added 2026-08-20, server `0.56.0`) is an ISO-8601 timestamp — **or is absent**, which is a legitimate result, not a defect. It is present when the server holds a body-provenance record for this hash and absent when none landed (no store bound, or the write failed; the store swallows its own failures because a missing provenance record only weakens an audit claim while a missing body corrupts a dossier).
+- **`mintedAt` is the STORED value, not the call's clock.** Call `prepare_irl_body` a second time with the identical body, inside the same session: `mintedAt` comes back **unchanged**, because the provenance store is first-write-wins. A second, later timestamp is a **Fail** — an IRL extract record built from that call would carry a `server-witnessed` `generatedAt` the server never witnessed.
 
 Keep the hash. UAT-07.4 and UAT-07.5 both need it.
 
 **Failure modes**
 
-| Symptom                              | Means                                                 | Do                                                  |
-| ------------------------------------ | ----------------------------------------------------- | --------------------------------------------------- |
-| Validation error on `filledIrl`      | Body is under 200 characters                          | Lengthen it; not a defect                           |
-| Hash differs from `7aa62168e54409bb` | Your body differs — trailing whitespace, smart quotes | Not a defect unless you are certain the bytes match |
-| Same body, two different hashes      | Hashing is not deterministic                          | Fail — this breaks the whole pipeline               |
+| Symptom                              | Means                                                            | Do                                                                                                            |
+| ------------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Validation error on `filledIrl`      | Body is under 200 characters                                     | Lengthen it; not a defect                                                                                     |
+| Hash differs from `7aa62168e54409bb` | Your body differs — trailing whitespace, smart quotes            | Not a defect unless you are certain the bytes match                                                           |
+| Same body, two different hashes      | Hashing is not deterministic                                     | Fail — this breaks the whole pipeline                                                                         |
+| `mintedAt` absent                    | No provenance record landed for this hash                        | Not a defect. A consumer must fall back to its own timestamp and report `generatedAtSource: "model-asserted"` |
+| `mintedAt` ADVANCES on a repeat call | The tool is reporting its own clock rather than the stored value | Fail — first-write-wins is what makes `server-witnessed` honest on a travelling extract record                |
 
 **Run log**
 
@@ -472,4 +476,4 @@ Flatten a filled IRL workbook to markdown yourself, then run the UAT-07.3 → 07
 
 ---
 
-_Last updated: 2026-08-11 (BL-119 — 07.1–07.5 authored against local stdio; 07.7 added and executed against production in cycle 3. 07.6 still requires an interactive client whose prompt-argument field preserves newlines.)_
+_Last updated: 2026-08-20 (07.3 gained `mintedAt` — `prepare_irl_body`'s output grew an optional field, and the first-write-wins semantic is what makes `server-witnessed` honest on a travelling IRL extract record; see [ADR-0019](../../../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md). The cross-prompt reuse of that record is [UAT-09.10](UAT-09-prompts.md), not a case here — no resource or new tool was added.) Prior: 2026-08-11 (BL-119 — 07.1–07.5 authored against local stdio; 07.7 added and executed against production in cycle 3. 07.6 still requires an interactive client whose prompt-argument field preserves newlines.)_

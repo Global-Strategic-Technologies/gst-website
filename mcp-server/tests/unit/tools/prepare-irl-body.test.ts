@@ -7,11 +7,12 @@ import { createHash } from 'node:crypto';
 
 import { handlePrepareIrlBodyTool } from '../../../src/tools/prepare-irl-body';
 import { computeIrlBodyHash } from '../../../src/schemas/compose-dossier-envelope';
+import { InMemoryIrlBodyProvenanceStore } from '../../../src/cache/irl-body-provenance';
 
 interface SuccessResult {
   isError?: boolean;
   content: Array<{ type: string; text: string }>;
-  structuredContent?: { irlBodyHash: string; byteLength: number };
+  structuredContent?: { irlBodyHash: string; byteLength: number; mintedAt?: string };
 }
 
 function makeBody(lengthChars: number, seed = 'x'): string {
@@ -19,6 +20,40 @@ function makeBody(lengthChars: number, seed = 'x'): string {
 }
 
 describe('handlePrepareIrlBodyTool', () => {
+  // A POSITIVE pin on the output keys. Every other assertion in this file (and
+  // the two integration call sites) reads a field through a cast, so omitting
+  // one would fail nothing — the cast asserts the shape rather than checking
+  // it. `mintedAt` is the field that most needs this: it is optional by
+  // design, so its absence is indistinguishable from its removal unless the
+  // key set is pinned where the provenance store IS bound.
+  it('output keys are exactly {irlBodyHash, byteLength} when no provenance store is bound', async () => {
+    const result = (await handlePrepareIrlBodyTool({
+      filledIrl: makeBody(500, 'k'),
+    })) as SuccessResult;
+    expect(Object.keys(result.structuredContent as object).sort()).toEqual([
+      'byteLength',
+      'irlBodyHash',
+    ]);
+  });
+
+  it('output keys gain mintedAt when a provenance store IS bound', async () => {
+    const result = (await handlePrepareIrlBodyTool(
+      { filledIrl: makeBody(500, 'm') },
+      {
+        sink: { write: () => undefined },
+        irlBodyProvenance: new InMemoryIrlBodyProvenanceStore(),
+      }
+    )) as SuccessResult;
+    expect(Object.keys(result.structuredContent as object).sort()).toEqual([
+      'byteLength',
+      'irlBodyHash',
+      'mintedAt',
+    ]);
+    expect((result.structuredContent as { mintedAt?: string }).mintedAt).toMatch(
+      /^\d{4}-\d{2}-\d{2}T/
+    );
+  });
+
   it('returns the canonical irlBodyHash matching computeIrlBodyHash', async () => {
     const body = makeBody(500, 'a');
     const result = (await handlePrepareIrlBodyTool({ filledIrl: body })) as SuccessResult;
