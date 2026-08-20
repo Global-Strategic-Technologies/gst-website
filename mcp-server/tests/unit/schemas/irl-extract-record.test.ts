@@ -35,6 +35,7 @@ import {
   IrlExtractFactSchema,
   IRL_EXTRACT_EXCERPT_CAP_CHARS,
   IRL_EXTRACT_EXCERPT_MIN_CHARS,
+  capIrlExtractExcerpt,
   IRL_EXTRACT_RECORD_VERSION,
   IRL_EXTRACT_REF_FORMAT,
   IRL_EXTRACT_RECORD_DIRECTIVE,
@@ -68,15 +69,6 @@ function stripTrailers(answer: string): string {
   return a.trim();
 }
 
-/** Cap on a word boundary — the rule the directive states, applied here so the fixture record is conformant. */
-function capExcerpt(text: string): { excerpt: string; truncated: boolean } {
-  if (text.length <= IRL_EXTRACT_EXCERPT_CAP_CHARS) return { excerpt: text, truncated: false };
-  const slice = text.slice(0, IRL_EXTRACT_EXCERPT_CAP_CHARS - 1);
-  const lastSpace = slice.lastIndexOf(' ');
-  const kept = lastSpace > IRL_EXTRACT_EXCERPT_MIN_CHARS ? slice.slice(0, lastSpace) : slice;
-  return { excerpt: `${kept}…`, truncated: true };
-}
-
 /** Build the record a conformant extract-only run would emit for a workbook-shape body. */
 function buildRecordFromBody(body: string, over: Record<string, unknown> = {}) {
   const facts: Array<Record<string, unknown>> = [];
@@ -88,7 +80,7 @@ function buildRecordFromBody(body: string, over: Record<string, unknown> = {}) {
     const [, ref, request, status, rawAnswer] = m;
     const answer = stripTrailers(rawAnswer);
     if (!answer || answer === '<NO RESPONSE>') continue;
-    const { excerpt, truncated } = capExcerpt(answer);
+    const { excerpt, truncated } = capIrlExtractExcerpt(answer);
     facts.push({
       ref,
       request,
@@ -124,6 +116,26 @@ describe('IrlExtractRecordSchema — a record built from a real filled fixture',
       'the fixture yielded no facts — the probe is empty'
     ).toBeGreaterThan(10);
     expect(IrlExtractRecordSchema.safeParse(record).success).toBe(true);
+  });
+
+  it('the fixture exercises the truncated-excerpt path, not only the short one', () => {
+    // Same vacuity argument as above, one level down. The whole-record parse
+    // accepts `excerptTruncated` implicitly — but only if some fact carries it.
+    // The Northwind fixture happens to have exactly one answer over the cap, so
+    // an innocuous fixture edit (shortening one long answer) would empty this
+    // path while every assertion above stayed green.
+    const truncated = record.facts.filter(
+      (f) => (f as { excerptTruncated?: boolean }).excerptTruncated
+    );
+    expect(
+      truncated.length,
+      'no fact was truncated — the flagged path is unexercised'
+    ).toBeGreaterThan(0);
+    for (const f of truncated) {
+      const excerpt = (f as { excerpt: string }).excerpt;
+      expect(excerpt.endsWith('…')).toBe(true);
+      expect(excerpt.length).toBeLessThanOrEqual(IRL_EXTRACT_EXCERPT_CAP_CHARS);
+    }
   });
 
   it('round-trips the three self-describing _meta fields a travelling artifact needs', () => {
@@ -333,7 +345,7 @@ describe('excerpt cap — a floor and a token-preservation rule, not a byte coun
     // A byte-only cut through `productized-platform` demotes a tier-1 citation
     // to tier 2, which is the reason the excerpt is carried at all.
     const long = `The buyer runs a ${'filler '.repeat(40)}productized-platform model`;
-    const { excerpt, truncated } = capExcerpt(long);
+    const { excerpt, truncated } = capIrlExtractExcerpt(long);
     expect(truncated).toBe(true);
     expect(excerpt.length).toBeLessThanOrEqual(IRL_EXTRACT_EXCERPT_CAP_CHARS);
     // Every token before the ellipsis is a whole word from the source.

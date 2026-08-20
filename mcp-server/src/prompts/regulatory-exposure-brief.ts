@@ -44,7 +44,12 @@ export const regulatoryExposureBriefPrompt: GstPrompt<typeof argsSchema> = {
     'Compile applicable regulatory frameworks for a target, with summaries pulled from the search-result data + per-framework Regulatory Map URIs.',
   version: '0.1.0',
   lastReviewedAt: '2026-08-20',
-  orchestrates: ['search_regulations', 'gst://regulations/'] as const,
+  // `list_regulation_facets` is a conditional recovery call — Step 1 reaches for
+  // it only when a jurisdiction id fails to resolve — but the invariant is about
+  // what the body CAN direct, not what a given run happens to reach. Omitting it
+  // left the manifest under-claiming a tool the body names, which is the same gap
+  // `gst_target_quick_look` carried until this change closed it there.
+  orchestrates: ['search_regulations', 'list_regulation_facets', 'gst://regulations/'] as const,
   consumesTargetEvidence: true,
   argsSchema,
   build: (args) => ({

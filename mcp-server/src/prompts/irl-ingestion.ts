@@ -1123,7 +1123,22 @@ function provenanceDisplaySections(gated: boolean): string[] {
  * is what makes one helper serve both arms without a `gated`-style parameter
  * threading through it.
  */
-function extractOnlyProcedureSections(): string[] {
+/**
+ * The extraction plan + voice directives, shared by both extract-only arms.
+ *
+ * `mintsOwnProvenance` tracks which `prepareIrlBodyStep` variant rendered above
+ * it, and exists because the tool-invocation bullet below has to agree with that
+ * step. The deferred arm calls `prepare_irl_body`; the one-shot arm is told NOT
+ * to, because the BL-079 prepop already fired and re-minting would replace
+ * server-witnessed provenance with a model assertion. A single shared bullet
+ * naming `prepare_irl_body` as "the ONE exception" is therefore false on the
+ * one-shot arm — and falsely permissive in the direction that matters: a model
+ * that follows it gets the real stored `mintedAt` back from first-write-wins and
+ * can honestly write `generatedAtSource: "server-witnessed"`, while the arm
+ * mandates `"model-asserted"`. That collapses the ADR-0018 discriminator between
+ * "witness unreachable in-band" and "the provenance write failed".
+ */
+function extractOnlyProcedureSections(opts: { mintsOwnProvenance: boolean }): string[] {
   return [
     '## Extraction plan — execute the steps in order',
     '',
@@ -1174,7 +1189,9 @@ function extractOnlyProcedureSections(): string[] {
     // NOTHING about the target. Seeding the body cache is not a sweep. The rule
     // is not weakened to "minimize tool calls" — the analysis tools stay
     // forbidden outright.
-    '- **NO ANALYSIS tool invocations.** None of the orchestrated Hub tools run: no `compute_techpar`, no `estimate_tech_debt_cost`, no `assess_infrastructure_cost_governance`, no `search_portfolio`, no `search_regulations`, no `search_radar`, no `generate_diligence_agenda`, no `compose_dossier_envelope`. You emit their payloads; you do not send them. The ONE exception is `prepare_irl_body`, named explicitly in the procedure above — it computes nothing about the target, it mints the body hash the record carries, and without it the travelling artifact has no auditable provenance. Apart from that single call, the output is a sequence of JSON code fences.',
+    opts.mintsOwnProvenance
+      ? '- **NO ANALYSIS tool invocations.** None of the orchestrated Hub tools run: no `compute_techpar`, no `estimate_tech_debt_cost`, no `assess_infrastructure_cost_governance`, no `search_portfolio`, no `search_regulations`, no `search_radar`, no `generate_diligence_agenda`, no `compose_dossier_envelope`. You emit their payloads; you do not send them. The ONE exception is `prepare_irl_body`, named explicitly in the procedure above — it computes nothing about the target, it mints the body hash the record carries, and without it the travelling artifact has no auditable provenance. Apart from that single call, the output is a sequence of JSON code fences.'
+      : "- **NO tool invocations at all on this path.** None of the orchestrated Hub tools run: no `compute_techpar`, no `estimate_tech_debt_cost`, no `assess_infrastructure_cost_governance`, no `search_portfolio`, no `search_regulations`, no `search_radar`, no `generate_diligence_agenda`, no `compose_dossier_envelope`. You emit their payloads; you do not send them. `prepare_irl_body` is not called either, and the procedure above tells you so explicitly: the server already hashed the operator's body and seeded the cache in this same request, so the body-binding hash above IS the provenance. Calling the tool would replace a server-witnessed record with your own assertion. The output is a sequence of JSON code fences.",
     '- Surface the computed `fillRatio` above the first JSON fence as a one-line summary (per the pre-flight directive).',
     '- Do NOT fabricate IRL content. Cite every claim back to a specific section / row in the per-payload audit metadata.',
     '- Do NOT invent tool deeplinks. The extract-only mode produces no Hub URLs (those come from the tools, which were not invoked).',
@@ -1293,7 +1310,7 @@ function buildExtractOnlyBody(args: {
     // rather than re-minting — the stronger grade.
     prepareIrlBodyStep({ bodyBindingHash: computeIrlBodyHashForBody(args.filledIrl) }),
     '',
-    ...extractOnlyProcedureSections(),
+    ...extractOnlyProcedureSections({ mintsOwnProvenance: false }),
   ].join('\n');
 }
 
@@ -1433,7 +1450,7 @@ function buildInteractiveBody(args: {
       '',
       // Supplies `WORKBOOK_COLUMN_CONTRACT` itself — naming it above as the full
       // arm does would render it twice.
-      ...extractOnlyProcedureSections(),
+      ...extractOnlyProcedureSections({ mintsOwnProvenance: true }),
     ].join('\n');
   }
 
@@ -1518,7 +1535,7 @@ ${ENG_COST_DEDUP_RULE}`,
           'countersScope: session | run | request  # BL-121: copy VERBATIM from compose_dossier_envelope output; states how far back toolCallCounts reaches',
           'toolCallCounts:  # BL-071: copy VERBATIM from compose_dossier_envelope output `serverToolCallCounts`',
           '  validate_irl_provenance: { attempted: N, succeeded: N, rejected: N, errored: N }',
-          '  compose_dossier_envelope: { attempted: N, succeeded: N, rejected: N, errored: N }',
+          '  compose_dossier_envelope: { attempted: N, succeeded: N-1, rejected: N, errored: N }  # in-flight while it computes its own snapshot, so succeeded trails attempted by one — copy as served',
           '  <other tools used>: { attempted: N, succeeded: N, rejected: N, errored: N }',
           'toolErrors: [<{tool: string, attemptNumber: int, errorClass: string, recoveryAction: string}, ...> — every NON-precheck failed tool attempt; empty list if none; precheck failures stay in precheck.errorsEncountered>]',
           'selfCorrectionCalls: <int — CUMULATIVE total envelope calls AFTER the first across the entire session, not just this response>',

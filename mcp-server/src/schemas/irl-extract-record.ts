@@ -116,10 +116,19 @@ export function resolveRefSection(ref: string): {
 }
 
 /**
- * Round-trip guard, used by the schema tests: the ref a record carries must be
- * the one `buildReferenceId` would produce for that section + ordinal. Reusing
- * the generator's own function is what makes the record's key the workbook's
- * key by construction rather than by coincidence.
+ * TEST SUPPORT — no production caller, and that is deliberate.
+ *
+ * Round-trip guard: the ref a record carries must be the one `buildReferenceId`
+ * would produce for that section + ordinal. Reusing the generator's own function
+ * is what makes the record's key the workbook's key by construction rather than
+ * by coincidence — a test that reimplemented the format would agree with itself
+ * and drift from the workbook silently, which is the failure this exists to
+ * prevent.
+ *
+ * It lives here rather than in the test file because `buildReferenceId` sits in
+ * the WEBSITE workspace (`src/utils/irl/generate-xlsx.ts`) alongside three
+ * sibling builders that produce the `NN-II` exclusion key instead. This is the
+ * seam that names the right one once; picking wrong fails silently.
  */
 export function refForBullet(sectionNumber: string, bulletOrdinal: number): string {
   return buildReferenceId(sectionNumber, bulletOrdinal);
@@ -166,6 +175,30 @@ export const IRL_EXTRACT_RECORD_VERSION = '1.0';
 
 /** The `_meta.refFormat` literal. Names the ref vocabulary so `00-03` is not mistaken for it. */
 export const IRL_EXTRACT_REF_FORMAT = 'workbook-reference';
+
+/**
+ * Apply the word-boundary cap the directive states and the schema validates.
+ *
+ * The rule was written down three times — in {@link IRL_EXTRACT_RECORD_DIRECTIVE}
+ * for the model, in the `excerptTruncated` refinement for the wire, and in each
+ * test that had to build a conformant fixture. The third copy was the problem:
+ * a test asserting "the word-boundary rule keeps the last token intact" against
+ * its own local implementation proves only that the test agrees with itself.
+ * Callers get the real rule here, and the constants it reads are the same ones
+ * the directive interpolates.
+ *
+ * Truncation backs up to the last space rather than cutting mid-token, because
+ * a severed tier-1 enum literal silently demotes the citation — see the cap's
+ * own docstring. Below {@link IRL_EXTRACT_EXCERPT_MIN_CHARS} there is no word
+ * boundary worth honouring, so the hard slice stands.
+ */
+export function capIrlExtractExcerpt(text: string): { excerpt: string; truncated: boolean } {
+  if (text.length <= IRL_EXTRACT_EXCERPT_CAP_CHARS) return { excerpt: text, truncated: false };
+  const slice = text.slice(0, IRL_EXTRACT_EXCERPT_CAP_CHARS - 1);
+  const lastSpace = slice.lastIndexOf(' ');
+  const kept = lastSpace > IRL_EXTRACT_EXCERPT_MIN_CHARS ? slice.slice(0, lastSpace) : slice;
+  return { excerpt: `${kept}…`, truncated: true };
+}
 
 // ─── Fact ──────────────────────────────────────────────────────────────────
 

@@ -122,6 +122,10 @@ The tests are **generic** — they don't grow when prompts are added:
 
 The registry test is the most important: **it makes drift impossible**. If someone renames a Tool in BL-032 but forgets to update the prompt that orchestrates it, the registry test fails on the next CI run, naming the offender.
 
+**`orchestrates` is per-PROMPT, not per-rendered-body.** A prompt whose `build()` branches can render bodies that name different subsets of its manifest — `gst_irl_ingestion` is the live case: of its four rendered bodies, `gst://library/vdr-structure` is named by the two FULL bodies (one-shot and interactive) and by neither extract-only body, which reproduce the taxonomy inline instead. The unit test in (1) asserts the literal over the body its own fixture args select, so a manifest entry that appears in only one branch is satisfied by that branch alone. That is deliberate: the manifest declares what a prompt CAN direct, so the honest direction to err in is over-declaring. Read a split assertion as the convention working, not as a bug — and when adding an entry that only one branch names, make sure the test's fixture args select that branch, or the invariant passes without ever seeing it.
+
+Note also what the manifest-stability hash does **not** cover: it hashes prompt `name@version` and resource URIs only, never `orchestrates`. A green `manifest-stability.test.ts` is not evidence that a prompt's tool surface held still.
+
 ---
 
 ## Why this beats the obvious alternatives

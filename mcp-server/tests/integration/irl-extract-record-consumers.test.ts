@@ -39,6 +39,7 @@ import { createServer } from '../../src/server';
 import { createPairedTransports, type PairedHalf } from '../helpers/paired-transport';
 import type { CallToolResultPayload } from '../helpers/tool-envelope';
 import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
+import { targetQuickLookPrompt } from '../../src/prompts/target-quick-look';
 import {
   IrlExtractRecordSchema,
   IRL_EXTRACT_EXCERPT_CAP_CHARS,
@@ -214,24 +215,31 @@ describe('the IRL extract record, end to end', () => {
       const teamSize = byRequest(RECORD, 'Engineering FTE count');
       const mttr = byRequest(RECORD, 'Mean time to resolution');
       expect(teamSize, 'the record does not carry an engineering FTE fact').not.toBeNull();
+      // Pinned, not branched. This was `mttr ? … : …` on both the value and the
+      // audit source, which cannot fail either way: the fixture is fixed, so one
+      // arm always runs and the other is decoration. If the record stops
+      // carrying MTTR that is a real regression in what extraction covers, and
+      // it should fail here rather than quietly switch to the absent path.
+      expect(mttr, 'the record does not carry an MTTR fact').not.toBeNull();
 
       const payload = {
         teamSize: 64,
         salary: 185_000,
         maintenanceBurdenPct: 30,
         deployFrequency: 'Weekly',
-        // Present in the record → `irl-stated`; absent → null + a non-stated
-        // source. Both branches are exercised across the two tests here.
+        // The absent branch is exercised in this same payload by `incidents`,
+        // which the fixture genuinely does not answer — a real gap, not a
+        // simulated one.
         incidents: null,
-        mttrHours: mttr ? 6 : null,
+        mttrHours: 6,
         remediationBudget: 0,
         arr: 38_600_000,
         remediationPct: 20,
         contextSwitchOn: true,
         _audit: {
-          mttrSource: mttr ? ('irl-stated' as const) : ('irl-absent' as const),
+          mttrSource: 'irl-stated' as const,
           incidentsSource: 'irl-absent' as const,
-          ...(mttr ? { mttrCitation: citationFor(mttr) } : {}),
+          mttrCitation: citationFor(mttr!),
         },
       };
       const result = await callTool('estimate_tech_debt_cost', payload);
@@ -444,11 +452,27 @@ describe('the IRL extract record, end to end', () => {
     });
 
     it('both rules reach the quick-look body, which is where the fourth caller lives', () => {
-      const text = irlIngestionPrompt.build(
-        irlIngestionPrompt.argsSchema.parse({ mode: 'extract-only' }) as never
+      // Built `irlIngestionPrompt` and checked one marker until code review
+      // caught it: the case name claims the quick-look body, so it has to build
+      // the quick-look prompt, and "both rules" has to mean both. The TechPar
+      // marker is separately pinned in `target-quick-look.test.ts`; the MTTR one
+      // was asserted nowhere, which is exactly the caller this case is named for.
+      // All five args are required — `targetName` alone is a validation
+      // rejection, not a partial render.
+      const rendered = targetQuickLookPrompt.build(
+        targetQuickLookPrompt.argsSchema.parse({
+          targetName: 'Helios Health',
+          productType: 'b2b-saas',
+          arr: 25_000_000,
+          stage: 'series-b',
+          hqJurisdiction: 'us-ca',
+        }) as never
       ).messages[0];
-      const body = text.content.type === 'text' ? text.content.text : '';
+      const body = rendered.content.type === 'text' ? rendered.content.text : '';
+
       expect(body).toContain('Section 04 technical-debt remediation figure');
+      expect(body).toContain('Do NOT use the P0 number');
+      expect(body).toContain('DO NOT substitute a placeholder');
     });
   });
 });

@@ -115,7 +115,16 @@ export async function handlePrepareIrlBodyTool(
     // Omitted rather than nulled when no record landed (no store bound, or the
     // write failed): the consumer's documented fallback is a model-asserted
     // timestamp, and an absent field is what selects it.
-    ...(provenance ? { mintedAt: provenance.mintedAt } : {}),
+    //
+    // Guarded on the VALUE, not on the entry. The Upstash store returns whatever
+    // `get<IrlBodyProvenance>()` deserialized, with no re-validation, so a legacy
+    // or truncated entry yields an object whose `mintedAt` is undefined. Testing
+    // the object would then emit a present-but-undefined key — which survives
+    // `structuredContent` by reference and vanishes from the `JSON.stringify`
+    // mirror, the exact asymmetry ADR-0017 documents by name. A missing value and
+    // a missing entry mean the same thing to the consumer, so they take the same
+    // branch.
+    ...(provenance?.mintedAt ? { mintedAt: provenance.mintedAt } : {}),
   };
   return toolOk(result, `IRL body hashed (${byteLength} bytes).`);
 }

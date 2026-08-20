@@ -412,9 +412,9 @@ const EXPECTED_HASH_ONESHOT_MINIMAL =
 const EXPECTED_HASH_ONESHOT_FULL =
   '5623707170af88b78f75d0826cebd42940d62f3d33ae2f589a9ff3e590f24765';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '2f5ff4d3fba20da0a91200a2b193fdd6ef20e543f2c260cc41ab8d3600479add';
+  'c4bd1eb95a1d28a5b10d8bfd43b2aa35566651bbe11cb1a6432445237d45f9c5';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '61ac7bcd6297e3dcd6a2fd3f8beda8a0554810f45adce482ee2b638e0a8b0012';
+  '8d74e5116a650648a3783abb40c395eee3f0e4ebd1e2d972de0b6813d9be8995';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -430,7 +430,7 @@ const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
   '022cef9106911e4aceb236f48a2ed41fab0dca721f1bc69a96e354ae70a80e8a';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
-  '327ab8d022417ed490599c20a408d6c880fa78870cae264dd742705682e494cc';
+  '6fd15ead66bbbd8e229a068e4784c127f9826249b2ff9805724066bd68b9a3d6';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
 // the resolved level — its meta fence is model-authored (ADR-0017), so it is
 // the one surface where an inferred `auditLevel` lands in the artifact with
@@ -444,9 +444,9 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  'b042ad4dab12da2b06987aef8030b180c7bfb3de94af4af0de0c0d4b1ca750ed';
+  '3c4d31d644f753e34d7fc7d634e1b55f297c881ab9323f7878c6029eea82375b';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  'f6c0ee8ba35917da30d103af27bd4bc5071166176d2c7e357fd7db46cd4b07db';
+  '70a92adf5759bd9ec6378ab96d8ac835055f5f6edefabc3a894c6048fa11c316';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
@@ -461,13 +461,24 @@ const EXPECTED_HASH_INTERACTIVE_ENHANCED =
 // pin the stated-value bytes on this consumer without a further entry.
 const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
   '73b6819143e4aa0c67f559e9b143304d2ef6adc058c411c81d046f1e7cc42408';
-// IRL extract record rebaseline (prompt v0.28.0 → v0.29.0). FIVE of twelve
-// drift, and the five that do are the check: the extract record, the
-// `prepare_irl_body` provenance step and the reworded `promptVersion` sourcing
-// all live in the extract-only procedure, while the meta-fence and RUN-AUDIT
-// rewords reach full mode only at `debug`. A full-mode body at `standard` or
-// `enhanced` that moved here would mean an extract-only edit had leaked onto
-// the dossier path.
+// IRL extract record rebaseline (prompt v0.28.0 → v0.29.0). SIX of twelve
+// drift, and WHICH six is the check:
+//
+//   EXTRACT_ONLY_MINIMAL / _FULL / _FULL_ENHANCED / _FULL_DEBUG — the extract
+//     record, the `prepare_irl_body` provenance step and the reworded
+//     `promptVersion` sourcing all live in the extract-only procedure.
+//   ONESHOT_FULL_DEBUG — the meta-fence and RUN-AUDIT rewords reach full mode
+//     only at `debug`.
+//   INTERACTIVE_DEBUG — the interactive full arm keeps its own inline copy of
+//     the RUN-AUDIT skeleton (BL-128 instance 1, knowingly won't-fix). Code
+//     review caught that copy still showing `compose_dossier_envelope:
+//     { succeeded: N }` while the shared constant had been corrected to `N-1`,
+//     contradicting the prose 25 lines below it in the same body; syncing it
+//     moved this constant. Also `debug`-only, for the same reason as the line
+//     above.
+//
+// A full-mode body at `standard` or `enhanced` that moved here would mean an
+// extract-only edit had leaked onto the dossier path. None did.
 //
 // **Four scenarios are new — the deferred extract-only arm** (`mode:
 // 'extract-only'` with no `filledIrl`), which `build()` used to route to the

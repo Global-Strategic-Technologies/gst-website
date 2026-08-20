@@ -352,6 +352,47 @@ describe('BL-125 — no body references a section it did not render', () => {
     }
     expect(dangling, 'a body must not point at a section it did not render').toEqual([]);
   });
+
+  it('no extract-only arm both forbids and permits the `prepare_irl_body` call', () => {
+    // The two arms disagree on this call BY DESIGN: the one-shot arm's BL-079
+    // prepop already minted server-witnessed provenance, so calling the tool
+    // would downgrade it to a model assertion; the deferred arm has no prepop
+    // and the call is the only way its record acquires provenance at all. The
+    // hazard is a SHARED directive stating one arm's rule on both — which is
+    // what `extractOnlyProcedureSections` did before it took `mintsOwnProvenance`.
+    //
+    // It is worth a permanent guard because the failure is silently permissive
+    // rather than loud: a model on the one-shot arm that follows a stray "the
+    // ONE exception is `prepare_irl_body`" gets the real stored `mintedAt` back
+    // from first-write-wins, writes `generatedAtSource: "server-witnessed"`
+    // honestly, and contradicts the arm that told it to write "model-asserted".
+    const FORBIDS = '**Do NOT call `prepare_irl_body`**';
+    const PERMITS = 'The ONE exception is `prepare_irl_body`';
+
+    const observed: string[] = [];
+    for (const [arm, build] of [
+      ['one-shot', EXTRACT_ONLY],
+      ['deferred', INTERACTIVE_EXTRACT_ONLY],
+    ] as const) {
+      for (const auditLevel of ['standard', 'enhanced', 'debug'] as const) {
+        const text = build({ auditLevel });
+        const forbids = text.includes(FORBIDS);
+        const permits = text.includes(PERMITS);
+        observed.push(`${arm}@${auditLevel}: forbids=${forbids} permits=${permits}`);
+      }
+    }
+
+    // Written out rather than computed, so a body that stopped stating EITHER
+    // rule fails here instead of passing an "at most one" check vacuously.
+    expect(observed).toEqual([
+      'one-shot@standard: forbids=true permits=false',
+      'one-shot@enhanced: forbids=true permits=false',
+      'one-shot@debug: forbids=true permits=false',
+      'deferred@standard: forbids=false permits=true',
+      'deferred@enhanced: forbids=false permits=true',
+      'deferred@debug: forbids=false permits=true',
+    ]);
+  });
 });
 
 describe('BL-125 — extract-only remains exempt from the audit-level gate', () => {
@@ -414,11 +455,16 @@ describe('BL-125 — extract-only remains exempt from the audit-level gate', () 
   it.each(EXTRACT_ONLY_ARMS)(
     '%s arm differs across levels ONLY by the stated audit level',
     (_arm, build) => {
-      const a = build({ auditLevel: 'standard' });
-      const b = build({ auditLevel: 'enhanced' });
-      expect(a.replace('- Audit level: **standard**', 'X')).toBe(
-        b.replace('- Audit level: **enhanced**', 'X')
-      );
+      // All three levels, pairwise against `standard`. `debug` was left to a
+      // separate case, which meant the level that adds the MOST apparatus
+      // everywhere else in this prompt was the one this exemption never checked.
+      const base = build({ auditLevel: 'standard' }).replace('- Audit level: **standard**', 'X');
+      for (const level of ['enhanced', 'debug'] as const) {
+        expect(
+          build({ auditLevel: level }).replace(`- Audit level: **${level}**`, 'X'),
+          `${level} differs from standard by more than the stated level`
+        ).toBe(base);
+      }
     }
   );
 

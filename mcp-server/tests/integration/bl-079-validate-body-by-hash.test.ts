@@ -325,9 +325,19 @@ describe('session 2 — an extract record arrives after the body cache has expir
     const first = (await handlePrepareIrlBodyTool({ filledIrl: SAMPLE_IRL }, metrics))
       .structuredContent as { mintedAt?: string };
     await new Promise((r) => setTimeout(r, 5));
+    // Pin that the second call's OWN clock would have produced a different
+    // value. Without this the equality below is a false green whenever both
+    // `toISOString()` reads land in the same millisecond — which is exactly
+    // when a `prepare_irl_body` that ignored the store and returned its own
+    // clock would sail through. ISO-8601 UTC strings order lexicographically.
+    const afterSleep = new Date().toISOString();
     const second = (await handlePrepareIrlBodyTool({ filledIrl: SAMPLE_IRL }, metrics))
       .structuredContent as { mintedAt?: string };
     expect(first.mintedAt).toBeTypeOf('string');
+    expect(
+      afterSleep > first.mintedAt!,
+      'the clock did not advance between the two calls — the assertion below proves nothing'
+    ).toBe(true);
     expect(second.mintedAt).toBe(first.mintedAt);
   });
 
