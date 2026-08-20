@@ -39,6 +39,7 @@ const TOOL_DESCRIPTION = `Compute the canonical \`irlBodyHash\` for a \`filledIr
 **Outputs**:
 - \`irlBodyHash\`: 16-hex-char prefix of sha256(filledIrl). Pass this verbatim to \`compose_dossier_envelope.irlBodyHash\`.
 - \`byteLength\`: UTF-8 byte length of the body, for your own bookkeeping.
+- \`mintedAt\` (may be absent): ISO-8601 timestamp the server holds for this body's provenance record. It is the STORED value — the store is first-write-wins, so on a repeat call within the cache window you get the ORIGINAL mint time, not this call's clock. Copy it verbatim into an IRL extract record's \`_meta.generatedAt\` and set \`generatedAtSource: "server-witnessed"\`. **Absent means the provenance write did not land** — fall back to your own timestamp with \`generatedAtSource: "model-asserted"\`; do not claim a witness you were not given.
 
 The hash is deterministic: same body in, same hash out. No normalization is applied — byte-for-byte sha256.`;
 
@@ -93,14 +94,29 @@ export async function handlePrepareIrlBodyTool(
   // the store swallows its own failures, because a missing provenance record
   // only weakens an audit claim while a missing body corrupts the dossier
   // (ADR-0016's trade). First-write-wins is enforced inside the store.
-  await metrics?.irlBodyProvenance?.record(irlBodyHash, {
+  //
+  // The EFFECTIVE entry is returned (`existing ?? entry`, `null` on the
+  // swallowed-error path) so `mintedAt` can be reported truthfully. Under
+  // first-write-wins the timestamp computed here is not necessarily the one the
+  // store kept: the render-time prepop may have minted first, and repeat calls
+  // inside the 4 h window hit this same path. Only the stored value earns the
+  // `server-witnessed` label a travelling extract record puts on it —
+  // over-claiming provenance is the failure class ADR-0018 exists to prevent.
+  const provenance = await metrics?.irlBodyProvenance?.record(irlBodyHash, {
     mintedBy,
     mintedAt: new Date().toISOString(),
     byteLength,
     newlineCount: structure.newlineCount,
   });
 
-  const result: PrepareIrlBodyOutput = { irlBodyHash, byteLength };
+  const result: PrepareIrlBodyOutput = {
+    irlBodyHash,
+    byteLength,
+    // Omitted rather than nulled when no record landed (no store bound, or the
+    // write failed): the consumer's documented fallback is a model-asserted
+    // timestamp, and an absent field is what selects it.
+    ...(provenance ? { mintedAt: provenance.mintedAt } : {}),
+  };
   return toolOk(result, `IRL body hashed (${byteLength} bytes).`);
 }
 

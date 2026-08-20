@@ -160,8 +160,17 @@ export function generateIrlXlsxBuffer(article: IRLArticle, metadata: IRLXlsxMeta
  * so a customized artifact with removed questions shows intentional GAPS —
  * `2-01, 2-02, 2-04` — signalling deliberate omission and keeping quoted
  * refs stable across differently-configured engagements.
+ *
+ * **Exported because the IRL extract record keys off this value and only this
+ * value.** Three sibling builders exist (`customize-article.ts:bulletKey`,
+ * `information-request-list.ts`, `list-irl-requests.ts`) and all three
+ * interpolate `sectionNumber` raw, producing the `NN-II` exclusion key
+ * (`00-03`) rather than the workbook Reference column (`0-03`). A record keyed
+ * on the exclusion key parses, looks canonical, and never matches the reference
+ * the target quoted — so `mcp-server/src/schemas/irl-extract-record.ts` reuses
+ * this function rather than writing a fifth copy.
  */
-function buildReferenceId(sectionNumber: string, bulletOrdinal: number): string {
+export function buildReferenceId(sectionNumber: string, bulletOrdinal: number): string {
   const sectionDigit = sectionNumber.replace(/^0+/, '') || '0';
   const bulletSlug = String(bulletOrdinal).padStart(2, '0');
   return `${sectionDigit}-${bulletSlug}`;
