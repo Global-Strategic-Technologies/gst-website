@@ -114,7 +114,12 @@ describe('gst_irl_ingestion', () => {
     // The transport-classed `errorsEncountered` subset is pinned closed so the
     // reconciliation stays arithmetic rather than a judgement call (BL-121,
     // server 0.49.3).
-    expect(irlIngestionPrompt.version).toBe('0.28.0');
+    // v0.29.0: the IRL extract record. `extract-only` is reachable without
+    // `filledIrl` (interactive collects the body and THEN branches), its
+    // primary output is a subject-keyed portable record rather than a set of
+    // consumer-shaped payload fences, and it makes one `prepare_irl_body` call
+    // on the deferred arm so the travelling artifact has auditable provenance.
+    expect(irlIngestionPrompt.version).toBe('0.29.0');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });
@@ -236,12 +241,25 @@ describe('gst_irl_ingestion', () => {
       }
     });
 
-    it('inlines the VDR folder taxonomy in the body instead of embedding the article (BL-123)', () => {
-      // The nine labels are what section (I) quotes verbatim; the article's
-      // surrounding prose was 16.3KB of payload nothing read. Byte-level
-      // agreement with the canonical Library article is pinned separately by
-      // tests/integration/vdr-taxonomy-drift-guard.test.ts.
-      for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
+    // All FOUR rendered bodies. These two guards ran `[{}, {filledIrl}]` — the
+    // two FULL bodies — so neither saw an extract-only shape at all, and the
+    // deferred arm's dangling "reproduced inline at Step 3" reference to a VDR
+    // taxonomy it does not render would have shipped with nothing to catch it.
+    const ALL_RENDERED_BODIES = [
+      ['interactive/full', {}],
+      ['interactive/extract-only', { mode: 'extract-only' }],
+      ['one-shot/full', { filledIrl: SAMPLE_FILLED_IRL }],
+      ['one-shot/extract-only', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
+    ] as const;
+
+    /** The two bodies that emit follow-up document requests, and therefore quote VDR folders. */
+    const FULL_BODIES = ALL_RENDERED_BODIES.filter(([label]) => label.endsWith('/full'));
+    const EXTRACT_ONLY_BODIES = ALL_RENDERED_BODIES.filter(([label]) =>
+      label.endsWith('/extract-only')
+    );
+
+    it('never embeds the VDR article as a resource, in ANY rendered body (BL-123)', () => {
+      for (const [label, args] of ALL_RENDERED_BODIES) {
         const result = irlIngestionPrompt.build(args);
         expect(
           result.messages.some(
@@ -249,13 +267,25 @@ describe('gst_irl_ingestion', () => {
               m.content.type === 'resource' &&
               'text' in m.content.resource &&
               m.content.resource.uri === VDR_RESOURCE_URI
-          )
+          ),
+          `${label} embeds the VDR article as a resource`
         ).toBe(false);
+      }
+    });
 
+    it('inlines the VDR folder taxonomy in the two full bodies (BL-123)', () => {
+      // The nine labels are what section (I) quotes verbatim; the article's
+      // surrounding prose was 16.3KB of payload nothing read. Byte-level
+      // agreement with the canonical Library article is pinned separately by
+      // tests/integration/vdr-taxonomy-drift-guard.test.ts.
+      expect(FULL_BODIES.length, 'the full-body arm must not be empty').toBe(2);
+      for (const [label, args] of FULL_BODIES) {
         const text = bodyText(irlIngestionPrompt, args);
-        expect(text).toContain('Canonical VDR folder taxonomy');
+        expect(text, `${label} missing the inline taxonomy`).toContain(
+          'Canonical VDR folder taxonomy'
+        );
         expect(text).toContain(VDR_RESOURCE_URI); // provenance caption
-        for (const label of [
+        for (const label2 of [
           'Product',
           'Software Architecture',
           'Infrastructure & Operations',
@@ -266,17 +296,60 @@ describe('gst_irl_ingestion', () => {
           'Corporate IT',
           'Governance & Compliance',
         ]) {
-          expect(text, `body missing VDR folder label: ${label}`).toContain(label);
+          expect(text, `${label} missing VDR folder label: ${label2}`).toContain(label2);
         }
       }
     });
 
-    it('mentions every orchestrates entry literally in the body', () => {
-      for (const args of [{}, { filledIrl: SAMPLE_FILLED_IRL }] as const) {
+    it('neither extract-only body renders the VDR taxonomy — nor references one', () => {
+      // The positive half of § D.4. Extract-only emits no dossier and no
+      // follow-up document requests, so the taxonomy is correctly absent — and
+      // a body that POINTS at an absent section is the defect, not the absence.
+      expect(EXTRACT_ONLY_BODIES.length, 'the extract-only arm must not be empty').toBe(2);
+      for (const [label, args] of EXTRACT_ONLY_BODIES) {
         const text = bodyText(irlIngestionPrompt, args);
-        for (const ref of irlIngestionPrompt.orchestrates) {
-          expect(text, `body missing orchestrates entry: ${ref}`).toContain(ref);
+        expect(text, `${label} renders a taxonomy it has no section for`).not.toContain(
+          'Canonical VDR folder taxonomy'
+        );
+        expect(text, `${label} dangles a VDR reference at a Step it does not render`).not.toContain(
+          'reproduced inline at Step 3'
+        );
+        expect(text, `${label} references the VDR resource it does not carry`).not.toContain(
+          VDR_RESOURCE_URI
+        );
+      }
+    });
+
+    it('mentions every orchestrated TOOL literally in every rendered body', () => {
+      // Scoped to tool names deliberately. `gst://library/vdr-structure` is a
+      // full-mode-only reference (see the test above), so a blanket
+      // orchestrates→body assertion over all four bodies would be false for a
+      // correct reason. The Resource URIs are asserted per-arm instead.
+      const toolNames = irlIngestionPrompt.orchestrates.filter((o) => !o.includes('://'));
+      expect(toolNames.length, 'the tool-name set must not be empty').toBeGreaterThanOrEqual(10);
+      for (const [label, args] of ALL_RENDERED_BODIES) {
+        const text = bodyText(irlIngestionPrompt, args);
+        for (const ref of toolNames) {
+          expect(text, `${label} body missing orchestrates entry: ${ref}`).toContain(ref);
         }
+      }
+    });
+
+    it('mentions the IRL generator source URI in every rendered body', () => {
+      for (const [label, args] of ALL_RENDERED_BODIES) {
+        expect(
+          bodyText(irlIngestionPrompt, args),
+          `${label} missing ${IRL_SOURCE_EMBED_URI}`
+        ).toContain(IRL_SOURCE_EMBED_URI);
+      }
+    });
+
+    it('mentions the VDR resource URI in the two full bodies (orchestrates→body)', () => {
+      for (const [label, args] of FULL_BODIES) {
+        expect(
+          bodyText(irlIngestionPrompt, args),
+          `${label} missing ${VDR_RESOURCE_URI}`
+        ).toContain(VDR_RESOURCE_URI);
       }
     });
   });
@@ -1171,14 +1244,20 @@ describe('gst_irl_ingestion', () => {
     // `debug` only, while extract-only is exempt from the gate entirely and
     // emits it at every level (its own `mode` description promises provenance,
     // and it produces no partner-facing dossier to keep clean).
+    // Keyed to RENDERED-BODY identity, not builder identity. The two used to
+    // coincide; they stopped when `buildInteractiveBody` gained an
+    // extract-only arm, and a builder-keyed list would have left that arm — a
+    // served body carrying this whole schema — unexercised.
     const VERIFY_MODES: Array<[string, Parameters<typeof irlIngestionPrompt.build>[0]]> = [
-      ['interactive debug', { auditLevel: 'debug' }],
-      ['one-shot debug', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' }],
-      ['extract-only standard', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
+      ['interactive/full debug', { auditLevel: 'debug' }],
+      ['one-shot/full debug', { filledIrl: SAMPLE_FILLED_IRL, auditLevel: 'debug' }],
+      ['one-shot/extract-only standard', { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only' }],
       [
-        'extract-only debug',
+        'one-shot/extract-only debug',
         { filledIrl: SAMPLE_FILLED_IRL, mode: 'extract-only', auditLevel: 'debug' },
       ],
+      ['interactive/extract-only standard', { mode: 'extract-only' }],
+      ['interactive/extract-only debug', { mode: 'extract-only', auditLevel: 'debug' }],
     ];
 
     it.each(VERIFY_MODES)('%s body emits `countersScope` in the VERIFY schema', (_label, args) => {

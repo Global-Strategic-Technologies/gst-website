@@ -19,7 +19,7 @@
 import { z } from 'zod';
 import type { GstPrompt } from './types';
 import { arrayFromWire } from './wire-shape';
-import { authorialIntentLine } from './embed';
+import { authorialIntentLine, irlEvidencePrecedence } from './embed';
 
 const argsSchema = z.object({
   targetJurisdictions: arrayFromWire(z.array(z.string().min(2)).min(1)).describe(
@@ -42,9 +42,10 @@ export const regulatoryExposureBriefPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Compile applicable regulatory frameworks for a target, with summaries pulled from the search-result data + per-framework Regulatory Map URIs.',
-  version: '0.0.1',
-  lastReviewedAt: '2026-05-01',
+  version: '0.1.0',
+  lastReviewedAt: '2026-08-20',
   orchestrates: ['search_regulations', 'gst://regulations/'] as const,
+  consumesTargetEvidence: true,
   argsSchema,
   build: (args) => ({
     messages: [
@@ -58,6 +59,8 @@ export const regulatoryExposureBriefPrompt: GstPrompt<typeof argsSchema> = {
             `Compile a regulatory exposure brief for a ${args.productType} target operating across the following jurisdictions: ${args.targetJurisdictions.join(', ')}.`,
             '',
             `Data / regulation categories in scope: ${args.dataCategories.join(', ')}.`,
+            '',
+            irlEvidencePrecedence(),
             '',
             'Step 1. For each jurisdiction × category pair, call `search_regulations` with `{ jurisdiction, category }`. If a jurisdiction id is not recognized (no matches returned), call `list_regulation_facets` to find the canonical id (e.g. is it "uk" or "gbr"? "us-ca" or "ca"?) and retry.',
             '',

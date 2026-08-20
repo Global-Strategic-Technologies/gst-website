@@ -196,7 +196,7 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // Section-02 components in `deepdive`. Two runs over one IRL took different
 // branches and produced an inverted zone verdict. Body-only change on one
 // prompt; drifts solely from that tuple.
-const EXPECTED_MANIFEST_HASH = '28b148303253108b3d3c6b0808952a228a62bcf78976a365fd62b50b44b216a9';
+const EXPECTED_MANIFEST_HASH = 'e0f045baeecf38c3442e1bbc3d8450199f40a435e0a4bc7c021e3f1bd7bc6dd1';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
