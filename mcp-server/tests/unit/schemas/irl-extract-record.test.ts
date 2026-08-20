@@ -354,6 +354,24 @@ describe('excerpt cap — a floor and a token-preservation rule, not a byte coun
       expect(long.split(/\s+/), `severed token: ${t}`).toContain(t);
     }
   });
+
+  it('never produces an excerpt its own schema would reject', () => {
+    // Code review's constructed case: an early space, then one unbroken token
+    // past the cap. Backing up to that space used to be allowed (the floor was
+    // the tier-1 minimum, 20) and yielded a ~22-character flagged excerpt, which
+    // the `excerptTruncated` refinement refuses for being far under half the cap.
+    // Helper and validator now share the half-cap floor, so the hard slice wins.
+    const pathological = `A ${'x'.repeat(400)}`;
+    const { excerpt, truncated } = capIrlExtractExcerpt(pathological);
+    expect(truncated).toBe(true);
+    expect(excerpt.length * 2).toBeGreaterThanOrEqual(IRL_EXTRACT_EXCERPT_CAP_CHARS);
+
+    // And prove it end to end: a record carrying that excerpt must parse.
+    const record = buildRecordFromBody(NORTHWIND);
+    record.facts[0] = { ...record.facts[0], excerpt, excerptTruncated: true };
+    const result = IrlExtractRecordSchema.safeParse(record);
+    expect(result.success, JSON.stringify(result.error?.issues)).toBe(true);
+  });
 });
 
 describe('coverage is counted, not claimed', () => {

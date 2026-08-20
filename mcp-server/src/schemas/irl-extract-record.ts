@@ -179,6 +179,14 @@ export const IRL_EXTRACT_REF_FORMAT = 'workbook-reference';
 /**
  * Apply the word-boundary cap the directive states and the schema validates.
  *
+ * **No in-repo production caller, and unlike {@link refForBullet} that is not
+ * because it is test support.** The caller this implements for is the MODEL,
+ * following {@link IRL_EXTRACT_RECORD_DIRECTIVE} — the record is built in the
+ * model's turn, not on the server. What lives here is the executable statement
+ * of that rule, so the schema tests can drive the real thing and any future
+ * server-side record builder has one implementation to reach for rather than a
+ * fourth restatement.
+ *
  * The rule was written down three times — in {@link IRL_EXTRACT_RECORD_DIRECTIVE}
  * for the model, in the `excerptTruncated` refinement for the wire, and in each
  * test that had to build a conformant fixture. The third copy was the problem:
@@ -189,14 +197,23 @@ export const IRL_EXTRACT_REF_FORMAT = 'workbook-reference';
  *
  * Truncation backs up to the last space rather than cutting mid-token, because
  * a severed tier-1 enum literal silently demotes the citation — see the cap's
- * own docstring. Below {@link IRL_EXTRACT_EXCERPT_MIN_CHARS} there is no word
- * boundary worth honouring, so the hard slice stands.
+ * own docstring.
+ *
+ * **The back-up floor is HALF THE CAP, matching the `excerptTruncated`
+ * refinement below.** It used to be {@link IRL_EXTRACT_EXCERPT_MIN_CHARS} (20),
+ * which let the helper emit a record its own schema rejects: an early space
+ * followed by one unbroken 200-character token backs up to a 22-character
+ * flagged excerpt, and the refinement refuses any flagged excerpt under half the
+ * cap. Unreachable on real IRL prose — but this helper exists so a caller gets
+ * the rule rather than a re-implementation of it, and a rule that disagrees with
+ * the validator is not the rule. Below the floor there is no word boundary worth
+ * honouring and the hard slice stands, which is always well over it.
  */
 export function capIrlExtractExcerpt(text: string): { excerpt: string; truncated: boolean } {
   if (text.length <= IRL_EXTRACT_EXCERPT_CAP_CHARS) return { excerpt: text, truncated: false };
   const slice = text.slice(0, IRL_EXTRACT_EXCERPT_CAP_CHARS - 1);
   const lastSpace = slice.lastIndexOf(' ');
-  const kept = lastSpace > IRL_EXTRACT_EXCERPT_MIN_CHARS ? slice.slice(0, lastSpace) : slice;
+  const kept = lastSpace * 2 > IRL_EXTRACT_EXCERPT_CAP_CHARS ? slice.slice(0, lastSpace) : slice;
   return { excerpt: `${kept}…`, truncated: true };
 }
 
@@ -429,7 +446,13 @@ export const IRL_EXTRACT_RECORD_DIRECTIVE = [
   '  "_meta": {',
   `    "recordVersion": "${IRL_EXTRACT_RECORD_VERSION}",`,
   `    "refFormat": "${IRL_EXTRACT_REF_FORMAT}",`,
-  '    "irlBodyHash": "<16 hex — the value `prepare_irl_body` returned; do NOT hand-compute>",',
+  // Arm-agnostic on purpose. This directive renders into BOTH extract-only
+  // bodies, and they acquire the hash differently: the deferred arm calls
+  // `prepare_irl_body`, the one-shot arm is told NOT to and copies the
+  // body-binding hash the server already stated. Naming the tool here — as this
+  // line did — instructed the one-shot arm to make the call its own procedure
+  // forbids. Point at the procedure instead; each arm's step says which it is.
+  '    "irlBodyHash": "<16 hex — the value the provenance step above gave you; do NOT hand-compute>",',
   '    "irlSource": "<partner-paste-verbatim | partner-paste-verbatim-prepop | model-reconstruction-from-xlsx | model-reconstruction-trimmed | placeholder>",',
   '    "generatedAt": "<ISO-8601 — the `mintedAt` the provenance step returned, or your own clock when it returned none>",',
   '    "generatedAtSource": "<server-witnessed | model-asserted — which of those two you just did>",',

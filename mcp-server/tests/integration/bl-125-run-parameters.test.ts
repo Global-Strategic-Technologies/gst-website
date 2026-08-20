@@ -100,10 +100,12 @@ describe('BL-125 — resolved run parameters are stated, not inferred', () => {
 describe('BL-125 — requireVerbatimBody is stated where a consumer exists', () => {
   it('the two full bodies state it; NEITHER extract-only arm does', () => {
     // The selection rule is "does this surface have a consumer for the value".
-    // Extract-only invokes no ANALYSIS tool — its one call, `prepare_irl_body`,
-    // reads no gate — the flag is not a meta-fence key and not a RUN-AUDIT
-    // field, so stating it there would be bytes plus an invitation to enforce a
-    // gate the body forbids reaching. The deferred arm is included because it
+    // Neither extract-only body invokes an ANALYSIS tool, and neither reads a
+    // gate: the deferred arm's one call is `prepare_irl_body`, and the one-shot
+    // arm makes no call at all (the prepop already minted its provenance). The
+    // flag is not a meta-fence key and not a RUN-AUDIT field either, so stating
+    // it on either would be bytes plus an invitation to enforce a gate the body
+    // forbids reaching. The deferred arm is included because it
     // takes `requireVerbatimBody` as an argument like every other body and
     // would otherwise be the one place the rule could silently lapse.
     expect(ONE_SHOT()).toContain('- Verbatim-body gate:');

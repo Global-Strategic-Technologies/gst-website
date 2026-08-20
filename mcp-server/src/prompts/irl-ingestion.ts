@@ -1119,14 +1119,7 @@ function provenanceDisplaySections(gated: boolean): string[] {
  * deferred arm without them. Callers therefore do NOT name
  * `WORKBOOK_COLUMN_CONTRACT` separately; doing so renders it twice.
  *
- * Takes no arguments on purpose: nothing in the procedure reads `args.*`, which
- * is what makes one helper serve both arms without a `gated`-style parameter
- * threading through it.
- */
-/**
- * The extraction plan + voice directives, shared by both extract-only arms.
- *
- * `mintsOwnProvenance` tracks which `prepareIrlBodyStep` variant rendered above
+ * **`mintsOwnProvenance`** tracks which `prepareIrlBodyStep` variant rendered above
  * it, and exists because the tool-invocation bullet below has to agree with that
  * step. The deferred arm calls `prepare_irl_body`; the one-shot arm is told NOT
  * to, because the BL-079 prepop already fired and re-minting would replace

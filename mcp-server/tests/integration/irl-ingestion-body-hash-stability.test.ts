@@ -412,9 +412,9 @@ const EXPECTED_HASH_ONESHOT_MINIMAL =
 const EXPECTED_HASH_ONESHOT_FULL =
   '5623707170af88b78f75d0826cebd42940d62f3d33ae2f589a9ff3e590f24765';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'c4bd1eb95a1d28a5b10d8bfd43b2aa35566651bbe11cb1a6432445237d45f9c5';
+  '99acd6af95346db8198a9ff03527e08a1868b90cd488fee1fa60ff176c8ff6bd';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '8d74e5116a650648a3783abb40c395eee3f0e4ebd1e2d972de0b6813d9be8995';
+  '594c950bdc50ff278a8ca390a174c6926daf32de5723515059942a4e710b8747';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -444,9 +444,9 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  '3c4d31d644f753e34d7fc7d634e1b55f297c881ab9323f7878c6029eea82375b';
+  '0e07f9935164cf94d1cd08f6d450a425d6ecf611ef4d1635db8f6576c7866dcf';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  '70a92adf5759bd9ec6378ab96d8ac835055f5f6edefabc3a894c6048fa11c316';
+  'c38ff5c9180c0af7835b48dfc52c17139ead4138041b7933639281314ff38721';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
@@ -495,13 +495,13 @@ const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
 // so the body has to state it — but a future rebaseline with no visible body
 // diff is explained by this paragraph and is not a mystery to re-derive.
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY =
-  '2b1cb80d7c2fbb24dd1de02e1dce609af35789b8040c83af5328f09ed99363d6';
+  '5ece1137f65264327f745faee7811819196542add288689be3410c07d718944f';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_ENHANCED =
-  'a17c04a301e49edc3fbf9a94143030fe1984205ff025a6d590689cb9443bae9a';
+  'c317bb74a43e83cf09d1e71141e02c89a2def06079c0f5d8cda363e40bf30d70';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_DEBUG =
-  '71a36f278397949d6c2accac5ab9077909268f43952f21178aaa7b247964cf91';
+  '857b4b23046a1821d3d01a0116a3e2c3d672c7a7fd892739801d446e8b2bbb52';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_WITH_ARGS =
-  'b0fea8eea7d55abe73a2392209c8a7f852012f49a4faceb7eb7154ca0cf45009';
+  '1752a274a6f727a5bf6113e02f133b09c67f37a90ff4fa154bf08d81683dca05';
 
 interface Scenario {
   name: string;
