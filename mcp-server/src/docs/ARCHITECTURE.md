@@ -298,6 +298,26 @@ The run key is the IRL body hash, not a session id: "these bytes" is the audit s
 
 `compose_dossier_envelope` merges the durable row over its per-request map and reports **`countersScope`**: `session` (stdio), `run` (Worker + read succeeded), `request` (unbound, or the read failed). Failure is quiet — a counter fault never fails a tool call, the opposite posture from the body cache, which throws when unbound because a missing body corrupts the dossier while a missing counter only weakens a report. Contract, merge arithmetic, and the rejected alternatives: [ADR-0016](../../../src/docs/adr/0016-run-scoped-durable-tool-call-counters.md) and [`tools/irl-pipeline/CONTRACT.md`](tools/irl-pipeline/CONTRACT.md).
 
+### Persistence posture — what the server holds, and for how long
+
+The state counterpart to [ADR-0019](../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md) (decisions live in the ADR; what actually exists lives here). Read this before adding any key family.
+
+**Three ephemeral key families, all at 4 h, and nothing else target-readable.**
+
+| key family                         | holds                                                                           | TTL | owner                              |
+| ---------------------------------- | ------------------------------------------------------------------------------- | --- | ---------------------------------- |
+| `mcp:irl-body:<irlBodyHash>`       | the full partner IRL body, up to `IRL_BODY_CACHE_MAX_BYTES` = **200,000 bytes** | 4 h | `src/cache/irl-body-cache.ts`      |
+| `mcp:irl-body-prov:<irlBodyHash>`  | `{ mintedBy, mintedAt, byteLength, newlineCount }` — no body content            | 4 h | `src/cache/irl-body-provenance.ts` |
+| `mcp:irl-run-counts:<irlBodyHash>` | per-tool `{ attempted, succeeded, rejected, errored }` — no body content        | 4 h | `src/metrics/run-call-counters.ts` |
+
+The byte reality is stated rather than euphemized: the first row **is** the partner's document, sitting in third-party managed Redis for four hours. It is within-run transport — the body travels by hash so it never round-trips through model emission (ADR-0002) — and it is the one place target-readable bytes exist server-side at all. There is no read path that outlives the run, and nothing re-materializes an expired entry.
+
+**The IRL extract record is NOT in this table, and that is the design.** It is context-borne: it travels by being present in the conversation and downstream prompts consume it from there. There is no `mcp:irl-extract:*` key, no `gst://irl/extract/{hash}` template, and no server-side inventory of records. The operational consequence is the one to plan around: **a record arriving in a later session will find its `_meta.irlBodyHash` cold**, and the recovery is `prepare_irl_body` to re-seed, then `validate_irl_provenance` in its hash form — not a lookup.
+
+**The compliance audit log is a separate surface**, governed by [ADR-0009](../../../src/docs/adr/0009-compliance-audit-log-hash-chain.md) and currently deactivated by [ADR-0014](../../../src/docs/adr/0014-deactivate-audit-pipeline.md). Its R2 bucket carries a 7-year lock and its chain-tip keys are TTL-less. That capability is unaffected by the no-retention decision above; the two meet at exactly one place, ADR-0009's full-payload-retention revisit trigger, and ADR-0019 § Decision 3 fence (b) states how to evaluate it if it fires.
+
+**Nothing else persists anything target-readable.** Radar snapshots and the regulation/library corpora are GST-authored content, not client evidence; the OAuth and rate-limit key families hold client identity and counters, not target data.
+
 ### SLO baselines & targets
 
 SLO targets are measured, not guessed. `npm -w @gst/mcp-server run ae:baseline` (`scripts/invoke-ae-baseline.mjs`) pulls a trailing-7-day window from the AE SQL API and emits paste-ready baseline tables plus proposed targets, pre-applying the per-metric-kind calibration rules (latency = p95 × 1.5; availability = 0.5% sustained error-budget floor; freshness = 2 × the 6h radar cron = 43,200 s; throughput handled by the rolling traffic-spike alert rather than a fixed SLO).

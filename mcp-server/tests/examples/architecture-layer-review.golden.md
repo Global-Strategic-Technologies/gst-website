@@ -7,6 +7,8 @@ model: claude-opus-4-7
 
 # Worked example output for `gst_architecture_layer_review`
 
+> **Historical transcript, not a current-body snapshot.** This recording predates `v0.1.0` (2026-08-20, [ADR-0019](../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md)). The body now carries `irlEvidencePrecedence()`, so a run with an IRL extract record in context resolves its layer analysis from that evidence and cites it rather than reasoning from the target summary alone. Re-recording needs a human-driven live exercise against a real MCP client, so it cannot happen in-session or in CI; `golden-snapshots.test.ts` asserts file existence, four frontmatter keys and `promptName` — never `version` or body — so the stale version above is expected and is not drift to repair.
+
 V6 sign-off recording. Senior-consultant verdict: signed off on substantive quality. The verification doc's stale layer names (Software → Infrastructure → Data → Organizational → Industry) were reconciled to the canonical Library taxonomy (Software → Operational → Product → Organizational → Industry & Regulatory) before recording.
 
 ## Input
