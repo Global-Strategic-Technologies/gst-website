@@ -773,7 +773,9 @@ BL-063 exists because the distinction is load-bearing: a conditionally-triggered
 
 The coherent fix is for interactive to collect the body and _then_ branch, which is a feature rather than a hygiene fix. BL-125 makes the behavior visible instead: the interactive body states the effective mode and discloses that the supplied one was not honored.
 
-**Trigger**: the first operator report of an ignored `extract-only`, or any change to `build()`'s dispatch.
+**2026-08-20 — trigger met; initiative designed.** An operator report of exactly this shape (extract-only requested, body pasted into chat, run re-stamped as a full sweep) fired the trigger. The fix ships as part of the IRL extract record initiative: interactive collects the body and then branches, and extract-only's output becomes a subject-keyed portable record consumed across the prompt surface. **Concept diagram of the record flow** (extraction → record → consumer prompts → cross-session re-verification; also a candidate visual for future site marketing): <https://claude.ai/code/artifact/99be16be-e090-44a8-8185-dab4f49ce407> — when this stanza is pruned at implementation, carry this reference into the initiative's ADR, and refresh the diagram if the record design changes.
+
+**Trigger**: met 2026-08-20 — the first operator report of an ignored `extract-only` (see the status update above).
 
 ---
 
