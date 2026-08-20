@@ -412,9 +412,9 @@ const EXPECTED_HASH_ONESHOT_MINIMAL =
 const EXPECTED_HASH_ONESHOT_FULL =
   '5623707170af88b78f75d0826cebd42940d62f3d33ae2f589a9ff3e590f24765';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '327197fc8ccfdc5539db05368f2afbf0ab4adf0bbc86bea4ee4db42a277a8c8a';
+  'c7230ab09490e3bfd7ea61d90539f0aafe38c665daa750d4caeb6e8041da32e8';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '7f344b98ef90eedbf8fc45b672b994ba29126609242a817a336ceea829256482';
+  '6be2a545c9de5f51b81c584c1d180591d667abf82c6aaae7799e393a5c4eb1db';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -428,9 +428,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
   '3ea038c2232aad6a5fba98e6fd839c5a3aa3a76ed3c15a3d2ce5166932581ce4';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  'f40da7ccbb3f532c2c18e020e73ed9aa00f4c0b4b2df2f01ea2f4ab04378379e';
+  '225c04abb6f8d582339506c51bbf10350d22d5f269bf2e272a10ed09082c1c82';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
-  '6fd15ead66bbbd8e229a068e4784c127f9826249b2ff9805724066bd68b9a3d6';
+  '976359d90b0cb34057dbd9bb651176124575c50009a6c3470b03b477473252d9';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
 // the resolved level — its meta fence is model-authored (ADR-0017), so it is
 // the one surface where an inferred `auditLevel` lands in the artifact with
@@ -444,9 +444,9 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  '32bbefb66a30fd6cc5ec54ce2b5aecb7032c0a42b0cf01133a3a890c2b1420b4';
+  '7554aafb7f728584ccc3a3db14d3a0df377e035e6c4ac1a708c1cd8bf46bec70';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  '8bdfb426844ed87b9ed1b240ceef20ee019c43d360c99339ab33be67c0022940';
+  'ef8a2ca7f0d38eab480b5912fcd94822ec0856bfcd36ec14c8d1283889a595a7';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
@@ -495,13 +495,13 @@ const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
 // so the body has to state it — but a future rebaseline with no visible body
 // diff is explained by this paragraph and is not a mystery to re-derive.
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY =
-  '4084a130af2f2f186636bb354399899a52a23081535cd577244c4429379a81bf';
+  '93f10c6ce6ba7bdbd69d1351710854db15c269c84d242d8815fbec97ff9c2503';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_ENHANCED =
-  '495eb854867e07c2e70aae9cd418190b611cc4f43b95717a3c38b54cce6a1395';
+  '7bc8b8a9d770816eb500df005ef35fb0e51fe74402be9dc43bce173196342f98';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_DEBUG =
-  '6c8a0a34430d19ae7bd72c2a1f93c2e39442579368c5449f7c1eea8466969671';
+  '7af9523aced74736a8b56a7e5c5f46464a3098232c15f2efff13ca227d6d5f05';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_WITH_ARGS =
-  'fb07290e892f15f4f53f0922286fea5123c33824f7894bba9bae895a67fadd85';
+  '8434a5c28f45a7ec5938fb3a672184b86e743080ef3b091f4704159724a1cec0';
 
 interface Scenario {
   name: string;

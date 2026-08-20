@@ -443,7 +443,20 @@ describe('normalization is to units and scalars, never to a consumer enum', () =
 describe('the body directive and the schema cannot state different numbers', () => {
   it('the rendered directive interpolates the cap and floor from the schema constants', () => {
     expect(IRL_EXTRACT_RECORD_DIRECTIVE).toContain(`${IRL_EXTRACT_EXCERPT_CAP_CHARS} characters`);
-    expect(IRL_EXTRACT_RECORD_DIRECTIVE).toContain(`${IRL_EXTRACT_EXCERPT_MIN_CHARS} characters`);
+    // Bold-delimited, because the bare form collided: adding the half-cap clause
+    // put "120 characters" in the directive, and `toContain('20 characters')`
+    // matches inside it — so this lockstep silently died the moment it mattered,
+    // and deleting the floor sentence entirely still passed. Mutation-checked in
+    // both directions after the fix.
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE).toContain(
+      `below **${IRL_EXTRACT_EXCERPT_MIN_CHARS} characters**`
+    );
+    // The back-up floor the helper and the refinement both use. It is derived
+    // (half the cap) rather than its own constant, so nothing but this pins the
+    // directive's copy of it to the other two.
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE).toContain(
+      `HALF the cap (${IRL_EXTRACT_EXCERPT_CAP_CHARS / 2} characters)`
+    );
     expect(IRL_EXTRACT_RECORD_DIRECTIVE).toContain(
       `"excerptCapChars": ${IRL_EXTRACT_EXCERPT_CAP_CHARS}`
     );
