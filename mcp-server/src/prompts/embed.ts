@@ -276,6 +276,6 @@ export function embeddedTaxonomyFraming(isIngestion: boolean): string {
   const base =
     'The next message is the **blank canonical IRL taxonomy** — the request template itself, every bullet a question with no answer. It is served from the GST registry at invocation time, which makes it the authoritative bullet set: reproduce it as-is rather than reconciling it against another source.';
   return isIngestion
-    ? `${base} **It is NOT the filled IRL and must not be swept.** A blank template arriving where a populated one is expected reads like a paste that lost its answers; it is neither. The filled body is whatever the user supplies through \`filledIrl\` or pastes in reply.`
+    ? `${base} **It is NOT the filled IRL and must not be swept.** A blank template arriving where a populated one is expected reads like a paste that lost its answers; it is neither. The filled body is whatever the user supplies through \`filledIrl\`, attaches to the conversation, or pastes in reply.`
     : base;
 }

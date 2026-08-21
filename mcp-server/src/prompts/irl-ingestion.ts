@@ -254,7 +254,7 @@ const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
 const WORKBOOK_COLUMN_CONTRACT = [
   '## IRL workbook column contract (READ FIRST if you are reconstructing from an attached .xlsx)',
   '',
-  'Skip this section when the IRL below is already markdown — it is already in the shape described here. It governs the case where you are reading a `.xlsx` attachment and writing the body yourself.',
+  'Skip this section when the IRL you have is already markdown — it is already in the shape described here. It governs the case where you are reading a `.xlsx` attachment and writing the body yourself.',
   '',
   'The workbook has **seven** columns:',
   '',
