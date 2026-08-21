@@ -237,7 +237,7 @@ Two consequences for a tester:
 
 **Input**: `filledIrl` (≥ 200 chars), `targetName`, `transactionContext`, `partnerLead`, `projectCodeName`, `mode`, `auditLevel`, `requireVerbatimBody`. **Run at `auditLevel: "debug"`** — the expectations below read the audit surface, which `standard` deliberately omits.
 
-**Two paths, both required** (prompt `0.29.0`): the one-shot path below, and the **deferred `extract-only`** path, which had no coverage here because `build()` used to route it to the interactive full sweep.
+**Two paths, both required** (prompt `0.30.0`): the one-shot path below, and the **deferred `extract-only`** path, which had no coverage here because `build()` used to route it to the interactive full sweep.
 
 **Expected result**
 

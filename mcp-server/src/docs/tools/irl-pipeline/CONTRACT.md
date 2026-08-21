@@ -21,7 +21,7 @@ schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 >
 > **Used by prompts**: [`gst_information_request_list`](../../prompts/README.md) (emits the intake ask) and [`gst_irl_ingestion`](../../prompts/irl-ingestion.md) (ingests a populated IRL and orchestrates the full dossier sweep).
 >
-> **Version**: `v1` | **Last authored**: 2026-08-15
+> **Version**: `v1` | **Last authored**: 2026-08-20
 >
 > **Registry**: see [`../README.md`](../README.md) for the "what is an input contract" narrative and the cross-tool registry.
 
@@ -219,7 +219,7 @@ The pipeline terminus and the largest input surface in the family. Every field b
 | `gaps`                     | array of `{ category, entry, irlSection?, followUp? }`          | may be empty                                                                                |
 | `irlBodyHash`              | `/^[a-f0-9]{16}$/`                                              | from `prepare_irl_body`; the sole body reference                                            |
 | `irlSource`                | see enum below                                                  |                                                                                             |
-| `requireVerbatimBody`      | boolean — **optional**, default `false`                         | `true` rejects any non-verbatim `irlSource`                                                 |
+| `requireVerbatimBody`      | boolean — **optional**, default `false`                         | `true` rejects a MODEL-RECONSTRUCTED `irlSource`; both partner-paste forms pass             |
 
 **The four array fields are required but may be empty.** `gatesPassed`, `gatesElided`, `conditionalTriggersFired` and `forceToolsApplied` all have to be present; omitting one is a validation error, passing `[]` is not. This is the most common first-call mistake.
 
@@ -234,6 +234,8 @@ The pipeline terminus and the largest input surface in the family. Every field b
 - **Nothing is ever promoted**, and reconstruction / `placeholder` assertions pass through untouched — the server can disprove the strongest claim but cannot substantiate the weaker ones, since it never sees where the model obtained bytes it merely relayed.
 
 Both internal consumers — the `requireVerbatimBody` gate and the reconstruction disclosure — read the **capped** value, so `Bl070VerbatimBodyRequiredError` quotes the capped value in its message rather than what you asserted. Because a cap only weakens and the gate accepts both partner-paste forms, capping never changes a gate outcome. See [ADR-0018](../../../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md).
+
+**The gate sorts on AUTHORSHIP, not on delivery route.** It accepts both `partner-paste-verbatim` and `partner-paste-verbatim-prepop` and refuses the two `model-reconstruction-*` values and `placeholder`, because what it buys is "operator-supplied, not model-reconstructed". Since prompt 0.30.0 a partner `.md` ATTACHED to the invoking message grades `partner-paste-verbatim` exactly as a chat paste does — the server cannot distinguish them (both mint via `prepare-tool`) and no honest grade separates them — so an attachment run passes this gate. It does not thereby become client-ready: `hashBindResult: pass-bound` is a separate axis that only the `filledIrl` prompt argument can produce. See [OPERATOR_RUNBOOK.md](../../../../../src/docs/development/OPERATOR_RUNBOOK.md) — passing one gate does not satisfy the other.
 
 **A body whose line breaks the client destroyed is processed normally (BL-124).** BL-123 briefly refused these; the refusal was withdrawn a day later because citation verification normalises whitespace away before matching, so flattening cannot affect the only check that runs, and the refusal blocked every realistic IRL size with no working alternative. What remains is the measurement: `serverCachedBodyNewlines` below. See [ADR-0018](../../../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md) § Re-validation.
 

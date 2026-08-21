@@ -343,10 +343,13 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
   irlSource: z
     .enum(irlSourceValues)
     .describe(
-      'How the IRL body bytes were assembled. ' +
-        '`partner-paste-verbatim`: operator pasted the IRL markdown into the prompt arg; hash-bind authority holds (the prompt arg is the authoritative source). ' +
-        '`model-reconstruction-from-xlsx`: model parsed an xlsx attachment into markdown; hash-bind is `pass-internal` only (the model controls both the body and the hash). ' +
-        '`model-reconstruction-trimmed`: model authored markdown from working memory + tool outputs without a verbatim source; same `pass-internal` caveat. ' +
+      'WHO AUTHORED the IRL body bytes — not how they reached you. ' +
+        "`partner-paste-verbatim`: the markdown is the partner's and you passed it through unaltered. " +
+        'Every delivery route qualifies — the `filledIrl` prompt argument, a chat paste, or a `.md` file attached to the conversation — because none of them changes who wrote the bytes. ' +
+        '`partner-paste-verbatim-prepop`: the same, PLUS the server hashed a `filledIrl` prompt argument itself at render time with no model emission in the path. ' +
+        'Only that argument route can claim it; if you called `prepare_irl_body` yourself, the correct value is `partner-paste-verbatim` and the server will cap an over-claim. ' +
+        '`model-reconstruction-from-xlsx`: you composed the markdown yourself from a workbook — an attached `.xlsx` is a reconstruction however clean the composition; hash-bind is `pass-internal` only (the model controls both the body and the hash). ' +
+        '`model-reconstruction-trimmed`: you authored markdown from working memory + tool outputs without a verbatim source; same `pass-internal` caveat. ' +
         '`placeholder`: literal placeholder for error reporting. ' +
         'When the value is a reconstruction mode, the server auto-appends a `provenance-gap:` entry to (J) noting the limitation.'
     ),
@@ -355,10 +358,13 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     .optional()
     .default(false)
     .describe(
-      'Accuracy-critical run gate. When TRUE, this tool REJECTS any irlSource other than `partner-paste-verbatim`. ' +
-        'Operators set this flag on the prompt arg for high-stakes engagements (regulatory deliverable, M&A close, post-mortem) where ' +
-        'the hash-bind authority guarantee must hold over the partner-supplied source — not just the model-reconstructed body. ' +
-        'For drafting / exploration runs, leave unset (default false) and the existing (J) provenance-gap disclosure is sufficient.'
+      'Accuracy-critical run gate. When TRUE, this tool REJECTS any irlSource that is not a partner-paste form — ' +
+        'BOTH `partner-paste-verbatim` and `partner-paste-verbatim-prepop` are accepted, because the guarantee this flag buys is ' +
+        '"operator-supplied, not model-reconstructed", and both satisfy it. The two `model-reconstruction-*` values and `placeholder` are refused. ' +
+        'Operators set this flag on the prompt arg for high-stakes engagements (regulatory deliverable, M&A close, post-mortem). ' +
+        'For drafting / exploration runs, leave unset (default false) and the existing (J) provenance-gap disclosure is sufficient. ' +
+        'NOTE this is a different axis from `hashBindResult`: passing this gate does NOT make a run client-ready, which additionally ' +
+        'requires `pass-bound` and therefore the `filledIrl` argument route.'
     ),
 });
 

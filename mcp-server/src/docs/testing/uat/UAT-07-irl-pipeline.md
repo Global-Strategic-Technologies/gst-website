@@ -451,7 +451,7 @@ Flatten a filled IRL workbook to markdown yourself, then run the UAT-07.3 → 07
 - The identical call is **rejected**, naming the cause, the remedy (paste the IRL as markdown so the bytes round-trip verbatim) and the escape hatch (omit the flag for drafting runs).
 - A success here is high-severity: the gate exists so an accuracy-critical deliverable cannot rest on a body the model assembled.
 
-**The accept-set, if you probe it**: `requireVerbatimBody: true` accepts **both** `partner-paste-verbatim` and `partner-paste-verbatim-prepop`, and rejects every reconstruction mode. The field description names only the first; the dual-accept is deliberate (a `-prepop` body is still a verbatim round-trip, pre-populated at prompt-render time).
+**The accept-set, if you probe it**: `requireVerbatimBody: true` accepts **both** `partner-paste-verbatim` and `partner-paste-verbatim-prepop`, and rejects everything else — both reconstruction modes AND `placeholder`. Both field descriptions were corrected in server 0.57.0 to say so: the gate description now names both accepted forms, and the `irlSource` enum description — which previously defined `partner-paste-verbatim` as "operator pasted the IRL markdown into the prompt arg", false on every route except one — now grades on authorship and enumerates all five values. Before that fix a model on the attachment path read itself out of the verbatim grade and self-degraded to a reconstruction, which this gate then refused.
 
 **Why the pairing matters.** Because `-prepop` is inside the accept-set, a run that mislabels a reconstruction as `-prepop` would pass a gate it should fail **and** skip the provenance-gap disclosure the manual path correctly emits. Whether the prompt path can produce that mislabel — by recording how the bytes reached the tool rather than where they came from — is **still open**. Closing it needs one run of `gst_irl_ingestion` with a reconstructed body supplied as the `filledIrl` argument, from a client whose prompt-argument field preserves newlines (a single-line input silently joins the body and answers a different question).
 
@@ -476,4 +476,62 @@ Flatten a filled IRL workbook to markdown yourself, then run the UAT-07.3 → 07
 
 ---
 
-_Last updated: 2026-08-20 (07.3 gained `mintedAt` — `prepare_irl_body`'s output grew an optional field, and the first-write-wins semantic is what makes `server-witnessed` honest on a travelling IRL extract record; see [ADR-0019](../../../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md). The cross-prompt reuse of that record is [UAT-09.10](UAT-09-prompts.md), not a case here — no resource or new tool was added.) Prior: 2026-08-11 (BL-119 — 07.1–07.5 authored against local stdio; 07.7 added and executed against production in cycle 3. 07.6 still requires an interactive client whose prompt-argument field preserves newlines.)_
+---
+
+## UAT-07.8 — The attachment path (prompt 0.30.0)
+
+**Goal**: Proves the arrival affordance. The operator report that opened BL-127 attached the filled IRL to the message that
+invoked the prompt; the body was in context and the prompt asked for a paste anyway. All five runs below invoke with **no
+`filledIrl` argument**, at `auditLevel: debug`.
+
+**Run 1 — attach the filled `.md`.**
+
+- **Zero paste-request turns.** The model names what it is using and proceeds. A run that asks you to paste a file you just
+  attached is a **Fail** — that is the whole defect this closes.
+- `runScenario: partner-paste`, `filledIrl.source: partner-paste-verbatim`, `hashBindResult: pass-internal`.
+- `filledIrl` is measured, not null.
+
+**Run 2 — attach the filled `.xlsx`.**
+
+- Zero paste-request turns; the model composes markdown per the workbook column contract BEFORE hashing.
+- `runScenario: xlsx-reconstruction`, `filledIrl.source: model-reconstruction-from-xlsx`.
+- Spot-check the composed bullets against `npm run irl:extract` on the same workbook. A body that dropped rows is the BL-120
+  failure re-appearing on a new route.
+
+**Run 3 — attach nothing.**
+
+- Exactly **one** ask, then the normal interactive flow. The fallback must survive: a body that never asks is as broken as one
+  that always asks.
+
+**Run 4 (adversarial) — attach the BLANK canonical taxonomy and a filled `.md` together.**
+
+- The model names both and asks which to use. Sweeping the blank template as if it were the filled IRL is a **Fail**, and so is
+  silently merging them.
+
+**Run 5 — attach the filled `.md` with `requireVerbatimBody: true`.**
+
+- The run **passes** the gate. A graceful-error bail-out here is a **Fail**: the gate guarantees "operator-supplied, not
+  model-reconstructed", and an attached partner file satisfies it (server 0.57.0 rescoped the prompt bail-out to reconstructions
+  for exactly this reason).
+- The audit must still show the claim as the model's own classification rather than a server-witnessed fact, and
+  `hashBindResult` is `pass-internal`. **That is not client-ready** — see
+  [OPERATOR_RUNBOOK.md](../../../../../src/docs/development/OPERATOR_RUNBOOK.md), which gates a client deliverable on
+  `pass-bound` and therefore on the `filledIrl` argument route.
+
+**Failing criterion across all five runs**: `filledIrl.source` reported as `partner-paste-verbatim-prepop` anywhere. Only the
+prompt-argument route can earn it, and none of these runs uses that route.
+
+**Run log**
+
+| Date | Tester | Env | Version | Run | Verdict | Notes |
+| ---- | ------ | --- | ------- | --- | ------- | ----- |
+
+_No runs yet — authored 2026-08-20 alongside the arrival-flow change. What CI can prove is proven in
+`tests/integration/bl-125-run-parameters.test.ts` (the directives render, branch, and grade on authorship) and
+`irl-extract-record-consumers.test.ts` (the context check precedes the ask in both interactive bodies). What CI **cannot**
+prove is the behaviour itself: there is no attachment in a `prompts/get` render, so every run above needs a human and a real
+client._
+
+---
+
+_Last updated: 2026-08-20 (UAT-07.8 added for the attachment arrival path, prompt 0.30.0 / server 0.57.0; UAT-07.7 corrected where the `.describe()` fixes in that release falsified its observation about the field description naming only one accepted form). Prior: Last updated: 2026-08-20 (07.3 gained `mintedAt` — `prepare_irl_body`'s output grew an optional field, and the first-write-wins semantic is what makes `server-witnessed` honest on a travelling IRL extract record; see [ADR-0019](../../../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md). The cross-prompt reuse of that record is [UAT-09.10](UAT-09-prompts.md), not a case here — no resource or new tool was added.) Prior: 2026-08-11 (BL-119 — 07.1–07.5 authored against local stdio; 07.7 added and executed against production in cycle 3. 07.6 still requires an interactive client whose prompt-argument field preserves newlines.)_

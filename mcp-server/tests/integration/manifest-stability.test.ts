@@ -213,7 +213,13 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // orchestrates-to-body invariant is what guards them. Written down because it is
 // the natural wrong inference: a green run of this test is not evidence that a
 // prompt's tool surface held still.
-const EXPECTED_MANIFEST_HASH = 'e0f045baeecf38c3442e1bbc3d8450199f40a435e0a4bc7c021e3f1bd7bc6dd1';
+// Arrival flows (server 0.57.0): gst_irl_ingestion v0.29.0 -> v0.30.0. ONE tuple.
+// Step 1 stopped asking unconditionally for a filled IRL that may already be
+// attached to the invoking message, and the RUN-AUDIT contract gained a
+// runScenario selection rule. Body-only on one prompt; no argument, tool or URI
+// shape changed, and NO orchestrates array moved — which this hash would not
+// have seen either way (it covers name@version and resource URIs only).
+const EXPECTED_MANIFEST_HASH = '8b330a3c6761031068fe684e95b2045485f615b02bad9d2ac822f65bd9b3afc7';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

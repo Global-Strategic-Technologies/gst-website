@@ -710,3 +710,186 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
     ]);
   });
 });
+
+describe('arrival flows — the body looks before it asks, and grades on authorship', () => {
+  // WHAT THESE PROVE, AND WHAT THEY DO NOT. Every assertion below shows that a
+  // directive is present and says the right thing. None shows that a model obeys
+  // it — the attachment case cannot be rendered in a unit test, because there is
+  // no attachment in a `prompts/get` render. UAT-07.8 is the acceptance step.
+
+  it('the unconditional imperative is gone from both interactive bodies', () => {
+    // The opposite direction from the ordering check in the consumers suite: a
+    // half-revert that restored the old imperative while leaving the context
+    // check in place would satisfy ordering and fail here.
+    for (const build of [INTERACTIVE, INTERACTIVE_EXTRACT_ONLY]) {
+      expect(build()).not.toContain('Step 1. Ask the user:');
+    }
+  });
+
+  it('the ask survives with the prefix five other assertions depend on', () => {
+    // `step1Ask` throws when this line is missing, and `asksForPaste` in the
+    // four-shape arity test uses the same substring as a body discriminator.
+    // Restating it here means a future edit fails with a reason rather than a
+    // thrown helper.
+    for (const build of [INTERACTIVE, INTERACTIVE_EXTRACT_ONLY]) {
+      expect(step1Ask(build())).toContain('or attach the `.md` or `.xlsx` file to your reply');
+    }
+  });
+
+  /**
+   * Does any occurrence of `-prepop` sit downstream of an instruction verb?
+   *
+   * A window rather than a `[^.]{0,N}` run: the one-shot extract-only body says
+   * "report `_meta.irlSource: \"partner-paste-verbatim-prepop\"`", and the period
+   * inside `_meta.irlSource` truncates a period-excluding class, so the first
+   * draft of this guard reported no match on a body that plainly instructs it.
+   */
+  function instructsPrepop(text: string): boolean {
+    const NEEDLE = 'partner-paste-verbatim-prepop';
+    // `set` / `assert` / `claim` / `emit` are here because review probed four
+    // realistic leak shapes against the first list and one slipped: "and set
+    // filledIrl.source to partner-paste-verbatim-prepop".
+    const VERB = /\b(pass|report|copy|use|set|assert|claim|emit)\b/i;
+    for (let i = text.indexOf(NEEDLE); i !== -1; i = text.indexOf(NEEDLE, i + 1)) {
+      if (VERB.test(text.slice(Math.max(0, i - 90), i))) return true;
+    }
+    return false;
+  }
+
+  it('does NOT instruct `-prepop` from any interactive body', () => {
+    // Asserting on the PROSE DIRECTIVE, not the bare literal: the literal is a
+    // legitimate schema-enum member and renders 2x in the deferred body and once
+    // in the interactive full body at debug, so `not.toContain` would fail on
+    // correct code. Same precedent the BL-079 suite records.
+    //
+    // Non-vacuity is built in: the same predicate must FIRE on the one-shot
+    // bodies, which is what stops this degrading into an assertion over nothing.
+    expect(instructsPrepop(ONE_SHOT({ auditLevel: 'debug' }))).toBe(true);
+    expect(instructsPrepop(EXTRACT_ONLY())).toBe(true);
+    expect(instructsPrepop(INTERACTIVE({ auditLevel: 'debug' }))).toBe(false);
+    expect(instructsPrepop(INTERACTIVE_EXTRACT_ONLY({ auditLevel: 'debug' }))).toBe(false);
+  });
+
+  it('grades an attached `.md` as verbatim and an attached `.xlsx` as a reconstruction', () => {
+    const text = INTERACTIVE_EXTRACT_ONLY();
+    // Fixed-width windows, not period-delimited runs — `.md` and `.xlsx` both
+    // CONTAIN the delimiter a `[^.]` class would stop at, so the first draft of
+    // this guard could never see the clause it was written to check.
+    //
+    // The negative lookahead is separately mandatory: `partner-paste-verbatim`
+    // is a strict PREFIX of `partner-paste-verbatim-prepop`, the same substring
+    // collision that silently killed the excerpt-floor lockstep one commit
+    // before this.
+    const vAt = text.search(/partner-paste-verbatim(?!-prepop)/);
+    expect(vAt, 'no verbatim rule rendered').toBeGreaterThan(-1);
+    const verbatim = text.slice(vAt, vAt + 260);
+    expect(verbatim).toMatch(/attached as a `\.md` file/);
+
+    const rAt = text.indexOf('model-reconstruction-from-xlsx');
+    expect(rAt, 'no reconstruction rule rendered').toBeGreaterThan(-1);
+    const recon = text.slice(rAt, rAt + 200);
+    expect(recon).toMatch(/workbook/);
+
+    // The negative MUST be checked against a window that could plausibly contain
+    // the thing. The reconstruction clause renders AFTER the verbatim one, so a
+    // forward window from `rAt` starts past the `.md` sentence and
+    // `not.toMatch` there was true by construction — it could not fail. That is
+    // the vacuous-guard shape this repo has shipped twice. Assert the RELATION
+    // instead: two distinct clauses, in order, with `.md` owned by the verbatim
+    // one and absent from the reconstruction one.
+    expect(rAt, 'the two clauses collapsed into one').toBeGreaterThan(vAt);
+    expect(text.slice(vAt, rAt), 'the `.md` case must sit in the VERBATIM clause').toMatch(
+      /attached as a `\.md` file/
+    );
+    expect(recon, 'the reconstruction clause must not claim `.md`').not.toMatch(/`\.md`/);
+  });
+
+  it('the verbatim gate accepts chat delivery and refuses only reconstructions', () => {
+    const text = INTERACTIVE({ auditLevel: 'debug' });
+    expect(text).toContain(
+      'BOTH `partner-paste-verbatim` and `partner-paste-verbatim-prepop` pass'
+    );
+    expect(text).toContain('How the body reached you does not decide this');
+    // Both rejected framings, pinned negatively. The first refused an attachment
+    // on an arbitrary distinction; the second justified the refusal on
+    // server-witnessing, which is the `-prepop` axis and not this gate's.
+    expect(text).not.toContain('If the user did not paste the IRL markdown directly');
+    expect(text).not.toMatch(/gate[^.]{0,80}cannot be server-witnessed/i);
+  });
+
+  it('keeps the flag name off the extract-only bodies while stating the rule', () => {
+    // `RUN_AUDIT_DIRECTIVE` renders into both extract-only arms, so prose added
+    // to it must not name a gate those bodies forbid reaching. This is the
+    // constraint the existing zero-occurrence guards enforce; restated here so a
+    // future edit to the shared const fails with a reason.
+    for (const build of [EXTRACT_ONLY, INTERACTIVE_EXTRACT_ONLY]) {
+      expect(build()).not.toContain('requireVerbatimBody');
+    }
+  });
+
+  it('`accepted into the run` DISCRIMINATES rather than merely appearing', () => {
+    // Containment alone would pass on prose that still nulls a body the run took
+    // and then stopped on — which is the BL-125 (#7) regression. Assert the
+    // discrimination each site has to make.
+    const shared = EXTRACT_ONLY();
+    expect(shared).toContain('accepted into the run');
+    expect(shared).toContain('including one you took and then stopped on');
+    expect(shared).toContain('A candidate you rejected as unreadable');
+
+    const inline = INTERACTIVE({ auditLevel: 'debug' });
+    expect(inline).toContain('no body was ACCEPTED into the run');
+    expect(inline).toContain('still counts as accepted');
+  });
+
+  it('states how to PICK a runScenario, in both RUN-AUDIT copies', () => {
+    for (const build of [EXTRACT_ONLY, INTERACTIVE]) {
+      const text = build({ auditLevel: 'debug' });
+      expect(text).toContain('**`runScenario` — how to pick it.**');
+      expect(text).toContain('an attached `.md` all qualify');
+      expect(text).toContain('When both descriptions fit a run, the second governs');
+      // False on flow A, where `partner-paste` + `-prepop` is the mandated pair,
+      // so the prohibition must be scoped to bodies that arrived through chat.
+      expect(text).toContain('through the chat rather than as the `filledIrl` prompt argument');
+    }
+  });
+
+  it('keeps the runScenario rule OUT of the RUN-AUDIT template the model reproduces', () => {
+    // Where it first landed. The ```RUN-AUDIT block is a literal template the
+    // model copies, under rules saying "one field per line" and "do NOT add
+    // fields not in the schema", which operators parse with field-presence
+    // assertions — so a 900-char markdown bullet among the fields gets echoed
+    // into the operator artifact and is not valid YAML there. It belongs in the
+    // prose rules below the fence. Nothing pinned that until this case.
+    // Labelled arms, matching EXTRACT_ONLY_ARMS above: the two copies are
+    // separate constants and a regression in one should name which one.
+    const COPIES: Array<[string, (o?: Record<string, unknown>) => string]> = [
+      ['shared (RUN_AUDIT_DIRECTIVE)', EXTRACT_ONLY],
+      ['inline (interactive full arm)', INTERACTIVE],
+    ];
+    for (const [copy, build] of COPIES) {
+      const text = build({ auditLevel: 'debug' });
+      const ruleAt = text.indexOf('**`runScenario` — how to pick it.**');
+      expect(ruleAt, `${copy}: the selection rule did not render`).toBeGreaterThan(-1);
+
+      const fenceOpen = text.indexOf('```RUN-AUDIT');
+      expect(fenceOpen, `${copy}: no RUN-AUDIT template rendered`).toBeGreaterThan(-1);
+      const fenceClose = text.indexOf('```', fenceOpen + '```RUN-AUDIT'.length);
+      expect(fenceClose, `${copy}: RUN-AUDIT template never closed`).toBeGreaterThan(fenceOpen);
+
+      expect(
+        ruleAt > fenceOpen && ruleAt < fenceClose,
+        `${copy}: the selection rule is inside the RUN-AUDIT template`
+      ).toBe(false);
+    }
+  });
+
+  it('drops `rate-limited` and gives a boundary 429 a stated home', () => {
+    // Written before the revert and watched to fail, per the repo rule that a
+    // green assertion is not evidence until it has been seen red.
+    for (const build of [ONE_SHOT, EXTRACT_ONLY, INTERACTIVE, INTERACTIVE_EXTRACT_ONLY]) {
+      const text = build({ auditLevel: 'debug' });
+      expect(text).not.toContain('`rate-limited`');
+      expect(text).toContain('refused at the edge before dispatch');
+    }
+  });
+});

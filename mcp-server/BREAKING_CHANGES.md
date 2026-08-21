@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-e0f045baeecf38c3442e1bbc3d8450199f40a435e0a4bc7c021e3f1bd7bc6dd1
+8b330a3c6761031068fe684e95b2045485f615b02bad9d2ac822f65bd9b3afc7
 ```
 
 Computed over (sorted):
@@ -34,6 +34,53 @@ the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
 
 ---
+
+## 0.57.0 — 2026-08-20 — Both IRL arrival flows supported; `irlSource` grades authorship, not delivery
+
+**Prompt**: `gst_irl_ingestion` 0.29.0 — 0.30.0. **Manifest hash**: rebaselined (one tuple).
+
+**What changed**
+
+- **Step 1 checks context before it asks.** The interactive bodies used to instruct an unconditional "Ask the user: paste the
+  populated IRL". The operator report that opened BL-127 had ATTACHED the filled IRL to the same message that invoked the
+  prompt, so a compliant model asked for a document it was already holding. Step 1 now branches: use what is in context, and
+  ask only when nothing arrived. Two safety branches keep that from becoming a fabrication path — an attachment the model
+  cannot actually read (a filename only, or a flattened extraction with the column structure destroyed) goes back to a paste
+  request rather than a reconstruction, and multiple candidates are named rather than merged.
+- **`irlSource` is restated on ONE axis: who AUTHORED the bytes.** An attached `.md` grades `partner-paste-verbatim` exactly as
+  a chat paste does; an attached `.xlsx` is `model-reconstruction-from-xlsx` however clean the composition. The prompt prose,
+  the record directive and the tool-schema `.describe()` text had drifted into saying "pasted" where they meant
+  "partner-authored".
+- **The `requireVerbatimBody` bail-out is rescoped to reconstructions.** The gate guarantees "operator-supplied, not
+  model-reconstructed" and accepts both partner-paste forms; the prompt had been refusing on "did not paste directly", which is
+  arbitrary between two equally unverifiable routes and would have fired AFTER the whole sweep. **This is not a client-ready
+  loosening**: `hashBindResult: pass-bound` is a separate axis that only the `filledIrl` argument route produces, and the
+  operator runbook still gates a client deliverable on it.
+- **New shared `runScenario` selection rule** across both RUN-AUDIT copies. Neither copy had said how to PICK a value, and three
+  incompatible accounts had grown around the gap. `partner-paste` / `xlsx-reconstruction` label a run that took a body into the
+  run, by author; `interactive-paste-request` labels an interactive run that ended without producing its artifact.
+- **The null-run clause is rekeyed** on whether a body was ACCEPTED into the run, not on whether one merely reached the model
+  — the new Step 1 creates turns where a candidate arrived and was declined, and the old wording would have had the model
+  fingerprint bytes the run never used.
+- **`rate-limited` withdrawn** from the `errorClass` set. A boundary 429 is refused before `withToolMetrics` records
+  `attempted`, so an entry for it breaks the block's own arithmetic identity; the exclusion clause now names both uncounted
+  shapes instead of only the undelivered-client-call one.
+
+**Two tool-schema `.describe()` corrections** (no wire-shape change): the `requireVerbatimBody` description claimed the gate
+rejects anything other than `partner-paste-verbatim`, omitting `-prepop` and contradicting its own predicate; and the
+`irlSource` enum defined `partner-paste-verbatim` as "operator pasted the IRL markdown into the prompt arg", which is false on
+every route except one and would have driven an attachment run to self-degrade into a reconstruction the gate then refused.
+
+**Migration**: none. No argument, tool name, resource URI or wire shape changed. **Nothing about how you INVOKE it changes** — same arguments, same tools, same URIs. The served body text does
+move on every path, including the one-shot `debug` body a signoff run uses: `ONESHOT_FULL_DEBUG` moved in every
+commit of this release, because the RUN-AUDIT contract is where the `runScenario` rule, the reworded null-run
+clause and the `rate-limited` withdrawal all land. That last one is a behavioural change for anyone parsing the
+`errorClass` set, so read this as "your invocation is unchanged", not as "your output is".
+
+What the arrival commit DOES hold byte-identical is the three one-shot `standard` / `enhanced` bodies, which is a
+leak check — proof that an interactive-only edit stayed off the dossier path — and not a no-change claim. **All sixteen constants do move across the release as a whole** — the follow-up commit retires two
+shared constants that render ungated in every body, and all sixteen moving is the assertion THAT change makes.
+The two signatures are per-commit and answer different questions; do not read either as the other.
 
 ## 0.56.0 — 2026-08-20 — the IRL extract record: `extract-only` produces a portable, subject-keyed artifact (`0.28.0` → `0.29.0`, plus six prompts to `0.1.0`)
 

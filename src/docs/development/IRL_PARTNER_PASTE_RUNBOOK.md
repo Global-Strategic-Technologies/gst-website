@@ -37,13 +37,15 @@ The rest of this doc explains the why, the validation, and the edge cases.
 
 ## When to use partner-paste-verbatim
 
-| Scenario                      | Path                                                     | Why                                                                           |
-| ----------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Internal draft / sanity check | xlsx attachment → model reconstructs                     | Fast, model handles the work, body is small                                   |
-| Partner-internal use          | xlsx attachment → model reconstructs                     | Same; the `provenance-gap:` auto-append (BL-072) makes the limitation visible |
-| Client-facing deliverable     | **partner-paste-verbatim**                               | Strong BL-049 authority; no model emission ceiling                            |
-| Regulatory submission         | **partner-paste-verbatim + `requireVerbatimBody: true`** | BL-070 gate enforces the verbatim discipline at the server seam               |
-| M&A close / post-mortem       | **partner-paste-verbatim + `requireVerbatimBody: true`** | Same                                                                          |
+| Scenario                      | Path                                                   | Why                                                                           |
+| ----------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Internal draft / sanity check | xlsx attachment → model reconstructs                   | Fast, model handles the work, body is small                                   |
+| Partner-internal use          | xlsx attachment → model reconstructs                   | Same; the `provenance-gap:` auto-append (BL-072) makes the limitation visible |
+| Client-facing deliverable     | **the `filledIrl` prompt ARGUMENT**                    | Strong BL-049 authority; no model emission ceiling                            |
+| Regulatory submission         | **`filledIrl` ARGUMENT + `requireVerbatimBody: true`** | BL-070 gate enforces the verbatim discipline at the server seam               |
+| M&A close / post-mortem       | **`filledIrl` ARGUMENT + `requireVerbatimBody: true`** | Same                                                                          |
+
+> **The route, not the grade.** These rows used to name `partner-paste-verbatim`, which is the `irlSource` GRADE. Since prompt 0.30.0 that grade is also earned by a chat paste and by a `.md` ATTACHED to the invoking message, neither of which yields `pass-bound` — so naming the grade here would point an operator at a route that cannot satisfy the client-ready checklist. What these tiers need is the `filledIrl` prompt ARGUMENT specifically. See [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md) — two gates, two axes.
 
 If the IRL is under ~5KB-10KB and you trust the model's reconstruction, the xlsx-attachment path is fine. The partner-paste path is for **size-or-stakes-driven runs**.
 

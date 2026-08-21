@@ -187,7 +187,53 @@ describe('the IRL extract record, end to end', () => {
 
     it('renders WORKBOOK_COLUMN_CONTRACT exactly once — the caller must not name it twice', () => {
       const text = deferred();
+      // The `##` is load-bearing. Step 1 now forward-references the section by
+      // name ("compose the markdown body FIRST per § IRL workbook column
+      // contract"), so a marker without the heading prefix counts 2 and this
+      // guard would invert: the double-render it exists to catch would read as
+      // normal, and a correct body would fail.
       expect(text.match(/## IRL workbook column contract/g)).toHaveLength(1);
+    });
+
+    it('renders WORKBOOK_COLUMN_CONTRACT exactly once in EVERY body, not just this arm', () => {
+      // The double-render hazard is a property of all four bodies, and the
+      // decision NOT to hoist the constant into `sharedPrefix` rests on it. One
+      // arm's guard would not have caught a caller edit on another.
+      const B = 'x'.repeat(300);
+      const bodies: Array<[string, Record<string, unknown>]> = [
+        ['one-shot full', { filledIrl: B }],
+        ['one-shot extract-only', { filledIrl: B, mode: 'extract-only' }],
+        ['interactive full', {}],
+        ['deferred extract-only', { mode: 'extract-only' }],
+      ];
+      for (const [label, args] of bodies) {
+        const result = irlIngestionPrompt.build(irlIngestionPrompt.argsSchema.parse(args) as never);
+        const c = result.messages[0].content;
+        const text = c.type === 'text' ? c.text : '';
+        expect(text.match(/## IRL workbook column contract/g), `${label}`).toHaveLength(1);
+      }
+    });
+
+    it('checks context for an attached IRL BEFORE it asks for a paste', () => {
+      // The arrival-flow change. The operator report that opened BL-127 attached
+      // the filled IRL to the invoking message; the old Step 1 asked for it
+      // anyway. Ordering, not presence: the ask must still render (it is the
+      // fallback when nothing arrived) but must come after the context check.
+      const text = deferred();
+      const checkAt = text.indexOf('Check your context for the filled IRL BEFORE you ask');
+      const askAt = text.indexOf('> Paste the populated');
+      expect(checkAt).toBeGreaterThan(-1);
+      expect(askAt).toBeGreaterThan(checkAt);
+    });
+
+    it('carries both safety branches, not just the happy path', () => {
+      // Without these, "do not ask, just use it" becomes a fabrication path: some
+      // clients surface a workbook as a flattened text extraction with the column
+      // structure gone, and a model told not to ask would reconstruct from it.
+      const text = deferred();
+      expect(text).toContain('cannot actually read its contents');
+      expect(text).toContain('Do NOT reconstruct an IRL from a garbled extraction');
+      expect(text).toContain('If more than one candidate is in context');
     });
 
     it('emits no envelope directive and no precheck — this arm makes no envelope call', () => {

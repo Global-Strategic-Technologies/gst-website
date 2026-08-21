@@ -274,10 +274,18 @@ describe('BL-124 — prompt instructions the withdrawal depends on', () => {
     expect(oneShot()).toContain('is NOT an error');
   });
 
-  it('excludes an undelivered client call from toolErrors, in both copies', () => {
+  it('excludes an uncounted attempt from toolErrors, naming BOTH shapes, in both copies', () => {
+    // The lead used to be "A call the CLIENT never delivered", which named only
+    // one shape and was false of the other: a rate-limit 429 IS delivered, and
+    // is refused at the edge before `withToolMetrics` records `attempted`. The
+    // rule is the same either way — absent from `toolCallCounts.attempted`, so
+    // an entry here breaks the block's arithmetic — so the lead now states the
+    // test and enumerates both, and this guard checks both are named rather
+    // than pinning one phrasing.
     for (const text of [oneShot(), interactive()]) {
-      expect(text).toContain('A call the CLIENT never delivered');
       expect(text).toContain('NOT a failed attempt here');
+      expect(text).toContain('the client never delivered');
+      expect(text).toContain('refused at the edge before dispatch');
     }
   });
 
