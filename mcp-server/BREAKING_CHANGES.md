@@ -35,7 +35,7 @@ in lockstep when the registry shape changes.
 
 ---
 
-## 0.57.0 — Both IRL arrival flows supported; `irlSource` grades authorship, not delivery
+## 0.57.0 — 2026-08-20 — Both IRL arrival flows supported; `irlSource` grades authorship, not delivery
 
 **Prompt**: `gst_irl_ingestion` 0.29.0 — 0.30.0. **Manifest hash**: rebaselined (one tuple).
 

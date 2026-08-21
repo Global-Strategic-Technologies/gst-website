@@ -406,15 +406,15 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // third path. A hash suite that moves fewer scenarios than the change touches
 // is worth reading as a question rather than a result.
 const EXPECTED_HASH_INTERACTIVE =
-  'e587de9a08e6706a7aeeb3b5ae2c9f2066d219d7f2cc98c2334374a7d2f48c87';
+  'bcb4bde9ccb5321456dcf9a84f5fb480d3f6804fa3d7ae4dc40e781f471ddea4';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
   '3d41f80f7af5897ff85a1db33892b039141908700363d2126cb558d8197e45fb';
 const EXPECTED_HASH_ONESHOT_FULL =
   'b33a7441f5892804b984ba6f81307c3680f4a33321765c8e937a2e27f7b80dff';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '69321c52f95c96f79d38ca98b9e0a6a91719fc81ada5ee7dd15d3b53c10f735e';
+  '1b78e387b2a84573d3175c06a33131d60164a01ea99b9eb6821ecbb85ceb7851';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'cfe991fc100aa575d9a9824b440b0fe806daa2a621bcea14809557ba6339212b';
+  'c51c655d64563f24679e44c88aa7b9d388f53788e04eb39fae3fcc986735ae90';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -428,9 +428,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
   '63828595933a7100ab456abb9dc537e4bde5b8a50fe90efacd126bc51d5dd579';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  'c2dc5b93d6bc1491d054a86c8197de443b1eb1c50619ca038cd058f09231b103';
+  '976a4ca03d7c87993a42ea6cb04013af063d5411c0073cbd14e875b4a6f0bb4c';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
-  'e628235c5fb371a0a945be024026afab2f1cbe455b5b85c25efefa5f4c8b3030';
+  'ab2ccaa7c607ef3038ab6cdaf1cb77ddc127ad86dafa2eaccd6ff6f9df531fda';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
 // the resolved level — its meta fence is model-authored (ADR-0017), so it is
 // the one surface where an inferred `auditLevel` lands in the artifact with
@@ -444,15 +444,15 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  '1f2827c66936a557cc61dd700166b3ea4e84f3ece49015b782ff5e1c974f3ed9';
+  '8c579c48a87a28fef600fc3ffbab8276b64b3304986885f607f43330fb8e0946';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  '283e84f0ec13276c574a7f433fe61e2e59bc3ce65eb603592bfb8306ed8fb81e';
+  'bcb9bf65ac7acf694942b8d6d95296cfc6678184fb7f4af521d36814422ba27e';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
 // and `enhanced` rendered byte-identically) without any test noticing.
 const EXPECTED_HASH_INTERACTIVE_ENHANCED =
-  'fd74b2c76a4da1d6873e2d4de31124982ee5ff942c3aade27258ae87e01b8817';
+  'b98162ee6133d3fe245cf82c059be0c91786d0806d21fa127f869f8f583b9ff3';
 // BL-125: every other interactive scenario passes NO arguments, so the
 // conditional Step 1 introduced by this change — the only new branching logic
 // in a served body — would have been pinned by nothing. All four tailoring
@@ -460,7 +460,7 @@ const EXPECTED_HASH_INTERACTIVE_ENHANCED =
 // tailoring sentence disappears); `requireVerbatimBody: true` rides along to
 // pin the stated-value bytes on this consumer without a further entry.
 const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
-  '56b2455c6eb428e50a2e5822298cdf05b5d8e680fed18de54574b53f5cd73594';
+  '26d7ad03bec7df987a8901becfd873ff07f6a9f3abf9a32beb8bf4cca22808f0';
 // IRL extract record rebaseline (prompt v0.28.0 → v0.29.0). SIX of twelve
 // drift, and WHICH six is the check:
 //
@@ -523,13 +523,13 @@ const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
 // below is already markdown", which names nothing on an interactive arm and is
 // wrong on the one-shot arms too, where the body sits ABOVE it.
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY =
-  '08b20bda49ec822d9267497029c22493aec7e1133b9b8a66f0b9b173e7532973';
+  '0e44c638adf1c7ad5374d7c25fabbbaf2e00a4d7131b7ab17f009832347d81f7';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_ENHANCED =
-  '0800029006aba72d961f70f55b5ae8ebadfdf7da6a7c32f9dd12523476d71324';
+  'cc8eccfd11f3ae5f37d22bd752d0e90c671a5a3fcbb63b3f4c7ab3cd0d436233';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_DEBUG =
-  '7425d9cc32fd451adcf8e0d15d5e72330e002f188a1438c8de5ddfec097fe259';
+  'fc84e414394dc60b553f84388ecfe01a57376a4f85b003dfb2619e2b98737a2f';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_WITH_ARGS =
-  '23a3166aa9d71fad99650dacca9a0a6d112315857ece71f41898dc96376ce293';
+  '08184226b16724266a8491a82dcf6cb5df6cee24512ee1f52fa416ef6488e178';
 
 interface Scenario {
   name: string;

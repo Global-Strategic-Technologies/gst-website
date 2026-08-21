@@ -139,7 +139,7 @@ Decision 2 is titled "cap, not derive" and governs `compose_dossier_envelope`. B
 
 ---
 
-## Amendment, 2026-08-21 — `irlSource` grades AUTHORSHIP, and the verbatim gate is not the client-ready gate
+## Amendment, 2026-08-20 — `irlSource` grades AUTHORSHIP, and the verbatim gate is not the client-ready gate
 
 Prompt `gst_irl_ingestion` 0.30.0 (server 0.57.0) lets the filled IRL reach a run as a `.md`
 ATTACHED to the invoking message, rather than only as the `filledIrl` prompt argument or a chat

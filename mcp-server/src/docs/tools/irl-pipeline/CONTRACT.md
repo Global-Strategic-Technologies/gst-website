@@ -1,7 +1,7 @@
 ---
 tool: compose_dossier_envelope
 version: v1
-lastAuthored: 2026-08-21
+lastAuthored: 2026-08-20
 schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 ---
 
@@ -21,7 +21,7 @@ schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 >
 > **Used by prompts**: [`gst_information_request_list`](../../prompts/README.md) (emits the intake ask) and [`gst_irl_ingestion`](../../prompts/irl-ingestion.md) (ingests a populated IRL and orchestrates the full dossier sweep).
 >
-> **Version**: `v1` | **Last authored**: 2026-08-21
+> **Version**: `v1` | **Last authored**: 2026-08-20
 >
 > **Registry**: see [`../README.md`](../README.md) for the "what is an input contract" narrative and the cross-tool registry.
 

@@ -360,7 +360,7 @@ export const ComposeDossierEnvelopeInputSchema = z.object({
     .describe(
       'Accuracy-critical run gate. When TRUE, this tool REJECTS any irlSource that is not a partner-paste form — ' +
         'BOTH `partner-paste-verbatim` and `partner-paste-verbatim-prepop` are accepted, because the guarantee this flag buys is ' +
-        '"operator-supplied, not model-reconstructed", and both satisfy it. Only the two `model-reconstruction-*` values are refused. ' +
+        '"operator-supplied, not model-reconstructed", and both satisfy it. The two `model-reconstruction-*` values and `placeholder` are refused. ' +
         'Operators set this flag on the prompt arg for high-stakes engagements (regulatory deliverable, M&A close, post-mortem). ' +
         'For drafting / exploration runs, leave unset (default false) and the existing (J) provenance-gap disclosure is sufficient. ' +
         'NOTE this is a different axis from `hashBindResult`: passing this gate does NOT make a run client-ready, which additionally ' +

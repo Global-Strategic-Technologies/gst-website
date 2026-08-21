@@ -746,7 +746,10 @@ describe('arrival flows — the body looks before it asks, and grades on authors
    */
   function instructsPrepop(text: string): boolean {
     const NEEDLE = 'partner-paste-verbatim-prepop';
-    const VERB = /\b(pass|report|copy|use)\b/i;
+    // `set` / `assert` / `claim` / `emit` are here because review probed four
+    // realistic leak shapes against the first list and one slipped: "and set
+    // filledIrl.source to partner-paste-verbatim-prepop".
+    const VERB = /\b(pass|report|copy|use|set|assert|claim|emit)\b/i;
     for (let i = text.indexOf(NEEDLE); i !== -1; i = text.indexOf(NEEDLE, i + 1)) {
       if (VERB.test(text.slice(Math.max(0, i - 90), i))) return true;
     }
@@ -786,7 +789,19 @@ describe('arrival flows — the body looks before it asks, and grades on authors
     expect(rAt, 'no reconstruction rule rendered').toBeGreaterThan(-1);
     const recon = text.slice(rAt, rAt + 200);
     expect(recon).toMatch(/workbook/);
-    expect(recon).not.toMatch(/attached as a `\.md` file/);
+
+    // The negative MUST be checked against a window that could plausibly contain
+    // the thing. The reconstruction clause renders AFTER the verbatim one, so a
+    // forward window from `rAt` starts past the `.md` sentence and
+    // `not.toMatch` there was true by construction — it could not fail. That is
+    // the vacuous-guard shape this repo has shipped twice. Assert the RELATION
+    // instead: two distinct clauses, in order, with `.md` owned by the verbatim
+    // one and absent from the reconstruction one.
+    expect(rAt, 'the two clauses collapsed into one').toBeGreaterThan(vAt);
+    expect(text.slice(vAt, rAt), 'the `.md` case must sit in the VERBATIM clause').toMatch(
+      /attached as a `\.md` file/
+    );
+    expect(recon, 'the reconstruction clause must not claim `.md`').not.toMatch(/`\.md`/);
   });
 
   it('the verbatim gate accepts chat delivery and refuses only reconstructions', () => {
@@ -834,7 +849,7 @@ describe('arrival flows — the body looks before it asks, and grades on authors
       expect(text).toContain('When both descriptions fit a run, the second governs');
       // False on flow A, where `partner-paste` + `-prepop` is the mandated pair,
       // so the prohibition must be scoped to bodies that arrived through chat.
-      expect(text).toContain('on a body that reached you through the conversation');
+      expect(text).toContain('through the chat rather than as the `filledIrl` prompt argument');
     }
   });
 

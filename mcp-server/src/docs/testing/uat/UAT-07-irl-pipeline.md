@@ -476,14 +476,12 @@ Flatten a filled IRL workbook to markdown yourself, then run the UAT-07.3 → 07
 
 ---
 
-_Last updated: 2026-08-20 (07.3 gained `mintedAt` — `prepare_irl_body`'s output grew an optional field, and the first-write-wins semantic is what makes `server-witnessed` honest on a travelling IRL extract record; see [ADR-0019](../../../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md). The cross-prompt reuse of that record is [UAT-09.10](UAT-09-prompts.md), not a case here — no resource or new tool was added.) Prior: 2026-08-11 (BL-119 — 07.1–07.5 authored against local stdio; 07.7 added and executed against production in cycle 3. 07.6 still requires an interactive client whose prompt-argument field preserves newlines.)_
-
 ---
 
 ## UAT-07.8 — The attachment path (prompt 0.30.0)
 
 **Goal**: Proves the arrival affordance. The operator report that opened BL-127 attached the filled IRL to the message that
-invoked the prompt; the body was in context and the prompt asked for a paste anyway. All four runs below invoke with **no
+invoked the prompt; the body was in context and the prompt asked for a paste anyway. All five runs below invoke with **no
 `filledIrl` argument**, at `auditLevel: debug`.
 
 **Run 1 — attach the filled `.md`.**
@@ -528,8 +526,12 @@ prompt-argument route can earn it, and none of these runs uses that route.
 | Date | Tester | Env | Version | Run | Verdict | Notes |
 | ---- | ------ | --- | ------- | --- | ------- | ----- |
 
-_No runs yet — authored 2026-08-21 alongside the arrival-flow change. What CI can prove is proven in
+_No runs yet — authored 2026-08-20 alongside the arrival-flow change. What CI can prove is proven in
 `tests/integration/bl-125-run-parameters.test.ts` (the directives render, branch, and grade on authorship) and
 `irl-extract-record-consumers.test.ts` (the context check precedes the ask in both interactive bodies). What CI **cannot**
 prove is the behaviour itself: there is no attachment in a `prompts/get` render, so every run above needs a human and a real
 client._
+
+---
+
+_Last updated: 2026-08-20 (UAT-07.8 added for the attachment arrival path, prompt 0.30.0 / server 0.57.0; UAT-07.7 corrected where the `.describe()` fixes in that release falsified its observation about the field description naming only one accepted form). Prior: Last updated: 2026-08-20 (07.3 gained `mintedAt` — `prepare_irl_body`'s output grew an optional field, and the first-write-wins semantic is what makes `server-witnessed` honest on a travelling IRL extract record; see [ADR-0019](../../../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md). The cross-prompt reuse of that record is [UAT-09.10](UAT-09-prompts.md), not a case here — no resource or new tool was added.) Prior: 2026-08-11 (BL-119 — 07.1–07.5 authored against local stdio; 07.7 added and executed against production in cycle 3. 07.6 still requires an interactive client whose prompt-argument field preserves newlines.)_
