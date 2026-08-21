@@ -90,6 +90,13 @@ function stripDirectiveLines(body: string): string {
  * renders — keeping the pasted list and the downloaded .xlsx identical. It is
  * intentionally NOT `embedLibraryArticle(gst://library/information-request-list)`:
  * the library article is free-form prose and may differ from this list.
+ *
+ * **Also used by `gst_irl_ingestion`, unconditionally, for all four of its
+ * rendered bodies** — the taxonomy the answers came back against is the one the
+ * workbook was generated from, and it is what the IRL extract record's `ref`
+ * values key off. (This comment named one caller while a second had been
+ * calling it from every body shape; the same stale-sibling family as the SOP's
+ * "one source, three surfaces" line, corrected in the same pass.)
  */
 export function embedIrlGeneratorSource(): EmbedResult {
   try {
@@ -177,18 +184,20 @@ export function authorialIntentLine(promptName: string): string {
  * BL-125 — the delivered-as-a-document clause, for bodies that cannot argue
  * from a `**Body-binding hash:**` directive.
  *
- * `gst_irl_ingestion`'s one-shot body already carries a version of this, but
- * its evidence is that directive: "the server computed it from your `filledIrl`
- * argument, so the render demonstrably happened." Three of the five rendered
- * bodies in this workspace never emit that directive — extract-only, the
- * interactive path, and both `gst_information_request_list` branches — so a
- * copy-paste would assert evidence that does not exist there.
+ * `gst_irl_ingestion`'s one-shot bodies already carry a version of this, but
+ * their evidence is that directive: "the server computed it from your
+ * `filledIrl` argument, so the render demonstrably happened." Four of the six
+ * rendered bodies in this workspace never emit it — both interactive arms of
+ * `gst_irl_ingestion` (no `filledIrl` argument to hash at render time) and both
+ * `gst_information_request_list` branches — so a copy-paste would assert
+ * evidence that does not exist there.
  *
  * This form argues **structurally** instead, from content the client could not
  * have synthesized. It deliberately does NOT prescribe a tool probe as the
- * recovery path: extract-only forbids tool invocation outright, and the
- * `gst_information_request_list` bodies orchestrate neither of the IRL-pipeline
- * tools that probe would use.
+ * recovery path: the extract-only arms permit exactly one call
+ * (`prepare_irl_body`, to mint the record's provenance) and forbid every
+ * analysis tool, while the `gst_information_request_list` bodies orchestrate
+ * neither of the IRL-pipeline tools that probe would use.
  *
  * Written in the register BL-086 established for `authorialIntentLine`: state
  * where the content came from and leave the model's judgment intact. Telling a
@@ -216,6 +225,40 @@ export function deliveredAsDocumentClause(opts: { citesRunParameters: boolean })
 }
 
 /**
+ * The IRL-evidence precedence clause — carried by every prompt that takes
+ * target inputs (`consumesTargetEvidence` on `GstPrompt`).
+ *
+ * **Why a third shared clause.** `authorialIntentLine()` is the all-prompts
+ * precedent; `deliveredAsDocumentClause()` is deliberately in two. This one is
+ * in six, and the set is DECLARED rather than inferred — the registry guard
+ * asserts clause-present ⇔ flag-set, so a tenth prompt has to choose.
+ *
+ * **What it fixes.** `gst_target_quick_look` disagreed with itself: Step 1a
+ * derived from "supplied inputs + anything the user has shared earlier in the
+ * conversation" while Step 2 hardcoded `Section -- — partner-supplied form
+ * input` citations and Step 3 said to *synthesize* raw inputs from stage norms.
+ * Under the derived-tier discipline (ADR-0003) a `Section --` sentinel grades
+ * as `partner-supplied`, so a real Section-00 ARR figure and a stage-norm guess
+ * arrived at identical provenance grade. `gst_diligence_kickoff` and
+ * `gst_diligence_handoff_memo` mandated the same Tier-3 sentinel on all 13
+ * agenda dimensions unconditionally.
+ *
+ * **The staleness sentence is load-bearing, not a hedge.** The record is
+ * context-borne with no server copy, and the IRL body cache behind
+ * `irlBodyHash` expires after 4 h — so in a later session the record's
+ * citations are asserted, not verified, until the paired body is re-seeded and
+ * validated. Saying which of the two applies is also what gives
+ * `_meta.generatedAt` / `_meta.promptVersion` a reader on the consumer side.
+ */
+export function irlEvidencePrecedence(): string {
+  return [
+    '**Canonical GST target evidence takes precedence over synthesis.** If any is present in this context — a filled IRL, an IRL extract record (a `record: irl-extract` JSON document), or a target document the user supplied — resolve every input from it before synthesizing anything, matching on the IRL request text each fact carries. Cite the reference. Synthesize only what the evidence does not cover, and say what you synthesized. Never overwrite a stated figure with a norm; when a form argument and the evidence disagree, the argument wins and the output says so.',
+    '',
+    "**Verified vs asserted — state which you have.** An extract record's citations are ASSERTED, not verified, unless the paired filled IRL has been validated in THIS session via `validate_irl_provenance`. The record travels through context while the server-side body cache behind its `_meta.irlBodyHash` expires after four hours, so a record arriving in a later session will not resolve by hash. To upgrade: call `prepare_irl_body` with the paired body to re-seed, then `validate_irl_provenance` in its hash form. If you cannot — no paired body, or you chose not to — the record is still usable; say in the output that its citations are asserted-not-verified, and carry `_meta.generatedAt` and `_meta.promptVersion` so the reader knows how old the extraction is and what produced it.",
+  ].join('\n');
+}
+
+/**
  * BL-125 — what the embedded second message IS.
  *
  * Every prompt in this workspace that embeds a resource described it only as
@@ -233,6 +276,6 @@ export function embeddedTaxonomyFraming(isIngestion: boolean): string {
   const base =
     'The next message is the **blank canonical IRL taxonomy** — the request template itself, every bullet a question with no answer. It is served from the GST registry at invocation time, which makes it the authoritative bullet set: reproduce it as-is rather than reconciling it against another source.';
   return isIngestion
-    ? `${base} **It is NOT the filled IRL and must not be swept.** A blank template arriving where a populated one is expected reads like a paste that lost its answers; it is neither. The filled body is whatever the user supplies through \`filledIrl\` or pastes in reply.`
+    ? `${base} **It is NOT the filled IRL and must not be swept.** A blank template arriving where a populated one is expected reads like a paste that lost its answers; it is neither. The filled body is whatever the user supplies through \`filledIrl\`, attaches to the conversation, or pastes in reply.`
     : base;
 }

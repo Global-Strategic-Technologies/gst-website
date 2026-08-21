@@ -22,17 +22,18 @@ Two consequences for a tester:
 
 ## Scope
 
-| Capability                        | Kind   | Cases    | Reference golden                        |
-| --------------------------------- | ------ | -------- | --------------------------------------- |
-| `gst_information_request_list`    | prompt | UAT-09.1 | `information-request-list.golden.md`    |
-| `gst_target_quick_look`           | prompt | UAT-09.2 | `target-quick-look.golden.md`           |
-| `gst_comparable_engagements_memo` | prompt | UAT-09.3 | `comparable-engagements-memo.golden.md` |
-| `gst_regulatory_exposure_brief`   | prompt | UAT-09.4 | `regulatory-exposure-brief.golden.md`   |
-| `gst_diligence_kickoff`           | prompt | UAT-09.5 | `diligence-kickoff.golden.md`           |
-| `gst_diligence_handoff_memo`      | prompt | UAT-09.6 | `diligence-handoff-memo.golden.md`      |
-| `gst_architecture_layer_review`   | prompt | UAT-09.7 | `architecture-layer-review.golden.md`   |
-| `gst_radar_brief_today`           | prompt | UAT-09.8 | `radar-brief-today.golden.md`           |
-| `gst_irl_ingestion`               | prompt | UAT-09.9 | `irl-ingestion.golden.md`               |
+| Capability                        | Kind   | Cases     | Reference golden                                    |
+| --------------------------------- | ------ | --------- | --------------------------------------------------- |
+| `gst_information_request_list`    | prompt | UAT-09.1  | `information-request-list.golden.md`                |
+| `gst_target_quick_look`           | prompt | UAT-09.2  | `target-quick-look.golden.md`                       |
+| `gst_comparable_engagements_memo` | prompt | UAT-09.3  | `comparable-engagements-memo.golden.md`             |
+| `gst_regulatory_exposure_brief`   | prompt | UAT-09.4  | `regulatory-exposure-brief.golden.md`               |
+| `gst_diligence_kickoff`           | prompt | UAT-09.5  | `diligence-kickoff.golden.md`                       |
+| `gst_diligence_handoff_memo`      | prompt | UAT-09.6  | `diligence-handoff-memo.golden.md`                  |
+| `gst_architecture_layer_review`   | prompt | UAT-09.7  | `architecture-layer-review.golden.md`               |
+| `gst_radar_brief_today`           | prompt | UAT-09.8  | `radar-brief-today.golden.md`                       |
+| `gst_irl_ingestion`               | prompt | UAT-09.9  | `irl-ingestion.golden.md`                           |
+| IRL extract record — cross-prompt | flow   | UAT-09.10 | _(none — a cross-prompt flow has no single golden)_ |
 
 ---
 
@@ -89,6 +90,12 @@ Two consequences for a tester:
 - At least one GST tool is called — a quick look that cites no tool output is the model writing from priors.
 - Any named comparable engagement traces to a `search_portfolio` result. Codenames are anonymised and look plausible when invented, so an uncited one is the highest-value thing to catch here.
 - **If the output surfaces any radar-derived material**, it carries the provenance framing described in [UAT-08.3](UAT-08-radar.md) — aggregated third-party reporting, not independently verified. If it surfaces none, this assertion does not apply. (Added after a cycle-2 finding against `gst_radar_brief_today`: the requirement is family-wide, but only one case was checking it.)
+
+**Evidence-conditional expectations (prompt `0.1.0`)** — run this case TWICE, once each way, and record both:
+
+- **No evidence in context** (the five form arguments alone). `compute_techpar` is called with `mode: "quick"` — a `deepdive` call here would sum three zeroed Section-02 components. `estimate_tech_debt_cost` is called with an `_audit` sibling carrying `irl-absent` sources and `mttrHours: null` / `incidents: null`; the tool returns `extractionOnly` and the brief renders those fields as extraction-only. **A quoted carrying cost with no `extractionOnly` disclosure is a Fail** — it means a stage-norm guess reached a dollar figure. TechPar citations use the `Section -- — partner-supplied form input` sentinel.
+- **With an IRL extract record pasted into the conversation first** (take one from a UAT-09.9 extract-only run). Every input the record covers is taken from it and **cited with a real `Section NN — <excerpt>`**, not the `Section --` sentinel; `compute_techpar` runs `mode: "deepdive"`; MTTR and incident counts come from the record's Section 04 facts as `irl-stated`. Inputs the record does not cover are synthesized **and disclosed** under "Assumptions / unknowns". **No stage-norm value overwrites a stated figure** — that is the single highest-value thing to catch here, because before `0.1.0` a real Section-00 ARR figure and a stage-norm guess arrived at identical provenance grade.
+- Either way, the brief says **which branch each number came from**, and whether the record's citations are verified this session or carried asserted-not-verified.
 
 **Run log**
 
@@ -230,6 +237,8 @@ Two consequences for a tester:
 
 **Input**: `filledIrl` (≥ 200 chars), `targetName`, `transactionContext`, `partnerLead`, `projectCodeName`, `mode`, `auditLevel`, `requireVerbatimBody`. **Run at `auditLevel: "debug"`** — the expectations below read the audit surface, which `standard` deliberately omits.
 
+**Two paths, both required** (prompt `0.30.0`): the one-shot path below, and the **deferred `extract-only`** path, which had no coverage here because `build()` used to route it to the interactive full sweep.
+
 **Expected result**
 
 - `compose_dossier_envelope` is called at the end — not fabricated in prose.
@@ -237,6 +246,14 @@ Two consequences for a tester:
 - **Level check** (worth one extra run): at `standard` the same invocation produces a dossier with `(J)` but **no** meta fence, `(K)` or run-audit block — and `compose_dossier_envelope` is still called. A `standard` run that skips the envelope is a Fail; a `standard` run that omits those three sections is a Pass.
 - Passing `filledIrl` as a prompt argument pre-populates the body cache at render time, so `irlSource` is a `partner-paste-verbatim` variant rather than a reconstruction.
 - Claims in `(K)` carry tier labels and verification marks.
+
+**Deferred `extract-only` path** — invoke with `mode: "extract-only"` and **no `filledIrl`**, then paste the filled IRL when asked:
+
+- The run reports `- Run mode: **extract-only**`. **A run that re-stamps itself as a full sweep, or that says it "cannot honor" the requested mode, is a Fail** — that is the exact defect this path closes.
+- Exactly **one** tool call happens before extraction: `prepare_irl_body`. Any orchestrated Hub tool firing here is a Fail; `compose_dossier_envelope` firing here is a Fail.
+- The output leads with a `record: irl-extract` JSON fence covering **every answered row** of the pasted body, with the workbook `Reference` values (`0-03`, not `00-03`), the verbatim IRL request text on each fact, and excerpts drawn from the answer slot only.
+- `_meta.irlBodyHash` equals the hash `prepare_irl_body` returned — **not a hand-computed one** — and `_meta.generatedAt` is that call's `mintedAt` with `generatedAtSource: "server-witnessed"`. If the tool returned no `mintedAt`, `model-asserted` is the correct and expected report; claiming `server-witnessed` anyway is a Fail.
+- The `payload: <tool>` fences are still emitted, derived from the record. No `compose_dossier_envelope` call, no dossier prose, no deeplinks.
 
 **Further reading**: [`OPERATOR_RUNBOOK.md`](../../../../../src/docs/development/OPERATOR_RUNBOOK.md) for run tiers, the `RUN-AUDIT` block, and client-ready gating (which requires `auditLevel: debug`).
 
@@ -249,4 +266,36 @@ Two consequences for a tester:
 
 ---
 
-_Last updated: 2026-08-11 (BL-119 cycle 2 — 09.0–09.8 executed against production; 09.8 failed and drove the `gst_radar_brief_today` 0.0.5 fix. 09.9 still held for a markdown IRL.)_
+## UAT-09.10 — the IRL extract record, consumed across prompts
+
+**Goal**: Proves the record is **consumer-agnostic** rather than quick-look-shaped. This is the case that tests the point of the change: one extract-only run feeding two _different_ downstream prompts, with no edit to the record between them.
+
+**Setup**: run UAT-09.9's deferred `extract-only` path first and keep the emitted `record: irl-extract` fence. Paste that record — unmodified — into a fresh conversation before each consumer below.
+
+**Input**: the record, plus each consumer prompt's own arguments.
+
+**Expected result**
+
+- **Consumer A — `gst_target_quick_look`.** Inputs the record covers are resolved from it and cited `Section NN — <excerpt>`; `compute_techpar` runs `mode: "deepdive"`; tech-debt fields the record covers arrive as `irl-stated`. See UAT-09.2's evidence branch for the full list.
+- **Consumer B — `gst_diligence_kickoff` (or `gst_diligence_handoff_memo`).** This is the required second consumer, because it exercises the evidence branch on `generate_diligence_agenda`'s 13-dimension `_audit`: **a record-covered dimension arrives with a real `Section NN — <excerpt>` citation at tier 1 or 2, not the Tier-3 `Section --` sentinel**, and an **uncovered dimension still passes `'unknown'` + tier 3**. A run where the record's presence suppressed the `unknown` sentinel is a Fail — the engine widens conservatively on that sentinel and losing it is a silent narrowing.
+- **The record is not edited between the two.** If either consumer needed a change to it, the indexing is still consumer-shaped: record that as a Fail with the change that was needed, because it invalidates the design rather than the run.
+- **Neither consumer receives a mapping table.** Resolution is by matching the IRL request text each fact carries. A consumer that asks for `gst://library/irl-tool-input-mapping` before it can proceed is a finding.
+
+**Session-2 leg** (run in the same order): with the record present and the body cache **cold** — a fresh session more than 4 h after the extract-only run, or simply a different day —
+
+- A consumer still resolves its inputs from the record and **discloses that the citations are asserted, not verified**.
+- `validate_irl_provenance` in its hash form **fails** with a body-cache miss. It does not return per-citation verdicts. The failure message names the recovery.
+- Re-seed with `prepare_irl_body` against the paired filled IRL, compare the hash it returns against the record's `_meta.irlBodyHash`, then re-run `validate_irl_provenance` by hash: verified grades are restored. If the two hashes differ (a re-paste can legitimately alter bytes), verification still runs and the output must say the body is not byte-identical to the record's minted source.
+
+**Further reading**: [ADR-0019](../../../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md) · [`prompts/irl-ingestion.md`](../../prompts/irl-ingestion.md) § Cross-session posture.
+
+**Run log**
+
+| Date | Tester | Env | Version | Mode | Verdict | Notes |
+| ---- | ------ | --- | ------- | ---- | ------- | ----- |
+
+_No runs yet — authored 2026-08-20 alongside the record. The engineering correctness it covers is proven in-session by [`tests/integration/irl-extract-record-consumers.test.ts`](../../../../tests/integration/irl-extract-record-consumers.test.ts) (both consumers resolved from one unedited record through the real protocol layer) and [`tests/integration/bl-079-validate-body-by-hash.test.ts`](../../../../tests/integration/bl-079-validate-body-by-hash.test.ts) (the session-2 leg); what remains here is the client-side exercise, which needs an interactive client and a real Desktop session._
+
+---
+
+_Last updated: 2026-08-20 (the IRL extract record — UAT-09.10 added for cross-prompt reuse and the session-2 re-verification leg; 09.9 gained the deferred `extract-only` path; 09.2 gained its evidence-conditional expectations). Prior: 2026-08-11 (BL-119 cycle 2 — 09.0–09.8 executed against production; 09.8 failed and drove the `gst_radar_brief_today` 0.0.5 fix. 09.9 still held for a markdown IRL) — that footer was already stale when written, carrying run-log rows dated 2026-08-12 and 2026-08-14 above it._

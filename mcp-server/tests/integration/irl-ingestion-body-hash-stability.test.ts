@@ -406,15 +406,15 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // third path. A hash suite that moves fewer scenarios than the change touches
 // is worth reading as a question rather than a result.
 const EXPECTED_HASH_INTERACTIVE =
-  '7baa0d6e694da0e98a7aaede430efa4fe659a55bdbdf7986f52af17221cfe726';
+  '5c1c97d5b684acb98391343ed49517fc2a5dd8ec86b2392ba8d4c902be7af1f3';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '2b271bac5c18a876a24ba70161721b59490169850fce8661776023203a15910b';
+  '3d41f80f7af5897ff85a1db33892b039141908700363d2126cb558d8197e45fb';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '5623707170af88b78f75d0826cebd42940d62f3d33ae2f589a9ff3e590f24765';
+  'b33a7441f5892804b984ba6f81307c3680f4a33321765c8e937a2e27f7b80dff';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  '2c8b4e48e60c813967fa296b02957c900133097faf75a063ebd12f89008fbfb4';
+  'ccacb5aebb1413119af78f0947f61b08157a8cc4353bb7c2ddc2f3673e0fa2fc';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  'd23f6699c0bc207ca959af898c45b5f1fe81df71569870c06523abe4f3bcc823';
+  '073517b06846e7ccc6225be6f019ca58d839f87081af90412480073a3e18eacc';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -426,11 +426,11 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  '3ea038c2232aad6a5fba98e6fd839c5a3aa3a76ed3c15a3d2ce5166932581ce4';
+  '63828595933a7100ab456abb9dc537e4bde5b8a50fe90efacd126bc51d5dd579';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  '452c20cc2e3639b4851bb5e1bbe7f62a4bc2b102218f93ace3748d897fc67419';
+  'ad820678ee9aa0659c11ab9af32b19c4310ac9d1d5bb23257688f895346a9dba';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
-  '327ab8d022417ed490599c20a408d6c880fa78870cae264dd742705682e494cc';
+  '7124f0d3d1dfcd85068397a867c0c253befadf29c9cc3e4adeddb9fc7a5491a4';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
 // the resolved level — its meta fence is model-authored (ADR-0017), so it is
 // the one surface where an inferred `auditLevel` lands in the artifact with
@@ -444,15 +444,15 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  '77987176b0893e6504404aefa7cd638ea81eb0b0e9bee54cdd0094c75d310d67';
+  '7600541a47930df1bbad15366237bf46610d41f79b09a2fb7d1808122f325873';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  '17946b4f461b3777d2a15c31117faa42d7a37c2edf5d0676b1242074b283f57c';
+  '320cd9f58d68a7cbced552a33c9980a2f7ed8f4fa64cb29be2c739b10afa4118';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
 // and `enhanced` rendered byte-identically) without any test noticing.
 const EXPECTED_HASH_INTERACTIVE_ENHANCED =
-  '54761d17cab9bdc0363dc67fb1880a9778c477add8e19e5795a0e0955c1cf8cf';
+  '8b95b98c1fd63f7413615101966b3b088766d4d4e971327af4104193ac95612e';
 // BL-125: every other interactive scenario passes NO arguments, so the
 // conditional Step 1 introduced by this change — the only new branching logic
 // in a served body — would have been pinned by nothing. All four tailoring
@@ -460,7 +460,76 @@ const EXPECTED_HASH_INTERACTIVE_ENHANCED =
 // tailoring sentence disappears); `requireVerbatimBody: true` rides along to
 // pin the stated-value bytes on this consumer without a further entry.
 const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
-  '73b6819143e4aa0c67f559e9b143304d2ef6adc058c411c81d046f1e7cc42408';
+  '38a4e2c0233bc44709ad17d8eda0a1ee0a4805b2c54ae63bb6477432dab920be';
+// IRL extract record rebaseline (prompt v0.28.0 → v0.29.0). SIX of twelve
+// drift, and WHICH six is the check:
+//
+//   EXTRACT_ONLY_MINIMAL / _FULL / _FULL_ENHANCED / _FULL_DEBUG — the extract
+//     record, the `prepare_irl_body` provenance step and the reworded
+//     `promptVersion` sourcing all live in the extract-only procedure.
+//   ONESHOT_FULL_DEBUG — the meta-fence and RUN-AUDIT rewords reach full mode
+//     only at `debug`.
+//   INTERACTIVE_DEBUG — the interactive full arm keeps its own inline copy of
+//     the RUN-AUDIT skeleton (BL-128 instance 1, knowingly won't-fix). Code
+//     review caught that copy still showing `compose_dossier_envelope:
+//     { succeeded: N }` while the shared constant had been corrected to `N-1`,
+//     contradicting the prose 25 lines below it in the same body; syncing it
+//     moved this constant. Also `debug`-only, for the same reason as the line
+//     above.
+//
+// A full-mode body at `standard` or `enhanced` that moved here would mean an
+// extract-only edit had leaked onto the dossier path. None did.
+//
+// **Four scenarios are new — the deferred extract-only arm** (`mode:
+// 'extract-only'` with no `filledIrl`), which `build()` used to route to the
+// interactive full body and this matrix therefore never rendered. Pinned at all
+// three levels plus a with-args variant, matching the coverage rule above: the
+// arm is a served body, so it earns the same treatment as the other three.
+//
+// **One coupling to acknowledge, because it is new.** These bodies now render
+// the literal prompt VERSION (the Run parameters block's `Prompt version`
+// bullet, extract-only arms only). `hashPromptOutput` hashes `build()`'s
+// messages, so until now a version-only bump left every constant untouched;
+// from here a bump rebaselines the four extract-only scenarios. That is the
+// intended trade — the deferred arm has no envelope call to supply the version,
+// so the body has to state it — but a future rebaseline with no visible body
+// diff is explained by this paragraph and is not a mystery to re-derive.
+//
+// Arrival flows (prompt v0.29.0 → v0.30.0, server 0.57.0). THIRTEEN of sixteen,
+// and WHICH thirteen is the check:
+//
+//   INTERACTIVE ×4 and DEFERRED_EXTRACT_ONLY ×4 — Step 1 stopped asking
+//     unconditionally for a body that may already be attached; it lives in
+//     `sharedPrefix`, which is exactly these two arms at every level.
+//   EXTRACT_ONLY ×4 and ONESHOT_FULL_DEBUG — `RUN_AUDIT_DIRECTIVE` carries the
+//     new `runScenario` selection rule, the reworded null-run clause and the
+//     `rate-limited` removal. It renders ungated on both extract-only arms and
+//     behind `showRunAudit` in the one-shot full body, so `debug` only there.
+//
+// **ONESHOT_MINIMAL, ONESHOT_FULL and ONESHOT_FULL_ENHANCED did not move, and
+// that is the assertion, not an accident.** They are flow A at `standard` and
+// `enhanced` — the path this change was not supposed to touch. One of them
+// moving would mean interactive-arm prose had leaked onto the dossier path.
+// It is also the ONLY guard for that: `bl-125-run-parameters.test.ts`'s
+// four-shape test collapses each render to its paste line plus the
+// `EXTRACT-ONLY` marker, so leaked Step 1 prose would sail through it.
+//
+// Shared-constant hygiene (same release). ALL SIXTEEN move, and that is the
+// point: `embeddedTaxonomyFraming` and `WORKBOOK_COLUMN_CONTRACT` render
+// UNGATED in all four bodies, so a signature short of sixteen would mean one of
+// them is conditional after all. Both carried the pre-arrival-flow assumption —
+// the framing said a filled body arrives "through filledIrl or pastes in reply"
+// (no attachment route), and the contract said to skip itself "when the IRL
+// below is already markdown", which names nothing on an interactive arm and is
+// wrong on the one-shot arms too, where the body sits ABOVE it.
+const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY =
+  '5058cf73dabee070e90ea6faa50a327ef01a648fb1c466df46cad43b214d752d';
+const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_ENHANCED =
+  '1ead6e3bacc7bb60a7e4333b87d2dfca1e72ab4b39bd8f326a67768687835c70';
+const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_DEBUG =
+  '5706de4c9f941d66e0f002f4003b813825e506b134748b3b9af0e314e64d1d74';
+const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_WITH_ARGS =
+  'ed80eb0286c355c8ec4543958b6c07b6cfaf539bbc1609f5a4e87097836c1feb';
 
 interface Scenario {
   name: string;
@@ -594,6 +663,42 @@ const SCENARIOS: Scenario[] = [
       requireVerbatimBody: true,
     },
     expected: EXPECTED_HASH_INTERACTIVE_WITH_ARGS,
+  },
+  // ─── The deferred extract-only arm (BL-127) ──────────────────────────────
+  // `{ mode: 'extract-only' }` with no body. Genuinely absent from this matrix
+  // until now: `build()` dispatched on body-absence first, so these args
+  // rendered the interactive FULL body and the shape below had no coverage at
+  // all — which is exactly how its dangling "Step 3" VDR reference would have
+  // shipped.
+  {
+    name: 'deferred extract-only (mode only, no body)',
+    args: { mode: 'extract-only' },
+    expected: EXPECTED_HASH_DEFERRED_EXTRACT_ONLY,
+  },
+  {
+    name: 'deferred extract-only + auditLevel=enhanced',
+    args: { mode: 'extract-only', auditLevel: 'enhanced' },
+    expected: EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_ENHANCED,
+  },
+  {
+    name: 'deferred extract-only + auditLevel=debug',
+    args: { mode: 'extract-only', auditLevel: 'debug' },
+    expected: EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_DEBUG,
+  },
+  {
+    // The arm's own conditional Step 1: it drops `partnerLead` and
+    // `projectCodeName` from the tailoring ask (no synthesis memo, no project
+    // label, so no consumer for either), which is branching logic in a served
+    // body that nothing else pins.
+    name: 'deferred extract-only with tailoring args (ask-collapse branch)',
+    args: {
+      targetName: 'TestCo',
+      transactionContext: 'buy-side',
+      partnerLead: 'Reid Peryam',
+      projectCodeName: 'Cygnet',
+      mode: 'extract-only',
+    },
+    expected: EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_WITH_ARGS,
   },
 ];
 

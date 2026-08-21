@@ -1,7 +1,7 @@
 ---
 tool: compose_dossier_envelope
 version: v1
-lastAuthored: 2026-08-15
+lastAuthored: 2026-08-20
 schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 ---
 
@@ -21,7 +21,7 @@ schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 >
 > **Used by prompts**: [`gst_information_request_list`](../../prompts/README.md) (emits the intake ask) and [`gst_irl_ingestion`](../../prompts/irl-ingestion.md) (ingests a populated IRL and orchestrates the full dossier sweep).
 >
-> **Version**: `v1` | **Last authored**: 2026-08-15
+> **Version**: `v1` | **Last authored**: 2026-08-20
 >
 > **Registry**: see [`../README.md`](../README.md) for the "what is an input contract" narrative and the cross-tool registry.
 
@@ -115,9 +115,62 @@ Every field is optional; `{}` produces the full canonical workbook.
 | ----------- | -------------------------- | -------- | ----------- |
 | `filledIrl` | string (markdown IRL body) | **yes**  | ≥ 200 chars |
 
-Returns `{ irlBodyHash: string /* 16 lowercase hex */, byteLength: number }`.
+Returns `{ irlBodyHash: string /* 16 lowercase hex */, byteLength: number, mintedAt?: string /* ISO-8601 */ }`.
 
 The hash is `sha256(filledIrl).slice(0, 16)` with **no normalization** — byte-for-byte. Same body in, same hash out. Do not hand-compute it: `compose_dossier_envelope` accepts only the value this tool returns, and a guessed hash produces a cache miss rather than a mismatch you can debug.
+
+### `mintedAt` — the STORED timestamp, and why it is optional
+
+`mintedAt` is the ISO-8601 time the server holds in the body-provenance record for this hash (`mcp:irl-body-prov:<irlBodyHash>`, 4 h). It is **not this call's clock**: the store is first-write-wins, so a repeat call inside the window — or a call following the prompt-render prepop, which mints first on the one-shot path — returns the **original** mint time. That is the point. The value is what makes `server-witnessed` an honest label on an IRL extract record's `_meta.generatedAt`; a caller reporting its own clock would be asserting a witness the server never made.
+
+The field is **absent** when no provenance record landed: the store swallows its own failures by design (a missing provenance record only weakens an audit claim, while a missing body corrupts the dossier — [ADR-0016](../../../../../src/docs/adr/0016-run-scoped-durable-tool-call-counters.md)'s trade), and it is never bound in-memory on the Worker. On absence, fall back to your own timestamp and report `generatedAtSource: "model-asserted"`. Do not invent a value and do not claim a witness you were not given — over-claiming provenance is the failure class [ADR-0018](../../../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md) exists to prevent.
+
+Mechanically, this costs nothing: the provenance store's `record()` returns the effective entry (`existing ?? entry`, `null` on the swallowed-error path) and both impls already read the key inside `record()`, so no round trip was added to a path this document flags as cost-sensitive.
+
+### Worked acceptance: minting provenance for a travelling extract record
+
+`gst_irl_ingestion` in `mode: extract-only`, deferred arm (no `filledIrl` argument; the operator pastes the body in reply):
+
+```jsonc
+// 1. The ONLY tool call this mode makes. It computes nothing about the target.
+prepare_irl_body({ "filledIrl": "<the pasted body, verbatim>" })
+// → { "irlBodyHash": "9f2c0a71b3d84e56", "byteLength": 61_204,
+//     "mintedAt": "2026-08-20T09:14:02.118Z" }
+
+// 2. Those two values go straight into the record's `_meta`.
+{
+  "_meta": {
+    "irlBodyHash": "9f2c0a71b3d84e56",
+    "generatedAt": "2026-08-20T09:14:02.118Z",
+    "generatedAtSource": "server-witnessed",
+    "irlSource": "partner-paste-verbatim"
+    // …recordVersion, refFormat, promptVersion, excerptCapChars, coverage
+  },
+  "facts": [ /* one per answered row */ ]
+}
+```
+
+**Session 2, the same record, a cold cache.** The record travels in the conversation; the cache entry does not survive 4 h. `validate_irl_provenance({ irlBodyHash, citations })` then **fails** with `cache-miss` — it does not degrade to per-citation verdicts. Recovery, in this order:
+
+```jsonc
+// 1. Re-seed FIRST. Body-direct validation would re-emit the whole body per
+//    call — 60–80 KB, above the emission ceiling — which is the damage the
+//    body-by-hash path exists to remove.
+prepare_irl_body({ "filledIrl": "<the paired body>" })
+// → { "irlBodyHash": "9f2c0a71b3d84e56", ... }
+
+// 2. Compare THAT hash against the record's `_meta.irlBodyHash`. Equal → the
+//    exact bytes the record was extracted from. Different → verification still
+//    runs against the bytes you supplied, but the output must disclose that the
+//    body is not byte-identical to the record's minted source (hashing is
+//    byte-for-byte with no normalization, and a re-paste can legitimately
+//    alter bytes).
+
+// 3. Only now does the hash form resolve.
+validate_irl_provenance({ "irlBodyHash": "9f2c0a71b3d84e56", "citations": [ ... ] })
+```
+
+Full decision record: [ADR-0019](../../../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md).
 
 ---
 
@@ -166,7 +219,7 @@ The pipeline terminus and the largest input surface in the family. Every field b
 | `gaps`                     | array of `{ category, entry, irlSection?, followUp? }`          | may be empty                                                                                |
 | `irlBodyHash`              | `/^[a-f0-9]{16}$/`                                              | from `prepare_irl_body`; the sole body reference                                            |
 | `irlSource`                | see enum below                                                  |                                                                                             |
-| `requireVerbatimBody`      | boolean — **optional**, default `false`                         | `true` rejects any non-verbatim `irlSource`                                                 |
+| `requireVerbatimBody`      | boolean — **optional**, default `false`                         | `true` rejects a MODEL-RECONSTRUCTED `irlSource`; both partner-paste forms pass             |
 
 **The four array fields are required but may be empty.** `gatesPassed`, `gatesElided`, `conditionalTriggersFired` and `forceToolsApplied` all have to be present; omitting one is a validation error, passing `[]` is not. This is the most common first-call mistake.
 
@@ -181,6 +234,8 @@ The pipeline terminus and the largest input surface in the family. Every field b
 - **Nothing is ever promoted**, and reconstruction / `placeholder` assertions pass through untouched — the server can disprove the strongest claim but cannot substantiate the weaker ones, since it never sees where the model obtained bytes it merely relayed.
 
 Both internal consumers — the `requireVerbatimBody` gate and the reconstruction disclosure — read the **capped** value, so `Bl070VerbatimBodyRequiredError` quotes the capped value in its message rather than what you asserted. Because a cap only weakens and the gate accepts both partner-paste forms, capping never changes a gate outcome. See [ADR-0018](../../../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md).
+
+**The gate sorts on AUTHORSHIP, not on delivery route.** It accepts both `partner-paste-verbatim` and `partner-paste-verbatim-prepop` and refuses the two `model-reconstruction-*` values and `placeholder`, because what it buys is "operator-supplied, not model-reconstructed". Since prompt 0.30.0 a partner `.md` ATTACHED to the invoking message grades `partner-paste-verbatim` exactly as a chat paste does — the server cannot distinguish them (both mint via `prepare-tool`) and no honest grade separates them — so an attachment run passes this gate. It does not thereby become client-ready: `hashBindResult: pass-bound` is a separate axis that only the `filledIrl` prompt argument can produce. See [OPERATOR_RUNBOOK.md](../../../../../src/docs/development/OPERATOR_RUNBOOK.md) — passing one gate does not satisfy the other.
 
 **A body whose line breaks the client destroyed is processed normally (BL-124).** BL-123 briefly refused these; the refusal was withdrawn a day later because citation verification normalises whitespace away before matching, so flattening cannot affect the only check that runs, and the refusal blocked every realistic IRL size with no working alternative. What remains is the measurement: `serverCachedBodyNewlines` below. See [ADR-0018](../../../../../src/docs/adr/0018-body-integrity-and-capped-provenance.md) § Re-validation.
 

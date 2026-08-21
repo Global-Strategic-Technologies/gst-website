@@ -7,6 +7,8 @@ model: claude-opus-4-7
 
 # Worked example output for `gst_comparable_engagements_memo`
 
+> **Historical transcript, not a current-body snapshot.** This recording predates `v0.1.0` (2026-08-20, [ADR-0019](../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md)). The body now carries `irlEvidencePrecedence()`, so a run with an IRL extract record in context resolves its target profile from that evidence and cites it rather than from the description alone. Re-recording needs a human-driven live exercise against a real MCP client, so it cannot happen in-session or in CI; `golden-snapshots.test.ts` asserts file existence, four frontmatter keys and `promptName` — never `version` or body — so the stale version above is expected and is not drift to repair.
+
 V3 sign-off recording (v0.0.1) carried forward to v0.0.2 — BL-031.95 Phase 5 added Step 6 to the body, instructing the model to append an "Open in Hub" footer that lists every `deeplink` URL returned by the `search_portfolio` calls (BL-031.95 Phase 4.B). One link per filter combination explored, labelled by filter — e.g., `Open in Hub: Healthcare / Buy-Side · Logistics / Buy-Side`. Each link opens `/ma-portfolio` with the same filter chips pre-active. The two pre-existing trials below carry through unchanged; the trial outputs gain an "Open in Hub" footer in v0.0.2 with the deeplinks each respective trial's filter combination would emit.
 
 A fresh senior-consultant V-trial against the v0.0.2 body lands naturally on the next mcp-server restart per the no-deferred-tech-debt principle (CLAUDE.md § 4a) — the `dist/index.js` running subprocess can't be reloaded mid-session. The unit test contract was rewritten to lock the new shape (see `tests/unit/prompts/comparable-engagements-memo.test.ts`).

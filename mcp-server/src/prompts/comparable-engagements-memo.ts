@@ -18,7 +18,7 @@ import { z } from 'zod';
 import { EngagementCategorySchema } from '../schemas';
 import type { GstPrompt } from './types';
 import { enumFromWire, stringFromWire } from './wire-shape';
-import { authorialIntentLine } from './embed';
+import { authorialIntentLine, irlEvidencePrecedence } from './embed';
 
 const argsSchema = z.object({
   targetDescription: z
@@ -43,9 +43,10 @@ export const comparableEngagementsMemoPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Identify 3-5 comparable past GST engagements and frame analogically for the current deal.',
-  version: '0.0.3',
-  lastReviewedAt: '2026-08-14',
+  version: '0.1.0',
+  lastReviewedAt: '2026-08-20',
   orchestrates: ['search_portfolio', 'list_portfolio_facets'] as const,
+  consumesTargetEvidence: true,
   argsSchema,
   build: (args) => ({
     messages: [
@@ -59,6 +60,8 @@ export const comparableEngagementsMemoPrompt: GstPrompt<typeof argsSchema> = {
             `Identify and synthesize 3-5 comparable past GST engagements for the following target:`,
             '',
             `> ${args.targetDescription}`,
+            '',
+            irlEvidencePrecedence(),
             '',
             args.theme
               ? `Theme hint: ${args.theme}`

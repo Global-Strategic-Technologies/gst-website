@@ -176,4 +176,62 @@ describe('gst_diligence_kickoff', () => {
       expect(allText).toContain('productType=unknown');
     });
   });
+  // ─── Evidence-conditional `_audit` (the target-quick-look pattern, third instance) ───
+  //
+  // This prompt hardcoded the required `_audit` as Tier-3
+  // `"Section -- — partner-supplied form input"` for every one of the 13
+  // dimensions, unconditionally. With the evidence-precedence clause carried,
+  // that is a body contradicting its own clause: the clause says resolve from
+  // evidence and cite the reference, the block mandated the no-evidence
+  // sentinel on every field. No schema work was involved — `diligence-audit.ts`
+  // already validates a real citation at tier 1/2 and already couples
+  // `unknown` <-> tier 3 bidirectionally.
+  describe('evidence-conditional _audit', () => {
+    const body = (): string =>
+      diligenceKickoffPrompt
+        .build(diligenceKickoffPrompt.argsSchema.parse({ targetName: 'Acme Corp' }))
+        .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
+        .join('\n');
+
+    it('carries the shared evidence-precedence clause and declares the flag', () => {
+      expect(diligenceKickoffPrompt.consumesTargetEvidence).toBe(true);
+      expect(body()).toContain('Canonical GST target evidence takes precedence over synthesis.');
+    });
+
+    it('no longer mandates the Tier-3 sentinel unconditionally', () => {
+      const text = body();
+      expect(text).not.toMatch(/Supply the audit metadata as Tier-3 \(no IRL provenance\)/);
+      expect(text).toMatch(/depends on where each dimension's value actually came from/i);
+    });
+
+    it('states the evidence branch: cite the record fact, derive the section from its ref', () => {
+      const text = body();
+      expect(text).toMatch(/Evidence branch/);
+      expect(text).toContain('Section NN — ');
+      expect(text).toContain('`0-03` → `Section 00`');
+      expect(text).toMatch(/whole-token literal/i);
+      expect(text).toMatch(/at least 20 characters/i);
+      expect(text).toMatch(/EM-DASH/);
+    });
+
+    it("preserves 'unknown' + tier-3 for dimensions the evidence does not cover", () => {
+      const text = body();
+      expect(text).toMatch(/survives the evidence branch/i);
+      expect(text).toMatch(/widen(s)? the agenda conservatively/i);
+      expect(text).toMatch(/must not suppress that sentinel/i);
+      expect(text).toMatch(/bidirectional/i);
+    });
+
+    it('keeps the enum mapping in the CONSUMER, not in the record', () => {
+      expect(body()).toMatch(
+        /record deliberately does not carry this tool's 13-dimension enum set/
+      );
+    });
+
+    it('scopes the Section -- sentinel to the no-evidence case, and keeps it', () => {
+      const text = body();
+      expect(text).toMatch(/No-evidence branch/);
+      expect(text).toContain('Section -- — partner-supplied form input');
+    });
+  });
 });

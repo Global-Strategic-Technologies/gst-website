@@ -11,6 +11,12 @@ V2 sign-off recording (v0.0.1) carried forward to v0.0.3 — Phase 5 of [BL-031.
 
 The carryforward is engineered, not deferred: the prompt's behaviour against a populated tool response is fully determined by the body change (one bullet adds "Open TechPar" to the existing list and clarifies "if `deeplink` is absent, omit silently"). The unit test at `tests/unit/prompts/target-quick-look.test.ts` asserts the body shape; the prompt-staleness Vitest catches future version drift.
 
+> **The carryforward argument above stopped holding at `v0.1.0` (2026-08-20). This is now a historical transcript, not a current-body snapshot** — same statement of constraint the `gst_irl_ingestion` golden carries, and for the same reason: re-recording needs a human-driven live exercise against a real MCP client and cannot happen in-session or in CI.
+>
+> What changed is not one bullet. Every step is now **evidence-conditional** ([ADR-0019](../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md)): `compute_techpar` branches between `quick` and `deepdive` on whether canonical target evidence is in context and states a `mode` for the first time (an unstated `mode` is a validation rejection, not a default), `estimate_tech_debt_cost` gained the `_audit` sibling it requires — that call had been **failing validation as written** — and the body carries `irlEvidencePrecedence()`. The transcript below shows none of that.
+>
+> **Its value is still that it is old**: §4 records the ICG `-1` handling and the four-tool deeplink surface as they were signed off, and the run predates the branch split, so it is the reference for what the no-evidence path produced before the audit shape existed. `golden-snapshots.test.ts` asserts file existence, four frontmatter keys and `promptName` — never `version` or body — so the stale `version: 0.0.3` above is expected and is not drift to repair. Do not grep-replace values in it; add a new recording when a V-trial runs.
+
 ## Input
 
 ```json

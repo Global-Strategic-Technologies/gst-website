@@ -39,4 +39,20 @@ export type PrepareIrlBodyInput = z.infer<typeof PrepareIrlBodyInputSchema>;
 export interface PrepareIrlBodyOutput {
   irlBodyHash: string;
   byteLength: number;
+  /**
+   * ISO-8601 mint time held by the IRL body provenance store for this hash —
+   * the STORED value, not this call's clock. The store is first-write-wins, so
+   * a repeat call inside the 4 h window (or one following the prompt-render
+   * prepop) returns the ORIGINAL mint time.
+   *
+   * Optional because the store swallows its own failures by design (a missing
+   * provenance record only weakens an audit claim, while a missing body
+   * corrupts the dossier — ADR-0016's trade). Absent means no record landed;
+   * the consumer falls back to a model-asserted timestamp rather than claiming
+   * a witness it was not given.
+   *
+   * A plain interface field, not a wire-schema change: this is the tool's
+   * output type, and the tool publishes no output schema.
+   */
+  mintedAt?: string;
 }

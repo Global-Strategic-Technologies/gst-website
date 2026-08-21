@@ -7,6 +7,8 @@ model: claude-opus-4-7
 
 # Worked example output for `gst_regulatory_exposure_brief`
 
+> **Historical transcript, not a current-body snapshot.** This recording predates `v0.1.0` (2026-08-20, [ADR-0019](../../../src/docs/adr/0019-irl-extract-record-subject-indexing.md)). The body now carries `irlEvidencePrecedence()`, so a run with an IRL extract record in context takes jurisdictions and data categories from that evidence, cited, before falling back to the supplied arguments. Re-recording needs a human-driven live exercise against a real MCP client, so it cannot happen in-session or in CI; `golden-snapshots.test.ts` asserts file existence, four frontmatter keys and `promptName` — never `version` or body — so the stale version above is expected and is not drift to repair.
+
 V4 sign-off recording. Two-run cycle. The first run revealed an auditability gap (the model fell back to training-derived prose because the `SearchResult` wire shape exposed only the high-level `summary`); the second run, after enrichment, produced obligation prose grounded directly in the regulation files' authored bullets.
 
 ## Input

@@ -37,6 +37,11 @@ import {
   IRL_SOURCE_EMBED_URI,
 } from './embed';
 import { booleanFromWire, enumFromWire, stringFromWire } from './wire-shape';
+// The record directive lives beside its Zod schema so the cap, the floor and
+// the `_meta` shape are interpolated from the constants that validate them —
+// a directive stating a number the schema does not enforce is the lockstep
+// defect `META_JSON_FENCE_DIRECTIVE` already carries a warning about.
+import { IRL_EXTRACT_RECORD_DIRECTIVE } from '../schemas/irl-extract-record';
 import {
   UNKNOWN_PROPAGATION_RULE,
   EU_AI_ACT_CONDITIONAL_TRIGGER,
@@ -183,7 +188,7 @@ const argsSchema = z.object({
   mode: enumFromWire(z.enum(modeValues).optional())
     .optional()
     .describe(
-      'Must be one of: full · extract-only. Defaults to full — extract the inputs, invoke every applicable Hub tool through its inclusion gate, and synthesize a dossier. extract-only emits the extracted JSON payloads, provenance and a gap list with no tool invocations and no synthesis prose: cheap, fast, and feedable straight into downstream automation.'
+      'Must be one of: full · extract-only. Defaults to full — extract the inputs, invoke every applicable Hub tool through its inclusion gate, and synthesize a dossier. extract-only emits a portable IRL extract record describing the target, the derived per-tool JSON payloads, provenance and a gap list, with no analysis-tool invocations and no synthesis prose: cheap, fast, and feedable straight into downstream automation and later sessions. **extract-only works with or without `filledIrl`** — supply the body and it extracts in one shot; omit it and the model asks you to paste the body first, then extracts. Either way the run stays extract-only.'
     ),
   auditLevel: enumFromWire(z.enum(auditLevelValues).optional())
     .optional()
@@ -204,6 +209,17 @@ const argsSchema = z.object({
 });
 
 const PROMPT_NAME = 'gst_irl_ingestion';
+
+/**
+ * The prompt version, hoisted so the registry field and the run-parameters
+ * bullet cannot state different numbers.
+ *
+ * Extract-only makes no `compose_dossier_envelope` call, so nothing server-side
+ * overrides `promptVersion` in that mode's meta fence, extract record and
+ * RUN-AUDIT block — the body has to state it, and a hand-copied literal beside
+ * the registry field is exactly the drift this repo keeps finding in prose pins.
+ */
+const PROMPT_VERSION = '0.30.0';
 
 // Per BL-045 design doc § Decisions row "Scenario reframing", each of the
 // four `transactionContext` values gets a meaningful, distinct posture.
@@ -238,7 +254,7 @@ const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
 const WORKBOOK_COLUMN_CONTRACT = [
   '## IRL workbook column contract (READ FIRST if you are reconstructing from an attached .xlsx)',
   '',
-  'Skip this section when the IRL below is already markdown — it is already in the shape described here. It governs the case where you are reading a `.xlsx` attachment and writing the body yourself.',
+  'Skip this section when the IRL you have is already markdown — it is already in the shape described here. It governs the case where you are reading a `.xlsx` attachment and writing the body yourself.',
   '',
   'The workbook has **seven** columns:',
   '',
@@ -353,7 +369,7 @@ const META_JSON_FENCE_DIRECTIVE = [
   '```json',
   '{',
   '  "promptName": "gst_irl_ingestion",',
-  '  "promptVersion": "<server-derived — compose_dossier_envelope overrides this with the prompt-registry version>",',
+  '  "promptVersion": "<full mode: server-derived — compose_dossier_envelope overrides this with the prompt-registry version. extract-only: copy the value from the Run parameters block above — no envelope call runs, so nothing overrides it>",',
   '  "modelVersion": "<your model id at invocation time, e.g. claude-opus-4-7>",',
   '  "mode": "<copy from the Run parameters block above — NOT re-derived>",',
   '  "auditLevel": "<copy from the Run parameters block above — NOT inferred from which sections rendered>",',
@@ -375,7 +391,7 @@ const META_JSON_FENCE_DIRECTIVE = [
   '- `conditionalTriggersFired` lists the named triggers from the rule constants (`EU_AI_ACT_CONDITIONAL_TRIGGER` → `"EU_AI_ACT"`; `NIS2_CONDITIONAL_TRIGGER` → `"NIS2"`).',
   '- `forceToolsApplied` is a required field that records gate overrides. This prompt applies none, so pass `[]`.',
   '',
-  "Cross-run comparison works off this block, and downstream automation parses it first to decide what to render. In `mode: extract-only` it is the artifact's spine and is always emitted. In `mode: full` it is an operator artifact, emitted only at `auditLevel: debug`.",
+  "Cross-run comparison works off this block, and downstream automation parses it first to decide what to render. In `mode: extract-only` it is the RUN-metadata fence and is always emitted — a sibling of the extract record's `_meta`, which describes the travelling artifact itself; the two carry `promptVersion` from the same Run-parameters bullet and are not interchangeable. In `mode: full` it is an operator artifact, emitted only at `auditLevel: debug`.",
 ].join('\n');
 
 // ─── Shared helper: tool-error degradation directive ───────────────────
@@ -622,6 +638,29 @@ const buildEnvelopeCompositionDirective = (showRunAudit: boolean): string =>
 // EVERY body shape (interactive, one-shot, extract-only) so every live
 // run produces a load-bearing artifact regardless of code path.
 
+/**
+ * How to PICK a `runScenario`, spread into both RUN-AUDIT renderings.
+ *
+ * Both copies listed the enum and neither said how to choose from it. Three
+ * incompatible accounts had grown up around that gap, and the arrival-flow
+ * work made the gap actionable: an attached `.md` had no stated answer.
+ *
+ * The discriminator is conjunctive on INTERACTIVE-NESS, not on completion.
+ * A run abandoned after a paste did take a body into the run (its `filledIrl`
+ * stays measured), so "proceeded on a body" alone would label it
+ * `partner-paste`; and a one-shot run with no envelope call — extract-only by
+ * construction, or abandoned before Step 4 — would be labelled an interactive
+ * paste request when no paste was ever requested. Only the two together sort
+ * every shape.
+ *
+ * A SHARED const rather than two hand-copied sentences. This is not a reversal
+ * of BL-128, which the operator closed WON'T-FIX: deduping the EXISTING
+ * RUN-AUDIT contract stays closed. This only declines to create a second copy
+ * of a NEW rule, which is the cheap half BL-128 never objected to.
+ */
+const RUN_SCENARIO_SELECTION_RULE =
+  '- **`runScenario` — how to pick it.** `partner-paste` and `xlsx-reconstruction` label a run that took a body INTO the run, and they sort on who AUTHORED the bytes: `partner-paste` when the partner wrote the markdown and you passed it through unaltered (the prompt argument, a chat paste, and an attached `.md` all qualify), `xlsx-reconstruction` when you composed the markdown yourself from a workbook. `interactive-paste-request` labels an INTERACTIVE run that ended without producing its artifact — whether it stopped at the ask, or a body arrived and the run stopped anyway. When both descriptions fit a run, the second governs. A one-shot run that produced no envelope call is NOT `interactive-paste-request`: nothing asked for a paste, so it keeps the authorship label. **Reporting `partner-paste` does not license `filledIrl.source: partner-paste-verbatim-prepop`** on a body that reached you through the chat rather than as the `filledIrl` prompt argument: that form asserts the server hashed a `filledIrl` prompt argument itself. The two fields answer different questions, exactly as `hashBindResult` and `filledIrl.source` do.';
+
 const RUN_AUDIT_DIRECTIVE = [
   '## Final emission — RUN-AUDIT block (mandatory)',
   '',
@@ -629,7 +668,7 @@ const RUN_AUDIT_DIRECTIVE = [
   '',
   '```text',
   '```RUN-AUDIT',
-  'promptVersion: <semver — the gst_irl_ingestion prompt version emitted in the meta fence; NOT the mcp-server package version>',
+  'promptVersion: <semver — the gst_irl_ingestion prompt version emitted in the meta fence; NOT the mcp-server package version. Full mode: compose_dossier_envelope supplies it. Extract-only: copy it from the Run parameters block, which is where that mode sources it for the meta fence and the extract record alike>',
   'runScenario: partner-paste | interactive-paste-request | xlsx-reconstruction',
   'filledIrl:',
   '  bytes: <int — byte length of the filledIrl value you submitted to compose_dossier_envelope>',
@@ -647,10 +686,10 @@ const RUN_AUDIT_DIRECTIVE = [
   '  attemptsTotal: <int — including schema-rejected and transport-failed attempts; ≥ iterations>',
   '  outcome: converged | hit-cap | never-attempted | abandoned-after-error',
   '  errorsEncountered: [<{errorClass: string, recoveryAction: string}, ...> — empty list if none]',
-  'countersScope: session | run | request  # BL-121: copy VERBATIM from compose_dossier_envelope output; states how far back toolCallCounts reaches',
-  'toolCallCounts:  # BL-071: copy VERBATIM from compose_dossier_envelope output `serverToolCallCounts`',
+  'countersScope: session | run | request | null  # BL-121: in FULL mode copy VERBATIM from compose_dossier_envelope output; states how far back toolCallCounts reaches. In extract-only there is no envelope call and therefore no snapshot — report null',
+  'toolCallCounts:  # BL-071: in FULL mode copy VERBATIM from compose_dossier_envelope output `serverToolCallCounts`. In extract-only report {} — the server emitted no snapshot to copy',
   '  validate_irl_provenance: { attempted: N, succeeded: N, rejected: N, errored: N }',
-  '  compose_dossier_envelope: { attempted: N, succeeded: N, rejected: N, errored: N }',
+  '  compose_dossier_envelope: { attempted: N, succeeded: N-1, rejected: N, errored: N }  # BL-071: the envelope is in-flight while it computes its own snapshot, so succeeded trails attempted by one. Expected, not a defect — copy as served',
   '  <other tools used>: { attempted: N, succeeded: N, rejected: N, errored: N }',
   'toolErrors: [<{tool: string, attemptNumber: int, errorClass: string, recoveryAction: string}, ...> — every NON-precheck failed tool attempt across the workflow session; empty list if none; precheck failures stay in precheck.errorsEncountered>]',
   'selfCorrectionCalls: <int — total envelope calls AFTER the first across the entire session, not just this response>',
@@ -673,6 +712,14 @@ const RUN_AUDIT_DIRECTIVE = [
   '- The block MUST be the last content in your response. Nothing after it.',
   '- Use YAML inside the fence (terse, no JSON for top-level fields; inline {} only where shown). One field per line.',
   '- DO NOT omit any field. Operators parse this verbatim with field-presence assertions — missing fields fail downstream tooling.',
+  // BL-128 instance 2. This directive ships in BOTH `mode: full` (at `debug`)
+  // and `mode: extract-only` (at every level), and most of its field rules are
+  // written in `compose_dossier_envelope` terms — in a mode that never calls
+  // that tool. The stanza's own instruction was reword, never delete: every
+  // field is load-bearing and five BL-121 assertions pin them. So the envelope-
+  // sourced fields get their extract-only values stated once, here, rather than
+  // thirteen conditional rewrites scattered through the rules below.
+  '- **`mode: extract-only` — what the envelope-sourced fields are.** This mode invokes no analysis tools and NEVER calls `compose_dossier_envelope`, so every rule below that says *copy verbatim from the envelope output* has nothing to copy from. It is not an omission to repair and not a defect to report. Concretely: `firstEnvelopeCall: null`; `precheck.iterations: 0`, `attemptsTotal: 0`, `outcome: never-attempted`, `errorsEncountered: []`; `countersScope: null`; `toolCallCounts: {}`; `toolErrors: []`; `selfCorrectionCalls: 0`; `totalEnvelopeCalls: 0`; `meaningfulRecallsHaveDifferentInputs: null`. The precheck ↔ counter derivation identities below are full-mode arithmetic and do not apply. `promptVersion` comes from the Run parameters block. **Three of those hold BY CONSTRUCTION only when this run made no tool call and already has a body — which is the one-shot path. On the deferred path, where you asked for a paste and called `prepare_irl_body`, apply these instead.** (a) If that call FAILED, report it in `toolErrors` like any other failed attempt — it is a real call against the server, and suppressing it hides the only failure this mode can have from the one block that exists to show it. (b) Because `toolCallCounts` is `{}` and `countersScope` is `null` here, the `toolErrors` ↔ counts arithmetic below has nothing to check against and does NOT apply — a non-empty `toolErrors` beside empty counts is correct output on this path, not a contradiction to reconcile. (c) `filledIrl` IS measured on any turn where a body was accepted into the run; null it only where none was. A body is **accepted into the run** once you have taken it as THE IRL for this run — including one you took and then stopped on. A candidate you rejected as unreadable, or set aside while asking which of several to use, was never accepted. On a turn that only asks — nothing in context, or a candidate you declined to accept — null the block and report `runScenario: interactive-paste-request`. Fingerprinting bytes that never entered the run hands the operator a cross-check against a body the run never used, which is worse than no fingerprint at all.',
   '- If the run did not produce an envelope call (e.g., interactive-paste-request scenario that ended without compose), set `firstEnvelopeCall: null`, all counts to 0, and `precheck.outcome: never-attempted` (or whatever actually happened).',
   // BL-125 (#7) — this bullet used to end "and `filledIrl: null`", full stop.
   // In `mode: extract-only` that is wrong: no envelope call is EVER made in
@@ -683,7 +730,8 @@ const RUN_AUDIT_DIRECTIVE = [
   // link is inference rather than an isolated repro. The
   // absent envelope means no SERVER measurement is available; it does not mean
   // there is no body to measure.
-  '- **`filledIrl` when no envelope call ran**: null it only if no body ever reached you. If a body WAS supplied — `mode: extract-only` always, or an interactive run you abandoned after the paste — measure it yourself and add `measurement: self-reported` inside the `filledIrl` block. That is weaker than the server-witnessed figures a `compose_dossier_envelope` call returns, and labelling it is what keeps the distinction legible; silently omitting the block loses the byte count and newline count entirely, which are the two figures an operator uses to check the body against their source file.',
+  RUN_SCENARIO_SELECTION_RULE,
+  '- **`filledIrl` when no envelope call ran**: null it only if no body was accepted into the run — see the definition above; a candidate you declined is not one. If a body WAS supplied — `mode: extract-only` always, or an interactive run you abandoned after the paste — measure it yourself and add `measurement: self-reported` inside the `filledIrl` block. That is weaker than the server-witnessed figures a `compose_dossier_envelope` call returns, and labelling it is what keeps the distinction legible; silently omitting the block loses the byte count and newline count entirely, which are the two figures an operator uses to check the body against their source file.',
   '- **`filledIrl` block (BL-058)** — operator cross-checks the body the model actually submitted against what the partner sent:',
   '  - `filledIrl.bytes`: integer byte length of the EXACT string passed as the `filledIrl` argument to `compose_dossier_envelope`. Not the original Excel size; the submitted-body size. Operators compare this against the partner-supplied source-of-truth size to detect reconstruction drift.',
   '  - `filledIrl.newlines`: newline count of that same body, copied from `serverCachedBodyNewlines`. **`newlines: 0` on a body of more than a few kilobytes is expected and is NOT an error.** It means the client collapsed a multi-line paste onto one line, which some clients do because they render each prompt argument as a single-line input. The bytes are intact, verification is unaffected, and the run is valid. The number exists so an operator comparing the body hash against a file on disk sees immediately why the two differ. Do not warn about it, do not halt, and do not attempt to restore the line breaks — the collapse is lossy and a reconstruction would be indistinguishable from real structure.',
@@ -702,7 +750,7 @@ const RUN_AUDIT_DIRECTIVE = [
   '  - One entry per failed tool attempt across the workflow session, EXCLUDING precheck failures (those live in `precheck.errorsEncountered` — partition is strict, no overlap).',
   "  - Shape: `{tool: <toolName>, attemptNumber: <int — 1-based position within that tool's call sequence>, errorClass: <short label>, recoveryAction: <what you did next>}`.",
   '  - `errorClass` values: `arg-shape-rejection` (Zod schema rejected your arg structure), `hash-bind-retry` (compose_dossier_envelope rejected via IrlBodyHashMismatchError — a structural retry path, not a coaching gap), `transport-timeout`, `transport-disconnect`, `tool-internal-error`. Pick the narrowest accurate label.',
-  '  - **Arithmetic ground-truth**: for every tool T, `count(toolErrors where tool == T) MUST equal toolCallCounts.T.attempted - toolCallCounts.T.succeeded`. Operators check this arithmetic to detect under-reporting. **Scope qualifier (BL-121)**: this holds for every tool under `countersScope: session`, and under `run` for the IRL-pipeline tools the durable store covers (`validate_irl_provenance`, `compose_dossier_envelope`, `prepare_irl_body`). For any OTHER tool under `run`, and for every tool under `request`, the counts cover a single request while your `toolErrors` list covers the whole session — so the check is not applicable and operators skip it. Enumerate `toolErrors` completely and honestly regardless; the list is yours to narrate, and it is the only record of the attempts the counters could not see. **A call the CLIENT never delivered — an approval prompt denied or left unanswered — is NOT a failed attempt here.** It never reached the server, so it is absent from `toolCallCounts.attempted`, and adding a `toolErrors` entry for it would break the arithmetic above. Leave it out of this block; mention it in prose outside the block if it is worth recording. (The one exception is a `validate_irl_provenance` attempt during the precheck loop — that belongs in `precheck.errorsEncountered`, which has its own transport-subtraction identity; see the rules for that block.)',
+  '  - **Arithmetic ground-truth**: for every tool T, `count(toolErrors where tool == T) MUST equal toolCallCounts.T.attempted - toolCallCounts.T.succeeded`. Operators check this arithmetic to detect under-reporting. **Scope qualifier (BL-121)**: this holds for every tool under `countersScope: session`, and under `run` for the IRL-pipeline tools the durable store covers (`validate_irl_provenance`, `compose_dossier_envelope`, `prepare_irl_body`). For any OTHER tool under `run`, and for every tool under `request`, the counts cover a single request while your `toolErrors` list covers the whole session — so the check is not applicable and operators skip it. Enumerate `toolErrors` completely and honestly regardless; the list is yours to narrate, and it is the only record of the attempts the counters could not see. **An attempt the server never COUNTED is NOT a failed attempt here.** The test is whether it reached the point where the server records `attempted`, and two shapes do not: a call the client never delivered (an approval prompt denied or left unanswered), and a call refused at the edge before dispatch (a rate-limit 429, which is answered by the transport rather than by the tool). Neither appears in `toolCallCounts.attempted`, so a `toolErrors` entry for either would break the arithmetic above. Leave it out of this block; mention it in prose outside the block if it is worth recording. (The one exception is a `validate_irl_provenance` attempt during the precheck loop — that belongs in `precheck.errorsEncountered`, which has its own transport-subtraction identity; see the rules for that block.)',
   '  - **Compaction fallback (BL-061 interaction)**: if `response.compactionEvents > 0`, `toolErrors` MAY be partial because pre-compaction failures may have been summarized away. In that case, include `<partial-due-to-compaction>` as the FIRST entry (literal string in `errorClass`), then enumerate what you can recover.',
   '- `selfCorrectionCalls` + `totalEnvelopeCalls` are CUMULATIVE across the whole workflow session, not just the final response. If you made 3 envelope calls total to ship, those are 2 and 3.',
   '- `meaningfulRecallsHaveDifferentInputs` (BL-052) distinguishes healthy iteration from transport thrash:',
@@ -730,7 +778,7 @@ const RUN_AUDIT_DIRECTIVE = [
   "    - The asymmetry: false-negatives (`0` reported when compaction actually occurred) defeat the field's purpose; `null` is always preferable to `0` when uncertain.",
   '- **`hashBindResult` semantics (load-bearing — read carefully)**:',
   "  - `pass-bound` — the envelope tool accepted the call AND the `irlBodyHash` value you supplied came verbatim from the prompt body's `**Body-binding hash:**` directive. This is the strong form: the hash binds the call to bytes the prompt SERVER computed from a `filledIrl` prompt arg the partner supplied (one-shot mode). Audit grade: high.",
-  "  - `pass-internal` — the envelope tool accepted the call BUT no `**Body-binding hash:**` directive existed in the prompt body (interactive-mode invocation where no `filledIrl` arg was supplied). You computed `sha256(filledIrl).slice(0,16)` of the body bytes you yourself intend to submit. This is the weak form: the hash confirms internal consistency between the body and citations you submit (function 1 of hash-bind), but it does NOT bind to a partner-authoritative source (function 2 is absent). Audit grade: medium — the partner reading the dossier should know that the IRL bytes came from the model's reconstruction (e.g., from an attached xlsx), not from a partner-pasted markdown arg.",
+  '  - `pass-internal` — the envelope tool accepted the call BUT no `**Body-binding hash:**` directive existed in the prompt body (interactive-mode invocation where no `filledIrl` arg was supplied). You computed `sha256(filledIrl).slice(0,16)` of the body bytes you yourself intend to submit. This is the weak form: the hash confirms internal consistency between the body and citations you submit (function 1 of hash-bind), but it does NOT bind to a partner-authoritative source (function 2 is absent). Audit grade: medium — the partner reading the dossier should know that the IRL bytes came from your own emission stream rather than from a `filledIrl` prompt argument the server hashed itself. **That is a statement about the HASH, not about who wrote the body.** A partner `.md` you passed through unaltered is `partner-paste-verbatim` and still reports `pass-internal`, because the hash went through you; say the bytes are partner-authored and the hash is internally bound, which is what `filledIrl.source` and this field respectively record. Only a body you actually composed (an xlsx you parsed, or markdown you assembled) is a reconstruction, and that is what `filledIrl.source` says, not this field.',
   '  - `IrlBodyHashMismatchError` — the envelope tool REJECTED the call. The `irlBodyHash` you supplied did not equal `sha256(filledIrl).slice(0,16)` of the body you supplied. Re-call with consistent bytes.',
   '- **DO NOT** report `pass-bound` if the prompt body did not contain a `**Body-binding hash:**` directive you could copy from. Reporting `pass-bound` when the directive was absent is a fabricated audit claim. Report `pass-internal` instead — it is honest and the partner sees the provenance limit transparently.',
   '- `hashBindResult` and `filledIrl.source` answer DIFFERENT questions, and only the second is server-checked. `hashBindResult` is about the hash you supplied: did it come from the directive, or did you compute it yourself. `filledIrl.source` is about where the BYTES came from, and the server holds its own record of that — so an over-strong `-prepop` there is capped with a gap-list disclosure while `hashBindResult` is unaffected. Report both honestly; they can legitimately differ.',
@@ -777,9 +825,13 @@ const GAP_LIST_DIRECTIVE = [
 // It is why `auditLevel` is stated in extract-only — the meta fence there is
 // model-authored (ADR-0017 § "two provenances"), making it the one surface
 // where the value can ONLY come from the model's belief — while
-// `requireVerbatimBody` is not: extract-only invokes no tools, the flag is not
-// a meta-fence key and not a RUN-AUDIT field, so stating it would be bytes
-// plus an invitation to enforce a gate this body forbids reaching.
+// `requireVerbatimBody` is not: neither extract-only body invokes an ANALYSIS
+// tool, and neither reads a gate — the deferred arm's one call is
+// `prepare_irl_body`, which computes nothing about the target, and the one-shot
+// arm makes no call at all — the flag is not a meta-fence key and not a
+// RUN-AUDIT field,
+// so stating it would be bytes plus an invitation to enforce a gate this body
+// forbids reaching.
 //
 // Two small formatters rather than one clause-builder: each caller passes the
 // values IT states, so nothing branches on builder identity, and the wording
@@ -787,27 +839,47 @@ const GAP_LIST_DIRECTIVE = [
 function runParameterBullets(p: {
   /** The mode this body ACTUALLY runs — not necessarily the one supplied. */
   effectiveMode: (typeof modeValues)[number];
-  /** Set when the supplied mode differs from the effective one (BL-127). */
-  modeOverrideNote?: string;
   auditLevel: AuditLevel;
   transactionContext?: (typeof transactionContextValues)[number];
   /**
    * Where the model copies these values TO — caller-supplied, because it
    * differs per surface and naming the wrong destination is its own defect.
-   * Extract-only invokes no tools at all, so pointing it at
+   * Neither extract-only body invokes an ANALYSIS tool (the deferred arm's one
+   * call is `prepare_irl_body`, which computes nothing about the target; the
+   * one-shot arm makes no call at all), so pointing it at
    * `compose_dossier_envelope` inputs would invite exactly what its own body
    * forbids two paragraphs later — the same objection that keeps
    * `requireVerbatimBody` off that surface. Still caller-provided, so nothing
    * here branches on builder identity.
+   *
+   * On the extract-only arms the destination is now TWO surfaces, not one: the
+   * run-metadata meta fence AND the extract record's `_meta`. Naming only the
+   * fence would leave every `_meta` field unsourced — which is the same defect
+   * this parameter exists to prevent, one artifact over.
    */
   copiesToEnvelopeCall: boolean;
+  /**
+   * The prompt's own version, stated ONLY where the model has to author it.
+   *
+   * Same selection rule as `auditLevel` and `requireVerbatimBody`: does this
+   * surface have a consumer for the value. In full mode
+   * `compose_dossier_envelope` overrides `promptVersion` from the registry, so
+   * stating it would be bytes plus an invitation to argue with the server. In
+   * extract-only nothing overrides it — no envelope call runs — and THREE
+   * surfaces need it: the meta fence, the extract record's `_meta`, and the
+   * RUN-AUDIT block. Adding a third sourcing rule for one field in one function
+   * is what the reworded directives at `META_JSON_FENCE_DIRECTIVE` and
+   * `RUN_AUDIT_DIRECTIVE` avoid: both now point back at this bullet.
+   */
+  promptVersion?: string;
 }): string[] {
+  const recordAndFence = 'into the extract record `_meta` AND the meta fence';
   const dest = p.copiesToEnvelopeCall
     ? {
         mode: 'into `compose_dossier_envelope.mode` and the meta fence',
         level: 'into `compose_dossier_envelope.auditLevel` and the meta fence',
       }
-    : { mode: 'into the meta fence', level: 'into the meta fence' };
+    : { mode: recordAndFence, level: recordAndFence };
   const contextBullet = p.transactionContext
     ? p.copiesToEnvelopeCall
       ? `- Engagement context: **${p.transactionContext}**. Copy this exact lowercase token into \`compose_dossier_envelope.transactionContext\`; that input is a bare enum with no case-folding, so the capitalized form used in the voice cue below is rejected.`
@@ -816,9 +888,14 @@ function runParameterBullets(p: {
       ? '- Engagement context: not supplied. Pass `unknown` to `compose_dossier_envelope.transactionContext`.'
       : '- Engagement context: not supplied. Record `unknown` in the meta fence.';
   return [
-    `- Run mode: **${p.effectiveMode}**.${p.modeOverrideNote ? ` ${p.modeOverrideNote}` : ''} Copy this value ${dest.mode} — do not re-derive it.`,
+    `- Run mode: **${p.effectiveMode}**. Copy this value ${dest.mode} — do not re-derive it.`,
     `- Audit level: **${p.auditLevel}**. Copy this value ${dest.level}. **Do not infer it from which sections this body rendered** — that inference is wrong often enough to have made \`debug\` unreachable, and passing a level below the operator's suppresses the very blocks they asked for.`,
     contextBullet,
+    ...(p.promptVersion
+      ? [
+          `- Prompt version: **${p.promptVersion}**. Copy this value ${recordAndFence} and into the RUN-AUDIT block — do not re-derive it, and do not substitute the \`@gst/mcp-server\` package version. This mode makes no \`compose_dossier_envelope\` call, so nothing server-side overrides the value; this bullet is its only source.`,
+        ]
+      : []),
   ];
 }
 
@@ -906,7 +983,8 @@ function buildOneShotBody(args: {
     '',
     '## Sweep plan — execute the steps in order, do not skip any',
     // The meta fence is an operator artifact in full mode — `debug` only.
-    // (It stays unconditional in extract-only, where it is the artifact's spine.)
+    // (It stays unconditional in extract-only, where it is the run-metadata
+    // fence beside the extract record — the record is that mode's artifact.)
     ...(showRunAudit ? [META_JSON_FENCE_DIRECTIVE, ''] : []),
     WORKBOOK_COLUMN_CONTRACT,
     '',
@@ -1035,16 +1113,165 @@ function buildOneShotBody(args: {
   ].join('\n');
 }
 
+/**
+ * The two per-claim provenance DISPLAY constants, spread from one place.
+ *
+ * They render under opposite policies — level-gated in the full arm,
+ * unconditional in the extract-only arm (ADR-0017's exemption) — and both arms
+ * are now reachable from `buildInteractiveBody`. Across two functions that read
+ * as parallel structure; inside one it is two renderings of one contract under
+ * opposite policies, which is the duplication this file argues against in its
+ * own comments.
+ *
+ * `PER_SECTION_JSON_FENCE_DIRECTIVE` is deliberately NOT in here. It attaches
+ * `audit: <letter>` fences to dossier sections (C)–(H), which the extract-only
+ * arm does not emit, and its defining comment already scopes it: "extract-only
+ * IS structured JSON throughout so the per-section fence would be redundant."
+ * It stays full-arm-only, spread by its caller.
+ */
+function provenanceDisplaySections(gated: boolean): string[] {
+  return gated
+    ? ['', PROVENANCE_FOOTER_DIRECTIVE, '', PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE]
+    : [];
+}
+
+/**
+ * The extract-only procedure, shared by both arms that run it: the one-shot
+ * body (`filledIrl` + `mode: extract-only`) and the deferred arm of the
+ * interactive body (`mode: extract-only`, body pasted in reply).
+ *
+ * **Covers the full procedure, `## Extraction plan` header through the voice
+ * directives** — including `META_JSON_FENCE_DIRECTIVE` (model-authored in this
+ * mode) and `WORKBOOK_COLUMN_CONTRACT`. A narrower range would ship the
+ * deferred arm without them. Callers therefore do NOT name
+ * `WORKBOOK_COLUMN_CONTRACT` separately; doing so renders it twice.
+ *
+ * **`mintsOwnProvenance`** tracks which `prepareIrlBodyStep` variant rendered above
+ * it, and exists because the tool-invocation bullet below has to agree with that
+ * step. The deferred arm calls `prepare_irl_body`; the one-shot arm is told NOT
+ * to, because the BL-079 prepop already fired and re-minting would replace
+ * server-witnessed provenance with a model assertion. A single shared bullet
+ * naming `prepare_irl_body` as "the ONE exception" is therefore false on the
+ * one-shot arm — and falsely permissive in the direction that matters: a model
+ * that follows it gets the real stored `mintedAt` back from first-write-wins and
+ * can honestly write `generatedAtSource: "server-witnessed"`, while the arm
+ * mandates `"model-asserted"`. That collapses the ADR-0018 discriminator between
+ * "witness unreachable in-band" and "the provenance write failed".
+ */
+function extractOnlyProcedureSections(opts: { mintsOwnProvenance: boolean }): string[] {
+  return [
+    '## Extraction plan — execute the steps in order',
+    '',
+    META_JSON_FENCE_DIRECTIVE,
+    '',
+    WORKBOOK_COLUMN_CONTRACT,
+    '',
+    WRONG_IRL_DETECTOR_PREFLIGHT,
+    '',
+    INCLUSION_GATES_DIRECTIVE,
+    '',
+    IRL_EXTRACT_RECORD_DIRECTIVE,
+    '',
+    `**Extraction step 2 — Dimension extraction worksheet (REQUIRED).** Apply the BL-045 extraction discipline to derive the 13 \`generate_diligence_agenda\` dimensions: ${UNKNOWN_PROPAGATION_RULE}`,
+    '',
+    'Emit ONE JSON code fence labeled `worksheet: generate_diligence_agenda` containing the 13 dimensions + the `_audit` sibling in the canonical shape (per-dimension tier + citation + dimension-specific calibration fields). Do NOT invoke the tool. This is the payload that would be submitted in full mode.',
+    '',
+    // BL-126 — this step told the model to use "the same annualization sources
+    // the full-mode invocation would use" while withholding the mapping that
+    // sentence refers to: three of the four extraction rules render in the full
+    // body only. One observed run sourced `rdOpEx` from the Section 04
+    // remediation bullet — a figure already mapped to a different tool — which
+    // this asymmetry would explain; the run data is not in the repo, so which
+    // body it used is inference rather than record.
+    // The mode rule is shared here so both bodies answer the same question the
+    // same way.
+    `**Extraction step 3 — Per-tool input payloads (REQUIRED, one JSON fence per tool).** These are a DERIVED PROJECTION of the extract record above, shaped for each consumer's schema — the record is indexed by the target, these are indexed by the tool that would consume them. Both ship; they are not alternatives. For each of the orchestrated tools (\`compute_techpar\`, \`estimate_tech_debt_cost\`, \`assess_infrastructure_cost_governance\`, \`search_portfolio\`, \`search_regulations\`, \`search_radar\`, \`list_portfolio_facets\`, \`list_regulation_facets\`), emit a JSON code fence labeled \`payload: <tool-name>\` containing the audited input payload — including all \`_audit\` calibration fields per the tool's schema. Resolve every value from the record's facts where the record covers it, and use the same currency basis / annualization sources / scope declarations the full-mode invocation would use. Do NOT invoke the tools.\n\n${TECHPAR_MODE_RULE}\n\n${ENG_COST_DEDUP_RULE}`,
+    '',
+    'If an inclusion gate fails for a tool (per § Tool inclusion gates of the BL-045 design doc), emit a fence labeled `elided: <tool-name>` with `{ "reason": "<which gate predicate failed>", "irlSection": "<which IRL section would have satisfied it>" }` instead of the payload.',
+    '',
+    GAP_LIST_DIRECTIVE,
+    // extract-only is exempt from the auditLevel gate entirely. It emits no
+    // partner-facing dossier, its own `mode` description promises provenance,
+    // and downstream automation parses the record and the meta fence first — so
+    // the full shape ships at every level.
+    ...provenanceDisplaySections(true),
+    '',
+    RUN_AUDIT_DIRECTIVE,
+    '',
+    '## Voice + format directives (extract-only)',
+    '',
+    '- NO synthesis prose. NO dossier sections (A) – (I). The only narrative content is the (J) gap list.',
+    // § B — the honest restatement. The old absolute ("NO tool invocations")
+    // became false the moment this mode started minting a hash: the artifact
+    // now travels, so where its bytes came from has to be auditable.
+    // `prepare_irl_body` and `validate_irl_provenance` are transport and
+    // verification helpers that sit outside the gate surface and compute
+    // NOTHING about the target. Seeding the body cache is not a sweep. The rule
+    // is not weakened to "minimize tool calls" — the analysis tools stay
+    // forbidden outright.
+    opts.mintsOwnProvenance
+      ? '- **NO ANALYSIS tool invocations.** None of the orchestrated Hub tools run: no `compute_techpar`, no `estimate_tech_debt_cost`, no `assess_infrastructure_cost_governance`, no `search_portfolio`, no `search_regulations`, no `search_radar`, no `generate_diligence_agenda`, no `compose_dossier_envelope`. You emit their payloads; you do not send them. The ONE exception is `prepare_irl_body`, named explicitly in the procedure above — it computes nothing about the target, it mints the body hash the record carries, and without it the travelling artifact has no auditable provenance. Apart from that single call, the output is a sequence of JSON code fences.'
+      : "- **NO tool invocations at all on this path.** None of the orchestrated Hub tools run: no `compute_techpar`, no `estimate_tech_debt_cost`, no `assess_infrastructure_cost_governance`, no `search_portfolio`, no `search_regulations`, no `search_radar`, no `generate_diligence_agenda`, no `compose_dossier_envelope`. You emit their payloads; you do not send them. `prepare_irl_body` is not called either, and the procedure above tells you so explicitly: the server already hashed the operator's body and seeded the cache in this same request, so the body-binding hash above IS the provenance. Calling the tool would replace a server-witnessed record with your own assertion. The output is a sequence of JSON code fences.",
+    '- Surface the computed `fillRatio` above the first JSON fence as a one-line summary (per the pre-flight directive).',
+    '- Do NOT fabricate IRL content. Cite every claim back to a specific section / row in the per-payload audit metadata.',
+    '- Do NOT invent tool deeplinks. The extract-only mode produces no Hub URLs (those come from the tools, which were not invoked).',
+  ];
+}
+
+/**
+ * The `prepare_irl_body` step, rendered by both extract-only arms.
+ *
+ * § B — promoting extract-only's output to a travelling artifact raises the bar
+ * on where its bytes came from. On the deferred arm the BL-079 render-time
+ * pre-population never fires (it is gated on `args?.filledIrl`), so without this
+ * call there is no server-witnessed body and no hash bind at all — against
+ * ADR-0003/ADR-0018 making the hash bind the provenance authority. On the
+ * one-shot arm the prepop DID fire, so the hash exists; the model is told to
+ * copy it rather than re-mint, which is the stronger grade.
+ *
+ * `prepare_irl_body` is deliberately NOT in `ORCHESTRATED_TOOLS`, so naming it
+ * creates no `orchestrates` obligation.
+ */
+function prepareIrlBodyStep(opts: { bodyBindingHash?: string }): string {
+  if (opts.bodyBindingHash) {
+    return [
+      '## Body-binding hash — the record carries it (BLOCKING)',
+      '',
+      `**Body-binding hash:** \`${opts.bodyBindingHash}\``,
+      '',
+      'The server computed this from the operator\'s `filledIrl` argument and pre-populated the IRL body cache in the same request — no model emission anywhere in the path. Copy the 16-character hex string above into the extract record\'s `_meta.irlBodyHash` and report `_meta.irlSource: "partner-paste-verbatim-prepop"`. **Do NOT call `prepare_irl_body`** — doing so would replace server-witnessed provenance with your own assertion and weaken the grade the record travels with. Set `_meta.generatedAtSource: "model-asserted"` and use your own ISO-8601 timestamp for `_meta.generatedAt`: the prepop minted a server-side timestamp, but this path has no tool call through which to read it back.',
+    ].join('\n');
+  }
+  return [
+    '## Mint the body provenance — one `prepare_irl_body` call (BLOCKING, before extracting)',
+    '',
+    'Once the filled IRL is in hand — pasted, attached to the conversation, or already in your context per Step 1 — call **`prepare_irl_body({ filledIrl: <the body, verbatim> })`** exactly once, before you extract anything.',
+    '',
+    'If the user hands you a `.xlsx` attachment rather than markdown, compose the body FIRST using § IRL workbook column contract in the extraction plan below, then hash exactly those composed bytes. The hash binds whatever you submit; hashing one body and extracting from another is the one way to make this call worse than useless.',
+    '',
+    'This is the ONLY tool call this run makes. It computes nothing about the target: it hashes the bytes, seeds the server-side body cache, and returns the canonical `irlBodyHash` plus a `mintedAt` timestamp. Without it the record you are about to emit would travel with no auditable statement of where its bytes came from — and this record is meant to travel.',
+    '',
+    'From the response:',
+    '',
+    "- Copy `irlBodyHash` verbatim into the record's `_meta.irlBodyHash`. **Do NOT guess or hand-compute sha256.**",
+    '- Copy `mintedAt` verbatim into `_meta.generatedAt` and set `_meta.generatedAtSource: "server-witnessed"`. It is the STORED value, so on a repeat call it is the ORIGINAL mint time — that is correct and is the point. **If the response has no `mintedAt`**, use your own ISO-8601 timestamp and set `_meta.generatedAtSource: "model-asserted"`; do not claim a witness you were not given.',
+    '- Report `_meta.irlSource` honestly, on ONE axis — who AUTHORED the bytes you hashed, not how they reached you. `partner-paste-verbatim` when the partner authored the markdown and you passed it through unaltered, whether it was pasted into the chat or attached as a `.md` file: the two grade identically, because neither changes who wrote it. `model-reconstruction-from-xlsx` when you composed the markdown yourself from a workbook — an attached `.xlsx` is a reconstruction no matter how clean the composition. `model-reconstruction-trimmed` when you assembled it without a verbatim source. **`partner-paste-verbatim-prepop` is not available on this path at all**: it asserts the server hashed a `filledIrl` prompt argument with no model emission anywhere in the path, and there is no such argument here — you are calling `prepare_irl_body` precisely because there was not one.',
+    '',
+    'Then proceed to the extraction plan below. Do NOT call `compose_dossier_envelope` or any Hub analysis tool — this run is extract-only.',
+  ].join('\n');
+}
+
 // ─── buildExtractOnlyBody ──────────────────────────────────────────────
 //
 // mode: 'extract-only' renders a body that performs the wrong-IRL
 // pre-flight + dimension extraction with the same _audit shape as full
-// mode, then emits one JSON code fence per tool (with the audited input
-// payload that WOULD have been sent if the tool ran). No tool invocation,
-// no synthesis prose. Use case: audit-trail JSON dump for downstream
-// automation, refinement of a single section without re-running the
-// whole sweep, partner inspection of model extraction before committing
-// to ~5 min and ~9 tool calls.
+// mode, then emits the subject-keyed IRL extract record plus one JSON code
+// fence per tool (the audited input payload that WOULD have been sent if
+// the tool ran, derived from the record). No ANALYSIS tool invocation, no
+// synthesis prose. Use case: a portable target record downstream consumers
+// and later sessions can resolve inputs from, refinement of a single
+// section without re-running the whole sweep, partner inspection of model
+// extraction before committing to ~5 min and ~9 tool calls.
 function buildExtractOnlyBody(args: {
   targetName?: string;
   filledIrl: string;
@@ -1069,20 +1296,22 @@ function buildExtractOnlyBody(args: {
   return [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Run the GST IRL ingestion in **EXTRACT-ONLY mode** against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent has come back filled — the canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. **In extract-only mode you DO NOT invoke any tools and DO NOT compose a dossier.** You produce a structured JSON artifact: the dimension worksheet + the per-tool input payloads that WOULD have been submitted if the sweep ran. This is the audit-trail surface for downstream automation, partner inspection, or single-section refinement.`,
+    `Run the GST IRL ingestion in **EXTRACT-ONLY mode** against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent has come back filled — the canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. **In extract-only mode you DO NOT invoke any ANALYSIS tool and DO NOT compose a dossier.** You produce a portable JSON artifact describing the target — the IRL extract record — plus the dimension worksheet and the per-tool input payloads derived from it. The record is what travels: an operator can save it, paste it into a later session, or hand it to any other GST prompt, and it resolves that prompt's inputs without re-reading the IRL.`,
     '',
     'Engagement context:',
     `- ${targetClause}`,
     `- ${voiceClause}`,
     '',
-    'Run parameters — these are the resolved values for THIS invocation. Copy them into the meta fence; do not infer them:',
+    'Run parameters — these are the resolved values for THIS invocation. Copy them into the extract record `_meta` and the meta fence; do not infer them:',
     ...runParameterBullets({
       effectiveMode: 'extract-only',
       auditLevel: args.auditLevel,
       transactionContext: args.transactionContext,
-      // No tools run in this mode, so the values go to the model-authored
-      // meta fence and nowhere else.
+      // No ANALYSIS tools run in this mode, so the values go to the two
+      // model-authored artifacts — the record's `_meta` and the meta fence —
+      // and nowhere else.
       copiesToEnvelopeCall: false,
+      promptVersion: PROMPT_VERSION,
     }),
     '',
     embeddedTaxonomyFraming(true),
@@ -1095,52 +1324,13 @@ function buildExtractOnlyBody(args: {
     args.filledIrl,
     '```',
     '',
-    '## Extraction plan — execute the steps in order',
+    // § B — the record travels, so its bytes need auditable provenance. On this
+    // arm the BL-079 render-time prepop already fired (it is gated on
+    // `args?.filledIrl`), so the hash exists server-side and the model copies it
+    // rather than re-minting — the stronger grade.
+    prepareIrlBodyStep({ bodyBindingHash: computeIrlBodyHashForBody(args.filledIrl) }),
     '',
-    META_JSON_FENCE_DIRECTIVE,
-    '',
-    WORKBOOK_COLUMN_CONTRACT,
-    '',
-    WRONG_IRL_DETECTOR_PREFLIGHT,
-    '',
-    INCLUSION_GATES_DIRECTIVE,
-    '',
-    `**Step 1 — Dimension extraction worksheet (REQUIRED).** Apply the BL-045 extraction discipline to derive the 13 \`generate_diligence_agenda\` dimensions: ${UNKNOWN_PROPAGATION_RULE}`,
-    '',
-    'Emit ONE JSON code fence labeled `worksheet: generate_diligence_agenda` containing the 13 dimensions + the `_audit` sibling in the canonical shape (per-dimension tier + citation + dimension-specific calibration fields). Do NOT invoke the tool. This is the payload that would be submitted in full mode.',
-    '',
-    // BL-126 — this step told the model to use "the same annualization sources
-    // the full-mode invocation would use" while withholding the mapping that
-    // sentence refers to: three of the four extraction rules render in the full
-    // body only. One observed run sourced `rdOpEx` from the Section 04
-    // remediation bullet — a figure already mapped to a different tool — which
-    // this asymmetry would explain; the run data is not in the repo, so which
-    // body it used is inference rather than record.
-    // The mode rule is shared here so both bodies answer the same question the
-    // same way.
-    `**Step 2 — Per-tool input payloads (REQUIRED, one JSON fence per tool).** For each of the orchestrated tools (\`compute_techpar\`, \`estimate_tech_debt_cost\`, \`assess_infrastructure_cost_governance\`, \`search_portfolio\`, \`search_regulations\`, \`search_radar\`, \`list_portfolio_facets\`, \`list_regulation_facets\`), emit a JSON code fence labeled \`payload: <tool-name>\` containing the audited input payload — including all \`_audit\` calibration fields per the tool's schema. Use the same currency basis / annualization sources / scope declarations the full-mode invocation would use. Do NOT invoke the tools.\n\n${TECHPAR_MODE_RULE}\n\n${ENG_COST_DEDUP_RULE}`,
-    '',
-    'If an inclusion gate fails for a tool (per § Tool inclusion gates of the BL-045 design doc), emit a fence labeled `elided: <tool-name>` with `{ "reason": "<which gate predicate failed>", "irlSection": "<which IRL section would have satisfied it>" }` instead of the payload.',
-    '',
-    GAP_LIST_DIRECTIVE,
-    // extract-only is exempt from the auditLevel gate entirely. It emits no
-    // partner-facing dossier, its own `mode` description promises provenance,
-    // and downstream automation parses the meta fence first — so the full
-    // shape ships at every level.
-    '',
-    PROVENANCE_FOOTER_DIRECTIVE,
-    '',
-    PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE,
-    '',
-    RUN_AUDIT_DIRECTIVE,
-    '',
-    '## Voice + format directives (extract-only)',
-    '',
-    '- NO synthesis prose. NO dossier sections (A) – (I). The only narrative content is the (J) gap list.',
-    '- NO tool invocations. The output is a sequence of JSON code fences.',
-    '- Surface the computed `fillRatio` above the first JSON fence as a one-line summary (per the pre-flight directive).',
-    '- Do NOT fabricate IRL content. Cite every claim back to a specific section / row in the per-payload audit metadata.',
-    '- Do NOT invent tool deeplinks. The extract-only mode produces no Hub URLs (those come from the tools, which were not invoked).',
+    ...extractOnlyProcedureSections({ mintsOwnProvenance: false }),
   ].join('\n');
 }
 
@@ -1153,6 +1343,20 @@ function buildExtractOnlyBody(args: {
 // whose shape was withheld — the same shape-without-artifact incoherence this
 // change exists to remove. Steps 0-4 (the envelope flow) are correctness
 // machinery and stay unconditional; only this region is level-gated.
+//
+// ─── Two arms, one builder (BL-127) ───────────────────────────────────────
+//
+// This builder now honors `mode: extract-only` rather than overriding it. One
+// builder with two arms, NOT a fourth builder: the tailoring and paste-ask
+// logic below is all function-local `const`s, so a separate builder would have
+// to extract or duplicate every one of them. Parameterizing extracts nothing
+// and duplicates nothing.
+//
+// The two arms never co-render. The extract-only arm replaces Steps 2-5
+// wholesale with `prepare_irl_body` + the shared extract-only procedure, so the
+// audit-level gate becomes arm-conditional rather than incoherent: ADR-0017's
+// exemption for extract-only and the level table for full mode each govern
+// exactly one arm.
 function buildInteractiveBody(args: {
   // BL-125 (#11) — `build()` used to pass `{ auditLevel }` alone, so five
   // arguments the operator supplied were discarded and this body asked for
@@ -1165,16 +1369,19 @@ function buildInteractiveBody(args: {
   partnerLead?: string;
   projectCodeName?: string;
   requireVerbatimBody?: boolean;
-  /** True when the operator asked for extract-only; this path cannot honor it. */
-  modeWasOverridden: boolean;
+  /**
+   * The mode this body runs — now honored on both values rather than forced to
+   * `full`. `build()` consults `mode` on both arms, so there is no override to
+   * disclose and `modeWasOverridden` / `modeOverrideNote` are gone with it.
+   */
+  effectiveMode: (typeof modeValues)[number];
 }): string {
-  const showRunAudit = args.auditLevel === 'debug';
-  const showAuditDisplay = args.auditLevel === 'enhanced' || args.auditLevel === 'debug';
+  const isExtractOnly = args.effectiveMode === 'extract-only';
   // The one-shot fallback ("infer from the IRL header") is incoherent here —
   // there is no IRL at render time, and Step 1 has not run yet.
   const targetClause = args.targetName
     ? `The target is **${args.targetName}**.`
-    : 'Target: not yet supplied — take it from the IRL header (Section 00 — Basics, first bullet) once the user pastes the body.';
+    : 'Target: not yet supplied — take it from the IRL header (Section 00 — Basics, first bullet) once you have the body.';
   const voiceClause = args.transactionContext
     ? `Voice cue: ${VOICE_CUES[args.transactionContext]}`
     : 'Voice cue: universal until the user supplies an engagement context.';
@@ -1184,53 +1391,133 @@ function buildInteractiveBody(args: {
   const codeNameClause = args.projectCodeName
     ? `Engagement code name: **${args.projectCodeName}** — use it as the project label in the synthesis section.`
     : 'Engagement code name: not supplied — use the target name as the project label.';
-  // Compose the tailoring ask from what is genuinely MISSING. When all four
-  // are supplied the sentence disappears entirely and only the paste request
+  // Compose the tailoring ask from what is genuinely MISSING. When all are
+  // supplied the sentence disappears entirely and only the paste request
   // remains — asking for a value this body has already stated is exactly the
   // contradictory-prose defect the rest of BL-125 removes.
+  //
+  // `partnerLead` / `projectCodeName` are dropped from the ask on the
+  // extract-only arm by the same selection rule that governs the run-parameter
+  // bullets: that arm writes no synthesis memo and no project label, so there
+  // is no consumer for either value and asking for them would trade the
+  // operator's turn for bytes nothing reads.
   const missingTailoring = [
     args.targetName ? null : 'the target name',
     args.transactionContext
       ? null
       : 'the engagement context (sell-side / buy-side / value-creation)',
-    args.partnerLead ? null : 'the partner lead',
-    args.projectCodeName ? null : 'an engagement code name',
+    ...(isExtractOnly
+      ? []
+      : [
+          args.partnerLead ? null : 'the partner lead',
+          args.projectCodeName ? null : 'an engagement code name',
+        ]),
   ].filter((v): v is string => v !== null);
   const tailoringSentence =
     missingTailoring.length === 0
       ? ''
-      : ` If you can also share ${missingTailoring.length === 1 ? missingTailoring[0] : `${missingTailoring.slice(0, -1).join(', ')} and ${missingTailoring[missingTailoring.length - 1]}`}, I'll tailor the dossier — but only the filled IRL is required to run the sweep.`;
-  return [
+      : ` If you can also share ${missingTailoring.length === 1 ? missingTailoring[0] : `${missingTailoring.slice(0, -1).join(', ')} and ${missingTailoring[missingTailoring.length - 1]}`}, I'll tailor the ${isExtractOnly ? 'record' : 'dossier'} — but only the filled IRL is required to run ${isExtractOnly ? 'the extraction' : 'the sweep'}.`;
+  const opening = isExtractOnly
+    ? // No mention of the VDR taxonomy: this arm renders no Step 3 and emits no
+      // follow-up document requests, and a body that points at a section it does
+      // not render is the dangling reference this arm was built to avoid.
+      `Help the user run the GST IRL ingestion in **EXTRACT-ONLY mode** — the bookend to \`gst_information_request_list\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. The filled IRL has not been supplied as an argument, so Step 1 checks whether it is already in your context — attached to this message or supplied earlier — and asks for a paste only if nothing has reached you. Once you have it you mint its provenance and extract. **You DO NOT invoke any ANALYSIS tool and DO NOT compose a dossier.** The primary output is the portable IRL extract record — a JSON document describing the target that an operator can save, paste into a later session, or hand to any other GST prompt.`
+    : `Help the user run the GST Discovery sweep — the bookend to \`gst_information_request_list\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference; the VDR folder taxonomy (\`${VDR_RESOURCE_URI}\`) is reproduced inline at Step 3 for synthesis follow-ups.`;
+  // Everything up to and including the Step 1 paste ask is common to both arms.
+  const sharedPrefix = [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Help the user run the GST Discovery sweep — the bookend to \`gst_information_request_list\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference; the VDR folder taxonomy (\`${VDR_RESOURCE_URI}\`) is reproduced inline at Step 3 for synthesis follow-ups.`,
+    opening,
     '',
     'Engagement context:',
     `- ${targetClause}`,
     `- ${voiceClause}`,
-    `- ${leadClause}`,
-    `- ${codeNameClause}`,
+    ...(isExtractOnly ? [] : [`- ${leadClause}`, `- ${codeNameClause}`]),
     '',
-    'Run parameters — these are the resolved values for THIS invocation. Copy them; do not infer them:',
+    isExtractOnly
+      ? 'Run parameters — these are the resolved values for THIS invocation. Copy them into the extract record `_meta` and the meta fence; do not infer them:'
+      : 'Run parameters — these are the resolved values for THIS invocation. Copy them; do not infer them:',
     ...runParameterBullets({
-      effectiveMode: 'full',
-      modeOverrideNote: args.modeWasOverridden
-        ? 'The operator supplied `mode: extract-only`, which this path cannot honor — there is no body to extract from until they paste one — so the run completes as a full sweep. Say so when you report back.'
-        : undefined,
+      effectiveMode: args.effectiveMode,
       auditLevel: args.auditLevel,
       transactionContext: args.transactionContext,
-      copiesToEnvelopeCall: true,
+      copiesToEnvelopeCall: !isExtractOnly,
+      ...(isExtractOnly ? { promptVersion: PROMPT_VERSION } : {}),
     }),
-    verbatimGateBullet(args.requireVerbatimBody),
+    // BL-125's selection rule: state a value only where the surface has a
+    // consumer for it. The extract-only arm invokes no ANALYSIS tool, and the
+    // one call it does make (`prepare_irl_body`) reads no gate — so the gate
+    // this bullet would announce cannot be reached from this body.
+    ...(isExtractOnly ? [] : [verbatimGateBullet(args.requireVerbatimBody)]),
     '',
     embeddedTaxonomyFraming(true),
     '',
     deliveredAsDocumentClause({ citesRunParameters: true }),
     '',
-    'Step 1. Ask the user:',
+    'Step 1. Check your context for the filled IRL BEFORE you ask for it.',
     '',
-    `> Paste the populated Information Request List your target returned (all 10 sections, in markdown).${tailoringSentence}`,
+    // The operator report that opened BL-127 invoked this prompt with the filled
+    // IRL attached to the SAME message. The body was in the model's context and
+    // the old Step 1 asked for it anyway. The server cannot close this: a
+    // `prompts/get` request carries `{ name, arguments }` and nothing else — no
+    // conversation, no attachment manifest — so unlike `tailoringSentence`,
+    // which collapses because the server KNOWS the argument is present, this
+    // branch has to be evaluated by the model against its own context.
+    'The operator may have attached it — a `.md` or a `.xlsx` — to the same message that invoked this workflow. This body was rendered from prompt arguments alone and the server cannot see chat attachments, so it cannot tell you whether they did. You can. Asking someone to paste a document you are already holding costs them a turn and reads as a workflow that does not look at its own inputs.',
     '',
+    // Disambiguates from `deliveredAsDocumentClause` immediately above, whose
+    // subject is THIS BODY arriving as a file. Two attachment clauses in a row
+    // with different subjects is the misreading most likely to land here, and
+    // that clause's reassurance ("arriving as a file is not evidence the
+    // workflow was not invoked") must not be borrowed to skip the checks below.
+    "(That is about the operator's IRL file. The paragraph further up about this body arriving as an attached file is about how THIS prompt body reached you — different subject, and its reassurance does not transfer.)",
+    '',
+    '**If a filled IRL is already in your context** — attached to this message or supplied earlier in the conversation, markdown or workbook — do not ask for it. Open with one line naming what you are using (`Using the attached <filename>.`) and continue to the next step. For a `.xlsx`, compose the markdown body FIRST per **§ IRL workbook column contract** below, then proceed on exactly those composed bytes. The blank canonical taxonomy embedded as the next message is never a candidate: it is the empty request template.',
+    '',
+    // The clause that makes the convenience safe. Some clients hand the model a
+    // flattened text extraction of a workbook with the column structure gone;
+    // "do not ask, just use it" would then read as "reconstruct from garbage".
+    '**If something is attached but you cannot actually read its contents** — the client surfaced only a filename, or a flattened extraction with the column structure gone — say so plainly and ask for a paste. Do NOT reconstruct an IRL from a garbled extraction: a body assembled that way is a `model-reconstruction-trimmed` at best, and it carries that grade for the rest of the run.',
+    '',
+    '**If more than one candidate is in context** — an attachment plus an earlier paste, two workbooks, a partial beside a full one — name them and ask which to run. Do not merge them and do not choose silently.',
+    '',
+    '**If nothing has reached you**, ask once:',
+    '',
+    // The `> Paste the populated` prefix is load-bearing beyond prose: the
+    // BL-125 suite finds this line with `startsWith` and THROWS when it is
+    // absent, and uses the same substring as the `asksForPaste` body-identity
+    // discriminator in the four-shape arity test. Keep it left-aligned, and keep
+    // `tailoringSentence` appended here.
+    `> Paste the populated Information Request List your target returned (all 10 sections, in markdown) — or attach the \`.md\` or \`.xlsx\` file to your reply; either works.${tailoringSentence}`,
+    '',
+    '**Arriving as an attachment changes the turn count, not the provenance grade.** A file you read verbatim is worth exactly what a chat paste is worth; a workbook you parsed is a reconstruction however it reached you. Report the source exactly as the step that consumes it specifies.',
+    '',
+  ];
+
+  if (isExtractOnly) {
+    return [
+      ...sharedPrefix,
+      // § B — the BL-079 render-time prepop is gated on `args?.filledIrl` and
+      // never fires here, so this is the only path by which the record's bytes
+      // acquire a server-witnessed hash and provenance record.
+      prepareIrlBodyStep({}),
+      '',
+      // Supplies `WORKBOOK_COLUMN_CONTRACT` itself — naming it above as the full
+      // arm does would render it twice.
+      ...extractOnlyProcedureSections({ mintsOwnProvenance: true }),
+    ].join('\n');
+  }
+
+  // Full arm only from here. `showRunAudit` / `showAuditDisplay` are computed
+  // INSIDE this arm rather than above the branch so they are UNREACHABLE on the
+  // extract-only arm, not merely unused: with them in scope above, the next
+  // gated element added to the shared header would silently level-gate
+  // extract-only and falsify ADR-0017's exemption — and no test would catch it,
+  // because that exemption is asserted over the one-shot extract-only body.
+  const showRunAudit = args.auditLevel === 'debug';
+  const showAuditDisplay = args.auditLevel === 'enhanced' || args.auditLevel === 'debug';
+  return [
+    ...sharedPrefix,
     // BL-120: this body asks for markdown, but the user may well hand over the
     // `.xlsx` instead — this path's own VERIFY block admits `xlsx-reconstruction`
     // as a runScenario and `model-reconstruction-from-xlsx` as a source. Without
@@ -1238,7 +1525,7 @@ function buildInteractiveBody(args: {
     // workbook went missing.
     WORKBOOK_COLUMN_CONTRACT,
     '',
-    'Step 2. Once the user pastes the filled IRL, run the full sweep:',
+    'Step 2. Once you have the filled IRL — attached, pasted, or already in your context per Step 1 — run the full sweep:',
     `  - Step 2a — Extract the 13 diligence dimensions from the IRL and call \`generate_diligence_agenda\`. The IRL is filled, so derive concrete values; do NOT default to \`'unknown'\`.`,
     `  - Step 2b — Call \`list_portfolio_facets\` then \`search_portfolio\` ONCE with array filters (\`theme: [...]\`, \`engagement: [...]\` — \`string | string[]\` accepted) to pull 3-5 comparable past engagements in a single call.`,
     `  - Step 2c — Call \`list_regulation_facets\` then \`search_regulations\` ONCE with array filters (\`jurisdiction: [...]\`, \`category: [...]\` — \`string | string[]\` accepted) covering every framework the IRL Section 09 names. Do NOT call once per framework.`,
@@ -1266,20 +1553,12 @@ ${ENG_COST_DEDUP_RULE}`,
     // same declared level got both. ADR-0017 states the level table without
     // qualification and exempts only `buildExtractOnlyBody`; this path was
     // falsifying that. Same three constants, same spread as the one-shot body.
-    ...(showAuditDisplay
-      ? [
-          '',
-          PER_SECTION_JSON_FENCE_DIRECTIVE,
-          '',
-          PROVENANCE_FOOTER_DIRECTIVE,
-          '',
-          PROVENANCE_CITATION_SELF_CHECK_DIRECTIVE,
-        ]
-      : []),
+    ...(showAuditDisplay ? ['', PER_SECTION_JSON_FENCE_DIRECTIVE] : []),
+    ...provenanceDisplaySections(showAuditDisplay),
     '',
     `Step 3a. **Envelope precheck — citation iteration via \`validate_irl_provenance\` (BLOCKING).** BEFORE calling \`compose_dossier_envelope\`, converge citation correctness on \`validate_irl_provenance\` first. Assemble your draft \`claims\` array (every load-bearing claim with \`{claim, citation, tier}\`) and call \`validate_irl_provenance\` with \`{filledIrl, citations}\` — pass each claim as a \`{path, citation}\` entry in the \`citations\` array (use the claim label or a short dot-path as \`path\`). **For genuine multi-bullet derivations** (TechPar verdicts citing eng count + hosting + salary; comparables joining portfolio rows; syntheses spanning Section 04 + 07), pass \`citation\` as an array of strings (\`["Section 02 — ...", "Section 03 — ...", ...]\`, 1-8 elements) — each element is verified independently and aggregated (any-unverified wins). For every \`unverified\` entry, re-cite using a verbatim substring of the IRL body (\`Section NN — <exact wording>\`). Re-call to confirm. Repeat until \`(verified + verifiedFuzzy + partnerSupplied) / total ≥ 0.90\` OR you have made 4 precheck iterations. Then — and only then — call \`compose_dossier_envelope\` ONCE on the clean set. The verifier is purpose-built for fast iteration (small input, small output); the envelope is heavyweight (~30KB input per call). Iterating on the cheap tool first lifts first-call verification rate into the 80-90% band and ships the dossier in 1 envelope call instead of 2-5. If a claim genuinely cannot be supported by any IRL substring, accept the \`unverified\` flag — the partner needs to see what was unsupported.`,
     '',
-    `Step 4. **Mandatory closing step.** Before emitting the dossier prose, call \`compose_dossier_envelope\` with the structured inputs (promptName/promptVersion/modelVersion/mode/auditLevel/transactionContext/fillRatio/gatesPassed/gatesElided/conditionalTriggersFired/forceToolsApplied/claims/gaps/irlBodyHash/irlSource/requireVerbatimBody). The IRL body is no longer a public input field on this tool — submit it via \`prepare_irl_body\` first. **Call \`prepare_irl_body({ filledIrl: <body> })\` FIRST**; it caches the body server-side keyed by the canonical \`irlBodyHash\` and returns that hash. Then pass ONLY \`irlBodyHash\` to \`compose_dossier_envelope\` — the server re-hydrates the body from the cache for internal provenance verification. (Rationale: emitting the full body to \`compose_dossier_envelope\` as tool args costs 5–15 minutes per call in output-token generation time; the cache eliminates that cost.) **If the body is large (roughly 20KB or more), make the \`prepare_irl_body\` call your ENTIRE response for that turn** — emit the tool call and nothing else, no prose, no partial dossier — then continue in the next turn using the returned \`irlBodyHash\` in body-by-hash mode. An 80KB IRL is ~21k output tokens on its own, and attempting it alongside the dossier in one turn leaves no room for the dossier. Splitting it across two turns is the normal procedure for a large body, not an error path: you are not doing anything wrong by taking a turn to seed the cache. What you must NOT do is skip the call, summarise the body to make it fit, or write the audit blocks from memory — an audit artifact describing an envelope call that never happened is a fabricated green. If you skip \`prepare_irl_body\` and call \`compose_dossier_envelope\` first, the server returns \`Bl076BodyCacheMissError\` directing you to call \`prepare_irl_body\` first. The envelope tool returns the markdown blocks your audit level calls for, and the dossier MUST include each one it returns, verbatim: \`gapListMarkdown\` as section (J) at every level; \`provenanceFooterMarkdown\` as section (K) at \`enhanced\` and above; \`metaFenceMarkdown\` as the FIRST content (before A) at \`debug\`. A block the tool did not return is not yours to write — do not reconstruct it. The tool internally verifies every load-bearing claim against the IRL and auto-appends \`provenance-gap:\` / \`tier-mismatch:\` / \`tier-fabrication:\` entries. Pass \`irlSource\` as a top-level argument matching how the IRL body bytes were assembled: \`partner-paste-verbatim\` when the operator pasted the IRL markdown directly, \`model-reconstruction-from-xlsx\` when you parsed an xlsx attachment, \`model-reconstruction-trimmed\` when you assembled markdown without a verbatim source. The server auto-appends a \`provenance-gap:\` entry to (J) when the value indicates reconstruction — this is intentional and surfaces the hash-bind tautology in non-partner-paste modes. **requireVerbatimBody gate**: its resolved value is stated in the Run parameters block at the top of this body — copy it from there and pass it through verbatim to \`compose_dossier_envelope.requireVerbatimBody\`. Under \`true\` the server REFUSES any \`irlSource !== "partner-paste-verbatim"\`; you cannot self-degrade to xlsx-reconstruction when the flag is set. If the user did not paste the IRL markdown directly AND the gate is \`true\`, return a graceful error directing them to re-invoke with the markdown pasted into the \`filledIrl\` prompt arg.`,
+    `Step 4. **Mandatory closing step.** Before emitting the dossier prose, call \`compose_dossier_envelope\` with the structured inputs (promptName/promptVersion/modelVersion/mode/auditLevel/transactionContext/fillRatio/gatesPassed/gatesElided/conditionalTriggersFired/forceToolsApplied/claims/gaps/irlBodyHash/irlSource/requireVerbatimBody). The IRL body is no longer a public input field on this tool — submit it via \`prepare_irl_body\` first. **Call \`prepare_irl_body({ filledIrl: <body> })\` FIRST**; it caches the body server-side keyed by the canonical \`irlBodyHash\` and returns that hash. Then pass ONLY \`irlBodyHash\` to \`compose_dossier_envelope\` — the server re-hydrates the body from the cache for internal provenance verification. (Rationale: emitting the full body to \`compose_dossier_envelope\` as tool args costs 5–15 minutes per call in output-token generation time; the cache eliminates that cost.) **If the body is large (roughly 20KB or more), make the \`prepare_irl_body\` call your ENTIRE response for that turn** — emit the tool call and nothing else, no prose, no partial dossier — then continue in the next turn using the returned \`irlBodyHash\` in body-by-hash mode. An 80KB IRL is ~21k output tokens on its own, and attempting it alongside the dossier in one turn leaves no room for the dossier. Splitting it across two turns is the normal procedure for a large body, not an error path: you are not doing anything wrong by taking a turn to seed the cache. What you must NOT do is skip the call, summarise the body to make it fit, or write the audit blocks from memory — an audit artifact describing an envelope call that never happened is a fabricated green. If you skip \`prepare_irl_body\` and call \`compose_dossier_envelope\` first, the server returns \`Bl076BodyCacheMissError\` directing you to call \`prepare_irl_body\` first. The envelope tool returns the markdown blocks your audit level calls for, and the dossier MUST include each one it returns, verbatim: \`gapListMarkdown\` as section (J) at every level; \`provenanceFooterMarkdown\` as section (K) at \`enhanced\` and above; \`metaFenceMarkdown\` as the FIRST content (before A) at \`debug\`. A block the tool did not return is not yours to write — do not reconstruct it. The tool internally verifies every load-bearing claim against the IRL and auto-appends \`provenance-gap:\` / \`tier-mismatch:\` / \`tier-fabrication:\` entries. Pass \`irlSource\` as a top-level argument matching how the IRL body bytes were assembled: \`partner-paste-verbatim\` when the operator pasted the IRL markdown directly, \`model-reconstruction-from-xlsx\` when you parsed an xlsx attachment, \`model-reconstruction-trimmed\` when you assembled markdown without a verbatim source. The server auto-appends a \`provenance-gap:\` entry to (J) when the value indicates reconstruction — this is intentional and surfaces the hash-bind tautology in non-partner-paste modes. **requireVerbatimBody gate**: its resolved value is stated in the Run parameters block at the top of this body — copy it from there and pass it through verbatim to \`compose_dossier_envelope.requireVerbatimBody\`. Under \`true\` the server REFUSES any \`irlSource\` that is not a partner-paste form — BOTH \`partner-paste-verbatim\` and \`partner-paste-verbatim-prepop\` pass, because the guarantee the flag buys is "operator-supplied, not model-reconstructed". You cannot self-degrade to a reconstruction when the flag is set. **How the body reached you does not decide this.** A partner-authored \`.md\` is \`partner-paste-verbatim\` whether it came in as the prompt argument, a chat paste, or an attachment, and all three pass. The two \`model-reconstruction-*\` values are refused, and so is \`placeholder\`: if the gate is \`true\` and your source is anything other than a partner-paste form — you parsed a workbook, you assembled the body without a verbatim original, or you have only a \`placeholder\` — do NOT submit it. Return a graceful error directing the operator to re-invoke with the partner markdown, and name which value you would have submitted. **State plainly in (J) what the grade rests on**: on any body that reached you through the conversation rather than as the prompt argument, this claim is YOUR classification of who authored the bytes. The server records who wrote the cached body, not who authored it, so it cannot check that claim and will not cap it. A run that needs a server-checked provenance chain end to end is the \`filledIrl\` argument route, which is a separate axis from this gate — see \`hashBindResult\`.`,
     ...(showRunAudit
       ? [
           '',
@@ -1310,7 +1589,7 @@ ${ENG_COST_DEDUP_RULE}`,
           'countersScope: session | run | request  # BL-121: copy VERBATIM from compose_dossier_envelope output; states how far back toolCallCounts reaches',
           'toolCallCounts:  # BL-071: copy VERBATIM from compose_dossier_envelope output `serverToolCallCounts`',
           '  validate_irl_provenance: { attempted: N, succeeded: N, rejected: N, errored: N }',
-          '  compose_dossier_envelope: { attempted: N, succeeded: N, rejected: N, errored: N }',
+          '  compose_dossier_envelope: { attempted: N, succeeded: N-1, rejected: N, errored: N }  # in-flight while it computes its own snapshot, so succeeded trails attempted by one — copy as served',
           '  <other tools used>: { attempted: N, succeeded: N, rejected: N, errored: N }',
           'toolErrors: [<{tool: string, attemptNumber: int, errorClass: string, recoveryAction: string}, ...> — every NON-precheck failed tool attempt; empty list if none; precheck failures stay in precheck.errorsEncountered>]',
           'selfCorrectionCalls: <int — CUMULATIVE total envelope calls AFTER the first across the entire session, not just this response>',
@@ -1337,7 +1616,7 @@ ${ENG_COST_DEDUP_RULE}`,
           '',
           "`toolCallCounts` + `countersScope` block (BL-058 + BL-071 + BL-121) reporting discipline: server-arithmetic. Copy BOTH VERBATIM from `compose_dossier_envelope` output (`serverToolCallCounts` and `countersScope`) — the server tracks every wrapped tool call (`attempted` at wrap entry, `succeeded`/`rejected`/`errored` at exit) and this snapshot is the ground-truth source. The `errored` field is additive over BL-058; `attempted = succeeded + rejected + errored` is the identity WITHIN a snapshot. **`countersScope` states how far back the snapshot reaches**: `session` (stdio — whole session), `run` (remote + durable store live — every call against this IRL body, across requests, for a 4-hour window; keyed by the body, not by your invocation), `request` (remote with no readable durable store — ONLY the envelope call's own request). Report `null` if the server did not emit it; never guess one. **Precheck derivation rules (BL-071 + BL-121), under `session` or `run` only**: `precheck.iterations` MUST equal `serverToolCallCounts.validate_irl_provenance.succeeded`; `precheck.attemptsTotal − attempted` MUST equal the count of transport-classed `errorsEncountered` entries (the closed `transport-timeout` / `transport-disconnect` set); `precheck.errorsEncountered` length MUST equal `rejected + errored + (attemptsTotal − attempted)`. **Under `countersScope: request` these identities do not hold** — earlier requests are outside the snapshot, so report `precheck.*` from your own honest count, copy the counters exactly as served (absent tools stay absent), and do NOT reconcile the two: a visible gap under a `request` label is correct output, a closed one is a false green. The envelope tool itself appears as `attempted: N, succeeded: N-1` (in-flight while computing the snapshot); copy as-is. Do NOT self-narrate the counters or estimate from memory — self-report drift was the empirical failure mode this field closes. **If the count is SHORT of what you remember, there are exactly three causes** — `request` scope, validating a DIFFERENT body than you composed (durable counts are keyed by the IRL body itself; this one is a real finding), or a lost durable write during a store brownout. Report what the server said and note which you believe applies; do not adjust the numbers. **The count can also come up LONG, with exactly one benign cause**: under `run` scope the durable counts are keyed by the IRL body and live for 4 hours, so an earlier ingestion of the SAME bytes inside that window accumulates onto the same row. Report the served numbers unchanged, note that you believe a prior run over identical bytes is included, and do NOT subtract to close the identity — a long count with that note is benign once the operator confirms a prior run, unlike a short count.",
           '',
-          "`toolErrors` block (BL-060) reporting discipline: per-attempt diagnostic detail for the failed-attempt counts in `toolCallCounts`. One entry per failed tool attempt EXCLUDING precheck failures (those live in `precheck.errorsEncountered` — strict partition, no overlap). Shape: `{tool, attemptNumber, errorClass, recoveryAction}`. `errorClass` is the narrowest accurate short label — `arg-shape-rejection`, `hash-bind-retry` (legitimate compose_dossier_envelope structural retry path, not a coaching gap), `transport-timeout`, `transport-disconnect`, `tool-internal-error`. **Arithmetic ground-truth**: for every tool T, `count(toolErrors where tool == T)` MUST equal `toolCallCounts.T.attempted - toolCallCounts.T.succeeded`. **Scope qualifier (BL-121)**: this holds for every tool under `countersScope: session`, and under `run` for the IRL-pipeline tools the durable store covers (`validate_irl_provenance`, `compose_dossier_envelope`, `prepare_irl_body`); for any other tool under `run`, and for every tool under `request`, the counts cover one request while your `toolErrors` list covers the session, so the check does not apply. Enumerate `toolErrors` completely regardless — it is the only record of attempts the counters could not see. **A call the CLIENT never delivered — an approval prompt denied or left unanswered — is NOT a failed attempt here.** It never reached the server, so it is absent from `toolCallCounts.attempted`, and adding a `toolErrors` entry for it would break the arithmetic above. Leave it out of this block; mention it in prose outside the block if it is worth recording. (The one exception is a `validate_irl_provenance` attempt during the precheck loop — that belongs in `precheck.errorsEncountered`, which has its own transport-subtraction identity; see that block's rules.) **Compaction fallback (BL-061 interaction)**: if `response.compactionEvents > 0`, `toolErrors` MAY be partial; include `<partial-due-to-compaction>` as the FIRST entry's `errorClass`, then enumerate what you can recover.",
+          "`toolErrors` block (BL-060) reporting discipline: per-attempt diagnostic detail for the failed-attempt counts in `toolCallCounts`. One entry per failed tool attempt EXCLUDING precheck failures (those live in `precheck.errorsEncountered` — strict partition, no overlap). Shape: `{tool, attemptNumber, errorClass, recoveryAction}`. `errorClass` is the narrowest accurate short label — `arg-shape-rejection`, `hash-bind-retry` (legitimate compose_dossier_envelope structural retry path, not a coaching gap), `transport-timeout`, `transport-disconnect`, `tool-internal-error`. **Arithmetic ground-truth**: for every tool T, `count(toolErrors where tool == T)` MUST equal `toolCallCounts.T.attempted - toolCallCounts.T.succeeded`. **Scope qualifier (BL-121)**: this holds for every tool under `countersScope: session`, and under `run` for the IRL-pipeline tools the durable store covers (`validate_irl_provenance`, `compose_dossier_envelope`, `prepare_irl_body`); for any other tool under `run`, and for every tool under `request`, the counts cover one request while your `toolErrors` list covers the session, so the check does not apply. Enumerate `toolErrors` completely regardless — it is the only record of attempts the counters could not see. **An attempt the server never COUNTED is NOT a failed attempt here.** The test is whether it reached the point where the server records `attempted`, and two shapes do not: a call the client never delivered (an approval prompt denied or left unanswered), and a call refused at the edge before dispatch (a rate-limit 429, which is answered by the transport rather than by the tool). Neither appears in `toolCallCounts.attempted`, so a `toolErrors` entry for either would break the arithmetic above. Leave it out of this block; mention it in prose outside the block if it is worth recording. (The one exception is a `validate_irl_provenance` attempt during the precheck loop — that belongs in `precheck.errorsEncountered`, which has its own transport-subtraction identity; see that block's rules.) **Compaction fallback (BL-061 interaction)**: if `response.compactionEvents > 0`, `toolErrors` MAY be partial; include `<partial-due-to-compaction>` as the FIRST entry's `errorClass`, then enumerate what you can recover.",
           '',
           '`conditionalTriggers` block (BL-058 expansion + BL-062 + BL-063 server-side enforcement) reporting discipline: `considered` is every CONDITIONAL TRIGGER you evaluated — currently EU_AI_ACT and NIS2 are the only named conditional triggers; do NOT list Section-09 frameworks here. `fired` is the subset of `considered` you decided to fire. `suppressedWithRationale` lists `{trigger, whyNot}` for every trigger in `considered` but NOT in `fired`. **`defaultFiredFrameworks` (BL-062 + BL-063)** is the separate list of Section-09 regulatory frameworks fired via the gate-5 evidence path. **The `compose_dossier_envelope` tool enforces three BL-063 rules at the schema seam**: (1) **partition** — no overlap with `conditionalTriggers.fired` (REJECTED with `BL-063-PARTITION-VIOLATION`); (2) **scope** — no certifications (SOC 2, ISO 27001, PCI-DSS, etc., REJECTED with `BL-063-CERTIFICATION-NOT-REGULATION`); (3) **Hub-backing** — entries without a Hub regulatory-map match are auto-removed from the meta fence AND auto-appended to (J) as `map-absent:` gap entries. Apply your own pre-check: only list frameworks you have substantiated via successful `search_regulations` matches.',
           '',
@@ -1350,11 +1629,16 @@ ${ENG_COST_DEDUP_RULE}`,
           // BL-125 (#7) — ported from the shared directive's null-run rule.
           // This copy offers `interactive-paste-request` as a runScenario but
           // never told the model what a block for that scenario looks like.
-          // The value stays: its siblings (`partner-paste`,
-          // `xlsx-reconstruction`) describe how the body ARRIVED, not whether
-          // an envelope ran, so it is the honest label for a completed
-          // interactive run — deleting it would leave that run with none.
-          '- If this run ended without an envelope call — you asked for the paste and stopped there — set `firstEnvelopeCall: null`, all counts to 0, `precheck.outcome: never-attempted`, and `runScenario: interactive-paste-request`. Null `filledIrl` only if no body reached you; if the user did paste one, measure it yourself and add `measurement: self-reported` inside the block.',
+          //
+          // The rationale here used to read "its siblings describe how the body
+          // ARRIVED, not whether an envelope ran, so it is the honest label for a
+          // COMPLETED interactive run". That is authorship-only, and it
+          // contradicted the bullet directly below it, which keys the label on a
+          // run that ended without an envelope call. A completed interactive run
+          // reports `partner-paste`. See RUN_SCENARIO_SELECTION_RULE for the axis
+          // that sorts every shape.
+          RUN_SCENARIO_SELECTION_RULE,
+          '- If this run ended without an envelope call — you asked for the paste and stopped there — set `firstEnvelopeCall: null`, all counts to 0, `precheck.outcome: never-attempted`, and `runScenario: interactive-paste-request`. Null `filledIrl` only if no body was ACCEPTED into the run — a body you took as the IRL and then stopped on still counts as accepted, so measure it yourself and add `measurement: self-reported` inside the block. A candidate you declined as unreadable or ambiguous was never accepted; null it.',
           '',
           '(Use the actual outer ```` fence around the literal ` ```RUN-AUDIT ` block — the nested fences above are just so this directive renders cleanly.)',
         ]
@@ -1368,15 +1652,27 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
-  version: '0.28.0',
-  lastReviewedAt: '2026-08-15',
+  version: PROMPT_VERSION,
+  lastReviewedAt: '2026-08-20',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
+  // No `consumesTargetEvidence`: this prompt is the PRODUCER of the extract
+  // record, not a consumer of it. Carrying `irlEvidencePrecedence()` here would
+  // tell the model to resolve inputs from an artifact it is in the middle of
+  // writing.
   build: (args) => {
-    // BL-045 PR B body dispatch — three builders:
-    //   - filledIrl absent              → buildInteractiveBody (paste ask)
-    //   - filledIrl present, full mode  → buildFullBody (full sweep)
-    //   - filledIrl present, extract-only → buildExtractOnlyBody (audit-trail JSON)
+    // Body dispatch — three builders, FOUR rendered bodies:
+    //   - filledIrl absent, full mode        → buildInteractiveBody, full arm
+    //   - filledIrl absent, extract-only     → buildInteractiveBody, extract-only arm
+    //   - filledIrl present, full mode       → buildOneShotBody (full sweep)
+    //   - filledIrl present, extract-only    → buildExtractOnlyBody
+    //
+    // BL-127 — `mode` is consulted on BOTH branches now. It used to be read
+    // only after `filledIrl` had already selected the interactive builder, so
+    // `{mode:'extract-only'}` with no body rendered a full sweep and disclosed
+    // an override it should never have had to make. Interactive collects the
+    // body and THEN branches, which is what the stanza named as the coherent
+    // fix.
     //
     // mode defaults to 'full' when undefined (matches the design doc's
     // default semantics; the Zod arg description states default 'full').
@@ -1387,15 +1683,10 @@ export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
     if (!args.filledIrl) {
       // BL-125 (#11) — pass the WHOLE arg set, not just `auditLevel`. Dropping
       // the rest made this path re-ask for values the operator had supplied.
-      // BL-127 (#9): this branch is taken on body-absence BEFORE `mode` is
-      // consulted, so a supplied `extract-only` lands here and cannot be
-      // honored (there is nothing to extract until the user pastes). The body
-      // states the effective mode and discloses the override rather than
-      // silently substituting one.
       bodyText = buildInteractiveBody({
         ...args,
         auditLevel,
-        modeWasOverridden: mode === 'extract-only',
+        effectiveMode: mode,
       });
     } else if (mode === 'extract-only') {
       // extract-only is exempt from the audit-level GATE — see
