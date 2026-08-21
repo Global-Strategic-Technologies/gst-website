@@ -158,7 +158,7 @@ saying "pasted" where they meant "partner-authored".
 
 **2. `requireVerbatimBody` and `hashBindResult: pass-bound` are different gates, and passing
 one does not satisfy the other.** The verbatim gate asks _"did a model reconstruct this?"_ —
-all three partner-authored routes pass it, and only `model-reconstruction-*` is refused. That
+all three partner-authored routes pass it; `model-reconstruction-*` and `placeholder` are refused. That
 follows the gate's own stated guarantee, and BL-124's acceptance criterion, which recorded that
 this refusal must not be widened on asserted rather than demonstrated harm. `pass-bound` asks
 _"is the hash server-emitted?"_ — only the prompt-argument route produces it, because only

@@ -72,8 +72,11 @@ rejects anything other than `partner-paste-verbatim`, omitting `-prepop` and con
 every route except one and would have driven an attachment run to self-degrade into a reconstruction the gate then refused.
 
 **Migration**: none. No argument, tool name, resource URI or wire shape changed. Operators who invoke with the `filledIrl`
-argument see identical behaviour — the three one-shot body hashes at `standard` and `enhanced` are byte-identical across
-this release, which is the assertion the prompt-body hash suite records.
+argument see no behavioural change: the arrival affordance is interactive-only, and its commit holds the three
+one-shot `standard` / `enhanced` body hashes byte-identical, which is what proves it did not leak onto the
+dossier path. **All sixteen constants do move across the release as a whole** — the follow-up commit retires two
+shared constants that render ungated in every body, and all sixteen moving is the assertion THAT change makes.
+The two signatures are per-commit and answer different questions; do not read either as the other.
 
 ## 0.56.0 — 2026-08-20 — the IRL extract record: `extract-only` produces a portable, subject-keyed artifact (`0.28.0` → `0.29.0`, plus six prompts to `0.1.0`)
 
