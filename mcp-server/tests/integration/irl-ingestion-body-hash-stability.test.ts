@@ -406,15 +406,15 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // third path. A hash suite that moves fewer scenarios than the change touches
 // is worth reading as a question rather than a result.
 const EXPECTED_HASH_INTERACTIVE =
-  '7baa0d6e694da0e98a7aaede430efa4fe659a55bdbdf7986f52af17221cfe726';
+  '605f27d91f77ccb4315d9ba69ecaf0d9a837f86840427071e7c0b47de7969cd0';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
   '2b271bac5c18a876a24ba70161721b59490169850fce8661776023203a15910b';
 const EXPECTED_HASH_ONESHOT_FULL =
   '5623707170af88b78f75d0826cebd42940d62f3d33ae2f589a9ff3e590f24765';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'c7230ab09490e3bfd7ea61d90539f0aafe38c665daa750d4caeb6e8041da32e8';
+  '818cc4f8293018ca8acfe5b85d372eb4d6f40042fed8c84c0fffa3f79a944624';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '6be2a545c9de5f51b81c584c1d180591d667abf82c6aaae7799e393a5c4eb1db';
+  '6319d2b4bc9b77cf4bae0b58ba2ff23d46067617174b77c282f4ab396d5ba4fc';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -428,9 +428,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
   '3ea038c2232aad6a5fba98e6fd839c5a3aa3a76ed3c15a3d2ce5166932581ce4';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  '225c04abb6f8d582339506c51bbf10350d22d5f269bf2e272a10ed09082c1c82';
+  '73faef1ac459abeedce405cfb89b71318479435e2a541e13cd18d53b3e168828';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
-  '976359d90b0cb34057dbd9bb651176124575c50009a6c3470b03b477473252d9';
+  'c8b365fa2ee6b7fb836ca721cd5f474784c0148e7c30cbd84ffe1578a0602d46';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
 // the resolved level — its meta fence is model-authored (ADR-0017), so it is
 // the one surface where an inferred `auditLevel` lands in the artifact with
@@ -444,15 +444,15 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  '7554aafb7f728584ccc3a3db14d3a0df377e035e6c4ac1a708c1cd8bf46bec70';
+  '7c581c360816cfb17892b6fb7cbb31473be0d77056dfdc6bc33ffcee4a13da1f';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  'ef8a2ca7f0d38eab480b5912fcd94822ec0856bfcd36ec14c8d1283889a595a7';
+  '1351ec8a824a4320224e93e71a6448bf1475d3684693d05957864a35bcf3c977';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
 // and `enhanced` rendered byte-identically) without any test noticing.
 const EXPECTED_HASH_INTERACTIVE_ENHANCED =
-  '54761d17cab9bdc0363dc67fb1880a9778c477add8e19e5795a0e0955c1cf8cf';
+  '14f1f124d41f749ab20abd5f6fde86321e67e20a9e263ece5c6eafec235b6000';
 // BL-125: every other interactive scenario passes NO arguments, so the
 // conditional Step 1 introduced by this change — the only new branching logic
 // in a served body — would have been pinned by nothing. All four tailoring
@@ -460,7 +460,7 @@ const EXPECTED_HASH_INTERACTIVE_ENHANCED =
 // tailoring sentence disappears); `requireVerbatimBody: true` rides along to
 // pin the stated-value bytes on this consumer without a further entry.
 const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
-  '73b6819143e4aa0c67f559e9b143304d2ef6adc058c411c81d046f1e7cc42408';
+  '2032215c1a093bd15d036c9c7b39cdfa1c517a144fd4898cdfee8c1e8ab12d65';
 // IRL extract record rebaseline (prompt v0.28.0 → v0.29.0). SIX of twelve
 // drift, and WHICH six is the check:
 //
@@ -494,14 +494,33 @@ const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
 // intended trade — the deferred arm has no envelope call to supply the version,
 // so the body has to state it — but a future rebaseline with no visible body
 // diff is explained by this paragraph and is not a mystery to re-derive.
+//
+// Arrival flows (prompt v0.29.0 → v0.30.0, server 0.57.0). THIRTEEN of sixteen,
+// and WHICH thirteen is the check:
+//
+//   INTERACTIVE ×4 and DEFERRED_EXTRACT_ONLY ×4 — Step 1 stopped asking
+//     unconditionally for a body that may already be attached; it lives in
+//     `sharedPrefix`, which is exactly these two arms at every level.
+//   EXTRACT_ONLY ×4 and ONESHOT_FULL_DEBUG — `RUN_AUDIT_DIRECTIVE` carries the
+//     new `runScenario` selection rule, the reworded null-run clause and the
+//     `rate-limited` removal. It renders ungated on both extract-only arms and
+//     behind `showRunAudit` in the one-shot full body, so `debug` only there.
+//
+// **ONESHOT_MINIMAL, ONESHOT_FULL and ONESHOT_FULL_ENHANCED did not move, and
+// that is the assertion, not an accident.** They are flow A at `standard` and
+// `enhanced` — the path this change was not supposed to touch. One of them
+// moving would mean interactive-arm prose had leaked onto the dossier path.
+// It is also the ONLY guard for that: `bl-125-run-parameters.test.ts`'s
+// four-shape test collapses each render to its paste line plus the
+// `EXTRACT-ONLY` marker, so leaked Step 1 prose would sail through it.
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY =
-  '93f10c6ce6ba7bdbd69d1351710854db15c269c84d242d8815fbec97ff9c2503';
+  '2157e73015e6a4a0344989c1ac42219c36c76e0a70d0b30a97cee9cfdc107cbc';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_ENHANCED =
-  '7bc8b8a9d770816eb500df005ef35fb0e51fe74402be9dc43bce173196342f98';
+  'db6fc061c8e2521eb60a878e4ce1a2f059c73e80c235bbb336a727649bf7b7ee';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_DEBUG =
-  '7af9523aced74736a8b56a7e5c5f46464a3098232c15f2efff13ca227d6d5f05';
+  'c998d27f79b47ad1965d066fc726e1dbf401f4089bcb89183d3b409257c4712a';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_WITH_ARGS =
-  '8434a5c28f45a7ec5938fb3a672184b86e743080ef3b091f4704159724a1cec0';
+  '523b6c24836cfcbf4d4eb905365fe500a856148b523d7765969026b5d318f8d4';
 
 interface Scenario {
   name: string;

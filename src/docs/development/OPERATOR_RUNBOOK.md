@@ -23,10 +23,10 @@
 
 ## Run tiers
 
-| Tier               | Input path                                                                                      | `requireVerbatimBody` | Who sees the output                           |
-| ------------------ | ----------------------------------------------------------------------------------------------- | --------------------- | --------------------------------------------- |
-| **Internal draft** | xlsx attachment → model reconstructs, OR small paste                                            | omit (`false`)        | GST partner team only                         |
-| **Client-ready**   | **partner-paste-verbatim** (see [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md)) | **`true`**            | M&A target, PE client, regulator — unmediated |
+| Tier               | Input path                                                                                               | `requireVerbatimBody` | Who sees the output                           |
+| ------------------ | -------------------------------------------------------------------------------------------------------- | --------------------- | --------------------------------------------- |
+| **Internal draft** | attached `.md`, xlsx attachment → model reconstructs, OR a paste                                         | omit (`false`)        | GST partner team only                         |
+| **Client-ready**   | **the `filledIrl` prompt ARGUMENT** (see [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md)) | **`true`**            | M&A target, PE client, regulator — unmediated |
 
 The dividing line is **does the dossier leave the partner's hands unmediated?** If yes, it's client-ready and the gates below are mandatory. If a human partner is going to rewrite/curate it first, internal-draft is fine.
 
@@ -46,6 +46,10 @@ The dividing line is **does the dossier leave the partner's hands unmediated?** 
 > ℹ️ **A paste that loses its line breaks is still a valid run.** Desktop's argument fields are single-line, so a multi-line paste arrives collapsed. Verification normalises whitespace before matching and nothing reads line structure, so the dossier is unaffected — the run keeps full `partner-paste-verbatim-prepop` grade. The only consequence is that the body will not hash-match your source file, and `filledIrl.newlines: 0` in the RUN-AUDIT block tells you that is why. See [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md) § Step 3.
 
 > Why partner-paste for client-ready: only the pasted-verbatim path produces `pass-bound` hash-bind authority (the dossier's claims anchor to the partner's exact bytes). The xlsx-reconstruction path is `pass-internal` — the model controls both the body and the hash — and auto-appends a `provenance-gap:` disclosure (BL-072). Fine for drafts, not defensible for a client/regulator.
+>
+> **Two gates, two axes — passing one does not satisfy the other.** Since prompt 0.30.0 the filled IRL may also reach a run as a `.md` ATTACHED to the invoking message, and the model uses it rather than asking for a paste. That route grades `partner-paste-verbatim` and therefore **passes `requireVerbatimBody`**, because that flag guarantees "operator-supplied, not model-reconstructed" and an attached partner file satisfies it.
+>
+> It does **not** produce `pass-bound`. Only the `filledIrl` prompt ARGUMENT does, because only there does the server hash the body itself at render time with no model emission in the path. So an attachment run can pass the verbatim gate and still fail the client-ready checklist below, and that is correct rather than a defect: **client-ready still requires the argument route.** Read a `pass-internal` on an attachment run as "this was fine for drafting and extraction, and is not the artifact to put in front of a client" — not as a model that took the wrong path.
 
 ---
 

@@ -136,3 +136,42 @@ Decision 2 is titled "cap, not derive" and governs `compose_dossier_envelope`. B
 **What carries across unchanged** is the disclosure discipline, which is the part of ADR-0018 that generalises: a server correction the partner never sees is worth little. Every `fillRatio` disagreement appends a `provenance-gap:` entry naming both figures, and — because the envelope is called before the dossier prose — directs restating section (A) so the document does not carry two different completeness numbers.
 
 **And the reason it is a disclosure rather than a rejection** is Decision 1's lesson applied in advance. The pre-flight directive has the model round before applying the halt/partial/ok thresholds, so a run at 39.6% correctly reports `40 / ok`. A check anchored on the raw ratio would have refused that compliant run on a partner-facing path — the harm asserted rather than demonstrated, one more time.
+
+---
+
+## Amendment, 2026-08-21 — `irlSource` grades AUTHORSHIP, and the verbatim gate is not the client-ready gate
+
+Prompt `gst_irl_ingestion` 0.30.0 (server 0.57.0) lets the filled IRL reach a run as a `.md`
+ATTACHED to the invoking message, rather than only as the `filledIrl` prompt argument or a chat
+paste. That forced two questions this ADR had left implicit, and both answers are decisions
+rather than scenarios.
+
+**1. `irlSource` sorts on who AUTHORED the bytes, not on how they arrived.** A partner-written
+`.md` is `partner-paste-verbatim` whether it was pasted into the chat or attached to the
+message; an `.xlsx` the model parsed is `model-reconstruction-from-xlsx` however clean the
+composition. Delivery route is not a provenance axis, and treating it as one would have
+invented a distinction the server cannot see: an attached `.md` and a chat paste both mint via
+`prepare-tool`, which Decision 2 already records as indistinguishable from a reconstruction at
+the storage layer. The prompt wording, the tool-schema `.describe()` text and the record
+directive were all reconciled onto this single axis, because three of them had drifted into
+saying "pasted" where they meant "partner-authored".
+
+**2. `requireVerbatimBody` and `hashBindResult: pass-bound` are different gates, and passing
+one does not satisfy the other.** The verbatim gate asks _"did a model reconstruct this?"_ —
+all three partner-authored routes pass it, and only `model-reconstruction-*` is refused. That
+follows the gate's own stated guarantee, and BL-124's acceptance criterion, which recorded that
+this refusal must not be widened on asserted rather than demonstrated harm. `pass-bound` asks
+_"is the hash server-emitted?"_ — only the prompt-argument route produces it, because only
+there does the server hash the body itself at render time.
+
+So an attachment run passes the verbatim gate and is still not client-ready. That is the
+intended shape, not a gap: the operator runbook gates a client-facing deliverable on
+`pass-bound`, which means the argument route.
+
+**What this does NOT resolve.** On any chat-delivered body the `partner-paste-verbatim` claim
+is the model's own classification, and `capIrlSource` will not cap it — it caps only an
+over-claimed `-prepop`. The prompt therefore requires the run to state in (J) what the grade
+rests on, which is the disclosure discipline this ADR already stands for rather than a new
+mechanism. Whether the prompt path can produce a mislabel at all remains open in
+[UAT-07](../../../mcp-server/src/docs/testing/uat/UAT-07-irl-pipeline.md); this amendment does
+not close it, and the new UAT-07.8 exists to exercise it.
