@@ -860,19 +860,25 @@ describe('arrival flows — the body looks before it asks, and grades on authors
     // assertions — so a 900-char markdown bullet among the fields gets echoed
     // into the operator artifact and is not valid YAML there. It belongs in the
     // prose rules below the fence. Nothing pinned that until this case.
-    for (const build of [EXTRACT_ONLY, INTERACTIVE]) {
+    // Labelled arms, matching EXTRACT_ONLY_ARMS above: the two copies are
+    // separate constants and a regression in one should name which one.
+    const COPIES: Array<[string, (o?: Record<string, unknown>) => string]> = [
+      ['shared (RUN_AUDIT_DIRECTIVE)', EXTRACT_ONLY],
+      ['inline (interactive full arm)', INTERACTIVE],
+    ];
+    for (const [copy, build] of COPIES) {
       const text = build({ auditLevel: 'debug' });
       const ruleAt = text.indexOf('**`runScenario` — how to pick it.**');
-      expect(ruleAt, 'the selection rule did not render').toBeGreaterThan(-1);
+      expect(ruleAt, `${copy}: the selection rule did not render`).toBeGreaterThan(-1);
 
       const fenceOpen = text.indexOf('```RUN-AUDIT');
-      expect(fenceOpen, 'no RUN-AUDIT template rendered').toBeGreaterThan(-1);
+      expect(fenceOpen, `${copy}: no RUN-AUDIT template rendered`).toBeGreaterThan(-1);
       const fenceClose = text.indexOf('```', fenceOpen + '```RUN-AUDIT'.length);
-      expect(fenceClose, 'RUN-AUDIT template never closed').toBeGreaterThan(fenceOpen);
+      expect(fenceClose, `${copy}: RUN-AUDIT template never closed`).toBeGreaterThan(fenceOpen);
 
       expect(
         ruleAt > fenceOpen && ruleAt < fenceClose,
-        'the selection rule is inside the RUN-AUDIT template'
+        `${copy}: the selection rule is inside the RUN-AUDIT template`
       ).toBe(false);
     }
   });

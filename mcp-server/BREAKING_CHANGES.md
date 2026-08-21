@@ -71,10 +71,14 @@ rejects anything other than `partner-paste-verbatim`, omitting `-prepop` and con
 `irlSource` enum defined `partner-paste-verbatim` as "operator pasted the IRL markdown into the prompt arg", which is false on
 every route except one and would have driven an attachment run to self-degrade into a reconstruction the gate then refused.
 
-**Migration**: none. No argument, tool name, resource URI or wire shape changed. Operators who invoke with the `filledIrl`
-argument see no behavioural change: the arrival affordance is interactive-only, and its commit holds the three
-one-shot `standard` / `enhanced` body hashes byte-identical, which is what proves it did not leak onto the
-dossier path. **All sixteen constants do move across the release as a whole** — the follow-up commit retires two
+**Migration**: none. No argument, tool name, resource URI or wire shape changed. **Nothing about how you INVOKE it changes** — same arguments, same tools, same URIs. The served body text does
+move on every path, including the one-shot `debug` body a signoff run uses: `ONESHOT_FULL_DEBUG` moved in every
+commit of this release, because the RUN-AUDIT contract is where the `runScenario` rule, the reworded null-run
+clause and the `rate-limited` withdrawal all land. That last one is a behavioural change for anyone parsing the
+`errorClass` set, so read this as "your invocation is unchanged", not as "your output is".
+
+What the arrival commit DOES hold byte-identical is the three one-shot `standard` / `enhanced` bodies, which is a
+leak check — proof that an interactive-only edit stayed off the dossier path — and not a no-change claim. **All sixteen constants do move across the release as a whole** — the follow-up commit retires two
 shared constants that render ungated in every body, and all sixteen moving is the assertion THAT change makes.
 The two signatures are per-commit and answer different questions; do not read either as the other.
 
