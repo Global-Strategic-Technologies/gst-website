@@ -11,7 +11,7 @@ import type { OAuthHelpers } from '@cloudflare/workers-oauth-provider';
 import { handleAuthorizeGet, handleAuthorizePost } from './consent';
 import { handleIntrospection } from './introspection';
 import { handleAdminM2mClients, handleAdminOauthClients } from '../admin/oauth-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 type EnvWithHelpers = Env & { OAUTH_PROVIDER: OAuthHelpers };
 

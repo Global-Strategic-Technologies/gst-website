@@ -74,7 +74,7 @@ import {
   readRefreshHealth,
   type InoreaderRefreshTokenHealth,
 } from '../lib/inoreader-refresh-health';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 // Local-dev fallback ONLY. As of BL-033 Slice 4, the real version is injected
 // at deploy time from package.json via `deploy.mjs` (`--var VERSION:<v>`) and

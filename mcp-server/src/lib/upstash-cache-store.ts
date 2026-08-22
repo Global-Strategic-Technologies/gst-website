@@ -19,7 +19,7 @@
 
 import { safeLog } from '../auth/safe-logger';
 import { createMcpClient } from './upstash-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /** Cache entry shape stored in Upstash. */
 interface Entry<T> {

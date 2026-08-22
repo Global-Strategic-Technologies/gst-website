@@ -35,7 +35,7 @@
 
 import { safeLog } from '../auth/safe-logger';
 import { createMcpClient } from '../lib/upstash-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 interface ParsedDsn {
   readonly host: string;

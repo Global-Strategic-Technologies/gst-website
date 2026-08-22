@@ -40,7 +40,7 @@
 import type { Redis } from '@upstash/redis';
 import { createMcpClient } from '../lib/upstash-clients';
 import { safeLog } from '../auth/safe-logger';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const GATE_PREFIX = 'mcp:acl-selfcheck:gate:';
 const RESULT_PREFIX = 'mcp:acl-selfcheck:result:';

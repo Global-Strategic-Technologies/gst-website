@@ -12,7 +12,7 @@
  * request body with `FORMAT JSON` appended here (callers pass bare SQL).
  */
 import { safeLog } from '../auth/safe-logger';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /** One AE SQL row — string/number columns as returned by the AE SQL API. */
 export type AeRow = Record<string, string | number>;

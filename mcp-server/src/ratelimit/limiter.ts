@@ -32,7 +32,7 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { createMcpClient } from '../lib/upstash-clients';
 import { INTERNAL_TIER, type TierLimits } from './tiers';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /**
  * Minimal `Ratelimit.limit()` response shape we consume. The library

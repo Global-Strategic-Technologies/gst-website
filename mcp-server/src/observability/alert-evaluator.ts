@@ -49,7 +49,7 @@ import { computeStatusMetrics, writeStatusMetrics } from './status-metrics';
 import { createMcpClient } from '../lib/upstash-clients';
 import { emit, AnalyticsEngineSink } from '../metrics/_index';
 import { safeLog } from '../auth/safe-logger';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 // Production cron expression — mirrored in wrangler.toml [env.production]
 // triggers. `event.cron` is matched against this constant in worker.ts's

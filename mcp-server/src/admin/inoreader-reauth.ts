@@ -65,7 +65,7 @@ import {
   validateAdminKey,
 } from './admin-auth';
 import { escapeHtml, htmlShell } from '../lib/html-shell';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const REFRESH_LOCK_KEY = 'mcp:inoreader:refresh-lock';
 const REFRESH_LOCK_TTL_S = 30;

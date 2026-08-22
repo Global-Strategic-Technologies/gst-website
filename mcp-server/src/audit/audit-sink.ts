@@ -9,6 +9,7 @@
  * (at-least-once + retry + DLQ). See ADR-0009 for the honest loss window and
  * the `writeAndAwait` fail-closed seam left for guaranteed-capture clients.
  */
+import type { Queue } from '@cloudflare/workers-types';
 import { safeLog } from '../auth/safe-logger';
 import type { AuditEntry } from './entry';
 

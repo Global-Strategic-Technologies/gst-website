@@ -25,7 +25,7 @@
 
 import { createCacheStore } from '../lib/upstash-cache-store';
 import { safeLog } from '../auth/safe-logger';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const KEY_PREFIX = 'mcp:resource:';
 

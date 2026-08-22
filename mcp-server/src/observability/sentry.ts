@@ -34,7 +34,7 @@
 
 import * as Sentry from '@sentry/cloudflare';
 import type { CloudflareOptions } from '@sentry/cloudflare';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /**
  * Sentry options callback used by `withSentry`. Returns undefined when

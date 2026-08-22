@@ -34,7 +34,7 @@ import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache'
 import { assertScope, SCOPES, MissingScopeError, DEFAULT_SCOPES } from '../auth/scopes';
 import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';
 import type { SnapshotReader } from '../content/radar-snapshot-reader';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const CATEGORY_LABELS: Readonly<Record<RadarCategory, string>> = {
   'pe-ma': 'PE & M&A',
