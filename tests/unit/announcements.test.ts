@@ -5,7 +5,7 @@
  * "NEW" claim shipped indefinitely or a launch announcement that never appears.
  *
  * The behaviour tests drive off the registry rather than hard-coding today's
- * entry, so retiring `mcp-2-0` (deleting it, or letting its window close) does
+ * entry, so retiring `mcp-launch` (deleting it, or letting its window close) does
  * NOT fail this suite — silent retirement is the designed outcome, and a guard
  * that failed CI the day the sash disappeared would be arguing with the design.
  * `describe.skipIf` covers the empty-registry state for the same reason.

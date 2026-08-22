@@ -269,14 +269,9 @@ changed:
 
 ```jsx
 <div className="brutal-sash-corner">
-  <a
-    className="brutal-sash"
-    href="/hub/mcp/"
-    aria-label="New: MCP Server 2.0 — open the linked page"
-  >
+  <a className="brutal-sash" href="/hub/mcp/" aria-label="New: MCP Server — open the linked page">
     <span className="brutal-sash__badge">New</span>
     <span className="brutal-sash__label">MCP Server</span>
-    <span className="brutal-sash__detail">2.0</span>
   </a>
 </div>
 ```

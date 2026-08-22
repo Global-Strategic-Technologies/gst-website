@@ -341,10 +341,12 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         <span class="brutal-sash brutal-sash--flat" aria-hidden="true" data-specimen>
           <span class="brutal-sash__badge">New</span>
           <span class="brutal-sash__label">MCP Server</span>
-          <span class="brutal-sash__detail">2.0</span>
         </span>
         <code class="brand-code"
-          >.brutal-sash--flat — unrotated band, documentation only. Never mounted on a page</code
+          >.brutal-sash--flat — unrotated band, documentation only. Never mounted on a page.
+          `.brutal-sash__detail` is a third, optional slot (version or qualifier, rule-separated,
+          hidden below 768px) — no live announcement sets it, so this specimen mirrors production
+          and omits it</code
         >
       </div>
     </div>

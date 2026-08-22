@@ -44,10 +44,13 @@ export interface Announcement {
 
 export const ANNOUNCEMENTS: Announcement[] = [
   {
-    id: 'mcp-2-0',
+    id: 'mcp-launch',
     badge: 'New',
     label: 'MCP Server',
-    detail: '2.0',
+    // No `detail`: it previously read '2.0', which published a version claim
+    // nothing sourced — the server is 0.57.0 and /hub/mcp/ states no version at
+    // all. Any value here renders publicly on / and /hub/ and is republished to
+    // claude.ai/design via .design-sync/, so it must be sourced before it ships.
     href: '/hub/mcp/',
     scale: 'page',
     routes: ['/', '/hub/'],
