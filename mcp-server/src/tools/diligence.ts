@@ -7,9 +7,12 @@
  * error before the handler runs.
  */
 
-// Default import — `@types/node/process.d.ts` is `export = process`. See
-// `src/config.ts` for the full rationale (BL-137 / ADR-0020).
-import process from 'node:process';
+// Default import + `NodeJS.Process` annotation. Both halves are required — the
+// import alone resolves to `any`, because `@types/node` exports the global
+// binding that workers-types redeclares. See `src/config.ts` for the full
+// rationale (BL-137 / ADR-0020).
+import nodeProcess from 'node:process';
+const process: NodeJS.Process = nodeProcess;
 import type { McpServer } from '@modelcontextprotocol/server';
 import { generateScript } from '../../../src/utils/diligence-engine';
 import { serializeToParams as serializeDiligenceUrl } from '../../../src/utils/diligence-url';

@@ -93,9 +93,28 @@ const NODE_GLOBALS_AT_RISK = [
  * the `@types/node` meaning of that name — kept true by the
  * `no-restricted-globals` / `no-restricted-syntax` pair in `eslint.config.mjs`.
  *
- * Empty while the pins hold: 5.20260804.1 shadows none of the at-risk names.
+ * These five arrived with 5.20260807.2 / 5.20260822.1 and are the whole reason
+ * BL-137 existed. They are tolerable now, and ONLY now, because nothing reaches
+ * for them as bare globals any more. Deleting the eslint rules re-arms every
+ * one of them.
  */
-const ACCEPTED_SHADOWS: Readonly<Record<string, string>> = {};
+const ACCEPTED_SHADOWS: Readonly<Record<string, string>> = {
+  Buffer:
+    'declare const Buffer: any — the original BL-137 break. No bare use remains: the six ' +
+    'Buffer.byteLength call sites moved to utf8ByteLength() (src/lib/utf8-bytes.ts), and the ' +
+    'tests that still need it import from node:buffer. Banned in value AND type position.',
+  process:
+    'declare const process: any — cost src/index.ts its `never` narrowing on process.exit(1). ' +
+    'The three call sites now `import process from "node:process"`. Banned as a bare global.',
+  global:
+    'declare const global: ServiceWorkerGlobalScope — not what @types/node means by `global`. ' +
+    'Never used bare in this workspace (verified at BL-137 time); `globalThis` is the idiom ' +
+    'here. Banned as a bare global.',
+  setImmediate:
+    'Typed, not `any`, and the Workers signature is the one that would actually apply under ' +
+    'nodejs_compat. Unused in this workspace, so the shadow is inert either way.',
+  clearImmediate: 'Same as setImmediate — typed, unused here.',
+};
 
 /**
  * Every top-level declaration name in the pinned `index.d.ts`, sorted.
@@ -175,6 +194,9 @@ const DECLARED_GLOBALS: ReadonlySet<string> = new Set([
   'Blob',
   'Body',
   'BrowserRun',
+  // +5.20260807.2 — `declare const Buffer: any`. Shadows @types/node; see
+  // ACCEPTED_SHADOWS.
+  'Buffer',
   'ByteLengthQueuingStrategy',
   'Cache',
   'CacheStorage',
@@ -218,6 +240,18 @@ const DECLARED_GLOBALS: ReadonlySet<string> = new Set([
   'MessagePort',
   'Navigator',
   'Performance',
+  // +5.20260822.1 — the Performance Observer surface. @types/node declares
+  // these too (node:perf_hooks lifts them to globals), so they ARE shadows.
+  // Kept out of NODE_GLOBALS_AT_RISK rather than added to ACCEPTED_SHADOWS:
+  // nothing in mcp-server references any of them, in value or type position,
+  // and the Workers definitions are the ones that would apply at runtime
+  // anyway. Revisit if this workspace ever measures with perf_hooks.
+  'PerformanceEntry',
+  'PerformanceMark',
+  'PerformanceMeasure',
+  'PerformanceObserver',
+  'PerformanceObserverEntryList',
+  'PerformanceResourceTiming',
   'PromiseRejectionEvent',
   'R2Object',
   'ReadableByteStreamController',
@@ -263,21 +297,30 @@ const DECLARED_GLOBALS: ReadonlySet<string> = new Set([
   'atob',
   'btoa',
   'caches',
+  // +5.20260822.1 — see ACCEPTED_SHADOWS (typed, unused here).
+  'clearImmediate',
   'clearInterval',
   'clearTimeout',
   'console',
   'crypto',
   'dispatchEvent',
   'fetch',
+  // +5.20260822.1 — `ServiceWorkerGlobalScope`, not @types/node's `global`.
+  // See ACCEPTED_SHADOWS.
+  'global',
   'navigator',
   'onmessage',
   'origin',
   'performance',
+  // +5.20260807.2 — `declare const process: any`. See ACCEPTED_SHADOWS.
+  'process',
   'queueMicrotask',
   'removeEventListener',
   'reportError',
   'scheduler',
   'self',
+  // +5.20260822.1 — see ACCEPTED_SHADOWS (typed, unused here).
+  'setImmediate',
   'setInterval',
   'setTimeout',
   'structuredClone',
