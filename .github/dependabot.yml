@@ -23,6 +23,10 @@ updates:
     # src/docs/development/DEVELOPER_TOOLING.md § Held version pins (and BL-137).
     # Delete BOTH entries together when the pins are lifted — leaving one
     # ignored re-creates the ERESOLVE this prevents.
+    # NOTE: these are blanket ignores, so they would also suppress Dependabot
+    # *security* PRs for these two packages. Moot today — security updates are
+    # disabled repo-wide for this repo (see BL-136) — but if that is ever
+    # turned on, narrow these to `update-types` rather than leaving them broad.
     ignore:
       - dependency-name: '@cloudflare/workers-types'
       - dependency-name: 'wrangler'

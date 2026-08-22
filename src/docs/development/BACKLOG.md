@@ -482,6 +482,8 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 **While here**: the same measurement found the doc's dev-tree ledger describing 3 advisories in one chain when the tree carried 9 in two (the `@lhci/cli → … → extract-zip` chain had drifted in unnoticed — dev-only advisories fail nothing, which is the same root cause one layer down). Corrected in the same commit; the wrangler chain has a free in-range fix left to the Dependabot dev-dependencies PR because it moves the deploy toolchain.
 
+**Superseded 2026-08-21** — do not act on that last clause. The wrangler chain was cleared by pinning `wrangler` at an exact `4.121.0` (its miniflare resolves `undici@7.29.0`, outside the vulnerable range), **not** by merging the Dependabot dev-dependencies PR. That PR must now be closed rather than merged: taking it would drag `@cloudflare/workers-types` into the range the pin exists to exclude. See [DEVELOPER_TOOLING.md § Held version pins](DEVELOPER_TOOLING.md) and [BL-137](#bl-137-mcp-server-compiles-worker-and-node-code-as-one-program-so-worker-globals-type-shadow-node-ones). The detection gap this item is actually about is untouched by that change.
+
 **Trigger**: met — this already happened once.
 
 ---
