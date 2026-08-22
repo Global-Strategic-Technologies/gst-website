@@ -545,8 +545,10 @@ export interface ComposeDossierEnvelopeResult {
    * `filledIrl.bytes` in the VERIFY block — there is no emission to
    * self-measure. The server measures the cache entry it re-hydrated and
    * surfaces the count here; the model copies it verbatim into
-   * `filledIrl.bytes`. Reported in UTF-8 byte length to match
-   * `Buffer.byteLength(body, 'utf8')`. Present whenever the body was
+   * `filledIrl.bytes`. Reported in UTF-8 byte length, via
+   * `utf8ByteLength()` (`lib/utf8-bytes.ts` — byte-identical to the
+   * `Buffer.byteLength(body, 'utf8')` this used to call; see ADR-0020 for why
+   * `Buffer` was dropped). Present whenever the body was
    * resolved (cache or input) — model copies in any mode for consistency.
    */
   serverCachedBodyBytes?: number;

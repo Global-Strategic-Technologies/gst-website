@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 
 import { handlePrepareIrlBodyTool } from '../../../src/tools/prepare-irl-body';

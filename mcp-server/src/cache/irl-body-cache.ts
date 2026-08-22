@@ -31,6 +31,7 @@
  */
 
 import { safeLog } from '../auth/safe-logger';
+import { utf8ByteLength } from '../lib/utf8-bytes';
 import type { CacheStore } from '../lib/upstash-cache-store';
 
 /**
@@ -178,7 +179,7 @@ export class InMemoryIrlBodyCache implements IrlBodyCache {
   }
 
   async set(irlBodyHash: string, body: string): Promise<void> {
-    const byteLength = Buffer.byteLength(body, 'utf8');
+    const byteLength = utf8ByteLength(body);
     if (byteLength > IRL_BODY_CACHE_MAX_BYTES) {
       throw new IrlBodyCacheSizeExceededError(byteLength);
     }
@@ -247,7 +248,7 @@ export class UpstashIrlBodyCache implements IrlBodyCache {
   }
 
   async set(irlBodyHash: string, body: string): Promise<void> {
-    const byteLength = Buffer.byteLength(body, 'utf8');
+    const byteLength = utf8ByteLength(body);
     if (byteLength > IRL_BODY_CACHE_MAX_BYTES) {
       throw new IrlBodyCacheSizeExceededError(byteLength);
     }
@@ -297,7 +298,7 @@ export class UpstashIrlBodyCache implements IrlBodyCache {
         storeId: this.storeId,
         key,
         byteLength,
-        readbackByteLength: Buffer.byteLength(readback, 'utf8'),
+        readbackByteLength: utf8ByteLength(readback),
         ttlSeconds: this.ttlSeconds,
         success: false,
         errorCode: 'cache-readback-mismatch',
@@ -334,7 +335,7 @@ export class UpstashIrlBodyCache implements IrlBodyCache {
       outcome: 'hit',
       storeId: this.storeId,
       key,
-      byteLength: Buffer.byteLength(value, 'utf8'),
+      byteLength: utf8ByteLength(value),
       success: true,
     });
     return value;

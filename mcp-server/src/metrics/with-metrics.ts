@@ -34,6 +34,7 @@
  */
 import type { ServerContext } from '@modelcontextprotocol/server';
 import { safeLog } from '../auth/safe-logger';
+import { utf8ByteLength } from '../lib/utf8-bytes';
 import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
 import type { MetricSink } from './sinks/_interface';
@@ -421,7 +422,7 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
         let outputBytes = 0;
         if (result !== undefined) {
           try {
-            outputBytes = new TextEncoder().encode(JSON.stringify(result)).length;
+            outputBytes = utf8ByteLength(JSON.stringify(result));
           } catch {
             outputBytes = -1; // non-serializable / cyclic — size unknown.
           }

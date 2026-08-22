@@ -9,6 +9,7 @@
  * --help → exit 0, unknown flag → exit 2).
  */
 import { describe, expect, it } from 'vitest';
+import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

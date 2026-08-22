@@ -341,6 +341,85 @@ export default [
     },
   },
 
+  // ── BL-137: no bare `Buffer` / `process` / `global` in mcp-server ─────────
+  // `mcp-server/src/worker.ts:1` carries
+  // `/// <reference types="@cloudflare/workers-types" />`. That directive loads
+  // the package's `index.d.ts`, a global SCRIPT which since 5.20260807.2
+  // declares `Buffer: any`, `process: any` and `global: ServiceWorkerGlobalScope`
+  // at global scope, shadowing `@types/node`. Reference directives are
+  // program-wide, so every bare use of those names in a program that reaches
+  // `worker.ts` loses its types — silently, because `any` never errors.
+  //
+  // The fix is to never rely on them as globals: `import { Buffer } from
+  // 'node:buffer'` / `import process from 'node:process'` resolve to
+  // `@types/node` regardless of what the ambient scope says. This block is what
+  // keeps that true. It is also what makes the version pins removable — see
+  // ADR-0020 and `tests/integration/workers-types-globals.test.ts`.
+  //
+  // TWO rules, not one, and both are required:
+  //
+  //   - `no-restricted-globals` covers VALUE positions only. Its implementation
+  //     skips any reference whose parent is a type node
+  //     (`node_modules/eslint/lib/rules/no-restricted-globals.js`), by design.
+  //     Run alone over `oauth-flow.test.ts` — whose `function b64url(buf: Buffer)`
+  //     was one of the two originally-broken sites — it reports NOTHING.
+  //   - `no-restricted-syntax` with a `TSTypeReference` selector covers TYPE
+  //     positions. Purely syntactic: it fires on `let x: Buffer` whether or not
+  //     `Buffer` is imported, which is deliberate. An import fixes the value
+  //     lookup; it does not make the annotation unambiguous to a reader, and the
+  //     `Uint8Array` supertype is the right annotation in every site we had.
+  //
+  // KNOWN HOLE, recorded rather than papered over: the type-node skip list also
+  // covers `TSTypeQuery` and `TSQualifiedName`, so `typeof process.env` escapes
+  // both rules. No such usage exists today.
+  //
+  // No `mcp-server/scripts/**` carve-out is needed — the globs below are rooted
+  // at `mcp-server/src` and `mcp-server/tests`, so they never reach it. (The
+  // `{ts,mts}` extension does match the five `.d.mts` files that live there, so
+  // the path prefix is what excludes them, not the extension.)
+  //
+  // Both rules were mutation-probed at authoring time: a planted value
+  // reference and a planted type reference each fail `npm run lint`.
+  {
+    files: ['mcp-server/src/**/*.{ts,mts}', 'mcp-server/tests/**/*.{ts,mts}'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'Buffer',
+          message:
+            "Import it: `import { Buffer } from 'node:buffer'`. The bare global is typed `any` wherever workers-types' index.d.ts is loaded (ADR-0020). For byte length prefer `utf8ByteLength()` from src/lib/utf8-bytes.ts.",
+        },
+        {
+          name: 'process',
+          message:
+            "Import it: `import process from 'node:process'` (default import — @types/node uses `export = process`). The bare global is typed `any` wherever workers-types' index.d.ts is loaded (ADR-0020).",
+        },
+        {
+          name: 'global',
+          message:
+            "Don't use the `global` global — workers-types declares it as `ServiceWorkerGlobalScope`, which is not what `@types/node` means by it. Use `globalThis`.",
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "TSTypeReference > Identifier[name='Buffer']",
+          message:
+            'Bare `Buffer` in type position. Annotate `Uint8Array` instead (Buffer extends it, so callers are unaffected) — importing the value does not make this annotation safe to read. See ADR-0020.',
+        },
+        {
+          selector: "TSTypeReference > Identifier[name='process']",
+          message: 'Bare `process` in type position. See ADR-0020.',
+        },
+        {
+          selector: "TSTypeReference > Identifier[name='global']",
+          message: 'Bare `global` in type position. See ADR-0020.',
+        },
+      ],
+    },
+  },
+
   // ── Prettier compatibility: MUST be last ───────────────────────────
   prettier,
 ];

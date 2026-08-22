@@ -32,6 +32,11 @@
  * while the `agents` handler takes `'stateless' | 'reject'`.
  */
 
+// Default import — `@types/node/process.d.ts` is `export = process`. Explicit
+// rather than global: under the workers-types global script `process` is `any`,
+// which silently drops `process.exit`'s `never` return and widens the factory
+// below to `McpServer | undefined` (BL-137 / ADR-0020).
+import process from 'node:process';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { createServer } from './server';
 import { registerLocalOnlyTools } from './tools/_local-only';

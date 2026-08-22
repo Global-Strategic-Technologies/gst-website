@@ -7,6 +7,9 @@
  * error before the handler runs.
  */
 
+// Default import — `@types/node/process.d.ts` is `export = process`. See
+// `src/config.ts` for the full rationale (BL-137 / ADR-0020).
+import process from 'node:process';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { generateScript } from '../../../src/utils/diligence-engine';
 import { serializeToParams as serializeDiligenceUrl } from '../../../src/utils/diligence-url';
