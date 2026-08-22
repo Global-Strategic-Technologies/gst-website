@@ -14,6 +14,18 @@ updates:
       production-patches:
         dependency-type: 'production'
         update-types: ['patch']
+    # Held version pins — these two are pinned to exact versions in
+    # mcp-server/package.json and must not float. workers-types >=5.20260807.2
+    # declares `Buffer`/`process` as `any` at global scope, which shadows
+    # @types/node across the whole mcp-server program; wrangler is ignored in
+    # lockstep because its peer floor on workers-types rises nearly every
+    # release. Rationale, evidence and the removal condition:
+    # src/docs/development/DEVELOPER_TOOLING.md § Held version pins (and BL-137).
+    # Delete BOTH entries together when the pins are lifted — leaving one
+    # ignored re-creates the ERESOLVE this prevents.
+    ignore:
+      - dependency-name: '@cloudflare/workers-types'
+      - dependency-name: 'wrangler'
     reviewers:
       - 'reidperyam'
 
