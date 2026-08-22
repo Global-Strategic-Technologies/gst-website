@@ -482,7 +482,25 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 **While here**: the same measurement found the doc's dev-tree ledger describing 3 advisories in one chain when the tree carried 9 in two (the `@lhci/cli → … → extract-zip` chain had drifted in unnoticed — dev-only advisories fail nothing, which is the same root cause one layer down). Corrected in the same commit; the wrangler chain has a free in-range fix left to the Dependabot dev-dependencies PR because it moves the deploy toolchain.
 
+**Superseded 2026-08-21** — do not act on that last clause. The wrangler chain was cleared by pinning `wrangler` at an exact `4.121.0` (its miniflare resolves `undici@7.29.0`, outside the vulnerable range), **not** by merging the Dependabot dev-dependencies PR. That PR must now be closed rather than merged: taking it would drag `@cloudflare/workers-types` into the range the pin exists to exclude. See [DEVELOPER_TOOLING.md § Held version pins](DEVELOPER_TOOLING.md) and [BL-137](#bl-137-mcp-server-compiles-worker-and-node-code-as-one-program-so-worker-globals-type-shadow-node-ones). The detection gap this item is actually about is untouched by that change.
+
 **Trigger**: met — this already happened once.
+
+---
+
+### BL-137: `mcp-server` compiles Worker and Node code as one program, so Worker globals type-shadow Node ones
+
+**Source**: Dependabot batch resolution, 2026-08-21 | **Effort**: Medium | **Status**: Recorded — **worked around by a version pin; the structural cause is untouched**
+
+**What happened.** `@cloudflare/workers-types@5.20260807.2` added `declare const Buffer: any;` and `declare const process: any;` to its global block. `mcp-server/src/worker.ts:1` carries `/// <reference types="@cloudflare/workers-types" />`, and a type-library reference is **program-wide** — so both `any` globals immediately shadowed the `@types/node` declarations across the entire workspace, Worker code, the stdio entrypoint, and every test alike. `tsc --noEmit` surfaced three errors (`process.exit()` losing its `never` return, `Buffer.toString(encoding)` losing its overloads), but the errors are incidental: the real effect is that every `process.*` and `Buffer.*` expression in `mcp-server` silently became `any`.
+
+**Why the pin, and not a code fix.** Patching the three call sites would have made `tsc` green while leaving the whole workspace typed against `any` for two of the most-used Node globals — trading a loud failure for a silent one. The bump was held instead: `@cloudflare/workers-types` pinned to `5.20260804.1` and `wrangler` to `4.121.0` (its peer floor forces them to move together), both documented with removal conditions in [DEVELOPER_TOOLING.md § Held version pins](DEVELOPER_TOOLING.md).
+
+**The structural cause.** One `tsconfig.json` covers `src/**/*` and `tests/**/*`, and that program contains **two runtimes**: the Worker (`src/worker.ts`, needing Workers globals) and Node (`src/index.ts` stdio transport, plus the whole test suite, needing `@types/node`). TypeScript has no way to scope a `/// <reference types>` to a subtree, so whichever set of globals is referenced wins everywhere. Today the two happen not to collide except on `Buffer`/`process`; nothing prevents the next overlap.
+
+**The candidate fix**: split into project-referenced programs — a Worker `tsconfig` that pulls `@cloudflare/workers-types` and excludes the Node entrypoint, and a Node `tsconfig` that pulls `@types/node` and excludes `worker.ts` — with the shared tool/schema modules in a third that references neither runtime's globals. Cost: `npm -w @gst/mcp-server run typecheck` becomes a composite build, and the build/test configs need to agree with the split. This is what makes the pin removable independently of whether Cloudflare ever narrows those two declarations.
+
+**Trigger**: met in the weak sense (the shadowing is live and pinned around). Worth doing when either the pin blocks a wrangler feature the deploy pipeline needs, or a second global collision appears.
 
 ---
 
