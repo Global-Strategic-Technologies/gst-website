@@ -369,9 +369,15 @@ export default [
   //     lookup; it does not make the annotation unambiguous to a reader, and the
   //     `Uint8Array` supertype is the right annotation in every site we had.
   //
-  // KNOWN HOLE, recorded rather than papered over: the type-node skip list also
-  // covers `TSTypeQuery` and `TSQualifiedName`, so `typeof process.env` escapes
-  // both rules. No such usage exists today.
+  // KNOWN HOLES, recorded rather than papered over. Neither has a usage today;
+  // both were checked at authoring time.
+  //   - The type-node skip list also covers `TSTypeQuery` and `TSQualifiedName`,
+  //     so `typeof process.env` escapes both rules.
+  //   - `globalThis.process` / `globalThis.Buffer` escape both as well: member
+  //     access on `globalThis` is not a restricted NAME, and not a
+  //     `TSTypeReference` either. Reaching the globals that way is the obvious
+  //     workaround for anyone who hits these rules and does not read the
+  //     message, so it is worth knowing the guard will not stop them.
   //
   // No `mcp-server/scripts/**` carve-out is needed — the globs below are rooted
   // at `mcp-server/src` and `mcp-server/tests`, so they never reach it. (The

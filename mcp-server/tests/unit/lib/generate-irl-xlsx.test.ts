@@ -32,7 +32,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * side strips style metadata back to a partial shape (`{ patternType:
  * 'none' }` only). Inspecting the file bytes is the only reliable test.
  */
-const UTF8 = new TextDecoder('utf-8');
+// `ignoreBOM: true` keeps byte-for-byte parity with the `Buffer#toString('utf8')`
+// this replaced. The TextDecoder default is `false`, which STRIPS a leading
+// U+FEFF — a silent behaviour change in a helper that was only swapped for type
+// reasons. No current fixture has a BOM; the flag keeps it that way by choice.
+const UTF8 = new TextDecoder('utf-8', { ignoreBOM: true });
 
 function extractZipEntry(xlsxBuf: Uint8Array, targetName: string): string | null {
   const buf = Buffer.from(xlsxBuf);

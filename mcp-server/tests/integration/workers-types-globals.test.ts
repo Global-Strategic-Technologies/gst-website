@@ -27,7 +27,16 @@
  * and contains zero `declare const X: any` lines. A future
  * `declare const process: { env: Record<string, string> }` would re-break
  * `process.exit()` while never matching an `any`-keyed regex. So the snapshot
- * below records every top-level declaration name.
+ * below records every top-level `declare` statement's name.
+ *
+ * **Scope limit, deliberate.** The snapshot covers `declare …` statements only.
+ * The file also holds ~800 top-level `interface` / `type` declarations written
+ * WITHOUT the keyword, which are equally global. They are excluded from the
+ * snapshot because an 800-name baseline gets regenerated rather than read — but
+ * they ARE scanned for the collision check below, which is the assertion that
+ * matters. Type-space declarations mostly MERGE with `@types/node` rather than
+ * shadow it, and a conflicting `type` alias is a loud TS2300, so the snapshot's
+ * narrower scope costs little.
  *
  * ─── Two assertions, doing different jobs ───────────────────────────────────
  *
@@ -35,9 +44,9 @@
  *      that must not be shadowed. Anything on it appearing in `index.d.ts` is a
  *      finding unless it is in `ACCEPTED_SHADOWS` with a written reason. This
  *      is the assertion with teeth; read it first.
- *   2. SNAPSHOT (broad, churns on every bump): the complete declared-name set.
- *      It catches a collision our hard-coded list never anticipated. It WILL
- *      fail on routine version bumps, mostly on `Base_Ai_Cf_*` model types.
+ *   2. SNAPSHOT (broad, churns on every bump): every `declare`d name. It catches
+ *      a collision our hard-coded list never anticipated. It WILL fail on
+ *      routine version bumps, mostly on `Base_Ai_Cf_*` model types.
  *
  * ─── If assertion 2 fails on a version bump ─────────────────────────────────
  *
@@ -117,9 +126,10 @@ const ACCEPTED_SHADOWS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Every top-level declaration name in the pinned `index.d.ts`, sorted.
- * Generated once against 5.20260804.1 and curated by hand since — see the
- * header before editing.
+ * Every top-level `declare` name in the pinned `index.d.ts`, sorted. Generated
+ * once against 5.20260804.1 and curated by hand since — see the header before
+ * editing, including its note on why bare `interface`/`type` are out of scope
+ * here but in scope for the collision check.
  */
 const DECLARED_GLOBALS: ReadonlySet<string> = new Set([
   'AbortController',
@@ -400,8 +410,29 @@ const GLOBAL_RE =
   /^declare\s+(?:abstract\s+)?(?:var|const|let|function|class|namespace|type|interface|enum)\s+([A-Za-z_$][\w$]*)/;
 const MODULE_RE = /^declare\s+module\s+"([^"]+)"/;
 
+/**
+ * Top-level declarations written WITHOUT the `declare` keyword.
+ *
+ * In a `.d.ts` global script, `interface Console { … }` at column 0 is just as
+ * global as `declare var console` — the keyword is optional for type-space
+ * declarations. The installed file has ~800 of them.
+ *
+ * They are deliberately kept OUT of the churny name snapshot (an 800-name
+ * baseline would be re-generated rather than read, which defeats it) but they
+ * ARE fed to the sharp `NODE_GLOBALS_AT_RISK` collision check, because type
+ * space is not harmless here: the three `NodeJS.Process` annotations that keep
+ * `process` typed depend on the `NodeJS` namespace, and a future top-level
+ * `namespace NodeJS { … }` without the keyword would otherwise slip both
+ * assertions — the exact failure this file exists to catch.
+ */
+const BARE_TYPE_RE =
+  /^(?:abstract\s+)?(?:class|namespace|type|interface|enum)\s+([A-Za-z_$][\w$]*)/;
+
 interface Parsed {
+  /** Names from `declare …` statements — the snapshot key. */
   globals: Set<string>;
+  /** `globals` PLUS bare top-level type-space declarations — the collision key. */
+  allNames: Set<string>;
   modules: Set<string>;
   unparsed: string[];
 }
@@ -414,9 +445,15 @@ interface Parsed {
  * correct — they are scoped and shadow nothing.
  */
 function parseGlobalScript(source: string): Parsed {
-  const out: Parsed = { globals: new Set(), modules: new Set(), unparsed: [] };
+  const out: Parsed = { globals: new Set(), allNames: new Set(), modules: new Set(), unparsed: [] };
   for (const line of source.split(/\r?\n/)) {
-    if (!line.startsWith('declare ')) continue;
+    if (!line.startsWith('declare ')) {
+      // Column-0 anchoring again: a bare `interface Foo` nested inside a
+      // `declare module { … }` block is indented, so it never matches here.
+      const bare = BARE_TYPE_RE.exec(line);
+      if (bare) out.allNames.add(bare[1]);
+      continue;
+    }
     const m = MODULE_RE.exec(line);
     if (m) {
       out.modules.add(m[1]);
@@ -425,6 +462,7 @@ function parseGlobalScript(source: string): Parsed {
     const g = GLOBAL_RE.exec(line);
     if (g) {
       out.globals.add(g[1]);
+      out.allNames.add(g[1]);
       continue;
     }
     out.unparsed.push(line.slice(0, 120));
@@ -448,6 +486,13 @@ describe('@cloudflare/workers-types global script', () => {
       `no top-level declarations parsed from ${indexDts}`
     ).toBeGreaterThan(100);
     expect(parsed.modules.size, 'no ambient cloudflare:* modules parsed').toBeGreaterThan(0);
+    // The bare type-space scan feeds the collision check; if BARE_TYPE_RE ever
+    // stops matching, that check silently narrows back to `declare`-only.
+    expect(
+      parsed.allNames.size - parsed.globals.size,
+      'BARE_TYPE_RE matched no top-level interface/type declarations, so the ' +
+        'collision assertion below has quietly narrowed to `declare`-only'
+    ).toBeGreaterThan(100);
     expect(
       parsed.unparsed,
       `lines beginning "declare " that the parser did not understand. The name ` +
@@ -459,7 +504,9 @@ describe('@cloudflare/workers-types global script', () => {
   });
 
   it('does not shadow a @types/node global we depend on', () => {
-    const shadowed = NODE_GLOBALS_AT_RISK.filter((n) => parsed.globals.has(n));
+    // `allNames`, not `globals`: this check must also see top-level type-space
+    // declarations written without the `declare` keyword. See BARE_TYPE_RE.
+    const shadowed = NODE_GLOBALS_AT_RISK.filter((n) => parsed.allNames.has(n));
     const unaccepted = shadowed.filter((n) => !(n in ACCEPTED_SHADOWS));
 
     expect(

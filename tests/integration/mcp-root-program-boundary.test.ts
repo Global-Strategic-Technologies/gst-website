@@ -11,7 +11,7 @@
  *
  * The website reaches mcp-server for real:
  *   tests/integration/techpar-mcp-wizard-roundtrip.test.ts
- *     → mcp-server/src/tools/techpar.ts → … (25 files today)
+ *     → mcp-server/src/tools/techpar.ts → … (26 files today)
  *
  * BL-137 severed the one edge that reached `worker.ts` by moving the `Env`
  * interface to `mcp-server/src/env.ts`. This guard is what keeps it severed.
@@ -54,8 +54,9 @@ const BANNED = ['mcp-server/src/worker.ts', '@cloudflare/workers-types/index.d.t
 const SENTINEL = 'mcp-server/src/tools/techpar.ts';
 
 describe('mcp-server files in the website root program', () => {
-  // ~3s locally for ~2,200 files. Generous ceiling so a cold/loaded CI box does
-  // not turn this into a flake — the assertion is about content, not speed.
+  // ~2.5s locally for ~2,200 files. 30s is ~12x headroom for a cold/loaded CI
+  // box — the assertion is about content, not speed — while still failing fast
+  // enough that a genuine `tsc` hang does not stall CI for minutes.
   it('excludes worker.ts and the workers-types global script', () => {
     const result = spawnSync(
       process.execPath,
@@ -97,5 +98,5 @@ describe('mcp-server files in the website root program', () => {
           `see mcp-server/src/env.ts and ADR-0020.`
       ).toEqual([]);
     }
-  }, 120_000);
+  }, 30_000);
 });

@@ -418,7 +418,7 @@ Added by BL-137 ([ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.
 
 Practical consequence when you hit one: for a **value** use, import it (`import { Buffer } from 'node:buffer'`, `import process from 'node:process'`) — but see ADR-0020 § Consequences, because the import alone resolves to `any` and the `process` sites need an explicit `NodeJS.Process` annotation. For a **type** use, annotate `Uint8Array` instead of `Buffer`; an import does not and should not silence the type rule. For byte length, prefer [`utf8ByteLength()`](../../../mcp-server/src/lib/utf8-bytes.ts).
 
-Known hole, recorded rather than papered over: the type-node skip list also covers `TSTypeQuery`, so `typeof process.env` escapes both rules. No such usage exists today.
+Known holes, recorded rather than papered over — neither has a usage today, both were checked when the rules were written. The type-node skip list also covers `TSTypeQuery` and `TSQualifiedName`, so `typeof process.env` escapes both rules; and `globalThis.process` / `globalThis.Buffer` escape them too, since member access on `globalThis` is neither a restricted name nor a `TSTypeReference`. That second one is the obvious workaround for someone who hits the rule without reading its message.
 
 ### Ignored files
 

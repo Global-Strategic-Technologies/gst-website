@@ -32,6 +32,11 @@ import type {
   Queue,
   R2Bucket,
 } from '@cloudflare/workers-types';
+// `./audit/entry` deliberately, NOT the `./audit/_index` barrel that its own
+// header tells you to prefer. The barrel re-exports `audit-sink` and the queue
+// `consumer`, which would pull that whole subgraph back into every program that
+// imports `Env` — re-poisoning exactly what this file exists to prevent. Do not
+// "fix" this to the barrel. See ADR-0020.
 import type { AuditEntry } from './audit/entry';
 
 /**
