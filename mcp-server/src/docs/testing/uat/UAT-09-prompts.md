@@ -3,7 +3,7 @@
 > **Prerequisite**: [`SETUP.md`](SETUP.md) complete. **Environment**: production.
 > **Input authority**: [`prompts/README.md`](../../prompts/README.md); for the largest, [`prompts/irl-ingestion.md`](../../prompts/irl-ingestion.md)
 
-Nine `gst_*` prompts — typed, versioned macros that orchestrate tools and resources into a finished work product. A full pass proves the thing tool-level cases cannot: that a **published workflow** runs end to end and produces the document a partner expects, in the right structure, with its provenance intact.
+Ten `gst_*` prompts — typed, versioned macros that orchestrate tools and resources into a finished work product. A full pass proves the thing tool-level cases cannot: that a **published workflow** runs end to end and produces the document a partner expects, in the right structure, with its provenance intact.
 
 > **Mode A only.** Invoking a prompt is a client-side capability; there is no wire equivalent, so `Invoke-McpRequest.ps1` cannot drive these. Record Mode B as **Blocked** for every case here rather than Fail.
 
@@ -22,24 +22,25 @@ Two consequences for a tester:
 
 ## Scope
 
-| Capability                        | Kind   | Cases     | Reference golden                                    |
-| --------------------------------- | ------ | --------- | --------------------------------------------------- |
-| `gst_information_request_list`    | prompt | UAT-09.1  | `information-request-list.golden.md`                |
-| `gst_target_quick_look`           | prompt | UAT-09.2  | `target-quick-look.golden.md`                       |
-| `gst_comparable_engagements_memo` | prompt | UAT-09.3  | `comparable-engagements-memo.golden.md`             |
-| `gst_regulatory_exposure_brief`   | prompt | UAT-09.4  | `regulatory-exposure-brief.golden.md`               |
-| `gst_diligence_kickoff`           | prompt | UAT-09.5  | `diligence-kickoff.golden.md`                       |
-| `gst_diligence_handoff_memo`      | prompt | UAT-09.6  | `diligence-handoff-memo.golden.md`                  |
-| `gst_architecture_layer_review`   | prompt | UAT-09.7  | `architecture-layer-review.golden.md`               |
-| `gst_radar_brief_today`           | prompt | UAT-09.8  | `radar-brief-today.golden.md`                       |
-| `gst_irl_ingestion`               | prompt | UAT-09.9  | `irl-ingestion.golden.md`                           |
-| IRL extract record — cross-prompt | flow   | UAT-09.10 | _(none — a cross-prompt flow has no single golden)_ |
+| Capability                        | Kind   | Cases                                   | Reference golden                                    |
+| --------------------------------- | ------ | --------------------------------------- | --------------------------------------------------- |
+| `gst_information_request_list`    | prompt | UAT-09.1                                | `information-request-list.golden.md`                |
+| `gst_target_quick_look`           | prompt | UAT-09.2                                | `target-quick-look.golden.md`                       |
+| `gst_comparable_engagements_memo` | prompt | UAT-09.3                                | `comparable-engagements-memo.golden.md`             |
+| `gst_regulatory_exposure_brief`   | prompt | UAT-09.4                                | `regulatory-exposure-brief.golden.md`               |
+| `gst_diligence_kickoff`           | prompt | UAT-09.5                                | `diligence-kickoff.golden.md`                       |
+| `gst_diligence_handoff_memo`      | prompt | UAT-09.6                                | `diligence-handoff-memo.golden.md`                  |
+| `gst_architecture_layer_review`   | prompt | UAT-09.7                                | `architecture-layer-review.golden.md`               |
+| `gst_radar_brief_today`           | prompt | UAT-09.8                                | `radar-brief-today.golden.md`                       |
+| `gst_irl_ingestion`               | prompt | UAT-09.9                                | `irl-ingestion.golden.md`                           |
+| `gst_irl_fill`                    | prompt | covered in [UAT-11](UAT-11-irl-fill.md) | `irl-fill.golden.md`                                |
+| IRL extract record — cross-prompt | flow   | UAT-09.10                               | _(none — a cross-prompt flow has no single golden)_ |
 
 ---
 
 ## UAT-09.0 — Discovery
 
-**Goal**: Proves all nine prompts are advertised to the client before any of them is invoked.
+**Goal**: Proves all ten prompts are advertised to the client before any of them is invoked.
 
 **Steps**
 
@@ -47,7 +48,7 @@ Two consequences for a tester:
 
 **Expected result**
 
-- Exactly **nine** `gst_*` prompts are listed, matching the Scope table.
+- Exactly **ten** `gst_*` prompts are listed, matching the Scope table (substantive coverage of `gst_irl_fill` lives in UAT-11, per its Scope row).
 - Each shows its arguments; required arguments are marked.
 - No prompt appears twice, and no non-`gst_` prompt appears under this connector.
 

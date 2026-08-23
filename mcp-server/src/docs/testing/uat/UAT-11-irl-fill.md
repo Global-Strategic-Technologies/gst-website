@@ -4,7 +4,7 @@
 
 **What this family does**: produces a _populated_ Information Request List `.xlsx` from evidence already in the model's context — sourcing reference into File Location (column D), answer into Comments (column E) — so the dossier pipeline can start before the target returns a filled workbook. Rows the evidence cannot answer stay blank: the partially populated workbook is itself the follow-up ask. The tool stops at the artifact; a human reviews it before running `gst_irl_ingestion` exactly as for a target-returned IRL.
 
-**Contract**: `src/docs/tools/irl-fill/CONTRACT.md` owns the input surface and the D-cell sourcing grammar. The frozen five-tool pipeline family is [`irl-pipeline/CONTRACT.md`](../../tools/irl-pipeline/CONTRACT.md) — nothing in this family modifies it.
+**Contract**: [`irl-fill/CONTRACT.md`](../../tools/irl-fill/CONTRACT.md) owns the input surface and the D-cell sourcing grammar. The frozen five-tool pipeline family is [`irl-pipeline/CONTRACT.md`](../../tools/irl-pipeline/CONTRACT.md) — nothing in this family modifies it.
 
 **Prerequisites**: [`SETUP.md`](SETUP.md) once; Excel or any xlsx viewer for 11.2; the repo checkout only for 11.3 (`npm run irl:extract` is a repo script — the one case here that assumes repo access, marked as such).
 

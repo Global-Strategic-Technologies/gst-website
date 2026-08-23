@@ -786,11 +786,11 @@ describe('tool response budgets (BL-112)', () => {
    * The coverage rule: every REGISTERED tool must have a budget entry.
    *
    * Enumerated from a live `tools/list` rather than by reading `src/tools/*.ts`,
-   * because 13 modules register 17 tools and the name literal sits on the line
+   * because 14 modules register 18 tools and the name literal sits on the line
    * after `registerTool(` opens — a source scan keyed by filename would silently
    * miss the second tool in a two-tool module, which is the drift this rule exists
    * to prevent. It is enumerated against the **stdio** surface deliberately: the
-   * Worker registers 15, and the two stdio-only radar tools would escape.
+   * Worker registers 16, and the two stdio-only radar tools would escape.
    *
    * `protocol-roundtrip.test.ts` remains authoritative for *which tools exist*;
    * this is authoritative for *which tools have a size decision*.
