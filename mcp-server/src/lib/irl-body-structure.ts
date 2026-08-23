@@ -42,6 +42,8 @@
  * body means the client collapsed the paste. That is information, not an error.
  */
 
+import { utf8ByteLength } from './utf8-bytes';
+
 export interface IrlBodyStructure {
   /** UTF-8 byte length of the body. */
   byteLength: number;
@@ -53,7 +55,7 @@ export interface IrlBodyStructure {
 }
 
 export function assessIrlBodyStructure(body: string): IrlBodyStructure {
-  const byteLength = Buffer.byteLength(body, 'utf8');
+  const byteLength = utf8ByteLength(body);
   let newlineCount = 0;
   for (let i = 0; i < body.length; i += 1) {
     if (body[i] === '\n') newlineCount += 1;

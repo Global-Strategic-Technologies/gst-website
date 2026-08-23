@@ -28,6 +28,7 @@
  * operators can spot bad emit sites during the post-deploy soak.
  */
 import { safeLog } from '../auth/safe-logger';
+import { utf8ByteLength } from '../lib/utf8-bytes';
 import {
   AE_LIMITS,
   BLOB_SLOTS,
@@ -50,12 +51,6 @@ import {
  * design — revisit with `Array.from(s).slice(...)` if that constraint relaxes.
  */
 const TRUNCATION_MARKER = '…';
-
-/**
- * Module-singleton encoder. `TextEncoder` is stateless; per-call construction
- * is wasteful when `utf8ByteLength` runs once per blob field per emission.
- */
-const ENCODER = new TextEncoder();
 
 /**
  * Validate a `MetricEvent` against the schema, returning either a normalized
@@ -157,13 +152,6 @@ export function guardEvent(event: MetricEvent): MetricEvent | null {
 
 function isKnownEventType(value: unknown): value is EventType {
   return typeof value === 'string' && (EVENT_TYPES as readonly string[]).includes(value);
-}
-
-function utf8ByteLength(s: string): number {
-  // Workers-runtime + Node both expose `TextEncoder`; cheaper than `Buffer`
-  // (which isn't always present in edge runtimes). Module-level singleton
-  // since `TextEncoder` is stateless.
-  return ENCODER.encode(s).length;
 }
 
 function sumBlobPayloadBytes(event: MetricEvent): number {

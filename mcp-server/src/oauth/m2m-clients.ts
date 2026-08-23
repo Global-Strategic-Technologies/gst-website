@@ -20,6 +20,7 @@
  * transmitted).
  */
 
+import type { KVNamespace } from '@cloudflare/workers-types';
 import { timingSafeEqual } from '../auth/timing-safe-equal';
 import { sha256Hex } from '../lib/sha256';
 import { m2mKeyOwner } from './key-owner';

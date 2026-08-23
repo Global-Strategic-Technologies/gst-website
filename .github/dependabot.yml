@@ -14,6 +14,12 @@ updates:
       production-patches:
         dependency-type: 'production'
         update-types: ['patch']
+    # No `ignore` entries. `@cloudflare/workers-types` and `wrangler` were held
+    # here until BL-137 removed the dependence that made the hold necessary —
+    # see ADR-0020. Both float on carets again. A workers-types release that
+    # adds a global shadowing @types/node now fails
+    # mcp-server/tests/integration/workers-types-globals.test.ts on the
+    # Dependabot PR, which is the signal this ignore block used to suppress.
     reviewers:
       - 'reidperyam'
 

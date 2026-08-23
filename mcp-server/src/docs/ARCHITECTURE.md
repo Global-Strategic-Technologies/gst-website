@@ -47,6 +47,8 @@ _Distilled from MCP_SERVER_ARCHITECTURE_BL-031.md (April 2026) — archived at `
 
 The MCP server ships as one codebase with two entrypoints (register-once-transport-twice): `src/index.ts` serves stdio for local clients, and `src/worker.ts` is the Cloudflare Worker (`gst-mcp`) that serves MCP over Streamable HTTP. Both call the same `createServer()` factory in `src/server.ts` — the single source of truth for the transport-portable tool / resource / prompt registry.
 
+**Worker bindings are typed in `src/env.ts`, not `worker.ts`** — add a new binding there. The `Env` interface was moved out deliberately: `worker.ts` line 1 carries the `@cloudflare/workers-types` reference directive, which is program-wide, so importing `Env` from it dragged that package's global `Buffer`/`process` declarations into every program that touched mcp-server — including the website's. `worker.ts` re-exports the type for the test suite; nothing under `src/` may import it from there, and a guard test enforces that. See [ADR-0020](../../../src/docs/adr/0020-workers-types-global-shadowing-immunity.md).
+
 ### Streamable HTTP binding
 
 MCP-over-HTTP is served by Cloudflare's `agents` SDK (`agents@^0.20.1`): `createMcpHandler` from `agents/mcp/server` adapts a **per-request `McpServer` factory** to the Worker's Web `Request`/`Response` runtime, serving JSON-RPC at `/mcp`. The handler matches that path **exactly** and 404s anything else — including sub-paths. (`worker.ts`'s `isRoutedPath` still prefix-matches `/mcp/`, which is harmless — such requests reach the handler and get its 404 instead of ours — but the "sub-paths for session resume" rationale in its comment is obsolete: protocol-level sessions no longer exist, and neither handler generation has ever served a sub-path.)

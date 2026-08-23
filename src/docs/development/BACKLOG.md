@@ -2,17 +2,18 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Three cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Four cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
 > - **2026-08-09**: 9 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. Three of them carried live content that did not go with the parent: BL-091's deliberately-cut half-open recovery probe became **[BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)**, BL-111's unbuilt-and-unfiled deploy-drift detector became **[BL-117](#bl-117-mcp-server--deploy-drift-detector-candidate)**, and BL-089's deferred docs-freshness check became **[BL-118](#bl-118-docs-last-updated-freshness-check-candidate)**. A fourth piece of live content — BL-111's repo-level secret decommission — needed no rescue, already being a Pending row in [SECRETS_INVENTORY § Decommission schedule](../operations/SECRETS_INVENTORY.md). A stanza marked closed is not automatically prunable — read it for live sub-blocks first, and note that all four were found by sweeping for the pattern rather than one per review round.
+> - **2026-08-22**: 1 stanza (BL-137, workers-types global shadowing) closed and pruned the same day it shipped. Last pre-prune revision: `677862fc`. Its live content — the accepted test-side residual, and the fact that a project-referenced tsconfig split was never shown to be impossible — went to [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md) rather than staying here. The BL-136 note below linked to its anchor and was retargeted at the ADR in the same commit.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
 > - **BL-034** (MCP-server doc-cleanup catch-all, substantially complete 2026-07-02) — a slim stub that remains the append-target for BL-033-era cleanup items.
 > - **BL-098** (radar negative caching) — closed by removing the requirement rather than implementing it; its own closure note says the reasoning is the point.
-> - **BL-106** (2026-07-28 spec alignment) — retained by its own in-stanza decision, because the unreproduced flake instance behind the CLAUDE.md testing rule is stanza-level evidence with no better home. [`.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) and [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md) both still cite it as open. **This wave deleted it in error and restored it** — the ID list above is the corrected one.
+> - **BL-106** (2026-07-28 spec alignment) — retained by its own in-stanza decision, because the unreproduced flake instance behind the CLAUDE.md testing rule is stanza-level evidence with no better home. [`.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) and [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md) both still cite it as open. **The 2026-08-09 wave deleted it in error and restored it** — that wave's ID list is the corrected one.
 
 ---
 
@@ -552,6 +553,8 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 (1) and (3) compose well and neither taxes unrelated PRs; (2) is the operator's call about how hard the policy should bite.
 
 **While here**: the same measurement found the doc's dev-tree ledger describing 3 advisories in one chain when the tree carried 9 in two (the `@lhci/cli → … → extract-zip` chain had drifted in unnoticed — dev-only advisories fail nothing, which is the same root cause one layer down). Corrected in the same commit; the wrangler chain has a free in-range fix left to the Dependabot dev-dependencies PR because it moves the deploy toolchain.
+
+**Superseded twice — do not act on that last clause.** _2026-08-21_: the wrangler chain was cleared by pinning `wrangler` at an exact `4.121.0` (its miniflare resolves `undici@7.29.0`, outside the vulnerable range), **not** by merging the Dependabot dev-dependencies PR. _2026-08-22_: BL-137 ([ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md)) then lifted that pin — wrangler floats on `^4.125.0`, the undici chain was re-measured and is still clear, and the instruction to close wrangler Dependabot PRs no longer applies. See [DEVELOPER_TOOLING.md § npm audit policy](DEVELOPER_TOOLING.md) and [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md). Through both changes, the detection gap this item is actually about remains untouched.
 
 **Trigger**: met — this already happened once.
 

@@ -15,7 +15,7 @@
  */
 import { createMcpClient } from '../lib/upstash-clients';
 import type { AeQuery } from './ae-query';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /** Upstash key holding the latest precomputed status metrics (read by /status). */
 export const STATUS_METRICS_KEY = (envName: string) => `mcp:status:metrics:${envName}`;

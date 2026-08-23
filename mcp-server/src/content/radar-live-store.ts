@@ -48,7 +48,7 @@ import {
 } from '../observability/inoreader-status';
 import { filterFreshFyi, toSnapshotItem, type SnapshotItem } from './radar-transform';
 import type { RadarUpstreamReason } from '../tools/_result';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const CACHE_TTL_SECONDS = 6 * 60 * 60; // 6h, matches the radar refresh cron interval
 const CACHE_KEY_WIRE = 'mcp:radar:cache:wire';

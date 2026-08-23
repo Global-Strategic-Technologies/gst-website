@@ -9,6 +9,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
+import { Buffer } from 'node:buffer';
 import {
   canonicalAudience,
   signM2mToken,
@@ -121,7 +122,9 @@ describe('RFC 7523 client assertion (ES256, inline JWKS)', () => {
     publicJwk = await crypto.subtle.exportKey('jwk', pair.publicKey);
   });
 
-  function b64url(bytes: Uint8Array | Buffer): string {
+  // `Uint8Array` alone — `Buffer` extends it, and a bare `Buffer` in type
+  // position is banned even when imported (see eslint.config.mjs).
+  function b64url(bytes: Uint8Array): string {
     return Buffer.from(bytes).toString('base64url');
   }
 

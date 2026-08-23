@@ -42,7 +42,7 @@ import { safeLog } from '../auth/safe-logger';
 import { createMcpClient } from '../lib/upstash-clients';
 import { IRL_BODY_CACHE_TTL_SECONDS } from '../cache/irl-body-cache';
 import type { ToolCallCounterEntry, ToolCallCounterEvent } from './with-metrics';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /**
  * Upstash key prefix for run-scoped counter hashes.

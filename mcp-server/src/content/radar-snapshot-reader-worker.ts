@@ -32,7 +32,7 @@ import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import type { SnapshotReader } from './radar-snapshot-reader';
 import type { RadarCategory, SnapshotTier } from './radar-transform';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /**
  * Build a worker-side SnapshotReader bound to the given Env. The env

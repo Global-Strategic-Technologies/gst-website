@@ -8,10 +8,11 @@
  * `OAUTH:<user>`, AE attribution, scope gating) to static-key callers.
  */
 
+import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { AuthSuccess } from '../auth/bearer';
 import { safeLog } from '../auth/safe-logger';
 import { handleAuthenticated } from '../pipeline/handle-authenticated';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /** Shape written by consent.ts `completeAuthorization({ props })`. */
 export interface OAuthGrantProps {

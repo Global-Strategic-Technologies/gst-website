@@ -31,7 +31,7 @@
 
 import { openCircuit } from '../ratelimit/circuit-breaker';
 import { captureMessageEnvelope } from '../observability/sentry-envelope';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 import type { InoreaderFailure, RateLimitInfo } from './inoreader-client';
 
 /**

@@ -41,7 +41,7 @@ import { safeLog, scrubUrlForLog } from '../auth/safe-logger';
 import { mintNonce } from '../admin/admin-auth';
 import { escapeHtml, htmlShell } from '../lib/html-shell';
 import { oauthKeyOwner } from './key-owner';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /**
  * Granted scopes = requested ∩ key scopes, wildcard-aware (a request

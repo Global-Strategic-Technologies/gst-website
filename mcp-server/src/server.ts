@@ -58,7 +58,7 @@ import {
 } from './cache/irl-body-provenance';
 import { computeIrlBodyHash } from './schemas/compose-dossier-envelope';
 import { createCacheStore } from './lib/upstash-cache-store';
-import type { Env } from './worker';
+import type { Env } from './env';
 
 /**
  * Per-request options threaded into the server registry by the

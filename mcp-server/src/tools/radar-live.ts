@@ -46,7 +46,7 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { NOOP_METRICS_CONTEXT, withToolMetrics, type MetricsContext } from '../metrics/_index';
 import { z } from 'zod';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 import {
   readWireLive,
   readFyiLive,

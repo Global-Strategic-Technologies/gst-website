@@ -42,7 +42,7 @@ import {
   type InoreaderEgressCategory,
 } from './inoreader-egress';
 import { AnalyticsEngineSink, emit } from '../metrics/_index';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const API_BASE = 'https://www.inoreader.com/reader/api/0';
 const FETCH_TIMEOUT_MS = 5_000;

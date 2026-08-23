@@ -24,7 +24,7 @@ import type { OAuthHelpers } from '@cloudflare/workers-oauth-provider';
 import { requireAdmin } from '../admin/oauth-clients';
 import { getM2mClient } from './m2m-clients';
 import { canonicalAudience, verifyM2mTokenClaims, M2M_TOKEN_PREFIX } from './m2m-token';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 type EnvWithHelpers = Env & { OAUTH_PROVIDER: OAuthHelpers };
 

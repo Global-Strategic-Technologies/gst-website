@@ -47,7 +47,7 @@ import { Redis } from '@upstash/redis';
 import { createMcpClient } from './upstash-clients';
 import { safeLog } from '../auth/safe-logger';
 import { captureMessageEnvelope } from '../observability/sentry-envelope';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const KEY_REFRESH_SUCCESS_PREFIX = 'mcp:inoreader:refresh-success:';
 const KEY_REFRESH_FAILURE_PREFIX = 'mcp:inoreader:refresh-failure:';

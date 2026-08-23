@@ -39,7 +39,7 @@ import { LAST_EVAL_KEY, type AlertEvaluationSummary } from './alert-evaluator';
 import { readStatusMetrics } from './status-metrics';
 import { ZONE1_DAILY_HARD_CAP } from '../lib/inoreader-egress';
 import { createMcpClient } from '../lib/upstash-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const esc = (v: unknown): string =>
   String(v ?? '—')

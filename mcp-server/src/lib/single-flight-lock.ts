@@ -32,7 +32,7 @@
  */
 
 import { createMcpClient } from './upstash-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 export interface PollOptions {
   /** Total time to wait for the key to change before returning null. */

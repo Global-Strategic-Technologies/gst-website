@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { Buffer } from 'node:buffer';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 
 const ADMIN_KEY = 'test-admin-key';
@@ -61,7 +62,9 @@ afterAll(async () => {
 });
 
 async function mintAssertion(payload: Record<string, unknown>): Promise<string> {
-  const b64url = (b: Uint8Array | Buffer) => Buffer.from(b).toString('base64url');
+  // `Uint8Array` alone — `Buffer` extends it, and a bare `Buffer` in type
+  // position is banned even when imported (see eslint.config.mjs).
+  const b64url = (b: Uint8Array) => Buffer.from(b).toString('base64url');
   const header = b64url(Buffer.from(JSON.stringify({ alg: 'ES256', typ: 'JWT' })));
   const body = b64url(Buffer.from(JSON.stringify(payload)));
   const sig = await crypto.subtle.sign(

@@ -43,7 +43,7 @@ import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
 import { refreshAccessToken } from '../lib/inoreader-oauth';
 import { KV_MCP_ACCESS_TOKEN_KEY } from '../lib/inoreader-token-store';
 import { safeLog } from '../auth/safe-logger';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /**
  * BL-032.8 Phase 2 — proactive refresh threshold. If the access token

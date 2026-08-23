@@ -20,6 +20,8 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import process from 'node:process';
+import { Buffer } from 'node:buffer';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

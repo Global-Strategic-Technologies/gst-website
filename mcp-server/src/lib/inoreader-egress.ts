@@ -59,7 +59,7 @@ import { createMcpClient } from './upstash-clients';
 import { safeLog } from '../auth/safe-logger';
 import { captureMessageEnvelope } from '../observability/sentry-envelope';
 import { AnalyticsEngineSink, emit } from '../metrics/_index';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /**
  * Single source of truth for every egress category. The five entries cover
