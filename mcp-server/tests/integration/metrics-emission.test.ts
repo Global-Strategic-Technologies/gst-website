@@ -234,6 +234,17 @@ function argsFor(toolName: string): Record<string, unknown> {
       return {};
     case 'generate_information_request_list_xlsx':
       return { articleUri: 'gst://library/vdr-structure' };
+    case 'fill_information_request_list_xlsx':
+      // BL-140: `fills` is required (min 1) — `{}` would fail schema validation.
+      return {
+        fills: [
+          {
+            ref: '0-01',
+            fileLocation: 'VDR/00/entity-chart.pdf, page 1',
+            comments: 'Delaware C-corp, single-entity structure.',
+          },
+        ],
+      };
     default:
       return {};
   }

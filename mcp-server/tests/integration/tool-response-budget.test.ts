@@ -549,6 +549,25 @@ const BUDGETS: Record<string, ToolBudget> = {
     budget: { kind: 'absolute', minEnvelopeBytes: 16500, maxEnvelopeBytes: 25_000 },
     note: 'The ONLY channel-asymmetric tool: its ~17 KB base64 workbook rides in structuredContent but is omitted from the text channel via toolOk textOmit, so the envelope is ~payload + 17 KB rather than ~2x. That asymmetry is why the shared helper needed a real exemption parameter instead of a comment saying this tool is not routed through it.',
   },
+  fill_information_request_list_xlsx: {
+    args: {
+      fills: [
+        {
+          ref: '0-01',
+          fileLocation: 'VDR/00/entity-chart.pdf, page 1',
+          comments: 'Delaware C-corp, single-entity structure.',
+        },
+        {
+          ref: '1-01',
+          fileLocation: '[inferred from product-overview.pdf + demo session]',
+          comments: 'Single SaaS surface, multi-tenant, browser-only.',
+        },
+      ],
+    },
+    textOmit: ['base64'],
+    budget: { kind: 'absolute', minEnvelopeBytes: 16500, maxEnvelopeBytes: 26_000 },
+    note: 'BL-140: the SECOND channel-asymmetric tool, by design — same textOmit rationale as its generator sibling (the base64 workbook rides in structuredContent only). Envelope ≈ sibling + the fills written into D/E plus filledRefs. Bounds budget this two-fill fixture; the caps-saturated worst case measured 25,043 bytes on 2026-08-23 (every row × max-length cells) and is pinned by the "caps-saturated envelope" test in tests/unit/tools/fill-information-request-list-xlsx.test.ts — cell text DEFLATEs inside the workbook, so the envelope grows far slower than the raw ~460 KB of cell text would suggest and stays far under the BL-109 client-ceiling observation.',
+  },
   prepare_irl_body: {
     args: { filledIrl: SAMPLE_IRL },
     budget: { kind: 'absolute', minEnvelopeBytes: 200, maxEnvelopeBytes: 400 },

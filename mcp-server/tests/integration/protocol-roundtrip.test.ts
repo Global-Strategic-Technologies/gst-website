@@ -202,6 +202,7 @@ describe('protocol roundtrip', () => {
           'compute_techpar',
           'estimate_tech_debt_cost',
           'generate_diligence_agenda',
+          'fill_information_request_list_xlsx', // BL-140 evidence-populated IRL (fills → D/E)
           'generate_information_request_list_xlsx', // BL-044 fillable-form generator
           'get_latest_insights', // BL-032 Phase 4c live FYI tier
           'list_irl_requests', // per-question removal key discovery (NN-II ↔ question text)

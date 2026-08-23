@@ -28,7 +28,7 @@ export const PROMPTS_DIR = 'mcp-server/src/prompts';
  * Vacuity guards. An extraction that silently found nothing would make every
  * downstream assertion pass, so both consumers assert these counts first.
  */
-export const EXPECTED_REMOTE_TOOL_COUNT = 15;
+export const EXPECTED_REMOTE_TOOL_COUNT = 16; // BL-140 added fill_information_request_list_xlsx
 export const EXPECTED_PROMPT_COUNT = 9;
 
 export function read(path: string): string {
