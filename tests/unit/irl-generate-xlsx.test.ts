@@ -16,6 +16,8 @@
  * mechanics) are exercised only through the public surface.
  */
 
+import { createHash } from 'node:crypto';
+
 import * as XLSX from 'xlsx-js-style';
 import { unzipSync, strFromU8 } from 'fflate';
 
@@ -354,6 +356,50 @@ describe('generateIrlXlsxBuffer — header + cell content', () => {
     expect(values).toContain('0-04');
     expect(values).toContain('0-05');
     expect(values).not.toContain('0-03'); // the gap signals deliberate omission
+  });
+});
+
+// ─── BL-140 — byte-identity golden for the frozen generation path ────────────
+//
+// BL-140 adds an additive optional prefill parameter to generateIrlXlsxBuffer
+// (a new tool populates D/E at build time). The operator ruling freezes the
+// existing path: the no-prefill output must stay byte-identical. This golden
+// was captured from the PRE-CHANGE builder (commit 1 of the BL-140 branch,
+// before the parameter existed) so the identity is machine-checked inside the
+// PR's own history.
+//
+// The golden is ENTRY-level — sha256 over the unzipped entries (sorted names +
+// content bytes) — not a whole-buffer hash, deliberately: fflate's zipSync
+// stamps the current wall-clock into every zip entry's DOS mtime using
+// LOCAL-time getters, so whole-buffer bytes vary with both clock and timezone
+// (CI is UTC; dev machines are not). No entry CONTENT depends on the clock —
+// xlsx-js-style writes docProps/core.xml without dcterms timestamps, and the
+// only date in the workbook comes from metadata.generatedAt, fixed here via
+// FIXED_DATE. "Byte-identical output" for the BL-140 AC means exactly this:
+// every byte the builder writes, minus the container's wall-clock mtime stamp.
+describe('BL-140 — frozen-path byte-identity golden', () => {
+  /** sha256 over the workbook's unzipped entries: sorted names + content bytes. */
+  function entryLevelSha256(buf: Uint8Array): string {
+    const entries = unzipSync(buf);
+    const hash = createHash('sha256');
+    for (const name of Object.keys(entries).sort()) {
+      hash.update(name);
+      hash.update(Uint8Array.of(0));
+      hash.update(entries[name]);
+      hash.update(Uint8Array.of(0));
+    }
+    return hash.digest('hex');
+  }
+
+  // Captured 2026-08-23 from the pre-change builder with FIXTURE_ARTICLE +
+  // FIXTURE_METADATA (FIXED_DATE). If this test fails after a builder change,
+  // the frozen generation path's output moved — that is a BL-140 freeze
+  // violation unless the change is a deliberate, reviewed regeneration.
+  const FROZEN_PATH_GOLDEN = '4f22683207993a02eda724195f4bbd553311b668661b228e21cf6b3c690f924a';
+
+  it('reproduces the pre-change entry-level golden for the no-prefill call', () => {
+    const buf = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA);
+    expect(entryLevelSha256(buf)).toBe(FROZEN_PATH_GOLDEN);
   });
 });
 
