@@ -433,9 +433,9 @@ function buildPrimarySheet(
   // BL-140 prefilled D/E cells: wrap + top-align so a long answer is
   // readable in Excel (the ruled checkpoint is a human reviewing the
   // workbook; E is 30 chars wide). Freeze-safe: the frozen path has no
-  // prefill entries, so this loop never runs there — no prefill style
-  // object is created and cellXfs ordering cannot shift (entry-level
-  // golden pins it).
+  // prefill entries, so this loop never runs there — the style object is
+  // never ATTACHED to any cell and cellXfs ordering cannot shift
+  // (entry-level golden pins it).
   const PREFILL_STYLE = { alignment: { wrapText: true, vertical: 'top' as const } };
   for (const ref of prefillCellRefs) {
     if (sheet[ref]) sheet[ref].s = PREFILL_STYLE;

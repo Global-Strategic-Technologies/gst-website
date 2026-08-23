@@ -547,7 +547,7 @@ const BUDGETS: Record<string, ToolBudget> = {
     args: { articleUri: 'gst://library/vdr-structure' },
     textOmit: ['base64'],
     budget: { kind: 'absolute', minEnvelopeBytes: 16500, maxEnvelopeBytes: 25_000 },
-    note: 'The ONLY channel-asymmetric tool: its ~17 KB base64 workbook rides in structuredContent but is omitted from the text channel via toolOk textOmit, so the envelope is ~payload + 17 KB rather than ~2x. That asymmetry is why the shared helper needed a real exemption parameter instead of a comment saying this tool is not routed through it.',
+    note: 'The FIRST of two channel-asymmetric tools (its BL-140 fill sibling below is the second, by the same design): its ~17 KB base64 workbook rides in structuredContent but is omitted from the text channel via toolOk textOmit, so the envelope is ~payload + 17 KB rather than ~2x. That asymmetry is why the shared helper needed a real exemption parameter instead of a comment saying this tool is not routed through it.',
   },
   fill_information_request_list_xlsx: {
     args: {

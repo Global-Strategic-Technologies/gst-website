@@ -312,7 +312,7 @@ describe('handleFillIrlXlsxTool', () => {
     expect(cells(a.base64)).toBe(cells(b.base64));
   });
 
-  it('caps-saturated envelope: 200 max-length fills stays measurable and bounded', async () => {
+  it('caps-saturated envelope: every canonical row at max cell length stays measurable and bounded', async () => {
     // The measurement pinned beside BUDGETS['fill_information_request_list_xlsx']:
     // cell text DEFLATEs inside the workbook, so the envelope grows far slower
     // than the raw 200 × (300 + 2000) ≈ 460 KB of cell text would suggest.
