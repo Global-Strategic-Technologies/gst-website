@@ -38,7 +38,7 @@
 
 import * as XLSX from 'xlsx-js-style';
 import { unzipSync, zipSync, strFromU8, strToU8 } from 'fflate';
-import type { IRLArticle } from './types';
+import type { IRLArticle, IRLBullet, IRLSection } from './types';
 
 export type IRLTransactionContext = 'sell-side' | 'buy-side' | 'value-creation' | 'unknown';
 
@@ -62,6 +62,25 @@ export interface IRLXlsxMetadata {
    * Defaults to **false** (hidden) — the row is opt-in per engagement.
    */
   readonly showCanonicalReference?: boolean;
+}
+
+/**
+ * Per-row prefill for a populated IRL (BL-140). Keyed by the workbook
+ * Reference id ({@link buildReferenceId} output, e.g. `0-03`) in the
+ * optional third parameter of {@link generateIrlXlsxBuffer}.
+ *
+ * The builder writes bytes; it does NOT validate content. The MCP fill
+ * tool owns the D-cell sourcing grammar (em-dash/paren/control-character
+ * bans and the D-requires-E pairing) — see ADR-0021 and
+ * `mcp-server/src/docs/tools/irl-fill/CONTRACT.md`. Keeping the builder
+ * validation-free keeps the website workspace free of MCP policy and the
+ * Hub generator page free of dead imports.
+ */
+export interface IRLRowPrefill {
+  /** Written to column D (File Location) — what the answer rests on. */
+  readonly fileLocation?: string;
+  /** Written to column E (Comments) — the answer text itself. */
+  readonly comments?: string;
 }
 
 export const IRL_XLSX_MIME_TYPE =
@@ -110,9 +129,21 @@ function slugifyTargetName(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/** Render the IRL article + metadata as an `.xlsx` workbook buffer. */
-export function generateIrlXlsxBuffer(article: IRLArticle, metadata: IRLXlsxMetadata): Uint8Array {
-  const { sheet: primarySheet, statusCellRefs } = buildPrimarySheet(article, metadata);
+/**
+ * Render the IRL article + metadata as an `.xlsx` workbook buffer.
+ *
+ * `prefill` (BL-140, optional) writes per-row File Location (D) and
+ * Comments (E) values at build time, keyed by the workbook Reference id.
+ * When absent — the frozen generator path — the output is byte-identical
+ * to the pre-BL-140 builder (entry-level golden in
+ * `tests/unit/irl-generate-xlsx.test.ts` pins this).
+ */
+export function generateIrlXlsxBuffer(
+  article: IRLArticle,
+  metadata: IRLXlsxMetadata,
+  prefill?: ReadonlyMap<string, IRLRowPrefill>
+): Uint8Array {
+  const { sheet: primarySheet, statusCellRefs } = buildPrimarySheet(article, metadata, prefill);
   const instructionsSheet = buildInstructionsSheet(metadata, article.sections.length);
 
   const wb = XLSX.utils.book_new();
@@ -176,13 +207,49 @@ export function buildReferenceId(sectionNumber: string, bulletOrdinal: number): 
   return `${sectionDigit}-${bulletSlug}`;
 }
 
+/**
+ * The single per-section bullet-row walk: yields each bullet with the
+ * Reference id the workbook's column A will carry, applying the
+ * `ordinal ?? dense-counter` fallback exactly once for every consumer.
+ *
+ * Both {@link buildPrimarySheet}'s row emission and
+ * {@link enumerateWorkbookRefs} consume this generator, so the ref set a
+ * caller validates against can never drift from the refs the workbook
+ * actually renders (the silent-failure class documented on
+ * {@link buildReferenceId}).
+ */
+function* walkSectionRows(section: IRLSection): Generator<{ bullet: IRLBullet; refId: string }> {
+  let denseIndex = 0;
+  for (const bullet of section.bullets) {
+    denseIndex += 1;
+    yield { bullet, refId: buildReferenceId(section.number, bullet.ordinal ?? denseIndex) };
+  }
+}
+
+/**
+ * Every Reference id the workbook built from `article` will render in
+ * column A, in row order (BL-140). The fill tool validates its `fills`
+ * keys against this set; because it flat-maps {@link walkSectionRows} —
+ * the same walk the sheet builder consumes — agreement is structural,
+ * not coincidental.
+ */
+export function enumerateWorkbookRefs(article: IRLArticle): string[] {
+  return article.sections.flatMap((section) =>
+    Array.from(walkSectionRows(section), (row) => row.refId)
+  );
+}
+
 interface PrimarySheetResult {
   readonly sheet: XLSX.WorkSheet;
   /** A1-style references of every Status cell (col C of each bullet row). Used to scope data validation. */
   readonly statusCellRefs: readonly string[];
 }
 
-function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimarySheetResult {
+function buildPrimarySheet(
+  article: IRLArticle,
+  meta: IRLXlsxMetadata,
+  prefill?: ReadonlyMap<string, IRLRowPrefill>
+): PrimarySheetResult {
   // 7-column layout:
   //   A Reference | B Request | C Status | D File Location | E Comments | F Notes | G Response
   //
@@ -204,6 +271,7 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimaryS
   const sectionHeaderRowIndices: number[] = [];
   const metadataLabelCells: string[] = [];
   const statusCellRefs: string[] = [];
+  const prefillCellRefs: string[] = [];
   const NUM_COLS = 7;
   const LAST_COL = NUM_COLS - 1;
 
@@ -268,9 +336,7 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimaryS
       rowIdx += 1;
     }
 
-    let denseIndex = 0;
-    for (const bullet of section.bullets) {
-      denseIndex += 1;
+    for (const { bullet, refId } of walkSectionRows(section)) {
       // Pre-fill Status column with "OPEN" so the cell is non-empty (Excel
       // hides the row's status when blank) and the recipient sees the
       // workflow shape immediately.
@@ -281,11 +347,23 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimaryS
       // (2-01, 2-02, 2-04…) instead of silently renumbering. Hand-built
       // articles without ordinals fall back to the dense counter,
       // preserving the original behavior byte-for-byte.
-      rows.push([
-        buildReferenceId(section.number, bullet.ordinal ?? denseIndex),
-        bullet.text,
-        'OPEN',
-      ]);
+      //
+      // BL-140 prefill lands via INDEX ASSIGNMENT on the 3-element row so
+      // the frozen no-prefill path pushes exactly the array it always has:
+      // `aoa_to_sheet` materializes a cell for '' but skips array holes, so
+      // widening with empty strings would add cells (and shared strings) to
+      // the frozen output. A D-only or E-only entry leaves a hole, never ''.
+      const rowArr: (string | number)[] = [refId, bullet.text, 'OPEN'];
+      const p = prefill?.get(refId);
+      if (p?.fileLocation) {
+        rowArr[3] = p.fileLocation;
+        prefillCellRefs.push(XLSX.utils.encode_cell({ r: rowIdx, c: 3 }));
+      }
+      if (p?.comments) {
+        rowArr[4] = p.comments;
+        prefillCellRefs.push(XLSX.utils.encode_cell({ r: rowIdx, c: 4 }));
+      }
+      rows.push(rowArr);
       statusCellRefs.push(XLSX.utils.encode_cell({ r: rowIdx, c: 2 }));
       rowIdx += 1;
     }
@@ -350,6 +428,17 @@ function buildPrimarySheet(article: IRLArticle, meta: IRLXlsxMetadata): PrimaryS
   };
   for (const ref of statusCellRefs) {
     if (sheet[ref]) sheet[ref].s = STATUS_STYLE;
+  }
+
+  // BL-140 prefilled D/E cells: wrap + top-align so a long answer is
+  // readable in Excel (the ruled checkpoint is a human reviewing the
+  // workbook; E is 30 chars wide). Freeze-safe: the frozen path has no
+  // prefill entries, so this loop never runs there — no prefill style
+  // object is created and cellXfs ordering cannot shift (entry-level
+  // golden pins it).
+  const PREFILL_STYLE = { alignment: { wrapText: true, vertical: 'top' as const } };
+  for (const ref of prefillCellRefs) {
+    if (sheet[ref]) sheet[ref].s = PREFILL_STYLE;
   }
 
   return { sheet, statusCellRefs };
