@@ -55,8 +55,9 @@ export interface GstPrompt<TArgs extends z.ZodObject<z.ZodRawShape> = z.ZodObjec
    * no existing property expresses "takes target inputs", and a
    * `prompt.name === '…'` check in the registry is a special case at one and a
    * pattern at two. The guard asserts clause-present ⇔ flag-set across
-   * `ALL_PROMPTS`, so prompt #10 has to make a choice rather than silently
-   * opting out.
+   * `ALL_PROMPTS`, so every new prompt has to make a choice rather than
+   * silently opting out — prompt #10 (`gst_irl_fill`, BL-140) chose exclusion
+   * for its stop-at-artifact ruling; the guard's rationale block records why.
    *
    * The literal type (matching `needsFyiSnapshot`) is deliberate: there is no
    * third `false` state for the guard to define.

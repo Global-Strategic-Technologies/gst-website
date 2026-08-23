@@ -62,6 +62,7 @@ Supporting documents: [`SETUP.md`](SETUP.md) (do this first) · [`TEMPLATE.md`](
 | `gst_radar_brief_today`                  | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_information_request_list`           | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_irl_ingestion`                      | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_irl_fill`                           | prompt   | [UAT-11](UAT-11-irl-fill.md)       | authored |
 | `gst://library/`                         | resource | [UAT-10](UAT-10-resources.md)      | authored |
 | `gst://regulations/`                     | resource | [UAT-10](UAT-10-resources.md)      | authored |
 | `gst://radar/`                           | resource | [UAT-10](UAT-10-resources.md)      | authored |

@@ -6,9 +6,10 @@
  * expressed "takes target inputs", and the repo has already solved this shape
  * once: `needsFyiSnapshot` exists because *"a `prompt.name === '…'` check in the
  * registry is a special case at one, a pattern at two"*. The guard below is a
- * BICONDITIONAL — clause present ⇔ flag set — so prompt #10 has to make a
- * choice rather than silently opting out of a discipline that governs how it
- * treats evidence.
+ * BICONDITIONAL — clause present ⇔ flag set — so every new prompt has to make
+ * a choice rather than silently opting out of a discipline that governs how it
+ * treats evidence. Prompt #10 (`gst_irl_fill`, BL-140) made that choice:
+ * excluded, for the stop-at-artifact reason recorded on `EXPECTED_EXCLUDED`.
  *
  * **Non-zero counts are asserted on BOTH arms.** A guard iterating an empty set
  * has shipped in this repo twice (BL-124 bypassed Zod entirely; BL-125's enum
@@ -45,11 +46,20 @@ const EXPECTED_OPT_IN = [
  * Deliberately excluded, each for a stated reason:
  *   - `gst_radar_brief_today` takes no target inputs at all.
  *   - `gst_information_request_list` PRODUCES the blank IRL.
+ *   - `gst_irl_fill` (BL-140) genuinely resolves answers from target evidence
+ *     in context — but the clause's mandatory upgrade path ("call
+ *     `prepare_irl_body` … then `validate_irl_provenance`") instructs the
+ *     model to invoke the sweep tools, a direct contradiction of the fill
+ *     prompt's stop-at-artifact ruling (a human review checkpoint sits
+ *     between fill and ingest by design). The stop-at-artifact contradiction
+ *     alone carries the exclusion; the prompt's own body states the
+ *     evidence-first discipline in its authoring rules.
  *   - `gst_irl_ingestion` PRODUCES the record; telling it to resolve inputs
  *     from an artifact it is writing would be circular.
  */
 const EXPECTED_EXCLUDED = [
   'gst_information_request_list',
+  'gst_irl_fill',
   'gst_irl_ingestion',
   'gst_radar_brief_today',
 ];

@@ -57,7 +57,7 @@ async function fillAndExtract(input: FillIrlXlsxInput) {
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
   const wb = XLSX.read(bytes, { type: 'array' });
   const sheet = wb.Sheets['Information Request List'];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as (string | number)[][];
   return { payload, extraction: extractIrlMarkdownFromRows(rows) };
 }
 

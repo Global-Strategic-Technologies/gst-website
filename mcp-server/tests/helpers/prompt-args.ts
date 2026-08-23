@@ -40,6 +40,10 @@ export const MINIMAL_PROMPT_ARGS: Record<string, Record<string, unknown>> = {
   gst_radar_brief_today: {},
   gst_diligence_handoff_memo: { targetName: 'Acme' },
   gst_information_request_list: { targetName: 'Acme' },
+  // Selects the one-shot branch (any arg does), matching the sibling — the
+  // registry sweeps and >200-char render assertions must exercise the
+  // substantive branch, not the interactive stub.
+  gst_irl_fill: { targetName: 'Acme' },
   gst_irl_ingestion: { targetName: 'Acme', mode: 'extract-only' },
 };
 
