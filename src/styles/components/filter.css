@@ -225,7 +225,7 @@ Filter Drawer — the production instance on /ma-portfolio
 static specimen carrying only the base class, which must keep its desktop
 appearance and must never be hidden (it has no `.open` to restore it).
 
-Deliberately no responsive rules here. BL-137 found ~270 lines of drawer CSS in
+Deliberately no responsive rules here. BL-139 found ~270 lines of drawer CSS in
 PortfolioHeader.astro and StickyControls.astro, neither of which renders the
 drawer, so Astro's scope attribute never matched and none of it had ever
 applied — including a full-width sheet at <=768px and a bottom sheet at <=480px.

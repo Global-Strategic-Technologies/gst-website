@@ -119,7 +119,7 @@ test.describe('Filter Drawer Background Scroll - MA Portfolio Page', () => {
  *     close the flexbox min-height trap so chips can't leak below.
  *
  * FOOTER_GAP_PX, readRects and waitForDrawerGap live in ./helpers/portfolio so
- * the BL-137 narrow-width tests can use the same rAF-settle wait instead of
+ * the BL-139 narrow-width tests can use the same rAF-settle wait instead of
  * hand-rolling a second one.
  */
 test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
@@ -225,7 +225,7 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
 
   test('drawer keeps its gap above the footer at phone width too', async ({ page }) => {
     // A phone viewport, not a different drawer: the panel is the same 350px
-    // side panel at every width (BL-137). What this covers is the short
+    // side panel at every width (BL-139). What this covers is the short
     // viewport, where the footer occupies proportionally more of the screen and
     // the clearance the listener computes is correspondingly larger. The
     // viewport is set before navigation so the first render is the measured one.

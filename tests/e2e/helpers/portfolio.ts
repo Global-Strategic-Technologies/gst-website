@@ -17,7 +17,7 @@ export const FOOTER_GAP_PX = 16;
  * waits for the drawer's CSS `right` property to settle (transition end).
  *
  * Two properties this relies on, stated because both are load-bearing and
- * neither is obvious from the assertion (BL-137):
+ * neither is obvious from the assertion (BL-139):
  *
  * - **`right` is the property the drawer animates.** Open is `right: 0` and
  *   closed is `-400px`, at every width. A future switch to `transform` would

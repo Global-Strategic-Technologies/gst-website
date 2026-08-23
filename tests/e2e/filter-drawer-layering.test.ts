@@ -210,9 +210,9 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
 });
 
 /**
- * BL-137 — what the drawer must keep doing at narrow widths.
+ * BL-139 — what the drawer must keep doing at narrow widths.
  *
- * BL-137 found ~270 lines of drawer CSS in two components that don't render the
+ * BL-139 found ~270 lines of drawer CSS in two components that don't render the
  * drawer, so Astro's scoping meant none of it applied — including a full-width
  * sheet at ≤768px and a bottom sheet at ≤480px. Rendered for the first time,
  * those turned out to be worse than the 350px side panel that has always
@@ -222,7 +222,7 @@ test.describe('Filter Drawer Z-Index & Layering - MA Portfolio Page', () => {
  * These tests hold that line. The width assertion is not decoration — it is the
  * decision, written where reintroducing the sheet would trip over it.
  */
-test.describe('Filter Drawer at narrow widths (BL-137)', () => {
+test.describe('Filter Drawer at narrow widths (BL-139)', () => {
   test.use({ viewport: { width: 375, height: 700 } });
 
   test.beforeEach(async ({ page }) => {
@@ -255,7 +255,7 @@ test.describe('Filter Drawer at narrow widths (BL-137)', () => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await waitForDrawerGap(page);
 
-    // Geometry cannot see stacking. An earlier revision of BL-137 moved the
+    // Geometry cannot see stacking. An earlier revision of BL-139 moved the
     // drawer's top edge to y=12 and passed every rect assertion while the site
     // header covered the close button completely — `main` is a stacking context
     // (`position: relative; z-index: 1` in global.css), so no z-index the drawer

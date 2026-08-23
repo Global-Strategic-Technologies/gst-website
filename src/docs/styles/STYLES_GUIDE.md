@@ -212,7 +212,7 @@ This is not the `/brand` replica drift documented above, and `:global()` is not 
 also **not** caught by an orphan-class scan, because the class does exist and does have rules —
 they just carry a cid the element will never have.
 
-**Worked example (BL-137).** `.portfolio-filter-drawer`'s entire mobile treatment — roughly 270
+**Worked example (BL-139).** `.portfolio-filter-drawer`'s entire mobile treatment — roughly 270
 lines across `PortfolioHeader.astro` and `StickyControls.astro` — targeted an element rendered by
 `FilterDrawer.astro`. None of it had ever applied: at 375px the drawer computed
 `width: 350px; border-left: 2px` — the desktop side panel — on a route that had shipped a "mobile
@@ -228,14 +228,14 @@ recorded a move whose declarations were left behind.
    above.
 
 **But first ask whether the rule should apply at all.** Dead CSS has usually been dead for a
-long time, and nobody has been missing it. BL-137's rules turned out to be the wrong design once
+long time, and nobody has been missing it. BL-139's rules turned out to be the wrong design once
 rendered — full-bleed, the drawer covered the page header and the control that opened it — so
 they were **deleted, not relocated**. Reviving a rule is a product decision wearing a bug's
 clothing: render it before you assume the original author was right.
 
 **Prove it with a rendered measurement, not a reading.** Authored CSS looks identical whether it
 applies or not, so the only evidence that a relocation worked is a computed style from a real
-browser. That is why the BL-137 tests assert `getComputedStyle` values at each breakpoint.
+browser. That is why the BL-139 tests assert `getComputedStyle` values at each breakpoint.
 
 **Check the browserslist floor before reaching for a newer CSS feature.** `package.json` declares
 `Safari >= 14`, and LightningCSS down-levels *some* constructs (`light-dark()`) while emitting
