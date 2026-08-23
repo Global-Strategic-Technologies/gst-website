@@ -25,7 +25,7 @@
  */
 
 import { Redis } from '@upstash/redis';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /** Per-call overrides for {@link createMcpClient}. */
 export interface McpClientOptions {

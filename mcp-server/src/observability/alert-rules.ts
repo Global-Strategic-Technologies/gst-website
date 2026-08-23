@@ -30,7 +30,7 @@
 import { readInoreaderSpend, ZONE1_DAILY_HARD_CAP } from '../lib/inoreader-egress';
 import { buildHealthPayload, probeRadarSnapshotAge } from './health';
 import { createMcpClient } from '../lib/upstash-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 // ─── Thresholds (signed-off slo-baselines.md values, 2026-07-14) ────────
 

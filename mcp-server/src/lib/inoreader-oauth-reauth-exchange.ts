@@ -21,7 +21,7 @@
  */
 
 import { recordInoreaderEgress } from './inoreader-egress';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const OAUTH_TOKEN_URL = 'https://www.inoreader.com/oauth2/token';
 const TOKEN_FETCH_TIMEOUT_MS = 8_000;

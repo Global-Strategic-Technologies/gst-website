@@ -32,6 +32,22 @@
  * while the `agents` handler takes `'stateless' | 'reject'`.
  */
 
+// Default import — `@types/node/process.d.ts` is `export = process`.
+//
+// The explicit `NodeJS.Process` annotation is NOT decoration, and removing it
+// silently breaks the file. `export = process` in `@types/node` exports the
+// GLOBAL `var process` binding, and workers-types' global script redeclares
+// that same name as `declare const process: any` — so the import resolves to
+// `any`, and importing from `node:process` does not on its own recover the
+// types. Measured, not assumed (BL-137 / ADR-0020).
+//
+// With `process` as `any`, `process.exit(1)` returns `any` instead of `never`,
+// the catch block below stops being unreachable-after, and the factory's
+// inferred return type widens to `McpServer | undefined` — which fails to
+// satisfy `McpServerFactory`. The annotation restores it: `NodeJS.Process` is
+// a namespaced TYPE, so the global `const` cannot shadow it.
+import nodeProcess from 'node:process';
+const process: NodeJS.Process = nodeProcess;
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { createServer } from './server';
 import { registerLocalOnlyTools } from './tools/_local-only';

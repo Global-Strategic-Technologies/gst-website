@@ -38,7 +38,7 @@ import {
   type M2mJwk,
 } from '../oauth/m2m-clients';
 import { ASSIGNABLE_TIERS, isAssignableTier } from '../ratelimit/tiers';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 type EnvWithHelpers = Env & { OAUTH_PROVIDER: OAuthHelpers };
 

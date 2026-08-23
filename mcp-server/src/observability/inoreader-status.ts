@@ -35,7 +35,7 @@
  */
 
 import { createMcpClient } from '../lib/upstash-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 const STATUS_KEY = 'mcp:inoreader:last-status';
 

@@ -22,6 +22,7 @@
  * commit. This is SDK-free (owns its own Sentry-envelope lifecycle; the fetch
  * handler's `withSentry` does not wrap `queue`).
  */
+import type { ExecutionContext, MessageBatch } from '@cloudflare/workers-types';
 import { createMcpClient } from '../lib/upstash-clients';
 import { acquire, release } from '../lib/single-flight-lock';
 import { safeLog } from '../auth/safe-logger';
@@ -34,7 +35,7 @@ import {
   type AuditEntry,
   type ChainedAuditEntry,
 } from './entry';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /** Chain tip — highest committed seq + its hash. */
 interface ChainTip {

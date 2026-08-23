@@ -33,7 +33,7 @@ import type { AuthSuccess } from '../auth/bearer';
 import { hasScope } from '../auth/scopes';
 import { safeLog } from '../auth/safe-logger';
 import { getM2mClient, keyOwnerFor, verifyM2mSecret, type M2mJwk } from './m2m-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 export const M2M_TOKEN_PREFIX = 'mcp_m2m_';
 export const M2M_TOKEN_TTL_S = 3600;

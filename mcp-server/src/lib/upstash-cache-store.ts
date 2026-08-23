@@ -19,7 +19,8 @@
 
 import { safeLog } from '../auth/safe-logger';
 import { createMcpClient } from './upstash-clients';
-import type { Env } from '../worker';
+import { utf8ByteLength } from './utf8-bytes';
+import type { Env } from '../env';
 
 /** Cache entry shape stored in Upstash. */
 interface Entry<T> {
@@ -78,7 +79,7 @@ export function createCacheStore(
       try {
         const entry: Entry<T> = { storedAt: Date.now(), data: value };
         const serialized = JSON.stringify(entry);
-        serializedByteLength = Buffer.byteLength(serialized, 'utf8');
+        serializedByteLength = utf8ByteLength(serialized);
         await redis.set(key, serialized, { ex: ttlSeconds });
         return true;
       } catch (err) {

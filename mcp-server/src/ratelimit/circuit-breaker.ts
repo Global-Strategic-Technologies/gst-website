@@ -31,7 +31,7 @@
  */
 
 import { createMcpClient } from '../lib/upstash-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /** The Upstash key holding the circuit state (lives in the MCP DB). */
 const CIRCUIT_KEY = 'mcp:radar:circuit-open';

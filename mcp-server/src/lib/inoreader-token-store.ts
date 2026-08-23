@@ -22,7 +22,7 @@
  */
 
 import { createMcpClient } from './upstash-clients';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /**
  * MCP DB key holding the Worker-written access token.

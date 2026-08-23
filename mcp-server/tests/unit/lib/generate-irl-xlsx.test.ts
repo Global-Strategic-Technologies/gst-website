@@ -32,6 +32,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * side strips style metadata back to a partial shape (`{ patternType:
  * 'none' }` only). Inspecting the file bytes is the only reliable test.
  */
+// `ignoreBOM: true` keeps byte-for-byte parity with the `Buffer#toString('utf8')`
+// this replaced. The TextDecoder default is `false`, which STRIPS a leading
+// U+FEFF — a silent behaviour change in a helper that was only swapped for type
+// reasons. No current fixture has a BOM; the flag keeps it that way by choice.
+const UTF8 = new TextDecoder('utf-8', { ignoreBOM: true });
+
 function extractZipEntry(xlsxBuf: Uint8Array, targetName: string): string | null {
   const buf = Buffer.from(xlsxBuf);
   let off = 0;
@@ -41,11 +47,16 @@ function extractZipEntry(xlsxBuf: Uint8Array, targetName: string): string | null
       const compSize = buf.readUInt32LE(off + 18);
       const nameLen = buf.readUInt16LE(off + 26);
       const extraLen = buf.readUInt16LE(off + 28);
-      const name = buf.slice(off + 30, off + 30 + nameLen).toString('utf8');
+      // `TextDecoder`, not `Buffer#toString('utf8')`. Under workers-types'
+      // global script (loaded program-wide by worker.ts's reference directive)
+      // the global `interface Buffer` loses its instance-method overloads, so
+      // `.toString('utf8')` is a TS2554 on anything carrying a REAL Buffer type
+      // — such as `inflateRawSync`'s return. See ADR-0020.
+      const name = UTF8.decode(buf.slice(off + 30, off + 30 + nameLen));
       const dataStart = off + 30 + nameLen + extraLen;
       if (name === targetName) {
         const data = buf.slice(dataStart, dataStart + compSize);
-        return compMethod === 0 ? data.toString('utf8') : inflateRawSync(data).toString('utf8');
+        return UTF8.decode(compMethod === 0 ? data : inflateRawSync(data));
       }
       off = dataStart + compSize;
     } else {

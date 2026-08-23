@@ -15,7 +15,7 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import { LIBRARY_ENTRIES, loadLibraryByUri } from '../content/library-loader';
 import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
 import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 export function registerLibraryResources(
   server: McpServer,

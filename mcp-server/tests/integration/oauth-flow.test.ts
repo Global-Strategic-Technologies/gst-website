@@ -14,6 +14,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { Buffer } from 'node:buffer';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
 import { createHash, randomBytes } from 'node:crypto';
 
@@ -25,8 +26,13 @@ let worker: Unstable_DevWorker;
 let clientId: string;
 let clientSecret: string;
 
-function b64url(buf: Buffer): string {
-  return buf.toString('base64url');
+// Parameter typed `Uint8Array`, not `Buffer`: importing `Buffer` fixes the
+// VALUE position but a bare `Buffer` in TYPE position is still banned (see
+// eslint.config.mjs — `no-restricted-globals` skips type positions by design,
+// so a second `no-restricted-syntax` rule covers them). `Buffer` IS a
+// `Uint8Array`, so every caller here type-checks unchanged.
+function b64url(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString('base64url');
 }
 
 const codeVerifier = b64url(randomBytes(32));

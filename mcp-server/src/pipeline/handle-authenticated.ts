@@ -19,6 +19,7 @@
 // Object / RPC / event-store surface including the now-`@deprecated`,
 // feature-frozen `McpAgent`. `agents/mcp/server` exports only the stateless
 // handler and is the target Cloudflare's own deprecation notice names.
+import type { ExecutionContext } from '@cloudflare/workers-types';
 import { createMcpHandler } from 'agents/mcp/server';
 import { createServer } from '../server';
 import type { AuthSuccess } from '../auth/bearer';
@@ -47,7 +48,7 @@ import {
 } from '../content/radar-live-store';
 import { isCircuitOpen } from '../ratelimit/circuit-breaker';
 import { handleInoreaderFailure } from '../lib/inoreader-failure-handler';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 export async function handleAuthenticated(
   request: Request,

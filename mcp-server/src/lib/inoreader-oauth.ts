@@ -61,7 +61,7 @@ import {
   clearPreviousToken,
   getPreviousToken,
 } from './inoreader-oauth-grace-cache';
-import type { Env } from '../worker';
+import type { Env } from '../env';
 
 /** Inoreader OAuth token-refresh endpoint. */
 const OAUTH_TOKEN_URL = 'https://www.inoreader.com/oauth2/token';
