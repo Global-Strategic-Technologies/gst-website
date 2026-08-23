@@ -219,7 +219,11 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // runScenario selection rule. Body-only on one prompt; no argument, tool or URI
 // shape changed, and NO orchestrates array moved — which this hash would not
 // have seen either way (it covers name@version and resource URIs only).
-const EXPECTED_MANIFEST_HASH = '8b330a3c6761031068fe684e95b2045485f615b02bad9d2ac822f65bd9b3afc7';
+// BL-140 (server 0.59.0, 2026-08-23): gst_irl_fill@0.1.0 ADDED — the first new
+// prompt tuple since the manifest was baselined at nine. No URI moved; the
+// companion tool addition (fill_information_request_list_xlsx) is invisible to
+// this hash by design (tools are guarded by protocol-roundtrip's exact list).
+const EXPECTED_MANIFEST_HASH = '62d84be1f8c3a4c992dcc5306fe760f7a7f3784c911338fe0e8c19b97cc88c12';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

@@ -461,6 +461,37 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ## Infrastructure
 
+### BL-141: A Hub surface that can deliver a populated IRL workbook
+
+**Source**: BL-140 user ruling, 2026-08-23 — v1 of `fill_information_request_list_xlsx` delivers base64-only, and the ruling that accepted it also filed this follow-up | **Effort**: Medium | **Status**: Candidate — no committed consumer yet
+
+**As a** GST partner who just produced a populated IRL via `gst_irl_fill`, **I want** a one-click download surface for it, **so that** delivery does not depend on the invoking client's ability to write a base64 payload to disk.
+
+**Why it does not exist yet.** The Hub generator page (`/hub/tools/information-request-list-generator/`) reconstructs _blank_ workbooks client-side from URL args — a populated workbook's `fills` cannot ride a deeplink the same way (hundreds of prose cells vs a handful of scoping params), so the frozen tool's `downloadUrl` pattern would hand the operator the wrong artifact. BL-140 therefore deliberately omitted `downloadUrl` from the fill tool's payload, and the residual is documented in [`irl-fill/CONTRACT.md`](../../../mcp-server/src/docs/tools/irl-fill/CONTRACT.md) § Accepted residuals. Note BL-046 (inline MCP file delivery, candidate) covers the same gap from the client side — if Claude Desktop ships arbitrary-mimeType attachment rendering, this stanza may be moot; evaluate both before building either.
+
+#### Triggers to promote
+
+- An operator reports the base64-only path as real friction in a live engagement (not hypothesized friction)
+- BL-046's Path C resolves (Desktop renders attachments) — then CLOSE this as moot rather than building it
+- A second populated-artifact producer appears on the surface, making a general delivery mechanism worth owning
+
+### BL-142: Full-carriage rebuild — a MIXED workbook (target-returned + GST top-up) through the fill tool
+
+**Source**: BL-140 user ruling, 2026-08-23 — v1 scope is answers-from-scratch only; the mixed case was deliberately deferred | **Effort**: Medium — the schema change is additive; attribution granularity is the actual work | **Status**: Candidate
+
+**As a** GST partner holding a workbook the target _partially_ returned, **I want** to top it up from evidence I hold, **so that** one artifact carries both the target's answers and GST's sourced fills.
+
+**What v1 deliberately does not do.** `fill_information_request_list_xlsx` accepts only `{ ref, fileLocation, comments }` per fill — no partner-content carriage. Nothing on the surface edits an existing `.xlsx` (the server never holds one), so a mixed artifact can only be produced by rebuild-with-carriage: additive optional `response` (G), `status` (C), and `notes` (F) fields on the same `fills` entries, letting the model reproduce the partner's rows while adding GST's. The v1 schema was shaped so this is additive — no breaking change.
+
+**The inherited acceptance criterion, quoted verbatim from BL-140 so it survives the prune** (BL-140 AC, BACKLOG as of 2026-08-23): _"Re-running the fill over an already-sourced IRL changes nothing, and running it over a partially populated one extends without overwriting."_ The first clause shipped in BL-140 (union re-runs over fill-produced IRLs are content-idempotent, conformance test C6); the second clause's **target-returned partially-populated** case is what this stanza owes — v1's union re-run covers only workbooks the fill itself produced.
+
+**The open design problem is attribution, not plumbing.** Carrying a partner's G alongside a GST-extended E puts partner-authored and GST-derived text in one answer span over a single D cell — the granularity question BL-140 settled as "per-row floor" for the scratch-only case explicitly does NOT extend to the mixed case (see [ADR-0021](../adr/0021-irl-fill-d-cell-sourcing-grammar.md) § 3). The manual UAT-07 token `[pre-populated, not recipient-confirmed]` and the D-cell multi-segment grammar are the available raw material. Also decide: whether a carried partner row with D-only (source, no answer) is representable — v1's D-requires-E pairing forbids the fill from _creating_ such rows, but a partner-returned one is legitimate frozen-path input.
+
+#### Triggers to promote
+
+- A live engagement produces a partially-returned workbook the operator wants topped up (the BL-140 stanza's "mixed workbook" scenario occurring in practice)
+- The attribution-granularity question gets an operator ruling
+
 ### BL-136: A production advisory sat red for three days because nothing is watching the audit job
 
 **Source**: post-merge check of PR #427, 2026-08-17 | **Effort**: Small | **Status**: Recorded — **the symptom is fixed, the detection gap is not**

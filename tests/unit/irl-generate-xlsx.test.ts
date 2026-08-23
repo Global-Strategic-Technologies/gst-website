@@ -16,13 +16,17 @@
  * mechanics) are exercised only through the public surface.
  */
 
+import { createHash } from 'node:crypto';
+
 import * as XLSX from 'xlsx-js-style';
 import { unzipSync, strFromU8 } from 'fflate';
 
 import {
   buildIrlFilename,
+  enumerateWorkbookRefs,
   generateIrlXlsxBuffer,
   IRL_XLSX_MIME_TYPE,
+  type IRLRowPrefill,
   type IRLXlsxMetadata,
   type IRLTransactionContext,
 } from '../../src/utils/irl/generate-xlsx';
@@ -354,6 +358,240 @@ describe('generateIrlXlsxBuffer — header + cell content', () => {
     expect(values).toContain('0-04');
     expect(values).toContain('0-05');
     expect(values).not.toContain('0-03'); // the gap signals deliberate omission
+  });
+});
+
+// ─── BL-140 — byte-identity golden for the frozen generation path ────────────
+//
+// BL-140 adds an additive optional prefill parameter to generateIrlXlsxBuffer
+// (a new tool populates D/E at build time). The operator ruling freezes the
+// existing path: the no-prefill output must stay byte-identical. This golden
+// was captured from the PRE-CHANGE builder (commit 1 of the BL-140 branch,
+// before the parameter existed) so the identity is machine-checked inside the
+// PR's own history.
+//
+// The golden is ENTRY-level — sha256 over the unzipped entries (sorted names +
+// content bytes) — not a whole-buffer hash, deliberately: fflate's zipSync
+// stamps the current wall-clock into every zip entry's DOS mtime using
+// LOCAL-time getters, so whole-buffer bytes vary with both clock and timezone
+// (CI is UTC; dev machines are not). No entry CONTENT depends on the clock —
+// xlsx-js-style writes docProps/core.xml without dcterms timestamps, and the
+// only date in the workbook comes from metadata.generatedAt, fixed here via
+// FIXED_DATE. "Byte-identical output" for the BL-140 AC means exactly this:
+// every byte the builder writes, minus the container's wall-clock mtime stamp.
+describe('BL-140 — frozen-path byte-identity golden', () => {
+  /** sha256 over the workbook's unzipped entries: sorted names + content bytes. */
+  function entryLevelSha256(buf: Uint8Array): string {
+    const entries = unzipSync(buf);
+    const hash = createHash('sha256');
+    for (const name of Object.keys(entries).sort()) {
+      hash.update(name);
+      hash.update(Uint8Array.of(0));
+      hash.update(entries[name]);
+      hash.update(Uint8Array.of(0));
+    }
+    return hash.digest('hex');
+  }
+
+  // Captured 2026-08-23 from the pre-change builder with FIXTURE_ARTICLE +
+  // FIXTURE_METADATA (FIXED_DATE). If this test fails after a builder change,
+  // the frozen generation path's output moved — that is a BL-140 freeze
+  // violation unless the change is a deliberate, reviewed regeneration.
+  const FROZEN_PATH_GOLDEN = '4f22683207993a02eda724195f4bbd553311b668661b228e21cf6b3c690f924a';
+
+  it('reproduces the pre-change entry-level golden for the no-prefill call', () => {
+    const buf = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA);
+    expect(entryLevelSha256(buf)).toBe(FROZEN_PATH_GOLDEN);
+  });
+
+  it('reproduces the golden with prefill explicitly undefined', () => {
+    const buf = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA, undefined);
+    expect(entryLevelSha256(buf)).toBe(FROZEN_PATH_GOLDEN);
+  });
+
+  it('reproduces the golden with an EMPTY prefill map (legal caller value)', () => {
+    const buf = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA, new Map());
+    expect(entryLevelSha256(buf)).toBe(FROZEN_PATH_GOLDEN);
+  });
+
+  it('is deterministic with prefill: two identical calls produce identical entries (T4)', () => {
+    const prefill = new Map<string, IRLRowPrefill>([
+      ['0-01', { fileLocation: 'VDR/00/entity-chart.pdf, page 1', comments: 'Delaware C-corp.' }],
+    ]);
+    const a = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA, prefill);
+    const b = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA, prefill);
+    expect(entryLevelSha256(a)).toBe(entryLevelSha256(b));
+    // And the populated workbook is NOT the frozen workbook.
+    expect(entryLevelSha256(a)).not.toBe(FROZEN_PATH_GOLDEN);
+  });
+});
+
+// ─── BL-140 — prefill parameter behavior ─────────────────────────────────────
+
+describe('BL-140 — generateIrlXlsxBuffer prefill', () => {
+  const PREFILL = new Map<string, IRLRowPrefill>([
+    [
+      '0-02',
+      { fileLocation: 'VDR/00/corp-history.pdf, page 2', comments: 'Founded 2014 in Austin.' },
+    ],
+    [
+      '9-03',
+      {
+        fileLocation: '[inferred from cap-table.xlsx + board minutes]',
+        comments: 'Three institutional holders above 5%.',
+      },
+    ],
+  ]);
+
+  function loadPrimarySheet(prefill?: ReadonlyMap<string, IRLRowPrefill>): XLSX.WorkSheet {
+    const buf = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA, prefill);
+    const wb = XLSX.read(buf, { type: 'array' });
+    return wb.Sheets['Information Request List'];
+  }
+
+  /** Row number (1-based, A1-style) of the bullet row whose col A holds `ref`. */
+  function rowOfRef(sheet: XLSX.WorkSheet, ref: string): number {
+    const entry = Object.entries(sheet).find(
+      ([k, cell]) => /^A\d+$/.test(k) && (cell as XLSX.CellObject).v === ref
+    );
+    expect(entry, `ref ${ref} present`).toBeDefined();
+    return Number(entry![0].slice(1));
+  }
+
+  it('writes fileLocation to column D and comments to column E of the targeted rows (T2)', () => {
+    const sheet = loadPrimarySheet(PREFILL);
+    const r1 = rowOfRef(sheet, '0-02');
+    expect(sheet[`D${r1}`]?.v).toBe('VDR/00/corp-history.pdf, page 2');
+    expect(sheet[`E${r1}`]?.v).toBe('Founded 2014 in Austin.');
+    const r2 = rowOfRef(sheet, '9-03');
+    expect(sheet[`D${r2}`]?.v).toBe('[inferred from cap-table.xlsx + board minutes]');
+    expect(sheet[`E${r2}`]?.v).toBe('Three institutional holders above 5%.');
+  });
+
+  it('leaves untargeted rows with ABSENT D/E cells (holes, not empty strings)', () => {
+    const sheet = loadPrimarySheet(PREFILL);
+    const r = rowOfRef(sheet, '0-01');
+    expect(sheet[`D${r}`]).toBeUndefined();
+    expect(sheet[`E${r}`]).toBeUndefined();
+  });
+
+  it("keeps Status pre-filled 'OPEN' on every bullet row, prefilled or not", () => {
+    const sheet = loadPrimarySheet(PREFILL);
+    const openCells = Object.entries(sheet).filter(
+      ([k, cell]) => /^C\d+$/.test(k) && (cell as XLSX.CellObject).v === 'OPEN'
+    );
+    expect(openCells).toHaveLength(6);
+  });
+
+  it('applies wrap + top alignment to prefilled D/E cells only (OOXML-level)', () => {
+    // xlsx-js-style's reader does not reconstruct alignment into cell.s
+    // (probed: read-back .s carries only fill info), so assert on the raw
+    // OOXML like the DV/CF tests do: the styles table gains a wrapText xf
+    // only when prefill is present, and the prefilled cells reference a
+    // non-default style while the frozen output has no wrapText at all.
+    const withPrefill = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA, PREFILL);
+    const prefillEntries = unzipSync(withPrefill);
+    const prefillStyles = strFromU8(prefillEntries['xl/styles.xml']);
+    // xlsx-js-style serializes the boolean as "true" (OOXML accepts true|1).
+    expect(prefillStyles).toContain('<alignment vertical="top" wrapText="true"/>');
+
+    const sheet1 = strFromU8(prefillEntries['xl/worksheets/sheet1.xml']);
+    const sheet = loadPrimarySheet(PREFILL);
+    const r1 = rowOfRef(sheet, '0-02');
+    // Every cell carries a style index; the prefilled D/E pair share one
+    // distinct xf (the wrap style) that the sibling Request cell (B) lacks.
+    const styleIndexOf = (cellRef: string): string => {
+      const m = sheet1.match(new RegExp(`<c r="${cellRef}" s="(\\d+)"`));
+      expect(m, `cell ${cellRef} has a style index`).not.toBeNull();
+      return m![1];
+    };
+    const dStyle = styleIndexOf(`D${r1}`);
+    expect(styleIndexOf(`E${r1}`)).toBe(dStyle);
+    expect(styleIndexOf(`B${r1}`)).not.toBe(dStyle);
+
+    const frozen = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA);
+    const frozenStyles = strFromU8(unzipSync(frozen)['xl/styles.xml']);
+    expect(frozenStyles).not.toContain('wrapText');
+  });
+
+  it('still splices the Status DV/CF post-patch with prefill present', () => {
+    const buf = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA, PREFILL);
+    const entries = unzipSync(buf);
+    const sheet1 = strFromU8(entries['xl/worksheets/sheet1.xml']);
+    expect(sheet1).toContain('<dataValidations');
+    expect(sheet1).toContain('<conditionalFormatting');
+  });
+
+  it('prefills a custom-request row addressed past canonicalBulletCount (T3)', () => {
+    const withCustom: IRLArticle = {
+      title: 'Information Request List',
+      intro: 'Intro.',
+      sections: [
+        {
+          number: '00',
+          title: 'Basics',
+          canonicalBulletCount: 2,
+          bullets: [
+            { text: 'Canonical one.', ordinal: 1 },
+            { text: 'Canonical two.', ordinal: 2 },
+            { text: 'Custom request.', ordinal: 3 },
+          ],
+        },
+      ],
+    };
+    const prefill = new Map<string, IRLRowPrefill>([
+      [
+        '0-03',
+        {
+          fileLocation: 'earnings-call-2026-01-15.pdf, page 7',
+          comments: 'Answered from the call transcript.',
+        },
+      ],
+    ]);
+    const buf = generateIrlXlsxBuffer(withCustom, FIXTURE_METADATA, prefill);
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    const r = rowOfRef(sheet, '0-03');
+    expect(sheet[`D${r}`]?.v).toBe('earnings-call-2026-01-15.pdf, page 7');
+    expect(sheet[`E${r}`]?.v).toBe('Answered from the call transcript.');
+  });
+});
+
+// ─── BL-140 — enumerateWorkbookRefs ──────────────────────────────────────────
+
+describe('BL-140 — enumerateWorkbookRefs', () => {
+  it('returns exactly the refs the workbook renders in column A, in row order', () => {
+    const refs = enumerateWorkbookRefs(FIXTURE_ARTICLE);
+    expect(refs).toEqual(['0-01', '0-02', '1-01', '9-01', '9-02', '9-03']);
+    // Column-A parity: the built sheet renders the same set.
+    const buf = generateIrlXlsxBuffer(FIXTURE_ARTICLE, FIXTURE_METADATA);
+    const wb = XLSX.read(buf, { type: 'array' });
+    const sheet = wb.Sheets['Information Request List'];
+    const rendered = Object.entries(sheet)
+      .filter(([k]) => /^A\d+$/.test(k))
+      .map(([, cell]) => (cell as XLSX.CellObject).v)
+      .filter((v): v is string => typeof v === 'string' && /^\d{1,2}-\d{2}$/.test(v));
+    expect(rendered).toEqual(refs);
+  });
+
+  it('honors authored ordinals (gaps preserved) exactly as the sheet does', () => {
+    const gapped: IRLArticle = {
+      title: 'T',
+      intro: 'I.',
+      sections: [
+        {
+          number: '02',
+          title: 'S',
+          canonicalBulletCount: 5,
+          bullets: [
+            { text: 'a', ordinal: 1 },
+            { text: 'b', ordinal: 2 },
+            { text: 'd', ordinal: 4 },
+          ],
+        },
+      ],
+    };
+    expect(enumerateWorkbookRefs(gapped)).toEqual(['2-01', '2-02', '2-04']);
   });
 });
 

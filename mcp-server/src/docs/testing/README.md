@@ -11,7 +11,7 @@ The two do not overlap. A green Vitest run says the handlers behave; it says not
 
 ## Automated suite
 
-Vitest suite for the `@gst/mcp-server` workspace. Proves engine parity and schema integrity for the tools exposed over the MCP transports — **17 tools** as of 0.47.0 (15 on the Worker, plus `search_radar_offline` and `search_radar_cache` registered only on stdio). `protocol-roundtrip.test.ts` holds the authoritative name list; this line named three of them and had done so for many releases (corrected under BL-112).
+Vitest suite for the `@gst/mcp-server` workspace. Proves engine parity and schema integrity for the tools exposed over the MCP transports — **18 tools** as of 0.59.0 (16 on the Worker, plus `search_radar_offline` and `search_radar_cache` registered only on stdio). `protocol-roundtrip.test.ts` holds the authoritative name list; this line named three of them and had done so for many releases (corrected under BL-112).
 
 Two suites are worth knowing about before adding a tool, because both fail when a new tool ignores them:
 

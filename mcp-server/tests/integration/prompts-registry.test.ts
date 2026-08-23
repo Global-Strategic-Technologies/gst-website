@@ -34,6 +34,8 @@ const KNOWN_TOOL_NAMES = new Set([
   'search_radar',
   // BL-044 — fillable-form (.xlsx) generator orchestrated by gst_information_request_list v0.0.2+.
   'generate_information_request_list_xlsx',
+  // BL-140 — evidence-populated IRL builder orchestrated by gst_irl_fill.
+  'fill_information_request_list_xlsx',
   // BL-045 PR B Phase 2B — residual-fabrication guard.
   'validate_irl_provenance',
   // BL-045 PR B post-audit forcing-function tightening — mandatory dossier envelope (meta fence + (J) + (K)).

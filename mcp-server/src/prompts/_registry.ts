@@ -32,6 +32,7 @@ import { diligenceHandoffMemoPrompt } from './diligence-handoff-memo';
 import { architectureLayerReviewPrompt } from './architecture-layer-review';
 import { radarBriefTodayPrompt } from './radar-brief-today';
 import { informationRequestListPrompt } from './information-request-list';
+import { irlFillPrompt } from './irl-fill';
 import { irlIngestionPrompt } from './irl-ingestion';
 
 /** Frozen list of every prompt the server registers. */
@@ -45,6 +46,7 @@ export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
   architectureLayerReviewPrompt,
   radarBriefTodayPrompt,
   informationRequestListPrompt,
+  irlFillPrompt,
   irlIngestionPrompt,
 ];
 

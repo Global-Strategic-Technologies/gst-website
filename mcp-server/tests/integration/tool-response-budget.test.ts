@@ -547,7 +547,26 @@ const BUDGETS: Record<string, ToolBudget> = {
     args: { articleUri: 'gst://library/vdr-structure' },
     textOmit: ['base64'],
     budget: { kind: 'absolute', minEnvelopeBytes: 16500, maxEnvelopeBytes: 25_000 },
-    note: 'The ONLY channel-asymmetric tool: its ~17 KB base64 workbook rides in structuredContent but is omitted from the text channel via toolOk textOmit, so the envelope is ~payload + 17 KB rather than ~2x. That asymmetry is why the shared helper needed a real exemption parameter instead of a comment saying this tool is not routed through it.',
+    note: 'The FIRST of two channel-asymmetric tools (its BL-140 fill sibling below is the second, by the same design): its ~17 KB base64 workbook rides in structuredContent but is omitted from the text channel via toolOk textOmit, so the envelope is ~payload + 17 KB rather than ~2x. That asymmetry is why the shared helper needed a real exemption parameter instead of a comment saying this tool is not routed through it.',
+  },
+  fill_information_request_list_xlsx: {
+    args: {
+      fills: [
+        {
+          ref: '0-01',
+          fileLocation: 'VDR/00/entity-chart.pdf, page 1',
+          comments: 'Delaware C-corp, single-entity structure.',
+        },
+        {
+          ref: '1-01',
+          fileLocation: '[inferred from product-overview.pdf + demo session]',
+          comments: 'Single SaaS surface, multi-tenant, browser-only.',
+        },
+      ],
+    },
+    textOmit: ['base64'],
+    budget: { kind: 'absolute', minEnvelopeBytes: 16500, maxEnvelopeBytes: 26_000 },
+    note: 'BL-140: the SECOND channel-asymmetric tool, by design — same textOmit rationale as its generator sibling (the base64 workbook rides in structuredContent only). Envelope ≈ sibling + the fills written into D/E plus filledRefs. Bounds budget this two-fill fixture; the caps-saturated worst case measured 25,043 bytes on 2026-08-23 (every row × max-length cells) and is pinned by the "caps-saturated envelope" test in tests/unit/tools/fill-information-request-list-xlsx.test.ts — cell text DEFLATEs inside the workbook, so the envelope grows far slower than the raw ~460 KB of cell text would suggest and stays far under the BL-109 client-ceiling observation.',
   },
   prepare_irl_body: {
     args: { filledIrl: SAMPLE_IRL },
@@ -767,11 +786,11 @@ describe('tool response budgets (BL-112)', () => {
    * The coverage rule: every REGISTERED tool must have a budget entry.
    *
    * Enumerated from a live `tools/list` rather than by reading `src/tools/*.ts`,
-   * because 13 modules register 17 tools and the name literal sits on the line
+   * because 14 modules register 18 tools and the name literal sits on the line
    * after `registerTool(` opens — a source scan keyed by filename would silently
    * miss the second tool in a two-tool module, which is the drift this rule exists
    * to prevent. It is enumerated against the **stdio** surface deliberately: the
-   * Worker registers 15, and the two stdio-only radar tools would escape.
+   * Worker registers 16, and the two stdio-only radar tools would escape.
    *
    * `protocol-roundtrip.test.ts` remains authoritative for *which tools exist*;
    * this is authoritative for *which tools have a size decision*.

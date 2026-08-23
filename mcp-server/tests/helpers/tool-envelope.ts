@@ -49,10 +49,11 @@ export interface EnvelopeOptions {
    * Payload keys the tool deliberately omits from the text channel via `toolOk`'s
    * `textOmit`, making the two channels legitimately asymmetric.
    *
-   * Exactly one tool does this today — `generate_information_request_list_xlsx`,
-   * whose ~17 KB base64 workbook would otherwise be billed to the model channel for
-   * no benefit. Without this parameter the equality check below hard-fails on it,
-   * which is why the helper previously carried a comment saying that tool "is not
+   * Two tools do this today — `generate_information_request_list_xlsx` and (since
+   * BL-140, by the same design) `fill_information_request_list_xlsx` — whose ~17 KB
+   * base64 workbooks would otherwise be billed to the model channel for no benefit.
+   * Without this parameter the equality check below hard-fails on them, which is
+   * why the helper previously carried a comment saying the generator "is not
    * routed through this helper". The budget guard routes EVERY tool through it, so
    * the exemption has to be expressible rather than described.
    */
