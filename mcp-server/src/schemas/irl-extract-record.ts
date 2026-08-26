@@ -173,6 +173,17 @@ export const IRL_EXTRACT_EXCERPT_MIN_CHARS = 20;
 /** Schema version of the record document itself, carried in `_meta.recordVersion`. */
 export const IRL_EXTRACT_RECORD_VERSION = '1.0';
 
+/**
+ * The v2 record version (trust-the-operator rebuild). v2 drops the
+ * provenance `_meta` fields — `irlBodyHash`, `irlSource`,
+ * `generatedAtSource` — and keeps the self-describing ones: a travelling
+ * artifact still dates and versions itself (`generatedAt`, `promptVersion`),
+ * and still names its interpretation keys (`refFormat`, `excerptCapChars`,
+ * `coverage`). Produced by `gst_irl_sweep`'s extract-only mode; v1 remains
+ * produced by `gst_irl_ingestion` during the coexistence window.
+ */
+export const IRL_EXTRACT_RECORD_VERSION_V2 = '2.0';
+
 /** The `_meta.refFormat` literal. Names the ref vocabulary so `00-03` is not mistaken for it. */
 export const IRL_EXTRACT_REF_FORMAT = 'workbook-reference';
 
@@ -364,63 +375,110 @@ export const IrlExtractRecordMetaSchema = z.object({
 
 export type IrlExtractRecordMeta = z.infer<typeof IrlExtractRecordMetaSchema>;
 
+// ─── _meta v2 (trust-the-operator: no provenance fields) ──────────────────
+
+export const IrlExtractRecordMetaV2Schema = z.object({
+  recordVersion: z
+    .literal(IRL_EXTRACT_RECORD_VERSION_V2)
+    .describe('Schema version of this record document.'),
+  refFormat: IrlExtractRecordMetaSchema.shape.refFormat,
+  generatedAt: z
+    .string()
+    .datetime()
+    .describe(
+      'ISO-8601 timestamp of extraction, from your own clock. A travelling artifact must date itself: no server-side copy exists to date it later.'
+    ),
+  promptVersion: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/, 'promptVersion is the semver stated in the Run parameters block.')
+    .describe(
+      "The producing prompt's version (`gst_irl_sweep`), copied from the Run parameters block — not re-derived."
+    ),
+  excerptCapChars: IrlExtractRecordMetaSchema.shape.excerptCapChars,
+  coverage: IrlExtractRecordMetaSchema.shape.coverage,
+});
+
+export type IrlExtractRecordMetaV2 = z.infer<typeof IrlExtractRecordMetaV2Schema>;
+
 // ─── Record ────────────────────────────────────────────────────────────────
+
+/**
+ * Cross-record checks shared by v1 and v2 — the coverage identity, the
+ * duplicate-ref guard, and the excerpt-cap discipline are properties of the
+ * `facts` array + `coverage`/`excerptCapChars`, which both versions carry.
+ */
+function runRecordCrossChecks(
+  record: {
+    _meta: { coverage: { answered: number; rowsPresent: number }; excerptCapChars: number };
+    facts: IrlExtractFact[];
+  },
+  ctx: z.RefinementCtx
+): void {
+  if (record.facts.length !== record._meta.coverage.answered) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['_meta', 'coverage', 'answered'],
+      message: `coverage.answered (${record._meta.coverage.answered}) must equal facts.length (${record.facts.length}). The coverage claim and the fact list are the same set counted twice; a divergence means one of them is asserted rather than counted.`,
+    });
+  }
+  if (record._meta.coverage.answered > record._meta.coverage.rowsPresent) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['_meta', 'coverage'],
+      message: `coverage.answered (${record._meta.coverage.answered}) exceeds coverage.rowsPresent (${record._meta.coverage.rowsPresent}) — more rows answered than the workbook contains.`,
+    });
+  }
+  const seen = new Map<string, number>();
+  record.facts.forEach((fact, index) => {
+    const first = seen.get(fact.ref);
+    if (first !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['facts', index, 'ref'],
+        message: `duplicate ref "${fact.ref}" (first seen at facts[${first}]). One workbook row is one fact; a repeated ref means two facts claim the same anchor and a consumer cannot tell which the target actually said.`,
+      });
+    } else {
+      seen.set(fact.ref, index);
+    }
+    if (fact.excerpt.length > record._meta.excerptCapChars + 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['facts', index, 'excerpt'],
+        message: `excerpt is ${fact.excerpt.length} characters, past this record's declared cap of ${record._meta.excerptCapChars}.`,
+      });
+    }
+    // Half the cap, not the cap itself: word-boundary truncation legitimately
+    // backs up by one word, so an exact-cap check would reject the very
+    // behaviour the directive mandates. What this catches is a flag on a span
+    // that plainly was not cut — which tells a consumer to distrust a
+    // citation it could have used at tier 1, the missing-flag defect inverted.
+    if (fact.excerptTruncated && fact.excerpt.length * 2 < record._meta.excerptCapChars) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['facts', index, 'excerptTruncated'],
+        message: `excerptTruncated is set but the excerpt is only ${fact.excerpt.length} characters against a cap of ${record._meta.excerptCapChars} — a truncation flag on a span that was plainly not cut tells a consumer to distrust a complete citation.`,
+      });
+    }
+  });
+}
 
 export const IrlExtractRecordSchema = z
   .object({
     _meta: IrlExtractRecordMetaSchema,
     facts: z.array(IrlExtractFactSchema),
   })
-  .superRefine((record, ctx) => {
-    if (record.facts.length !== record._meta.coverage.answered) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['_meta', 'coverage', 'answered'],
-        message: `coverage.answered (${record._meta.coverage.answered}) must equal facts.length (${record.facts.length}). The coverage claim and the fact list are the same set counted twice; a divergence means one of them is asserted rather than counted.`,
-      });
-    }
-    if (record._meta.coverage.answered > record._meta.coverage.rowsPresent) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['_meta', 'coverage'],
-        message: `coverage.answered (${record._meta.coverage.answered}) exceeds coverage.rowsPresent (${record._meta.coverage.rowsPresent}) — more rows answered than the workbook contains.`,
-      });
-    }
-    const seen = new Map<string, number>();
-    record.facts.forEach((fact, index) => {
-      const first = seen.get(fact.ref);
-      if (first !== undefined) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['facts', index, 'ref'],
-          message: `duplicate ref "${fact.ref}" (first seen at facts[${first}]). One workbook row is one fact; a repeated ref means two facts claim the same anchor and a consumer cannot tell which the target actually said.`,
-        });
-      } else {
-        seen.set(fact.ref, index);
-      }
-      if (fact.excerpt.length > record._meta.excerptCapChars + 1) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['facts', index, 'excerpt'],
-          message: `excerpt is ${fact.excerpt.length} characters, past this record's declared cap of ${record._meta.excerptCapChars}.`,
-        });
-      }
-      // Half the cap, not the cap itself: word-boundary truncation legitimately
-      // backs up by one word, so an exact-cap check would reject the very
-      // behaviour the directive mandates. What this catches is a flag on a span
-      // that plainly was not cut — which tells a consumer to distrust a
-      // citation it could have used at tier 1, the missing-flag defect inverted.
-      if (fact.excerptTruncated && fact.excerpt.length * 2 < record._meta.excerptCapChars) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['facts', index, 'excerptTruncated'],
-          message: `excerptTruncated is set but the excerpt is only ${fact.excerpt.length} characters against a cap of ${record._meta.excerptCapChars} — a truncation flag on a span that was plainly not cut tells a consumer to distrust a complete citation.`,
-        });
-      }
-    });
-  });
+  .superRefine(runRecordCrossChecks);
 
 export type IrlExtractRecord = z.infer<typeof IrlExtractRecordSchema>;
+
+export const IrlExtractRecordV2Schema = z
+  .object({
+    _meta: IrlExtractRecordMetaV2Schema,
+    facts: z.array(IrlExtractFactSchema),
+  })
+  .superRefine(runRecordCrossChecks);
+
+export type IrlExtractRecordV2 = z.infer<typeof IrlExtractRecordV2Schema>;
 
 // ─── The body directive ────────────────────────────────────────────────────
 
@@ -483,4 +541,55 @@ export const IRL_EXTRACT_RECORD_DIRECTIVE = [
   '- **`tier`** grades the EXTRACTION: `1` the row states it verbatim, `2` direct one-step derivation, `3` correlation. A consumer re-grades for its own field.',
   '',
   '**The record and the filled IRL travel together as a pair when full provenance matters.** A record alone still resolves inputs, with its citations carried as asserted-not-verified.',
+].join('\n');
+
+/**
+ * The v2 record directive — rendered by `gst_irl_sweep`'s extract-only mode.
+ *
+ * Same fence label, same fact rules, same cap/floor constants interpolated
+ * from the values Zod validates against. The provenance-step bullets are
+ * gone: v2's `_meta` carries no hash, no source grade, and no witness
+ * discriminator — the record dates and versions itself and states its
+ * interpretation keys, nothing more.
+ */
+export const IRL_EXTRACT_RECORD_DIRECTIVE_V2 = [
+  "## Extraction step 1 — the IRL extract record (REQUIRED — this mode's primary artifact)",
+  '',
+  'Emit ONE JSON code fence labeled `record: irl-extract` describing **the target**, keyed by the canonical IRL taxonomy. This is the primary output of extract-only mode: a portable document an operator can save, paste into a later session, or hand to any other GST prompt. Every other fence below is a derived projection of it.',
+  '',
+  '**Coverage: every answered row** — every row whose ANSWER SLOT (Response + Comments joined, per § IRL workbook column contract) carries substantive content. Count against the rows present in THIS workbook, not against a fixed number: removed questions, custom requests and optional engagement sections all move the denominator. Use the same row set the fill-ratio denominator used.',
+  '',
+  '```json',
+  '{',
+  '  "_meta": {',
+  `    "recordVersion": "${IRL_EXTRACT_RECORD_VERSION_V2}",`,
+  `    "refFormat": "${IRL_EXTRACT_REF_FORMAT}",`,
+  '    "generatedAt": "<ISO-8601 — your own clock at extraction time>",',
+  '    "promptVersion": "<copy from the Run parameters block — do not re-derive>",',
+  `    "excerptCapChars": ${IRL_EXTRACT_EXCERPT_CAP_CHARS},`,
+  '    "coverage": { "answered": 58, "rowsPresent": 67 }',
+  '  },',
+  '  "facts": [',
+  '    { "ref": "0-03",',
+  '      "request": "Annual recurring revenue (most recent quarter, plus prior 12 months if available)",',
+  '      "status": "CLOSED",',
+  '      "excerpt": "<verbatim answer-slot span, at most ' +
+    IRL_EXTRACT_EXCERPT_CAP_CHARS +
+    ' characters>",',
+  '      "value": { "normalized": 22600000, "unit": "USD/yr",',
+  '                 "basis": { "native": "31000000 CAD", "usdRate": 0.73 } },',
+  '      "tier": 2 }',
+  '  ]',
+  '}',
+  '```',
+  '',
+  'Field rules:',
+  '',
+  '- **`ref` is the workbook `Reference` column VERBATIM** — section digit, hyphen, two-digit ordinal (`0-03`). It is NOT the `NN-II` key `list_irl_requests` returns (`00-03`); if you are holding both artifacts, they are two identifiers for one bullet and `_meta.refFormat` says which this record uses. Refs are stable across differently-configured engagements — a removed question leaves a GAP (`2-01, 2-02, 2-04`) rather than renumbering — so a buy-side IRL still calls ARR `0-03`.',
+  '- **`request` is the IRL request text VERBATIM.** It is what makes the record self-resolving: a consumer matches on the request text directly, against the same vocabulary the target answered. Do not paraphrase, abbreviate, or substitute a tool field name.',
+  `- **\`excerpt\` is a verbatim span of the ANSWER SLOT only** — never from \`(Source:)\` or \`(Note:)\`. Cap it at **${IRL_EXTRACT_EXCERPT_CAP_CHARS} characters**. **Truncate on a word boundary and append \`…\`, never mid-token, and set \`"excerptTruncated": true\`.** A cap that severs a token silently degrades a downstream citation, which defeats the reason the excerpt is carried. **If the last word boundary falls below HALF the cap (${IRL_EXTRACT_EXCERPT_CAP_CHARS / 2} characters), cut at the cap instead of backing up** — one unbroken token longer than half the cap is the only case where this bites, and a flagged excerpt that short is REJECTED rather than accepted as a short answer. Never truncate below **${IRL_EXTRACT_EXCERPT_MIN_CHARS} characters** — keep excerpts at least that long so they remain citable. A genuinely short answer is carried whole and needs no flag.`,
+  "- **`value` normalizes to units and scalars, NOT to any tool's enums.** USD-normalized money with the conversion basis recorded, ISO dates, integer counts. Omit `value` entirely for a narrative answer. Do NOT map a fact onto a consumer's enum set here — that is the consumer's job, and doing it here would re-index the record by one consumer's schema.",
+  '- **`tier`** grades the EXTRACTION: `1` the row states it verbatim, `2` direct one-step derivation, `3` correlation. A consumer re-grades for its own field.',
+  '',
+  "**The record travels on its own terms.** Its excerpts are extraction-time verbatim spans; a consumer reading it later treats them as the record's claim about the IRL, stated plainly, and says so when a figure comes from the record rather than from a document in its own context.",
 ].join('\n');
