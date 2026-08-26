@@ -5,16 +5,17 @@
 
 ## What it does
 
-`gst_irl_sweep` ingests a populated GST IRL and drives every applicable Hub analysis tool to a unified engagement dossier — or, in `extract-only` mode, a portable target record (extract record v2). It is the **trust-the-operator successor** to `gst_irl_ingestion`: a populated IRL is ipso facto trusted input, so the prompt carries no provenance apparatus of any kind. No body hashing, no server-side caching, no citation-verification loops, no RUN-AUDIT blocks, no meta fences, no audit levels. The audit surface is one model-authored **(J) Gaps & assumptions** section. The decision and its rationale live in the trust-the-operator ADR (written with the removal PR).
+`gst_irl_sweep` ingests a populated GST IRL and drives every applicable Hub analysis tool to a unified engagement dossier. It is the **trust-the-operator successor** to `gst_irl_ingestion`: a populated IRL is ipso facto trusted input, so the prompt carries no provenance apparatus of any kind. No body hashing, no server-side caching, no citation-verification loops, no RUN-AUDIT blocks, no meta fences, no audit levels. The audit surface is one model-authored **(J) Gaps & assumptions** section. The portable extract record (v2, zero tool calls) is its **sibling prompt `gst_irl_extract`** — split out 2026-08-25 so each workflow does exactly one thing; the two share their arrival/completeness/gate/rule sections via `extraction-rules.ts`. The decision and its rationale live in the trust-the-operator ADR (written with the removal PR).
 
-## Contract (v0.1.0 — verified against `irl-sweep.ts`)
+## Contract (v0.2.0 — verified against `irl-sweep.ts`)
 
-Two arguments, both optional:
+One argument, optional:
 
-| Arg         | Type                     | Default | Purpose                                                                                                                                                               |
-| ----------- | ------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `filledIrl` | string ≥ 200 chars       | —       | The populated IRL markdown. Omit when the IRL is attached or was pasted earlier — the model uses whatever is present, and asks for a paste only when nothing arrived. |
-| `mode`      | `full` \| `extract-only` | `full`  | Full sweep vs. the portable extract record (v2) + derived per-tool payload fences.                                                                                    |
+| Arg         | Type               | Default | Purpose                                                                                                                                                               |
+| ----------- | ------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `filledIrl` | string ≥ 200 chars | —       | The populated IRL markdown. Omit when the IRL is attached or was pasted earlier — the model uses whatever is present, and asks for a paste only when nothing arrived. |
+
+A stale-client `mode` argument (removed in 0.2.0) is stripped by the default Zod strip mode; the run is always the full sweep.
 
 Everything the old prompt took as arguments is **inferred**: target name from the `> Target:` header line, else row 0-01; engagement context (voice cues only) from the `> Engagement context:` line, else row 0-02 — the header line is primary because row 0-02 is absent on most pipeline-generated IRLs (the generator's skip-if removes it when a context was stated). Universal voice on an absent line or the literal `Unspecified`. Partner lead / project code name come from the conversation when stated.
 

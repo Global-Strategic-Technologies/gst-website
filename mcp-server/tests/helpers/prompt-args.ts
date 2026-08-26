@@ -45,11 +45,10 @@ export const MINIMAL_PROMPT_ARGS: Record<string, Record<string, unknown>> = {
   // substantive branch, not the interactive stub.
   gst_irl_fill: { targetName: 'Acme' },
   gst_irl_ingestion: { targetName: 'Acme', mode: 'extract-only' },
-  // Deliberately {} — the BL-124 empty-invocation shape. Both args are
-  // optional, so registry-wide suites render the FULL-mode body through
-  // this entry (intended); the prompt's own presence suite drives both
-  // mode branches explicitly.
+  // Deliberately {} for both trust-the-operator prompts — the BL-124
+  // empty-invocation shape; each prompt has one body, so nothing branches.
   gst_irl_sweep: {},
+  gst_irl_extract: {},
 };
 
 /**

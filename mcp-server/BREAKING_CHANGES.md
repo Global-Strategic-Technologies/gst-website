@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-0b60a80d9c2c642fa24fb71af4ea3e025731053fa8bc6c9c29db87d55c693b06
+13d47e3a0c8fbd4776d902d8452c744f5ad4fb8182440d622a00d67bfd68a5ba
 ```
 
 Computed over (sorted):
@@ -26,12 +26,25 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **17** tool names (`fill_information_request_list_xlsx` added by 0.59.0 / BL-140; `list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **11** prompt `name@version` tuples — `gst_irl_sweep@0.1.0` added by 0.60.0 (trust-the-operator rebuild PR1, coexisting with `gst_irl_ingestion@0.30.0` until live verification clears its removal); `gst_irl_fill@0.1.0` added by 0.59.0 (BL-140), the first NEW tuple since the manifest was baselined at nine. **Seven of the prior nine moved in 0.56.0** — `gst_irl_ingestion` to `0.29.0` (the IRL extract record; `extract-only` reachable without `filledIrl`), and the six prompts that now carry `irlEvidencePrecedence()` to `0.1.0`: `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_architecture_layer_review`, `gst_comparable_engagements_memo`, `gst_regulatory_exposure_brief`. Unmoved: `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below) and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below). `gst_irl_ingestion`'s prior milestones: capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters, `compute_techpar` runs in a stated mode, the server derives `fillRatio`.
+- **12** prompt `name@version` tuples — `gst_irl_extract@0.1.0` added and `gst_irl_sweep` bumped to `0.2.0` by 0.61.0 (the extract-only split); `gst_irl_sweep@0.1.0` added by 0.60.0 (trust-the-operator rebuild PR1, coexisting with `gst_irl_ingestion@0.30.0` until live verification clears its removal); `gst_irl_fill@0.1.0` added by 0.59.0 (BL-140), the first NEW tuple since the manifest was baselined at nine. **Seven of the prior nine moved in 0.56.0** — `gst_irl_ingestion` to `0.29.0` (the IRL extract record; `extract-only` reachable without `filledIrl`), and the six prompts that now carry `irlEvidencePrecedence()` to `0.1.0`: `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_architecture_layer_review`, `gst_comparable_engagements_memo`, `gst_regulatory_exposure_brief`. Unmoved: `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below) and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below). `gst_irl_ingestion`'s prior milestones: capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters, `compute_techpar` runs in a stated mode, the server derives `fillRatio`.
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.61.0 — 2026-08-25 — extract-only split: `gst_irl_extract` added; `gst_irl_sweep` drops `mode`
+
+**Prompt**: `gst_irl_extract@0.1.0` added (12th tuple); `gst_irl_sweep` 0.1.0 → 0.2.0. **Manifest hash**: rebaselined (two tuples).
+
+**What changed**
+
+- **New prompt `gst_irl_extract`** — the former `mode: extract-only` behavior as its own prompt (operator ruling 2026-08-25: modularity + a simpler slash form). One optional argument (`filledIrl?`). Emits the extract record v2 plus derived per-tool payload fences and the (J) gap list, with zero tool invocations. Shares the trusted-arrival, completeness-check, engine-math, and inclusion-gate sections with the sweep via `extraction-rules.ts` so the pair cannot drift.
+- **`gst_irl_sweep` drops the `mode` argument** — one optional argument (`filledIrl?`), one behavior: the full extract-to-dossier sweep. A stale client sending `mode` gets the key stripped (default Zod strip mode) and a full sweep — the sole 0.1.0 consumer surface was the slash form, which regenerates from the published schema.
+
+**Client impact**: additive for everyone except a 0.1.0-pinned invocation passing `mode: "extract-only"`, which now runs a full sweep; use `/gst_irl_extract` instead.
 
 ---
 

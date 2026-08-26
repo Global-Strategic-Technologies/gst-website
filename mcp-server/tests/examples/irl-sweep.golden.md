@@ -11,7 +11,7 @@ model: claude-fable-5
 
 V1 draft (trust-the-operator rebuild, plan goofy-prancing-wirth). To be replaced with the operator live-exercise capture from the PR1 verification window — the six live-verification steps in the approved plan are the capture protocol, run against the real Kestrel filled IRL.
 
-## Input — full mode, one-shot
+## Input — one-shot
 
 ```json
 {
@@ -31,4 +31,4 @@ No other arguments: target name and engagement context are inferred from the IRL
 
 4. **Dossier (A)–(J)** with each tool-backed section closing on its verbatim deeplink, (I) naming VDR-taxonomy follow-ups, and (J) Gaps & assumptions as the run's single audit surface.
 
-5. **Extract-only mode** emits the v2 extract record (`recordVersion: "2.0"`, six-field `_meta`, no provenance fields) plus per-tool payload fences and (J), with zero tool invocations.
+5. **One behavior only** — the sweep always runs extract-to-dossier (the `mode` argument was removed in 0.2.0); the portable extract record is its sibling prompt `gst_irl_extract` with its own golden file.

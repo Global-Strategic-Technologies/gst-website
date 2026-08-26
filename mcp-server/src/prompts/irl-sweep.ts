@@ -14,22 +14,25 @@
  * constants, the conditional regulatory triggers, and the deeplink
  * discipline.
  *
- * Two arguments only. Target name and engagement context are INFERRED
+ * ONE argument, ONE behavior (v0.2.0). The sweep always runs full —
+ * extract-to-dossier. The former `mode: extract-only` behavior is its own
+ * prompt, `gst_irl_extract` (operator ruling 2026-08-25: modularity + a
+ * simpler slash form). Target name and engagement context are INFERRED
  * from the IRL itself (`> Target:` / `> Engagement context:` preamble
  * lines first, rows 0-01 / 0-02 second — row 0-02 is absent on most
  * pipeline-generated IRLs because the generator's skip-if directive
  * removes it when a context was stated); partner lead and project code
  * name come from the conversation when the operator has stated them.
- * Arguments duplicating IRL content were the old prompt's redundancy.
  *
  * During the coexistence window `gst_irl_ingestion` remains registered
- * and unchanged; once this prompt is live-verified, PR2 removes the old
- * surface (prompt, three provenance tools, caches, `_audit` blocks).
+ * and unchanged; once this prompt is live-verified, the removal PR deletes
+ * the old surface (prompt, three provenance tools, caches, `_audit`
+ * blocks per the operator's pending end-state decision).
  */
 
 import { z } from 'zod';
 import type { GstPrompt } from './types';
-import { stringFromWire, enumFromWire } from './wire-shape';
+import { stringFromWire } from './wire-shape';
 import {
   authorialIntentLine,
   deliveredAsDocumentClause,
@@ -38,25 +41,20 @@ import {
   IRL_SOURCE_EMBED_URI,
 } from './embed';
 import {
-  UNKNOWN_PROPAGATION_RULE_V2,
-  TECHPAR_MODE_RULE_V2,
-  MTTR_P1_RULE_V2,
-  ENG_COST_DEDUP_RULE,
   ICG_SEEDING_RULES,
-  EU_AI_ACT_CONDITIONAL_TRIGGER,
-  NIS2_CONDITIONAL_TRIGGER,
   VDR_RESOURCE_URI,
   VDR_FOLDER_TAXONOMY,
   WORKBOOK_COLUMN_CONTRACT,
+  IRL_TRUSTED_ARRIVAL,
+  IRL_COMPLETENESS_CHECK,
+  IRL_INCLUSION_GATES,
+  IRL_EXTRACTION_RULES_SECTION,
 } from './extraction-rules';
-import { IRL_EXTRACT_RECORD_DIRECTIVE_V2 } from '../schemas/irl-extract-record';
 
 const PROMPT_NAME = 'gst_irl_sweep';
 
 /** Hoisted so the registry field and the run-parameters line cannot drift. */
-const PROMPT_VERSION = '0.1.0';
-
-const modeValues = ['full', 'extract-only'] as const;
+const PROMPT_VERSION = '0.2.0';
 
 /**
  * The nine tools this prompt orchestrates. The old prompt's list minus
@@ -75,37 +73,30 @@ export const SWEEP_ORCHESTRATED_TOOLS = [
   'search_radar',
 ] as const;
 
-// Field order is load-bearing: Claude Desktop renders the slash-command
-// form in property order. `.optional()` on BOTH the inner schema and the
-// wrapper so Desktop's form introspection marks the field optional.
+// `.optional()` on BOTH the inner schema and the wrapper so Desktop's
+// form introspection marks the field optional.
 const argsSchema = z.object({
   filledIrl: stringFromWire(z.string().min(200).optional())
     .optional()
     .describe(
       'Optional. The populated Information Request List — the entire markdown body. Omit it when the IRL is attached to the conversation or was pasted earlier; the model uses whatever is present, and asks for a paste only when nothing is. Pasting into a single-line client field collapses line breaks; the run still works.'
     ),
-  mode: enumFromWire(z.enum(modeValues).optional())
-    .optional()
-    .describe(
-      'Must be one of: full · extract-only. Defaults to full — extract the inputs, invoke every applicable Hub tool through its inclusion gate, and synthesize a dossier. extract-only emits the portable IRL extract record plus the derived per-tool JSON payloads and a gap list, with no tool invocations and no synthesis prose — cheap, portable, and consumable by later sessions and other GST prompts.'
-    ),
 });
 
 // ─── Body sections ─────────────────────────────────────────────────────
 
 /**
- * Arrival + inference. The entire trust surface of this prompt: use what
- * is present, infer what the IRL already states, ask only when nothing
- * arrived. Preamble lines are the PRIMARY inference source — pipeline-
+ * Arrival + inference. The trust half (`IRL_TRUSTED_ARRIVAL`) is shared
+ * with `gst_irl_extract`; the inference bullets are sweep-only — the
+ * extract record carries no target or voice, so only the dossier needs
+ * them. Preamble lines are the PRIMARY inference source — pipeline-
  * generated IRLs carry them (`npm run irl:extract` emits both), while row
  * 0-02 is usually absent by skip-if.
  */
 const ARRIVAL_AND_INFERENCE = [
   '## The IRL, and what it already tells you',
   '',
-  '**The populated IRL is whichever of these is present: the `filledIrl` argument (rendered at the end of this message when supplied), an attachment on this conversation, or a paste earlier in the thread. Use it as given — it is the input this workflow exists to consume.** If none is present, ask the user to paste it and stop until they do. If more than one candidate is present, name them and ask which to use rather than merging. The only rule: extract what the document states — do not invent rows or answers it does not contain.',
-  '',
-  "**A submission with no accompanying chat message is a normal invocation** — many clients send the populated form with no typed text, and some deliver the expansion as an attached file. The submission itself carries the operator's intent: the resolved mode in Run parameters is what they asked for.",
+  IRL_TRUSTED_ARRIVAL,
   '',
   '**Infer the run context from the IRL rather than asking for it:**',
   '',
@@ -116,66 +107,9 @@ const ARRIVAL_AND_INFERENCE = [
   'State the inferred target name and engagement context in the opening of section (A) so the user can correct either conversationally.',
 ].join('\n');
 
-/**
- * The advisory completeness check — the permissive successor to the old
- * blocking pre-flight. Same ratio arithmetic (so the operator-side
- * extractor and BL-140's conformance suite still reconcile against it);
- * only the truly-degenerate case halts.
- */
-const COMPLETENESS_CHECK = [
-  '## Completeness check (advisory — compute it, state it, proceed)',
-  '',
-  'Before extracting, compute the fill ratio over the **10 canonical sections (00–09)** — engagement-specific sections 10/11 do not count:',
-  '',
-  '- `totalResponseCells` = all request rows present (ref-tagged `0-01` … `9-NN`).',
-  '- `substantiveCells` = rows whose ANSWER SLOT (Response + Comments joined, per the workbook column contract) carries substantive content. Blank, `n/a`, `not yet tracked`, `TBD`, `--`, `<NO RESPONSE>`, or a bare `(Source:)`/`(Note:)` pointer is not substantive.',
-  '- `fillRatio = substantiveCells / totalResponseCells`, stated as a rounded percentage.',
-  '',
-  '**Halt ONLY if `substantiveCells` is 0 or the ratio is below 5%** — that is the blank request template, not a filled IRL; say so and ask the user to confirm before proceeding. **Otherwise ALWAYS proceed**, whatever the ratio: state it as the first sentence of section (A), and list the thin or empty sections in (J) Gaps & assumptions. A sparse IRL produces a sparse dossier with an honest gap list — that is the correct output, not an error.',
-].join('\n');
-
-/**
- * The inclusion gates — kept from the old prompt because they encode
- * ENGINE behavior (null returns, honest-widening sentinels), not distrust.
- * Restated compactly; predicates unchanged.
- */
-const INCLUSION_GATES = [
-  '## Inclusion gates (which tools run)',
-  '',
-  '"Signal" means a substantive answer in a row\'s ANSWER SLOT — a `(Source: file.xlsx)` pointer or a `(Note: pending)` caveat is a promise of signal, not signal. A gate that failed means: skip the invocation, skip its dossier section, and add one line to (J) naming the failed predicate and the IRL section that would have satisfied it.',
-  '',
-  '1. **`generate_diligence_agenda`** — always runs. Every dimension honestly defaults to `unknown`; the agenda is useful as a known-vs-not inventory.',
-  '2. **`compute_techpar`** — runs if (§00 ARR is substantive) AND (§02 carries engineering-cost signal OR §03 carries hosting signal). The engine returns null when `arr` or `infraHostingAnnual` is zero, so the gate needs both a denominator and a numerator. §07 salary refines accuracy but does not open the gate alone.',
-  '3. **`assess_infrastructure_cost_governance`** — always runs. Every unseeded answer falls back honestly (see the seeding rules).',
-  '4. **`estimate_tech_debt_cost`** — runs if §04 has at least one row with a substantive answer. §04 is the canonical input section; computing a dollar carrying-cost from a section that states nothing would fabricate the headline number.',
-  '5. **`search_regulations`** — runs if (§09 names at least one framework) OR (a conditional trigger below fires).',
-  '6. **`search_portfolio`** — runs if §00 supplies a product-type-like answer OR §01 supplies an industry / competitive-landscape answer.',
-  '7. **`search_radar`** — always runs; its output is supplementary market context.',
-  '8. **`list_portfolio_facets`** — inherits from `search_portfolio` (called first, to obtain canonical facet values).',
-  '9. **`list_regulation_facets`** — inherits from `search_regulations` (same).',
-  '',
-  '**Conditional regulatory triggers** (gap-fills for a §09 the partner left thin):',
-  '',
-  `- ${EU_AI_ACT_CONDITIONAL_TRIGGER}`,
-  `- ${NIS2_CONDITIONAL_TRIGGER}`,
-].join('\n');
-
-/** Extraction rules — the engine-math constants, v2 forms. */
-const EXTRACTION_RULES_SECTION = [
-  '## Extraction rules (engine math — these prevent wrong numbers, read them)',
-  '',
-  UNKNOWN_PROPAGATION_RULE_V2,
-  '',
-  TECHPAR_MODE_RULE_V2,
-  '',
-  ENG_COST_DEDUP_RULE,
-  '',
-  MTTR_P1_RULE_V2,
-].join('\n');
-
-/** Full-mode tool steps + dossier shape. */
-const FULL_MODE_STEPS = [
-  '## Tool steps (full mode)',
+/** Tool steps + dossier shape — the sweep's whole job. */
+const SWEEP_STEPS = [
+  '## Tool steps',
   '',
   "Call each gate-passing tool ONCE with inputs extracted per the rules above. Base schemas only — no `_audit` blocks. `'unknown'` sentinels and `null` fields are welcome where the IRL is silent; that is the honest input, not a failure.",
   '',
@@ -189,7 +123,7 @@ const FULL_MODE_STEPS = [
   '',
   '**Deeplink discipline**: every tool response carries a `deeplink`. Each tool-backed dossier section MUST close with its deeplink, copied VERBATIM — never invent or edit a URL. Without the links the dossier is read-only.',
   '',
-  '## Dossier shape (full mode)',
+  '## Dossier shape',
   '',
   'Write these sections in order. Tool-backed sections render only when their tool ran.',
   '',
@@ -205,18 +139,9 @@ const FULL_MODE_STEPS = [
   '- **(J) Gaps & assumptions** — see its own section below.',
 ].join('\n');
 
-/** Extract-only mode: the v2 record + derived payload fences. */
-const EXTRACT_ONLY_STEPS = [
-  '## Extract-only mode',
-  '',
-  'No tool invocations, no dossier prose. Produce, in order: the IRL extract record (below), then one `payload: <tool>` JSON fence per GATE-PASSING tool from the inclusion-gates list — the exact arguments you would have called it with (base schemas, no `_audit`) — then one `elided: <tool>` line per gate-failing tool naming the failed predicate, then (J) Gaps & assumptions. Fences are for the seven argument-bearing tools: `generate_diligence_agenda`, `compute_techpar`, `assess_infrastructure_cost_governance`, `estimate_tech_debt_cost`, `search_regulations`, `search_portfolio`, `search_radar`; the prefacing `list_portfolio_facets` / `list_regulation_facets` take no arguments and get no fences.',
-  '',
-  IRL_EXTRACT_RECORD_DIRECTIVE_V2,
-].join('\n');
-
 /** The single audit surface. */
 const GAP_LIST = [
-  '## (J) Gaps & assumptions (both modes — the audit surface of this run)',
+  '## (J) Gaps & assumptions (the audit surface of this run)',
   '',
   'One numbered list, written by you, honest and specific:',
   '',
@@ -243,16 +168,15 @@ const VOICE_CUES = [
 type Args = z.infer<typeof argsSchema>;
 
 function buildBody(args: Args): string {
-  const mode = args.mode ?? 'full';
   const sections = [
     authorialIntentLine(PROMPT_NAME),
     '',
     '## Run parameters',
     '',
-    `- Mode: **${mode}**`,
-    `- Prompt version: **${PROMPT_VERSION}** — copy this into the extract record's \`_meta.promptVersion\` (extract-only); nothing server-side supplies it.`,
+    '- Workflow: **full sweep** — extract, invoke every gate-passing Hub tool, synthesize the dossier. (The portable extract record without tool calls is its own prompt, `gst_irl_extract`.)',
+    `- Prompt version: **${PROMPT_VERSION}**.`,
     '',
-    '**Run completeness.** The run parameters above, together with the IRL, are the operator\'s complete instruction: `mode` is resolved, the target and engagement context are inferable from the IRL itself, and no choice is left open. Populating the arguments and submitting is how an operator says "run this" — that is what invoking a workflow means. The run has three genuine stop conditions, each worth saying plainly if hit: no IRL is present anywhere, the blank-template halt fires, or the analysis tools are unavailable in this conversation.',
+    '**Run completeness.** The run parameters above, together with the IRL, are the operator\'s complete instruction: the workflow is fixed, the target and engagement context are inferable from the IRL itself, and no choice is left open. Populating the arguments and submitting is how an operator says "run this" — that is what invoking a workflow means. The run has three genuine stop conditions, each worth saying plainly if hit: no IRL is present anywhere, the blank-template halt fires, or the analysis tools are unavailable in this conversation.',
     '',
     deliveredAsDocumentClause({ citesRunParameters: true }),
     '',
@@ -262,15 +186,15 @@ function buildBody(args: Args): string {
     '',
     WORKBOOK_COLUMN_CONTRACT,
     '',
-    COMPLETENESS_CHECK,
+    IRL_COMPLETENESS_CHECK,
     '',
-    EXTRACTION_RULES_SECTION,
+    IRL_EXTRACTION_RULES_SECTION,
     '',
     ICG_SEEDING_RULES,
     '',
-    INCLUSION_GATES,
+    IRL_INCLUSION_GATES,
     '',
-    mode === 'extract-only' ? EXTRACT_ONLY_STEPS : FULL_MODE_STEPS,
+    SWEEP_STEPS,
     '',
     GAP_LIST,
     '',
@@ -287,7 +211,7 @@ function buildBody(args: Args): string {
 export const irlSweepPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
-    'Ingest a populated GST IRL and drive every applicable Hub tool to a unified engagement dossier — or, in extract-only mode, a portable target record. Trust-the-operator successor to gst_irl_ingestion: two arguments, no provenance apparatus, one honest gap list.',
+    'Ingest a populated GST IRL and drive every applicable Hub tool to a unified engagement dossier. Trust-the-operator successor to gst_irl_ingestion: one optional argument, no provenance apparatus, one honest gap list. For the portable extract record without tool calls, use gst_irl_extract.',
   version: PROMPT_VERSION,
   lastReviewedAt: '2026-08-25',
   orchestrates: [...SWEEP_ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,

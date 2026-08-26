@@ -8,8 +8,9 @@
  * surface named, every engine-math rule present, the inference and gap-list
  * instructions carried — while letting wording breathe.
  *
- * Both mode branches are driven explicitly here rather than through the
- * shared `minimalArgsFor` helper (whose `{}` entry renders full mode).
+ * v0.2.0: the sweep has ONE argument and ONE behavior (full sweep). The
+ * former `mode: extract-only` is its own prompt, `gst_irl_extract`, with
+ * its own suite.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -37,12 +38,11 @@ function bodyOf(args: Record<string, unknown>): string {
 
 const FULL = bodyOf({});
 const FULL_ONESHOT = bodyOf({ filledIrl: FILLED });
-const EXTRACT = bodyOf({ mode: 'extract-only' });
 
 describe('gst_irl_sweep — registry contract', () => {
   it('declares the expected identity', () => {
     expect(irlSweepPrompt.name).toBe('gst_irl_sweep');
-    expect(irlSweepPrompt.version).toBe('0.1.0');
+    expect(irlSweepPrompt.version).toBe('0.2.0');
     expect(irlSweepPrompt.consumesTargetEvidence).toBeUndefined();
   });
 
@@ -50,10 +50,9 @@ describe('gst_irl_sweep — registry contract', () => {
     expect(FULL.length).toBeGreaterThan(1000);
   });
 
-  it('every orchestrates entry appears literally in BOTH mode bodies', () => {
+  it('every orchestrates entry appears literally in the body', () => {
     for (const entry of irlSweepPrompt.orchestrates) {
-      expect(FULL, `full body missing orchestrates entry ${entry}`).toContain(entry);
-      expect(EXTRACT, `extract-only body missing orchestrates entry ${entry}`).toContain(entry);
+      expect(FULL, `body missing orchestrates entry ${entry}`).toContain(entry);
     }
   });
 
@@ -65,9 +64,19 @@ describe('gst_irl_sweep — registry contract', () => {
       'validate_irl_provenance',
     ]) {
       expect(irlSweepPrompt.orchestrates).not.toContain(forbidden);
-      expect(FULL, `full body must not direct ${forbidden}`).not.toContain(forbidden);
-      expect(EXTRACT, `extract body must not direct ${forbidden}`).not.toContain(forbidden);
+      expect(FULL, `body must not direct ${forbidden}`).not.toContain(forbidden);
     }
+  });
+
+  it('a stale-client mode argument is stripped, not honored — one behavior only', () => {
+    // 0.2.0 removed `mode`; default strip-mode drops the unknown key, so an
+    // old-style invocation renders the (only) full-sweep body. The body
+    // cross-points at gst_irl_extract for the record workflow.
+    const parsed = irlSweepPrompt.argsSchema.parse({ mode: 'extract-only' });
+    expect(parsed).not.toHaveProperty('mode');
+    expect(FULL).toContain('- Workflow: **full sweep**');
+    expect(FULL).toContain('gst_irl_extract');
+    expect(FULL).not.toContain('record: irl-extract');
   });
 });
 
@@ -80,18 +89,17 @@ describe('gst_irl_sweep — no provenance apparatus', () => {
     ['audit levels', 'auditLevel'],
   ])('the body carries no %s', (_label, needle) => {
     expect(FULL).not.toContain(needle);
-    expect(EXTRACT).not.toContain(needle);
+    expect(FULL_ONESHOT).not.toContain(needle);
   });
 
   it('instructs bare payloads — `_audit` appears only as the explicit negative', () => {
     // The published tool schemas still show the optional `_audit` property
     // during the coexistence window, so the body says NOT to fill it.
     expect(FULL).toContain('no `_audit` blocks');
-    expect(EXTRACT).toContain('no `_audit`');
   });
 });
 
-describe('gst_irl_sweep — arrival + inference (the two-arg surface)', () => {
+describe('gst_irl_sweep — arrival + inference (the one-arg surface)', () => {
   it('argsSchema accepts {} and rejects a sub-200-char filledIrl', () => {
     expect(irlSweepPrompt.argsSchema.safeParse({}).success).toBe(true);
     expect(irlSweepPrompt.argsSchema.safeParse({ filledIrl: 'too short' }).success).toBe(false);
@@ -122,9 +130,9 @@ describe('gst_irl_sweep — arrival + inference (the two-arg surface)', () => {
     // Kestrel trials 2-3 (2026-08-25): "do not ask for confirmation" prose
     // pattern-matched to injection and TRIGGERED the confirmation pause it
     // tried to prevent — the same lesson embed.ts records for the original
-    // authorial-intent line. The body now states the facts (submission = the
+    // authorial-intent line. The body states the facts (submission = the
     // operator's "run this") and leaves the model's judgment intact.
-    for (const body of [FULL, FULL_ONESHOT, EXTRACT]) {
+    for (const body of [FULL, FULL_ONESHOT]) {
       expect(body).toContain('Run completeness.');
       expect(body).toMatch(/how an operator says "run this"/);
       expect(body).toContain(
@@ -152,7 +160,6 @@ describe('gst_irl_sweep — arrival + inference (the two-arg surface)', () => {
 describe('gst_irl_sweep — retained engine-math structure', () => {
   it('carries the workbook column contract', () => {
     expect(FULL).toContain('IRL workbook column contract');
-    expect(EXTRACT).toContain('IRL workbook column contract');
   });
 
   it('the completeness check is advisory with only the blank-template halt', () => {
@@ -193,29 +200,20 @@ describe('gst_irl_sweep — retained engine-math structure', () => {
   });
 });
 
-describe('gst_irl_sweep — outputs', () => {
-  it('full mode renders the dossier shape (A)–(J)', () => {
+describe('gst_irl_sweep — dossier output', () => {
+  it('renders the dossier shape (A)–(J)', () => {
     for (const section of ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)', '(J)']) {
       expect(FULL, `dossier section ${section} missing`).toContain(section);
     }
   });
 
-  it('(J) Gaps & assumptions is the audit surface in both modes', () => {
+  it('(J) Gaps & assumptions is the audit surface', () => {
     expect(FULL).toContain('Gaps & assumptions');
-    expect(EXTRACT).toContain('Gaps & assumptions');
     expect(FULL).toMatch(/per the IRL/);
   });
 
-  it('extract-only carries the v2 record directive and forbids tool invocations', () => {
-    expect(EXTRACT).toContain('record: irl-extract');
-    expect(EXTRACT).toContain('"recordVersion": "2.0"');
-    expect(EXTRACT).toContain('No tool invocations');
-    expect(EXTRACT).not.toContain('irlBodyHash');
-  });
-
-  it('the run-parameters block states the resolved mode and the prompt version', () => {
-    expect(FULL).toContain('- Mode: **full**');
-    expect(EXTRACT).toContain('- Mode: **extract-only**');
+  it('the run-parameters block states the workflow and the prompt version', () => {
+    expect(FULL).toContain('- Workflow: **full sweep**');
     expect(FULL).toContain(`Prompt version: **${irlSweepPrompt.version}**`);
   });
 });

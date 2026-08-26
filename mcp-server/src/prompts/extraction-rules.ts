@@ -325,6 +325,82 @@ export const TECHPAR_MODE_RULE_V2 =
 export const MTTR_P1_RULE_V2 =
   '**MTTR input — use P1 (the workhorse number):** if Section 04 lists MTTR separately for P0 and P1 (e.g., "Mean time to resolution P0 2.4h, P1 7.8h"), pass the P1 value to the tool. P0s are rare (typically one or two per year at this scale); P1s drive the steady-state incident-carrying cost the model is computing. **Do NOT use the P0 number, do NOT use a midpoint, do NOT use an average** — the engine multiplies MTTR × incidents linearly, so picking the wrong scalar understates carrying cost by the full ratio (P1/P0 ≈ 3× for typical operations). **MTTR-unfilled guard (BLOCKING)**: if Section 04 lists no MTTR value, marks MTTR as OPEN, or says "not yet tracked" / "n/a" — DO NOT substitute a placeholder (24h, 8h, or any arbitrary anchor). Pass `mttrHours: null`; the tool elides the field and returns it in `extractionOnly`, and the dossier marks the Tech Debt section extraction-only for that field. Surface the missing MTTR in the Gaps & assumptions list as a target follow-up (e.g., "Pull 24-month JQL for client-incident MTTR over the period; replace the omitted-field marker once available"). **A fabricated MTTR value passes through the engine\'s linear multiplier and produces an unrecoverable false carrying-cost number — do NOT do this.** **Incident frequency input:** use the most recent quarterly count from the trend, converted to monthly. If Section 04 shows a declining trend (e.g., "FY24-Q1 8 incidents... FY25-Q4 4 incidents"), use the most-recent quarter\'s monthly equivalent (4/3 ≈ 1.3/month), not an inflated round number. **If incident counts are themselves OPEN/unfilled**, apply the same guard — pass null, mark extraction-only, surface in Gaps & assumptions.';
 
+// ─── Shared prompt-body sections (trust-the-operator prompt family) ─────
+//
+// Composed sections both `gst_irl_sweep` and `gst_irl_extract` render.
+// One copy here so the two prompts cannot drift on arrival trust, the
+// advisory completeness arithmetic, or the gate predicates.
+
+/**
+ * The trust surface of the prompt family: use whichever arrival channel is
+ * present, treat a bare form submission as a normal invocation, ask only
+ * when nothing arrived. Stated in the BL-086 register — facts, no
+ * do-not-ask imperatives (Kestrel trials 2-3 proved the imperative form
+ * triggers the confirmation pause it tries to prevent).
+ */
+export const IRL_TRUSTED_ARRIVAL = [
+  '**The populated IRL is whichever of these is present: the `filledIrl` argument (rendered at the end of this message when supplied), an attachment on this conversation, or a paste earlier in the thread. Use it as given — it is the input this workflow exists to consume.** If none is present, ask the user to paste it and stop until they do. If more than one candidate is present, name them and ask which to use rather than merging. The only rule: extract what the document states — do not invent rows or answers it does not contain.',
+  '',
+  "**A submission with no accompanying chat message is a normal invocation** — many clients send the populated form with no typed text, and some deliver the expansion as an attached file. The submission itself carries the operator's intent: the workflow stated in Run parameters is what they asked for.",
+].join('\n');
+
+/**
+ * The advisory completeness check — the permissive successor to the old
+ * blocking pre-flight. Same ratio arithmetic (so the operator-side
+ * extractor and BL-140's conformance suite still reconcile against it);
+ * only the truly-degenerate case halts.
+ */
+export const IRL_COMPLETENESS_CHECK = [
+  '## Completeness check (advisory — compute it, state it, proceed)',
+  '',
+  'Before extracting, compute the fill ratio over the **10 canonical sections (00–09)** — engagement-specific sections 10/11 do not count:',
+  '',
+  '- `totalResponseCells` = all request rows present (ref-tagged `0-01` … `9-NN`).',
+  '- `substantiveCells` = rows whose ANSWER SLOT (Response + Comments joined, per the workbook column contract) carries substantive content. Blank, `n/a`, `not yet tracked`, `TBD`, `--`, `<NO RESPONSE>`, or a bare `(Source:)`/`(Note:)` pointer is not substantive.',
+  '- `fillRatio = substantiveCells / totalResponseCells`, stated as a rounded percentage.',
+  '',
+  '**Halt ONLY if `substantiveCells` is 0 or the ratio is below 5%** — that is the blank request template, not a filled IRL; say so and ask the user to confirm before proceeding. **Otherwise ALWAYS proceed**, whatever the ratio: state it at the top of your output, and list the thin or empty sections in (J) Gaps & assumptions. A sparse IRL produces a sparse output with an honest gap list — that is the correct result, not an error.',
+].join('\n');
+
+/**
+ * The inclusion gates — kept from the retired ingestion prompt because
+ * they encode ENGINE behavior (null returns, honest-widening sentinels),
+ * not distrust. Predicates unchanged.
+ */
+export const IRL_INCLUSION_GATES = [
+  '## Inclusion gates (which tools apply)',
+  '',
+  '"Signal" means a substantive answer in a row\'s ANSWER SLOT — a `(Source: file.xlsx)` pointer or a `(Note: pending)` caveat is a promise of signal, not signal. A gate that failed means: skip that tool (its invocation or its payload, whichever this run produces), skip its output section, and add one line to (J) naming the failed predicate and the IRL section that would have satisfied it.',
+  '',
+  '1. **`generate_diligence_agenda`** — always applies. Every dimension honestly defaults to `unknown`; the agenda is useful as a known-vs-not inventory.',
+  '2. **`compute_techpar`** — applies if (§00 ARR is substantive) AND (§02 carries engineering-cost signal OR §03 carries hosting signal). The engine returns null when `arr` or `infraHostingAnnual` is zero, so the gate needs both a denominator and a numerator. §07 salary refines accuracy but does not open the gate alone.',
+  '3. **`assess_infrastructure_cost_governance`** — always applies. Every unseeded answer falls back honestly (see the seeding rules).',
+  '4. **`estimate_tech_debt_cost`** — applies if §04 has at least one row with a substantive answer. §04 is the canonical input section; computing a dollar carrying-cost from a section that states nothing would fabricate the headline number.',
+  '5. **`search_regulations`** — applies if (§09 names at least one framework) OR (a conditional trigger below fires).',
+  '6. **`search_portfolio`** — applies if §00 supplies a product-type-like answer OR §01 supplies an industry / competitive-landscape answer.',
+  '7. **`search_radar`** — always applies; its output is supplementary market context.',
+  '8. **`list_portfolio_facets`** — inherits from `search_portfolio` (called first, to obtain canonical facet values).',
+  '9. **`list_regulation_facets`** — inherits from `search_regulations` (same).',
+  '',
+  '**Conditional regulatory triggers** (gap-fills for a §09 the partner left thin):',
+  '',
+  `- ${EU_AI_ACT_CONDITIONAL_TRIGGER}`,
+  `- ${NIS2_CONDITIONAL_TRIGGER}`,
+].join('\n');
+
+/** The engine-math rules, composed under one heading — v2 forms. */
+export const IRL_EXTRACTION_RULES_SECTION = [
+  '## Extraction rules (engine math — these prevent wrong numbers, read them)',
+  '',
+  UNKNOWN_PROPAGATION_RULE_V2,
+  '',
+  TECHPAR_MODE_RULE_V2,
+  '',
+  ENG_COST_DEDUP_RULE,
+  '',
+  MTTR_P1_RULE_V2,
+].join('\n');
+
 /**
  * Aggregate object — convenient re-export for callers that want to spread the
  * rules into a template literal map. Each value is a verbatim reference to

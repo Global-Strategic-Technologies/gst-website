@@ -35,6 +35,7 @@ import { informationRequestListPrompt } from './information-request-list';
 import { irlFillPrompt } from './irl-fill';
 import { irlIngestionPrompt } from './irl-ingestion';
 import { irlSweepPrompt } from './irl-sweep';
+import { irlExtractPrompt } from './irl-extract';
 
 /** Frozen list of every prompt the server registers. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,11 +50,14 @@ export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
   informationRequestListPrompt,
   irlFillPrompt,
   irlIngestionPrompt,
-  // Trust-the-operator successor to gst_irl_ingestion — coexists during the
-  // live-verification window; PR2 of the rebuild removes the old surface.
-  // Deliberately NO name-based special case in the render wrapper below:
-  // this prompt hashes nothing and seeds nothing.
+  // Trust-the-operator successors to gst_irl_ingestion — coexist during the
+  // live-verification window; the removal PR retires the old surface. The
+  // sweep runs extract-to-dossier; the extract emits the portable record
+  // with zero tool calls (split 2026-08-25 for modularity + a one-field
+  // slash form). Deliberately NO name-based special case in the render
+  // wrapper below: neither prompt hashes nor seeds anything.
   irlSweepPrompt,
+  irlExtractPrompt,
 ];
 
 const NAME_PATTERN = /^gst_[a-z][a-z_]*$/;

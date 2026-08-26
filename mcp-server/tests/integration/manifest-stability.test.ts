@@ -228,7 +228,12 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // the live-verification window. Removal of the old surface (that tuple plus
 // the three provenance tools, which this hash never sees) is scheduled for the
 // next minor after operator sign-off. No URI moved.
-const EXPECTED_MANIFEST_HASH = '0b60a80d9c2c642fa24fb71af4ea3e025731053fa8bc6c9c29db87d55c693b06';
+// Extract-only split (server 0.61.0, 2026-08-25): TWO tuple moves.
+// gst_irl_extract@0.1.0 ADDED (the twelfth tuple — the portable record as its
+// own prompt) and gst_irl_sweep 0.1.0 → 0.2.0 (the `mode` argument removed;
+// the sweep always runs full). Operator ruling: modularity + a one-field
+// slash form. No URI moved.
+const EXPECTED_MANIFEST_HASH = '13d47e3a0c8fbd4776d902d8452c744f5ad4fb8182440d622a00d67bfd68a5ba';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

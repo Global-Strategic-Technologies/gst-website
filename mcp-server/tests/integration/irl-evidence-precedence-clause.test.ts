@@ -59,11 +59,14 @@ const EXPECTED_OPT_IN = [
  */
 const EXPECTED_EXCLUDED = [
   'gst_information_request_list',
+  // The trust-the-operator successors are excluded for the same reason as
+  // their predecessor: the extract PRODUCES the record (resolving inputs
+  // from an artifact it is writing would be circular), and the sweep
+  // consumes the IRL directly rather than through record-evidence
+  // precedence.
+  'gst_irl_extract',
   'gst_irl_fill',
   'gst_irl_ingestion',
-  // The successor sweep is excluded for the same reason as its predecessor:
-  // it PRODUCES the extract record — resolving inputs from an artifact it is
-  // writing would be circular.
   'gst_irl_sweep',
   'gst_radar_brief_today',
 ];
