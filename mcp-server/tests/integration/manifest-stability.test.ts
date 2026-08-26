@@ -219,7 +219,24 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // runScenario selection rule. Body-only on one prompt; no argument, tool or URI
 // shape changed, and NO orchestrates array moved — which this hash would not
 // have seen either way (it covers name@version and resource URIs only).
-const EXPECTED_MANIFEST_HASH = '8b330a3c6761031068fe684e95b2045485f615b02bad9d2ac822f65bd9b3afc7';
+// BL-140 (server 0.59.0, 2026-08-23): gst_irl_fill@0.1.0 ADDED — the first new
+// prompt tuple since the manifest was baselined at nine. No URI moved; the
+// companion tool addition (fill_information_request_list_xlsx) is invisible to
+// this hash by design (tools are guarded by protocol-roundtrip's exact list).
+// Trust-the-operator rebuild PR1 (server 0.60.0, 2026-08-25): gst_irl_sweep@0.1.0
+// ADDED — the eleventh tuple, coexisting with gst_irl_ingestion@0.30.0 during
+// the live-verification window. Removal of the old surface (that tuple plus
+// the three provenance tools, which this hash never sees) is scheduled for the
+// next minor after operator sign-off. No URI moved.
+// Extract-only split (server 0.61.0, 2026-08-25): TWO tuple moves.
+// gst_irl_extract@0.1.0 ADDED (the twelfth tuple — the portable record as its
+// own prompt) and gst_irl_sweep 0.1.0 → 0.2.0 (the `mode` argument removed;
+// the sweep always runs full). Operator ruling: modularity + a one-field
+// slash form. No URI moved.
+// Rename (server 0.62.0, 2026-08-26): gst_irl_fill@0.1.0 → gst_irl_create@0.2.0
+// (operator ruling — "create" names the artifact the workflow produces; same
+// body, args, and stop-at-artifact behavior). ONE tuple replaced; no URI moved.
+const EXPECTED_MANIFEST_HASH = '4cf16ee6e418acc1ac470f4fbb4cfc6638ab7491b270c85f79531eeb2a0579da';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

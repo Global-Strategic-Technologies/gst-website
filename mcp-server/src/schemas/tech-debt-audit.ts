@@ -40,7 +40,7 @@ export const TechDebtAuditMetadataSchema = z
     ),
   })
   .describe(
-    'Per the MTTR + incident-count fabrication guard, the model MUST declare the source of mttrHours and incidents. Placeholder substitution (24h, 8h, 2/mo, etc.) for IRL-OPEN fields is rejected at the schema layer.'
+    'Provenance for the mttrHours and incidents inputs. Optional; when supplied, the null-when-OPEN cross-checks run against it (placeholder substitution for IRL-OPEN fields is rejected). When omitted, pass null for any value the source material does not state — the engine elides null fields and reports them in extractionOnly.'
   );
 
 /**
@@ -69,11 +69,19 @@ export const AuditedTechDebtInputsSchema = TechDebtInputsSchema.extend({
     .describe(
       'Production incidents per month (count). NULL when the IRL gives only a sprint-scoped dashboard count or marks the field OPEN. Per the fabrication guard, do NOT extrapolate from a non-monthly count.'
     ),
-  _audit: TechDebtAuditMetadataSchema,
+  _audit: TechDebtAuditMetadataSchema.optional(),
 });
 
 export type AuditedTechDebtInputs = z.infer<typeof AuditedTechDebtInputsSchema>;
 export type TechDebtAuditMetadata = z.infer<typeof TechDebtAuditMetadataSchema>;
+
+/**
+ * An audited payload whose optional `_audit` block is actually present —
+ * the shape `runTechDebtAuditRefinements` operates on.
+ */
+export type AuditCarryingTechDebtInputs = AuditedTechDebtInputs & {
+  _audit: TechDebtAuditMetadata;
+};
 
 // ─── Cross-field refinement runner ──────────────────────────────────────
 
@@ -90,7 +98,9 @@ function requiresNull(source: TechDebtAuditMetadata['mttrSource']): source is Nu
   return (NULL_REQUIRING_SOURCES as readonly string[]).includes(source);
 }
 
-export function runTechDebtAuditRefinements(payload: AuditedTechDebtInputs): TechDebtAuditIssue[] {
+export function runTechDebtAuditRefinements(
+  payload: AuditCarryingTechDebtInputs
+): TechDebtAuditIssue[] {
   const issues: TechDebtAuditIssue[] = [];
 
   // ─── MTTR null-when-OPEN guard ──────────────────────────────────────

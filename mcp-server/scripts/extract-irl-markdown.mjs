@@ -51,8 +51,9 @@
  * first. The join is always a single space, plus a period unless G already
  * ends in `.` `?` `!` `:` `;` `,` `…` or a dash once closing brackets and
  * quotes are peeled off — see {@link joinAnswerSpan} for why the rule is
- * phrased that way round, and keep it in step with the prompt's
- * `WORKBOOK_COLUMN_CONTRACT`, which states the same rule to the model.
+ * phrased that way round, and keep it in step with the shared
+ * `WORKBOOK_COLUMN_CONTRACT` in `src/prompts/extraction-rules.ts`, which
+ * states the same rule to the model.
  *
  * Why one unlabelled span and not a labelled separator: `validate_irl_provenance`
  * matches citation excerpts against this body by normalized substring, falling
@@ -155,7 +156,7 @@ const PRIMARY_SHEET_NAME = 'Information Request List';
  * alike, so nothing downstream sees either.
  *
  * Whatever this rule becomes, it must be swept into `WORKBOOK_COLUMN_CONTRACT`
- * in `src/prompts/irl-ingestion.ts` in the same commit. The two paths agreeing
+ * in `src/prompts/extraction-rules.ts` in the same commit. The two paths agreeing
  * on these bytes is the acceptance property of BL-120, and no test asserts that
  * prose — a code review caught it drifting once already.
  *

@@ -12,6 +12,8 @@ enumParity:
 
 # Input Contract: `compute_techpar`
 
+> **Since server 0.60.0**: the MCP layer's `_audit` sibling block (currency basis + annualization provenance, `mcp-server/src/schemas/techpar-audit.ts`) is **optional** — supplied blocks are still validated; absent blocks skip the calibration checks, and the `monetaryBasis` response key is omitted.
+
 > **Tool**: `compute_techpar` — computes the TechPar benchmark for a target company's technology cost ratio. Wraps the website's pure `compute` engine.
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):

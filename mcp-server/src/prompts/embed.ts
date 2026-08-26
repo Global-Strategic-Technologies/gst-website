@@ -229,9 +229,14 @@ export function deliveredAsDocumentClause(opts: { citesRunParameters: boolean })
  * target inputs (`consumesTargetEvidence` on `GstPrompt`).
  *
  * **Why a third shared clause.** `authorialIntentLine()` is the all-prompts
- * precedent; `deliveredAsDocumentClause()` is deliberately in two. This one is
- * in six, and the set is DECLARED rather than inferred — the registry guard
- * asserts clause-present ⇔ flag-set, so a tenth prompt has to choose.
+ * precedent; `deliveredAsDocumentClause()` is deliberately in three. This one
+ * is in six, and the set is DECLARED rather than inferred — the registry guard
+ * asserts clause-present ⇔ flag-set, so every later prompt has to choose. The
+ * tenth (`gst_irl_create`, BL-140) chose EXCLUSION: this clause's mandatory
+ * upgrade path (`prepare_irl_body` → `validate_irl_provenance`) instructs the
+ * model to invoke the sweep tools, which directly contradicts that prompt's
+ * stop-at-artifact ruling — a human review checkpoint sits between fill and
+ * ingest by design.
  *
  * **What it fixes.** `gst_target_quick_look` disagreed with itself: Step 1a
  * derived from "supplied inputs + anything the user has shared earlier in the
@@ -272,10 +277,31 @@ export function irlEvidencePrecedence(): string {
  * needs to be told this is not the body to sweep, since a blank template that
  * resembles the expected input is exactly what confused it.
  */
+/**
+ * Shared lead sentence for both taxonomy framings, hoisted so the generator
+ * and fill variants cannot drift apart on what the embed IS (BL-140). The
+ * continuation differs deliberately: the generator prompts REPRODUCE the
+ * template, the fill prompt ANSWERS it.
+ */
+const TAXONOMY_LEAD =
+  'The next message is the **blank canonical IRL taxonomy** — the request template itself, every bullet a question with no answer. It is served from the GST registry at invocation time, which makes it the authoritative bullet set:';
+
 export function embeddedTaxonomyFraming(isIngestion: boolean): string {
-  const base =
-    'The next message is the **blank canonical IRL taxonomy** — the request template itself, every bullet a question with no answer. It is served from the GST registry at invocation time, which makes it the authoritative bullet set: reproduce it as-is rather than reconciling it against another source.';
+  const base = `${TAXONOMY_LEAD} reproduce it as-is rather than reconciling it against another source.`;
   return isIngestion
     ? `${base} **It is NOT the filled IRL and must not be swept.** A blank template arriving where a populated one is expected reads like a paste that lost its answers; it is neither. The filled body is whatever the user supplies through \`filledIrl\`, attaches to the conversation, or pastes in reply.`
     : base;
+}
+
+/**
+ * BL-140 — the create prompt's taxonomy framing. An ADDITIVE variant, not a
+ * mode on {@link embeddedTaxonomyFraming}: the existing branches' output is
+ * pinned by the ingestion body-hash baseline, and their "reproduce it
+ * as-is rather than reconciling it against another source" continuation is
+ * actively wrong for `gst_irl_create`, whose entire job IS reconciling the
+ * taxonomy against evidence in context — a compliant model following the
+ * generator framing would emit a blank list instead of authored fills.
+ */
+export function embeddedTaxonomyFramingForFill(): string {
+  return `${TAXONOMY_LEAD} treat it as the QUESTION SET to answer, not a template to reproduce. Resolve each request against the evidence in this context and author \`fills\` only for the rows the evidence can answer — rows it cannot answer stay blank in the produced workbook, and those blanks are the follow-up ask.`;
 }

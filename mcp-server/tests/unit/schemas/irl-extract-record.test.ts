@@ -42,6 +42,9 @@ import {
   IRL_REF_PATTERN,
   resolveRefSection,
   refForBullet,
+  IrlExtractRecordV2Schema,
+  IRL_EXTRACT_RECORD_VERSION_V2,
+  IRL_EXTRACT_RECORD_DIRECTIVE_V2,
 } from '../../../src/schemas/irl-extract-record';
 import { parseIrlArticle } from '../../../../src/utils/irl/parse-article';
 import { customizeIrlArticle } from '../../../../src/utils/irl/customize-article';
@@ -474,5 +477,72 @@ describe('the body directive and the schema cannot state different numbers', () 
   it("warns against the NN-II key, which is the record's silent-failure mode", () => {
     expect(IRL_EXTRACT_RECORD_DIRECTIVE).toContain('list_irl_requests');
     expect(IRL_EXTRACT_RECORD_DIRECTIVE).toContain('00-03');
+  });
+});
+
+// ─── v2 (trust-the-operator record, produced by gst_irl_sweep) ────────────
+
+describe('IrlExtractRecordV2Schema', () => {
+  function v2Record(metaOver: Record<string, unknown> = {}) {
+    const v1 = buildRecordFromBody(NORTHWIND);
+    return {
+      _meta: {
+        recordVersion: IRL_EXTRACT_RECORD_VERSION_V2,
+        refFormat: IRL_EXTRACT_REF_FORMAT,
+        generatedAt: '2026-08-25T09:00:00.000Z',
+        promptVersion: '0.1.0',
+        excerptCapChars: IRL_EXTRACT_EXCERPT_CAP_CHARS,
+        coverage: (v1._meta as { coverage: object }).coverage,
+        ...metaOver,
+      },
+      facts: v1.facts,
+    };
+  }
+
+  it('parses a valid v2 record with the six-field _meta', () => {
+    const record = v2Record();
+    expect(record.facts.length, 'fixture yielded no facts — vacuous probe').toBeGreaterThan(10);
+    expect(IrlExtractRecordV2Schema.safeParse(record).success).toBe(true);
+  });
+
+  it('strips the v1 provenance fields rather than carrying them (default strip mode)', () => {
+    const record = v2Record({
+      irlBodyHash: '0123456789abcdef',
+      irlSource: 'partner-paste-verbatim',
+      generatedAtSource: 'model-asserted',
+    });
+    const parsed = IrlExtractRecordV2Schema.parse(record);
+    expect(parsed._meta).not.toHaveProperty('irlBodyHash');
+    expect(parsed._meta).not.toHaveProperty('irlSource');
+    expect(parsed._meta).not.toHaveProperty('generatedAtSource');
+  });
+
+  it('rejects a v1 recordVersion — the literal discriminates the two shapes', () => {
+    expect(
+      IrlExtractRecordV2Schema.safeParse(v2Record({ recordVersion: IRL_EXTRACT_RECORD_VERSION }))
+        .success
+    ).toBe(false);
+  });
+
+  it('runs the same cross-checks as v1 — an asserted coverage count is refused', () => {
+    const record = v2Record();
+    (record._meta as { coverage: { answered: number } }).coverage = {
+      ...(record._meta as { coverage: { answered: number; rowsPresent: number } }).coverage,
+      answered: 999,
+    };
+    expect(IrlExtractRecordV2Schema.safeParse(record).success).toBe(false);
+  });
+
+  it('the v2 directive shows the six surviving fields and none of the provenance ones', () => {
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).toContain('"recordVersion"');
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).toContain('"refFormat"');
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).toContain('"generatedAt"');
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).toContain('"promptVersion"');
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).toContain('"excerptCapChars"');
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).toContain('"coverage"');
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).not.toContain('irlBodyHash');
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).not.toContain('irlSource');
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).not.toContain('generatedAtSource');
+    expect(IRL_EXTRACT_RECORD_DIRECTIVE_V2).not.toContain('prepare_irl_body');
   });
 });
