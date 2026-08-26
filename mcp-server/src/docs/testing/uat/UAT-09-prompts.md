@@ -299,4 +299,30 @@ _No runs yet — authored 2026-08-20 alongside the record. The engineering corre
 
 ---
 
-_Last updated: 2026-08-20 (the IRL extract record — UAT-09.10 added for cross-prompt reuse and the session-2 re-verification leg; 09.9 gained the deferred `extract-only` path; 09.2 gained its evidence-conditional expectations). Prior: 2026-08-11 (BL-119 cycle 2 — 09.0–09.8 executed against production; 09.8 failed and drove the `gst_radar_brief_today` 0.0.5 fix. 09.9 still held for a markdown IRL) — that footer was already stale when written, carrying run-log rows dated 2026-08-12 and 2026-08-14 above it._
+## UAT-09.11 — `gst_irl_sweep` (trust-the-operator ingestion)
+
+**Goal**: proves the rebuilt sweep completes a real run with NO provenance rejections — the failure class that motivated the rebuild — and that its inference, gates, and outputs behave as designed. This is the PR1 live-verification protocol; operator sign-off here gates the removal PR.
+
+**Input**: the real Kestrel filled IRL (or an equivalent ≥40%-filled body).
+
+**Trials** (each in a fresh conversation):
+
+1. **Full mode, one-shot** — `/gst_irl_sweep` with `filledIrl` pasted. Expect: no refusals, no halts, no verification tool calls; the fill ratio as (A)'s first sentence; every gate-passing tool called once with bare payloads (no `_audit`, no rejection loops); each tool section closing with its verbatim deeplink; an honest (J).
+2. **Attachment arrival** — invoke with NO arguments, the IRL attached to the invoking message. Expect: the model proceeds on the attachment without asking for a re-paste.
+3. **`mode: extract-only`** — expect a `record: irl-extract` fence validating against `IrlExtractRecordV2Schema` (`recordVersion: "2.0"`, six-field `_meta`, no hash/source fields), per-tool `payload:` fences matching the base schemas, and (J). Zero tool invocations.
+4. **Consumer smoke** — paste the v2 record into `gst_target_quick_look`; facts resolve (the precedence clause is still v1-phrased until the removal PR — graceful degradation is the expectation, not perfection).
+5. **Old-prompt regression** — one `/gst_irl_ingestion` run still completes end-to-end (coexistence intact).
+6. **Inference** — run against a sell-side (context-stated) IRL, where row 0-02 is absent by skip-if: the model reads target + context from the `> Target:` / `> Engagement context:` header lines and applies the matching voice. On a body with neither line nor rows 0-01/0-02, it falls back to universal voice and asks for the target name conversationally.
+
+**Fail conditions**: any provenance-style refusal or unprompted verification behavior; an `_audit` rejection loop; a fabricated MTTR/incident number where the IRL is silent (the null-discipline prose must hold without the schema guard); an invented deeplink.
+
+**Run log**
+
+| Date | Tester | Env | Version | Mode | Verdict | Notes |
+| ---- | ------ | --- | ------- | ---- | ------- | ----- |
+
+_No runs yet — authored 2026-08-25 with the prompt (PR1 of the trust-the-operator rebuild). Engineering correctness is covered in-session by `tests/unit/prompts/irl-sweep.test.ts` and `tests/unit/tools/audit-optional.test.ts`; this case is the client-side exercise._
+
+---
+
+_Last updated: 2026-08-25 (UAT-09.11 added — `gst_irl_sweep` live-verification protocol for the trust-the-operator rebuild). Prior: 2026-08-20 (the IRL extract record — UAT-09.10 added for cross-prompt reuse and the session-2 re-verification leg; 09.9 gained the deferred `extract-only` path; 09.2 gained its evidence-conditional expectations). Prior: 2026-08-11 (BL-119 cycle 2 — 09.0–09.8 executed against production; 09.8 failed and drove the `gst_radar_brief_today` 0.0.5 fix. 09.9 still held for a markdown IRL) — that footer was already stale when written, carrying run-log rows dated 2026-08-12 and 2026-08-14 above it._

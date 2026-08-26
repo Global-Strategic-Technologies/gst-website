@@ -10,19 +10,19 @@
 
 ## Test catalog
 
-| UAT                                                 | Covers                                                                                                                                   | Cases         | Status      |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ----------- |
-| [UAT-01 — Portfolio](UAT-01-portfolio.md)           | `search_portfolio`, `list_portfolio_facets`                                                                                              | UAT-01.1 – .3 | ✅ authored |
-| [UAT-02 — Regulatory map](UAT-02-regulatory-map.md) | `search_regulations`, `list_regulation_facets`                                                                                           | UAT-02.1 – .4 | ✅ authored |
-| [UAT-03 — Diligence](UAT-03-diligence.md)           | `generate_diligence_agenda`                                                                                                              | UAT-03.1 – .3 | ✅ authored |
-| [UAT-04 — TechPar](UAT-04-techpar.md)               | `compute_techpar`                                                                                                                        | UAT-04.1 – .2 | ✅ authored |
-| [UAT-05 — Tech debt](UAT-05-tech-debt.md)           | `estimate_tech_debt_cost`                                                                                                                | UAT-05.1 – .3 | ✅ authored |
-| [UAT-06 — ICG](UAT-06-icg.md)                       | `assess_infrastructure_cost_governance`                                                                                                  | UAT-06.1 – .2 | ✅ authored |
-| [UAT-07 — IRL pipeline](UAT-07-irl-pipeline.md)     | `list_irl_requests`, `generate_information_request_list_xlsx`, `prepare_irl_body`, `validate_irl_provenance`, `compose_dossier_envelope` | UAT-07.1 – .7 | ✅ authored |
-| [UAT-08 — Radar](UAT-08-radar.md)                   | `search_radar`, `get_latest_insights`                                                                                                    | UAT-08.1 – .3 | ✅ authored |
-| [UAT-09 — Prompts](UAT-09-prompts.md)               | the nine `gst_*` prompts                                                                                                                 | UAT-09.0 – .9 | ✅ authored |
-| [UAT-10 — Resources](UAT-10-resources.md)           | `gst://library/`, `gst://regulations/`, `gst://radar/`                                                                                   | UAT-10.1 – .4 | ✅ authored |
-| [UAT-11 — IRL fill](UAT-11-irl-fill.md)             | `fill_information_request_list_xlsx`, `gst_irl_fill`                                                                                     | UAT-11.1 – .6 | ✅ authored |
+| UAT                                                 | Covers                                                                                                                                   | Cases          | Status      |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ----------- |
+| [UAT-01 — Portfolio](UAT-01-portfolio.md)           | `search_portfolio`, `list_portfolio_facets`                                                                                              | UAT-01.1 – .3  | ✅ authored |
+| [UAT-02 — Regulatory map](UAT-02-regulatory-map.md) | `search_regulations`, `list_regulation_facets`                                                                                           | UAT-02.1 – .4  | ✅ authored |
+| [UAT-03 — Diligence](UAT-03-diligence.md)           | `generate_diligence_agenda`                                                                                                              | UAT-03.1 – .3  | ✅ authored |
+| [UAT-04 — TechPar](UAT-04-techpar.md)               | `compute_techpar`                                                                                                                        | UAT-04.1 – .2  | ✅ authored |
+| [UAT-05 — Tech debt](UAT-05-tech-debt.md)           | `estimate_tech_debt_cost`                                                                                                                | UAT-05.1 – .3  | ✅ authored |
+| [UAT-06 — ICG](UAT-06-icg.md)                       | `assess_infrastructure_cost_governance`                                                                                                  | UAT-06.1 – .2  | ✅ authored |
+| [UAT-07 — IRL pipeline](UAT-07-irl-pipeline.md)     | `list_irl_requests`, `generate_information_request_list_xlsx`, `prepare_irl_body`, `validate_irl_provenance`, `compose_dossier_envelope` | UAT-07.1 – .7  | ✅ authored |
+| [UAT-08 — Radar](UAT-08-radar.md)                   | `search_radar`, `get_latest_insights`                                                                                                    | UAT-08.1 – .3  | ✅ authored |
+| [UAT-09 — Prompts](UAT-09-prompts.md)               | the `gst_*` prompts (incl. `gst_irl_sweep`)                                                                                              | UAT-09.0 – .11 | ✅ authored |
+| [UAT-10 — Resources](UAT-10-resources.md)           | `gst://library/`, `gst://regulations/`, `gst://radar/`                                                                                   | UAT-10.1 – .4  | ✅ authored |
+| [UAT-11 — IRL fill](UAT-11-irl-fill.md)             | `fill_information_request_list_xlsx`, `gst_irl_fill`                                                                                     | UAT-11.1 – .6  | ✅ authored |
 
 Supporting documents: [`SETUP.md`](SETUP.md) (do this first) · [`TEMPLATE.md`](TEMPLATE.md) (the skeleton every case follows).
 
@@ -62,6 +62,7 @@ Supporting documents: [`SETUP.md`](SETUP.md) (do this first) · [`TEMPLATE.md`](
 | `gst_radar_brief_today`                  | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_information_request_list`           | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_irl_ingestion`                      | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_irl_sweep`                          | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_irl_fill`                           | prompt   | [UAT-11](UAT-11-irl-fill.md)       | authored |
 | `gst://library/`                         | resource | [UAT-10](UAT-10-resources.md)      | authored |
 | `gst://regulations/`                     | resource | [UAT-10](UAT-10-resources.md)      | authored |

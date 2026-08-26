@@ -6,7 +6,8 @@
 >
 > - [`mcp-server/README.md`](../../../README.md) § "Prompts" — user-facing inventory (slash menu, args, examples).
 > - [`src/docs/development/_archive/MCP_SERVER_PROMPTS_BL-031_75.md`](../../../../src/docs/development/_archive/MCP_SERVER_PROMPTS_BL-031_75.md) — the planning artifact (archived); the decision record is [ADR-0007](../../../../src/docs/adr/0007-registered-prompt-pattern.md).
-> - [`irl-ingestion.md`](irl-ingestion.md) — per-prompt companion doc for `gst_irl_ingestion`, the server's most complex prompt (contract, execution model, server-side enforcement, evolution ledger). The first of its kind; complex prompts get one, simple prompts don't need one.
+> - [`irl-ingestion.md`](irl-ingestion.md) — per-prompt companion doc for `gst_irl_ingestion`, the server's most complex prompt (contract, execution model, server-side enforcement, evolution ledger). The first of its kind; complex prompts get one, simple prompts don't need one. **Deprecated surface** — `gst_irl_ingestion` is scheduled for removal once its successor clears live verification.
+> - [`irl-sweep.md`](irl-sweep.md) — companion doc for `gst_irl_sweep`, the trust-the-operator successor (two args, no provenance apparatus, gap-list-only audit surface).
 >
 > This doc is the durable conceptual reference — it explains the registered-prompt pattern itself.
 

@@ -61,6 +61,10 @@ const EXPECTED_EXCLUDED = [
   'gst_information_request_list',
   'gst_irl_fill',
   'gst_irl_ingestion',
+  // The successor sweep is excluded for the same reason as its predecessor:
+  // it PRODUCES the extract record — resolving inputs from an artifact it is
+  // writing would be circular.
+  'gst_irl_sweep',
   'gst_radar_brief_today',
 ];
 

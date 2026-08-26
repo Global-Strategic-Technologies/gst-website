@@ -34,6 +34,8 @@ enumParity:
 
 # Input Contract: `generate_diligence_agenda`
 
+> **Since server 0.60.0**: the MCP layer's `_audit` sibling block (per-dimension tier + citation, `mcp-server/src/schemas/diligence-audit.ts`) is **optional** — supplied blocks are still validated (all BL-045 calibration refinements run); absent blocks skip the checks entirely.
+
 > **Tool**: `generate_diligence_agenda` — generates a prescriptive due-diligence "Inquisitor's Script" for a target M&A or investment opportunity. Wraps the website's pure `generateScript` engine.
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):

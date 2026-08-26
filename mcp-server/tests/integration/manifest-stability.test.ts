@@ -223,7 +223,12 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // prompt tuple since the manifest was baselined at nine. No URI moved; the
 // companion tool addition (fill_information_request_list_xlsx) is invisible to
 // this hash by design (tools are guarded by protocol-roundtrip's exact list).
-const EXPECTED_MANIFEST_HASH = '62d84be1f8c3a4c992dcc5306fe760f7a7f3784c911338fe0e8c19b97cc88c12';
+// Trust-the-operator rebuild PR1 (server 0.60.0, 2026-08-25): gst_irl_sweep@0.1.0
+// ADDED — the eleventh tuple, coexisting with gst_irl_ingestion@0.30.0 during
+// the live-verification window. Removal of the old surface (that tuple plus
+// the three provenance tools, which this hash never sees) is scheduled for the
+// next minor after operator sign-off. No URI moved.
+const EXPECTED_MANIFEST_HASH = '0b60a80d9c2c642fa24fb71af4ea3e025731053fa8bc6c9c29db87d55c693b06';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
