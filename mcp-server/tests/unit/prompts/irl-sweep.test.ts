@@ -108,10 +108,21 @@ describe('gst_irl_sweep — arrival + inference (the two-arg surface)', () => {
     expect(FULL).toMatch(/ask the user for the target name/i);
   });
 
-  it('infers engagement context preamble-first (> Engagement context:, then row 0-02, absent by skip-if)', () => {
+  it('infers engagement context through the fallthrough chain (canonical header → row 0-02 → universal)', () => {
     expect(FULL).toContain('`> Engagement context:`');
     expect(FULL).toContain('0-02');
     expect(FULL).toMatch(/absent on most pipeline-generated IRLs/i);
+    // Kestrel live-trial finding (2026-08-25): a free-text header (an
+    // engagement title) must NOT force universal voice past a specific 0-02.
+    expect(FULL).toMatch(/NOT a context label.*fall through to row 0-02/i);
+    expect(FULL).toMatch(/beats a non-canonical header/i);
+  });
+
+  it('a bare arrival with no accompanying message runs rather than asking run-vs-review', () => {
+    // Kestrel live-trial finding (2026-08-25): the file-with-no-message
+    // arrival cost one clarification turn; the invocation is the instruction.
+    expect(FULL).toContain('Arriving with no accompanying message is not ambiguity');
+    expect(FULL).toMatch(/run the mode stated in Run parameters/i);
   });
 
   it('universal-voice fallback fires on absent OR Unspecified, keyed on display labels', () => {
