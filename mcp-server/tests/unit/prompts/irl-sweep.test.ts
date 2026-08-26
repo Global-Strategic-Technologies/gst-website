@@ -125,6 +125,16 @@ describe('gst_irl_sweep — arrival + inference (the two-arg surface)', () => {
     expect(FULL).toMatch(/run the mode stated in Run parameters/i);
   });
 
+  it('the execution directive is unconditional: populated arguments are the complete instruction', () => {
+    // Second Kestrel trial finding (2026-08-25): the model asked for a "go"
+    // even with filledIrl populated. The body now leads with the contract.
+    for (const body of [FULL, FULL_ONESHOT, EXTRACT]) {
+      expect(body).toContain('This is an execution request, not a document for review.');
+      expect(body).toMatch(/Do not ask for confirmation/);
+      expect(body).toMatch(/in this same turn/);
+    }
+  });
+
   it('universal-voice fallback fires on absent OR Unspecified, keyed on display labels', () => {
     expect(FULL).toContain('Unspecified');
     expect(FULL).toContain('Sell-side');

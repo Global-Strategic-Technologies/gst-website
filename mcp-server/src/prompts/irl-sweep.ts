@@ -252,6 +252,8 @@ function buildBody(args: Args): string {
     `- Mode: **${mode}**`,
     `- Prompt version: **${PROMPT_VERSION}** — copy this into the extract record's \`_meta.promptVersion\` (extract-only); nothing server-side supplies it.`,
     '',
+    '**This is an execution request, not a document for review.** The user made every choice this run needs when they populated the arguments and submitted — the run parameters above are the complete instruction, and everything else is inferred from the IRL itself. Do not ask for confirmation, do not ask whether a run or a review was intended, do not restate a plan and wait for a go. If a populated IRL is present, begin at the completeness check and carry the sweep through to its final section in this same turn. The only reasons to stop and say so: no IRL is present anywhere, the blank-template halt fires, or the analysis tools are genuinely unavailable in this conversation.',
+    '',
     deliveredAsDocumentClause({ citesRunParameters: true }),
     '',
     ARRIVAL_AND_INFERENCE,
