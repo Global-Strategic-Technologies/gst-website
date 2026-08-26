@@ -14,7 +14,9 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  type AuditedTechDebtInputs,
+  // Aliased to the audit-carrying variant: every fixture here supplies and
+  // mutates `_audit`, which became optional on the payload type in 0.60.0.
+  type AuditCarryingTechDebtInputs as AuditedTechDebtInputs,
   formatTechDebtAuditIssues,
   runTechDebtAuditRefinements,
 } from '../../../src/schemas/tech-debt-audit';

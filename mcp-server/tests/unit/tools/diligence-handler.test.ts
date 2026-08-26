@@ -17,7 +17,7 @@ import { describe, it, expect } from 'vitest';
 
 import { handleDiligenceTool } from '../../../src/tools/diligence';
 import {
-  type AuditedUserInputs,
+  type AuditCarryingUserInputs,
   buildPartnerSuppliedAudit,
 } from '../../../src/schemas/diligence-audit';
 import { UserInputsSchema, type ValidatedUserInputs } from '../../../src/schemas';
@@ -50,7 +50,10 @@ const KNOWN_INPUTS: ValidatedUserInputs = {
   operatingModel: 'product-aligned-teams',
 };
 
-function baseline(): AuditedUserInputs {
+// `AuditCarryingUserInputs` (not `AuditedUserInputs`): these cases mutate
+// `_audit` sub-fields, so the fixture type asserts the block is present —
+// `_audit` itself became optional on the payload type in 0.60.0.
+function baseline(): AuditCarryingUserInputs {
   const parsed = UserInputsSchema.parse(KNOWN_INPUTS);
   return { ...parsed, _audit: buildPartnerSuppliedAudit(parsed) };
 }

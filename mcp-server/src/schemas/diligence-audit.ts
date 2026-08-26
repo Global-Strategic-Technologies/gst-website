@@ -227,20 +227,31 @@ export const AuditMetadataSchema = z
     operatingModel: dimensionAuditBaseSchema,
   })
   .describe(
-    'Per-dimension provenance + calibration metadata. REQUIRED. Drives the tool-handler refinement checks that enforce the calibration clauses.'
+    'Per-dimension provenance + calibration metadata. Optional; when supplied, the tool-handler refinement checks that enforce the calibration clauses run against it. When omitted, the engine runs on the dimension values alone.'
   );
 
 /**
  * The full audited input schema the diligence tool registers.
  * Plain `ZodObject` (no `.superRefine`, no `z.union`) so MCP SDK's
  * `normalizeObjectSchema` publishes the correct JSON Schema to clients.
+ *
+ * `_audit` is optional as of 0.60.0: supplied blocks are still validated
+ * by `runAuditRefinements`; absent blocks skip the calibration checks
+ * entirely (the trust-the-operator posture — see ADR-0022 when it lands).
  */
 export const AuditedUserInputsSchema = UserInputsSchema.extend({
-  _audit: AuditMetadataSchema,
+  _audit: AuditMetadataSchema.optional(),
 });
 
 export type AuditedUserInputs = z.infer<typeof AuditedUserInputsSchema>;
 export type AuditMetadata = z.infer<typeof AuditMetadataSchema>;
+
+/**
+ * An audited payload whose optional `_audit` block is actually present —
+ * the shape `runAuditRefinements` operates on. Handlers narrow to this
+ * after checking `payload._audit`.
+ */
+export type AuditCarryingUserInputs = AuditedUserInputs & { _audit: AuditMetadata };
 
 // ─── Helper: bracket the USD amount ────────────────────────────────────
 
@@ -293,7 +304,7 @@ export interface AuditRefinementIssue {
  * available is a separate preflight validator tool (reserved as BL-069);
  * do NOT attempt to "fix" the cascade ordering as a substitute.
  */
-export function runAuditRefinements(payload: AuditedUserInputs): AuditRefinementIssue[] {
+export function runAuditRefinements(payload: AuditCarryingUserInputs): AuditRefinementIssue[] {
   const issues: AuditRefinementIssue[] = [];
 
   // ─── 1. Currency normalization (BL-045 BLOCKING rule) ────────────

@@ -208,20 +208,30 @@ export const TechParAuditMetadataSchema = z
       ),
   })
   .describe(
-    'Calibration audit metadata for compute_techpar. Enforces currency-basis declaration + per-monetary-field annualization provenance.'
+    'Calibration audit metadata for compute_techpar. Optional; when supplied, currency-basis declaration + per-monetary-field annualization provenance are validated. When omitted, the engine runs on the base inputs alone.'
   );
 
 /**
  * Audited input schema. Extends the base TechParMcpInputsSchema with the
- * required `_audit` sibling. Plain ZodObject (no .superRefine) so MCP SDK's
+ * `_audit` sibling. Plain ZodObject (no .superRefine) so MCP SDK's
  * normalizeObjectSchema publishes the correct JSON Schema to clients.
+ *
+ * `_audit` is optional as of 0.60.0: supplied blocks are still validated
+ * by `runTechParAuditRefinements`; absent blocks skip the calibration
+ * checks entirely.
  */
 export const AuditedTechParInputsSchema = TechParMcpInputsSchema.extend({
-  _audit: TechParAuditMetadataSchema,
+  _audit: TechParAuditMetadataSchema.optional(),
 });
 
 export type AuditedTechParInputs = z.infer<typeof AuditedTechParInputsSchema>;
 export type TechParAuditMetadata = z.infer<typeof TechParAuditMetadataSchema>;
+
+/**
+ * An audited payload whose optional `_audit` block is actually present —
+ * the shape `runTechParAuditRefinements` operates on.
+ */
+export type AuditCarryingTechParInputs = AuditedTechParInputs & { _audit: TechParAuditMetadata };
 
 // ─── Cross-field refinement runner ──────────────────────────────────────
 
@@ -231,7 +241,9 @@ export interface TechParAuditIssue {
   ruleId: string;
 }
 
-export function runTechParAuditRefinements(payload: AuditedTechParInputs): TechParAuditIssue[] {
+export function runTechParAuditRefinements(
+  payload: AuditCarryingTechParInputs
+): TechParAuditIssue[] {
   const issues: TechParAuditIssue[] = [];
   const audit = payload._audit;
 

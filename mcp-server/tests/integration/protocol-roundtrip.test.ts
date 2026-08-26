@@ -275,10 +275,15 @@ describe('protocol roundtrip', () => {
           tool!.inputSchema.required,
           `tool ${toolName} must publish a required[] array`
         ).toBeDefined();
+        // 0.60.0 — `_audit` is OPTIONAL: supplied blocks are still validated
+        // by the handler refinements, absent blocks skip the calibration
+        // checks (trust-the-operator posture). The properties half above
+        // still guards against ZodEffects collapse; this half now guards
+        // the optionality itself.
         expect(
           tool!.inputSchema.required,
-          `tool ${toolName} must declare _audit as required (model would otherwise default to omitting it)`
-        ).toContain('_audit');
+          `tool ${toolName} must NOT declare _audit as required (optional as of 0.60.0 — supplied blocks validate, absent blocks skip calibration)`
+        ).not.toContain('_audit');
       }
     });
 

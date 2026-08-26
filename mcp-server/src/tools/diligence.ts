@@ -115,7 +115,11 @@ export async function handleDiligenceTool(payload: AuditedUserInputs) {
   // `payload` here is already a fully-typed `AuditedUserInputs`. Only the
   // BL-045 cross-field refinements remain in the handler body — those
   // cannot live on `.superRefine` without breaking JSON Schema publication.
-  const auditIssues = runAuditRefinements(payload);
+  // `_audit` is optional as of 0.60.0: a supplied block is still validated;
+  // an absent block skips the calibration checks entirely.
+  const auditIssues = payload._audit
+    ? runAuditRefinements({ ...payload, _audit: payload._audit })
+    : [];
   mark('audit:complete');
   if (auditIssues.length > 0) {
     // The formatted block carries the BL-045 rule citation the `gst_irl_ingestion`

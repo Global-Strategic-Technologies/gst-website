@@ -381,13 +381,19 @@ describe('the IRL extract record, end to end', () => {
       contextSwitchOn: true,
     };
 
-    it('FINDING 5 — the payload the OLD Step 3 described is rejected: no `_audit` at all', async () => {
+    it('FINDING 5 (amended 0.60.0) — a call with no `_audit` is ACCEPTED, and no audit-derived response keys appear', async () => {
+      // Pre-0.60.0 this asserted rejection. `_audit` is optional now: absent
+      // blocks skip the calibration checks entirely (trust-the-operator);
+      // the null-when-OPEN guards below still fire when a block IS supplied.
       const result = await callTool('estimate_tech_debt_cost', {
         ...TECH_DEBT_BASE,
         incidents: 4,
         mttrHours: 8,
       });
-      expect(result.isError, 'a call with no _audit was accepted').toBe(true);
+      expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+      const out = result.structuredContent as Record<string, unknown>;
+      expect(out).not.toHaveProperty('mttrSource');
+      expect(out).not.toHaveProperty('incidentsSource');
     });
 
     it('FINDING 5 — and there is no honest enum for "synthesized from stage norms"', async () => {

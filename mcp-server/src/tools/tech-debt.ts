@@ -69,6 +69,59 @@ export function buildTechDebtDeeplink(raw: RawTechDebtInputs): string {
   return `${HUB_BASE}/hub/tools/tech-debt-calculator/?s=${encoded}`;
 }
 
+/**
+ * Handler for the estimate_tech_debt_cost MCP tool.
+ *
+ * Exported so unit tests can exercise the full wrapper pipeline (audit
+ * gating + null elision + extractionOnly + deeplink) without going through
+ * the MCP transport — same pattern as `handleDiligenceTool` /
+ * `handleTechparTool`. The MCP registration below wraps this same handler.
+ */
+export async function handleTechDebtTool(payload: AuditedTechDebtInputs) {
+  // BL-045 PR B — MTTR + incident-count fabrication guard.
+  // `_audit` is optional as of 0.60.0: a supplied block is still
+  // validated; an absent block skips the calibration checks entirely.
+  const auditIssues = payload._audit
+    ? runTechDebtAuditRefinements({ ...payload, _audit: payload._audit })
+    : [];
+  if (auditIssues.length > 0) {
+    // Retry directive — reaches `content` verbatim (BL-090 Invariant 2).
+    return toolFail('audit-failed', formatTechDebtAuditIssues(auditIssues));
+  }
+
+  try {
+    // Strip _audit; substitute 0 for null mttrHours / incidents fields
+    // (the engine multiplies them linearly so 0 elides the line item).
+    // Track which fields were elided so the response can surface
+    // extractionOnly[] for the prompt to render the section correctly.
+    const { _audit, ...rest } = payload;
+    const extractionOnly: Array<'mttrHours' | 'incidents'> = [];
+    if (rest.mttrHours === null) extractionOnly.push('mttrHours');
+    if (rest.incidents === null) extractionOnly.push('incidents');
+    const inputsForEngine: RawTechDebtInputs = {
+      ...rest,
+      mttrHours: rest.mttrHours ?? 0,
+      incidents: rest.incidents ?? 0,
+    };
+    const result = calculateFromRawInputs(inputsForEngine);
+    const deeplink = buildTechDebtDeeplink(inputsForEngine);
+    const responsePayload = {
+      ...result,
+      deeplink,
+      extractionOnly,
+      // Omit the keys entirely when no _audit was supplied — don't emit undefined.
+      ...(_audit ? { mttrSource: _audit.mttrSource, incidentsSource: _audit.incidentsSource } : {}),
+    };
+    return toolOk(
+      responsePayload,
+      `Tech-debt cost estimated${extractionOnly.length > 0 ? ` (${extractionOnly.length} field(s) extraction-only)` : ''}.`
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return toolFail('internal-error', `Failed to estimate tech-debt cost: ${message}`);
+  }
+}
+
 export function registerTechDebtTool(
   server: McpServer,
   metrics: MetricsContext = NOOP_METRICS_CONTEXT
@@ -84,45 +137,6 @@ export function registerTechDebtTool(
         idempotentHint: true,
       },
     },
-    withToolMetrics('estimate_tech_debt_cost', metrics, async (payload: AuditedTechDebtInputs) => {
-      // BL-045 PR B — MTTR + incident-count fabrication guard.
-      const auditIssues = runTechDebtAuditRefinements(payload);
-      if (auditIssues.length > 0) {
-        // Retry directive — reaches `content` verbatim (BL-090 Invariant 2).
-        return toolFail('audit-failed', formatTechDebtAuditIssues(auditIssues));
-      }
-
-      try {
-        // Strip _audit; substitute 0 for null mttrHours / incidents fields
-        // (the engine multiplies them linearly so 0 elides the line item).
-        // Track which fields were elided so the response can surface
-        // extractionOnly[] for the prompt to render the section correctly.
-        const { _audit, ...rest } = payload;
-        const extractionOnly: Array<'mttrHours' | 'incidents'> = [];
-        if (rest.mttrHours === null) extractionOnly.push('mttrHours');
-        if (rest.incidents === null) extractionOnly.push('incidents');
-        const inputsForEngine: RawTechDebtInputs = {
-          ...rest,
-          mttrHours: rest.mttrHours ?? 0,
-          incidents: rest.incidents ?? 0,
-        };
-        const result = calculateFromRawInputs(inputsForEngine);
-        const deeplink = buildTechDebtDeeplink(inputsForEngine);
-        const responsePayload = {
-          ...result,
-          deeplink,
-          extractionOnly,
-          mttrSource: _audit.mttrSource,
-          incidentsSource: _audit.incidentsSource,
-        };
-        return toolOk(
-          responsePayload,
-          `Tech-debt cost estimated${extractionOnly.length > 0 ? ` (${extractionOnly.length} field(s) extraction-only)` : ''}.`
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return toolFail('internal-error', `Failed to estimate tech-debt cost: ${message}`);
-      }
-    })
+    withToolMetrics('estimate_tech_debt_cost', metrics, handleTechDebtTool)
   );
 }
