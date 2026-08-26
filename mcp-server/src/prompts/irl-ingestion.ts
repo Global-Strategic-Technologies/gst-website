@@ -50,6 +50,9 @@ import {
   ENG_COST_DEDUP_RULE,
   ICG_SEEDING_RULES,
   MTTR_P1_RULE,
+  VDR_RESOURCE_URI,
+  VDR_FOLDER_TAXONOMY,
+  WORKBOOK_COLUMN_CONTRACT,
 } from './extraction-rules';
 
 /**
@@ -64,53 +67,12 @@ function computeIrlBodyHashForBody(filledIrl: string): string {
   return createHash('sha256').update(filledIrl).digest('hex').slice(0, 16);
 }
 
-// IRL taxonomy reference embeds the decoupled generator source
-// (`IRL_SOURCE_EMBED_URI` = gst://irl/source), NOT the library article — so the
-// filled-IRL reconciliation taxonomy stays the canonical list, free of the
-// library page's prose/promo.
-const VDR_RESOURCE_URI = 'gst://library/vdr-structure';
-
-/**
- * BL-123 — the VDR folder taxonomy, inlined.
- *
- * Until BL-123 this prompt embedded the whole `gst://library/vdr-structure`
- * article as a third message on EVERY render: 16.3KB of prose to supply the
- * nine folder labels section (I) quotes for follow-up document requests. That
- * is the single largest piece of dead weight in a payload measured at 153.8KB.
- *
- * **Why inline and not just cite the URI.** `src/prompts/embed.ts` records the
- * measured reason the embed existed: when a prompt body says "read
- * `gst://library/vdr-structure`", the model usually cannot, and falls back to
- * its training — in V1 it substituted a generic 10-folder PE-diligence taxonomy
- * for the canonical GST one. Dropping to a bare URI reference would reproduce
- * that defect exactly. The labels have to be IN the body; only the surrounding
- * article does not.
- *
- * The URI is kept as a provenance caption, which also satisfies the
- * orchestrates→body invariant (every `orchestrates` entry must appear literally
- * in the rendered body).
- *
- * **This is a second copy of canonical Library content.** Source of truth is
- * `src/data/library/vdr-structure/article.md`, codegenned into
- * `src/content/library-data.generated.ts`. A drift guard pins the two together
- * — see `tests/integration/vdr-taxonomy-drift-guard.test.ts`, modelled on the
- * SOP dual-source guard.
- */
-const VDR_FOLDER_TAXONOMY = [
-  `**Canonical VDR folder taxonomy** (from \`${VDR_RESOURCE_URI}\` — use these labels VERBATIM; do NOT substitute a generic PE-diligence taxonomy):`,
-  '',
-  '| #   | Folder                      | Contents                                                                                    |',
-  '| --- | --------------------------- | ------------------------------------------------------------------------------------------- |',
-  '| 01  | Product                     | Roadmap, release history, feature analytics, UX research, backlog health.                   |',
-  '| 02  | Software Architecture       | System design, stack inventory, data models, integration points, code-quality metrics.      |',
-  '| 03  | Infrastructure & Operations | Cloud architecture, monitoring, SLA history, capacity planning.                             |',
-  '| 04  | SDLC                        | Methodology, branching strategy, code review, testing, release process.                     |',
-  '| 05  | Data, Analytics & AI        | Data architecture, pipelines, analytics, ML/AI models, governance.                          |',
-  '| 06  | Security                    | Policies, pen-test results, incident history, access controls, BCP/DR plans.                |',
-  '| 07  | People & Organization       | Org charts, key personnel, headcount census, retention risk, hiring plan.                   |',
-  '| 08  | Corporate IT                | Enterprise systems, internal tools, endpoint management, identity providers, IT operations. |',
-  '| 09  | Governance & Compliance     | Certifications, audit reports, data-privacy controls, regulatory correspondence, licensing. |',
-].join('\n');
+// `VDR_RESOURCE_URI` + `VDR_FOLDER_TAXONOMY` (the BL-123 inlined nine-row
+// taxonomy) and `WORKBOOK_COLUMN_CONTRACT` (BL-120 / ADR-0015) moved to
+// `extraction-rules.ts` in PR1 phase 1.2 of the trust-the-operator rebuild
+// so this prompt and `gst_irl_sweep` share one copy during coexistence.
+// The move is byte-identical to this prompt's render — the body-hash suite
+// staying green is the proof.
 
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
 
@@ -249,40 +211,9 @@ const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
 //
 // Included in both buildOneShotBody and buildExtractOnlyBody, immediately
 // ahead of the pre-flight, because the fill ratio is computed over the
-// answer span this section defines.
-
-const WORKBOOK_COLUMN_CONTRACT = [
-  '## IRL workbook column contract (READ FIRST if you are reconstructing from an attached .xlsx)',
-  '',
-  'Skip this section when the IRL you have is already markdown — it is already in the shape described here. It governs the case where you are reading a `.xlsx` attachment and writing the body yourself.',
-  '',
-  'The workbook has **seven** columns:',
-  '',
-  '| A | B | C | D | E | F | G |',
-  '| --- | --- | --- | --- | --- | --- | --- |',
-  '| Reference | Request | Status | File Location | Comments | Notes | Response |',
-  '',
-  "**Trust the header row of the data sheet. Do NOT trust the Instructions sheet** — workbooks in the wild predate the current generator, and at least one documents a five-column layout with Response in column D. Following it would publish source-document filenames as the recipient's answers.",
-  '',
-  '**D, E and F carry authored content, not metadata.** GST pre-populates research into **Comments (E)**, source pointers into **File Location (D)** and caveats into **Notes (F)**; the recipient confirms by setting Status. On real workbooks Comments frequently holds *the answer* while Response (G) is empty — treat Comments as an answer, not as a side channel.',
-  '',
-  '**Compose each filled row as ONE bullet, in exactly this shape:**',
-  '',
-  '```',
-  '- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)',
-  '```',
-  '',
-  '- `<answer>` is **G and E joined into one contiguous span, G first**. The separator is a single space; **add a period after G unless G already ends in `.` `?` `!` `:` `;` `,` `…` or a dash — test the LAST character after peeling off any closing brackets and quotes.** So a G already terminated gets no second terminator; a G ending in a comma reads `foo, bar` rather than `foo,. bar`, including when a closing quote follows the comma; and a G ending in a unit or symbol (`14%`, `$4.15M +`) still gets its period. **Do not label the two halves.** A label between them injects a token into the middle of every citation that reads across the boundary, dropping the provenance matcher below its contiguous-run floor and marking faithful citations unverified.',
-  '- `(Source:)` and `(Note:)` append only when D / F are non-empty, each preceded by one space. They stay **outside** the answer slot.',
-  '- All four content columns empty → `— <NO RESPONSE>`. **D or F present with no answer → `— <NO RESPONSE> (Source: …)`** — a row whose only content is a filename is NOT answered.',
-  '- Status passes through verbatim (`OPEN` / `PARTIAL` / `CLOSED`); an **empty** Status reads as `OPEN`. Status does **not** gate inclusion: an OPEN row carrying content still contributes its content.',
-  '- Trim every cell. Newlines INSIDE a cell survive, so a multi-line Comments value can push `(Source: …)` onto its own visual line — that is expected, not a rendering bug to work around.',
-  '- Section header rows and section intros are omitted from the bullet stream entirely.',
-  '',
-  'One difference from the operator-side `npm run irl:extract`, which renders this same shape: that script also emits an H1 title and a `> Engagement context:` / `> Generated:` / `> Canonical reference:` preamble. Those are a strict superset — non-citation content that no verification reads. **The two paths agree at the bullet level**, which is the level every citation, gate and ratio operates on.',
-  '',
-  '**Citation hygiene (audit rule, not style): cite from the answer slot only — never from `(Source:)` or `(Note:)`.** Both are inside the body the verifier matches against, so a claim citing a VDR path or a note tail **will verify and will NOT raise a `provenance-gap:`** — presenting the dossier as anchored on a filename. The verifier cannot catch this for you; you are the control. Also avoid quoting an em-dash that appears inside a Note: the excerpt extractor anchors on the LAST em-dash in a citation, so the citation collapses to the note tail.',
-].join('\n');
+// answer span this section defines. The constant itself lives in
+// `extraction-rules.ts` (moved verbatim, PR1 phase 1.2) so `gst_irl_sweep`
+// shares the same copy.
 
 // ─── Shared helper: wrong-IRL detector pre-flight ──────────────────────
 //
