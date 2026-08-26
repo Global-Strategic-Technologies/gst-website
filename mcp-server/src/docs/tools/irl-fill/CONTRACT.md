@@ -15,7 +15,7 @@ schema: mcp-server/src/tools/fill-information-request-list-xlsx.ts
 > - **Design record**: [ADR-0021](../../../../../src/docs/adr/0021-irl-fill-d-cell-sourcing-grammar.md) — the D/E placement consequence chain, the grammar's forbidden-character rationales, the per-row attribution floor, and the compositional-idempotency split.
 > - **Canonical question source**: the same [`src/data/irl/information-request-list.md`](../../../../../src/data/irl/information-request-list.md) the frozen generator reads, through the same `parseIrlArticle → customizeIrlArticle → generateIrlXlsxBuffer` pipeline.
 >
-> **Used by prompt**: `gst_irl_fill` (see [`prompts/README.md`](../../prompts/README.md)) — evidence inventory → authored fills → this tool → **stop at the artifact**.
+> **Used by prompt**: `gst_irl_create` (renamed from `gst_irl_fill` in server 0.62.0; see [`prompts/README.md`](../../prompts/README.md)) — evidence inventory → authored fills → this tool → **stop at the artifact**.
 >
 > **Acceptance walkthrough**: [`UAT-11-irl-fill.md`](../../testing/uat/UAT-11-irl-fill.md).
 >
@@ -74,7 +74,7 @@ All `invalid-input`, all actionable: **duplicate refs** (named; merge sources in
 ## Idempotency — split across two surfaces, deliberately
 
 - **The tool guarantees content-level determinism**: identical `(scoping, fills)` → identical workbook content; only `generatedAt` varies (filename date slug + `Generated` header row), exactly like the frozen generator (`idempotentHint: false` for the same reason). It also dedups **exact-duplicate D segments** (first-seen order), so a re-sent union can never double-write a source. `comments` gets no dedup — the idempotency unit for E is the whole value.
-- **The prompt owns carry-forward**: the server never holds a workbook, so extend-don't-overwrite is compositional — `gst_irl_fill` instructs re-runs to pass the full union (prior fills unchanged, new D segments appended with `; `, answer prose extended). Same union in → same content out; new evidence → strictly additive change.
+- **The prompt owns carry-forward**: the server never holds a workbook, so extend-don't-overwrite is compositional — `gst_irl_create` instructs re-runs to pass the full union (prior fills unchanged, new D segments appended with `; `, answer prose extended). Same union in → same content out; new evidence → strictly additive change.
 
 Neither surface silently owns the other's half; both state the split.
 

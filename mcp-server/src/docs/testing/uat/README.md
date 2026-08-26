@@ -22,7 +22,7 @@
 | [UAT-08 — Radar](UAT-08-radar.md)                   | `search_radar`, `get_latest_insights`                                                                                                    | UAT-08.1 – .3  | ✅ authored |
 | [UAT-09 — Prompts](UAT-09-prompts.md)               | the `gst_*` prompts (incl. `gst_irl_sweep`, `gst_irl_extract`)                                                                           | UAT-09.0 – .12 | ✅ authored |
 | [UAT-10 — Resources](UAT-10-resources.md)           | `gst://library/`, `gst://regulations/`, `gst://radar/`                                                                                   | UAT-10.1 – .4  | ✅ authored |
-| [UAT-11 — IRL fill](UAT-11-irl-fill.md)             | `fill_information_request_list_xlsx`, `gst_irl_fill`                                                                                     | UAT-11.1 – .6  | ✅ authored |
+| [UAT-11 — IRL fill](UAT-11-irl-fill.md)             | `fill_information_request_list_xlsx`, `gst_irl_create`                                                                                   | UAT-11.1 – .6  | ✅ authored |
 
 Supporting documents: [`SETUP.md`](SETUP.md) (do this first) · [`TEMPLATE.md`](TEMPLATE.md) (the skeleton every case follows).
 
@@ -64,7 +64,7 @@ Supporting documents: [`SETUP.md`](SETUP.md) (do this first) · [`TEMPLATE.md`](
 | `gst_irl_ingestion`                      | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_irl_sweep`                          | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_irl_extract`                        | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
-| `gst_irl_fill`                           | prompt   | [UAT-11](UAT-11-irl-fill.md)       | authored |
+| `gst_irl_create`                         | prompt   | [UAT-11](UAT-11-irl-fill.md)       | authored |
 | `gst://library/`                         | resource | [UAT-10](UAT-10-resources.md)      | authored |
 | `gst://regulations/`                     | resource | [UAT-10](UAT-10-resources.md)      | authored |
 | `gst://radar/`                           | resource | [UAT-10](UAT-10-resources.md)      | authored |

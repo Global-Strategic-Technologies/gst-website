@@ -1,5 +1,5 @@
 /**
- * Unit tests for the `gst_irl_fill` prompt (BL-140).
+ * Unit tests for the `gst_irl_create` prompt (BL-140).
  *
  * The load-bearing assertions mirror the operator rulings the body encodes:
  * evidence-inventory-first, the D-cell sourcing grammar taught with
@@ -9,24 +9,24 @@
  * never instruct it.
  */
 
-import { irlFillPrompt } from '../../../src/prompts/irl-fill';
+import { irlCreatePrompt } from '../../../src/prompts/irl-create';
 import { IRL_SOURCE_EMBED_URI } from '../../../src/prompts/embed';
 
-type Args = Parameters<typeof irlFillPrompt.build>[0];
+type Args = Parameters<typeof irlCreatePrompt.build>[0];
 
 function render(args: Record<string, unknown>): string {
-  const parsed = irlFillPrompt.argsSchema.parse(args) as Args;
-  return irlFillPrompt
+  const parsed = irlCreatePrompt.argsSchema.parse(args) as Args;
+  return irlCreatePrompt
     .build(parsed)
     .messages.map((m) => (m.content.type === 'text' ? m.content.text : ''))
     .join('\n');
 }
 
-describe('gst_irl_fill — registry shape', () => {
+describe('gst_irl_create — registry shape', () => {
   it('carries the registry invariants (name, version, orchestrates, no consumesTargetEvidence)', () => {
-    expect(irlFillPrompt.name).toBe('gst_irl_fill');
-    expect(irlFillPrompt.version).toBe('0.1.0');
-    expect(irlFillPrompt.orchestrates).toEqual([
+    expect(irlCreatePrompt.name).toBe('gst_irl_create');
+    expect(irlCreatePrompt.version).toBe('0.2.0');
+    expect(irlCreatePrompt.orchestrates).toEqual([
       IRL_SOURCE_EMBED_URI,
       'fill_information_request_list_xlsx',
     ]);
@@ -34,19 +34,19 @@ describe('gst_irl_fill — registry shape', () => {
     // path would instruct the sweep tools, contradicting stop-at-artifact.
     // The biconditional guard in irl-evidence-precedence-clause.test.ts
     // asserts the flag AND the clause absence together.
-    expect(irlFillPrompt.consumesTargetEvidence).toBeUndefined();
+    expect(irlCreatePrompt.consumesTargetEvidence).toBeUndefined();
   });
 
   it('returns two messages (body + IRL source embed) in both modes', () => {
     for (const args of [{}, { targetName: 'Acme' }]) {
-      const result = irlFillPrompt.build(irlFillPrompt.argsSchema.parse(args) as Args);
+      const result = irlCreatePrompt.build(irlCreatePrompt.argsSchema.parse(args) as Args);
       expect(result.messages).toHaveLength(2);
       expect(result.messages[1].content.type).not.toBe(undefined);
     }
   });
 });
 
-describe('gst_irl_fill — one-shot body', () => {
+describe('gst_irl_create — one-shot body', () => {
   const body = render({ targetName: 'Acme Corp', transactionContext: 'buy-side' });
 
   it('names every orchestrates entry', () => {
@@ -126,7 +126,7 @@ describe('gst_irl_fill — one-shot body', () => {
   });
 });
 
-describe('gst_irl_fill — interactive body', () => {
+describe('gst_irl_create — interactive body', () => {
   const body = render({});
 
   it('asks for target, evidence sources, and engagement posture before authoring', () => {

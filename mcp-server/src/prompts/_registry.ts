@@ -32,7 +32,7 @@ import { diligenceHandoffMemoPrompt } from './diligence-handoff-memo';
 import { architectureLayerReviewPrompt } from './architecture-layer-review';
 import { radarBriefTodayPrompt } from './radar-brief-today';
 import { informationRequestListPrompt } from './information-request-list';
-import { irlFillPrompt } from './irl-fill';
+import { irlCreatePrompt } from './irl-create';
 import { irlIngestionPrompt } from './irl-ingestion';
 import { irlSweepPrompt } from './irl-sweep';
 import { irlExtractPrompt } from './irl-extract';
@@ -48,7 +48,7 @@ export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
   architectureLayerReviewPrompt,
   radarBriefTodayPrompt,
   informationRequestListPrompt,
-  irlFillPrompt,
+  irlCreatePrompt,
   irlIngestionPrompt,
   // Trust-the-operator successors to gst_irl_ingestion — coexist during the
   // live-verification window; the removal PR retires the old surface. The

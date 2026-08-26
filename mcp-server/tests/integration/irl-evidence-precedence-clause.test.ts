@@ -8,7 +8,7 @@
  * registry is a special case at one, a pattern at two"*. The guard below is a
  * BICONDITIONAL — clause present ⇔ flag set — so every new prompt has to make
  * a choice rather than silently opting out of a discipline that governs how it
- * treats evidence. Prompt #10 (`gst_irl_fill`, BL-140) made that choice:
+ * treats evidence. Prompt #10 (`gst_irl_create`, BL-140) made that choice:
  * excluded, for the stop-at-artifact reason recorded on `EXPECTED_EXCLUDED`.
  *
  * **Non-zero counts are asserted on BOTH arms.** A guard iterating an empty set
@@ -46,11 +46,12 @@ const EXPECTED_OPT_IN = [
  * Deliberately excluded, each for a stated reason:
  *   - `gst_radar_brief_today` takes no target inputs at all.
  *   - `gst_information_request_list` PRODUCES the blank IRL.
- *   - `gst_irl_fill` (BL-140) genuinely resolves answers from target evidence
- *     in context — but the clause's mandatory upgrade path ("call
- *     `prepare_irl_body` … then `validate_irl_provenance`") instructs the
- *     model to invoke the sweep tools, a direct contradiction of the fill
- *     prompt's stop-at-artifact ruling (a human review checkpoint sits
+ *   - `gst_irl_create` (BL-140; renamed from `gst_irl_fill` in 0.62.0)
+ *     genuinely resolves answers from target evidence in context — but the
+ *     clause's mandatory upgrade path ("call `prepare_irl_body` … then
+ *     `validate_irl_provenance`") instructs the model to invoke the sweep
+ *     tools, a direct contradiction of the create prompt's
+ *     stop-at-artifact ruling (a human review checkpoint sits
  *     between fill and ingest by design). The stop-at-artifact contradiction
  *     alone carries the exclusion; the prompt's own body states the
  *     evidence-first discipline in its authoring rules.
@@ -59,13 +60,13 @@ const EXPECTED_OPT_IN = [
  */
 const EXPECTED_EXCLUDED = [
   'gst_information_request_list',
+  'gst_irl_create',
   // The trust-the-operator successors are excluded for the same reason as
   // their predecessor: the extract PRODUCES the record (resolving inputs
   // from an artifact it is writing would be circular), and the sweep
   // consumes the IRL directly rather than through record-evidence
   // precedence.
   'gst_irl_extract',
-  'gst_irl_fill',
   'gst_irl_ingestion',
   'gst_irl_sweep',
   'gst_radar_brief_today',

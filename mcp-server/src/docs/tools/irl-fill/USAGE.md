@@ -8,7 +8,7 @@
 
 ## The one-line workflow
 
-Invoke **`gst_irl_fill`** with your engagement scoping (target, context, any section configuration) while the evidence is in the conversation — attached documents, a data-room export, filings, prior-session extractions, or things you have told the model. The prompt walks the model through inventorying that evidence, authoring per-row fills under the sourcing grammar, and calling this tool. You get back a populated `.xlsx`.
+Invoke **`gst_irl_create`** with your engagement scoping (target, context, any section configuration) while the evidence is in the conversation — attached documents, a data-room export, filings, prior-session extractions, or things you have told the model. The prompt walks the model through inventorying that evidence, authoring per-row fills under the sourcing grammar, and calling this tool. You get back a populated `.xlsx`.
 
 Direct tool calls work identically for programmatic consumers; the prompt exists so the sourcing discipline is applied without coaching.
 
