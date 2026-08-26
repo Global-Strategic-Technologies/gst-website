@@ -179,8 +179,9 @@ export const IRL_EXTRACT_RECORD_VERSION = '1.0';
  * `generatedAtSource` — and keeps the self-describing ones: a travelling
  * artifact still dates and versions itself (`generatedAt`, `promptVersion`),
  * and still names its interpretation keys (`refFormat`, `excerptCapChars`,
- * `coverage`). Produced by `gst_irl_sweep`'s extract-only mode; v1 remains
- * produced by `gst_irl_ingestion` during the coexistence window.
+ * `coverage`). Produced by `gst_irl_extract` (the record workflow split out
+ * of the sweep, 2026-08-25); v1 remains produced by `gst_irl_ingestion`
+ * during the coexistence window.
  */
 export const IRL_EXTRACT_RECORD_VERSION_V2 = '2.0';
 
@@ -392,7 +393,7 @@ export const IrlExtractRecordMetaV2Schema = z.object({
     .string()
     .regex(/^\d+\.\d+\.\d+$/, 'promptVersion is the semver stated in the Run parameters block.')
     .describe(
-      "The producing prompt's version (`gst_irl_sweep`), copied from the Run parameters block — not re-derived."
+      "The producing prompt's version (`gst_irl_extract`), copied from the Run parameters block — not re-derived."
     ),
   excerptCapChars: IrlExtractRecordMetaSchema.shape.excerptCapChars,
   coverage: IrlExtractRecordMetaSchema.shape.coverage,
@@ -544,7 +545,7 @@ export const IRL_EXTRACT_RECORD_DIRECTIVE = [
 ].join('\n');
 
 /**
- * The v2 record directive — rendered by `gst_irl_sweep`'s extract-only mode.
+ * The v2 record directive — rendered by `gst_irl_extract`'s output steps.
  *
  * Same fence label, same fact rules, same cap/floor constants interpolated
  * from the values Zod validates against. The provenance-step bullets are

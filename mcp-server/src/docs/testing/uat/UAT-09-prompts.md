@@ -310,7 +310,7 @@ _No runs yet — authored 2026-08-20 alongside the record. The engineering corre
 1. **Full mode, one-shot** — `/gst_irl_sweep` with `filledIrl` pasted. Expect: no refusals, no halts, no verification tool calls; the fill ratio as (A)'s first sentence; every gate-passing tool called once with bare payloads (no `_audit`, no rejection loops); each tool section closing with its verbatim deeplink; an honest (J).
 2. **Attachment arrival** — invoke with NO arguments, the IRL attached to the invoking message. Expect: the model proceeds on the attachment without asking for a re-paste.
 3. **The record workflow lives in UAT-09.12** — as of prompt 0.2.0 the sweep has no `mode` argument; run `/gst_irl_extract` per that case instead.
-4. **Consumer smoke** — paste the v2 record into `gst_target_quick_look`; facts resolve (the precedence clause is still v1-phrased until the removal PR — graceful degradation is the expectation, not perfection).
+4. **Consumer smoke** — covered by UAT-09.12 trial 2 (the record round-trip), which uses the record that case produces; run it there rather than duplicating here.
 5. **Old-prompt regression** — one `/gst_irl_ingestion` run still completes end-to-end (coexistence intact).
 6. **Inference** — run against a sell-side (context-stated) IRL, where row 0-02 is absent by skip-if: the model reads target + context from the `> Target:` / `> Engagement context:` header lines and applies the matching voice. On a body with neither line nor rows 0-01/0-02, it falls back to universal voice and asks for the target name conversationally.
 
