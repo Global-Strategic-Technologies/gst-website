@@ -118,20 +118,21 @@ describe('gst_irl_sweep — arrival + inference (the two-arg surface)', () => {
     expect(FULL).toMatch(/beats a non-canonical header/i);
   });
 
-  it('a bare arrival with no accompanying message runs rather than asking run-vs-review', () => {
-    // Kestrel live-trial finding (2026-08-25): the file-with-no-message
-    // arrival cost one clarification turn; the invocation is the instruction.
-    expect(FULL).toContain('Arriving with no accompanying message is not ambiguity');
-    expect(FULL).toMatch(/run the mode stated in Run parameters/i);
-  });
-
-  it('the execution directive is unconditional: populated arguments are the complete instruction', () => {
-    // Second Kestrel trial finding (2026-08-25): the model asked for a "go"
-    // even with filledIrl populated. The body now leads with the contract.
+  it('states run completeness declaratively — the BL-086 register, no do-not-ask imperatives', () => {
+    // Kestrel trials 2-3 (2026-08-25): "do not ask for confirmation" prose
+    // pattern-matched to injection and TRIGGERED the confirmation pause it
+    // tried to prevent — the same lesson embed.ts records for the original
+    // authorial-intent line. The body now states the facts (submission = the
+    // operator's "run this") and leaves the model's judgment intact.
     for (const body of [FULL, FULL_ONESHOT, EXTRACT]) {
-      expect(body).toContain('This is an execution request, not a document for review.');
-      expect(body).toMatch(/Do not ask for confirmation/);
-      expect(body).toMatch(/in this same turn/);
+      expect(body).toContain('Run completeness.');
+      expect(body).toMatch(/how an operator says "run this"/);
+      expect(body).toContain(
+        'A submission with no accompanying chat message is a normal invocation'
+      );
+      // The injection-shaped imperatives must NOT come back.
+      expect(body).not.toMatch(/[Dd]o not ask for confirmation/);
+      expect(body).not.toMatch(/do not stop to ask/);
     }
   });
 
