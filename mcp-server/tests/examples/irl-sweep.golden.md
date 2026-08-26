@@ -7,7 +7,9 @@ model: claude-fable-5
 
 # Worked example output for `gst_irl_sweep`
 
-V1 draft recording (trust-the-operator rebuild, plan goofy-prancing-wirth). To be replaced with the operator live-exercise capture from the PR1 verification window — the six live-verification steps in the approved plan are the capture protocol, run against the real Kestrel filled IRL.
+> **Status: DRAFT — no live run captured yet.** The frontmatter records authorship of this document, not a recording; the body below is design intent.
+
+V1 draft (trust-the-operator rebuild, plan goofy-prancing-wirth). To be replaced with the operator live-exercise capture from the PR1 verification window — the six live-verification steps in the approved plan are the capture protocol, run against the real Kestrel filled IRL.
 
 ## Input — full mode, one-shot
 

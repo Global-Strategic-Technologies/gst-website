@@ -112,6 +112,48 @@ describe('0.60.0 — bare handler calls return engine output with no audit-deriv
   });
 });
 
+describe('0.60.0 — a SUPPLIED valid _audit still yields the audit-derived response keys', () => {
+  it('estimate_tech_debt_cost returns mttrSource/incidentsSource when a valid _audit is supplied', async () => {
+    const parsed = AuditedTechDebtInputsSchema.parse({
+      ...TECH_DEBT_BARE,
+      _audit: { mttrSource: 'irl-stated', incidentsSource: 'irl-stated' },
+    });
+    const result = await handleTechDebtTool(parsed);
+    expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+    const out = result.structuredContent as Record<string, unknown>;
+    expect(out.mttrSource).toBe('irl-stated');
+    expect(out.incidentsSource).toBe('irl-stated');
+  });
+
+  it('compute_techpar returns monetaryBasis when a valid _audit is supplied', async () => {
+    const audited = {
+      annualizationSource: 'irl-annualized-stated',
+      citation: 'Section 00 — figure stated as an annualized amount in the board deck',
+    };
+    const parsed = AuditedTechParInputsSchema.parse({
+      ...TECHPAR_BARE,
+      _audit: {
+        monetaryBasis: {
+          currency: 'USD',
+          citation: 'Section 00 — all monetary figures stated in USD in the board deck',
+        },
+        arr: audited,
+        infraHostingAnnual: audited,
+        infraPersonnel: audited,
+        rdOpEx: audited,
+        rdCapEx: audited,
+        engCost: audited,
+        prodCost: audited,
+        toolingCost: audited,
+      },
+    });
+    const result = await handleTechparTool(parsed);
+    expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+    const out = result.structuredContent as { monetaryBasis?: { currency: string } };
+    expect(out.monetaryBasis?.currency).toBe('USD');
+  });
+});
+
 describe('0.60.0 — a SUPPLIED _audit block is still validated', () => {
   it('estimate_tech_debt_cost still rejects a non-null value under an OPEN source', async () => {
     const parsed = AuditedTechDebtInputsSchema.parse({

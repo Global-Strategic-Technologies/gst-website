@@ -209,7 +209,7 @@ const FULL_MODE_STEPS = [
 const EXTRACT_ONLY_STEPS = [
   '## Extract-only mode',
   '',
-  'No tool invocations, no dossier prose. Produce, in order: the IRL extract record (below), then one `payload: <tool>` JSON fence per GATE-PASSING tool from the inclusion-gates list — the exact arguments you would have called it with (base schemas, no `_audit`; the facet tools need no fences, their calls take no arguments) — then one `elided: <tool>` line per gate-failing tool naming the failed predicate, then (J) Gaps & assumptions. Tool names for the fences: `generate_diligence_agenda`, `compute_techpar`, `assess_infrastructure_cost_governance`, `estimate_tech_debt_cost`, `search_regulations`, `search_portfolio`, `search_radar` (plus the prefacing `list_portfolio_facets` / `list_regulation_facets`, which take no arguments and get no fences).',
+  'No tool invocations, no dossier prose. Produce, in order: the IRL extract record (below), then one `payload: <tool>` JSON fence per GATE-PASSING tool from the inclusion-gates list — the exact arguments you would have called it with (base schemas, no `_audit`) — then one `elided: <tool>` line per gate-failing tool naming the failed predicate, then (J) Gaps & assumptions. Fences are for the seven argument-bearing tools: `generate_diligence_agenda`, `compute_techpar`, `assess_infrastructure_cost_governance`, `estimate_tech_debt_cost`, `search_regulations`, `search_portfolio`, `search_radar`; the prefacing `list_portfolio_facets` / `list_regulation_facets` take no arguments and get no fences.',
   '',
   IRL_EXTRACT_RECORD_DIRECTIVE_V2,
 ].join('\n');
