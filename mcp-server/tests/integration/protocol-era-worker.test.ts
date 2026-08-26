@@ -208,7 +208,7 @@ describe('BL-106 — Worker protocol era', () => {
     const list = await readJsonRpc(await worker.fetch('/mcp', modernRequest('prompts/list')));
     expect(list.error).toBeUndefined();
     const prompts = (list.result as { prompts: Array<{ name: string }> }).prompts;
-    expect(prompts).toHaveLength(10); // BL-140 added gst_irl_fill
+    expect(prompts).toHaveLength(12); // gst_irl_sweep + gst_irl_extract (trust-the-operator pair); BL-140 added gst_irl_fill
 
     for (const { name } of prompts) {
       // Shared with the paired-transport suite — see tests/helpers/prompt-args.ts.

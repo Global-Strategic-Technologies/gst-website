@@ -465,7 +465,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 **Source**: BL-140 user ruling, 2026-08-23 — v1 of `fill_information_request_list_xlsx` delivers base64-only, and the ruling that accepted it also filed this follow-up | **Effort**: Medium | **Status**: Candidate — no committed consumer yet
 
-**As a** GST partner who just produced a populated IRL via `gst_irl_fill`, **I want** a one-click download surface for it, **so that** delivery does not depend on the invoking client's ability to write a base64 payload to disk.
+**As a** GST partner who just produced a populated IRL via `gst_irl_create`, **I want** a one-click download surface for it, **so that** delivery does not depend on the invoking client's ability to write a base64 payload to disk.
 
 **Why it does not exist yet.** The Hub generator page (`/hub/tools/information-request-list-generator/`) reconstructs _blank_ workbooks client-side from URL args — a populated workbook's `fills` cannot ride a deeplink the same way (hundreds of prose cells vs a handful of scoping params), so the frozen tool's `downloadUrl` pattern would hand the operator the wrong artifact. BL-140 therefore deliberately omitted `downloadUrl` from the fill tool's payload, and the residual is documented in [`irl-fill/CONTRACT.md`](../../../mcp-server/src/docs/tools/irl-fill/CONTRACT.md) § Accepted residuals. Note BL-046 (inline MCP file delivery, candidate) covers the same gap from the client side — if Claude Desktop ships arbitrary-mimeType attachment rendering, this stanza may be moot; evaluate both before building either.
 
@@ -491,6 +491,18 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 - A live engagement produces a partially-returned workbook the operator wants topped up (the BL-140 stanza's "mixed workbook" scenario occurring in practice)
 - The attribution-granularity question gets an operator ruling
+
+### BL-143: Trust-the-operator IRL ingestion rebuild (`gst_irl_sweep`)
+
+**Source**: operator mandate, 2026-08-25 — a genuinely-invoked Kestrel run was refused by the old prompt's own provenance reasoning (the transport artifact broke the model-side evidence chain while the `-prepop` grade was cryptographically true); the operator's verdict was that the guards reject real IRLs faster than they catch fabrications | **Effort**: Large | **Status**: **In progress** — PR1 (additive) built on `feat/irl-sweep`; controlling plan `goofy-prancing-wirth` (9 review rounds, approved)
+
+**As a** GST operator with a populated IRL in hand, **I want** the sweep to treat it as ipso facto trusted input and just run, **so that** the ingestion surface stops being perpetually refactored and never useful.
+
+**Shape.** `gst_irl_sweep@0.2.0` (ONE arg: `filledIrl?`; target + context inferred from the IRL itself; always the full sweep) plus its sibling `gst_irl_extract@0.1.0` (the portable record, zero tool calls — split out 2026-08-25 by operator ruling for modularity and a one-field slash form) coexist with `gst_irl_ingestion` until live verification (UAT-09.11/.12) clears; then the removal PR deletes the old prompt, the three provenance tools (`prepare_irl_body`, `validate_irl_provenance`, `compose_dossier_envelope` — operator confirmation of no external callers on record at BREAKING_CHANGES.md), the IRL body cache / provenance store / durable run-counters, and extract-record v1. Retained: inclusion gates, engine-math rule constants, workbook column contract, conditional triggers, deeplink discipline, VDR taxonomy — they encode engine behavior, not distrust. ADR-0022 lands with the removal PR and supersedes 0002/0003/0016/0017/0018.
+
+**Open decision, owed at PR2 kickoff (operator, 2026-08-25)**: the `_audit` end state on the three analysis tools — remove entirely vs keep optional-and-validated (PR1 ships optional either way). Decide on live-verification evidence: did bare calls produce any wrong numbers the old refinements would have caught?
+
+**PR2 also settles**: BL-129 (close as won't-do if `_audit` is removed; moot either way per scope decision), BL-130 (mechanism removed — close), BL-131 (both sites die with the file — close), and dispositions for BL-128 / BL-134 / BL-087.
 
 ### BL-136: A production advisory sat red for three days because nothing is watching the audit job
 

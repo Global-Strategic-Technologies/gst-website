@@ -69,7 +69,11 @@ export async function handleTechparTool(payload: AuditedTechParInputs) {
   // BL-045 PR B Phase 2 — TechPar calibration audit (currency basis +
   // per-monetary-field annualization provenance). Refinements run here in
   // the handler body, same pattern as diligence + tech-debt audits.
-  const auditIssues = runTechParAuditRefinements(payload);
+  // `_audit` is optional as of 0.60.0: a supplied block is still validated;
+  // an absent block skips the calibration checks entirely.
+  const auditIssues = payload._audit
+    ? runTechParAuditRefinements({ ...payload, _audit: payload._audit })
+    : [];
   if (auditIssues.length > 0) {
     // The formatted issue block is a retry directive the model is instructed to
     // act on, so it reaches `content` verbatim (BL-090 Invariant 2).
@@ -99,7 +103,8 @@ export async function handleTechparTool(payload: AuditedTechParInputs) {
       ...result,
       stageContext,
       deeplink,
-      monetaryBasis: _audit.monetaryBasis,
+      // Omit the key entirely when no _audit was supplied — don't emit undefined.
+      ...(_audit ? { monetaryBasis: _audit.monetaryBasis } : {}),
     };
     return toolOk(responsePayload, `TechPar computed for stage ${nativeStage}.`);
   } catch (error) {

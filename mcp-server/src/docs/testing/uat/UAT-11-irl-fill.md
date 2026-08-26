@@ -1,6 +1,6 @@
 # UAT-11 — IRL fill (evidence-populated workbook)
 
-**Covers**: `fill_information_request_list_xlsx` (tool), `gst_irl_fill` (prompt).
+**Covers**: `fill_information_request_list_xlsx` (tool), `gst_irl_create` (prompt — renamed from `gst_irl_fill` in server 0.62.0).
 
 **What this family does**: produces a _populated_ Information Request List `.xlsx` from evidence already in the model's context — sourcing reference into File Location (column D), answer into Comments (column E) — so the dossier pipeline can start before the target returns a filled workbook. Rows the evidence cannot answer stay blank: the partially populated workbook is itself the follow-up ask. The tool stops at the artifact; a human reviews it before running `gst_irl_ingestion` exactly as for a target-returned IRL.
 

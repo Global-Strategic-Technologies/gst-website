@@ -33,14 +33,16 @@ Two consequences for a tester:
 | `gst_architecture_layer_review`   | prompt | UAT-09.7                                | `architecture-layer-review.golden.md`               |
 | `gst_radar_brief_today`           | prompt | UAT-09.8                                | `radar-brief-today.golden.md`                       |
 | `gst_irl_ingestion`               | prompt | UAT-09.9                                | `irl-ingestion.golden.md`                           |
-| `gst_irl_fill`                    | prompt | covered in [UAT-11](UAT-11-irl-fill.md) | `irl-fill.golden.md`                                |
+| `gst_irl_create`                  | prompt | covered in [UAT-11](UAT-11-irl-fill.md) | `irl-create.golden.md`                              |
+| `gst_irl_sweep`                   | prompt | UAT-09.11                               | `irl-sweep.golden.md`                               |
+| `gst_irl_extract`                 | prompt | UAT-09.12                               | `irl-extract.golden.md`                             |
 | IRL extract record — cross-prompt | flow   | UAT-09.10                               | _(none — a cross-prompt flow has no single golden)_ |
 
 ---
 
 ## UAT-09.0 — Discovery
 
-**Goal**: Proves all ten prompts are advertised to the client before any of them is invoked.
+**Goal**: Proves all twelve prompts are advertised to the client before any of them is invoked.
 
 **Steps**
 
@@ -48,7 +50,7 @@ Two consequences for a tester:
 
 **Expected result**
 
-- Exactly **ten** `gst_*` prompts are listed, matching the Scope table (substantive coverage of `gst_irl_fill` lives in UAT-11, per its Scope row).
+- Exactly **twelve** `gst_*` prompts are listed, matching the Scope table (substantive coverage of `gst_irl_create` lives in UAT-11, per its Scope row; the count includes the deprecated `gst_irl_ingestion` until its removal PR lands).
 - Each shows its arguments; required arguments are marked.
 - No prompt appears twice, and no non-`gst_` prompt appears under this connector.
 
@@ -299,4 +301,52 @@ _No runs yet — authored 2026-08-20 alongside the record. The engineering corre
 
 ---
 
-_Last updated: 2026-08-20 (the IRL extract record — UAT-09.10 added for cross-prompt reuse and the session-2 re-verification leg; 09.9 gained the deferred `extract-only` path; 09.2 gained its evidence-conditional expectations). Prior: 2026-08-11 (BL-119 cycle 2 — 09.0–09.8 executed against production; 09.8 failed and drove the `gst_radar_brief_today` 0.0.5 fix. 09.9 still held for a markdown IRL) — that footer was already stale when written, carrying run-log rows dated 2026-08-12 and 2026-08-14 above it._
+## UAT-09.11 — `gst_irl_sweep` (trust-the-operator ingestion)
+
+**Goal**: proves the rebuilt sweep completes a real run with NO provenance rejections — the failure class that motivated the rebuild — and that its inference, gates, and outputs behave as designed. This is the PR1 live-verification protocol; operator sign-off here gates the removal PR.
+
+**Input**: the real Kestrel filled IRL (or an equivalent ≥40%-filled body).
+
+**Trials** (each in a fresh conversation):
+
+1. **Full mode, one-shot** — `/gst_irl_sweep` with `filledIrl` pasted. Expect: no refusals, no halts, no verification tool calls; the fill ratio as (A)'s first sentence; every gate-passing tool called once with bare payloads (no `_audit`, no rejection loops); each tool section closing with its verbatim deeplink; an honest (J).
+2. **Attachment arrival** — invoke with NO arguments, the IRL attached to the invoking message. Expect: the model proceeds on the attachment without asking for a re-paste.
+3. **The record workflow lives in UAT-09.12** — as of prompt 0.2.0 the sweep has no `mode` argument; run `/gst_irl_extract` per that case instead.
+4. **Consumer smoke** — covered by UAT-09.12 trial 2 (the record round-trip), which uses the record that case produces; run it there rather than duplicating here.
+5. **Old-prompt regression** — one `/gst_irl_ingestion` run still completes end-to-end (coexistence intact).
+6. **Inference** — run against a sell-side (context-stated) IRL, where row 0-02 is absent by skip-if: the model reads target + context from the `> Target:` / `> Engagement context:` header lines and applies the matching voice. On a body with neither line nor rows 0-01/0-02, it falls back to universal voice and asks for the target name conversationally.
+
+**Fail conditions**: any provenance-style refusal or unprompted verification behavior; an `_audit` rejection loop; a fabricated MTTR/incident number where the IRL is silent (the null-discipline prose must hold without the schema guard); an invented deeplink.
+
+**Run log**
+
+| Date | Tester | Env | Version | Mode | Verdict | Notes |
+| ---- | ------ | --- | ------- | ---- | ------- | ----- |
+
+_No runs yet — authored 2026-08-25 with the prompt (PR1 of the trust-the-operator rebuild). Engineering correctness is covered in-session by `tests/unit/prompts/irl-sweep.test.ts` and `tests/unit/tools/audit-optional.test.ts`; this case is the client-side exercise._
+
+---
+
+## UAT-09.12 — `gst_irl_extract` (the portable record)
+
+**Goal**: the extract-only workflow as its own prompt (0.61.0 split): a populated IRL in, the extract record v2 + derived payload fences out, with zero tool invocations and zero questions.
+
+**Input**: the same filled IRL as UAT-09.11.
+
+**Trials** (fresh conversation each):
+
+1. **One-shot** — `/gst_irl_extract` with `filledIrl` populated. Expect, in order: the `record: irl-extract` fence validating against `IrlExtractRecordV2Schema` (`recordVersion: "2.0"`, six-field `_meta` — no hash, no source grade), one `payload: <tool>` fence per gate-passing tool with base-schema arguments (no `_audit`), `elided:` lines for gate-failing tools naming the predicate, and (J). **No tool calls of any kind.**
+2. **Record round-trip** — paste the emitted record into `gst_target_quick_look` in a fresh conversation; facts resolve by request-text matching.
+
+**Fail conditions**: any tool invocation; a `_meta` carrying `irlBodyHash`/`irlSource`/`generatedAtSource`; a fabricated value where the IRL is silent.
+
+**Run log**
+
+| Date | Tester | Env | Version | Mode | Verdict | Notes |
+| ---- | ------ | --- | ------- | ---- | ------- | ----- |
+
+_No runs yet — authored 2026-08-25 with the split. Engineering correctness is covered in-session by `tests/unit/prompts/irl-extract.test.ts`; this case is the client-side exercise._
+
+---
+
+_Last updated: 2026-08-25 (UAT-09.12 added — `gst_irl_extract` after the extract-only split; 09.11 trial 3 repointed at it. Earlier same day: UAT-09.11 added — `gst_irl_sweep` live-verification protocol for the trust-the-operator rebuild). Prior: 2026-08-20 (the IRL extract record — UAT-09.10 added for cross-prompt reuse and the session-2 re-verification leg; 09.9 gained the deferred `extract-only` path; 09.2 gained its evidence-conditional expectations). Prior: 2026-08-11 (BL-119 cycle 2 — 09.0–09.8 executed against production; 09.8 failed and drove the `gst_radar_brief_today` 0.0.5 fix. 09.9 still held for a markdown IRL) — that footer was already stale when written, carrying run-log rows dated 2026-08-12 and 2026-08-14 above it._

@@ -29,7 +29,7 @@ export const PROMPTS_DIR = 'mcp-server/src/prompts';
  * downstream assertion pass, so both consumers assert these counts first.
  */
 export const EXPECTED_REMOTE_TOOL_COUNT = 16; // BL-140 added fill_information_request_list_xlsx
-export const EXPECTED_PROMPT_COUNT = 10; // BL-140 added gst_irl_fill
+export const EXPECTED_PROMPT_COUNT = 12; // gst_irl_sweep + gst_irl_extract added (coexistence window with gst_irl_ingestion)
 
 export function read(path: string): string {
   return readFileSync(resolve(path), 'utf-8');

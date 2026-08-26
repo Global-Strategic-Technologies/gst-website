@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-62d84be1f8c3a4c992dcc5306fe760f7a7f3784c911338fe0e8c19b97cc88c12
+4cf16ee6e418acc1ac470f4fbb4cfc6638ab7491b270c85f79531eeb2a0579da
 ```
 
 Computed over (sorted):
@@ -26,12 +26,54 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **17** tool names (`fill_information_request_list_xlsx` added by 0.59.0 / BL-140; `list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **10** prompt `name@version` tuples — `gst_irl_fill@0.1.0` added by 0.59.0 (BL-140), the first NEW tuple since the manifest was baselined at nine. **Seven of the prior nine moved in 0.56.0** — `gst_irl_ingestion` to `0.29.0` (the IRL extract record; `extract-only` reachable without `filledIrl`), and the six prompts that now carry `irlEvidencePrecedence()` to `0.1.0`: `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_architecture_layer_review`, `gst_comparable_engagements_memo`, `gst_regulatory_exposure_brief`. Unmoved: `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below) and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below). `gst_irl_ingestion`'s prior milestones: capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters, `compute_techpar` runs in a stated mode, the server derives `fillRatio`.
+- **12** prompt `name@version` tuples — `gst_irl_fill@0.1.0` renamed to `gst_irl_create@0.2.0` by 0.62.0; `gst_irl_extract@0.1.0` added and `gst_irl_sweep` bumped to `0.2.0` by 0.61.0 (the extract-only split); `gst_irl_sweep@0.1.0` added by 0.60.0 (trust-the-operator rebuild PR1, coexisting with `gst_irl_ingestion@0.30.0` until live verification clears its removal); `gst_irl_fill@0.1.0` added by 0.59.0 (BL-140), the first NEW tuple since the manifest was baselined at nine. **Seven of the prior nine moved in 0.56.0** — `gst_irl_ingestion` to `0.29.0` (the IRL extract record; `extract-only` reachable without `filledIrl`), and the six prompts that now carry `irlEvidencePrecedence()` to `0.1.0`: `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_architecture_layer_review`, `gst_comparable_engagements_memo`, `gst_regulatory_exposure_brief`. Unmoved: `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below) and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below). `gst_irl_ingestion`'s prior milestones: capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters, `compute_techpar` runs in a stated mode, the server derives `fillRatio`.
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
 the test will fail with a remediation message. Update **both** values
 in lockstep when the registry shape changes.
+
+---
+
+## 0.62.0 — 2026-08-26 — prompt rename: `gst_irl_fill` → `gst_irl_create`
+
+**One rename, nothing else.** **Prompt**: `gst_irl_fill@0.1.0` → `gst_irl_create@0.2.0` (version bumped, not restarted — the 0.1.0 bytes were served under the former name from 0.59.0 on, and the body's self-naming line changes with the rename). **Manifest hash**: rebaselined (one tuple replaced).
+
+**What changed**
+
+- **`gst_irl_create`** is the same evidence-population workflow BL-140 shipped as `gst_irl_fill` — same arguments, same D-cell sourcing grammar, same stop-at-artifact ruling, same companion tool (`fill_information_request_list_xlsx`, whose name does NOT move). Operator ruling 2026-08-26: "create" names the artifact the workflow produces. The tool's published description now points at the new prompt name.
+
+**Client impact**: `/gst_irl_fill` no longer resolves — invoke `/gst_irl_create`. Pinned conversations referencing the old slash form need the new name; nothing else about the surface moved.
+
+---
+
+## 0.61.0 — 2026-08-25 — extract-only split: `gst_irl_extract` added; `gst_irl_sweep` drops `mode`
+
+**Prompt**: `gst_irl_extract@0.1.0` added (12th tuple); `gst_irl_sweep` 0.1.0 → 0.2.0. **Manifest hash**: rebaselined (two tuples).
+
+**What changed**
+
+- **New prompt `gst_irl_extract`** — the former `mode: extract-only` behavior as its own prompt (operator ruling 2026-08-25: modularity + a simpler slash form). One optional argument (`filledIrl?`). Emits the extract record v2 plus derived per-tool payload fences and the (J) gap list, with zero tool invocations. Shares the trusted-arrival, completeness-check, engine-math, and inclusion-gate sections with the sweep via `extraction-rules.ts` so the pair cannot drift.
+- **`gst_irl_sweep` drops the `mode` argument** — one optional argument (`filledIrl?`), one behavior: the full extract-to-dossier sweep. A stale client sending `mode` gets the key stripped (default Zod strip mode) and a full sweep — the sole 0.1.0 consumer surface was the slash form, which regenerates from the published schema.
+
+**Client impact**: additive for everyone except a 0.1.0-pinned invocation passing `mode: "extract-only"`, which now runs a full sweep; use `/gst_irl_extract` instead.
+
+---
+
+## 0.60.0 — 2026-08-25 — trust-the-operator rebuild PR1: `gst_irl_sweep` added; `_audit` now optional
+
+**Additive and wire-compatible — nothing renamed, nothing removed.** **Prompt**: `gst_irl_sweep@0.1.0` (11th tuple). **Manifest hash**: rebaselined (one added tuple).
+
+**What changed**
+
+- **New prompt `gst_irl_sweep`** — the trust-the-operator successor to `gst_irl_ingestion` (plan: goofy-prancing-wirth; ADR lands with PR2). Two arguments (`filledIrl?`, `mode?: full | extract-only`); target name and engagement context are inferred from the IRL itself (header preamble lines first, rows 0-01/0-02 second). No provenance apparatus of any kind: no body hashing, no server-side caching, no citation verification, no RUN-AUDIT, no meta fences, no audit levels. The audit surface is one model-authored "(J) Gaps & assumptions" section. Retained from the predecessor because they encode engine behavior: the workbook column contract, the inclusion gates, the engine-math rule constants (v2 forms), the conditional regulatory triggers, the deeplink discipline, and the inlined VDR taxonomy.
+- **`_audit` on `generate_diligence_agenda` / `compute_techpar` / `estimate_tech_debt_cost` is now OPTIONAL.** A supplied block is validated exactly as before (all calibration refinements run); an absent block skips the checks, and the audit-derived response keys (`monetaryBasis`, `mttrSource`, `incidentsSource`) are omitted from the response. Wire-compatible for every existing caller. The published `tools/list` schema no longer lists `_audit` under `required`.
+- **Extract record v2** (`recordVersion: "2.0"`) added beside v1: `facts[]` unchanged; `_meta` drops `irlBodyHash` / `irlSource` / `generatedAtSource` and keeps the self-describing fields (`generatedAt`, `promptVersion`, `refFormat`, `excerptCapChars`, `coverage`). v1 remains produced by `gst_irl_ingestion` during coexistence.
+- **Shared-constant relocation**: `WORKBOOK_COLUMN_CONTRACT`, `VDR_RESOURCE_URI`, `VDR_FOLDER_TAXONOMY` moved verbatim from `irl-ingestion.ts` to `extraction-rules.ts` — byte-identical to the old prompt's render (its body-hash suite is the proof).
+
+**Deprecation notice** — scheduled for the next minor after operator live-verification sign-off: prompt `gst_irl_ingestion`; tools `prepare_irl_body`, `validate_irl_provenance`, `compose_dossier_envelope`; the IRL body cache, body-provenance store, and durable run-call-counters; extract-record v1. The `_audit` end state (remove entirely vs keep optional) is an explicit operator decision at that PR's kickoff, informed by the verification window.
+
+**Client impact**: none — new capability is opt-in by invoking the new prompt; `_audit`-carrying calls behave identically.
 
 ---
 

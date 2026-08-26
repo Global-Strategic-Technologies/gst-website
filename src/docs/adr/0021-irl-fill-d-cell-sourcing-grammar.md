@@ -1,6 +1,6 @@
 # ADR-0021: The IRL fill writes answers into E and sourcing into D under a grammar the frozen path cannot misread
 
-- **Status**: Accepted 2026-08-23 (BL-140, server 0.59.0; tool `fill_information_request_list_xlsx`, prompt `gst_irl_fill@0.1.0`)
+- **Status**: Accepted 2026-08-23 (BL-140, server 0.59.0; tool `fill_information_request_list_xlsx`, prompt `gst_irl_fill@0.1.0` — renamed `gst_irl_create@0.2.0` in server 0.62.0, 2026-08-26, no behavior change)
 - **Source initiative**: BL-140 (the BACKLOG stanza it replaces — including the 2026-08-23 operator rulings this ADR distills — is recoverable via `git log -- src/docs/development/BACKLOG.md`)
 
 ## Context
@@ -47,7 +47,7 @@ Also additive: `enumerateWorkbookRefs(article)`, flat-mapping the same module-pr
 
 - **No `irlSource` change** — the enum grades transport, not sourcing; a flattened populated workbook is `model-reconstruction-from-xlsx` and draws the reconstruction disclosure (accepted asymmetry; per-row sourcing lives in the cells).
 - **No server-held cap** on the fills — the BL-121/BL-123 cap-a-self-assertion pattern requires a server-side copy of the same fact, and analytical work product has none; the server carries and structures what each row rests on, it does not referee it.
-- **No auto-ingestion** — the tool and prompt both stop at the artifact; a human review checkpoint sits between fill and ingest. This is also why `gst_irl_fill` is excluded from `consumesTargetEvidence`: that clause's mandatory upgrade path instructs the sweep tools.
+- **No auto-ingestion** — the tool and prompt both stop at the artifact; a human review checkpoint sits between fill and ingest. This is also why `gst_irl_create` is excluded from `consumesTargetEvidence`: that clause's mandatory upgrade path instructs the sweep tools.
 - **No Hub delivery surface, no live data-room connectors, no server-side document parsing** — the first is a recorded backlog candidate; the others are out of scope by ruling (evidence arrives through model context).
 
 ## Consequences

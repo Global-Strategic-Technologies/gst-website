@@ -32,8 +32,10 @@ import { diligenceHandoffMemoPrompt } from './diligence-handoff-memo';
 import { architectureLayerReviewPrompt } from './architecture-layer-review';
 import { radarBriefTodayPrompt } from './radar-brief-today';
 import { informationRequestListPrompt } from './information-request-list';
-import { irlFillPrompt } from './irl-fill';
+import { irlCreatePrompt } from './irl-create';
 import { irlIngestionPrompt } from './irl-ingestion';
+import { irlSweepPrompt } from './irl-sweep';
+import { irlExtractPrompt } from './irl-extract';
 
 /** Frozen list of every prompt the server registers. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,8 +48,16 @@ export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
   architectureLayerReviewPrompt,
   radarBriefTodayPrompt,
   informationRequestListPrompt,
-  irlFillPrompt,
+  irlCreatePrompt,
   irlIngestionPrompt,
+  // Trust-the-operator successors to gst_irl_ingestion — coexist during the
+  // live-verification window; the removal PR retires the old surface. The
+  // sweep runs extract-to-dossier; the extract emits the portable record
+  // with zero tool calls (split 2026-08-25 for modularity + a one-field
+  // slash form). Deliberately NO name-based special case in the render
+  // wrapper below: neither prompt hashes nor seeds anything.
+  irlSweepPrompt,
+  irlExtractPrompt,
 ];
 
 const NAME_PATTERN = /^gst_[a-z][a-z_]*$/;

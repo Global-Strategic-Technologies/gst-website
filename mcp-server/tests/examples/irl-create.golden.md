@@ -1,11 +1,13 @@
 ---
-promptName: gst_irl_fill
-version: 0.1.0
+promptName: gst_irl_create
+version: 0.2.0
 recordedAt: 2026-08-23
 model: claude-fable-5
 ---
 
-# Worked example output for `gst_irl_fill`
+# Worked example output for `gst_irl_create`
+
+Recorded under the prompt's former name `gst_irl_fill@0.1.0`; the 0.62.0 rename to `gst_irl_create@0.2.0` changed no behavior, so the transcript stands.
 
 V1 draft recording (BL-140). To be replaced with the senior-consultant live-exercise capture on the first UAT-11 cycle — the prompts README authoring checklist § 10 ("Live-exercise it") is the source of truth for the final capture.
 

@@ -10,6 +10,8 @@ enumParity:
 
 # Input Contract: `estimate_tech_debt_cost`
 
+> **Since server 0.60.0**: the MCP layer's `_audit` sibling block (`mttrSource` / `incidentsSource`, `mcp-server/src/schemas/tech-debt-audit.ts`) is **optional** — supplied blocks are still validated (null-when-OPEN discipline); absent blocks skip the checks, and the source response keys are omitted. `mttrHours` / `incidents` stay nullable either way, with nulls reported via `extractionOnly`.
+
 > **Tool**: `estimate_tech_debt_cost` — estimates the carrying cost of accumulated technical debt for a target organization. Wraps `calculateFromRawInputs` — the raw-value entry point that bypasses the website wizard's slider domain.
 >
 > **Sources of truth** (the contract cites these; it does not duplicate them):
