@@ -57,6 +57,14 @@ describe('buildStatusHtml', () => {
     expect(html).toContain('43200');
   });
 
+  it('carries the GST delta favicon as an inline data URI (no external asset, no /favicon.ico 404)', async () => {
+    const html = await buildStatusHtml(ENV);
+    expect(html).toContain('<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,');
+    // The mark itself: the delta path from public/favicon.svg, minified.
+    expect(html).toContain("d='M32 12 L52 52 L12 52 Z'");
+    expect(html).toContain('%2300D9B5');
+  });
+
   it('renders DEGRADED and STALE states', async () => {
     mockBuildHealth.mockResolvedValue({
       ...HEALTHY_PAYLOAD,

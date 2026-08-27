@@ -39,6 +39,7 @@ import { LAST_EVAL_KEY, type AlertEvaluationSummary } from './alert-evaluator';
 import { readStatusMetrics } from './status-metrics';
 import { ZONE1_DAILY_HARD_CAP } from '../lib/inoreader-egress';
 import { createMcpClient } from '../lib/upstash-clients';
+import { FAVICON_LINK } from '../lib/html-shell';
 import type { Env } from '../env';
 
 const esc = (v: unknown): string =>
@@ -189,6 +190,7 @@ export async function buildStatusHtml(env: Env): Promise<string> {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${FAVICON_LINK}
 <title>GST MCP — status</title>
 <style>
   body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 2rem auto; max-width: 60rem; padding: 0 1rem; background: #0f1115; color: #e6e6e6; }

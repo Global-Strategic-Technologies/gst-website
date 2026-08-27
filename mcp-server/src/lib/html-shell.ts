@@ -7,11 +7,23 @@
  * CSS only. Extracted from `admin/inoreader-reauth.ts` (BL-033 Slice 2)
  * when the OAuth consent page became the second consumer.
  *
+ * The favicon is the GST delta mark (`public/favicon.svg`, minified) as
+ * a `data:` URI — no network fetch, so the no-external-resources
+ * discipline holds. Shared with the /status page, which builds its own
+ * head; without it browsers 404 `/favicon.ico` and render the default
+ * globe on every Worker-served page.
+ *
  * NOTE: callers own their page-level security headers — the OAuth
  * consent surface additionally sends `X-Frame-Options: DENY` +
  * `frame-ancestors 'none'` (clickjacking defense); this module only
  * produces markup.
  */
+
+/**
+ * The GST delta favicon as an inline `data:` URI `<link>` tag — the same
+ * mark as the website's `public/favicon.svg` (teal delta, stroke 6).
+ */
+export const FAVICON_LINK = `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 12 L52 52 L12 52 Z' fill='none' stroke='%2300D9B5' stroke-width='6' stroke-linejoin='miter'/%3E%3C/svg%3E">`;
 
 export function htmlShell(title: string, body: string): string {
   return `<!doctype html>
@@ -20,6 +32,7 @@ export function htmlShell(title: string, body: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
+${FAVICON_LINK}
 <title>${title}</title>
 <style>
 :root { color-scheme: light dark; }
