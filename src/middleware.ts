@@ -63,6 +63,7 @@ export const SECURITY_HEADERS: Record<string, string> = {
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' https: data:",
+    "media-src 'self'",
     "font-src 'self'",
     "frame-src 'self'",
     "frame-ancestors 'none'",
