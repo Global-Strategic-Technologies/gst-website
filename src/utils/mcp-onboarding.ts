@@ -156,7 +156,15 @@ function initClip(vid: HTMLVideoElement, reduce: boolean): void {
     }
     sync();
   };
-  document.addEventListener('visibilitychange', attempt);
+  // Hidden tab: pause outright (browsers do not reliably do this for muted
+  // loops); on return, `attempt()` resumes unless the reader paused it.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') {
+      if (!vid.paused) vid.pause();
+    } else {
+      attempt();
+    }
+  });
   vid.addEventListener('canplay', attempt);
   if (details) {
     details.addEventListener('toggle', () => {

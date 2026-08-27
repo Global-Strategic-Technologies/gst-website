@@ -69,7 +69,7 @@ const TOC_LINKS = [
 
       <OnboardingToc links={TOC_LINKS} />
 
-      <main class="guide-main">
+      <div class="guide-main">
         <section id="why" data-section="why" class="guide-section">
           <h2 class="brutal-heading-lg guide-heading">01 What it does</h2>
           <p class="guide-intro guide-intro--wide-gap">
@@ -180,11 +180,14 @@ const TOC_LINKS = [
                   from. Attaching the workbook and letting the model read it also works.
                 </p>
                 <div class="endpoint-row">
-                  <code class="endpoint-code">npm run irl:extract -- &lt;filled-irl.xlsx&gt;</code>
+                  <code class="endpoint-code"
+                    >npm -w @gst/mcp-server run irl:extract -- &lt;filled-irl.xlsx&gt;</code
+                  >
                   <button
                     type="button"
                     class="brutal-btn brutal-btn--secondary endpoint-copy"
-                    data-copy="npm run irl:extract -- <filled-irl.xlsx>">Copy</button
+                    data-copy="npm -w @gst/mcp-server run irl:extract -- <filled-irl.xlsx>"
+                    >Copy</button
                   >
                 </div>
               </div>
@@ -622,7 +625,7 @@ const TOC_LINKS = [
             </article>
           </div>
         </section>
-      </main>
+      </div>
     </div>
   </section>
 </BaseLayout>

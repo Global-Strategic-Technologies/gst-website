@@ -9,9 +9,10 @@
  * src/utils/mcp-onboarding.ts via `data-copy`.
  *
  * The button's 24px floor is `--touch-target-min-aa` (WCAG 2.2 AA), a recorded
- * exception to the 44px `.brutal-btn` guarantee — see BRAND_GUIDELINES.md
- * § Accessibility and the FLOOR_EXCEPTIONS entry in
- * tests/integration/touch-target-floor.test.ts.
+ * carve-out from the 44px `.brutal-btn` guarantee — see BRAND_GUIDELINES.md
+ * § Accessibility. The touch-target-floor guard matches by guarded-family
+ * class in the CSS selector, so this bespoke-class floor needs (and must not
+ * have) a FLOOR_EXCEPTIONS entry — a stale entry fails that suite.
  */
 interface Props {
   /** Argument name shown in the key column. */
