@@ -31,8 +31,9 @@ pnpm-debug.log*
 
 # unoptimised source captures — must never ship (anything under public/ deploys verbatim).
 # These are irreplaceable ORIGINALS, not build inputs: the optimised media in
-# public/images/hub/mcp/ can be regenerated from them via the recipes in BL-138, but nothing
-# regenerates these. Do not delete without checking that stanza first.
+# public/images/hub/mcp/ can be regenerated from them via the recipes in
+# src/docs/hub/MCP_ONBOARDING.md, but nothing regenerates these. Do not delete
+# without reading that doc (and ADR-0022) first.
 media-raw/
 
 # claude local settings (per-developer)
