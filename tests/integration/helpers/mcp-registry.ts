@@ -82,6 +82,28 @@ export function registeredToolNames(entrypoint: string): string[] {
 }
 
 /**
+ * The tool names `gst_irl_sweep` orchestrates, read from its
+ * `SWEEP_ORCHESTRATED_TOOLS` const. The onboarding guide publishes this count
+ * ("drives up to nine GST engines"), so the guard needs the source list.
+ */
+export function sweepOrchestratedToolNames(): string[] {
+  const src = read(`${PROMPTS_DIR}/irl-sweep.ts`);
+  const block = src.match(/SWEEP_ORCHESTRATED_TOOLS = \[([\s\S]*?)\]/)?.[1] ?? '';
+  return [...block.matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]);
+}
+
+/**
+ * The sweep's completeness-check rule text (`IRL_COMPLETENESS_CHECK`), whose
+ * halt predicate — zero substantive cells OR ratio below 5% — the onboarding
+ * guide restates. Returned raw so a guard can pin both arms.
+ */
+export function irlCompletenessCheckText(): string {
+  return read(`${PROMPTS_DIR}/extraction-rules.ts`).match(
+    /IRL_COMPLETENESS_CHECK = \[([\s\S]*?)\]\.join/
+  )![1];
+}
+
+/**
  * Prompt names, read from the `PROMPT_NAME` literal each prompt module declares.
  * Scoped to the modules the registry actually imports, so an orphaned file in
  * the directory cannot inflate the set.

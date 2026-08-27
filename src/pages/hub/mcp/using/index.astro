@@ -1,0 +1,1115 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
+import ClipFigure from '../../../../components/hub/mcp/ClipFigure.astro';
+import CopyRow from '../../../../components/hub/mcp/CopyRow.astro';
+
+// Copy is transcribed from the content-reviewed design handoff (2026-08-27),
+// with em dashes rewritten per operator direction. Published facts (prompt
+// count, prompt/tool names, resource URIs) are pinned by
+// tests/integration/mcp-onboarding-parity.test.ts.
+
+const TOC_LINKS = [
+  { id: 'first-query', label: '01 First query' },
+  { id: 'prompts', label: '02 Prompt arguments' },
+  { id: 'resources', label: '03 Resources' },
+  { id: 'troubleshooting', label: '04 When it fails' },
+  { id: 'next', label: '05 Next steps' },
+];
+---
+
+<BaseLayout
+  title="Using the GST MCP Server | GST"
+  description="The practitioner guide to the GST MCP Server: a first query worth running, prompt argument forms, pinned resources, and what each failure means."
+  ogTitle="Using the GST MCP Server"
+  ogDescription="Three ways to drive a connected server (ask, invoke, attach) and what each failure means."
+  ogImage="/og-image.png"
+  ogImageAlt="GST MCP Server - practitioner guide"
+  ogUrl="https://globalstrategic.tech/hub/mcp/using/"
+>
+  <section class="mcp-guide-section">
+    <div class="container">
+      <div class="guide-hero">
+        <div class="brutal-label guide-hero__label">Practitioner guide</div>
+        <HubHeader title="Using the GST MCP Server">
+          <Fragment slot="subtitle"
+            >Three ways to drive a connected server (ask, invoke, attach) and what each failure
+            means. Sections stand alone; read the one you need.</Fragment
+          >
+        </HubHeader>
+        <p class="guide-hero__note">
+          Connector not set up yet? <a href="/hub/mcp/get-started/">Get started here</a>: this guide
+          assumes Claude Desktop already lists <code>GST MCP</code>.
+        </p>
+      </div>
+
+      <OnboardingToc links={TOC_LINKS} />
+
+      <main class="guide-main">
+        <section aria-label="The three ways to drive it" class="guide-overview">
+          <div class="guide-checkpoints guide-checkpoints--overview">
+            <a href="#first-query" class="checkpoint checkpoint--link">
+              <div class="checkpoint__kicker">Tools: the agent calls</div>
+              <div class="checkpoint__title">Ask in free text</div>
+              <p class="checkpoint__desc">
+                Claude picks the tool and its inputs from your question.
+              </p>
+            </a>
+            <a href="#prompts" class="checkpoint checkpoint--link">
+              <div class="checkpoint__kicker">Prompts: you invoke</div>
+              <div class="checkpoint__title">Run a prompt</div>
+              <p class="checkpoint__desc">
+                A predefined GST workflow, configured from an argument form.
+              </p>
+            </a>
+            <a href="#resources" class="checkpoint checkpoint--link">
+              <div class="checkpoint__kicker">Resources: you pin</div>
+              <div class="checkpoint__title">Pin a resource</div>
+              <p class="checkpoint__desc">
+                GST's canonical documents, added to the conversation so answers quote them rather
+                than recall them.
+              </p>
+            </a>
+          </div>
+        </section>
+
+        <section id="first-query" data-section="first-query" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">01 Your first query</h2>
+          <p class="guide-intro">
+            A connected server proves nothing until it answers something you would otherwise have
+            paid an analyst a morning for. This one is a good first test: the corpus spans 123
+            regulatory records, the answer is checkable against public law, and it needs no history
+            with GST. Start a fresh conversation and paste it.
+          </p>
+
+          <div class="starter-panel">
+            <div class="brutal-label starter-panel__label">Start here</div>
+            <p data-snippet class="starter-panel__snippet">
+              Using GST MCP, a target processes personal data in Brazil, Quebec and the UAE: which
+              privacy and cybersecurity frameworks apply, what do they require, and when did each
+              take effect?
+            </p>
+            <div class="starter-panel__foot">
+              <button type="button" class="brutal-btn brutal-btn--primary" data-copy-prev
+                >Copy prompt</button
+              >
+              <span class="starter-panel__hint">Calls Search Regulatory Map</span>
+            </div>
+          </div>
+
+          <ul class="check-list check-list--single">
+            <li class="check-row">
+              <input type="checkbox" id="first-query-check" class="check-row__box" />
+              <div class="check-row__body">
+                <label for="first-query-check" class="check-row__title"
+                  >An MCP tool call runs and returns</label
+                >
+                <p class="check-row__desc check-row__desc--last">
+                  Claude names the MCP tool before reaching for it, runs two GST MCP calls (<code
+                    >List Regulatory Map Facet Values</code
+                  >, then <code>Search Regulatory Map</code>) and answers from what they return. The
+                  capture below is that exact exchange.
+                </p>
+              </div>
+            </li>
+          </ul>
+
+          <ClipFigure
+            variant="wide"
+            mp4="/images/hub/mcp/regulations-query-web.mp4"
+            poster="/images/hub/mcp/regulations-query-poster.webp"
+            width={1384}
+            height={730}
+            maxWidth="1160px"
+            badge="Sped up 5×"
+            placeholder="Screen capture loads as you scroll"
+            ariaLabel="Screen capture: the Brazil, Quebec and UAE privacy question is sent; Claude calls List Regulatory Map Facet Values, then Search Regulatory Map, and replies that seven frameworks in the GST Regulatory Map cover that footprint: four privacy, three cybersecurity"
+            caption="See it work: the question above, answered from the Regulatory Map"
+          >
+            <p class="clip-note">
+              Claude calls two Regulatory Map tools and answers: seven frameworks cover that
+              footprint, four privacy and three cybersecurity, each with its requirement and
+              effective date. The real query took about fifteen seconds; the tool-call wait is sped
+              up 5× in the clip.
+            </p>
+          </ClipFigure>
+
+          <div class="good-bad">
+            <div class="good-bad__col">
+              <div class="brutal-label good-bad__label">What good looks like</div>
+              <ul class="good-bad__list">
+                <li>The reply opens by naming the GST MCP tool it is about to call.</li>
+                <li>
+                  A visible MCP tool call runs, and the result carries structured fields, not prose
+                  recall.
+                </li>
+                <li>
+                  Frameworks come back named, with requirements and effective dates you can check
+                  against public law.
+                </li>
+              </ul>
+            </div>
+            <div class="good-bad__col">
+              <div class="brutal-label good-bad__label">What it is not</div>
+              <ul class="good-bad__list">
+                <li>
+                  An answer that begins "Based on what I know". That is training memory, not GST
+                  data.
+                </li>
+                <li>
+                  A plausible list with no MCP tool call in the transcript; regulation is exactly
+                  where a model will confabulate an effective date. Add the <a
+                    href="/hub/mcp/get-started/#addendum">system-prompt addendum</a
+                  > from the setup guide and retry in a fresh thread.
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <h3 class="guide-subheading">Then try one of these</h3>
+          <div class="prompt-cards">
+            <article class="prompt-card">
+              <div class="brutal-label-small prompt-card__label">Screening</div>
+              <p data-snippet class="prompt-card__snippet">
+                Run a quick look on a $15M ARR Series B AI-tooling company and tell me whether the
+                diligence scope is standard or wide.
+              </p>
+              <div class="prompt-card__foot">
+                <span class="fineprint">gst_target_quick_look</span>
+                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev
+                  >Copy</button
+                >
+              </div>
+            </article>
+            <article class="prompt-card">
+              <div class="brutal-label-small prompt-card__label">Benchmarking</div>
+              <p data-snippet class="prompt-card__snippet">
+                Benchmark technology spend for a 90-person Series C SaaS business at $28M ARR, then
+                price the carrying cost of its technical debt.
+              </p>
+              <div class="prompt-card__foot">
+                <span class="fineprint">compute_techpar</span>
+                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev
+                  >Copy</button
+                >
+              </div>
+            </article>
+            <article class="prompt-card">
+              <div class="brutal-label-small prompt-card__label">Portfolio</div>
+              <p data-snippet class="prompt-card__snippet">
+                Has GST run diligence on anything like this target before, and what did those
+                engagements surface?
+              </p>
+              <div class="prompt-card__foot">
+                <span class="fineprint">search_portfolio</span>
+                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev
+                  >Copy</button
+                >
+              </div>
+            </article>
+            <article class="prompt-card">
+              <div class="brutal-label-small prompt-card__label">Workflow</div>
+              <p data-snippet class="prompt-card__snippet">
+                Use the GST information request list prompt to draft the intake ask for this target,
+                then export it as a fillable workbook.
+              </p>
+              <div class="prompt-card__foot">
+                <span class="fineprint">gst_information_request_list</span>
+                <button type="button" class="brutal-btn brutal-btn--secondary" data-copy-prev
+                  >Copy</button
+                >
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="prompts" data-section="prompts" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">02 Run a prompt with arguments</h2>
+          <p class="guide-intro">
+            Everything above is free-text prompting: you describe the job and hope the agent routes
+            it well. The twelve GST prompts are the other path. Each one is a workflow a senior
+            consultant already wrote (which MCP tools to call, in what order, what to do with the
+            results), and Claude Desktop collects its inputs from you in a form before the model
+            sees anything. Same data, no improvisation.
+          </p>
+
+          <ol class="quick-steps quick-steps--gapped">
+            <li class="quick-step">
+              <div class="quick-step__num">01</div>
+              <div>
+                <h3 class="quick-step__title">Open the prompt picker</h3>
+                <p class="quick-step__body quick-step__body--last">
+                  In the composer, click <strong>+</strong> → <strong>Add from GST MCP</strong>, the
+                  same menu you checked when you <a href="/hub/mcp/get-started/#verify"
+                    >verified the connection</a
+                  >. The twelve entries prefixed <code>gst_</code> are prompts, not MCP tools: you invoke
+                  them, the agent doesn't.
+                </p>
+              </div>
+            </li>
+            <li class="quick-step">
+              <div class="quick-step__num">02</div>
+              <div>
+                <h3 class="quick-step__title">Fill the argument form</h3>
+                <p class="quick-step__body quick-step__body--last">
+                  Picking a prompt opens a field per argument, in the order the server declares
+                  them; the ones you always supply come first. Required fields are marked; leave an
+                  optional field blank and the workflow adapts rather than guessing. Values are
+                  validated server-side before the prompt renders, so a malformed number or an
+                  unrecognised enum comes back as an error, not a confident wrong answer.
+                </p>
+              </div>
+            </li>
+            <li class="quick-step">
+              <div class="quick-step__num">03</div>
+              <div>
+                <h3 class="quick-step__title">Submit and read the tool calls</h3>
+                <p class="quick-step__body quick-step__body--last">
+                  The rendered workflow lands in the conversation and the agent works through it.
+                  You should see the MCP calls the prompt names: several in sequence, not one. That
+                  sequence is the value: it is what you would have had to orchestrate by hand.
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          <h3 class="guide-subheading guide-subheading--tight">
+            Worked example: first look at an unfamiliar target
+          </h3>
+          <p class="guide-body">
+            <code>gst_target_quick_look</code> takes five required arguments and drives four analyses
+            (cost-governance maturity, unit-economics benchmark, tech-debt range, regulatory exposure)
+            collapsed into one page. Fill it like this:
+          </p>
+          <div class="field-panel field-panel--example">
+            <CopyRow field="targetName" value="Northwind Analytics" />
+            <CopyRow field="productType" value="B2B SaaS analytics" />
+            <CopyRow field="arr" value="15000000" />
+            <CopyRow field="stage" value="series-b" />
+            <CopyRow field="hqJurisdiction" value="us-ca" />
+          </div>
+          <div class="args-table">
+            <div class="args-table__row">
+              <div class="args-table__key">targetName</div>
+              <p class="args-table__value">Northwind Analytics</p>
+              <p class="args-table__note">
+                Whatever you call the target internally. It only labels the output.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key">productType</div>
+              <p class="args-table__value">B2B SaaS analytics</p>
+              <p class="args-table__note">
+                Free text, but it does real work: it drives which regulatory categories get searched
+                and which spend norms apply.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key">arr</div>
+              <p class="args-table__value">15000000</p>
+              <p class="args-table__note">
+                A positive number, unformatted. No currency symbol, no commas, no <code>15M</code>.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key">stage</div>
+              <p class="args-table__value">series-b</p>
+              <p class="args-table__note">
+                One of <code>seed</code>, <code>series-a</code>, <code>series-b</code>,
+                <code>series-c</code>, <code>pe</code>, <code>enterprise</code>. Each downstream
+                tool translates this itself; you never map it by hand.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key">hqJurisdiction</div>
+              <p class="args-table__value">us-ca</p>
+              <p class="args-table__note">
+                A canonical jurisdiction id. If you are unsure whether it is <code>uk</code> or
+                <code>gbr</code>, the workflow looks it up rather than failing.
+              </p>
+            </div>
+          </div>
+          <p class="brutal-callout guide-callout guide-callout--flush">
+            <span class="brutal-callout__title">Read the assumptions section first</span>
+            This prompt fills the twenty-question cost-governance assessment from what you gave it, and
+            marks every answer it could not derive as "Not sure" rather than guessing. Those show up in
+            the brief under Assumptions; if most of them are unknowns, treat the cost-governance read
+            as a placeholder and run the full assessment in the Hub.
+          </p>
+          <p class="guide-body guide-body--closing">
+            The five bare arguments are the floor, not the intended run. The prompt is
+            evidence-conditional: with an IRL extract record already in the conversation it resolves
+            its inputs from the record instead of stage norms, cites the workbook reference behind
+            each number, and states which branch produced every figure. Run <code
+              >gst_irl_extract</code
+            > first (zero tool calls) and the same form fields become labels on evidence rather than the
+            evidence itself. How the record works, and which other prompts read it, is covered in <a
+              href="/hub/mcp/advanced-operations/#downstream">Advanced operations</a
+            >.
+          </p>
+
+          <h3 class="guide-subheading">Two more worth knowing</h3>
+          <div class="prompt-cards prompt-cards--wide">
+            <article class="prompt-card">
+              <div class="brutal-label-small prompt-card__label">Lowest friction: one field</div>
+              <div class="prompt-card__name">gst_architecture_layer_review</div>
+              <div class="field-panel field-panel--stack">
+                <span class="field-panel__key">targetSummary</span>
+                <code class="field-panel__code"
+                  >Series B B2B analytics platform, ~60 eng, AWS + Kubernetes, monolith mid-split</code
+                >
+                <button
+                  type="button"
+                  class="brutal-btn brutal-btn--secondary field-panel__copy"
+                  data-copy="Series B B2B analytics platform, ~60 eng, AWS + Kubernetes, monolith mid-split"
+                  >Copy</button
+                >
+              </div>
+              <p class="prompt-card__desc">
+                One argument, free text: product, stage, stack and org shape. Returns risks and
+                investigation handles for each of GST's five architecture layers, read from the
+                canonical definitions rather than a generic taxonomy.
+              </p>
+            </article>
+            <article class="prompt-card">
+              <div class="brutal-label-small prompt-card__label">Where lists come in</div>
+              <div class="prompt-card__name">gst_regulatory_exposure_brief</div>
+              <div class="field-panel">
+                <CopyRow field="targetJurisdictions" value="eu, us-ca" />
+                <CopyRow field="dataCategories" value={'["pii", "payment"]'} />
+                <CopyRow field="productType" value="B2B SaaS analytics" />
+              </div>
+              <p class="prompt-card__desc">
+                The deterministic version of the query in section 01. The two list arguments accept
+                JSON or a comma-separated string; the server takes either and trims around the
+                commas. It searches every jurisdiction × category pair rather than the ones the
+                model thought to try.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="resources" data-section="resources" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">03 Attach a resource</h2>
+          <p class="guide-intro">
+            The server exposes three kinds of content, and they are not interchangeable. MCP tools
+            are called by the agent. Prompts are invoked by you. Resources are <em>attached</em> by you:
+            inert documents that do nothing until you pin one to a conversation, at which point the model
+            is reading GST's canonical text instead of recalling something adjacent to it.
+          </p>
+          <p class="guide-intro guide-intro--wide-gap">
+            Pin one the same way you attached the prompt: <strong>+</strong> → <strong
+              >Add from GST MCP</strong
+            >, then choose from the resource list rather than the <code>gst_</code> entries. It stays
+            attached for the rest of the thread.
+          </p>
+
+          <div class="args-table args-table--uris">
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--wide">
+                gst://regulations/&lt;jurisdiction&gt;/&lt;framework&gt;
+              </div>
+              <p class="args-table__note">
+                One per framework, 123 of them. Structured JSON: scope, key requirements, penalties,
+                effective date.
+              </p>
+              <p class="args-table__note">
+                Pin when you are writing about one framework and want the obligations quoted exactly
+                rather than paraphrased.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--wide">gst://library/&lt;slug&gt;</div>
+              <p class="args-table__note">
+                The GST Library articles: the frameworks themselves, as authored prose.
+              </p>
+              <p class="args-table__note">
+                Pin when you want the agent applying a GST framework rather than a generic taxonomy
+                it half-remembers.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--wide">
+                gst://radar/fyi/latest<br />gst://radar/wire/latest<br
+                />gst://radar/wire/&lt;category&gt;
+              </div>
+              <p class="args-table__note">
+                Six feeds: annotated highlights, the merged wire, and one per category: <code
+                  >pe-ma</code
+                >, <code>enterprise-tech</code>, <code>ai-automation</code>, <code>security</code>.
+              </p>
+              <p class="args-table__note">
+                Needs the radar scope; this is the family behind most 403s. Refreshed on a schedule;
+                a cold feed says so rather than returning nothing.
+              </p>
+            </div>
+          </div>
+
+          <p class="brutal-callout brutal-callout--warning guide-callout guide-callout--flush">
+            <span class="brutal-callout__title">A prompt cannot fetch a resource for you</span>
+            Resources are user-pinned by design: the model cannot read one from inside a prompt expansion.
+            This trips people up because it looks like a gap: you invoke a workflow that clearly needs
+            a canonical document, and nothing is fetched. It isn't a gap. Where a workflow depends on
+            GST text, the server embeds that text in the prompt body before you ever see it, so the document
+            arrives whether or not you pinned it. Pinning is for
+            <em>your</em> follow-up questions afterwards, the conversation where you interrogate the framework
+            rather than run the workflow.
+          </p>
+        </section>
+
+        <section id="troubleshooting" data-section="troubleshooting" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">04 When it fails</h2>
+          <p class="guide-intro">
+            The five failures a first connection runs into, and what each one means.
+          </p>
+          <div class="args-table args-table--fails">
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fail">No GST MCP tools listed</div>
+              <p class="args-table__note">
+                The client never reached the endpoint, or the app was not fully restarted.
+              </p>
+              <p class="args-table__note">
+                Re-check the URL character for character, quit from the tray rather than closing the
+                window, relaunch.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fail">401 Unauthorized</div>
+              <p class="args-table__note">
+                The key pasted at consent is wrong, mistyped, or has been rotated.
+              </p>
+              <p class="args-table__note">
+                Re-add the connector to force a fresh consent; if it repeats, ask GST to confirm the
+                credential is active.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fail">403 Forbidden</div>
+              <p class="args-table__note">
+                Your record lacks a scope the call needs. Radar is the usual one; it is granted
+                separately.
+              </p>
+              <p class="args-table__note">
+                The response names the missing scope. Send it to GST and the grant can be widened.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fail">429 Too Many Requests</div>
+              <p class="args-table__note">
+                You hit a capability ceiling for your tier. Radar has a tighter budget than the
+                general tools.
+              </p>
+              <p class="args-table__note">
+                Wait out the Retry-After window. If legitimate work keeps hitting it, the ceilings
+                are tunable per client.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fail">Tools listed, never called</div>
+              <p class="args-table__note">
+                The MCP tools are available, but the model answered from training memory instead.
+                Its opening sentence committed to the wrong path.
+              </p>
+              <p class="args-table__note">
+                Add the <a href="/hub/mcp/get-started/#addendum">system-prompt addendum</a> from the setup
+                guide and retry in a fresh conversation.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="next" data-section="next" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">05 Next steps</h2>
+          <p class="guide-intro">
+            Three routes on from everyday use: the IRL ingestion workflow, the wire detail, and a
+            wider grant.
+          </p>
+          <div class="brutal-gateway-grid guide-next">
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>Advanced operations</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                Ingest a filled IRL and drive nine engines in one turn.
+              </p>
+              <a href="/hub/mcp/advanced-operations/" class="cta-button brutal-gateway-card__cta"
+                >Open guide</a
+              >
+            </article>
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>Technical documentation</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                Tool and prompt reference, OAuth scopes, and rate limits.
+              </p>
+              <a href="/hub/mcp/docs/" class="cta-button brutal-gateway-card__cta">Read docs</a>
+            </article>
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>Widen your access</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                Add radar scope, raise a tier, or provision a client.
+              </p>
+              <a href="/hub/mcp/#request-access" class="cta-button brutal-gateway-card__cta"
+                >Contact GST</a
+              >
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import '../../../../utils/mcp-onboarding';
+</script>
+
+<style>
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html) {
+      scroll-behavior: smooth;
+    }
+  }
+
+  .mcp-guide-section {
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  .mcp-guide-section .container {
+    max-width: 1360px;
+  }
+
+  .mcp-guide-section code {
+    font-family: var(--font-family-mono);
+    color: var(--color-primary);
+  }
+
+  /* ── Hero ─────────────────────────────────────────────────────────── */
+  .guide-hero {
+    padding: var(--spacing-3xl) 0 var(--spacing-2xl);
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .guide-hero__label {
+    color: var(--color-tertiary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .guide-hero :global(.hub-header) {
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .guide-hero :global(.hub-header__title) {
+    max-width: 900px;
+  }
+
+  .guide-hero :global(.hub-header__subtitle) {
+    max-width: 820px;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .guide-hero__note {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* ── Overview tiles ───────────────────────────────────────────────── */
+  .guide-overview {
+    max-width: 1000px;
+  }
+
+  .guide-checkpoints {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--spacing-lg);
+    max-width: 1000px;
+  }
+
+  .checkpoint {
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-md) 0 var(--spacing-md) var(--spacing-md);
+  }
+
+  .checkpoint--link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .checkpoint__kicker {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .checkpoint__title {
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--text-base);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .checkpoint__desc {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ── Section shell ────────────────────────────────────────────────── */
+  .guide-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3xl);
+    min-width: 0;
+  }
+
+  .guide-section {
+    scroll-margin-top: 80px;
+  }
+
+  .guide-heading {
+    margin: 0 0 var(--spacing-md);
+  }
+
+  .guide-intro {
+    max-width: 800px;
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0 0 var(--spacing-xl);
+  }
+
+  .guide-intro--wide-gap {
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .guide-subheading {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 var(--spacing-lg);
+  }
+
+  .guide-subheading--tight {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .guide-body {
+    max-width: 800px;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0 0 var(--spacing-lg);
+  }
+
+  .guide-body--closing {
+    max-width: 1000px;
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .guide-callout {
+    max-width: 1000px;
+    margin: 0 0 var(--spacing-lg);
+  }
+
+  .guide-callout--flush {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  /* ── Starter panel ────────────────────────────────────────────────── */
+  .starter-panel {
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-lg);
+    max-width: 900px;
+    margin-bottom: var(--spacing-xl);
+    background: var(--surface-faint-bg);
+  }
+
+  .starter-panel__label {
+    color: var(--color-tertiary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .starter-panel__snippet {
+    margin: 0 0 var(--spacing-md);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    line-height: 1.7;
+  }
+
+  .starter-panel__foot {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .starter-panel__hint {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Checklist (single row) ───────────────────────────────────────── */
+  .check-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: 900px;
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .check-list--single {
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .check-row {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+    padding: var(--spacing-md) 0;
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  /* 24px, not the design's 20px: axe's 2.2 AA target-size floor. */
+  .check-row__box {
+    width: var(--touch-target-min-aa);
+    height: var(--touch-target-min-aa);
+    margin-top: 2px;
+    accent-color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .check-row__body {
+    min-width: 0;
+  }
+
+  .check-row__title {
+    display: block;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: 2px;
+    cursor: pointer;
+  }
+
+  .check-row__desc {
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .check-row__desc--last {
+    margin-bottom: 0;
+  }
+
+  /* Wide-clip caption paragraph — slotted into ClipFigure, page-scoped. */
+  .clip-note {
+    margin: var(--spacing-xs) 0 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 760px;
+  }
+
+  /* ── Good / not split ─────────────────────────────────────────────── */
+  .good-bad {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-xl);
+    max-width: 1000px;
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .good-bad__col {
+    border-left: 3px solid var(--color-secondary);
+    padding-left: var(--spacing-md);
+  }
+
+  .good-bad__label {
+    color: var(--color-tertiary);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .good-bad__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .good-bad__list li {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* ── Prompt cards ─────────────────────────────────────────────────── */
+  .prompt-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--spacing-lg);
+  }
+
+  .prompt-cards--wide {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    max-width: 1000px;
+  }
+
+  .prompt-card {
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-top: 3px solid var(--color-primary);
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .prompt-card__label {
+    color: var(--text-muted);
+  }
+
+  .prompt-card__name {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    overflow-wrap: anywhere;
+  }
+
+  .prompt-card__snippet {
+    margin: 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    line-height: 1.7;
+  }
+
+  .prompt-card__foot {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+  }
+
+  .prompt-card__desc {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .fineprint {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+  }
+
+  /* ── Field panels (copy rows + single-field stack) ────────────────── */
+  .field-panel {
+    background: var(--surface-subtle-bg);
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .field-panel--example {
+    max-width: 1000px;
+    margin: 0 0 var(--spacing-lg);
+  }
+
+  .field-panel--stack {
+    gap: var(--spacing-xs);
+  }
+
+  .field-panel__key {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .field-panel__code {
+    font-size: var(--text-xs);
+    line-height: 1.7;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+  }
+
+  .field-panel__copy {
+    align-self: flex-start;
+    font-size: var(--text-2xs);
+    padding: 2px var(--spacing-sm);
+    min-height: var(--touch-target-min-aa);
+  }
+
+  /* ── Argument / URI / failure tables ──────────────────────────────── */
+  .args-table {
+    display: flex;
+    flex-direction: column;
+    max-width: 1000px;
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .args-table--uris {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .args-table--fails {
+    margin-bottom: 0;
+  }
+
+  .args-table__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm) var(--spacing-lg);
+    padding: var(--spacing-md) 0;
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .args-table__key {
+    flex: 1 1 180px;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    overflow-wrap: anywhere;
+  }
+
+  .args-table__key--wide {
+    flex-basis: 220px;
+  }
+
+  .args-table__key--fail {
+    flex-basis: 200px;
+  }
+
+  .args-table__value {
+    flex: 1 1 200px;
+    margin: 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  .args-table__note {
+    flex: 1 1 260px;
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ── Numbered steps ───────────────────────────────────────────────── */
+  .quick-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    max-width: 900px;
+  }
+
+  .quick-steps--gapped {
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .quick-step {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: var(--spacing-lg);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-top: var(--spacing-lg);
+  }
+
+  .quick-step__num {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .quick-step__title {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 var(--spacing-sm);
+  }
+
+  .quick-step__body {
+    margin: 0 0 var(--spacing-md);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .quick-step__body--last {
+    margin-bottom: 0;
+  }
+
+  /* ── Next-step cards ──────────────────────────────────────────────── */
+  .guide-next {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: var(--spacing-xl);
+    margin-bottom: 0;
+  }
+
+  .guide-card {
+    padding: var(--spacing-lg);
+  }
+
+  .guide-card__header {
+    min-height: 3.9em;
+  }
+
+  .guide-card__blurb {
+    min-height: 4.8em;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .guide-next {
+      grid-template-columns: 1fr;
+    }
+
+    .guide-card__header,
+    .guide-card__blurb {
+      min-height: 0;
+    }
+  }
+</style>

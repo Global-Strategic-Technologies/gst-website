@@ -1,0 +1,1129 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
+import CopyRow from '../../../../components/hub/mcp/CopyRow.astro';
+
+// Copy is transcribed from the content-reviewed design handoff (2026-08-27),
+// with em dashes rewritten per operator direction. Published facts (engine
+// count, fill-ratio rule, prompt names, gst_irl_ingestion's coexistence) are
+// pinned by tests/integration/mcp-onboarding-parity.test.ts.
+
+const TOC_LINKS = [
+  { id: 'why', label: '01 What it does' },
+  { id: 'round-trip', label: '02 The round trip' },
+  { id: 'run-it', label: '03 The one argument' },
+  { id: 'modes', label: '04 One job per prompt' },
+  { id: 'output', label: '05 What comes back' },
+  { id: 'downstream', label: '06 Extract record' },
+  { id: 'discipline', label: '07 Operating notes' },
+  { id: 'next', label: '08 Next steps' },
+];
+---
+
+<BaseLayout
+  title="MCP Advanced Operations | GST"
+  description="Ingest a populated information request list with gst_irl_sweep: one optional argument, up to nine GST engines, and a dossier whose claims cite the workbook rows they came from."
+  ogTitle="GST MCP Server: Advanced Operations"
+  ogDescription="The IRL ingestion workflow: gst_irl_create, gst_irl_sweep, and the portable extract record."
+  ogImage="/og-image.png"
+  ogImageAlt="GST MCP Server - IRL ingestion guide"
+  ogUrl="https://globalstrategic.tech/hub/mcp/advanced-operations/"
+>
+  <section class="mcp-guide-section">
+    <div class="container">
+      <div class="guide-hero">
+        <div class="brutal-label guide-hero__label">Advanced operations</div>
+        <HubHeader title="Ingest an information request list">
+          <Fragment slot="subtitle"
+            ><code>gst_irl_sweep</code> reads a populated IRL, drives up to nine GST engines from what
+            the workbook answers, and returns one dossier whose claims cite the rows they came from. One
+            optional argument; everything else is read from the document itself.</Fragment
+          >
+        </HubHeader>
+        <p class="guide-hero__note">
+          Assumes a working connector (<a href="/hub/mcp/get-started/">set one up</a>) and
+          familiarity with <a href="/hub/mcp/using/#prompts"
+            >running a prompt from its argument form</a
+          >.
+        </p>
+        <div class="stat-grid">
+          <div class="brutal-stat-tile">
+            <div class="brutal-stat-tile__value">9</div>
+            <div class="brutal-stat-tile__label">Engines driven in one turn</div>
+          </div>
+          <div class="brutal-stat-tile">
+            <div class="brutal-stat-tile__value">A–J</div>
+            <div class="brutal-stat-tile__label">Dossier sections returned</div>
+          </div>
+          <div class="brutal-stat-tile">
+            <div class="brutal-stat-tile__value">13</div>
+            <div class="brutal-stat-tile__label">Diligence dimensions extracted</div>
+          </div>
+          <div class="brutal-stat-tile">
+            <div class="brutal-stat-tile__value">1</div>
+            <div class="brutal-stat-tile__label">Prompt argument, optional</div>
+          </div>
+        </div>
+      </div>
+
+      <OnboardingToc links={TOC_LINKS} />
+
+      <main class="guide-main">
+        <section id="why" data-section="why" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">01 What it does</h2>
+          <p class="guide-intro guide-intro--wide-gap">
+            Other GST prompts take arguments you type. This one takes the artifact the engagement
+            already produces, the populated IRL, and treats it as the input to every applicable
+            engine at once. It removes the re-keying step between the workbook and the tools.
+          </p>
+          <div class="compare">
+            <div class="compare__col">
+              <div class="brutal-label compare__label compare__label--muted">Re-keyed by hand</div>
+              <ul class="compare__list">
+                <li>
+                  An analyst reads the workbook and retypes ARR, headcount and hosting spend into
+                  four separate tools.
+                </li>
+                <li>
+                  Annualisation is done ad hoc: the same fixture has produced R&amp;D ratios of 9%,
+                  14% and 31% across runs.
+                </li>
+                <li>
+                  Unanswered rows silently become assumptions, and nobody can tell later which
+                  numbers were given and which were inferred.
+                </li>
+              </ul>
+            </div>
+            <div class="compare__col compare__col--primary">
+              <div class="brutal-label compare__label">Ingested</div>
+              <ul class="compare__list">
+                <li>
+                  One invocation extracts thirteen diligence dimensions and fans them out across the
+                  engines that apply.
+                </li>
+                <li>
+                  Money converts to one currency basis before any engine sees it, with each
+                  conversion and its rate stated inline and repeated in the gap list.
+                </li>
+                <li>
+                  Claims carry the workbook reference they came from; anything the IRL did not
+                  answer lands in an explicit gap list instead of a plausible number.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p class="brutal-callout guide-callout guide-callout--flush">
+            <span class="brutal-callout__title">Trusted input, one audit surface</span>
+            A populated GST IRL is trusted input: the IRL schema exists precisely to feed these tools.
+            The sweep runs no hashing, caching, or citation-verification machinery; its dossier says "per
+            the IRL" and never claims server-side verification. The audit surface is section (J), a model-authored
+            list of every gap, elided tool, assumption and conversion the run carries.
+          </p>
+        </section>
+
+        <section id="round-trip" data-section="round-trip" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">02 The round trip, end to end</h2>
+          <p class="guide-intro guide-intro--wide-gap">
+            Two prompts bookend the engagement. The first issues the ask; the last reads the answer.
+            Steps 02 and 03 happen off-platform, in the partner's inbox, unless the evidence is
+            already in front of you.
+          </p>
+          <ol class="quick-steps quick-steps--roomy">
+            <li class="quick-step">
+              <div class="quick-step__num">01</div>
+              <div>
+                <h3 class="quick-step__title">Issue the request list</h3>
+                <p class="quick-step__body quick-step__body--tight">
+                  Run <code>gst_information_request_list</code> with the engagement's shape. It returns
+                  the paste-ready checklist in chat <em>and</em> a fillable workbook, configured the way
+                  you asked: sections included or dropped, individual questions removed, custom per-section
+                  requests added. Removals leave reference-ID gaps rather than renumbering, so a recipient
+                  quoting <code>2-04</code> still means the same question next quarter.
+                </p>
+                <p class="quick-step__hint">
+                  Ask <code>list_irl_requests</code> first if you want the exact key for a question you
+                  mean to drop
+                </p>
+              </div>
+            </li>
+            <li class="quick-step">
+              <div class="quick-step__num quick-step__num--muted">02</div>
+              <div>
+                <h3 class="quick-step__title">The target fills it in, or you do</h3>
+                <p class="quick-step__body quick-step__body--tight">
+                  Seven columns: reference, request, status, file location, comments, notes,
+                  response. Four of them carry authored content: GST pre-populates research into
+                  Comments and sources into File Location; the recipient answers in Response and
+                  confirms in Status. Ingestion reads Response and Comments as one continuous
+                  answer, which is why a row that only points at a filename cannot open an analysis
+                  gate.
+                </p>
+                <p class="quick-step__body quick-step__body--last">
+                  When the evidence is already in context (a data-room export, remitted documents,
+                  public filings), <code>gst_irl_create</code> authors the fills itself and builds the
+                  populated workbook via <code>fill_information_request_list_xlsx</code>. Every
+                  answer carries a sourcing reference; rows the evidence cannot answer stay blank,
+                  and the blanks <em>are</em> the follow-up ask. It stops at the artifact: a human review
+                  sits between fill and ingest by design.
+                </p>
+              </div>
+            </li>
+            <li class="quick-step">
+              <div class="quick-step__num quick-step__num--muted">03</div>
+              <div>
+                <h3 class="quick-step__title">Get it into markdown</h3>
+                <p class="quick-step__body quick-step__body--last">
+                  The workbook has to become text before it can be swept. The operator-local
+                  extractor emits exactly the body shape the prompt expects, reproducibly, from the
+                  same bytes every time, including the header preamble the sweep infers the target
+                  from. Attaching the workbook and letting the model read it also works.
+                </p>
+                <div class="endpoint-row">
+                  <code class="endpoint-code">npm run irl:extract -- &lt;filled-irl.xlsx&gt;</code>
+                  <button
+                    type="button"
+                    class="brutal-btn brutal-btn--secondary endpoint-copy"
+                    data-copy="npm run irl:extract -- <filled-irl.xlsx>">Copy</button
+                  >
+                </div>
+              </div>
+            </li>
+            <li class="quick-step">
+              <div class="quick-step__num">04</div>
+              <div>
+                <h3 class="quick-step__title">Sweep</h3>
+                <p class="quick-step__body quick-step__body--last">
+                  Invoke <code>gst_irl_sweep</code> and paste the markdown into <code
+                    >filledIrl</code
+                  >, or leave it blank when the IRL is already attached or pasted in the
+                  conversation. Before extracting anything, the prompt measures how much of the
+                  workbook is actually answered and halts only on a blank template; see <a
+                    href="#output">what comes back</a
+                  >.
+                </p>
+              </div>
+            </li>
+            <li class="quick-step">
+              <div class="quick-step__num">05</div>
+              <div>
+                <h3 class="quick-step__title">Read the dossier</h3>
+                <p class="quick-step__body quick-step__body--last">
+                  Each tool-backed section closes with a deeplink that opens the same calculation in
+                  the Hub with its inputs set, so an assumption can be adjusted there without
+                  re-entering the engagement. The evidence stays in the conversation for the
+                  follow-on prompts in <a href="#downstream">section 06</a>.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section id="run-it" data-section="run-it" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">03 The one argument</h2>
+          <p class="guide-intro">
+            The form has a single field, and even that one is optional. Everything the old
+            eight-argument workflow asked for is now read from the IRL itself or from the
+            conversation.
+          </p>
+          <div class="args-table args-table--roomy">
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--arg">filledIrl</div>
+              <p class="args-table__value">The whole markdown body</p>
+              <p class="args-table__note args-table__note--wide">
+                Optional, minimum 200 characters when supplied. Leave it blank and the prompt uses
+                the IRL already attached or pasted in the conversation, asking for a paste only when
+                nothing arrived. Pasting into a single-line field collapses line breaks; the run
+                still works.
+              </p>
+            </div>
+          </div>
+          <h3 class="guide-subheading">Everything else is inferred</h3>
+          <div class="args-table args-table--roomy">
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--arg">Target name</div>
+              <p class="args-table__value">Header line, then row 0-01</p>
+              <p class="args-table__note args-table__note--wide">
+                Read from the <code>&gt; Target:</code> line in the IRL header, falling back to the company-name
+                row. The one thing a sweep cannot proceed without; if neither exists, it asks.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--arg">Engagement context</div>
+              <p class="args-table__value">Sell-side · Buy-side · Value Creation · Unspecified</p>
+              <p class="args-table__note args-table__note--wide">
+                Read from the <code>&gt; Engagement context:</code> header line, falling back to row 0-02.
+                Voice only: it never changes which tools run, so a sell-side framing cannot quietly suppress
+                an unflattering section. Absent or Unspecified means universal voice.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--arg">
+                Partner lead<br />Project code name
+              </div>
+              <p class="args-table__value">Taken from the conversation</p>
+              <p class="args-table__note args-table__note--wide">
+                Used when you have stated them in the session; otherwise the synthesis memo is
+                attributed generically and the engagement is labelled by target name.
+              </p>
+            </div>
+          </div>
+          <p class="guide-body guide-body--roomy">
+            The dossier opens by stating the inferred target name, engagement context, and the
+            source each was read from; correct either conversationally and the run continues.
+          </p>
+          <p class="brutal-callout guide-callout guide-callout--flush">
+            <span class="brutal-callout__title">Test body</span>
+            <a href="/downloads/mcp/northwind-analytics-irl.md" download
+              >A partial IRL for a fictional target</a
+            > ships with this guide: Northwind Analytics, B2B analytics, $15.2M ARR, Series B, California.
+            Paste it into <code>filledIrl</code> to exercise the workflow before running it on a live
+            engagement.
+          </p>
+        </section>
+
+        <section id="modes" data-section="modes" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">04 One job per prompt</h2>
+          <p class="guide-intro guide-intro--wide-gap">
+            The IRL workflow is three prompts, one job each. There is no <code>mode</code> argument to
+            choose; the choice is which prompt you invoke.
+          </p>
+          <div class="mode-cards">
+            <article class="prompt-card">
+              <div>
+                <div class="prompt-card__name prompt-card__name--lg">gst_irl_create</div>
+                <div class="brutal-label-small prompt-card__label prompt-card__label--tight">
+                  Populate from evidence
+                </div>
+              </div>
+              <div class="field-panel">
+                <CopyRow field="targetName" value="Northwind Analytics" keyWidth={140} />
+                <CopyRow field="transactionContext" value="buy-side" keyWidth={140} />
+              </div>
+              <ul class="mode-card__list">
+                <li>
+                  Authors per-row fills from documents, filings and chat already in context, every
+                  answer with a sourcing reference.
+                </li>
+                <li>
+                  Builds the populated <code>.xlsx</code>; unattributable rows stay blank as the
+                  follow-up ask.
+                </li>
+                <li>Stops at the artifact: you review before anything sweeps it.</li>
+              </ul>
+            </article>
+            <article class="prompt-card">
+              <div>
+                <div class="prompt-card__name prompt-card__name--lg">gst_irl_sweep</div>
+                <div class="brutal-label-small prompt-card__label prompt-card__label--tight">
+                  Extract → tools → dossier
+                </div>
+              </div>
+              <pre
+                data-snippet
+                class="snippet-pre snippet-pre--field">filledIrl:  &lt;the IRL markdown, or blank&gt;</pre>
+              <ul class="mode-card__list">
+                <li>
+                  Calls each gate-passing engine once, base schemas only: <code>unknown</code> and
+                  <code>null</code> are honest inputs where the IRL is silent.
+                </li>
+                <li>
+                  Returns the full dossier, (A)–(J), each tool-backed section closing with its Hub
+                  deeplink verbatim.
+                </li>
+                <li>The default for a live engagement.</li>
+              </ul>
+            </article>
+            <article class="prompt-card">
+              <div>
+                <div class="prompt-card__name prompt-card__name--lg">gst_irl_extract</div>
+                <div class="brutal-label-small prompt-card__label prompt-card__label--tight">
+                  Portable record, no analysis
+                </div>
+              </div>
+              <pre
+                data-snippet
+                class="snippet-pre snippet-pre--field">filledIrl:  &lt;the IRL markdown, or blank&gt;</pre>
+              <ul class="mode-card__list">
+                <li>
+                  Zero tool invocations. Emits the <code>record: irl-extract</code> fence plus one payload
+                  fence per gate-passing tool.
+                </li>
+                <li>The payloads are the exact arguments a sweep would have called with.</li>
+                <li>
+                  Cheap snapshot to save, paste into a later session, or hand to any other GST
+                  prompt; see <a href="#downstream">section 06</a>.
+                </li>
+              </ul>
+            </article>
+          </div>
+          <p class="brutal-callout brutal-callout--warning guide-callout guide-callout--flush">
+            <span class="brutal-callout__title">The predecessor is still listed</span>
+            <code>gst_irl_ingestion</code> (the eight-argument workflow with audit levels, body hashing
+            and server-side provenance) remains registered unchanged while the sweep is live-verified.
+            Its removal is scheduled, together with <code>prepare_irl_body</code>,
+            <code>validate_irl_provenance</code> and <code>compose_dossier_envelope</code>. Start
+            new work on the sweep.
+          </p>
+        </section>
+
+        <section id="output" data-section="output" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">05 What comes back</h2>
+          <p class="guide-intro">
+            Before any of it, a fill-ratio check: the prompt walks the ten canonical sections
+            (00–09) and counts substantive answers. One threshold, not a grading scale.
+          </p>
+          <div class="ratio-tiles">
+            <div class="ratio-tile ratio-tile--halt">
+              <div class="ratio-tile__value">Under 5%</div>
+              <p class="ratio-tile__desc">
+                Halts: that is the blank request template, not a filled IRL. The run says so and
+                asks you to confirm before proceeding.
+              </p>
+            </div>
+            <div class="ratio-tile">
+              <div class="ratio-tile__value">Everything else</div>
+              <p class="ratio-tile__desc">
+                Proceeds, whatever the ratio. It is stated as the first sentence of the dossier, and
+                thin or empty sections are named in (J). A sparse IRL produces a sparse dossier with
+                an honest gap list: the correct result, not an error.
+              </p>
+            </div>
+          </div>
+
+          <h3 class="guide-subheading">The dossier</h3>
+          <div class="dossier-map">
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">A</span>
+              <span class="dossier-map__desc"
+                >Target snapshot: fill ratio first, then the inferred target and context</span
+              >
+            </div>
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">B</span>
+              <span class="dossier-map__desc"
+                >Diligence agenda for the profile the IRL describes</span
+              >
+            </div>
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">C</span>
+              <span class="dossier-map__desc"
+                >Architecture and paradigm assessment: R&amp;D posture, cost drivers</span
+              >
+            </div>
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">D</span>
+              <span class="dossier-map__desc">Infrastructure cost-governance maturity</span>
+            </div>
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">E</span>
+              <span class="dossier-map__desc">Technical-debt carrying cost</span>
+            </div>
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">F</span>
+              <span class="dossier-map__desc"
+                >Regulatory exposure, one subsection per framework</span
+              >
+            </div>
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">G</span>
+              <span class="dossier-map__desc">Comparable GST engagements</span>
+            </div>
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">H</span>
+              <span class="dossier-map__desc">Market signal from the radar</span>
+            </div>
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">I</span>
+              <span class="dossier-map__desc"
+                >Synthesis in the engagement voice, closing with follow-up document requests</span
+              >
+            </div>
+            <div class="dossier-map__item">
+              <span class="dossier-map__letter">J</span>
+              <span class="dossier-map__desc"
+                >Gaps and assumptions: always emitted, the run's audit surface</span
+              >
+            </div>
+          </div>
+          <p class="guide-body guide-body--roomy">
+            Sections C through H only appear when the workbook supports them. The benchmark needs
+            ARR plus an engineering-cost or hosting signal; the debt estimate needs at least one
+            substantively answered row about the codebase (a file pointer or a caveat is not
+            signal). Regulatory exposure needs a named framework, or a conditional trigger firing on
+            what the IRL says about AI systems or critical infrastructure. Anything skipped is
+            named, with its reason, in (J). The agenda, the cost-governance read and the radar
+            always run.
+          </p>
+          <p class="brutal-callout brutal-callout--warning guide-callout guide-callout--flush">
+            <span class="brutal-callout__title">Read (J) before the rest</span>
+            The gap list carries unanswered high-value rows with their concrete follow-up, elided tools
+            with the predicate that failed, every conversion and assumption the run applied, and any inference
+            you should confirm. The dossier says "per the IRL" and never claims server-side verification;
+            this list is what makes that honest. No gaps reported against a partially-filled IRL indicates
+            a problem with the run, not a clean workbook.
+          </p>
+        </section>
+
+        <section id="downstream" data-section="downstream" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">
+            06 Reusing the extract record in later prompts
+          </h2>
+          <p class="guide-intro guide-intro--wide-gap">
+            The extract record is a structured description of the target, produced by <code
+              >gst_irl_extract</code
+            > and carried in the conversation. Six of the GST prompts check for it before running and
+            resolve their inputs from it instead of from the arguments you typed.
+          </p>
+          <div class="compare compare--roomy">
+            <div class="compare__col">
+              <div class="brutal-label compare__label compare__label--muted">
+                gst_target_quick_look without a record
+              </div>
+              <p class="compare__body">
+                Given only its five form fields, it benchmarks against partner-supplied inputs and
+                returns the debt estimate as extraction-only with null incident data; there is
+                nothing to compute it from.
+              </p>
+            </div>
+            <div class="compare__col compare__col--primary">
+              <div class="brutal-label compare__label">gst_target_quick_look with a record</div>
+              <p class="compare__body">
+                The same prompt resolves its inputs from the record, cites the reference each one
+                came from, and states which branch produced every number.
+              </p>
+            </div>
+          </div>
+          <p class="guide-body guide-body--roomy">
+            The kickoff agenda, handoff memo, architecture layer review, comparable-engagements memo
+            and regulatory exposure brief behave the same way. Run the extraction first and the rest
+            of the session reads from it.
+          </p>
+          <div class="args-table args-table--fails">
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fact">What a fact carries</div>
+              <p class="args-table__note args-table__note--fact">
+                Per answered row: the workbook reference verbatim, the request text verbatim, the
+                status, an answer excerpt capped at 240 characters, and a normalised value with its
+                conversion basis where one exists. Consumers match on the request text, so there is
+                no lookup table to keep in sync.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fact">It travels by being pasted</div>
+              <p class="args-table__note args-table__note--fact">
+                The record is context-borne: there is no server copy and no cache behind it. Its
+                <code>_meta</code> block dates and versions itself, because nothing server-side can supply
+                that later.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fact">
+                Excerpts are asserted, not verified
+              </div>
+              <p class="args-table__note args-table__note--fact">
+                The record's excerpts are extraction-time verbatim spans and every consumer states
+                that plainly. Keep the filled IRL alongside the record when a later session needs to
+                check a claim against the source.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="discipline" data-section="discipline" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">07 Operating notes</h2>
+          <p class="guide-intro">Four conditions a first run commonly hits.</p>
+          <div class="args-table args-table--fails">
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fact">
+                Your paste lost its line breaks
+              </div>
+              <p class="args-table__note">
+                Claude Desktop renders each argument as a single-line field, so a multi-line
+                markdown body collapses to one long line.
+              </p>
+              <p class="args-table__note">
+                Processed normally: every word survives in order, and matching normalises whitespace
+                anyway. Nothing is refused and nothing acts on it.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fact">The IRL is silent on an input</div>
+              <p class="args-table__note">
+                The engines accept <code>unknown</code> sentinels and <code>null</code> fields where the
+                workbook does not determine a value.
+              </p>
+              <p class="args-table__note">
+                That is the honest input, not a failure. Each one is named in (J) with the follow-up
+                that would resolve it.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fact">
+                A section came back extraction-only
+              </div>
+              <p class="args-table__note">
+                A tool errored mid-sweep, or a required input was absent from the IRL and could not
+                be substituted.
+              </p>
+              <p class="args-table__note">
+                The sweep continues and the section reports the error verbatim. A missing input
+                becomes a follow-up in (J) rather than an inferred value.
+              </p>
+            </div>
+            <div class="args-table__row">
+              <div class="args-table__key args-table__key--fact">
+                The context was inferred wrong
+              </div>
+              <p class="args-table__note">
+                The workbook header carried free text instead of a canonical label, or row 0-02
+                stated a posture the header contradicted.
+              </p>
+              <p class="args-table__note">
+                Section (A) names the inference and its source. Correct it in chat: voice is the
+                only thing that changes; the tools already ran the same either way.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="next" data-section="next" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">08 Next steps</h2>
+          <div class="brutal-gateway-grid guide-next">
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>Information request list</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                The intake checklist, its taxonomy, and the workbook.
+              </p>
+              <a
+                href="/hub/library/information-request-list/"
+                class="cta-button brutal-gateway-card__cta">Read article</a
+              >
+            </article>
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>Using the GST MCP Server</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                First query, prompt argument forms, and pinned resources.
+              </p>
+              <a href="/hub/mcp/using/" class="cta-button brutal-gateway-card__cta">Open guide</a>
+            </article>
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>Technical documentation</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                Tool and prompt reference, OAuth scopes, and rate limits.
+              </p>
+              <a href="/hub/mcp/docs/" class="cta-button brutal-gateway-card__cta">Read docs</a>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import '../../../../utils/mcp-onboarding';
+</script>
+
+<style>
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html) {
+      scroll-behavior: smooth;
+    }
+  }
+
+  .mcp-guide-section {
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  .mcp-guide-section .container {
+    max-width: 1360px;
+  }
+
+  .mcp-guide-section code {
+    font-family: var(--font-family-mono);
+    color: var(--color-primary);
+  }
+
+  /* ── Hero ─────────────────────────────────────────────────────────── */
+  .guide-hero {
+    padding: var(--spacing-3xl) 0 var(--spacing-2xl);
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .guide-hero__label {
+    color: var(--color-tertiary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .guide-hero :global(.hub-header) {
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .guide-hero :global(.hub-header__title) {
+    max-width: 1000px;
+  }
+
+  .guide-hero :global(.hub-header__subtitle) {
+    max-width: 840px;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .guide-hero__note {
+    margin: 0 0 var(--spacing-2xl);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    max-width: 840px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+    max-width: 1100px;
+  }
+
+  /* ── Section shell ────────────────────────────────────────────────── */
+  .guide-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3xl);
+    min-width: 0;
+  }
+
+  .guide-section {
+    scroll-margin-top: 80px;
+  }
+
+  .guide-heading {
+    margin: 0 0 var(--spacing-md);
+  }
+
+  .guide-intro {
+    max-width: 820px;
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0 0 var(--spacing-xl);
+  }
+
+  .guide-intro--wide-gap {
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .guide-subheading {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 var(--spacing-lg);
+  }
+
+  .guide-body {
+    max-width: 900px;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0 0 var(--spacing-lg);
+  }
+
+  .guide-body--roomy {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .guide-callout {
+    max-width: 1100px;
+    margin: 0;
+  }
+
+  .guide-callout--flush {
+    margin: 0;
+  }
+
+  /* ── Comparison columns ───────────────────────────────────────────── */
+  .compare {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--spacing-xl);
+    max-width: 1100px;
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .compare__col {
+    border-top: 3px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-top: var(--spacing-lg);
+  }
+
+  .compare__col--primary {
+    border-top-color: var(--color-primary);
+  }
+
+  .compare--roomy .compare__col {
+    border-top: none;
+    border-left: 3px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-top: 0;
+    padding-left: var(--spacing-md);
+  }
+
+  .compare--roomy .compare__col--primary {
+    border-left-color: var(--color-primary);
+  }
+
+  .compare__label {
+    color: var(--color-tertiary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .compare__label--muted {
+    color: var(--text-muted);
+  }
+
+  .compare--roomy .compare__label {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .compare__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .compare__list li,
+  .compare__body {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .compare__body {
+    margin: 0;
+  }
+
+  /* ── Numbered steps ───────────────────────────────────────────────── */
+  .quick-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    max-width: 960px;
+  }
+
+  .quick-step {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: var(--spacing-lg);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-top: var(--spacing-lg);
+  }
+
+  .quick-step__num {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  /* Steps 02-03 happen off-platform; the muted number is the design's cue. */
+  .quick-step__num--muted {
+    color: var(--text-muted);
+  }
+
+  .quick-step__title {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 var(--spacing-sm);
+  }
+
+  .quick-step__body {
+    margin: 0 0 var(--spacing-md);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .quick-step__body--tight {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .quick-step__body--last {
+    margin-bottom: 0;
+  }
+
+  .quick-step__hint {
+    margin: 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .endpoint-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+  }
+
+  .quick-step .endpoint-row {
+    margin-top: var(--spacing-md);
+  }
+
+  .endpoint-code {
+    font-size: var(--text-base);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    word-break: break-all;
+  }
+
+  .endpoint-copy {
+    min-width: 6rem;
+  }
+
+  /* ── Argument / fact tables ───────────────────────────────────────── */
+  .args-table {
+    display: flex;
+    flex-direction: column;
+    max-width: 1100px;
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .args-table--fails {
+    margin-bottom: 0;
+  }
+
+  .args-table__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm) var(--spacing-lg);
+    padding: var(--spacing-md) 0;
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .args-table__key {
+    flex: 1 1 200px;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    overflow-wrap: anywhere;
+  }
+
+  .args-table__key--arg {
+    flex-basis: 200px;
+  }
+
+  .args-table__key--fact {
+    flex-basis: 220px;
+  }
+
+  .args-table__value {
+    flex: 1 1 220px;
+    margin: 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  .args-table__note {
+    flex: 1 1 260px;
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .args-table__note--wide {
+    flex-basis: 300px;
+  }
+
+  .args-table__note--fact {
+    flex-basis: 420px;
+  }
+
+  /* ── Mode cards ───────────────────────────────────────────────────── */
+  .mode-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+    gap: var(--spacing-lg);
+    max-width: 1100px;
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .prompt-card {
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-top: 3px solid var(--color-primary);
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .prompt-card__name {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    overflow-wrap: anywhere;
+  }
+
+  .prompt-card__name--lg {
+    font-size: var(--text-base);
+  }
+
+  .prompt-card__label {
+    color: var(--text-muted);
+  }
+
+  .prompt-card__label--tight {
+    margin-top: 2px;
+  }
+
+  .field-panel {
+    background: var(--surface-subtle-bg);
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .snippet-pre {
+    margin: 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    line-height: 1.8;
+    color: var(--text-secondary);
+    background: var(--surface-subtle-bg);
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-md);
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+
+  .mode-card__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .mode-card__list li {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ── Fill-ratio tiles ─────────────────────────────────────────────── */
+  .ratio-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+    max-width: 1100px;
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .ratio-tile {
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-md) 0 var(--spacing-md) var(--spacing-md);
+  }
+
+  .ratio-tile--halt {
+    border-left-color: var(--color-error);
+  }
+
+  .ratio-tile__value {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .ratio-tile__desc {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ── Dossier map ──────────────────────────────────────────────────── */
+  .dossier-map {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--spacing-md) var(--spacing-xl);
+    max-width: 1100px;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .dossier-map__item {
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-top: var(--spacing-sm);
+  }
+
+  .dossier-map__letter {
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    font-size: var(--text-sm);
+  }
+
+  .dossier-map__desc {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  /* ── Next-step cards ──────────────────────────────────────────────── */
+  .guide-next {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: var(--spacing-xl);
+    margin-bottom: 0;
+  }
+
+  .guide-card {
+    padding: var(--spacing-lg);
+  }
+
+  .guide-card__header {
+    min-height: 3.9em;
+  }
+
+  .guide-card__blurb {
+    min-height: 4.8em;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .guide-next {
+      grid-template-columns: 1fr;
+    }
+
+    .guide-card__header,
+    .guide-card__blurb {
+      min-height: 0;
+    }
+  }
+</style>

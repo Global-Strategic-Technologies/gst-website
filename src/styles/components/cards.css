@@ -862,7 +862,10 @@ Brutalist Gateway Card (Library/Tools index pages)
   margin-bottom: var(--spacing-md);
 }
 
-.brutal-gateway-card h2 {
+/* h2 and h3 both: the card's heading level follows the page's outline (a card
+   under an h2 section heading carries an h3), so the style cannot pin one. */
+.brutal-gateway-card h2,
+.brutal-gateway-card h3 {
   font-size: 1.3rem;
   font-family: var(--font-family-mono);
   font-weight: 700;
@@ -960,7 +963,8 @@ Brutalist Gateway Card (Library/Tools index pages)
     padding: 1.5rem;
   }
 
-  .brutal-gateway-card h2 {
+  .brutal-gateway-card h2,
+  .brutal-gateway-card h3 {
     font-size: 1.15rem;
   }
 

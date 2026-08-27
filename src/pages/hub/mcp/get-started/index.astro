@@ -1,0 +1,664 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import DeltaIcon from '../../../../components/DeltaIcon.astro';
+import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
+import ClipFigure from '../../../../components/hub/mcp/ClipFigure.astro';
+
+// Copy is transcribed from the content-reviewed design handoff (2026-08-27),
+// with em dashes rewritten per operator direction. Published facts (prompt
+// count, endpoint) are pinned by tests/integration/mcp-onboarding-parity.test.ts.
+
+const TOC_LINKS = [
+  { id: 'prerequisites', label: '01 Before you start' },
+  { id: 'quick-start', label: '02 Quick Start' },
+  { id: 'verify', label: '03 Verify' },
+  { id: 'whats-next', label: '04 Where to go next' },
+];
+---
+
+<BaseLayout
+  title="Get Started with the GST MCP Server | GST"
+  description="Connect Claude Desktop to the GST MCP Server: prerequisites, the four-step connector quick start, and how to verify that every capability resolved."
+  ogTitle="Get Started with the GST MCP Server"
+  ogDescription="Three steps between a provisioned credential and a connector Claude can call: prerequisites, quick start, and verification."
+  ogImage="/og-image.png"
+  ogImageAlt="GST MCP Server - connector setup guide"
+  ogUrl="https://globalstrategic.tech/hub/mcp/get-started/"
+>
+  <section class="mcp-guide-section">
+    <div class="container">
+      <div class="guide-hero">
+        <div class="brutal-label guide-hero__label">Integration guide</div>
+        <HubHeader title="Get started with the GST MCP Server">
+          <Fragment slot="subtitle"
+            >Three steps between a provisioned credential and a connector Claude can call. Work down
+            the page; each one tells you how to know it worked.</Fragment
+          >
+        </HubHeader>
+        <ol class="guide-checkpoints">
+          <li class="checkpoint">
+            <div class="checkpoint__kicker">Checkpoint 01</div>
+            <div class="checkpoint__title">Credential in hand</div>
+            <p class="checkpoint__desc">
+              A client record exists, with your tier and scopes set deliberately.
+            </p>
+          </li>
+          <li class="checkpoint">
+            <div class="checkpoint__kicker">Checkpoint 02</div>
+            <div class="checkpoint__title">Connector approved</div>
+            <p class="checkpoint__desc">
+              Claude Desktop lists the GST MCP tools in its connector menu.
+            </p>
+          </li>
+          <li class="checkpoint checkpoint--muted">
+            <div class="checkpoint__kicker">Checkpoint 03</div>
+            <div class="checkpoint__title">Capabilities resolved</div>
+            <p class="checkpoint__desc">
+              Tools, prompts and resources all appear by name, nothing missing.
+            </p>
+          </li>
+        </ol>
+      </div>
+
+      <OnboardingToc links={TOC_LINKS} />
+
+      <main class="guide-main">
+        <section id="prerequisites" data-section="prerequisites" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">01 Before you start</h2>
+          <p class="guide-intro">
+            Access is operator-provisioned: there is no self-serve signup and no dynamic client
+            registration. If you do not have a client record yet, that is the first step; everything
+            below assumes credentials have arrived.
+          </p>
+          <ul class="check-list">
+            <li class="check-row">
+              <input type="checkbox" id="prereq-record" class="check-row__box" />
+              <div class="check-row__body">
+                <label for="prereq-record" class="check-row__title">Request a client record</label>
+                <p class="check-row__desc">
+                  GST creates it with your tier and scopes set deliberately. Ask for radar tools
+                  explicitly: they are granted separately.
+                </p>
+                <a href="/hub/mcp/#request-access" class="text-cta">Request access →</a>
+              </div>
+            </li>
+            <li class="check-row">
+              <input type="checkbox" id="prereq-credential" class="check-row__box" />
+              <div class="check-row__body">
+                <label for="prereq-credential" class="check-row__title"
+                  >Store the credential you were sent</label
+                >
+                <p class="check-row__desc">
+                  It arrives over a secure channel. Paste the key at the consent page if you are
+                  working interactively; take the OAuth 2.1 <code>client_credentials</code> id and secret
+                  if you are building headless.
+                </p>
+                <span class="fineprint"
+                  >Keep it in a password manager, never in a committed config file.</span
+                >
+              </div>
+            </li>
+            <li class="check-row">
+              <input type="checkbox" id="prereq-desktop" class="check-row__box" />
+              <div class="check-row__body">
+                <label for="prereq-desktop" class="check-row__title"
+                  >Update Claude Desktop and sign in</label
+                >
+                <p class="check-row__desc check-row__desc--last">
+                  Run the current version and confirm Settings → Connectors is available. Skip any
+                  bridge or proxy: the server speaks OAuth 2.1 natively.
+                </p>
+              </div>
+            </li>
+          </ul>
+          <p class="brutal-callout guide-callout">
+            <span class="brutal-callout__title">Building a headless integration?</span>
+            The Quick Start below is the interactive path. Pipelines, Slack bots and internal dashboards
+            authenticate machine-to-machine with <code>client_credentials</code> against the same endpoint;
+            the wire detail lives in the <a href="/hub/mcp/docs/">technical documentation</a>.
+          </p>
+        </section>
+
+        <section id="quick-start" data-section="quick-start" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">02 Quick Start</h2>
+          <p class="guide-intro guide-intro--wide-gap">
+            Claude Desktop's native connector flow. Four steps; the only value you type is the
+            endpoint URL.
+          </p>
+
+          <ol class="quick-steps">
+            <li class="quick-step">
+              <div class="quick-step__num">01</div>
+              <div>
+                <h3 class="quick-step__title">Open Settings → Connectors</h3>
+                <p class="quick-step__body">
+                  In Claude Desktop, choose <strong>Add custom connector</strong>. You do not need a
+                  client ID or secret: Claude registers itself with the server.
+                </p>
+              </div>
+            </li>
+            <li class="quick-step">
+              <div class="quick-step__num">02</div>
+              <div>
+                <h3 class="quick-step__title">Enter the GST endpoint</h3>
+                <p class="quick-step__body">
+                  Paste the production URL and save. You choose the display name here. Call it
+                  <code>GST MCP</code> to match the rest of this guide, since you address the connector
+                  by that name in a prompt.
+                </p>
+                <div class="endpoint-row">
+                  <code class="endpoint-code">https://mcp.globalstrategic.tech/mcp</code>
+                  <button
+                    type="button"
+                    class="brutal-btn brutal-btn--secondary endpoint-copy"
+                    data-copy="https://mcp.globalstrategic.tech/mcp">Copy</button
+                  >
+                </div>
+              </div>
+            </li>
+            <li class="quick-step">
+              <div class="quick-step__num">03</div>
+              <div>
+                <h3 class="quick-step__title">Approve at the consent page</h3>
+                <p class="quick-step__body">
+                  A browser tab opens on the GST consent page. Paste your provisioned key into the
+                  field and approve. That paste is how the grant learns who you are; your access is
+                  bounded by the scopes on your record. Tokens last an hour and refresh silently,
+                  and the same connector then works on web and mobile.
+                </p>
+              </div>
+            </li>
+            <li class="quick-step">
+              <div class="quick-step__num">04</div>
+              <div>
+                <h3 class="quick-step__title">Restart, then confirm the tools are there</h3>
+                <p class="quick-step__body">
+                  Quit Claude Desktop fully (it stays in the tray) and relaunch. The chat input's
+                  <strong>+ → Connectors</strong> menu should list <code>GST MCP</code> with the GST tools
+                  and prompts under it.
+                </p>
+              </div>
+            </li>
+          </ol>
+          <details class="brutal-faq__item guide-addendum" id="addendum">
+            <summary class="brutal-faq__question">
+              <span>Optional: stop the agent answering from memory</span>
+              <DeltaIcon class="delta-chevron" />
+            </summary>
+            <div class="brutal-faq__answer">
+              <p class="guide-addendum__note">
+                Without guidance, an agent will often answer a portfolio or regulatory question from
+                training knowledge instead of calling a tool. The first sentence of its reply
+                decides the path, so bias that sentence. Paste this into Settings → Profile, then
+                start a fresh conversation.
+              </p>
+              <pre
+                data-snippet
+                class="snippet-pre">For any question about GST's portfolio, engagements, radar, regulatory
+analysis, TechPar, infrastructure cost governance, diligence, technical
+debt, or information request lists:
+
+1. Your FIRST sentence must name the GST MCP tool you intend to call.
+   Do not open with "I'll search past conversations" or "Based on what
+   I know"; the MCP tools are the authoritative source, not memory.
+2. Call the GST MCP tool first, even when the prompt does not mention GST.
+3. For "what does this framework cover?" questions, call the MCP tool with
+   empty arguments rather than describing it from memory.
+4. When a task matches a published GST prompt, invoke the prompt rather
+   than orchestrating its tool calls yourself.</pre>
+              <button
+                type="button"
+                class="brutal-btn brutal-btn--secondary guide-addendum__copy"
+                data-copy-prev>Copy addendum</button
+              >
+            </div>
+          </details>
+        </section>
+
+        <section id="verify" data-section="verify" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">03 Verify the connection</h2>
+          <p class="guide-intro">
+            Two checks. If both pass, the client is talking to the server and every capability
+            resolved.
+          </p>
+          <ul class="check-list">
+            <li class="check-row">
+              <input type="checkbox" id="verify-listed" class="check-row__box" />
+              <div class="check-row__body">
+                <label for="verify-listed" class="check-row__title"
+                  >The connector is listed and enabled</label
+                >
+                <p class="check-row__desc check-row__desc--last">
+                  + → Connectors shows <code>GST MCP</code>, toggled on and without a warning badge,
+                  as below.
+                </p>
+                <ClipFigure
+                  variant="collapsible"
+                  mp4="/images/hub/mcp/connector-enabled-web.mp4"
+                  poster="/images/hub/mcp/connector-enabled-poster.webp"
+                  width={1000}
+                  height={952}
+                  maxWidth="520px"
+                  ariaLabel="Screen capture: the composer's plus menu opens, Connectors is hovered, and GST MCP appears in the list with its toggle on"
+                  caption="Screen capture: the connector list with GST MCP enabled"
+                />
+              </div>
+            </li>
+            <li class="check-row">
+              <input type="checkbox" id="verify-capabilities" class="check-row__box" />
+              <div class="check-row__body">
+                <label for="verify-capabilities" class="check-row__title"
+                  >GST MCP capabilities are listed</label
+                >
+                <p class="check-row__desc check-row__desc--last">
+                  Open <strong>Add from GST MCP</strong> and expect the twelve GST prompts by name, with
+                  the resource library below them.
+                </p>
+                <ClipFigure
+                  variant="collapsible"
+                  mp4="/images/hub/mcp/prompts-resources-web.mp4"
+                  poster="/images/hub/mcp/prompts-resources-poster.webp"
+                  width={1000}
+                  height={780}
+                  maxWidth="600px"
+                  ariaLabel="Screen capture: opening Add from GST MCP reveals the GST prompts, then scrolls on through the resource library of structure guides and privacy and cybersecurity regulations"
+                  caption="Screen capture: the prompt list, then the resource library"
+                />
+              </div>
+            </li>
+          </ul>
+          <p class="status-note">
+            Server-side health (dependency status, per-tool latency, request volume) is published at
+            <a
+              href="https://status.mcp.globalstrategic.tech/"
+              target="_blank"
+              rel="noopener noreferrer"><code>status.mcp.globalstrategic.tech</code></a
+            >. Check it before assuming your own config is at fault.
+          </p>
+          <p class="brutal-callout guide-callout">
+            <span class="brutal-callout__title">Neither check passing?</span>
+            The five failures a first connection runs into, and what each one means, are catalogued under
+            <a href="/hub/mcp/using/#troubleshooting">When it fails</a> in the practitioner guide.
+          </p>
+        </section>
+
+        <section id="whats-next" data-section="whats-next" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">04 Where to go next</h2>
+          <p class="guide-intro">
+            Three routes on from a working connector: everyday use, the wire detail, and a wider
+            grant.
+          </p>
+          <div class="brutal-gateway-grid guide-next">
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>Using the GST MCP Server</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                First query, prompt argument forms, and pinned resources.
+              </p>
+              <a href="/hub/mcp/using/" class="cta-button brutal-gateway-card__cta">Open guide</a>
+            </article>
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>Technical documentation</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                Tool and prompt reference, OAuth scopes, and rate limits.
+              </p>
+              <a href="/hub/mcp/docs/" class="cta-button brutal-gateway-card__cta">Read docs</a>
+            </article>
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>Widen your access</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                Add radar scope, raise a tier, or provision a client.
+              </p>
+              <a href="/hub/mcp/#request-access" class="cta-button brutal-gateway-card__cta"
+                >Contact GST</a
+              >
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import '../../../../utils/mcp-onboarding';
+</script>
+
+<style>
+  /* Smooth in-page scrolling for the sticky-TOC anchors, motion-gated. */
+  @media (prefers-reduced-motion: no-preference) {
+    :global(html) {
+      scroll-behavior: smooth;
+    }
+  }
+
+  .mcp-guide-section {
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  .mcp-guide-section .container {
+    max-width: 1360px;
+  }
+
+  /* Inline code reads as a value, in the accent color, per the design. */
+  .mcp-guide-section code {
+    font-family: var(--font-family-mono);
+    color: var(--color-primary);
+  }
+
+  /* ── Hero ─────────────────────────────────────────────────────────── */
+  .guide-hero {
+    padding: var(--spacing-3xl) 0 var(--spacing-2xl);
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .guide-hero__label {
+    color: var(--color-tertiary);
+    margin-bottom: var(--spacing-md);
+  }
+
+  /* HubHeader owns the h1 + lede; the hero wrapper owns padding and rule, so
+     the component's own outer spacing is neutralized here. Slot content and
+     the component's internals need :global — Astro scopes by element hash. */
+  .guide-hero :global(.hub-header) {
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .guide-hero :global(.hub-header__title) {
+    max-width: 900px;
+  }
+
+  .guide-hero :global(.hub-header__subtitle) {
+    max-width: 760px;
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .guide-checkpoints {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--spacing-lg);
+    max-width: 1000px;
+  }
+
+  .checkpoint {
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-md) 0 var(--spacing-md) var(--spacing-md);
+  }
+
+  .checkpoint--muted {
+    border-left-color: light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .checkpoint__kicker {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .checkpoint__title {
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    font-size: var(--text-base);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .checkpoint__desc {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  /* ── Section shell ────────────────────────────────────────────────── */
+  .guide-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3xl);
+    min-width: 0;
+  }
+
+  .guide-section {
+    scroll-margin-top: 80px;
+  }
+
+  .guide-heading {
+    margin: 0 0 var(--spacing-md);
+  }
+
+  .guide-intro {
+    max-width: 800px;
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0 0 var(--spacing-xl);
+  }
+
+  .guide-intro--wide-gap {
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .guide-callout {
+    max-width: 900px;
+    margin-top: var(--spacing-xl);
+  }
+
+  /* ── Checklists ───────────────────────────────────────────────────── */
+  .check-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: 900px;
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .check-row {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+    padding: var(--spacing-md) 0;
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  /* 24px, not the design's 20px: axe's 2.2 AA target-size floor. */
+  .check-row__box {
+    width: var(--touch-target-min-aa);
+    height: var(--touch-target-min-aa);
+    margin-top: 2px;
+    accent-color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .check-row__body {
+    min-width: 0;
+  }
+
+  .check-row__title {
+    display: block;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    margin-bottom: 2px;
+    cursor: pointer;
+  }
+
+  .check-row__desc {
+    margin: 0 0 var(--spacing-sm);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .check-row__desc--last {
+    margin-bottom: 0;
+  }
+
+  .text-cta {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+  }
+
+  .fineprint {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
+  }
+
+  /* ── Numbered steps ───────────────────────────────────────────────── */
+  .quick-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    max-width: 900px;
+  }
+
+  .quick-step {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: var(--spacing-lg);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-top: var(--spacing-lg);
+  }
+
+  .quick-step__num {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .quick-step__title {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 var(--spacing-sm);
+  }
+
+  .quick-step__body {
+    margin: 0 0 var(--spacing-md);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .endpoint-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+  }
+
+  .endpoint-code {
+    font-size: var(--text-base);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    word-break: break-all;
+  }
+
+  .endpoint-copy {
+    min-width: 6rem;
+  }
+
+  /* ── Addendum disclosure ──────────────────────────────────────────── */
+  .guide-addendum {
+    max-width: 900px;
+    margin-top: var(--spacing-xl);
+  }
+
+  .guide-addendum__note {
+    margin: 0 0 var(--spacing-md);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .snippet-pre {
+    margin: 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    line-height: 1.7;
+    color: var(--text-secondary);
+    background: var(--surface-subtle-bg);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-left: 3px solid var(--color-primary);
+    padding: var(--spacing-md);
+    overflow-x: auto;
+    white-space: pre-wrap;
+  }
+
+  .guide-addendum__copy {
+    margin-top: var(--spacing-md);
+  }
+
+  .status-note {
+    max-width: 900px;
+    margin-top: var(--spacing-lg);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* ── Next-step cards ──────────────────────────────────────────────── */
+  /* The shared grid's 420px floor breaks three tracks below ~1452px; the
+     design declares its own columns, and the scoped rule out-specifies the
+     shared 768px single-column rule, so the mobile stack is restated. */
+  .guide-next {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: var(--spacing-xl);
+    margin-bottom: 0;
+  }
+
+  .guide-card {
+    padding: var(--spacing-lg);
+  }
+
+  /* Equal floors so the three CTAs land level when copy lengths differ. */
+  .guide-card__header {
+    min-height: 3.9em;
+  }
+
+  .guide-card__blurb {
+    min-height: 4.8em;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .guide-next {
+      grid-template-columns: 1fr;
+    }
+
+    .guide-card__header,
+    .guide-card__blurb {
+      min-height: 0;
+    }
+  }
+</style>

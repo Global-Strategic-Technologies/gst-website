@@ -1,0 +1,74 @@
+---
+/**
+ * Per-field copy row for the MCP onboarding pages: mono argument name, mono
+ * value, and a compact Copy button that copies the value only.
+ *
+ * Rows stack inside a page-owned container carrying the panel treatment
+ * (`--surface-subtle-bg` + 3px primary left border, per the design); the row
+ * owns only itself and its hairline separator. Copy behavior is delegated to
+ * src/utils/mcp-onboarding.ts via `data-copy`.
+ *
+ * The button's 24px floor is `--touch-target-min-aa` (WCAG 2.2 AA), a recorded
+ * exception to the 44px `.brutal-btn` guarantee — see BRAND_GUIDELINES.md
+ * § Accessibility and the FLOOR_EXCEPTIONS entry in
+ * tests/integration/touch-target-floor.test.ts.
+ */
+interface Props {
+  /** Argument name shown in the key column. */
+  field: string;
+  /** Literal value shown and copied. */
+  value: string;
+  /** Key-column width in px (the design uses 150 or 140). */
+  keyWidth?: number;
+}
+
+const { field, value, keyWidth = 150 } = Astro.props;
+
+const vars = { keyWidth: `${keyWidth}px` };
+---
+
+<div class="copy-row">
+  <span class="copy-row__key">{field}</span>
+  <code class="copy-row__value">{value}</code>
+  <button type="button" class="brutal-btn brutal-btn--secondary copy-row__btn" data-copy={value}>
+    Copy<span class="sr-only"> {field} value</span>
+  </button>
+</div>
+
+<style define:vars={vars}>
+  .copy-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-xs) 0;
+    border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-subtle));
+  }
+
+  .copy-row:last-child {
+    border-bottom: none;
+  }
+
+  .copy-row__key {
+    flex: 0 0 var(--keyWidth);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .copy-row__value {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    color: var(--text-primary);
+  }
+
+  .copy-row__btn {
+    flex-shrink: 0;
+    font-size: var(--text-2xs);
+    padding: 2px var(--spacing-sm);
+    min-height: var(--touch-target-min-aa);
+  }
+</style>
