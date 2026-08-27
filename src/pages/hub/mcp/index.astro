@@ -32,17 +32,25 @@ function accessHref(tier?: string) {
   title="MCP Server | GST"
   description="Connect your AI agents to GST's diligence engine, portfolio record, and regulatory map over the Model Context Protocol. Operator-provisioned access for deal teams."
   ogTitle="GST MCP Server | Diligence Tools for Your Agents"
-  ogDescription="Fifteen diligence, portfolio, and regulatory tools exposed over the Model Context Protocol, with operator-provisioned access and per-client capability tiers."
+  ogDescription="Sixteen diligence, portfolio, and regulatory tools exposed over the Model Context Protocol, with operator-provisioned access and per-client capability tiers."
   ogImage="/og-image.png"
   ogImageAlt="GST MCP Server - Model Context Protocol access to GST diligence tooling"
   ogUrl="https://globalstrategic.tech/hub/mcp/"
 >
   <section class="mcp-section">
     <div class="container">
-      <HubHeader
-        title="GST MCP Server"
-        subtitle="Use GST's advisory tools with your AI agents. Supercharge your analysis to accelerate and lower costs of decision-making."
-      />
+      <HubHeader title="GST MCP Server">
+        <Fragment slot="subtitle"
+          >Use <a
+            href="/hub/tools/"
+            target="_blank"
+            rel="noopener"
+            class="mcp-lede-link"
+            onclick="trackCTA('mcp-lede-hub-tools', 'hub-mcp')"
+            >GST's advisory tools<span class="sr-only"> (opens in new window)</span></a
+          > with your AI agents. Supercharge your analysis to accelerate and lower costs of decision-making.</Fragment
+        >
+      </HubHeader>
 
       <div class="mcp-block">
         <h2 class="brutal-heading-lg">What it does</h2>
@@ -104,7 +112,7 @@ function accessHref(tier?: string) {
         }
         <div class="mcp-primitive-summary">
           <div class="brutal-stat-tile">
-            <div class="brutal-stat-tile__value">15</div>
+            <div class="brutal-stat-tile__value">16</div>
             <div class="brutal-stat-tile__label">Tools</div>
           </div>
           <div class="brutal-stat-tile">
@@ -112,7 +120,7 @@ function accessHref(tier?: string) {
             <div class="brutal-stat-tile__label">Resources</div>
           </div>
           <div class="brutal-stat-tile">
-            <div class="brutal-stat-tile__value">9</div>
+            <div class="brutal-stat-tile__value">12</div>
             <div class="brutal-stat-tile__label">Prompts</div>
           </div>
         </div>
@@ -120,7 +128,7 @@ function accessHref(tier?: string) {
         <div class="mcp-primitive">
           <div class="mcp-primitive__head">
             <h3>Tools</h3>
-            <span class="mcp-primitive__count">15</span>
+            <span class="mcp-primitive__count">16</span>
           </div>
           <p class="mcp-primitive__def">
             The work an associate would otherwise build in a spreadsheet, or wait on an advisor to
@@ -136,7 +144,7 @@ function accessHref(tier?: string) {
           </p>
           <details class="brutal-faq__item mcp-disclosure">
             <summary class="brutal-faq__question">
-              <span>Browse all 15 tools</span>
+              <span>Browse all 16 tools</span>
               <DeltaIcon class="delta-chevron" />
             </summary>
             <div class="mcp-catalog">
@@ -217,11 +225,12 @@ function accessHref(tier?: string) {
               <div class="mcp-catalog__group">
                 <h4>Information requests</h4>
                 <p class="mcp-catalog__gloss">
-                  Builds a fillable information request list, then ingests the completed file and
-                  checks every answer back to its source.
+                  Builds a fillable information request list, populates it from evidence already in
+                  hand, then ingests the completed file and checks every answer back to its source.
                 </p>
                 <ul>
                   <li><DeltaIcon class="bullet-icon" />generate_information_request_list_xlsx</li>
+                  <li><DeltaIcon class="bullet-icon" />fill_information_request_list_xlsx</li>
                   <li><DeltaIcon class="bullet-icon" />list_irl_requests</li>
                   <li><DeltaIcon class="bullet-icon" />prepare_irl_body</li>
                   <li><DeltaIcon class="bullet-icon" />validate_irl_provenance</li>
@@ -321,7 +330,7 @@ function accessHref(tier?: string) {
         <div class="mcp-primitive">
           <div class="mcp-primitive__head">
             <h3>Prompts</h3>
-            <span class="mcp-primitive__count">9</span>
+            <span class="mcp-primitive__count">12</span>
           </div>
           <p class="mcp-primitive__def">
             Knowing which tool to call is not the hard part. Knowing the order is, and that is what
@@ -336,7 +345,7 @@ function accessHref(tier?: string) {
           </p>
           <details class="brutal-faq__item mcp-disclosure">
             <summary class="brutal-faq__question">
-              <span>Browse all 9 prompts</span>
+              <span>Browse all 12 prompts</span>
               <DeltaIcon class="delta-chevron" />
             </summary>
             <div class="mcp-catalog">
@@ -356,11 +365,15 @@ function accessHref(tier?: string) {
               <div class="mcp-catalog__group">
                 <h4>Information requests</h4>
                 <p class="mcp-catalog__gloss">
-                  Issue a request list to a target, then ingest what comes back without rekeying it.
+                  Issue a request list to a target, populate it from evidence in hand, then sweep
+                  what comes back into a cited dossier without rekeying it.
                 </p>
                 <ul>
                   <li><DeltaIcon class="bullet-icon" />gst_information_request_list</li>
+                  <li><DeltaIcon class="bullet-icon" />gst_irl_create</li>
                   <li><DeltaIcon class="bullet-icon" />gst_irl_ingestion</li>
+                  <li><DeltaIcon class="bullet-icon" />gst_irl_sweep</li>
+                  <li><DeltaIcon class="bullet-icon" />gst_irl_extract</li>
                 </ul>
               </div>
               <div class="mcp-catalog__group">
@@ -623,7 +636,51 @@ function accessHref(tier?: string) {
         </div>
       </div>
 
-      <div class="mcp-block mcp-block--cta">
+      <div class="mcp-block mcp-block--guides">
+        <h2 class="brutal-heading-lg">Guides</h2>
+        <p class="mcp-note">
+          Three guides take a provisioned client from credential to everyday use: connect the
+          server, drive it well, and ingest a completed information request list.
+        </p>
+        <div class="brutal-gateway-grid mcp-guides">
+          <article class="brutal-gateway-card brutal-frosted">
+            <div class="brutal-gateway-card__header"><h3>Get started</h3></div>
+            <p class="brutal-gateway-card__features mcp-guides__blurb">
+              Connector setup for Claude Desktop: prerequisites, quick start, and how to verify the
+              connection.
+            </p>
+            <a
+              href="/hub/mcp/get-started/"
+              class="cta-button brutal-gateway-card__cta"
+              onclick="trackCTA('mcp-guide-get-started', 'hub-mcp')">Open guide</a
+            >
+          </article>
+          <article class="brutal-gateway-card brutal-frosted">
+            <div class="brutal-gateway-card__header"><h3>Using the server</h3></div>
+            <p class="brutal-gateway-card__features mcp-guides__blurb">
+              First query, prompt argument forms, pinned resources, and what each failure means.
+            </p>
+            <a
+              href="/hub/mcp/using/"
+              class="cta-button brutal-gateway-card__cta"
+              onclick="trackCTA('mcp-guide-using', 'hub-mcp')">Open guide</a
+            >
+          </article>
+          <article class="brutal-gateway-card brutal-frosted">
+            <div class="brutal-gateway-card__header"><h3>Advanced operations</h3></div>
+            <p class="brutal-gateway-card__features mcp-guides__blurb">
+              Ingest a completed information request list and drive nine engines in one turn.
+            </p>
+            <a
+              href="/hub/mcp/advanced-operations/"
+              class="cta-button brutal-gateway-card__cta"
+              onclick="trackCTA('mcp-guide-advanced-operations', 'hub-mcp')">Open guide</a
+            >
+          </article>
+        </div>
+      </div>
+
+      <div class="mcp-block mcp-block--cta" id="request-access">
         <h2 class="brutal-heading-lg">Request access</h2>
         <p class="mcp-note">
           Tell GST who you are, what you are building, and roughly how much you expect to call.
@@ -1313,6 +1370,46 @@ function accessHref(tier?: string) {
   @media (max-width: 480px) {
     .mcp-block--cta {
       padding: var(--spacing-lg);
+    }
+  }
+
+  /* The lede anchor is slotted into HubHeader, so it carries THIS page's scope
+     hash and is styled here, not in the component. Underline on top of the
+     global link color so it stays distinguishable inside body text. */
+  .mcp-lede-link {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  /* Three guide cards on one row. The shared grid's 420px track floor breaks
+     three tracks to 2 + 1 below ~1452px (the BL-093 trap), so this page owns
+     the columns — and because a scoped rule out-specifies the shared sheet's
+     768px single-column rule, the mobile stack is restated here too. */
+  .mcp-guides {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+    gap: var(--spacing-xl);
+  }
+
+  /* Equal floors so the three CTAs land level when blurb lengths differ. */
+  .mcp-guides .brutal-gateway-card__header {
+    min-height: 2.6em;
+  }
+
+  .mcp-guides__blurb {
+    min-height: 4.8em;
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  @media (max-width: 768px) {
+    .mcp-guides {
+      grid-template-columns: 1fr;
+    }
+
+    .mcp-guides .brutal-gateway-card__header,
+    .mcp-guides__blurb {
+      min-height: 0;
     }
   }
 </style>

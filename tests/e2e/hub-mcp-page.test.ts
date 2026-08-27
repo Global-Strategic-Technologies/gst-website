@@ -247,10 +247,14 @@ test.describe('MCP Server page', () => {
 
   test('returns to the hub by breadcrumb, not by a second primary CTA', async ({ page }) => {
     // Back-navigation used to be a `.cta-button` at the foot of the page, giving
-    // it the same weight as the page's conversion. The breadcrumb carries it now,
-    // so the only `.cta-button` left is REQUEST_MCP_ACCESS().
-    await expect(page.locator('.mcp-section .cta-button')).toHaveCount(1);
+    // it the same weight as the page's conversion. The breadcrumb carries it now.
+    // The guides cards legitimately reuse `.cta-button` (every gateway card
+    // does), so the pin is the intent itself — no back-to-hub primary CTA —
+    // plus the conversion CTA still standing outside any card.
     await expect(page.locator('.mcp-section a.cta-button[href="/hub/"]')).toHaveCount(0);
+    await expect(
+      page.locator('.mcp-block--cta .cta-button', { hasText: 'REQUEST_MCP_ACCESS()' })
+    ).toHaveCount(1);
 
     await page.locator('nav[aria-label="Breadcrumb"] a[href="/hub/"]').click();
     await page.waitForURL('**/hub/');

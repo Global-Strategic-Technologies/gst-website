@@ -34,33 +34,12 @@ import {
   SERVER_PATH,
 } from './helpers/mcp-registry';
 
+// The markup-region reader is shared with `mcp-onboarding-parity.test.ts` —
+// one definition of "what the page renders", same policy as the registry
+// readers above.
+import { extractAstroMarkup } from './helpers/astro-markup';
+
 const PAGE_PATH = 'src/pages/hub/mcp/index.astro';
-
-// --- Source readers --------------------------------------------------------
-
-/**
- * Reduce an Astro file to what it actually renders: no frontmatter, no
- * `<style>`/`<script>` blocks, no comments.
- *
- * Whitespace is collapsed last, and that part is load-bearing. Prettier rewraps
- * this page's prose on every commit (lint-staged runs it), so a phrase like
- * "non-contractual capability ceilings" can straddle a source line break at any
- * time. Matching against raw source made these assertions fail on reformatting
- * alone, which is a false alarm that teaches the next person to weaken the guard.
- */
-export function extractAstroMarkup(source: string): string {
-  return (
-    source
-      .replace(/^---[\s\S]*?\n---/, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/g, '')
-      .replace(/<script[\s\S]*?<\/script>/g, '')
-      // `\s*` inside the braces is required, not defensive: prettier reformats
-      // `{/* … */}` to `{ /* … */ }` on commit.
-      .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '')
-      .replace(/<!--[\s\S]*?-->/g, '')
-      .replace(/\s+/g, ' ')
-  );
-}
 
 // --- Fixtures --------------------------------------------------------------
 
@@ -122,7 +101,7 @@ describe('MCP marketing page — tool catalog parity', () => {
       ...markup.matchAll(/<li>\s*<DeltaIcon[^/]*\/>\s*([a-z][a-z0-9_]+)\s*<\/li>/g),
     ].map((m) => m[1]);
 
-    // Vacuity guard: 15 tools + 9 prompts are rendered this way.
+    // Vacuity guard: 16 tools + 12 prompts are rendered this way.
     expect(published.length).toBe(EXPECTED_REMOTE_TOOL_COUNT + EXPECTED_PROMPT_COUNT);
 
     const registered = new Set([...remoteTools, ...prompts]);
