@@ -1,5 +1,5 @@
 /**
- * Prompt: gst_irl_create (BL-140; renamed from gst_irl_fill in server 0.62.0)
+ * Prompt: gst_irl_populate (BL-140; renamed from gst_irl_fill in server 0.62.0)
  *
  * Walks the model through POPULATING an Information Request List from
  * evidence it already holds in context — a virtual-data-room export,
@@ -147,7 +147,7 @@ function computeValidRefs(args: z.infer<typeof argsSchema>): string[] {
   }
 }
 
-const PROMPT_NAME = 'gst_irl_create';
+const PROMPT_NAME = 'gst_irl_populate';
 
 const SOURCING_RULES = [
   'Author one `fills` entry per row the evidence can answer — `{ ref, fileLocation, comments }`:',
@@ -250,7 +250,7 @@ const INTERACTIVE_BODY = [
   'Step 5. **Stop at the artifact.** Report `filledRowCount`, `blankRowCount`, and `filledRefs`; say plainly that the blank rows are the outstanding ask to put to the target. The operator reviews the populated workbook and then runs `gst_irl_sweep` themselves — do NOT invoke `gst_irl_sweep`, `gst_irl_ingestion`, `prepare_irl_body`, or any other tool after the fill call; a human review checkpoint sits between fill and ingest by design.',
 ].join('\n');
 
-export const irlCreatePrompt: GstPrompt<typeof argsSchema> = {
+export const irlPopulatePrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Populate the Information Request List from evidence already in context — a data-room export, remitted documents, public filings, prior sessions, statements in chat — instead of waiting for the target to return a filled workbook. The model inventories its evidence, authors per-row fills (answer + a sourcing reference under the D-cell grammar; unattributable rows stay blank), and calls fill_information_request_list_xlsx to build the populated .xlsx. Blank rows ARE the follow-up ask. Stops at the artifact: the operator reviews, then runs gst_irl_sweep exactly as for a target-returned IRL.',

@@ -33,7 +33,7 @@ Two consequences for a tester:
 | `gst_architecture_layer_review`   | prompt | UAT-09.7                                | `architecture-layer-review.golden.md`               |
 | `gst_radar_brief_today`           | prompt | UAT-09.8                                | `radar-brief-today.golden.md`                       |
 | `gst_irl_ingestion`               | prompt | UAT-09.9                                | `irl-ingestion.golden.md`                           |
-| `gst_irl_create`                  | prompt | covered in [UAT-11](UAT-11-irl-fill.md) | `irl-create.golden.md`                              |
+| `gst_irl_populate`                | prompt | covered in [UAT-11](UAT-11-irl-fill.md) | `irl-populate.golden.md`                            |
 | `gst_irl_sweep`                   | prompt | UAT-09.11                               | `irl-sweep.golden.md`                               |
 | `gst_irl_extract`                 | prompt | UAT-09.12                               | `irl-extract.golden.md`                             |
 | IRL extract record — cross-prompt | flow   | UAT-09.10                               | _(none — a cross-prompt flow has no single golden)_ |
@@ -50,7 +50,7 @@ Two consequences for a tester:
 
 **Expected result**
 
-- Exactly **twelve** `gst_*` prompts are listed, matching the Scope table (substantive coverage of `gst_irl_create` lives in UAT-11, per its Scope row; the count includes the deprecated `gst_irl_ingestion` until its removal PR lands).
+- Exactly **twelve** `gst_*` prompts are listed, matching the Scope table (substantive coverage of `gst_irl_populate` lives in UAT-11, per its Scope row; the count includes the deprecated `gst_irl_ingestion` until its removal PR lands).
 - Each shows its arguments; required arguments are marked.
 - No prompt appears twice, and no non-`gst_` prompt appears under this connector.
 

@@ -232,7 +232,7 @@ export function deliveredAsDocumentClause(opts: { citesRunParameters: boolean })
  * precedent; `deliveredAsDocumentClause()` is deliberately in three. This one
  * is in six, and the set is DECLARED rather than inferred — the registry guard
  * asserts clause-present ⇔ flag-set, so every later prompt has to choose. The
- * tenth (`gst_irl_create`, BL-140) chose EXCLUSION: this clause's mandatory
+ * tenth (`gst_irl_populate`, BL-140) chose EXCLUSION: this clause's mandatory
  * upgrade path (`prepare_irl_body` → `validate_irl_provenance`) instructs the
  * model to invoke the sweep tools, which directly contradicts that prompt's
  * stop-at-artifact ruling — a human review checkpoint sits between fill and
@@ -298,7 +298,7 @@ export function embeddedTaxonomyFraming(isIngestion: boolean): string {
  * mode on {@link embeddedTaxonomyFraming}: the existing branches' output is
  * pinned by the ingestion body-hash baseline, and their "reproduce it
  * as-is rather than reconciling it against another source" continuation is
- * actively wrong for `gst_irl_create`, whose entire job IS reconciling the
+ * actively wrong for `gst_irl_populate`, whose entire job IS reconciling the
  * taxonomy against evidence in context — a compliant model following the
  * generator framing would emit a blank list instead of authored fills.
  */

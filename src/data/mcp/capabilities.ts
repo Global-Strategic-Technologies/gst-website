@@ -497,7 +497,7 @@ export const CAPABILITIES: readonly Capability[] = [
     noteTitle: 'Blank rows are the ask',
     note: 'Rows the evidence cannot support stay empty on purpose. Filling them from inference would produce a workbook that looks complete and is not, so the unanswered rows are what goes back to the target.',
     availability: TIER_LINE,
-    related: ['generate_information_request_list_xlsx', 'gst_irl_create', 'gst_irl_sweep'],
+    related: ['generate_information_request_list_xlsx', 'gst_irl_populate', 'gst_irl_sweep'],
   },
   {
     id: 'list_irl_requests',
@@ -821,12 +821,12 @@ export const CAPABILITIES: readonly Capability[] = [
       'The workbook to send, plus the Hub page for a one-click download.',
     ],
     noteTitle: 'This one issues, it does not answer',
-    note: 'The workbook comes back empty, for the target to complete. When the answers are already in your own evidence, a data room export or filings or an earlier conversation, use gst_irl_create instead: it produces the same workbook already populated, and leaves only the rows it could not support blank.',
+    note: 'The workbook comes back empty, for the target to complete. When the answers are already in your own evidence, a data room export or filings or an earlier conversation, use gst_irl_populate instead: it produces the same workbook already populated, and leaves only the rows it could not support blank.',
     availability: PROMPT_LINE,
-    related: ['generate_information_request_list_xlsx', 'list_irl_requests', 'gst_irl_create'],
+    related: ['generate_information_request_list_xlsx', 'list_irl_requests', 'gst_irl_populate'],
   },
   {
-    id: 'gst_irl_create',
+    id: 'gst_irl_populate',
     group: 'Prompts',
     type: 'Prompt',
     usedIn: ['irl'],
@@ -880,7 +880,7 @@ export const CAPABILITIES: readonly Capability[] = [
     noteTitle: 'It calls nothing',
     note: 'This prompt runs no tools. It reads the list and produces a record, which is what makes the record portable: it survives the conversation, and any later session can drive the analysis tools from it. For the full sweep in one turn, use gst_irl_sweep.',
     availability: PROMPT_LINE,
-    related: ['gst_irl_sweep', 'gst_irl_create', 'gst_target_quick_look'],
+    related: ['gst_irl_sweep', 'gst_irl_populate', 'gst_target_quick_look'],
   },
   {
     id: 'gst_irl_sweep',
@@ -919,7 +919,7 @@ export const CAPABILITIES: readonly Capability[] = [
     note: 'A populated GST request list is trusted input: no provenance apparatus, no hashing, no citation loops. The model-authored gap list is what keeps the run honest. For the portable extract record without tool calls, use gst_irl_extract.',
     availability:
       'Included in all tiers. The market-signal section renders only where radar tools are granted.',
-    related: ['gst_irl_create', 'gst_irl_extract', 'gst_irl_ingestion'],
+    related: ['gst_irl_populate', 'gst_irl_extract', 'gst_irl_ingestion'],
   },
   {
     id: 'gst_irl_ingestion',
@@ -1182,7 +1182,7 @@ export const WORKFLOWS: readonly Workflow[] = [
         gloss: 'Issue the blank request list to the target.',
       },
       {
-        capabilityId: 'gst_irl_create',
+        capabilityId: 'gst_irl_populate',
         kind: 'Prompt',
         gloss: 'Or answer it yourself from evidence you already hold.',
       },

@@ -25,7 +25,7 @@ const TOC_LINKS = [
   title="MCP Advanced Operations | GST"
   description="Ingest a populated information request list with gst_irl_sweep: one optional argument, up to nine GST engines, and a dossier whose claims cite the workbook rows they came from."
   ogTitle="GST MCP Server: Advanced Operations"
-  ogDescription="The IRL ingestion workflow: gst_irl_create, gst_irl_sweep, and the portable extract record."
+  ogDescription="The IRL ingestion workflow: gst_irl_populate, gst_irl_sweep, and the portable extract record."
   ogImage="/og-image.png"
   ogImageAlt="GST MCP Server - IRL ingestion guide"
   ogUrl="https://globalstrategic.tech/hub/mcp/advanced-operations/"
@@ -161,7 +161,7 @@ const TOC_LINKS = [
                 </p>
                 <p class="quick-step__body quick-step__body--last">
                   When the evidence is already in context (a data-room export, remitted documents,
-                  public filings), <code>gst_irl_create</code> authors the fills itself and builds the
+                  public filings), <code>gst_irl_populate</code> authors the fills itself and builds the
                   populated workbook via <code>fill_information_request_list_xlsx</code>. Every
                   answer carries a sourcing reference; rows the evidence cannot answer stay blank,
                   and the blanks <em>are</em> the follow-up ask. It stops at the artifact: a human review
@@ -294,7 +294,7 @@ const TOC_LINKS = [
           <div class="mode-cards">
             <article class="prompt-card">
               <div>
-                <div class="prompt-card__name prompt-card__name--lg">gst_irl_create</div>
+                <div class="prompt-card__name prompt-card__name--lg">gst_irl_populate</div>
                 <div class="brutal-label-small prompt-card__label prompt-card__label--tight">
                   Populate from evidence
                 </div>

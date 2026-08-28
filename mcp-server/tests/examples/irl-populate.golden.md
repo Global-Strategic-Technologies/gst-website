@@ -1,13 +1,13 @@
 ---
-promptName: gst_irl_create
-version: 0.2.0
+promptName: gst_irl_populate
+version: 0.3.0
 recordedAt: 2026-08-23
 model: claude-fable-5
 ---
 
-# Worked example output for `gst_irl_create`
+# Worked example output for `gst_irl_populate`
 
-Recorded under the prompt's former name `gst_irl_fill@0.1.0`; the 0.62.0 rename to `gst_irl_create@0.2.0` changed no behavior, so the transcript stands.
+Recorded under the prompt's former name `gst_irl_fill@0.1.0`, which became `gst_irl_create@0.2.0` in 0.62.0 and `gst_irl_populate@0.3.0` in 0.63.0. Neither rename changed behavior. The 0.63.0 handoff change did: **the closing line quoted in step 4 below names `gst_irl_ingestion`, and the current prompt says `gst_irl_sweep`**. The quote is left as recorded rather than edited to look current, since it is an observation of a real run; the capture is pending replacement on the first UAT-11 cycle regardless.
 
 V1 draft recording (BL-140). To be replaced with the senior-consultant live-exercise capture on the first UAT-11 cycle — the prompts README authoring checklist § 10 ("Live-exercise it") is the source of truth for the final capture.
 

@@ -17,7 +17,7 @@
 ## Current manifest hash
 
 ```
-b812125bd92c0a2fd48e22e5141c09e9e026efb3a06b9b5c64daa730480a5577
+64d0b40e68e57ac8e87db37180cde030c06a1f4597509f66de7e2749bd1f4d13
 ```
 
 Computed over (sorted):
@@ -26,7 +26,7 @@ Computed over (sorted):
 - 123 Regulation URIs (BL-057: +3 — NIST AI RMF, UK pro-innovation AI framework, Chile Ley 21.719). Aliases (BL-073 + BL-073 acronym add-on `NIST AI RMF` / `NIST RMF` on `US-NIST-AI-RMF.json`; BL-119 `Colorado AI Act` / `CAIA` / `SB 24-205` on `US-CO-AI-ACT.json`) are NOT in the manifest hash inputs — they're an additive matching layer, not a registry shape change. As of 0.49.0 they have **two** consumers: `compose_dossier_envelope`'s server-side validation (exact-equality on normalized form) and `search_regulations` free-text ranking (normalized substring, folded into the name bucket). Assuming a single consumer is what let the BL-119 cycle-3 alias fix land half-done.
 - 6 Radar URIs.
 - **17** tool names (`fill_information_request_list_xlsx` added by 0.59.0 / BL-140; `list_irl_requests` added by the 0.37.0 per-question-removal work; tool names are NOT manifest-hash inputs — the count here is descriptive).
-- **12** prompt `name@version` tuples — `gst_irl_create` bumped to `0.3.0` by 0.63.0 (its handoff now names `gst_irl_sweep`); `gst_irl_fill@0.1.0` renamed to `gst_irl_create@0.2.0` by 0.62.0; `gst_irl_extract@0.1.0` added and `gst_irl_sweep` bumped to `0.2.0` by 0.61.0 (the extract-only split); `gst_irl_sweep@0.1.0` added by 0.60.0 (trust-the-operator rebuild PR1, coexisting with `gst_irl_ingestion@0.30.0` until live verification clears its removal); `gst_irl_fill@0.1.0` added by 0.59.0 (BL-140), the first NEW tuple since the manifest was baselined at nine. **Seven of the prior nine moved in 0.56.0** — `gst_irl_ingestion` to `0.29.0` (the IRL extract record; `extract-only` reachable without `filledIrl`), and the six prompts that now carry `irlEvidencePrecedence()` to `0.1.0`: `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_architecture_layer_review`, `gst_comparable_engagements_memo`, `gst_regulatory_exposure_brief`. Unmoved: `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below) and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below). `gst_irl_ingestion`'s prior milestones: capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters, `compute_techpar` runs in a stated mode, the server derives `fillRatio`.
+- **12** prompt `name@version` tuples — `gst_irl_create@0.2.0` renamed to `gst_irl_populate@0.3.0` by 0.63.0 (the handoff it names also moved to `gst_irl_sweep`); `gst_irl_fill@0.1.0` renamed to `gst_irl_create@0.2.0` by 0.62.0; `gst_irl_extract@0.1.0` added and `gst_irl_sweep` bumped to `0.2.0` by 0.61.0 (the extract-only split); `gst_irl_sweep@0.1.0` added by 0.60.0 (trust-the-operator rebuild PR1, coexisting with `gst_irl_ingestion@0.30.0` until live verification clears its removal); `gst_irl_fill@0.1.0` added by 0.59.0 (BL-140), the first NEW tuple since the manifest was baselined at nine. **Seven of the prior nine moved in 0.56.0** — `gst_irl_ingestion` to `0.29.0` (the IRL extract record; `extract-only` reachable without `filledIrl`), and the six prompts that now carry `irlEvidencePrecedence()` to `0.1.0`: `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_architecture_layer_review`, `gst_comparable_engagements_memo`, `gst_regulatory_exposure_brief`. Unmoved: `gst_information_request_list` at `0.0.9` (per-question removal + BL-044.5 directives; blank-field handling; the embed is framed and the anti-balk clause reaches both branches — see the 0.53.0 stanza below) and `gst_radar_brief_today` at `0.0.5` (provenance caveat added — see the 0.48.2 stanza below). `gst_irl_ingestion`'s prior milestones: capped `irlSource`, inlined VDR taxonomy, blank-field handling, the flattened-body refusal withdrawn, the body states its own resolved run parameters, `compute_techpar` runs in a stated mode, the server derives `fillRatio`.
 
 If this hash differs from the value in
 [`tests/integration/manifest-stability.test.ts`](./tests/integration/manifest-stability.test.ts) → `EXPECTED_MANIFEST_HASH`,
@@ -35,16 +35,17 @@ in lockstep when the registry shape changes.
 
 ---
 
-## 0.63.0 — 2026-08-28 — `gst_irl_create` points its handoff at `gst_irl_sweep`
+## 0.63.0 — 2026-08-28 — prompt rename `gst_irl_create` → `gst_irl_populate`, and its handoff points at `gst_irl_sweep`
 
-**One recommendation moved.** **Prompt**: `gst_irl_create@0.2.0` → `@0.3.0` (bumped, not rebaselined: 0.2.0 shipped in 0.62.0 and its bytes have been served). **Manifest hash**: rebaselined (one tuple's version moved).
+**A rename and one moved recommendation, shipping together.** **Prompt**: `gst_irl_create@0.2.0` → `gst_irl_populate@0.3.0` (version bumped, not restarted — the 0.2.0 bytes were served under the former name from 0.62.0 on; the two changes share one version because 0.3.0 itself was never served, per the rebaseline rule above). **Manifest hash**: rebaselined (one tuple's name and version moved).
 
 **What changed**
 
+- **`gst_irl_populate`** is the same evidence-population workflow — same arguments, same D-cell sourcing grammar, same stop-at-artifact ruling, same companion tool (`fill_information_request_list_xlsx`, whose name does not move). Operator ruling 2026-08-28. The prompt's self-naming line, its module and test filenames, and the tool's published description move with it.
 - **Both rendered bodies and the published description** now name **`gst_irl_sweep`** as the operator's next step after reviewing the populated workbook, where they named `gst_irl_ingestion`. Operator direction 2026-08-28: sweep is the direction of travel. `gst_irl_ingestion` still exists and still works; it is the provenance-instrumented path, and nothing about its own surface moves here.
 - **The stop-at-artifact prohibition now names BOTH prompts** — `do NOT invoke gst_irl_sweep, gst_irl_ingestion, prepare_irl_body, or any other tool after the fill call`. This is the load-bearing half of the edit: a guard naming only the prompt the body no longer recommends would have left the recommended path un-forbidden, which is precisely the auto-invocation the human review checkpoint exists to prevent. The module docblock's family sentence moved with it.
 
-**Client impact**: none mechanical — no name, argument, or URI moves. A client following the prompt is now directed to a different, coexisting successor prompt.
+**Client impact**: `/gst_irl_create` no longer resolves — invoke `/gst_irl_populate`. Pinned conversations referencing the former slash form need the new name; arguments and behavior are otherwise unchanged, and a client following the prompt is now directed to a different, coexisting successor prompt for ingestion.
 
 ---
 

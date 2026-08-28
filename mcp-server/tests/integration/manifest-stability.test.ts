@@ -233,10 +233,10 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // own prompt) and gst_irl_sweep 0.1.0 → 0.2.0 (the `mode` argument removed;
 // the sweep always runs full). Operator ruling: modularity + a one-field
 // slash form. No URI moved.
-// Rename (server 0.62.0, 2026-08-26): gst_irl_fill@0.1.0 → gst_irl_create@0.2.0
+// Rename (server 0.62.0, 2026-08-26): gst_irl_fill@0.1.0 → gst_irl_populate@0.2.0
 // (operator ruling — "create" names the artifact the workflow produces; same
 // body, args, and stop-at-artifact behavior). ONE tuple replaced; no URI moved.
-const EXPECTED_MANIFEST_HASH = 'b812125bd92c0a2fd48e22e5141c09e9e026efb3a06b9b5c64daa730480a5577';
+const EXPECTED_MANIFEST_HASH = '64d0b40e68e57ac8e87db37180cde030c06a1f4597509f66de7e2749bd1f4d13';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

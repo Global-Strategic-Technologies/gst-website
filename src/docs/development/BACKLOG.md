@@ -539,7 +539,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 **Source**: BL-140 user ruling, 2026-08-23 — v1 of `fill_information_request_list_xlsx` delivers base64-only, and the ruling that accepted it also filed this follow-up | **Effort**: Medium | **Status**: Candidate — no committed consumer yet
 
-**As a** GST partner who just produced a populated IRL via `gst_irl_create`, **I want** a one-click download surface for it, **so that** delivery does not depend on the invoking client's ability to write a base64 payload to disk.
+**As a** GST partner who just produced a populated IRL via `gst_irl_populate`, **I want** a one-click download surface for it, **so that** delivery does not depend on the invoking client's ability to write a base64 payload to disk.
 
 **Why it does not exist yet.** The Hub generator page (`/hub/tools/information-request-list-generator/`) reconstructs _blank_ workbooks client-side from URL args — a populated workbook's `fills` cannot ride a deeplink the same way (hundreds of prose cells vs a handful of scoping params), so the frozen tool's `downloadUrl` pattern would hand the operator the wrong artifact. BL-140 therefore deliberately omitted `downloadUrl` from the fill tool's payload, and the residual is documented in [`irl-fill/CONTRACT.md`](../../../mcp-server/src/docs/tools/irl-fill/CONTRACT.md) § Accepted residuals. Note BL-046 (inline MCP file delivery, candidate) covers the same gap from the client side — if Claude Desktop ships arbitrary-mimeType attachment rendering, this stanza may be moot; evaluate both before building either.
 
