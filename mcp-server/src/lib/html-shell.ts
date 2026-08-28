@@ -17,6 +17,16 @@
  * consent surface additionally sends `X-Frame-Options: DENY` +
  * `frame-ancestors 'none'` (clickjacking defense); this module only
  * produces markup.
+ *
+ * Dark mode: `color-scheme: light dark` lets the UA flip the canvas and
+ * default text, so every non-default color needs a dark counterpart or
+ * the page half-inverts — this shipped with light-only values and the
+ * consent page rendered white-on-white scope chips for dark-preference
+ * browsers (the first page every OAuth onboarder sees). Overrides live
+ * in a `prefers-color-scheme` media block, NOT `light-dark()`: this CSS
+ * is a template literal in TS source, no build step down-levels it, so
+ * `light-dark()` would silently drop the declaration on pre-2024
+ * browsers while the media query degrades to the (fine) light page.
  */
 
 /**
@@ -50,6 +60,17 @@ ul { margin: 0.5rem 0; padding-left: 1.25rem; }
 li { margin: 0.25rem 0; }
 .scope-desc { color: #555; font-size: 0.9rem; }
 .deny { background: #f4f4f4; color: #1a1a1a; border: 1px solid #999; }
+.deny:hover { background: #e2e2e2; }
+@media (prefers-color-scheme: dark) {
+  button { background: #f4f4f4; color: #1a1a1a; }
+  button:hover { background: #fff; }
+  .error { color: #ff8189; }
+  .success { color: #4caf50; }
+  code { background: #2a2a2a; }
+  .scope-desc { color: #a5a5a5; }
+  .deny { background: #1a1a1a; color: #f4f4f4; }
+  .deny:hover { background: #2a2a2a; }
+}
 </style>
 </head>
 <body>${body}</body>
