@@ -198,6 +198,11 @@ html.palette-1 {
   --color-primary-dark: var(--alt1-color-primary-dark);
   --color-primary-rgb: 30, 64, 175;
   --color-secondary: var(--alt1-color-secondary);
+  /* Badge chip fill (see --sash-badge-bg in variables.css): this palette's
+     light-theme secondary (#db2777) is 4.31:1 under the chip's dark ink — the
+     only failing combo of the twelve measured 2026-08-28 — so its dark-theme
+     secondary is promoted to both themes (7.48:1 both). */
+  --sash-badge-bg: #f472b6;
   --color-success: var(--alt1-color-success);
   --color-warning: var(--alt1-color-warning);
   --color-error: var(--alt1-color-error);
@@ -313,3 +318,6 @@ html.palette-3,
 html.palette-5 {
   --sash-ink: light-dark(var(--text-dark-primary), var(--bg-dark));
 }
+
+/* palette-1 additionally re-points --sash-badge-bg — declared inside its main
+   block above (a second html.palette-1 block here trips no-duplicate-selectors). */

@@ -331,8 +331,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           <Sash badge="New" label="MCP" detail="for AI agents" />
         </div>
         <code class="brand-code"
-          >.brutal-sash-corner &gt; .brutal-sash — 200px corner, --z-overlay. Segments: __badge,
-          __label, __detail. Colour is --sash-bg on --sash-ink, always</code
+          >.brutal-sash-corner &gt; .brutal-sash — 200px corner, --z-overlay. Segments: __badge
+          (--sash-badge-bg chip, dark ink), __label (one type step larger), __detail. The band is
+          --sash-bg on --sash-ink, always</code
         >
       </div>
       <div class="brand-component-item">
@@ -342,9 +343,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </div>
         <code class="brand-code"
           >.brutal-sash-under — the OPTIONAL subtext band below the main one (page scale + desktop
-          only; hidden ≤768px with __detail). Inverted ink-on-band, the __badge's own token pair —
-          the only colorway, because the family's mixes fail AA as text backgrounds (see sash.css).
-          Its presence widens the nav's desktop corner reserve to 200px. Copy budget ≤ 36
+          only; hidden ≤768px with __detail). Inverted ink-on-band — the band's bg/ink pair swapped
+          — the only colorway, because the family's mixes fail AA as text backgrounds (see
+          sash.css). Its presence widens the nav's desktop corner reserve to 200px. Copy budget ≤ 36
           characters, measured (Sash.astro)</code
         >
       </div>

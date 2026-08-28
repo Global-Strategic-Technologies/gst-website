@@ -31,16 +31,19 @@ at left 0 the content slides toward the bottom-right corner. No ≤768/≤540
 variants exist: the under-band stands down at ≤768 alongside __detail, so the
 desktop triple is its whole geometry.
 
-Colour comes from exactly two tokens, --sash-bg and --sash-ink (variables.css,
-with the per-palette ink in palettes.css). Borders and hover derive from them
-with color-mix, so the sash follows all six palettes and both themes with no
-extra CSS and no literal colours. The under-band inverts the pair — the exact
-move .brutal-sash__badge ships, whose per-palette ink was chosen to keep that
-inversion above AA — and that inversion is its ONLY colorway: design review
-computed the family's 68%/82% mixes at ≈3.5–3.9:1 as text backgrounds on
-several palette/theme combos (they were only ever validated as a 1px border
-and a transient hover), so any future colorway needs its own contrast
-measurement and its own /brand specimen before it ships.
+Colour comes from three tokens: --sash-bg and --sash-ink (variables.css, with
+the per-palette ink in palettes.css) draw the bands, borders and hover — the
+derivations use color-mix, so they follow all six palettes and both themes
+with no extra CSS — and --sash-badge-bg (the secondary accent, re-pointed for
+palette-1) fills the badge chip under constant --bg-dark ink, measured at
+every palette × theme when the chip left the two-token pair (2026-08-28).
+The under-band inverts the bg/ink pair — the chip's original move, whose
+per-palette ink was chosen to keep that inversion above AA — and that
+inversion is its ONLY colorway: design review computed the family's 68%/82%
+mixes at ≈3.5–3.9:1 as text backgrounds on several palette/theme combos (they
+were only ever validated as a 1px border and a transient hover), so any
+future colorway needs its own contrast measurement and its own /brand
+specimen before it ships.
 
 Spacing follows the same rule: anything that lands on the scale uses its token,
 and the rest are raw on purpose — they are the optical band thicknesses and
@@ -92,15 +95,25 @@ moves.)
 }
 
 /* The chip inverts the same two tokens, so it can never lose contrast either. */
+/* The chip left the two-token family 2026-08-28 (operator direction: an
+   alternate colour): --sash-badge-bg (the secondary accent, re-pointed for
+   palette-1 in palettes.css) under CONSTANT dark ink — --bg-dark, not
+   --sash-ink, which goes light in some palettes. Measured at every
+   palette × theme when it changed — worst surviving combo 5.0:1; re-measure
+   all twelve before re-pointing either side. */
 .brutal-sash__badge {
   padding: 0.0625rem 0.3125rem;
   letter-spacing: 0.1em;
-  background: var(--sash-ink);
-  color: var(--sash-bg);
+  background: var(--sash-badge-bg);
+  color: var(--bg-dark);
 }
 
+/* One step up the scale (the band's other segments stay --text-2xs): the
+   label is the subject and reads first. The copy-budget table in Sash.astro
+   was re-proven at this size for the live combo. */
 .brutal-sash__label {
   letter-spacing: inherit;
+  font-size: var(--text-xs);
 }
 
 .brutal-sash__detail {

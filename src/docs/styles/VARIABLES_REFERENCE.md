@@ -300,14 +300,15 @@ These variables exist for page sections and UI components that need distinct lig
 
 ### Announcement Sash
 
-The two tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Everything else the band draws — borders, hover, the inverted `__badge` chip — is derived from these with `color-mix()`, so the sash follows all six palettes and both themes with no extra CSS.
+The tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Borders, hover and the under-band's inversion are derived from the first two with `color-mix()`, so they follow all six palettes and both themes with no extra CSS; the badge chip reads the third under constant `--bg-dark` ink (measured at every palette × theme when it left the two-token pair, 2026-08-28).
 
-| Variable     | Value                  | Usage                                           |
-| ------------ | ---------------------- | ----------------------------------------------- |
-| `--sash-bg`  | `var(--color-primary)` | The band. Colour is never a variant of the sash |
-| `--sash-ink` | `var(--bg-dark)`       | The label, and the inverted badge's background  |
+| Variable          | Value                    | Usage                                           |
+| ----------------- | ------------------------ | ----------------------------------------------- |
+| `--sash-bg`       | `var(--color-primary)`   | The band. Colour is never a variant of the sash |
+| `--sash-ink`      | `var(--bg-dark)`         | The label, and the under-band's background      |
+| `--sash-badge-bg` | `var(--color-secondary)` | The badge chip's fill, under `--bg-dark` ink    |
 
-`--sash-ink` is re-pointed in `palettes.css` for `palette-1`, `-2`, `-3` and `-5`, whose light-theme primary is a dark saturated hue: those get `light-dark(var(--text-dark-primary), var(--bg-dark))`. Note the token names read backwards — `--text-dark-primary` is the LIGHT ink, i.e. text _for_ dark surfaces. `palette-0` and `palette-4` inherit the `:root` value deliberately.
+`--sash-ink` is re-pointed in `palettes.css` for `palette-1`, `-2`, `-3` and `-5`, whose light-theme primary is a dark saturated hue: those get `light-dark(var(--text-dark-primary), var(--bg-dark))`. Note the token names read backwards — `--text-dark-primary` is the LIGHT ink, i.e. text _for_ dark surfaces. `palette-0` and `palette-4` inherit the `:root` value deliberately. `--sash-badge-bg` is re-pointed for `palette-1` only (`#f472b6`, its dark-theme secondary promoted to both themes): the light-theme `#db2777` was the one combo of twelve measuring under 4.5:1 against the chip's dark ink.
 
 ### Miscellaneous
 

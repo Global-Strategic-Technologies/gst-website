@@ -26,7 +26,7 @@ export interface Announcement {
   id: string;
   /** The subject. The one required segment. */
   label: string;
-  /** Status word, inverted chip, leading. ≤ 4 chars. */
+  /** Status word chip (secondary-accent fill), leading. ≤ 4 chars. */
   badge?: string;
   /** Version or qualifier, rule-separated. Hidden below 768px. */
   detail?: string;

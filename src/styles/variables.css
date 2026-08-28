@@ -238,6 +238,11 @@
      the per-palette override. */
   --sash-bg: var(--color-primary);
   --sash-ink: var(--bg-dark);
+  /* The badge chip's fill (2026-08-28, operator direction): the secondary
+     accent, under constant --bg-dark ink. Re-pointed for palette-1 in
+     palettes.css — its light-theme secondary is the one of twelve
+     palette × theme combos measuring under 4.5:1 against the dark ink. */
+  --sash-badge-bg: var(--color-secondary);
 
   /* Misc */
   --checkerboard-line: light-dark(rgba(0, 0, 0, 0.032), rgba(255, 255, 255, 0.032));
