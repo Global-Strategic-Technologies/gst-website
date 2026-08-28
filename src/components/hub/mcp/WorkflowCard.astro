@@ -38,9 +38,12 @@ const { workflow } = Astro.props;
 </article>
 
 <style>
+  /* The intro column is 260px rather than the design's 300px: those 40px are
+     what keep three step tracks at 1280px, the width where the layout otherwise
+     dropped to two. A title and a one-line description do not need the extra. */
   .mdoc-flow {
     display: grid;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: 260px 1fr;
     gap: var(--spacing-2xl);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     padding: var(--spacing-xl);
@@ -57,9 +60,16 @@ const { workflow } = Astro.props;
     margin: 0;
   }
 
+  /* Auto-fit rather than a fixed three columns, with a track wide enough for the
+     longest capability name. Three equal `1fr` tracks gave each step 285px
+     including 15px of chrome, and `assess_infrastructure_cost_governance`
+     renders at 285px on its own, so every desktop width wrapped it (and most
+     other identifiers between 769px and 1200px). Dropping to two tracks and then
+     one is the graceful failure; splitting a wire identifier across two lines,
+     which reads as two steps, is not. */
   .mdoc-flow__steps {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
     gap: var(--spacing-md);
   }
 
@@ -81,12 +91,16 @@ const { workflow } = Astro.props;
     color: var(--text-muted);
   }
 
+  /* One identifier, one line: `--text-xs` is what lets a 17rem track hold the
+     longest name (245px against 260px of usable track) and so keeps three steps
+     across at the widths the layout is designed for. It also matches the density
+     the Reference sidebar already uses for the same identifiers. */
   .mdoc-step__id {
     display: block;
     font-family: var(--font-family-mono);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     color: var(--color-primary);
-    overflow-wrap: anywhere;
+    white-space: nowrap;
   }
 
   .mdoc-step__gloss {

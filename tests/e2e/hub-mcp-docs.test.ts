@@ -224,6 +224,31 @@ test.describe('MCP documentation — themes and viewports', () => {
     await expect(page.locator('.mdoc-flow').first()).toBeVisible();
   });
 
+  for (const width of [1440, 1280, 1024, 900, 768, 480]) {
+    test(`no capability identifier wraps at ${width}px`, async ({ page }) => {
+      // A wrapped wire identifier reads as two entries: two sidebar rows, or two
+      // workflow steps. The sidebar column is `max-content` sized and the step
+      // grid drops columns rather than squeezing, so this should hold at every
+      // width; the assertion is what keeps a future longer tool name honest.
+      // Line count comes from a Range over the text, since the elements are
+      // block-level and would report one rect however they wrap.
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(ROUTE);
+      await page.waitForSelector('h1');
+      const wrapped = await page.evaluate(() => {
+        const out: string[] = [];
+        document.querySelectorAll('.mdoc-step__id, [data-cap-link]').forEach((el) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const clipped = el.scrollWidth > el.clientWidth + 1;
+          if (range.getClientRects().length > 1 || clipped) out.push(el.textContent?.trim() ?? '');
+        });
+        return out;
+      });
+      expect(wrapped).toEqual([]);
+    });
+  }
+
   for (const width of [768, 480]) {
     test(`renders at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
