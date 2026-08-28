@@ -624,13 +624,21 @@ Use the canonical `--z-*` tokens from [variables.css](../../styles/variables.css
 
 ## Frosted Glass
 
-Four component families carry the treatment **by default** — `.brutal-btn`,
-`.brutal-choice-btn`, `.brutal-search`, and `.brutal-segmented`. Don't re-apply a
-`.brutal-frosted*` utility on top of them; it double-blurs. On `.brutal-segmented` the
-frost sits on the **container** so the control reads as one glass pane, its segments stay
-transparent, and `--active` keeps a **solid** fill: that fill is the only signal saying
-which segment is selected, and a translucent wash over the container's own glass would
-leave it barely distinguishable from its inactive neighbour.
+Seven component families carry the treatment **by default** — `.brutal-btn`,
+`.brutal-choice-btn`, `.brutal-search`, `.brutal-segmented`, `.brutal-option-card`,
+`.brutal-tool-shell`, and `.tool-tab-bar`. (`.tool-action-bar--frosted` is a deliberate
+opt-in variant, not a default.) Don't re-apply a `.brutal-frosted*` utility on top of
+any of them; it double-blurs.
+
+**One pane owns the glass.** A frosted surface nested inside another frosted surface
+blurs an already-blurred backdrop, so the child stays transparent and the container
+carries the treatment. Two consequences of that rule, both live in the codebase: on
+`.brutal-segmented` the frost sits on the **container** and the segments stay
+transparent — with `--active` keeping a **solid** fill, because that fill is the only
+signal saying which segment is selected and a translucent wash over the container's own
+glass would leave it barely distinguishable from its inactive neighbour; and on the
+`/hub/mcp/docs/` workflow cards the frost is on `.mdoc-flow`, not on the `.mdoc-step`
+links inside it.
 
 All `.brutal-btn` buttons include a frosted-glass aesthetic by default:
 

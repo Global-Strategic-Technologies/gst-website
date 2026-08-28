@@ -93,10 +93,12 @@ it stays correct across themes and palettes. Never a frozen `rgba()`.
 - **Utilities** — `.flex-center`, `.flex-between`, `.text-uppercase`, `.text-label`, `.interactive`, `.link-interactive`, `.focus-outline`, `.focus-outline-sm`, `.sr-only`, `.no-print`, `.delta-chevron`, `.bullet-icon`
 - **State classes** — JS toggles these on a block; the CSS keys on them: `.is-collapsed` (hides a card body / TOC list, un-rotates its `.delta-chevron`), `.is-dismissed` (fades a rec/attention card), `.is-active` (current TOC link)
 
-`.brutal-btn`, `.brutal-choice-btn`, `.brutal-search` and `.brutal-segmented` already
-carry the frosted-glass treatment (`backdrop-filter`, inset highlight) — don't re-add
-it. On `.brutal-segmented` the frost is on the container; the segments stay
-transparent and `--active` stays a solid fill so the selected state reads.
+`.brutal-btn`, `.brutal-choice-btn`, `.brutal-search`, `.brutal-segmented`,
+`.brutal-option-card`, `.brutal-tool-shell` and `.tool-tab-bar` already carry the
+frosted-glass treatment (`backdrop-filter`, inset highlight) — don't re-add it, on any
+of them. On `.brutal-segmented` the frost is on the container; the segments stay
+transparent and `--active` stays a solid fill so the selected state reads. Nesting a
+frosted surface inside another double-blurs — one pane owns the glass.
 
 **Not documented on purpose** (page one-offs, fine to ignore): the regulatory-map
 families `.brutal-timeline-*`, `.brutal-map-*`, `.brutal-quick-zoom`, `.brutal-reg-card`,

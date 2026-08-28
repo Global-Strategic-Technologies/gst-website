@@ -41,12 +41,21 @@ const { workflow } = Astro.props;
   /* The intro column is 260px rather than the design's 300px: those 40px are
      what keep three step tracks at 1280px, the width where the layout otherwise
      dropped to two. A title and a one-line description do not need the extra. */
+  /* Frosted, on the same tokens as `.brutal-option-card` — the in-repo precedent
+     for a bordered card that carries the treatment. The frost lives on the CARD,
+     not on `.mdoc-step`: the steps sit over it and a `backdrop-filter` of their
+     own would blur an already-blurred backdrop (STYLES_GUIDE § Frosted Glass). */
   .mdoc-flow {
     display: grid;
     grid-template-columns: 260px 1fr;
     gap: var(--spacing-2xl);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     padding: var(--spacing-xl);
+    background: var(--surface-subtle-bg);
+    backdrop-filter: blur(2px);
+    box-shadow:
+      inset 0 1px 0 var(--frost-highlight),
+      0 0 0 1px var(--frost-edge);
   }
 
   .mdoc-flow__title {
