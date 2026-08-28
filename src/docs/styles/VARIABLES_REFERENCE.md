@@ -311,10 +311,10 @@ The two tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Everythi
 
 ### Miscellaneous
 
-| Variable               | Light                 | Dark                      |
-| ---------------------- | --------------------- | ------------------------- |
-| `--checkerboard-line`  | `rgba(0,0,0, 0.08)`   | `rgba(255,255,255, 0.08)` |
-| `--theme-toggle-color` | `rgba(74,74,74, 0.8)` | `rgba(200,200,200, 0.8)`  |
+| Variable               | Light                 | Dark                       |
+| ---------------------- | --------------------- | -------------------------- |
+| `--checkerboard-line`  | `rgba(0,0,0, 0.032)`  | `rgba(255,255,255, 0.032)` |
+| `--theme-toggle-color` | `rgba(74,74,74, 0.8)` | `rgba(200,200,200, 0.8)`   |
 
 ---
 

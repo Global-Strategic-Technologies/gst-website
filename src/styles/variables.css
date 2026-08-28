@@ -240,7 +240,7 @@
   --sash-ink: var(--bg-dark);
 
   /* Misc */
-  --checkerboard-line: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.08));
+  --checkerboard-line: light-dark(rgba(0, 0, 0, 0.032), rgba(255, 255, 255, 0.032));
   --theme-toggle-color: light-dark(rgba(74, 74, 74, 0.8), rgba(200, 200, 200, 0.8));
   --service-card-border: light-dark(#1a1a1a, #2a2a2a);
   --about-image-bg: light-dark(#141414, #1a1a1a);
