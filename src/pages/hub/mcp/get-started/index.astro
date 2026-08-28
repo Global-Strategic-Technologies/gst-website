@@ -4,6 +4,7 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
 import ClipFigure from '../../../../components/hub/mcp/ClipFigure.astro';
+import '../../../../styles/components/mcp-guide.css';
 
 // Copy is transcribed from the content-reviewed design handoff (2026-08-27),
 // with em dashes rewritten per operator direction. Published facts (prompt
@@ -331,42 +332,17 @@ debt, or information request lists:
 </script>
 
 <style>
-  /* Smooth in-page scrolling for the sticky-TOC anchors, motion-gated. */
-  @media (prefers-reduced-motion: no-preference) {
-    :global(html) {
-      scroll-behavior: smooth;
-    }
-  }
-
-  .mcp-guide-section {
-    padding-bottom: var(--spacing-3xl);
-  }
-
-  .mcp-guide-section .container {
-    max-width: 1360px;
-  }
-
-  /* Inline code reads as a value, in the accent color, per the design. */
-  .mcp-guide-section code {
-    font-family: var(--font-family-mono);
-    color: var(--color-primary);
-  }
-
-  /* ── Hero ─────────────────────────────────────────────────────────── */
-  .guide-hero {
-    padding: var(--spacing-3xl) 0 var(--spacing-2xl);
-    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    margin-bottom: var(--spacing-2xl);
-  }
-
-  .guide-hero__label {
-    color: var(--color-tertiary);
-    margin-bottom: var(--spacing-md);
-  }
+  /* Family styles shared with /hub/mcp/using/ and /hub/mcp/advanced-operations/
+     live in src/styles/components/mcp-guide.css (imported in frontmatter);
+     this block carries only what is specific to this page — variants, page
+     measures, and overrides of the shared baseline (the scoped selector
+     out-specifies the sheet's bare classes). */
 
   /* HubHeader owns the h1 + lede; the hero wrapper owns padding and rule, so
      the component's own outer spacing is neutralized here. Slot content and
-     the component's internals need :global — Astro scopes by element hash. */
+     the component's internals need :global — Astro scopes by element hash.
+     These stay scoped rather than shared: a bare descendant rule in the
+     shared sheet would tie HubHeader's own scoped rules on specificity. */
   .guide-hero :global(.hub-header) {
     padding: 0;
     margin-bottom: 0;
@@ -381,129 +357,13 @@ debt, or information request lists:
     margin-bottom: var(--spacing-2xl);
   }
 
-  .guide-checkpoints {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: var(--spacing-lg);
-    max-width: 1000px;
-  }
-
-  .checkpoint {
-    border-left: 3px solid var(--color-primary);
-    padding: var(--spacing-md) 0 var(--spacing-md) var(--spacing-md);
-  }
-
   .checkpoint--muted {
     border-left-color: light-dark(var(--border-light), var(--border-dark-default));
-  }
-
-  .checkpoint__kicker {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-2xs);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: var(--spacing-xs);
-  }
-
-  .checkpoint__title {
-    font-family: var(--font-family-mono);
-    font-weight: var(--font-weight-bold);
-    font-size: var(--text-base);
-    margin-bottom: var(--spacing-xs);
-  }
-
-  .checkpoint__desc {
-    margin: 0;
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  /* ── Section shell ────────────────────────────────────────────────── */
-  .guide-main {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-3xl);
-    min-width: 0;
-  }
-
-  .guide-section {
-    scroll-margin-top: 80px;
-  }
-
-  .guide-heading {
-    margin: 0 0 var(--spacing-md);
-  }
-
-  .guide-intro {
-    max-width: 800px;
-    font-size: var(--text-base);
-    color: var(--text-secondary);
-    line-height: 1.7;
-    margin: 0 0 var(--spacing-xl);
-  }
-
-  .guide-intro--wide-gap {
-    margin-bottom: var(--spacing-2xl);
   }
 
   .guide-callout {
     max-width: 900px;
     margin-top: var(--spacing-xl);
-  }
-
-  /* ── Checklists ───────────────────────────────────────────────────── */
-  .check-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    max-width: 900px;
-    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-  }
-
-  .check-row {
-    display: flex;
-    gap: var(--spacing-md);
-    align-items: flex-start;
-    padding: var(--spacing-md) 0;
-    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-  }
-
-  /* 24px, not the design's 20px: axe's 2.2 AA target-size floor. */
-  .check-row__box {
-    width: var(--touch-target-min-aa);
-    height: var(--touch-target-min-aa);
-    margin-top: 2px;
-    accent-color: var(--color-primary);
-    flex-shrink: 0;
-  }
-
-  .check-row__body {
-    min-width: 0;
-  }
-
-  .check-row__title {
-    display: block;
-    font-family: var(--font-family-mono);
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-bold);
-    margin-bottom: 2px;
-    cursor: pointer;
-  }
-
-  .check-row__desc {
-    margin: 0 0 var(--spacing-sm);
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  .check-row__desc--last {
-    margin-bottom: 0;
   }
 
   .text-cta {
@@ -514,76 +374,6 @@ debt, or information request lists:
     color: var(--text-secondary);
     text-decoration: none;
     border-bottom: 1px solid currentColor;
-  }
-
-  .fineprint {
-    min-width: 0;
-    overflow-wrap: anywhere;
-    font-family: var(--font-family-mono);
-    font-size: var(--text-2xs);
-    color: var(--text-muted);
-  }
-
-  /* ── Numbered steps ───────────────────────────────────────────────── */
-  .quick-steps {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xl);
-    max-width: 900px;
-  }
-
-  .quick-step {
-    display: grid;
-    grid-template-columns: 64px minmax(0, 1fr);
-    gap: var(--spacing-lg);
-    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    padding-top: var(--spacing-lg);
-  }
-
-  .quick-step__num {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-primary);
-    line-height: 1;
-  }
-
-  .quick-step__title {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin: 0 0 var(--spacing-sm);
-  }
-
-  .quick-step__body {
-    margin: 0 0 var(--spacing-md);
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.7;
-  }
-
-  .endpoint-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    flex-wrap: wrap;
-  }
-
-  .endpoint-code {
-    font-size: var(--text-base);
-    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    border-left: 3px solid var(--color-primary);
-    padding: var(--spacing-sm) var(--spacing-md);
-    word-break: break-all;
-  }
-
-  .endpoint-copy {
-    min-width: 6rem;
   }
 
   /* ── Addendum disclosure ──────────────────────────────────────────── */
@@ -599,18 +389,11 @@ debt, or information request lists:
     line-height: 1.7;
   }
 
+  /* This page's snippet carries a full outer border on top of the shared left
+     rule; the shorthand resets border-left, so the left rule is restated. */
   .snippet-pre {
-    margin: 0;
-    font-family: var(--font-family-mono);
-    font-size: var(--text-xs);
-    line-height: 1.7;
-    color: var(--text-secondary);
-    background: var(--surface-subtle-bg);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-left: 3px solid var(--color-primary);
-    padding: var(--spacing-md);
-    overflow-x: auto;
-    white-space: pre-wrap;
   }
 
   .guide-addendum__copy {
@@ -623,42 +406,5 @@ debt, or information request lists:
     font-size: var(--text-sm);
     color: var(--text-secondary);
     line-height: 1.7;
-  }
-
-  /* ── Next-step cards ──────────────────────────────────────────────── */
-  /* The shared grid's 420px floor breaks three tracks below ~1452px; the
-     design declares its own columns, and the scoped rule out-specifies the
-     shared 768px single-column rule, so the mobile stack is restated. */
-  .guide-next {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-    gap: var(--spacing-xl);
-    margin-bottom: 0;
-  }
-
-  .guide-card {
-    padding: var(--spacing-lg);
-  }
-
-  /* Equal floors so the three CTAs land level when copy lengths differ. */
-  .guide-card__header {
-    min-height: 3.9em;
-  }
-
-  .guide-card__blurb {
-    min-height: 4.8em;
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  @media (max-width: 768px) {
-    .guide-next {
-      grid-template-columns: 1fr;
-    }
-
-    .guide-card__header,
-    .guide-card__blurb {
-      min-height: 0;
-    }
   }
 </style>

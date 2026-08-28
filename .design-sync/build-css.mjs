@@ -24,7 +24,7 @@ const CACHE = join(HERE, '.cache');
 const OUT = join(CACHE, 'gst-styles.css');
 
 // Site-wide sheet first (it @imports variables/typography/interactions/palettes
-// plus the globally-loaded component modules), then the four code-split sheets
+// plus the globally-loaded component modules), then the code-split sheets
 // that global.css deliberately does NOT import — see the comment block at the
 // top of src/styles/global.css. The Design agent has no page-level code
 // splitting, so it gets the full class vocabulary in one file.
@@ -34,6 +34,7 @@ const ROOTS = [
   'src/styles/components/portfolio.css',
   'src/styles/components/map.css',
   'src/styles/components/progress.css',
+  'src/styles/components/mcp-guide.css',
   'src/styles/toc.css',
 ];
 

@@ -4,6 +4,7 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
 import ClipFigure from '../../../../components/hub/mcp/ClipFigure.astro';
 import CopyRow from '../../../../components/hub/mcp/CopyRow.astro';
+import '../../../../styles/components/mcp-guide.css';
 
 // Copy is transcribed from the content-reviewed design handoff (2026-08-27),
 // with em dashes rewritten per operator direction. Published facts (prompt
@@ -569,37 +570,14 @@ const TOC_LINKS = [
 </script>
 
 <style>
-  @media (prefers-reduced-motion: no-preference) {
-    :global(html) {
-      scroll-behavior: smooth;
-    }
-  }
+  /* Family styles shared with /hub/mcp/get-started/ and
+     /hub/mcp/advanced-operations/ live in src/styles/components/mcp-guide.css
+     (imported in frontmatter); this block carries only what is specific to
+     this page — variants, page measures, and overrides of the shared baseline
+     (the scoped selector out-specifies the sheet's bare classes). */
 
-  .mcp-guide-section {
-    padding-bottom: var(--spacing-3xl);
-  }
-
-  .mcp-guide-section .container {
-    max-width: 1360px;
-  }
-
-  .mcp-guide-section code {
-    font-family: var(--font-family-mono);
-    color: var(--color-primary);
-  }
-
-  /* ── Hero ─────────────────────────────────────────────────────────── */
-  .guide-hero {
-    padding: var(--spacing-3xl) 0 var(--spacing-2xl);
-    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    margin-bottom: var(--spacing-2xl);
-  }
-
-  .guide-hero__label {
-    color: var(--color-tertiary);
-    margin-bottom: var(--spacing-md);
-  }
-
+  /* Scoped rather than shared: a bare descendant rule in the shared sheet
+     would tie HubHeader's own scoped rules on specificity. */
   .guide-hero :global(.hub-header) {
     padding: 0;
     margin-bottom: 0;
@@ -626,97 +604,14 @@ const TOC_LINKS = [
     max-width: 1000px;
   }
 
-  .guide-checkpoints {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: var(--spacing-lg);
-    max-width: 1000px;
-  }
-
-  .checkpoint {
-    border-left: 3px solid var(--color-primary);
-    padding: var(--spacing-md) 0 var(--spacing-md) var(--spacing-md);
-  }
-
   .checkpoint--link {
     text-decoration: none;
     color: inherit;
     display: block;
   }
 
-  .checkpoint__kicker {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-2xs);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: var(--spacing-xs);
-  }
-
-  .checkpoint__title {
-    font-family: var(--font-family-mono);
-    font-weight: var(--font-weight-bold);
-    font-size: var(--text-base);
-    margin-bottom: var(--spacing-xs);
-  }
-
-  .checkpoint__desc {
-    margin: 0;
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  /* ── Section shell ────────────────────────────────────────────────── */
-  .guide-main {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-3xl);
-    min-width: 0;
-  }
-
-  .guide-section {
-    scroll-margin-top: 80px;
-  }
-
-  .guide-heading {
-    margin: 0 0 var(--spacing-md);
-  }
-
-  .guide-intro {
-    max-width: 800px;
-    font-size: var(--text-base);
-    color: var(--text-secondary);
-    line-height: 1.7;
-    margin: 0 0 var(--spacing-xl);
-  }
-
-  .guide-intro--wide-gap {
-    margin-bottom: var(--spacing-2xl);
-  }
-
-  .guide-subheading {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin: 0 0 var(--spacing-lg);
-  }
-
   .guide-subheading--tight {
     margin-bottom: var(--spacing-md);
-  }
-
-  .guide-body {
-    max-width: 800px;
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.7;
-    margin: 0 0 var(--spacing-lg);
   }
 
   .guide-body--closing {
@@ -772,57 +667,8 @@ const TOC_LINKS = [
   }
 
   /* ── Checklist (single row) ───────────────────────────────────────── */
-  .check-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    max-width: 900px;
-    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-  }
-
   .check-list--single {
     margin-bottom: var(--spacing-2xl);
-  }
-
-  .check-row {
-    display: flex;
-    gap: var(--spacing-md);
-    align-items: flex-start;
-    padding: var(--spacing-md) 0;
-    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-  }
-
-  /* 24px, not the design's 20px: axe's 2.2 AA target-size floor. */
-  .check-row__box {
-    width: var(--touch-target-min-aa);
-    height: var(--touch-target-min-aa);
-    margin-top: 2px;
-    accent-color: var(--color-primary);
-    flex-shrink: 0;
-  }
-
-  .check-row__body {
-    min-width: 0;
-  }
-
-  .check-row__title {
-    display: block;
-    font-family: var(--font-family-mono);
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-bold);
-    margin-bottom: 2px;
-    cursor: pointer;
-  }
-
-  .check-row__desc {
-    margin: 0 0 var(--spacing-sm);
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  .check-row__desc--last {
-    margin-bottom: 0;
   }
 
   /* Wide-clip caption paragraph — slotted into ClipFigure, page-scoped. */
@@ -880,26 +726,6 @@ const TOC_LINKS = [
     max-width: 1000px;
   }
 
-  .prompt-card {
-    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    border-top: 3px solid var(--color-primary);
-    padding: var(--spacing-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
-  .prompt-card__label {
-    color: var(--text-muted);
-  }
-
-  .prompt-card__name {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-bold);
-    overflow-wrap: anywhere;
-  }
-
   .prompt-card__snippet {
     margin: 0;
     font-family: var(--font-family-mono);
@@ -924,23 +750,7 @@ const TOC_LINKS = [
     line-height: 1.7;
   }
 
-  .fineprint {
-    min-width: 0;
-    overflow-wrap: anywhere;
-    font-family: var(--font-family-mono);
-    font-size: var(--text-2xs);
-    color: var(--text-muted);
-  }
-
   /* ── Field panels (copy rows + single-field stack) ────────────────── */
-  .field-panel {
-    background: var(--surface-subtle-bg);
-    border-left: 3px solid var(--color-primary);
-    padding: var(--spacing-sm) var(--spacing-md);
-    display: flex;
-    flex-direction: column;
-  }
-
   .field-panel--example {
     max-width: 1000px;
     margin: 0 0 var(--spacing-lg);
@@ -956,10 +766,14 @@ const TOC_LINKS = [
     color: var(--text-muted);
   }
 
+  /* No color: the shared `.mcp-guide-section code` teal applies. This rule
+     used to declare text-primary, but the page's scoped code rule always
+     out-specified it, so these values have rendered teal since they shipped —
+     the declaration was dead, and keeping it would resurrect it now that the
+     code rule lives unscoped in the shared sheet. */
   .field-panel__code {
     font-size: var(--text-xs);
     line-height: 1.7;
-    color: var(--text-primary);
     overflow-wrap: anywhere;
   }
 
@@ -971,37 +785,8 @@ const TOC_LINKS = [
   }
 
   /* ── Argument / URI / failure tables ──────────────────────────────── */
-  .args-table {
-    display: flex;
-    flex-direction: column;
-    max-width: 1000px;
-    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    margin-bottom: var(--spacing-lg);
-  }
-
   .args-table--uris {
     margin-bottom: var(--spacing-xl);
-  }
-
-  .args-table--fails {
-    margin-bottom: 0;
-  }
-
-  .args-table__row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-sm) var(--spacing-lg);
-    padding: var(--spacing-md) 0;
-    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-  }
-
-  .args-table__key {
-    flex: 1 1 180px;
-    font-family: var(--font-family-mono);
-    font-size: var(--text-sm);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-primary);
-    overflow-wrap: anywhere;
   }
 
   .args-table__key--wide {
@@ -1012,104 +797,8 @@ const TOC_LINKS = [
     flex-basis: 200px;
   }
 
-  .args-table__value {
-    flex: 1 1 200px;
-    margin: 0;
-    font-family: var(--font-family-mono);
-    font-size: var(--text-sm);
-    color: var(--text-primary);
-    line-height: 1.6;
-  }
-
-  .args-table__note {
-    flex: 1 1 260px;
-    margin: 0;
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
   /* ── Numbered steps ───────────────────────────────────────────────── */
-  .quick-steps {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xl);
-    max-width: 900px;
-  }
-
   .quick-steps--gapped {
     margin-bottom: var(--spacing-2xl);
-  }
-
-  .quick-step {
-    display: grid;
-    grid-template-columns: 64px minmax(0, 1fr);
-    gap: var(--spacing-lg);
-    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    padding-top: var(--spacing-lg);
-  }
-
-  .quick-step__num {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--color-primary);
-    line-height: 1;
-  }
-
-  .quick-step__title {
-    font-family: var(--font-family-mono);
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin: 0 0 var(--spacing-sm);
-  }
-
-  .quick-step__body {
-    margin: 0 0 var(--spacing-md);
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.7;
-  }
-
-  .quick-step__body--last {
-    margin-bottom: 0;
-  }
-
-  /* ── Next-step cards ──────────────────────────────────────────────── */
-  .guide-next {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-    gap: var(--spacing-xl);
-    margin-bottom: 0;
-  }
-
-  .guide-card {
-    padding: var(--spacing-lg);
-  }
-
-  .guide-card__header {
-    min-height: 3.9em;
-  }
-
-  .guide-card__blurb {
-    min-height: 4.8em;
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.6;
-  }
-
-  @media (max-width: 768px) {
-    .guide-next {
-      grid-template-columns: 1fr;
-    }
-
-    .guide-card__header,
-    .guide-card__blurb {
-      min-height: 0;
-    }
   }
 </style>

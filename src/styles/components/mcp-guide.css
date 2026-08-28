@@ -1,0 +1,397 @@
+/* MCP Onboarding Guide Styles
+   Shared by the three /hub/mcp/ guide pages — get-started/, using/,
+   advanced-operations/ — which import this sheet from their frontmatter
+   (the filter.css pattern). Each page began life with a scoped copy of these
+   rules; 46 of the blocks were byte-identical across pages, and Astro scopes
+   by element hash, so an edit to one copy silently missed the others.
+
+   Convention: this sheet is the family baseline. A page whose measure differs
+   (a max-width, a margin) overrides ONLY the differing declaration in its own
+   scoped block — the page's `[data-astro-cid]` selector out-specifies the
+   bare class here, so the override needs no ordering guarantees. Per-page
+   variants (`--muted`, `--wide`, …) and page-unique components stay scoped.
+
+   Two deliberate exclusions and one idiom, all for the same reason — nothing
+   in this sheet may depend on bundle order:
+   - The `.guide-hero :global(.hub-header*)` rules stay page-scoped. As bare
+     descendant rules here they would TIE the HubHeader component's own scoped
+     rules at (0,2,0) and the winner would be bundle order.
+   - Where a rule overrides a global family (`.brutal-gateway-*` in cards.css,
+     `.brutal-label` in typography.css), the selector compounds with the
+     family class — `.brutal-gateway-grid.guide-next` — so it out-specifies
+     the family's base AND media rules regardless of sheet order. */
+
+/* Smooth in-page scrolling for the sticky-TOC anchors, motion-gated. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ── Page shell ─────────────────────────────────────────────────────── */
+.mcp-guide-section {
+  padding-bottom: var(--spacing-3xl);
+}
+
+.mcp-guide-section .container {
+  max-width: 1360px;
+}
+
+/* Inline code reads as a value, in the accent color, per the design. */
+.mcp-guide-section code {
+  font-family: var(--font-family-mono);
+  color: var(--color-primary);
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────── */
+.guide-hero {
+  padding: var(--spacing-3xl) 0 var(--spacing-2xl);
+  border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  margin-bottom: var(--spacing-2xl);
+}
+
+/* Compound: `.brutal-label` sets color, and a bare class here would tie it. */
+.brutal-label.guide-hero__label {
+  color: var(--color-tertiary);
+  margin-bottom: var(--spacing-md);
+}
+
+/* ── Checkpoint tiles ───────────────────────────────────────────────── */
+.guide-checkpoints {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-lg);
+  max-width: 1000px;
+}
+
+.checkpoint {
+  border-left: 3px solid var(--color-primary);
+  padding: var(--spacing-md) 0 var(--spacing-md) var(--spacing-md);
+}
+
+.checkpoint__kicker {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-xs);
+}
+
+.checkpoint__title {
+  font-family: var(--font-family-mono);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--text-base);
+  margin-bottom: var(--spacing-xs);
+}
+
+.checkpoint__desc {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ── Section shell ──────────────────────────────────────────────────── */
+.guide-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+  min-width: 0;
+}
+
+.guide-section {
+  scroll-margin-top: 80px;
+}
+
+.guide-heading {
+  margin: 0 0 var(--spacing-md);
+}
+
+.guide-intro {
+  max-width: 800px;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0 0 var(--spacing-xl);
+}
+
+.guide-intro--wide-gap {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.guide-subheading {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--spacing-lg);
+}
+
+.guide-body {
+  max-width: 800px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0 0 var(--spacing-lg);
+}
+
+/* ── Checklists ─────────────────────────────────────────────────────── */
+.check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 900px;
+  border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+}
+
+.check-row {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+  padding: var(--spacing-md) 0;
+  border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+}
+
+/* 24px, not the design's 20px: axe's 2.2 AA target-size floor. */
+.check-row__box {
+  width: var(--touch-target-min-aa);
+  height: var(--touch-target-min-aa);
+  margin-top: 2px;
+  accent-color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.check-row__body {
+  min-width: 0;
+}
+
+.check-row__title {
+  display: block;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+
+.check-row__desc {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.check-row__desc--last {
+  margin-bottom: 0;
+}
+
+.fineprint {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+/* ── Numbered steps ─────────────────────────────────────────────────── */
+.quick-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  max-width: 900px;
+}
+
+.quick-step {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: var(--spacing-lg);
+  border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  padding-top: var(--spacing-lg);
+}
+
+.quick-step__num {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.quick-step__title {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--spacing-sm);
+}
+
+.quick-step__body {
+  margin: 0 0 var(--spacing-md);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.quick-step__body--last {
+  margin-bottom: 0;
+}
+
+/* ── Endpoint row ───────────────────────────────────────────────────── */
+.endpoint-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.endpoint-code {
+  font-size: var(--text-base);
+  border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  border-left: 3px solid var(--color-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  word-break: break-all;
+}
+
+.endpoint-copy {
+  min-width: 6rem;
+}
+
+/* ── Snippet block ──────────────────────────────────────────────────── */
+.snippet-pre {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+  color: var(--text-secondary);
+  background: var(--surface-subtle-bg);
+  border-left: 3px solid var(--color-primary);
+  padding: var(--spacing-md);
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+/* ── Prompt cards / field panels ────────────────────────────────────── */
+.prompt-card {
+  border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  border-top: 3px solid var(--color-primary);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.prompt-card__label {
+  color: var(--text-muted);
+}
+
+.prompt-card__name {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.field-panel {
+  background: var(--surface-subtle-bg);
+  border-left: 3px solid var(--color-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Argument tables ────────────────────────────────────────────────── */
+.args-table {
+  display: flex;
+  flex-direction: column;
+  max-width: 1000px;
+  border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  margin-bottom: var(--spacing-lg);
+}
+
+.args-table--fails {
+  margin-bottom: 0;
+}
+
+.args-table__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm) var(--spacing-lg);
+  padding: var(--spacing-md) 0;
+  border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+}
+
+.args-table__key {
+  flex: 1 1 180px;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  overflow-wrap: anywhere;
+}
+
+.args-table__value {
+  flex: 1 1 200px;
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.args-table__note {
+  flex: 1 1 260px;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ── Next-step cards ────────────────────────────────────────────────── */
+/* The gateway grid's 420px floor breaks three tracks below ~1452px; the
+   design declares its own columns. Compounded with the family class so it
+   out-specifies cards.css's base AND ≤768px rules (which would otherwise tie
+   a bare class here); the mobile stack is restated below at the same
+   compound specificity. */
+.brutal-gateway-grid.guide-next {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--spacing-xl);
+  margin-bottom: 0;
+}
+
+/* Compound: keeps `--spacing-lg` padding through cards.css's ≤768px 1.5rem
+   and ≤480px 1.25rem overrides, as the pages' scoped rules always did. */
+.brutal-gateway-card.guide-card {
+  padding: var(--spacing-lg);
+}
+
+/* Equal floors so the three CTAs land level when copy lengths differ. */
+.guide-card__header {
+  min-height: 3.9em;
+}
+
+.guide-card__blurb {
+  min-height: 4.8em;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .brutal-gateway-grid.guide-next {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-card__header,
+  .guide-card__blurb {
+    min-height: 0;
+  }
+}
