@@ -115,6 +115,26 @@ const { currentPath = '/', links } = Astro.props;
     padding-right: 168px;
   }
 
+  /* Fourth member of the pairing, conditional: a sash carrying the optional
+     under-band (.brutal-sash-under, sash.css) reaches ~28px further into the
+     corner than the main band — its lower edge is the line x−y=4.4 in box
+     coords, so 168px leaves the band tip ~8px over the nav's clear line.
+     200px = 195.6 + margin.
+
+     Shape rules, both load-bearing:
+     - NO `min-width` companion. A min/max pair around 768/769 leaves
+       fractional widths (Windows 125% scaling, browser zoom) matching
+       NEITHER rule — under-band visible on a 168px reserve, the exact bug
+       this rule exists to prevent. Instead this base rule is restated inside
+       each tier block below with that tier's own value.
+     - The restatements are REQUIRED, not defensive: this selector out-ranks
+       the plain tier rules ((0,3,2) vs (0,2,2)), and :has() matches the
+       under-band even while sash.css display:nones it at ≤768 — without the
+       restatements, every tier would keep the 200px desktop reserve. */
+  body:has(> .brutal-sash-corner .brutal-sash-under) ul {
+    padding-right: 200px;
+  }
+
   a {
     color: var(--text-secondary);
     text-decoration: none;
@@ -162,6 +182,12 @@ const { currentPath = '/', links } = Astro.props;
       padding-right: 140px;
     }
 
+    /* Under-band restatement (see the base rule's comment): the band is
+       hidden at this width, but :has() still matches it. */
+    body:has(> .brutal-sash-corner .brutal-sash-under) ul {
+      padding-right: 140px;
+    }
+
     a {
       font-size: var(--text-xs);
     }
@@ -170,6 +196,10 @@ const { currentPath = '/', links } = Astro.props;
   /* The sash's own tier, at ITS breakpoint (540), not the nav's (480 below). */
   @media (max-width: 540px) {
     body:has(> .brutal-sash-corner) ul {
+      padding-right: 108px;
+    }
+
+    body:has(> .brutal-sash-corner .brutal-sash-under) ul {
       padding-right: 108px;
     }
   }
@@ -188,6 +218,10 @@ const { currentPath = '/', links } = Astro.props;
   /* Nothing left to yield — sash.css hides the corner box at the same width. */
   @media (max-width: 511px) {
     body:has(> .brutal-sash-corner) ul {
+      padding-right: 0;
+    }
+
+    body:has(> .brutal-sash-corner .brutal-sash-under) ul {
       padding-right: 0;
     }
   }

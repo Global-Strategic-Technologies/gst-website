@@ -10,19 +10,37 @@ specimens use the same classes without rendering the component.
 GEOMETRY PAIRS — the band is centred on the 45° chord of its corner box, so the
 corner-box size, the band's `top` and the band's `width` move TOGETHER. Setting
 one without the others slides the band off the corner. The nav reserve in
-HeaderNavLinks.astro (168 / 140 / 108px) is the third member of the set.
+HeaderNavLinks.astro (168 / 140 / 108px) is the third member of the set — and
+when a page's sash carries the optional under-band (below), the desktop reserve
+conditionally widens to 200px there, a fourth member keyed on the SAME three
+breakpoints (no new numbers).
 
   scale          corner box   band width   band top   nav reserve
-  page desktop   200px        260px        50px       168px
+  page desktop   200px        260px        50px       168px (200px with under-band)
   page ≤768px    170px        220px        42px       140px
   page ≤540px    140px        190px        34px       108px
   page <512px    not rendered — the nav has no room to yield (see below)
   card           104px        150px        26px       n/a
 
+UNDER-BAND (optional subtext, page scale + desktop only): top 79px, left −40px,
+width 300px, ~22px tall. Its chord sits ~6px below the main band's and is
+LONGER (it lies nearer the box diagonal), so subtext gets more room than the
+headline. The negative `left` is load-bearing: it centres the band on its own
+visible chord (midpoint 110,90), so the corner clips both ends symmetrically —
+at left 0 the content slides toward the bottom-right corner. No ≤768/≤540
+variants exist: the under-band stands down at ≤768 alongside __detail, so the
+desktop triple is its whole geometry.
+
 Colour comes from exactly two tokens, --sash-bg and --sash-ink (variables.css,
 with the per-palette ink in palettes.css). Borders and hover derive from them
 with color-mix, so the sash follows all six palettes and both themes with no
-extra CSS and no literal colours.
+extra CSS and no literal colours. The under-band inverts the pair — the exact
+move .brutal-sash__badge ships, whose per-palette ink was chosen to keep that
+inversion above AA — and that inversion is its ONLY colorway: design review
+computed the family's 68%/82% mixes at ≈3.5–3.9:1 as text backgrounds on
+several palette/theme combos (they were only ever validated as a 1px border
+and a transient hover), so any future colorway needs its own contrast
+measurement and its own /brand specimen before it ships.
 
 Spacing follows the same rule: anything that lands on the scale uses its token,
 and the rest are raw on purpose — they are the optical band thicknesses and
@@ -92,6 +110,36 @@ moves.)
   opacity: 0.85;
 }
 
+/* The optional under-band: subtext parallel to and below the main band, page
+   scale only (Sash.astro refuses it at card scale — a 104px corner has no
+   second chord to spare). Decorative: pointer-events stay off (inherited from
+   the corner box), the main band remains the only click surface, and the
+   subtext joins the composed aria-label instead. The border mix matches the
+   main band's and is what keeps the inverted fill visible on a dark page.
+   Geometry and the colorway ruling: header comment above. */
+.brutal-sash-under {
+  position: absolute;
+  top: 79px;
+  left: -40px;
+  width: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: var(--spacing-xs) 0;
+  transform: rotate(45deg);
+  font-family: var(--font-family-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  background: var(--sash-ink);
+  color: var(--sash-bg);
+  border-top: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+  border-bottom: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+}
+
 /* Hover changes colour only — no transform, no shadow (STYLES_GUIDE § anti-patterns). */
 .brutal-sash:hover,
 .brutal-sash:focus-visible {
@@ -142,6 +190,14 @@ moves.)
   }
 
   .brutal-sash__detail {
+    display: none;
+  }
+
+  /* The under-band stands down with the detail: the 170/140 corners have no
+     room for a second chord, and hiding here is what lets the nav's
+     conditional 200px reserve stay a desktop-only base rule with per-tier
+     restatements (HeaderNavLinks.astro) instead of a fourth breakpoint. */
+  .brutal-sash-under {
     display: none;
   }
 }

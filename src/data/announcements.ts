@@ -30,6 +30,14 @@ export interface Announcement {
   badge?: string;
   /** Version or qualifier, rule-separated. Hidden below 768px. */
   detail?: string;
+  /**
+   * Optional subtext on the smaller band below the main one (page scale +
+   * desktop only; hidden ≤768px). The sourced-claim rule applies to it like
+   * every segment, and it has its own copy budget — see Sash.astro's
+   * docblock. No live entry sets it: the capability ships enabled, not
+   * present.
+   */
+  subtext?: string;
   /** Where the sash links. Its own page must not appear in `routes`. */
   href: string;
   /** Band geometry; defaults to 'page'. */

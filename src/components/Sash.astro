@@ -21,7 +21,13 @@
 //          Fits:  New | MCP Server          ·  New | MCP | for AI agents
 //                 MCP Server | for agents (no badge)
 //          Clips: New | MCP Server | for agents
-//   card   label ≤ 4, nothing else
+//   page   under-band (`subtext`): ≤ 36 characters — its chord is LONGER
+//          than the main band's, so subtext gets more room than the whole
+//          headline. Measured 2026-08-28 on the /brand specimen with a
+//          clipped-ink pixel diff: 36 renders clean, 40 loses glyphs to the
+//          corner. Prove a longer string there before shipping it.
+//   card   label ≤ 4, nothing else — and never a subtext (the component
+//          refuses it at card scale; a 104px corner has no second chord)
 //
 // Scale modifiers go on the CORNER BOX, never on the band: the band's per-scale
 // geometry is keyed off the corner-box modifier so the box size and the band's
@@ -45,6 +51,18 @@ interface Props {
   badge?: string;
   /** Version or qualifier, rule-separated. Hidden below 768px. */
   detail?: string;
+  /**
+   * Optional subtext on a second, smaller band below the main one
+   * (`.brutal-sash-under` — inverted ink-on-band colours, the badge's own
+   * token pair; sash.css documents why that inversion is the only colorway).
+   * Page scale + desktop only: hidden ≤768px with `detail`, never rendered at
+   * card scale. Enabled but DELIBERATELY absent from the live registry entry —
+   * setting it also widens the nav's desktop corner reserve to 200px
+   * (HeaderNavLinks.astro keys on the class with :has()), so its first real
+   * use should re-check the header at 769–900px widths. The sourced-claim
+   * rule applies to it like every segment.
+   */
+  subtext?: string;
   /** Makes the band an <a>. Omit for the decorative card scale. */
   href?: string;
   /** 'page' (default) | 'card'. */
@@ -55,17 +73,23 @@ interface Props {
   id?: string;
 }
 
-const { label, badge, detail, href, scale = 'page', ariaLabel, id } = Astro.props;
+const { label, badge, detail, subtext, href, scale = 'page', ariaLabel, id } = Astro.props;
 
 const isLink = scale !== 'card' && href !== undefined;
+
+// Page scale only — the under-band has no card-scale geometry (see docblock).
+const underBand = scale === 'page' && subtext !== undefined;
 
 const cornerClass = ['brutal-sash-corner', scale !== 'page' && `brutal-sash-corner--${scale}`]
   .filter(Boolean)
   .join(' ');
 
+// The under-band is aria-hidden; its subtext is spoken here instead.
 const spokenLabel =
   ariaLabel ??
-  `${badge ? `${badge}: ` : ''}${label}${detail ? ` ${detail}` : ''} — open the linked page`;
+  `${badge ? `${badge}: ` : ''}${label}${detail ? ` ${detail}` : ''}${
+    underBand ? ` — ${subtext}` : ''
+  } — open the linked page`;
 
 // Destinations are recorded WITHOUT the trailing slash, matching every other
 // trackNavigation call on the site (see HeaderNavLinks.astro) — otherwise the
@@ -95,6 +119,13 @@ const trackAttrs =
         {badge && <span class="brutal-sash__badge">{badge}</span>}
         <span class="brutal-sash__label">{label}</span>
         {detail && <span class="brutal-sash__detail">{detail}</span>}
+      </span>
+    )
+  }
+  {
+    underBand && (
+      <span class="brutal-sash-under" aria-hidden="true">
+        {subtext}
       </span>
     )
   }

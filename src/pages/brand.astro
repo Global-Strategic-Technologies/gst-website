@@ -386,9 +386,12 @@ import '../styles/components/progress.css';
      The sash positions itself against the nearest positioned ancestor and is
      clipped by its own corner box, so a specimen needs a relative frame. 190px
      is the handoff's frame height and is deliberately shorter than the 200px
-     corner: the band is what the specimen documents, and it sits in the top
-     ~120px. The card frame mirrors a .hub-card — position + overflow are what
-     let the 104px band sit in a card corner. */
+     corner: the MAIN band is what that specimen documents, and it sits in the
+     top ~120px. The under-band specimen needs the full corner — its band
+     reaches ≈y=180, and a 190px frame would chop the ribbon's tail flat
+     instead of letting the corner clip it on the diagonal — hence the taller
+     modifier. The card frame mirrors a .hub-card — position + overflow are
+     what let the 104px band sit in a card corner. */
   .brand-sash-frame {
     position: relative;
     width: 320px;
@@ -396,6 +399,10 @@ import '../styles/components/progress.css';
     background: var(--bg-light-alt);
     border: 2px solid var(--border-hairline);
     overflow: hidden;
+  }
+
+  .brand-sash-frame--under {
+    height: 210px;
   }
 
   .brand-sash-frame--card {

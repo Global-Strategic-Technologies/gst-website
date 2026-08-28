@@ -85,7 +85,7 @@ it stays correct across themes and palettes. Never a frozen `rgba()`.
 - **Containers** — `.container` (page width), `.brutal-tool-shell` + `--narrow`/`--wide`/`--document`/`--fluid`, with `.brutal-tool-shell__content` inside for responsive padding; `.brutal-panel`; hero text uses `.brutal-hero__title` / `.brutal-hero__description` / `.brutal-hero__trustline` (no bare `.brutal-hero`)
 - **Hub-tool chrome** — `.tool-action-bar` (+ `--center`/`--end`/`--bordered`/`--frosted`/`--stack`), `.tool-tab-bar` + `.tool-tab` (+ `--active`), `.tool-wizard-progress` + `.tool-wizard-step` (+ `--completed`/`--active`/`--reachable`), `.tool-wizard-progress-mobile` + `.tool-wizard-dot`, `.tool-methodology` (+ `--delta`), `.tool-bench-note` — see ToolChromeSpecimen
 - **Navigation** — `.brutal-breadcrumb`, `.brutal-tab-bar` + `.brutal-tab` (+ `--active`/`--done`), `.brutal-search`, `.skip-nav`; `.toc` (owned by the `TableOfContents` component — its `__heading/__list/__sublist/__layer/__separator/__chevron` classes ship, but the runtime that builds sublists and sets `is-active` does not)
-- **Announcement sash** — `.brutal-sash-corner` (the clipping corner box) wrapping `.brutal-sash` (the rotated band, which is itself the link); corner variant `--card`; `.brutal-sash--flat` is **documentation only** — the unrotated band, so a gallery can show it in a row. Rendered in production by `Sash.astro` off an announcement registry. It has no card of its own and is NOT in the `SiteHeader` slice — see the reference markup at the end of this file
+- **Announcement sash** — `.brutal-sash-corner` (the clipping corner box) wrapping `.brutal-sash` (the rotated band, which is itself the link) and, optionally, `.brutal-sash-under` (a smaller sibling subtext band below it); corner variant `--card`; `.brutal-sash--flat` is **documentation only** — the unrotated band, so a gallery can show it in a row. Rendered in production by `Sash.astro` off an announcement registry. It has no card of its own and is NOT in the `SiteHeader` slice — see the reference markup at the end of this file
 - **Data** — `.brutal-bench-table`, `.brutal-stat-tile`, `.brutal-callout` (+ `--warning`), `.brutal-progress-bar`, `.editors-pick-tag`; `.brutal-stat__value/__label` and `.brutal-cta__title/__description` are mono-font **modifiers only** (no block, no size — pair with your own layout)
 - **Forms** — `.brutal-input`, `.brutal-field`, `.brutal-slider`, `.brutal-segmented` (+ `--sm`/`--wide`), `.brutal-filter-chip` (+ `--active`), `.brutal-filter-chips`, `.brutal-filter-drawer`
 - **Frosted glass** — `.brutal-frosted` (3px), `--heavy` (6px), `--blur-only` (1.5px), `--overlay` (6px + a 92%-opaque surface, for sheets/drawers)
@@ -128,7 +128,7 @@ alone renders unstyled content — the specimen cards show every one of these in
 - **`.brutal-filter-drawer`** — `__header` › `__title`, `__close`; `__content` › `__clear`, `__section` › `__label` + `.brutal-filter-chips`
 - **`.brutal-search`** — `__icon`, `__input`, `__clear`; results are a **sibling** `__results` › `__result` (+ `--active`) › `__result-name`, `__result-meta` › `__category` (+ `--privacy`/`--ai`/`--industry`/`--cyber`); `__no-results`
 - **`.brutal-breadcrumb`** — `__list` (an `<ol>`) › `__item` › link + `__sep`; the current crumb is `<span aria-current="page">` — that attribute is what styles it
-- **`.brutal-sash`** — `__label`, `__badge` (a chip inverting the two sash tokens, so it cannot lose contrast against the band), `__detail` (drops at 768px). The band element carries the href itself; there is no separate link child
+- **`.brutal-sash`** — `__label`, `__badge` (a chip inverting the two sash tokens, so it cannot lose contrast against the band), `__detail` (drops at 768px). The band element carries the href itself; there is no separate link child. `.brutal-sash-under` is a SIBLING block, not a `__` element: the optional subtext band below the main one (page scale + desktop only, drops at 768px with `__detail`), inverting the same two tokens — that inversion is its only colorway; the family's color-mix derivations fail AA as text backgrounds and must not be used as under-band fills
 - **`.brutal-bench-table`** — rows of two `<td>`s; `__active` on the highlighted `<tr>`; `__label` (+ `--score`/`--stage`) pills inside the first cell
 - **`.brutal-panel`** — `__header` › `__title`, `__copy` (+ `--copied`), `__count`
 - **`.brutal-tab-bar`** — `.brutal-tab` › `__label`, optional `__icon`, `__badge` (+ `--on`)
@@ -181,7 +181,11 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
   responsive steps key on `.brutal-sash-corner:not(.brutal-sash-corner--card)`, so the page
   scale steps down and `--card` is fixed at every width. Below 512px the page
   sash is not rendered at all — the header nav, which
-  reserves a matching corner for it, has no room left to yield.
+  reserves a matching corner for it, has no room left to yield. The optional
+  `.brutal-sash-under` adds a desktop-only fourth: top 79 / left −40 / width 300 — the
+  negative `left` centres it on its OWN visible chord so the corner clips both ends
+  symmetrically — and in production its presence conditionally widens the nav's desktop
+  corner reserve; it has no smaller tiers (it drops at 768px with `__detail`).
 
 ### Brand delta
 
@@ -282,6 +286,9 @@ changed:
     <span className="brutal-sash__label">MCP</span>
     <span className="brutal-sash__detail">for AI agents</span>
   </a>
+  {/* Optional, NOT in the live entry: the subtext band below the main one.
+      When used, its text also joins the <a>'s aria-label. */}
+  {/* <span className="brutal-sash-under" aria-hidden="true">Free pilot tier</span> */}
 </div>
 ```
 

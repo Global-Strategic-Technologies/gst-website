@@ -60,6 +60,16 @@ const pageSash = (page: Page) => page.locator('.brutal-sash-corner:not(.brutal-s
  */
 const NO_LIVE_ANNOUNCEMENT = getActiveAnnouncement(SASH_ROUTE) === null;
 
+/**
+ * Registry-driven like everything else here: a live entry carrying `subtext`
+ * renders the under-band, which conditionally widens the DESKTOP reserve to
+ * 200px (HeaderNavLinks.astro). The tier reserves are identical either way —
+ * the under-band hides ≤768px and the per-tier restatements repeat the tier
+ * values — so only the desktop expectation is conditional.
+ */
+const LIVE_SUBTEXT = getActiveAnnouncement(SASH_ROUTE)?.subtext;
+const DESKTOP_RESERVE = LIVE_SUBTEXT === undefined ? '168px' : '200px';
+
 test.describe('Announcement sash', () => {
   test.skip(() => NO_LIVE_ANNOUNCEMENT, 'no announcement is live on this route — nothing renders');
 
@@ -121,6 +131,68 @@ test.describe('Announcement sash', () => {
     ).toBe('hidden');
   });
 
+  /**
+   * The optional under-band (`.brutal-sash-under`, sash.css). Arm (a) runs
+   * while no live entry sets `subtext` and pins the enabled-not-present
+   * contract; arm (b) takes over the day an entry ships one. Exactly one arm
+   * is live in any registry state, so neither state can silently regress.
+   * Both arms have run green: (b) was exercised against a temporarily-mutated
+   * registry when the capability landed (2026-08-28), alongside a
+   * three-engine fit probe of the 200px reserve at 769–1440px.
+   */
+  test('without a registry subtext there is no under-band (enabled, not present)', async ({
+    page,
+  }) => {
+    test.skip(LIVE_SUBTEXT !== undefined, 'the live entry sets a subtext — the presence arm runs');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(SASH_ROUTE);
+
+    // The sash is there; the under-band is not — anywhere on the page.
+    await expect(pageSash(page)).toHaveCount(1);
+    await expect(page.locator('.brutal-sash-under')).toHaveCount(0);
+  });
+
+  test('a registry subtext renders the under-band and widens the desktop reserve', async ({
+    page,
+  }) => {
+    test.skip(LIVE_SUBTEXT === undefined, 'no live entry sets a subtext — the absence arm runs');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(SASH_ROUTE);
+
+    const under = pageSash(page).locator('.brutal-sash-under');
+    await expect(under).toHaveCount(1);
+    await expect(under).toHaveText(LIVE_SUBTEXT!);
+    await expect(under).toHaveAttribute('aria-hidden', 'true');
+
+    // The inverted pair, asserted as computed equality against the main
+    // band's own values so it follows every palette rather than pinning hex.
+    const inverted = await page.evaluate(() => {
+      const corner = document.querySelector('.brutal-sash-corner:not(.brutal-sash-corner--card)')!;
+      const main = getComputedStyle(corner.querySelector('.brutal-sash')!);
+      const underCs = getComputedStyle(corner.querySelector('.brutal-sash-under')!);
+      return underCs.backgroundColor === main.color && underCs.color === main.backgroundColor;
+    });
+    expect(inverted, 'the under-band inverts the two sash tokens').toBe(true);
+
+    // The band is aria-hidden; the subtext is spoken on the link instead.
+    const spoken = await pageSash(page).locator('.brutal-sash').getAttribute('aria-label');
+    expect(spoken, 'subtext joins the composed aria-label').toContain(LIVE_SUBTEXT!);
+
+    const reserve = await page
+      .locator('.site-header nav ul')
+      .evaluate((el) => getComputedStyle(el).paddingRight);
+    expect(reserve, 'the conditional desktop reserve').toBe('200px');
+
+    // Hidden ≤768 alongside __detail, and the tier restatement defeats the
+    // base bump (:has() still matches the display:none band).
+    await page.setViewportSize({ width: 768, height: 800 });
+    await expect(under).toBeHidden();
+    const tierReserve = await page
+      .locator('.site-header nav ul')
+      .evaluate((el) => getComputedStyle(el).paddingRight);
+    expect(tierReserve, 'tier reserve returns while the band is hidden').toBe('140px');
+  });
+
   for (const bp of BREAKPOINTS) {
     test(`at ${bp.name} the corner box is ${bp.box}px and the nav reserves ${bp.reserve}`, async ({
       page,
@@ -139,7 +211,9 @@ test.describe('Announcement sash', () => {
       const reserve = await page
         .locator('.site-header nav ul')
         .evaluate((el) => getComputedStyle(el).paddingRight);
-      expect(reserve, 'reserve pairs with the corner-box size').toBe(bp.reserve);
+      // Desktop only, the reserve is registry-conditional — see DESKTOP_RESERVE.
+      const expected = bp.name === 'desktop' ? DESKTOP_RESERVE : bp.reserve;
+      expect(reserve, 'reserve pairs with the corner-box size').toBe(expected);
     });
 
     test(`at ${bp.name} the nav links under the sash are still clickable`, async ({ page }) => {
