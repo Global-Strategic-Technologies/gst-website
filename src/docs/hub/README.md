@@ -13,11 +13,12 @@ Technical documentation for GST Hub interactive tools.
 
 ## MCP Onboarding Pages
 
-Not a tool — the three practitioner guides under `/hub/mcp/` and their screen-capture media:
+Not tools — the practitioner guides and the capability reference under `/hub/mcp/`:
 
-| Doc                                    | Purpose                                                                                                                         |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| [MCP_ONBOARDING.md](MCP_ONBOARDING.md) | The onboarding guides' clip-player pattern, per-clip constraints, reduced-motion rule, re-record trigger, and re-encode recipes |
+| Doc                                              | Purpose                                                                                                                                         |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| [MCP_ONBOARDING.md](MCP_ONBOARDING.md)           | The onboarding guides' clip-player pattern, per-clip constraints, reduced-motion rule, re-record trigger, and re-encode recipes                 |
+| [MCP_CAPABILITY_DOCS.md](MCP_CAPABILITY_DOCS.md) | `/hub/mcp/docs/`: the capability registry, how to add or change a capability, the machine-checked copy rules, and the `docs.mcp.…` Worker alias |
 
 ## Architecture Notes
 

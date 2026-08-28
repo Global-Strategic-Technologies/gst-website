@@ -192,7 +192,7 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 
   So the honest statement is a guarantee plus an aspiration, not a site-wide rule with a growing exception list:
   - **Guaranteed and enforced at 44px**: `.brutal-btn`, `.brutal-choice-btn`, `.cta-button`, `.filter-button`, `.modal-close`, `.theme-toggle`.
-  - **Everywhere else**: AA 2.5.8 (24×24 or its spacing exception), via `--touch-target-min-aa`. Since 2026-08-03 this is **machine-enforced, not asserted** — `accessibility.test.ts` runs axe with the `wcag22aa` tag, so `target-size` fails CI on all 26 scanned routes. 44px is welcome where it costs nothing and is **not** a reason to rebuild a working layout.
+  - **Everywhere else**: AA 2.5.8 (24×24 or its spacing exception), via `--touch-target-min-aa`. Since 2026-08-03 this is **machine-enforced, not asserted** — `accessibility.test.ts` runs axe with the `wcag22aa` tag, so `target-size` fails CI on all 27 scanned routes. 44px is welcome where it costs nothing and is **not** a reason to rebuild a working layout.
 
   > **One recorded carve-out from the 44px guarantee (2026-08-27).** The MCP onboarding pages' compact per-field Copy buttons (`CopyRow.astro` `.copy-row__btn`, and the Using page's `.field-panel__copy`) render as `.brutal-btn--secondary` but a bespoke scoped class floors them at `--touch-target-min-aa` (24px), per the reviewed design — a five-row argument panel at 44px per row stops reading as one unit. They clear AA 2.5.8 and axe scans those routes; the source guard does not flag them because its matching is by guarded-family class in the CSS selector, and these floors live on the bespoke classes.
 
