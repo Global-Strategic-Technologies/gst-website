@@ -1,5 +1,9 @@
 # Northwind Analytics — Information Request List (returned 2026-08-14)
 
+> **Fictional sample — not client data.** Northwind Analytics, Inc. does not
+> exist. Every figure, name, investor, and date in this document is invented as
+> a test body for the GST MCP workflow guides.
+
 Partial return. Sections 05–08 pending; flagged where an answer is not tracked
 rather than skipped, per the instructions.
 
