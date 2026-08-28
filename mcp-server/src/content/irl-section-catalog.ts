@@ -4,7 +4,7 @@
  * bundled via `loadIrlSourceBody()`).
  *
  * **Why this exists**: the `generate_information_request_list_xlsx` tool and
- * the `gst_information_request_list` prompt both take section-number arguments
+ * the `gst_irl_create` prompt both take section-number arguments
  * (`includeSections`, `customRequests[].section`). A model — or a human filling
  * the Claude Desktop prompt form — can't guess which two-digit numbers exist or
  * what each maps to. Embedding this catalog in the argument `.describe()` text

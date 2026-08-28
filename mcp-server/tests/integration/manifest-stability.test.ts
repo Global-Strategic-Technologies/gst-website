@@ -233,10 +233,26 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // own prompt) and gst_irl_sweep 0.1.0 → 0.2.0 (the `mode` argument removed;
 // the sweep always runs full). Operator ruling: modularity + a one-field
 // slash form. No URI moved.
-// Rename (server 0.62.0, 2026-08-26): gst_irl_fill@0.1.0 → gst_irl_populate@0.2.0
+// Rename (server 0.62.0, 2026-08-26): gst_irl_fill@0.1.0 → gst_irl_create@0.2.0
 // (operator ruling — "create" names the artifact the workflow produces; same
 // body, args, and stop-at-artifact behavior). ONE tuple replaced; no URI moved.
-const EXPECTED_MANIFEST_HASH = '64d0b40e68e57ac8e87db37180cde030c06a1f4597509f66de7e2749bd1f4d13';
+// (This entry named gst_irl_populate for one commit, 2026-08-28: the 0.63.0
+// rename's blanket identifier swap rewrote a HISTORICAL line, making the ledger
+// claim a name that did not exist on 2026-08-26. Restored, and the lesson is
+// the reason every dated entry above keeps the name in force ON ITS DATE.)
+//
+// IRL prompt family renames (server 0.63.0, 2026-08-28): TWO tuples, and the
+// name gst_irl_create is REUSED for a different prompt in the same release.
+//   - gst_irl_create@0.2.0 → gst_irl_populate@0.3.0 (the evidence-population
+//     workflow; version bumped, not restarted — its 0.2.0 bytes were served).
+//   - gst_information_request_list@0.0.9 → gst_irl_create@0.1.0 (the blank-IRL
+//     issuer; minor bump, matching how both prior renames graded an identity
+//     change). It TAKES the name the line above vacated.
+// So a client pinned to /gst_irl_create against 0.62.0 does not break — it
+// silently reaches a different prompt. That is the one client-visible hazard in
+// this release and BREAKING_CHANGES.md 0.63.0 states it under Client impact.
+// No URI moved; nothing else in the manifest changed.
+const EXPECTED_MANIFEST_HASH = 'a934f40f3be3bfce94a744266a97fd09f6b618bcbb6d89e55bb09ecf2f4be839';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

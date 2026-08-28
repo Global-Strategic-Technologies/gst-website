@@ -15,7 +15,7 @@ Underneath both was the absence of a chokepoint: **34 hand-rolled result literal
 
 BL-090's acceptance criterion required evidence, not assumption. `generate_information_request_list_xlsx` is the one tool whose two channels deliberately differ (text = a human summary; `structuredContent` = the full payload). Calling it against **production** returned the `structuredContent` object; the human summary never arrived. **The client discards `content` when `structuredContent` is present** — so the duplicate had never been reaching the model.
 
-Corroborating: the `gst_information_request_list` prompt already instructs the model to read `structuredContent` (`mcp-server/src/prompts/information-request-list.ts`). Contradicting evidence was looked for and none held up — `BREAKING_CHANGES.md` 0.3.8's Claude Desktop note reads the other way once examined, and is deliberately **not** cited as support.
+Corroborating: the `gst_information_request_list` prompt already instructs the model to read `structuredContent` (renamed `gst_irl_create` in server 0.63.0, 2026-08-28; now `mcp-server/src/prompts/irl-create.ts`). Contradicting evidence was looked for and none held up — `BREAKING_CHANGES.md` 0.3.8's Claude Desktop note reads the other way once examined, and is deliberately **not** cited as support.
 
 The only consumers of the text channel were internal and ours: `Invoke-McpRequest.ps1` and three `DEPLOY.md` smoke commands. Both were migrated in the same PR (Directive 6), and both got _simpler_.
 

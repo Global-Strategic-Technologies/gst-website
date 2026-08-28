@@ -31,7 +31,7 @@ import { regulatoryExposureBriefPrompt } from './regulatory-exposure-brief';
 import { diligenceHandoffMemoPrompt } from './diligence-handoff-memo';
 import { architectureLayerReviewPrompt } from './architecture-layer-review';
 import { radarBriefTodayPrompt } from './radar-brief-today';
-import { informationRequestListPrompt } from './information-request-list';
+import { irlCreatePrompt } from './irl-create';
 import { irlPopulatePrompt } from './irl-populate';
 import { irlIngestionPrompt } from './irl-ingestion';
 import { irlSweepPrompt } from './irl-sweep';
@@ -47,7 +47,7 @@ export const ALL_PROMPTS: ReadonlyArray<GstPrompt<any>> = [
   diligenceHandoffMemoPrompt,
   architectureLayerReviewPrompt,
   radarBriefTodayPrompt,
-  informationRequestListPrompt,
+  irlCreatePrompt,
   irlPopulatePrompt,
   irlIngestionPrompt,
   // Trust-the-operator successors to gst_irl_ingestion — coexist during the

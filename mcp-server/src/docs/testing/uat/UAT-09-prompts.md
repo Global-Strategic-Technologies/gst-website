@@ -24,7 +24,7 @@ Two consequences for a tester:
 
 | Capability                        | Kind   | Cases                                   | Reference golden                                    |
 | --------------------------------- | ------ | --------------------------------------- | --------------------------------------------------- |
-| `gst_information_request_list`    | prompt | UAT-09.1                                | `information-request-list.golden.md`                |
+| `gst_irl_create`                  | prompt | UAT-09.1                                | `irl-create.golden.md`                              |
 | `gst_target_quick_look`           | prompt | UAT-09.2                                | `target-quick-look.golden.md`                       |
 | `gst_comparable_engagements_memo` | prompt | UAT-09.3                                | `comparable-engagements-memo.golden.md`             |
 | `gst_regulatory_exposure_brief`   | prompt | UAT-09.4                                | `regulatory-exposure-brief.golden.md`               |
@@ -62,7 +62,7 @@ Two consequences for a tester:
 
 ---
 
-## UAT-09.1 — `gst_information_request_list`
+## UAT-09.1 — `gst_irl_create`
 
 **Goal**: Proves the intake prompt emits both halves of its job — an in-chat preview plus the attachable workbook.
 

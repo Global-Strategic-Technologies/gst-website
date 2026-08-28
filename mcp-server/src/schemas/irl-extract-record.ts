@@ -94,7 +94,7 @@ export const CANONICAL_REF_SECTION_DIGITS = ['0', '1', '2', '3', '4', '5', '6', 
  * `ordinal = base + 1 + k` where `base` is the section's
  * `canonicalBulletCount`, so a custom on §00 is `0-11` — present in the filled
  * workbook, absent from the source. `customRequests` is a first-class
- * `gst_information_request_list` argument, so the strict form would fail on
+ * `gst_irl_create` argument, so the strict form would fail on
  * every engagement that used it. Well-formed refs past `canonicalBulletCount`
  * are admitted as customs.
  */

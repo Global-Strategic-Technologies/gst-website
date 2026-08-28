@@ -17,7 +17,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
-import { informationRequestListPrompt } from '../../src/prompts/information-request-list';
+import { irlCreatePrompt } from '../../src/prompts/irl-create';
 import { comparableEngagementsMemoPrompt } from '../../src/prompts/comparable-engagements-memo';
 import { ALL_PROMPTS } from '../../src/prompts/_registry';
 import { unwrapToEnumOptions } from '../../src/prompts/wire-shape';
@@ -101,10 +101,10 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
 
   it('the two sibling prompts accept EVERY optional field blank, not just the changed one', () => {
     // Probing only the argument you changed is how the first version of this
-    // test passed while `gst_information_request_list` still rejected four
+    // test passed while `gst_irl_create` still rejected four
     // other blank optional args. Use the all-blank shape, as above.
     expect(
-      informationRequestListPrompt.argsSchema.safeParse({
+      irlCreatePrompt.argsSchema.safeParse({
         targetName: '',
         companyName: '',
         projectName: '',
@@ -161,7 +161,7 @@ describe('BL-124 — blank form fields validate instead of erroring', () => {
         if (absent.success && absent.data !== undefined) continue;
 
         // Parsing is not enough: an arg that survives as `""` reads as SUPPLIED
-        // downstream. `gst_information_request_list` branches on
+        // downstream. `gst_irl_create` branches on
         // `customRequests !== undefined`, so a blank field there sent the
         // all-blank form down the one-shot path instead of the interactive one.
         if (blank.data !== undefined) {

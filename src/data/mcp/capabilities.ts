@@ -447,11 +447,7 @@ export const CAPABILITIES: readonly Capability[] = [
       'canonicalUrl. The library article the questions come from.',
     ],
     availability: TIER_LINE,
-    related: [
-      'list_irl_requests',
-      'fill_information_request_list_xlsx',
-      'gst_information_request_list',
-    ],
+    related: ['list_irl_requests', 'fill_information_request_list_xlsx', 'gst_irl_create'],
   },
   {
     id: 'fill_information_request_list_xlsx',
@@ -679,11 +675,7 @@ export const CAPABILITIES: readonly Capability[] = [
       'Open in Hub. The deeplink into the Diligence Machine, copied verbatim from the tool result.',
     ],
     availability: PROMPT_LINE,
-    related: [
-      'generate_diligence_agenda',
-      'gst_diligence_handoff_memo',
-      'gst_information_request_list',
-    ],
+    related: ['generate_diligence_agenda', 'gst_diligence_handoff_memo', 'gst_irl_create'],
   },
   {
     id: 'gst_target_quick_look',
@@ -792,7 +784,7 @@ export const CAPABILITIES: readonly Capability[] = [
     related: ['search_portfolio', 'gst_diligence_handoff_memo'],
   },
   {
-    id: 'gst_information_request_list',
+    id: 'gst_irl_create',
     group: 'Prompts',
     type: 'Prompt',
     usedIn: ['irl'],
@@ -1047,7 +1039,7 @@ export const CAPABILITIES: readonly Capability[] = [
       'Request-to-tool mapping. Which line of a completed list feeds which tool input.',
     ],
     availability: RESOURCE_LINE,
-    related: ['list_irl_requests', 'gst_architecture_layer_review', 'gst_information_request_list'],
+    related: ['list_irl_requests', 'gst_architecture_layer_review', 'gst_irl_create'],
   },
   {
     id: 'gst://regulations/…',
@@ -1177,7 +1169,7 @@ export const WORKFLOWS: readonly Workflow[] = [
     description: 'The information-request round trip: issue, fill, extract, sweep.',
     steps: [
       {
-        capabilityId: 'gst_information_request_list',
+        capabilityId: 'gst_irl_create',
         kind: 'Prompt',
         gloss: 'Issue the blank request list to the target.',
       },

@@ -264,7 +264,7 @@ populated-IRL ingestion:
 
 5. When a task matches a published GST Prompt's purpose, INVOKE THE PROMPT rather
    than orchestrating its underlying tool calls ad-hoc. Specifically:
-   - Intake / pre-diligence ask to a target: invoke `gst_information_request_list`
+   - Intake / pre-diligence ask to a target: invoke `gst_irl_create`
    - Ingesting a populated IRL and producing the full platform-sweep dossier:
      invoke `gst_irl_ingestion`
    - Drafting a buy-side / sell-side handoff memo: invoke `gst_diligence_handoff_memo`

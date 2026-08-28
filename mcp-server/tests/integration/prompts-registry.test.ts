@@ -32,7 +32,7 @@ const KNOWN_TOOL_NAMES = new Set([
   'search_radar_offline',
   // BL-032 Phase 4c — live Inoreader-backed tool (canonical for new prompts).
   'search_radar',
-  // BL-044 — fillable-form (.xlsx) generator orchestrated by gst_information_request_list v0.0.2+.
+  // BL-044 — fillable-form (.xlsx) generator orchestrated by gst_irl_create v0.0.2+.
   'generate_information_request_list_xlsx',
   // BL-140 — evidence-populated IRL builder orchestrated by gst_irl_populate.
   'fill_information_request_list_xlsx',
@@ -47,7 +47,7 @@ const KNOWN_RESOURCE_URI_PREFIXES = [
   'gst://regulations/',
   'gst://radar/',
   // Inline embed label for the decoupled IRL generator source (not a listable
-  // Resource — the body travels inline in the gst_information_request_list prompt).
+  // Resource — the body travels inline in the gst_irl_create prompt).
   'gst://irl/',
 ];
 

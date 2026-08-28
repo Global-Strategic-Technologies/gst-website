@@ -135,11 +135,12 @@ const TOC_LINKS = [
               <div>
                 <h3 class="quick-step__title">Issue the request list</h3>
                 <p class="quick-step__body quick-step__body--tight">
-                  Run <code>gst_information_request_list</code> with the engagement's shape. It returns
-                  the paste-ready checklist in chat <em>and</em> a fillable workbook, configured the way
-                  you asked: sections included or dropped, individual questions removed, custom per-section
-                  requests added. Removals leave reference-ID gaps rather than renumbering, so a recipient
-                  quoting <code>2-04</code> still means the same question next quarter.
+                  Run <code>gst_irl_create</code> with the engagement's shape. It returns the paste-ready
+                  checklist in chat <em>and</em> a fillable workbook, configured the way you asked: sections
+                  included or dropped, individual questions removed, custom per-section requests added.
+                  Removals leave reference-ID gaps rather than renumbering, so a recipient quoting <code
+                    >2-04</code
+                  > still means the same question next quarter.
                 </p>
                 <p class="quick-step__hint">
                   Ask <code>list_irl_requests</code> first if you want the exact key for a question you

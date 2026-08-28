@@ -1,5 +1,5 @@
 /**
- * Prompt: gst_information_request_list
+ * Prompt: gst_irl_create
  *
  * Emits GST's universal one-page intake checklist, organized by VDR taxonomy
  * (00 Basics + sections 01-09 mirroring the VDR-9 folders). The canonical
@@ -56,6 +56,15 @@
  * without renumbering — the prompt applies no filter logic itself, honoring
  * the BL-044.5 single-filter-engine rule. Directive comment lines are
  * stripped from the embed at the `embedIrlGeneratorSource` boundary.
+ *
+ * **v0.1.0 (2026-08-28) — renamed `gst_information_request_list` →
+ * `gst_irl_create`**, joining the `gst_irl_*` family. Behavior, arguments and
+ * both rendered bodies are unchanged apart from the self-naming line. Note for
+ * anyone reading the ledger: this name previously belonged to a DIFFERENT
+ * prompt — 0.62.0 gave it to the evidence-population workflow, which 0.63.0
+ * renamed on to `gst_irl_populate` before this prompt took the name. A client
+ * pinned to `/gst_irl_create` against 0.62.0 now reaches this prompt instead of
+ * that one; see the 0.63.0 stanza in `BREAKING_CHANGES.md`.
  */
 
 import { z } from 'zod';
@@ -212,7 +221,7 @@ function computeOmissions(
   }
 }
 
-const PROMPT_NAME = 'gst_information_request_list';
+const PROMPT_NAME = 'gst_irl_create';
 
 const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
   'sell-side':
@@ -340,12 +349,12 @@ const INTERACTIVE_BODY = [
   'Do not invent additional sections. Do not add a tools-attribution appendix — the artifact is intentionally clean for client consumption.',
 ].join('\n');
 
-export const informationRequestListPrompt: GstPrompt<typeof argsSchema> = {
+export const irlCreatePrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Configurable per engagement — company/project title, section pick-list, per-question removal (NN-II keys via excludeRequests; see list_irl_requests), custom per-section requests, canonical-row toggle — with the same options as the Hub generator. transactionContext also fires the authored skip-if directives (auto-removing tagged questions). When called with args, also calls generate_information_request_list_xlsx (forwarding the full configuration) and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
-  version: '0.0.9',
-  lastReviewedAt: '2026-08-14',
+  version: '0.1.0',
+  lastReviewedAt: '2026-08-28',
   orchestrates: [IRL_SOURCE_EMBED_URI, XLSX_TOOL_NAME] as const,
   argsSchema,
   build: (args) => {

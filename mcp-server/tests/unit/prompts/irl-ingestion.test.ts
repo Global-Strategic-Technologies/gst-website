@@ -119,7 +119,7 @@ describe('gst_irl_ingestion', () => {
     // primary output is a subject-keyed portable record rather than a set of
     // consumer-shaped payload fences, and it makes one `prepare_irl_body` call
     // on the deferred arm so the travelling artifact has auditable provenance.
-    expect(irlIngestionPrompt.version).toBe('0.30.0');
+    expect(irlIngestionPrompt.version).toBe('0.30.1');
     expect(irlIngestionPrompt.lastReviewedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(irlIngestionPrompt.orchestrates.length).toBeGreaterThanOrEqual(11);
   });

@@ -69,7 +69,7 @@ export const IRL_SOURCE_EMBED_URI = 'gst://irl/source';
  * The directives are machine annotations for the parser/filter engine, not
  * content — a model reproducing the embedded list verbatim must never render
  * them. Stripping at the embed boundary is deterministic and covers every
- * consumer (`gst_information_request_list` one-shot AND interactive bodies,
+ * consumer (`gst_irl_create` one-shot AND interactive bodies,
  * plus `gst_irl_ingestion`'s taxonomy embed), with no reliance on
  * per-prompt "don't render comments" instructions.
  */
@@ -85,7 +85,7 @@ function stripDirectiveLines(body: string): string {
  * bundled via `loadIrlSourceBody()`) as an `EmbeddedResource` content block,
  * with directive comment lines stripped (see {@link stripDirectiveLines}).
  *
- * Used by `gst_information_request_list` so the in-chat artifact the model
+ * Used by `gst_irl_create` so the in-chat artifact the model
  * reproduces is the SAME content `generate_information_request_list_xlsx`
  * renders — keeping the pasted list and the downloaded .xlsx identical. It is
  * intentionally NOT `embedLibraryArticle(gst://library/information-request-list)`:
@@ -189,14 +189,14 @@ export function authorialIntentLine(promptName: string): string {
  * `filledIrl` argument, so the render demonstrably happened." Four of the six
  * rendered bodies in this workspace never emit it — both interactive arms of
  * `gst_irl_ingestion` (no `filledIrl` argument to hash at render time) and both
- * `gst_information_request_list` branches — so a copy-paste would assert
+ * `gst_irl_create` branches — so a copy-paste would assert
  * evidence that does not exist there.
  *
  * This form argues **structurally** instead, from content the client could not
  * have synthesized. It deliberately does NOT prescribe a tool probe as the
  * recovery path: the extract-only arms permit exactly one call
  * (`prepare_irl_body`, to mint the record's provenance) and forbid every
- * analysis tool, while the `gst_information_request_list` bodies orchestrate
+ * analysis tool, while the `gst_irl_create` bodies orchestrate
  * neither of the IRL-pipeline tools that probe would use.
  *
  * Written in the register BL-086 established for `authorialIntentLine`: state
@@ -210,7 +210,7 @@ export function deliveredAsDocumentClause(opts: { citesRunParameters: boolean })
   // The evidence is parameterized for the same reason this second form exists
   // at all: the original clause cited a `**Body-binding hash:**` directive that
   // three of the five bodies never render. Citing a "Run parameters" block on
-  // the two `gst_information_request_list` bodies — which have none — would
+  // the two `gst_irl_create` bodies — which have none — would
   // reproduce that defect one layer down, in the clause whose whole job is to
   // be believed by a model already wondering whether it is reading a
   // transcript.

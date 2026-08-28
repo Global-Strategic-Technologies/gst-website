@@ -9,7 +9,7 @@
  * `.xlsx` server-side (sourcing → File Location D, answer → Comments E).
  *
  * Third member of the IRL prompt family, between the other two:
- * `gst_information_request_list` emits the blank ask; THIS prompt answers
+ * `gst_irl_create` emits the blank ask; THIS prompt answers
  * it from evidence; `gst_irl_sweep` sweeps a populated body into the
  * dossier. (`gst_irl_ingestion` does the same under provenance
  * instrumentation and still coexists, but sweep is the direction of travel

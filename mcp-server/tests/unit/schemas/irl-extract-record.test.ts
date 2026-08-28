@@ -21,7 +21,7 @@
  * "every ref resolves to a canonical bullet" guard would reject legitimate
  * rows. `customRequests` append at `ordinal = base + 1 + k`, so a custom on §00
  * is `0-11` — present in the filled workbook, absent from the source — and
- * `customRequests` is a first-class `gst_information_request_list` argument, so
+ * `customRequests` is a first-class `gst_irl_create` argument, so
  * the strict form would fail on every engagement that used one. The admission
  * rule is grammar plus section resolvability, and it must tolerate the
  * `canonicalBulletCount ?? reduce-max-over-bullets` fallback that hand-built

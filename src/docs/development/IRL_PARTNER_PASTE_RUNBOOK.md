@@ -55,7 +55,7 @@ If the IRL is under ~5KB-10KB and you trust the model's reconstruction, the xlsx
 
 ### Step 1 — Get the filled `.xlsx`
 
-The partner returns the `.xlsx` GST generated for them via `gst_information_request_list_xlsx` (the BL-044 generator). It has the same shape we ship:
+The partner returns the `.xlsx` GST generated for them via `generate_information_request_list_xlsx` (the BL-044 generator). It has the same shape we ship:
 
 - Sheet 1 ("Information Request List"): 7-column layout — `Reference | Request | Status | File Location | Comments | Notes | Response`
 - Header rows: target name, engagement context, generated date, canonical URL
@@ -63,7 +63,7 @@ The partner returns the `.xlsx` GST generated for them via `gst_information_requ
 - Status column pre-fills `OPEN`; partner promotes to `PARTIAL` or `CLOSED` and fills the Response column
 - **All four content columns — File Location, Comments, Notes and Response — are read into the body** (BL-120). GST pre-populates research into Comments, sources into File Location and caveats into Notes; the recipient confirms via Status. Comments is treated as an answer, not a side channel — see [ADR-0015](../adr/0015-irl-canonical-body-reads-full-workbook.md)
 
-If you received a different workbook layout, **stop and re-issue the canonical `.xlsx`** via `gst_information_request_list_xlsx`. The extract script targets the canonical shape; arbitrary partner spreadsheets won't parse.
+If you received a different workbook layout, **stop and re-issue the canonical `.xlsx`** via `generate_information_request_list_xlsx`. The extract script targets the canonical shape; arbitrary partner spreadsheets won't parse.
 
 ### Step 2 — Convert to canonical markdown
 
@@ -217,12 +217,12 @@ For a normal-sized IRL with normal-sized responses, the 100–150KB range is typ
 
 | Symptom                              | Likely cause                                                            | Fix                                                                                                                               |
 | ------------------------------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `Warning: extracted 0 bullet rows`   | Non-canonical workbook OR pointing at the empty template                | Re-issue via `gst_information_request_list_xlsx`; ask partner to fill                                                             |
+| `Warning: extracted 0 bullet rows`   | Non-canonical workbook OR pointing at the empty template                | Re-issue via `generate_information_request_list_xlsx`; ask partner to fill                                                        |
 | Output is much smaller than expected | Most cells are still `OPEN` with no Response — partner didn't fill them | Confirm with partner; proceed with what you have (gap list will flag)                                                             |
 | Bullets are missing Status tags      | Partner deleted the Status column                                       | Script normalizes empty Status to `OPEN`; safe to proceed                                                                         |
 | Hash mismatch after paste            | You pasted partial content (clipboard truncated)                        | Re-copy from the file directly (`Get-Content -Raw`) or use `--out` to write to a file you can open in an editor and Ctrl+A select |
 | `Cannot find module 'xlsx-js-style'` | Running from outside `mcp-server/` without npm-installed deps           | `cd mcp-server && npm install` first                                                                                              |
-| Script reports an unknown sheet name | Workbook came from a different generator                                | Re-issue via `gst_information_request_list_xlsx`                                                                                  |
+| Script reports an unknown sheet name | Workbook came from a different generator                                | Re-issue via `generate_information_request_list_xlsx`                                                                             |
 
 ---
 

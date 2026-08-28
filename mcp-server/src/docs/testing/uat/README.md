@@ -60,7 +60,7 @@ Supporting documents: [`SETUP.md`](SETUP.md) (do this first) · [`TEMPLATE.md`](
 | `gst_diligence_handoff_memo`             | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_architecture_layer_review`          | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_radar_brief_today`                  | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
-| `gst_information_request_list`           | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
+| `gst_irl_create`                         | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_irl_ingestion`                      | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_irl_sweep`                          | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |
 | `gst_irl_extract`                        | prompt   | [UAT-09](UAT-09-prompts.md)        | authored |

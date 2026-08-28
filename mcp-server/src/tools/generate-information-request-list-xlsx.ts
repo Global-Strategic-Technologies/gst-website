@@ -18,9 +18,10 @@
  *
  * The tool is **additive** (BL-044): it adds a new output to the
  * existing IRL surface (Library article + Hub page + Resource +
- * prompt), without altering any existing URIs. The companion prompt
- * `gst_information_request_list` evolves to v0.0.2 in lockstep so
- * model-led invocations can call this tool in the same turn.
+ * prompt), without altering any existing URIs. The companion prompt (then
+ * `gst_information_request_list`, renamed `gst_irl_create` in 0.63.0) evolved
+ * to v0.0.2 in lockstep so model-led invocations can call this tool in the
+ * same turn.
  *
  * Implementation notes:
  *
@@ -29,7 +30,7 @@
  *   - Workers-runtime safe: `xlsx-js-style` is pure JS, `btoa` is
  *     universally available, no `Buffer` or `nodejs_compat` needed.
  *   - The source load uses `loadIrlSourceBody()` — the SAME source the
- *     `gst_information_request_list` prompt embeds and the section catalog
+ *     `gst_irl_create` prompt embeds and the section catalog
  *     reads — so these generator surfaces never drift from each other. They
  *     are collectively decoupled from the library Resource.
  */
@@ -84,7 +85,7 @@ export const GenerateIrlXlsxInputSchema = z.object({
     .max(500)
     .optional()
     .describe(
-      'One-paragraph product description if known. Informational only — accepted for shape parity with `gst_information_request_list` prompt args. Has no effect on the generated XLSX. (Content-conditioned filtering is driven by `transactionContext` via authored skip-if directives, not by this field.)'
+      'One-paragraph product description if known. Informational only — accepted for shape parity with `gst_irl_create` prompt args. Has no effect on the generated XLSX. (Content-conditioned filtering is driven by `transactionContext` via authored skip-if directives, not by this field.)'
     ),
   companyName: z
     .string()
@@ -146,7 +147,7 @@ const TOOL_DESCRIPTION = `Generate the GST **Information Request List** as a dow
 
 Returns \`{ filename, base64, mimeType }\` — Claude Desktop and other MCP clients can write the file or attach it to a message. The workbook mirrors the canonical GST IRL (by default all sections, one per VDR folder) with each request in column A and an empty answer cell in column B for the recipient to fill in.
 
-**When to call this tool**: any time a partner needs to send the IRL to a target/client/portco for intake. Pair with the \`gst_information_request_list\` prompt — the prompt emits the in-chat preview + recipient framing; this tool emits the attachable file. (Prompt v0.0.2+ orchestrates this tool automatically when invoked with args.)
+**When to call this tool**: any time a partner needs to send the IRL to a target/client/portco for intake. Pair with the \`gst_irl_create\` prompt — the prompt emits the in-chat preview + recipient framing; this tool emits the attachable file. (The prompt orchestrates this tool automatically when invoked with args.)
 
 **Optional inputs** all degrade gracefully:
   - \`targetName\` → the company being diligenced; personalizes the "Target" header row + filename slug.

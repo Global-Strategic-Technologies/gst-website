@@ -1,11 +1,22 @@
 ---
-promptName: gst_information_request_list
+promptName: gst_irl_create
 version: 0.0.7
 recordedAt: 2026-07-07
 model: claude-opus-4-8
 ---
 
-# Worked example output for `gst_information_request_list`
+# Worked example output for `gst_irl_create`
+
+> **Recorded as `gst_information_request_list` v0.0.7.** The prompt was renamed
+> `gst_irl_create` in server 0.63.0 (2026-08-28) with no behavioral change, so
+> the transcript below still describes this prompt faithfully; only the name it
+> was invoked under has moved. `promptName` above tracks the LIVE name because
+> `golden-snapshots.test.ts` binds it to the registry; `version` is left at the
+> version actually recorded. Prose inside the recording is not rewritten — it is
+> an observation of a real run. Do not read the older name here as a second
+> prompt. **Separately**: `gst_irl_create` named a DIFFERENT prompt between
+> 0.62.0 and 0.63.0 (now `gst_irl_populate`); its own golden is
+> `irl-populate.golden.md`.
 
 V1 draft recording. To be replaced with the senior-consultant live-exercise capture during Step 5.5 of [BL-043](../../../src/docs/development/_archive/MCP_SERVER_INFORMATION_REQUEST_LIST_BL-043.md#step-55-senior-consultant-content-review--blocking) — the prompts README authoring checklist § 10 ("Live-exercise it") is the source of truth for the final capture.
 

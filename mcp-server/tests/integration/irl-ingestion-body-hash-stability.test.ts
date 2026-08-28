@@ -406,15 +406,15 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 // third path. A hash suite that moves fewer scenarios than the change touches
 // is worth reading as a question rather than a result.
 const EXPECTED_HASH_INTERACTIVE =
-  '5c1c97d5b684acb98391343ed49517fc2a5dd8ec86b2392ba8d4c902be7af1f3';
+  'd56612b8d13f7752b941c43748e5521d16bc0d371bd0d0803c30ff92be966430';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '3d41f80f7af5897ff85a1db33892b039141908700363d2126cb558d8197e45fb';
+  '64e6a8c41452f9eb9e0829165fc848a6c92507afc2d9a0688c511354c12d7be8';
 const EXPECTED_HASH_ONESHOT_FULL =
-  'b33a7441f5892804b984ba6f81307c3680f4a33321765c8e937a2e27f7b80dff';
+  '1cf6b3e9c33e640f49f5284665135a1bed57b503a0994b380dc06e37c2e7d9c1';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
-  'ccacb5aebb1413119af78f0947f61b08157a8cc4353bb7c2ddc2f3673e0fa2fc';
+  '48aea9a48a34b9a0879465ac6eb389bca23a87773f0a66ee55fe02e87eba8220';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
-  '073517b06846e7ccc6225be6f019ca58d839f87081af90412480073a3e18eacc';
+  'cc76235a07afaa02a60836d42503124159e127ecbe0a65f59d56bf0b460c2c7f';
 // BL-045 PR B audit M1 — compact-verbosity coverage. Verbose-default
 // scenarios above don't catch a regression where compact mode silently
 // gains a verbose-only directive (PER_SECTION_JSON_FENCE_DIRECTIVE,
@@ -426,11 +426,11 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  '63828595933a7100ab456abb9dc537e4bde5b8a50fe90efacd126bc51d5dd579';
+  '22a3127878b5c3ae6419ad511f4af4473174d9b995d85ee95f9c5e0a11a3bcb1';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  'ad820678ee9aa0659c11ab9af32b19c4310ac9d1d5bb23257688f895346a9dba';
+  '2b05f98f488104fc37e52dbc8a2946babfc0175187632a354b7d3755add8fc2c';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
-  '7124f0d3d1dfcd85068397a867c0c253befadf29c9cc3e4adeddb9fc7a5491a4';
+  'a94f0c297f28400b0b56e836f2aaf4f1847e66fb52a7311230266cab9feb554f';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
 // the resolved level — its meta fence is model-authored (ADR-0017), so it is
 // the one surface where an inferred `auditLevel` lands in the artifact with
@@ -444,15 +444,15 @@ const EXPECTED_HASH_INTERACTIVE_DEBUG =
 // only by the stated level. Byte-identity would have broken the moment any run
 // parameter was added; a positive presence assertion does not.
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_DEBUG =
-  '7600541a47930df1bbad15366237bf46610d41f79b09a2fb7d1808122f325873';
+  '990b74af691af0e46eb15091a8a625df80d846df7bba086086acf1309044b053';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL_ENHANCED =
-  '320cd9f58d68a7cbced552a33c9980a2f7ed8f4fa64cb29be2c739b10afa4118';
+  'c2751bc0f4a688e48d33b11c04925d06de2d453f7282fcab910b9a5303c331e2';
 // BL-125: the suite pinned interactive at `standard` and `debug` but never at
 // `enhanced` — and that gap is precisely why the interactive builder could
 // ignore `enhanced` entirely (it computed only `showRunAudit`, so `standard`
 // and `enhanced` rendered byte-identically) without any test noticing.
 const EXPECTED_HASH_INTERACTIVE_ENHANCED =
-  '8b95b98c1fd63f7413615101966b3b088766d4d4e971327af4104193ac95612e';
+  '8da3a770a6a65693a043d039d6fd64a447ec9ad61ddfb450d218b0662c959a2b';
 // BL-125: every other interactive scenario passes NO arguments, so the
 // conditional Step 1 introduced by this change — the only new branching logic
 // in a served body — would have been pinned by nothing. All four tailoring
@@ -460,7 +460,7 @@ const EXPECTED_HASH_INTERACTIVE_ENHANCED =
 // tailoring sentence disappears); `requireVerbatimBody: true` rides along to
 // pin the stated-value bytes on this consumer without a further entry.
 const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
-  '38a4e2c0233bc44709ad17d8eda0a1ee0a4805b2c54ae63bb6477432dab920be';
+  '7ce7e23cd8dd3dd4b038742381317a0c863f51ee0c20376aa080dea2561f0f90';
 // IRL extract record rebaseline (prompt v0.28.0 → v0.29.0). SIX of twelve
 // drift, and WHICH six is the check:
 //
@@ -522,14 +522,26 @@ const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
 // (no attachment route), and the contract said to skip itself "when the IRL
 // below is already markdown", which names nothing on an interactive arm and is
 // wrong on the one-shot arms too, where the body sits ABOVE it.
+// IRL family rename (server 0.63.0, prompt v0.30.0 -> v0.30.1, 2026-08-28):
+// ALL SIXTEEN again. This prompt calls itself "the bookend to
+// gst_information_request_list" in three rendered bodies and in its published
+// description, and that prompt is now `gst_irl_create` — a body naming a prompt
+// that no longer resolves would send an operator looking for a slash command
+// that is not there. A PATCH bump, not a minor: the referent is unchanged and
+// no directive moved, which is the same grade the v0.21.0 -> v0.21.1 stale-
+// literal replacement took. Sixteen is the expected signature because the
+// bookend sentence renders unconditionally in ALL FOUR body branches — checked
+// by building each and asserting the new name is present, not inferred from
+// reading the builders. (PROMPT_VERSION is NOT the explanation: it renders only
+// on the extract-only arms, so a version bump alone would move eight.)
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY =
-  '5058cf73dabee070e90ea6faa50a327ef01a648fb1c466df46cad43b214d752d';
+  'f9fb7e369ece18655414d954df3597762ceaaa5fad1593ec9dfe9a79c207e758';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_ENHANCED =
-  '1ead6e3bacc7bb60a7e4333b87d2dfca1e72ab4b39bd8f326a67768687835c70';
+  '164c09bafb3bfe39ea7fd2a500962f25ae5570358dc48a724aceb2f7315540de';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_DEBUG =
-  '5706de4c9f941d66e0f002f4003b813825e506b134748b3b9af0e314e64d1d74';
+  'b17ff98b1c70ec4f42099e737d4d3c6033cc3c76471a555e34a03c1635c01504';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_WITH_ARGS =
-  'ed80eb0286c355c8ec4543958b6c07b6cfaf539bbc1609f5a4e87097836c1feb';
+  'a0e9e41c296918530bf9fd80dcf04820d2ae6d10b005b730ee27062819ceb918';
 
 interface Scenario {
   name: string;

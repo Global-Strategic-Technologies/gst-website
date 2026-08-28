@@ -1,7 +1,7 @@
 /**
  * Unit tests for the IRL section catalog — the self-documenting section list
  * embedded in the `generate_information_request_list_xlsx` tool and the
- * `gst_information_request_list` prompt's section-number argument describes.
+ * `gst_irl_create` prompt's section-number argument describes.
  *
  * The catalog is derived from the canonical article, so these assertions also
  * guard that the tool/prompt arg documentation can never silently drift from

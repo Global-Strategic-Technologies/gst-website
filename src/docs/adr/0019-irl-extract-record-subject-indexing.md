@@ -102,7 +102,7 @@ A third shared clause joins `authorialIntentLine()` (all prompts) and `delivered
 
 No `GstPrompt` property expressed "takes target inputs", and the repo already solved this shape: `needsFyiSnapshot` exists because _"a `prompt.name === '…'` check in the registry is a special case at one, a pattern at two"_. `consumesTargetEvidence?: true` is added to `GstPrompt` — the literal type, matching that precedent exactly, so there is no third `false` state for the guard to define. The guard asserts **clause-present ⇔ flag-set** across `ALL_PROMPTS`, so prompt #10 must make a choice rather than silently opting out.
 
-**Opt-in set: six.** `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_architecture_layer_review`, `gst_comparable_engagements_memo`, `gst_regulatory_exposure_brief`. **Excluded, each for a stated reason**: `gst_radar_brief_today` (no target inputs), `gst_information_request_list` (produces the blank IRL), `gst_irl_ingestion` (produces the record — resolving inputs from an artifact it is writing would be circular).
+**Opt-in set: six.** `gst_target_quick_look`, `gst_diligence_kickoff`, `gst_diligence_handoff_memo`, `gst_architecture_layer_review`, `gst_comparable_engagements_memo`, `gst_regulatory_exposure_brief`. **Excluded, each for a stated reason**: `gst_radar_brief_today` (no target inputs), `gst_information_request_list` (produces the blank IRL; renamed `gst_irl_create` in server 0.63.0), `gst_irl_ingestion` (produces the record — resolving inputs from an artifact it is writing would be circular).
 
 ## Consequences
 

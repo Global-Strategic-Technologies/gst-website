@@ -2,7 +2,7 @@
  * IRL generator-source loader.
  *
  * Exposes the machine-parsed Information Request List source that the
- * `generate_information_request_list_xlsx` tool, the `gst_information_request_list`
+ * `generate_information_request_list_xlsx` tool, the `gst_irl_create`
  * prompt, and the section catalog all render from. Codegened into
  * `irl-source-data.generated.ts` at prebuild / pretest time from
  * `src/data/irl/information-request-list.md`.
