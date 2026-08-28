@@ -280,21 +280,23 @@ changed:
   <a
     className="brutal-sash"
     href="/hub/mcp/"
-    aria-label="New: MCP for AI agents — open the linked page"
+    aria-label="New: GST MCP — automate analysis, free pilot tier — open the linked page"
   >
     <span className="brutal-sash__badge">New</span>
-    <span className="brutal-sash__label">MCP</span>
-    <span className="brutal-sash__detail">for AI agents</span>
+    <span className="brutal-sash__label">GST MCP</span>
   </a>
-  {/* Optional, NOT in the live entry: the subtext band below the main one.
-      When used, its text also joins the <a>'s aria-label. */}
-  {/* <span className="brutal-sash-under" aria-hidden="true">Free pilot tier</span> */}
+  <span className="brutal-sash-under" aria-hidden="true">
+    Automate analysis | Free pilot tier
+  </span>
 </div>
 ```
 
-The three segments share ONE width budget on the rotated band — `New | MCP Server`
-filled it, which is why the label above is the short form; do not pad the label back
-out when a `__detail` is present (`Sash.astro` documents the measured combinations).
+Both bands' copy runs against strict, measured width budgets (`Sash.astro` documents
+them: ~16 characters across the main band's segments with a badge, ≤ 36 on the
+under-band). The under-band is aria-hidden — its text is composed into the `<a>`'s
+aria-label instead (spelled out above so the pipe is not spoken as "vertical line").
+A `__detail` segment (rule-separated, after the label) also exists on the main band;
+the live entry currently uses none — do not pad the label out when one is present.
 
 The corner box must be a child of whatever the sash overlays — `<body>` in production —
 and that element needs `position: relative` unless it is the page itself. When the sash is

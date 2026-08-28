@@ -174,9 +174,17 @@ test.describe('Announcement sash', () => {
     });
     expect(inverted, 'the under-band inverts the two sash tokens').toBe(true);
 
-    // The band is aria-hidden; the subtext is spoken on the link instead.
+    // The band is aria-hidden; the announcement is spoken on the link instead
+    // — either the registry's explicit ariaLabel (used e.g. to keep a literal
+    // pipe in the subtext from being read as "vertical line") or, absent one,
+    // the composed default, which must carry the subtext.
     const spoken = await pageSash(page).locator('.brutal-sash').getAttribute('aria-label');
-    expect(spoken, 'subtext joins the composed aria-label').toContain(LIVE_SUBTEXT!);
+    const liveAria = getActiveAnnouncement(SASH_ROUTE)?.ariaLabel;
+    if (liveAria !== undefined) {
+      expect(spoken, 'the registry aria override is spoken').toBe(liveAria);
+    } else {
+      expect(spoken, 'subtext joins the composed aria-label').toContain(LIVE_SUBTEXT!);
+    }
 
     const reserve = await page
       .locator('.site-header nav ul')

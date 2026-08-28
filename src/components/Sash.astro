@@ -56,11 +56,10 @@ interface Props {
    * (`.brutal-sash-under` — inverted ink-on-band colours, the badge's own
    * token pair; sash.css documents why that inversion is the only colorway).
    * Page scale + desktop only: hidden ≤768px with `detail`, never rendered at
-   * card scale. Enabled but DELIBERATELY absent from the live registry entry —
-   * setting it also widens the nav's desktop corner reserve to 200px
-   * (HeaderNavLinks.astro keys on the class with :has()), so its first real
-   * use should re-check the header at 769–900px widths. The sourced-claim
-   * rule applies to it like every segment.
+   * card scale. Setting it also widens the nav's desktop corner reserve to
+   * 200px (HeaderNavLinks.astro keys on the class with :has()) — proven to
+   * fit at 769px+ on all three engines when the capability landed
+   * (2026-08-28). The sourced-claim rule applies to it like every segment.
    */
   subtext?: string;
   /** Makes the band an <a>. Omit for the decorative card scale. */

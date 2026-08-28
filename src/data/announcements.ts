@@ -34,8 +34,8 @@ export interface Announcement {
    * Optional subtext on the smaller band below the main one (page scale +
    * desktop only; hidden ≤768px). The sourced-claim rule applies to it like
    * every segment, and it has its own copy budget — see Sash.astro's
-   * docblock. No live entry sets it: the capability ships enabled, not
-   * present.
+   * docblock. Setting it also widens the nav's desktop corner reserve
+   * (HeaderNavLinks.astro keys on the band's class with :has()).
    */
   subtext?: string;
   /** Where the sash links. Its own page must not appear in `routes`. */
@@ -54,24 +54,26 @@ export const ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'mcp-launch',
     badge: 'New',
-    // 'MCP', not 'MCP Server': the three segments share ONE width budget on
-    // the 45° band, and 'New | MCP Server | <anything useful>' clips — proven
-    // by rendering, see the budget table in Sash.astro. The detail slot is
-    // where the announcement earns its keep ("so what?" → it is for your AI
-    // agents), so the subject yields the characters; the destination page's
-    // H1 expands it back to "MCP Server" one click later.
-    label: 'MCP',
+    // 'GST MCP', with no `detail`: the main band names the thing, and the
+    // value pitch moved to the under-band, which has its own (larger) budget —
+    // see the table in Sash.astro. The segments share ONE width budget on the
+    // 45° band; 10 chars incl. the chip sits well inside the proven ~16.
+    label: 'GST MCP',
     // Copy here renders publicly on / and /hub/ and is republished to
-    // claude.ai/design via .design-sync/, so it must be a SOURCED claim (an
-    // earlier '2.0' shipped a version number nothing published — /hub/mcp/
-    // states no version at all — and was removed for it). 'for AI agents' is
-    // sourced by the announced page itself: /hub/mcp/ markets the server as
-    // the way a client's own AI agents call the GST tools.
-    detail: 'for AI agents',
+    // claude.ai/design via .design-sync/, so every segment must be a SOURCED
+    // claim (an earlier '2.0' shipped a version number nothing published and
+    // was removed for it). Both halves are sourced by the announced page:
+    // /hub/mcp/ markets the server as agents running the GST analysis tools,
+    // and the free pilot tier is in its tier presentation (and the hub FAQ).
+    // 35 chars — inside the measured 36-char under-band ceiling (Sash.astro).
+    subtext: 'Automate analysis | Free pilot tier',
     href: '/hub/mcp/',
     scale: 'page',
     routes: ['/', '/hub/'],
     until: '2026-10-01',
+    // Spoken form is overridden: the literal pipe in `subtext` is a visual
+    // separator that a screen reader would announce as "vertical line".
+    ariaLabel: 'New: GST MCP — automate analysis, free pilot tier — open the linked page',
   },
 ];
 
