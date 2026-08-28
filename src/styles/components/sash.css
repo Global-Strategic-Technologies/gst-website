@@ -16,29 +16,38 @@ conditionally widens to 200px there, a fourth member keyed on the SAME three
 breakpoints (no new numbers).
 
   scale          corner box   band width   band top   label size   nav reserve
-  page desktop   200px        260px        50px       --text-sm    168px (200px with under-band)
+  page desktop   200px        260px        46px       --text-sm    168px (200px with under-band)
   page ≤768px    170px        220px        42px       --text-xs    140px
   page ≤540px    140px        190px        34px       --text-xs    108px
   page ≤511px    IN-FLOW STRIP — full-width two-line banner above the header
                  (see the bottom of this file); reserve stays 0
   card           104px        150px        26px       --text-2xs   n/a
 
-UNDER-BAND (optional subtext, page scale): top 89px, left −47px, width 290px,
+UNDER-BAND (optional subtext, page scale): top 88px, left −41px, width 300px,
 min-height 24px (--touch-target-min-aa — it is a LINK; the AA floor is the real
 finger target on the unrotated strip). Its chord sits below the main band's and
 is LONGER (it lies nearer the box diagonal), so subtext gets more room than the
-headline. The negative `left` is load-bearing: it centres the band on its own
-visible chord (midpoint ≈98,102), so the corner clips both ends symmetrically —
-at left 0 the content slides toward the bottom-right corner.
+headline.
 
-The ~13px gap to the main band is NOT only aesthetic — it is an axe
-target-size clearance. Both bands are links, and axe measures UNCLIPPED
-client rects: the under-band's box overlaps the main band's from below, and
-the main band's unobscured strip must stay ≥ 24px tall. Measured 2026-08-29:
-top 89 / width 290 leaves a 26px strip (top 81 / width 300 left 15px and
-axe flagged the MAIN band as partially obscured on / and /hub/). Moving the
-bands closer, widening the under-band, or thickening either band re-shrinks
-that strip — re-run the accessibility suite after any such change.
+RIBBON-FORM INVARIANT — every band's chord offset c = x−y (band centre) must
+stay POSITIVE: both cut ends then land on the box's top and right EDGES, like
+a real ribbon. At c ≤ 0 the chord reaches the box diagonal and the band
+terminates AT the box corners, leaving its square end caps floating in the
+open (shipped once, 2026-08-28, as an axe fix that moved the band to
+top 89 / left −47 / width 290 ⇒ c ≈ −3.5; reported as a broken corner the
+next day). Current centre (109, 100.5) ⇒ c = 8.5.
+
+The axe target-size clearance is solved by SLIDING, not by pushing past the
+diagonal: both bands are links, and axe measures UNCLIPPED client rects — the
+main band's unobscured strip above the under-band's rect top must stay ≥ 24px.
+Sliding a band ALONG its own chord leaves the visible ribbon identical while
+moving that rect, so the under-band sits 6.7px down-chord of its chord
+midpoint (which is why left is −41, not the chord-centring −44) and the
+13px padding-right re-centres the flex-centred copy on the visible chord
+(2 × 6.7). The main band's top 46 (not 50) buys the last 4px of strip.
+Measured: 26px strip. Moving the bands closer, widening the under-band, or
+thickening either band re-shrinks it — re-run the accessibility suite after
+any geometry change, and re-check c > 0.
 
 No ≤768/≤540 variants exist: the under-band hides 512–768px alongside
 __detail, and below 512 it is the strip's second line.
@@ -81,7 +90,7 @@ moves.)
 
 .brutal-sash {
   position: absolute;
-  top: 50px;
+  top: 46px;
   left: 0;
   width: 260px;
   display: flex;
@@ -150,15 +159,18 @@ moves.)
    Geometry and the colorway ruling: header comment above. */
 .brutal-sash-under {
   position: absolute;
-  top: 89px;
-  left: -47px;
-  width: 290px;
+  top: 88px;
+  left: -41px;
+  width: 300px;
   min-height: var(--touch-target-min-aa);
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding: var(--spacing-xs) 0;
+
+  /* The right padding is the chord re-centring for the axe slide (header
+     comment) — not breathing room. The ≤511 strip restates padding fully. */
+  padding: var(--spacing-xs) 13px var(--spacing-xs) 0;
   transform: rotate(45deg);
   pointer-events: auto;
   text-decoration: none;
