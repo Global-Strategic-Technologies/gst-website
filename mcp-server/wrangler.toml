@@ -245,7 +245,13 @@ routes = [
   # BL-033 Slice 4 — dedicated status subdomain. custom_domain auto-provisions
   # the DNS record + edge cert on deploy (the zone is already on Cloudflare).
   # worker.ts serves the status page at this subdomain's root (`/`).
-  { pattern = "status.mcp.globalstrategic.tech", custom_domain = true }
+  { pattern = "status.mcp.globalstrategic.tech", custom_domain = true },
+  # ADR-0023 — documentation alias. The public capability reference lives at
+  # globalstrategic.tech/hub/mcp/docs/; this host exists so the name BL-093
+  # planned for a docs site still resolves, and worker.ts 308s every path on it
+  # to that page. No staging counterpart: staging carries a single route, same
+  # as the status subdomain, so this alias is first exercised in production.
+  { pattern = "docs.mcp.globalstrategic.tech", custom_domain = true }
 ]
 
 # Environment discriminator — see staging block for rationale.

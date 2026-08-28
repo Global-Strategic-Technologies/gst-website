@@ -51,6 +51,7 @@
 
 import { authenticate, authFailureResponse, shouldCaptureAuthFailure } from './auth/bearer';
 import { isPreflight, preflightResponse, withCors } from './auth/cors';
+import { resolveHostRoute } from './dispatch/host-route';
 import { safeLog } from './auth/safe-logger';
 import { captureMessage, sentryOptions, withSentry } from './observability/sentry';
 import { AnalyticsEngineSink, emit } from './metrics/_index';
@@ -371,6 +372,17 @@ export const handler: ExportedHandler<Env> = {
     // 1. CORS preflight — never authenticated; never logged (high-volume noise).
     if (isPreflight(request)) {
       return preflightResponse(request);
+    }
+
+    // 1.5. Host aliases — MUST stay ahead of every path-based branch below.
+    //      `/health`, the `/status` arm and `isOAuthSurfacePath` all dispatch on
+    //      path alone with no hostname test, so a docs-alias branch placed among
+    //      them would serve the health payload, the status page and the OAuth
+    //      surface on a documentation hostname. `tests/unit/dispatch/
+    //      host-route.test.ts` asserts this ordering against the source.
+    const hostRoute = resolveHostRoute(url);
+    if (hostRoute) {
+      return Response.redirect(hostRoute.location, hostRoute.status);
     }
 
     // 2. Health endpoint — no auth required, but does emit CORS headers so

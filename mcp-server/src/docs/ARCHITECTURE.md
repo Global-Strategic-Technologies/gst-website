@@ -118,10 +118,19 @@ Two credential families validate on the same endpoints, cheap-first (decision re
 
 Two Cloudflare Workers environments, declared in `mcp-server/wrangler.toml`:
 
-| Env        | Worker name       | Route (custom_domain)              | Crons                                                                                                          |
-| ---------- | ----------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| staging    | `gst-mcp-staging` | `mcp-staging.globalstrategic.tech` | none (deliberate — staging shares production's Inoreader OAuth app; a staging cron doubles Zone-1 budget burn) |
-| production | `gst-mcp`         | `mcp.globalstrategic.tech`         | `0 */6 * * *` radar refresh · `*/15 * * * *` SLO alert evaluator                                               |
+| Env        | Worker name       | Routes (custom_domain)                                                                           | Crons                                                                                                          |
+| ---------- | ----------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| staging    | `gst-mcp-staging` | `mcp-staging.globalstrategic.tech`                                                               | none (deliberate — staging shares production's Inoreader OAuth app; a staging cron doubles Zone-1 budget burn) |
+| production | `gst-mcp`         | `mcp.globalstrategic.tech` · `status.mcp.globalstrategic.tech` · `docs.mcp.globalstrategic.tech` | `0 */6 * * *` radar refresh · `*/15 * * * *` SLO alert evaluator                                               |
+
+Production's three hosts are one Worker, separated in `fetch` by hostname:
+`status.` serves the status page at its root (the same render as `GET /status`),
+and `docs.` 308-redirects every path to `https://globalstrategic.tech/hub/mcp/docs/`
+(ADR-0023). The docs branch runs **before** every path-based branch, because
+`/health`, the `/status` arm and `isOAuthSurfacePath` carry no hostname test and
+would otherwise answer on a documentation hostname; `tests/unit/dispatch/host-route.test.ts`
+asserts that ordering against this file's source. Neither extra host exists in
+staging, so both are first exercised in production.
 
 The `globalstrategic.tech` DNS zone is on Cloudflare (the website itself deploys to Vercel); the Worker routes are `custom_domain = true` bindings, so DNS records and TLS certs are Cloudflare-managed. Secrets are provisioned per environment via `wrangler secret put <NAME> --env <staging|production>` — the full matrix (bearer keys, Upstash MCP DB, Inoreader OAuth, Sentry DSN, `CF_AE_TOKEN`) is commented in `wrangler.toml` and operationalized in [`operations/DEPLOY.md`](operations/DEPLOY.md).
 

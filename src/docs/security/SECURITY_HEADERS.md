@@ -110,11 +110,12 @@ These third-party domains are deliberately NOT in the CSP allowlist. Re-adding t
 
 ## MCP Worker subdomain (BL-032)
 
-The MCP server runs on a separate Cloudflare Workers deployment at `mcp.globalstrategic.tech` (production) and `mcp-staging.globalstrategic.tech` (staging) — see [`mcp-server/src/docs/ARCHITECTURE.md` § Security boundary](../../../mcp-server/src/docs/ARCHITECTURE.md#security-boundary-vs-the-website). It does NOT inherit the website's CSP, since:
+The MCP server runs on a separate Cloudflare Workers deployment. Production carries three hosts — `mcp.globalstrategic.tech` (the JSON-RPC surface), `status.mcp.globalstrategic.tech` (the public status page at its root), and `docs.mcp.globalstrategic.tech` (ADR-0023: a 308 alias to `/hub/mcp/docs/` on the website, no body of its own) — and staging carries `mcp-staging.globalstrategic.tech` alone. See [`mcp-server/src/docs/ARCHITECTURE.md` § Security boundary](../../../mcp-server/src/docs/ARCHITECTURE.md#security-boundary-vs-the-website). It does NOT inherit the website's CSP, since:
 
-- The Worker serves a JSON-RPC API to MCP clients, not HTML pages with scripts/styles. CSP doesn't meaningfully apply
 - Different threat model — auth is bearer-token (Phase 2), not session-based
 - Different runtime — Cloudflare Workers, not Vercel; managed via `wrangler.toml` rather than `vercel.json`
+
+**The Worker is mostly, but no longer only, a JSON-RPC API.** This section previously reasoned from "not HTML pages with scripts/styles", which the status page falsified: `worker.ts` returns `buildStatusHtml()` as `text/html`, and a later change gave Worker-served pages a favicon. What that HTML surface actually sets is `Content-Type` and `Cache-Control` and nothing else — **no CSP, no `X-Frame-Options`, no `X-Content-Type-Options`**. Whether to add them is an open operator decision that predates and outlives ADR-0023; it is recorded here rather than left implied by a premise that stopped being true. The docs alias needs none of them: a 308 carries no body.
 
 **What it DOES enforce** (configured in [`mcp-server/src/auth/cors.ts`](../../../mcp-server/src/auth/cors.ts)):
 
@@ -126,10 +127,10 @@ The MCP server runs on a separate Cloudflare Workers deployment at `mcp.globalst
 **What it explicitly does NOT have**:
 
 - HSTS — Cloudflare's edge enforces HTTPS at the platform level; the Worker doesn't add its own header (would be redundant)
-- X-Frame-Options / frame-ancestors — the Worker's responses are not HTML; framing is a non-concern
-- CSP — see above
+- X-Frame-Options / frame-ancestors — absent, including on the status page, which IS framable HTML. See the note above: an open decision, not a reasoned exclusion
+- CSP — absent for the same reason
 
-When BL-033 ships OAuth 2.1 for external clients, the Worker gains additional headers (token-introspection responses, audit-log envelopes); they get documented here at that time.
+OAuth 2.1 shipped for external clients (ADR-0008, `isOAuthSurfacePath` in `worker.ts`). It added no response headers beyond the RFC 6750 `WWW-Authenticate` challenge already listed above, so there is nothing further to document here; this paragraph previously predicted that work as pending.
 
 ---
 
