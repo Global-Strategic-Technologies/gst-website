@@ -147,7 +147,7 @@ describe('MCP docs registry — internal integrity', () => {
 
   it('resolves every workflow step to a real capability', () => {
     const steps = WORKFLOWS.flatMap((w) => w.steps);
-    expect(steps.length).toBe(12);
+    expect(steps.length).toBe(13);
     expect(steps.filter((s) => !byId.has(s.capabilityId)).map((s) => s.capabilityId)).toEqual([]);
   });
 

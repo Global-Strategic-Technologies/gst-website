@@ -795,8 +795,9 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_information_request_list',
     group: 'Prompts',
     type: 'Prompt',
+    usedIn: ['irl'],
     gloss:
-      'Assembles the information-gathering ask GST hands a target before diligence tools can run, configured for the engagement and delivered as a workbook.',
+      'Assembles the blank information-gathering ask GST hands a target before diligence tools can run, configured for the engagement and delivered as a workbook to fill in.',
     args: [
       {
         name: 'targetName / companyName / projectName',
@@ -819,6 +820,8 @@ export const CAPABILITIES: readonly Capability[] = [
       'The configured request list, section by section.',
       'The workbook to send, plus the Hub page for a one-click download.',
     ],
+    noteTitle: 'This one issues, it does not answer',
+    note: 'The workbook comes back empty, for the target to complete. When the answers are already in your own evidence, a data room export or filings or an earlier conversation, use gst_irl_create instead: it produces the same workbook already populated, and leaves only the rows it could not support blank.',
     availability: PROMPT_LINE,
     related: ['generate_information_request_list_xlsx', 'list_irl_requests', 'gst_irl_create'],
   },
@@ -1174,9 +1177,14 @@ export const WORKFLOWS: readonly Workflow[] = [
     description: 'The information-request round trip: issue, fill, extract, sweep.',
     steps: [
       {
+        capabilityId: 'gst_information_request_list',
+        kind: 'Prompt',
+        gloss: 'Issue the blank request list to the target.',
+      },
+      {
         capabilityId: 'gst_irl_create',
         kind: 'Prompt',
-        gloss: 'Issue a fillable request list to the target.',
+        gloss: 'Or answer it yourself from evidence you already hold.',
       },
       {
         capabilityId: 'gst_irl_extract',

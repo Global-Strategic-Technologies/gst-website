@@ -54,8 +54,10 @@ test.describe('MCP documentation — page shape', () => {
   test('opens on Workflows with all four cards', async ({ page }) => {
     await expect.poll(() => visibleLenses(page)).toEqual(['workflows']);
     await expect(page.locator('.mdoc-flow')).toHaveCount(4);
-    // Three steps each, every one an anchor into a contract.
-    await expect(page.locator('.mdoc-step')).toHaveCount(12);
+    // Every step is an anchor into a contract. Three workflows carry three
+    // steps; the IRL round trip carries four, since issuing the blank list and
+    // answering it from evidence are different prompts.
+    await expect(page.locator('.mdoc-step')).toHaveCount(13);
   });
 
   test('derives the counts row from the registry', async ({ page }) => {
