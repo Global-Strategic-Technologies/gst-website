@@ -105,7 +105,9 @@ const groups = GROUP_ORDER.map((group) => ({
     padding: 6px 8px;
     min-height: var(--touch-target-min-aa);
     border-left: 3px solid transparent;
-    overflow-wrap: anywhere;
+    /* One identifier, one row. A wrapped name reads as two sidebar entries,
+       which is why the column is `max-content` sized rather than fixed. */
+    white-space: nowrap;
     transition:
       color var(--transition-fast),
       background var(--transition-fast);

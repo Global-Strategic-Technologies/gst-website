@@ -293,9 +293,16 @@ const countLinks = [
     gap: var(--spacing-xl);
   }
 
+  /* The sidebar column is sized to its content, not to a fixed 300px: the two
+     longest tool names (`assess_infrastructure_cost_governance`,
+     `generate_information_request_list_xlsx`) overflow that width and wrapped
+     onto a second line, which reads as two entries. `max-content` ignores soft
+     wrap opportunities, so the column always fits the longest identifier, and a
+     longer one added later widens it instead of wrapping. The 300px floor keeps
+     the short-name case from collapsing the column. */
   .mdoc-ref {
     display: grid;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: minmax(300px, max-content) 1fr;
     min-height: 0;
   }
 
