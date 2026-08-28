@@ -338,15 +338,46 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       </div>
       <div class="brand-component-item">
         <div class="brand-sash-frame brand-sash-frame--under">
-          {/* Mirrors the live mcp-launch entry (announcements.ts). */}
+          {
+            /* Mirrors the live mcp-launch entry (announcements.ts) — minus the
+              hrefs, so the specimen stays decorative (the component renders
+              spans when no href is passed). In production both bands are
+              links; the under-band deep-links (subtextHref). */
+          }
           <Sash badge="New" label="GST MCP" subtext="Automate analysis | Free pilot tier" />
         </div>
         <code class="brand-code"
-          >.brutal-sash-under — the OPTIONAL subtext band below the main one (page scale + desktop
-          only; hidden ≤768px with __detail). Inverted ink-on-band — the band's bg/ink pair swapped
-          — the only colorway, because the family's mixes fail AA as text backgrounds (see
-          sash.css). Its presence widens the nav's desktop corner reserve to 200px. Copy budget ≤ 36
-          characters, measured (Sash.astro)</code
+          >.brutal-sash-under — the OPTIONAL subtext band below the main one (hidden 512–768px with
+          __detail; the second line of the ≤511 strip). In production it is its own LINK (min-height
+          --touch-target-min-aa; the ~13px gap to the main band is an axe target-size clearance —
+          see sash.css). Inverted ink-on-band — the band's bg/ink pair swapped — the only colorway,
+          because the family's mixes fail AA as text backgrounds (see sash.css). Its presence widens
+          the nav's desktop corner reserve to 200px. Copy budget ≤ 36 characters, measured
+          (Sash.astro)</code
+        >
+      </div>
+      <div class="brand-component-item">
+        <div class="brand-sash-frame brand-sash-frame--under">
+          {
+            /* Hand-written (the component cannot carry data-demo-state): the
+              under-band's frozen hover — sash.css's 82% mix, poles swapped for
+              the inverted fill. Forced-state rule lives in brand.astro's
+              is:global block; axe excludes [data-demo-state="hover"]. */
+          }
+          <div class="brutal-sash-corner">
+            <span class="brutal-sash" aria-hidden="true">
+              <span class="brutal-sash__badge">New</span>
+              <span class="brutal-sash__label">GST MCP</span>
+            </span>
+            <span class="brutal-sash-under" aria-hidden="true" data-demo-state="hover"
+              >Automate analysis | Free pilot tier</span
+            >
+          </div>
+        </div>
+        <code class="brand-code"
+          >.brutal-sash-under:hover — background color-mix(in srgb, var(--sash-ink) 82%,
+          var(--sash-bg)): the family's hover number, poles swapped for the inverted fill. Focus
+          ring: 2px var(--sash-bg), inset −4px</code
         >
       </div>
       <div class="brand-component-item">
@@ -365,10 +396,12 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           <span class="brutal-sash__detail">for AI agents</span>
         </span>
         <code class="brand-code"
-          >.brutal-sash--flat — unrotated band, documentation only. Never mounted on a page. All
-          three segments shown; `.brutal-sash__detail` (qualifier or value tagline, rule-separated)
-          is hidden below 768px, and the segments share one width budget on the rotated band — see
-          Sash.astro</code
+          >.brutal-sash--flat — unrotated band, documentation only. Never mounted on a page (the
+          ≤511px mobile strip is a media RESTYLE of the standard classes, not this modifier — a
+          class cannot be toggled by a media query). All three segments shown; its label renders one
+          step smaller than the production page band's (the --text-sm step is scoped to the corner).
+          `.brutal-sash__detail` is hidden below 768px, and the segments share one width budget on
+          the rotated band — see Sash.astro</code
         >
       </div>
     </div>

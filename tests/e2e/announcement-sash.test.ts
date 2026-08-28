@@ -26,8 +26,9 @@ import { getActiveAnnouncement } from '../../src/data/announcements';
 /**
  * Corner-box size ↔ nav reserve, per breakpoint. Edit with sash.css, or neither.
  * The tiers switch at 768 / 540 / 512 — the widths at which each reserve FITS on
- * every engine, not the handoff's 768/480; below 512 the sash stands down
- * entirely (see the narrow-viewport tests at the bottom of this file).
+ * every engine, not the handoff's 768/480; below 512 the sash leaves the corner
+ * and renders as a full-width IN-FLOW strip above the header, with the reserve
+ * at 0 (see the narrow-viewport tests at the bottom of this file).
  */
 const BREAKPOINTS = [
   { name: 'desktop', width: 1440, height: 900, box: 200, reserve: '168px' },
@@ -159,10 +160,21 @@ test.describe('Announcement sash', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(SASH_ROUTE);
 
+    const entry = getActiveAnnouncement(SASH_ROUTE)!;
     const under = pageSash(page).locator('.brutal-sash-under');
     await expect(under).toHaveCount(1);
     await expect(under).toHaveText(LIVE_SUBTEXT!);
-    await expect(under).toHaveAttribute('aria-hidden', 'true');
+
+    // The under-band is its OWN link (to subtextHref, or the main href absent
+    // one), with its own accessible name — the registry override exists so a
+    // literal pipe in the subtext is not spoken as "vertical line".
+    expect(await under.evaluate((el) => el.tagName), 'a link, not a decoration').toBe('A');
+    await expect(under).toHaveAttribute('href', entry.subtextHref ?? entry.href);
+    await expect(under).toHaveAttribute('aria-label', entry.subtextAriaLabel ?? LIVE_SUBTEXT!);
+
+    // The AA touch-target floor, on the element's unrotated box.
+    const underHeight = await under.evaluate((el) => (el as HTMLElement).offsetHeight);
+    expect(underHeight, 'min-height: var(--touch-target-min-aa)').toBeGreaterThanOrEqual(24);
 
     // The inverted pair, asserted as computed equality against the main
     // band's own values so it follows every palette rather than pinning hex.
@@ -174,14 +186,11 @@ test.describe('Announcement sash', () => {
     });
     expect(inverted, 'the under-band inverts the two sash tokens').toBe(true);
 
-    // The band is aria-hidden; the announcement is spoken on the link instead
-    // — either the registry's explicit ariaLabel (used e.g. to keep a literal
-    // pipe in the subtext from being read as "vertical line") or, absent one,
-    // the composed default, which must carry the subtext.
+    // The main link speaks the whole announcement — either the registry's
+    // explicit ariaLabel or the composed default, which must carry the subtext.
     const spoken = await pageSash(page).locator('.brutal-sash').getAttribute('aria-label');
-    const liveAria = getActiveAnnouncement(SASH_ROUTE)?.ariaLabel;
-    if (liveAria !== undefined) {
-      expect(spoken, 'the registry aria override is spoken').toBe(liveAria);
+    if (entry.ariaLabel !== undefined) {
+      expect(spoken, 'the registry aria override is spoken').toBe(entry.ariaLabel);
     } else {
       expect(spoken, 'subtext joins the composed aria-label').toContain(LIVE_SUBTEXT!);
     }
@@ -191,7 +200,7 @@ test.describe('Announcement sash', () => {
       .evaluate((el) => getComputedStyle(el).paddingRight);
     expect(reserve, 'the conditional desktop reserve').toBe('200px');
 
-    // Hidden ≤768 alongside __detail, and the tier restatement defeats the
+    // Hidden 512–768 alongside __detail, and the tier restatement defeats the
     // base bump (:has() still matches the display:none band).
     await page.setViewportSize({ width: 768, height: 800 });
     await expect(under).toBeHidden();
@@ -199,6 +208,27 @@ test.describe('Announcement sash', () => {
       .locator('.site-header nav ul')
       .evaluate((el) => getComputedStyle(el).paddingRight);
     expect(tierReserve, 'tier reserve returns while the band is hidden').toBe('140px');
+
+    // …and back as the second line of the ≤511 strip.
+    await page.setViewportSize({ width: 375, height: 800 });
+    await expect(under).toBeVisible();
+  });
+
+  test('the under-band deep-links to its fragment destination', async ({ page }) => {
+    const entry = getActiveAnnouncement(SASH_ROUTE);
+    test.skip(
+      entry?.subtext === undefined || entry?.subtextHref === undefined,
+      'no live entry carries a subtext deep-link'
+    );
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(SASH_ROUTE);
+    await pageSash(page).locator('.brutal-sash-under').click();
+    await page.waitForURL(`**${entry!.subtextHref}`);
+
+    // The fragment resolves to a real element (its existence is also guarded
+    // at unit speed by tests/integration/announcement-anchor.test.ts).
+    const fragment = entry!.subtextHref!.split('#')[1];
+    await expect(page.locator(`#${fragment}`)).toBeVisible();
   });
 
   for (const bp of BREAKPOINTS) {
@@ -263,23 +293,45 @@ test.describe('Announcement sash', () => {
     });
   }
 
-  test('below 512px the sash stands down and the nav takes its corner back', async ({ page }) => {
-    // The regression this pins: at 375px the logo and four links already fill
-    // the header row, so a 108px reserve pushed the nav 64px past the viewport
-    // and every sash page scrolled sideways. Both halves have to agree — :has()
-    // still matches a display:none corner box, so a hidden sash with a live
-    // reserve would be the same bug with nothing on screen to explain it.
+  test('below 512px the sash leaves the corner for the in-flow strip', async ({ page }) => {
+    // The regression the 0px reserve pins: at 375px the logo and four links
+    // already fill the header row, so a 108px reserve pushed the nav 64px past
+    // the viewport and every sash page scrolled sideways. The sash now changes
+    // FORM here instead of hiding — a full-width strip IN FLOW above the
+    // header, which costs the nav nothing — so the reserve stays 0 while the
+    // corner box stays in the DOM and visible.
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto(SASH_ROUTE);
 
     const corner = pageSash(page);
     await expect(corner).toHaveCount(1);
-    await expect(corner).toBeHidden();
+    await expect(corner).toBeVisible();
+    const box = await corner.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      return { position: cs.position, width: r.width };
+    });
+    expect(box.position, 'in flow, not an overlay').toBe('static');
+    expect(box.width, 'full width').toBeGreaterThanOrEqual(374);
 
     const reserve = await page
       .locator('.site-header nav ul')
       .evaluate((el) => getComputedStyle(el).paddingRight);
-    expect(reserve, 'no corner to reserve').toBe('0px');
+    expect(reserve, 'the strip costs the nav nothing').toBe('0px');
+
+    // Both strip lines receive their own clicks (registry-driven: the second
+    // line exists only while the live entry carries a subtext).
+    const stripLines =
+      LIVE_SUBTEXT === undefined ? ['.brutal-sash'] : ['.brutal-sash', '.brutal-sash-under'];
+    for (const sel of stripLines) {
+      const hit = await page.evaluate((s) => {
+        const el = document.querySelector(`body > .brutal-sash-corner ${s}`) as HTMLElement;
+        const r = el.getBoundingClientRect();
+        const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return top === el || el.contains(top);
+      }, sel);
+      expect(hit, `${sel} is hit-testable at its centre`).toBe(true);
+    }
 
     // The card-scale band lives inside a card and never meets the nav.
     await expect(page.locator('.brutal-sash-corner--card')).toBeVisible();
@@ -296,7 +348,7 @@ test.describe('Announcement sash', () => {
     };
     const withSash = await overflowOf(SASH_ROUTE);
     const without = await overflowOf('/services/');
-    expect(withSash, 'the sash adds no overflow where it stands down').toBeLessThanOrEqual(without);
+    expect(withSash, 'the strip adds no horizontal overflow').toBeLessThanOrEqual(without);
   });
 
   test('the sash never costs the page a horizontal scrollbar', async ({ page }) => {
@@ -353,5 +405,24 @@ test.describe('Announcement sash', () => {
     await expect(page.locator('.skip-nav')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(pageSash(page).locator('.brutal-sash')).toBeFocused();
+    if (LIVE_SUBTEXT !== undefined) {
+      // The under-band link is the band's immediate DOM sibling.
+      await page.keyboard.press('Tab');
+      await expect(pageSash(page).locator('.brutal-sash-under')).toBeFocused();
+    }
+  });
+
+  test('the strip keeps the same tab order on mobile', async ({ page, browserName }) => {
+    test.skip(browserName === 'webkit', 'WebKit excludes links from Tab by default');
+    test.skip(LIVE_SUBTEXT === undefined, 'one-line strip: covered by the desktop order test');
+
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto(SASH_ROUTE);
+    await page.keyboard.press('Tab');
+    await expect(page.locator('.skip-nav')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(pageSash(page).locator('.brutal-sash')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(pageSash(page).locator('.brutal-sash-under')).toBeFocused();
   });
 });

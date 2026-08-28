@@ -128,7 +128,7 @@ alone renders unstyled content — the specimen cards show every one of these in
 - **`.brutal-filter-drawer`** — `__header` › `__title`, `__close`; `__content` › `__clear`, `__section` › `__label` + `.brutal-filter-chips`
 - **`.brutal-search`** — `__icon`, `__input`, `__clear`; results are a **sibling** `__results` › `__result` (+ `--active`) › `__result-name`, `__result-meta` › `__category` (+ `--privacy`/`--ai`/`--industry`/`--cyber`); `__no-results`
 - **`.brutal-breadcrumb`** — `__list` (an `<ol>`) › `__item` › link + `__sep`; the current crumb is `<span aria-current="page">` — that attribute is what styles it
-- **`.brutal-sash`** — `__label` (one type-scale step larger than the band's other segments), `__badge` (a chip filled with `--sash-badge-bg` under constant dark ink — measured AA in every palette and theme), `__detail` (drops at 768px). The band element carries the href itself; there is no separate link child. `.brutal-sash-under` is a SIBLING block, not a `__` element: the optional subtext band below the main one (page scale + desktop only, drops at 768px with `__detail`), inverting the same two tokens — that inversion is its only colorway; the family's color-mix derivations fail AA as text backgrounds and must not be used as under-band fills
+- **`.brutal-sash`** — `__label` (above the band's other segments on the type scale: `--text-sm` on the desktop page corner, `--text-xs` on the ≤768 tiers, base size on `--card`), `__badge` (a chip filled with `--sash-badge-bg` under constant dark ink — measured AA in every palette and theme), `__detail` (drops at 768px). The band element carries the href itself; there is no separate link child. `.brutal-sash-under` is a SIBLING block, not a `__` element: the optional subtext band below the main one (hidden 512–768px with `__detail`; the second line of the ≤511 strip), inverting the same two tokens — that inversion is its only colorway; the family's color-mix derivations fail AA as text backgrounds and must not be used as under-band fills. In production it is its OWN link with its own aria-label and a `min-height: var(--touch-target-min-aa)` floor
 - **`.brutal-bench-table`** — rows of two `<td>`s; `__active` on the highlighted `<tr>`; `__label` (+ `--score`/`--stage`) pills inside the first cell
 - **`.brutal-panel`** — `__header` › `__title`, `__copy` (+ `--copied`), `__count`
 - **`.brutal-tab-bar`** — `.brutal-tab` › `__label`, optional `__icon`, `__badge` (+ `--on`)
@@ -177,15 +177,21 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
 - **The sash's geometry moves in threes.** `.brutal-sash-corner`'s size, the band's `top`
   and the band's `width` are one set: the band is centred on the 45° chord of its box, so
   changing one without the others slides it off the corner. The pairs are 200/50/260
-  (desktop), 170/42/220 (≤768), 140/34/190 (≤540) and 104/26/150 (`--card`). The
+  (desktop, label at `--text-sm`), 170/42/220 (≤768, label steps to `--text-xs`),
+  140/34/190 (≤540) and 104/26/150 (`--card`). The
   responsive steps key on `.brutal-sash-corner:not(.brutal-sash-corner--card)`, so the page
-  scale steps down and `--card` is fixed at every width. Below 512px the page
-  sash is not rendered at all — the header nav, which
-  reserves a matching corner for it, has no room left to yield. The optional
-  `.brutal-sash-under` adds a desktop-only fourth: top 79 / left −40 / width 300 — the
-  negative `left` centres it on its OWN visible chord so the corner clips both ends
-  symmetrically — and in production its presence conditionally widens the nav's desktop
-  corner reserve; it has no smaller tiers (it drops at 768px with `__detail`).
+  scale steps down and `--card` is fixed at every width. Below 512px the production page
+  sash CHANGES FORM instead of hiding: it renders as a full-width, in-flow, two-line strip
+  above the header (a corner overlay there would overflow the nav, whose reserve is 0 at
+  that width). The strip is a media RESTYLE of the standard classes keyed on the
+  production mount (`body > …`) — nested gallery specimens keep the old stand-down. The
+  optional `.brutal-sash-under` adds a desktop-only fourth: top 89 / left −47 / width 290
+  — the negative `left` centres it on its OWN visible chord so the corner clips both ends
+  symmetrically, and the ~13px gap to the main band is an axe target-size CLEARANCE (both
+  bands are links; their unclipped client rects overlap — sash.css records the numbers).
+  In production its presence conditionally widens the nav's desktop corner reserve; it has
+  no smaller tiers (hidden 512–768px with `__detail`; below 512 it is the strip's second
+  line).
 
 ### Brand delta
 
@@ -285,18 +291,23 @@ changed:
     <span className="brutal-sash__badge">New</span>
     <span className="brutal-sash__label">GST MCP</span>
   </a>
-  <span className="brutal-sash-under" aria-hidden="true">
+  <a
+    className="brutal-sash-under"
+    href="/hub/mcp/#tiers"
+    aria-label="Automate analysis, free pilot tier — see capability tiers"
+  >
     Automate analysis | Free pilot tier
-  </span>
+  </a>
 </div>
 ```
 
 Both bands' copy runs against strict, measured width budgets (`Sash.astro` documents
-them: ~16 characters across the main band's segments with a badge, ≤ 36 on the
-under-band). The under-band is aria-hidden — its text is composed into the `<a>`'s
-aria-label instead (spelled out above so the pipe is not spoken as "vertical line").
-A `__detail` segment (rule-separated, after the label) also exists on the main band;
-the live entry currently uses none — do not pad the label out when one is present.
+them: ~13 characters across the main band's segments with a badge at the `--text-sm`
+label, ≤ 36 on the under-band). Each band is its own link with its own accessible name —
+both names spell the pipe out in words so it is not spoken as "vertical line"; the main
+link's name carries the whole announcement. A `__detail` segment (rule-separated, after
+the label) also exists on the main band; the live entry currently uses none — do not pad
+the label out when one is present.
 
 The corner box must be a child of whatever the sash overlays — `<body>` in production —
 and that element needs `position: relative` unless it is the page itself. When the sash is

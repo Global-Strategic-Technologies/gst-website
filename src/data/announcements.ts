@@ -31,13 +31,27 @@ export interface Announcement {
   /** Version or qualifier, rule-separated. Hidden below 768px. */
   detail?: string;
   /**
-   * Optional subtext on the smaller band below the main one (page scale +
-   * desktop only; hidden ≤768px). The sourced-claim rule applies to it like
-   * every segment, and it has its own copy budget — see Sash.astro's
-   * docblock. Setting it also widens the nav's desktop corner reserve
-   * (HeaderNavLinks.astro keys on the band's class with :has()).
+   * Optional subtext on the smaller band below the main one (page scale;
+   * hidden 512–768px, and the second line of the ≤511 mobile strip — note the
+   * strip shows badge + label + subtext, never `detail`). The sourced-claim
+   * rule applies to it like every segment, and it has its own copy budget —
+   * see Sash.astro's docblock. Setting it also widens the nav's desktop
+   * corner reserve (HeaderNavLinks.astro keys on the band's class with
+   * :has()).
    */
   subtext?: string;
+  /**
+   * Where the under-band links (defaults to `href`). Fragment destinations
+   * are guarded: tests/integration/announcement-anchor.test.ts asserts the
+   * fragment's id exists in the target page's rendered markup.
+   */
+  subtextHref?: string;
+  /**
+   * Accessible name for the under-band link; defaults to the raw subtext.
+   * Override when the subtext carries a visual separator a screen reader
+   * would read out (a literal pipe is spoken "vertical line").
+   */
+  subtextAriaLabel?: string;
   /** Where the sash links. Its own page must not appear in `routes`. */
   href: string;
   /** Band geometry; defaults to 'page'. */
@@ -67,6 +81,9 @@ export const ANNOUNCEMENTS: Announcement[] = [
     // and the free pilot tier is in its tier presentation (and the hub FAQ).
     // 35 chars — inside the measured 36-char under-band ceiling (Sash.astro).
     subtext: 'Automate analysis | Free pilot tier',
+    // The under-band deep-links to the tier matrix the subtext is about.
+    subtextHref: '/hub/mcp/#tiers',
+    subtextAriaLabel: 'Automate analysis, free pilot tier — see capability tiers',
     href: '/hub/mcp/',
     scale: 'page',
     routes: ['/', '/hub/'],

@@ -54,8 +54,9 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
      reserve fits, using horizontal overflow as the failure signal, and
      announcement-sash.test.ts still guards them that way from 400px up. A nav
      that can wrap cannot overflow, so a mis-sized reserve would silently become
-     a two-row header instead of failing. Confined to 400px and below — under the
-     512px stand-down — the two systems provably cannot interact. */
+     a two-row header instead of failing. Confined to 400px and below — where
+     the sash has left the corner for the in-flow strip (sash.css) and the
+     reserve is 0 — the two systems provably cannot interact. */
   @media (max-width: 400px) {
     .site-header nav {
       flex-wrap: wrap;

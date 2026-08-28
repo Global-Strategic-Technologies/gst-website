@@ -1,6 +1,7 @@
 ---
 // Sash.astro — the announcement sash: a clipping corner box plus a rotated band
-// carrying up to three segments (badge · label · detail).
+// carrying up to three segments (badge · label · detail), and optionally a
+// second band (`subtext`) below it.
 //
 // The component is the CONTROL, not the announcement. What it says, where it
 // mounts and when it retires all live in src/data/announcements.ts; a page
@@ -14,35 +15,44 @@
 // shaves the badge chip and runs the detail into the clip corner. Measured
 // 2026-08-28 by rendering the /brand frame specimen at 3×, which is also how
 // any new combination gets proven (clipping shows at the chip's corner and
-// the detail's tail first):
+// the detail's tail first). The label renders one type step larger than the
+// band's other segments — --text-sm on the desktop page corner, --text-xs on
+// the ≤768 tiers — so budgets are per tier:
 //
-//   page   ~16 characters across all segments with a badge (its chip +
-//          gap costs about 5 more), ~20 without one.
-//          Fits:  New | MCP Server          ·  New | MCP | for AI agents
-//                 MCP Server | for agents (no badge)
-//          Clips: New | MCP Server | for agents
-//   page   under-band (`subtext`): ≤ 36 characters — its chord is LONGER
-//          than the main band's, so subtext gets more room than the whole
-//          headline. Measured 2026-08-28 on the /brand specimen with a
-//          clipped-ink pixel diff: 36 renders clean, 40 loses glyphs to the
-//          corner. Prove a longer string there before shipping it.
-//   card   label ≤ 4, nothing else — and never a subtext (the component
-//          refuses it at card scale; a 104px corner has no second chord)
+//   page ≥769  ~13 characters across all segments with a badge (its chip +
+//              gap costs about 5 more) at the --text-sm label.
+//              Fits:  New | GST MCP (proven at --text-sm, 2026-08-28)
+//              The old --text-xs-label roster (New | MCP Server ·
+//              New | MCP | for AI agents · MCP Server | for agents) applies
+//              to the ≤768 tiers, where the label stays --text-xs.
+//   page ≥769  under-band (`subtext`): ≤ 36 characters — its chord is LONGER
+//              than the main band's, so subtext gets more room than the whole
+//              headline. Measured on the /brand specimen with a clipped-ink
+//              pixel diff: 36 renders clean, 40 loses glyphs to the corner.
+//              Prove a longer string there before shipping it.
+//   page ≤511  no corner budget: the sash renders as a full-width in-flow
+//              strip (sash.css) and both lines wrap.
+//   card       label ≤ 4, nothing else — and never a subtext (the component
+//              refuses it at card scale; a 104px corner has no second chord)
 //
 // Scale modifiers go on the CORNER BOX, never on the band: the band's per-scale
 // geometry is keyed off the corner-box modifier so the box size and the band's
 // top/width can never drift apart. Geometry and colour rules live in
 // src/styles/components/sash.css (shared with the /brand specimens), which also
-// documents why the page scale stands down below 512px.
+// documents how the page scale changes FORM below 512px: the corner overlay
+// becomes a full-width, in-flow, two-line strip above the header (an overlay
+// there would overflow the nav — the measured history is in sash.css).
 //
 // Page scale is a real link. Card scale is decorative — no href, no
 // analytics, aria-hidden — because the .hub-card around it is already the link
 // and is already tracked.
 //
-// Touch note: the band's height (~30px at page scale) is below
-// --touch-target-min. That is acceptable ONLY because the sash is a redundant
-// entry point — the same destination is in the Hub nav and in the hub card. Do
-// not make it the sole path to anything.
+// Touch note: the MAIN band's height (~39px at desktop page scale) is below
+// --touch-target-min (44px, AAA). That is acceptable ONLY because the sash is
+// a redundant entry point — the same destination is in the Hub nav and in the
+// hub card. Do not make it the sole path to anything. The under-band link
+// carries `min-height: var(--touch-target-min-aa)` (24px, the AA floor) in
+// sash.css — it is the real finger target on the unrotated mobile strip.
 
 interface Props {
   /** The subject. The one required segment. */
@@ -53,48 +63,85 @@ interface Props {
   detail?: string;
   /**
    * Optional subtext on a second, smaller band below the main one
-   * (`.brutal-sash-under` — inverted ink-on-band colours, the badge's own
-   * token pair; sash.css documents why that inversion is the only colorway).
-   * Page scale + desktop only: hidden ≤768px with `detail`, never rendered at
-   * card scale. Setting it also widens the nav's desktop corner reserve to
-   * 200px (HeaderNavLinks.astro keys on the class with :has()) — proven to
-   * fit at 769px+ on all three engines when the capability landed
-   * (2026-08-28). The sourced-claim rule applies to it like every segment.
+   * (`.brutal-sash-under` — inverted ink-on-band colours; sash.css documents
+   * why that inversion is the only colorway). Hidden 512–768px with `detail`,
+   * never rendered at card scale; on the ≤511 strip it is the second line.
+   * When the sash is a link, the under-band is its OWN link (to `subtextHref`,
+   * or the main `href` absent one). Setting subtext also widens the nav's
+   * desktop corner reserve to 200px (HeaderNavLinks.astro keys on the class
+   * with :has()) — proven to fit at 769px+ on all three engines when the
+   * capability landed (2026-08-28). The sourced-claim rule applies to it like
+   * every segment.
    */
   subtext?: string;
+  /** The under-band link's destination; defaults to `href`. Fragments are the
+   *  point (e.g. '/hub/mcp/#tiers'), guarded by
+   *  tests/integration/announcement-anchor.test.ts. */
+  subtextHref?: string;
+  /** Accessible name for the under-band link; defaults to the raw subtext.
+   *  Override when the subtext carries a visual separator a screen reader
+   *  would read out (a literal pipe is spoken "vertical line"). */
+  subtextAriaLabel?: string;
   /** Makes the band an <a>. Omit for the decorative card scale. */
   href?: string;
   /** 'page' (default) | 'card'. */
   scale?: 'page' | 'card';
   /** Full spoken announcement; composed from the segments when absent. */
   ariaLabel?: string;
-  /** Announcement id — the analytics label is `Sash: <id>`. */
+  /** Announcement id — the analytics labels are `Sash: <id>` and
+   *  `Sash: <id>-under`. */
   id?: string;
 }
 
-const { label, badge, detail, subtext, href, scale = 'page', ariaLabel, id } = Astro.props;
+const {
+  label,
+  badge,
+  detail,
+  subtext,
+  subtextHref,
+  subtextAriaLabel,
+  href,
+  scale = 'page',
+  ariaLabel,
+  id,
+} = Astro.props;
 
 const isLink = scale !== 'card' && href !== undefined;
 
 // Page scale only — the under-band has no card-scale geometry (see docblock).
 const underBand = scale === 'page' && subtext !== undefined;
+// The under-band is a link exactly when the sash is: /brand's specimens pass
+// no href and keep the decorative span.
+const underHref = subtextHref ?? href;
+const underIsLink = underBand && isLink && underHref !== undefined;
 
 const cornerClass = ['brutal-sash-corner', scale !== 'page' && `brutal-sash-corner--${scale}`]
   .filter(Boolean)
   .join(' ');
 
-// The under-band is aria-hidden; its subtext is spoken here instead.
+// The main link speaks the whole announcement (subtext included); the
+// under-band link carries its own, shorter name.
 const spokenLabel =
   ariaLabel ??
   `${badge ? `${badge}: ` : ''}${label}${detail ? ` ${detail}` : ''}${
     underBand ? ` — ${subtext}` : ''
   } — open the linked page`;
+const underSpokenLabel = subtextAriaLabel ?? subtext;
 
 // Destinations are recorded WITHOUT the trailing slash, matching every other
 // trackNavigation call on the site (see HeaderNavLinks.astro) — otherwise the
-// same page arrives in GA4 under two names. `trackNavigation` is put on window
-// by Header.astro, which every page renders through BaseLayout.
-const destination = href ? href.replace(/\/+$/, '') || '/' : '';
+// same page arrives in GA4 under two names. Fragments are PRESERVED (defined
+// here 2026-08-29; there was no prior convention — the guide pages'
+// #request-access links are untracked): '/hub/mcp/#tiers' records as
+// '/hub/mcp#tiers'. The split is what makes the slash-strip work at all — the
+// old one-line regex was a no-op on a fragment URL.
+const toDestination = (raw: string): string => {
+  const hashAt = raw.indexOf('#');
+  const path = hashAt === -1 ? raw : raw.slice(0, hashAt);
+  const fragment = hashAt === -1 ? '' : raw.slice(hashAt);
+  return (path.replace(/\/+$/, '') || '/') + fragment;
+};
+const destination = href ? toDestination(href) : '';
 // The handler is an inline attribute, so a lone apostrophe in a future id or
 // href would end the JS string argument early. Registry values are ours, not
 // user input — this just keeps a typo from becoming a broken page.
@@ -102,6 +149,12 @@ const jsString = (value: string) => value.replace(/\\/g, '\\\\').replace(/'/g, "
 const trackAttrs =
   isLink && id
     ? { onclick: `trackNavigation('${jsString(destination)}', 'Sash: ${jsString(id)}')` }
+    : {};
+const underTrackAttrs =
+  underIsLink && id
+    ? {
+        onclick: `trackNavigation('${jsString(toDestination(underHref!))}', 'Sash: ${jsString(id)}-under')`,
+      }
     : {};
 ---
 
@@ -122,10 +175,20 @@ const trackAttrs =
     )
   }
   {
-    underBand && (
-      <span class="brutal-sash-under" aria-hidden="true">
-        {subtext}
-      </span>
-    )
+    underBand &&
+      (underIsLink ? (
+        <a
+          class="brutal-sash-under"
+          href={underHref}
+          aria-label={underSpokenLabel}
+          {...underTrackAttrs}
+        >
+          {subtext}
+        </a>
+      ) : (
+        <span class="brutal-sash-under" aria-hidden="true">
+          {subtext}
+        </span>
+      ))
   }
 </div>

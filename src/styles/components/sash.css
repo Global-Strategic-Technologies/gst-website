@@ -15,21 +15,33 @@ when a page's sash carries the optional under-band (below), the desktop reserve
 conditionally widens to 200px there, a fourth member keyed on the SAME three
 breakpoints (no new numbers).
 
-  scale          corner box   band width   band top   nav reserve
-  page desktop   200px        260px        50px       168px (200px with under-band)
-  page ≤768px    170px        220px        42px       140px
-  page ≤540px    140px        190px        34px       108px
-  page <512px    not rendered — the nav has no room to yield (see below)
-  card           104px        150px        26px       n/a
+  scale          corner box   band width   band top   label size   nav reserve
+  page desktop   200px        260px        50px       --text-sm    168px (200px with under-band)
+  page ≤768px    170px        220px        42px       --text-xs    140px
+  page ≤540px    140px        190px        34px       --text-xs    108px
+  page ≤511px    IN-FLOW STRIP — full-width two-line banner above the header
+                 (see the bottom of this file); reserve stays 0
+  card           104px        150px        26px       --text-2xs   n/a
 
-UNDER-BAND (optional subtext, page scale + desktop only): top 79px, left −40px,
-width 300px, ~22px tall. Its chord sits ~6px below the main band's and is
-LONGER (it lies nearer the box diagonal), so subtext gets more room than the
+UNDER-BAND (optional subtext, page scale): top 89px, left −47px, width 290px,
+min-height 24px (--touch-target-min-aa — it is a LINK; the AA floor is the real
+finger target on the unrotated strip). Its chord sits below the main band's and
+is LONGER (it lies nearer the box diagonal), so subtext gets more room than the
 headline. The negative `left` is load-bearing: it centres the band on its own
-visible chord (midpoint 110,90), so the corner clips both ends symmetrically —
-at left 0 the content slides toward the bottom-right corner. No ≤768/≤540
-variants exist: the under-band stands down at ≤768 alongside __detail, so the
-desktop triple is its whole geometry.
+visible chord (midpoint ≈98,102), so the corner clips both ends symmetrically —
+at left 0 the content slides toward the bottom-right corner.
+
+The ~13px gap to the main band is NOT only aesthetic — it is an axe
+target-size clearance. Both bands are links, and axe measures UNCLIPPED
+client rects: the under-band's box overlaps the main band's from below, and
+the main band's unobscured strip must stay ≥ 24px tall. Measured 2026-08-29:
+top 89 / width 290 leaves a 26px strip (top 81 / width 300 left 15px and
+axe flagged the MAIN band as partially obscured on / and /hub/). Moving the
+bands closer, widening the under-band, or thickening either band re-shrinks
+that strip — re-run the accessibility suite after any such change.
+
+No ≤768/≤540 variants exist: the under-band hides 512–768px alongside
+__detail, and below 512 it is the strip's second line.
 
 Colour comes from three tokens: --sash-bg and --sash-ink (variables.css, with
 the per-palette ink in palettes.css) draw the bands, borders and hover — the
@@ -94,7 +106,6 @@ moves.)
   transition: background var(--transition-fast);
 }
 
-/* The chip inverts the same two tokens, so it can never lose contrast either. */
 /* The chip left the two-token family 2026-08-28 (operator direction: an
    alternate colour): --sash-badge-bg (the secondary accent, re-pointed for
    palette-1 in palettes.css) under CONSTANT dark ink — --bg-dark, not
@@ -108,12 +119,18 @@ moves.)
   color: var(--bg-dark);
 }
 
-/* One step up the scale (the band's other segments stay --text-2xs): the
-   label is the subject and reads first. The copy-budget table in Sash.astro
-   was re-proven at this size for the live combo. */
+/* Above the band's other segments on the type scale: the label is the subject
+   and reads first. Two steps up (--text-sm) on the DESKTOP page corner only —
+   scoped off the corner so the card sash and the --flat specimen (no corner
+   ancestor) keep their sizes — ramping to --text-xs on the ≤768 tiers (their
+   smaller chords; today's look there). Budgets per tier: Sash.astro. */
 .brutal-sash__label {
   letter-spacing: inherit;
   font-size: var(--text-xs);
+}
+
+.brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash__label {
+  font-size: var(--text-sm);
 }
 
 .brutal-sash__detail {
@@ -125,22 +142,26 @@ moves.)
 
 /* The optional under-band: subtext parallel to and below the main band, page
    scale only (Sash.astro refuses it at card scale — a 104px corner has no
-   second chord to spare). Decorative: pointer-events stay off (inherited from
-   the corner box), the main band remains the only click surface, and the
-   subtext joins the composed aria-label instead. The border mix matches the
-   main band's and is what keeps the inverted fill visible on a dark page.
+   second chord to spare). A LINK in production (its own href, typically a
+   fragment; Sash.astro), so pointer events come back on and the AA
+   touch-target floor applies — the /brand specimens pass no href and render
+   the same class as a decorative span. The border mix matches the main
+   band's and is what keeps the inverted fill visible on a dark page.
    Geometry and the colorway ruling: header comment above. */
 .brutal-sash-under {
   position: absolute;
-  top: 79px;
-  left: -40px;
-  width: 300px;
+  top: 89px;
+  left: -47px;
+  width: 290px;
+  min-height: var(--touch-target-min-aa);
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   padding: var(--spacing-xs) 0;
   transform: rotate(45deg);
+  pointer-events: auto;
+  text-decoration: none;
   font-family: var(--font-family-mono);
   font-size: var(--text-2xs);
   font-weight: var(--font-weight-semibold);
@@ -151,6 +172,7 @@ moves.)
   color: var(--sash-bg);
   border-top: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
   border-bottom: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+  transition: background var(--transition-fast);
 }
 
 /* Hover changes colour only — no transform, no shadow (STYLES_GUIDE § anti-patterns). */
@@ -159,9 +181,22 @@ moves.)
   background: color-mix(in srgb, var(--sash-bg) 82%, var(--bg-dark));
 }
 
+/* The under-band's hover: the family's 82% mix with the poles swapped for the
+   inverted fill (a slight teal lift on the dark band). Measured and shown as
+   a frozen /brand hover specimen, per this file's own colorway ruling. */
+.brutal-sash-under:hover,
+.brutal-sash-under:focus-visible {
+  background: color-mix(in srgb, var(--sash-ink) 82%, var(--sash-bg));
+}
+
 /* Inset: an outside ring would be clipped by the corner box. */
 .brutal-sash:focus-visible {
   outline: 2px solid var(--sash-ink);
+  outline-offset: -4px;
+}
+
+.brutal-sash-under:focus-visible {
+  outline: 2px solid var(--sash-bg);
   outline-offset: -4px;
 }
 
@@ -202,6 +237,12 @@ moves.)
     letter-spacing: 0.1em;
   }
 
+  /* The 170/140 chords are shorter; the label rides one step down here —
+     which is its historical size on these tiers. */
+  .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash__label {
+    font-size: var(--text-xs);
+  }
+
   .brutal-sash__detail {
     display: none;
   }
@@ -239,24 +280,68 @@ moves.)
 
 /* Below 512px the header nav has no corner left to yield: the logo and the four
    links already fill the row (at 375px they fill it with ZERO reserve), so any
-   padding-right pushes the nav past the viewport and the whole document scrolls
-   sideways — measured at 64px of overflow on a 375px phone before this rule.
-   512, not the 440 Chromium alone would allow: WebKit still overflowed by 13px
-   at 440 and by 9px at 486.
-   The sash stands down there rather than costing every page a horizontal
-   scrollbar; it is a redundant entry point, and the same destination stays in
-   the nav and in the hub card. HeaderNavLinks.astro drops the reserve to 0 at
-   the same width — the pair is what makes this safe, since :has() still matches
-   a display:none corner box.
-   The card scale is untouched: it lives inside a card and never meets the nav. */
+   corner OVERLAY pushes the nav past the viewport and the whole document
+   scrolls sideways — measured at 64px of overflow on a 375px phone. 512, not
+   the 440 Chromium alone would allow: WebKit still overflowed by 13px at 440
+   and by 9px at 486.
+   So below 512 the PRODUCTION sash changes FORM instead of hiding: the corner
+   becomes a full-width, in-flow, two-line strip above the header (the sash
+   slot is a direct child of <body> before <Header/>, so a static element
+   lands there naturally). In flow means no overlay, so HeaderNavLinks.astro
+   keeps the reserve at 0 at this width — that pairing is unchanged, and
+   :has() matching the box is harmless because the box costs the nav nothing.
+
+   The strip is a media RESTYLE of the standard classes — a class cannot be
+   toggled by a media query, so .brutal-sash--flat (a separate,
+   documentation-only presentation) is NOT what renders here.
+
+   Keyed on `body >` — the production mount discriminator HeaderNavLinks
+   already uses — so /brand's page-scale specimens (nested in section frames)
+   keep the display:none stand-down below and are unchanged on mobile.
+   The card scale is untouched: it lives inside a card and never meets the nav.
+
+   Notes: the focused .skip-nav (z-10000) briefly overlays the strip's first
+   line — standard skip-nav behavior, transient. __detail stays hidden here
+   (the strip shows badge + label + subtext). z-index is inert on the static
+   box and left as-is for the ≥512 forms. overflow stays hidden: the rows wrap
+   (white-space normal + flex-wrap), so nothing is there to clip. */
 @media (max-width: 511px) {
   .brutal-sash-corner:not(.brutal-sash-corner--card) {
     display: none;
   }
+
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) {
+    display: block;
+    position: static;
+    width: 100%;
+    height: auto;
+    pointer-events: auto;
+  }
+
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash,
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash-under {
+    position: static;
+    transform: none;
+    width: 100%;
+    flex-wrap: wrap;
+    padding: var(--spacing-sm) var(--spacing-md);
+    letter-spacing: 0.06em;
+    white-space: normal;
+    text-align: center;
+  }
+
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash__label {
+    font-size: var(--text-sm);
+  }
+
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash-under {
+    display: flex;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .brutal-sash {
+  .brutal-sash,
+  .brutal-sash-under {
     transition: none;
   }
 }

@@ -105,9 +105,10 @@ const { currentPath = '/', links } = Astro.props;
      reserve); edit both tables or neither, and switch tiers at the same widths
      — 768 / 540 / 512, which are the widths at which each reserve FITS on all
      three engines (WebKit's mono metrics run widest), not the handoff's 768/480.
-     Below 512px the reserve goes to 0 and the sash hides itself: the guard still
-     matches a display:none corner box, so the two rules have to agree or the
-     page gains a horizontal scrollbar.
+     Below 512px the reserve goes to 0 and the sash leaves the corner — it
+     renders as a full-width IN-FLOW strip above the header (sash.css), which
+     costs the nav nothing; the guard still matches the corner box there, so
+     the 0 keeps the pairing honest.
 
      The :has() guard is what keeps every sash-less page byte-identical — no
      sash in the DOM, no padding here. */
@@ -215,7 +216,8 @@ const { currentPath = '/', links } = Astro.props;
     }
   }
 
-  /* Nothing left to yield — sash.css hides the corner box at the same width. */
+  /* Nothing to yield FOR — at the same width sash.css moves the sash out of
+     the corner into the in-flow strip, which costs the nav nothing. */
   @media (max-width: 511px) {
     body:has(> .brutal-sash-corner) ul {
       padding-right: 0;
