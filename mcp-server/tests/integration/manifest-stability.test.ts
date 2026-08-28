@@ -236,7 +236,7 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // Rename (server 0.62.0, 2026-08-26): gst_irl_fill@0.1.0 → gst_irl_create@0.2.0
 // (operator ruling — "create" names the artifact the workflow produces; same
 // body, args, and stop-at-artifact behavior). ONE tuple replaced; no URI moved.
-const EXPECTED_MANIFEST_HASH = '4cf16ee6e418acc1ac470f4fbb4cfc6638ab7491b270c85f79531eeb2a0579da';
+const EXPECTED_MANIFEST_HASH = 'b812125bd92c0a2fd48e22e5141c09e9e026efb3a06b9b5c64daa730480a5577';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

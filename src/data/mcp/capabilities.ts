@@ -853,7 +853,7 @@ export const CAPABILITIES: readonly Capability[] = [
       'The blank rows, which are the remaining ask to the target.',
     ],
     noteTitle: 'It stops at the artifact',
-    note: 'The prompt does not run the diligence sweep. The operator reviews the populated workbook first, then runs the ingestion exactly as for a target-returned one. Re-running with new evidence extends the file rather than overwriting it.',
+    note: 'The prompt does not run the diligence sweep. The operator reviews the populated workbook first, then runs gst_irl_sweep on it exactly as for a target-returned one. Re-running with new evidence extends the file rather than overwriting it.',
     availability: PROMPT_LINE,
     related: ['fill_information_request_list_xlsx', 'gst_irl_extract', 'gst_irl_sweep'],
   },

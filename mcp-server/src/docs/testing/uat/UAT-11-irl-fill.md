@@ -22,7 +22,7 @@
 **Expected**
 
 - Success payload: `filename` (`GST-IRL-UAT-Eleven-Corp-<date>.xlsx`), `base64`, `mimeType`, `filledRowCount: 3`, `blankRowCount` = `bulletCount − 3`, `filledRefs: ["0-01", "1-01", "9-01"]`.
-- The summary names the blank rows as the remaining ask and tells the operator to review and then run `gst_irl_ingestion` themselves — the tool must NOT have invoked any further tool.
+- The summary names the blank rows as the remaining ask and tells the operator to review and then run `gst_irl_sweep` themselves (server 0.63.0 moved the recommendation off `gst_irl_ingestion`, which still coexists) — the tool must NOT have invoked any further tool, and the prohibition the body carries now names both prompts.
 
 **If it looks wrong**
 

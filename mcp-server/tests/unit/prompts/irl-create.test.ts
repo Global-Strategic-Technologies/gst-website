@@ -25,7 +25,7 @@ function render(args: Record<string, unknown>): string {
 describe('gst_irl_create — registry shape', () => {
   it('carries the registry invariants (name, version, orchestrates, no consumesTargetEvidence)', () => {
     expect(irlCreatePrompt.name).toBe('gst_irl_create');
-    expect(irlCreatePrompt.version).toBe('0.2.0');
+    expect(irlCreatePrompt.version).toBe('0.3.0');
     expect(irlCreatePrompt.orchestrates).toEqual([
       IRL_SOURCE_EMBED_URI,
       'fill_information_request_list_xlsx',
@@ -113,12 +113,16 @@ describe('gst_irl_create — one-shot body', () => {
 
   it('stops at the artifact: forbids the sweep instead of instructing it', () => {
     expect(body).toContain('Stop at the artifact');
+    // BOTH ingestion prompts are named in the prohibition. The recommendation
+    // moved to `gst_irl_sweep` in 0.3.0, and a guard naming only the one the
+    // body no longer recommends would leave the recommended path un-forbidden,
+    // which is the exact auto-invocation the checkpoint exists to prevent.
     expect(body).toContain(
-      'do NOT invoke `gst_irl_ingestion`, `prepare_irl_body`, or any other tool after the fill call'
+      'do NOT invoke `gst_irl_sweep`, `gst_irl_ingestion`, `prepare_irl_body`, or any other tool after the fill call'
     );
     expect(body).toContain('human review checkpoint');
-    // The ingestion prompt is only ever named as the operator's OWN next step.
-    expect(body).toContain('runs `gst_irl_ingestion` themselves');
+    // The sweep is only ever named as the operator's OWN next step.
+    expect(body).toContain('runs `gst_irl_sweep` themselves');
   });
 
   it('states the base64-only delivery residual (no Hub page for populated workbooks)', () => {
@@ -136,6 +140,6 @@ describe('gst_irl_create — interactive body', () => {
 
   it('carries the same sourcing rules and stop-at-artifact discipline as one-shot', () => {
     expect(body).toContain('Bare unattributable inference stays unwritten');
-    expect(body).toContain('do NOT invoke `gst_irl_ingestion`');
+    expect(body).toContain('do NOT invoke `gst_irl_sweep`, `gst_irl_ingestion`');
   });
 });
