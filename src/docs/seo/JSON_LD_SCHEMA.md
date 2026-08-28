@@ -683,7 +683,7 @@ Unmapped slugs are auto-formatted: hyphens replaced with spaces, words capitaliz
 
 Enables FAQ rich results in Google SERPs when a page contains structured question/answer content. Currently active on three pages: Services, Regulatory Map, and the Hub landing page — the Hub entry was missing from this list rather than new. What the `/hub/mcp/` marketing surface added was an MCP **answer** on Services and on the Hub landing page; Regulatory Map's FAQ is untouched by it.
 
-**Answer strings are passed verbatim into `acceptedAnswer.text`** by `SEO.astro`, so an answer containing markup puts that markup in the structured data. Two answers now embed a relative `<a href>`; see the open BL-093 item on whether to strip tags or absolutize the URL for the JSON-LD copy.
+**Answer strings flow into `acceptedAnswer.text` with root-relative hrefs absolutized** by `SEO.astro` (`absolutizeFaqHrefs`), so an answer may embed limited HTML — Google's FAQ rich-result guidance allows anchors — and a site-relative `<a href="/hub/mcp/">` in the authored data becomes `https://globalstrategic.tech/hub/mcp/` in the structured-data copy only; the rendered `set:html` answer keeps the relative form. This is the pattern for FAQ answers that link: author the href root-relative with double quotes, exactly as elsewhere in the page, and let the component absolutize. Tags are deliberately NOT stripped: the anchor is meaningful in rich results, and stripping would diverge the two copies for no gain.
 
 ### Schema Definition
 
