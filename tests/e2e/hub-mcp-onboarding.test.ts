@@ -106,9 +106,6 @@ for (const guide of GUIDES) {
     test('next-step cards render as gateway cards with resolvable routes', async ({ page }) => {
       const cards = page.locator('.brutal-gateway-grid .brutal-gateway-card');
       await expect(cards).toHaveCount(3);
-      // Every card CTA is a same-site link; /hub/mcp/docs/ is a known
-      // not-yet-built target (operator decision 2026-08-27), so only shape is
-      // asserted here, not navigability.
       const ctas = page.locator('.brutal-gateway-card__cta');
       await expect(ctas).toHaveCount(3);
       for (const href of await ctas.evaluateAll((els) =>
@@ -116,6 +113,15 @@ for (const guide of GUIDES) {
       )) {
         expect(href).toMatch(/^\/(hub|downloads)\//);
       }
+    });
+
+    test('the Read docs card reaches the capability reference', async ({ page }) => {
+      // This assertion replaces a comment recording /hub/mcp/docs/ as a known
+      // not-yet-built target. It shipped, so the link is now navigable and the
+      // suite says so rather than asserting shape only.
+      await page.locator('a[href="/hub/mcp/docs/"]').first().click();
+      await expect(page).toHaveURL(/\/hub\/mcp\/docs\/$/);
+      await expect(page.locator('h1')).toHaveText('MCP Documentation');
     });
 
     if (guide.clips > 0) {
@@ -174,12 +180,17 @@ test.describe('MCP onboarding — cross-page wiring', () => {
     await expect(page.locator('#request-access')).toHaveCount(1);
   });
 
-  test('the parent page guides section links all three guides', async ({ page }) => {
+  test('the parent page guides section links all four guides', async ({ page }) => {
     await page.goto('/hub/mcp/');
     const grid = page.locator('.mcp-guides');
     for (const guide of GUIDES) {
       await expect(grid.locator(`a[href="${guide.route}"]`)).toHaveCount(1);
     }
+    // The docs page is the fourth card. It is deliberately NOT a GUIDES entry:
+    // that list drives per-guide describes expecting a sticky TOC and clips,
+    // neither of which the two-lens reference has.
+    await expect(grid.locator('a[href="/hub/mcp/docs/"]')).toHaveCount(1);
+    await expect(grid.locator('.brutal-gateway-card')).toHaveCount(4);
   });
 
   test('the Northwind demo IRL downloads from the advanced-operations page link', async ({
