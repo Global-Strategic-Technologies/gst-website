@@ -9,6 +9,13 @@ name: Docs link integrity
 #   - `tests/integration/design-sync-guards.test.ts` (BL-135): the claude.ai/design
 #     sync — names the `.design-sync/` docs use exist in src/styles, ROOTS
 #     coverage, specimen typecheck, chrome slices resolve, README ceiling.
+#   - `tests/integration/mcp-published-tool-count.test.ts`: the ten tool counts
+#     published across ARCHITECTURE.md, BREAKING_CHANGES.md and the two
+#     mcp-server READMEs — on three different bases (stdio registrations /
+#     stdio minus the deprecated alias / remote Worker) — bound to what
+#     `server.ts` and `tools/_local-only.ts` actually register. It lives here
+#     rather than only in test.yml for the reason stated below: the numbers it
+#     guards are IN markdown, so the commits that break them are docs-only.
 # The authoritative list is `test:docs` in package.json; DEVELOPER_TOOLING.md
 # describes each guard.
 #
