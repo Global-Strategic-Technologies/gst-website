@@ -1,0 +1,108 @@
+---
+/**
+ * One card in the Workflows lens: what the workflow is for, and the ordered
+ * steps that run it. Each step links into the Reference lens at that
+ * capability's contract, which is the whole point of the two-lens page.
+ *
+ * Steps are anchors, not the prototype's buttons: a step is an address, it
+ * works without JS, and `:target` does the reveal.
+ */
+import type { Workflow } from '../../../data/mcp/capabilities';
+import { capabilityAnchor } from '../../../utils/mcp-capability-search';
+
+interface Props {
+  workflow: Workflow;
+}
+
+const { workflow } = Astro.props;
+---
+
+<article class="mdoc-flow">
+  <div class="mdoc-flow__intro">
+    <h3 class="mdoc-flow__title">{workflow.title}</h3>
+    <p class="brutal-text-small mdoc-flow__desc">{workflow.description}</p>
+  </div>
+  <div class="mdoc-flow__steps">
+    {
+      workflow.steps.map((step, index) => (
+        <a class="mdoc-step" href={`#${capabilityAnchor(step.capabilityId)}`}>
+          <span class="brutal-label-small mdoc-step__label">
+            {String(index + 1).padStart(2, '0')} · {step.kind}
+          </span>
+          <span class="mdoc-step__id">{step.capabilityId}</span>
+          <span class="brutal-text-tiny mdoc-step__gloss">{step.gloss}</span>
+        </a>
+      ))
+    }
+  </div>
+</article>
+
+<style>
+  .mdoc-flow {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: var(--spacing-2xl);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding: var(--spacing-xl);
+  }
+
+  .mdoc-flow__title {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-lg);
+    margin: 0 0 var(--spacing-sm);
+  }
+
+  .mdoc-flow__desc {
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .mdoc-flow__steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .mdoc-step {
+    display: block;
+    text-decoration: none;
+    border-left: 3px solid var(--color-primary);
+    padding: 4px 0 4px var(--spacing-md);
+    min-height: var(--touch-target-min);
+    transition: background var(--transition-fast);
+  }
+
+  .mdoc-step:hover {
+    background: var(--accent-faint-bg);
+  }
+
+  .mdoc-step__label {
+    display: block;
+    color: var(--text-muted);
+  }
+
+  .mdoc-step__id {
+    display: block;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--color-primary);
+    overflow-wrap: anywhere;
+  }
+
+  .mdoc-step__gloss {
+    display: block;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  @media (max-width: 768px) {
+    .mdoc-flow {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
+
+    .mdoc-flow__steps {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

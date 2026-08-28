@@ -3,6 +3,10 @@
  *
  * Handles: clipboard write, text swap on button (or optional target element),
  * optional CSS class toggle, and configurable reset duration.
+ *
+ * `initCopyButtons` at the bottom is the delegated wiring the MCP pages share.
+ * It is exported separately so the five other importers of this module pull
+ * only `copyWithFeedback`.
  */
 export async function copyWithFeedback(
   text: string,
@@ -59,4 +63,40 @@ export async function copyWithFeedback(
   }
   target.textContent = successLabel;
   setTimeout(reset, duration);
+}
+
+/**
+ * Document-level copy delegation for the MCP pages.
+ *
+ * `[data-copy]` copies its own attribute value. `[data-copy-prev]` walks up to
+ * the nearest ancestor holding a `[data-snippet]` and copies that element's
+ * text, which is how a multi-line snippet stays authored in the markup rather
+ * than duplicated into an attribute.
+ *
+ * Delegated from `document`, so panes and rows that were not in the DOM at wiring
+ * time still work. Lived inline in `mcp-onboarding.ts` until `/hub/mcp/docs/`
+ * needed the same behavior; one definition, both pages.
+ */
+export function initCopyButtons(): void {
+  document.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>(
+      '[data-copy],[data-copy-prev]'
+    );
+    if (!btn) return;
+    let text = btn.getAttribute('data-copy');
+    if (text === null) {
+      // Walk up until a snippet is actually in scope — the nearest wrapper is
+      // usually the button's own footer row, which holds no snippet.
+      let box: HTMLElement | null = btn.parentElement;
+      let snip: HTMLElement | null = null;
+      while (box && !(snip = box.querySelector('[data-snippet]'))) box = box.parentElement;
+      text = snip?.textContent?.trim() ?? '';
+    }
+    if (!text) return;
+    void copyWithFeedback(text, btn, {
+      label: 'Copied',
+      duration: 1600,
+      copiedClass: 'brutal-btn--copied',
+    });
+  });
 }

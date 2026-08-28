@@ -22,6 +22,7 @@ export const BREADCRUMB_NAMES: Record<string, string> = {
   'get-started': 'Get Started',
   using: 'Using the Server',
   'advanced-operations': 'Advanced Operations',
+  docs: 'Documentation',
   techpar: 'TechPar',
   'regulatory-map': 'Regulatory Map',
   'tech-debt-calculator': 'Tech Debt Calculator',

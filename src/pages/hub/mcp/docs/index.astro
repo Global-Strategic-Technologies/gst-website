@@ -1,0 +1,353 @@
+---
+/**
+ * `/hub/mcp/docs/` — the public capability reference for the GST MCP Server.
+ *
+ * Two lenses over one registry (`src/data/mcp/capabilities.ts`): Workflows
+ * answers "what do I do?", Reference answers "what exactly does X take and
+ * return?". Nothing on this page hardcodes a capability name or a count; the
+ * sidebar, the counts, the search index and all 34 contract panes are derived.
+ *
+ * The whole document renders server-side and is VISIBLE by default, so a reader
+ * without JS gets one linear reference. The inline bootstrap below adds `js` to
+ * `<html>` before the panes parse, and from there CSS collapses the page to one
+ * lens and one pane. See ADR-0023.
+ */
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import CapabilityContract from '../../../../components/hub/mcp/CapabilityContract.astro';
+import CapabilityNav from '../../../../components/hub/mcp/CapabilityNav.astro';
+import WorkflowCard from '../../../../components/hub/mcp/WorkflowCard.astro';
+import { CAPABILITIES, DEFAULT_CAPABILITY_ID, WORKFLOWS } from '../../../../data/mcp/capabilities';
+import { capabilityCounts } from '../../../../utils/mcp-capability-search';
+// `filter.css` is code-split, NOT site-wide (see the roster comment in
+// global.css). This page renders `.brutal-search*` for the capability lookup and
+// `.brutal-filter-chip` for the orchestrates / related / workflow chips, so it
+// has to bring the sheet itself; without it both render as unstyled markup.
+import '../../../../styles/components/filter.css';
+
+const counts = capabilityCounts(CAPABILITIES);
+const knownIds = new Set(CAPABILITIES.map((cap) => cap.id));
+
+// Operations has no count in the sidebar: three topics is not an inventory
+// figure a reader wants, and a number there would invite comparison with the
+// other three groups, which count very different things.
+const groupCounts: Record<string, number> = {
+  Tools: counts.tools,
+  Prompts: counts.prompts,
+  Resources: counts.resources,
+};
+
+const countLinks = [
+  { group: 'Tools', label: `${counts.tools} tools` },
+  { group: 'Resources', label: `${counts.resources} resources` },
+  { group: 'Prompts', label: `${counts.prompts} prompts` },
+];
+---
+
+<BaseLayout
+  title="GST MCP Server Documentation | GST"
+  description="Every GST MCP capability, two ways: four task workflows, and a contract per tool, prompt, resource family and operations topic with its arguments, example and availability."
+  ogTitle="GST MCP Server Documentation"
+  ogDescription="Four workflows and a contract for every capability: arguments, examples, what comes back, and what it costs you in rate budget."
+  ogImage="/og-image.png"
+  ogImageAlt="GST MCP Server - capability documentation"
+  ogUrl="https://globalstrategic.tech/hub/mcp/docs/"
+>
+  <section class="mdoc-section">
+    <script is:inline>
+      // Runs BEFORE the panes below are parsed, which is the whole point: the
+      // `js` class is what collapses the document to one lens and one pane, so
+      // a reader with JS never sees the expanded version paint. The two data
+      // attributes carry the hash's meaning to CSS; `:target` does the rest.
+      // `mcp-docs.ts` repeats this logic on `hashchange` and the two must agree.
+      (function () {
+        const root = document.documentElement;
+        const hash = location.hash.slice(1);
+        root.classList.add('js');
+        if (hash.indexOf('cap-') === 0) {
+          root.dataset.lens = 'reference';
+          root.dataset.cap = hash;
+        } else if (hash === 'reference') {
+          root.dataset.lens = 'reference';
+        } else {
+          root.dataset.lens = 'workflows';
+        }
+      })();
+    </script>
+
+    <div class="container">
+      <div class="mdoc-head">
+        <div class="brutal-label mdoc-head__label">Capability reference</div>
+        <h1 class="brutal-heading-lg mdoc-head__title">MCP Documentation</h1>
+        <div class="mdoc-toolbar">
+          <div class="mdoc-search" data-cap-search hidden>
+            <div class="brutal-search">
+              <svg
+                class="brutal-search__icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"></circle>
+                <path
+                  d="M10.5 10.5L14.5 14.5"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"></path>
+              </svg>
+              <input
+                type="search"
+                class="brutal-search__input"
+                placeholder="Find a capability..."
+                aria-label="Find a capability by name or description"
+                autocomplete="off"
+                role="combobox"
+                aria-expanded="false"
+                aria-controls="mdoc-search-results"
+                data-cap-search-input
+              />
+            </div>
+            <div
+              class="brutal-search__results mdoc-search__results"
+              id="mdoc-search-results"
+              role="listbox"
+              aria-label="Capability search results"
+              data-cap-search-results
+              hidden
+            >
+            </div>
+          </div>
+          <div class="brutal-segmented mdoc-lens-switch">
+            <a
+              class="brutal-segmented__btn"
+              href="#workflows"
+              data-lens-link="workflows"
+              title="How GST's MCP capabilities combine to support analysis, step by step, by task"
+              >Workflows</a
+            >
+            <a
+              class="brutal-segmented__btn"
+              href="#reference"
+              data-lens-link="reference"
+              title="Every capability's contract: arguments, examples, availability">Reference</a
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="mdoc-lens mdoc-lens--workflows" id="workflows">
+        <h2 class="brutal-heading-md mdoc-lens__title">What do you need to do?</h2>
+        <p class="brutal-text-base mdoc-intro">
+          Each workflow names its steps and links each step to the capability that runs it. Select
+          any step to open its contract in Reference.
+        </p>
+        <p class="mdoc-counts">
+          {
+            countLinks.map((link, index) => (
+              <>
+                {index > 0 && <span class="mdoc-counts__sep">·</span>}
+                <a
+                  class="mdoc-counts__link"
+                  href="#reference"
+                  data-group-jump={link.group}
+                  title={`Open ${link.group} in Reference`}
+                >
+                  {link.label}
+                </a>
+              </>
+            ))
+          }
+        </p>
+        <div class="mdoc-flows">
+          {WORKFLOWS.map((workflow) => <WorkflowCard workflow={workflow} />)}
+        </div>
+      </div>
+
+      <div class="mdoc-lens mdoc-lens--reference" id="reference">
+        <div class="mdoc-ref">
+          <CapabilityNav capabilities={CAPABILITIES} counts={groupCounts} />
+          <div class="mdoc-panes">
+            {
+              CAPABILITIES.map((capability) => (
+                <CapabilityContract
+                  capability={capability}
+                  isDefault={capability.id === DEFAULT_CAPABILITY_ID}
+                  workflows={WORKFLOWS}
+                  knownIds={knownIds}
+                />
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import '../../../../utils/mcp-docs';
+</script>
+
+<style>
+  .mdoc-section {
+    padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+  }
+
+  .mdoc-section .container {
+    max-width: 1360px;
+  }
+
+  .mdoc-head__label {
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .mdoc-head__title {
+    margin: 0 0 var(--spacing-lg);
+  }
+
+  .mdoc-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .mdoc-search {
+    position: relative;
+    width: 280px;
+  }
+
+  .mdoc-search__results {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  /* Result rows are anchors built at runtime, so they carry no scope attribute
+     and `:global` is the only way to reach them. Everything else about them is
+     design-system styling; this is the one thing `.brutal-search__result` does
+     not cover, since it was written for buttons. */
+  .mdoc-search__results :global(a) {
+    text-decoration: none;
+  }
+
+  .mdoc-lens-switch {
+    flex-shrink: 0;
+  }
+
+  .mdoc-lens-switch .brutal-segmented__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--touch-target-min);
+    text-decoration: none;
+  }
+
+  .mdoc-lens__title {
+    margin: 0 0 var(--spacing-sm);
+  }
+
+  .mdoc-intro {
+    color: var(--text-secondary);
+    max-width: 760px;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .mdoc-counts {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 0 0 var(--spacing-2xl);
+  }
+
+  .mdoc-counts__link {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 4px 2px;
+    min-height: var(--touch-target-min-aa);
+    white-space: nowrap;
+    transition: color var(--transition-fast);
+  }
+
+  .mdoc-counts__link:hover {
+    color: var(--color-primary);
+  }
+
+  .mdoc-counts__sep {
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+  }
+
+  .mdoc-flows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+  }
+
+  .mdoc-ref {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 0;
+  }
+
+  .mdoc-panes {
+    padding: 0 0 0 var(--spacing-2xl);
+    min-width: 0;
+  }
+
+  /* The sticky site header would otherwise sit over a lens the reader just
+     jumped to. Same value the onboarding guides use. */
+  .mdoc-lens {
+    scroll-margin-top: 80px;
+  }
+
+  /* --- JS-only state -----------------------------------------------------
+     Without the `js` class every lens stays visible and the page reads as one
+     linear document. With it, exactly one lens shows, keyed on the attribute
+     the inline bootstrap wrote before any of this parsed. `:global(html…)`
+     because the scope attribute cannot land on the root element. */
+  :global(html.js) .mdoc-lens {
+    display: none;
+  }
+
+  :global(html.js[data-lens='workflows']) .mdoc-lens--workflows {
+    display: block;
+  }
+
+  :global(html.js[data-lens='reference']) .mdoc-lens--reference {
+    display: block;
+  }
+
+  @media (max-width: 768px) {
+    .mdoc-ref {
+      grid-template-columns: 1fr;
+    }
+
+    .mdoc-panes {
+      padding: var(--spacing-lg) 0 0;
+    }
+
+    .mdoc-toolbar {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .mdoc-search {
+      width: 100%;
+    }
+
+    .mdoc-lens-switch {
+      width: 100%;
+    }
+  }
+</style>

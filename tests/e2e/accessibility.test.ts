@@ -1,7 +1,7 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA + 2.2 AA scanning.
  *
- * Scans 26 critical pages for accessibility violations.
+ * Scans 27 critical pages for accessibility violations.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -49,8 +49,10 @@ const PAGES: A11yPage[] = [
   { name: 'MCP Get Started', path: '/hub/mcp/get-started/', waitFor: 'h1' },
   { name: 'MCP Using the Server', path: '/hub/mcp/using/', waitFor: 'h1' },
   { name: 'MCP Advanced Operations', path: '/hub/mcp/advanced-operations/', waitFor: 'h1' },
+  { name: 'MCP Documentation', path: '/hub/mcp/docs/', waitFor: 'h1' },
   // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline);
-  // 23 as of the /hub/mcp/ marketing page; 26 as of the three MCP onboarding guides.
+  // 23 as of the /hub/mcp/ marketing page; 26 as of the three MCP onboarding
+  // guides; 27 as of the capability reference.
   // Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting

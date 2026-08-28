@@ -1,0 +1,216 @@
+/**
+ * Capability-registry parity guard for `/hub/mcp/docs/`.
+ *
+ * The docs page publishes an authored description of every MCP capability
+ * rather than generating one from `mcp-server/src/docs` (ADR-0023). That trade
+ * is only defensible if the LOAD-BEARING half cannot rot: identifiers,
+ * orchestration lists, counts and the resource inventory are all bound to
+ * server source here, so adding, renaming or deleting a tool fails this suite
+ * rather than leaving a stale contract on a public page.
+ *
+ * It IMPORTS the registry rather than scanning the page's markup. The shared
+ * `extractAstroMarkup` reader reduces `.astro` SOURCE with components
+ * unexpanded, which works for `/hub/mcp/` because that page hardcodes every
+ * name inline; this page renders 34 panes from the data module through a
+ * component, so its markup region contains no capability ids at all and a
+ * markup assertion here would be vacuous. That the page actually renders every
+ * entry is proved in `tests/e2e/hub-mcp-docs.test.ts`, in the no-JS context.
+ */
+import { describe, expect, it } from 'vitest';
+import {
+  CAPABILITIES,
+  DEFAULT_CAPABILITY_ID,
+  WORKFLOWS,
+  type Capability,
+} from '../../src/data/mcp/capabilities';
+import { capabilitySlug } from '../../src/utils/mcp-capability-search';
+import {
+  EXPECTED_PROMPT_COUNT,
+  EXPECTED_REMOTE_TOOL_COUNT,
+  registeredPromptNames,
+  registeredToolNames,
+  resourceInventory,
+  sweepOrchestratedToolNames,
+  targetQuickLookOrchestratedToolNames,
+  SERVER_PATH,
+} from './helpers/mcp-registry';
+
+const remoteTools = registeredToolNames(SERVER_PATH);
+const prompts = registeredPromptNames();
+const inventory = resourceInventory();
+
+const ids = CAPABILITIES.map((cap) => cap.id);
+const byId = new Map(CAPABILITIES.map((cap) => [cap.id, cap]));
+const inGroup = (group: Capability['group']) =>
+  CAPABILITIES.filter((cap) => cap.group === group).map((cap) => cap.id);
+
+/** Every authored string in the registry, which is what the copy rules govern. */
+function allStrings(): string[] {
+  const out: string[] = [];
+  const walk = (value: unknown): void => {
+    if (typeof value === 'string') out.push(value);
+    else if (Array.isArray(value)) value.forEach(walk);
+    else if (value && typeof value === 'object') Object.values(value).forEach(walk);
+  };
+  walk(CAPABILITIES);
+  walk(WORKFLOWS);
+  return out;
+}
+
+const strings = allStrings();
+
+describe('MCP docs registry — extraction sanity', () => {
+  it('reads a non-empty registry from source', () => {
+    // Vacuity guard: every assertion below would pass over empty sets.
+    expect(remoteTools).toHaveLength(EXPECTED_REMOTE_TOOL_COUNT);
+    expect(prompts).toHaveLength(EXPECTED_PROMPT_COUNT);
+    expect(CAPABILITIES.length).toBeGreaterThan(30);
+    expect(strings.length).toBeGreaterThan(200);
+  });
+});
+
+describe('MCP docs registry — server parity', () => {
+  it('documents exactly the registered remote tools', () => {
+    expect([...inGroup('Tools')].sort()).toEqual([...remoteTools].sort());
+  });
+
+  it('documents exactly the registered prompts', () => {
+    expect([...inGroup('Prompts')].sort()).toEqual([...prompts].sort());
+  });
+
+  it('keeps gst_irl_ingestion listed while it is still registered', () => {
+    // The two ingestion prompts coexist deliberately. When the server drops
+    // this one, the first assertion in this block fails and the page's
+    // coexistence callout has to be revisited in the same change.
+    expect(prompts).toContain('gst_irl_ingestion');
+    const ingestion = byId.get('gst_irl_ingestion');
+    expect(`${ingestion?.noteTitle} ${ingestion?.note}`).toMatch(/coexist/i);
+    // And it is never published as deprecated: the server makes no such
+    // commitment, so neither does this page.
+    expect(`${ingestion?.gloss} ${ingestion?.note}`).not.toMatch(/deprecat|scheduled for removal/i);
+  });
+
+  it('publishes the sweep orchestration list as the server declares it', () => {
+    const published = byId.get('gst_irl_sweep')?.orchestrates ?? [];
+    expect(published).toEqual(sweepOrchestratedToolNames());
+    expect(published.length).toBe(9);
+  });
+
+  it('publishes the quick-look orchestration list as the server declares it', () => {
+    const published = byId.get('gst_target_quick_look')?.orchestrates ?? [];
+    expect(published).toEqual(targetQuickLookOrchestratedToolNames());
+  });
+
+  it('names no tool the server does not register', () => {
+    // Covers every orchestration list at once, in the direction the two exact
+    // assertions above cannot: a prompt citing a deleted tool.
+    const cited = CAPABILITIES.flatMap((cap) => cap.orchestrates ?? []).filter((name) =>
+      /^[a-z][a-z0-9_]+$/.test(name)
+    );
+    expect(cited.length).toBeGreaterThan(20);
+    expect(cited.filter((name) => !remoteTools.includes(name))).toEqual([]);
+  });
+
+  it('publishes the resource inventory the loaders actually hold', () => {
+    const families = CAPABILITIES.filter((cap) => cap.group === 'Resources');
+    expect(families.map((f) => f.count)).toEqual([
+      inventory.library,
+      inventory.regulations,
+      inventory.radar,
+    ]);
+    expect(families.reduce((sum, f) => sum + (f.count ?? 0), 0)).toBe(inventory.total);
+  });
+});
+
+describe('MCP docs registry — internal integrity', () => {
+  it('has no duplicate ids', () => {
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('gives every capability a unique, URL-safe anchor', () => {
+    // Six ids are not identifiers (`gst://radar/…`, `Rate limits`), so the slug
+    // is what makes them addressable at all. A collision would make one pane
+    // unreachable and silently show another.
+    const slugs = ids.map(capabilitySlug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9_]+(-[a-z0-9_]+)*$/);
+  });
+
+  it('resolves every related and orchestrates chip to a real capability', () => {
+    const dangling = CAPABILITIES.flatMap((cap) =>
+      [...(cap.related ?? []), ...(cap.orchestrates ?? [])]
+        .filter((ref) => !byId.has(ref))
+        .map((ref) => `${cap.id} -> ${ref}`)
+    );
+    expect(dangling).toEqual([]);
+  });
+
+  it('resolves every workflow step to a real capability', () => {
+    const steps = WORKFLOWS.flatMap((w) => w.steps);
+    expect(steps.length).toBe(12);
+    expect(steps.filter((s) => !byId.has(s.capabilityId)).map((s) => s.capabilityId)).toEqual([]);
+  });
+
+  it('resolves every usedIn key to a real workflow', () => {
+    const keys = new Set(WORKFLOWS.map((w) => w.key));
+    const used = CAPABILITIES.flatMap((cap) => cap.usedIn ?? []);
+    expect(used.length).toBeGreaterThan(0);
+    expect(used.filter((key) => !keys.has(key))).toEqual([]);
+  });
+
+  it('opens Reference on a capability that exists', () => {
+    expect(byId.has(DEFAULT_CAPABILITY_ID)).toBe(true);
+  });
+
+  it('anchors every example on the capability it documents', () => {
+    // A copied example that calls a different tool is worse than none.
+    for (const cap of CAPABILITIES) {
+      if (!cap.example) continue;
+      expect(cap.example.startsWith(`${cap.id}(`)).toBe(true);
+    }
+  });
+});
+
+describe('MCP docs registry — copy guardrails', () => {
+  it('uses no em dashes', () => {
+    expect(strings.filter((s) => s.includes('—'))).toEqual([]);
+  });
+
+  it('links no docs subdomain', () => {
+    // `/hub/mcp/docs/` is the one published address for this reference. The
+    // subdomain is a Worker-served alias that only ever redirects, so a second
+    // name in copy is how two addresses drift apart. (Until the alias deploys it
+    // would also simply fail to resolve.)
+    expect(strings.filter((s) => s.includes('docs.mcp.'))).toEqual([]);
+  });
+
+  it('publishes no uptime figure or availability percentage', () => {
+    // No pilot SLA is contractually committed; a number here would read as one.
+    expect(strings.filter((s) => /\d\s?%/.test(s))).toEqual([]);
+    expect(strings.filter((s) => /\buptime\b/i.test(s))).toEqual([]);
+    expect(strings.filter((s) => /\bSLA\b/.test(s))).toEqual([]);
+  });
+
+  it('keeps the non-contractual framing on rate ceilings', () => {
+    const rateLimits = byId.get('Rate limits');
+    expect(rateLimits?.note).toMatch(/not ratified service quotas/);
+    expect(rateLimits?.noteTitle).toMatch(/[Tt]unable/);
+    // Every tool that states availability carries the same framing, so a reader
+    // meets it wherever they land rather than only on the operations topic.
+    const availabilities = CAPABILITIES.filter(
+      (cap) => cap.group === 'Tools' && cap.availability
+    ).map((cap) => cap.availability ?? '');
+    expect(availabilities.length).toBe(EXPECTED_REMOTE_TOOL_COUNT);
+    for (const line of availabilities) {
+      expect(line).toMatch(/not contractual quotas/);
+    }
+  });
+
+  it('publishes no operator-only material', () => {
+    // The published set is reviewed against AUTH.md / DEPLOY.md so admin
+    // endpoints, key rotation and storage internals stay private.
+    for (const pattern of [/wrangler/i, /upstash/i, /\/admin\//, /MCP_KEY_/, /secret put/i]) {
+      expect(strings.filter((s) => pattern.test(s))).toEqual([]);
+    }
+  });
+});

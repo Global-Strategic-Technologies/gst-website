@@ -93,6 +93,51 @@ export function sweepOrchestratedToolNames(): string[] {
 }
 
 /**
+ * The tool names `gst_target_quick_look` orchestrates, read from its prompt
+ * module's `orchestrates` literal. `/hub/mcp/docs/` publishes that list on the
+ * prompt's contract, so the guard needs the source of it.
+ *
+ * Anchored on `orchestrates: [` rather than on a named const: unlike the sweep,
+ * this prompt declares the array inline in its definition.
+ */
+export function targetQuickLookOrchestratedToolNames(): string[] {
+  const src = read(`${PROMPTS_DIR}/target-quick-look.ts`);
+  const block = src.match(/orchestrates: \[([\s\S]*?)\]/)?.[1] ?? '';
+  return [...block.matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]);
+}
+
+/**
+ * The published resource inventory: 4 library + 123 regulations + 6 radar.
+ *
+ * Derived rather than asserted, and derived HERE rather than in a suite, because
+ * both `/hub/mcp/` and `/hub/mcp/docs/` publish these numbers and two private
+ * derivations could disagree while both passing. Same single-definition policy
+ * the tool and prompt readers above follow.
+ *
+ * Radar is `fyi/latest` + `wire/latest` + one wire feed per category.
+ */
+export function resourceInventory(): {
+  library: number;
+  regulations: number;
+  radar: number;
+  total: number;
+} {
+  const library = (
+    read('mcp-server/src/content/library-loader.ts').match(/uri: 'gst:\/\/library\//g) ?? []
+  ).length;
+  const regulations = readdirSync(resolve('src/data/regulatory-map')).filter((f) =>
+    f.endsWith('.json')
+  ).length;
+  const radarCategories = (
+    read('mcp-server/src/content/radar-transform.ts')
+      .match(/export const RADAR_CATEGORIES[\s\S]*?\]/)?.[0]
+      .match(/'[a-z-]+'/g) ?? []
+  ).length;
+  const radar = 2 + radarCategories;
+  return { library, regulations, radar, total: library + regulations + radar };
+}
+
+/**
  * The sweep's completeness-check rule text (`IRL_COMPLETENESS_CHECK`), whose
  * halt predicate — zero substantive cells OR ratio below 5% — the onboarding
  * guide restates. Returned raw so a guard can pin both arms.

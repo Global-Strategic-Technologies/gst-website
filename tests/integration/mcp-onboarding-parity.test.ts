@@ -151,7 +151,12 @@ describe('MCP onboarding pages — hostnames and guardrails', () => {
     expect(markup.getStarted).toContain('status.mcp.globalstrategic.tech');
   });
 
-  it('never links the docs subdomain, which does not exist', () => {
+  it('links no docs subdomain, since the reference has one published address', () => {
+    // One public surface carries one published address. `/hub/mcp/docs/` is the
+    // capability reference (ADR-0023); `docs.mcp.…` is a Worker-served 308 alias
+    // to it, never a link target, because a second name in copy is how two
+    // addresses drift apart. (The alias returns no document, so there is no
+    // duplicate-canonical risk to appeal to — the reason is editorial.)
     for (const [key, text] of Object.entries(markup)) {
       expect(text, key).not.toContain('docs.mcp.globalstrategic.tech');
     }

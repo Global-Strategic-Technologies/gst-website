@@ -1,0 +1,399 @@
+---
+/**
+ * One contract pane on `/hub/mcp/docs/`, rendered from a registry entry.
+ *
+ * Every pane is server-rendered, all 34 of them: the page hides the inactive
+ * ones with CSS under `html.js`, so a reader without JS gets the complete
+ * reference document and a crawler sees every contract. Nothing here is
+ * conditional on the browser.
+ *
+ * Heading level is `h2`, not the prototype's `h1`: thirty-four `h1`s in one
+ * document is not a heading structure, and the page's own title owns that
+ * level. Section labels below are `h3` for the same reason.
+ */
+import type { Capability, Workflow } from '../../../data/mcp/capabilities';
+import { capabilityAnchor } from '../../../utils/mcp-capability-search';
+
+interface Props {
+  capability: Capability;
+  /** Shown when Reference opens with no capability in the URL. */
+  isDefault?: boolean;
+  /** Used to resolve `usedIn` keys to workflow titles. */
+  workflows: readonly Workflow[];
+  /** Every registered id, so a chip only links where a pane exists. */
+  knownIds: ReadonlySet<string>;
+}
+
+const { capability: cap, isDefault = false, workflows, knownIds } = Astro.props;
+
+const usedIn = (cap.usedIn ?? [])
+  .map((key) => workflows.find((w) => w.key === key))
+  .filter((w): w is Workflow => Boolean(w));
+
+/** A chip links to its contract; an unknown id renders as plain text. */
+const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAnchor(id)}` : null });
+---
+
+<article
+  class:list={['mdoc-pane', { 'mdoc-pane--default': isDefault }]}
+  id={capabilityAnchor(cap.id)}
+  data-pane
+  aria-label={`${cap.id} contract`}
+>
+  <div class="mdoc-pane__head">
+    <h2 class="brutal-heading-md mdoc-pane__title">{cap.id}</h2>
+    <span class="mdoc-pane__type">{cap.type}</span>
+  </div>
+
+  <p class="brutal-text-base mdoc-pane__gloss">{cap.gloss}</p>
+
+  {
+    cap.args && (
+      <>
+        <h3 class="brutal-label mdoc-pane__label">Arguments</h3>
+        <table class="brutal-bench-table mdoc-args">
+          <tbody>
+            {cap.args.map((arg) => (
+              <tr>
+                <td class="mdoc-args__name">{arg.name}</td>
+                <td class="mdoc-args__desc">{arg.desc}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </>
+    )
+  }
+
+  {cap.argNote && <p class="brutal-text-tiny mdoc-pane__note">{cap.argNote}</p>}
+
+  {
+    cap.example && (
+      <>
+        <h3 class="brutal-label mdoc-pane__label">Example</h3>
+        <div class="mdoc-code">
+          <code class="mdoc-code__text">{cap.example}</code>
+          <button
+            type="button"
+            class="brutal-btn brutal-btn--secondary mdoc-code__copy"
+            data-copy={cap.example}
+          >
+            Copy<span class="sr-only"> the {cap.id} example</span>
+          </button>
+        </div>
+      </>
+    )
+  }
+
+  {
+    cap.uri && (
+      <>
+        <h3 class="brutal-label mdoc-pane__label">URI shape</h3>
+        <div class="mdoc-code mdoc-code--uri">
+          <code class="mdoc-code__text">{cap.uri}</code>
+        </div>
+      </>
+    )
+  }
+
+  {
+    cap.orchestrates && (
+      <>
+        <h3 class="brutal-label mdoc-pane__label">Orchestrates</h3>
+        <p class="brutal-text-tiny mdoc-pane__note">
+          Tools this prompt drives; each is called with base schemas as the conversation requires.
+        </p>
+        <div class="mdoc-chips">
+          {cap.orchestrates.map((id) =>
+            chip(id).href ? (
+              <a class="brutal-filter-chip mdoc-chip" href={chip(id).href}>
+                {id}
+              </a>
+            ) : (
+              <span class="brutal-filter-chip mdoc-chip mdoc-chip--flat">{id}</span>
+            )
+          )}
+        </div>
+      </>
+    )
+  }
+
+  {
+    cap.returns && (
+      <>
+        <h3 class="brutal-label mdoc-pane__label">Returns</h3>
+        <ul class="mdoc-list">
+          {cap.returns.map((line) => (
+            <li class="mdoc-list__item">{line}</li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+
+  {
+    cap.output && (
+      <>
+        <h3 class="brutal-label mdoc-pane__label">Output</h3>
+        <ul class="mdoc-list">
+          {cap.output.map((line) => (
+            <li class="mdoc-list__item">{line}</li>
+          ))}
+        </ul>
+      </>
+    )
+  }
+
+  {
+    cap.note && (
+      <p class="brutal-callout mdoc-pane__callout">
+        <span class="brutal-callout__title">{cap.noteTitle ?? 'Note'}</span>
+        {cap.note}
+      </p>
+    )
+  }
+
+  {
+    cap.availability && (
+      <>
+        <h3 class="brutal-label mdoc-pane__label">Availability</h3>
+        <p class="brutal-text-small mdoc-pane__availability">{cap.availability}</p>
+      </>
+    )
+  }
+
+  {
+    cap.related && (
+      <>
+        <h3 class="brutal-label mdoc-pane__label">Related</h3>
+        <div class="mdoc-chips">
+          {cap.related.map((id) =>
+            chip(id).href ? (
+              <a class="brutal-filter-chip mdoc-chip" href={chip(id).href}>
+                {id}
+              </a>
+            ) : (
+              <span class="brutal-filter-chip mdoc-chip mdoc-chip--flat">{id}</span>
+            )
+          )}
+        </div>
+      </>
+    )
+  }
+
+  {
+    usedIn.length > 0 && (
+      <>
+        <h3 class="brutal-label mdoc-pane__label">Used in workflows</h3>
+        <div class="mdoc-chips">
+          {usedIn.map((workflow) => (
+            <a class="brutal-filter-chip mdoc-chip mdoc-chip--workflow" href="#workflows">
+              {workflow.title} →
+            </a>
+          ))}
+        </div>
+      </>
+    )
+  }
+</article>
+
+<style>
+  .mdoc-pane {
+    scroll-margin-top: 80px;
+  }
+
+  /* Panes are separated only in the no-JS reading, where they stack as one
+     document. With JS exactly one is ever displayed. */
+  .mdoc-pane + .mdoc-pane {
+    margin-top: var(--spacing-3xl);
+  }
+
+  /* --- JS-only state -----------------------------------------------------
+     Selection is `:target`: the sidebar links are real anchors, so the browser
+     reveals the right contract from the URL with no script involved. The
+     default pane shows only while no capability is addressed, which the inline
+     bootstrap signals by setting `data-cap` on the root before this parses.
+     `:global(html…)` because the scope attribute cannot land on the root. */
+  :global(html.js) .mdoc-pane {
+    display: none;
+  }
+
+  :global(html.js) .mdoc-pane:target {
+    display: block;
+  }
+
+  :global(html.js:not([data-cap])) .mdoc-pane--default {
+    display: block;
+  }
+
+  .mdoc-pane__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+  }
+
+  /* Wire identifiers are case-contractual: never uppercased, and allowed to
+     break mid-token so a long tool name cannot widen the pane. */
+  .mdoc-pane__title {
+    margin: 0;
+    text-transform: none;
+    overflow-wrap: anywhere;
+  }
+
+  .mdoc-pane__type {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-tertiary);
+    white-space: nowrap;
+  }
+
+  .mdoc-pane__gloss {
+    color: var(--text-secondary);
+    max-width: 700px;
+  }
+
+  .mdoc-pane__label {
+    color: var(--text-muted);
+    margin: var(--spacing-xl) 0 var(--spacing-sm);
+  }
+
+  .mdoc-pane__note {
+    color: var(--text-muted);
+    max-width: 700px;
+    margin: 0 0 var(--spacing-sm);
+  }
+
+  .mdoc-pane__availability {
+    color: var(--text-secondary);
+    max-width: 700px;
+  }
+
+  .mdoc-pane__callout {
+    max-width: 860px;
+    margin-top: var(--spacing-xl);
+  }
+
+  .mdoc-args {
+    width: 100%;
+    max-width: 860px;
+  }
+
+  /* Both cell rules are qualified by the table class deliberately. The shared
+     component styles `.brutal-bench-table td:first-child` and `td:last-child`
+     at (0,2,1) — uppercasing the first cell and right-aligning the second in
+     bold mono, which suits a benchmark matrix and destroys an argument table:
+     wire argument names are case-contractual. A single-class override loses
+     that cascade; this one wins it. */
+  .mdoc-args .mdoc-args__name {
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-normal);
+    color: var(--color-primary);
+    text-transform: none;
+    width: 240px;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .mdoc-args .mdoc-args__desc {
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-normal);
+    color: var(--text-secondary);
+    text-align: left;
+    text-transform: none;
+    vertical-align: top;
+  }
+
+  .mdoc-code {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    /* Wraps so the Copy button drops below the snippet on a narrow viewport
+       rather than crowding it. */
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    max-width: 860px;
+    padding: var(--spacing-md);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-left: 3px solid var(--color-primary);
+  }
+
+  .mdoc-code__text {
+    flex: 1 1 18rem;
+    min-width: 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+
+  .mdoc-code--uri .mdoc-code__text {
+    color: var(--color-primary);
+  }
+
+  .mdoc-code__copy {
+    flex-shrink: 0;
+    min-width: 6rem;
+  }
+
+  .mdoc-chips {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    max-width: 860px;
+  }
+
+  /* Identifiers again: the shared chip uppercases, which would corrupt them. */
+  .mdoc-chip {
+    text-transform: none;
+    text-decoration: none;
+  }
+
+  .mdoc-chip--workflow {
+    text-transform: uppercase;
+  }
+
+  .mdoc-chip--flat {
+    cursor: default;
+  }
+
+  .mdoc-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    max-width: 860px;
+  }
+
+  .mdoc-list__item {
+    border-left: 3px solid var(--color-secondary);
+    padding-left: var(--spacing-md);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    /* The two cells stack: a 240px name column plus a description does not fit,
+       and truncating an argument name is worse than a taller table. */
+    .mdoc-args :global(tr) {
+      display: block;
+      padding: var(--spacing-xs) 0;
+    }
+
+    .mdoc-args .mdoc-args__name,
+    .mdoc-args .mdoc-args__desc {
+      display: block;
+      width: 100%;
+      text-align: left;
+    }
+  }
+</style>

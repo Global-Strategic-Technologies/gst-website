@@ -4,9 +4,8 @@
  *
  * Ported from the design handoff's prototype script. Three concerns:
  *
- * 1. Copy buttons — `[data-copy]` copies its attribute value; `[data-copy-prev]`
- *    walks up to the nearest ancestor holding a `[data-snippet]` and copies its
- *    text. Feedback runs through the shared `copyWithFeedback`.
+ * 1. Copy buttons — delegated by `initCopyButtons` in `./copy-feedback`, which
+ *    `/hub/mcp/docs/` shares. It lived here until that page needed it too.
  * 2. Screen-capture clips — `[data-clip]` videos lazy-attach their sources near
  *    the viewport (or when their wrapping `<details data-clip-details>` opens),
  *    autoplay muted in a loop, pause off-view and on hidden tabs, expose a
@@ -16,31 +15,7 @@
  * 3. Scroll-spy for the sticky section nav lives in OnboardingToc.astro via
  *    the shared `initScrollSpy` util.
  */
-import { copyWithFeedback } from './copy-feedback';
-
-function initCopyButtons(): void {
-  document.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>(
-      '[data-copy],[data-copy-prev]'
-    );
-    if (!btn) return;
-    let text = btn.getAttribute('data-copy');
-    if (text === null) {
-      // Walk up until a snippet is actually in scope — the nearest wrapper is
-      // usually the button's own footer row, which holds no snippet.
-      let box: HTMLElement | null = btn.parentElement;
-      let snip: HTMLElement | null = null;
-      while (box && !(snip = box.querySelector('[data-snippet]'))) box = box.parentElement;
-      text = snip?.textContent?.trim() ?? '';
-    }
-    if (!text) return;
-    void copyWithFeedback(text, btn, {
-      label: 'Copied',
-      duration: 1600,
-      copiedClass: 'brutal-btn--copied',
-    });
-  });
-}
+import { initCopyButtons } from './copy-feedback';
 
 function initClip(vid: HTMLVideoElement, reduce: boolean): void {
   const frame = vid.parentElement;

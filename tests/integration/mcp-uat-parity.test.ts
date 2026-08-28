@@ -197,10 +197,11 @@ describe('UAT setup — published endpoint', () => {
     expect(setup).toContain(MCP_ENDPOINT);
   });
 
-  it('does not link a developer-docs subdomain that does not exist', () => {
-    // Same guardrail the marketing surface carries: `docs.mcp.…` has never
-    // been provisioned, and a setup guide sending a pilot there is worse than
-    // one that stays quiet about documentation.
+  it('does not send a pilot to an address that returns no document', () => {
+    // This guard keeps its own reason, distinct from the marketing surfaces':
+    // `docs.mcp.…` is a 308 alias (ADR-0023) that renders nothing, and a setup
+    // guide pointing a pilot at a bare redirect is worse than one that stays
+    // quiet about documentation. The published reference is /hub/mcp/docs/.
     expect(setup).not.toContain('docs.mcp.globalstrategic.tech');
   });
 
@@ -314,7 +315,13 @@ describe('UAT guard — registry readers have a single definition', () => {
    * rather than remembered. Delete this test only once there is exactly one
    * definition left and no second copy can reappear.
    */
-  it('defines the registry readers in exactly one place under tests/', () => {
+  it.each([
+    ['registeredToolNames', /function registeredToolNames\b/],
+    // Widened when `/hub/mcp/docs/` became the second publisher of the resource
+    // inventory: the scan below only ever covered the tool reader, so moving the
+    // inventory derivation into the helper would have been enforced by nothing.
+    ['resourceInventory', /function resourceInventory\b/],
+  ])('defines %s in exactly one place under tests/', (_name, pattern) => {
     // This file is excluded from its own scan: it necessarily contains the
     // pattern it searches for, so including it would be a guaranteed false
     // positive rather than a detected duplicate.
@@ -327,7 +334,7 @@ describe('UAT guard — registry readers have a single definition', () => {
         if (entry.isDirectory()) {
           walk(path);
         } else if (entry.name.endsWith('.ts') && path !== SELF) {
-          if (/function registeredToolNames\b/.test(read(path))) definitions.push(path);
+          if (pattern.test(read(path))) definitions.push(path);
         }
       }
     };

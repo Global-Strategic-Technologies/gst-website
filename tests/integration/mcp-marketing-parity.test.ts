@@ -7,9 +7,10 @@
  * source so drift fails here instead of on a prospect's screen.
  *
  * It also pins the copy GUARDRAILS — the framings the page must carry and the
- * claims it must never make (no docs subdomain, which does not exist; no SLA
- * commitment or uptime figure, per the operator directive that no pilot SLA is
- * contractually committed).
+ * claims it must never make (no docs subdomain — the capability reference has
+ * one published address, `/hub/mcp/docs/`, and `docs.mcp.…` is only a 308 alias
+ * to it; no SLA commitment or uptime figure, per the operator directive that no
+ * pilot SLA is contractually committed).
  *
  * Every assertion runs against the page's MARKUP region only. Frontmatter,
  * `<style>`, `<script>`, and comments are stripped first — otherwise a
@@ -17,7 +18,7 @@
  * comment naming a tool satisfies a catalog assertion without the page ever
  * rendering it.
  */
-import { readdirSync, existsSync } from 'fs';
+import { existsSync } from 'fs';
 import { resolve } from 'path';
 import { TIER_LIMITS, ASSIGNABLE_TIERS } from '../../mcp-server/src/ratelimit/tiers';
 // Registry readers live in ONE place (`helpers/mcp-registry.ts`). This file
@@ -31,6 +32,7 @@ import {
   read,
   registeredPromptNames,
   registeredToolNames,
+  resourceInventory,
   SERVER_PATH,
 } from './helpers/mcp-registry';
 
@@ -111,29 +113,25 @@ describe('MCP marketing page — tool catalog parity', () => {
 
 // The page publishes counts, not URI templates, because a template tells a
 // reader the wire shape and nothing about whether it addresses 3 documents or
-// 300. Counts are only worth publishing if they cannot silently rot. Derived at
-// module scope because two describe blocks assert against them, and two
-// derivations could disagree.
-const libraryCount = (
-  read('mcp-server/src/content/library-loader.ts').match(/uri: 'gst:\/\/library\//g) ?? []
-).length;
-const regulationCount = readdirSync(resolve('src/data/regulatory-map')).filter((f) =>
-  f.endsWith('.json')
-).length;
-const radarCategories = (
-  read('mcp-server/src/content/radar-transform.ts')
-    .match(/export const RADAR_CATEGORIES[\s\S]*?\]/)?.[0]
-    .match(/'[a-z-]+'/g) ?? []
-).length;
-// `gst://radar/fyi/latest` + `gst://radar/wire/latest` + one wire per category.
-const radarCount = 2 + radarCategories;
-const resourceTotal = libraryCount + regulationCount + radarCount;
+// 300. Counts are only worth publishing if they cannot silently rot.
+//
+// The derivation moved into `helpers/mcp-registry.ts` when `/hub/mcp/docs/`
+// began publishing the same three numbers: two private derivations could
+// disagree while both suites stayed green, which is the failure the registry
+// readers next to it already exist to prevent.
+const {
+  library: libraryCount,
+  regulations: regulationCount,
+  radar: radarCount,
+  total: resourceTotal,
+} = resourceInventory();
 
 describe('MCP marketing page — resource inventory parity', () => {
   it('discovers a non-empty inventory from source', () => {
     expect(libraryCount).toBeGreaterThan(0);
     expect(regulationCount).toBeGreaterThan(0);
-    expect(radarCategories).toBe(4);
+    // `radar` is the two latest feeds plus one per category, so four categories.
+    expect(radarCount).toBe(6);
   });
 
   it('publishes the per-family counts', () => {
@@ -401,7 +399,12 @@ describe('MCP marketing page — copy guardrails', () => {
     expect(markup).not.toMatch(/all calls are (audited|logged)/i);
   });
 
-  it('does not link a developer-docs subdomain that does not exist', () => {
+  it('links no docs subdomain, since the reference has one published address', () => {
+    // One public surface carries one published address. `/hub/mcp/docs/` is the
+    // capability reference (ADR-0023); `docs.mcp.…` is a Worker-served 308 alias
+    // to it, never a link target, because a second name in copy is how two
+    // addresses drift apart. (The alias returns no document, so there is no
+    // duplicate-canonical risk to appeal to — the reason is editorial.)
     expect(markup).not.toContain('docs.mcp.globalstrategic.tech');
   });
 

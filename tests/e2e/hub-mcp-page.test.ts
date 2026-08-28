@@ -240,8 +240,9 @@ test.describe('MCP Server page', () => {
     expect(await statusLinks.count()).toBeGreaterThan(0);
     await expect(statusLinks.first()).toBeVisible();
 
-    // The real guardrail: the docs subdomain does not exist, so it must never
-    // be linked from here.
+    // The real guardrail: `/hub/mcp/docs/` is the capability reference's one
+    // published address. `docs.mcp.…` is a Worker-served 308 alias to it
+    // (ADR-0023) and must never be linked, here or anywhere.
     await expect(page.locator('a[href*="docs.mcp.globalstrategic.tech"]')).toHaveCount(0);
   });
 
