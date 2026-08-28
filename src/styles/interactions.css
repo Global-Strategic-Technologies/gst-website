@@ -114,9 +114,14 @@
   color: var(--text-muted);
 }
 
-/* <details> element: default closed = up, [open] = down */
+/* <details> element: default closed = up, [open] = down.
+   Closed also mutes the colour, matching the `.is-collapsed` branch above —
+   collapsed is collapsed regardless of which mechanism drives it. This rule
+   only has to set the muted value; `[open]` inherits the teal from the base
+   `.delta-chevron` because the `:not([open])` selector stops matching. */
 details:not([open]) > summary .delta-chevron {
   transform: rotate(0deg);
+  color: var(--text-muted);
 }
 
 details[open] > summary .delta-chevron {

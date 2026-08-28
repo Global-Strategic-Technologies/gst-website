@@ -857,10 +857,23 @@ The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse
 
 **Behavior:**
 
-- Default state (expanded): triangle points down (`rotate(180deg)`), teal (`--color-primary`)
-- When a parent has `.is-collapsed`: triangle points up (`rotate(0deg)`), muted color
-- Color transitions smoothly between states via `var(--transition-fast)`
-- Dark theme collapsed color handled automatically via `var(--text-dark-muted)`
+- Expanded: triangle points down (`rotate(180deg)`), teal (`--color-primary`)
+- Collapsed: triangle points up (`rotate(0deg)`), muted (`--text-muted`)
+- Both transitions run on `var(--transition-fast)`
+- No dark-theme override needed — `--text-muted` is a `light-dark()` token, so the collapsed colour switches with the theme on its own
+
+**Collapsed is collapsed, whichever mechanism drives it.** Two are supported and they must
+look identical:
+
+| Mechanism    | Collapsed selector                            | Use when                    |
+| ------------ | --------------------------------------------- | --------------------------- |
+| JS-toggled   | a parent carries `.is-collapsed`               | the open state is scripted  |
+| `<details>`  | `details:not([open]) > summary .delta-chevron` | native disclosure, no JS    |
+
+Changing one branch's resting appearance means changing the other. The `<details>` branch
+shipped with the rotation but not the muted colour, so every native disclosure on the site
+sat teal while closed until it was corrected — and no `/brand` specimen caught it, because
+all of them demonstrate the JS-toggled pattern.
 
 **Convention:**
 
@@ -868,7 +881,7 @@ The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse
 - Toggle `.is-collapsed` on the card/container element, not the chevron itself
 - In print styles, hide with `:global(.delta-chevron) { display: none !important; }`
 
-**Current usage**: ICG recommendations (`infrastructure-cost-governance`), Diligence Machine attention cards and questions (`diligence-machine`)
+**Current usage**: both branches are used widely — JS-toggled by ICG recommendations and Diligence Machine attention cards/questions, `<details>` by the Hub landing and MCP pages, services, regulatory map, ClipFigure and FyiItem. It is a shared utility, so treat any change to it as site-wide and enumerate consumers with `grep -rl delta-chevron src/` rather than trusting a list here.
 
 ---
 
