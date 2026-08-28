@@ -444,7 +444,17 @@ Brutalist Search
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: transparent;
+  /* Frosted glass, matching `.brutal-choice-btn` (the in-repo precedent for a
+     frosted control that is not a `.brutal-btn`). Tokens, not literals: the
+     `--frost-*` pair and `--surface-subtle-bg` are theme-switched via
+     `light-dark()`, so dark mode needs no override. No `-webkit-` twin —
+     LightningCSS prefixes from browserslist, and hand-writing both shipped a
+     Firefox regression (STYLES_GUIDE § Frosted Glass). */
+  background: var(--surface-subtle-bg);
+  backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0 0 1px var(--frost-edge);
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
   font-family: var(--font-family-mono);

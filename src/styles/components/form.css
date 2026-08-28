@@ -196,6 +196,15 @@ Brutalist Segmented Control
 
 .brutal-segmented {
   display: flex;
+  /* Frost sits on the CONTAINER, not each segment: one glass pane reading as a
+     single control, already clipped to the border box by `overflow: hidden`.
+     The buttons stay transparent and inherit it. Same token set and the same
+     no-`-webkit-` rule as `.brutal-choice-btn` above. */
+  background: var(--surface-subtle-bg);
+  backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0 0 1px var(--frost-edge);
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   max-width: 320px;
   overflow: hidden;
@@ -227,6 +236,11 @@ Brutalist Segmented Control
   padding: var(--spacing-xs) var(--spacing-sm);
 }
 
+/* Deliberately SOLID, not the 15%-teal frosted-primary fill. This is a
+   selected-state indicator in a two-state control, not a standalone CTA: the
+   fill IS the only signal saying which lens is showing, and a translucent wash
+   over the container's glass would leave it barely distinguishable from its
+   inactive neighbour. The frosted treatment stays on the container around it. */
 .brutal-segmented__btn--active {
   background: var(--color-primary);
   color: var(--bg-dark);

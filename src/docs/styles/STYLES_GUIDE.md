@@ -624,6 +624,14 @@ Use the canonical `--z-*` tokens from [variables.css](../../styles/variables.css
 
 ## Frosted Glass
 
+Four component families carry the treatment **by default** — `.brutal-btn`,
+`.brutal-choice-btn`, `.brutal-search`, and `.brutal-segmented`. Don't re-apply a
+`.brutal-frosted*` utility on top of them; it double-blurs. On `.brutal-segmented` the
+frost sits on the **container** so the control reads as one glass pane, its segments stay
+transparent, and `--active` keeps a **solid** fill: that fill is the only signal saying
+which segment is selected, and a translucent wash over the container's own glass would
+leave it barely distinguishable from its inactive neighbour.
+
 All `.brutal-btn` buttons include a frosted-glass aesthetic by default:
 
 ```css
