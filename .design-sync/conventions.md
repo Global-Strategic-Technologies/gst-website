@@ -273,12 +273,21 @@ changed:
 
 ```jsx
 <div className="brutal-sash-corner">
-  <a className="brutal-sash" href="/hub/mcp/" aria-label="New: MCP Server — open the linked page">
+  <a
+    className="brutal-sash"
+    href="/hub/mcp/"
+    aria-label="New: MCP for AI agents — open the linked page"
+  >
     <span className="brutal-sash__badge">New</span>
-    <span className="brutal-sash__label">MCP Server</span>
+    <span className="brutal-sash__label">MCP</span>
+    <span className="brutal-sash__detail">for AI agents</span>
   </a>
 </div>
 ```
+
+The three segments share ONE width budget on the rotated band — `New | MCP Server`
+filled it, which is why the label above is the short form; do not pad the label back
+out when a `__detail` is present (`Sash.astro` documents the measured combinations).
 
 The corner box must be a child of whatever the sash overlays — `<body>` in production —
 and that element needs `position: relative` unless it is the page itself. When the sash is

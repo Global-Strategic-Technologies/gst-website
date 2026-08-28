@@ -8,11 +8,20 @@
 // through. Announcing the next release is one registry entry.
 //
 // Copy budget — a 45° band cannot grow, so over-budget copy is cut or stepped up
-// a scale, never shrunk with font-size:
+// a scale, never shrunk with font-size. The segments share ONE budget: an
+// earlier table here gave per-segment ceilings (label ≤ 18, detail ≤ 10) that
+// were never provable together — 'New | MCP Server | for agents' (3+10+10)
+// shaves the badge chip and runs the detail into the clip corner. Measured
+// 2026-08-28 by rendering the /brand frame specimen at 3×, which is also how
+// any new combination gets proven (clipping shows at the chip's corner and
+// the detail's tail first):
 //
-//           badge   label   detail
-//   page    ≤ 4     ≤ 18    ≤ 10
-//   card    —       ≤ 4     —
+//   page   ~16 characters across all segments with a badge (its chip +
+//          gap costs about 5 more), ~20 without one.
+//          Fits:  New | MCP Server          ·  New | MCP | for AI agents
+//                 MCP Server | for agents (no badge)
+//          Clips: New | MCP Server | for agents
+//   card   label ≤ 4, nothing else
 //
 // Scale modifiers go on the CORNER BOX, never on the band: the band's per-scale
 // geometry is keyed off the corner-box modifier so the box size and the band's

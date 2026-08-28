@@ -321,7 +321,12 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <div class="brand-component-row">
       <div class="brand-component-item">
         <div class="brand-sash-frame">
-          <Sash badge="New" label="MCP Server" detail="2.0" />
+          {
+            /* Mirrors the live mcp-launch entry (announcements.ts). The segments
+              share one width budget — this frame is where a new combination is
+              proven before it ships; see the table in Sash.astro. */
+          }
+          <Sash badge="New" label="MCP" detail="for AI agents" />
         </div>
         <code class="brand-code"
           >.brutal-sash-corner &gt; .brutal-sash — 200px corner, --z-overlay. Segments: __badge,
@@ -340,13 +345,14 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <div class="brand-component-item">
         <span class="brutal-sash brutal-sash--flat" aria-hidden="true" data-specimen>
           <span class="brutal-sash__badge">New</span>
-          <span class="brutal-sash__label">MCP Server</span>
+          <span class="brutal-sash__label">MCP</span>
+          <span class="brutal-sash__detail">for AI agents</span>
         </span>
         <code class="brand-code"
-          >.brutal-sash--flat — unrotated band, documentation only. Never mounted on a page.
-          `.brutal-sash__detail` is a third, optional slot (version or qualifier, rule-separated,
-          hidden below 768px) — no live announcement sets it, so this specimen mirrors production
-          and omits it</code
+          >.brutal-sash--flat — unrotated band, documentation only. Never mounted on a page. All
+          three segments shown; `.brutal-sash__detail` (qualifier or value tagline, rule-separated)
+          is hidden below 768px, and the segments share one width budget on the rotated band — see
+          Sash.astro</code
         >
       </div>
     </div>

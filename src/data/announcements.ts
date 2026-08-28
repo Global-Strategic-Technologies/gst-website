@@ -46,11 +46,20 @@ export const ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'mcp-launch',
     badge: 'New',
-    label: 'MCP Server',
-    // No `detail`: it previously read '2.0', which published a version claim
-    // nothing sourced — the server is 0.57.0 and /hub/mcp/ states no version at
-    // all. Any value here renders publicly on / and /hub/ and is republished to
-    // claude.ai/design via .design-sync/, so it must be sourced before it ships.
+    // 'MCP', not 'MCP Server': the three segments share ONE width budget on
+    // the 45° band, and 'New | MCP Server | <anything useful>' clips — proven
+    // by rendering, see the budget table in Sash.astro. The detail slot is
+    // where the announcement earns its keep ("so what?" → it is for your AI
+    // agents), so the subject yields the characters; the destination page's
+    // H1 expands it back to "MCP Server" one click later.
+    label: 'MCP',
+    // Copy here renders publicly on / and /hub/ and is republished to
+    // claude.ai/design via .design-sync/, so it must be a SOURCED claim (an
+    // earlier '2.0' shipped a version number nothing published — /hub/mcp/
+    // states no version at all — and was removed for it). 'for AI agents' is
+    // sourced by the announced page itself: /hub/mcp/ markets the server as
+    // the way a client's own AI agents call the GST tools.
+    detail: 'for AI agents',
     href: '/hub/mcp/',
     scale: 'page',
     routes: ['/', '/hub/'],
