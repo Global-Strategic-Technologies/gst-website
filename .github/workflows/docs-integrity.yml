@@ -16,6 +16,16 @@ name: Docs link integrity
 #     `server.ts` and `tools/_local-only.ts` actually register. It lives here
 #     rather than only in test.yml for the reason stated below: the numbers it
 #     guards are IN markdown, so the commits that break them are docs-only.
+#   - `tests/integration/mcp-generated-bundle-freshness.test.ts`: spawns
+#     `mcp-server/scripts/generate-regulations-index.mjs --check`, which renders
+#     the three committed `*.generated.ts` bundles in memory and diffs them
+#     against disk. Catches a bundle committed stale (d4ceada6 shipped one whose
+#     embedded article had been reflowed by the pre-commit prettier hook AFTER
+#     the codegen ran). Same docs-only reasoning: its sources are markdown
+#     articles. NOTE this makes the job spawn mcp-server tooling that loads
+#     prettier from the ROOT node_modules — the `npm ci` and cache paths below
+#     already cover it, but it is a surprising dependency for a job named
+#     "Verify doc links".
 # The authoritative list is `test:docs` in package.json; DEVELOPER_TOOLING.md
 # describes each guard.
 #
