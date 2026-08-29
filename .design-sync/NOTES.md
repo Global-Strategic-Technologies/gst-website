@@ -163,7 +163,10 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
   it earned its keep: it caught a sentence still pointing the sash at the `SiteHeader`
   chrome card, which is exactly what the same commit proved impossible.
 - **The upload set is 103 files, and the two exclusions are deliberate.** (101 before
-  2026-08-29; the two added are `fonts/fonts.css` and the pinned woff2.) Everything under
+  2026-08-29; the two added are `fonts/fonts.css` and the pinned woff2 — which first
+  actually REACHED the remote on the SECOND 2026-08-29 session. The first session
+  verified the build and wrote this bullet, but its upload never ran; see the
+  upload-silence risk below.) Everything under
   `ds-bundle/` except the 8 root dotfiles (local telemetry — `.resync-verdict.json`,
   `.sync-diff.json`, `.render-check.json`, `.review.html`, …) and `_screenshots/` (32
   render proofs). The verdict's `upload.components` block lists only specimens, so the
@@ -179,6 +182,11 @@ cleanly`, `validate ✓ bundle is complete` with **zero** warnings, `10 verified
 - `[FONT_MISSING] "GST Mono"` fired on that run's FIRST driver pass and was **resolved, not
   tolerated** (the `cfg.extraFonts` finding above). If it reappears, the font stopped
   shipping — do not record it as known.
+- The second 2026-08-29 session re-ran the whole pipeline from a clean tree and reproduced
+  that result exactly — `10/10 render cleanly`, `validate ✓`, zero warnings, `10
+verified-by-upload / 0 changed / 0 new`, chrome 19/19, `font-probe` PASS on both
+  surfaces (600.00px vs 549.81px control), dark 4/7, all six palettes. Its only real work
+  was the upload the first session never performed.
 
 ## Re-syncing from a fresh clone (what it costs)
 
@@ -197,6 +205,23 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   reports that arm as unbuilt rather than failing, so read its output, not just its exit code).
 
 ## Re-sync risks (what can silently go stale)
+
+- **A sync that verifies everything and then never uploads leaves NO trace — check the
+  remote file list, not this file.** Found 2026-08-29 (second session): the first session
+  did the full BL-144 font work, went green on every probe, wrote its findings here as
+  though shipped — and its upload never ran. Nothing detects that afterwards. The local
+  `ds-bundle/` is correct, `_ds_sync.json` on disk is correct, the driver reports
+  `10 verified-by-upload`, and the REMOTE anchor is untouched, so it agrees with itself
+  at the OLD value; `.cache/remote-sync.json` matching the remote proves only that the
+  fetch worked. The tell was structural and took one read-only call: `list_files` showed
+  **no `fonts/` directory at all** and 101 repo-owned files where the local build makes 103. So on every re-sync, **diff the remote path list against `find ds-bundle -type f`
+  before trusting any verdict** — a whole missing directory is the signature, because
+  `upload.styling`/`bundle`/`aux` are booleans over hashes and cannot tell "not uploaded
+  yet" from "uploaded and stale". Corollary: **never write "uploaded/shipped" into this
+  file until a post-upload `list_files` has confirmed it** — a premature note is worse
+  than no note, since the next session reads it as done and skips the only step that
+  mattered. (Related: the anchor already can't see the README or the chrome cards; this
+  is the third and widest blind spot.)
 
 - **After editing `conventions.md`, grep the WHOLE file for the family you touched — do
   not review the hunk.** The uploaded README is read as one document by the agent, and a
