@@ -16,38 +16,50 @@ conditionally widens to 200px there, a fourth member keyed on the SAME three
 breakpoints (no new numbers).
 
   scale          corner box   band width   band top   label size   nav reserve
-  page desktop   200px        260px        46px       --text-sm    168px (200px with under-band)
+  page desktop   200px        280px        42px       --text-sm    168px (200px with under-band)
   page ≤768px    170px        220px        42px       --text-xs    140px
   page ≤540px    140px        190px        34px       --text-xs    108px
   page ≤511px    IN-FLOW STRIP — full-width two-line banner above the header
                  (see the bottom of this file); reserve stays 0
   card           104px        150px        26px       --text-2xs   n/a
 
-UNDER-BAND (optional subtext, page scale): top 88px, left −41px, width 300px,
+UNDER-BAND (optional subtext, page scale): top 76px, left −33px, width 288px,
 min-height 24px (--touch-target-min-aa — it is a LINK; the AA floor is the real
 finger target on the unrotated strip). Its chord sits below the main band's and
 is LONGER (it lies nearer the box diagonal), so subtext gets more room than the
 headline.
 
-RIBBON-FORM INVARIANT — every band's chord offset c = x−y (band centre) must
-stay POSITIVE: both cut ends then land on the box's top and right EDGES, like
-a real ribbon. At c ≤ 0 the chord reaches the box diagonal and the band
-terminates AT the box corners, leaving its square end caps floating in the
-open (shipped once, 2026-08-28, as an axe fix that moved the band to
-top 89 / left −47 / width 290 ⇒ c ≈ −3.5; reported as a broken corner the
-next day). Current centre (109, 100.5) ⇒ c = 8.5.
+RIBBON-FORM INVARIANT — work in CHORD SPACE, c = x − y in box-local coords. A
+45° band is the strip c ∈ [c_min, c_max] where c_min/c_max are its LOWER and
+UPPER EDGES (centre c ∓ height·√2/2), and the box's main diagonal is c = 0.
+Three conditions make a band read as a ribbon, and all three are asserted in
+tests/e2e/announcement-sash.test.ts so the numbers below stay free to move:
 
-The axe target-size clearance is solved by SLIDING, not by pushing past the
-diagonal: both bands are links, and axe measures UNCLIPPED client rects — the
-main band's unobscured strip above the under-band's rect top must stay ≥ 24px.
-Sliding a band ALONG its own chord leaves the visible ribbon identical while
-moving that rect, so the under-band sits 6.7px down-chord of its chord
-midpoint (which is why left is −41, not the chord-centring −44) and the
-13px padding-right re-centres the flex-centred copy on the visible chord
-(2 × 6.7). The main band's top 46 (not 50) buys the last 4px of strip.
-Measured: 26px strip. Moving the bands closer, widening the under-band, or
-thickening either band re-shrinks it — re-run the accessibility suite after
-any geometry change, and re-check c > 0.
+  c_min > 0        Both long edges then run top-edge → right-edge, so the box
+                   cuts the band exactly like a ribbon crossing a corner. At
+                   c_min ≤ 0 the lower edge crosses the box's LEFT and BOTTOM
+                   edges instead: the band covers the box's top-left corner and
+                   ends square in mid-page, 200px in from the viewport's right.
+  c_max < box      The apex above the top band stays white.
+  caps outside     Both end caps land outside the box, so no square cut end is
+                   ever visible. This is what sets the band WIDTHS (each must
+                   exceed 2.83·centre_y + height); they are not decorative.
+
+Learned the hard way (2026-08-28/29): an axe fix moved the under-band to
+top 89/−47/290 and then top 88/−41/300, whose centre c reads +8.5 — positive,
+and it still rendered broken, because the EDGE was at −10.4. Measuring the
+invariant at the centre instead of the edge is what let it ship twice.
+
+Both bands are chord-centred (centre_x = (box + c)/2), which is what keeps the
+flex-centred copy centred on the visible chord — no padding compensation. Copy
+room is the chord length (box − c)·√2 against the measured content width; both
+bands currently carry ~72px of slack, which is the budget any future c increase
+spends. The axe target-size clearance (both bands are links, and axe measures
+UNCLIPPED client rects — the main band's unobscured strip above the under-band's
+rect top must stay ≥ 24px) is bought by SEPARATING the two bands in c, never by
+pushing either toward the diagonal: the current 9.5 c-unit gap yields a 6.7px
+visible gap and a 29px strip. Re-run the accessibility suite after any geometry
+change.
 
 No ≤768/≤540 variants exist: the under-band hides 512–768px alongside
 __detail, and below 512 it is the strip's second line.
@@ -90,9 +102,9 @@ moves.)
 
 .brutal-sash {
   position: absolute;
-  top: 46px;
-  left: 0;
-  width: 260px;
+  top: 42px;
+  left: -1px;
+  width: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -159,18 +171,15 @@ moves.)
    Geometry and the colorway ruling: header comment above. */
 .brutal-sash-under {
   position: absolute;
-  top: 88px;
-  left: -41px;
-  width: 300px;
+  top: 76px;
+  left: -33px;
+  width: 288px;
   min-height: var(--touch-target-min-aa);
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-
-  /* The right padding is the chord re-centring for the axe slide (header
-     comment) — not breathing room. The ≤511 strip restates padding fully. */
-  padding: var(--spacing-xs) 13px var(--spacing-xs) 0;
+  padding: var(--spacing-xs) 0;
   transform: rotate(45deg);
   pointer-events: auto;
   text-decoration: none;

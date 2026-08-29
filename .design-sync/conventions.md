@@ -176,7 +176,7 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
   "Brand delta" below; other glyphs (search, close, link) are 14–16px stroke SVGs.
 - **The sash's geometry moves in threes.** `.brutal-sash-corner`'s size, the band's `top`
   and the band's `width` are one set: the band is centred on the 45° chord of its box, so
-  changing one without the others slides it off the corner. The pairs are 200/46/260
+  changing one without the others slides it off the corner. The pairs are 200/42/280
   (desktop, label at `--text-sm`), 170/42/220 (≤768, label steps to `--text-xs`),
   140/34/190 (≤540) and 104/26/150 (`--card`). The
   responsive steps key on `.brutal-sash-corner:not(.brutal-sash-corner--card)`, so the page
@@ -185,12 +185,16 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
   above the header (a corner overlay there would overflow the nav, whose reserve is 0 at
   that width). The strip is a media RESTYLE of the standard classes keyed on the
   production mount (`body > …`) — nested gallery specimens keep the old stand-down. The
-  optional `.brutal-sash-under` adds a desktop-only fourth: top 88 / left −41 / width 300
-  — every band's chord offset c = x−y must stay POSITIVE so both cut ends land on the
-  box's top and right EDGES (at c ≤ 0 the band ends AT the box corners and its square
-  caps float in the open), and the axe target-size clearance is met by SLIDING the band
-  along its chord (padding-right re-centres the copy), never by pushing past the
-  diagonal — sash.css records the numbers and the invariant.
+  optional `.brutal-sash-under` adds a desktop-only fourth: top 76 / left −33 / width 288.
+  Every band obeys a RIBBON-FORM invariant in chord space (c = x − y, box-local): its
+  LOWER EDGE — centre c minus height·√2/2, not the centre itself — must stay above the
+  box diagonal c = 0, its upper edge must leave the apex white, and its width must be
+  long enough to push both end caps outside the box. A band that breaks the first
+  condition covers the box's top-left corner and ends square in mid-page; one that
+  breaks the third shows a cut-off cap. Bands are chord-centred, so the copy centres
+  itself on the visible chord, and the axe target-size clearance between the two comes
+  from separating them in c — never from moving one toward the diagonal. sash.css
+  records the numbers; the invariant is asserted in the sash E2E suite.
   In production its presence conditionally widens the nav's desktop corner reserve; it has
   no smaller tiers (hidden 512–768px with `__detail`; below 512 it is the strip's second
   line).

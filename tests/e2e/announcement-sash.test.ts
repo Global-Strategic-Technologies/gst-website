@@ -231,6 +231,57 @@ test.describe('Announcement sash', () => {
     await expect(page.locator(`#${fragment}`)).toBeVisible();
   });
 
+  /**
+   * The RIBBON-FORM invariant (sash.css's header comment), asserted on every
+   * rendered corner form rather than on the numbers themselves — those live in
+   * one place and are free to move.
+   *
+   * Work in chord space c = x − y (corner-box local): a 45° band is the strip
+   * c ∈ [c_min, c_max], and the box's main diagonal is c = 0. A band whose
+   * c_min drops to 0 or below stops being a ribbon — its lower edge crosses
+   * the box's LEFT and BOTTOM edges instead of the top and right, so the band
+   * covers the box's top-left corner and gets cut off square in mid-page.
+   * That shipped twice while every geometry probe passed (the probes checked
+   * that band pixels were where chord math predicted; none checked WHICH box
+   * edges cut them), so it is a test now.
+   */
+  test('every band is a ribbon: cut by the box top and right edges only', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(SASH_ROUTE);
+
+    const bands = await pageSash(page).evaluate((corner) => {
+      const box = (corner as HTMLElement).offsetWidth;
+      return ['.brutal-sash', '.brutal-sash-under']
+        .map((sel) => {
+          const el = corner.querySelector<HTMLElement>(sel);
+          if (!el || getComputedStyle(el).display === 'none') return null;
+          // Unrotated layout box, relative to the corner (its offsetParent).
+          const cx = el.offsetLeft + el.offsetWidth / 2;
+          const cy = el.offsetTop + el.offsetHeight / 2;
+          const c = cx - cy;
+          const halfC = (el.offsetHeight * Math.SQRT2) / 2;
+          const r2 = Math.SQRT1_2;
+          const capCornersInside = [-1, 1]
+            .flatMap((along) =>
+              [-1, 1].map((across) => [
+                cx + ((along * el.offsetWidth) / 2) * r2 + ((across * el.offsetHeight) / 2) * r2,
+                cy + ((along * el.offsetWidth) / 2) * r2 - ((across * el.offsetHeight) / 2) * r2,
+              ])
+            )
+            .filter(([x, y]) => x > 0 && x < box && y > 0 && y < box).length;
+          return { sel, box, cMin: c - halfC, cMax: c + halfC, capCornersInside };
+        })
+        .filter((b): b is NonNullable<typeof b> => b !== null);
+    });
+
+    expect(bands.length, 'both bands are present to be checked').toBe(2);
+    for (const b of bands) {
+      expect(b.cMin, `${b.sel} lower edge stays off the box diagonal`).toBeGreaterThan(2);
+      expect(b.cMax, `${b.sel} upper edge leaves the corner apex white`).toBeLessThan(b.box);
+      expect(b.capCornersInside, `${b.sel} end caps are clipped away, never visible`).toBe(0);
+    }
+  });
+
   for (const bp of BREAKPOINTS) {
     test(`at ${bp.name} the corner box is ${bp.box}px and the nav reserves ${bp.reserve}`, async ({
       page,
