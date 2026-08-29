@@ -1306,6 +1306,18 @@ import '../styles/components/progress.css';
   /* The specimen renders the real <StatsBar>, whose own scoped styles apply.
      This only neutralises the `.container` it wraps its grid in, which would
      otherwise inset the specimen inside the brand column. */
+  /* `align-self: stretch` gives the specimen a DEFINITE inline size, and it is
+     load-bearing rather than tidy: `.brand-component-item` is a flex column with
+     `align-items: flex-start`, so without it this wrapper sizes to its content —
+     the same indefinite-inline-size trap the CTA specimen below documents.
+     StatsBar now sizes itself with a container query, and a container query
+     cannot consult its own contents: an indefinite width plus
+     `container-type: inline-size` resolves to ZERO, which collapsed this whole
+     specimen to 0px tracks. */
+  .brand-statsbar-specimen {
+    align-self: stretch;
+  }
+
   .brand-statsbar-specimen .container {
     max-width: none;
     padding: 0;

@@ -36,6 +36,28 @@ export function getStyle(varName: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 }
 
+/**
+ * The chart font family, read from the design system rather than named here.
+ *
+ * Chart.js takes a font family as a plain string, so it cannot use `var()` — it
+ * has to be resolved at call time. The literal fallback exists only for the case
+ * where the custom property reads empty (a detached document, or a canvas built
+ * before the stylesheet lands), and it must not be a bare generic: BL-144 pinned
+ * the brand face precisely so that no surface silently renders in an OS-chosen
+ * one. Charts previously fell back to `'Helvetica Neue', Arial, sans-serif`,
+ * which stopped being the site's sans when the token collapsed onto the mono.
+ *
+ * The guard in tests/integration/font-token-pin.test.ts covers Chart.js's
+ * `family:` key as well as CSS `font-family`, so a literal reintroduced here
+ * fails the build.
+ */
+export function chartFontFamily(): string {
+  return getStyle('--font-family-mono') || getStyle('--font-family') || CHART_FONT_FALLBACK;
+}
+
+/** Named so the guard can find it in one place instead of at four call sites. */
+const CHART_FONT_FALLBACK = "'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace";
+
 /** Currency-aware formatDollars wrapper */
 export function fmtD(n: number): string {
   return formatDollars(n, tp.currencySymbol);

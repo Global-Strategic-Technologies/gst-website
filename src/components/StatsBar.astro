@@ -83,7 +83,15 @@ const { stats } = Astro.props;
      narrower face at one width and no width in between was ever checked.
 
      The two lower thresholds are the old 768px and 480px viewport tiers
-     expressed as the container widths they produce (viewport - 96px). */
+     expressed as the container widths they produce (viewport - 96px).
+
+     CAUTION on that -96px: `.container` carries `padding: 0 3rem` at EVERY
+     width, which is not what buttons.css appears to say. That sheet declares
+     responsive `.container` padding at 768 and 480, but global.css re-declares
+     `.container { padding: 0 3rem }` after the import at equal specificity, so
+     the responsive rules have never applied — measured 48px at 320px. The
+     mapping above is therefore correct today and depends on that rule staying
+     dead. Anyone repairing buttons.css must re-derive these three thresholds. */
   .container {
     container-type: inline-size;
   }
