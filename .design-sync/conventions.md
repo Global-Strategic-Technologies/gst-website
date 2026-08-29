@@ -164,7 +164,9 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
 - **Focus ring recipe**: `outline: 2px solid var(--color-primary); outline-offset: 2px`
   on `:focus-visible` (offset `0.25rem` on links, `-2px` on tabs). Never `outline: none`
   without a replacement.
-- **Type is monospace and tracked.** Labels and headings use `--font-family-mono`,
+- **Type is one pinned monospace.** `--font-family-mono` resolves to `GST Mono`
+  (Geist Mono Variable, OFL 1.1, self-hosted and subset), and `--font-family` points
+  at it — there is no second family, and nothing names a face directly. Labels and headings use `--font-family-mono`,
   uppercase, with letter-spacing `0.04em` (heading-xl/lg), `0.06em` (heading-md/sm,
   field labels), `0.1em` (small labels), `0.12em` (`.brutal-label`). Body copy is
   `1.7`/`1.6`/`1.5` line-height for base/small/tiny. There is no medium weight token — normal, semibold or bold.
@@ -186,10 +188,13 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
   that width). The strip is a media RESTYLE of the standard classes keyed on the
   production mount (`body > …`) — nested gallery specimens keep the old stand-down. The
   optional `.brutal-sash-under` adds a desktop-only fourth, and GROWS its corner box to
-  220px (the subtext runs nearly the whole chord, and `monospace` is an unspecified
-  generic whose advance width differs ~8% between engines, so the room is what keeps it
-  off the box edge): 220/53/310 for the main band, top 88 / left −40 / width 320 for the
-  under-band, nav reserve 220.
+  220px (the subtext runs nearly the whole chord, so the room is what keeps it off the box
+  edge): 220/53/310 for the main band, top 88 / left −40 / width 320 for the
+  under-band, nav reserve 220. That 220px box was sized against the widest face any
+  engine resolved the then-unpinned `monospace` generic to; the pinned face's advance IS
+  that widest case, so it is still exactly right and no longer headroom against an
+  unknown. The under-band's copy ceiling is 37 characters — the same on all three
+  engines now, where it used to be 40/40/37.
   Every band obeys a RIBBON-FORM invariant in chord space (c = x − y, box-local): its
   LOWER EDGE — centre c minus height·√2/2, not the centre itself — must stay above the
   box diagonal c = 0, its upper edge must leave the apex white, and its width must be

@@ -194,21 +194,21 @@ Neutral black at fixed alpha, for modal backdrops, drawer shadows and inset dept
 
 ## Typography
 
-| Variable                 | Value                                 |
-| ------------------------ | ------------------------------------- |
-| `--font-family`          | `'Helvetica Neue', Arial, sans-serif` |
-| `--font-family-mono`     | `monospace`                           |
-| `--font-weight-normal`   | `400`                                 |
-| `--font-weight-semibold` | `600`                                 |
-| `--font-weight-bold`     | `700`                                 |
-| `--text-2xs`             | `0.65rem` (10.4px)                    |
-| `--text-xs`              | `0.75rem` (12px)                      |
-| `--text-sm`              | `0.875rem` (14px)                     |
-| `--text-base`            | `1rem` (16px)                         |
-| `--text-lg`              | `1.1rem` (17.6px)                     |
-| `--text-xl`              | `1.25rem` (20px)                      |
-| `--text-2xl`             | `1.5rem` (24px)                       |
-| `--text-3xl`             | `2rem` (32px)                         |
+| Variable                 | Value                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `--font-family`          | `var(--font-family-mono)`                                                          |
+| `--font-family-mono`     | `'GST Mono', 'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace` |
+| `--font-weight-normal`   | `400`                                                                              |
+| `--font-weight-semibold` | `600`                                                                              |
+| `--font-weight-bold`     | `700`                                                                              |
+| `--text-2xs`             | `0.65rem` (10.4px)                                                                 |
+| `--text-xs`              | `0.75rem` (12px)                                                                   |
+| `--text-sm`              | `0.875rem` (14px)                                                                  |
+| `--text-base`            | `1rem` (16px)                                                                      |
+| `--text-lg`              | `1.1rem` (17.6px)                                                                  |
+| `--text-xl`              | `1.25rem` (20px)                                                                   |
+| `--text-2xl`             | `1.5rem` (24px)                                                                    |
+| `--text-3xl`             | `2rem` (32px)                                                                      |
 
 ## Transitions
 

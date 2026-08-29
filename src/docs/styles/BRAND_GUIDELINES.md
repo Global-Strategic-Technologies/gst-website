@@ -40,12 +40,21 @@ Text colors use opacity-based rgba values for consistent contrast against backgr
 
 ## Typography
 
-| Property            | Value                             |
-| ------------------- | --------------------------------- |
-| **Font family**     | Helvetica Neue, Arial, sans-serif |
-| **Normal weight**   | 400                               |
-| **Semibold weight** | 600                               |
-| **Bold weight**     | 700                               |
+| Property            | Value                                        |
+| ------------------- | -------------------------------------------- |
+| **Font family**     | GST Mono (Geist Mono, OFL 1.1) — self-hosted |
+| **Normal weight**   | 400                                          |
+| **Semibold weight** | 600                                          |
+| **Bold weight**     | 700                                          |
+
+**One family, named.** GST is a monospace brand and now ships the face to prove
+it: a subset variable Geist Mono, served from our own origin and aliased as
+`GST Mono` so nothing in the repo names the typeface directly. There is no
+second family — the sans token points at the mono, because nav links and button
+text were its only consumers and the system's own rule is that type is monospace
+and tracked. Never write a family name in a stylesheet; go through
+`var(--font-family-mono)`. Details and the re-cut recipe:
+[TYPOGRAPHY_REFERENCE.md § The pinned mono](./TYPOGRAPHY_REFERENCE.md).
 
 See [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) for the full set of semantic text utility classes.
 
