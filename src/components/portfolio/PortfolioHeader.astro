@@ -157,10 +157,20 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     background: transparent;
   }
 
+  /* `flex: 1 1 375px` with `min-width: 0`, not a hard `min-width: 375px`. This
+     row sits beside the page title in a flex row, and a hard floor cannot
+     shrink: the row's min-content stayed 496px wide and simply overflowed the
+     viewport — 24px at 900px, 144px at 780px, and worse at every width down to
+     481px, where the ≤480 tier's `min-width: 0` finally rescued it. It is the
+     preferred width that matters here, not a floor; when the row is tight the
+     placeholder truncates, exactly as it already did below 480px.
+     BL-144 made this visible by widening the mono, but only the top of the band
+     was new — the rest had been overflowing unseen, because the overflow guard
+     stops at 390px and the axe sweep is desktop-only. */
   .search-box {
     position: relative;
-    flex: 1;
-    min-width: 375px;
+    flex: 1 1 375px;
+    min-width: 0;
     display: flex;
     align-items: center;
     margin-left: 0;
@@ -250,13 +260,32 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     }
 
     .search-box {
-      min-width: 270px;
+      flex-basis: 270px;
     }
 
     .search-icon {
       left: 0.75rem;
       width: 16px;
       height: 16px;
+    }
+  }
+
+  /* The header row is title + controls under `space-between`, and the title is
+     `white-space: nowrap`, so the row cannot fit until the container holds the
+     title's full width plus the controls' minimum — measured at 436px, i.e. a
+     540px viewport once the container's 3rem padding is taken off. It stacked
+     at 480 instead, so 481–531px overflowed by up to 51px. Stacking is already
+     the ≤480 behaviour; this only moves the threshold up to where the row
+     genuinely fits, and the 480 block below keeps its own tighter values. */
+  @media (max-width: 540px) {
+    .portfolio-header-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .portfolio-controls-fixed {
+      width: 100%;
     }
   }
 

@@ -1,6 +1,6 @@
 /**
- * Site chrome at phone widths — the header row and the footer row must stay
- * inside the viewport.
+ * Site chrome from phone widths to the desktop threshold — the header row, the
+ * footer row and the page's own content must stay inside the viewport.
  *
  * The regression this exists for: `.footer-links` is a four-link flex row that
  * could neither wrap nor shrink (a flex item's default `min-width: auto`), so
@@ -45,8 +45,30 @@ async function waitForFooterStyles(page: Page) {
   });
 }
 
-/** 320 is the narrowest width the site is expected to survive; 360/375/390 are current phones. */
-const WIDTHS = [320, 360, 375, 390] as const;
+/**
+ * 320 is the narrowest width the site is expected to survive; 360/375/390 are
+ * current phones.
+ *
+ * BL-144 then found /ma-portfolio/ scrolling sideways at EVERY width from 481
+ * to 959 — by 210px at 540 — with nothing to catch it. That band was uncovered
+ * from both ends: this file stopped at 390 and the axe sweep runs desktop-only,
+ * so a whole class of layout was checked at phone widths and at 1280 and
+ * nowhere in between.
+ */
+const PHONE_WIDTHS = [320, 360, 375, 390] as const;
+
+/**
+ * The phone widths plus the tablet-to-small-laptop band, which only the
+ * page-overflow sweep needs: the toggle and nav assertions below are about a
+ * phone-width regression and stay there, so the added widths buy coverage
+ * without tripling this file's runtime.
+ *
+ * The band straddles the breakpoints the site actually uses (480, 512, 540,
+ * 768) and samples inside each resulting tier, because these failures scale
+ * with a tier's own floors rather than appearing at its boundaries — at 540 the
+ * overflow was 210px, decaying to 24px by 900.
+ */
+const OVERFLOW_WIDTHS = [...PHONE_WIDTHS, 420, 481, 540, 660, 720, 769, 840, 900] as const;
 
 /**
  * Routes whose chrome is the whole site's chrome, plus the two that carry the
@@ -63,7 +85,7 @@ const ROUTES = [
 ] as const;
 
 test.describe('Site chrome at phone widths', () => {
-  for (const width of WIDTHS) {
+  for (const width of OVERFLOW_WIDTHS) {
     for (const route of ROUTES) {
       test(`${route} at ${width}px has no horizontal overflow`, async ({ page }) => {
         await page.setViewportSize({ width, height: 700 });
@@ -78,7 +100,7 @@ test.describe('Site chrome at phone widths', () => {
     }
   }
 
-  for (const width of WIDTHS) {
+  for (const width of PHONE_WIDTHS) {
     test(`at ${width}px the footer theme toggle stays on screen`, async ({ page }) => {
       await page.setViewportSize({ width, height: 700 });
       await page.goto('/services/');
