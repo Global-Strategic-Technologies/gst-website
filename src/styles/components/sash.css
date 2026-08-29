@@ -51,10 +51,15 @@ and it still rendered broken, because the EDGE was at −10.4. Measuring the
 invariant at the centre instead of the edge is what let it ship twice.
 
 Both bands are chord-centred (centre_x = (box + c)/2), which is what keeps the
-flex-centred copy centred on the visible chord — no padding compensation. Copy
-room is the chord length (box − c)·√2 against the measured content width; both
-bands currently carry ~72px of slack, which is the budget any future c increase
-spends. The axe target-size clearance (both bands are links, and axe measures
+flex-centred copy centred on the visible chord — no padding compensation.
+
+COPY ROOM is NOT the centreline chord. A band is a strip, so its chord shortens
+as c rises across it, and the copy is cut by the box first at the TEXT's upper
+edge: usable = (box − c_text_top)·√2, where c_text_top = c + (content-box
+height)·√2/2. At desktop that is 152px for the main band (not the 173px
+centreline chord) and 236px for the under-band. Measuring at the centreline is
+what let a clipped three-segment /brand specimen ship (163px of copy into 152px
+of room, 2026-08-29). Live slack today: main 101/152, under 176/236. The axe target-size clearance (both bands are links, and axe measures
 UNCLIPPED client rects — the main band's unobscured strip above the under-band's
 rect top must stay ≥ 24px) is bought by SEPARATING the two bands in c, never by
 pushing either toward the diagonal: the current 9.5 c-unit gap yields a 6.7px
@@ -141,13 +146,20 @@ moves.)
 }
 
 /* Above the band's other segments on the type scale: the label is the subject
-   and reads first. Two steps up (--text-sm) on the DESKTOP page corner only —
-   scoped off the corner so the card sash and the --flat specimen (no corner
-   ancestor) keep their sizes — ramping to --text-xs on the ≤768 tiers (their
-   smaller chords; today's look there). Budgets per tier: Sash.astro. */
+   and reads first. One step up (--text-xs) is the family default — which the
+   --flat specimen shows, having no corner ancestor — and the DESKTOP page
+   corner goes two (--text-sm), ramping back to --text-xs on the ≤768 tiers
+   (their smaller chords; today's look there).
+   The CARD corner opts out to the band's base size: 104px leaves no chord to
+   spend, and its 104/150/26 geometry was drawn at that size (the table above
+   and conventions.md both record it). Budgets per tier: Sash.astro. */
 .brutal-sash__label {
   letter-spacing: inherit;
   font-size: var(--text-xs);
+}
+
+.brutal-sash-corner--card .brutal-sash__label {
+  font-size: var(--text-2xs);
 }
 
 .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash__label {

@@ -7,9 +7,10 @@
  * slow E2E suite ever loads a browser.
  *
  * Field-scoped, not value-scoped: every entry's fragment-carrying
- * `subtextHref` is resolved generically (`/<path>/#<id>` →
- * `src/pages/<path>/index.astro`) rather than hardcoding today's entry, so
- * the guard survives the next announcement unchanged. Registry entries
+ * `subtextHref` is resolved generically (`/<path>/#<id>` → whichever of
+ * `src/pages/<path>/index.astro` or `src/pages/<path>.astro` exists — both
+ * route spellings are live in this repo) rather than hardcoding today's
+ * entry, so the guard survives the next announcement unchanged. Registry entries
  * without a fragment (or without a subtextHref) are out of scope — a plain
  * page target is already covered by the route existing at build time.
  *
@@ -39,10 +40,20 @@ const fragmentTargets = ANNOUNCEMENTS.flatMap((entry) => {
 
 describe('announcement subtextHref fragments resolve to real anchors', () => {
   it.each(fragmentTargets)('$id: #$fragment exists on $path', ({ id, path, fragment }) => {
-    const pageFile = join(process.cwd(), 'src/pages', path, 'index.astro');
-    expect(existsSync(pageFile), `${id}: no page at ${pageFile} for subtextHref path`).toBe(true);
-    const markup = extractAstroMarkup(readFileSync(pageFile, 'utf-8'));
-    expect(markup, `${id}: id="${fragment}" not found in ${path}/index.astro`).toMatch(
+    // Both route spellings Astro accepts: `<path>/index.astro` (nested) and
+    // `<path>.astro` (flat — how /services/ and /about/ are authored). Trying
+    // only the first would fail a perfectly valid flat-route destination.
+    const candidates = [
+      join(process.cwd(), 'src/pages', path, 'index.astro'),
+      join(process.cwd(), 'src/pages', `${path}.astro`),
+    ];
+    const pageFile = candidates.find((candidate) => existsSync(candidate));
+    expect(
+      pageFile,
+      `${id}: no page for subtextHref path — tried ${candidates.join(', ')}`
+    ).toBeDefined();
+    const markup = extractAstroMarkup(readFileSync(pageFile!, 'utf-8'));
+    expect(markup, `${id}: id="${fragment}" not found in ${pageFile}`).toMatch(
       new RegExp(`id="${fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`)
     );
   });

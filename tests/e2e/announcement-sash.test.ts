@@ -20,7 +20,7 @@
  * Geometry pairs — corner box / band top / band width / nav reserve — per
  * `src/styles/components/sash.css`.
  */
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 import { getActiveAnnouncement } from '../../src/data/announcements';
 
 /**
@@ -245,27 +245,29 @@ test.describe('Announcement sash', () => {
    * that band pixels were where chord math predicted; none checked WHICH box
    * edges cut them), so it is a test now.
    */
-  test('every band is a ribbon: cut by the box top and right edges only', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(SASH_ROUTE);
-
-    const bands = await pageSash(page).evaluate((corner) => {
-      const box = (corner as HTMLElement).offsetWidth;
+  /** Chord-space measurement of every band inside one corner, from its
+   *  unrotated layout box (the corner is each band's offsetParent). */
+  const measureBands = (corner: Locator) =>
+    corner.evaluate((el) => {
+      const box = (el as HTMLElement).offsetWidth;
       return ['.brutal-sash', '.brutal-sash-under']
         .map((sel) => {
-          const el = corner.querySelector<HTMLElement>(sel);
-          if (!el || getComputedStyle(el).display === 'none') return null;
-          // Unrotated layout box, relative to the corner (its offsetParent).
-          const cx = el.offsetLeft + el.offsetWidth / 2;
-          const cy = el.offsetTop + el.offsetHeight / 2;
+          const band = el.querySelector<HTMLElement>(sel);
+          if (!band || getComputedStyle(band).display === 'none') return null;
+          const cx = band.offsetLeft + band.offsetWidth / 2;
+          const cy = band.offsetTop + band.offsetHeight / 2;
           const c = cx - cy;
-          const halfC = (el.offsetHeight * Math.SQRT2) / 2;
+          const halfC = (band.offsetHeight * Math.SQRT2) / 2;
           const r2 = Math.SQRT1_2;
           const capCornersInside = [-1, 1]
             .flatMap((along) =>
               [-1, 1].map((across) => [
-                cx + ((along * el.offsetWidth) / 2) * r2 + ((across * el.offsetHeight) / 2) * r2,
-                cy + ((along * el.offsetWidth) / 2) * r2 - ((across * el.offsetHeight) / 2) * r2,
+                cx +
+                  ((along * band.offsetWidth) / 2) * r2 +
+                  ((across * band.offsetHeight) / 2) * r2,
+                cy +
+                  ((along * band.offsetWidth) / 2) * r2 -
+                  ((across * band.offsetHeight) / 2) * r2,
               ])
             )
             .filter(([x, y]) => x > 0 && x < box && y > 0 && y < box).length;
@@ -274,12 +276,45 @@ test.describe('Announcement sash', () => {
         .filter((b): b is NonNullable<typeof b> => b !== null);
     });
 
-    expect(bands.length, 'both bands are present to be checked').toBe(2);
+  const expectRibbons = (bands: Awaited<ReturnType<typeof measureBands>>, where: string) => {
     for (const b of bands) {
-      expect(b.cMin, `${b.sel} lower edge stays off the box diagonal`).toBeGreaterThan(2);
-      expect(b.cMax, `${b.sel} upper edge leaves the corner apex white`).toBeLessThan(b.box);
-      expect(b.capCornersInside, `${b.sel} end caps are clipped away, never visible`).toBe(0);
+      expect(b.cMin, `${where} ${b.sel}: lower edge stays off the box diagonal`).toBeGreaterThan(2);
+      expect(b.cMax, `${where} ${b.sel}: upper edge leaves the corner apex white`).toBeLessThan(
+        b.box
+      );
+      expect(
+        b.capCornersInside,
+        `${where} ${b.sel}: end caps are clipped away, never visible`
+      ).toBe(0);
     }
+  };
+
+  for (const bp of BREAKPOINTS) {
+    test(`at ${bp.name} every band is a ribbon: cut by the box top and right edges only`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: bp.width, height: bp.height });
+      await page.goto(SASH_ROUTE);
+      const bands = await measureBands(pageSash(page));
+
+      // Armed off the registry like the rest of this file: the under-band
+      // exists only while a live entry carries `subtext`, and only above 768px.
+      const expected =
+        getActiveAnnouncement(SASH_ROUTE)?.subtext !== undefined && bp.width > 768 ? 2 : 1;
+      expect(bands.length, `${bp.name}: bands present to be checked`).toBe(expected);
+      expectRibbons(bands, bp.name);
+    });
+  }
+
+  test('the card-scale band is a ribbon too', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(SASH_ROUTE);
+    const corner = page
+      .locator(`.hub-cards a[href="${ANNOUNCED_PAGE}"]`)
+      .locator('.brutal-sash-corner--card');
+    const bands = await measureBands(corner);
+    expect(bands.length, 'the card corner carries its one band').toBe(1);
+    expectRibbons(bands, 'card');
   });
 
   for (const bp of BREAKPOINTS) {
