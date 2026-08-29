@@ -53,8 +53,8 @@ export const FAVICON_LINK = `<link rel="icon" type="image/svg+xml" href="data:im
  * checks this file has the faces, not that the percentages agree.
  */
 export const MONO_FALLBACK_FACES = `
-@font-face { font-family: 'GST Mono Fallback'; src: local('Menlo'), local('DejaVu Sans Mono'); size-adjust: 99.7%; ascent-override: 100.5%; descent-override: 29.5%; line-gap-override: 0%; }
-@font-face { font-family: 'GST Mono Fallback WD'; src: local('Consolas'); size-adjust: 109.1%; ascent-override: 100.5%; descent-override: 29.5%; line-gap-override: 0%; }`;
+@font-face { font-family: 'GST Mono Fallback'; src: local('Menlo'), local('DejaVu Sans Mono'); size-adjust: 99.7%; ascent-override: 100.8%; descent-override: 29.59%; line-gap-override: 0%; }
+@font-face { font-family: 'GST Mono Fallback WD'; src: local('Consolas'); size-adjust: 109.1%; ascent-override: 92.12%; descent-override: 27.04%; line-gap-override: 0%; }`;
 
 /** The mono stack those faces back, for a Worker page's `font-family`. */
 export const MONO_STACK = `'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace`;
@@ -70,7 +70,7 @@ ${FAVICON_LINK}
 <title>${title}</title>
 <style>
 :root { color-scheme: light dark; }${MONO_FALLBACK_FACES}
-body { font: 16px/1.4 system-ui, sans-serif; max-width: 28rem; margin: 2rem auto; padding: 0 1rem; }
+body { font: 16px/1.4 ${MONO_STACK}; max-width: 28rem; margin: 2rem auto; padding: 0 1rem; }
 h1 { font-size: 1.25rem; margin-bottom: 1rem; }
 form { display: flex; flex-direction: column; gap: 0.75rem; }
 input[type=password] { padding: 0.6rem; font: inherit; border: 1px solid #999; border-radius: 0.25rem; }
