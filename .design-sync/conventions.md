@@ -185,7 +185,11 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
   above the header (a corner overlay there would overflow the nav, whose reserve is 0 at
   that width). The strip is a media RESTYLE of the standard classes keyed on the
   production mount (`body > …`) — nested gallery specimens keep the old stand-down. The
-  optional `.brutal-sash-under` adds a desktop-only fourth: top 76 / left −33 / width 288.
+  optional `.brutal-sash-under` adds a desktop-only fourth, and GROWS its corner box to
+  220px (the subtext runs nearly the whole chord, and `monospace` is an unspecified
+  generic whose advance width differs ~8% between engines, so the room is what keeps it
+  off the box edge): 220/53/310 for the main band, top 88 / left −40 / width 320 for the
+  under-band, nav reserve 220.
   Every band obeys a RIBBON-FORM invariant in chord space (c = x − y, box-local): its
   LOWER EDGE — centre c minus height·√2/2, not the centre itself — must stay above the
   box diagonal c = 0, its upper edge must leave the apex white, and its width must be

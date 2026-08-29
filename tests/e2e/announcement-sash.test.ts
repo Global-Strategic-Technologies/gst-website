@@ -64,12 +64,16 @@ const NO_LIVE_ANNOUNCEMENT = getActiveAnnouncement(SASH_ROUTE) === null;
 /**
  * Registry-driven like everything else here: a live entry carrying `subtext`
  * renders the under-band, which conditionally widens the DESKTOP reserve to
- * 200px (HeaderNavLinks.astro). The tier reserves are identical either way —
+ * 220px (HeaderNavLinks.astro) — the box grows to 220px there too, see
+ * sash.css. The tier reserves are identical either way —
  * the under-band hides ≤768px and the per-tier restatements repeat the tier
  * values — so only the desktop expectation is conditional.
  */
 const LIVE_SUBTEXT = getActiveAnnouncement(SASH_ROUTE)?.subtext;
-const DESKTOP_RESERVE = LIVE_SUBTEXT === undefined ? '168px' : '200px';
+const DESKTOP_RESERVE = LIVE_SUBTEXT === undefined ? '168px' : '220px';
+/** The box grows with the reserve — a sash carrying an under-band needs the
+ *  extra chord for its subtext (sash.css). Same conditional, same pair. */
+const DESKTOP_BOX = LIVE_SUBTEXT === undefined ? '200px' : '220px';
 
 test.describe('Announcement sash', () => {
   test.skip(() => NO_LIVE_ANNOUNCEMENT, 'no announcement is live on this route — nothing renders');
@@ -139,7 +143,7 @@ test.describe('Announcement sash', () => {
    * is live in any registry state, so neither state can silently regress.
    * Both arms have run green: (b) was exercised against a temporarily-mutated
    * registry when the capability landed (2026-08-28), alongside a
-   * three-engine fit probe of the 200px reserve at 769–1440px.
+   * three-engine fit probe of the conditional reserve at 769–1440px.
    */
   test('without a registry subtext there is no under-band (enabled, not present)', async ({
     page,
@@ -198,7 +202,7 @@ test.describe('Announcement sash', () => {
     const reserve = await page
       .locator('.site-header nav ul')
       .evaluate((el) => getComputedStyle(el).paddingRight);
-    expect(reserve, 'the conditional desktop reserve').toBe('200px');
+    expect(reserve, 'the conditional desktop reserve').toBe('220px');
 
     // Hidden 512–768 alongside __detail, and the tier restatement defeats the
     // base bump (:has() still matches the display:none band).
@@ -306,6 +310,82 @@ test.describe('Announcement sash', () => {
     });
   }
 
+  /**
+   * Ink containment — the property the ribbon test does NOT cover: a band can
+   * be a perfect ribbon while the box cuts its COPY. Both of this file's
+   * geometry defects were of that kind, and both hid behind a measurement in
+   * the wrong space, so this measures the way the box actually sees it: the
+   * band is un-rotated to read its ink flat, and the ink's four corners are
+   * mapped back through the 45° rotation and tested against the box.
+   *
+   * Per ENGINE on purpose. `--font-family-mono` is the bare `monospace`
+   * generic, so the advance width is whatever the engine and OS pick — the
+   * live subtext measures 222px on Chromium and Firefox and 240px on WebKit,
+   * and a chromium-only check once passed a band WebKit was clipping by 5px.
+   */
+  const measureInkFit = (corner: Locator) =>
+    corner.evaluate((el) => {
+      const box = (el as HTMLElement).offsetWidth;
+      return ['.brutal-sash', '.brutal-sash-under']
+        .map((sel) => {
+          const band = el.querySelector<HTMLElement>(sel);
+          if (!band || getComputedStyle(band).display === 'none') return null;
+
+          const priorTransform = band.style.transform;
+          band.style.transform = 'none';
+          const range = document.createRange();
+          range.selectNodeContents(band);
+          const ink = range.getBoundingClientRect();
+          const flat = band.getBoundingClientRect();
+          const dx = ink.left + ink.width / 2 - (flat.left + flat.width / 2);
+          const dy = ink.top + ink.height / 2 - (flat.top + flat.height / 2);
+          const inkW = ink.width;
+          const inkH = ink.height;
+          band.style.transform = priorTransform;
+
+          const bcx = band.offsetLeft + band.offsetWidth / 2;
+          const bcy = band.offsetTop + band.offsetHeight / 2;
+          const r2 = Math.SQRT1_2;
+          const margins: number[] = [];
+          for (const sx of [-1, 1])
+            for (const sy of [-1, 1]) {
+              const px = dx + (sx * inkW) / 2;
+              const py = dy + (sy * inkH) / 2;
+              const x = bcx + (px - py) * r2;
+              const y = bcy + (px + py) * r2;
+              margins.push(x, y, box - x, box - y);
+            }
+          return { sel, margin: Math.min(...margins) };
+        })
+        .filter((b): b is NonNullable<typeof b> => b !== null);
+    });
+
+  test('the copy fits inside the corner, not just the band', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(SASH_ROUTE);
+    const live = await measureInkFit(pageSash(page));
+    expect(live.length, 'bands present to be checked').toBeGreaterThan(0);
+    for (const b of live) {
+      expect(b.margin, `page sash ${b.sel}: copy is cut by the corner box`).toBeGreaterThan(0);
+    }
+
+    // The specimens carry copy the live registry does not, and are where a new
+    // combination is supposed to be proven before it ships.
+    await page.goto('/brand/');
+    const frames = page.locator('.brand-sash-frame');
+    const count = await frames.count();
+    expect(count, '/brand exhibits sash specimens to check').toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      const bands = await measureInkFit(frames.nth(i).locator('.brutal-sash-corner'));
+      for (const b of bands) {
+        expect(
+          b.margin,
+          `/brand specimen ${i} ${b.sel}: copy is cut by the corner box`
+        ).toBeGreaterThan(0);
+      }
+    }
+  });
+
   test('the card-scale band is a ribbon too', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(SASH_ROUTE);
@@ -318,9 +398,7 @@ test.describe('Announcement sash', () => {
   });
 
   for (const bp of BREAKPOINTS) {
-    test(`at ${bp.name} the corner box is ${bp.box}px and the nav reserves ${bp.reserve}`, async ({
-      page,
-    }) => {
+    test(`at ${bp.name} the corner box and the nav reserve stay paired`, async ({ page }) => {
       await page.setViewportSize({ width: bp.width, height: bp.height });
       await page.goto(SASH_ROUTE);
 
@@ -329,8 +407,10 @@ test.describe('Announcement sash', () => {
         const cs = getComputedStyle(el);
         return { w: cs.width, h: cs.height };
       });
-      expect(size.w).toBe(`${bp.box}px`);
-      expect(size.h).toBe(`${bp.box}px`);
+      // Desktop only, both members of the pair are registry-conditional.
+      const expectedBox = bp.name === 'desktop' ? DESKTOP_BOX : `${bp.box}px`;
+      expect(size.w, 'corner box width').toBe(expectedBox);
+      expect(size.h, 'corner box height').toBe(expectedBox);
 
       const reserve = await page
         .locator('.site-header nav ul')

@@ -402,7 +402,10 @@ import '../styles/components/progress.css';
   }
 
   .brand-sash-frame--under {
-    height: 210px;
+    /* Taller than the plain frame because the under-band grows its corner box
+       to 220px (sash.css) — the frame must clear the whole box, or it, not the
+       corner, would cut the ribbon. */
+    height: 236px;
   }
 
   .brand-sash-frame--card {

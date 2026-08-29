@@ -11,19 +11,22 @@ GEOMETRY PAIRS — the band is centred on the 45° chord of its corner box, so t
 corner-box size, the band's `top` and the band's `width` move TOGETHER. Setting
 one without the others slides the band off the corner. The nav reserve in
 HeaderNavLinks.astro (168 / 140 / 108px) is the third member of the set — and
-when a page's sash carries the optional under-band (below), the desktop reserve
-conditionally widens to 200px there, a fourth member keyed on the SAME three
-breakpoints (no new numbers).
+when a page's sash carries the optional under-band (below), the desktop corner
+grows to 220px and its reserve widens to match, a conditional fourth member
+keyed on the SAME three breakpoints (no new BREAKPOINTS, one new box size).
 
   scale          corner box   band width   band top   label size   nav reserve
-  page desktop   200px        280px        42px       --text-sm    168px (200px with under-band)
+  page desktop   200px        280px        42px       --text-sm    168px
+  page desktop   220px        310px        53px       --text-sm    220px
+    with under-band (the box grows for it — see UNDER-BAND below)
   page ≤768px    170px        220px        42px       --text-xs    140px
   page ≤540px    140px        190px        34px       --text-xs    108px
+    (each tier also restates the band's `left` — see the ≤768 block)
   page ≤511px    IN-FLOW STRIP — full-width two-line banner above the header
                  (see the bottom of this file); reserve stays 0
   card           104px        150px        26px       --text-2xs   n/a
 
-UNDER-BAND (optional subtext, page scale): top 76px, left −33px, width 288px,
+UNDER-BAND (optional subtext, page scale): top 88px, left −40px, width 320px,
 min-height 24px (--touch-target-min-aa — it is a LINK; the AA floor is the real
 finger target on the unrotated strip). Its chord sits below the main band's and
 is LONGER (it lies nearer the box diagonal), so subtext gets more room than the
@@ -55,16 +58,24 @@ flex-centred copy centred on the visible chord — no padding compensation.
 
 COPY ROOM is NOT the centreline chord. A band is a strip, so its chord shortens
 as c rises across it, and the copy is cut by the box first at the TEXT's upper
-edge: usable = (box − c_text_top)·√2, where c_text_top = c + (content-box
-height)·√2/2. At desktop that is 152px for the main band (not the 173px
-centreline chord) and 236px for the under-band. Measuring at the centreline is
-what let a clipped three-segment /brand specimen ship (163px of copy into 152px
-of room, 2026-08-29). Live slack today: main 101/152, under 176/236. The axe target-size clearance (both bands are links, and axe measures
-UNCLIPPED client rects — the main band's unobscured strip above the under-band's
-rect top must stay ≥ 24px) is bought by SEPARATING the two bands in c, never by
-pushing either toward the diagonal: the current 9.5 c-unit gap yields a 6.7px
-visible gap and a 29px strip. Re-run the accessibility suite after any geometry
-change.
+edge: usable = (box − c_text_top)·√2, where c_text_top = c + (ink height)·√2/2.
+Measure the ink FLAT — un-rotate the band first. Reading a rect off a rotated
+band gives its axis-aligned bbox ((w+h)/√2), and comparing that to a chord
+length understates the copy by ~25%: it is what hid a WebKit overflow behind an
+apparent 60px of slack (2026-08-29). Measuring at the centreline instead of the
+text's upper edge is what let a clipped three-segment /brand specimen ship the
+same day. Both are asserted per engine in the sash E2E suite now.
+
+Live figures at the 220px box, flat ink into usable chord — WebKit first, its
+mono metrics being the widest of the three engines:
+  main band   107 / 185   (Chromium and Firefox 101)
+  under-band  240 / 271   (Chromium and Firefox 222)
+
+The axe target-size clearance (both bands are links, and axe measures UNCLIPPED
+client rects — the main band's unobscured strip above the under-band's rect top
+must stay ≥ 24px) is bought by SEPARATING the two bands in c, never by pushing
+either toward the diagonal: the current 10 c-unit gap yields a 7px visible gap
+and a 29px strip. Re-run the accessibility suite after any geometry change.
 
 No ≤768/≤540 variants exist: the under-band hides 512–768px alongside
 __detail, and below 512 it is the strip's second line.
@@ -183,15 +194,20 @@ moves.)
    Geometry and the colorway ruling: header comment above. */
 .brutal-sash-under {
   position: absolute;
-  top: 76px;
-  left: -33px;
+  top: 78px;
+  left: -34px;
   width: 288px;
+
+  /* The AA floor is also the band's THICKNESS here — the padding is set below
+     it on purpose. A thinner band may sit closer to the box diagonal without
+     breaking the ribbon invariant, and every px of c it gives back is 1.41px
+     of chord for the subtext, which is the tightest copy on the sash. */
   min-height: var(--touch-target-min-aa);
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding: var(--spacing-xs) 0;
+  padding: 0.1875rem 0;
   transform: rotate(45deg);
   pointer-events: auto;
   text-decoration: none;
@@ -199,7 +215,14 @@ moves.)
   font-size: var(--text-2xs);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+
+  /* 0.06em, not the 0.1em the other segments carry: the under-band's copy runs
+     nearly the full chord, and at 0.1em WebKit's wider mono metrics pushed the
+     live 35-character subtext 5.3px PAST the box (Chromium and Firefox cleared
+     it by under 1px — a chromium-only fit check called it fine). This is the
+     family's existing tighter step, already used by the ≤540 band and the ≤511
+     strip. Copy fit is asserted per engine in the sash E2E suite. */
+  letter-spacing: 0.06em;
   white-space: nowrap;
   background: var(--sash-ink);
   color: var(--sash-bg);
@@ -233,6 +256,34 @@ moves.)
   outline-offset: -4px;
 }
 
+/* A corner carrying TWO bands needs a bigger box. `--font-family-mono` is the
+   bare `monospace` generic, so the advance width is whatever the engine and OS
+   pick: the live 35-character subtext measures 222px on Chromium and Firefox
+   but 240px on WebKit, an 8% spread on copy that occupies nearly the whole
+   chord. At 200px the under-band fitted by 0.8px on WebKit — inside the noise
+   of a font nobody specified — so the box grows to 220 here, which puts the
+   margin at ~15px on the widest engine measured. Both bands are re-derived for
+   the larger box rather than inherited (chord-centring is box-relative).
+   Keyed on :has() — the same signal HeaderNavLinks uses to widen the reserve,
+   which grows with it. The ≤768 tiers and the ≤511 strip override every rule
+   here (higher specificity, later source), so this is a desktop-only form. */
+.brutal-sash-corner:has(.brutal-sash-under) {
+  width: 220px;
+  height: 220px;
+}
+
+.brutal-sash-corner:has(.brutal-sash-under) .brutal-sash {
+  top: 53px;
+  left: -8px;
+  width: 310px;
+}
+
+.brutal-sash-corner:has(.brutal-sash-under) .brutal-sash-under {
+  top: 88px;
+  left: -40px;
+  width: 320px;
+}
+
 /* Decorative, inside a card that is itself the link — --z-raised, not --z-overlay. */
 .brutal-sash-corner--card {
   width: 104px;
@@ -263,8 +314,15 @@ moves.)
     height: 170px;
   }
 
+  /* `left` is restated here for the same reason the nav's reserve is: the
+     conditional desktop rules above match at every width (:has() sees the
+     under-band even while it is display:none), so a tier that leaves `left`
+     out inherits the 220px box's value and slides its band off-centre —
+     measured, that pulled the band's lower-right end cap 2px INSIDE the
+     170px box, which is the cut-off-square defect the ribbon test catches. */
   .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash {
     top: 42px;
+    left: 1px;
     width: 220px;
     padding: 0.4375rem 0;
     letter-spacing: 0.1em;
@@ -305,6 +363,7 @@ moves.)
 
   .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash {
     top: 34px;
+    left: -5px;
     width: 190px;
     padding: 0.375rem 0;
     letter-spacing: 0.06em;
