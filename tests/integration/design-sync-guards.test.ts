@@ -655,6 +655,10 @@ describe('the pinned brand face still ships to the design system', () => {
     expect(family, 'could not read the pinned family name').toBeTruthy();
 
     const surfaces = [
+      // conventions.md first, and deliberately: it sits at the .design-sync
+      // root rather than under either directory, so a glob over the two dirs
+      // misses the ONE file prepended verbatim to the published README.
+      resolve(SYNC_DIR, 'conventions.md'),
       ...readdirSync(resolve(SYNC_DIR, 'specimens')).map((f) => resolve(SYNC_DIR, 'specimens', f)),
       ...readdirSync(resolve(SYNC_DIR, 'specimen-docs')).map((f) =>
         resolve(SYNC_DIR, 'specimen-docs', f)

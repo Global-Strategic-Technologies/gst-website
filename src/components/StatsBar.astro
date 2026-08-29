@@ -75,15 +75,35 @@ const { stats } = Astro.props;
 
      Where the thresholds come from: the longest value a real page passes is
      `$2.8B+`, six characters, and the pinned face (BL-144) sets six characters
-     at 3.6 x the font size. So 3.5rem needs 202px of cell interior, a cell
-     interior is `container / columns - 2 x padding`, and four columns clear it
-     at a container of 1064px. Below that the grid halves rather than the type
-     shrinking. That band was broken before the pin too — at a 900px viewport
-     the value hung 65px outside its cell — because 3.5rem was tuned against a
-     narrower face at one width and no width in between was ever checked.
+     at 3.6 x the font size. A cell interior is `container / columns - 2 x
+     padding`, and each tier is sized so that interior clears the text by AT
+     LEAST 8px.
 
-     The two lower thresholds are the old 768px and 480px viewport tiers
-     expressed as the container widths they produce (viewport - 96px).
+     That 8px floor is the correction, and it is not decoration. The first cut
+     of this block solved each threshold as an equality and took whatever slack
+     fell out: four columns "cleared" a 1064px container by 0.39px (202px of
+     interior against 201.61px of text). It passed locally — `scrollWidth`
+     rounds 201.61 up to 202, so the two tie — and failed in CI, where the same
+     assertion reported 2px of overflow. Sub-pixel rounding is not a margin.
+     8px also absorbs the widest realistic fallback: generic `monospace` on
+     Linux is DejaVu at 602/1000, 0.7px wider over six characters than the
+     pinned face's 600/1000.
+
+     So, per tier (text = 6 x 0.6 x font-size):
+       4 cols, 3.5rem (201.6px), 2rem sides -> c/4 - 64 >= 209.6 -> c >= 1095
+       2 cols, 3.5rem (201.6px), 2rem sides -> clears from c = 673 up
+       2 cols, 2.5rem (144px),   1rem sides -> c/2 - 32 >= 152 -> c >= 368
+       2 cols, 1.5rem (86.4px),  0.5rem sides -> c/2 - 16 >= 94.4 -> c >= 221
+
+     The middle tier's side padding steps down WITH the type for that reason:
+     at 2rem sides it needed a 416px container, but it inherits down to 384,
+     so containers 385-415 (viewport 481-511) overflowed by up to 15px. No
+     sampled width sat in that 30px band — the E2E widths step 480 -> 540
+     straight over it — which is why that file now sweeps rather than samples.
+
+     The two lower thresholds remain the old 768px and 480px viewport tiers
+     expressed as the container widths they produce (viewport - 96px); only the
+     top one is derived, and it now corresponds to a 1191px viewport.
 
      CAUTION on that -96px: `.container` carries `padding: 0 3rem` at EVERY
      width, which is not what buttons.css appears to say. That sheet declares
@@ -96,13 +116,19 @@ const { stats } = Astro.props;
     container-type: inline-size;
   }
 
-  @container (max-width: 1063px) {
+  @container (max-width: 1094px) {
     .stats-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
   @container (max-width: 672px) {
+    /* The sides step down with the type. At 2rem they need a 416px container,
+       but this tier inherits down to 384 — the 481-511px viewport band. */
+    .stat-item {
+      padding: 2rem var(--spacing-lg);
+    }
+
     .stat-value {
       font-size: 2.5rem;
     }
@@ -113,12 +139,12 @@ const { stats } = Astro.props;
   }
 
   @container (max-width: 384px) {
-    /* Two columns at a 224px container leave a 112px cell. Six characters at
-       --text-3xl need 115px of interior, so the side padding comes off first
-       and the value steps down once — rather than stacking to one column, which
-       would make four stats four screens tall on the narrowest phone. The
-       label's tracking steps with it: `Engagements` is its longest unbreakable
-       word and 0.15em put it 3px past the cell. */
+    /* Two columns at a 224px container (the 320px viewport) leave a 112px
+       cell. Six characters at --text-2xl need 86.4px, so trimming the sides to
+       0.5rem leaves 96px of interior — 9.6px of slack — rather than stacking to
+       one column, which would make four stats four screens tall on the
+       narrowest phone. The label's tracking steps with it: `Engagements` is its
+       longest unbreakable word and 0.15em put it 3px past the cell. */
     .stat-item {
       padding: 1.75rem var(--spacing-sm);
     }
@@ -128,8 +154,14 @@ const { stats } = Astro.props;
       margin-bottom: 0.25rem;
     }
 
+    /* `Engagements` is 11 characters, and tracking is charged per character:
+       at --text-xs it is 79.2px of glyph plus 11 x the tracking. A 96px
+       interior therefore clears 0.1em by only 3.6px — not an overflow, which is
+       why the old clamped assertion passed it, but under the floor the sweep
+       now demands. 0.06em costs 7.92px instead of 13.2px and clears by 8.9px,
+       while still reading as tracked uppercase. */
     .stat-label {
-      letter-spacing: 0.1em;
+      letter-spacing: 0.06em;
     }
   }
 </style>
