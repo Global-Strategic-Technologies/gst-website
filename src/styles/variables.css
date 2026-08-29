@@ -150,9 +150,20 @@
   --gap-wide: 1.5rem;
   --gap-extra-wide: 2rem;
 
-  /* Typography */
-  --font-family: 'Helvetica Neue', Arial, sans-serif;
-  --font-family-mono: monospace;
+  /* Typography — BL-144: both tokens are pinned to the self-hosted face declared
+     in fonts.css. Neither may end in a bare generic with nothing named in front
+     of it; tests/integration/font-token-pin.test.ts fails the build if one does.
+     `ui-monospace, monospace` remains as the last resort for a visitor with no
+     webfont and none of the two named fallbacks. */
+  --font-family-mono:
+    'GST Mono', 'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace;
+
+  /* The sans collapses onto the mono. It was `'Helvetica Neue', Arial,
+     sans-serif` — absent off Apple hardware, so most visitors already got Arial,
+     an accidental second family rather than a chosen one. Nav links and button
+     text were its only consumers, and the system's own rule is that type is
+     monospace and tracked. */
+  --font-family: var(--font-family-mono);
   --font-weight-normal: 400;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;

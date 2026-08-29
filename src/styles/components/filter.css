@@ -45,7 +45,7 @@
   background: var(--search-input-bg);
   color: var(--search-input-text);
   font-size: 0.8125rem;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-family);
   transition: all 0.2s;
   min-height: 38px;
 }
@@ -106,7 +106,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-family);
   transition: all var(--transition-normal);
   border-radius: 0;
 }

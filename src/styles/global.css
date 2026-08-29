@@ -1,3 +1,6 @@
+/* fonts.css first: the @font-face blocks must be declared ahead of every sheet
+   that consumes --font-family-mono, print rules included (BL-144). */
+@import './fonts.css';
 @import './variables.css';
 @import './typography.css';
 @import './interactions.css';
@@ -299,6 +302,13 @@ Legal Page Layout (Privacy, Terms)
   line-height: 1.8;
   font-family: var(--font-family-mono);
   color: var(--text-secondary);
+
+  /* Legal copy carries unbreakable tokens — the contact address, bare domains —
+     and a mono face gives them a fixed, wide advance: contact@globalstrategic.tech
+     is 269px against the 205px the contact box leaves at 320px, so without this
+     the page itself scrolls sideways. `anywhere` rather than `break-word` so the
+     token stops contributing its full width to min-content sizing as well. */
+  overflow-wrap: anywhere;
 }
 
 .legal-page-body h2 {

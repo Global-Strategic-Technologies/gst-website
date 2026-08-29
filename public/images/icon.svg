@@ -1,35 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Static GST composite mark — PWA / favicon / OG use, and the "(static)" specimen
+  on /brand. The live, palette-aware version is src/components/CompositeLogo.astro.
+
+  BL-144: the wordmark used to be <text> in Montserrat, pulled from Google's
+  font CDN by an @import inside this file. Three things wrong with that: it put
+  a third-party font origin in the built output (the site's CSP sends
+  font-src 'self'), Montserrat is not a brand face, and an SVG referenced as
+  <img> never loads external resources anyway — so the mark actually rendered in
+  whatever sans the OS picked, and disagreed with the live component beside it
+  on /brand.
+
+  The letters are now OUTLINES of the pinned face (GST Mono / Geist Mono
+  Variable instanced at wght 700, 68px on a 240px baseline, centred on x=75/150/
+  225 exactly as the <text> elements were). No font is needed to render this
+  file, by anyone, ever. Regenerate them with fontTools if the face changes —
+  see docs/styles/TYPOGRAPHY_REFERENCE.md § The pinned mono.
+-->
 <svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&amp;display=swap');
-      .logo-text {
-        font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-weight: 700;
-        text-anchor: middle;
-      }
-    </style>
-  </defs>
-  
   <!-- White background -->
   <rect width="300" height="300" fill="#FFFFFF"/>
-  
+
   <!-- Black border around perimeter -->
   <rect x="0" y="0" width="300" height="300" fill="none" stroke="#000000" stroke-width="2"/>
-  
-  <!-- Delta Symbol (using exact path from uploaded icon, scaled to fit above text) -->
+
+  <!-- Delta Symbol (exact path from the icon, scaled 2.5x and centred above the text) -->
   <!-- Original viewBox: 64x64, Delta path: M32 12 L 52 52 L 12 52 Z -->
-  <!-- Scaling by 2.5x and centering in upper portion -->
   <g transform="translate(70, 30) scale(2.5)">
-    <path d="M 32 12 L 52 52 L 12 52 Z" 
-          fill="none" 
-          stroke="#00D9B5" 
-          stroke-width="6" 
+    <path d="M 32 12 L 52 52 L 12 52 Z"
+          fill="none"
+          stroke="#00D9B5"
+          stroke-width="6"
           stroke-linejoin="miter"/>
   </g>
-  
-  <!-- GST Letters (positioned below Delta, spread wide) -->
-  <text x="75" y="240" class="logo-text" fill="#2C3E50" font-size="68">G</text>
-  <text x="150" y="240" class="logo-text" fill="#00D9B5" font-size="68">S</text>
-  <text x="225" y="240" class="logo-text" fill="#2C3E50" font-size="68">T</text>
+
+  <!-- GST wordmark, as outlines -->
+  <path fill="#2C3E50" d="M75.11 241.09Q69.64 241.09 65.52 238.14Q61.40 235.20 59.09 229.57Q56.78 223.94 56.78 215.93Q56.78 208.11 58.98 202.44Q61.18 196.78 65.32 193.71Q69.45 190.63 75.22 190.63Q80.00 190.63 83.56 192.60Q87.12 194.58 89.47 198.36Q91.82 202.15 92.84 207.60L82.93 208.18Q82.18 203.81 80.25 201.57Q78.32 199.32 75.30 199.32Q72.58 199.32 70.66 201.23Q68.74 203.14 67.74 206.86Q66.73 210.57 66.73 215.93Q66.73 221.22 67.81 224.90Q68.89 228.58 70.93 230.49Q72.96 232.40 75.90 232.40Q78.30 232.40 80.01 231.21Q81.72 230.02 82.68 227.79Q83.64 225.56 83.73 222.43H75.11V214.89H92.68V240.00H86.22L85.78 229.56L87.95 228.39Q87.57 231.81 85.98 234.72Q84.40 237.62 81.68 239.35Q78.96 241.09 75.11 241.09Z"/>
+  <path fill="#00D9B5" d="M150.38 241.09Q144.91 241.09 141.03 238.98Q137.15 236.87 134.99 232.98Q132.84 229.09 132.43 223.67L142.14 223.18Q142.57 226.29 143.72 228.38Q144.87 230.47 146.67 231.49Q148.46 232.52 150.88 232.52Q153.06 232.52 154.60 231.91Q156.13 231.31 156.96 230.11Q157.78 228.92 157.78 227.19Q157.78 225.33 156.89 223.97Q156.00 222.61 153.78 221.49Q151.56 220.38 147.55 219.30Q142.72 218.00 139.57 216.28Q136.41 214.57 134.90 211.92Q133.38 209.28 133.38 205.27Q133.38 200.82 135.32 197.52Q137.26 194.22 140.98 192.43Q144.71 190.63 150.00 190.63Q155.17 190.63 158.83 192.54Q162.48 194.44 164.56 198.05Q166.63 201.66 167.01 206.82L157.22 207.26Q156.90 204.75 155.93 202.94Q154.96 201.13 153.37 200.17Q151.78 199.20 149.58 199.20Q146.64 199.20 144.91 200.67Q143.17 202.14 143.17 204.67Q143.17 206.42 144.04 207.64Q144.90 208.86 147.03 209.81Q149.16 210.77 152.94 211.82Q158.40 213.29 161.60 215.35Q164.80 217.41 166.18 220.22Q167.57 223.03 167.57 226.84Q167.57 231.17 165.50 234.38Q163.44 237.58 159.59 239.33Q155.75 241.09 150.38 241.09Z"/>
+  <path fill="#2C3E50" d="M220.16 240.00V200.45H207.32V191.72H242.68V200.45H229.84V240.00Z"/>
 </svg>

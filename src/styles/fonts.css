@@ -1,0 +1,99 @@
+/* BL-144 — the pinned brand face.
+   ---------------------------------------------------------------------------
+   GST is a monospace brand. Before this file `--font-family-mono` was the bare
+   generic `monospace`, so the actual typeface was whatever the visitor's OS
+   picked — Menlo, Consolas, DejaVu Sans Mono — while 449 declarations, the
+   tracked `.brutal-*` headings, the `ch`-sized tool chrome and the sash's fixed
+   45° chord were all sized against one machine's rendering. Advance widths
+   across those resolutions differ by ~9%, which is the width of a whole
+   character on a 35-character label; the sash clips rather than reflows.
+
+   The fix is to name a face and ship it: one subset variable file from our own
+   origin, aliased so no call site names it.
+
+   WHY THE ALIAS. Every consumer goes through `--font-family-mono`, whose first
+   family is `'GST Mono'`. The face behind that alias is Geist Mono today; a
+   future change is one `src` line here, not a rename across the repo. Never
+   write `font-family: 'Geist Mono'` — the guard in
+   tests/integration/font-token-pin.test.ts fails the build on a literal family
+   outside this file.
+
+   PROVENANCE. Geist Mono Variable, OFL 1.1, from vercel/geist-font v1.7.2
+   (`GeistMono[wght].ttf`, upem 1000, weight axis 100–900). Licence shipped
+   alongside the font at public/fonts/GEIST-MONO-OFL.txt. The subset recipe and
+   how to re-cut it live in docs/styles/TYPOGRAPHY_REFERENCE.md § The pinned
+   mono — re-cut it there rather than by hand, so the declared `unicode-range`
+   below and the file's real coverage cannot drift apart.
+
+   PLACEMENT. Imported first from global.css, ahead of every sheet that consumes
+   the token — including the print rules, which are a `@media print` block in
+   global.css and so inherit these faces. */
+
+/* KNOWN, ACCEPTED: WebKit does not apply this face's weight axis — 400 and 900
+   paint byte-identically there, while Chromium and Firefox vary correctly. It is
+   the face, not this subset: the untouched upstream file and two independent
+   rebuilds behave the same, and a control variable font varies in the same
+   engine. Upstream carries an open cluster of weight-axis bugs against Geist
+   (vercel/geist-font #12, #65, #68, #90), so a future release may fix it for
+   free. Shipping the variable file alone is the product owner's decision
+   (2026-08-29); nothing about LAYOUT depends on it, because every glyph in this
+   face has the same 600/1000 advance at every weight. Do not add a static Bold
+   cut to work around it without re-taking that decision. */
+@font-face {
+  font-family: 'GST Mono';
+
+  /* `format('woff2')` is the CSS Fonts 4 spelling, and variable axes ride on it.
+     The handoff proposed `format('woff2-variations')`; all three engines accept
+     all three spellings (plain, `-variations`, and `format('woff2')
+     tech('variations')`) — measured, not assumed — so this picks the
+     non-deprecated one. */
+  src: url('/fonts/gst-mono-var-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+
+  /* Matches the subset's real coverage exactly (367 codepoints). Two blocks the
+     handoff's proposed range omitted are load-bearing here: U+2500–257F box
+     drawing (the TableOfContents tree and the /brand rules draw ~16k of them —
+     in a fallback face they misalign against the mono grid) and U+20AC, which
+     the tech-debt calculator renders. Δ (U+0394), ⓘ (U+24D8) and ⚠ (U+26A0) are
+     deliberately absent: Geist Mono has no glyph for them at all, so they fall
+     through to the metric-matched fallback per-glyph, as they must. */
+  unicode-range:
+    U+0000-00FF, U+0131, U+2000-206F, U+20AC, U+2190-2199, U+2212, U+221A, U+2248, U+2264-2265,
+    U+25A0-25FF, U+2500-257F;
+}
+
+/* Metric-matched fallbacks. `font-display: swap` is only safe because of these:
+   the pre-swap frame occupies the pinned face's box, so the swap changes glyph
+   shapes and not one line break, column width or sash chord.
+
+   The overrides are read off the file itself, not from published tables:
+   GeistMono[wght].ttf has upem 1000, hhea ascent 1005, descent −295, lineGap 0,
+   and a uniform 600/1000 advance across all 867 glyphs. So `size-adjust` is
+   600 ÷ (the fallback's own advance per 1000): Menlo 602 → 99.7%, Consolas
+   1126/2048 = 549.8 → 109.1%.
+
+   The Consolas figure is MEASURED: on a Windows box a 44-character sample sets
+   2639.30px against the pinned face's 2640.00px — 0.03% apart, well inside the
+   0.5% the handoff asks for. The Menlo/DejaVu figure is COMPUTED ONLY: neither
+   face is installed on Windows or in any of the three Playwright engines, so it
+   could not be measured here. Confirm it on a Mac before treating it as
+   verified — the arithmetic is sound but unproven on real metal. */
+@font-face {
+  font-family: 'GST Mono Fallback';
+  src: local('Menlo'), local('DejaVu Sans Mono');
+  size-adjust: 99.7%;
+  ascent-override: 100.5%;
+  descent-override: 29.5%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'GST Mono Fallback WD';
+  src: local('Consolas');
+  size-adjust: 109.1%;
+  ascent-override: 100.5%;
+  descent-override: 29.5%;
+  line-gap-override: 0%;
+}
