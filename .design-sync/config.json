@@ -5,6 +5,7 @@
   "globalName": "GST",
   "buildCmd": "node .design-sync/build-css.mjs",
   "cssEntry": ".design-sync/.cache/gst-styles.css",
+  "extraFonts": [".design-sync/.cache/gst-fonts.css"],
   "readmeHeader": ".design-sync/conventions.md",
   "guidelinesGlob": [
     "src/docs/styles/STYLES_GUIDE.md",

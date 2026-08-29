@@ -46,6 +46,11 @@ reimplementation the skill forbids, and STYLES_GUIDE's own drift argument applie
 - It also bundles the four **code-split** sheets `global.css` deliberately does NOT import
   (`filter`, `portfolio`, `map`, `progress`) plus `toc.css`, and **inlines root-absolute
   `url()` refs as data URIs** from `public/` (a `mask-image` that 404s hides its element).
+- **It also emits `.cache/gst-fonts.css`, which is `cfg.extraFonts`' input** — the pinned
+  brand face (BL-144) ships through the converter's own font path, NOT through `cssEntry`.
+  See the `[FONT_MISSING]` finding below for why it cannot ride in the flattened sheet.
+  The file is derived from `src/styles/fonts.css` on every run (url()s re-pointed at
+  `public/` relative to `.cache/`), so a re-cut of the font needs no edit here.
 - **The React the bundle vendors comes from `.ds-sync/node_modules`.** `lib/emit.mjs`'s
   `vendorReact()` hard throws without it. Hence `--node-modules ./.ds-sync/node_modules`.
   Do not add `react` to the repo's `package.json` (a `react@19` does sit transitively in
@@ -71,6 +76,7 @@ node .ds-sync/resync.mjs --config .design-sync/config.json \
   --entry ./.design-sync/ds-entry.mjs --out ./ds-bundle \
   --remote .design-sync/.cache/remote-sync.json
 node .design-sync/extract-chrome.mjs --check   # AFTER resync — package-build wipes ds-bundle/
+node .design-sync/font-probe.mjs               # AFTER extract-chrome — it probes a chrome card
 ```
 
 Then the upload: `finalize_plan` writes must include `components/chrome/*/*` in addition
@@ -84,6 +90,41 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
 
 ## Hard-won findings (don't rediscover these)
 
+- **The pinned face cannot ship through `cssEntry` — it must go through `cfg.extraFonts`.**
+  Found 2026-08-29, the first sync after BL-144 pinned `--font-family-mono` to a self-hosted
+  `GST Mono`. `cfg.cssEntry` becomes `_ds_bundle.css`, and the converter REWRITES that file's
+  `@font-face` blocks (`lib/css.mjs` `rewriteBundleFontFaces`), dropping any whose `src` it
+  judges unresolvable — correct in general, because a dead face declared after
+  `fonts/fonts.css` would shadow the working one. Ours was dropped **either way**: a bare
+  `/fonts/…` url genuinely is unresolvable there, and the data URI `inlineRootUrls`
+  substitutes trips a quote-backtracking bug in the drop test
+  (`url\(\s*['"]?(?!…data:…)` — the optional quote matches ZERO width, so the lookahead
+  reads `"data:` and the negative lookahead passes). Either path left `GST Mono` referenced
+  but undeclared and validate printed `[FONT_MISSING]`; designs would have rendered in the
+  metric-matched fallbacks. **The fix is config, not a lib fork**: `build-css.mjs` emits
+  `.cache/gst-fonts.css` and `cfg.extraFonts` points at it, so extractFonts copies the woff2
+  into `fonts/`, rewrites the url to `./<name>`, and writes `fonts/fonts.css` — which
+  `styles.css` imports BEFORE `_ds_bundle.css`, so it reaches designs and is never shadowed.
+  `_ds_bundle.css` still logs `1 dead @font-face block(s) dropped` on every run: that is the
+  now-redundant copy being removed, and it is expected, not a regression.
+- **Measuring the font through `var(--font-family-mono)` proves NOTHING.** The fallbacks are
+  metric-matched on purpose, so Consolas at `size-adjust: 109.1%` sets 599.84px where the
+  pinned face sets 600.00 — indistinguishable at any sane tolerance. Mutation-proven on
+  2026-08-29: with the woff2 deleted from `ds-bundle/fonts/`, the token still measured
+  599.84px. The discriminating probe names `'GST Mono'` with **nothing behind it**, so a face
+  that failed to load collapses to the browser default (611.19px measured). `font-probe.mjs`
+  does that, on both surfaces.
+- **Chrome cards resolve the face from TWO sources, so isolate before concluding.** Each card
+  links `../../../styles.css` AND carries its own inlined `@font-face` blocks (three of them).
+  Corrupting the inlined data URI still measured 600.00px because the shared stylesheet
+  covered for it — the probe was re-testing the design surface while claiming to test
+  extract-chrome's pipeline. `font-probe.mjs` now `route.abort()`s `**/styles.css` on the
+  chrome page; with that block in place the same mutation correctly fails. Both arms are
+  mutation-proven — don't weaken either without re-proving it.
+- **`GST Mono Fallback error` in probe output is benign on Windows.** That face is
+  `local('Menlo'), local('DejaVu Sans Mono')`; neither is installed here or in the Playwright
+  engines, so it legitimately fails to load. `GST Mono Fallback WD` (Consolas) loads. Nothing
+  to chase — it is the same gap TYPOGRAPHY_REFERENCE records as needing a Mac to close.
 - **`[BUNDLE_EXPORT]` is a hard gate.** `componentSrcMap` + an authored preview is NOT
   enough to ship a card: validate exits 1 with _"not a component on window.GST"_. A card
   requires a genuine bundle export. That is the entire reason `extraEntries` exists here.
@@ -121,7 +162,8 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
   only way to confirm the README is `get_file` on it.** Done on the 2026-08-18 sync, and
   it earned its keep: it caught a sentence still pointing the sash at the `SiteHeader`
   chrome card, which is exactly what the same commit proved impossible.
-- **The upload set is 101 files, and the two exclusions are deliberate.** Everything under
+- **The upload set is 103 files, and the two exclusions are deliberate.** (101 before
+  2026-08-29; the two added are `fonts/fonts.css` and the pinned woff2.) Everything under
   `ds-bundle/` except the 8 root dotfiles (local telemetry — `.resync-verdict.json`,
   `.sync-diff.json`, `.render-check.json`, `.review.html`, …) and `_screenshots/` (32
   render proofs). The verdict's `upload.components` block lists only specimens, so the
@@ -130,9 +172,13 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
 
 ## Known render warns (expected — not new)
 
-- None outstanding. The latest run (Slice 3, 2026-08-16) was `render check: 10/10
-previews render cleanly`, `validate ✓ bundle is complete`, `10 carried forward / 0
-captured / 0 errors`; `extract-chrome.mjs --check` 19/19 with zero page errors.
+- None outstanding. The latest run (2026-08-29) was `render check: 10/10 previews render
+cleanly`, `validate ✓ bundle is complete` with **zero** warnings, `10 verified-by-upload
+/ 0 changed / 0 new`; `extract-chrome.mjs --check` 19/19 with zero page errors;
+  `font-probe.mjs` PASS on both surfaces; dark 4/7, all six palettes as expected.
+- `[FONT_MISSING] "GST Mono"` fired on that run's FIRST driver pass and was **resolved, not
+  tolerated** (the `cfg.extraFonts` finding above). If it reappears, the font stopped
+  shipping — do not record it as known.
 
 ## Re-syncing from a fresh clone (what it costs)
 
@@ -146,7 +192,9 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
 - `.design-sync/.cache/review/*.grade.json` (the "8 carried forward" human verdicts) is
   also gone, so the capture/grade step runs from scratch — **re-grade all ten**.
 - `dark-probe.mjs` and `palette-probe.mjs` need `ds-bundle/` — run them only after a full
-  `package-build`; both exit non-zero with a pointer here if it is missing.
+  `package-build`; both exit non-zero with a pointer here if it is missing. `font-probe.mjs`
+  needs it too, and its chrome arm additionally needs `extract-chrome.mjs` to have run (it
+  reports that arm as unbuilt rather than failing, so read its output, not just its exit code).
 
 ## Re-sync risks (what can silently go stale)
 
@@ -214,6 +262,18 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   new sheet out of `global.css` (its top comment tracks these), add it there or its classes stop
   shipping; `design-sync-guards.test.ts` fails `test:docs` when any sheet under `src/styles/`
   is unreachable from ROOTS, so the omission is caught in CI rather than in a design.
+- **The pinned typeface is a silent-staleness surface, and is VERIFIED (by measurement).**
+  Run `node .design-sync/font-probe.mjs` after `extract-chrome.mjs`. Result 2026-08-29:
+  600.00px for ten characters at 100px on BOTH surfaces — the design closure (`styles.css`
+  alone) and a chrome card with the shared sheet blocked — against 549.81px for the generic
+  control. Nothing else catches this: the face reaches designs through two independent
+  pipelines (`cfg.extraFonts` → `fonts/fonts.css` for the bundle; `inlineRootUrls` from
+  `dist/client/` for the chrome cards), neither is covered by `_ds_sync.json`, and a bundle
+  that has lost the font still validates clean **and still looks plausible on the contact
+  sheet**, because the metric-matched fallbacks occupy the same box by design. A re-cut that
+  renames the woff2, a ROOTS change that drops `fonts.css`, or an upstream fix to the
+  drop-test bug (which would make `_ds_bundle.css` re-declare the family after
+  `fonts/fonts.css`) all land here first.
 - **Dark theme is VERIFIED (by measurement, not by a card).** Run
   `node .design-sync/dark-probe.mjs` — it opens a real card, toggles `html.dark-theme`,
   and prints which tokens switch. Current result: 4/7 switch (`--text-primary`,
