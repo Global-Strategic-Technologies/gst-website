@@ -52,7 +52,13 @@ const emailAttrs = isDemo ? {} : { onclick: "trackCTA('email', 'cta-section')" }
   {
     emailAddress && (
       <p class="cta-email">
-        {emailText} &mdash;
+        {/* The trailing {' '} is load-bearing, not formatting. JSX drops
+            whitespace runs that contain a newline, so `&mdash;` sitting on its
+            own line rendered hard against the address — `directly —contact@…`
+            on every page that passes an emailAddress. Prettier owns the line
+            breaks here, so the space cannot live in the source layout; it has
+            to be an explicit expression. */}
+        {emailText} &mdash;{' '}
         <a href={`mailto:${emailAddress}`} {...emailAttrs}>
           {emailAddress}
         </a>
