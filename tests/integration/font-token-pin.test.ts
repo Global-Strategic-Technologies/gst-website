@@ -46,8 +46,12 @@ const FONTS_FILE = 'src/styles/fonts.css';
 const WEBSITE_DIRS = ['src'];
 const SOURCE_EXT = new Set(['.css', '.astro', '.ts', '.tsx']);
 
-/** Sub-paths that are documentation or vendored data, not shipped styling. */
-const IGNORED_SEGMENTS = ['src/docs/', 'src/design_handoff_'];
+/**
+ * Sub-paths that are documentation, not shipped styling. `src/docs/` prose
+ * quotes font stacks — including the pre-BL-144 ones, to say what changed — and
+ * a doc is not a stylesheet.
+ */
+const IGNORED_SEGMENTS = ['src/docs/'];
 
 interface SourceFile {
   rel: string;
@@ -137,25 +141,52 @@ describe('BL-144: the pinned font token', () => {
   });
 
   it('rule 2: only the token and fonts files name a family literally', () => {
+    // A family can be named four ways, and the first version of this rule knew
+    // only one of them. Each of the others hid a real literal: the `=` form is
+    // an SVG presentation attribute (the wordmark shipped `font-family="monospace"`);
+    // `family:` is Chart.js's key, which carried `'Helvetica Neue', Arial,
+    // sans-serif` as a fallback long after that stopped being the site's sans;
+    // and the `font:` shorthand is how the Worker shell set its body face. A
+    // rule that reads only `font-family:` reports a clean sweep it did not do.
+    const PATTERNS: [string, RegExp][] = [
+      ['font-family', /font-family\s*[:=]\s*"?([^;"}\n]+)"?/g],
+      // `(?<!-)` matters: a bare \b would match inside `font-family:` (the
+      // hyphen is a word boundary) and report every CSS declaration twice.
+      ['family (Chart.js)', /(?<!-)\bfamily\s*:\s*([^,\n]*"[^"]+"|'[^']+'|[^,\n]+),?\s*$/gm],
+      [
+        'font (shorthand)',
+        /(?<!-)\bfont\s*:\s*[^;{}\n]*?((?:["'][^"']+["']|[A-Za-z][\w-]*)(?:\s*,\s*(?:["'][^"']+["']|[A-Za-z][\w-]*))*)\s*[;}]/g,
+      ],
+    ];
+
     const offenders: string[] = [];
     let probed = 0;
     for (const file of websiteFiles) {
       if (file.rel === TOKEN_FILE || file.rel === FONTS_FILE) continue;
-      // `font-family:` in CSS and `font-family="…"` as an SVG presentation
-      // attribute both count — the wordmark shipped as the latter.
-      for (const m of file.text.matchAll(/font-family\s*[:=]\s*"?([^;"}\n]+)"?/g)) {
-        const value = m[1].trim().replace(/^["']|["']$/g, '');
-        probed++;
-        if (value.includes('var(')) continue;
-        if (NON_FAMILY_VALUES.test(value)) continue;
-        if (value.startsWith('$') || value.includes('${')) continue; // interpolated
-        offenders.push(`${file.rel}: font-family: ${value}`);
+      for (const [kind, pattern] of PATTERNS) {
+        for (const m of file.text.matchAll(pattern)) {
+          const value = m[1].trim().replace(/^["']|["']$/g, '');
+          if (!value) continue;
+          probed++;
+          if (value.includes('var(')) continue;
+          if (NON_FAMILY_VALUES.test(value)) continue;
+          if (
+            value.includes('${') ||
+            /\b(getStyle|chartFontFamily|CHART_FONT_FALLBACK)\b/.test(value)
+          ) {
+            continue; // resolved from the token at runtime, or the named fallback
+          }
+          // The `font:` shorthand's tail is the family list; a shorthand with a
+          // size but no family (`font: inherit`) has nothing to check.
+          if (kind === 'font (shorthand)' && /^\d/.test(value)) continue;
+          offenders.push(`${file.rel}: ${kind}: ${value}`);
+        }
       }
     }
-    expect(probed).toBeGreaterThan(50);
+    expect(probed, 'the patterns above must actually match something').toBeGreaterThan(50);
     expect(
       offenders,
-      'a font-family names a face directly instead of going through var(--font-family*)'
+      'a font family is named directly instead of going through var(--font-family*)'
     ).toEqual([]);
   });
 
@@ -240,6 +271,36 @@ describe('BL-144: the pinned font token', () => {
     const stack = shared.match(/MONO_STACK\s*=\s*`([^`]+)`/);
     expect(stack).not.toBeNull();
     expect(GENERICS.has(familiesOf(stack![1])[0].toLowerCase())).toBe(false);
-    expect(probed + 1).toBeGreaterThan(0);
+    // `probed` itself, not `probed + 1`: the original wrote the latter, which is
+    // true for every possible value and therefore asserted nothing — the exact
+    // shape of vacuity the rest of this file is careful about.
+    expect(probed, 'the shells must actually declare font families to check').toBeGreaterThan(0);
+  });
+
+  it('the metric-matched fallbacks agree across the workspace boundary', () => {
+    // fonts.css and the Worker shell each declare the same two faces, because
+    // mcp-server cannot import the website's CSS. Nothing structural keeps the
+    // percentages equal, so this does: a size-adjust that drifts on one side
+    // means Worker-served HTML lays out at different metrics from the site it
+    // belongs to, which is silent and would never be noticed by eye.
+    const parse = (text: string) =>
+      [
+        ...text.matchAll(
+          /font-family:\s*'(GST Mono Fallback[^']*)'[\s\S]{0,400}?size-adjust:\s*([\d.]+%)/g
+        ),
+      ].map((m) => `${m[1]} = ${m[2]}`);
+
+    const site = parse(fs.readFileSync(path.join(ROOT, FONTS_FILE), 'utf-8'));
+    const worker = parse(
+      fs.readFileSync(path.join(ROOT, 'mcp-server/src/lib/html-shell.ts'), 'utf-8')
+    );
+
+    expect(site, 'fonts.css declares both fallback faces with a size-adjust').toHaveLength(2);
+    expect(worker, 'the Worker shell declares both fallback faces with a size-adjust').toHaveLength(
+      2
+    );
+    expect(worker, 'the Worker shell must use the same size-adjust values as fonts.css').toEqual(
+      site
+    );
   });
 });
