@@ -38,12 +38,14 @@ const { workflow } = Astro.props;
 </article>
 
 <style>
-  /* The intro column is 260px rather than the design's 300px: those 40px are
-     what keep three step tracks at 1440px — measured on the widest mono, 260px
-     leaves the longest wire id ~17px inside its track there and 300px leaves
-     ~4px. (This sentence used to say 1280px; since the track floor below was
-     raised, 1280 is two tracks by design and 1440 is the width the 40px
-     defends.) A title and a one-line description do not need the extra. */
+  /* The intro column is 260px rather than the design's 300px: those 40px buy a
+     COLUMN at 1440px, not a few pixels. At 260px the steps grid is 920px, 8px
+     more than the 912px three tracks need (3 × 296 + 2 × 12); at 300px it is
+     880px and the grid drops to two. On the widest mono the id then sits ~17px
+     inside its track at 1440. (This sentence used to say 1280px; since the
+     track floor below was raised, 1280 is two tracks by design and 1440 is the
+     width the 40px defends.) A title and a one-line description do not need
+     the extra. */
   /* Frosted, on the same tokens as `.brutal-option-card` — the in-repo precedent
      for a bordered card that carries the treatment. The frost lives on the CARD,
      not on `.mdoc-step`: the steps sit over it and a `backdrop-filter` of their
@@ -126,8 +128,8 @@ const { workflow } = Astro.props;
      Margins for the longest id on the widest mono measured here, by width:
      1440 ~17px (three across), 1280 ~133px (two), 1024 ~303px (one). The
      floor above is what guarantees the worst case (~14px) at widths nobody
-     sampled; tests/e2e/hub-mcp-docs.test.ts checks six of them, including the
-     two bands the previous floor left over. */
+     sampled; tests/e2e/hub-mcp-docs.test.ts checks eight of them, including
+     the two bands the previous floor left over. */
   .mdoc-step__id {
     display: block;
     font-family: var(--font-family-mono);

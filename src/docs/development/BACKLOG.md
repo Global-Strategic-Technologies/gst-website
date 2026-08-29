@@ -442,6 +442,36 @@ Verification: guard green across all new names (its first run on the extended Ca
 
 ---
 
+### BL-144: `--font-family-mono` is a bare generic, and layouts are being sized against it (candidate)
+
+**Source**: filed 2026-08-29 from two separate failures on `feat/mcp-website-marketing` that share this one cause | **Effort**: Small to change, Medium to verify | **Status**: Candidate — no committed consumer; file before the third instance
+
+**As a** developer sizing any fixed-width surface that carries monospace text, **I want** the mono face to be the same width everywhere **so that** a layout proven on one machine is not clipped on another.
+
+`--font-family-mono` is declared as the bare `monospace` generic (`src/styles/variables.css`), so the advance width is whatever each engine and OS picks. Measured 2026-08-29 over `assess_infrastructure_cost_governance`: 244px on this machine's default face, 267px on the widest face available locally — a 9% spread on text nobody can reflow.
+
+Two shipped defects came from it in one day, both found only because someone looked:
+
+- The announcement sash's under-band subtext **overflowed WebKit by 5.3px** at the family's 0.1em tracking while Chromium and Firefox cleared it by under 1px; dropping to 0.06em fixed the overflow but left WebKit only 0.8px inside the 200px corner, which is what growing that corner to 220px fixed. Two changes, two figures — `src/styles/components/sash.css` records both.
+- `/hub/mcp/docs/`'s workflow grid squeezed a wire identifier at 1280px on the Linux CI runner while passing on Windows — CI was red for a day. Fixed by sizing the track floor from the identifier's intrinsic minimum (`src/components/hub/mcp/WorkflowCard.astro`).
+
+Both fixes buy headroom rather than removing the variable, which is the right local call and the wrong global one.
+
+#### Acceptance Criteria
+
+- [ ] `--font-family-mono` names a real stack (e.g. `ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace`) so the resolved face is predictable per platform
+- [ ] Every mono surface re-verified after the change — the token feeds ~11 rules in `typography.css` plus the sash, the capability identifiers, `.brutal-data`, and code spans
+- [ ] Re-sync the design bundle: `--font-family-mono` is published to claude.ai/design ([CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md)), so the downstream agent inherits whatever this says
+- [ ] Decide whether the headroom bought by the two fixes above should then be given back, or kept as margin
+
+#### Technical Context
+
+- **This is a brand decision, not only a technical one** — it changes the rendered face on at least one platform, so it needs the operator's eye before it ships. That is why the two defects above were fixed locally instead
+- The `/hub/mcp/docs/` wrap test now samples the auto-fit column-add thresholds (1305, 1012) as well as the design widths, because a track equals its floor exactly at those points — the pattern to copy if another grid is sized against mono text
+- Neither fix is wasted if this lands: both are headroom, and headroom stays correct under a narrower face
+
+---
+
 ### BL-094: Off-scale font-size literals — type-scale ruling + sweep (deferred)
 
 **Source**: split out of the design-token lint enforcement initiative (2026-07-28) — see [STYLES_REMEDIATION_ROADMAP.md § 14](../styles/STYLES_REMEDIATION_ROADMAP.md) for the full analysis, which is the authoritative record | **Effort**: Medium-Large — 150 judgement calls across ~31 files + per-page visual review | **Status**: **Deferred** — visible as lint warnings in every run; do NOT bulk-snap (see why below)
@@ -1619,36 +1649,6 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 - [ ] Error-result interaction resolved and tested against a real client round-trip before any schema ships
 - [ ] Schemas derived or generated where possible, not hand-maintained in parallel with the handlers
 - [ ] `contract-parity` coverage so a schema and its CONTRACT.md cannot drift
-
----
-
-### BL-144: `--font-family-mono` is a bare generic, and layouts are being sized against it (candidate)
-
-**Source**: filed 2026-08-29 from two separate failures on `feat/mcp-website-marketing` that share this one cause | **Effort**: Small to change, Medium to verify | **Status**: Candidate — no committed consumer; file before the third instance
-
-**As a** developer sizing any fixed-width surface that carries monospace text, **I want** the mono face to be the same width everywhere **so that** a layout proven on one machine is not clipped on another.
-
-`--font-family-mono` is declared as the bare `monospace` generic (`src/styles/variables.css`), so the advance width is whatever each engine and OS picks. Measured 2026-08-29 over `assess_infrastructure_cost_governance`: 244px on this machine's default face, 267px on the widest face available locally — a 9% spread on text nobody can reflow.
-
-Two shipped defects came from it in one day, both found only because someone looked:
-
-- The announcement sash's under-band subtext cleared its corner by 0.8px on Chromium and **overflowed WebKit by 5.3px**. Fixed by growing the corner box to 220px when it carries a second band (`src/styles/components/sash.css`).
-- `/hub/mcp/docs/`'s workflow grid squeezed a wire identifier at 1280px on the Linux CI runner while passing on Windows — CI was red for a day. Fixed by sizing the track floor from the identifier's intrinsic minimum (`src/components/hub/mcp/WorkflowCard.astro`).
-
-Both fixes buy headroom rather than removing the variable, which is the right local call and the wrong global one.
-
-#### Acceptance Criteria
-
-- [ ] `--font-family-mono` names a real stack (e.g. `ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace`) so the resolved face is predictable per platform
-- [ ] Every mono surface re-verified after the change — the token feeds ~11 rules in `typography.css` plus the sash, the capability identifiers, `.brutal-data`, and code spans
-- [ ] Re-sync the design bundle: `--font-family-mono` is published to claude.ai/design ([CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md)), so the downstream agent inherits whatever this says
-- [ ] Decide whether the headroom bought by the two fixes above should then be given back, or kept as margin
-
-#### Technical Context
-
-- **This is a brand decision, not only a technical one** — it changes the rendered face on at least one platform, so it needs the operator's eye before it ships. That is why the two defects above were fixed locally instead
-- The `/hub/mcp/docs/` wrap test now samples the auto-fit column-add thresholds (1305, 1012) as well as the design widths, because a track equals its floor exactly at those points — the pattern to copy if another grid is sized against mono text
-- Neither fix is wasted if this lands: both are headroom, and headroom stays correct under a narrower face
 
 ---
 
