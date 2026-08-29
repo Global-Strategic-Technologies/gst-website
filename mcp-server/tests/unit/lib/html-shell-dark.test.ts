@@ -13,9 +13,11 @@
  * while a media query merely degrades to the (perfectly fine) light page.
  *
  * Asserted as a PAIRING, not a snapshot: every selector the light palette gives
- * a foreground or background colour must have a dark counterpart. A new
- * light-only rule is the exact defect this file exists to catch, so listing the
- * current selectors by hand would not catch it.
+ * a `color` or `background` must have a dark counterpart. A new light-only rule
+ * is the exact defect this file exists to catch, so listing the current
+ * selectors by hand would not catch it. Borders are deliberately out of scope —
+ * the only ones here are a mid-grey that reads on either canvas; add them to
+ * the pairing if a border ever takes a scheme-specific colour.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -60,9 +62,11 @@ describe('htmlShell dark mode', () => {
     expect(light.length, 'light palette rules were extracted').toBeGreaterThan(4);
     expect(dark.size, 'dark palette rules were extracted').toBeGreaterThan(4);
 
-    // `input` and `body` inherit the canvas and are deliberately not re-stated.
-    const inheritsCanvas = new Set(['body', 'input[type=password]']);
-    const missing = light.filter((sel) => !inheritsCanvas.has(sel) && !dark.has(sel));
+    // No allowlist on purpose. An earlier draft exempted `body` as "inherits
+    // the canvas" — it exempts nothing today, but a light-only `body
+    // { background: #fff }` is the single most likely regression here and the
+    // closest analogue of the white-on-white bug this file exists to catch.
+    const missing = light.filter((sel) => !dark.has(sel));
     expect(
       missing,
       `light-only rules would render on a dark canvas: ${missing.join(', ')}`
@@ -76,13 +80,17 @@ describe('htmlShell dark mode', () => {
   });
 
   it('keeps the hover state paired with its base in both schemes', () => {
+    let probed = 0;
     for (const css of [lightCss, darkCss]) {
       const base = selectorsWithColour(css);
       for (const hover of base.filter((s) => s.endsWith(':hover'))) {
+        probed++;
         expect(base, `${hover} has a base rule in the same scheme`).toContain(
           hover.replace(':hover', '')
         );
       }
     }
+    // Rename the hover selectors and the loop above would run zero assertions.
+    expect(probed, 'hover rules were found to check').toBeGreaterThan(0);
   });
 });

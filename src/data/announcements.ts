@@ -71,7 +71,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
     // 'GST MCP', with no `detail`: the main band names the thing, and the
     // value pitch moved to the under-band, which has its own (larger) budget —
     // see the table in Sash.astro. The segments share ONE width budget on the
-    // 45° band; 10 chars incl. the chip sits well inside the proven ~16.
+    // 45° band; 10 chars incl. the chip sits well inside the proven ~13.
     label: 'GST MCP',
     // Copy here renders publicly on / and /hub/ and is republished to
     // claude.ai/design via .design-sync/, so every segment must be a SOURCED
@@ -79,7 +79,12 @@ export const ANNOUNCEMENTS: Announcement[] = [
     // was removed for it). Both halves are sourced by the announced page:
     // /hub/mcp/ markets the server as agents running the GST analysis tools,
     // and the free pilot tier is in its tier presentation (and the hub FAQ).
-    // 35 chars — inside the measured 36-char under-band ceiling (Sash.astro).
+    // 35 chars, against a ceiling of 37 — and that 37 is WEBKIT's. The mono
+    // stack is the bare `monospace` generic, so the same string is 222px of ink
+    // on Chromium and Firefox (which reach 40) and 240px on WebKit. Count
+    // characters to sanity-check, then PROVE new copy by running the sash E2E
+    // suite on all three engines: it measures the ink against the corner and
+    // is the only budget that has ever been right (Sash.astro).
     subtext: 'Automate analysis | Free pilot tier',
     // The under-band deep-links to the tier matrix the subtext is about.
     subtextHref: '/hub/mcp/#tiers',

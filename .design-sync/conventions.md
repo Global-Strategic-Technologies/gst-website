@@ -313,7 +313,8 @@ changed:
 
 Both bands' copy runs against strict, measured width budgets (`Sash.astro` documents
 them: ~13 characters across the main band's segments with a badge at the `--text-sm`
-label, ≤ 36 on the under-band). Each band is its own link with its own accessible name —
+label, ≤ 37 on the under-band — WebKit's ceiling; Chromium and Firefox reach 40, the mono
+stack being an unspecified generic). Each band is its own link with its own accessible name —
 both names spell the pipe out in words so it is not spoken as "vertical line"; the main
 link's name carries the whole announcement. A `__detail` segment (rule-separated, after
 the label) also exists on the main band; the live entry currently uses none — do not pad

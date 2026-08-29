@@ -42,7 +42,8 @@ tests/e2e/announcement-sash.test.ts so the numbers below stay free to move:
                    cuts the band exactly like a ribbon crossing a corner. At
                    c_min ≤ 0 the lower edge crosses the box's LEFT and BOTTOM
                    edges instead: the band covers the box's top-left corner and
-                   ends square in mid-page, 200px in from the viewport's right.
+                   ends square in mid-page, one box-width in from the
+                   viewport's right.
   c_max < box      The apex above the top band stays white.
   caps outside     Both end caps land outside the box, so no square cut end is
                    ever visible. This is what sets the band WIDTHS (each must

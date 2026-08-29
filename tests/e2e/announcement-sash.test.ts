@@ -31,8 +31,9 @@ import { getActiveAnnouncement } from '../../src/data/announcements';
  * at 0 (see the narrow-viewport tests at the bottom of this file).
  */
 const BREAKPOINTS = [
-  // desktop box/reserve are both registry-conditional (the under-band grows
-  // the box) — see DESKTOP_BOX / DESKTOP_RESERVE, which override these.
+  // Desktop's pair is the WITHOUT-under-band case; DESKTOP_BOX and
+  // DESKTOP_RESERVE below read these two fields and swap in 220px when a live
+  // entry carries a subtext, since the under-band grows the box.
   { name: 'desktop', width: 1440, height: 900, box: 200, reserve: '168px' },
   { name: '768px', width: 768, height: 800, box: 170, reserve: '140px' },
   { name: '540px', width: 540, height: 800, box: 140, reserve: '108px' },
@@ -72,10 +73,11 @@ const NO_LIVE_ANNOUNCEMENT = getActiveAnnouncement(SASH_ROUTE) === null;
  * values — so only the desktop expectation is conditional.
  */
 const LIVE_SUBTEXT = getActiveAnnouncement(SASH_ROUTE)?.subtext;
-const DESKTOP_RESERVE = LIVE_SUBTEXT === undefined ? '168px' : '220px';
+const DESKTOP_TIER = BREAKPOINTS[0];
+const DESKTOP_RESERVE = LIVE_SUBTEXT === undefined ? DESKTOP_TIER.reserve : '220px';
 /** The box grows with the reserve — a sash carrying an under-band needs the
  *  extra chord for its subtext (sash.css). Same conditional, same pair. */
-const DESKTOP_BOX = LIVE_SUBTEXT === undefined ? '200px' : '220px';
+const DESKTOP_BOX = LIVE_SUBTEXT === undefined ? `${DESKTOP_TIER.box}px` : '220px';
 
 test.describe('Announcement sash', () => {
   test.skip(() => NO_LIVE_ANNOUNCEMENT, 'no announcement is live on this route — nothing renders');
@@ -590,7 +592,7 @@ test.describe('Announcement sash', () => {
     // regressed to the main band's colour would vanish into the dark fill.
     const ring = await under.evaluate((el) => {
       const cs = getComputedStyle(el);
-      const band = document.querySelector('.brutal-sash')!;
+      const band = el.closest('.brutal-sash-corner')!.querySelector('.brutal-sash')!;
       return {
         width: cs.outlineWidth,
         style: cs.outlineStyle,
