@@ -128,7 +128,9 @@ const { workflow } = Astro.props;
   /* One identifier, one line, at the same size the Reference sidebar uses for
      the same identifiers. It does NOT shrink to fit: at `--text-2xs` the id
      would render smaller than its own gloss and the card's hierarchy would
-     invert, so the track above is what yields instead.
+     invert, so the track above is what yields instead. Below 768px the line
+     rule yields too — see the media block at the foot of this file for why
+     wrapping beats the alternatives there.
      Margins for the longest id on the widest mono measured here, by width:
      1440 ~17px (three across), 1280 ~133px (two), 1024 ~303px (one). The
      floor above is what guarantees the worst case (~14px) at widths nobody
@@ -165,16 +167,25 @@ const { workflow } = Astro.props;
       grid-template-columns: minmax(0, 1fr);
     }
 
-    /* With the track capped, the longest id is wider than the narrowest phone.
-       The doctrine above says the id neither splits nor shrinks, so on those
-       widths it scrolls instead — the one remaining way to keep it whole. Only
-       the ids that actually exceed their track scroll; the rest are unaffected.
-       `overflow-y: visible` would compute to `auto` and clip nothing, but it
-       also arms a vertical scrollbar, so pin it hidden and give the descenders
-       the line-height they need. */
+    /* With the track capped, the longest id is wider than the narrowest phones.
+       The doctrine above says the id neither splits nor shrinks, which left
+       scrolling as the only way to keep it whole — and that was tried and
+       reversed: `overflow: auto` makes this a scroll container, and axe rates a
+       scrollable region with no keyboard access `scrollable-region-focusable`,
+       SERIOUS, which this repo does not carry. The usual remedy is
+       `tabindex="0"`, but this element sits INSIDE the step's `<a>`, so it would
+       put a tab stop within a link on every step of every workflow.
+
+       So the doctrine yields here, and only here. Below 768px a step is a
+       full-width block with its label above it and its gloss below, so an id
+       wrapped onto a second line still reads as one id — the "reads as two
+       steps" failure the doctrine guards against is a symptom of the
+       side-by-side desktop layout, which does not exist at this width.
+       `anywhere` rather than `break-word` so the id also stops contributing its
+       full width to min-content sizing. */
     .mdoc-step__id {
-      overflow: auto hidden;
-      line-height: 1.5;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
   }
 </style>
