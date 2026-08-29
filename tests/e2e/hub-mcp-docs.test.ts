@@ -226,7 +226,12 @@ test.describe('MCP documentation — themes and viewports', () => {
     await expect(page.locator('.mdoc-flow').first()).toBeVisible();
   });
 
-  for (const width of [1440, 1280, 1024, 900, 768, 480]) {
+  // 1305 and 1012 are not round numbers: they are the two bands where an
+  // earlier, too-small track floor left the longest identifier ~1px over its
+  // own track while every round width sampled clean. An auto-fit track equals
+  // its floor exactly at each column-add threshold, so those thresholds are
+  // where this can break — sample them, not just the design widths.
+  for (const width of [1440, 1305, 1280, 1024, 1012, 900, 768, 480]) {
     test(`no capability identifier wraps at ${width}px`, async ({ page }) => {
       // A wrapped wire identifier reads as two entries: two sidebar rows, or two
       // workflow steps. The sidebar column is `max-content` sized and the step
