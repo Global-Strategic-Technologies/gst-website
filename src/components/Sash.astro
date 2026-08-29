@@ -26,17 +26,19 @@
 //              The ≤768 tiers keep the --text-xs label AND drop `detail`
 //              entirely (sash.css display:nones it there), so only two-segment
 //              copy can render on them — New | MCP Server is the proven one.
-//   page ≥769  under-band (`subtext`): ≤ 37 characters, and that ceiling is
-//              WEBKIT's — `--font-family-mono` is the bare `monospace` generic,
-//              so the advance width is engine-chosen and the same string is
-//              222px of ink on Chromium and Firefox but 240px on WebKit (their
-//              ceilings are 40). Character counts are a HINT; the real budget
-//              is ink px into the usable chord, which is what
-//              announcement-sash.test.ts asserts per engine — prove new copy
-//              by running it, not by counting. Measured 2026-08-29 at the
-//              220px box; the previous "≤ 36, 36 renders clean" was measured
-//              on Chromium alone and was false when written (WebKit was
-//              clipping the live 35-character string by 5.3px).
+//   page ≥769  under-band (`subtext`): ≤ 37 characters — the same ceiling on
+//              all three engines, which is new. This budget used to be
+//              engine-specific (40 on Chromium and Firefox, 37 on WebKit)
+//              because `--font-family-mono` was the bare `monospace` generic
+//              and each engine resolved it to a different face: the live
+//              35-character string was 222px of ink on two of them and 240px
+//              on the third. BL-144 pinned the face, and the three engines now
+//              set that string at 253.2 / 252.7 / 253.2px — a 0.5px spread
+//              where there was an 18px one. Character counts are still a HINT;
+//              the real budget is ink px into the usable chord, which is what
+//              announcement-sash.test.ts asserts per engine — prove new copy by
+//              running it, not by counting. Re-measured 2026-08-29 at the 220px
+//              box under the pinned face.
 //   page ≤511  no corner budget: the sash renders as a full-width in-flow
 //              strip (sash.css) and both lines wrap.
 //   card       label ≤ 4, nothing else — and never a subtext (the component

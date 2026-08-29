@@ -1114,6 +1114,15 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       grid-template-columns: repeat(2, 1fr);
     }
 
+    /* The label ellipsises rather than wrapping (see the override above), and
+       under the pinned face (BL-144) `Avg. Salary (all-in)` is 17px past the
+       146px it gets at 320px — so it would lose its last two characters on the
+       narrowest phone. One step down on the size, not the tracking: dropping
+       0.08em would only buy back 5px. */
+    .brutal-slider__label {
+      font-size: var(--text-2xs);
+    }
+
     .brutal-slider__input {
       height: 28px;
     }

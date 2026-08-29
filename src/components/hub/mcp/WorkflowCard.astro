@@ -90,15 +90,19 @@ const { workflow } = Astro.props;
        pass: an auto-fit track equals its floor exactly at every column-add
        threshold, so a floor below that minimum leaves narrow bands where the
        id overflows its own track even though the sampled widths are clean.
-       18.5rem = 296px against 267px of ink (the widest mono available here,
-       ~22px wider over `assess_infrastructure_cost_governance` than this
-       machine's default face) plus 15px of chrome — ~14px clear at ANY width.
-       17rem was the CI failure: it still fitted three tracks at 1280 while a
-       track could not hold the id, so it squeezed instead of dropping a
+       18.5rem = 296px against 267px of ink plus 15px of chrome — ~14px clear at
+       ANY width. 17rem was the CI failure: it still fitted three tracks at 1280
+       while a track could not hold the id, so it squeezed instead of dropping a
        column. 17.5rem fixed the sampled widths but left bands at ~1305 and
        ~1012 still 1px over. Column counts at 18.5rem: three at 1440, two at
-       1280, one at and below 1024. `--font-family-mono` being the bare
-       `monospace` generic is why any of this is engine-dependent — BL-144. */
+       1280, one at and below 1024.
+
+       That 267px was measured against the widest mono any engine here resolved
+       the bare `monospace` generic to, because the face was whatever the OS
+       chose. BL-144 pinned it, and the pinned face's 600/1000 advance IS that
+       widest case — so the floor that was a worst-case guess is now the exact
+       figure, and the engine-to-engine spread this floor was buying headroom
+       against is gone. Left as is: it is correct and no longer speculative. */
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 18.5rem), 1fr));
     gap: var(--spacing-md);
   }
@@ -145,13 +149,32 @@ const { workflow } = Astro.props;
   }
 
   @media (max-width: 768px) {
+    /* minmax(0, 1fr), not 1fr: a bare 1fr is minmax(auto, 1fr), so the track is
+       floored at its content's min-content — here the nowrap wire id — and the
+       grid grows past its container instead of the id overflowing its own track.
+       At 320px that put both rows 57px off-screen (`assess_infrastructure_cost_
+       governance` is 266px of ink against 224px of usable width, so nothing that
+       keeps the id on one line at full size can fit it there). Same blowout, and
+       the same fix, as `.stats-grid` in StatsBar.astro. */
     .mdoc-flow {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: var(--spacing-md);
     }
 
     .mdoc-flow__steps {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* With the track capped, the longest id is wider than the narrowest phone.
+       The doctrine above says the id neither splits nor shrinks, so on those
+       widths it scrolls instead — the one remaining way to keep it whole. Only
+       the ids that actually exceed their track scroll; the rest are unaffected.
+       `overflow-y: visible` would compute to `auto` and clip nothing, but it
+       also arms a vertical scrollbar, so pin it hidden and give the descenders
+       the line-height they need. */
+    .mdoc-step__id {
+      overflow: auto hidden;
+      line-height: 1.5;
     }
   }
 </style>

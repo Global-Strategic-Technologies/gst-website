@@ -118,9 +118,11 @@ const { currentPath = '/', links } = Astro.props;
 
   /* Fourth member of the pairing, conditional: a sash carrying the optional
      under-band (.brutal-sash-under, sash.css) grows its corner box to 220px —
-     the subtext runs nearly the full chord and `monospace` is an unspecified
-     generic, so the extra room is what keeps it off the box edge on wide-metric
-     engines. The reserve clears the whole box, so it grows with it: 220px.
+     the subtext runs nearly the full chord, and the 220px box was sized against
+     the widest face any engine resolved the then-unpinned `monospace` generic
+     to. BL-144 pinned that face, and its advance IS that widest case, so the
+     box is still exactly right; it is no longer headroom against an unknown.
+     The reserve clears the whole box, so it grows with it: 220px.
 
      Shape rules, both load-bearing:
      - NO `min-width` companion. A min/max pair around 768/769 leaves

@@ -770,7 +770,14 @@ function accessHref(tier?: string) {
      rather than as a headline of their own. */
   .mcp-primitive-summary {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    /* auto-fit against the longest label's intrinsic width, not a fixed three:
+       RESOURCES is 9 tracked uppercase characters — 76px of ink plus the tile's
+       24px of padding, so 6.5rem is the smallest a tile can be and still hold
+       it. Three fixed columns put that label 19px outside its tile at 375px
+       (true before the pin too, just 6px less of it); with a real floor the row
+       drops to two tiles instead. */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr));
     gap: var(--spacing-md);
     max-width: var(--mcp-measure);
     margin-bottom: var(--spacing-2xl);

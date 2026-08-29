@@ -64,11 +64,37 @@ const { stats } = Astro.props;
     letter-spacing: 0.15em;
   }
 
-  @media (max-width: 768px) {
+  /* These steps key on the CONTAINER, not the viewport, because this component
+     is rendered at two different widths for the same viewport: `/ma-portfolio/`
+     gives it the full `.container` (min(100vw, 1600px) - 96px), while the
+     `/brand` specimen frame gives it the narrower content column. Viewport
+     queries got the specimen wrong at every desktop width — at 1280px the
+     specimen's cells are 218px wide where the real page's are 296px, so `$2.8B`
+     hung 14px outside its cell on the page that exists to show the component
+     rendering correctly.
+
+     Where the thresholds come from: the longest value a real page passes is
+     `$2.8B+`, six characters, and the pinned face (BL-144) sets six characters
+     at 3.6 x the font size. So 3.5rem needs 202px of cell interior, a cell
+     interior is `container / columns - 2 x padding`, and four columns clear it
+     at a container of 1064px. Below that the grid halves rather than the type
+     shrinking. That band was broken before the pin too — at a 900px viewport
+     the value hung 65px outside its cell — because 3.5rem was tuned against a
+     narrower face at one width and no width in between was ever checked.
+
+     The two lower thresholds are the old 768px and 480px viewport tiers
+     expressed as the container widths they produce (viewport - 96px). */
+  .container {
+    container-type: inline-size;
+  }
+
+  @container (max-width: 1063px) {
     .stats-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+  }
 
+  @container (max-width: 672px) {
     .stat-value {
       font-size: 2.5rem;
     }
@@ -78,27 +104,24 @@ const { stats } = Astro.props;
     }
   }
 
-  @media (max-width: 480px) {
-    .stats-bar {
-      padding: 0;
-    }
-
-    .stats-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0;
-    }
-
+  @container (max-width: 384px) {
+    /* Two columns at a 224px container leave a 112px cell. Six characters at
+       --text-3xl need 115px of interior, so the side padding comes off first
+       and the value steps down once — rather than stacking to one column, which
+       would make four stats four screens tall on the narrowest phone. The
+       label's tracking steps with it: `Engagements` is its longest unbreakable
+       word and 0.15em put it 3px past the cell. */
     .stat-item {
-      padding: 1.75rem 1.25rem;
+      padding: 1.75rem var(--spacing-sm);
     }
 
     .stat-value {
-      font-size: var(--text-3xl);
+      font-size: var(--text-2xl);
       margin-bottom: 0.25rem;
     }
 
     .stat-label {
-      font-size: var(--text-xs);
+      letter-spacing: 0.1em;
     }
   }
 </style>

@@ -55,11 +55,16 @@ Distinct from .brutal-btn (compact utility button for tool UIs). */
     padding: 0 1rem;
   }
 
+  /* The horizontal padding is --spacing-md, not --spacing-xl: the CTA labels are
+     function-style and 20 characters long (`REQUEST_MCP_ACCESS()`,
+     `BOOK_CALENDAR_SLOT()`), which the pinned face (BL-144) sets at 173px. At
+     320px that leaves 159px between --spacing-xl paddings — the old face fitted
+     it with 0.4px to spare, which is not a fit, it is a coincidence. */
   .cta-button {
     width: 100%;
     text-align: center;
-    padding: var(--spacing-lg) var(--spacing-xl);
-    font-size: 0.9rem;
+    padding: var(--spacing-lg) var(--spacing-md);
+    font-size: var(--text-sm);
     min-height: var(--touch-target-min);
   }
 }
