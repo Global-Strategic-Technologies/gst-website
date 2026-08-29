@@ -235,8 +235,13 @@ test.describe('MCP documentation — themes and viewports', () => {
     test(`no capability identifier wraps at ${width}px`, async ({ page }) => {
       // A wrapped wire identifier reads as two entries: two sidebar rows, or two
       // workflow steps. The sidebar column is `max-content` sized and the step
-      // grid drops columns rather than squeezing, so this should hold at every
-      // width; the assertion is what keeps a future longer tool name honest.
+      // grid drops columns rather than squeezing, so this holds down to 480 —
+      // and NOT below it. Under 768px the longest identifier is wider than the
+      // whole viewport, and the component deliberately wraps it there rather
+      // than scrolling (which axe rates a serious violation) or shrinking it;
+      // see WorkflowCard.astro's media block. The widths below are all ≥480 for
+      // that reason. The assertion is what keeps a future longer tool name
+      // honest at the widths where one line is still possible.
       // Line count comes from a Range over the text, since the elements are
       // block-level and would report one rect however they wrap.
       await page.setViewportSize({ width, height: 900 });

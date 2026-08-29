@@ -25,9 +25,11 @@
  *      HTML is on another origin and cannot fetch the site's font, so it inlines
  *      the `local()` metric-matched fallbacks instead — never a bare generic.
  *
- * Scope note: rule 2 covers the WEBSITE only. `mcp-server/` is a separate
- * workspace that cannot see `src/styles/variables.css`, so it names families
- * literally by necessity; rule 4 is what holds it to the same standard.
+ * Scope note: rules 2 and 3 cover the website — `src/` AND the static assets
+ * under `public/`, since both defects they were written against lived in an SVG
+ * there. `mcp-server/` is a separate workspace that cannot see
+ * `src/styles/variables.css`, so it names families literally by necessity; rule
+ * 4 is what holds it to the same standard.
  *
  * Every rule asserts it actually probed something. A guard that walks an empty
  * file set passes forever and proves nothing.
@@ -78,6 +80,15 @@ function walk(dir: string, out: SourceFile[] = [], exts: Set<string> = SOURCE_EX
 }
 
 const websiteFiles = WEBSITE_DIRS.flatMap((d) => walk(path.join(ROOT, d)));
+
+/**
+ * Everything a font reference can hide in: the website's own source, plus the
+ * static assets under `public/`. `public/` is not an afterthought — both defects
+ * this file was written against lived in `public/images/icon.svg` (a Google-CDN
+ * `@import`, and Montserrat named literally in an SVG `<style>` block), and a
+ * `src/`-only sweep walks straight past them.
+ */
+const scannedFiles = [...websiteFiles, ...walk(path.join(ROOT, 'public'), [], PUBLIC_EXT)];
 
 /**
  * Families that are generics, not faces: naming one of these is naming nothing
@@ -161,7 +172,7 @@ describe('BL-144: the pinned font token', () => {
 
     const offenders: string[] = [];
     let probed = 0;
-    for (const file of websiteFiles) {
+    for (const file of scannedFiles) {
       if (file.rel === TOKEN_FILE || file.rel === FONTS_FILE) continue;
       for (const [kind, pattern] of PATTERNS) {
         for (const m of file.text.matchAll(pattern)) {
@@ -191,12 +202,10 @@ describe('BL-144: the pinned font token', () => {
   });
 
   it('rule 3: the face is self-hosted — no third-party font origin', () => {
-    // `public/` is in scope, and not as an afterthought: the violation this rule
-    // was written against was an `@import url(…)` of Google's font CDN inside
-    // `public/images/icon.svg`, the PWA/favicon mark. A `src/`-only sweep walked
-    // straight past it.
-    const scanned = [...websiteFiles, ...walk(path.join(ROOT, 'public'), [], PUBLIC_EXT)];
-    expect(scanned.length).toBeGreaterThan(websiteFiles.length);
+    const scanned = scannedFiles;
+    expect(scanned.length, 'public/ assets are in scope, not just src/').toBeGreaterThan(
+      websiteFiles.length
+    );
 
     const offenders: string[] = [];
     for (const file of scanned) {
@@ -279,28 +288,42 @@ describe('BL-144: the pinned font token', () => {
 
   it('the metric-matched fallbacks agree across the workspace boundary', () => {
     // fonts.css and the Worker shell each declare the same two faces, because
-    // mcp-server cannot import the website's CSS. Nothing structural keeps the
-    // percentages equal, so this does: a size-adjust that drifts on one side
-    // means Worker-served HTML lays out at different metrics from the site it
-    // belongs to, which is silent and would never be noticed by eye.
+    // mcp-server cannot import the website's CSS. Nothing structural keeps their
+    // metrics equal, so this does: a descriptor that drifts on one side means
+    // Worker-served HTML lays out at different metrics from the site it belongs
+    // to, which is silent and would never be noticed by eye.
+    //
+    // ALL FOUR descriptors, not just `size-adjust`. The two that were actually
+    // wrong — and had to be corrected in both files — were the ascent and
+    // descent overrides, so a check that read only `size-adjust` would have been
+    // watching the one descriptor that never drifted.
+    const DESCRIPTORS = ['size-adjust', 'ascent-override', 'descent-override', 'line-gap-override'];
     const parse = (text: string) =>
       [
         ...text.matchAll(
-          /font-family:\s*'(GST Mono Fallback[^']*)'[\s\S]{0,400}?size-adjust:\s*([\d.]+%)/g
+          /font-family:\s*'(GST Mono Fallback[^']*)'([\s\S]{0,400}?)line-gap-override:\s*[\d.]+%/g
         ),
-      ].map((m) => `${m[1]} = ${m[2]}`);
+      ].map(([whole, family]) => {
+        const values = DESCRIPTORS.map((name) => {
+          const found = whole.match(new RegExp(`${name}:\\s*([\\d.]+%)`));
+          return `${name} ${found ? found[1] : 'MISSING'}`;
+        });
+        return `${family}: ${values.join(', ')}`;
+      });
 
     const site = parse(fs.readFileSync(path.join(ROOT, FONTS_FILE), 'utf-8'));
     const worker = parse(
       fs.readFileSync(path.join(ROOT, 'mcp-server/src/lib/html-shell.ts'), 'utf-8')
     );
 
-    expect(site, 'fonts.css declares both fallback faces with a size-adjust').toHaveLength(2);
-    expect(worker, 'the Worker shell declares both fallback faces with a size-adjust').toHaveLength(
-      2
+    expect(site, 'fonts.css declares both fallback faces').toHaveLength(2);
+    expect(worker, 'the Worker shell declares both fallback faces').toHaveLength(2);
+    expect(site.join(' | '), 'every descriptor is present on the site side').not.toContain(
+      'MISSING'
     );
-    expect(worker, 'the Worker shell must use the same size-adjust values as fonts.css').toEqual(
-      site
+    expect(worker.join(' | '), 'every descriptor is present on the Worker side').not.toContain(
+      'MISSING'
     );
+    expect(worker, 'the Worker shell must use the same metrics as fonts.css').toEqual(site);
   });
 });

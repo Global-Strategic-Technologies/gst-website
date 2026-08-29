@@ -53,7 +53,9 @@ async function waitForFooterStyles(page: Page) {
  * to 959 — by 210px at 540 — with nothing to catch it. That band was uncovered
  * from both ends: this file stopped at 390 and the axe sweep runs desktop-only,
  * so a whole class of layout was checked at phone widths and at 1280 and
- * nowhere in between.
+ * nowhere in between. 960 is sampled deliberately: it is the first width that
+ * was clean, so it pins the top of that band with evidence rather than leaving
+ * it inferred.
  */
 const PHONE_WIDTHS = [320, 360, 375, 390] as const;
 
@@ -68,7 +70,7 @@ const PHONE_WIDTHS = [320, 360, 375, 390] as const;
  * with a tier's own floors rather than appearing at its boundaries — at 540 the
  * overflow was 210px, decaying to 24px by 900.
  */
-const OVERFLOW_WIDTHS = [...PHONE_WIDTHS, 420, 481, 540, 660, 720, 769, 840, 900] as const;
+const OVERFLOW_WIDTHS = [...PHONE_WIDTHS, 420, 481, 540, 660, 720, 769, 840, 900, 960] as const;
 
 /**
  * Routes whose chrome is the whole site's chrome, plus the two that carry the
