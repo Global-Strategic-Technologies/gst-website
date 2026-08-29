@@ -223,6 +223,21 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   mattered. (Related: the anchor already can't see the README or the chrome cards; this
   is the third and widest blind spot.)
 
+  **Why that first upload never ran — recorded by the session it happened in, since the
+  second session could only see the hole, not its cause.** It was NOT a denied
+  `finalize_plan`: that call was never reached. Every `DesignSync` method, starting with
+  the opening `get_project`, failed with _"DesignSync needs design-system authorization,
+  and /design-login cannot run in this non-interactive session"_ — the VS Code extension
+  session reports as non-interactive, and `/design-login` is unavailable there, so the
+  authorization could not be obtained from inside it at all. The session did the whole
+  build and verification (that work is what commit `9aa71a16` carries) and told the user
+  plainly, twice, that the upload had not happened. **What it got wrong was this file**:
+  it updated the upload-set bullet to 103 as though the number described something
+  shipped. So the guard above is the right one, but note the shape of the real failure —
+  it was loud in the transcript and silent in the durable record, not silent everywhere.
+  Practically: a session that cannot authorize should write the build-and-verified state
+  here **explicitly marked unshipped**, and hand the upload to a session that can.
+
 - **After editing `conventions.md`, grep the WHOLE file for the family you touched — do
   not review the hunk.** The uploaded README is read as one document by the agent, and a
   family is usually described in three or four places (token bullet, class-families
