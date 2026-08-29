@@ -308,7 +308,13 @@ describe('BL-144: the pinned font token', () => {
           const found = whole.match(new RegExp(`${name}:\\s*([\\d.]+%)`));
           return `${name} ${found ? found[1] : 'MISSING'}`;
         });
-        return `${family}: ${values.join(', ')}`;
+        // The `src` list too, not just the numbers: it decides WHICH face the
+        // metrics are calibrated against. Drop the DejaVu entry on one side and
+        // all four descriptors would still match while the two files resolved
+        // different faces on Linux — agreement on the calibration with none on
+        // the thing being calibrated.
+        const src = whole.match(/src:\s*([^;]+);/);
+        return `${family}: ${values.join(', ')} | src ${src ? src[1].replace(/\s+/g, ' ').trim() : 'MISSING'}`;
       });
 
     const site = parse(fs.readFileSync(path.join(ROOT, FONTS_FILE), 'utf-8'));

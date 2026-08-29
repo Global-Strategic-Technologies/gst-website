@@ -43,7 +43,7 @@ The vertical half of that took two attempts and is the trap worth recording: `as
 
 **The headroom bought by the two BL-144 defects is kept, and is no longer a guess.** The sash's 220px corner box and `WorkflowCard`'s 18.5rem track floor were both derived against the widest face any engine resolved the generic to; the pinned face's advance _is_ that widest case, so both figures are now exact rather than speculative. Neither was given back.
 
-**A re-baseline pass shipped with the pin.** The face is ~9% wider than what Windows Chromium previously resolved, which exposed five fitting failures — three of them pre-existing and independent of the pin:
+**A re-baseline pass shipped with the pin.** The face is ~9% wider than what Windows Chromium previously resolved, which exposed six fitting failures — four of them pre-existing and independent of the pin:
 
 | Surface                               | What moved                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
