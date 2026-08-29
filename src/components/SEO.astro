@@ -139,7 +139,10 @@ const jsonLdData = {
   '@type': 'ProfessionalService',
   name: 'Global Strategic Technologies',
   url: 'https://globalstrategic.tech',
-  logo: 'https://globalstrategic.tech/icon.svg',
+  // /images/icon.svg, not /icon.svg — the asset has only ever lived under
+  // public/images/, so the published logo URL 404'd for every consumer of this
+  // JSON-LD. Found 2026-08-29 while BL-144 was rewriting that same file.
+  logo: 'https://globalstrategic.tech/images/icon.svg',
   sameAs: ['https://www.linkedin.com/company/global-strategic-technologies/'],
   founder: {
     '@type': 'Person',
