@@ -26,7 +26,8 @@ keyed on the SAME three breakpoints (no new BREAKPOINTS, one new box size).
                  (see the bottom of this file); reserve stays 0
   card           104px        150px        26px       --text-2xs   n/a
 
-UNDER-BAND (optional subtext, page scale): top 88px, left −40px, width 320px,
+UNDER-BAND (optional subtext, page scale): top 88px, left −40px, width 320px
+(the rule's own base triple is the smaller no-`:has()` fallback — see there),
 min-height 24px (--touch-target-min-aa — it is a LINK; the AA floor is the real
 finger target on the unrotated strip). Its chord sits below the main band's and
 is LONGER (it lies nearer the box diagonal), so subtext gets more room than the
@@ -193,6 +194,12 @@ moves.)
    the same class as a decorative span. The border mix matches the main
    band's and is what keeps the inverted fill visible on a dark page.
    Geometry and the colorway ruling: header comment above. */
+/* The triple here is the NO-`:has()` fallback, not the shipped geometry — the
+   rule below always wins in a browser that supports `:has()`, because every
+   under-band the codebase renders is inside a corner. It is the 200px box's
+   derivation, kept because that is the box such a browser also gets (the nav
+   reserve is `:has()`-keyed too, so it degrades as a set, not piecemeal).
+   Shipped values, and the ones the header paragraph documents: 88 / −40 / 320. */
 .brutal-sash-under {
   position: absolute;
   top: 78px;
