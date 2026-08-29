@@ -231,6 +231,10 @@ moves.)
      band is unrotated and the field is a real finger target; on this rotated
      corner the field's client rect is its ~98px AABB, which is what
      target-size actually measures (accessibility suite, green).
+     Be honest about what that gave back: when the BAND was the link its target
+     was 24px thick, and a field stretched into the 22px content box is 24 → 22.
+     The AABB makes it moot for the criterion, but the two pixels are real, so
+     do not read this rule as having surrendered nothing.
      A thinner band may sit closer to the box diagonal without breaking the
      ribbon invariant, and every px of c it gives back is 1.41px of chord for
      the copy, which is the tightest on the sash. Realised: 2px of band height
@@ -318,7 +322,14 @@ moves.)
    band — two destinations need two affordances, and the fill landing on one
    field is what makes the split legible without reading the copy. Measured and
    shown as a frozen /brand hover specimen, per this file's own colorway
-   ruling. `color` is restated for the same specificity reason as above. */
+   ruling.
+   `color` is restated here as DEFENCE, not because the leak bites today: a
+   field's rest ink is already --sash-bg, which is --color-primary, which is
+   exactly what the global `a:hover` would set — so the leak is a no-op on this
+   band and the mutation that fails for `.brutal-sash` passes here. It is kept
+   because the day --sash-bg stops being --color-primary, or a palette
+   re-points it, the no-op becomes a real defect silently. Do not mistake this
+   for a rule under test. */
 .brutal-sash-under__field:hover,
 .brutal-sash-under__field:focus-visible {
   background: color-mix(in srgb, var(--sash-ink) 82%, var(--sash-bg));
@@ -343,9 +354,11 @@ moves.)
    copy that occupies nearly the whole chord. At 200px the under-band fitted by
    0.8px on WebKit — inside the noise of a font nobody specified — so the box
    grew to 220 here. BL-144 then pinned the face, and its advance is that same
-   widest case: the subtext now measures 253.2 / 252.7 / 253.2px on the three
-   engines, so 220 is still the right number and is no longer headroom against
-   an unknown. Both bands are re-derived for
+   widest case, so 220 is still the right number and is no longer headroom
+   against an unknown. (The 253.2 / 252.7 / 253.2 figures this comment used to
+   quote were for the band as ONE text node; it is a list of fields now and
+   measures 242.55 / 242.05 / 242.55 — the live pair is recorded once, in the
+   header, rather than a second time here.) Both bands are re-derived for
    the larger box rather than inherited (chord-centring is box-relative).
    Keyed on :has() — the same signal HeaderNavLinks uses to widen the reserve,
    which grows with it. The ≤768 tiers and the ≤511 strip override every rule

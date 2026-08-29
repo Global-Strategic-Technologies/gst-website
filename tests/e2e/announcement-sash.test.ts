@@ -77,8 +77,19 @@ const NO_LIVE_ANNOUNCEMENT = getActiveAnnouncement(SASH_ROUTE) === null;
  * derived from whatever the registry holds.
  */
 const LIVE_SUBTEXT = getActiveAnnouncement(SASH_ROUTE)?.subtext;
-/** The fields that are actually links — the /brand specimens pass none. */
-const LIVE_LINKED_FIELDS = (LIVE_SUBTEXT ?? []).filter((field) => field.href !== undefined);
+/**
+ * The fields that are actually links — the /brand specimens pass none.
+ *
+ * Carries each field's index in the FULL list, not its position among the
+ * linked ones. Those differ the moment a field ships without an href (a
+ * legitimate state: an unlinked phrase beside a linked one), and every locator
+ * below indexes the rendered `.brutal-sash-under__field` set, which contains
+ * both kinds. Using the filtered position would silently address the wrong
+ * node rather than fail.
+ */
+const LIVE_LINKED_FIELDS = (LIVE_SUBTEXT ?? [])
+  .map((field, index) => ({ field, index }))
+  .filter(({ field }) => field.href !== undefined);
 /** Same escape idiom as tests/integration/announcement-anchor.test.ts. */
 const escapeRe = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const DESKTOP_TIER = BREAKPOINTS[0];
@@ -214,7 +225,7 @@ test.describe('Announcement sash', () => {
     }
 
     // Every field points somewhere DIFFERENT — the whole point of the split.
-    const destinations = LIVE_LINKED_FIELDS.map((f) => f.href);
+    const destinations = LIVE_LINKED_FIELDS.map(({ field }) => field.href);
     expect(new Set(destinations).size, 'fields link independently').toBe(destinations.length);
 
     // The inverted pair, asserted as computed equality against the main
@@ -263,7 +274,7 @@ test.describe('Announcement sash', () => {
     // Clicked one at a time, from a fresh load, because the regression this
     // exists for is a field landing on its NEIGHBOUR's destination — which a
     // single click can never show.
-    for (const [index, field] of LIVE_LINKED_FIELDS.entries()) {
+    for (const { field, index } of LIVE_LINKED_FIELDS) {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(SASH_ROUTE);
       await pageSash(page).locator('.brutal-sash-under__field').nth(index).click();
@@ -571,25 +582,34 @@ test.describe('Announcement sash', () => {
     // Every tappable thing on the strip receives its own touch: the main band,
     // and EACH field separately — on the strip the field is the real finger
     // target, so "the band is hittable" would not be the same claim.
-    const stripTargets = [
-      '.brutal-sash',
-      ...LIVE_LINKED_FIELDS.map((_, i) => `.brutal-sash-under__field:nth-of-type(${i + 1})`),
+    // Addressed by POSITION IN THE FIELD LIST, never by a `:nth-of-type`
+    // selector: that counts among siblings of the same tag, so it agrees with
+    // the field order only while every field happens to be an anchor. One
+    // unlinked field and it would silently point at the wrong node.
+    const stripTargets: Array<{ label: string; index: number | null }> = [
+      { label: '.brutal-sash', index: null },
+      ...LIVE_LINKED_FIELDS.map(({ index }) => ({ label: `field ${index}`, index })),
     ];
-    for (const sel of stripTargets) {
-      const hit = await page.evaluate((s) => {
-        const el = document.querySelector(`body > .brutal-sash-corner ${s}`) as HTMLElement;
-        if (!el) return { found: false, ok: false, h: 0 };
+    for (const target of stripTargets) {
+      const hit = await page.evaluate(({ index }) => {
+        const root = document.querySelector('body > .brutal-sash-corner');
+        const el = (
+          index === null
+            ? root?.querySelector('.brutal-sash')
+            : root?.querySelectorAll('.brutal-sash-under__field')[index]
+        ) as HTMLElement | undefined;
+        if (!el) return { found: false, ok: false };
         const r = el.getBoundingClientRect();
         const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-        return { found: true, ok: top === el || el.contains(top), h: r.height };
-      }, sel);
-      expect(hit.found, `${sel} exists on the strip`).toBe(true);
-      expect(hit.ok, `${sel} is hit-testable at its centre`).toBe(true);
+        return { found: true, ok: top === el || el.contains(top) };
+      }, target);
+      expect(hit.found, `${target.label} exists on the strip`).toBe(true);
+      expect(hit.ok, `${target.label} is hit-testable at its centre`).toBe(true);
     }
 
     // The AA floor is stated on the FIELD here and nowhere else — this is the
     // form where a field is a real finger target rather than a rotated AABB.
-    for (const [index] of LIVE_LINKED_FIELDS.entries()) {
+    for (const { index } of LIVE_LINKED_FIELDS) {
       const h = await pageSash(page)
         .locator('.brutal-sash-under__field')
         .nth(index)
@@ -762,7 +782,7 @@ test.describe('Announcement sash', () => {
     await expect(pageSash(page).locator('.brutal-sash')).toBeFocused();
     // Then EACH linked field in document order — two destinations are two
     // stops, and a keyboard user must be able to reach the second one.
-    for (const [index] of LIVE_LINKED_FIELDS.entries()) {
+    for (const { index } of LIVE_LINKED_FIELDS) {
       await page.keyboard.press('Tab');
       await expect(pageSash(page).locator('.brutal-sash-under__field').nth(index)).toBeFocused();
     }
@@ -778,7 +798,7 @@ test.describe('Announcement sash', () => {
     await expect(page.locator('.skip-nav')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(pageSash(page).locator('.brutal-sash')).toBeFocused();
-    for (const [index] of LIVE_LINKED_FIELDS.entries()) {
+    for (const { index } of LIVE_LINKED_FIELDS) {
       await page.keyboard.press('Tab');
       await expect(pageSash(page).locator('.brutal-sash-under__field').nth(index)).toBeFocused();
     }

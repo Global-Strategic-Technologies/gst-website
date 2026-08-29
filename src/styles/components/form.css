@@ -250,6 +250,18 @@ Brutalist Segmented Control
   color: var(--text-primary);
 }
 
+/* The rule above deliberately excludes the active button, which left it with
+   nothing restating its colour — fine while the control is a <button>, but the
+   capability reference's lens switch is two <a>s (the modifier is applied at
+   runtime by src/utils/mcp-docs.ts), and global.css's `a:hover` at (0,1,1)
+   out-ranks the modifier's own `color` at (0,1,0). Since the fill IS
+   --color-primary, hovering the active lens painted its label teal on teal.
+   Guarded by tests/e2e/hover-ink-invariance.test.ts. */
+.brutal-segmented__btn--active:hover,
+.brutal-segmented__btn--active:focus-visible {
+  color: var(--bg-dark);
+}
+
 .brutal-segmented--sm {
   max-width: 180px;
 }

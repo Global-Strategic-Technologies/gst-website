@@ -756,8 +756,10 @@ function accessHref(tier?: string) {
      with `staticHeader` (Header.astro's .site-header--static), so the header
      scrolls away and there is nothing to clear. Measured 2026-08-29: both
      fragments land at viewport top with the header already 280px above it.
-     The guide pages DO need the offset (mcp-guide.css) because they are not
-     hub sub-pages. */
+     `.guide-section` (mcp-guide.css) does carry an 80px offset — but those
+     routes are hub sub-pages too and get the same static header, so whatever
+     that offset is for, it is not the site header and it is not a precedent
+     for adding one here. */
   .mcp-block {
     margin-bottom: var(--spacing-3xl);
   }
