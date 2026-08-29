@@ -79,9 +79,10 @@ export const ANNOUNCEMENTS: Announcement[] = [
     // was removed for it). Both halves are sourced by the announced page:
     // /hub/mcp/ markets the server as agents running the GST analysis tools,
     // and the free pilot tier is in its tier presentation (and the hub FAQ).
-    // 35 chars, against a ceiling of 37 — and that 37 is WEBKIT's. The mono
-    // stack is the bare `monospace` generic, so the same string is 222px of ink
-    // on Chromium and Firefox (which reach 40) and 240px on WebKit. Count
+    // 35 chars, against a ceiling of 37 — one ceiling on every engine, because
+    // BL-144 pinned the mono. It used to be three: the same string set 222px of
+    // ink on Chromium and Firefox (which reached 40) and 240px on WebKit, and
+    // it is now 253.2 / 252.7 / 253.2. Count
     // characters to sanity-check, then PROVE new copy by running the sash E2E
     // suite on all three engines: it measures the ink against the corner and
     // is the only budget that has ever been right (Sash.astro).

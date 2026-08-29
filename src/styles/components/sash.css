@@ -269,13 +269,16 @@ moves.)
   outline-offset: -4px;
 }
 
-/* A corner carrying TWO bands needs a bigger box. `--font-family-mono` is the
-   bare `monospace` generic, so the advance width is whatever the engine and OS
-   pick: the live 35-character subtext measures 222px on Chromium and Firefox
-   but 240px on WebKit, an 8% spread on copy that occupies nearly the whole
-   chord. At 200px the under-band fitted by 0.8px on WebKit — inside the noise
-   of a font nobody specified — so the box grows to 220 here, which puts the
-   margin at ~15px on the widest engine measured. Both bands are re-derived for
+/* A corner carrying TWO bands needs a bigger box. This size was derived while
+   `--font-family-mono` was still the bare `monospace` generic, so the advance
+   width was whatever the engine and OS picked: the live 35-character subtext
+   measured 222px on Chromium and Firefox but 240px on WebKit, an 8% spread on
+   copy that occupies nearly the whole chord. At 200px the under-band fitted by
+   0.8px on WebKit — inside the noise of a font nobody specified — so the box
+   grew to 220 here. BL-144 then pinned the face, and its advance is that same
+   widest case: the subtext now measures 253.2 / 252.7 / 253.2px on the three
+   engines, so 220 is still the right number and is no longer headroom against
+   an unknown. Both bands are re-derived for
    the larger box rather than inherited (chord-centring is box-relative).
    Keyed on :has() — the same signal HeaderNavLinks uses to widen the reserve,
    which grows with it. The ≤768 tiers and the ≤511 strip override every rule

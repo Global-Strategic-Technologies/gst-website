@@ -322,10 +322,14 @@ test.describe('Announcement sash', () => {
    * band is un-rotated to read its ink flat, and the ink's four corners are
    * mapped back through the 45° rotation and tested against the box.
    *
-   * Per ENGINE on purpose. `--font-family-mono` is the bare `monospace`
-   * generic, so the advance width is whatever the engine and OS pick — the
-   * live subtext measures 222px on Chromium and Firefox and 240px on WebKit,
-   * and a chromium-only check once passed a band WebKit was clipping by 5px.
+   * Still per ENGINE, though the reason has changed. It was written because
+   * `--font-family-mono` was the bare `monospace` generic and each engine
+   * resolved a different advance width — the live subtext measured 222px on
+   * Chromium and Firefox and 240px on WebKit, and a chromium-only check once
+   * passed a band WebKit was clipping by 5px. BL-144 pinned the face and that
+   * spread is gone (253.2 / 252.7 / 253.2), but per-engine is still right:
+   * engines round and shape text differently even from identical metrics, and
+   * this file's whole history is sub-pixel passes hiding real clips.
    */
   /**
    * NOT `> 0`. At the geometry this guard was written for, Chromium cleared the

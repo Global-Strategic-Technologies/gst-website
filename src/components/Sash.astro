@@ -79,8 +79,10 @@ interface Props {
    * or the main `href` absent one). Setting subtext also GROWS the desktop
    * corner box to 220px and widens the nav's reserve to match (sash.css and
    * HeaderNavLinks.astro both key on the class with :has()) — the subtext runs
-   * nearly the whole chord and the mono stack is an unspecified generic, so the
-   * extra room is what keeps it off the box edge; proven to fit at 769px+ on
+   * nearly the whole chord, so the extra room is what keeps it off the box
+   * edge; that room was sized against the widest face any engine resolved the
+   * then-unpinned generic to, which is exactly the pinned face's advance, so it
+   * is still right (BL-144). Proven to fit at 769px+ on
    * all three engines (2026-08-29). The sourced-claim rule applies to it like
    * every segment.
    */

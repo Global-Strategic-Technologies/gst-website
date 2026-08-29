@@ -113,15 +113,15 @@ No dark theme overrides needed for text colors — the variables handle theme sw
 Every text surface on the site resolves to one family, declared in
 `src/styles/fonts.css` and reached only through `var(--font-family-mono)`.
 
-|                |                                                                                                       |
-| -------------- | ----------------------------------------------------------------------------------------------------- |
-| **Face**       | Geist Mono Variable, weight axis 100–900                                                              |
-| **Licence**    | OFL 1.1 — shipped at `public/fonts/GEIST-MONO-OFL.txt`                                                |
-| **Upstream**   | `vercel/geist-font` v1.7.2, `GeistMono[wght].ttf`                                                     |
-| **Shipped as** | `public/fonts/gst-mono-var-latin.woff2` — 25,952 bytes, 367 codepoints                                |
-| **Alias**      | `GST Mono`. Nothing in the repo names the real face; a change is one `src` line                       |
-| **Fallbacks**  | `GST Mono Fallback` (Menlo/DejaVu, `size-adjust: 99.7%`), `GST Mono Fallback WD` (Consolas, `109.1%`) |
-| **Metrics**    | upem 1000, uniform 600/1000 advance at every weight, hhea 1005 / −295 / 0                             |
+|                |                                                                                                                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Face**       | Geist Mono Variable, weight axis 100–900                                                                                                                                                                                                      |
+| **Licence**    | OFL 1.1 — shipped at `public/fonts/GEIST-MONO-OFL.txt`                                                                                                                                                                                        |
+| **Upstream**   | `vercel/geist-font` v1.7.2, `GeistMono[wght].ttf`                                                                                                                                                                                             |
+| **Shipped as** | `public/fonts/gst-mono-var-latin-v1.woff2` — 25,952 bytes, 367 codepoints                                                                                                                                                                     |
+| **Alias**      | `GST Mono`. Nothing in the repo names the real face; a change is one `src` line                                                                                                                                                               |
+| **Fallbacks**  | `GST Mono Fallback` (Menlo/DejaVu, `size-adjust: 99.7%` — DejaVu measured at 602.1/1000 from the font binary; Menlo published at 602, unverified on real metal), `GST Mono Fallback WD` (Consolas, `109.1%` — measured in-browser, 0.03% off) |
+| **Metrics**    | upem 1000, uniform 600/1000 advance at every weight, hhea 1005 / −295 / 0                                                                                                                                                                     |
 
 **Why it is pinned.** The token was the bare generic `monospace`, so the face
 was the visitor's OS's choice — and advance widths across the plausible
@@ -142,15 +142,18 @@ uniform across the axis.
 
 ### Re-cutting the subset
 
-Do not hand-edit the `unicode-range` in `fonts.css`: it is written to match the
-shipped file's coverage exactly. To change coverage, re-cut and update both.
+Do not hand-edit the `unicode-range` in `fonts.css`: it is the range the file was
+cut to. To change coverage, re-cut and update both — and **bump the `-vN` suffix
+on the filename**, in `fonts.css` and in the `BaseLayout.astro` preload. `/fonts/*`
+is served `immutable` for a year, so a re-cut under the same name never reaches a
+returning visitor.
 
 ```bash
 # fonttools + brotli in a throwaway venv; nothing needs installing globally
 python -m venv fontenv && ./fontenv/bin/pip install fonttools brotli
 
 ./fontenv/bin/python -m fontTools.subset 'GeistMono[wght].ttf' \
-  --output-file=public/fonts/gst-mono-var-latin.woff2 \
+  --output-file=public/fonts/gst-mono-var-latin-v1.woff2 \
   --flavor=woff2 \
   --unicodes="U+0000-00FF,U+0131,U+2000-206F,U+20AC,U+2190-2199,U+2212,U+221A,U+2248,U+2264-2265,U+25A0-25FF,U+2500-257F" \
   --drop-tables+=DSIG --no-hinting
