@@ -71,8 +71,16 @@ const NO_LIVE_ANNOUNCEMENT = getActiveAnnouncement(SASH_ROUTE) === null;
  * sash.css. The tier reserves are identical either way —
  * the under-band hides ≤768px and the per-tier restatements repeat the tier
  * values — so only the desktop expectation is conditional.
+ *
+ * `subtext` is a LIST of fields, each independently linked. Nothing here pins
+ * the copy or the field count (see the file docblock): expectations are
+ * derived from whatever the registry holds.
  */
 const LIVE_SUBTEXT = getActiveAnnouncement(SASH_ROUTE)?.subtext;
+/** The fields that are actually links — the /brand specimens pass none. */
+const LIVE_LINKED_FIELDS = (LIVE_SUBTEXT ?? []).filter((field) => field.href !== undefined);
+/** Same escape idiom as tests/integration/announcement-anchor.test.ts. */
+const escapeRe = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const DESKTOP_TIER = BREAKPOINTS[0];
 const DESKTOP_RESERVE = LIVE_SUBTEXT === undefined ? DESKTOP_TIER.reserve : '220px';
 /** The box grows with the reserve — a sash carrying an under-band needs the
@@ -141,10 +149,11 @@ test.describe('Announcement sash', () => {
   });
 
   /**
-   * The optional under-band (`.brutal-sash-under`, sash.css). Arm (a) runs
-   * while no live entry sets `subtext` and pins the enabled-not-present
-   * contract; arm (b) takes over the day an entry ships one. Exactly one arm
-   * is live in any registry state, so neither state can silently regress.
+   * The optional under-band (`.brutal-sash-under`, sash.css) — a LIST of
+   * independently-linked fields, not one link. Arm (a) runs while no live
+   * entry sets `subtext` and pins the enabled-not-present contract; arm (b)
+   * takes over the day an entry ships one. Exactly one arm is live in any
+   * registry state, so neither state can silently regress.
    * Both arms have run green: (b) was exercised against a temporarily-mutated
    * registry when the capability landed (2026-08-28), alongside a
    * three-engine fit probe of the conditional reserve at 769–1440px.
@@ -171,18 +180,42 @@ test.describe('Announcement sash', () => {
     const entry = getActiveAnnouncement(SASH_ROUTE)!;
     const under = pageSash(page).locator('.brutal-sash-under');
     await expect(under).toHaveCount(1);
-    await expect(under).toHaveText(LIVE_SUBTEXT!);
 
-    // The under-band is its OWN link (to subtextHref, or the main href absent
-    // one), with its own accessible name — the registry override exists so a
-    // literal pipe in the subtext is not spoken as "vertical line".
-    expect(await under.evaluate((el) => el.tagName), 'a link, not a decoration').toBe('A');
-    await expect(under).toHaveAttribute('href', entry.subtextHref ?? entry.href);
-    await expect(under).toHaveAttribute('aria-label', entry.subtextAriaLabel ?? LIVE_SUBTEXT!);
+    // Registry-derived and whitespace-tolerant: this file must not pin the
+    // announcement's copy (docblock), and whether a whitespace text node
+    // survives between the fields is an emission detail, not a contract.
+    await expect(under).toHaveText(
+      new RegExp(`^${LIVE_SUBTEXT!.map((f) => escapeRe(f.text)).join('\\s*\\|\\s*')}$`)
+    );
 
-    // The AA touch-target floor, on the element's unrotated box.
-    const underHeight = await under.evaluate((el) => (el as HTMLElement).offsetHeight);
-    expect(underHeight, 'min-height: var(--touch-target-min-aa)').toBeGreaterThanOrEqual(24);
+    // The BAND is inert now — it cannot be a link, because it holds two.
+    expect(await under.evaluate((el) => el.tagName), 'the band is a container').toBe('SPAN');
+
+    // Each field is its own link, with its own destination and its own name.
+    const fields = under.locator('.brutal-sash-under__field');
+    await expect(fields).toHaveCount(LIVE_SUBTEXT!.length);
+    for (const [index, field] of LIVE_SUBTEXT!.entries()) {
+      const node = fields.nth(index);
+      await expect(node).toHaveText(field.text);
+      if (field.href === undefined) {
+        expect(await node.evaluate((el) => el.tagName), `field ${index} is plain text`).toBe(
+          'SPAN'
+        );
+        continue;
+      }
+      expect(await node.evaluate((el) => el.tagName), `field ${index} is a link`).toBe('A');
+      await expect(node).toHaveAttribute('href', field.href);
+      if (field.ariaLabel !== undefined && field.ariaLabel !== field.text) {
+        await expect(node).toHaveAttribute('aria-label', field.ariaLabel);
+      } else {
+        // A name identical to the visible text is noise, not an aid.
+        await expect(node).not.toHaveAttribute('aria-label', /./);
+      }
+    }
+
+    // Every field points somewhere DIFFERENT — the whole point of the split.
+    const destinations = LIVE_LINKED_FIELDS.map((f) => f.href);
+    expect(new Set(destinations).size, 'fields link independently').toBe(destinations.length);
 
     // The inverted pair, asserted as computed equality against the main
     // band's own values so it follows every palette rather than pinning hex.
@@ -195,12 +228,14 @@ test.describe('Announcement sash', () => {
     expect(inverted, 'the under-band inverts the two sash tokens').toBe(true);
 
     // The main link speaks the whole announcement — either the registry's
-    // explicit ariaLabel or the composed default, which must carry the subtext.
+    // explicit ariaLabel or the composed default, which must carry the fields.
     const spoken = await pageSash(page).locator('.brutal-sash').getAttribute('aria-label');
     if (entry.ariaLabel !== undefined) {
       expect(spoken, 'the registry aria override is spoken').toBe(entry.ariaLabel);
     } else {
-      expect(spoken, 'subtext joins the composed aria-label').toContain(LIVE_SUBTEXT!);
+      for (const field of LIVE_SUBTEXT!) {
+        expect(spoken, 'every field joins the composed aria-label').toContain(field.text);
+      }
     }
 
     const reserve = await page
@@ -222,21 +257,42 @@ test.describe('Announcement sash', () => {
     await expect(under).toBeVisible();
   });
 
-  test('the under-band deep-links to its fragment destination', async ({ page }) => {
-    const entry = getActiveAnnouncement(SASH_ROUTE);
-    test.skip(
-      entry?.subtext === undefined || entry?.subtextHref === undefined,
-      'no live entry carries a subtext deep-link'
-    );
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(SASH_ROUTE);
-    await pageSash(page).locator('.brutal-sash-under').click();
-    await page.waitForURL(`**${entry!.subtextHref}`);
+  test('each under-band field deep-links to its OWN destination', async ({ page }) => {
+    test.skip(LIVE_LINKED_FIELDS.length === 0, 'no live entry carries a linked field');
 
-    // The fragment resolves to a real element (its existence is also guarded
-    // at unit speed by tests/integration/announcement-anchor.test.ts).
-    const fragment = entry!.subtextHref!.split('#')[1];
-    await expect(page.locator(`#${fragment}`)).toBeVisible();
+    // Clicked one at a time, from a fresh load, because the regression this
+    // exists for is a field landing on its NEIGHBOUR's destination — which a
+    // single click can never show.
+    for (const [index, field] of LIVE_LINKED_FIELDS.entries()) {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(SASH_ROUTE);
+      await pageSash(page).locator('.brutal-sash-under__field').nth(index).click();
+      await page.waitForURL(`**${field.href}`);
+
+      // The fragment resolves to a real element (its existence is also guarded
+      // at unit speed by tests/integration/announcement-anchor.test.ts).
+      const fragment = field.href!.split('#')[1];
+      if (!fragment) continue;
+      const target = page.locator(`#${fragment}`);
+      await expect(target).toBeVisible();
+
+      // …and the page actually SCROLLED there. `toBeVisible` is not that
+      // claim: #what-it-does sits 355px down, so it is already on screen in a
+      // 900px viewport and would pass even if the jump did nothing at all.
+      // The target must be at the top of the viewport.
+      // Bounded rather than pinned to 0, so a target that legitimately carries
+      // a scroll-margin (a page with a STICKY header — this one's is static,
+      // BaseLayout gives hub sub-pages `staticHeader`) still passes. The lower
+      // bound catches a jump that lands behind a header; the upper bound is far
+      // below #what-it-does's own 355px offset, so a jump that never happened
+      // fails.
+      const top = await page.evaluate(
+        (sel) => document.querySelector(sel)!.getBoundingClientRect().top,
+        `#${fragment}`
+      );
+      expect(top, `#${fragment} lands at the top of the viewport`).toBeGreaterThan(-4);
+      expect(top, `#${fragment} is scrolled to, not merely on screen`).toBeLessThan(120);
+    }
   });
 
   /**
@@ -512,18 +568,36 @@ test.describe('Announcement sash', () => {
       .evaluate((el) => getComputedStyle(el).paddingRight);
     expect(reserve, 'the strip costs the nav nothing').toBe('0px');
 
-    // Both strip lines receive their own clicks (registry-driven: the second
-    // line exists only while the live entry carries a subtext).
-    const stripLines =
-      LIVE_SUBTEXT === undefined ? ['.brutal-sash'] : ['.brutal-sash', '.brutal-sash-under'];
-    for (const sel of stripLines) {
+    // Every tappable thing on the strip receives its own touch: the main band,
+    // and EACH field separately — on the strip the field is the real finger
+    // target, so "the band is hittable" would not be the same claim.
+    const stripTargets = [
+      '.brutal-sash',
+      ...LIVE_LINKED_FIELDS.map((_, i) => `.brutal-sash-under__field:nth-of-type(${i + 1})`),
+    ];
+    for (const sel of stripTargets) {
       const hit = await page.evaluate((s) => {
         const el = document.querySelector(`body > .brutal-sash-corner ${s}`) as HTMLElement;
+        if (!el) return { found: false, ok: false, h: 0 };
         const r = el.getBoundingClientRect();
         const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-        return top === el || el.contains(top);
+        return { found: true, ok: top === el || el.contains(top), h: r.height };
       }, sel);
-      expect(hit, `${sel} is hit-testable at its centre`).toBe(true);
+      expect(hit.found, `${sel} exists on the strip`).toBe(true);
+      expect(hit.ok, `${sel} is hit-testable at its centre`).toBe(true);
+    }
+
+    // The AA floor is stated on the FIELD here and nowhere else — this is the
+    // form where a field is a real finger target rather than a rotated AABB.
+    for (const [index] of LIVE_LINKED_FIELDS.entries()) {
+      const h = await pageSash(page)
+        .locator('.brutal-sash-under__field')
+        .nth(index)
+        .evaluate((el) => (el as HTMLElement).getBoundingClientRect().height);
+      expect(
+        h,
+        `strip field ${index}: min-height var(--touch-target-min-aa)`
+      ).toBeGreaterThanOrEqual(24);
     }
 
     // The card-scale band lives inside a card and never meets the nav.
@@ -582,12 +656,15 @@ test.describe('Announcement sash', () => {
     expect(outline.offset, 'inset — an outside ring would be clipped').toBe('-4px');
   });
 
-  test('the focused under-band draws the INVERTED ring inside the corner box', async ({ page }) => {
-    test.skip(LIVE_SUBTEXT === undefined, 'no live entry sets a subtext — no under-band to focus');
+  test('a focused under-band FIELD draws the INVERTED ring inside the corner box', async ({
+    page,
+  }) => {
+    test.skip(LIVE_LINKED_FIELDS.length === 0, 'no live entry carries a linked field to focus');
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(SASH_ROUTE);
 
-    const under = pageSash(page).locator('.brutal-sash-under');
+    // The FIELD takes focus, not the band around it — the band is inert.
+    const under = pageSash(page).locator('.brutal-sash-under__field').first();
     await under.focus();
     await expect(under).toBeFocused();
 
@@ -617,6 +694,56 @@ test.describe('Announcement sash', () => {
     expect(ring.color, 'and it contrasts with the fill it sits on').not.toBe(ring.fill);
   });
 
+  /**
+   * INK IS INVARIANT UNDER HOVER — `sash.css`'s "hover changes the fill only",
+   * asserted rather than asserted-in-prose.
+   *
+   * This exists because it was FALSE in production. `global.css` sets
+   * `a:hover { color: var(--color-primary) }` at (0,1,1), which out-ranks
+   * `.brutal-sash { color: var(--sash-ink) }` at (0,1,0) — and `--sash-bg` IS
+   * `--color-primary`, never re-pointed per palette. So the main band's label
+   * hovered into exactly the colour of its own fill: not a hue shift, a
+   * disappearance (~1.3:1 against the 82% mix, every palette, both themes).
+   * The gallery could not have caught it — on the under-band the same leak is
+   * a no-op, and the only frozen hover specimen there is a <span>.
+   *
+   * Asserted as equality of computed colour rather than as a contrast ratio or
+   * a pinned hex, so it follows every palette and both themes. The rejected
+   * form was "hover colour ≠ hover background": that is TRUE on the broken
+   * state (the fill is a darkened mix of the leaked ink) and would have
+   * guarded nothing.
+   */
+  test('hover changes the fill, never the ink, on both bands and in every palette', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(SASH_ROUTE);
+
+    const bands = [
+      '.brutal-sash',
+      ...(LIVE_LINKED_FIELDS.length ? ['.brutal-sash-under__field'] : []),
+    ];
+    // palette-1 re-points --sash-ink (palettes.css) while --sash-bg is never
+    // re-pointed — so a re-pointed palette exercises the side the leak
+    // overwrote, and the default exercises the shipped case.
+    for (const palette of ['', 'palette-1']) {
+      await page.evaluate((cls) => {
+        document.documentElement.className = cls;
+      }, palette);
+
+      for (const sel of bands) {
+        const node = pageSash(page).locator(sel).first();
+        const rest = await node.evaluate((el) => getComputedStyle(el).color);
+        await node.hover();
+        const hovered = await node.evaluate((el) => getComputedStyle(el).color);
+        expect(
+          hovered,
+          `${sel} @ ${palette || 'default palette'}: ink must not move on hover`
+        ).toBe(rest);
+      }
+    }
+  });
+
   test('the band is in the natural tab order, right after the skip-nav link', async ({
     page,
     browserName,
@@ -633,16 +760,17 @@ test.describe('Announcement sash', () => {
     await expect(page.locator('.skip-nav')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(pageSash(page).locator('.brutal-sash')).toBeFocused();
-    if (LIVE_SUBTEXT !== undefined) {
-      // The under-band link is the band's immediate DOM sibling.
+    // Then EACH linked field in document order — two destinations are two
+    // stops, and a keyboard user must be able to reach the second one.
+    for (const [index] of LIVE_LINKED_FIELDS.entries()) {
       await page.keyboard.press('Tab');
-      await expect(pageSash(page).locator('.brutal-sash-under')).toBeFocused();
+      await expect(pageSash(page).locator('.brutal-sash-under__field').nth(index)).toBeFocused();
     }
   });
 
   test('the strip keeps the same tab order on mobile', async ({ page, browserName }) => {
     test.skip(browserName === 'webkit', 'WebKit excludes links from Tab by default');
-    test.skip(LIVE_SUBTEXT === undefined, 'one-line strip: covered by the desktop order test');
+    test.skip(LIVE_LINKED_FIELDS.length === 0, 'one-line strip: covered by the desktop order test');
 
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto(SASH_ROUTE);
@@ -650,7 +778,9 @@ test.describe('Announcement sash', () => {
     await expect(page.locator('.skip-nav')).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(pageSash(page).locator('.brutal-sash')).toBeFocused();
-    await page.keyboard.press('Tab');
-    await expect(pageSash(page).locator('.brutal-sash-under')).toBeFocused();
+    for (const [index] of LIVE_LINKED_FIELDS.entries()) {
+      await page.keyboard.press('Tab');
+      await expect(pageSash(page).locator('.brutal-sash-under__field').nth(index)).toBeFocused();
+    }
   });
 });

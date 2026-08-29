@@ -341,44 +341,61 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         <div class="brand-sash-frame brand-sash-frame--under">
           {
             /* Mirrors the live mcp-launch entry (announcements.ts) — minus the
-              hrefs, so the specimen stays decorative (the component renders
-              spans when no href is passed). In production both bands are
-              links; the under-band deep-links (subtextHref). */
+              field hrefs, so the specimen stays decorative (the component
+              renders spans, carrying the same __field class, when a field has
+              no href). In production the main band is a link and each field is
+              its own link to its own destination. */
           }
-          <Sash badge="New" label="GST MCP" subtext="Automate analysis | Free pilot tier" />
+          <Sash
+            badge="New"
+            label="GST MCP"
+            subtext={[{ text: 'Automate analysis' }, { text: 'Free pilot tier' }]}
+          />
         </div>
         <code class="brand-code"
-          >.brutal-sash-under — the OPTIONAL subtext band below the main one (hidden 512–768px with
-          __detail; the second line of the ≤511 strip). In production it is its own LINK (min-height
-          --touch-target-min-aa; the 7px gap to the main band is an axe target-size clearance — see
-          sash.css). Inverted ink-on-band — the band's bg/ink pair swapped — the only colorway,
+          >.brutal-sash-under — the OPTIONAL band below the main one (hidden 512–768px with
+          __detail; the second line of the ≤511 strip). It is a LIST of rule-separated __field
+          parts, spaced by --spacing-sm, and the band itself is inert: in production each field is
+          its own link with its own destination, accessible name and analytics label, so the two
+          halves go to different places. __field carries the min-height --touch-target-min-aa floor
+          (the band inherits its thickness from it) and rides the same class as an &lt;a&gt; or a
+          decorative &lt;span&gt;; the 7px gap to the main band is an axe target-size clearance —
+          see sash.css. Inverted ink-on-band — the band's bg/ink pair swapped — the only colorway,
           because the family's mixes fail AA as text backgrounds (see sash.css). Its presence grows
           the corner box to 220px and widens the nav's reserve to match. Copy budget ≤ 37 characters
-          — one ceiling on every engine, since the mono is pinned (Sash.astro)</code
+          across all fields, plus the rule and gaps between them — one ceiling on every engine,
+          since the mono is pinned (Sash.astro)</code
         >
       </div>
       <div class="brand-component-item">
         <div class="brand-sash-frame brand-sash-frame--under">
           {
-            /* Hand-written (the component cannot carry data-demo-state): the
-              under-band's frozen hover — sash.css's 82% mix, poles swapped for
-              the inverted fill. Forced-state rule lives in brand.astro's
-              is:global block; axe excludes [data-demo-state="hover"]. */
+            /* Hand-written (the component cannot carry data-demo-state): a
+              field's frozen hover — sash.css's 82% mix, poles swapped for the
+              inverted fill. Forced-state rule lives in brand.astro's is:global
+              block; axe excludes [data-demo-state="hover"]. Deliberately on ONE
+              field: the fill landing on a single field is what shows the two
+              are separate targets, which an all-spans band otherwise cannot. */
           }
           <div class="brutal-sash-corner">
             <span class="brutal-sash" aria-hidden="true">
               <span class="brutal-sash__badge">New</span>
               <span class="brutal-sash__label">GST MCP</span>
             </span>
-            <span class="brutal-sash-under" aria-hidden="true" data-demo-state="hover"
-              >Automate analysis | Free pilot tier</span
+            <span class="brutal-sash-under" aria-hidden="true"
+              ><span class="brutal-sash-under__field" data-demo-state="hover"
+                >Automate analysis</span
+              ><span class="brutal-sash-under__rule">|</span><span class="brutal-sash-under__field"
+                >Free pilot tier</span
+              ></span
             >
           </div>
         </div>
         <code class="brand-code"
-          >.brutal-sash-under:hover — background color-mix(in srgb, var(--sash-ink) 82%,
-          var(--sash-bg)): the family's hover number, poles swapped for the inverted fill. Focus
-          ring: 2px var(--sash-bg), inset −4px</code
+          >.brutal-sash-under__field:hover — background color-mix(in srgb, var(--sash-ink) 82%,
+          var(--sash-bg)): the family's hover number, poles swapped for the inverted fill. The fill
+          is per FIELD, not per band — two destinations need two affordances, and only the hovered
+          field lights up. Focus ring: 2px var(--sash-bg), inset −4px, on the same field</code
         >
       </div>
       <div class="brand-component-item">

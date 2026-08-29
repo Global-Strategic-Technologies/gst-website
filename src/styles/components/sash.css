@@ -26,11 +26,15 @@ keyed on the SAME three breakpoints (no new BREAKPOINTS, one new box size).
                  (see the bottom of this file); reserve stays 0
   card           104px        150px        26px       --text-2xs   n/a
 
-UNDER-BAND (optional subtext, page scale): top 88px, left −40px, width 320px
-(the rule's own base triple is the smaller no-`:has()` fallback — see there),
-min-height 24px (--touch-target-min-aa — it is a LINK; the AA floor is the real
-finger target on the unrotated strip). Its chord sits below the main band's and
-is LONGER (it lies nearer the box diagonal), so subtext gets more room than the
+UNDER-BAND (optional, page scale): top 88px, left −40px, width 320px (the
+rule's own base triple is the smaller no-`:has()` fallback — see there). It is
+a LIST of rule-separated FIELDS, each its own link, spaced by --spacing-sm;
+the band itself is inert, 24px thick including its borders. The AA touch floor
+(--touch-target-min-aa) is stated on the FIELD, but only in the ≤511 strip
+block: that is the form where a field is a real finger target, and putting it
+on the rotated corner grows the band to 26px and drops c_min to 0.62, under the
+ribbon floor (measured). Its chord sits below the main band's and is LONGER
+(it lies nearer the box diagonal), so the under-band gets more room than the
 headline.
 
 RIBBON-FORM INVARIANT — work in CHORD SPACE, c = x − y in box-local coords. A
@@ -68,16 +72,27 @@ apparent 60px of slack (2026-08-29). Measuring at the centreline instead of the
 text's upper edge is what let a clipped three-segment /brand specimen ship the
 same day. Both are asserted per engine in the sash E2E suite now.
 
-Live figures at the 220px box, flat ink into usable chord — WebKit first, its
-mono metrics being the widest of the three engines:
-  main band   107 / 185   (Chromium and Firefox 101)
-  under-band  240 / 271   (Chromium and Firefox 222)
+Live figures at the 220px box, flat ink into usable chord. Measured on all
+three engines 2026-08-29; the per-engine spread is now ≤0.5px, so one pair
+stands for all three (it used to be an 18px spread across the unpinned
+`monospace` generic — BL-144 pinned the face and that is gone):
+  main band   107 / 185
+  under-band  243 / 261
 
-The axe target-size clearance (both bands are links, and axe measures UNCLIPPED
-client rects — the main band's unobscured strip above the under-band's rect top
-must stay ≥ 24px) is bought by SEPARATING the two bands in c, never by pushing
-either toward the diagonal: the current 10 c-unit gap yields a 7px visible gap
-and a 29px strip. Re-run the accessibility suite after any geometry change.
+The under-band pair moved when the band became a list of FIELDS: the fields
+stretch to the band's full 22px content box, where a single text node measured
+13px, and `usable` is read at the ink's UPPER edge — so 10px of extra ink
+height costs ~10px of usable chord. Ink itself grew only 2.3px (two rendered
+spaces became two --spacing-sm gaps). 18px of slack remains.
+
+The axe target-size clearance: the main band is a link and each under-band
+FIELD is a link (the under-band itself is not), and axe measures UNCLIPPED
+client rects against the UNOBSCURED area — the main band's unobscured strip
+above the fields' rect top must stay ≥ 24px. It is bought by SEPARATING the two
+bands in c, never by pushing either toward the diagonal: the current 10 c-unit
+gap yields a 7px visible gap and a 29px strip. The two fields are neighbours of
+each other too, but their rotated AABBs barely meet — each keeps far more than
+24×24 clear. Re-run the accessibility suite after any geometry change.
 
 No ≤768/≤540 variants exist: the under-band hides 512–768px alongside
 __detail, and below 512 it is the strip's second line.
@@ -206,24 +221,37 @@ moves.)
   left: -34px;
   width: 288px;
 
-  /* The AA floor is also the band's THICKNESS here — the padding is set below
-     it on purpose. A thinner band may sit closer to the box diagonal without
-     breaking the ribbon invariant, and every px of c it gives back is 1.41px
-     of chord for the subtext, which is the tightest copy on the sash. Realised:
-     2px of band height bought ~2px of chord. Small on its own — the box growth
-     below is what actually made the subtext fit — but it is also why c_min sits
-     at 2.3 against the ribbon guard's floor of 2 (see below): there is no slack
-     left here, so any change to this padding, to --text-2xs, or to the
-     inherited line-height must re-run the ribbon sweep. */
+  /* 24px INCLUDING the two 1px borders, and the vertical padding this rule used
+     to carry is gone, so the fields stretch to the full 22px content box rather
+     than to the 18px the padding left them. The band's thickness cannot come
+     from the fields instead: a field carrying the 24px AA floor here makes the
+     band 26px (24 + borders), which measured c_min at 0.62 against the ribbon
+     guard's floor of 2 — the lower edge lands on the box diagonal and the band
+     stops being a ribbon. So the floor is stated on the ≤511 strip, where the
+     band is unrotated and the field is a real finger target; on this rotated
+     corner the field's client rect is its ~98px AABB, which is what
+     target-size actually measures (accessibility suite, green).
+     A thinner band may sit closer to the box diagonal without breaking the
+     ribbon invariant, and every px of c it gives back is 1.41px of chord for
+     the copy, which is the tightest on the sash. Realised: 2px of band height
+     bought ~2px of chord. Small on its own — the box growth below is what
+     actually made the copy fit — but it is also why c_min sits at 2.3 against
+     the ribbon guard's floor of 2 (see below): there is no slack left here, so
+     any change to this min-height, to --text-2xs, or to the inherited
+     line-height must re-run the ribbon sweep. */
   min-height: var(--touch-target-min-aa);
   display: flex;
   align-items: center;
   justify-content: center;
+
+  /* Separates the fields from the rule between them. The family's own idiom —
+     `.brutal-sash` spaces its segments the same way — and deliberately NOT
+     per-field padding, which would also pad the band's two OUTER edges and
+     spend ink the corner does not have. */
+  gap: var(--spacing-sm);
   box-sizing: border-box;
-  padding: 0.1875rem 0;
   transform: rotate(45deg);
   pointer-events: auto;
-  text-decoration: none;
   font-family: var(--font-family-mono);
   font-size: var(--text-2xs);
   font-weight: var(--font-weight-semibold);
@@ -241,21 +269,60 @@ moves.)
   color: var(--sash-bg);
   border-top: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
   border-bottom: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+}
+
+/* One field of the under-band: a run of copy that may carry its own href. The
+   class rides the element in BOTH forms — the live <a> and the /brand
+   specimens' decorative <span> — exactly as `.brutal-sash` does, because it
+   names the ROLE a field plays in the band, not whether it is interactive.
+   That is also what makes the gallery exhibit it at all: the specimens pass no
+   hrefs, so a class scoped to the anchor would never render there and nothing
+   would catch it.
+
+   It stretches to the band's full content box so the hover fill covers the
+   band's thickness rather than just the text line, and it carries its own
+   colour, because the anchor is now a CHILD: global.css's `a` sets
+   --color-secondary and `a:hover` --color-primary at (0,1,1), which out-ranks a
+   bare class at (0,1,0), and sash.css is @imported from global.css so source
+   order cannot save it. Hence the restatement under :hover below. */
+.brutal-sash-under__field {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  color: var(--sash-bg);
+  text-decoration: none;
   transition: background var(--transition-fast);
 }
 
-/* Hover changes colour only — no transform, no shadow (STYLES_GUIDE § anti-patterns). */
+/* The separator between fields. Inert and aria-hidden in the markup — a
+   literal pipe is spoken "vertical line". Same de-emphasis as
+   `.brutal-sash__detail`, the family's other rule-ish part. */
+.brutal-sash-under__rule {
+  opacity: 0.85;
+}
+
+/* Hover changes the FILL only — no transform, no shadow, and no ink shift
+   (STYLES_GUIDE § anti-patterns). The `color` here is not decorative: without
+   it global.css's `a:hover` wins on specificity and repaints the label in
+   --color-primary, which IS --sash-bg — the band's own fill. The label would
+   not shift hue, it would disappear (~1.3:1 against the 82% mix, every palette,
+   both themes). Guarded by an ink-invariance assertion in the sash E2E suite. */
 .brutal-sash:hover,
 .brutal-sash:focus-visible {
   background: color-mix(in srgb, var(--sash-bg) 82%, var(--bg-dark));
+  color: var(--sash-ink);
 }
 
-/* The under-band's hover: the family's 82% mix with the poles swapped for the
-   inverted fill (a slight teal lift on the dark band). Measured and shown as
-   a frozen /brand hover specimen, per this file's own colorway ruling. */
-.brutal-sash-under:hover,
-.brutal-sash-under:focus-visible {
+/* A field's hover: the family's 82% mix with the poles swapped for the
+   inverted fill (a slight teal lift on the dark band). Per FIELD, not per
+   band — two destinations need two affordances, and the fill landing on one
+   field is what makes the split legible without reading the copy. Measured and
+   shown as a frozen /brand hover specimen, per this file's own colorway
+   ruling. `color` is restated for the same specificity reason as above. */
+.brutal-sash-under__field:hover,
+.brutal-sash-under__field:focus-visible {
   background: color-mix(in srgb, var(--sash-ink) 82%, var(--sash-bg));
+  color: var(--sash-bg);
 }
 
 /* Inset: an outside ring would be clipped by the corner box. */
@@ -264,7 +331,7 @@ moves.)
   outline-offset: -4px;
 }
 
-.brutal-sash-under:focus-visible {
+.brutal-sash-under__field:focus-visible {
   outline: 2px solid var(--sash-bg);
   outline-offset: -4px;
 }
@@ -445,11 +512,20 @@ moves.)
   body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash-under {
     display: flex;
   }
+
+  /* The AA floor belongs HERE, not on the rotated corner. This is the one form
+     where a field is a real finger target: the band is unrotated and in flow,
+     so the field's client rect IS its 24px box rather than the ~98px AABB a
+     45° rotation gives it. On the corner the same declaration would push the
+     band to 26px and drop c_min under the ribbon floor (see the base rule). */
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash-under__field {
+    min-height: var(--touch-target-min-aa);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .brutal-sash,
-  .brutal-sash-under {
+  .brutal-sash-under__field {
     transition: none;
   }
 }

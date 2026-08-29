@@ -52,7 +52,7 @@ function accessHref(tier?: string) {
         >
       </HubHeader>
 
-      <div class="mcp-block">
+      <div class="mcp-block" id="what-it-does">
         <h2 class="brutal-heading-lg">What it does</h2>
         <p class="mcp-lede">
           Your analysts already screen targets, portfolio companies and deals with AI agents;
@@ -749,6 +749,15 @@ function accessHref(tier?: string) {
     padding-bottom: var(--spacing-3xl);
   }
 
+  /* No `scroll-margin-top` here, deliberately. Three of these blocks are
+     deep-link targets (#what-it-does and #tiers from the announcement sash,
+     #request-access from the guides), and the reflex is to offset them for the
+     sticky header — but this is a hub SUB-page, and BaseLayout renders those
+     with `staticHeader` (Header.astro's .site-header--static), so the header
+     scrolls away and there is nothing to clear. Measured 2026-08-29: both
+     fragments land at viewport top with the header already 280px above it.
+     The guide pages DO need the offset (mcp-guide.css) because they are not
+     hub sub-pages. */
   .mcp-block {
     margin-bottom: var(--spacing-3xl);
   }

@@ -26,19 +26,21 @@
 //              The ≤768 tiers keep the --text-xs label AND drop `detail`
 //              entirely (sash.css display:nones it there), so only two-segment
 //              copy can render on them — New | MCP Server is the proven one.
-//   page ≥769  under-band (`subtext`): ≤ 37 characters — the same ceiling on
-//              all three engines, which is new. This budget used to be
-//              engine-specific (40 on Chromium and Firefox, 37 on WebKit)
-//              because `--font-family-mono` was the bare `monospace` generic
-//              and each engine resolved it to a different face: the live
-//              35-character string was 222px of ink on two of them and 240px
-//              on the third. BL-144 pinned the face, and the three engines now
-//              set that string at 253.2 / 252.7 / 253.2px — a 0.5px spread
-//              where there was an 18px one. Character counts are still a HINT;
-//              the real budget is ink px into the usable chord, which is what
-//              announcement-sash.test.ts asserts per engine — prove new copy by
-//              running it, not by counting. Re-measured 2026-08-29 at the 220px
-//              box under the pinned face.
+//   page ≥769  under-band (`subtext`): ~34 characters of copy ACROSS ALL
+//              FIELDS. The live two-field band is 32 characters — 243px of ink
+//              into 261px of usable chord (sash.css), leaving 18px. The
+//              ceiling depends on the FIELD COUNT, because the rule and the two
+//              gaps around it cost ~23px per extra field: copy is not the only
+//              thing spending the chord. One ceiling on all three engines,
+//              which is new — it used to be engine-specific (40 on Chromium and
+//              Firefox, 37 on WebKit) because `--font-family-mono` was the bare
+//              `monospace` generic and each engine resolved a different face,
+//              an 18px spread. BL-144 pinned it; the spread is now ≤0.5px
+//              (242.55 / 242.05 / 242.55 for today's band). Character counts
+//              are still a HINT; the real budget is ink px into the usable
+//              chord, which is what announcement-sash.test.ts asserts per
+//              engine — prove new copy by running it, not by counting.
+//              Re-measured 2026-08-29 at the 220px box under the pinned face.
 //   page ≤511  no corner budget: the sash renders as a full-width in-flow
 //              strip (sash.css) and both lines wrap.
 //   card       label ≤ 4, nothing else — and never a subtext (the component
@@ -56,12 +58,24 @@
 // analytics, aria-hidden — because the .hub-card around it is already the link
 // and is already tracked.
 //
+// The UNDER-BAND is not one link. It is a homogeneous list of FIELDS, each
+// carrying its own href, its own accessible name and its own analytics label
+// (`Sash: <id>-under-<n>`, 1-based) — two fields mean two destinations, not
+// one link with two clickable zones. The band itself is inert; a field with no
+// href renders as plain text, which is how the /brand specimens stay
+// decorative. The `.brutal-sash-under__field` class rides the element in BOTH
+// forms, anchor and span, exactly as `.brutal-sash` does: it names the role a
+// field plays in the band, not whether it happens to be interactive.
+//
 // Touch note: the MAIN band's height (~39px at desktop page scale) is below
 // --touch-target-min (44px, AAA). That is acceptable ONLY because the sash is
 // a redundant entry point — the same destination is in the Hub nav and in the
-// hub card. Do not make it the sole path to anything. The under-band link
+// hub card. Do not make it the sole path to anything. Each under-band FIELD
 // carries `min-height: var(--touch-target-min-aa)` (24px, the AA floor) in
-// sash.css — it is the real finger target on the unrotated mobile strip.
+// sash.css — the field is the real finger target on the unrotated mobile
+// strip, so the floor rides it rather than the band around it.
+
+import type { SashSubtextField } from '../data/announcements';
 
 interface Props {
   /** The subject. The one required segment. */
@@ -71,30 +85,22 @@ interface Props {
   /** Version or qualifier, rule-separated. Hidden below 768px. */
   detail?: string;
   /**
-   * Optional subtext on a second, smaller band below the main one
+   * Optional under-band: a second, smaller band below the main one
    * (`.brutal-sash-under` — inverted ink-on-band colours; sash.css documents
-   * why that inversion is the only colorway). Hidden 512–768px with `detail`,
-   * never rendered at card scale; on the ≤511 strip it is the second line.
-   * When the sash is a link, the under-band is its OWN link (to `subtextHref`,
-   * or the main `href` absent one). Setting subtext also GROWS the desktop
-   * corner box to 220px and widens the nav's reserve to match (sash.css and
-   * HeaderNavLinks.astro both key on the class with :has()) — the subtext runs
-   * nearly the whole chord, so the extra room is what keeps it off the box
-   * edge; that room was sized against the widest face any engine resolved the
-   * then-unpinned generic to, which is exactly the pinned face's advance, so it
-   * is still right (BL-144). Proven to fit at 769px+ on
-   * all three engines (2026-08-29). The sourced-claim rule applies to it like
-   * every segment.
+   * why that inversion is the only colorway), rendered as an ordered list of
+   * rule-separated FIELDS. Hidden 512–768px with `detail`, never rendered at
+   * card scale; on the ≤511 strip it is the second line. Each field links
+   * independently — see the docblock above. Setting this also GROWS the
+   * desktop corner box to 220px and widens the nav's reserve to match
+   * (sash.css and HeaderNavLinks.astro both key on the class with :has()) —
+   * the band runs nearly the whole chord, so the extra room is what keeps it
+   * off the box edge; that room was sized against the widest face any engine
+   * resolved the then-unpinned generic to, which is exactly the pinned face's
+   * advance, so it is still right (BL-144). Proven to fit at 769px+ on
+   * all three engines (2026-08-29). The sourced-claim rule applies to every
+   * field like every segment.
    */
-  subtext?: string;
-  /** The under-band link's destination; defaults to `href`. Fragments are the
-   *  point (e.g. '/hub/mcp/#tiers'), guarded by
-   *  tests/integration/announcement-anchor.test.ts. */
-  subtextHref?: string;
-  /** Accessible name for the under-band link; defaults to the raw subtext.
-   *  Override when the subtext carries a visual separator a screen reader
-   *  would read out (a literal pipe is spoken "vertical line"). */
-  subtextAriaLabel?: string;
+  subtext?: SashSubtextField[];
   /** Makes the band an <a>. Omit for the decorative card scale. */
   href?: string;
   /** 'page' (default) | 'card'. */
@@ -106,40 +112,28 @@ interface Props {
   id?: string;
 }
 
-const {
-  label,
-  badge,
-  detail,
-  subtext,
-  subtextHref,
-  subtextAriaLabel,
-  href,
-  scale = 'page',
-  ariaLabel,
-  id,
-} = Astro.props;
+const { label, badge, detail, subtext, href, scale = 'page', ariaLabel, id } = Astro.props;
 
 const isLink = scale !== 'card' && href !== undefined;
 
 // Page scale only — the under-band has no card-scale geometry (see docblock).
-const underBand = scale === 'page' && subtext !== undefined;
-// The under-band is a link exactly when the sash is: /brand's specimens pass
-// no href and keep the decorative span.
-const underHref = subtextHref ?? href;
-const underIsLink = underBand && isLink && underHref !== undefined;
+const underFields = scale === 'page' && subtext !== undefined ? subtext : [];
+const underBand = underFields.length > 0;
+// The band is exposed to AT only when at least one field is a real link;
+// /brand's specimens pass no field hrefs and keep the decorative aria-hidden.
+const underIsLink = underFields.some((field) => field.href !== undefined);
 
 const cornerClass = ['brutal-sash-corner', scale !== 'page' && `brutal-sash-corner--${scale}`]
   .filter(Boolean)
   .join(' ');
 
-// The main link speaks the whole announcement (subtext included); the
-// under-band link carries its own, shorter name.
+// The main link speaks the whole announcement (the under-band's copy
+// included); each field carries its own, shorter name.
 const spokenLabel =
   ariaLabel ??
   `${badge ? `${badge}: ` : ''}${label}${detail ? ` ${detail}` : ''}${
-    underBand ? ` — ${subtext}` : ''
+    underBand ? ` — ${underFields.map((field) => field.text).join(', ')}` : ''
   } — open the linked page`;
-const underSpokenLabel = subtextAriaLabel ?? subtext;
 
 // Destinations are recorded WITHOUT the trailing slash, matching every other
 // trackNavigation call on the site (see HeaderNavLinks.astro) — otherwise the
@@ -163,11 +157,19 @@ const trackAttrs =
   isLink && id
     ? { onclick: `trackNavigation('${jsString(destination)}', 'Sash: ${jsString(id)}')` }
     : {};
-const underTrackAttrs =
-  underIsLink && id
+// Per FIELD, 1-based. An index rather than a slug of the copy: the destination
+// already carries the meaning (it is the first argument), and an index survives
+// a copy edit without breaking reporting continuity.
+const underTrackAttrs = (fieldHref: string, index: number) =>
+  id
     ? {
-        onclick: `trackNavigation('${jsString(toDestination(underHref!))}', 'Sash: ${jsString(id)}-under')`,
+        onclick: `trackNavigation('${jsString(toDestination(fieldHref))}', 'Sash: ${jsString(id)}-under-${index + 1}')`,
       }
+    : {};
+// An aria-label identical to the visible text is noise — omit the attribute.
+const underAriaAttrs = (field: SashSubtextField) =>
+  field.ariaLabel !== undefined && field.ariaLabel !== field.text
+    ? { 'aria-label': field.ariaLabel }
     : {};
 ---
 
@@ -188,20 +190,30 @@ const underTrackAttrs =
     )
   }
   {
-    underBand &&
-      (underIsLink ? (
-        <a
-          class="brutal-sash-under"
-          href={underHref}
-          aria-label={underSpokenLabel}
-          {...underTrackAttrs}
-        >
-          {subtext}
-        </a>
-      ) : (
-        <span class="brutal-sash-under" aria-hidden="true">
-          {subtext}
-        </span>
-      ))
+    underBand && (
+      <span class="brutal-sash-under" {...(underIsLink ? {} : { 'aria-hidden': 'true' })}>
+        {underFields.map((field, index) => (
+          <Fragment>
+            {index > 0 && (
+              <span class="brutal-sash-under__rule" aria-hidden="true">
+                |
+              </span>
+            )}
+            {field.href !== undefined ? (
+              <a
+                class="brutal-sash-under__field"
+                href={field.href}
+                {...underAriaAttrs(field)}
+                {...underTrackAttrs(field.href, index)}
+              >
+                {field.text}
+              </a>
+            ) : (
+              <span class="brutal-sash-under__field">{field.text}</span>
+            )}
+          </Fragment>
+        ))}
+      </span>
+    )
   }
 </div>

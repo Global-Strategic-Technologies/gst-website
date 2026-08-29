@@ -21,6 +21,37 @@
  *     `Sash.astro`'s docblock, not by importance.
  */
 
+/**
+ * One field of the under-band — a run of copy that may carry its own
+ * destination. The band is a homogeneous list of these, rule-separated; the
+ * main band's parts are a fixed tuple of unlike segments (badge · label ·
+ * detail) and are a different thing entirely.
+ *
+ * Fields are INDEPENDENT: two fields mean two anchors, two destinations, two
+ * accessible names and two analytics labels — not one link with two clickable
+ * zones. A third field, or one deliberately left unlinked, costs no new code.
+ */
+export interface SashSubtextField {
+  /** The rendered copy. */
+  text: string;
+  /**
+   * Where this field links. Absent → the field renders as plain text rather
+   * than an anchor, which is a legitimate state (an unlinked phrase beside a
+   * linked one). There is deliberately no fallback to the announcement's own
+   * `href`: with a field per destination there is no sensible single default.
+   * Fragment destinations are guarded — tests/integration/announcement-anchor.test.ts
+   * asserts the fragment's id exists in the target page's rendered markup.
+   */
+  href?: string;
+  /**
+   * Accessible name for this field's link; defaults to `text`. Set it only
+   * when the visible copy would not read well aloud on its own — an
+   * `aria-label` identical to the visible text is noise, so the component
+   * omits the attribute in that case.
+   */
+  ariaLabel?: string;
+}
+
 export interface Announcement {
   /** Stable id — also the analytics label suffix (`Sash: <id>`). */
   id: string;
@@ -31,27 +62,16 @@ export interface Announcement {
   /** Version or qualifier, rule-separated. Hidden below 768px. */
   detail?: string;
   /**
-   * Optional subtext on the smaller band below the main one (page scale;
-   * hidden 512–768px, and the second line of the ≤511 mobile strip — note the
-   * strip shows badge + label + subtext, never `detail`). The sourced-claim
-   * rule applies to it like every segment, and it has its own copy budget —
-   * see Sash.astro's docblock. Setting it also widens the nav's desktop
-   * corner reserve (HeaderNavLinks.astro keys on the band's class with
-   * :has()).
+   * Optional under-band: the smaller band below the main one, as an ordered
+   * list of FIELDS the component renders rule-separated (page scale; hidden
+   * 512–768px, and the second line of the ≤511 mobile strip — note the strip
+   * shows badge + label + the fields, never `detail`). The sourced-claim rule
+   * applies to every field like every segment, and the band as a whole has
+   * its own copy budget — see Sash.astro's docblock. Setting this property
+   * also widens the nav's desktop corner reserve (HeaderNavLinks.astro keys
+   * on the band's class with :has()).
    */
-  subtext?: string;
-  /**
-   * Where the under-band links (defaults to `href`). Fragment destinations
-   * are guarded: tests/integration/announcement-anchor.test.ts asserts the
-   * fragment's id exists in the target page's rendered markup.
-   */
-  subtextHref?: string;
-  /**
-   * Accessible name for the under-band link; defaults to the raw subtext.
-   * Override when the subtext carries a visual separator a screen reader
-   * would read out (a literal pipe is spoken "vertical line").
-   */
-  subtextAriaLabel?: string;
+  subtext?: SashSubtextField[];
   /** Where the sash links. Its own page must not appear in `routes`. */
   href: string;
   /** Band geometry; defaults to 'page'. */
@@ -74,28 +94,41 @@ export const ANNOUNCEMENTS: Announcement[] = [
     // 45° band; 10 chars incl. the chip sits well inside the proven ~13.
     label: 'GST MCP',
     // Copy here renders publicly on / and /hub/ and is republished to
-    // claude.ai/design via .design-sync/, so every segment must be a SOURCED
-    // claim (an earlier '2.0' shipped a version number nothing published and
-    // was removed for it). Both halves are sourced by the announced page:
+    // claude.ai/design via .design-sync/, so every segment and field must be a
+    // SOURCED claim (an earlier '2.0' shipped a version number nothing
+    // published and was removed for it). Both fields are sourced by the page:
     // /hub/mcp/ markets the server as agents running the GST analysis tools,
     // and the free pilot tier is in its tier presentation (and the hub FAQ).
-    // 35 chars, against a ceiling of 37 — one ceiling on every engine, because
-    // BL-144 pinned the mono. It used to be three: the same string set 222px of
-    // ink on Chromium and Firefox (which reached 40) and 240px on WebKit, and
-    // it is now 253.2 / 252.7 / 253.2. Count
-    // characters to sanity-check, then PROVE new copy by running the sash E2E
-    // suite on all three engines: it measures the ink against the corner and
-    // is the only budget that has ever been right (Sash.astro).
-    subtext: 'Automate analysis | Free pilot tier',
-    // The under-band deep-links to the tier matrix the subtext is about.
-    subtextHref: '/hub/mcp/#tiers',
-    subtextAriaLabel: 'Automate analysis, free pilot tier — see capability tiers',
+    // 32 characters of copy across the two fields, against a ceiling of ~34 —
+    // one ceiling on every engine, because BL-144 pinned the mono (the spread
+    // is now ≤0.5px where it used to be 18px). Measured 2026-08-29: 243px of
+    // ink into 261px of usable chord, 18px spare. The rule and the two gaps
+    // around it cost ~23px, so a THIRD field would spend more chord than its
+    // copy alone. Count characters to sanity-check, then PROVE new copy by
+    // running the sash E2E suite on all three engines: it measures the ink
+    // against the corner and is the only budget that has ever been right.
+    //
+    // Two fields, two destinations: the pitch half deep-links to what the
+    // server does, the offer half to the tier matrix it names. Each is its own
+    // anchor — clicking "Automate analysis" must not land on the tiers.
+    subtext: [
+      {
+        text: 'Automate analysis',
+        href: '/hub/mcp/#what-it-does',
+        ariaLabel: 'Automate analysis — see what the MCP server does',
+      },
+      {
+        text: 'Free pilot tier',
+        href: '/hub/mcp/#tiers',
+        ariaLabel: 'Free pilot tier — see capability tiers',
+      },
+    ],
     href: '/hub/mcp/',
     scale: 'page',
     routes: ['/', '/hub/'],
     until: '2026-10-01',
-    // Spoken form is overridden: the literal pipe in `subtext` is a visual
-    // separator that a screen reader would announce as "vertical line".
+    // Spoken form is overridden: the rule the component draws between fields
+    // is a visual separator a screen reader would announce as "vertical line".
     ariaLabel: 'New: GST MCP — automate analysis, free pilot tier — open the linked page',
   },
 ];

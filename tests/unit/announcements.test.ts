@@ -21,10 +21,13 @@ describe('ANNOUNCEMENTS registry', () => {
       expect(entry.id, 'id (analytics label)').toBeTruthy();
       expect(entry.label, 'label (the one required segment)').toBeTruthy();
       expect(entry.href, `${entry.id}: href`).toMatch(/^\//);
-      if (entry.subtextHref !== undefined) {
-        // Fragment resolution is guarded separately by
-        // tests/integration/announcement-anchor.test.ts.
-        expect(entry.subtextHref, `${entry.id}: subtextHref`).toMatch(/^\//);
+      for (const [index, field] of (entry.subtext ?? []).entries()) {
+        expect(field.text, `${entry.id}: subtext field ${index} text`).toBeTruthy();
+        if (field.href !== undefined) {
+          // Fragment resolution is guarded separately by
+          // tests/integration/announcement-anchor.test.ts.
+          expect(field.href, `${entry.id}: subtext field ${index} href`).toMatch(/^\//);
+        }
       }
       expect(entry.routes.length, `${entry.id}: routes`).toBeGreaterThan(0);
       expect(Number.isNaN(new Date(entry.until).getTime()), `${entry.id}: until parses`).toBe(

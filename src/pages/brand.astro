@@ -704,10 +704,11 @@ import '../styles/components/progress.css';
     color: var(--text-primary);
   }
 
-  /* Mirrors .brutal-sash-under:hover in sash.css — the family's 82% mix with
-     the poles swapped for the inverted fill. Restated here because :hover
-     cannot be forced statically; keep the two in step. */
-  .brutal-sash-under[data-demo-state='hover'] {
+  /* Mirrors .brutal-sash-under__field:hover in sash.css — the family's 82% mix
+     with the poles swapped for the inverted fill. Restated here because :hover
+     cannot be forced statically; keep the two in step. On the FIELD, not the
+     band: the fill is per field now. */
+  .brutal-sash-under__field[data-demo-state='hover'] {
     background: color-mix(in srgb, var(--sash-ink) 82%, var(--sash-bg));
   }
 
