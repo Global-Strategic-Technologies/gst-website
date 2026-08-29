@@ -78,7 +78,16 @@ const { workflow } = Astro.props;
      which reads as two steps, is not. */
   .mdoc-flow__steps {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+    /* 17.5rem, not 17rem: at 17 the grid still fitted THREE tracks at 1280px
+       while the longest wire id needed more than a track held, so it squeezed
+       instead of dropping a column — and `--font-family-mono` is the bare
+       `monospace` generic, so how much it needed depended on the engine's
+       chosen face. Measured on the widest mono available here (Courier New,
+       ~22px wider over `assess_infrastructure_cost_governance` than this
+       machine's default): 17rem left it 9.5px OVER its track at 1280, which is
+       the CI failure. 17.5rem drops 1280 to two tracks — the behaviour the
+       grid is supposed to have — and keeps three at 1440 and two at 1024. */
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17.5rem), 1fr));
     gap: var(--spacing-md);
   }
 
@@ -100,10 +109,15 @@ const { workflow } = Astro.props;
     color: var(--text-muted);
   }
 
-  /* One identifier, one line: `--text-xs` is what lets a 17rem track hold the
-     longest name (245px against 260px of usable track) and so keeps three steps
-     across at the widths the layout is designed for. It also matches the density
-     the Reference sidebar already uses for the same identifiers. */
+  /* One identifier, one line, at the same size the Reference sidebar uses for
+     the same identifiers. It does NOT shrink to fit: at `--text-2xs` the id
+     would render smaller than its own gloss and the card's hierarchy would
+     invert, so the track above is what yields instead.
+     Margins for the longest id on the widest mono measured here, by width:
+     1440 ~18px (three across), 1280 ~133px (two), 1024 ~5px (two), 900 wide
+     open (one). 1024 is the tight one — it is unchanged by this rule and has
+     always been the layout's narrowest fit; the wrap test in
+     tests/e2e/hub-mcp-docs.test.ts covers that width and will say so. */
   .mdoc-step__id {
     display: block;
     font-family: var(--font-family-mono);
