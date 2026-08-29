@@ -15,21 +15,28 @@
 // shaves the badge chip and runs the detail into the clip corner. Measured
 // 2026-08-28 by rendering the /brand frame specimen at 3×, which is also how
 // any new combination gets proven (clipping shows at the chip's corner and
-// the detail's tail first). The label renders one type step larger than the
-// band's other segments — --text-sm on the desktop page corner, --text-xs on
-// the ≤768 tiers — so budgets are per tier:
+// the detail's tail first). The label renders larger than the band's other
+// segments — one step (--text-xs) is the family default, TWO (--text-sm) on the
+// desktop page corner, and the card corner opts back down to the band's base
+// size (sash.css) — so budgets are per tier:
 //
 //   page ≥769  ~13 characters across all segments with a badge (its chip +
 //              gap costs about 5 more) at the --text-sm label.
 //              Fits:  New | GST MCP (proven at --text-sm, 2026-08-28)
-//              The old --text-xs-label roster (New | MCP Server ·
-//              New | MCP | for AI agents · MCP Server | for agents) applies
-//              to the ≤768 tiers, where the label stays --text-xs.
-//   page ≥769  under-band (`subtext`): ≤ 36 characters — its chord is LONGER
-//              than the main band's, so subtext gets more room than the whole
-//              headline. Measured on the /brand specimen with a clipped-ink
-//              pixel diff: 36 renders clean, 40 loses glyphs to the corner.
-//              Prove a longer string there before shipping it.
+//              The ≤768 tiers keep the --text-xs label AND drop `detail`
+//              entirely (sash.css display:nones it there), so only two-segment
+//              copy can render on them — New | MCP Server is the proven one.
+//   page ≥769  under-band (`subtext`): ≤ 37 characters, and that ceiling is
+//              WEBKIT's — `--font-family-mono` is the bare `monospace` generic,
+//              so the advance width is engine-chosen and the same string is
+//              222px of ink on Chromium and Firefox but 240px on WebKit (their
+//              ceilings are 40). Character counts are a HINT; the real budget
+//              is ink px into the usable chord, which is what
+//              announcement-sash.test.ts asserts per engine — prove new copy
+//              by running it, not by counting. Measured 2026-08-29 at the
+//              220px box; the previous "≤ 36, 36 renders clean" was measured
+//              on Chromium alone and was false when written (WebKit was
+//              clipping the live 35-character string by 5.3px).
 //   page ≤511  no corner budget: the sash renders as a full-width in-flow
 //              strip (sash.css) and both lines wrap.
 //   card       label ≤ 4, nothing else — and never a subtext (the component
@@ -67,10 +74,12 @@ interface Props {
    * why that inversion is the only colorway). Hidden 512–768px with `detail`,
    * never rendered at card scale; on the ≤511 strip it is the second line.
    * When the sash is a link, the under-band is its OWN link (to `subtextHref`,
-   * or the main `href` absent one). Setting subtext also widens the nav's
-   * desktop corner reserve to 200px (HeaderNavLinks.astro keys on the class
-   * with :has()) — proven to fit at 769px+ on all three engines when the
-   * capability landed (2026-08-28). The sourced-claim rule applies to it like
+   * or the main `href` absent one). Setting subtext also GROWS the desktop
+   * corner box to 220px and widens the nav's reserve to match (sash.css and
+   * HeaderNavLinks.astro both key on the class with :has()) — the subtext runs
+   * nearly the whole chord and the mono stack is an unspecified generic, so the
+   * extra room is what keeps it off the box edge; proven to fit at 769px+ on
+   * all three engines (2026-08-29). The sourced-claim rule applies to it like
    * every segment.
    */
   subtext?: string;

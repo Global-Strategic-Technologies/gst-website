@@ -332,8 +332,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         </div>
         <code class="brand-code"
           >.brutal-sash-corner &gt; .brutal-sash — 200px corner, --z-overlay. Segments: __badge
-          (--sash-badge-bg chip, dark ink), __label (one type step larger), __detail. The band is
-          --sash-bg on --sash-ink, always</code
+          (--sash-badge-bg chip, dark ink), __label (two type steps larger on this desktop page
+          corner; one is the family default and the card corner keeps the band's base size),
+          __detail. The band is --sash-bg on --sash-ink, always</code
         >
       </div>
       <div class="brand-component-item">
@@ -349,11 +350,11 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
         <code class="brand-code"
           >.brutal-sash-under — the OPTIONAL subtext band below the main one (hidden 512–768px with
           __detail; the second line of the ≤511 strip). In production it is its own LINK (min-height
-          --touch-target-min-aa; the 6.7px gap to the main band is an axe target-size clearance —
-          see sash.css). Inverted ink-on-band — the band's bg/ink pair swapped — the only colorway,
-          because the family's mixes fail AA as text backgrounds (see sash.css). Its presence widens
-          the nav's desktop corner reserve to 200px. Copy budget ≤ 36 characters, measured
-          (Sash.astro)</code
+          --touch-target-min-aa; the 7px gap to the main band is an axe target-size clearance — see
+          sash.css). Inverted ink-on-band — the band's bg/ink pair swapped — the only colorway,
+          because the family's mixes fail AA as text backgrounds (see sash.css). Its presence grows
+          the corner box to 220px and widens the nav's reserve to match. Copy budget ≤ 37 characters
+          — WebKit's ceiling, the mono stack being an unspecified generic (Sash.astro)</code
         >
       </div>
       <div class="brand-component-item">

@@ -201,7 +201,12 @@ moves.)
   /* The AA floor is also the band's THICKNESS here — the padding is set below
      it on purpose. A thinner band may sit closer to the box diagonal without
      breaking the ribbon invariant, and every px of c it gives back is 1.41px
-     of chord for the subtext, which is the tightest copy on the sash. */
+     of chord for the subtext, which is the tightest copy on the sash. Realised:
+     2px of band height bought ~2px of chord. Small on its own — the box growth
+     below is what actually made the subtext fit — but it is also why c_min sits
+     at 2.3 against the ribbon guard's floor of 2 (see below): there is no slack
+     left here, so any change to this padding, to --text-2xs, or to the
+     inherited line-height must re-run the ribbon sweep. */
   min-height: var(--touch-target-min-aa);
   display: flex;
   align-items: center;
@@ -340,7 +345,7 @@ moves.)
 
   /* The under-band stands down with the detail: the 170/140 corners have no
      room for a second chord, and hiding here is what lets the nav's
-     conditional 200px reserve stay a desktop-only base rule with per-tier
+     conditional 220px reserve stay a desktop-only base rule with per-tier
      restatements (HeaderNavLinks.astro) instead of a fourth breakpoint. */
   .brutal-sash-under {
     display: none;

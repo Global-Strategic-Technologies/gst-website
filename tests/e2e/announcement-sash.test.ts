@@ -31,6 +31,8 @@ import { getActiveAnnouncement } from '../../src/data/announcements';
  * at 0 (see the narrow-viewport tests at the bottom of this file).
  */
 const BREAKPOINTS = [
+  // desktop box/reserve are both registry-conditional (the under-band grows
+  // the box) — see DESKTOP_BOX / DESKTOP_RESERVE, which override these.
   { name: 'desktop', width: 1440, height: 900, box: 200, reserve: '168px' },
   { name: '768px', width: 768, height: 800, box: 170, reserve: '140px' },
   { name: '540px', width: 540, height: 800, box: 140, reserve: '108px' },
@@ -323,6 +325,13 @@ test.describe('Announcement sash', () => {
    * live subtext measures 222px on Chromium and Firefox and 240px on WebKit,
    * and a chromium-only check once passed a band WebKit was clipping by 5px.
    */
+  /**
+   * NOT `> 0`. At the geometry this guard was written for, Chromium cleared the
+   * box by 0.8px and WebKit overflowed it by 5.3px — a sub-pixel pass on one
+   * engine is what hid a real clip on another, so the floor is a real number.
+   */
+  const MIN_INK_MARGIN = 4;
+
   const measureInkFit = (corner: Locator) =>
     corner.evaluate((el) => {
       const box = (el as HTMLElement).offsetWidth;
@@ -366,7 +375,10 @@ test.describe('Announcement sash', () => {
     const live = await measureInkFit(pageSash(page));
     expect(live.length, 'bands present to be checked').toBeGreaterThan(0);
     for (const b of live) {
-      expect(b.margin, `page sash ${b.sel}: copy is cut by the corner box`).toBeGreaterThan(0);
+      expect(
+        b.margin,
+        `page sash ${b.sel}: copy needs ${MIN_INK_MARGIN}px of clearance from the corner box`
+      ).toBeGreaterThanOrEqual(MIN_INK_MARGIN);
     }
 
     // The specimens carry copy the live registry does not, and are where a new
@@ -375,15 +387,24 @@ test.describe('Announcement sash', () => {
     const frames = page.locator('.brand-sash-frame');
     const count = await frames.count();
     expect(count, '/brand exhibits sash specimens to check').toBeGreaterThan(0);
+    let underSpecimens = 0;
     for (let i = 0; i < count; i++) {
       const bands = await measureInkFit(frames.nth(i).locator('.brutal-sash-corner'));
+      expect(
+        bands.length,
+        `/brand specimen ${i} renders at least one band to check`
+      ).toBeGreaterThan(0);
+      underSpecimens += bands.filter((b) => b.sel === '.brutal-sash-under').length;
       for (const b of bands) {
         expect(
           b.margin,
-          `/brand specimen ${i} ${b.sel}: copy is cut by the corner box`
-        ).toBeGreaterThan(0);
+          `/brand specimen ${i} ${b.sel}: copy needs ${MIN_INK_MARGIN}px of clearance`
+        ).toBeGreaterThanOrEqual(MIN_INK_MARGIN);
       }
     }
+    // Deleting the under-band specimens would otherwise shrink this test's
+    // coverage silently — and the under-band is the band with the tight fit.
+    expect(underSpecimens, '/brand exhibits the under-band form').toBeGreaterThan(0);
   });
 
   test('the card-scale band is a ribbon too', async ({ page }) => {
@@ -553,6 +574,41 @@ test.describe('Announcement sash', () => {
     expect(outline.style).toBe('solid');
     expect(outline.width).toBe('2px');
     expect(outline.offset, 'inset — an outside ring would be clipped').toBe('-4px');
+  });
+
+  test('the focused under-band draws the INVERTED ring inside the corner box', async ({ page }) => {
+    test.skip(LIVE_SUBTEXT === undefined, 'no live entry sets a subtext — no under-band to focus');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(SASH_ROUTE);
+
+    const under = pageSash(page).locator('.brutal-sash-under');
+    await under.focus();
+    await expect(under).toBeFocused();
+
+    // The inversion is the point: the under-band fills with --sash-ink, so its
+    // ring is --sash-bg where the main band's is --sash-ink. A ring that
+    // regressed to the main band's colour would vanish into the dark fill.
+    const ring = await under.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      const band = document.querySelector('.brutal-sash')!;
+      return {
+        width: cs.outlineWidth,
+        style: cs.outlineStyle,
+        offset: cs.outlineOffset,
+        color: cs.outlineColor,
+        fill: cs.backgroundColor,
+        bandInk: getComputedStyle(band).color,
+        focusVisible: el.matches(':focus-visible'),
+      };
+    });
+    expect(ring.focusVisible, 'the ring is carried by :focus-visible').toBe(true);
+    expect(ring.style).toBe('solid');
+    expect(ring.width).toBe('2px');
+    expect(ring.offset, 'inset — an outside ring would be clipped').toBe('-4px');
+    expect(ring.color, 'the ring is the band fill inverted, not the main band ink').not.toBe(
+      ring.bandInk
+    );
+    expect(ring.color, 'and it contrasts with the fill it sits on').not.toBe(ring.fill);
   });
 
   test('the band is in the natural tab order, right after the skip-nav link', async ({
