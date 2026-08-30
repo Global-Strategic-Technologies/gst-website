@@ -245,6 +245,24 @@ test.describe('MCP documentation — lens and contract selection', () => {
     expect(await btn.textContent()).toBe(before);
   });
 
+  test('the example call carries no markup whitespace of its own', async ({ page }) => {
+    // `white-space: pre-wrap` renders every space in the source, so a formatter
+    // reflowing the `<pre>` tag onto its own lines indents the first line of the
+    // call and adds a trailing blank one. It shipped that way once. `set:text`
+    // is the fix; this asserts the rendered property rather than the technique,
+    // so a future author is free to change how it gets there.
+    await page.goto(`${ROUTE}#cap-generate_information_request_list_xlsx`);
+    const text = await page
+      .locator('#cap-generate_information_request_list_xlsx [data-snippet]')
+      .textContent();
+    expect(text).not.toBeNull();
+    const lines = text!.split('\n');
+    expect(lines[0]).toBe('generate_information_request_list_xlsx({');
+    expect(lines[lines.length - 1]).toBe('})');
+    // Body lines carry the call's own two-space indent and nothing more.
+    for (const line of lines.slice(1, -1)) expect(line).toMatch(/^ {2}"/);
+  });
+
   test('every argument value is a target of at least 24px on both axes', async ({ page }) => {
     // WCAG 2.2 AA 2.5.8. Measured rather than trusted to the axe sweep: several
     // literals are one or two characters, and a content-sized control can clear

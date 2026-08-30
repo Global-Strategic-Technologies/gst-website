@@ -160,9 +160,14 @@ const call = buildExampleCall(cap);
               the onboarding pages already use to keep a snippet authored in the
               markup. The delegation bails when no snippet resolves, so feedback
               firing at all proves a non-empty one was found. */}
-          <pre data-snippet class="mdoc-code__text">
-            {call.text}
-          </pre>
+          {/* `set:text`, NOT `{call.text}` as a child. Inside `white-space:
+              pre-wrap` every space in the markup is rendered space, and the
+              pre-commit formatter is entitled to reflow a long tag onto its own
+              lines — which it did, indenting the first line of every call by
+              twelve characters and adding a trailing blank one. `set:text` sets
+              the text content directly, so no amount of reformatting can leak
+              into the payload. */}
+          <pre data-snippet class="mdoc-code__text" set:text={call.text} />
           <button
             type="button"
             class="brutal-btn brutal-btn--secondary mdoc-code__copy"
