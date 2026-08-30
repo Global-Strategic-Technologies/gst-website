@@ -177,6 +177,22 @@ test.describe('MCP documentation — lens and contract selection', () => {
       .toBeGreaterThan(0);
   });
 
+  test('the argument note is separated from the table it qualifies', async ({ page }) => {
+    // Measured, not asserted as a class: the note sat directly under the last
+    // row's 1px rule with only the cell's own bottom padding above it, so the
+    // qualifier read as one more row rather than as prose about the table.
+    await page.goto(`${ROUTE}#cap-compute_techpar`);
+    const gap = await page.evaluate(() => {
+      const pane = document.querySelector('#cap-compute_techpar');
+      const table = pane?.querySelector('.mdoc-args');
+      const note = pane?.querySelector('.mdoc-pane__note');
+      if (!table || !note) return null;
+      return note.getBoundingClientRect().top - table.getBoundingClientRect().bottom;
+    });
+    expect(gap).not.toBeNull();
+    expect(gap).toBeGreaterThanOrEqual(12);
+  });
+
   test('a copy button flips to Copied and restores its label', async ({ page }) => {
     await page.goto(`${ROUTE}#cap-compute_techpar`);
     const btn = page.locator('#cap-compute_techpar [data-copy]');

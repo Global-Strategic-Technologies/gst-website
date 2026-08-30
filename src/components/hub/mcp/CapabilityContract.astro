@@ -275,6 +275,14 @@ const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAncho
     margin: 0 0 var(--spacing-sm);
   }
 
+  /* A note that follows the table needs its own separation: the last row gives
+     it only the cell's 8px bottom padding and a 1px rule, so the qualifier read
+     as another row of the table rather than as prose about it. The no-args case
+     is left alone — there the note follows the heading, which already spaces it. */
+  .mdoc-args + .mdoc-pane__note {
+    margin-top: var(--spacing-md);
+  }
+
   .mdoc-pane__availability {
     color: var(--text-secondary);
     max-width: 700px;
