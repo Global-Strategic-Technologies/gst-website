@@ -175,6 +175,29 @@ interface ListToolsResultPayload {
  * third-party article prose to the repo. Summaries carry raw HTML because that is
  * what Inoreader returns and what `projectItemForModel` strips at the tool boundary.
  */
+/**
+ * Fixture clock, anchored to run time rather than to a literal date.
+ *
+ * The FYI tier is AGE-FILTERED: `filterFreshFyi` (radar-transform.ts) drops
+ * curated items more than `FYI_MAX_AGE_DAYS` (30) after their annotation, and
+ * `makeInoreaderItem` sets `added_on` to the published timestamp. A literal
+ * base date therefore makes this file a time bomb, and it went off: the base
+ * was `Date.UTC(2026, 7, 1, 12, 0, 0)` and the oldest of the 15 FYI items sits
+ * at base − 14 h (2026-07-31 22:00 UTC), so on 2026-08-30 it crossed the
+ * window. `search_radar` fell 45 → 44 and `get_latest_insights` 15 → 14 —
+ * two red budgets that had nothing to do with response size, and that would
+ * have kept eating an item a day.
+ *
+ * One hour back so nothing is future-dated. The relative per-item offsets are
+ * unchanged, so sort order and the 15/46 corpus shape are exactly as measured.
+ * Byte budgets are unaffected: ISO-8601 timestamps are fixed width, and these
+ * budgets assert per-item RANGES rather than exact totals.
+ *
+ * Do not replace this with a literal. If a case ever needs a frozen clock,
+ * freeze `Date` for the test instead of freezing the fixture.
+ */
+const FIXTURE_BASE_MS = Date.now() - 3_600_000;
+
 function makeSnapshotItem(id: number, tier: 'fyi' | 'wire', category: string) {
   const title = `Regulatory and market developments in enterprise technology, item ${String(id).padStart(3, '0')} headline`;
   return {
@@ -182,7 +205,7 @@ function makeSnapshotItem(id: number, tier: 'fyi' | 'wire', category: string) {
     title,
     url: `https://example.com/publications/2026/enterprise-technology/regulatory-developments-item-${id}`,
     source: 'Enterprise Technology Review',
-    publishedAt: new Date(Date.UTC(2026, 7, 1, 12, 0, 0) - id * 3_600_000).toISOString(),
+    publishedAt: new Date(FIXTURE_BASE_MS - id * 3_600_000).toISOString(),
     category,
     tier,
     summary: rawFeedHtml(id),
@@ -278,7 +301,7 @@ function rawFeedHtml(id: number): string {
 }
 
 function makeInoreaderItem(id: number, category: string, hasAnnotation = false) {
-  const publishedTs = Math.floor(Date.UTC(2026, 7, 1, 12, 0, 0) / 1000) - id * 3600;
+  const publishedTs = Math.floor(FIXTURE_BASE_MS / 1000) - id * 3600;
   const body = rawFeedHtml(id);
   return {
     id: `tag:google.com,2005:reader/item/${String(id).padStart(16, '0')}`,
@@ -307,7 +330,7 @@ function makeInoreaderItem(id: number, category: string, hasAnnotation = false) 
 const CATEGORIES = ['pe-ma', 'enterprise-tech', 'ai-automation', 'security'];
 const makeTier = (tier: 'fyi' | 'wire', count: number, offset = 0) => ({
   tier,
-  lastSeededAt: '2026-08-01T12:00:00.000Z',
+  lastSeededAt: new Date(FIXTURE_BASE_MS).toISOString(),
   items: Array.from({ length: count }, (_, i) =>
     makeSnapshotItem(offset + i, tier, CATEGORIES[i % CATEGORIES.length])
   ),
