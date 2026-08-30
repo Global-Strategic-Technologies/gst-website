@@ -8,6 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  buildExampleCall,
   capabilityAnchor,
   capabilityCounts,
   capabilitiesInGroup,
@@ -15,7 +16,7 @@ import {
   MAX_SEARCH_RESULTS,
   searchCapabilities,
 } from '../../src/utils/mcp-capability-search';
-import { CAPABILITIES } from '../../src/data/mcp/capabilities';
+import { CAPABILITIES, type Capability } from '../../src/data/mcp/capabilities';
 
 const index = CAPABILITIES.map((cap) => ({ id: cap.id, type: cap.type, gloss: cap.gloss }));
 
@@ -111,5 +112,73 @@ describe('capabilitiesInGroup', () => {
     const tools = capabilitiesInGroup(CAPABILITIES, 'Tools').map((c) => c.id);
     const fromRegistry = CAPABILITIES.filter((c) => c.group === 'Tools').map((c) => c.id);
     expect(tools).toEqual(fromRegistry);
+  });
+});
+
+describe('buildExampleCall', () => {
+  const cap = (over: Partial<Capability>): Capability =>
+    ({ id: 'demo_tool', group: 'Tools', type: 'Tool', gloss: 'g', ...over }) as Capability;
+
+  it('renders one line per named argument, in the order named', () => {
+    const built = buildExampleCall(
+      cap({
+        args: [
+          { name: 'arr', desc: '', example: '18400000' },
+          { name: 'stage', desc: '', example: '"series-b"' },
+        ],
+        exampleCall: ['stage', 'arr'],
+      })
+    );
+    expect(built.text).toBe('demo_tool({\n  "stage": "series-b",\n  "arr": 18400000\n})');
+    expect(built.runnable).toBe(true);
+  });
+
+  it('renders the empty list as a real, runnable call', () => {
+    // A tool that takes nothing has a complete example, and `({})` is it.
+    expect(buildExampleCall(cap({ exampleCall: [] }))).toEqual({
+      text: 'demo_tool({})',
+      runnable: true,
+    });
+  });
+
+  it('is not runnable when a named argument carries no example', () => {
+    const built = buildExampleCall(
+      cap({ args: [{ name: 'arr', desc: '' }], exampleCall: ['arr'] })
+    );
+    expect(built.runnable).toBe(false);
+  });
+
+  it('is not runnable when a value is a placeholder rather than a value', () => {
+    for (const example of ['"<the hash>"', '"a, b, …"']) {
+      const built = buildExampleCall(
+        cap({ args: [{ name: 'x', desc: '', example }], exampleCall: ['x'] })
+      );
+      expect(built.runnable, example).toBe(false);
+    }
+  });
+
+  it('is not runnable when a documented argument is not a wire key', () => {
+    // `compose_dossier_envelope` documents `gatesPassed / gatesElided` as one
+    // row naming two fields. Rendered as a JSON property it would be neither.
+    const built = buildExampleCall(
+      cap({
+        args: [{ name: 'gatesPassed / gatesElided', desc: '', example: '[]' }],
+        exampleCall: ['gatesPassed / gatesElided'],
+      })
+    );
+    expect(built.runnable).toBe(false);
+  });
+
+  it('passes a hand-authored call through unchanged, and never calls it runnable', () => {
+    // The literal arm exists for calls a flat generated shape gets wrong, so
+    // nothing here can vouch for what a human wrote.
+    expect(buildExampleCall(cap({ example: 'demo_tool({ "a": 1 })' }))).toEqual({
+      text: 'demo_tool({ "a": 1 })',
+      runnable: false,
+    });
+  });
+
+  it('reports no text for a capability that publishes no example', () => {
+    expect(buildExampleCall(cap({}))).toEqual({ text: null, runnable: false });
   });
 });

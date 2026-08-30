@@ -18,15 +18,15 @@ panes. Nothing hardcodes a capability name or a count.
 
 ## Anatomy
 
-| Piece                                             | Role                                                                                  |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `src/data/mcp/capabilities.ts`                    | The registry. `CAPABILITIES`, `WORKFLOWS`, `DEFAULT_CAPABILITY_ID`.                   |
-| `src/utils/mcp-capability-search.ts`              | Pure: `capabilitySlug`, `capabilityAnchor`, `searchCapabilities`, `capabilityCounts`. |
-| `src/utils/mcp-docs.ts`                           | Browser: hash sync, sidebar marker, search combobox, group jumps. DOM-only.           |
-| `src/components/hub/mcp/CapabilityContract.astro` | One contract pane.                                                                    |
-| `src/components/hub/mcp/CapabilityNav.astro`      | The sidebar, which doubles as the search index via its `data-cap-*` attributes.       |
-| `src/components/hub/mcp/WorkflowCard.astro`       | One workflow card.                                                                    |
-| `src/pages/hub/mcp/docs/index.astro`              | The page: inline bootstrap, toolbar, both lenses, and the visibility CSS.             |
+| Piece                                             | Role                                                                                                      |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `src/data/mcp/capabilities.ts`                    | The registry. `CAPABILITIES`, `WORKFLOWS`, `DEFAULT_CAPABILITY_ID`.                                       |
+| `src/utils/mcp-capability-search.ts`              | Pure: `capabilitySlug`, `capabilityAnchor`, `searchCapabilities`, `capabilityCounts`, `buildExampleCall`. |
+| `src/utils/mcp-docs.ts`                           | Browser: hash sync, sidebar marker, search combobox, group jumps. DOM-only.                               |
+| `src/components/hub/mcp/CapabilityContract.astro` | One contract pane.                                                                                        |
+| `src/components/hub/mcp/CapabilityNav.astro`      | The sidebar, which doubles as the search index via its `data-cap-*` attributes.                           |
+| `src/components/hub/mcp/WorkflowCard.astro`       | One workflow card.                                                                                        |
+| `src/pages/hub/mcp/docs/index.astro`              | The page: inline bootstrap, toolbar, both lenses, and the visibility CSS.                                 |
 
 The page imports `src/styles/components/filter.css` itself. That sheet is
 code-split rather than site-wide (see the roster comment in `global.css`), and
@@ -46,6 +46,45 @@ without the import the search field and every chip render as unstyled markup.
 
 Adding a tool or prompt to the server **without** touching this registry fails
 step 2. That is the intended coupling.
+
+## Example values and the Example block
+
+Every tool argument may carry an `example`: a literal that satisfies its own
+`desc`, written exactly as it appears inside the call (`"series-b"` keeps its
+quotes, `18400000` does not). It renders as a copyable cell in the Arguments
+table's third column, which appears only on panes where at least one argument
+has one.
+
+**Traceability is the rule, and it is why `example` is optional.** A value comes
+from a UAT Input table under `mcp-server/src/docs/testing/uat/`, from a literal
+call in a UAT step, or from an enum or default in the tool's `CONTRACT.md` or
+Zod schema. **Where UAT and code disagree, the code wins** — the `_audit` blocks
+UAT-03.1 / 04.1 / 05.1 mark required have been `.optional()` since server
+0.60.0. An argument with no such source gets **no** example. An empty cell is a
+correct answer; an invented value is not.
+
+The Example block below the table has two arms, and every tool carries exactly
+one (the parity suite asserts it, and asserts no non-tool carries either):
+
+- **`exampleCall`** — an ordered list of argument names. `buildExampleCall`
+  renders the call from those arguments' own `example` values, so the column and
+  the block are one source shown twice and cannot drift. The empty list renders
+  `list_portfolio_facets({})`, which is a complete call.
+- **`example`** — a hand-authored call, for the three tools a flat generated one
+  gets wrong: `fill_information_request_list_xlsx` documents `ref` /
+  `fileLocation` / `comments`, which are `fills[]` sub-fields;
+  `compose_dossier_envelope` documents a row naming two wire fields at once; and
+  `prepare_irl_body` takes an entire markdown body.
+
+The block claims "complete and valid as written" only when `buildExampleCall`
+**derives** that it is: every named argument a plain wire key resolving to a
+declared argument whose example carries no placeholder marker. A capability
+therefore cannot assert a claim its own data contradicts, and the hand-authored
+arm is never marked runnable.
+
+An argument named in an `exampleCall` **must** have an example — otherwise the
+call would render `null` into a snippet the page invites a reader to run. That
+is asserted, not assumed.
 
 ## Copy rules
 

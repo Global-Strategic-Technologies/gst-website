@@ -50,9 +50,21 @@ const PAGES: A11yPage[] = [
   { name: 'MCP Using the Server', path: '/hub/mcp/using/', waitFor: 'h1' },
   { name: 'MCP Advanced Operations', path: '/hub/mcp/advanced-operations/', waitFor: 'h1' },
   { name: 'MCP Documentation', path: '/hub/mcp/docs/', waitFor: 'h1' },
+  // The row above loads with no hash, so the pane it scans is the four-argument
+  // default. This one addresses the densest contract deliberately: it is the
+  // only route where the sweep sees the fourteen argument-value controls at
+  // all, and the only one that exercises the runnable call's own markup —
+  // `target-size` on the controls, `td-has-header` on a three-column table, and
+  // `scrollable-region-focusable` on the multi-line snippet. Without it all
+  // three are structurally invisible to CI.
+  {
+    name: 'MCP Documentation (dense contract)',
+    path: '/hub/mcp/docs/#cap-compute_techpar',
+    waitFor: 'h1',
+  },
   // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline);
   // 23 as of the /hub/mcp/ marketing page; 26 as of the three MCP onboarding
-  // guides; 27 as of the capability reference.
+  // guides; 27 as of the capability reference; 28 as of its dense-contract pane.
   // Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting

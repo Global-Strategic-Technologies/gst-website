@@ -76,6 +76,29 @@ export async function copyWithFeedback(
  * Delegated from `document`, so panes and rows that were not in the DOM at wiring
  * time still work. Lived inline in `mcp-onboarding.ts` until `/hub/mcp/docs/`
  * needed the same behavior; one definition, both pages.
+ *
+ * `[data-copy-quiet]` is for a control whose visible text IS the payload — the
+ * example-value cells on `/hub/mcp/docs/`. The default path swaps that text to
+ * "Copied", which is right where a label is chrome and destructive where it is
+ * content: `textContent` takes out the literal, the `.sr-only` name qualifier
+ * and the glyphs in one write, and the restore puts back a single flat text
+ * node. The sibling implementation on `/hub/mcp/` reasons the other way for the
+ * other case (`hub/mcp/index.astro:726-733`) and is right for it.
+ *
+ * So a quiet button aims the swap at a DETACHED span — nothing in the document
+ * changes — and the confirmation goes to the page's own `[data-copy-status]`
+ * live region instead. The region is written directly rather than passed as
+ * `feedbackTarget`, because `copyWithFeedback` stores the target's prior text
+ * ON THE BUTTON: two quiet buttons clicked inside one feedback window would
+ * make the second capture "Copied" as the region's original and restore it,
+ * leaving the region stuck on that word for the rest of the page's life. It is
+ * cleared and re-set from a macrotask so a repeated message is still a change
+ * the accessibility tree can see; a microtask would land both writes in the
+ * same frame and announce nothing.
+ *
+ * Quiet buttons also opt out of `brutal-btn--copied`. They are deliberately not
+ * `.brutal-btn` — the family uppercases, and these literals are case
+ * contractual — so they must not wear its state modifier either.
  */
 export function initCopyButtons(): void {
   document.addEventListener('click', (e) => {
@@ -93,10 +116,23 @@ export function initCopyButtons(): void {
       text = snip?.textContent?.trim() ?? '';
     }
     if (!text) return;
+
+    const quiet = btn.hasAttribute('data-copy-quiet');
+    if (quiet) {
+      const region = document.querySelector<HTMLElement>('[data-copy-status]');
+      if (region) {
+        region.textContent = '';
+        setTimeout(() => {
+          region.textContent = 'Copied';
+        }, 0);
+      }
+    }
+
     void copyWithFeedback(text, btn, {
       label: 'Copied',
       duration: 1600,
-      copiedClass: 'brutal-btn--copied',
+      copiedClass: quiet ? undefined : 'brutal-btn--copied',
+      feedbackTarget: quiet ? document.createElement('span') : undefined,
     });
   });
 }

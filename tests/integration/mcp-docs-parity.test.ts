@@ -23,7 +23,7 @@ import {
   WORKFLOWS,
   type Capability,
 } from '../../src/data/mcp/capabilities';
-import { capabilitySlug } from '../../src/utils/mcp-capability-search';
+import { buildExampleCall, capabilitySlug } from '../../src/utils/mcp-capability-search';
 import {
   EXPECTED_PROMPT_COUNT,
   EXPECTED_REMOTE_TOOL_COUNT,
@@ -163,11 +163,60 @@ describe('MCP docs registry — internal integrity', () => {
   });
 
   it('anchors every example on the capability it documents', () => {
-    // A copied example that calls a different tool is worse than none.
+    // A copied example that calls a different tool is worse than none. The
+    // generated arm holds this by construction (`buildExampleCall` writes the
+    // id itself); this is the hand-authored arm, where nothing else would.
     for (const cap of CAPABILITIES) {
       if (!cap.example) continue;
       expect(cap.example.startsWith(`${cap.id}(`)).toBe(true);
     }
+  });
+
+  it('gives every tool exactly one Example arm, and no non-tool either', () => {
+    // `exampleCall` generates the call from the arguments' own values;
+    // `example` is hand-authored for the three tools whose documented arguments
+    // are not flat wire keys. Carrying both would mean the page shows one and
+    // the other rots unseen; carrying neither leaves a tool with no example at
+    // all, which is the state this whole surface exists to end.
+    const arms = (cap: Capability) =>
+      Number(Boolean(cap.example)) + Number(Boolean(cap.exampleCall));
+    const tools = CAPABILITIES.filter((cap) => cap.group === 'Tools');
+    expect(tools).toHaveLength(16);
+    expect(tools.filter((cap) => arms(cap) !== 1).map((cap) => cap.id)).toEqual([]);
+    expect(
+      CAPABILITIES.filter((cap) => cap.group !== 'Tools' && arms(cap) > 0).map((cap) => cap.id)
+    ).toEqual([]);
+  });
+
+  it('builds every generated call from arguments that carry a value', () => {
+    // The failure this catches is a call naming an argument that was renamed,
+    // deleted, or never given an example — which would render `null` into a
+    // snippet the page invites a reader to run.
+    const orphans = CAPABILITIES.flatMap((cap) =>
+      (cap.exampleCall ?? [])
+        .filter((name) => !(cap.args ?? []).some((arg) => arg.name === name && arg.example))
+        .map((name) => `${cap.id} -> ${name}`)
+    );
+    expect(orphans).toEqual([]);
+  });
+
+  it('marks a call runnable only when it really is', () => {
+    // Derived, not declared — so this asserts the derivation still discriminates
+    // rather than that someone set a flag. The two hand-authored calls carrying
+    // a per-body placeholder must NOT come back runnable.
+    const runnable = CAPABILITIES.filter((cap) => buildExampleCall(cap).runnable).map((c) => c.id);
+    expect(runnable).toContain('compute_techpar');
+    expect(runnable).toContain('list_portfolio_facets');
+    expect(runnable).not.toContain('validate_irl_provenance');
+    expect(runnable).not.toContain('compose_dossier_envelope');
+    expect(runnable).not.toContain('prepare_irl_body');
+  });
+
+  it('carries example values on a non-trivial share of arguments', () => {
+    // Vacuity guard for the three assertions above: every one of them passes
+    // over a registry where nobody ever wrote an example.
+    const withExample = CAPABILITIES.flatMap((cap) => cap.args ?? []).filter((arg) => arg.example);
+    expect(withExample.length).toBeGreaterThan(50);
   });
 });
 

@@ -36,6 +36,20 @@ export interface CapabilityArg {
   name: string;
   /** One-line description, written for a reader deciding what to pass. */
   desc: string;
+  /**
+   * A literal value that satisfies `desc`, written exactly as it appears inside
+   * the call — `"series-b"` carries its quotes, `18400000` does not.
+   *
+   * TRACEABILITY IS THE RULE, and it is the reason this field is optional. Every
+   * value here comes from a UAT Input table under
+   * `mcp-server/src/docs/testing/uat/`, from a literal call in a UAT step, or
+   * from an enum or default in the tool's CONTRACT.md or Zod schema. Where UAT
+   * and code disagree the code wins — the `_audit` blocks UAT-03.1/04.1/05.1
+   * mark required have been `.optional()` since server 0.60.0. An argument with
+   * no such source gets no example, which costs a table cell rather than buying
+   * a fabricated value.
+   */
+  example?: string;
 }
 
 export interface Capability {
@@ -54,8 +68,29 @@ export interface Capability {
    * stated contract rather than a missing section.
    */
   argNote?: string;
-  /** A copyable call, using real enum values. */
+  /**
+   * The Example block has two arms, and a tool carries exactly one of them
+   * (asserted by the parity suite).
+   *
+   * `exampleCall` is the ordered list of argument names a demonstrated call
+   * passes; `buildExampleCall` renders it from those arguments' own `example`
+   * values, so the table column and the call below it are one source shown
+   * twice and cannot drift. The empty list renders `id({})`.
+   *
+   * `example` is a hand-authored call, for the tools a flat generated one
+   * cannot serve: `fill_information_request_list_xlsx` documents `ref` /
+   * `fileLocation` / `comments`, which are `fills[]` sub-fields rather than
+   * top-level keys; `compose_dossier_envelope` documents a pseudo-argument
+   * naming two fields at once; `prepare_irl_body` takes an entire markdown
+   * body. Generating a flat call for those would produce something invalid on
+   * the wire that still passed a name-matching guard.
+   *
+   * The Example COLUMN is independent of which arm a tool uses — a literal-arm
+   * tool still fills the column wherever a value is traceable.
+   */
   example?: string;
+  /** See `example`. Ordered argument names the generated call passes. */
+  exampleCall?: string[];
   /** Resource families only: the URI template. */
   uri?: string;
   /** Prompts only: the tools the prompt drives. Pinned to server source. */
@@ -103,39 +138,89 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'transactionType',
         desc: 'enum. full-acquisition · majority-stake · business-integration · carve-out · venture-series.',
+        example: '"full-acquisition"',
       },
       {
         name: 'productType',
         desc: 'enum. b2b-saas · b2c-marketplace · on-premise-enterprise · deep-tech-ip · tech-enabled-service.',
+        example: '"b2b-saas"',
       },
       {
         name: 'techArchetype',
         desc: 'enum. modern-cloud-native · hybrid-legacy · self-managed-infra · datacenter-vendor. The largest single driver of which questions surface.',
+        example: '"modern-cloud-native"',
       },
       {
         name: 'headcount',
         desc: 'ordinal enum. Company size band. Questions can gate on a minimum band rather than an exact match.',
+        example: '"51-200"',
       },
-      { name: 'revenueRange', desc: 'ordinal enum. Revenue band, gated the same way.' },
-      { name: 'growthStage', desc: 'enum. Where the company sits in its funding and growth arc.' },
-      { name: 'companyAge', desc: 'ordinal enum. Age band, gated the same way.' },
+      {
+        name: 'revenueRange',
+        desc: 'ordinal enum. Revenue band, gated the same way.',
+        example: '"5-25m"',
+      },
+      {
+        name: 'growthStage',
+        desc: 'enum. Where the company sits in its funding and growth arc.',
+        example: '"scaling"',
+      },
+      {
+        name: 'companyAge',
+        desc: 'ordinal enum. Age band, gated the same way.',
+        example: '"5-10yr"',
+      },
       {
         name: 'geographies',
         desc: 'enum array. The only multi-select input. Two or more specific regions auto-adds multi-region.',
+        example: '["eu"]',
       },
-      { name: 'businessModel', desc: 'enum. How the target earns.' },
-      { name: 'scaleIntensity', desc: 'enum. Load and growth pressure on the platform.' },
+      {
+        name: 'businessModel',
+        desc: 'enum. How the target earns.',
+        example: '"productized-platform"',
+      },
+      {
+        name: 'scaleIntensity',
+        desc: 'enum. Load and growth pressure on the platform.',
+        example: '"moderate"',
+      },
       {
         name: 'transformationState',
         desc: 'enum. How much change the estate is already carrying.',
+        example: '"stable"',
       },
-      { name: 'dataSensitivity', desc: 'enum. Drives the privacy and security question set.' },
-      { name: 'operatingModel', desc: 'enum. How engineering and operations are organized.' },
+      {
+        name: 'dataSensitivity',
+        desc: 'enum. Drives the privacy and security question set.',
+        example: '"high"',
+      },
+      {
+        name: 'operatingModel',
+        desc: 'enum. How engineering and operations are organized.',
+        example: '"product-aligned-teams"',
+      },
     ],
     argNote:
       'All thirteen dimensions are required: the engine has no defaults, and a missing field is rejected before it runs. Each accepts a fixed identifier set; call the tool with an invalid value and the error names the valid ones.',
-    example:
-      'generate_diligence_agenda({ "transactionType": "carve-out", "productType": "b2b-saas", "techArchetype": "hybrid-legacy", … })',
+    // UAT-03.2, the fully specified target: an EU healthcare SaaS business.
+    // Paired with 03.1 (every dimension "unknown") it is what shows the
+    // dimensions do work: attention areas collapse from 28 to 4.
+    exampleCall: [
+      'transactionType',
+      'productType',
+      'techArchetype',
+      'headcount',
+      'revenueRange',
+      'growthStage',
+      'companyAge',
+      'geographies',
+      'businessModel',
+      'scaleIntensity',
+      'transformationState',
+      'dataSensitivity',
+      'operatingModel',
+    ],
     returns: [
       'A prioritized agenda: topics, and per topic the questions the profile makes worth asking.',
       'Attention areas, the themes this particular combination of dimensions puts at risk.',
@@ -154,19 +239,23 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'search',
         desc: 'string, optional. Free text matched against code name, industry, summary, and technologies. Substring match, not fuzzy.',
+        example: '"healthcare"',
       },
       {
         name: 'theme',
         desc: 'string, optional. One of the values list_portfolio_facets returns, or "all". Defaults to "all".',
+        example: '"Healthcare"',
       },
       {
         name: 'engagement',
         desc: 'string, optional. Buy-Side · Sell-Side · all. Defaults to "all".',
+        example: '"Buy-Side"',
       },
     ],
     argNote:
       'The empty call returns every engagement. There is no limit argument: the tool mirrors the website filter surface exactly, and the website renders the full set.',
-    example: 'search_portfolio({ "search": "carve-out", "engagement": "Buy-Side" })',
+    // UAT-01.2 supplies the free-text value, UAT-01.3 the two facet filters.
+    exampleCall: ['search', 'theme', 'engagement'],
     returns: [
       'matches. The engagements passing all three filters, each with its summary, challenge, and solution.',
       'totalMatched and returned.',
@@ -182,7 +271,7 @@ export const CAPABILITIES: readonly Capability[] = [
     gloss:
       'Lists the values the portfolio filters accept. Call it before search_portfolio rather than guessing a theme name.',
     argNote: 'Takes no arguments.',
-    example: 'list_portfolio_facets({})',
+    exampleCall: [],
     returns: [
       'themes and engagementCategories. The two filterable dimensions.',
       'growthStages and years. Not filterable today, exposed for orientation.',
@@ -201,10 +290,12 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'jurisdiction',
         desc: 'string or string array, optional. Lowercase codes: "eu", "us", "us-ca", "ca-qc". An array combines matches in one call.',
+        example: '"eu"',
       },
       {
         name: 'category',
         desc: 'string or string array, optional. data-privacy · ai-governance · cybersecurity · industry-compliance.',
+        example: '"ai-governance"',
       },
       {
         name: 'query',
@@ -214,7 +305,9 @@ export const CAPABILITIES: readonly Capability[] = [
     ],
     argNote:
       'Keep limit at or near its default and narrow by category. Broad multi-jurisdiction queries return very large responses, and raising the limit is how a result outgrows a client rather than how it gets more useful. When an array holds more than one value, the response omits that filter from its deeplink, because the website uses single-select chips.',
-    example: 'search_regulations({ "jurisdiction": "eu", "category": "ai-governance" })',
+    // UAT-02.2. `query` and `limit` are deliberately outside the call: the case
+    // leaves limit at its default, and the note above says to keep it there.
+    exampleCall: ['jurisdiction', 'category'],
     returns: [
       'Framework records: name, jurisdiction, category, effective date, key requirements, penalties. The corpus carries no article numbers.',
       'Each match resolves its Regulatory Map resource URI, so the full document can be read next.',
@@ -230,7 +323,7 @@ export const CAPABILITIES: readonly Capability[] = [
     gloss:
       'Lists the jurisdictions and categories the regulatory corpus actually indexes, plus the total framework count. The recovery call when a jurisdiction code does not resolve.',
     argNote: 'Takes no arguments.',
-    example: 'list_regulation_facets({})',
+    exampleCall: [],
     returns: [
       'jurisdictions and categories. Every value search_regulations will accept.',
       'totalFrameworks. The size of the indexed corpus.',
@@ -249,16 +342,20 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'answers',
         desc: 'map of question id to a score. Keys take the form q1_1, q1_2 … q6_N across the six domains.',
+        example: '{}',
       },
       {
         name: 'companyStage',
         desc: 'enum, optional. Canonical funding stage (seed · series-a · series-b · series-c · pe · enterprise) or one of the four native bands. Adds a benchmark band; never changes the score.',
+        example: '"series-b"',
       },
     ],
     argNote:
       'The scale is 0 Not in place · 1 Ad hoc · 2 Established · 3 Optimized, with -1 meaning Not sure. The map is sparse: missing questions count as zero, so a partial assessment reports an honest absence of information rather than failing. Only an explicit -1 is reported as skipped.',
-    example:
-      'assess_infrastructure_cost_governance({ "answers": { "q1_1": 2, "q1_2": 1, "q2_1": 0, … }, "companyStage": "series-b" })',
+    // UAT-06.1, the discovery call, verbatim: an empty answers map is valid and
+    // is what the case is for. companyStage carries UAT-06.2's value in the
+    // column without joining this call, which would then be a shape no case ran.
+    exampleCall: ['answers'],
     returns: [
       'overallScore and maturityLevel. Reactive · Aware · Optimizing · Strategic.',
       'domainScores. One per domain, with the raw and normalized score.',
@@ -283,55 +380,91 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'arr',
         desc: 'number > 0. Annual recurring revenue, dollars. Drives every percentage-of-revenue calculation.',
+        example: '18400000',
       },
       {
         name: 'stage',
         desc: 'enum. Canonical funding stage: seed · series-a · series-b · series-c · pe · enterprise. Selects the per-stage benchmark band.',
+        example: '"series-b"',
       },
       {
         name: 'mode',
         desc: 'enum, no default. quick reads rdOpEx directly; deepdive synthesizes R&D OpEx as engCost + prodCost + toolingCost.',
+        example: '"quick"',
       },
-      { name: 'capexView', desc: 'enum. cash includes rdCapEx in totals; gaap excludes it.' },
+      {
+        name: 'capexView',
+        desc: 'enum. cash includes rdCapEx in totals; gaap excludes it.',
+        example: '"cash"',
+      },
       {
         name: 'growthRate',
         desc: 'number. Annual revenue growth, as a percentage; drives the 36-month projection.',
+        example: '31',
       },
       {
         name: 'exitMultiple',
         desc: 'number, zero or more. Translates the cumulative gap to exit value. 12x is the SaaS convention.',
+        example: '12',
       },
       {
         name: 'infraHostingAnnual',
         desc: 'number, zero or more. Annual infrastructure and hosting cost, dollars. Must be above zero.',
+        example: '732000',
       },
       {
         name: 'infraPersonnel',
         desc: 'number, zero or more. Annual infrastructure personnel cost, dollars.',
+        example: '640000',
       },
       {
         name: 'rdOpEx',
         desc: 'number, zero or more. R&D OpEx. Read in quick mode; discarded in deepdive.',
+        example: '4100000',
       },
-      { name: 'rdCapEx', desc: 'number, zero or more. Capitalized R&D.' },
+      { name: 'rdCapEx', desc: 'number, zero or more. Capitalized R&D.', example: '450000' },
       {
         name: 'engFTE',
         desc: 'number, zero or more. Engineering headcount; yields revenue per engineer.',
+        example: '84',
       },
       {
         name: 'engCost',
         desc: 'number, zero or more. Annual engineering personnel cost. deepdive only.',
+        example: '0',
       },
       {
         name: 'prodCost',
         desc: 'number, zero or more. Annual product personnel cost. deepdive only.',
+        example: '0',
       },
-      { name: 'toolingCost', desc: 'number, zero or more. Annual tooling cost. deepdive only.' },
+      {
+        name: 'toolingCost',
+        desc: 'number, zero or more. Annual tooling cost. deepdive only.',
+        example: '0',
+      },
     ],
     argNote:
       'All 14 fields are required in both modes; the engine ignores the fields the selected mode does not read. All money fields are annual dollars on one currency basis. A zero arr or infraHostingAnnual returns invalid-input, never a stack trace.',
-    example:
-      'compute_techpar({ "arr": 12000000, "stage": "series-a", "mode": "quick", "capexView": "gaap", … })',
+    // UAT-04.1, run against production 0.48.2. Hand-checkable: 732000 + 640000
+    // + 4100000 + 450000 is 5,922,000, which on 18,400,000 of ARR is the 32.18
+    // the Series B-C band reads as ahead.
+    exampleCall: [
+      'arr',
+      'stage',
+      'mode',
+      'capexView',
+      'growthRate',
+      'exitMultiple',
+      'infraHostingAnnual',
+      'infraPersonnel',
+      'rdOpEx',
+      'rdCapEx',
+      'engFTE',
+      'engCost',
+      'prodCost',
+      'toolingCost',
+    ],
     returns: [
       'total, totalCash, totalGAAP, totalTechPct. Annual technology cost and its share of revenue.',
       'zone. underinvest · ahead · healthy · above · elevated · critical, against the stage benchmark band.',
@@ -357,45 +490,69 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'teamSize',
         desc: 'integer above zero. Engineering headcount. A direct multiplier on the carrying cost.',
+        example: '84',
       },
       {
         name: 'salary',
         desc: 'number above zero. Average fully loaded annual engineering salary, dollars.',
+        example: '165000',
       },
       {
         name: 'maintenanceBurdenPct',
         desc: 'number 0 to 100. Share of engineering capacity consumed by maintenance and debt servicing. The headline input.',
+        example: '28',
       },
       {
         name: 'deployFrequency',
         desc: 'enum. Multiple/day · Daily · Weekly · Bi-weekly · Three-week · Monthly · Quarterly+ · Bi-annually · Annually. Sets the DORA tier and the velocity multiplier.',
+        example: '"Weekly"',
       },
-      { name: 'incidents', desc: 'integer, zero or more. Production incidents per month.' },
+      {
+        name: 'incidents',
+        desc: 'integer, zero or more. Production incidents per month.',
+        example: '3',
+      },
       {
         name: 'mttrHours',
         desc: 'number, zero or more. Mean time to recovery, hours per incident.',
+        example: '8',
       },
       {
         name: 'remediationBudget',
         desc: 'number, zero or more. Capital available for debt paydown, dollars.',
+        example: '900000',
       },
       {
         name: 'arr',
         desc: 'number, zero or more. Annual recurring revenue, used to express the cost as a share of revenue.',
+        example: '18400000',
       },
       {
         name: 'remediationPct',
         desc: 'number 0 to 100. Expected reduction in debt cost from the remediation.',
+        example: '65',
       },
       {
         name: 'contextSwitchOn',
         desc: 'boolean. Whether to model the context-switching overhead surcharge.',
+        example: 'true',
       },
     ],
     argNote:
       'These are business values, not wizard slider positions: pass the precision you actually have. An arr of zero is allowed and reports the revenue share as zero rather than dividing by it.',
-    example:
-      'estimate_tech_debt_cost({ "teamSize": 24, "salary": 165000, "maintenanceBurdenPct": 35, "deployFrequency": "Monthly", … })',
+    // UAT-05.1.
+    exampleCall: [
+      'teamSize',
+      'salary',
+      'maintenanceBurdenPct',
+      'deployFrequency',
+      'incidents',
+      'mttrHours',
+      'remediationBudget',
+      'arr',
+      'remediationPct',
+      'contextSwitchOn',
+    ],
     returns: [
       'totalMonthly and annualCost. The carrying cost, and its split across steady-state burden, context switching, and incident time.',
       'hoursLostPerEng and costPerEng. The same number expressed per engineer.',
@@ -414,7 +571,11 @@ export const CAPABILITIES: readonly Capability[] = [
     gloss:
       'Builds the blank information request list as an XLSX workbook, configured for the engagement. This is the ask GST hands a target before diligence tools can run.',
     args: [
-      { name: 'targetName', desc: 'string, optional. The target the list is addressed to.' },
+      {
+        name: 'targetName',
+        desc: 'string, optional. The target the list is addressed to.',
+        example: '"Northwind Health"',
+      },
       { name: 'companyName', desc: 'string, optional. Composed into the workbook title.' },
       {
         name: 'projectName',
@@ -423,14 +584,17 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'transactionContext',
         desc: 'enum, optional. sell-side · buy-side · value-creation · unknown. Fires the authored skip-if directives, removing questions that do not apply.',
+        example: '"buy-side"',
       },
       {
         name: 'includeSections',
         desc: 'array of two-digit section ids, optional. Keeps whole sections. Defaults to all ten.',
+        example: '["00", "03"]',
       },
       {
         name: 'excludeRequests',
         desc: 'array of NN-II keys, optional. Removes individual questions. Call list_irl_requests to find the keys.',
+        example: '["03-08"]',
       },
       {
         name: 'customRequests',
@@ -443,8 +607,11 @@ export const CAPABILITIES: readonly Capability[] = [
     ],
     argNote:
       'Every field is optional: the empty call produces the full canonical workbook. The three subtractions compose, and surviving questions keep their reference ids, so the gaps read as deliberate rather than as an incomplete list.',
-    example:
-      'generate_information_request_list_xlsx({ "targetName": "Northwind Analytics", "transactionContext": "buy-side" })',
+    // UAT-07.2. companyName, projectName, customRequests and
+    // showCanonicalReference are outside the call and carry no example: UAT-07
+    // supplies no value for them, and inventing one is the thing this registry
+    // does not do.
+    exampleCall: ['targetName', 'transactionContext', 'includeSections', 'excludeRequests'],
     returns: [
       'filename and the workbook bytes.',
       'sectionCount and bulletCount. What the configuration actually produced.',
@@ -468,28 +635,37 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'ref',
         desc: 'The workbook Reference value for the row being answered, for example 0-03. Must exist in the configured workbook, and cannot repeat.',
+        example: '"0-01"',
       },
       {
         name: 'fileLocation',
         desc: 'What the answer rests on: a document reference and optional locator, or a bracketed origin note. A reference, never an excerpt.',
+        example: '"VDR/00/entity-chart.pdf, page 1"',
       },
       {
         name: 'comments',
         desc: 'The answer itself, as single-line prose. Under the extraction rules an entry here is a real answer, never a placeholder.',
+        example: '"Delaware C-corp, single operating entity."',
       },
       {
         name: 'targetName',
         desc: 'string, optional. Same scoping arguments as the blank generator, minus productSummary.',
+        example: '"UAT Eleven Corp"',
       },
       {
         name: 'transactionContext',
         desc: 'enum, optional. sell-side · buy-side · value-creation · unknown.',
+        example: '"buy-side"',
       },
     ],
     argNote:
       'Requiring both a source and an answer on every entry is structural: a row cannot be answered without saying what it rests on. The shape of the reference is checked; whether the referenced document exists is deliberately not, because that is what the human reviewer verifies.',
+    // Hand-authored rather than generated: ref / fileLocation / comments are
+    // documented above as arguments because that is where a reader looks for
+    // them, but on the wire they are `fills[]` sub-fields. A flat generated call
+    // would name them at the top level and be invalid. Values are UAT-11.1's.
     example:
-      'fill_information_request_list_xlsx({ "targetName": "Northwind Analytics", "fills": [{ "ref": "0-03", "fileLocation": "10-K FY2025, Item 1A", "comments": "…" }] })',
+      'fill_information_request_list_xlsx({\n  "targetName": "UAT Eleven Corp",\n  "transactionContext": "buy-side",\n  "fills": [\n    { "ref": "0-01", "fileLocation": "VDR/00/entity-chart.pdf, page 1", "comments": "Delaware C-corp, single operating entity." },\n    { "ref": "1-01", "fileLocation": "[inferred from product-overview.pdf + demo session]", "comments": "Single multi-tenant SaaS surface." },\n    { "ref": "9-01", "fileLocation": "[User stated this in session chat]", "comments": "Five-member board, two independent seats." }\n  ]\n})',
     returns: [
       'filename and the workbook bytes, identical in behavior to a target-returned file.',
       'filledRowCount and filledRefs. The operator review checklist.',
@@ -507,7 +683,7 @@ export const CAPABILITIES: readonly Capability[] = [
     gloss:
       'Returns the canonical question set behind the information request list, with the key for each question. The only way to map "drop that question" onto the key the generator accepts.',
     argNote: 'Takes no arguments.',
-    example: 'list_irl_requests({})',
+    exampleCall: [],
     returns: [
       'requests. Each with its NN-II key, section, section title, question text, and any engagement contexts that auto-remove it.',
       'sectionCount and bulletCount.',
@@ -549,13 +725,20 @@ export const CAPABILITIES: readonly Capability[] = [
         name: 'citations',
         desc: 'array, required. Each entry pairs the claim path with the citation supporting it. A citation may be one string or up to eight.',
       },
+      // No example on either: a hash is minted per body and a body is a whole
+      // document, so any literal in a copyable cell would fail on first use.
+      // The placeholder lives in the call below, where it reads as a template.
       { name: 'irlBodyHash', desc: 'string. The hash from prepare_irl_body.' },
       { name: 'filledIrl', desc: 'string. The body itself, as an alternative to the hash.' },
     ],
     argNote:
       'One of irlBodyHash or filledIrl must be supplied; the body wins when both are. Prefer the hash: passing the body re-sends the whole document on every call. Where a claim is genuinely synthesized from several bullets, the array form checks each and aggregates conservatively, so one unverified element makes the whole citation unverified.',
+    // Hand-authored: `citations` entries are objects, and the hash is per-body,
+    // so no literal here could be run as written. UAT-07.4 supplies the shape;
+    // the hash stays a marked placeholder rather than a plausible-looking
+    // sixteen hex characters that would fail on the first call.
     example:
-      'validate_irl_provenance({ "irlBodyHash": "9f2c0a71b3d84e56", "citations": [{ "path": "…", "citation": "…" }] })',
+      'validate_irl_provenance({\n  "irlBodyHash": "<the hash prepare_irl_body returned>",\n  "citations": [\n    { "path": "financials.arr", "citation": "0-03 Annual recurring revenue" }\n  ]\n})',
     returns: [
       'verified. The cited text is present in the list.',
       'verified-fuzzy. Not verbatim, but a long enough run of words matches to tolerate light paraphrase.',
@@ -589,16 +772,21 @@ export const CAPABILITIES: readonly Capability[] = [
         name: 'gatesPassed / gatesElided',
         desc: 'arrays. Which tools ran, and which were skipped with the reason and the section that would have fed them.',
       },
-      { name: 'mode', desc: 'enum. full · extract-only.' },
+      { name: 'mode', desc: 'enum. full · extract-only.', example: '"full"' },
       {
         name: 'auditLevel',
         desc: 'enum. standard · enhanced · debug. Selects which audit blocks come back.',
+        example: '"standard"',
       },
     ],
     argNote:
       'The array fields are required but may be empty; omitting one is an error, passing an empty array is not. This is the most common first-call mistake. The call fails outright if prepare_irl_body has not registered the body first, and the fix is always to register it again rather than retrying.',
+    // Hand-authored: `gatesPassed / gatesElided` is one documented row naming
+    // two wire fields, so no generated call could render it correctly, and the
+    // hash is per-body. UAT-07.5 supplies the required-but-may-be-empty shape
+    // the note above warns about.
     example:
-      'compose_dossier_envelope({ "irlBodyHash": "9f2c0a71b3d84e56", "mode": "full", "auditLevel": "standard", "claims": [ … ], "gaps": [], … })',
+      'compose_dossier_envelope({\n  "irlBodyHash": "<the hash prepare_irl_body returned>",\n  "mode": "full",\n  "auditLevel": "standard",\n  "claims": [{ "claim": "ARR is 27.4m", "citation": "0-03 Annual recurring revenue", "tier": "2" }],\n  "gaps": [],\n  "fillRatio": { "percent": 78, "substantiveCells": 94, "totalCells": 120, "status": "sufficient" },\n  "gatesPassed": [],\n  "gatesElided": []\n})',
     returns: [
       "The gap list, ready to paste as the dossier's audit section.",
       'Provenance verification counts across the same four verdict buckets validate_irl_provenance reports.',
@@ -619,11 +807,14 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'category',
         desc: 'enum, optional. pe-ma · enterprise-tech · ai-automation · security. Omit for every category.',
+        example: '"pe-ma"',
       },
     ],
     argNote:
       'category is the only filter, and the unfiltered call is the largest response these tools produce. Pass a category when the intent is category-scoped, and prefer get_latest_insights when only the annotated tier is wanted.',
-    example: 'search_radar({ "category": "pe-ma" })',
+    // UAT-08.3, the category-scoped call. 08.1 runs it unfiltered, which the
+    // note above steers away from.
+    exampleCall: ['category'],
     returns: [
       'matches. Annotated highlights and wire items merged, deduplicated, newest first.',
       'oldestItemDaysAgo. Freshness at a glance, without scanning every timestamp.',
@@ -642,13 +833,15 @@ export const CAPABILITIES: readonly Capability[] = [
     gloss:
       'The annotated tier only: the latest radar items carrying a GST Take, whole stream or by category. The narrow call when the wider wire is noise.',
     args: [
-      { name: 'limit', desc: 'number, optional. 1 to 30, default 10.' },
+      { name: 'limit', desc: 'number, optional. 1 to 30, default 10.', example: '3' },
       {
         name: 'category',
         desc: 'enum, optional. pe-ma · enterprise-tech · ai-automation · security.',
+        example: '"pe-ma"',
       },
     ],
-    example: 'get_latest_insights({ "limit": 5, "category": "ai-automation" })',
+    // UAT-08.2, which sets limit and leaves category off.
+    exampleCall: ['limit'],
     returns: [
       'items. Annotated highlights with their GST Take populated.',
       'oldestItemDaysAgo and the fetch and cache state, same shape as search_radar.',

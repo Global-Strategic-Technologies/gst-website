@@ -98,6 +98,55 @@ export function capabilityCounts(capabilities: readonly Capability[]): Capabilit
   };
 }
 
+export interface ExampleCall {
+  /** The call text, or null when the capability publishes no example at all. */
+  text: string | null;
+  /**
+   * Whether the text can be pasted into a client and run as written. Derived,
+   * never declared — see below.
+   */
+  runnable: boolean;
+}
+
+/** A wire key: what a generated call may legitimately use as a JSON property. */
+const WIRE_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/** A value that stands in for one rather than being one. */
+const PLACEHOLDER = /[<…]/;
+
+/**
+ * The Example block's text, and whether it is genuinely runnable.
+ *
+ * Two arms, exactly as `Capability.example` / `exampleCall` describe: a
+ * generated call built from the arguments' own `example` values, or a
+ * hand-authored literal for the tools a flat call cannot serve.
+ *
+ * `runnable` is DERIVED rather than declared, so a capability cannot carry a
+ * claim its own data contradicts. It holds only on the generated arm, and only
+ * when every named argument is a real wire key that resolves to a declared
+ * argument carrying a placeholder-free example. The empty list is runnable —
+ * `list_portfolio_facets({})` really is a complete call. The literal arm is
+ * never marked runnable: it exists precisely because the flat shape is wrong,
+ * so nothing here can vouch for what a human wrote.
+ */
+export function buildExampleCall(cap: Capability): ExampleCall {
+  if (cap.exampleCall) {
+    const byName = new Map((cap.args ?? []).map((arg) => [arg.name, arg]));
+    const lines = cap.exampleCall.map((name) => ({
+      name,
+      example: byName.get(name)?.example,
+    }));
+    const runnable = lines.every(
+      ({ name, example }) =>
+        WIRE_KEY.test(name) && example !== undefined && !PLACEHOLDER.test(example)
+    );
+    if (lines.length === 0) return { text: `${cap.id}({})`, runnable };
+    const body = lines.map(({ name, example }) => `  "${name}": ${example ?? 'null'}`).join(',\n');
+    return { text: `${cap.id}({\n${body}\n})`, runnable };
+  }
+  return { text: cap.example ?? null, runnable: false };
+}
+
 /** Capabilities in a group, registry order preserved. */
 export function capabilitiesInGroup(
   capabilities: readonly Capability[],

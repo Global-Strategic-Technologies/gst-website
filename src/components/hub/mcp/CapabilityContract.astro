@@ -12,7 +12,7 @@
  * level. Section labels below are `h3` for the same reason.
  */
 import type { Capability, Workflow } from '../../../data/mcp/capabilities';
-import { capabilityAnchor } from '../../../utils/mcp-capability-search';
+import { buildExampleCall, capabilityAnchor } from '../../../utils/mcp-capability-search';
 
 interface Props {
   capability: Capability;
@@ -32,6 +32,14 @@ const usedIn = (cap.usedIn ?? [])
 
 /** A chip links to its contract; an unknown id renders as plain text. */
 const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAnchor(id)}` : null });
+
+/**
+ * The Example column exists only where at least one argument carries a value.
+ * A pane with none renders the two-column table it always did, rather than a
+ * column of empty cells.
+ */
+const hasExamples = (cap.args ?? []).some((arg) => arg.example !== undefined);
+const call = buildExampleCall(cap);
 ---
 
 <article
@@ -55,13 +63,79 @@ const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAncho
        says it under this heading. */
     (cap.args || cap.argNote) && (
       <>
-        <h3 class="brutal-label mdoc-pane__label">Arguments</h3>
+        <h3 class="brutal-label mdoc-pane__label">
+          <span>Arguments</span>
+          {hasExamples && <span class="mdoc-pane__hint">click a value to copy it</span>}
+        </h3>
         {cap.args && (
           <table class="brutal-bench-table mdoc-args">
+            <thead>
+              <tr class="mdoc-args__head">
+                <th scope="col">Name</th>
+                {hasExamples && <th scope="col">Example</th>}
+                <th scope="col">Requirement</th>
+              </tr>
+            </thead>
             <tbody>
               {cap.args.map((arg) => (
                 <tr>
-                  <td class="mdoc-args__name">{arg.name}</td>
+                  {/* A row header, not a cell: it names the row, it is what
+                      gives every value cell a header association, and it keeps
+                      that association when the row stacks. */}
+                  <th scope="row" class="mdoc-args__name">
+                    {arg.name}
+                  </th>
+                  {hasExamples && (
+                    <td class="mdoc-args__example">
+                      {/* Printed only when the rows stack and the column head is
+                          no longer above its column. `aria-hidden` because the
+                          `th` association already carries it to a reader. */}
+                      <span class="mdoc-args__col" aria-hidden="true">
+                        Example
+                      </span>
+                      {arg.example !== undefined && (
+                        <button
+                          type="button"
+                          class="mdoc-args__value"
+                          data-copy={arg.example}
+                          data-copy-quiet
+                        >
+                          {/* Qualifier FIRST: the accessible name is built from
+                              content in DOM order, and "copy example value for
+                              arr: 18400000" reads as an instruction where the
+                              reverse reads as a value followed by an
+                              imperative. */}
+                          <span class="sr-only">copy example value for {arg.name}: </span>
+                          <span class="mdoc-args__literal">{arg.example}</span>
+                          <svg
+                            class="mdoc-args__glyph mdoc-args__glyph--copy"
+                            width="11"
+                            height="11"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            aria-hidden="true"
+                          >
+                            <rect x="5.5" y="5.5" width="9" height="9" />
+                            <path d="M10.5 2.5H2.5v8" />
+                          </svg>
+                          <svg
+                            class="mdoc-args__glyph mdoc-args__glyph--done"
+                            width="11"
+                            height="11"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                          >
+                            <path d="M2.5 8.5l4 4 7-9" />
+                          </svg>
+                        </button>
+                      )}
+                    </td>
+                  )}
                   <td class="mdoc-args__desc">{arg.desc}</td>
                 </tr>
               ))}
@@ -74,15 +148,25 @@ const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAncho
   }
 
   {
-    cap.example && (
+    call.text && (
       <>
-        <h3 class="brutal-label mdoc-pane__label">Example</h3>
+        <h3 class="brutal-label mdoc-pane__label">
+          <span>Example</span>
+          {call.runnable && <span class="mdoc-pane__hint">complete and valid as written</span>}
+        </h3>
         <div class="mdoc-code">
-          <code class="mdoc-code__text">{cap.example}</code>
+          {/* `data-snippet` + `data-copy-prev` rather than a `data-copy`
+              attribute: the generated call is multi-line, and this is the idiom
+              the onboarding pages already use to keep a snippet authored in the
+              markup. The delegation bails when no snippet resolves, so feedback
+              firing at all proves a non-empty one was found. */}
+          <pre data-snippet class="mdoc-code__text">
+            {call.text}
+          </pre>
           <button
             type="button"
             class="brutal-btn brutal-btn--secondary mdoc-code__copy"
-            data-copy={cap.example}
+            data-copy-prev
           >
             Copy<span class="sr-only"> the {cap.id} example</span>
           </button>
@@ -265,8 +349,23 @@ const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAncho
   }
 
   .mdoc-pane__label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-lg);
+    max-width: 860px;
     color: var(--text-muted);
     margin: var(--spacing-xl) 0 var(--spacing-sm);
+  }
+
+  /* Sits on the section heading rather than in a paragraph below it: it is one
+     short clause about the section, and a paragraph would read as content. */
+  .mdoc-pane__hint {
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-normal);
+    letter-spacing: 0.06em;
+    text-transform: none;
+    white-space: nowrap;
   }
 
   .mdoc-pane__note {
@@ -298,12 +397,34 @@ const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAncho
     max-width: 860px;
   }
 
-  /* Both cell rules are qualified by the table class deliberately. The shared
+  /* `table.css` styles `td` and defines NO `th` rule at all, so a header cell
+     arrives with UA defaults: bold, centred, unpadded, no hairline. Everything
+     a `td` gets for free is restated here. */
+  .mdoc-args :global(th) {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-family: var(--font-family);
+    font-size: var(--text-xs);
+    border-bottom: 1px solid var(--border-light);
+    text-align: left;
+  }
+
+  .mdoc-args .mdoc-args__head :global(th) {
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding-bottom: var(--spacing-xs);
+  }
+
+  /* Every cell rule is qualified by the table class deliberately. The shared
      component styles `.brutal-bench-table td:first-child` and `td:last-child`
      at (0,2,1) — uppercasing the first cell and right-aligning the second in
      bold mono, which suits a benchmark matrix and destroys an argument table:
      wire argument names are case-contractual. A single-class override loses
-     that cascade; this one wins it. */
+     that cascade; this one wins it. (The `:first-child` half no longer reaches
+     anything here now that the name cell is a `th` — incidental, not designed,
+     and not a reason to drop the qualification from the rest.) */
   .mdoc-args .mdoc-args__name {
     font-family: var(--font-family-mono);
     font-weight: var(--font-weight-normal);
@@ -323,6 +444,93 @@ const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAncho
     vertical-align: top;
   }
 
+  .mdoc-args .mdoc-args__example {
+    width: 150px;
+    font-family: var(--font-family-mono);
+    text-align: left;
+    text-transform: none;
+    vertical-align: top;
+  }
+
+  /* The column name, printed onto the cell only where the rows stack. */
+  .mdoc-args__col {
+    display: none;
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  /* Deliberately NOT `.brutal-btn`: that family uppercases at 0.7rem, and these
+     literals are case-contractual wire values. A bespoke class also means the
+     44px source sweep does not reach it — correct here, since AA 2.5.8 (24px on
+     both axes) is the bar for everything outside the guarded families, and it
+     must therefore NOT carry a FLOOR_EXCEPTIONS entry. Both axes are floored
+     because several literals are one or two characters (`5`, `31`, `true`). */
+  .mdoc-args__value {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-height: var(--touch-target-min-aa);
+    min-width: var(--touch-target-min-aa);
+    max-width: 100%;
+    padding: 2px var(--spacing-xs);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    text-align: left;
+    color: var(--text-primary);
+    background: var(--accent-faint-bg);
+    border: 1px solid transparent;
+    border-radius: 0;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    transition:
+      border-color var(--transition-fast),
+      background var(--transition-fast);
+  }
+
+  .mdoc-args__value:hover {
+    background: var(--accent-tint-bg);
+    border-color: var(--color-primary);
+  }
+
+  .mdoc-args__value:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .mdoc-args__glyph {
+    flex: none;
+    opacity: 0.4;
+  }
+
+  .mdoc-args__value:hover .mdoc-args__glyph {
+    opacity: 0.85;
+  }
+
+  /* The copied state never replaces the value: the literal is content, and the
+     reader who just copied it is the one most likely to still be reading it. So
+     the acknowledgement rides the glyph and the border, keyed off the attribute
+     `copyWithFeedback` maintains for the duration of its own feedback window. */
+  .mdoc-args__glyph--done {
+    display: none;
+  }
+
+  .mdoc-args__value[data-copy-original] {
+    border-color: var(--color-primary);
+  }
+
+  .mdoc-args__value[data-copy-original] .mdoc-args__glyph--copy {
+    display: none;
+  }
+
+  .mdoc-args__value[data-copy-original] .mdoc-args__glyph--done {
+    display: block;
+    color: var(--color-primary);
+    opacity: 1;
+  }
+
   .mdoc-code {
     display: flex;
     justify-content: space-between;
@@ -337,12 +545,22 @@ const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAncho
     border-left: 3px solid var(--color-primary);
   }
 
+  /* `pre-wrap`, never `pre`. The generated call is multi-line, and `pre` plus an
+     `overflow-x` would make this a scrollable region with no focusable
+     descendant — axe rates that serious against WCAG 2.1.1, and the route sweep
+     would not have caught it, because the pane it loads by default carries a
+     call short enough not to overflow. `pre-wrap` keeps the newlines, wraps the
+     long lines against `overflow-wrap` below, and creates no scroll container.
+     The UA `margin: 1em 0` on `pre` is reset: this is a flex child. */
   .mdoc-code__text {
     flex: 1 1 18rem;
     min-width: 0;
+    margin: 0;
     font-family: var(--font-family-mono);
     font-size: var(--text-sm);
+    line-height: 1.6;
     color: var(--text-secondary);
+    white-space: pre-wrap;
     overflow-wrap: anywhere;
   }
 
@@ -396,18 +614,44 @@ const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAncho
   }
 
   @media (max-width: 640px) {
-    /* The two cells stack: a 240px name column plus a description does not fit,
-       and truncating an argument name is worse than a taller table. */
+    /* The cells stack: a 240px name column plus a description does not fit, and
+       truncating an argument name is worse than a taller table. */
     .mdoc-args :global(tr) {
       display: block;
       padding: var(--spacing-xs) 0;
     }
 
     .mdoc-args .mdoc-args__name,
+    .mdoc-args .mdoc-args__example,
     .mdoc-args .mdoc-args__desc {
       display: block;
       width: 100%;
       text-align: left;
+    }
+
+    /* CLIPPED, not `display: none`. The header row is where every value cell's
+       column association comes from, and removing it from the accessibility
+       tree would strip that exactly where a stacked table needs it most. These
+       are `.sr-only`'s declarations inlined, because a media query cannot add a
+       class. `table.css` also sets `display: flex` on `tr` below 480px, which
+       these coexist with — position and clip do the hiding, not display. */
+    .mdoc-args .mdoc-args__head {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* With the head clipped, a bare literal in the middle of a stacked row has
+       nothing visible naming it. */
+    .mdoc-args__col {
+      display: block;
+      margin-bottom: var(--spacing-xs);
     }
   }
 </style>

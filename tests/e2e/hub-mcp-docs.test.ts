@@ -193,13 +193,71 @@ test.describe('MCP documentation — lens and contract selection', () => {
     expect(gap).toBeGreaterThanOrEqual(12);
   });
 
-  test('a copy button flips to Copied and restores its label', async ({ page }) => {
+  test('the Example copy button flips to Copied and restores its label', async ({ page }) => {
+    // Addressed as `[data-copy-prev]`, not `[data-copy]`: the pane now carries
+    // one `[data-copy]` per argument value, and a label swap is exactly what
+    // those must NOT do. Here the label is chrome, so the swap is still right.
+    // The button copies from the `[data-snippet]` beside it, and the delegation
+    // bails when no snippet resolves — so feedback firing at all is also proof
+    // that a non-empty snippet was found.
     await page.goto(`${ROUTE}#cap-compute_techpar`);
-    const btn = page.locator('#cap-compute_techpar [data-copy]');
+    const btn = page.locator('#cap-compute_techpar [data-copy-prev]');
     const original = (await btn.textContent())?.trim();
     await btn.click();
     await expect(btn).toHaveText('Copied');
     await expect(btn).toHaveText(original ?? 'Copy', { timeout: 5000 });
+  });
+
+  test('copying an argument value leaves the value where it is', async ({ page }) => {
+    // THE assertion this feature turns on. The shared copy helper swaps its
+    // target's `textContent`, which on a value cell would delete the literal,
+    // the screen-reader name qualifier and both glyphs in one write — and its
+    // restore would put back a single flat text node, so the damage outlives
+    // the feedback window. Clipboard contents are deliberately never read
+    // (TEST_BEST_PRACTICES 11 & 24); the observable state is the proof.
+    await page.goto(`${ROUTE}#cap-compute_techpar`);
+    const btn = page.locator('#cap-compute_techpar .mdoc-args__value').first();
+    // The BUTTON's own text, not the inner span's. Under the regression the
+    // span does not survive at all, and an element-not-found would report a
+    // missing locator rather than naming the value that changed.
+    const before = await btn.textContent();
+    expect(before).toContain('18400000');
+
+    await btn.click();
+    // Presence, not value: `data-copy-original` lands on the button on both
+    // paths, so this only waits for the feedback window to be open. The text
+    // comparison below is what discriminates, and it is the assertion that
+    // names the literal when it fails.
+    await expect(btn).toHaveAttribute('data-copy-original', /^/);
+    expect(await btn.textContent()).toBe(before);
+    // Second, independent proof of the same thing: what the helper saved as
+    // "the original" is the detached span's empty text, not the button's.
+    await expect(btn).toHaveAttribute('data-copy-original', '');
+
+    // Confirmed in the page-level live region, which is the only place it can
+    // be: the button's name must not change, and a live region nested inside a
+    // button is not reliably exposed.
+    await expect(page.locator('[data-copy-status]')).toHaveText('Copied');
+
+    // And it survives the reset, which is where a swapped-then-restored button
+    // shows the damage: the restore writes back one flat text node.
+    await expect(btn).not.toHaveAttribute('data-copy-original', '', { timeout: 5000 });
+    expect(await btn.textContent()).toBe(before);
+  });
+
+  test('every argument value is a target of at least 24px on both axes', async ({ page }) => {
+    // WCAG 2.2 AA 2.5.8. Measured rather than trusted to the axe sweep: several
+    // literals are one or two characters, and a content-sized control can clear
+    // the height floor while failing the width one.
+    await page.goto(`${ROUTE}#cap-compute_techpar`);
+    const boxes = await page.locator('#cap-compute_techpar .mdoc-args__value').evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { text: el.textContent?.trim().slice(-20) ?? '', w: r.width, h: r.height };
+      })
+    );
+    expect(boxes).toHaveLength(14);
+    expect(boxes.filter((b) => b.w < 24 || b.h < 24)).toEqual([]);
   });
 });
 
@@ -310,6 +368,31 @@ test.describe('MCP documentation — themes and viewports', () => {
         return out;
       });
       expect(wrapped).toEqual([]);
+    });
+  }
+
+  for (const width of [640, 480]) {
+    test(`stacked at ${width}px, the column heads stay in the accessibility tree`, async ({
+      page,
+    }) => {
+      // The header row is CLIPPED rather than `display: none`. It is where every
+      // value cell's column association comes from, and a stacked table is
+      // exactly where that association matters most — so removing it from the
+      // tree would strip the benefit that justified adding a `<thead>` at all.
+      // The visible column name comes back as an `aria-hidden` span in the cell,
+      // which is why it can be shown without announcing the name twice.
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${ROUTE}#cap-compute_techpar`);
+      const head = page.locator('#cap-compute_techpar .mdoc-args__head');
+      const state = await head.evaluate((el) => {
+        const s = getComputedStyle(el);
+        return { display: s.display, position: s.position, w: el.getBoundingClientRect().width };
+      });
+      expect(state.display).not.toBe('none');
+      expect(state.position).toBe('absolute');
+      expect(state.w).toBeLessThan(4);
+
+      await expect(page.locator('#cap-compute_techpar .mdoc-args__col').first()).toBeVisible();
     });
   }
 
