@@ -790,7 +790,9 @@ export const CAPABILITIES: readonly Capability[] = [
     // two wire fields, so no generated call could render it correctly, and the
     // hash is per-body.
     //
-    // Every value is UAT-07.5's, including the fillRatio quadruple — the status
+    // Every value is UAT-07.5's except the three arrays, which that case fills
+    // (one gap, two gatesPassed, one gatesElided) and this deliberately empties
+    // to demonstrate the argNote's rule. Including the fillRatio quadruple: the status
     // is a three-value enum (`halt` · `partial` · `ok`, schemas/
     // compose-dossier-envelope.ts) and 16/67 really does derive to 24, which
     // lands in `partial`. An earlier revision invented `78 / 94 / 120 /

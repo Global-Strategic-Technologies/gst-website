@@ -373,8 +373,9 @@ const call = buildExampleCall(cap);
     max-width: 860px;
   }
 
-  /* Sits on the section heading rather than in a paragraph below it: it is one
-     short clause about the section, and a paragraph would read as content. */
+  /* Sits BESIDE the section heading, never inside it (see `__labelrow`): one
+     short clause about the section, where a paragraph below would read as
+     content and a child of the `h3` would join its accessible name. */
   .mdoc-pane__hint {
     font-size: var(--text-2xs);
     font-weight: var(--font-weight-normal);
