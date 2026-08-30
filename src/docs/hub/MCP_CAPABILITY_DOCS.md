@@ -70,11 +70,15 @@ one (the parity suite asserts it, and asserts no non-tool carries either):
   renders the call from those arguments' own `example` values, so the column and
   the block are one source shown twice and cannot drift. The empty list renders
   `list_portfolio_facets({})`, which is a complete call.
-- **`example`** — a hand-authored call, for the three tools a flat generated one
+- **`example`** — a hand-authored call, for the four tools a flat generated one
   gets wrong: `fill_information_request_list_xlsx` documents `ref` /
   `fileLocation` / `comments`, which are `fills[]` sub-fields;
   `compose_dossier_envelope` documents a row naming two wire fields at once; and
-  `prepare_irl_body` takes an entire markdown body.
+  `prepare_irl_body` and `validate_irl_provenance` both key off a per-body value
+  (a whole markdown body, a hash minted from it) that no literal can stand in
+  for. On this arm the traceability rule still holds for every value shown, and
+  a call that is deliberately incomplete says so with an ellipsis rather than
+  looking complete and being rejected.
 
 The block claims "complete and valid as written" only when `buildExampleCall`
 **derives** that it is: every named argument a plain wire key resolving to a

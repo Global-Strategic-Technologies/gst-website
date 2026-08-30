@@ -77,13 +77,18 @@ export interface Capability {
    * values, so the table column and the call below it are one source shown
    * twice and cannot drift. The empty list renders `id({})`.
    *
-   * `example` is a hand-authored call, for the tools a flat generated one
+   * `example` is a hand-authored call, for the four tools a flat generated one
    * cannot serve: `fill_information_request_list_xlsx` documents `ref` /
    * `fileLocation` / `comments`, which are `fills[]` sub-fields rather than
    * top-level keys; `compose_dossier_envelope` documents a pseudo-argument
-   * naming two fields at once; `prepare_irl_body` takes an entire markdown
-   * body. Generating a flat call for those would produce something invalid on
-   * the wire that still passed a name-matching guard.
+   * naming two fields at once; and `prepare_irl_body` and
+   * `validate_irl_provenance` both key off a per-body value no literal can
+   * stand in for. Generating a flat call for those would produce something
+   * invalid on the wire that still passed a name-matching guard.
+   *
+   * Nothing asserts the SIZE of that set, deliberately — a fifth tool joining
+   * it is a judgement, not a regression. But the count is stated in
+   * MCP_CAPABILITY_DOCS.md and ADR-0023 as well, so move all three together.
    *
    * The Example COLUMN is independent of which arm a tool uses — a literal-arm
    * tool still fills the column wherever a value is traceable.
@@ -776,17 +781,30 @@ export const CAPABILITIES: readonly Capability[] = [
       {
         name: 'auditLevel',
         desc: 'enum. standard · enhanced · debug. Selects which audit blocks come back.',
-        example: '"standard"',
+        example: '"debug"',
       },
     ],
     argNote:
       'The array fields are required but may be empty; omitting one is an error, passing an empty array is not. This is the most common first-call mistake. The call fails outright if prepare_irl_body has not registered the body first, and the fix is always to register it again rather than retrying.',
     // Hand-authored: `gatesPassed / gatesElided` is one documented row naming
     // two wire fields, so no generated call could render it correctly, and the
-    // hash is per-body. UAT-07.5 supplies the required-but-may-be-empty shape
-    // the note above warns about.
+    // hash is per-body.
+    //
+    // Every value is UAT-07.5's, including the fillRatio quadruple — the status
+    // is a three-value enum (`halt` · `partial` · `ok`, schemas/
+    // compose-dossier-envelope.ts) and 16/67 really does derive to 24, which
+    // lands in `partial`. An earlier revision invented `78 / 94 / 120 /
+    // "sufficient"`: not a legal status, not a coherent ratio, and on the one
+    // arm no guard can check. The empty arrays are the point the argNote makes
+    // above: required, but `[]` is fine.
+    //
+    // TRUNCATED ON PURPOSE, and the ellipsis says so. `promptName`,
+    // `modelVersion`, `irlSource`, `conditionalTriggersFired` and
+    // `forceToolsApplied` are required too and are not documented as arguments
+    // here, so a call listing only the documented ones would look complete and
+    // be rejected — the exact first-call mistake the argNote warns about.
     example:
-      'compose_dossier_envelope({\n  "irlBodyHash": "<the hash prepare_irl_body returned>",\n  "mode": "full",\n  "auditLevel": "standard",\n  "claims": [{ "claim": "ARR is 27.4m", "citation": "0-03 Annual recurring revenue", "tier": "2" }],\n  "gaps": [],\n  "fillRatio": { "percent": 78, "substantiveCells": 94, "totalCells": 120, "status": "sufficient" },\n  "gatesPassed": [],\n  "gatesElided": []\n})',
+      'compose_dossier_envelope({\n  "irlBodyHash": "<the hash prepare_irl_body returned>",\n  "mode": "full",\n  "auditLevel": "debug",\n  "fillRatio": { "percent": 24, "substantiveCells": 16, "totalCells": 67, "status": "partial" },\n  "claims": [{ "claim": "ARR is 18.4m", "citation": "0-03 Annual recurring revenue", "tier": "2" }],\n  "gaps": [],\n  "gatesPassed": [],\n  "gatesElided": [],\n  …\n})',
     returns: [
       "The gap list, ready to paste as the dossier's audit section.",
       'Provenance verification counts across the same four verdict buckets validate_irl_provenance reports.',

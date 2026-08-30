@@ -63,10 +63,15 @@ const call = buildExampleCall(cap);
        says it under this heading. */
     (cap.args || cap.argNote) && (
       <>
-        <h3 class="brutal-label mdoc-pane__label">
-          <span>Arguments</span>
+        {/* The hint is a SIBLING of the heading, not a child. Inside it, the
+            heading's accessible name would read "Arguments click a value to
+            copy it" — and headings are a navigation surface, so that name is
+            what a screen-reader user hears when they list them. axe does not
+            flag it. */}
+        <div class="mdoc-pane__labelrow">
+          <h3 class="brutal-label mdoc-pane__label">Arguments</h3>
           {hasExamples && <span class="mdoc-pane__hint">click a value to copy it</span>}
-        </h3>
+        </div>
         {cap.args && (
           <table class="brutal-bench-table mdoc-args">
             <thead>
@@ -150,10 +155,10 @@ const call = buildExampleCall(cap);
   {
     call.text && (
       <>
-        <h3 class="brutal-label mdoc-pane__label">
-          <span>Example</span>
+        <div class="mdoc-pane__labelrow">
+          <h3 class="brutal-label mdoc-pane__label">Example</h3>
           {call.runnable && <span class="mdoc-pane__hint">complete and valid as written</span>}
-        </h3>
+        </div>
         <div class="mdoc-code">
           {/* `data-snippet` + `data-copy-prev` rather than a `data-copy`
               attribute: the generated call is multi-line, and this is the idiom
@@ -354,13 +359,18 @@ const call = buildExampleCall(cap);
   }
 
   .mdoc-pane__label {
+    color: var(--text-muted);
+    margin: var(--spacing-xl) 0 var(--spacing-sm);
+  }
+
+  /* Lays the hint beside the heading without putting it INSIDE the heading,
+     which would fold it into the heading's accessible name. */
+  .mdoc-pane__labelrow {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: var(--spacing-lg);
     max-width: 860px;
-    color: var(--text-muted);
-    margin: var(--spacing-xl) 0 var(--spacing-sm);
   }
 
   /* Sits on the section heading rather than in a paragraph below it: it is one

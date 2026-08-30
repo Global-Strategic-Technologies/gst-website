@@ -142,7 +142,11 @@ Theme-switched wash backgrounds for layered surfaces. Distinct from the `--accen
 
 ### Frosted-Glass Edge Treatment
 
-The inset highlight + hairline edge pair applied to every frosted surface — see [STYLES_GUIDE.md § Frosted Glass](./STYLES_GUIDE.md).
+The inset highlight + hairline edge pair carried by the **control-shaped** frost — the nine
+`.brutal-*` control and card families. NOT every frosted surface: the container pair
+(`.brutal-tool-shell`, the `.brutal-frosted` utility) and the opaque panel (`.tool-tab-bar`)
+carry neither, and it is the edge rather than the blur that makes frost visible on a flat
+background. See [STYLES_GUIDE.md § Frosted Glass](./STYLES_GUIDE.md), Three shapes.
 
 | Variable            | Value                                                              | Usage                               |
 | ------------------- | ------------------------------------------------------------------ | ----------------------------------- |
