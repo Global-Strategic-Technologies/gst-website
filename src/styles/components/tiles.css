@@ -4,9 +4,26 @@ Brutalist Stat Tile
 
 ============================== */
 
+/* The control frost triple — the same three declarations `.brutal-btn` and
+   `.brutal-option-card` carry, NOT the container pair. The container pair's
+   `--surface-faint-bg` is 0.5% alpha, and over this site's flat checkerboard
+   that is invisible; the inset highlight and hairline edge are what read.
+   STYLES_GUIDE § Frosted Glass carries the three shapes.
+
+   Deliberately NOT suppressed inside `.brutal-tool-shell`, even though the shell
+   is itself frosted: the ICG landing already ships four `.brutal-option-card`s
+   and four `.brutal-btn`s inside that shell carrying this same triple,
+   unsuppressed. "One pane owns the glass" governs container-shaped frost;
+   control-shaped frost nests by design throughout the system, so flattening
+   these two while three siblings stay would be arbitrary. */
 .brutal-stat-tile {
   flex: 1;
   padding: var(--spacing-md);
+  background: var(--surface-subtle-bg);
+  backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0 0 1px var(--frost-edge);
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   text-align: center;
 }
@@ -33,8 +50,14 @@ Brutalist Callout
 
 ============================== */
 
+/* Frost triple, same shape and same nesting reasoning as `.brutal-stat-tile`. */
 .brutal-callout {
   padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--surface-subtle-bg);
+  backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0 0 1px var(--frost-edge);
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-left: 3px solid var(--color-primary);
   font-size: var(--text-sm);
@@ -56,4 +79,18 @@ Brutalist Callout
 
 .brutal-callout--warning {
   border-left-color: var(--color-secondary);
+}
+
+/* Frost does not print. `backdrop-filter` breaks print in some browsers (the
+   reason recorded on ma-portfolio.astro's own reset), the 2% tint is a grey
+   wash on paper, and the hairline edge is a visible ring around every tile and
+   callout. All three declarations come off, following the resets in
+   tool-ui.css, ma-portfolio.astro and tech-debt-calculator. */
+@media print {
+  .brutal-stat-tile,
+  .brutal-callout {
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
 }

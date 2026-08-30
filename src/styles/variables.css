@@ -105,8 +105,11 @@
   --surface-panel-bg: light-dark(rgba(255, 255, 255, 0.85), rgba(10, 10, 10, 0.85));
   --surface-overlay-bg: light-dark(rgba(245, 245, 245, 0.92), rgba(20, 20, 20, 0.92));
 
-  /* Frosted-glass edge treatment — the inset highlight + hairline edge pair applied
-   * to every frosted surface (see STYLES_GUIDE.md § Frosted Glass).
+  /* Frosted-glass edge treatment — the inset highlight + hairline edge pair carried by
+   * the CONTROL-shaped frost (the nine `.brutal-*` control and card families), NOT by
+   * every frosted surface: the container pair and the opaque panel carry neither. This
+   * comment used to claim "every frosted surface", which is the misreading that leads
+   * an author to the invisible shape. See STYLES_GUIDE.md § Frosted Glass, Three shapes.
    */
   --frost-highlight: light-dark(rgba(255, 255, 255, 0.12), var(--border-dark-subtle));
   --frost-edge: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05));

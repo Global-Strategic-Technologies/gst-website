@@ -1295,10 +1295,27 @@ function accessHref(tier?: string) {
     max-width: var(--mcp-measure);
   }
 
+  /* The control frost triple, matching the four shared families on this page
+     (STYLES_GUIDE § Frosted Glass). Page-scoped rather than a family because
+     this panel is one-off. The neutral hairline the frost adds paints just
+     outside the teal border rather than replacing it. */
   .mcp-block--cta {
+    background: var(--surface-subtle-bg);
+    backdrop-filter: blur(2px);
+    box-shadow:
+      inset 0 1px 0 var(--frost-highlight),
+      0 0 0 1px var(--frost-edge);
     border: 2px solid var(--color-primary);
     border-left-width: 3px;
     padding: var(--spacing-2xl);
+  }
+
+  @media print {
+    .mcp-block--cta {
+      background: transparent;
+      backdrop-filter: none;
+      box-shadow: none;
+    }
   }
 
   .mcp-block--cta .mcp-note {

@@ -246,9 +246,21 @@ Brutalist Trust Card
 
 ============================== */
 
+/* The CONTROL frost triple, not the container pair. The distinction is
+   load-bearing and is why this reads at all: the container pair
+   (`--surface-faint-bg` + blur) is 0.5% alpha, and this site's ground is a flat
+   checkerboard, over which — in the design system's own words — "a frosted pane
+   is indistinguishable from an unfrosted one". The inset highlight and the
+   hairline edge are what carry the treatment on a flat page; the blur only pays
+   off over content. Same three declarations as `.brutal-btn` and
+   `.brutal-option-card`; see STYLES_GUIDE § Frosted Glass for the three shapes. */
 .brutal-trust-card {
   padding: var(--spacing-2xl);
-  background: transparent;
+  background: var(--surface-subtle-bg);
+  backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0 0 1px var(--frost-edge);
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-left: 3px solid var(--color-primary);
   border-radius: 0;
@@ -585,7 +597,18 @@ Brutalist FAQ
   gap: var(--spacing-md);
 }
 
+/* The control frost triple (see `.brutal-trust-card` above for why this shape
+   and not the container pair). Three of the ten call sites used to co-apply
+   `.brutal-frosted` by hand — `/hub`, `/services`, `/hub/tools/regulatory-map/`
+   — which is both the argument for putting it in the base rule and the reason
+   those three had to drop the utility in the same change: keeping it would
+   double-blur. */
 .brutal-faq__item {
+  background: var(--surface-subtle-bg);
+  backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0 0 1px var(--frost-edge);
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
   overflow: hidden;
@@ -989,5 +1012,17 @@ Brutalist Gateway Card (Library/Tools index pages)
 @media (max-width: 480px) {
   .brutal-gateway-card {
     padding: 1.25rem;
+  }
+}
+
+/* Frost does not print — see the matching block in tiles.css for the reason and
+   the precedents. `backdrop-filter` breaks print in some browsers, the tint is a
+   grey wash on paper, and the hairline edge rings every card. */
+@media print {
+  .brutal-trust-card,
+  .brutal-faq__item {
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
   }
 }

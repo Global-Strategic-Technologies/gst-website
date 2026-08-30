@@ -632,11 +632,31 @@ Use the canonical `--z-*` tokens from [variables.css](../../styles/variables.css
 
 ## Frosted Glass
 
-Seven component families carry the treatment **by default** — `.brutal-btn`,
+Eleven component families carry the treatment **by default** — `.brutal-btn`,
 `.brutal-choice-btn`, `.brutal-search`, `.brutal-segmented`, `.brutal-option-card`,
+`.brutal-trust-card`, `.brutal-stat-tile`, `.brutal-callout`, `.brutal-faq__item`,
 `.brutal-tool-shell`, and `.tool-tab-bar`. (`.tool-action-bar--frosted` is a deliberate
 opt-in variant, not a default.) Don't re-apply a `.brutal-frosted*` utility on top of
 any of them; it double-blurs.
+
+### Three shapes, not one
+
+"Frosted" is three different treatments here, and picking the wrong one is the failure
+this section exists to prevent — it happened during the change that added the four
+card/tile families above, and the doc's own wording caused it.
+
+| Shape             | Background                     | Blur  | Edge treatment | Carried by                                                                                                                    |
+| ----------------- | ------------------------------ | ----- | -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Control triple** | `--surface-subtle-bg` (2%)     | 2px   | ✅ highlight + hairline | The nine control and card families above                                                                              |
+| **Container pair** | `--surface-faint-bg` (0.5%)    | 3px   | ❌ none        | `.brutal-tool-shell`; the `.brutal-frosted` utility and `.tool-action-bar--frosted` (neither is a default)                     |
+| **Opaque panel**   | `--surface-panel-bg` (85%)     | 8px   | ❌ none        | `.tool-tab-bar` alone                                                                                                          |
+
+**The edge treatment is what makes frost visible on a flat page**, not the blur. This
+site's ground is a checkerboard grid, and over it the container pair's half-percent tint
+is indistinguishable from no treatment at all — the published specimen doc says so
+outright ("a frosted pane on a flat background is indistinguishable from an unfrosted
+one"), and `BACKLOG.md` records a branch lost to exactly that. Reach for the container
+pair only over real content: scrolling body copy, an image, a colored surface.
 
 **One pane owns the glass.** A frosted surface nested inside another frosted surface
 blurs an already-blurred backdrop, so the child stays transparent and the container
@@ -675,12 +695,17 @@ The `--frost-highlight` / `--frost-edge` pair carries the theme-switched values 
 
 Additional frosted-glass utilities in `global.css`:
 
-| Class                        | Blur               | Use Case                          |
-| ---------------------------- | ------------------ | --------------------------------- |
-| `.brutal-frosted`            | 3px                | Standard containers, action bars  |
-| `.brutal-frosted--heavy`     | 6px                | Drawers, sticky bars over content |
-| `.brutal-frosted--blur-only` | 1.5px              | Subtle wet-glass sheen            |
-| `.brutal-frosted--overlay`   | 6px + 92% opacity  | Modal/panel overlays              |
+| Class                        | Blur              | Shape                                  | Use Case                          |
+| ---------------------------- | ----------------- | -------------------------------------- | --------------------------------- |
+| `.brutal-frosted`            | 3px               | Container pair                         | Containers over content           |
+| `.brutal-frosted--heavy`     | 6px               | Container pair, heavier tint (75%/60%) | Drawers, sticky bars over content |
+| `.brutal-frosted--blur-only` | 1.5px             | **Its own** — edge treatment, but `transparent` in light theme, plus a dark-theme contrast/brightness lift | Subtle wet-glass sheen, over content only |
+| `.brutal-frosted--overlay`   | 6px + 92% opacity | Opaque panel                           | Modal/panel overlays              |
+
+`--blur-only` is the one to be careful with: it carries the highlight and hairline edge,
+which reads as the control triple, over a background that is fully transparent in light
+theme. That combination is precisely what `BACKLOG.md` records costing a branch, and it
+is why it does not reduce to any of the three shapes above.
 
 ---
 

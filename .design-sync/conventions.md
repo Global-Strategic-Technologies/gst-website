@@ -94,9 +94,14 @@ it stays correct across themes and palettes. Never a frozen `rgba()`.
 - **State classes** — JS toggles these on a block; the CSS keys on them: `.is-collapsed` (hides a card body / TOC list, un-rotates its `.delta-chevron`), `.is-dismissed` (fades a rec/attention card), `.is-active` (current TOC link)
 
 `.brutal-btn`, `.brutal-choice-btn`, `.brutal-search`, `.brutal-segmented`,
-`.brutal-option-card`, `.brutal-tool-shell` and `.tool-tab-bar` already carry the
-frosted-glass treatment (`backdrop-filter`, inset highlight) — don't re-add it, on any
-of them. On `.brutal-segmented` the frost is on the container; the segments stay
+`.brutal-option-card`, `.brutal-trust-card`, `.brutal-stat-tile`, `.brutal-callout`,
+`.brutal-faq__item`, `.brutal-tool-shell` and `.tool-tab-bar` already carry the
+frosted-glass treatment — don't re-add it, on any of them. It comes in three shapes: the
+nine control and card families use a 2% tint, a 2px blur AND an inset highlight plus
+hairline edge; `.brutal-tool-shell` (like the `.brutal-frosted` utility) uses a 0.5% tint
+and a 3px blur with no edge; `.tool-tab-bar` uses an 85% panel and an 8px blur. The edge
+is what makes frost visible on a flat background — over one, the 0.5% shape reads as no
+treatment at all. On `.brutal-segmented` the frost is on the container; the segments stay
 transparent and `--active` stays a solid fill so the selected state reads. Nesting a
 frosted surface inside another double-blurs — one pane owns the glass.
 
