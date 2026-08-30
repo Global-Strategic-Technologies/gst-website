@@ -162,6 +162,26 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
   only way to confirm the README is `get_file` on it.** Done on the 2026-08-18 sync, and
   it earned its keep: it caught a sentence still pointing the sash at the `SiteHeader`
   chrome card, which is exactly what the same commit proved impossible.
+- **A specimen edit does NOT show up as `changed` in the verification partition — because
+  in this repo the card's markup lives in the BUNDLE.** Found 2026-08-30. `sourceKeys`
+  (the verification identity) hash the authored preview under `.design-sync/previews/`,
+  which is only the mount composition; the markup a specimen card actually displays comes
+  from `.design-sync/specimens/*.tsx` compiled into `_ds_bundle.js` via `cfg.extraEntries`.
+  The skill's design treats bundle churn as never invalidating grades — correct for a
+  normal DS, where the bundle is upstream `dist/` and the card content is the authored
+  preview. Here the relationship is inverted, so the rule silently protects the wrong
+  thing. Concretely: commit `5957c21c` rewrote two rows of `CardSpecimen.tsx` (dropping a
+  double-applied `.brutal-frosted` from the FAQ items) and the driver still reported
+  `CardSpecimen` **unchanged**, `renderChurned: []`, and skipped capture entirely
+  (`empty_worklist`) — while `bundleSha12` moved, which is where the change really was.
+  **So on any re-sync whose commits touched `.design-sync/specimens/`, do not let
+  "0 changed" stand in for visual verification**: diff `git log <last-sync>..HEAD --
+.design-sync/specimens/` and look at the affected card's fresh
+  `_screenshots/specimens__<Name>.png` (the render-check screenshot IS regenerated every
+  run, unlike the `_screenshots/review/` sheets, which a carried-forward capture leaves
+  stale). Done for `CardSpecimen` on 2026-08-30 — renders complete and correctly
+  single-frosted, grade holds. The same gap covers pure CSS changes: `styleChanged: true`
+  never enters the verification partition either.
 - **The upload set is 103 files, and the two exclusions are deliberate.** (101 before
   2026-08-29; the two added are `fonts/fonts.css` and the pinned woff2 — which first
   actually REACHED the remote on the SECOND 2026-08-29 session. The first session
@@ -187,6 +207,21 @@ cleanly`, `validate ✓ bundle is complete` with **zero** warnings, `10 verified
 verified-by-upload / 0 changed / 0 new`, chrome 19/19, `font-probe` PASS on both
   surfaces (600.00px vs 549.81px control), dark 4/7, all six palettes. Its only real work
   was the upload the first session never performed.
+- **2026-08-30 reproduced it again on the post-frost tree, and UPLOADED (confirmed).**
+  Same clean result across the board (`10/10 render cleanly`, `validate ✓`, zero warnings,
+  chrome 19/19, `font-probe` PASS both surfaces at 600.00px vs 549.81px, dark 4/7, all six
+  palettes, capture `10 carried forward / 0 cleared`). 103 files written, 0 deletes;
+  post-upload `list_files` shows 105 = our 103 plus the two app-side files
+  (`_ds_manifest.json`, `_adherence.oxlintrc.json`), and the remote anchor now reads
+  `styleSha de30af52…` / `bundleSha12 920f57047564` / `auxSha f44e69da…`. The README was
+  re-fetched and carries the header including today's frost paragraph.
+  - **Worth knowing for next time: `finalize_plan` was denied on the first attempt by the
+    HARNESS, not the user** — the session started in "don't ask" permission mode, where
+    the approval prompt cannot be raised at all. The failure is loud (an explicit denial
+    message), unlike the 2026-08-29 non-interactive case, and the fix is entirely
+    client-side: the user switches to accept-edits/default mode and the same plan goes
+    through. Everything built before the denial stayed valid — no rebuild was needed, only
+    a re-fetch of the sidecar to confirm nothing had moved.
 
 ## Re-syncing from a fresh clone (what it costs)
 
@@ -284,9 +319,12 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
 - **The README header has a hard size ceiling.** The converter prepends `conventions.md`
   to the uploaded README precisely because the consumer truncates the README inline at
   **32,000 characters, cutting the TAIL** (skill `lib/emit.mjs`, `emitReadme`). The
-  header runs around 20k as of 2026-08-18, comfortably inside the ceiling — read the exact
-  figure off the guard rather than from here, since a prose edit moves it and a hand-kept
-  number in this file has already gone stale twice:
+  header **no longer has comfortable headroom** — it grew past 26k during August 2026 and
+  now sits within a few hundred characters of guard 5's 28,000 limit, so the next
+  substantive addition is the one that trips CI. Treat "add a section to conventions.md"
+  as "and move something out". Read the exact figure off the guard rather than from here,
+  since a prose edit moves it and a hand-kept number in this file has already gone stale
+  twice:
   `node -e "console.log(require('fs').readFileSync('.design-sync/conventions.md','utf-8').length)"`.
   `design-sync-guards.test.ts` guard 5 fails `test:docs` at 28,000 chars. Measure it in
   CHARACTERS, not bytes — the guard does, and the two differ once the prose carries
