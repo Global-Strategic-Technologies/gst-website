@@ -6,7 +6,7 @@
 
 **Contract**: [`irl-fill/CONTRACT.md`](../../tools/irl-fill/CONTRACT.md) owns the input surface and the D-cell sourcing grammar. The frozen five-tool pipeline family is [`irl-pipeline/CONTRACT.md`](../../tools/irl-pipeline/CONTRACT.md) — nothing in this family modifies it.
 
-**Prerequisites**: [`SETUP.md`](SETUP.md) once; Excel or any xlsx viewer for 11.2; the repo checkout only for 11.3 (`npm run irl:extract` is a repo script — the one case here that assumes repo access, marked as such).
+**Prerequisites**: [`SETUP.md`](SETUP.md) once; Excel or any xlsx viewer for 11.2. No case here requires a repo checkout any more — 11.3 was the last one, and since ADR-0025 it can be run either from the CLI or from the Hub extractor page.
 
 ---
 
@@ -58,11 +58,11 @@
 
 ---
 
-## UAT-11.3 — The frozen extractor reads it correctly _(repo access required)_
+## UAT-11.3 — The frozen extractor reads it correctly
 
 **Steps**
 
-1. `npm run irl:extract -- <path-to-11.1-file>` from `mcp-server/`.
+1. `npm run irl:extract -- <path-to-11.1-file>` from `mcp-server/`, **or** drop the same file on [`/hub/tools/information-request-list-extractor/`](https://globalstrategic.tech/hub/tools/information-request-list-extractor/) — the two produce byte-identical markdown for the same workbook (ADR-0025), so either satisfies this case. The browser path reports the operator notes on-page rather than on stderr.
 
 **Expected**
 
