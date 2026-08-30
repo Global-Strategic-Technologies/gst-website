@@ -1,0 +1,888 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import DeltaIcon from '../../../../components/DeltaIcon.astro';
+import { hubToolSchema } from '../../../../utils/hub-tool-schema';
+---
+
+<BaseLayout
+  title="Information Request List Extractor | GST"
+  description="Convert a filled Information Request List (.xlsx) into canonical markdown in your browser. The workbook is never uploaded."
+  ogTitle="Information Request List Extractor | GST"
+  ogDescription="Turn a filled IRL workbook into the canonical markdown gst_irl_sweep expects, deterministically and entirely in the browser."
+  ogImage="/og-image.png"
+  ogImageAlt="GST Information Request List Extractor"
+  ogUrl="https://globalstrategic.tech/hub/tools/information-request-list-extractor/"
+>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Information Request List Extractor',
+        description:
+          'Convert a filled Information Request List workbook into the canonical markdown body, deterministically and entirely in the browser',
+        datePublished: '2026-08-30',
+        dateModified: '2026-08-30',
+        featureList: [
+          'Filled .xlsx converted to canonical markdown client-side',
+          'Byte-identical to the operator extractor for the same workbook',
+          'Answered rows carried across verbatim with status and sourcing',
+          'Workbook never leaves the browser',
+        ],
+        knowsAbout: [
+          'Technical Due Diligence',
+          'Information Request Lists',
+          'Virtual Data Room Structure',
+          'M&A Tech Strategy',
+        ],
+      })
+    )}
+  />
+
+  <section class="irl-ext">
+    <div class="container">
+      <HubHeader
+        title="Information Request List Extractor"
+        subtitle="Turn a filled IRL workbook into the canonical markdown the sweep expects. Same bytes in, same text out, every time."
+      />
+
+      <div class="irl-ext__intro">
+        <p>
+          When a target returns a filled <strong>.xlsx</strong>, the workbook has to become text
+          before <a href="/hub/mcp/docs/#cap-gst_irl_sweep"><code>gst_irl_sweep</code></a> can read it.
+          This page performs that conversion, carrying every answered row across exactly as written, along
+          with its status and any sourcing the responder recorded.
+        </p>
+        <p>
+          Conversion runs entirely in your browser. The workbook is never uploaded, nothing is
+          stored, and there is nothing to install. Need the blank workbook first? Use the <a
+            href="/hub/tools/information-request-list-generator/"
+            >Information Request List Generator</a
+          >.
+        </p>
+      </div>
+
+      <div class="irl-ext__shell">
+        <!-- ── 01 pick ─────────────────────────────────────────────── -->
+        <div class="irl-ext__panel">
+          <div class="irl-ext__step">
+            <span class="irl-ext__label">01 / Choose the workbook</span>
+            <span class="irl-ext__hint">Any filled Information Request List (.xlsx)</span>
+          </div>
+
+          <div class="irl-ext__dropwrap">
+            <input
+              type="file"
+              id="irl-ext-file"
+              class="irl-ext__input"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            />
+            <label class="irl-ext__drop" id="irl-ext-drop" for="irl-ext-file">
+              <DeltaIcon size={120} class="irl-ext__drop-icon" />
+              <span class="irl-ext__drop-text">Drop a workbook here, or <span>browse</span></span>
+              <span class="irl-ext__drop-note">Stays on your machine</span>
+            </label>
+          </div>
+
+          <div class="irl-ext__diag" id="irl-ext-diag" data-empty="true">
+            <span class="irl-ext__label">What came back</span>
+            <dl class="irl-ext__diag-list">
+              <div class="irl-ext__diag-row">
+                <dt>Requests extracted</dt>
+                <dd id="diag-bullets">&middot;</dd>
+              </div>
+              <div class="irl-ext__diag-row">
+                <dt>Sections seen</dt>
+                <dd id="diag-sections">&middot;</dd>
+              </div>
+              <div class="irl-ext__diag-row">
+                <dt>Body size</dt>
+                <dd id="diag-bytes">&middot;</dd>
+              </div>
+              <div class="irl-ext__diag-row">
+                <dt>Answers taken from Comments</dt>
+                <dd id="diag-comments">&middot;</dd>
+              </div>
+              <div class="irl-ext__diag-row">
+                <dt>Status contradictions</dt>
+                <dd id="diag-contradictions">&middot;</dd>
+              </div>
+            </dl>
+            <p class="irl-ext__advisory" id="irl-ext-advisory" hidden></p>
+          </div>
+        </div>
+
+        <!-- ── 02 output ───────────────────────────────────────────── -->
+        <div class="irl-ext__panel">
+          <div class="irl-ext__outhead">
+            <div class="irl-ext__step">
+              <span class="irl-ext__label">02 / Canonical markdown</span>
+              <span class="irl-ext__status" id="irl-ext-status" role="status" aria-live="polite"
+                >Waiting for a workbook</span
+              >
+            </div>
+            <div class="irl-ext__actions" id="irl-ext-actions" data-enabled="false">
+              <button type="button" class="brutal-btn brutal-btn--secondary" id="irl-ext-copy"
+                >Copy markdown</button
+              >
+              <button type="button" class="brutal-btn brutal-btn--secondary" id="irl-ext-download"
+                >Download .md</button
+              >
+            </div>
+          </div>
+
+          <div class="irl-ext__body">
+            <div class="irl-ext__idle" id="irl-ext-idle">
+              <p class="irl-ext__idle-text">
+                Pick a workbook and its canonical markdown appears here, ready to paste into the
+                sweep's <code>filledIrl</code> argument.
+              </p>
+            </div>
+            <div class="irl-ext__error" id="irl-ext-error" hidden>
+              <span class="irl-ext__error-title">Nothing to extract</span>
+              <p class="irl-ext__error-body" id="irl-ext-error-body"></p>
+              <p class="irl-ext__error-hint" id="irl-ext-error-hint"></p>
+            </div>
+            <pre class="irl-ext__md" id="irl-ext-md" hidden></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="irl-ext__cards">
+        <div class="irl-ext__card">
+          <h2>The file never leaves your machine</h2>
+          <p class="irl-ext__card-text">
+            Your browser reads the workbook and does the conversion locally. Nothing is uploaded,
+            nothing is stored, and no account is involved. Close the tab and it is gone.
+          </p>
+        </div>
+        <div class="irl-ext__card">
+          <h2>What to do with the markdown</h2>
+          <ul class="irl-ext__card-list">
+            <li>
+              <DeltaIcon class="bullet-icon" />Paste it into <code>gst_irl_sweep</code>'s <code
+                >filledIrl</code
+              > argument to get the dossier back
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />Blank rows are the follow-up ask, so read them before
+              you send anything on
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <a class="irl-ext__card-link" href="/hub/mcp/docs/#cap-gst_irl_sweep"
+                >Read the sweep contract</a
+              > for what it returns
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <a href="/hub/tools/" class="cta-button irl-ext__back">Back to Tools</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // Namespace import, matching `src/utils/irl/generate-xlsx.ts` — this is the
+  // form proven to work through Vite in the browser. The operator CLI needs
+  // the DEFAULT import instead (raw Node's CJS interop); the two differ on
+  // purpose and are commented at both sites.
+  import * as XLSX from 'xlsx-js-style';
+  import {
+    PRIMARY_SHEET_NAME,
+    extractIrlMarkdownFromRows,
+  } from '../../../../utils/irl/extract-markdown.mjs';
+
+  /**
+   * The claude.ai web prompt-argument ceiling. Above this the body still
+   * converts and is still valid — only the web client refuses to carry it as
+   * a prompt arg, and Desktop does not. Advisory, never an error: the CLI
+   * treats it the same way.
+   */
+  const WEB_PROMPT_ARG_CEILING = 57_000;
+
+  const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
+
+  const fileInput = el<HTMLInputElement>('irl-ext-file');
+  const drop = el<HTMLLabelElement>('irl-ext-drop');
+  const statusEl = el<HTMLSpanElement>('irl-ext-status');
+  const idleEl = el<HTMLDivElement>('irl-ext-idle');
+  const errorEl = el<HTMLDivElement>('irl-ext-error');
+  const errorBody = el<HTMLParagraphElement>('irl-ext-error-body');
+  const errorHint = el<HTMLParagraphElement>('irl-ext-error-hint');
+  const mdEl = el<HTMLPreElement>('irl-ext-md');
+  const actions = el<HTMLDivElement>('irl-ext-actions');
+  const copyBtn = el<HTMLButtonElement>('irl-ext-copy');
+  const downloadBtn = el<HTMLButtonElement>('irl-ext-download');
+  const diag = el<HTMLDivElement>('irl-ext-diag');
+  const advisory = el<HTMLParagraphElement>('irl-ext-advisory');
+
+  /** Last successful extraction, held for the copy/download actions. */
+  let current: { markdown: string; filename: string } | null = null;
+
+  const DOT = '·';
+
+  function setDiag(values: {
+    bullets: string;
+    sections: string;
+    bytes: string;
+    comments: string;
+    contradictions: string;
+  }) {
+    const set = (id: string, v: string) => {
+      const node = el<HTMLElement>(id);
+      if (node) node.textContent = v;
+    };
+    set('diag-bullets', values.bullets);
+    set('diag-sections', values.sections);
+    set('diag-bytes', values.bytes);
+    set('diag-comments', values.comments);
+    set('diag-contradictions', values.contradictions);
+  }
+
+  function resetDiag() {
+    setDiag({
+      bullets: DOT,
+      sections: DOT,
+      bytes: DOT,
+      comments: DOT,
+      contradictions: DOT,
+    });
+    diag?.setAttribute('data-empty', 'true');
+    if (advisory) advisory.hidden = true;
+  }
+
+  /** Show exactly one of the three body states. */
+  function showState(state: 'idle' | 'error' | 'ok') {
+    if (idleEl) idleEl.hidden = state !== 'idle';
+    if (errorEl) errorEl.hidden = state !== 'error';
+    if (mdEl) mdEl.hidden = state !== 'ok';
+    actions?.setAttribute('data-enabled', String(state === 'ok'));
+    if (copyBtn) copyBtn.disabled = state !== 'ok';
+    if (downloadBtn) downloadBtn.disabled = state !== 'ok';
+  }
+
+  function fail(sheetName: string, filename: string, looksLikeTemplate: boolean) {
+    current = null;
+    if (statusEl) statusEl.textContent = `Read “${sheetName}”: 0 requests`;
+    if (errorBody) {
+      errorBody.textContent = `No request rows were found in “${sheetName}”, so there is nothing to convert.`;
+    }
+    if (errorHint) {
+      errorHint.textContent = looksLikeTemplate
+        ? 'This looks like an unfilled template. Every Status cell is still OPEN with no response, so send it to the target first.'
+        : `This does not look like an Information Request List. “${sheetName}” is the sheet that was read.`;
+    }
+    resetDiag();
+    setDiag({
+      bullets: '0',
+      sections: 'none',
+      bytes: DOT,
+      comments: DOT,
+      contradictions: DOT,
+    });
+    diag?.setAttribute('data-empty', 'false');
+    showState('error');
+    void filename;
+  }
+
+  async function handleFile(file: File) {
+    if (statusEl) statusEl.textContent = `Reading “${file.name}”…`;
+
+    let workbook: XLSX.WorkBook;
+    try {
+      // The browser half of the read. The operator CLI does the same thing
+      // with `readFileSync` + `{ type: 'buffer' }`; from the rows onward the
+      // two paths run identical shared code.
+      const buf = await file.arrayBuffer();
+      workbook = XLSX.read(new Uint8Array(buf), { type: 'array' });
+    } catch {
+      current = null;
+      if (statusEl) statusEl.textContent = 'Could not read that file';
+      if (errorBody) {
+        errorBody.textContent = `“${file.name}” could not be opened as a spreadsheet.`;
+      }
+      if (errorHint) {
+        errorHint.textContent = 'Export it as .xlsx and try again.';
+      }
+      resetDiag();
+      showState('error');
+      return;
+    }
+
+    // Fall back to the first sheet, exactly as the CLI does, so a workbook
+    // that is not an IRL lands on the legible zero-row path rather than an
+    // error about sheet names.
+    const sheetName = workbook.SheetNames.includes(PRIMARY_SHEET_NAME)
+      ? PRIMARY_SHEET_NAME
+      : workbook.SheetNames[0];
+    const sheet = sheetName ? workbook.Sheets[sheetName] : undefined;
+    if (!sheet || !sheetName) {
+      fail('(no sheet)', file.name, false);
+      return;
+    }
+
+    const rows = XLSX.utils.sheet_to_json<Array<string | number>>(sheet, {
+      header: 1,
+      defval: '',
+    });
+    const result = extractIrlMarkdownFromRows(rows);
+
+    if (result.bulletCount === 0) {
+      // A blank template still has its Reference column populated, so the
+      // sheet name alone cannot tell the two apart — the row shape can.
+      const looksLikeTemplate = sheetName === PRIMARY_SHEET_NAME;
+      fail(sheetName, file.name, looksLikeTemplate);
+      return;
+    }
+
+    const byteLength = new TextEncoder().encode(result.markdown).length;
+    const kb = Math.round((byteLength / 1024) * 10) / 10;
+
+    current = {
+      markdown: result.markdown,
+      filename: file.name.replace(/\.xlsx$/i, '') + '.md',
+    };
+
+    if (mdEl) mdEl.textContent = result.markdown;
+    if (statusEl) {
+      statusEl.textContent =
+        `Read “${sheetName}”: ${result.bulletCount} ` +
+        `${result.bulletCount === 1 ? 'request' : 'requests'} across ` +
+        `${result.sectionsSeen.length} ${result.sectionsSeen.length === 1 ? 'section' : 'sections'}`;
+    }
+
+    setDiag({
+      bullets: String(result.bulletCount),
+      sections: result.sectionsSeen.length ? result.sectionsSeen.join(' ') : 'none',
+      bytes: `${kb} KB`,
+      comments: String(result.commentsSourcedAnswers.length),
+      contradictions: String(result.statusContradictions.length),
+    });
+    diag?.setAttribute('data-empty', 'false');
+
+    if (advisory) {
+      if (byteLength > WEB_PROMPT_ARG_CEILING) {
+        advisory.textContent =
+          `${byteLength.toLocaleString()} bytes exceeds the ~57,000-byte ceiling for a ` +
+          'claude.ai web prompt argument. The body is still valid; paste it in the desktop app.';
+        advisory.hidden = false;
+      } else {
+        advisory.hidden = true;
+      }
+    }
+
+    showState('ok');
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (file) void handleFile(file);
+    });
+  }
+
+  if (drop) {
+    for (const evt of ['dragenter', 'dragover'] as const) {
+      drop.addEventListener(evt, (e) => {
+        e.preventDefault();
+        drop.setAttribute('data-dragging', 'true');
+      });
+    }
+    for (const evt of ['dragleave', 'dragend'] as const) {
+      drop.addEventListener(evt, () => drop.removeAttribute('data-dragging'));
+    }
+    drop.addEventListener('drop', (e: DragEvent) => {
+      e.preventDefault();
+      drop.removeAttribute('data-dragging');
+      const file = e.dataTransfer?.files?.[0];
+      if (file) void handleFile(file);
+    });
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      if (!current) return;
+      try {
+        await navigator.clipboard.writeText(current.markdown);
+        copyBtn.textContent = 'Copied';
+        copyBtn.classList.add('brutal-btn--copied');
+        window.setTimeout(() => {
+          copyBtn.textContent = 'Copy markdown';
+          copyBtn.classList.remove('brutal-btn--copied');
+        }, 2000);
+      } catch {
+        // Clipboard access can be refused (permissions, insecure context).
+        // Say so rather than silently doing nothing — the markdown is
+        // selectable in the panel either way.
+        copyBtn.textContent = 'Copy blocked';
+        window.setTimeout(() => {
+          copyBtn.textContent = 'Copy markdown';
+        }, 2000);
+      }
+    });
+  }
+
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      if (!current) return;
+      const blob = new Blob([current.markdown], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = current.filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  showState('idle');
+  resetDiag();
+</script>
+
+<style>
+  .irl-ext {
+    padding: var(--spacing-3xl) 0 5rem;
+  }
+
+  .irl-ext__intro {
+    max-width: 720px;
+    margin: 0 auto var(--spacing-3xl);
+  }
+
+  .irl-ext__intro p {
+    font-size: var(--text-base);
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .irl-ext__intro p + p {
+    margin-top: var(--spacing-lg);
+  }
+
+  .irl-ext__intro a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    transition: color var(--transition-fast);
+  }
+
+  .irl-ext__intro a:hover {
+    color: var(--color-primary-dark);
+  }
+
+  /* ── shell ──────────────────────────────────────────────────────── */
+
+  .irl-ext__shell {
+    display: grid;
+    grid-template-columns: 420px minmax(0, 1fr);
+    gap: var(--spacing-2xl);
+    align-items: start;
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  .irl-ext__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    padding: var(--spacing-xl);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    background: var(--surface-subtle-bg);
+    backdrop-filter: blur(2px);
+    /* Fixed height so swapping between the idle, error and markdown states
+       never resizes the panel or moves anything below it. */
+    height: 900px;
+    box-sizing: border-box;
+  }
+
+  .irl-ext__step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    min-width: 0;
+  }
+
+  .irl-ext__label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+  }
+
+  .irl-ext__hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  /* ── dropzone ───────────────────────────────────────────────────── */
+
+  .irl-ext__dropwrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* Visually hidden but focusable, so the control stays keyboard-reachable
+     and the label's :focus-within ring is the visible focus indicator. */
+  .irl-ext__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .irl-ext__drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xl);
+    padding: var(--spacing-3xl) var(--spacing-2xl);
+    text-align: center;
+    cursor: pointer;
+    border: 3px dashed var(--color-primary);
+    transition:
+      border-style var(--transition-fast),
+      background var(--transition-fast);
+  }
+
+  .irl-ext__drop:hover,
+  .irl-ext__drop[data-dragging='true'] {
+    border-style: solid;
+    background: var(--accent-tint-bg);
+  }
+
+  .irl-ext__input:focus-visible + .irl-ext__drop {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .irl-ext__drop :global(.irl-ext__drop-icon) {
+    color: var(--color-primary);
+    display: block;
+  }
+
+  .irl-ext__drop-text {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .irl-ext__drop-text span {
+    color: var(--color-primary);
+  }
+
+  .irl-ext__drop-note {
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  /* ── diagnostics ────────────────────────────────────────────────── */
+
+  .irl-ext__diag {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid light-dark(var(--border-light), var(--border-dark-subtle));
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Dimmed rather than absent: the rows hold their positions from first
+     paint, so a result never shifts the panel. */
+  .irl-ext__diag[data-empty='true'] {
+    opacity: 0.4;
+  }
+
+  .irl-ext__diag-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin: 0;
+  }
+
+  .irl-ext__diag-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    font-size: var(--text-xs);
+  }
+
+  .irl-ext__diag-row dt {
+    color: var(--text-muted);
+  }
+
+  .irl-ext__diag-row dd {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: var(--font-weight-bold);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .irl-ext__advisory {
+    margin: auto 0 0;
+    padding: var(--spacing-md);
+    border-left: 3px solid var(--color-warning);
+    background: var(--surface-faint-bg);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  /* ── output ─────────────────────────────────────────────────────── */
+
+  .irl-ext__outhead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-xl);
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .irl-ext__status {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Always present, so a longer status line cannot reflow the buttons and
+     a state change cannot move them. */
+  .irl-ext__actions {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-shrink: 0;
+  }
+
+  .irl-ext__actions[data-enabled='false'] {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  .irl-ext__body {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .irl-ext__idle {
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-3xl) var(--spacing-2xl);
+    text-align: center;
+    border: 2px dashed var(--border-hairline);
+  }
+
+  .irl-ext__idle-text {
+    max-width: 340px;
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .irl-ext__error {
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl);
+    border: 2px solid var(--color-error);
+    border-left-width: 4px;
+    background: var(--surface-faint-bg);
+  }
+
+  .irl-ext__error-title {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-error);
+  }
+
+  .irl-ext__error-body {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .irl-ext__error-hint {
+    margin: 0;
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .irl-ext__md {
+    height: 100%;
+    box-sizing: border-box;
+    overflow: auto;
+    margin: 0;
+    padding: var(--spacing-lg);
+    border: 2px solid var(--border-hairline);
+    background: var(--surface-faint-bg);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    line-height: 1.85;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    /* Long VDR paths and canonical URLs must not force a horizontal scroll
+       inside the readout. `anywhere` is the non-deprecated equivalent of the
+       old `word-break: break-word`. */
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+
+  /* ── cards ──────────────────────────────────────────────────────── */
+
+  .irl-ext__cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-2xl);
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  .irl-ext__card {
+    padding: var(--spacing-xl);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-top: 3px solid var(--color-primary);
+  }
+
+  .irl-ext__card h2 {
+    font-size: var(--text-xl);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md);
+  }
+
+  .irl-ext__card-text {
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .irl-ext__card-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .irl-ext__card-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .irl-ext__card-list :global(.bullet-icon) {
+    flex-shrink: 0;
+    opacity: 0.8;
+    margin-top: 0.4rem;
+  }
+
+  .irl-ext__card-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    transition: color var(--transition-fast);
+  }
+
+  .irl-ext__card-link:hover {
+    color: var(--color-primary-dark);
+  }
+
+  .irl-ext__back {
+    display: inline-block;
+  }
+
+  /* ── responsive ─────────────────────────────────────────────────── */
+
+  @media (max-width: 1024px) {
+    .irl-ext__shell {
+      grid-template-columns: 1fr;
+    }
+
+    .irl-ext__panel {
+      height: auto;
+    }
+
+    .irl-ext__body {
+      min-height: 420px;
+    }
+
+    .irl-ext__md {
+      max-height: 520px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .irl-ext {
+      padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+    }
+
+    .irl-ext__panel {
+      padding: var(--spacing-lg);
+    }
+
+    .irl-ext__cards {
+      grid-template-columns: 1fr;
+    }
+
+    .irl-ext__outhead {
+      flex-direction: column;
+      gap: var(--spacing-md);
+    }
+
+    .irl-ext__status {
+      white-space: normal;
+    }
+
+    .irl-ext__drop {
+      padding: var(--spacing-2xl) var(--spacing-lg);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .irl-ext {
+      padding: var(--spacing-xl) 0 var(--spacing-2xl);
+    }
+
+    .irl-ext__actions {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .irl-ext__back {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

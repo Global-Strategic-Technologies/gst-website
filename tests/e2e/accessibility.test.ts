@@ -90,6 +90,11 @@ const PAGES: A11yPage[] = [
     path: '/hub/tools/information-request-list-generator/',
     waitFor: 'h1',
   },
+  {
+    name: 'IRL Extractor',
+    path: '/hub/tools/information-request-list-extractor/',
+    waitFor: 'h1',
+  },
   { name: 'Diligence Machine', path: '/hub/tools/diligence-machine/', waitFor: 'h1' },
   { name: 'ICG', path: '/hub/tools/infrastructure-cost-governance/', waitFor: 'h1' },
   {
