@@ -15,8 +15,15 @@
  * contents (anti-patterns 11 & 24).
  */
 import { test, expect, type Page } from '@playwright/test';
+import { CAPABILITIES } from '../../src/data/mcp/capabilities';
 
 const ROUTE = '/hub/mcp/docs/';
+
+/** Every note paragraph the panes should carry: argument notes plus the
+ *  Orchestrates preamble. Derived so a registry edit moves it, not a rewrite. */
+const EXPECTED_NOTES =
+  CAPABILITIES.filter((cap) => cap.argNote).length +
+  CAPABILITIES.filter((cap) => cap.orchestrates).length;
 
 /** Which lens is actually rendered, read from the cascade. */
 async function visibleLenses(page: Page): Promise<string[]> {
@@ -71,6 +78,35 @@ test.describe('MCP documentation — page shape', () => {
   test('lists every capability in the sidebar', async ({ page }) => {
     // 16 tools + 12 prompts + 3 resource families + 3 operations topics.
     await expect(page.locator('[data-cap-link]')).toHaveCount(34);
+  });
+
+  test('every note paragraph sits under a section heading', async ({ page }) => {
+    // The Arguments heading is driven by `args || argNote`, because three tools
+    // take none and carry only the note: rendered bare, that line hung off the
+    // gloss and the section read as missing rather than empty. Asserted as a
+    // structural property over all 34 panes — panes are server-rendered, so
+    // they are all in the DOM here whether or not the cascade shows them.
+    const { checked, orphans } = await page.evaluate(() => {
+      const orphans: string[] = [];
+      let checked = 0;
+      document.querySelectorAll('[data-pane]').forEach((pane) => {
+        const labels = [...pane.querySelectorAll('h3.mdoc-pane__label')];
+        pane.querySelectorAll('.mdoc-pane__note').forEach((note) => {
+          checked += 1;
+          const labelled = labels.some(
+            (label) =>
+              (label.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+          );
+          if (!labelled) orphans.push(pane.id);
+        });
+      });
+      return { checked, orphans };
+    });
+
+    expect(orphans).toEqual([]);
+    // Non-vacuous, and the count is the registry's: a note that stopped
+    // rendering would otherwise pass this as an empty sweep.
+    expect(checked).toBe(EXPECTED_NOTES);
   });
 });
 

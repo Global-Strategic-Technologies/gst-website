@@ -47,7 +47,12 @@ export interface Capability {
   /** One or two sentences: what it is, in the reader's terms. */
   gloss: string;
   args?: CapabilityArg[];
-  /** Qualifier below the argument table (cross-field rules, limits). */
+  /**
+   * Qualifier below the argument table (cross-field rules, limits). Also the
+   * whole body of the Arguments section when `args` is absent — an
+   * argument-less tool still renders the heading, so "Takes no arguments." is a
+   * stated contract rather than a missing section.
+   */
   argNote?: string;
   /** A copyable call, using real enum values. */
   example?: string;

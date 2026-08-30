@@ -48,24 +48,30 @@ const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAncho
   <p class="brutal-text-base mdoc-pane__gloss">{cap.gloss}</p>
 
   {
-    cap.args && (
+    /* The label is driven by `args || argNote`, not by `args` alone: a tool that
+       takes none carries only the note, and hanging that bare line off the gloss
+       made the three argument-less tools read as if the section were missing
+       rather than empty. Every capability with anything to say about arguments
+       says it under this heading. */
+    (cap.args || cap.argNote) && (
       <>
         <h3 class="brutal-label mdoc-pane__label">Arguments</h3>
-        <table class="brutal-bench-table mdoc-args">
-          <tbody>
-            {cap.args.map((arg) => (
-              <tr>
-                <td class="mdoc-args__name">{arg.name}</td>
-                <td class="mdoc-args__desc">{arg.desc}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {cap.args && (
+          <table class="brutal-bench-table mdoc-args">
+            <tbody>
+              {cap.args.map((arg) => (
+                <tr>
+                  <td class="mdoc-args__name">{arg.name}</td>
+                  <td class="mdoc-args__desc">{arg.desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {cap.argNote && <p class="brutal-text-tiny mdoc-pane__note">{cap.argNote}</p>}
       </>
     )
   }
-
-  {cap.argNote && <p class="brutal-text-tiny mdoc-pane__note">{cap.argNote}</p>}
 
   {
     cap.example && (
