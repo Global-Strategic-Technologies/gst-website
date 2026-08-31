@@ -57,6 +57,15 @@ const FILLED_ROWS: (string | number)[][] = [
 ];
 
 /**
+ * The same requests with every answer stripped: an unfilled template. It still
+ * has request rows, so it converts — into a body of `<NO RESPONSE>` lines — and
+ * that is what raises the advisory. Declared once; three tests need it.
+ */
+const BLANK_ROWS: (string | number)[][] = FILLED_ROWS.map((row) =>
+  /^\d{1,2}-\d{2}$/.test(String(row[0] ?? '')) ? [row[0], row[1], 'OPEN', '', '', '', ''] : row
+);
+
+/**
  * Enough request rows that the converted body is taller than the readout box,
  * which is what makes the readout a scroll container in the first place. A
  * three-row workbook never overflows, so it cannot exercise the rule.
@@ -277,10 +286,7 @@ test.describe('IRL Extractor — a result is reachable, not just present', () =>
 
     const outHeightBefore = (await page.locator('.irl-ext__panel--out').boundingBox())!.height;
 
-    const blank = FILLED_ROWS.map((row) =>
-      /^\d{1,2}-\d{2}$/.test(String(row[0] ?? '')) ? [row[0], row[1], 'OPEN', '', '', '', ''] : row
-    );
-    await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(blank));
+    await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(BLANK_ROWS));
     await expect(page.locator('#irl-ext-advisory')).toBeVisible({ timeout: 10000 });
 
     // The property the panel split exists to preserve: the pick panel may grow
@@ -312,6 +318,52 @@ test.describe('IRL Extractor — a result is reachable, not just present', () =>
     expect(fits.advisoryInside).toBe(true);
     expect(fits.panelScrolls).toBe(false);
     expect(fits.listScrolls).toBe(false);
+  });
+
+  test('at the cap tier an advisory moves nothing at all', async ({ page }) => {
+    // The floor-tier case above accepts an 87px downstream shift, because the
+    // panel has no slack there. At the CAP tier it does, and the correct
+    // behaviour is zero movement — which held until the diagnostics went to two
+    // lines per row, ate the old 760px cap's remaining slack, and started
+    // shifting the cap tier by 7px with nothing to catch it. The cap is 780px
+    // with 12.64px of headroom, so a sixth diagnostic row or longer advisory
+    // copy would re-break it; this is what refuses to let that happen quietly.
+    await page.setViewportSize({ width: 1920, height: 1200 });
+    await gotoTool(page);
+
+    // Read positions in the DOCUMENT, not the viewport: `boundingBox().y` is
+    // scroll-relative, so a page that scrolled by the shift amount would report
+    // no movement and pass falsely.
+    const frame = () =>
+      page.evaluate(() => {
+        const box = (sel: string) => {
+          const r = document.querySelector(sel)!.getBoundingClientRect();
+          return { height: r.height, top: r.top + window.scrollY };
+        };
+        return {
+          pick: box('.irl-ext__panel--pick'),
+          out: box('.irl-ext__panel--out'),
+          cards: box('.irl-ext__cards'),
+        };
+      });
+
+    const before = await frame();
+
+    await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(BLANK_ROWS));
+    await expect(page.locator('#irl-ext-advisory')).toBeVisible({ timeout: 10000 });
+
+    const after = await frame();
+    expect(after.out.height).toBeCloseTo(before.out.height, 0);
+    expect(after.pick.height).toBeCloseTo(before.pick.height, 0);
+    // Nothing below the shell moves either — the property in full.
+    expect(after.cards.top).toBeCloseTo(before.cards.top, 0);
+    // And the headroom is real rather than incidental: the advisory-state
+    // content must still fit under the cap. Asserted separately, with a message,
+    // so a failure names the cap instead of showing an opaque height diff.
+    expect(
+      after.pick.height,
+      'advisory-state pick panel must fit under the 780px cap'
+    ).toBeLessThanOrEqual(780);
   });
 });
 
@@ -423,41 +475,6 @@ test.describe('IRL Extractor — the page reads as one column', () => {
     expect(new Set(shape.map((r) => r.indent)).size).toBe(1);
   });
 
-  test('at the cap tier an advisory moves nothing at all', async ({ page }) => {
-    // The floor-tier case above accepts an 87px downstream shift. At the CAP
-    // tier the panel has slack and the correct behaviour is zero movement —
-    // which held until the diagnostics went to two lines per row, ate the old
-    // 760px cap's remaining slack, and started shifting the cap tier by 7px
-    // with nothing to catch it. The cap is 780px with only 12.64px of headroom,
-    // so a sixth diagnostic row or longer advisory copy would re-break it; this
-    // is the test that refuses to let that happen quietly.
-    await page.setViewportSize({ width: 1920, height: 1200 });
-    await gotoTool(page);
-
-    const heights = async () => ({
-      pick: (await page.locator('.irl-ext__panel--pick').boundingBox())!.height,
-      out: (await page.locator('.irl-ext__panel--out').boundingBox())!.height,
-      cardsTop: (await page.locator('.irl-ext__cards').boundingBox())!.y,
-    });
-    const before = await heights();
-
-    const blank = FILLED_ROWS.map((row) =>
-      /^\d{1,2}-\d{2}$/.test(String(row[0] ?? '')) ? [row[0], row[1], 'OPEN', '', '', '', ''] : row
-    );
-    await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(blank));
-    await expect(page.locator('#irl-ext-advisory')).toBeVisible({ timeout: 10000 });
-
-    const after = await heights();
-    expect(after.out).toBeCloseTo(before.out, 0);
-    expect(after.pick).toBeCloseTo(before.pick, 0);
-    // Nothing below the shell moves either — the property in full.
-    expect(after.cardsTop).toBeCloseTo(before.cardsTop, 0);
-    // And the headroom is real rather than incidental: the advisory-state
-    // content must still fit under the cap. Named separately so a failure
-    // points at the cap rather than at an opaque height diff.
-    expect(after.pick).toBeLessThanOrEqual(780);
-  });
-
   test('the guidance cards carry the frosted-glass treatment', async ({ page }) => {
     await gotoTool(page);
 
@@ -491,10 +508,7 @@ test.describe('IRL Extractor — an unfilled template', () => {
     // A blank template still HAS request rows, so it converts into a body of
     // <NO RESPONSE> lines — exactly as the CLI does. Calling that a failure
     // would misreport the tool.
-    const blank = FILLED_ROWS.map((row) =>
-      /^\d{1,2}-\d{2}$/.test(String(row[0] ?? '')) ? [row[0], row[1], 'OPEN', '', '', '', ''] : row
-    );
-    await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(blank));
+    await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(BLANK_ROWS));
 
     await expect(page.locator('#irl-ext-md')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('#irl-ext-error')).toBeHidden();

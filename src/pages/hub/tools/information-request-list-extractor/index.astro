@@ -581,22 +581,30 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
      a RAMP across the middle of the clamp, not a two-state thing — sampling
      only the floor and the cap steps straight over the band that matters, and
      doing exactly that is how the previous version of this comment came to
-     claim something false:
+     claim something false.
+
+     Everything below is the SHARED-HEIGHT TIER, i.e. viewports wider than
+     1024px. At 1024 and below the panels stack, `height`/`min-height` stop
+     applying and the two are not equal — see the `max-width: 1024px` block.
+     Rows are viewport height; `advisory pick` is the intrinsic content height,
+     which the panel's floor rounds up to once it exceeds it:
 
        viewport height   panel   advisory pick   out   downstream shift
-       900 (and below)     680          767.36   680             87.36
-       1000                740          767.36   740             67.36
+       980 and below       680          767.36   680             87.36
+       1000                700          767.36   700             67.36
        1040                740          767.36   740             27.36
        1067                767          767.36   767              0.36
-       1068 and above      768+         767.36   768+             0.00
+       1068 and above      768+         = panel  768+             0.00
 
-     So: both panels are equal in every resting state and the out panel never
-     moves at any viewport. What moves is everything below the shell, by the
-     amount the advisory overshoots the panel — the full 87px under 980, ramping
-     to zero at 1068. That band includes the usual maximized-window content
-     height on a 1080p display, so it is the common case, not an edge one. It is
-     still the right trade: it happens on a state the reader just triggered, and
-     the alternative was hiding the contradictions count.
+     So, on that tier: both panels are equal in every resting state, and the out
+     panel does not move at any viewport (it holds on the stacked tier too — a
+     separate test covers that). What moves is everything below the shell, by
+     the amount the advisory overshoots the panel: the full 87px at 980 and
+     below, ramping to zero at 1068. That band includes the usual
+     maximized-window content height on a 1080p display, so it is the common
+     case, not an edge one. It is still the right trade: it happens on a state
+     the reader just triggered, and the alternative was hiding the
+     contradictions count.
 
      The cap is 780px for exactly this. At 760px the advisory overshot even at
      the cap tier by 7.36px; break-even is 768px, and 780 leaves headroom —
@@ -708,8 +716,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     min-height: 0;
   }
 
-  /* Dimmed rather than absent: the rows hold their positions from first
-     paint, so a result never shifts the panel. */
+  /* Dimmed rather than absent: the rows hold their positions from first paint,
+     so FILLING them in never shifts the panel. The advisory paragraph is the
+     one thing that grows it — see `.irl-ext__panel--pick`. */
   .irl-ext__diag[data-empty='true'] {
     opacity: 0.4;
   }
