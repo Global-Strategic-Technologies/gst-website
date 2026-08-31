@@ -144,7 +144,10 @@ alone renders unstyled content — the specimen cards show every one of these in
 - **`.brutal-tool-shell`** — `__content`, `__authority`, `__section-label`
 
 Gateway cards pair the block with `.brutal-frosted` and sit inside
-`.brutal-gateway-grid`.
+`.brutal-gateway-grid`. Both `__features` lists set `display: flex` on the `li`, and a
+flex `li` makes every child its own item — bare text nodes included. A bullet carrying
+any inline element (`<code>`, `<a>`) must wrap its prose in ONE `<span>`; wrap
+unconditionally.
 
 ### Layout conventions
 
@@ -277,8 +280,12 @@ the built site, re-extracted on every sync.
         <h2>Tech Debt Calculator</h2>
       </div>
       <ul className="brutal-gateway-card__features">
-        <li>Quantify remediation cost before you sign</li>
-        <li>Executive-ready output in minutes</li>
+        <li>
+          <span>Quantify remediation cost before you sign</span>
+        </li>
+        <li>
+          <span>Executive-ready output in minutes</span>
+        </li>
       </ul>
       <a href="#" className="cta-button brutal-gateway-card__cta">
         Open tool

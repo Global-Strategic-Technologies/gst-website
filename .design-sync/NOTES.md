@@ -222,6 +222,31 @@ verified-by-upload / 0 changed / 0 new`, chrome 19/19, `font-probe` PASS on both
     client-side: the user switches to accept-edits/default mode and the same plan goes
     through. Everything built before the denial stayed valid — no rebuild was needed, only
     a re-fetch of the sidecar to confirm nothing had moved.
+- **2026-08-31 reproduced it again and UPLOADED (confirmed).** Same clean result
+  (`10/10 render cleanly`, `validate ✓`, zero warnings, chrome 19/19, `font-probe` PASS
+  both surfaces at 600.00px vs 549.81px, dark 4/7, all six palettes, `10
+verified-by-upload / 0 changed / 0 new`). 103 files written, 0 deletes; post-upload
+  `list_files` shows 105 = our 103 plus the two app-side files. Remote anchor now
+  `styleSha de30af52…` (UNCHANGED — see below) / `bundleSha12 920f57047564` /
+  `auxSha 75ee39e4…`. README re-fetched: header intact, generated body not truncated.
+  The real content delta was outside the anchor's reach on both counts — two guideline
+  docs (`STYLES_GUIDE`, `VARIABLES_REFERENCE`) and the `HubToolsLanding` chrome slice,
+  which picked up the new IRL Extractor card and the `HubHeader` spacing fix.
+
+## The remote-sync cache is written by hand, and silently rots
+
+`--remote .design-sync/.cache/remote-sync.json` is a LOCAL file the driver reads; nothing
+in the pipeline refreshes it after an upload. On 2026-08-31 it still held the **2026-08-16**
+sidecar (`styleSha 50cd2a28…`), two syncs behind, so the driver reported `styleChanged:
+true` and a phantom `upload.components: ["CardSpecimen"]` against a remote that in fact
+matched local on every hash but `auxSha`. Harmless here — it only over-uploads — but it
+burns a debugging cycle every time, and it is indistinguishable from a real style change.
+
+**So: after a confirmed upload, `cp ds-bundle/_ds_sync.json
+.design-sync/.cache/remote-sync.json`.** Done for this run. And when the driver reports
+`styleChanged`, confirm it against `get_file _ds_sync.json` before believing it — the
+cache is a guess, the remote sidecar is the fact. (`.cache/` is gitignored, so a fresh
+clone has no cache at all and correctly does a full re-upload.)
 
 ## Re-syncing from a fresh clone (what it costs)
 
