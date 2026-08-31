@@ -146,41 +146,48 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       </div>
 
       <div class="irl-ext__cards">
+        <!-- Each item's prose is wrapped in a single span on purpose. The `li`
+             is a flex container, so every bare text node and every inline
+             `code`/`a` inside it would otherwise become its own flex item and
+             be laid out (and wrapped) independently — which is exactly how the
+             first bullet came to render as "Paste it into" beside a gap beside
+             the rest of the sentence. One span keeps the sentence one run of
+             inline text next to the icon. -->
         <div class="irl-ext__card">
           <h2>The file never leaves your machine</h2>
-          <p class="irl-ext__card-text">
-            Your browser reads the workbook and does the conversion locally. Nothing is uploaded,
-            nothing is stored, and no account is involved. Close the tab and it is gone.
-          </p>
+          <ul class="irl-ext__card-list">
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <span>Your browser reads the workbook and converts it locally</span>
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <span>Nothing is uploaded, nothing is stored, and no account is involved</span>
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <span>Close the tab and it is gone</span>
+            </li>
+          </ul>
         </div>
         <div class="irl-ext__card">
           <h2>What to do with the markdown</h2>
-          <!-- Each item's prose is wrapped in a single span on purpose. The `li`
-               is a flex container, so every bare text node and every inline
-               `code`/`a` inside it would otherwise become its own flex item and
-               be laid out (and wrapped) independently — which is exactly how the
-               first bullet came to render as "Paste it into" beside a gap beside
-               the rest of the sentence. One span keeps the sentence one run of
-               inline text next to the icon. -->
           <ul class="irl-ext__card-list">
             <li>
               <DeltaIcon class="bullet-icon" />
               <span
                 >Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument to get the
-                dossier back</span
-              >
-            </li>
-            <li>
-              <DeltaIcon class="bullet-icon" />
-              <span>Blank rows are the follow-up ask, so read them before you send anything on</span
+                dossier back. The <a
+                  class="irl-ext__card-link"
+                  href="/hub/mcp/docs/#cap-gst_irl_sweep">sweep contract</a
+                > lists everything that comes back.</span
               >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" />
               <span
-                ><a class="irl-ext__card-link" href="/hub/mcp/docs/#cap-gst_irl_sweep"
-                  >Read the sweep contract</a
-                > for what it returns</span
+                >Every row reading <code>&lt;NO RESPONSE&gt;</code> is a request the target did not answer.
+                Those are the questions still outstanding, so read them before you pass the markdown on.</span
               >
             </li>
           </ul>
@@ -831,20 +838,16 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     margin: 0 0 var(--spacing-md);
   }
 
-  .irl-ext__card-text {
-    font-size: var(--text-sm);
-    line-height: 1.7;
-    color: var(--text-secondary);
-    margin: 0;
-  }
-
+  /* `md` rather than `sm`: the bullets on the right-hand card run to two and
+     three lines at 1.7, and a gap smaller than the leading made consecutive
+     bullets read as one paragraph. */
   .irl-ext__card-list {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
   }
 
   /* Exactly two flex items per row: the icon, and one span holding the whole
