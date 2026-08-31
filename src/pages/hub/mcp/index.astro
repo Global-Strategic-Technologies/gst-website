@@ -1429,8 +1429,10 @@ function accessHref(tier?: string) {
     text-underline-offset: 0.15em;
   }
 
-  /* Four guide cards on one row. The shared grid's 420px track floor breaks
-     the row below ~1452px (the BL-093 trap), so this page owns
+  /* Four guide cards on one row. Four of the shared grid's 420px tracks need
+     1,824px of content against `.container`'s 1,504px ceiling, so the shared
+     rule can NEVER hold this row at any viewport (the BL-093 trap, which bit at
+     three tracks and 1,452px). Hence this page owns
      the columns — and because a scoped rule out-specifies the shared sheet's
      768px single-column rule, the mobile stack is restated here too. */
   .mcp-guides {
