@@ -719,8 +719,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
      could stay pinned inside a fixed-height panel — but at the then-600px
      floor that pushed three of the five rows (including the contradictions
      count) out of view whenever the advisory fired, and made the list a
-     keyboard trap axe rates `scrollable-region-focusable`. The left panel
-     grows instead; see `.irl-ext__panel`. */
+     keyboard trap axe rates `scrollable-region-focusable`. The panels grow
+     instead — both of them, together; see `.irl-ext__panel--out,
+     .irl-ext__panel--pick`. */
   .irl-ext__diag-list {
     display: flex;
     flex-direction: column;
@@ -818,9 +819,18 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   /* `hidden` must beat the flex display below: an author-origin `display`
-     outranks the UA's `[hidden] { display: none }`, so without these resets
-     all three states render stacked and the panel blows past its fixed
-     height. Same trap, same fix, as `ClipFigure.astro`. */
+     outranks the UA's `[hidden] { display: none }`. Same trap, same fix, as
+     `ClipFigure.astro`.
+
+     WHAT IT PREVENTS CHANGED, and the old wording is kept honest here rather
+     than left to rot: this used to be a layout defect — the three states
+     rendered stacked and drove the panel past its height. Since the states
+     became `position: absolute; inset: 0` they are out of flow, so disabling
+     these resets leaves the panel at 680 either way and all three land on the
+     same box (measured: top 557.41, height 560, all three). The defect is now
+     three text layers painted over each other, and the idle and error copy
+     sitting in the accessibility tree to be read out over the result. Still
+     worth guarding, for a different reason. */
   .irl-ext__idle[hidden],
   .irl-ext__error[hidden] {
     display: none;

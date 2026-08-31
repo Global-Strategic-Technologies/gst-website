@@ -187,9 +187,12 @@ test.describe('IRL Extractor — conversion', () => {
 });
 
 test.describe('IRL Extractor — the OUTPUT panel does not move', () => {
-  // Scoped to the output panel on purpose. The pick panel beside it is
-  // deliberately free to grow for the advisory, so "the layout does not move"
-  // — what this block used to be called — is no longer true of the shell.
+  // Scoped to the output panel because these two cases are about CONVERSION,
+  // not about the advisory: swapping idle -> markdown must not resize it. Both
+  // panels are free to grow together when the advisory fires — that is the
+  // point of `at the cap tier…` and `an advisory never pushes…` in the other
+  // block — so "the layout does not move", what this was called, is not true
+  // of the shell in general. It is true of these swaps.
   //
   // Both cases use the LONG fixture. `FILLED_ROWS` is three requests, which
   // converts to a body far under the stacked tier's 420px, so the stacked
@@ -362,9 +365,13 @@ test.describe('IRL Extractor — a result is reachable, not just present', () =>
     const after = await frame();
     expect(after.out.height).toBeCloseTo(before.out.height, 0);
     expect(after.pick.height).toBeCloseTo(before.pick.height, 0);
-    // Equal here too — at this tier because neither had to grow, rather than
-    // because one was pulled up to the other.
-    expect(after.out.height).toBeCloseTo(after.pick.height, 0);
+    // Deliberately NO equality assertion here. At this tier both panels sit on
+    // the same floor and neither exceeds it, so `out === pick` is a tautology
+    // of the shared token: it passes even with the stretch removed and the old
+    // fixed height restored, which is the regression it would appear to guard.
+    // The floor-tier case is where equality is load-bearing and it is asserted
+    // there, where it does fail under that mutation.
+    //
     // Nothing below the shell moves either — the property in full.
     expect(after.cards.top).toBeCloseTo(before.cards.top, 0);
     // And the headroom is real rather than incidental: the advisory-state
