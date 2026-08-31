@@ -151,6 +151,7 @@ describe('every hub tool page emits WebApplication JSON-LD', () => {
     // seventh tool lands.
     expect(TOOL_PAGES).toEqual([
       'diligence-machine',
+      'information-request-list-extractor',
       'information-request-list-generator',
       'infrastructure-cost-governance',
       'regulatory-map',

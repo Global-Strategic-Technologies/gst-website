@@ -127,8 +127,8 @@ const TOC_LINKS = [
           <h2 class="brutal-heading-lg guide-heading">02 The round trip, end to end</h2>
           <p class="guide-intro guide-intro--wide-gap">
             Two prompts bookend the engagement. The first issues the ask; the last reads the answer.
-            Steps 02 and 03 happen off-platform, in the partner's inbox, unless the evidence is
-            already in front of you.
+            Step 02 happens off-platform, in the partner's inbox, unless the evidence is already in
+            front of you.
           </p>
           <ol class="quick-steps quick-steps--roomy">
             <li class="quick-step">
@@ -172,14 +172,22 @@ const TOC_LINKS = [
               </div>
             </li>
             <li class="quick-step">
-              <div class="quick-step__num quick-step__num--muted">03</div>
+              <div class="quick-step__num">03</div>
               <div>
                 <h3 class="quick-step__title">Get it into markdown</h3>
+                <p class="quick-step__body">
+                  The workbook has to become text before it can be swept. The <a
+                    href="/hub/tools/information-request-list-extractor/"
+                    >Information Request List Extractor</a
+                  > does that conversion in your browser: it emits exactly the body shape the prompt expects,
+                  reproducibly, from the same bytes every time, including the header preamble the sweep
+                  infers the target from. Nothing is uploaded and nothing is installed.
+                </p>
                 <p class="quick-step__body quick-step__body--last">
-                  The workbook has to become text before it can be swept. The operator-local
-                  extractor emits exactly the body shape the prompt expects, reproducibly, from the
-                  same bytes every time, including the header preamble the sweep infers the target
-                  from. Attaching the workbook and letting the model read it also works.
+                  Attaching the workbook and letting the model read it also works, but it is a
+                  reconstruction rather than a conversion: the result varies between runs on the
+                  same file, and a large workbook can truncate. Prefer the extractor when the answer
+                  has to be reproducible. With a repo checkout, the same conversion is a command.
                 </p>
                 <div class="endpoint-row">
                   <code class="endpoint-code"
@@ -763,7 +771,9 @@ const TOC_LINKS = [
     max-width: 960px;
   }
 
-  /* Steps 02-03 happen off-platform; the muted number is the design's cue. */
+  /* Step 02 happens off-platform, in the partner's inbox; the muted number is
+     the design's cue. Step 03 was muted too until the IRL Extractor gave it a
+     first-party page — a step with a Hub tool behind it is not off-platform. */
   .quick-step__num--muted {
     color: var(--text-muted);
   }

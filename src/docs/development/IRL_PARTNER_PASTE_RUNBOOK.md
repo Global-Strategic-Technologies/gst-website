@@ -31,6 +31,10 @@ npm run irl:extract -- ..\path\to\PRAXIS-IRL-Acme_filled.xlsx --out c:\tmp\acme-
 
 Then in Claude Desktop, invoke `/gst_irl_ingestion` and paste the contents of `c:\tmp\acme-irl.md` into the `filledIrl` argument. Done.
 
+> **No checkout?** [`/hub/tools/information-request-list-extractor/`](https://globalstrategic.tech/hub/tools/information-request-list-extractor/) performs the same conversion in the browser and produces byte-identical output for the same workbook (pinned by `tests/unit/irl/extract-markdown-parity.test.ts`). Both paths run the same shared core, `src/utils/irl/extract-markdown.mjs`; only the byte-reading differs. See [ADR-0025](../adr/0025-irl-extraction-in-the-browser.md).
+>
+> Either way the product is the same body, and both consumers take it: this runbook covers `gst_irl_ingestion`, and its successor `gst_irl_sweep` reads the identical markdown in its own `filledIrl` argument. The conversion does not care which one you invoke.
+
 The rest of this doc explains the why, the validation, and the edge cases.
 
 ---

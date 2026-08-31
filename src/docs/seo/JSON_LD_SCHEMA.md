@@ -526,6 +526,15 @@ per-tool parameters. Everything else is a constant inside the helper.
 | **featureList** | Fillable .xlsx workbook generated client-side, Per-section selection mirroring VDR folder structure, Engagement-specific custom requests, Context-aware request removal |
 | **knowsAbout** | Technical Due Diligence, Information Request Lists, Virtual Data Room Structure, M&A Tech Strategy |
 
+#### 7. Information Request List Extractor
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/pages/hub/tools/information-request-list-extractor/index.astro` |
+| **datePublished** | 2026-08-30 |
+| **featureList** | Filled .xlsx converted to canonical markdown client-side, Byte-identical to the operator extractor for the same workbook, Answered rows carried across verbatim with status and sourcing, Workbook never leaves the browser |
+| **knowsAbout** | Technical Due Diligence, Information Request Lists, Virtual Data Room Structure, M&A Tech Strategy |
+
 ### Adding a New Tool
 
 When creating a new hub tool:
@@ -597,6 +606,12 @@ Describes the tools collection page as an ordered list of web applications, enab
       "position": 6,
       "name": "Information Request List Generator",
       "url": "https://globalstrategic.tech/hub/tools/information-request-list-generator/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "name": "Information Request List Extractor",
+      "url": "https://globalstrategic.tech/hub/tools/information-request-list-extractor/"
     }
   ]
 }

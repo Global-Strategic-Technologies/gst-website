@@ -657,8 +657,11 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
 </script>
 
 <style>
+  /* No top padding: `HubHeader` already contributes 3xl above the title, and a
+     second 3xl here started this page's title 48px lower than the other hub
+     tools'. */
   .irl-gen {
-    padding: var(--spacing-3xl) 0 5rem;
+    padding: 0 0 5rem;
   }
 
   .irl-gen__intro {
@@ -1135,7 +1138,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
 
   @media (max-width: 768px) {
     .irl-gen {
-      padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+      padding: 0 0 var(--spacing-3xl);
     }
 
     .irl-gen__form {
@@ -1155,7 +1158,7 @@ const irlSections = parseIrlArticle(articleBodyRaw).sections.map((s) => ({
 
   @media (max-width: 480px) {
     .irl-gen {
-      padding: var(--spacing-xl) 0 var(--spacing-2xl);
+      padding: 0 0 var(--spacing-2xl);
     }
   }
 </style>

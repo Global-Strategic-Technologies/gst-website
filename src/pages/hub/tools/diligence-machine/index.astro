@@ -1780,8 +1780,11 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 <style>
   /* ─── LAYOUT ───────────────────────────────────────────────────────── */
 
+  /* No top padding: `HubHeader` already contributes 3xl above the title, and a
+     second helping here started this page's title 40px lower than the other
+     hub tools'. */
   .diligence-machine {
-    padding: var(--spacing-3xl) 0;
+    padding: 0 0 var(--spacing-3xl);
     min-height: 80vh;
   }
 
@@ -2669,7 +2672,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   @media (min-width: 768px) {
     .diligence-machine {
-      padding: var(--spacing-2_5xl) 0;
+      padding: 0 0 var(--spacing-2_5xl);
     }
 
     /* Expand wizard step width on tablet+ for better multi-column layout */

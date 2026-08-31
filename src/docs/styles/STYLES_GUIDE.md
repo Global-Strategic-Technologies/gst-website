@@ -406,6 +406,31 @@ And one trap in the **single-column fallback**, which is where BL-105 nearly shi
   breakpoint (600–768px here), so a check at 480px sees nothing wrong. Assert **uniformity**
   across all cards, not one card's upper bound.
 
+### A flex list item lays out every child, text nodes included
+
+`.brutal-gateway-card__features li` and its page-local equivalents are `display: flex`
+so a bullet icon can sit beside the text. That makes **every bare text node inside the
+`li` its own anonymous flex item**, laid out and wrapped independently of its
+neighbours. A bullet of plain text has exactly one text node and looks fine — which is
+why every existing call site looks fine, and why the rule stays hidden until someone
+adds a link.
+
+```html
+<!-- ✅ two flex items: the icon, and the whole sentence -->
+<li>
+  <DeltaIcon class="bullet-icon" />
+  <span>Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</span>
+</li>
+
+<!-- ❌ six flex items; renders as "Paste it into" · gap · "gst_irl_sweep" · gap · … -->
+<li><DeltaIcon class="bullet-icon" />Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</li>
+```
+
+**The rule**: a bullet carrying any inline element (`<code>`, `<a>`, `<strong>`) must wrap
+its prose in one span, so the row is icon + span. Wrapping unconditionally is the safer
+habit — it survives the link someone adds later. This shipped broken on the IRL extractor
+page before it was caught.
+
 ### Variable Usage Priority
 
 1. **Design system variables** for colors, spacing, typography, transitions
@@ -713,9 +738,42 @@ is why it does not reduce to any of the three shapes above.
 
 Recurring patterns used across hub tools (ICG, TechPar, Tech Debt Calculator, Diligence Machine).
 
+### `HubHeader` owns the space above and below the page title
+
+A page that renders `HubHeader` **must not add its own top padding** to the section
+wrapping it. The component already contributes `--spacing-3xl` above the title and
+`--spacing-2xl` below the subtitle, and both scale at the 768/480 breakpoints. A
+second helping on the section stacks: it does not replace the component's.
+
+```css
+/* ✅ the page owns its BOTTOM padding only */
+.my-hub-tool {
+  padding: 0 0 5rem;
+}
+
+/* ❌ stacks 3xl on the 3xl HubHeader already contributes, starting this page's
+   title 48px lower than every other Hub page */
+.my-hub-tool {
+  padding: var(--spacing-3xl) 0 5rem;
+}
+```
+
+Five pages had drifted this way (both IRL tools, the Diligence Machine, and all
+three Library guides), which is why the rule is written down rather than left to
+be noticed. The measurable invariant: on every page carrying an unmodified
+`HubHeader`, the `h1` starts at the same offset and the gap from the subtitle to
+the first content block is `--spacing-2xl`.
+
+The `/hub/mcp/*` guide pages are a deliberate exception — they zero the component
+and supply their own `.guide-hero` chrome (see `mcp-guide.css`).
+
 ### Print Stylesheets
 
-All hub tools include a `@media print` block in their scoped styles with a consistent structure:
+Hub tools whose output is meant to be taken into a meeting — ICG, TechPar, the Tech
+Debt Calculator, the Diligence Machine, the Regulatory Map — include a `@media print`
+block in their scoped styles with a consistent structure. The two IRL tools do not:
+their deliverable is a file you download or a body you paste, so there is nothing on
+screen worth printing. Add the block when a tool's on-screen result **is** the artifact.
 
 ```css
 @media print {
