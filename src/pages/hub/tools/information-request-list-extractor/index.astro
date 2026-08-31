@@ -565,10 +565,17 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   /* The PICK panel matches that height so the two read as a pair, but as a
      FLOOR rather than a ceiling. Its content is stable except for the advisory
-     paragraph, which appears on some results and needs about 90px that the
-     floor does not have; letting this panel grow is what keeps all five
-     diagnostic rows on screen. The output panel is untouched by that, and the
-     growth is downward, on a state the reader just triggered. */
+     paragraph, which appears on some results and needs about 90px the floor
+     does not have; letting this panel grow is what keeps all five diagnostic
+     rows on screen instead of scrolling three of them away.
+
+     Measured, so the trade is on the record rather than implied. Common case,
+     every viewport: both panels equal, nothing moves. Advisory case at the
+     600px floor (1440x900): pick 600 → 689, out 600 → 600, and the cards and
+     Back link below the shell move down 90px. Advisory case at 1920x1200: the
+     760px slack absorbs it and nothing moves at all. So the shift is real, and
+     confined to the floor tier, on a state the reader just triggered — which
+     beats hiding the contradictions count. */
   .irl-ext__panel--pick {
     min-height: var(--irl-ext-panel-h);
   }

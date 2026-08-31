@@ -907,13 +907,17 @@ Brutalist Gateway Card (Library/Tools index pages)
   gap: var(--spacing-sm);
 }
 
-/* A flex `li` takes ONE child, not a sentence. Every bare text node beside an
-   inline `code` or `a` becomes its own anonymous flex item and wraps
-   independently, so markup like `<li><DeltaIcon/>Paste it into <code>x</code>'s
-   argument</li>` renders as "Paste it into" beside a gap beside the rest of its
-   own sentence. Wrap the prose in a single span: icon + span, always. This is
-   not hypothetical — it shipped on the IRL extractor page, whose own list
-   carries the same shape and the same fix. */
+/* A flex `li` lays out EVERY child as a flex item, anonymous text nodes
+   included. A bullet of plain text has exactly one, so it is fine — which is
+   why every call site in this family looks fine today. Add an inline `code` or
+   `a` and the sentence fragments around it become separate items that wrap
+   independently: `<li><DeltaIcon/>Paste it into <code>x</code>'s argument</li>`
+   renders as "Paste it into" beside a gap beside the rest of its own sentence.
+
+   The rule, therefore: a bullet carrying ANY inline element must wrap its prose
+   in one span, so the row is icon + span. Wrapping unconditionally is the safer
+   habit, since it survives someone later adding a link. Not hypothetical — it
+   shipped on the IRL extractor page. */
 .brutal-gateway-card__features li {
   font-size: var(--text-base);
   font-family: var(--font-family-mono);

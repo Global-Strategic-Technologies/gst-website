@@ -177,18 +177,25 @@ test.describe('IRL Extractor — conversion', () => {
   });
 });
 
-test.describe('IRL Extractor — the layout does not move', () => {
-  test('the output panel is the same height before and after a conversion', async ({ page }) => {
+test.describe('IRL Extractor — the OUTPUT panel does not move', () => {
+  // Scoped to the output panel on purpose. The pick panel beside it is
+  // deliberately free to grow for the advisory, so "the layout does not move"
+  // — what this block used to be called — is no longer true of the shell.
+  //
+  // Both cases use the LONG fixture. `FILLED_ROWS` is three requests, which
+  // converts to a body far under the stacked tier's 420px, so the stacked
+  // guard passed against the very CSS it was written to catch: a `min-height`
+  // that only grows once the body exceeds it never got the chance.
+  test('at desktop width, before and after a conversion', async ({ page }) => {
     await gotoTool(page);
 
-    // The whole point of the fixed-height panel and the always-mounted
-    // controls. Measured rather than asserted in prose, because the prose was
-    // wrong once: three stacked states took the panel to ~2340px against a
-    // declared 900px and nothing caught it.
+    // Measured rather than asserted in prose, because the prose was wrong
+    // once: three stacked states took the panel to ~2340px against a declared
+    // 900px and nothing caught it.
     const panel = page.locator('.irl-ext__panel--out');
     const before = await panel.boundingBox();
 
-    await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(FILLED_ROWS));
+    await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(LONG_ROWS));
     await expect(page.locator('#irl-ext-md')).toBeVisible({ timeout: 10000 });
 
     const after = await panel.boundingBox();
@@ -196,19 +203,28 @@ test.describe('IRL Extractor — the layout does not move', () => {
     expect(after?.height).toBeCloseTo(before!.height, 0);
   });
 
-  test('the output panel still holds its height on the stacked tier', async ({ page }) => {
-    // The desktop guard above runs at desktop width in every project, so the
-    // ≤1024px layout — where the panels stack and the shared height stops
-    // applying — had no coverage at all, and a body over 420px grew the panel
-    // by up to 100px on a state change.
+  test('on the stacked tier, where all three Playwright projects are too wide to look', async ({
+    page,
+  }) => {
+    // The ≤1024px layout stacks the panels and the shared height stops
+    // applying, so it had no coverage at all — and `min-height: 420px` on the
+    // body plus `max-height: 520px` on the readout let a long body grow the
+    // panel by up to 100px on a state change.
     await page.setViewportSize({ width: 900, height: 1000 });
     await gotoTool(page);
 
     const panel = page.locator('.irl-ext__panel--out');
     const before = await panel.boundingBox();
 
-    await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(FILLED_ROWS));
+    await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(LONG_ROWS));
     await expect(page.locator('#irl-ext-md')).toBeVisible({ timeout: 10000 });
+
+    // Guard against a fixture too small to exercise the regression: the body
+    // must exceed the 420px basis, or a `min-height` bug cannot show itself.
+    const overflows = await page
+      .locator('#irl-ext-md')
+      .evaluate((el) => el.scrollHeight > el.clientHeight + 1);
+    expect(overflows).toBe(true);
 
     const after = await panel.boundingBox();
     expect(before?.height).toBeTruthy();
@@ -259,11 +275,18 @@ test.describe('IRL Extractor — a result is reachable, not just present', () =>
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoTool(page);
 
+    const outHeightBefore = (await page.locator('.irl-ext__panel--out').boundingBox())!.height;
+
     const blank = FILLED_ROWS.map((row) =>
       /^\d{1,2}-\d{2}$/.test(String(row[0] ?? '')) ? [row[0], row[1], 'OPEN', '', '', '', ''] : row
     );
     await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(blank));
     await expect(page.locator('#irl-ext-advisory')).toBeVisible({ timeout: 10000 });
+
+    // The property the panel split exists to preserve: the pick panel may grow
+    // for the advisory, the output panel may not move at all.
+    const out = page.locator('.irl-ext__panel--out');
+    expect((await out.boundingBox())?.height).toBeCloseTo(outHeightBefore, 0);
 
     const fits = await page.evaluate(() => {
       const panel = document.querySelector('.irl-ext__panel--pick') as HTMLElement;

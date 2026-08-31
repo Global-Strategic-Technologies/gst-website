@@ -406,6 +406,31 @@ And one trap in the **single-column fallback**, which is where BL-105 nearly shi
   breakpoint (600–768px here), so a check at 480px sees nothing wrong. Assert **uniformity**
   across all cards, not one card's upper bound.
 
+### A flex list item lays out every child, text nodes included
+
+`.brutal-gateway-card__features li` and its page-local equivalents are `display: flex`
+so a bullet icon can sit beside the text. That makes **every bare text node inside the
+`li` its own anonymous flex item**, laid out and wrapped independently of its
+neighbours. A bullet of plain text has exactly one text node and looks fine — which is
+why every existing call site looks fine, and why the rule stays hidden until someone
+adds a link.
+
+```html
+<!-- ✅ two flex items: the icon, and the whole sentence -->
+<li>
+  <DeltaIcon class="bullet-icon" />
+  <span>Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</span>
+</li>
+
+<!-- ❌ six flex items; renders as "Paste it into" · gap · "gst_irl_sweep" · gap · … -->
+<li><DeltaIcon class="bullet-icon" />Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</li>
+```
+
+**The rule**: a bullet carrying any inline element (`<code>`, `<a>`, `<strong>`) must wrap
+its prose in one span, so the row is icon + span. Wrapping unconditionally is the safer
+habit — it survives the link someone adds later. This shipped broken on the IRL extractor
+page before it was caught.
+
 ### Variable Usage Priority
 
 1. **Design system variables** for colors, spacing, typography, transitions
@@ -712,28 +737,6 @@ is why it does not reduce to any of the three shapes above.
 ## Hub Tool Patterns
 
 Recurring patterns used across hub tools (ICG, TechPar, Tech Debt Calculator, Diligence Machine).
-
-### A flex list item takes one child, not a sentence
-
-`.brutal-gateway-card__features li` and its page-local equivalents are `display: flex`
-so the bullet icon can sit beside the text. That makes **every bare text node inside the
-`li` its own anonymous flex item**, laid out and wrapped independently of its
-neighbours — so a bullet mixing prose with an inline `<code>` or `<a>` renders as
-fragments separated by gaps, not as a sentence.
-
-```html
-<!-- ✅ two flex items: the icon, and the whole sentence -->
-<li>
-  <DeltaIcon class="bullet-icon" />
-  <span>Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</span>
-</li>
-
-<!-- ❌ six flex items; renders as "Paste it into" · gap · "gst_irl_sweep" · gap · … -->
-<li><DeltaIcon class="bullet-icon" />Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</li>
-```
-
-A bullet of plain text with no inline elements has only one text node, so it looks fine
-and hides the rule until someone adds a link. Wrap the prose in a span regardless.
 
 ### `HubHeader` owns the space above and below the page title
 
