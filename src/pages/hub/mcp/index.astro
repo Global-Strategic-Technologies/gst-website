@@ -1429,8 +1429,8 @@ function accessHref(tier?: string) {
     text-underline-offset: 0.15em;
   }
 
-  /* Three guide cards on one row. The shared grid's 420px track floor breaks
-     three tracks to 2 + 1 below ~1452px (the BL-093 trap), so this page owns
+  /* Four guide cards on one row. The shared grid's 420px track floor breaks
+     the row below ~1452px (the BL-093 trap), so this page owns
      the columns — and because a scoped rule out-specifies the shared sheet's
      768px single-column rule, the mobile stack is restated here too. */
   .mcp-guides {
@@ -1438,7 +1438,7 @@ function accessHref(tier?: string) {
     gap: var(--spacing-xl);
   }
 
-  /* Equal floors so the three CTAs land level when blurb lengths differ. */
+  /* Equal floors so the CTAs land level when blurb lengths differ. */
   .mcp-guides .brutal-gateway-card__header {
     min-height: 2.6em;
   }

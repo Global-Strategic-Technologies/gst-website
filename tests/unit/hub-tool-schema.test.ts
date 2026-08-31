@@ -127,9 +127,12 @@ describe('hubToolSchema — emitted shape', () => {
   });
 
   it('keeps knowsAbout per-tool rather than collapsing it to a shared array', () => {
-    // The distinction BL-099's acceptance criteria got wrong: all six pages
+    // The distinction BL-099's acceptance criteria got wrong: the tool pages
     // carry DIFFERENT expertise arrays, so hoisting this into the shared author
-    // constant would delete real signal from five of them.
+    // constant would delete real signal from most of them. Six distinct arrays
+    // across seven pages as of the IRL extractor, which deliberately repeats the
+    // generator's: they are two halves of one subject, and that is a content
+    // judgement rather than the collapse this guard exists to prevent.
     const other = hubToolSchema({
       name: 'Other',
       description: 'Other',

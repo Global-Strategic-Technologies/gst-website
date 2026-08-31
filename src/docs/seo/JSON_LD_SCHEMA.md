@@ -543,8 +543,8 @@ When creating a new hub tool:
 2. Set tool-specific `name`, `description`, and `featureList`
 3. Set `datePublished` to the launch date, `dateModified` to today
 4. Customize the `knowsAbout` array for the tool's domain (4–5 distinct items, always including "Technical Due Diligence" and "M&A Tech Strategy" — enforced by `tests/unit/hub-tool-schema.test.ts`)
-5. Add the tool to the `ItemList` on the tools landing page
-6. Update this document with the new tool's details, and the expected-page list in `tests/unit/hub-tool-schema.test.ts`
+5. Add the tool to the `ItemList` on the tools landing page, **incrementing its `numberOfItems`** — and mirror both here, in the ItemList block below
+6. Update this document with the new tool's details. There is no page list to update in `tests/unit/hub-tool-schema.test.ts`: it walks `src/pages/hub/tools/` with `readdirSync`, so a new page is discovered rather than declared. That is why adding the seventh tool left the test green while three counts in this document went stale
 7. Validate with Google Structured Data Testing Tool
 
 ### Updating dateModified

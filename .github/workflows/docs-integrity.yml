@@ -1,6 +1,6 @@
 name: Docs link integrity
 
-# Runs `npm run test:docs` — three guard files:
+# Runs `npm run test:docs` — five guard files:
 #   - `tests/integration/docs-link-integrity.test.ts` (BL-089): every relative
 #     markdown link and load-bearing `#anchor` across both doc trees resolves,
 #     so BL-088's distilled cross-references can't silently rot.
