@@ -45,8 +45,9 @@ const tocItems = getHeadings()
 </BaseLayout>
 
 <style>
+  /* No top padding: `HubHeader` already contributes 3xl above the title. */
   .irl-guide {
-    padding: var(--spacing-3xl) 0 5rem;
+    padding: 0 0 5rem;
   }
 
   /* Layout positioning for shared TOC (non-sidebar default) */
@@ -221,7 +222,7 @@ const tocItems = getHeadings()
 
   @media (max-width: 768px) {
     .irl-guide {
-      padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+      padding: 0 0 var(--spacing-3xl);
     }
 
     .irl-content :global(h2) {
@@ -232,7 +233,7 @@ const tocItems = getHeadings()
 
   @media (max-width: 480px) {
     .irl-guide {
-      padding: var(--spacing-xl) 0 var(--spacing-2xl);
+      padding: 0 0 var(--spacing-2xl);
     }
 
     .irl-content :global(h2) {

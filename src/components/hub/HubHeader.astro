@@ -40,9 +40,15 @@ if (showTimestamp) {
 </header>
 
 <style>
+  /* The space below the subtitle is the padding ALONE. It used to be padding
+     plus an equal margin — the same job done twice — which put 64px of dead
+     band between a two-line lede and the body copy that continues it, on every
+     page in the Hub. 32px is what the `/hub/mcp/*` guide family already
+     overrides this component to, so collapsing to it makes the two families
+     agree rather than inventing a third number. The responsive steps below
+     scale it: 24px at 768, 16px at 480. */
   .hub-header {
     padding: var(--spacing-3xl) 0 var(--spacing-2xl);
-    margin-bottom: var(--spacing-2xl);
   }
 
   .hub-header__title {

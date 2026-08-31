@@ -713,6 +713,35 @@ is why it does not reduce to any of the three shapes above.
 
 Recurring patterns used across hub tools (ICG, TechPar, Tech Debt Calculator, Diligence Machine).
 
+### `HubHeader` owns the space above and below the page title
+
+A page that renders `HubHeader` **must not add its own top padding** to the section
+wrapping it. The component already contributes `--spacing-3xl` above the title and
+`--spacing-2xl` below the subtitle, and both scale at the 768/480 breakpoints. A
+second helping on the section stacks: it does not replace the component's.
+
+```css
+/* ✅ the page owns its BOTTOM padding only */
+.my-hub-tool {
+  padding: 0 0 5rem;
+}
+
+/* ❌ stacks 3xl on the 3xl HubHeader already contributes, starting this page's
+   title 48px lower than every other Hub page */
+.my-hub-tool {
+  padding: var(--spacing-3xl) 0 5rem;
+}
+```
+
+Five pages had drifted this way (both IRL tools, the Diligence Machine, and all
+three Library guides), which is why the rule is written down rather than left to
+be noticed. The measurable invariant: on every page carrying an unmodified
+`HubHeader`, the `h1` starts at the same offset and the gap from the subtitle to
+the first content block is `--spacing-2xl`.
+
+The `/hub/mcp/*` guide pages are a deliberate exception — they zero the component
+and supply their own `.guide-hero` chrome (see `mcp-guide.css`).
+
 ### Print Stylesheets
 
 All hub tools include a `@media print` block in their scoped styles with a consistent structure:

@@ -964,8 +964,9 @@ import TableOfContents from '../../../../components/TableOfContents.astro';
 </BaseLayout>
 
 <style>
+  /* No top padding: `HubHeader` already contributes 3xl above the title. */
   .vdr-guide {
-    padding: var(--spacing-3xl) 0 5rem;
+    padding: 0 0 5rem;
   }
 
   /* Table of Contents */
@@ -1226,7 +1227,7 @@ import TableOfContents from '../../../../components/TableOfContents.astro';
 
   @media (max-width: 768px) {
     .vdr-guide {
-      padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+      padding: 0 0 var(--spacing-3xl);
     }
 
     .vdr-folder-grid {
@@ -1248,7 +1249,7 @@ import TableOfContents from '../../../../components/TableOfContents.astro';
 
   @media (max-width: 480px) {
     .vdr-guide {
-      padding: var(--spacing-xl) 0 var(--spacing-2xl);
+      padding: 0 0 var(--spacing-2xl);
     }
 
     .vdr-section {
