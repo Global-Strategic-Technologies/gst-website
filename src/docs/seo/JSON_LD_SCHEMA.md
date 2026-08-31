@@ -36,7 +36,7 @@ ProfessionalService (Organization)
 ├── knowsAbout: [10 expertise areas]
 └── address: PostalAddress
 
-WebApplication (per hub tool — 6 tools, built by src/utils/hub-tool-schema.ts)
+WebApplication (per hub tool — 7 tools, built by src/utils/hub-tool-schema.ts)
 ├── name, description, applicationCategory
 ├── operatingSystem: "Web"
 ├── offers: Free
@@ -47,7 +47,7 @@ WebApplication (per hub tool — 6 tools, built by src/utils/hub-tool-schema.ts)
 
 ItemList (hub tools landing page)
 ├── name: GST Strategic Intelligence Tools
-├── numberOfItems: 6
+├── numberOfItems: 7
 └── itemListElement: [ListItem with position, name, url]
 
 BreadcrumbList (per-page, non-homepage only)
@@ -887,7 +887,7 @@ npm run test:all
 
 #### Step 1: Edit the Appropriate File
 - **Organization/Person**: `src/components/SEO.astro`
-- **Hub Tools — shared fields** (`offers`, `publisher`, `author`, `applicationCategory`, `operatingSystem`): `src/utils/hub-tool-schema.ts` — one edit changes all six tools
+- **Hub Tools — shared fields** (`offers`, `publisher`, `author`, `applicationCategory`, `operatingSystem`): `src/utils/hub-tool-schema.ts` — one edit changes every tool page
 - **Hub Tools — per-tool fields** (`name`, `description`, `featureList`, `knowsAbout`, dates): `src/pages/hub/tools/[tool-name]/index.astro`
 - **Tools Landing**: `src/pages/hub/tools/index.astro`
 

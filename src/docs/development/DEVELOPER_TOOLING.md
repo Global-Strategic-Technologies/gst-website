@@ -530,7 +530,7 @@ The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-cor
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 30 routes (Chromium, ~9 seconds)
+npm run test:a11y        # Scans 30 routes (Chromium)
 ```
 
 This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all seven tool pages, the five `/hub/mcp/*` pages, plus `/brand` and `/hub/radar/`. **Routes, not pages**: `/hub/mcp/docs/` is scanned three times, so those five pages are seven entries. Count the array when you change this number rather than incrementing it; every stale value this line has carried came from adding a route and adjusting the count by memory.
@@ -542,7 +542,7 @@ The `wcag22aa` tag was added 2026-08-03 and selects exactly one rule in axe-core
 ### How the ratchet works
 
 - **Critical violations**: must always be zero — blocks merge
-- **Serious violations**: new violation IDs must be zero; pre-existing ones can be tracked in a `KNOWN_SERIOUS` map of per-page max node counts
+- **Serious violations**: new violation IDs must be zero; pre-existing ones can be tracked in a `KNOWN_SERIOUS` map of max node counts, keyed by route NAME rather than path (two routes scan `/hub/mcp/docs/` and see different node counts)
 - **Moderate/minor**: logged for visibility, not enforced
 
 `KNOWN_SERIOUS` is **currently empty**, and that is the finished state rather than an unfilled one — its last 16 entries were all the same active-nav-link contrast node, closed 2026-08-03. Two guards flank it and both matter the moment anything is added: the ratchet fails on _exceeding_ a baseline, and a stale-baseline guard fails on falling _under_ one, so an entry of `n` asserts exactly `n`. Prefer deleting an entry that reaches zero over zero-valuing it — with no entry, a regression fails as an **unknown** serious violation, which is louder.

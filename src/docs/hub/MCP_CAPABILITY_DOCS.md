@@ -84,7 +84,7 @@ entries). In `tests/e2e/accessibility.test.ts`: the jobs-expanded route's
 counts — each exists so a guard cannot pass over an empty or shrunken set.
 
 Two behavioural guards live in the first file as well: **no job title wraps** at
-1440/1280/1024 (the title track is fixed at 900px and above, so a longer title
+1440/1280/1024 (the title track is fixed above 900px, so a longer title
 makes a ragged row rather than resizing anything — widening the track and
 re-cutting the title both satisfy it), and **no sideways scroll** at 390/480/768
 with every row forced open.

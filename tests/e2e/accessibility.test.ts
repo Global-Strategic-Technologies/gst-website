@@ -6,10 +6,11 @@
  * contract pane.
  *
  * COUNT THE ARRAY, do not increment this number. It and the lineage comment on
- * `PAGES` had drifted to 27 and 29 against a real 30, by different routes: three
- * landed without this line being touched, two without the lineage being touched.
- * The same number is published in DEVELOPER_TOOLING.md § Running locally, which
- * no guard checks, so change it there too.
+ * `PAGES` had drifted to 27 and 29 against a real 30, and the two gaps are
+ * different routes: three landed without this line being touched, one without
+ * the lineage being touched. The same number is published in
+ * DEVELOPER_TOOLING.md § Running locally, which no guard checks, so change it
+ * there too.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -321,7 +322,7 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
 
       // Stale-baseline guard. The ratchet only ever failed on EXCEEDING a baseline, so a
       // too-generous one passed forever — and three of seven had rotted into slack by
-      // 2026-08-03 (tech-debt-calculator carried 14 against a real 1). This is the same
+      // 2026-08-03 ('Tech Debt Calculator' carried 14 against a real 1). This is the same
       // mechanism FLOOR_EXCEPTIONS uses for its allowlist, applied to the other one:
       // fixing a violation now FAILS until the number comes down with it.
       const slack = Object.entries(knownForPage)

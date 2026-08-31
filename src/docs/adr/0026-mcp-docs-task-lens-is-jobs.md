@@ -63,10 +63,12 @@ rather than estimated. The figures below are like-for-like across the four
 row: a 47px summary plus its hairline, and 46px/45px once the padding moved onto
 the spacing scale (Amendment 2). The two measurements are a pixel apart and
 worth keeping straight, since `.mdoc-job__sum` is what the touch floor applies
-to and `.mdoc-job` is what the list height is made of. All nine fit one screen; the blurb and the steps open underneath in a native
-`<details>`. At the time of this amendment the collapsed lens measured
-**591px** at 1440px, the nine-row list being 433px of it; § Amendment 2 took it
-to 711px across twelve rows. Nothing is deleted, only deferred. Rows open
+to and `.mdoc-job` is what the list height is made of. All nine fit one screen;
+the blurb and the steps open underneath in a native `<details>`. At the time of
+this amendment the collapsed lens measured **591px** at 1440px, the nine-row
+list being 433px of it: 9 x 48 plus the one pixel of `border-top` that
+`.mdoc-jobs` draws above the first row, so the top row is bounded like the rest.
+§ Amendment 2 took it to 711px across twelve rows. Nothing is deleted, only deferred. Rows open
 CLOSED — the collapsed index is the point, and opening one arbitrarily would
 imply it is special.
 
@@ -164,8 +166,9 @@ row was defeating it: one line named one artifact for four deliverables.
   badge is now pluralised, since "1 steps" was the only thing standing between
   the registry and an accurate row.
 - **The lens grew 591px to 711px at 1440px** (twelve 46px rows, each a 45px
-  summary plus its hairline, the row list 553px of it), and the last row now sits 1,034px down the document, so it no
-  longer clears the fold on a 900px-tall viewport as the nine did. Accepted: the
+  summary plus its hairline, so the row list is 553px: 12 x 46 plus the list's
+  own `border-top`), and the last row now sits 1,034px down the document, so it
+  no longer clears the fold on a 900px-tall viewport as the nine did. Accepted: the
   cut against the cards it replaced is still 78%, and three more rows a reader
   can act on beat one row that answers a quarter of the question. Re-measured,
   not estimated.
@@ -188,7 +191,7 @@ engagements` in the same pass.
   instead.
 - **The row's spacing moved onto the token scale**, and the touch floor became
   a declaration rather than a by-product. The summary carried `padding: 13px`,
-  picked to land the row on 47px, and the stacked tier a `row-gap: 6px`; both
+  picked to land the summary on 47px, and the stacked tier a `row-gap: 6px`; both
   sit above STYLES_GUIDE's sub-4px micro-spacing exception. At `--spacing-md`
   and `--spacing-xs` the summary is 45px, which clears WCAG 2.5.5's 44px by a
   single pixel: too thin a margin to leave implicit, so
