@@ -1,10 +1,15 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA + 2.2 AA scanning.
  *
- * Scans 30 critical pages for accessibility violations. Counted, not
- * incremented: this line and the lineage comment on `PAGES` had drifted to 27
- * and 29 against a real 30, because two routes were added without touching
- * either. If you add a route, re-count the array.
+ * Scans 30 routes for accessibility violations. Routes, not pages:
+ * `/hub/mcp/docs/` is scanned three times, collapsed, expanded, and at a dense
+ * contract pane.
+ *
+ * COUNT THE ARRAY, do not increment this number. It and the lineage comment on
+ * `PAGES` had drifted to 27 and 29 against a real 30, by different routes: three
+ * landed without this line being touched, two without the lineage being touched.
+ * The same number is published in DEVELOPER_TOOLING.md § Running locally, which
+ * no guard checks, so change it there too.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -247,15 +252,15 @@ const PAGES: A11yPage[] = [
  * Keep the mechanism. Two guards flank it and both still matter the moment anything is
  * added back: the ratchet fails on EXCEEDING a baseline, and the stale-baseline guard
  * below fails on falling under one. Between them, an entry of `n` asserts exactly `n` —
- * which is how the earlier rot was caught (tech-debt-calculator carried 14 against a
- * real 1; techpar 4 against 1; ma-portfolio 2 against 1).
- */
-/**
- * Keyed by `name`, not `path`: two routes now scan `/hub/mcp/docs/` — the Jobs
- * lens collapsed and expanded — and they see different node counts. Under a
- * path key one baseline would cover both, and the stale-baseline guard would
- * fail on whichever scanned fewer. Harmless while the map is empty, which is
- * exactly when it is cheap to close.
+ * which is how the earlier rot was caught ('Tech Debt Calculator' carried 14 against a
+ * real 1; 'TechPar' 4 against 1; 'M&A Portfolio' 2 against 1).
+ *
+ * KEYED BY `name`, NOT `path`. Two entries now scan the identical path
+ * `/hub/mcp/docs/` — the Jobs lens collapsed and expanded — and they see
+ * different node counts, so one path-keyed baseline would cover both and the
+ * stale-baseline guard would fail on whichever scanned fewer. (A third entry
+ * carries a hash, so it never collided.) Harmless while the map is empty, which
+ * is exactly when it is cheap to close. Names are the key, so keep them unique.
  */
 const KNOWN_SERIOUS: Record<string, Record<string, number>> = {};
 

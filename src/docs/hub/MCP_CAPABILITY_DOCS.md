@@ -69,24 +69,29 @@ the guards below in `tests/integration/mcp-docs-parity.test.ts` hold them:
 | Make two steps render the same family identifier                                 | Two different documents would show one label behind one anchor                                                                             |
 
 **`npm run test:run` is not sufficient for a job change.** Adding or removing a
-job or a step also trips hardcoded counts in `tests/e2e/hub-mcp-docs.test.ts` —
-the row, artifact and chevron `toHaveCount(12)`s, the step `toHaveCount(30)`,
-the wrap guard's and touch-target guard's twelve-element probes, and
+job or a step also trips hardcoded counts in TWO E2E files, so run:
+
+```bash
+npx playwright test hub-mcp-docs accessibility --project=chromium
+```
+
+In `tests/e2e/hub-mcp-docs.test.ts`: the row, artifact and chevron
+`toHaveCount(12)`s, the open-state `rows.count()` of 12, the step
+`toHaveCount(30)`, the wrap and touch-target guards' twelve-element probes, and
 `expect(probed).toBe(64)` on the id-wrap sweep (30 step ids + 34 sidebar
-entries). Those are deliberate vacuity pins, not incidental. Update the
-integration numbers alone and the E2E run goes red, so run
-`npx playwright test hub-mcp-docs --project=chromium` too.
+entries). In `tests/e2e/accessibility.test.ts`: the jobs-expanded route's
+`expect(opened).toBe(12)`. All are deliberate vacuity pins, not incidental
+counts — each exists so a guard cannot pass over an empty or shrunken set.
 
-Two behavioural guards live there as well: **no job title wraps** at
-1440/1280/1024 (the title track is fixed above 900px, so a longer title makes a
-ragged row rather than resizing anything — widening the track and re-cutting the
-title both satisfy it), and **no sideways scroll** at 390/480/768 with every row
-forced open.
+Two behavioural guards live in the first file as well: **no job title wraps** at
+1440/1280/1024 (the title track is fixed at 900px and above, so a longer title
+makes a ragged row rather than resizing anything — widening the track and
+re-cutting the title both satisfy it), and **no sideways scroll** at 390/480/768
+with every row forced open.
 
-A11y coverage needs the same care: the Jobs lens opens collapsed, so
-`tests/e2e/accessibility.test.ts` scans it twice, once as-is and once with every
-row opened. A step that only exists behind a disclosure is invisible to axe
-otherwise.
+That a11y route exists because the Jobs lens opens collapsed: the suite scans
+`/hub/mcp/docs/` twice, once as-is and once with every row opened, since a step
+behind a closed disclosure is not merely passing axe but invisible to it.
 
 `JobKey` is a closed union, so a typo in `usedIn` is a type error rather than a
 silent orphan.

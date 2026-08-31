@@ -119,8 +119,10 @@ const { job } = Astro.props;
      accessibility guarantee on. `min-height` rather than `height`, since a fixed
      height does not clip an overflowing row, it lets the artifact line spill
      across the next row's rule. The summary grows to 67px once the artifact
-     stacks under the name at 900px and below, and to 145px at 390px. Asserted in
-     tests/e2e/hub-mcp-docs.test.ts at 1440, 768 and 390. */
+     stacks under the name at 900px and below, and to 145px at 390px. Those
+     three are MEASUREMENTS, not assertions: what
+     tests/e2e/hub-mcp-docs.test.ts pins at 1440, 768 and 390 is the 44px floor,
+     which is the property that matters and the one a redesign must keep. */
   .mdoc-job__sum {
     display: grid;
     grid-template-columns: auto 430px minmax(0, 1fr) auto;

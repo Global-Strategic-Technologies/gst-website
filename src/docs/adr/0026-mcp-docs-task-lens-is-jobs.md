@@ -59,9 +59,11 @@ rather than estimated. The figures below are like-for-like across the four
 | Full-width rows                 | 2,259px   | -31%      |
 | Two-up cards                    | 2,211px   | -33%      |
 
-**Decision: the index.** Each job states its title and its artifact on one 47px
-row (45px once the padding moved onto the spacing scale, see Amendment 2), so
-all nine fit one screen; the blurb and the steps open underneath in a native
+**Decision: the index.** Each job states its title and its artifact on one 48px
+row: a 47px summary plus its hairline, and 46px/45px once the padding moved onto
+the spacing scale (Amendment 2). The two measurements are a pixel apart and
+worth keeping straight, since `.mdoc-job__sum` is what the touch floor applies
+to and `.mdoc-job` is what the list height is made of. All nine fit one screen; the blurb and the steps open underneath in a native
 `<details>`. At the time of this amendment the collapsed lens measured
 **591px** at 1440px, the nine-row list being 433px of it; § Amendment 2 took it
 to 711px across twelve rows. Nothing is deleted, only deferred. Rows open
@@ -83,7 +85,7 @@ gain, but nothing hidden.
 1. **The narrow widths were broken.** At 390px the summary row overflowed
    itself by 315px, the wire ids by 229px and the page by 267px — a
    horizontally scrolling document. The summary now stacks the artifact under
-   the name below 900px, and the steps grid reuses the card's own proven
+   the name at 900px and below, and the steps grid reuses the card's own proven
    `18.5rem` auto-fit floor and its ≤768px id-wrapping reversal verbatim rather
    than inventing a second responsive story. `tests/e2e/hub-mcp-docs.test.ts`
    asserts no sideways scroll at 390/480/768 with every row forced open, and a
@@ -161,8 +163,8 @@ row was defeating it: one line named one artifact for four deliverables.
 - **`irl-extract` is a one-step job, and that is the honest shape.** The step
   badge is now pluralised, since "1 steps" was the only thing standing between
   the registry and an accurate row.
-- **The lens grew 591px to 711px at 1440px** (twelve 46px rows, the row list
-  553px of it), and the last row now sits 1,034px down the document, so it no
+- **The lens grew 591px to 711px at 1440px** (twelve 46px rows, each a 45px
+  summary plus its hairline, the row list 553px of it), and the last row now sits 1,034px down the document, so it no
   longer clears the fold on a 900px-tall viewport as the nine did. Accepted: the
   cut against the cards it replaced is still 78%, and three more rows a reader
   can act on beat one row that answers a quarter of the question. Re-measured,
