@@ -380,14 +380,21 @@ test.describe('IRL Extractor — the page reads as one column', () => {
     for (let i = 0; i < count; i++) {
       const offset = await rows.nth(i).evaluate((li) => {
         const icon = li.querySelector('svg') as SVGElement;
-        const cs = getComputedStyle(icon);
+        const box = icon.getBoundingClientRect();
         return {
-          marginTop: parseFloat(cs.marginTop),
+          marginTop: parseFloat(getComputedStyle(icon).marginTop),
           expected: (parseFloat(getComputedStyle(li).lineHeight) - 14) / 2,
-          height: parseFloat(cs.height),
+          // The RENDERED box, and width above all: `li` is a row-direction flex
+          // container, so `flex-shrink` bites on the inline axis. Computed
+          // height stays 14 whether or not the glyph squashes, which is why
+          // asserting height alone could not catch the regression it sits next
+          // to.
+          width: box.width,
+          height: box.height,
         };
       });
-      expect(offset.height).toBe(14);
+      expect(offset.width).toBeCloseTo(14, 1);
+      expect(offset.height).toBeCloseTo(14, 1);
       expect(offset.marginTop).toBeCloseTo(offset.expected, 1);
     }
   });

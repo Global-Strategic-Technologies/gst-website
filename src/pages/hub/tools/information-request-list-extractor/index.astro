@@ -533,7 +533,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
        when the diagnostics went from one line per row to two and the floor was
        still 600. It costs almost nothing in page height, because the taller of
        the two panels is what the grid row was already sized by. */
-    --irl-ext-panel-h: clamp(680px, calc(100vh - 300px), 760px);
+    --irl-ext-panel-h: clamp(680px, calc(100vh - 300px), 780px);
 
     display: grid;
     grid-template-columns: 420px minmax(0, 1fr);
@@ -577,14 +577,23 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
      does not have; letting this panel grow is what keeps all five diagnostic
      rows on screen instead of scrolling three of them away.
 
-     Measured, so the trade is on the record rather than implied. Common case,
-     every viewport: both panels equal, nothing moves. Advisory case at the
-     680px floor (1440x900): the pick panel grows past it, the out panel does
-     not move, and the cards and Back link below the shell move down by the
-     difference. Advisory case at 1920x1200: the 760px cap has enough slack to
-     absorb it and nothing moves at all. So the shift is real, confined to the
-     floor tier, and happens on a state the reader just triggered — which beats
-     hiding the contradictions count. The E2E asserts both halves. */
+     Measured, so the trade is on the record rather than implied:
+
+       1440x900   rest 680/680   advisory pick 767.36, out 680, shift 87.36px
+       1920x1200  rest 780/780   advisory pick 780,    out 780, shift 0
+       1920x1400  rest 780/780   advisory pick 780,    out 780, shift 0
+
+     So: both panels equal in every resting state; at the FLOOR tier the pick
+     panel grows, the out panel does not move, and the cards and Back link below
+     the shell go down 87px; at the CAP tier the slack absorbs it and nothing
+     moves at all. The shift is real, confined to the floor tier, and happens on
+     a state the reader just triggered — which beats hiding the contradictions
+     count.
+
+     The cap is 780px for exactly this: at 760px the advisory overshot by ~7px
+     and the cap tier moved too, which the numbers above are here to keep
+     honest. Break-even is 768px. Re-measure this table if the diagnostics gain
+     a row or the advisory copy grows. */
   .irl-ext__panel--pick {
     min-height: var(--irl-ext-panel-h);
   }
@@ -697,7 +706,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   /* Deliberately NOT a scroll container. It was one briefly, so the advisory
-     could stay pinned inside a fixed-height panel — but at the clamp's 600px
+     could stay pinned inside a fixed-height panel — but at the then-600px
      floor that pushed three of the five rows (including the contradictions
      count) out of view whenever the advisory fired, and made the list a
      keyboard trap axe rates `scrollable-region-focusable`. The left panel
@@ -719,11 +728,15 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
      left edge. */
   .irl-ext__diag-row {
     font-size: var(--text-xs);
+    /* Tighter than the page's body leading, and inherited by both halves of the
+       pair rather than declared twice. No `--line-height-*` token exists; the
+       advisory (1.5) and the card list (1.7) carry literals for the same
+       reason. */
+    line-height: 1.4;
   }
 
   .irl-ext__diag-row dt {
     color: var(--text-muted);
-    line-height: 1.4;
   }
 
   .irl-ext__diag-row dd {
@@ -732,7 +745,6 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     margin: 0 0 0 var(--spacing-lg);
     color: var(--text-primary);
     font-weight: var(--font-weight-bold);
-    line-height: 1.4;
   }
 
   .irl-ext__advisory {
@@ -925,8 +937,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     min-width: 0;
   }
 
-  /* Opacity ONLY, matching `.brutal-gateway-card__features .bullet-icon`. The
-     shared `.bullet-icon` rule in `cards.css` already sets the size, the colour,
+  /* Opacity only. `.brutal-gateway-card__features .bullet-icon` re-declares
+     `flex-shrink` alongside it, which is redundant rather than a precedent to
+     copy; what matters is that neither sibling touches `margin-top`. The shared
+     `.bullet-icon` rule in `cards.css` already sets the size, the colour,
      `flex-shrink` and — the part that matters — the vertical offset, as
      `calc((1lh - 14px) / 2)`: the glyph centred on its own line box, so it
      tracks any font-size or line-height it is dropped into. This selector
