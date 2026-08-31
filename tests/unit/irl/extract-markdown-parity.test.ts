@@ -231,15 +231,20 @@ describe('IRL extractor — the zero-bullet path the page shows as a failure', (
     const result = extractIrlMarkdownFromRows(readTheBrowserWay(bytes));
     expect(result.bulletCount).toBe(0);
   });
+});
 
-  it('returns no bullets for a blank template', () => {
+describe('IRL extractor — a blank template is NOT the zero-bullet path', () => {
+  it('converts every row, each as <NO RESPONSE>', () => {
     const bytes = buildFilledWorkbookBytes({});
     const result = extractIrlMarkdownFromRows(readTheBrowserWay(bytes));
-    // Every row is still OPEN with no content in D/E/F/G, so nothing is an
-    // answer — but the rows themselves ARE present, which is what makes the
-    // blank template and a non-IRL workbook indistinguishable by row count
-    // alone. The page distinguishes them by sheet name instead.
+
+    // The rows are present, so they convert; only the answers are missing.
+    // This is why an unfilled template can never reach the zero-bullet
+    // failure, and why the page reports it as an advisory on a successful
+    // conversion instead of as an error.
     expect(result.bulletCount).toBeGreaterThan(0);
-    expect(result.markdown).toContain('<NO RESPONSE>');
+
+    const unanswered = result.markdown.split('— <NO RESPONSE>').length - 1;
+    expect(unanswered).toBe(result.bulletCount);
   });
 });

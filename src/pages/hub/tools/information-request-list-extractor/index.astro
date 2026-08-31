@@ -194,6 +194,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     PRIMARY_SHEET_NAME,
     extractIrlMarkdownFromRows,
   } from '../../../../utils/irl/extract-markdown.mjs';
+  import { copyWithFeedback } from '../../../../utils/copy-feedback';
 
   /**
    * The claude.ai web prompt-argument ceiling. Above this the body still
@@ -264,18 +265,22 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     if (downloadBtn) downloadBtn.disabled = state !== 'ok';
   }
 
-  function fail(sheetName: string, filename: string, looksLikeTemplate: boolean) {
+  /**
+   * The zero-row path. Reached only when the sheet holds no request rows at
+   * all — i.e. the file is not an IRL. An unfilled TEMPLATE does not land
+   * here: its rows are present, so it converts successfully into a body of
+   * `<NO RESPONSE>` lines, exactly as the CLI does. That case is surfaced by
+   * `noteUnanswered()` instead of being mislabelled as a failure.
+   */
+  function fail(sheetName: string) {
     current = null;
     if (statusEl) statusEl.textContent = `Read “${sheetName}”: 0 requests`;
     if (errorBody) {
       errorBody.textContent = `No request rows were found in “${sheetName}”, so there is nothing to convert.`;
     }
     if (errorHint) {
-      errorHint.textContent = looksLikeTemplate
-        ? 'This looks like an unfilled template. Every Status cell is still OPEN with no response, so send it to the target first.'
-        : `This does not look like an Information Request List. “${sheetName}” is the sheet that was read.`;
+      errorHint.textContent = `This does not look like an Information Request List. “${sheetName}” is the sheet that was read.`;
     }
-    resetDiag();
     setDiag({
       bullets: '0',
       sections: 'none',
@@ -284,8 +289,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       contradictions: DOT,
     });
     diag?.setAttribute('data-empty', 'false');
+    if (advisory) advisory.hidden = true;
     showState('error');
-    void filename;
   }
 
   async function handleFile(file: File) {
@@ -320,7 +325,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       : workbook.SheetNames[0];
     const sheet = sheetName ? workbook.Sheets[sheetName] : undefined;
     if (!sheet || !sheetName) {
-      fail('(no sheet)', file.name, false);
+      fail('(no sheet)');
       return;
     }
 
@@ -331,10 +336,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     const result = extractIrlMarkdownFromRows(rows);
 
     if (result.bulletCount === 0) {
-      // A blank template still has its Reference column populated, so the
-      // sheet name alone cannot tell the two apart — the row shape can.
-      const looksLikeTemplate = sheetName === PRIMARY_SHEET_NAME;
-      fail(sheetName, file.name, looksLikeTemplate);
+      fail(sheetName);
       return;
     }
 
@@ -363,8 +365,17 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     });
     diag?.setAttribute('data-empty', 'false');
 
+    // Two advisories, neither of them an error. An unfilled template converts
+    // successfully into a body of `<NO RESPONSE>` rows — the CLI does the same
+    // — so the honest signal is "nothing here is answered yet", not a failure.
+    const unanswered = result.markdown.split('— <NO RESPONSE>').length - 1;
     if (advisory) {
-      if (byteLength > WEB_PROMPT_ARG_CEILING) {
+      if (unanswered === result.bulletCount) {
+        advisory.textContent =
+          `All ${result.bulletCount} rows are unanswered, so this looks like a template that has ` +
+          'not been filled in yet. It converted, but there is nothing in it to sweep.';
+        advisory.hidden = false;
+      } else if (byteLength > WEB_PROMPT_ARG_CEILING) {
         advisory.textContent =
           `${byteLength.toLocaleString()} bytes exceeds the ~57,000-byte ceiling for a ` +
           'claude.ai web prompt argument. The body is still valid; paste it in the desktop app.';
@@ -403,25 +414,15 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   if (copyBtn) {
-    copyBtn.addEventListener('click', async () => {
+    copyBtn.addEventListener('click', () => {
       if (!current) return;
-      try {
-        await navigator.clipboard.writeText(current.markdown);
-        copyBtn.textContent = 'Copied';
-        copyBtn.classList.add('brutal-btn--copied');
-        window.setTimeout(() => {
-          copyBtn.textContent = 'Copy markdown';
-          copyBtn.classList.remove('brutal-btn--copied');
-        }, 2000);
-      } catch {
-        // Clipboard access can be refused (permissions, insecure context).
-        // Say so rather than silently doing nothing — the markdown is
-        // selectable in the panel either way.
-        copyBtn.textContent = 'Copy blocked';
-        window.setTimeout(() => {
-          copyBtn.textContent = 'Copy markdown';
-        }, 2000);
-      }
+      // Shared helper rather than a hand-rolled swap: it locks the button's
+      // min-width for the duration, which matters on a page whose whole
+      // premise is that nothing moves when you interact with it.
+      void copyWithFeedback(current.markdown, copyBtn, {
+        label: 'Copied',
+        copiedClass: 'brutal-btn--copied',
+      });
     });
   }
 
@@ -678,6 +679,15 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   .irl-ext__body {
     flex: 1;
     min-height: 0;
+  }
+
+  /* `hidden` must beat the flex display below: an author-origin `display`
+     outranks the UA's `[hidden] { display: none }`, so without these resets
+     all three states render stacked and the panel blows past its fixed
+     height. Same trap, same fix, as `ClipFigure.astro`. */
+  .irl-ext__idle[hidden],
+  .irl-ext__error[hidden] {
+    display: none;
   }
 
   .irl-ext__idle {

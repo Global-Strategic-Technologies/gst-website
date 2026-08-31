@@ -5,7 +5,7 @@
  * imports nothing — no `node:` builtins, no spreadsheet library, no
  * `process` — because it has three consumers on two different runtimes:
  *
- *   1. the browser, via `/hub/tools/irl-extractor/` (Vite bundles this file
+ *   1. the browser, via `/hub/tools/information-request-list-extractor/` (Vite bundles this file
  *      into the page's client script);
  *   2. raw Node, via `mcp-server/scripts/extract-irl-markdown.mjs`, the
  *      operator CLI behind `npm -w @gst/mcp-server run irl:extract`;
@@ -50,6 +50,10 @@
  * filename must not read as answered, so it renders
  * `— <NO RESPONSE> (Source: …)`. See
  * `src/docs/adr/0015-irl-canonical-body-reads-full-workbook.md`.
+ *
+ * Why this module sits in the website workspace at all, and why it is `.mjs`
+ * rather than `.ts` like its siblings:
+ * `src/docs/adr/0025-irl-extraction-in-the-browser.md`.
  *
  * Status values pass through verbatim (`OPEN` / `PARTIAL` / `CLOSED`).
  * `<NO RESPONSE>` is a human-readable marker for "asked but unanswered" — no

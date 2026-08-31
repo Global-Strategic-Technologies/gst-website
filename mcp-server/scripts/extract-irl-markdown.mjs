@@ -3,7 +3,7 @@
  *
  * **Where the logic lives**: the conversion itself is
  * `src/utils/irl/extract-markdown.mjs` in the WEBSITE workspace — a
- * dependency-free module shared with `/hub/tools/irl-extractor/`, the browser
+ * dependency-free module shared with `/hub/tools/information-request-list-extractor/`, the browser
  * page that performs the same conversion for anyone without a checkout. This
  * file is the Node half: read the bytes, hand the rows over, run the CLI.
  * Splitting it that way is what makes the two paths byte-identical rather than
@@ -144,7 +144,7 @@ function printHelp() {
       '',
       "The output is ready to paste into the `gst_irl_sweep` prompt's `filledIrl`",
       'argument. See src/docs/development/IRL_PARTNER_PASTE_RUNBOOK.md for the full',
-      'operator playbook. Without a checkout, /hub/tools/irl-extractor/ performs the',
+      'operator playbook. Without a checkout, /hub/tools/information-request-list-extractor/ performs the',
       'same conversion in the browser.',
       '',
     ].join('\n')

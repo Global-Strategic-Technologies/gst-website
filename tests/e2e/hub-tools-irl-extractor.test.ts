@@ -68,14 +68,21 @@ test.describe('IRL Extractor — conversion', () => {
   test('converts a filled workbook to canonical markdown in the browser', async ({ page }) => {
     await gotoTool(page);
 
-    // Idle first: the markdown panel must not be showing anything yet.
-    await expect(page.locator('#irl-ext-md')).toBeHidden();
+    // Idle first, and EXCLUSIVELY idle. Asserting only that the markdown is
+    // hidden let a real defect through: `[hidden]` loses to an author-origin
+    // `display: flex`, so the error panel rendered full-size under the idle
+    // box and `toBeVisible()` still passed for content 1500px down the page.
     await expect(page.locator('#irl-ext-idle')).toBeVisible();
+    await expect(page.locator('#irl-ext-error')).toBeHidden();
+    await expect(page.locator('#irl-ext-md')).toBeHidden();
 
     await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(FILLED_ROWS));
 
     const md = page.locator('#irl-ext-md');
     await expect(md).toBeVisible({ timeout: 10000 });
+    // …and the other two must be gone, not merely further down.
+    await expect(page.locator('#irl-ext-idle')).toBeHidden();
+    await expect(page.locator('#irl-ext-error')).toBeHidden();
 
     const text = await md.textContent();
     // The exact canonical shape — H1 with the (filled) suffix, the preamble
@@ -151,6 +158,48 @@ test.describe('IRL Extractor — conversion', () => {
   });
 });
 
+test.describe('IRL Extractor — the layout does not move', () => {
+  test('the output panel is the same height before and after a conversion', async ({ page }) => {
+    await gotoTool(page);
+
+    // The whole point of the fixed-height panel and the always-mounted
+    // controls. Measured rather than asserted in prose, because the prose was
+    // wrong once: three stacked states took the panel to ~2340px against a
+    // declared 900px and nothing caught it.
+    const panel = page.locator('.irl-ext__shell > .irl-ext__panel').nth(1);
+    const before = await panel.boundingBox();
+
+    await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(FILLED_ROWS));
+    await expect(page.locator('#irl-ext-md')).toBeVisible({ timeout: 10000 });
+
+    const after = await panel.boundingBox();
+    expect(before?.height).toBeTruthy();
+    expect(after?.height).toBeCloseTo(before!.height, 0);
+  });
+});
+
+test.describe('IRL Extractor — an unfilled template', () => {
+  test('converts, and says so, rather than reporting a failure', async ({ page }) => {
+    await gotoTool(page);
+
+    // A blank template still HAS request rows, so it converts into a body of
+    // <NO RESPONSE> lines — exactly as the CLI does. Calling that a failure
+    // would misreport the tool.
+    const blank = FILLED_ROWS.map((row) =>
+      /^\d{1,2}-\d{2}$/.test(String(row[0] ?? '')) ? [row[0], row[1], 'OPEN', '', '', '', ''] : row
+    );
+    await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(blank));
+
+    await expect(page.locator('#irl-ext-md')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#irl-ext-error')).toBeHidden();
+    await expect(page.locator('#irl-ext-md')).toContainText('<NO RESPONSE>');
+
+    const advisory = page.locator('#irl-ext-advisory');
+    await expect(advisory).toBeVisible();
+    await expect(advisory).toContainText('not been filled in yet');
+  });
+});
+
 test.describe('IRL Extractor — the zero-row path', () => {
   test('fails loudly on a workbook with no request rows, naming the sheet it read', async ({
     page,
@@ -171,6 +220,7 @@ test.describe('IRL Extractor — the zero-row path', () => {
 
     const err = page.locator('#irl-ext-error');
     await expect(err).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('#irl-ext-idle')).toBeHidden();
     await expect(page.locator('#irl-ext-md')).toBeHidden();
     // Names the sheet actually read — the reader falls back to the first sheet
     // when the primary one is absent, so this is the only honest signal.
