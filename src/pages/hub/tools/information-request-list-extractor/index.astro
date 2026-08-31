@@ -146,7 +146,17 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                  `scrollable-region-focusable` (WCAG 2.1.1 Keyboard, Level A) at serious,
                  a severity this repo carries none of. Same fix, same reasoning, as the
                  timeline on `/hub/tools/regulatory-map/`; the role and label give the
-                 stop an announceable identity instead of a bare unnamed group. -->
+                 stop an announceable identity instead of a bare unnamed group.
+
+                 The attribute list is too long for one line, so the formatter breaks
+                 the tag and puts the closing tag on a line of its own — and `pre` is
+                 whitespace-significant, so this element's initial text content is a
+                 newline plus the indent rather than nothing. It is inert: the element
+                 is hidden until the first conversion, which replaces the content
+                 outright. Left as the formatter writes it deliberately. A
+                 prettier-ignore directive was tried and the Astro plugin mangled the
+                 surrounding markup, twice, which is a worse trade than an inert
+                 whitespace node. -->
             <pre
               class="irl-ext__md"
               id="irl-ext-md"
