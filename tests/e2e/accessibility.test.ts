@@ -1,7 +1,10 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA + 2.2 AA scanning.
  *
- * Scans 27 critical pages for accessibility violations.
+ * Scans 30 critical pages for accessibility violations. Counted, not
+ * incremented: this line and the lineage comment on `PAGES` had drifted to 27
+ * and 29 against a real 30, because two routes were added without touching
+ * either. If you add a route, re-count the array.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -93,7 +96,7 @@ const PAGES: A11yPage[] = [
   // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline);
   // 23 as of the /hub/mcp/ marketing page; 26 as of the three MCP onboarding
   // guides; 27 as of the capability reference; 28 as of its dense-contract pane;
-  // 29 as of its jobs lens with every row opened.
+  // 29 as of the IRL extractor; 30 as of the jobs lens with every row opened.
   // Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting
@@ -247,6 +250,13 @@ const PAGES: A11yPage[] = [
  * which is how the earlier rot was caught (tech-debt-calculator carried 14 against a
  * real 1; techpar 4 against 1; ma-portfolio 2 against 1).
  */
+/**
+ * Keyed by `name`, not `path`: two routes now scan `/hub/mcp/docs/` — the Jobs
+ * lens collapsed and expanded — and they see different node counts. Under a
+ * path key one baseline would cover both, and the stale-baseline guard would
+ * fail on whichever scanned fewer. Harmless while the map is empty, which is
+ * exactly when it is cheap to close.
+ */
 const KNOWN_SERIOUS: Record<string, Record<string, number>> = {};
 
 test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
@@ -280,7 +290,7 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
       ).toHaveLength(0);
 
       // Serious: filter out known pre-existing violations (ratchet)
-      const knownForPage = KNOWN_SERIOUS[pg.path] ?? {};
+      const knownForPage = KNOWN_SERIOUS[pg.name] ?? {};
       const unknownSerious = results.serious.filter((v) => !(v.id in knownForPage));
       const ratchetBreaches = results.serious.filter(
         (v) => v.id in knownForPage && v.nodes > knownForPage[v.id]

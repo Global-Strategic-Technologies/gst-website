@@ -112,12 +112,14 @@ const { job } = Astro.props;
      slack; at 1440 it still runs 714px against a widest artifact line of
      555px, and it is the column that SHOULD absorb the pressure, since it
      wraps to two lines gracefully where a wrapped title makes the row ragged.
-     The row is 45px at the default size, and `min-height` DECLARES the WCAG
-     2.5.5 floor rather than leaving it as a lucky by-product of the padding: at
-     token spacing the content clears 44px by one pixel, which is not a margin to
-     rest an accessibility guarantee on. `min-height` rather than `height` so a
-     wrapped title is never clipped; the row grows to 68px once the artifact
-     stacks under the name below 900px, and to 146px at 390px. Asserted in
+     The SUMMARY is 45px at the default size (the `<details>` measures one more,
+     its bottom hairline), and `min-height` DECLARES the WCAG 2.5.5 floor rather
+     than leaving it a by-product of the padding: at token spacing the content
+     clears 44px by a single pixel, which is not a margin to rest an
+     accessibility guarantee on. `min-height` rather than `height`, since a fixed
+     height does not clip an overflowing row, it lets the artifact line spill
+     across the next row's rule. The summary grows to 67px once the artifact
+     stacks under the name at 900px and below, and to 145px at 390px. Asserted in
      tests/e2e/hub-mcp-docs.test.ts at 1440, 768 and 390. */
   .mdoc-job__sum {
     display: grid;

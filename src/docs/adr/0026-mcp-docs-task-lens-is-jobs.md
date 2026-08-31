@@ -60,12 +60,13 @@ rather than estimated. The figures below are like-for-like across the four
 | Two-up cards                    | 2,211px   | -33%      |
 
 **Decision: the index.** Each job states its title and its artifact on one 47px
-row (45px once the padding was moved onto the spacing scale, see Amendment 2), so all nine fit one screen; the blurb and the steps open underneath in a
-native `<details>`. At the time of this amendment the collapsed lens measured
+row (45px once the padding moved onto the spacing scale, see Amendment 2), so
+all nine fit one screen; the blurb and the steps open underneath in a native
+`<details>`. At the time of this amendment the collapsed lens measured
 **591px** at 1440px, the nine-row list being 433px of it; § Amendment 2 took it
-to 711px across twelve rows. Nothing is deleted, only deferred. Rows open CLOSED — the
-collapsed index is the point, and opening one arbitrarily would imply it is
-special.
+to 711px across twelve rows. Nothing is deleted, only deferred. Rows open
+CLOSED — the collapsed index is the point, and opening one arbitrarily would
+imply it is special.
 
 `<details>` rather than a script, because the page's no-JS doctrine (ADR-0023)
 holds either way and a native disclosure carries the button role and
@@ -184,12 +185,14 @@ engagements` in the same pass.
   60px too wide. Set `white-space: nowrap; width: max-content` on the real node
   instead.
 - **The row's spacing moved onto the token scale**, and the touch floor became
-  a declaration rather than a by-product. The summary carried `padding: 13px`
-  and `row-gap: 6px`, both above STYLES_GUIDE's sub-4px micro-spacing exception
-  and both chosen to land the row on 47px. At `--spacing-md` / `--spacing-xs`
-  the row is 45px, which clears WCAG 2.5.5's 44px by one pixel: too thin a
-  margin to leave implicit, so `min-height: var(--touch-target-min)` now states
-  it. `min-height`, not `height`, so a wrapped title is never clipped.
+  a declaration rather than a by-product. The summary carried `padding: 13px`,
+  picked to land the row on 47px, and the stacked tier a `row-gap: 6px`; both
+  sit above STYLES_GUIDE's sub-4px micro-spacing exception. At `--spacing-md`
+  and `--spacing-xs` the summary is 45px, which clears WCAG 2.5.5's 44px by a
+  single pixel: too thin a margin to leave implicit, so
+  `min-height: var(--touch-target-min)` now states it. `min-height`, not
+  `height`, since a fixed height would not clip an overflowing row so much as
+  let it spill across the next row's rule.
 - **Revisit trigger, unchanged in kind.** If `irl-issue` and `irl-fill` are
   never chosen apart in practice, merge them back. The registry binds on
   `capabilityId`, so the grouping stays free to move.

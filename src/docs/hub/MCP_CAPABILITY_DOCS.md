@@ -57,22 +57,36 @@ step 2. That is the intended coupling.
 A job is an entry in `JOBS`, keyed by `JobKey`, whose steps are `capabilityId`
 references. The groupings are editorial (see
 [ADR-0026](../adr/0026-mcp-docs-task-lens-is-jobs.md)); the bindings are not, and
-four guards in `tests/integration/mcp-docs-parity.test.ts` hold them:
+the guards below in `tests/integration/mcp-docs-parity.test.ts` hold them:
 
 | You change                                                                       | The guard that fails                                                                                                                       |
 | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Add a step, or a job                                                             | The step-count and key-count floors, which exist so a guard cannot sweep an empty set                                                      |
+| Add a step, or a job                                                             | The exact step-count and key-count pins, which exist so a guard cannot sweep an empty set                                                  |
 | Step through a capability without declaring `usedIn` on it, or the reverse       | **usedIn is two-way**: `declared [...] but stepped through by [...]`, in both directions, so a "Used in jobs" chip and a step cannot drift |
 | Add a job with no `youGetBack`                                                   | The lens header promises the artifact on every row                                                                                         |
 | Add a job no capability's `usedIn` names                                         | Unreachable: the chips are the only route from Reference back to Jobs                                                                      |
 | Name a `documentUri` the server does not serve, or one outside its step's family | Checked against `mcp-server` source via `servedResourceUris()`                                                                             |
 | Make two steps render the same family identifier                                 | Two different documents would show one label behind one anchor                                                                             |
 
-Two more live in `tests/e2e/hub-mcp-docs.test.ts`: **no job title wraps** at
+**`npm run test:run` is not sufficient for a job change.** Adding or removing a
+job or a step also trips hardcoded counts in `tests/e2e/hub-mcp-docs.test.ts` —
+the row, artifact and chevron `toHaveCount(12)`s, the step `toHaveCount(30)`,
+the wrap guard's and touch-target guard's twelve-element probes, and
+`expect(probed).toBe(64)` on the id-wrap sweep (30 step ids + 34 sidebar
+entries). Those are deliberate vacuity pins, not incidental. Update the
+integration numbers alone and the E2E run goes red, so run
+`npx playwright test hub-mcp-docs --project=chromium` too.
+
+Two behavioural guards live there as well: **no job title wraps** at
 1440/1280/1024 (the title track is fixed above 900px, so a longer title makes a
 ragged row rather than resizing anything — widening the track and re-cutting the
 title both satisfy it), and **no sideways scroll** at 390/480/768 with every row
 forced open.
+
+A11y coverage needs the same care: the Jobs lens opens collapsed, so
+`tests/e2e/accessibility.test.ts` scans it twice, once as-is and once with every
+row opened. A step that only exists behind a disclosure is invisible to axe
+otherwise.
 
 `JobKey` is a closed union, so a typo in `usedIn` is a type error rather than a
 silent orphan.
