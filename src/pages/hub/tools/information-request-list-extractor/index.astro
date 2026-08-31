@@ -523,22 +523,20 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   /* ── shell ──────────────────────────────────────────────────────── */
 
   .irl-ext__shell {
-    /* One source for the panel height, consumed as a fixed `height` by the
-       output panel and as a `min-height` by the pick panel below.
+    /* One FLOOR for both panels. Neither takes it as a fixed height: the grid
+       row is sized by the taller of the two and `align-items: stretch` (the
+       default, restored from `start`) pulls the other up to match, so the pair
+       is always the same height — including when the advisory grows the pick
+       panel, which used to leave the output panel 87px short of it.
 
-       The 680px FLOOR is measured, not chosen: it is the pick panel's own
+       The 680px floor is measured, not chosen: it is the pick panel's own
        resting content height (677px — step, dropzone, and five stacked
-       label/value pairs), rounded up. Below it the pick panel overshoots the
-       output panel and the two stop reading as a pair, which is what happened
-       when the diagnostics went from one line per row to two and the floor was
-       still 600. It costs almost nothing in page height, because the taller of
-       the two panels is what the grid row was already sized by. */
+       label/value pairs), rounded up. */
     --irl-ext-panel-h: clamp(680px, calc(100vh - 300px), 780px);
 
     display: grid;
     grid-template-columns: 420px minmax(0, 1fr);
     gap: var(--spacing-2xl);
-    align-items: start;
     margin-bottom: var(--spacing-2xl);
   }
 
@@ -562,55 +560,49 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     box-sizing: border-box;
   }
 
-  /* The OUTPUT panel is the one whose height must not move: it swaps between
-     the idle, error and markdown states, and anything below it would jump on
-     every conversion. Sized against the viewport rather than pinned at the
-     900px it used to be — taller than the viewport it had to fit inside — but
-     still FIXED at any given viewport, so the no-shift property holds. */
-  .irl-ext__panel--out {
-    height: var(--irl-ext-panel-h);
-  }
+  /* Both panels take the shared value as a FLOOR, and the grid stretches the
+     shorter one to the taller. The output panel therefore tracks the pick
+     panel rather than sitting 87px short of it whenever the advisory fires.
 
-  /* The PICK panel matches that height so the two read as a pair, but as a
-     FLOOR rather than a ceiling. Its content is stable except for the advisory
-     paragraph, which appears on some results and needs about 90px the floor
-     does not have; letting this panel grow is what keeps all five diagnostic
-     rows on screen instead of scrolling three of them away.
+     The no-shift property this panel exists for is unaffected: what it must
+     never do is resize when the reader swaps between the idle, error and
+     markdown states, and none of those change either panel's content height.
+     The only thing that does is the advisory, and that is a result arriving,
+     not a state swap — at which point everything below the shell moves anyway.
 
-     Measured, so the trade is on the record rather than implied. The shift is
-     a RAMP across the middle of the clamp, not a two-state thing — sampling
-     only the floor and the cap steps straight over the band that matters, and
-     doing exactly that is how the previous version of this comment came to
-     claim something false.
+     `.irl-ext__body` is what makes the stretch safe. Its children are absolutely
+     positioned (see below), so it contributes nothing to intrinsic height; the
+     panel's max-content height is its header plus padding, and the floor takes
+     it from there. Without that, the `pre`'s `height: 100%` would resolve
+     against an indefinite parent, fall back to auto, and a 77KB body would size
+     the grid row to tens of thousands of pixels.
 
-     Everything below is the SHARED-HEIGHT TIER, i.e. viewports wider than
-     1024px. At 1024 and below the panels stack, `height`/`min-height` stop
-     applying and the two are not equal — see the `max-width: 1024px` block.
-     Rows are viewport height; `advisory pick` is the intrinsic content height,
-     which the panel's floor rounds up to once it exceeds it:
+     What the advisory costs, measured rather than implied. This is the
+     SHARED-HEIGHT TIER, i.e. viewports wider than 1024px; at 1024 and below the
+     panels stack, the floor stops applying and neither of these numbers holds
+     (see the `max-width: 1024px` block). Rows are viewport height; both panels
+     measure the same in every column, which is the point:
 
-       viewport height   panel   advisory pick   out   downstream shift
-       980 and below       680          767.36   680             87.36
-       1000                700          767.36   700             67.36
-       1040                740          767.36   740             27.36
-       1067                767          767.36   767              0.36
-       1068 and above      768+         = panel  768+             0.00
+       viewport height   resting   with advisory   downstream shift
+       980 and below         680          767.36              87.36
+       1000                  700          767.36              67.36
+       1040                  740          767.36              27.36
+       1067                  767          767.36               0.36
+       1068 and above        768+         = resting            0.00
 
-     So, on that tier: both panels are equal in every resting state, and the out
-     panel does not move at any viewport (it holds on the stacked tier too — a
-     separate test covers that). What moves is everything below the shell, by
-     the amount the advisory overshoots the panel: the full 87px at 980 and
-     below, ramping to zero at 1068. That band includes the usual
-     maximized-window content height on a 1080p display, so it is the common
-     case, not an edge one. It is still the right trade: it happens on a state
-     the reader just triggered, and the alternative was hiding the
-     contradictions count.
+     So the growth is a RAMP across the middle of the clamp, not a two-state
+     thing — the full 87px at 980 and below, tapering to zero at 1068. Sampling
+     only the floor and the cap steps over the band that matters, and doing
+     exactly that is how an earlier version of this comment came to claim
+     something false, twice. The band includes the usual maximized-window
+     content height on a 1080p display, so it is the common case.
 
-     The cap is 780px for exactly this. At 760px the advisory overshot even at
-     the cap tier by 7.36px; break-even is 768px, and 780 leaves headroom —
-     12.64px of it, which is not much. The E2E pins the cap tier so a sixth
-     diagnostic row or longer advisory copy fails a test instead of silently
-     re-breaking this. Re-measure the table if either changes. */
+     The cap is 780px for that reason. At 760 the advisory overshot even at the
+     cap tier by 7.36px; break-even is 768, and 780 leaves 12.64px of headroom —
+     not much, so the E2E pins the cap tier and a sixth diagnostic row or longer
+     advisory copy fails a test rather than silently re-breaking it. Re-measure
+     this table if either changes. */
+  .irl-ext__panel--out,
   .irl-ext__panel--pick {
     min-height: var(--irl-ext-panel-h);
   }
@@ -808,9 +800,21 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     pointer-events: none;
   }
 
+  /* The positioning context for the three states. `position: relative` plus
+     absolutely-positioned children is what keeps this box out of the panel's
+     intrinsic height calculation — see `.irl-ext__panel--out` above for why
+     that is load-bearing rather than tidiness. */
   .irl-ext__body {
+    position: relative;
     flex: 1;
     min-height: 0;
+  }
+
+  .irl-ext__idle,
+  .irl-ext__error,
+  .irl-ext__md {
+    position: absolute;
+    inset: 0;
   }
 
   /* `hidden` must beat the flex display below: an author-origin `display`
@@ -991,12 +995,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       grid-template-columns: 1fr;
     }
 
-    /* Stacked, so the panels size to their own content and the shared height
+    /* Stacked, so the panels size to their own content and the shared floor
        stops applying. */
-    .irl-ext__panel--out {
-      height: auto;
-    }
-
+    .irl-ext__panel--out,
     .irl-ext__panel--pick {
       min-height: 0;
     }

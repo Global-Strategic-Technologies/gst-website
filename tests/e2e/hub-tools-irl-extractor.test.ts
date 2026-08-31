@@ -289,10 +289,17 @@ test.describe('IRL Extractor — a result is reachable, not just present', () =>
     await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(BLANK_ROWS));
     await expect(page.locator('#irl-ext-advisory')).toBeVisible({ timeout: 10000 });
 
-    // The property the panel split exists to preserve: the pick panel may grow
-    // for the advisory, the output panel may not move at all.
-    const out = page.locator('.irl-ext__panel--out');
-    expect((await out.boundingBox())?.height).toBeCloseTo(outHeightBefore, 0);
+    // The pair stays a pair. The output panel used to hold its height while the
+    // pick panel grew past it, which left a visible 87px step between two boxes
+    // that read as one control. Both take the shared value as a floor and the
+    // grid stretches the shorter to the taller, so they are equal here and the
+    // output panel really did grow.
+    const both = await page.evaluate(() => ({
+      pick: document.querySelector('.irl-ext__panel--pick')!.getBoundingClientRect().height,
+      out: document.querySelector('.irl-ext__panel--out')!.getBoundingClientRect().height,
+    }));
+    expect(both.out).toBeCloseTo(both.pick, 0);
+    expect(both.out).toBeGreaterThan(outHeightBefore + 1);
 
     const fits = await page.evaluate(() => {
       const panel = document.querySelector('.irl-ext__panel--pick') as HTMLElement;
@@ -355,6 +362,9 @@ test.describe('IRL Extractor — a result is reachable, not just present', () =>
     const after = await frame();
     expect(after.out.height).toBeCloseTo(before.out.height, 0);
     expect(after.pick.height).toBeCloseTo(before.pick.height, 0);
+    // Equal here too — at this tier because neither had to grow, rather than
+    // because one was pulled up to the other.
+    expect(after.out.height).toBeCloseTo(after.pick.height, 0);
     // Nothing below the shell moves either — the property in full.
     expect(after.cards.top).toBeCloseTo(before.cards.top, 0);
     // And the headroom is real rather than incidental: the advisory-state
