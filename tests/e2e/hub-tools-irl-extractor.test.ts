@@ -178,6 +178,77 @@ test.describe('IRL Extractor — the layout does not move', () => {
   });
 });
 
+test.describe('IRL Extractor — the page reads as one column', () => {
+  test('the intro starts on the same left edge as the header and the shell', async ({ page }) => {
+    await gotoTool(page);
+
+    // The intro was centred (`margin: 0 auto`) while every other block ran the
+    // full container width, which put its left edge ~310px inboard of the
+    // title above it and the panels below it. Asserted as a measurement
+    // because that is the property a reader sees.
+    const left = async (selector: string) => (await page.locator(selector).boundingBox())?.x;
+
+    const title = await left('.hub-header__title');
+    expect(title).toBeTruthy();
+    expect(await left('.irl-ext__intro')).toBeCloseTo(title!, 0);
+    expect(await left('.irl-ext__shell')).toBeCloseTo(title!, 0);
+    expect(await left('.irl-ext__cards')).toBeCloseTo(title!, 0);
+  });
+
+  test('each guidance bullet is an icon plus ONE span, not a row of flex items', async ({
+    page,
+  }) => {
+    await gotoTool(page);
+
+    // `li` is a flex container, so a bare text node beside an inline `code` or
+    // `a` becomes its own anonymous flex item and wraps independently — which
+    // rendered the first bullet as "Paste it into" beside a gap beside the
+    // rest of its own sentence. Two children per row is the invariant that
+    // keeps each sentence one run of text.
+    const rows = page.locator('.irl-ext__card-list li');
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+
+    for (let i = 0; i < count; i++) {
+      const shape = await rows.nth(i).evaluate((li) => ({
+        // Element children plus any text node carrying non-whitespace: every
+        // one of these is a flex item.
+        items: [...li.childNodes].filter(
+          (n) => n.nodeType === 1 || (n.nodeType === 3 && (n.textContent ?? '').trim())
+        ).length,
+        tags: [...li.children].map((c) => c.tagName.toLowerCase()),
+      }));
+      expect(shape.items).toBe(2);
+      expect(shape.tags).toEqual(['svg', 'span']);
+    }
+  });
+
+  test('the guidance cards carry the frosted-glass treatment', async ({ page }) => {
+    await gotoTool(page);
+
+    // The control frost triple from STYLES_GUIDE § Frosted Glass. The edge
+    // treatment is the part that reads on this site's flat ground, so a card
+    // with the blur and none of the shadow is still the bug this guards.
+    const cards = page.locator('.irl-ext__card');
+    const count = await cards.count();
+    expect(count).toBeGreaterThan(0);
+
+    for (let i = 0; i < count; i++) {
+      const style = await cards.nth(i).evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return {
+          backdropFilter: cs.backdropFilter,
+          boxShadow: cs.boxShadow,
+          background: cs.backgroundColor,
+        };
+      });
+      expect(style.backdropFilter).toContain('blur');
+      expect(style.boxShadow).toContain('inset');
+      expect(style.background).not.toBe('rgba(0, 0, 0, 0)');
+    }
+  });
+});
+
 test.describe('IRL Extractor — an unfilled template', () => {
   test('converts, and says so, rather than reporting a failure', async ({ page }) => {
     await gotoTool(page);

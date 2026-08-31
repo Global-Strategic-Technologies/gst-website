@@ -49,14 +49,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
       <div class="irl-ext__intro">
         <p>
-          When a target returns a filled <strong>.xlsx</strong>, the workbook has to become text
-          before <a href="/hub/mcp/docs/#cap-gst_irl_sweep"><code>gst_irl_sweep</code></a> can read it.
-          This page performs that conversion, carrying every answered row across exactly as written, along
-          with its status and any sourcing the responder recorded.
-        </p>
-        <p>
-          Conversion runs entirely in your browser. The workbook is never uploaded, nothing is
-          stored, and there is nothing to install. Need the blank workbook first? Use the <a
+          A filled <strong>.xlsx</strong> has to become text before <a
+            href="/hub/mcp/docs/#cap-gst_irl_sweep"><code>gst_irl_sweep</code></a
+          > can read it. This page does that in your browser, carrying every answered row across exactly
+          as written with its status and any sourcing. Need the blank workbook first? Use the <a
             href="/hub/tools/information-request-list-generator/"
             >Information Request List Generator</a
           >.
@@ -159,21 +155,33 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
         </div>
         <div class="irl-ext__card">
           <h2>What to do with the markdown</h2>
+          <!-- Each item's prose is wrapped in a single span on purpose. The `li`
+               is a flex container, so every bare text node and every inline
+               `code`/`a` inside it would otherwise become its own flex item and
+               be laid out (and wrapped) independently — which is exactly how the
+               first bullet came to render as "Paste it into" beside a gap beside
+               the rest of the sentence. One span keeps the sentence one run of
+               inline text next to the icon. -->
           <ul class="irl-ext__card-list">
             <li>
-              <DeltaIcon class="bullet-icon" />Paste it into <code>gst_irl_sweep</code>'s <code
-                >filledIrl</code
-              > argument to get the dossier back
-            </li>
-            <li>
-              <DeltaIcon class="bullet-icon" />Blank rows are the follow-up ask, so read them before
-              you send anything on
+              <DeltaIcon class="bullet-icon" />
+              <span
+                >Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument to get the
+                dossier back</span
+              >
             </li>
             <li>
               <DeltaIcon class="bullet-icon" />
-              <a class="irl-ext__card-link" href="/hub/mcp/docs/#cap-gst_irl_sweep"
-                >Read the sweep contract</a
-              > for what it returns
+              <span>Blank rows are the follow-up ask, so read them before you send anything on</span
+              >
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <span
+                ><a class="irl-ext__card-link" href="/hub/mcp/docs/#cap-gst_irl_sweep"
+                  >Read the sweep contract</a
+                > for what it returns</span
+              >
             </li>
           </ul>
         </div>
@@ -446,23 +454,28 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 </script>
 
 <style>
+  /* No top padding of its own: `HubHeader` already contributes 3xl above the
+     title, and stacking a second 3xl here pushed the tool most of a screen
+     down for nothing. */
   .irl-ext {
-    padding: var(--spacing-3xl) 0 5rem;
+    padding: 0 0 var(--spacing-3xl);
   }
 
+  /* Left-aligned, NOT centred: every other block on this page starts at the
+     container's left edge, so an auto-margined intro sat ~310px inboard of the
+     title above it and the shell below it. 720px matches
+     `.hub-header__subtitle`'s measure, which is the line it reads as a
+     continuation of. */
   .irl-ext__intro {
     max-width: 720px;
-    margin: 0 auto var(--spacing-3xl);
+    margin: 0 0 var(--spacing-2xl);
   }
 
   .irl-ext__intro p {
+    margin: 0;
     font-size: var(--text-base);
     line-height: 1.7;
     color: var(--text-secondary);
-  }
-
-  .irl-ext__intro p + p {
-    margin-top: var(--spacing-lg);
   }
 
   .irl-ext__intro a {
@@ -483,9 +496,15 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     grid-template-columns: 420px minmax(0, 1fr);
     gap: var(--spacing-2xl);
     align-items: start;
-    margin-bottom: var(--spacing-3xl);
+    margin-bottom: var(--spacing-2xl);
   }
 
+  /* The control frost triple — `--surface-subtle-bg`, a 2px blur, and the
+     inset highlight + hairline edge. The edge treatment is not decoration: on
+     this site's flat checkerboard ground it is the only part of the treatment
+     that reads at all (STYLES_GUIDE § Frosted Glass). Written out rather than
+     co-applying `.brutal-frosted`, which is the CONTAINER pair and would both
+     double-blur and use the wrong tint. */
   .irl-ext__panel {
     display: flex;
     flex-direction: column;
@@ -494,9 +513,17 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     background: var(--surface-subtle-bg);
     backdrop-filter: blur(2px);
-    /* Fixed height so swapping between the idle, error and markdown states
-       never resizes the panel or moves anything below it. */
-    height: 900px;
+    box-shadow:
+      inset 0 1px 0 var(--frost-highlight),
+      0 0 0 1px var(--frost-edge);
+    /* A FIXED height, so swapping between the idle, error and markdown states
+       never resizes the panel or moves anything below it — but sized against
+       the viewport rather than pinned at 900px, which was taller than the
+       whole viewport it had to fit inside. It is fixed at any given viewport,
+       so the no-shift property is unchanged. The 600px floor is the left
+       panel's own natural content height (label + dropzone + all five
+       diagnostic rows); below it the diagnostics start scrolling. */
+    height: clamp(600px, calc(100vh - 300px), 760px);
     box-sizing: border-box;
   }
 
@@ -545,8 +572,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--spacing-xl);
-    padding: var(--spacing-3xl) var(--spacing-2xl);
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl);
     text-align: center;
     cursor: pointer;
     border: 3px dashed var(--color-primary);
@@ -607,11 +634,19 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     opacity: 0.4;
   }
 
+  /* The list is what yields, not the advisory. The panel's height is fixed, so
+     something has to give when the advisory paragraph appears; scrolling the
+     five diagnostic rows keeps the advisory — the message that actually needs
+     reading — pinned in view at the bottom of the panel. Reversing the two
+     scrolled the advisory out of sight instead. */
   .irl-ext__diag-list {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
     margin: 0;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .irl-ext__diag-row {
@@ -635,7 +670,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   .irl-ext__advisory {
-    margin: auto 0 0;
+    flex-shrink: 0;
+    margin: 0;
     padding: var(--spacing-md);
     border-left: 3px solid var(--color-warning);
     background: var(--surface-faint-bg);
@@ -770,13 +806,21 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--spacing-2xl);
-    margin-bottom: var(--spacing-3xl);
+    margin-bottom: var(--spacing-2xl);
   }
 
+  /* Same control frost triple as `.irl-ext__panel` above — these cards sit on
+     the same page as a frosted panel and were the only unfrosted surfaces on
+     it. */
   .irl-ext__card {
     padding: var(--spacing-xl);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-top: 3px solid var(--color-primary);
+    background: var(--surface-subtle-bg);
+    backdrop-filter: blur(2px);
+    box-shadow:
+      inset 0 1px 0 var(--frost-highlight),
+      0 0 0 1px var(--frost-edge);
   }
 
   .irl-ext__card h2 {
@@ -803,6 +847,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     gap: var(--spacing-sm);
   }
 
+  /* Exactly two flex items per row: the icon, and one span holding the whole
+     sentence. See the markup comment — bare text nodes beside inline elements
+     become anonymous flex items and wrap independently. */
   .irl-ext__card-list li {
     display: flex;
     align-items: flex-start;
@@ -810,6 +857,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     font-size: var(--text-sm);
     line-height: 1.7;
     color: var(--text-secondary);
+  }
+
+  .irl-ext__card-list li > span {
+    min-width: 0;
   }
 
   .irl-ext__card-list :global(.bullet-icon) {
@@ -855,7 +906,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   @media (max-width: 768px) {
     .irl-ext {
-      padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+      padding: 0 0 var(--spacing-3xl);
     }
 
     .irl-ext__panel {
@@ -882,7 +933,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   @media (max-width: 480px) {
     .irl-ext {
-      padding: var(--spacing-xl) 0 var(--spacing-2xl);
+      padding: 0 0 var(--spacing-2xl);
     }
 
     .irl-ext__actions {
