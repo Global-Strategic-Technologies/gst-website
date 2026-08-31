@@ -524,8 +524,16 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   .irl-ext__shell {
     /* One source for the panel height, consumed as a fixed `height` by the
-       output panel and as a `min-height` by the pick panel below. */
-    --irl-ext-panel-h: clamp(600px, calc(100vh - 300px), 760px);
+       output panel and as a `min-height` by the pick panel below.
+
+       The 680px FLOOR is measured, not chosen: it is the pick panel's own
+       resting content height (677px — step, dropzone, and five stacked
+       label/value pairs), rounded up. Below it the pick panel overshoots the
+       output panel and the two stop reading as a pair, which is what happened
+       when the diagnostics went from one line per row to two and the floor was
+       still 600. It costs almost nothing in page height, because the taller of
+       the two panels is what the grid row was already sized by. */
+    --irl-ext-panel-h: clamp(680px, calc(100vh - 300px), 760px);
 
     display: grid;
     grid-template-columns: 420px minmax(0, 1fr);
@@ -571,11 +579,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
      Measured, so the trade is on the record rather than implied. Common case,
      every viewport: both panels equal, nothing moves. Advisory case at the
-     600px floor (1440x900): pick 600 → 689, out 600 → 600, and the cards and
-     Back link below the shell move down 90px. Advisory case at 1920x1200: the
-     760px slack absorbs it and nothing moves at all. So the shift is real, and
-     confined to the floor tier, on a state the reader just triggered — which
-     beats hiding the contradictions count. */
+     680px floor (1440x900): the pick panel grows past it, the out panel does
+     not move, and the cards and Back link below the shell move down by the
+     difference. Advisory case at 1920x1200: the 760px cap has enough slack to
+     absorb it and nothing moves at all. So the shift is real, confined to the
+     floor tier, and happens on a state the reader just triggered — which beats
+     hiding the contradictions count. The E2E asserts both halves. */
   .irl-ext__panel--pick {
     min-height: var(--irl-ext-panel-h);
   }
@@ -702,24 +711,28 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     min-height: 0;
   }
 
+  /* Label above, value indented beneath, rather than label-left/value-right on
+     one line. The two-column form put a variable gap between a question and its
+     answer — "Answers taken from Comments" ended up a long way from the number
+     it belonged to — and made the values a ragged right-hand column. Stacked and
+     indented, each pair reads as one unit and every value starts on the same
+     left edge. */
   .irl-ext__diag-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--spacing-md);
     font-size: var(--text-xs);
   }
 
   .irl-ext__diag-row dt {
     color: var(--text-muted);
+    line-height: 1.4;
   }
 
   .irl-ext__diag-row dd {
-    margin: 0;
+    /* The indent is what carries the label/value relationship now that they are
+       on separate lines; without it the two read as consecutive items. */
+    margin: 0 0 0 var(--spacing-lg);
     color: var(--text-primary);
     font-weight: var(--font-weight-bold);
-    text-align: right;
-    white-space: nowrap;
+    line-height: 1.4;
   }
 
   .irl-ext__advisory {
@@ -912,10 +925,16 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     min-width: 0;
   }
 
+  /* Opacity ONLY, matching `.brutal-gateway-card__features .bullet-icon`. The
+     shared `.bullet-icon` rule in `cards.css` already sets the size, the colour,
+     `flex-shrink` and — the part that matters — the vertical offset, as
+     `calc((1lh - 14px) / 2)`: the glyph centred on its own line box, so it
+     tracks any font-size or line-height it is dropped into. This selector
+     out-specifies that rule, so the `margin-top: 0.4rem` it used to carry was
+     silently replacing a derived value with a magic number, and at this size and
+     leading the two differ by ~1.5px of visible droop. */
   .irl-ext__card-list :global(.bullet-icon) {
-    flex-shrink: 0;
     opacity: 0.8;
-    margin-top: 0.4rem;
   }
 
   .irl-ext__card-link {

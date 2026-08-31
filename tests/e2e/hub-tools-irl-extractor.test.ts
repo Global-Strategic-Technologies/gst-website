@@ -360,6 +360,62 @@ test.describe('IRL Extractor — the page reads as one column', () => {
     }
   });
 
+  test('the bullet glyph takes the SHARED line-box offset, not a page-local number', async ({
+    page,
+  }) => {
+    await gotoTool(page);
+
+    // `.bullet-icon` in cards.css centres the 14px glyph on its own line box
+    // with `calc((1lh - 14px) / 2)`, so it tracks whatever font-size and
+    // leading it is dropped into. This page's selector out-specifies that rule,
+    // and it used to re-declare `margin-top: 0.4rem` — a magic number that
+    // silently replaced the derived one and left the glyph ~1.5px low.
+    //
+    // Asserted against the formula recomputed from the live line-height rather
+    // than against a literal, so restyling the list cannot make this stale.
+    const rows = page.locator('.irl-ext__card-list li');
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+
+    for (let i = 0; i < count; i++) {
+      const offset = await rows.nth(i).evaluate((li) => {
+        const icon = li.querySelector('svg') as SVGElement;
+        const cs = getComputedStyle(icon);
+        return {
+          marginTop: parseFloat(cs.marginTop),
+          expected: (parseFloat(getComputedStyle(li).lineHeight) - 14) / 2,
+          height: parseFloat(cs.height),
+        };
+      });
+      expect(offset.height).toBe(14);
+      expect(offset.marginTop).toBeCloseTo(offset.expected, 1);
+    }
+  });
+
+  test('each diagnostic reads as a label above an indented value', async ({ page }) => {
+    await gotoTool(page);
+
+    const shape = await page.evaluate(() =>
+      [...document.querySelectorAll('.irl-ext__diag-row')].map((row) => {
+        const dt = row.querySelector('dt')!.getBoundingClientRect();
+        const dd = row.querySelector('dd')!.getBoundingClientRect();
+        return { stacked: dd.top >= dt.bottom - 1, indent: Math.round(dd.left - dt.left) };
+      })
+    );
+
+    expect(shape.length).toBe(5);
+    for (const row of shape) {
+      // Beneath, not beside.
+      expect(row.stacked).toBe(true);
+      // …and indented, which is the only thing tying the value to its label
+      // once they are on separate lines.
+      expect(row.indent).toBeGreaterThan(8);
+    }
+    // Every value starts on the same left edge, which is the point of the
+    // indent being a fixed token rather than content-dependent.
+    expect(new Set(shape.map((r) => r.indent)).size).toBe(1);
+  });
+
   test('the guidance cards carry the frosted-glass treatment', async ({ page }) => {
     await gotoTool(page);
 
