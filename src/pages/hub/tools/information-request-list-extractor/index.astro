@@ -710,7 +710,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   /* Dimmed rather than absent: the rows hold their positions from first paint,
      so FILLING them in never shifts the panel. The advisory paragraph is the
-     one thing that grows it — see `.irl-ext__panel--pick`. */
+     one thing that grows it — see the shared floor on `.irl-ext__panel--out,
+     .irl-ext__panel--pick`, which both panels take. */
   .irl-ext__diag[data-empty='true'] {
     opacity: 0.4;
   }
@@ -827,7 +828,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
      rendered stacked and drove the panel past its height. Since the states
      became `position: absolute; inset: 0` they are out of flow, so disabling
      these resets leaves the panel at 680 either way and all three land on the
-     same box (measured: top 557.41, height 560, all three). The defect is now
+     same box (measured at 1280x720, the Playwright default: panel 680 with the
+     resets and without, all three states at top 557.41, height 560 — the panel
+     figure is tier-dependent, so re-measure before reading it as a constant). The defect is now
      three text layers painted over each other, and the idle and error copy
      sitting in the accessibility tree to be read out over the result. Still
      worth guarding, for a different reason. */

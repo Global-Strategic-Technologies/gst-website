@@ -188,11 +188,16 @@ test.describe('IRL Extractor — conversion', () => {
 
 test.describe('IRL Extractor — the OUTPUT panel does not move', () => {
   // Scoped to the output panel because these two cases are about CONVERSION,
-  // not about the advisory: swapping idle -> markdown must not resize it. Both
-  // panels are free to grow together when the advisory fires — that is the
-  // point of `at the cap tier…` and `an advisory never pushes…` in the other
-  // block — so "the layout does not move", what this was called, is not true
-  // of the shell in general. It is true of these swaps.
+  // not about the advisory: swapping idle -> markdown must not resize it.
+  //
+  // Both panels grow TOGETHER when the advisory fires, and the case that shows
+  // it is `an advisory never pushes…` in the other block — it asserts the pair
+  // stays equal and that the output panel really grew. At the cap tier neither
+  // panel grows, so `at the cap tier…` asserts zero movement instead; citing it
+  // for growth (as an earlier draft of this comment did) gets it backwards.
+  //
+  // So "the layout does not move", what this block was called, is not true of
+  // the shell in general. It is true of these swaps.
   //
   // Both cases use the LONG fixture. `FILLED_ROWS` is three requests, which
   // converts to a body far under the stacked tier's 420px, so the stacked
@@ -282,8 +287,8 @@ test.describe('IRL Extractor — a result is reachable, not just present', () =>
   test('an advisory never pushes a diagnostic row out of the panel', async ({ page }) => {
     // At the clamp floor the advisory paragraph needs ~90px the panel does not
     // have. Scrolling the rows to make room hid three of the five, including
-    // the contradictions count; the pick panel grows instead. 900px tall is
-    // the floor case, and the one a laptop actually hits.
+    // the contradictions count; the panels grow instead — both of them, to the
+    // same height. 900px tall is the floor case, and the one a laptop hits.
     await page.setViewportSize({ width: 1440, height: 900 });
     await gotoTool(page);
 
