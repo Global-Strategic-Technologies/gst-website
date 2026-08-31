@@ -489,8 +489,8 @@ test.describe('MCP documentation — themes and viewports', () => {
   }
 
   // The title column is a FIXED 430px above 900px, so a title longer than it
-  // does not shrink the column — it wraps, and one 69px row among a column of
-  // 47px ones is the raggedness an index exists to avoid. This has happened
+  // does not shrink the column — it wraps, and one tall row among a column of
+  // uniform ones is the raggedness an index exists to avoid. This has happened
   // twice, both times on a rename: `Shape a technology diligence before the LOI`
   // (362px) wrapped at the old 340px, and `Populate a request list from
   // available information` (420px) wrapped at 380px. The guard is on the

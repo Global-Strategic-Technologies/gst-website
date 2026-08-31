@@ -2,7 +2,7 @@
  * The capability registry behind `/hub/mcp/docs/`.
  *
  * ONE source of truth for that page: the Reference sidebar, the four group
- * counts, the client-side search index, the workflow steps, and every contract
+ * counts, the client-side search index, the job steps, and every contract
  * pane are all derived from this module at build time. Nothing on the page
  * hardcodes a capability name or a count.
  *

@@ -13,7 +13,7 @@
  *
  * Run locally: npm run test:a11y
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
 import { RADAR_SETTLED_SELECTOR, RADAR_SETTLE_TIMEOUT_MS } from './helpers/radar';
 
@@ -35,6 +35,12 @@ interface A11yPage {
    * Pages without this keep the original `load` wait.
    */
   waitFor?: string;
+  /**
+   * Run after `waitFor` and before the scan, for markup that exists only once a
+   * reader interacts. axe audits the rendered tree, so anything behind a closed
+   * disclosure is not merely passing — it is invisible to the scan.
+   */
+  setup?: (page: Page) => Promise<void>;
 }
 
 const PAGES: A11yPage[] = [
@@ -62,9 +68,32 @@ const PAGES: A11yPage[] = [
     path: '/hub/mcp/docs/#cap-compute_techpar',
     waitFor: 'h1',
   },
+  // The Jobs lens opens COLLAPSED (ADR-0026), so the row above scans twelve
+  // summaries and nothing else: thirty step links and every job blurb sit
+  // inside a closed `<details>` and are structurally invisible to axe. That is
+  // a coverage loss against the cards this lens replaced, whose steps were
+  // always in the tree. Open them all and scan again, for the same reason the
+  // dense-contract row above exists.
+  {
+    name: 'MCP Documentation (jobs expanded)',
+    path: '/hub/mcp/docs/',
+    waitFor: '.mdoc-job',
+    setup: async (page) => {
+      const opened = await page.evaluate(() => {
+        const rows = [...document.querySelectorAll('details.mdoc-job')];
+        rows.forEach((d) => ((d as HTMLDetailsElement).open = true));
+        return rows.length;
+      });
+      // Not decoration: a selector that stops matching would make this route a
+      // second scan of the collapsed page, passing while covering nothing.
+      expect(opened).toBe(12);
+      await expect(page.locator('.mdoc-step').first()).toBeVisible();
+    },
+  },
   // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline);
   // 23 as of the /hub/mcp/ marketing page; 26 as of the three MCP onboarding
-  // guides; 27 as of the capability reference; 28 as of its dense-contract pane.
+  // guides; 27 as of the capability reference; 28 as of its dense-contract pane;
+  // 29 as of its jobs lens with every row opened.
   // Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting
@@ -236,6 +265,8 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
       } else {
         await page.goto(pg.path, { waitUntil: 'load' });
       }
+
+      if (pg.setup) await pg.setup(page);
 
       const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
 

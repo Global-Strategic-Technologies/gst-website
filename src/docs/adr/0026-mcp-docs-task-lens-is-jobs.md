@@ -32,7 +32,7 @@ Two slugs in the handoff also did not resolve: `gst_information_request_list` ex
 
 ## Consequences
 
-- **`usedIn` became a two-way invariant.** Nine jobs meant the "Used in jobs" chips had to be re-derived; 23 capabilities now declare `usedIn` where 13 did. A new parity guard asserts the declared set equals the set of jobs actually stepping through that capability, in both directions, so a chip and a step cannot drift. Two further guards assert every job names what it returns and every job is reachable from some contract. All three were mutation-tested.
+- **`usedIn` became a two-way invariant.** Nine jobs meant the "Used in jobs" chips had to be re-derived; at this decision 23 capabilities declared `usedIn` where 13 had (28 after Amendment 2). A new parity guard asserts the declared set equals the set of jobs actually stepping through that capability, in both directions, so a chip and a step cannot drift. Two further guards assert every job names what it returns and every job is reachable from some contract. All three were mutation-tested.
 - **Copy here is em-dash-free**, like the rest of the registry — `mcp-docs-parity.test.ts` walks `JOBS` under the same guard, so the handoff's prose was rewritten rather than pasted.
 - **The counts line stays derived.** `capabilityCounts(CAPABILITIES)` already yields the handoff's "16 tools · 133 resources · 12 prompts" (resources being summed family sizes, 4 + 123 + 6); nothing was hardcoded.
 - **Responsive behaviour is inherited, not re-solved.** The handoff was pinned to 1800px and left this open; the shared component's ≤768px collapse already handles it. **This stopped holding at § Amendment**: the collapse belonged to the CARD, and the index row that replaced it overflowed 390px by 267px until it was given its own narrow rules. The lesson kept: inheriting a solved responsive story only works while the shape is the same shape.
@@ -60,10 +60,10 @@ rather than estimated. The figures below are like-for-like across the four
 | Two-up cards                    | 2,211px   | -33%      |
 
 **Decision: the index.** Each job states its title and its artifact on one 47px
-row, so all nine fit one screen; the blurb and the steps open underneath in a
+row (45px once the padding was moved onto the spacing scale, see Amendment 2), so all nine fit one screen; the blurb and the steps open underneath in a
 native `<details>`. At the time of this amendment the collapsed lens measured
 **591px** at 1440px, the nine-row list being 433px of it; § Amendment 2 took it
-to 735px across twelve rows. Nothing is deleted, only deferred. Rows open CLOSED — the
+to 711px across twelve rows. Nothing is deleted, only deferred. Rows open CLOSED — the
 collapsed index is the point, and opening one arbitrarily would imply it is
 special.
 
@@ -102,7 +102,7 @@ Three jobs were also renamed in this round: `Find the precedent` to
 `Find comparables`, `Track the market` to `Check the news`, and
 `Hand the file over` to `Handover an assessment`.
 
-**Consequences.** The frost went with the box — a 47px row is not an elevated
+**Consequences.** The frost went with the box — a row this short is not an elevated
 surface (STYLES_GUIDE § Frosted Glass). The disclosure indicator is the brand
 `.delta-chevron`; the utility's `<details>` branch already owns the rotation,
 the collapsed muting and the palette response, so this component styles none of
@@ -160,8 +160,8 @@ row was defeating it: one line named one artifact for four deliverables.
 - **`irl-extract` is a one-step job, and that is the honest shape.** The step
   badge is now pluralised, since "1 steps" was the only thing standing between
   the registry and an accurate row.
-- **The lens grew 591px to 735px at 1440px** (twelve 47px rows, the row list
-  577px of it), and the last row now sits 1,058px down the document, so it no
+- **The lens grew 591px to 711px at 1440px** (twelve 46px rows, the row list
+  553px of it), and the last row now sits 1,034px down the document, so it no
   longer clears the fold on a 900px-tall viewport as the nine did. Accepted: the
   cut against the cards it replaced is still 78%, and three more rows a reader
   can act on beat one row that answers a quarter of the question. Re-measured,
@@ -174,7 +174,7 @@ row was defeating it: one line named one artifact for four deliverables.
   is 420px of ink, and `Create an information request list for a company` 404px).
   Third widening, 340 to 380 to 430, and each one was caught by the wrap guard
   rather than by eye. The width comes out of the artifact column's slack, which
-  still runs 706px at 1440 against a widest artifact line of 555px, and that is
+  still runs 714px at 1440 against a widest artifact line of 555px, and that is
   the column that should absorb it: it wraps to two lines gracefully, where a
   wrapped title makes the row ragged. `Find comparables` became `Find comparable
 engagements` in the same pass.
@@ -183,6 +183,13 @@ engagements` in the same pass.
   selectors, so it falls back to the body font and reported these titles 40px to
   60px too wide. Set `white-space: nowrap; width: max-content` on the real node
   instead.
+- **The row's spacing moved onto the token scale**, and the touch floor became
+  a declaration rather than a by-product. The summary carried `padding: 13px`
+  and `row-gap: 6px`, both above STYLES_GUIDE's sub-4px micro-spacing exception
+  and both chosen to land the row on 47px. At `--spacing-md` / `--spacing-xs`
+  the row is 45px, which clears WCAG 2.5.5's 44px by one pixel: too thin a
+  margin to leave implicit, so `min-height: var(--touch-target-min)` now states
+  it. `min-height`, not `height`, so a wrapped title is never clipped.
 - **Revisit trigger, unchanged in kind.** If `irl-issue` and `irl-fill` are
   never chosen apart in practice, merge them back. The registry binds on
   `capabilityId`, so the grouping stays free to move.

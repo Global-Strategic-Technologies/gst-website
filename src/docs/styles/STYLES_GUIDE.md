@@ -691,7 +691,7 @@ transparent — with `--active` keeping a **solid** fill, because that fill is t
 signal saying which segment is selected and a translucent wash over the container's own
 glass would leave it barely distinguishable from its inactive neighbour; and on the
 `/hub/mcp/docs/` Jobs lens the frost was dropped entirely when the cards became
-index rows (ADR-0026 § Amendment): a 47px row is not an elevated surface, and the
+index rows (ADR-0026 § Amendment): a 46px row is not an elevated surface, and the
 treatment read as noise at that density. Frost is for shapes with room to hold
 it, which is the other half of the same rule.
 

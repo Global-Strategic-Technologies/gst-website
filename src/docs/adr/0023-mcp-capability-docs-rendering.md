@@ -1,6 +1,6 @@
 # ADR-0023: The public MCP capability reference is an authored registry rendered server-side, and it takes the docs subdomain
 
-- **Status**: Accepted (2026-08-28, website); extended by [ADR-0026](0026-mcp-docs-task-lens-is-jobs.md) (2026-08-31): the Workflows lens named above is now Jobs, re-keyed from four task cards to nine.
+- **Status**: Accepted (2026-08-28, website); extended by [ADR-0026](0026-mcp-docs-task-lens-is-jobs.md) (2026-08-31): the Workflows lens named above is now Jobs, re-keyed from four task cards to twelve rows in a collapsed index.
 - **Source initiative**: [BL-093 § Public developer documentation](../development/BACKLOG.md#bl-093-mcp-server--commercialization-phase-4)
 
 ## Context

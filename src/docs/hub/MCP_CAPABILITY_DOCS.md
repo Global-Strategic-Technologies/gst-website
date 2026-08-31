@@ -7,8 +7,13 @@ fails when you don't. Decision record: [ADR-0023](../adr/0023-mcp-capability-doc
 
 Two lenses over one registry.
 
-- **Workflows** (the default) — four task cards, each step linking to the
-  capability that runs it.
+- **Jobs** (the default) — a collapsed index, one row per job carrying its
+  title, the artifact it returns and its step count. Opening a row reveals the
+  blurb and the ordered steps, each step linking to the contract of the
+  capability that runs it. Was **Workflows**, four task cards, until
+  [ADR-0026](../adr/0026-mcp-docs-task-lens-is-jobs.md) re-keyed the lens to the
+  analyst's task; `#workflows` still lands here, since the bootstrap routes an
+  unrecognised hash to the task lens.
 - **Reference** — a sidebar of every tool, prompt, resource family and
   operations topic, with a contract pane per capability.
 
@@ -46,6 +51,31 @@ without the import the search field and every chip render as unstyled markup.
 
 Adding a tool or prompt to the server **without** touching this registry fails
 step 2. That is the intended coupling.
+
+## Adding or changing a job
+
+A job is an entry in `JOBS`, keyed by `JobKey`, whose steps are `capabilityId`
+references. The groupings are editorial (see
+[ADR-0026](../adr/0026-mcp-docs-task-lens-is-jobs.md)); the bindings are not, and
+four guards in `tests/integration/mcp-docs-parity.test.ts` hold them:
+
+| You change                                                                       | The guard that fails                                                                                                                       |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Add a step, or a job                                                             | The step-count and key-count floors, which exist so a guard cannot sweep an empty set                                                      |
+| Step through a capability without declaring `usedIn` on it, or the reverse       | **usedIn is two-way**: `declared [...] but stepped through by [...]`, in both directions, so a "Used in jobs" chip and a step cannot drift |
+| Add a job with no `youGetBack`                                                   | The lens header promises the artifact on every row                                                                                         |
+| Add a job no capability's `usedIn` names                                         | Unreachable: the chips are the only route from Reference back to Jobs                                                                      |
+| Name a `documentUri` the server does not serve, or one outside its step's family | Checked against `mcp-server` source via `servedResourceUris()`                                                                             |
+| Make two steps render the same family identifier                                 | Two different documents would show one label behind one anchor                                                                             |
+
+Two more live in `tests/e2e/hub-mcp-docs.test.ts`: **no job title wraps** at
+1440/1280/1024 (the title track is fixed above 900px, so a longer title makes a
+ragged row rather than resizing anything — widening the track and re-cutting the
+title both satisfy it), and **no sideways scroll** at 390/480/768 with every row
+forced open.
+
+`JobKey` is a closed union, so a typo in `usedIn` is a type error rather than a
+silent orphan.
 
 ## Example values and the Example block
 

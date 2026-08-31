@@ -10,15 +10,15 @@
  * emptiness is a scroll. Four layouts were built and measured against each
  * other at a matched 1264px column: the nine stacked cards ran 3,282px and the
  * same nine as an index 765px, a 77% cut. In production the collapsed lens now
- * measures 735px at 1440 across twelve rows, the row list being 577px of it.
+ * measures 711px at 1440 across twelve rows, the row list being 553px of it.
  * Nothing is deleted, only deferred. Measured, not estimated; see ADR-0026
  * § Amendment.
  *
  * The lens no longer clears the fold on a 1440x900 viewport: splitting the IRL
- * round trip into four jobs added three rows, and the last row now sits 1,058px
+ * round trip into four jobs added three rows, and the last row now sits 1,034px
  * down the document. That is the accepted price of rows a reader can act on,
  * and it is still a 78% cut on the cards. The number to watch is the ROW, not
- * the list: 47px each, uniform, is what keeps twelve legible where twelve cards
+ * the list: 46px each, uniform, is what keeps twelve legible where twelve cards
  * would not be.
  *
  * `<details>` rather than a script: the page's whole doctrine is that it works
@@ -93,7 +93,7 @@ const { job } = Astro.props;
 <style>
   /* A row in a list, not a card in a stack: one hairline between rows carries
      the separation the old 2px frame + 24px gap used to, at a fraction of the
-     height. The frost went with the box — a 47px row is not an elevated
+     height. The frost went with the box — a 46px row is not an elevated
      surface, and `.brutal-option-card`'s treatment reads as noise at this
      density. */
   .mdoc-job {
@@ -104,25 +104,28 @@ const { job } = Astro.props;
      `Populate a request list from available information`, measures 420px at
      `--text-sm` on the pinned mono, and the next two are 404px and 378px. It
      went 340 to 380 to 430 as titles were rewritten, each time because a title
-     wrapped and one 69px row among a column of 47px ones is exactly the
+     wrapped and one tall row among a column of uniform ones is exactly the
      raggedness an index exists to avoid. Measured on the live elements, not
      estimated: a detached clone does not inherit Astro's scoped rules and
      reported these 40px to 60px wide.
      The artifact column is `minmax(0, 1fr)`, so the width comes out of its
-     slack; at 1440 it still runs 706px against a widest artifact line of
+     slack; at 1440 it still runs 714px against a widest artifact line of
      555px, and it is the column that SHOULD absorb the pressure, since it
      wraps to two lines gracefully where a wrapped title makes the row ragged.
-     47px at the default size, which clears `--touch-target-min` (44px) without
-     pinning a height that would clip a wrapped title. It grows to 71px once the
-     artifact stacks under the name below 900px, and to 128px at 390px, so the
-     floor holds by construction at every width rather than by luck; asserted in
+     The row is 45px at the default size, and `min-height` DECLARES the WCAG
+     2.5.5 floor rather than leaving it as a lucky by-product of the padding: at
+     token spacing the content clears 44px by one pixel, which is not a margin to
+     rest an accessibility guarantee on. `min-height` rather than `height` so a
+     wrapped title is never clipped; the row grows to 68px once the artifact
+     stacks under the name below 900px, and to 146px at 390px. Asserted in
      tests/e2e/hub-mcp-docs.test.ts at 1440, 768 and 390. */
   .mdoc-job__sum {
     display: grid;
     grid-template-columns: auto 430px minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--spacing-lg);
-    padding: 13px var(--spacing-sm);
+    min-height: var(--touch-target-min);
+    padding: var(--spacing-md) var(--spacing-sm);
     cursor: pointer;
     /* Both are needed: `list-style` for standards browsers, the pseudo-element
        for WebKit, which ignores it. */
@@ -234,7 +237,7 @@ const { job } = Astro.props;
   .mdoc-step__gloss {
     display: block;
     color: var(--text-secondary);
-    margin-top: 4px;
+    margin-top: var(--spacing-xs);
   }
 
   /* The summary's four columns cannot survive a phone: 20px + 340px + a value
@@ -248,7 +251,7 @@ const { job } = Astro.props;
       grid-template-areas:
         'delta name  count'
         '.     yield yield';
-      row-gap: 6px;
+      row-gap: var(--spacing-xs);
       align-items: start;
     }
 
