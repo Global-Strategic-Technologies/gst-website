@@ -4,7 +4,7 @@ Repo-specific gotchas for syncing this repo to claude.ai/design. Read before re-
 
 ## What this sync is
 
-GST has **no React**. Components are 45 `.astro` files; there is no `@astrojs/react`
+GST has **no React**. Components are `.astro` files throughout; there is no `@astrojs/react`
 (or preact/svelte/vue/solid), no `.tsx`/`.jsx` under `src/`, and no compiled component
 package. The converter builds `_ds_bundle.js` from React exports, so **none of the
 `.astro` components can be imported** — see the "Scope" note in the skill's

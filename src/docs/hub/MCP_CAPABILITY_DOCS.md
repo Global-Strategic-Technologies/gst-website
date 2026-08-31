@@ -90,8 +90,10 @@ re-cutting the title both satisfy it), and **no sideways scroll** at 390/480/768
 with every row forced open.
 
 That a11y route exists because the Jobs lens opens collapsed: the suite scans
-`/hub/mcp/docs/` twice, once as-is and once with every row opened, since a step
-behind a closed disclosure is not merely passing axe but invisible to it.
+the bare `/hub/mcp/docs/` twice, once as-is and once with every row opened,
+since a step behind a closed disclosure is not merely passing axe but invisible
+to it. A third entry scans the same page at `#cap-compute_techpar`, for the
+dense contract pane.
 
 `JobKey` is a closed union, so a typo in `usedIn` is a type error rather than a
 silent orphan.

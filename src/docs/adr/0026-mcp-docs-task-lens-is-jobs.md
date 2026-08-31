@@ -118,8 +118,8 @@ utility whose muted-when-closed and teal-when-open states it did not reproduce.
 **One deliberate deviation, position only.** STYLES_GUIDE § Delta Chevron and
 BRAND_GUIDELINES § Delta Icon Usage Rules both place the toggle inline-END, and
 every other disclosure on the site follows that. In this lens it LEADS the row:
-nine rows read as an index, and in an index the disclosure is what a reader aims
-at before reading the row, the way a list marker is. The utility itself is
+a column of rows reads as an index, and in an index the disclosure is what a
+reader aims at before reading the row, the way a list marker is. The utility itself is
 untouched — only the grid slot and its `margin-left` are this component's
 business — and `tests/e2e/hub-mcp-docs.test.ts` pins the leading position so it
 is not silently "corrected" back to the site default. Two parity guards were added and

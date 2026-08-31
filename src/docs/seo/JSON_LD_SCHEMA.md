@@ -470,7 +470,7 @@ The shape the helper emits:
 Only `name`, `description`, `featureList`, `knowsAbout`, `datePublished` and `dateModified` are
 per-tool parameters. Everything else is a constant inside the helper.
 
-### Current Tool Schemas (6 Tools)
+### Current Tool Schemas
 
 #### 1. The Diligence Machine
 
@@ -569,7 +569,7 @@ Describes the tools collection page as an ordered list of web applications, enab
   "@type": "ItemList",
   "name": "GST Strategic Intelligence Tools",
   "description": "Interactive calculators and generators to quantify risk and value in technology investments",
-  "numberOfItems": 6,
+  "numberOfItems": 7,
   "itemListElement": [
     {
       "@type": "ListItem",

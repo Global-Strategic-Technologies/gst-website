@@ -38,7 +38,7 @@ One family of routes carries a documented, narrowly-scoped relaxation — see [R
 ## How Headers Are Applied
 
 ```
-Static routes (15 pages)          vercel.json → Vercel CDN adds headers
+Static routes (every page)        vercel.json → Vercel CDN adds headers
                                     ↓
 SSR routes (Radar only)           src/middleware.ts → Astro injects headers server-side
                                     ↓

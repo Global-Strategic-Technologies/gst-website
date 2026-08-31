@@ -2,7 +2,7 @@
  * Hub tool `WebApplication` JSON-LD — the helper's contract, and the guarantee
  * that every tool page actually emits it.
  *
- * BL-099: the six tool pages each inlined their own near-identical copy of this
+ * BL-099: the six tool pages that existed then each inlined their own copy of this
  * schema, and the copies drifted — the IRL generator shipped with no
  * `knowsAbout` array and a `datePublished` five weeks off. Nothing caught it,
  * because no test in the repo asserted on JSON-LD at all.
