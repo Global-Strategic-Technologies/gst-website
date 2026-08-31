@@ -11,24 +11,24 @@
  * document is not a heading structure, and the page's own title owns that
  * level. Section labels below are `h3` for the same reason.
  */
-import type { Capability, Workflow } from '../../../data/mcp/capabilities';
+import type { Capability, Job } from '../../../data/mcp/capabilities';
 import { buildExampleCall, capabilityAnchor } from '../../../utils/mcp-capability-search';
 
 interface Props {
   capability: Capability;
   /** Shown when Reference opens with no capability in the URL. */
   isDefault?: boolean;
-  /** Used to resolve `usedIn` keys to workflow titles. */
-  workflows: readonly Workflow[];
+  /** Used to resolve `usedIn` keys to job titles. */
+  jobs: readonly Job[];
   /** Every registered id, so a chip only links where a pane exists. */
   knownIds: ReadonlySet<string>;
 }
 
-const { capability: cap, isDefault = false, workflows, knownIds } = Astro.props;
+const { capability: cap, isDefault = false, jobs, knownIds } = Astro.props;
 
 const usedIn = (cap.usedIn ?? [])
-  .map((key) => workflows.find((w) => w.key === key))
-  .filter((w): w is Workflow => Boolean(w));
+  .map((key) => jobs.find((j) => j.key === key))
+  .filter((j): j is Job => Boolean(j));
 
 /** A chip links to its contract; an unknown id renders as plain text. */
 const chip = (id: string) => ({ id, href: knownIds.has(id) ? `#${capabilityAnchor(id)}` : null });
@@ -284,11 +284,11 @@ const call = buildExampleCall(cap);
   {
     usedIn.length > 0 && (
       <>
-        <h3 class="brutal-label mdoc-pane__label">Used in workflows</h3>
+        <h3 class="brutal-label mdoc-pane__label">Used in jobs</h3>
         <div class="mdoc-chips">
-          {usedIn.map((workflow) => (
-            <a class="brutal-filter-chip mdoc-chip mdoc-chip--workflow" href="#workflows">
-              {workflow.title} →
+          {usedIn.map((job) => (
+            <a class="brutal-filter-chip mdoc-chip mdoc-chip--job" href="#jobs">
+              {job.title} →
             </a>
           ))}
         </div>
@@ -602,7 +602,7 @@ const call = buildExampleCall(cap);
     text-decoration: none;
   }
 
-  .mdoc-chip--workflow {
+  .mdoc-chip--job {
     text-transform: uppercase;
   }
 

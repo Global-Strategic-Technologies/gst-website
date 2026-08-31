@@ -1,6 +1,6 @@
 # ADR-0023: The public MCP capability reference is an authored registry rendered server-side, and it takes the docs subdomain
 
-- **Status**: Accepted (2026-08-28, website)
+- **Status**: Accepted (2026-08-28, website); extended by [ADR-0026](0026-mcp-docs-task-lens-is-jobs.md) (2026-08-31): the Workflows lens named above is now Jobs, re-keyed from four task cards to nine.
 - **Source initiative**: [BL-093 § Public developer documentation](../development/BACKLOG.md#bl-093-mcp-server--commercialization-phase-4)
 
 ## Context
@@ -26,7 +26,7 @@ Rejected: a build-time publication pipeline over `CONTRACT.md`. It couples the w
 **3. Rendering is server-side and complete, collapsed by one class.** All 34 contract panes and both lenses render into the HTML, visible by default. An `is:inline` bootstrap placed before the panes adds `js` to `<html>` and records the hash's meaning in `data-lens` / `data-cap`; page CSS keyed on those attributes then shows one lens, and `:target` shows one contract. Consequences worth naming:
 
 - **No JS produces a complete linear reference document**, crawlable and deep-linkable, with no `<noscript>` block and no second rendering path.
-- **Contract selection needs no script at all.** Sidebar items and workflow steps are anchors, so the browser reveals the right pane from the URL. The module only keeps `data-cap` in step, marks the selected item, and runs the search.
+- **Contract selection needs no script at all.** Sidebar items and job steps are anchors, so the browser reveals the right pane from the URL. The module only keeps `data-cap` in step, marks the selected item, and runs the search.
 - Rejected: rendering visible and re-hiding via a `<noscript>` override. Under `scopedStyleStrategy: 'attribute'` the override loses the cascade and leaves a no-JS reader a near-empty page; a `<style>` in a body-level `<noscript>` is also non-conforming, and `postcss-html` lints it regardless.
 - Rejected: `?view=…&cap=…`. Hash anchors work on a static host, survive with no JS, and give back/forward for free.
 

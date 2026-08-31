@@ -116,6 +116,26 @@ export function targetQuickLookOrchestratedToolNames(): string[] {
  *
  * Radar is `fyi/latest` + `wire/latest` + one wire feed per category.
  */
+/**
+ * Every INDIVIDUAL resource URI the server serves as a literal, as opposed to
+ * the three family templates the website registry documents.
+ *
+ * `resourceInventory()` above answers "how many", which is what the counts row
+ * needs. This answers "which", which is what a step claiming to mean one
+ * specific document has to be checked against (`JobStep.documentUri`). Both
+ * read the same source; neither can drift from it.
+ *
+ * Radar's category URIs are built at runtime from `RADAR_CATEGORIES`, so only
+ * the literal tier URIs appear here. That is the set a job step may name.
+ */
+export function servedResourceUris(): Set<string> {
+  const grab = (path: string, re: RegExp) => read(path).match(re) ?? [];
+  return new Set<string>([
+    ...grab('mcp-server/src/content/library-loader.ts', /gst:\/\/library\/[a-z0-9-]+/g),
+    ...grab('mcp-server/src/resources/radar.ts', /gst:\/\/radar\/[a-z]+\/latest/g),
+  ]);
+}
+
 export function resourceInventory(): {
   library: number;
   regulations: number;

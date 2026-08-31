@@ -2,10 +2,10 @@
 /**
  * `/hub/mcp/docs/` — the public capability reference for the GST MCP Server.
  *
- * Two lenses over one registry (`src/data/mcp/capabilities.ts`): Workflows
- * answers "what do I do?", Reference answers "what exactly does X take and
- * return?". Nothing on this page hardcodes a capability name or a count; the
- * sidebar, the counts, the search index and all 34 contract panes are derived.
+ * Two lenses over one registry (`src/data/mcp/capabilities.ts`): Jobs answers
+ * "what do I do?", Reference answers "what exactly does X take and return?".
+ * Nothing on this page hardcodes a capability name or a count; the sidebar, the
+ * counts, the search index and all 34 contract panes are derived.
  *
  * The whole document renders server-side and is VISIBLE by default, so a reader
  * without JS gets one linear reference. The inline bootstrap below adds `js` to
@@ -15,12 +15,12 @@
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import CapabilityContract from '../../../../components/hub/mcp/CapabilityContract.astro';
 import CapabilityNav from '../../../../components/hub/mcp/CapabilityNav.astro';
-import WorkflowCard from '../../../../components/hub/mcp/WorkflowCard.astro';
-import { CAPABILITIES, DEFAULT_CAPABILITY_ID, WORKFLOWS } from '../../../../data/mcp/capabilities';
+import JobCard from '../../../../components/hub/mcp/JobCard.astro';
+import { CAPABILITIES, DEFAULT_CAPABILITY_ID, JOBS } from '../../../../data/mcp/capabilities';
 import { capabilityCounts } from '../../../../utils/mcp-capability-search';
 // `filter.css` is code-split, NOT site-wide (see the roster comment in
 // global.css). This page renders `.brutal-search*` for the capability lookup and
-// `.brutal-filter-chip` for the orchestrates / related / workflow chips, so it
+// `.brutal-filter-chip` for the orchestrates / related / job chips, so it
 // has to bring the sheet itself; without it both render as unstyled markup.
 import '../../../../styles/components/filter.css';
 
@@ -36,6 +36,11 @@ const groupCounts: Record<string, number> = {
   Resources: counts.resources,
 };
 
+// Derived, not written out: the meta descriptions said "nine" for one round
+// after the IRL round trip split into four jobs, which is exactly the drift the
+// counts row is derived to avoid.
+const jobCount = JOBS.length;
+
 const countLinks = [
   { group: 'Tools', label: `${counts.tools} tools` },
   { group: 'Resources', label: `${counts.resources} resources` },
@@ -45,9 +50,9 @@ const countLinks = [
 
 <BaseLayout
   title="GST MCP Server Documentation | GST"
-  description="Every GST MCP capability, two ways: four task workflows, and a contract per tool, prompt, resource family and operations topic with its arguments, example and availability."
+  description={`Every GST MCP capability, two ways: ${jobCount} analyst jobs with the artifact each one returns, and a contract per tool, prompt, resource family and operations topic with its arguments, example and availability.`}
   ogTitle="GST MCP Server Documentation"
-  ogDescription="Four workflows and a contract for every capability: arguments, examples, what comes back, and what it costs you in rate budget."
+  ogDescription={`${jobCount} jobs and a contract for every capability: arguments, examples, what comes back, and what it costs you in rate budget.`}
   ogImage="/og-image.png"
   ogImageAlt="GST MCP Server - capability documentation"
   ogUrl="https://globalstrategic.tech/hub/mcp/docs/"
@@ -69,7 +74,7 @@ const countLinks = [
         } else if (hash === 'reference') {
           root.dataset.lens = 'reference';
         } else {
-          root.dataset.lens = 'workflows';
+          root.dataset.lens = 'jobs';
         }
       })();
     </script>
@@ -121,10 +126,10 @@ const countLinks = [
           <div class="brutal-segmented mdoc-lens-switch">
             <a
               class="brutal-segmented__btn"
-              href="#workflows"
-              data-lens-link="workflows"
-              title="How GST's MCP capabilities combine to support analysis, step by step, by task"
-              >Workflows</a
+              href="#jobs"
+              data-lens-link="jobs"
+              title="The analyst jobs GST's MCP capabilities do, each with its steps and the artifact it returns"
+              >Jobs</a
             >
             <a
               class="brutal-segmented__btn"
@@ -136,11 +141,11 @@ const countLinks = [
         </div>
       </div>
 
-      <div class="mdoc-lens mdoc-lens--workflows" id="workflows">
-        <h2 class="brutal-heading-md mdoc-lens__title">What do you need to do?</h2>
+      <div class="mdoc-lens mdoc-lens--jobs" id="jobs">
+        <h2 class="brutal-heading-md mdoc-lens__title">What jobs are you doing?</h2>
         <p class="brutal-text-base mdoc-intro">
-          Each workflow names its steps and links each step to the capability that runs it. Select
-          any step to open its contract in Reference.
+          Each job names the capability that does it and what you get back. Open a job for its
+          steps, and select any step to read its contract in Reference.
         </p>
         <p class="mdoc-counts">
           {
@@ -159,8 +164,8 @@ const countLinks = [
             ))
           }
         </p>
-        <div class="mdoc-flows">
-          {WORKFLOWS.map((workflow) => <WorkflowCard workflow={workflow} />)}
+        <div class="mdoc-jobs">
+          {JOBS.map((job) => <JobCard job={job} />)}
         </div>
       </div>
 
@@ -173,7 +178,7 @@ const countLinks = [
                 <CapabilityContract
                   capability={capability}
                   isDefault={capability.id === DEFAULT_CAPABILITY_ID}
-                  workflows={WORKFLOWS}
+                  jobs={JOBS}
                   knownIds={knownIds}
                 />
               ))
@@ -300,10 +305,12 @@ const countLinks = [
     font-size: var(--text-xs);
   }
 
-  .mdoc-flows {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xl);
+  /* A list with a rule above the first row, so the top row is bounded the same
+     way as the eight below it (each row draws its own bottom hairline). No gap:
+     the rows ARE the separation now. */
+  .mdoc-jobs {
+    border-top: 1px solid var(--border-hairline);
+    margin-bottom: var(--spacing-2xl);
   }
 
   /* The sidebar column is sized to its content, not to a fixed 300px: the two
@@ -339,7 +346,7 @@ const countLinks = [
     display: none;
   }
 
-  :global(html.js[data-lens='workflows']) .mdoc-lens--workflows {
+  :global(html.js[data-lens='jobs']) .mdoc-lens--jobs {
     display: block;
   }
 

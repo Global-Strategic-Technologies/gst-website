@@ -690,8 +690,10 @@ carries the treatment. Two consequences of that rule, both live in the codebase:
 transparent — with `--active` keeping a **solid** fill, because that fill is the only
 signal saying which segment is selected and a translucent wash over the container's own
 glass would leave it barely distinguishable from its inactive neighbour; and on the
-`/hub/mcp/docs/` workflow cards the frost is on `.mdoc-flow`, not on the `.mdoc-step`
-links inside it.
+`/hub/mcp/docs/` Jobs lens the frost was dropped entirely when the cards became
+index rows (ADR-0026 § Amendment): a 47px row is not an elevated surface, and the
+treatment read as noise at that density. Frost is for shapes with room to hold
+it, which is the other half of the same rule.
 
 All `.brutal-btn` buttons include a frosted-glass aesthetic by default:
 

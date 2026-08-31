@@ -36,7 +36,7 @@ function applyHash(): void {
     root.dataset.lens = 'reference';
     delete root.dataset.cap;
   } else {
-    root.dataset.lens = 'workflows';
+    root.dataset.lens = 'jobs';
     delete root.dataset.cap;
   }
   markSelected();
@@ -57,7 +57,7 @@ function markSelected(): void {
 
 /** Lens switch state. Same reasoning: `aria-current` is the signal. */
 function markLens(): void {
-  const lens = document.documentElement.dataset.lens ?? 'workflows';
+  const lens = document.documentElement.dataset.lens ?? 'jobs';
   document.querySelectorAll<HTMLAnchorElement>('[data-lens-link]').forEach((link) => {
     const isActive = link.dataset.lensLink === lens;
     link.classList.toggle('brutal-segmented__btn--active', isActive);

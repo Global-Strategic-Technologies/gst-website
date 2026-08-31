@@ -28,8 +28,28 @@
 
 export type CapabilityGroup = 'Tools' | 'Prompts' | 'Resources' | 'Operations';
 
-/** Workflow keys, used by `usedIn` and by the Workflows lens. */
-export type WorkflowKey = 'screen' | 'irl' | 'spend' | 'reg';
+/**
+ * Job keys, used by `usedIn` and by the Jobs lens.
+ *
+ * The four `irl-*` keys were one `irl` key until the round trip was split: a
+ * reader who has a filled workbook in hand and wants a dossier is not doing the
+ * same job as one who has nothing yet and needs to issue the blank ask. They
+ * share a document, not a task, and the four prompts run at different times, on
+ * different inputs, for different people.
+ */
+export type JobKey =
+  | 'screen'
+  | 'kickoff'
+  | 'irl-issue'
+  | 'irl-fill'
+  | 'irl-extract'
+  | 'irl-sweep'
+  | 'spend'
+  | 'architecture'
+  | 'reg'
+  | 'precedent'
+  | 'radar'
+  | 'handover';
 
 export interface CapabilityArg {
   /** Argument name, verbatim wire casing. */
@@ -109,7 +129,7 @@ export interface Capability {
   availability?: string;
   /** Other capability ids, rendered as navigating chips. */
   related?: string[];
-  usedIn?: WorkflowKey[];
+  usedIn?: JobKey[];
   /** Resource families only: how many documents the family holds. */
   count?: number;
 }
@@ -136,7 +156,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'generate_diligence_agenda',
     group: 'Tools',
     type: 'Tool',
-    usedIn: ['screen'],
+    usedIn: ['kickoff'],
     gloss:
       'Turns a target profile into a prescriptive diligence agenda: the topics to cover, the questions to ask under each, and the attention areas the profile makes material.',
     args: [
@@ -238,6 +258,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'search_portfolio',
     group: 'Tools',
     type: 'Tool',
+    usedIn: ['precedent'],
     gloss:
       "Searches GST's anonymized engagement record by free text, theme, and engagement side, so a current deal can be framed against work already done.",
     args: [
@@ -273,6 +294,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'list_portfolio_facets',
     group: 'Tools',
     type: 'Tool',
+    usedIn: ['precedent'],
     gloss:
       'Lists the values the portfolio filters accept. Call it before search_portfolio rather than guessing a theme name.',
     argNote: 'Takes no arguments.',
@@ -325,6 +347,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'list_regulation_facets',
     group: 'Tools',
     type: 'Tool',
+    usedIn: ['reg'],
     gloss:
       'Lists the jurisdictions and categories the regulatory corpus actually indexes, plus the total framework count. The recovery call when a jurisdiction code does not resolve.',
     argNote: 'Takes no arguments.',
@@ -378,7 +401,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'compute_techpar',
     group: 'Tools',
     type: 'Tool',
-    usedIn: ['spend'],
+    usedIn: ['screen', 'spend'],
     gloss:
       'Benchmarks total technology cost against stage-adjusted ranges and projects a 36-month trajectory. Wraps the TechPar engine behind the Hub wizard.',
     args: [
@@ -488,7 +511,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'estimate_tech_debt_cost',
     group: 'Tools',
     type: 'Tool',
-    usedIn: ['spend'],
+    usedIn: ['screen'],
     gloss:
       'Estimates the annual carrying cost of accumulated technical debt from team size, salary, maintenance burden, and delivery cadence.',
     args: [
@@ -573,6 +596,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'generate_information_request_list_xlsx',
     group: 'Tools',
     type: 'Tool',
+    usedIn: ['irl-issue'],
     gloss:
       'Builds the blank information request list as an XLSX workbook, configured for the engagement. This is the ask GST hands a target before diligence tools can run.',
     args: [
@@ -630,6 +654,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'fill_information_request_list_xlsx',
     group: 'Tools',
     type: 'Tool',
+    usedIn: ['irl-fill'],
     gloss:
       'Builds the same workbook already populated from evidence the model holds, writing each answer and the source it rests on into the row. Removes the wait for a third party wherever the information already exists.',
     args: [
@@ -685,6 +710,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'list_irl_requests',
     group: 'Tools',
     type: 'Tool',
+    usedIn: ['irl-issue'],
     gloss:
       'Returns the canonical question set behind the information request list, with the key for each question. The only way to map "drop that question" onto the key the generator accepts.',
     argNote: 'Takes no arguments.',
@@ -723,6 +749,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'validate_irl_provenance',
     group: 'Tools',
     type: 'Tool',
+    usedIn: ['irl-sweep'],
     gloss:
       'Checks every claim in a draft back to the request list it cites, and reports which citations actually hold. Run it to see the verdicts before they are written into a deliverable.',
     args: [
@@ -821,6 +848,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'search_radar',
     group: 'Tools',
     type: 'Tool',
+    usedIn: ['radar'],
     gloss:
       'Searches curated private equity, M&A, and enterprise-technology intelligence, filtered by category. Returns the annotated highlights and the wider wire in one feed.',
     args: [
@@ -877,6 +905,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_diligence_kickoff',
     group: 'Prompts',
     type: 'Prompt',
+    usedIn: ['kickoff'],
     gloss:
       'Opens a diligence engagement: builds the starter agenda for the target and frames what the first working session should cover.',
     args: [
@@ -943,7 +972,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_diligence_handoff_memo',
     group: 'Prompts',
     type: 'Prompt',
-    usedIn: ['screen'],
+    usedIn: ['handover'],
     gloss:
       'Produces the memo a deal team hands onward: the agenda, the comparable engagements, and the data room follow-ups in one document.',
     args: [
@@ -977,6 +1006,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_comparable_engagements_memo',
     group: 'Prompts',
     type: 'Prompt',
+    usedIn: ['precedent'],
     gloss:
       'Frames a target against three to five comparable past GST engagements, drawn from the anonymized record and read analogically rather than as a list.',
     args: [
@@ -1005,7 +1035,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_irl_create',
     group: 'Prompts',
     type: 'Prompt',
-    usedIn: ['irl'],
+    usedIn: ['irl-issue'],
     gloss:
       'Assembles the blank information-gathering ask GST hands a target before diligence tools can run, configured for the engagement and delivered as a workbook to fill in.',
     args: [
@@ -1039,7 +1069,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_irl_populate',
     group: 'Prompts',
     type: 'Prompt',
-    usedIn: ['irl'],
+    usedIn: ['irl-fill'],
     gloss:
       'Populates the request list from evidence already in the conversation, a data room export, filings, or prior sessions, instead of waiting for the target to return one. Stops at the artifact for the operator to review.',
     args: [
@@ -1071,7 +1101,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_irl_extract',
     group: 'Prompts',
     type: 'Prompt',
-    usedIn: ['irl'],
+    usedIn: ['irl-extract'],
     gloss:
       'Distills a populated request list into a portable extract record plus the per-tool payloads derived from it. Makes no tool calls, so the record can be saved and pasted into later sessions and other GST prompts.',
     args: [
@@ -1096,7 +1126,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_irl_sweep',
     group: 'Prompts',
     type: 'Prompt',
-    usedIn: ['irl'],
+    usedIn: ['irl-sweep'],
     gloss:
       'Ingests a populated request list and drives every applicable Hub tool to a unified engagement dossier, sections (A) through (J).',
     args: [
@@ -1135,6 +1165,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_irl_ingestion',
     group: 'Prompts',
     type: 'Prompt',
+    usedIn: ['irl-sweep'],
     gloss:
       'The provenance-instrumented ingestion workflow: the same dossier sweep, plus hashing, citation verification, and a structured audit envelope.',
     args: [
@@ -1174,6 +1205,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_architecture_layer_review',
     group: 'Prompts',
     type: 'Prompt',
+    usedIn: ['architecture'],
     gloss:
       "Walks a target through GST's five architectural layers, software, operations, product, organization, and industry, and surfaces the risks that sit in each.",
     args: [
@@ -1224,6 +1256,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst_radar_brief_today',
     group: 'Prompts',
     type: 'Prompt',
+    usedIn: ['radar'],
     gloss:
       "The day's radar, briefed: the most recent annotated items summarized in the GST Take voice, for a morning read or a pre-meeting scan.",
     args: [
@@ -1246,6 +1279,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst://library/…',
     group: 'Resources',
     type: 'Resource family',
+    usedIn: ['architecture', 'handover'],
     count: 4,
     gloss:
       "The four reference guides behind GST's diligence method, readable in full: the architecture framework, the data room structure, the information request list, and the mapping from request to tool input.",
@@ -1280,6 +1314,7 @@ export const CAPABILITIES: readonly Capability[] = [
     id: 'gst://radar/…',
     group: 'Resources',
     type: 'Resource family',
+    usedIn: ['radar'],
     count: 6,
     gloss:
       'Six feeds: the annotated highlights, the whole wire, and the wire split by each of the four categories.',
@@ -1342,27 +1377,73 @@ export const CAPABILITIES: readonly Capability[] = [
   },
 ];
 
-export interface WorkflowStep {
-  /** A capability id from CAPABILITIES. */
+export interface JobStep {
+  /** A capability id from CAPABILITIES. This is what the step links to. */
   capabilityId: string;
   /** The step's type label, shown above the identifier. */
   kind: 'Prompt' | 'Tool' | 'Resource';
-  /** One line on what this step does in this workflow. */
+  /** One line on what this step does in this job. */
   gloss: string;
+  /**
+   * Resource steps only: the ONE document under the family this step means.
+   *
+   * The registry documents three resource FAMILIES, not 133 documents, so a
+   * resource step can only link to its family's contract. Without this field
+   * two steps that mean different articles render the same identifier and the
+   * same anchor: `Review the architecture` and `Handover an assessment` both
+   * showed `gst://library/…` and both pointed at `#cap-gst-library`, which is
+   * a reader being told two different things are one thing.
+   *
+   * So the step DISPLAYS this URI and still links to the family pane, which
+   * names the document in its returns list. Omit it where the step genuinely
+   * means the whole family: the regulatory job reads across frameworks, so
+   * `gst://regulations/…` is the honest identifier there.
+   *
+   * Pinned to server source by the parity suite: every value must be a URI the
+   * server actually serves, under the family it is attached to.
+   */
+  documentUri?: string;
 }
 
-export interface Workflow {
-  key: WorkflowKey;
+export interface Job {
+  key: JobKey;
   title: string;
+  /** The job in the reader's terms, not the server's. */
   description: string;
-  steps: WorkflowStep[];
+  steps: JobStep[];
+  /**
+   * The artifact that lands at the end, named as a thing rather than a status.
+   *
+   * This is the field that makes the lens a JOB list rather than a capability
+   * grouping: a reader choosing between two entry points is choosing between
+   * two deliverables, and the steps alone do not say what either produces.
+   * Optional on the type so a job can be added before its output is settled,
+   * but every job below carries one.
+   */
+  youGetBack?: string;
 }
 
-export const WORKFLOWS: readonly Workflow[] = [
+/**
+ * The twelve jobs, in the order a deal tends to run them.
+ *
+ * These groupings are an EDITORIAL layer over the registry, not a registry
+ * fact: the prompts and the tools around them are re-keyed here by the
+ * analyst's task rather than by capability type. The parity suite pins every
+ * `capabilityId` to a real capability, so a server rename breaks this list
+ * loudly, but the titles, blurbs and `youGetBack` lines are authored and are
+ * expected to be revised as the product learns which jobs readers actually
+ * arrive with.
+ *
+ * Copy here is governed by the same rules as CAPABILITIES (see the module
+ * header) and walked by the same guard, em dash ban included.
+ */
+export const JOBS: readonly Job[] = [
   {
     key: 'screen',
-    title: 'Screen a target',
-    description: 'From a target profile to an IC-ready starter agenda, in one conversation.',
+    title: 'Screen an unfamiliar target',
+    description:
+      'A target profile in, a first-look read out. Cost governance, unit economics, debt range and regulatory exposure, in one conversation.',
+    youGetBack: 'A one-page brief, with every norm-derived figure declared.',
     steps: [
       {
         capabilityId: 'gst_target_quick_look',
@@ -1370,85 +1451,264 @@ export const WORKFLOWS: readonly Workflow[] = [
         gloss: 'Run the four-analysis quick look from the argument form.',
       },
       {
-        capabilityId: 'generate_diligence_agenda',
+        capabilityId: 'compute_techpar',
         kind: 'Tool',
-        gloss: 'Called by the model as the conversation needs it.',
+        gloss: 'Benchmarks R&D spend against the stage cohort.',
       },
       {
-        capabilityId: 'gst_diligence_handoff_memo',
-        kind: 'Prompt',
-        gloss: 'Hand the result onward in memo form.',
+        capabilityId: 'estimate_tech_debt_cost',
+        kind: 'Tool',
+        gloss: 'Returns annual cost, share of ARR, payback and DORA tier.',
       },
     ],
   },
   {
-    key: 'irl',
-    title: 'Issue and ingest an IRL',
-    description: 'The information-request round trip: issue, fill, extract, sweep.',
+    key: 'kickoff',
+    title: 'Shape a technology diligence before the LOI',
+    description:
+      'Thirteen dimensions in, a prioritised agenda out. Supply only the target name and the agenda widens conservatively rather than guessing.',
+    youGetBack: 'A starter agenda with attention areas, ready for the wizard.',
+    steps: [
+      {
+        capabilityId: 'gst_diligence_kickoff',
+        kind: 'Prompt',
+        gloss: 'Builds the agenda from sales notes or a bare target name.',
+      },
+      {
+        capabilityId: 'generate_diligence_agenda',
+        kind: 'Tool',
+        gloss: 'Called by the model as the conversation needs it.',
+      },
+    ],
+  },
+  // The information-request round trip is FOUR jobs, not one. They were one
+  // entry, `Issue and ingest an IRL`, whose four steps were four separate
+  // undertakings sharing a document: a reader with nothing yet needs to issue
+  // the blank ask, a reader holding a data room needs to answer it without
+  // waiting on anyone, a reader with a filled file wants a record that outlives
+  // the session, and a reader ready to analyse wants the dossier. Different
+  // inputs, different outputs, days apart, often different people. Collapsing
+  // them into one row asked a reader to open a job to find out that only a
+  // quarter of it was theirs, and hid the artifact each one actually returns
+  // behind a single line naming only the last.
+  {
+    key: 'irl-issue',
+    title: 'Create an information request list for a company',
+    description:
+      'The blank ask GST hands a target before any diligence tool can run, scoped to the engagement and delivered as a workbook to fill in.',
+    youGetBack: 'A configured workbook to send, plus the Hub page to download it from.',
     steps: [
       {
         capabilityId: 'gst_irl_create',
         kind: 'Prompt',
-        gloss: 'Issue the blank request list to the target.',
+        gloss: 'Configures the list for the engagement and issues it blank.',
       },
+      {
+        capabilityId: 'generate_information_request_list_xlsx',
+        kind: 'Tool',
+        gloss: 'Builds the workbook the prompt hands over.',
+      },
+      {
+        capabilityId: 'list_irl_requests',
+        kind: 'Tool',
+        gloss: 'The question keys, which is how a question gets dropped from the ask.',
+      },
+    ],
+  },
+  {
+    key: 'irl-fill',
+    title: 'Populate a request list from available information',
+    description:
+      'The same list answered from what you already hold, a data room export, filings, or an earlier session, so the ask left to the target is only what is genuinely missing.',
+    youGetBack: 'A populated workbook, each answer sourced, the blanks left as the ask.',
+    steps: [
       {
         capabilityId: 'gst_irl_populate',
         kind: 'Prompt',
-        gloss: 'Or answer it yourself from evidence you already hold.',
+        gloss: 'Inventories the evidence first, then writes the rows it can support.',
       },
+      {
+        capabilityId: 'fill_information_request_list_xlsx',
+        kind: 'Tool',
+        gloss: 'Writes each answer and the source it rests on into the row.',
+      },
+    ],
+  },
+  {
+    key: 'irl-extract',
+    title: 'Extract useful context from an IRL',
+    description:
+      'One fact per answered row, plus the payloads the analysis tools take, projected without calling any of them.',
+    youGetBack: 'A portable record, self-dated, that a later session can drive the tools from.',
+    steps: [
+      // One step, and correctly so: the prompt makes no tool calls, which is
+      // the property that makes the record portable. The provenance tools
+      // belong to the sweep below, where something actually mints a hash.
       {
         capabilityId: 'gst_irl_extract',
         kind: 'Prompt',
-        gloss: 'Extract the filled file into a context record.',
+        gloss: 'Reads the list and produces the record. Calls nothing.',
       },
+    ],
+  },
+  {
+    key: 'irl-sweep',
+    title: 'Drive company assessment from a populated IRL',
+    description:
+      'Every applicable engine driven over one populated list in a single turn, with whatever it could not answer named rather than filled in.',
+    youGetBack: 'A partner-level dossier, sections (A) to (J), gaps named.',
+    steps: [
       {
         capabilityId: 'gst_irl_sweep',
         kind: 'Prompt',
-        gloss: 'Nine engines, one dossier, sections (A) to (J).',
+        gloss: 'The usual route: the operator vouches for the document.',
+      },
+      {
+        capabilityId: 'gst_irl_ingestion',
+        kind: 'Prompt',
+        gloss: 'The same sweep instrumented, where the run must carry its own audit trail.',
+      },
+      {
+        capabilityId: 'validate_irl_provenance',
+        kind: 'Tool',
+        gloss: 'Reports which cited claims hold, before they reach a deliverable.',
       },
     ],
   },
   {
     key: 'spend',
-    title: 'Benchmark technology spend',
-    description: 'Turn "engineering feels slow" into a number the board can act on.',
+    title: 'Benchmark the spend',
+    description:
+      'Whether the technology cost base is defensible for the stage, and where the governance gaps sit underneath it.',
+    youGetBack: 'A zone verdict, a maturity score, and the investigation list.',
     steps: [
       {
         capabilityId: 'compute_techpar',
         kind: 'Tool',
-        gloss: 'Stage-adjusted spend ranges, 36-month trajectory.',
-      },
-      {
-        capabilityId: 'estimate_tech_debt_cost',
-        kind: 'Tool',
-        gloss: 'Annual carrying cost of technical debt.',
+        gloss: 'Stage cohort comparison, with the mode stated explicitly.',
       },
       {
         capabilityId: 'assess_infrastructure_cost_governance',
         kind: 'Tool',
-        gloss: 'Cloud cost governance maturity, six domains.',
+        gloss: 'Twenty questions across six domains, where "not sure" is a real signal.',
+      },
+    ],
+  },
+  {
+    key: 'architecture',
+    title: 'Review the architecture',
+    description:
+      "GST's five-layer framework applied to the target, with the canonical layer definitions used verbatim.",
+    youGetBack: 'A per-layer memo plus the risks that cascade between layers.',
+    steps: [
+      {
+        capabilityId: 'gst_architecture_layer_review',
+        kind: 'Prompt',
+        gloss: 'Walks the layers in the order the article defines.',
+      },
+      {
+        capabilityId: 'gst://library/…',
+        documentUri: 'gst://library/business-architectures',
+        kind: 'Resource',
+        gloss: 'Grounds the review in the canonical architectures article.',
       },
     ],
   },
   {
     key: 'reg',
-    title: 'Scope regulatory exposure',
-    description: 'Counsel starts from an exposure list instead of an open question.',
+    title: 'Map the regulatory exposure',
+    description:
+      'Jurisdictions and data categories in, applicable frameworks out, with obligations read from the search results rather than recalled.',
+    youGetBack: 'A citation-anchored brief with cross-jurisdictional themes.',
     steps: [
       {
         capabilityId: 'gst_regulatory_exposure_brief',
         kind: 'Prompt',
-        gloss: 'Open the standing exposure review.',
+        gloss: 'One search per jurisdiction and category pair.',
       },
       {
         capabilityId: 'search_regulations',
         kind: 'Tool',
-        gloss: 'Query 123 frameworks by jurisdiction, category, and date.',
+        gloss: 'Returns scope, key requirements and penalty band.',
+      },
+      {
+        capabilityId: 'list_regulation_facets',
+        kind: 'Tool',
+        gloss: 'Recovery call when a jurisdiction id fails to resolve.',
       },
       {
         capabilityId: 'gst://regulations/…',
         kind: 'Resource',
         gloss: 'Read the framework documents behind the numbers.',
+      },
+    ],
+  },
+  {
+    key: 'precedent',
+    title: 'Find comparable engagements',
+    description:
+      'Which past engagements rhyme with this deal, and what each one teaches, framed as guidance rather than history.',
+    youGetBack: 'Three to five comparables, each with its lesson and a deeplink.',
+    steps: [
+      {
+        capabilityId: 'gst_comparable_engagements_memo',
+        kind: 'Prompt',
+        gloss: 'Selects on two or more shared attributes.',
+      },
+      {
+        capabilityId: 'list_portfolio_facets',
+        kind: 'Tool',
+        gloss: 'Enumerates valid themes before the search runs.',
+      },
+      {
+        capabilityId: 'search_portfolio',
+        kind: 'Tool',
+        gloss: 'One batched call across the theme array.',
+      },
+    ],
+  },
+  {
+    key: 'radar',
+    title: 'Check the news',
+    description:
+      'What moved in your sectors, in GST Take voice, with the provenance framing that says it is aggregated third-party reporting.',
+    youGetBack: 'A briefing you can take into the morning call.',
+    steps: [
+      {
+        capabilityId: 'gst_radar_brief_today',
+        kind: 'Prompt',
+        gloss: 'Reads the annotated tier, cache only.',
+      },
+      {
+        capabilityId: 'search_radar',
+        kind: 'Tool',
+        gloss: 'Live category filter across the feed.',
+      },
+      {
+        capabilityId: 'gst://radar/…',
+        documentUri: 'gst://radar/fyi/latest',
+        kind: 'Resource',
+        gloss: 'Pin the feed to keep the annotated tier in context.',
+      },
+    ],
+  },
+  {
+    key: 'handover',
+    title: 'Handover an assessment',
+    description:
+      'Agenda, comparables and VDR follow-ups combined into one document the deal team can act on without reading the tool output.',
+    youGetBack: 'A handoff memo, not a stitched-together set of results.',
+    steps: [
+      {
+        capabilityId: 'gst_diligence_handoff_memo',
+        kind: 'Prompt',
+        gloss: 'Hand the result onward in memo form.',
+      },
+      {
+        capabilityId: 'gst://library/…',
+        documentUri: 'gst://library/vdr-structure',
+        kind: 'Resource',
+        gloss: 'Canonical VDR folder labels, used verbatim.',
       },
     ],
   },

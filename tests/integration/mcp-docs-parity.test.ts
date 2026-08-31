@@ -20,7 +20,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CAPABILITIES,
   DEFAULT_CAPABILITY_ID,
-  WORKFLOWS,
+  JOBS,
   type Capability,
 } from '../../src/data/mcp/capabilities';
 import { buildExampleCall, capabilitySlug } from '../../src/utils/mcp-capability-search';
@@ -30,6 +30,7 @@ import {
   registeredPromptNames,
   registeredToolNames,
   resourceInventory,
+  servedResourceUris,
   sweepOrchestratedToolNames,
   targetQuickLookOrchestratedToolNames,
   SERVER_PATH,
@@ -53,7 +54,7 @@ function allStrings(): string[] {
     else if (value && typeof value === 'object') Object.values(value).forEach(walk);
   };
   walk(CAPABILITIES);
-  walk(WORKFLOWS);
+  walk(JOBS);
   return out;
 }
 
@@ -145,17 +146,112 @@ describe('MCP docs registry — internal integrity', () => {
     expect(dangling).toEqual([]);
   });
 
-  it('resolves every workflow step to a real capability', () => {
-    const steps = WORKFLOWS.flatMap((w) => w.steps);
-    expect(steps.length).toBe(13);
+  it('resolves every job step to a real capability', () => {
+    const steps = JOBS.flatMap((j) => j.steps);
+    expect(steps.length).toBe(30);
     expect(steps.filter((s) => !byId.has(s.capabilityId)).map((s) => s.capabilityId)).toEqual([]);
   });
 
-  it('resolves every usedIn key to a real workflow', () => {
-    const keys = new Set(WORKFLOWS.map((w) => w.key));
+  it('resolves every usedIn key to a real job', () => {
+    const keys = new Set(JOBS.map((j) => j.key));
     const used = CAPABILITIES.flatMap((cap) => cap.usedIn ?? []);
     expect(used.length).toBeGreaterThan(0);
     expect(used.filter((key) => !keys.has(key))).toEqual([]);
+  });
+
+  it('points every resource step at a document the server actually serves', () => {
+    // `documentUri` exists so two steps meaning different articles stop
+    // rendering the same identifier and the same anchor. That only holds if the
+    // value is a real URI under the family it hangs off, so both halves are
+    // checked against server source rather than trusted.
+    const served = servedResourceUris();
+    expect(served.size).toBeGreaterThan(0);
+
+    const withDoc = JOBS.flatMap((j) => j.steps).filter((s) => s.documentUri);
+    expect(withDoc.length).toBeGreaterThan(0);
+
+    const drift: string[] = [];
+    for (const step of withDoc) {
+      const uri = step.documentUri as string;
+      if (step.kind !== 'Resource') drift.push(`${uri}: documentUri on a ${step.kind} step`);
+      // `gst://library/<guide>` -> `gst://library/`
+      const prefix = (byId.get(step.capabilityId)?.uri ?? '').replace(/<[^>]*>.*$/, '');
+      if (!prefix) drift.push(`${uri}: ${step.capabilityId} publishes no uri template`);
+      else if (!uri.startsWith(prefix)) drift.push(`${uri}: not under ${prefix}`);
+      if (!served.has(uri)) drift.push(`${uri}: the server serves no such document`);
+    }
+    expect(drift).toEqual([]);
+  });
+
+  it('leaves no two steps showing one identifier for different documents', () => {
+    // The defect this closes: `Review the architecture` and `Handover an
+    // assessment` both rendered `gst://library/…` and both linked to
+    // `#cap-gst-library`, so a reader was told two different articles were one.
+    // What a step SHOWS is its document when it has one, else its capability.
+    //
+    // This pins the collision, not the editorial call. Whether a given resource
+    // step OUGHT to name one document or genuinely means its whole family (the
+    // regulatory job reads across frameworks, and says so) is authored
+    // judgement, the same accepted trade as the glosses. What cannot be left to
+    // judgement is two steps rendering one label.
+    const shown = JOBS.flatMap((j) => j.steps.map((s) => s.documentUri ?? s.capabilityId));
+    expect(shown.length).toBe(30);
+
+    const families = new Set(
+      CAPABILITIES.filter((cap) => cap.group === 'Resources').map((cap) => cap.id)
+    );
+    expect(families.size).toBe(3);
+
+    const counts = new Map<string, number>();
+    for (const label of shown.filter((l) => families.has(l))) {
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+    expect([...counts.entries()].filter(([, n]) => n > 1)).toEqual([]);
+  });
+
+  it('keys every job uniquely', () => {
+    const keys = JOBS.map((j) => j.key);
+    expect(keys.length).toBe(12);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('names what every job returns', () => {
+    // `youGetBack` is optional on the type so a job can be added before its
+    // output is settled, which means only an assertion keeps the column filled.
+    // The lens header promises "what you get back" for every card.
+    const missing = JOBS.filter((j) => !j.youGetBack?.trim()).map((j) => j.key);
+    expect(missing).toEqual([]);
+  });
+
+  it('reaches every job from some capability contract', () => {
+    // The "Used in jobs" chips are the only route from Reference back to Jobs.
+    // A job no capability points at is unreachable from half the page.
+    const used = new Set(CAPABILITIES.flatMap((cap) => cap.usedIn ?? []));
+    expect(JOBS.filter((j) => !used.has(j.key)).map((j) => j.key)).toEqual([]);
+  });
+
+  it('declares usedIn on exactly the capabilities a job steps through', () => {
+    // The chip and the step are two views of one relationship, so they cannot
+    // be allowed to drift: a capability stepped through by a job must say so,
+    // and one that says so must be stepped through.
+    const fromSteps = new Map<string, Set<string>>();
+    for (const job of JOBS) {
+      for (const step of job.steps) {
+        const keys = fromSteps.get(step.capabilityId) ?? new Set<string>();
+        keys.add(job.key);
+        fromSteps.set(step.capabilityId, keys);
+      }
+    }
+    expect(fromSteps.size).toBeGreaterThan(0);
+    const drift: string[] = [];
+    for (const cap of CAPABILITIES) {
+      const declared = [...(cap.usedIn ?? [])].sort();
+      const actual = [...(fromSteps.get(cap.id) ?? [])].sort();
+      if (declared.join(',') !== actual.join(',')) {
+        drift.push(`${cap.id}: declared [${declared}] but stepped through by [${actual}]`);
+      }
+    }
+    expect(drift).toEqual([]);
   });
 
   it('opens Reference on a capability that exists', () => {

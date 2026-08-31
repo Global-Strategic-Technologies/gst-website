@@ -58,13 +58,61 @@ test.describe('MCP documentation — page shape', () => {
     await expect(crumb).toHaveCount(1);
   });
 
-  test('opens on Workflows with all four cards', async ({ page }) => {
-    await expect.poll(() => visibleLenses(page)).toEqual(['workflows']);
-    await expect(page.locator('.mdoc-flow')).toHaveCount(4);
-    // Every step is an anchor into a contract. Three workflows carry three
-    // steps; the IRL round trip carries four, since issuing the blank list and
-    // answering it from evidence are different prompts.
-    await expect(page.locator('.mdoc-step')).toHaveCount(13);
+  test('opens on Jobs with all twelve rows', async ({ page }) => {
+    await expect.poll(() => visibleLenses(page)).toEqual(['jobs']);
+    await expect(page.locator('.mdoc-job')).toHaveCount(12);
+    // Every step is an anchor into a contract. Step counts run 1 to 4 per job:
+    // extracting a record runs one prompt that calls nothing, while the
+    // regulatory map carries four, reading the framework documents after
+    // searching them.
+    await expect(page.locator('.mdoc-step')).toHaveCount(30);
+  });
+
+  test('every job names what it returns, on its collapsed row', async ({ page }) => {
+    // The lens header promises "what you get back" on every job, and the whole
+    // point of the index is that you get it WITHOUT opening anything, so this
+    // asserts it on the summary while every row is still closed.
+    await expect(page.locator('.mdoc-job__yield')).toHaveCount(12);
+    const blank = await page
+      .locator('.mdoc-job__yield')
+      .evaluateAll((els) => els.filter((el) => !(el.textContent ?? '').trim()));
+    expect(blank).toEqual([]);
+    // The caption is deliberately gone: the lens header carries it once, so
+    // repeating it on every row was noise. Guarded so it does not creep back.
+    await expect(page.locator('.mdoc-job__yield-label')).toHaveCount(0);
+  });
+
+  test('opens on a fully collapsed index, and a row opens its steps in place', async ({ page }) => {
+    // Collapsed is the resting state: twelve rows, no step visible, no row
+    // privileged over another.
+    const rows = page.locator('details.mdoc-job');
+    const openCount = () =>
+      rows.evaluateAll((els) => els.filter((el) => (el as HTMLDetailsElement).open).length);
+    expect(await rows.count()).toBe(12);
+    expect(await openCount()).toBe(0);
+    // The disclosure indicator is the shared brand utility, not a bespoke
+    // chevron: this row shipped once with a hand-rolled SVG, and the utility is
+    // what carries the rotation, the collapsed muting and the palette response.
+    await expect(page.locator('.mdoc-job__sum .delta-chevron')).toHaveCount(12);
+    // ...and it LEADS the row. That is a deliberate deviation from the
+    // inline-end rule the rest of the site follows (ADR-0026 § Amendment), so
+    // it is pinned rather than left to look like an oversight someone should
+    // tidy up.
+    const leads = await page
+      .locator('.mdoc-job')
+      .first()
+      .evaluate((row) => {
+        const d = row.querySelector('.delta-chevron')!.getBoundingClientRect();
+        const n = row.querySelector('.mdoc-job__name')!.getBoundingClientRect();
+        return d.left < n.left;
+      });
+    expect(leads).toBe(true);
+    await expect(page.locator('.mdoc-step').first()).toBeHidden();
+
+    await page.locator('.mdoc-job__sum').first().click();
+    await expect(page.locator('.mdoc-step').first()).toBeVisible();
+    // Opening one leaves every other row alone.
+    expect(await openCount()).toBe(1);
   });
 
   test('derives the counts row from the registry', async ({ page }) => {
@@ -119,8 +167,8 @@ test.describe('MCP documentation — lens and contract selection', () => {
   test('the lens switch swaps which lens renders', async ({ page }) => {
     await page.locator('[data-lens-link="reference"]').click();
     await expect.poll(() => visibleLenses(page)).toEqual(['reference']);
-    await page.locator('[data-lens-link="workflows"]').click();
-    await expect.poll(() => visibleLenses(page)).toEqual(['workflows']);
+    await page.locator('[data-lens-link="jobs"]').click();
+    await expect.poll(() => visibleLenses(page)).toEqual(['jobs']);
   });
 
   test('Reference opens on the default contract, one pane at a time', async ({ page }) => {
@@ -135,7 +183,8 @@ test.describe('MCP documentation — lens and contract selection', () => {
     await expect(page.locator('#cap-compute_techpar h2').first()).toHaveText('compute_techpar');
   });
 
-  test('a workflow step opens that capability in Reference', async ({ page }) => {
+  test('a job step opens that capability in Reference', async ({ page }) => {
+    await page.locator('.mdoc-job__sum').first().click();
     await page.locator('.mdoc-step').first().click();
     await expect.poll(() => visibleLenses(page)).toEqual(['reference']);
     await expect.poll(() => visiblePaneIds(page)).toEqual(['cap-gst_target_quick_look']);
@@ -338,7 +387,7 @@ test.describe('MCP documentation — without JavaScript', () => {
     await expect(page.locator('[data-pane]')).toHaveCount(34);
     expect(await visiblePaneIds(page)).toHaveLength(34);
     // Both lenses read too: with no script there is nothing to switch with.
-    await expect.poll(() => visibleLenses(page)).toEqual(['workflows', 'reference']);
+    await expect.poll(() => visibleLenses(page)).toEqual(['jobs', 'reference']);
     // And the dead search field is not offered.
     await expect(page.locator('[data-cap-search]')).toBeHidden();
 
@@ -351,7 +400,7 @@ test.describe('MCP documentation — themes and viewports', () => {
     await page.goto(ROUTE);
     await page.evaluate(() => document.documentElement.classList.add('dark-theme'));
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('.mdoc-flow').first()).toBeVisible();
+    await expect(page.locator('.mdoc-job').first()).toBeVisible();
   });
 
   // 1305 and 1012 are not round numbers: they are the two bands where an
@@ -362,12 +411,12 @@ test.describe('MCP documentation — themes and viewports', () => {
   for (const width of [1440, 1305, 1280, 1024, 1012, 900, 768, 480]) {
     test(`no capability identifier wraps at ${width}px`, async ({ page }) => {
       // A wrapped wire identifier reads as two entries: two sidebar rows, or two
-      // workflow steps. The sidebar column is `max-content` sized and the step
+      // job steps. The sidebar column is `max-content` sized and the step
       // grid drops columns rather than squeezing, so this holds down to 480 —
       // and NOT below it. Under 768px the longest identifier is wider than the
       // whole viewport, and the component deliberately wraps it there rather
       // than scrolling (which axe rates a serious violation) or shrinking it;
-      // see WorkflowCard.astro's media block. The widths below are all ≥480 for
+      // see JobCard.astro's media block. The widths below are all ≥480 for
       // that reason. The assertion is what keeps a future longer tool name
       // honest at the widths where one line is still possible.
       // Line count comes from a Range over the text, since the elements are
@@ -375,17 +424,111 @@ test.describe('MCP documentation — themes and viewports', () => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(ROUTE);
       await page.waitForSelector('h1');
-      const wrapped = await page.evaluate(() => {
+      // Job steps live inside closed disclosures now, and a closed one lays out
+      // nothing — every id would report zero rects and this guard would sweep an
+      // empty set at full strength. Open them all, then assert the probe count.
+      await page.evaluate(() =>
+        document
+          .querySelectorAll('details.mdoc-job')
+          .forEach((d) => ((d as HTMLDetailsElement).open = true))
+      );
+      const { wrapped, probed } = await page.evaluate(() => {
         const out: string[] = [];
-        document.querySelectorAll('.mdoc-step__id, [data-cap-link]').forEach((el) => {
+        const els = document.querySelectorAll('.mdoc-step__id, [data-cap-link]');
+        els.forEach((el) => {
           const range = document.createRange();
           range.selectNodeContents(el);
           const clipped = el.scrollWidth > el.clientWidth + 1;
           if (range.getClientRects().length > 1 || clipped) out.push(el.textContent?.trim() ?? '');
         });
-        return out;
+        return { wrapped: out, probed: els.length };
       });
+      // 30 job-step ids + 34 sidebar entries. Asserted so a selector that stops
+      // matching fails here rather than passing over nothing.
+      expect(probed).toBe(64);
       expect(wrapped).toEqual([]);
+    });
+  }
+
+  // The index shipped with a four-column summary (caret / 340px name / artifact /
+  // count) and four fixed step tracks, which is ~700px of content: at 390px the
+  // summary row overflowed itself by 315px, the wire ids by 229px, and the page
+  // by 267px, so the whole document scrolled sideways. A horizontally
+  // scrolling page is the worst failure mode a phone reader can get, and no
+  // existing test would have caught it, so this asserts the property directly
+  // rather than the media queries that deliver it.
+  for (const width of [390, 480, 768]) {
+    test(`the jobs index does not scroll sideways at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(ROUTE);
+      await page.waitForSelector('h1');
+      // Worst case is every row open: closed rows lay out none of their steps.
+      await page.evaluate(() =>
+        document
+          .querySelectorAll('details.mdoc-job')
+          .forEach((d) => ((d as HTMLDetailsElement).open = true))
+      );
+      const { pageOverflow, offenders, probed } = await page.evaluate(() => {
+        const offenders: string[] = [];
+        const sel = '.mdoc-job__sum, .mdoc-job__steps, .mdoc-job__body, .mdoc-step__id';
+        const els = document.querySelectorAll(sel);
+        els.forEach((el) => {
+          const over = Math.round(el.scrollWidth - el.clientWidth);
+          if (over > 1) offenders.push(`${el.className}: +${over}px`);
+        });
+        return {
+          pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          offenders,
+          probed: els.length,
+        };
+      });
+      expect(probed).toBeGreaterThan(0);
+      expect(offenders).toEqual([]);
+      expect(pageOverflow).toBeLessThanOrEqual(0);
+    });
+  }
+
+  // The title column is a FIXED 430px above 900px, so a title longer than it
+  // does not shrink the column — it wraps, and one 69px row among a column of
+  // 47px ones is the raggedness an index exists to avoid. This has happened
+  // twice, both times on a rename: `Shape a technology diligence before the LOI`
+  // (362px) wrapped at the old 340px, and `Populate a request list from
+  // available information` (420px) wrapped at 380px. The guard is on the
+  // property a reader sees, not on the column value, so widening the column or
+  // re-cutting the title both satisfy it.
+  for (const width of [1440, 1280, 1024]) {
+    test(`no job title wraps at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(ROUTE);
+      await page.waitForSelector('h1');
+      const { wrapped, probed } = await page.evaluate(() => {
+        const els = [...document.querySelectorAll('.mdoc-job__name')];
+        const wrapped = els
+          .filter((el) => {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            return range.getClientRects().length > 1;
+          })
+          .map((el) => el.textContent ?? '');
+        return { wrapped, probed: els.length };
+      });
+      expect(probed).toBe(12);
+      expect(wrapped).toEqual([]);
+    });
+  }
+
+  // 44px is the WCAG 2.5.5 floor and the summary is the only control on the
+  // lens, so it is the one that has to clear it at every width.
+  for (const width of [1440, 768, 390]) {
+    test(`each job row is a ${width}px-wide touch target of at least 44px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(ROUTE);
+      await page.waitForSelector('h1');
+      const heights = await page
+        .locator('.mdoc-job__sum')
+        .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().height)));
+      expect(heights).toHaveLength(12);
+      expect(heights.filter((h) => h < 44)).toEqual([]);
     });
   }
 

@@ -13,19 +13,19 @@ Two lenses over one registry.
   operations topic, with a contract pane per capability.
 
 Everything on the page derives from `src/data/mcp/capabilities.ts`: the sidebar,
-the group counts, the search index, the workflow steps, and all 34 contract
+the group counts, the search index, the job steps, and all 34 contract
 panes. Nothing hardcodes a capability name or a count.
 
 ## Anatomy
 
 | Piece                                             | Role                                                                                                      |
 | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `src/data/mcp/capabilities.ts`                    | The registry. `CAPABILITIES`, `WORKFLOWS`, `DEFAULT_CAPABILITY_ID`.                                       |
+| `src/data/mcp/capabilities.ts`                    | The registry. `CAPABILITIES`, `JOBS`, `DEFAULT_CAPABILITY_ID`.                                            |
 | `src/utils/mcp-capability-search.ts`              | Pure: `capabilitySlug`, `capabilityAnchor`, `searchCapabilities`, `capabilityCounts`, `buildExampleCall`. |
 | `src/utils/mcp-docs.ts`                           | Browser: hash sync, sidebar marker, search combobox, group jumps. DOM-only.                               |
 | `src/components/hub/mcp/CapabilityContract.astro` | One contract pane.                                                                                        |
 | `src/components/hub/mcp/CapabilityNav.astro`      | The sidebar, which doubles as the search index via its `data-cap-*` attributes.                           |
-| `src/components/hub/mcp/WorkflowCard.astro`       | One workflow card.                                                                                        |
+| `src/components/hub/mcp/JobCard.astro`            | One job row in the index: summary line plus the disclosure body.                                          |
 | `src/pages/hub/mcp/docs/index.astro`              | The page: inline bootstrap, toolbar, both lenses, and the visibility CSS.                                 |
 
 The page imports `src/styles/components/filter.css` itself. That sheet is
@@ -123,7 +123,7 @@ Consequences to keep in mind when changing it:
 
 - **With JS off the page is one long reference document.** That is the intended
   reading, not a degraded one, and the E2E asserts it.
-- **Contract selection is CSS.** Sidebar items and workflow steps are anchors;
+- **Contract selection is CSS.** Sidebar items and job steps are anchors;
   the browser does the reveal. `mcp-docs.ts` only keeps `data-cap` in step,
   marks the selected item, and runs the search. If a pane stops appearing, look
   at the cascade before the script.
