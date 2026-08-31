@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { checkA11y, formatViolations } from './helpers/a11y';
 // xlsx-js-style is CJS; the namespace-vs-default interop shape differs between
 // the vitest and Playwright runners, so normalize to whichever carries `read`.
 import * as XLSXImport from 'xlsx-js-style';
@@ -53,6 +54,24 @@ const FILLED_ROWS: (string | number)[][] = [
     'Post-close value creation',
   ],
   ['0-03', 'Annual recurring revenue', 'OPEN', '', '', '', ''],
+];
+
+/**
+ * Enough request rows that the converted body is taller than the readout box,
+ * which is what makes the readout a scroll container in the first place. A
+ * three-row workbook never overflows, so it cannot exercise the rule.
+ */
+const LONG_ROWS: (string | number)[][] = [
+  ...FILLED_ROWS.slice(0, 6),
+  ...Array.from({ length: 60 }, (_, i) => [
+    `0-${String(i + 1).padStart(2, '0')}`,
+    `Request number ${i + 1}`,
+    'CLOSED',
+    '',
+    '',
+    '',
+    `Answer number ${i + 1}.`,
+  ]),
 ];
 
 /** Attach a workbook to the (visually hidden but present) file input. */
@@ -166,7 +185,7 @@ test.describe('IRL Extractor — the layout does not move', () => {
     // controls. Measured rather than asserted in prose, because the prose was
     // wrong once: three stacked states took the panel to ~2340px against a
     // declared 900px and nothing caught it.
-    const panel = page.locator('.irl-ext__shell > .irl-ext__panel').nth(1);
+    const panel = page.locator('.irl-ext__panel--out');
     const before = await panel.boundingBox();
 
     await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(FILLED_ROWS));
@@ -175,6 +194,101 @@ test.describe('IRL Extractor — the layout does not move', () => {
     const after = await panel.boundingBox();
     expect(before?.height).toBeTruthy();
     expect(after?.height).toBeCloseTo(before!.height, 0);
+  });
+
+  test('the output panel still holds its height on the stacked tier', async ({ page }) => {
+    // The desktop guard above runs at desktop width in every project, so the
+    // ≤1024px layout — where the panels stack and the shared height stops
+    // applying — had no coverage at all, and a body over 420px grew the panel
+    // by up to 100px on a state change.
+    await page.setViewportSize({ width: 900, height: 1000 });
+    await gotoTool(page);
+
+    const panel = page.locator('.irl-ext__panel--out');
+    const before = await panel.boundingBox();
+
+    await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(FILLED_ROWS));
+    await expect(page.locator('#irl-ext-md')).toBeVisible({ timeout: 10000 });
+
+    const after = await panel.boundingBox();
+    expect(before?.height).toBeTruthy();
+    expect(after?.height).toBeCloseTo(before!.height, 0);
+  });
+});
+
+test.describe('IRL Extractor — a result is reachable, not just present', () => {
+  test('no serious axe violation in the CONVERTED state, not only at first paint', async ({
+    page,
+  }) => {
+    // The site-wide sweep in `accessibility.test.ts` scans the idle first
+    // paint, where nothing overflows yet. Both of this page's scroll
+    // containers only exist once a workbook has been converted, so the state
+    // that actually ships was never scanned — and it shipped a serious
+    // `scrollable-region-focusable` on the markdown readout.
+    await gotoTool(page);
+    await pickWorkbook(page, 'acme-irl.xlsx', buildWorkbook(LONG_ROWS));
+    await expect(page.locator('#irl-ext-md')).toBeVisible({ timeout: 10000 });
+
+    // Guard against a vacuous pass: the readout must genuinely overflow, or
+    // the rule this test exists for cannot fire either way.
+    const overflows = await page
+      .locator('#irl-ext-md')
+      .evaluate((el) => el.scrollHeight > el.clientHeight + 1);
+    expect(overflows).toBe(true);
+
+    const violations = await checkA11y(page);
+    expect(violations.critical, formatViolations(violations.critical)).toHaveLength(0);
+    expect(violations.serious, formatViolations(violations.serious)).toHaveLength(0);
+  });
+
+  test('the scrolling readout carries a keyboard tab stop with an announceable name', async ({
+    page,
+  }) => {
+    await gotoTool(page);
+    const md = page.locator('#irl-ext-md');
+    await expect(md).toHaveAttribute('tabindex', '0');
+    await expect(md).toHaveAttribute('role', 'region');
+    await expect(md).toHaveAttribute('aria-label', /markdown/i);
+  });
+
+  test('an advisory never pushes a diagnostic row out of the panel', async ({ page }) => {
+    // At the clamp floor the advisory paragraph needs ~90px the panel does not
+    // have. Scrolling the rows to make room hid three of the five, including
+    // the contradictions count; the pick panel grows instead. 900px tall is
+    // the floor case, and the one a laptop actually hits.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await gotoTool(page);
+
+    const blank = FILLED_ROWS.map((row) =>
+      /^\d{1,2}-\d{2}$/.test(String(row[0] ?? '')) ? [row[0], row[1], 'OPEN', '', '', '', ''] : row
+    );
+    await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(blank));
+    await expect(page.locator('#irl-ext-advisory')).toBeVisible({ timeout: 10000 });
+
+    const fits = await page.evaluate(() => {
+      const panel = document.querySelector('.irl-ext__panel--pick') as HTMLElement;
+      const rows = [...document.querySelectorAll('.irl-ext__diag-row')];
+      const advisory = document.getElementById('irl-ext-advisory') as HTMLElement;
+      const pb = panel.getBoundingClientRect().bottom;
+      return {
+        rowCount: rows.length,
+        rowsInside: rows.filter((r) => r.getBoundingClientRect().bottom <= pb + 1).length,
+        advisoryInside: advisory.getBoundingClientRect().bottom <= pb + 1,
+        // Nothing in the panel may become a scroll container either: that is
+        // the same axe rule as the readout, without the tab stop.
+        panelScrolls: panel.scrollHeight > panel.clientHeight + 1,
+        listScrolls: (() => {
+          const l = document.querySelector('.irl-ext__diag-list') as HTMLElement;
+          return l.scrollHeight > l.clientHeight + 1;
+        })(),
+      };
+    });
+
+    expect(fits.rowCount).toBe(5);
+    expect(fits.rowsInside).toBe(5);
+    expect(fits.advisoryInside).toBe(true);
+    expect(fits.panelScrolls).toBe(false);
+    expect(fits.listScrolls).toBe(false);
   });
 });
 

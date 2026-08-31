@@ -713,6 +713,28 @@ is why it does not reduce to any of the three shapes above.
 
 Recurring patterns used across hub tools (ICG, TechPar, Tech Debt Calculator, Diligence Machine).
 
+### A flex list item takes one child, not a sentence
+
+`.brutal-gateway-card__features li` and its page-local equivalents are `display: flex`
+so the bullet icon can sit beside the text. That makes **every bare text node inside the
+`li` its own anonymous flex item**, laid out and wrapped independently of its
+neighbours — so a bullet mixing prose with an inline `<code>` or `<a>` renders as
+fragments separated by gaps, not as a sentence.
+
+```html
+<!-- ✅ two flex items: the icon, and the whole sentence -->
+<li>
+  <DeltaIcon class="bullet-icon" />
+  <span>Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</span>
+</li>
+
+<!-- ❌ six flex items; renders as "Paste it into" · gap · "gst_irl_sweep" · gap · … -->
+<li><DeltaIcon class="bullet-icon" />Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</li>
+```
+
+A bullet of plain text with no inline elements has only one text node, so it looks fine
+and hides the rule until someone adds a link. Wrap the prose in a span regardless.
+
 ### `HubHeader` owns the space above and below the page title
 
 A page that renders `HubHeader` **must not add its own top padding** to the section
@@ -744,7 +766,11 @@ and supply their own `.guide-hero` chrome (see `mcp-guide.css`).
 
 ### Print Stylesheets
 
-All hub tools include a `@media print` block in their scoped styles with a consistent structure:
+Hub tools whose output is meant to be taken into a meeting — ICG, TechPar, the Tech
+Debt Calculator, the Diligence Machine, the Regulatory Map — include a `@media print`
+block in their scoped styles with a consistent structure. The two IRL tools do not:
+their deliverable is a file you download or a body you paste, so there is nothing on
+screen worth printing. Add the block when a tool's on-screen result **is** the artifact.
 
 ```css
 @media print {

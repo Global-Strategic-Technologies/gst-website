@@ -162,20 +162,6 @@ interface ListToolsResultPayload {
 }
 
 /**
- * Radar fixtures at REALISTIC FIELD WIDTHS, which is the whole point.
- *
- * The committed radar fixtures are 20 items with ~38-character summaries — two
- * orders of magnitude below the response that failed, and precisely why BL-109's
- * defect was invisible to every pre-existing test. A budget measured on those would
- * prove nothing.
- *
- * Widths are calibrated from the production-shaped figure recorded in
- * `src/docs/hub/RADAR.md` (78,737 chars over ~45 items post-fix, ~1,750 B/item), not
- * from a live capture: a capture would need a bearer credential and would commit
- * third-party article prose to the repo. Summaries carry raw HTML because that is
- * what Inoreader returns and what `projectItemForModel` strips at the tool boundary.
- */
-/**
  * Fixture clock, anchored to run time rather than to a literal date.
  *
  * The FYI tier is AGE-FILTERED: `filterFreshFyi` (radar-transform.ts) drops
@@ -197,6 +183,21 @@ interface ListToolsResultPayload {
  * freeze `Date` for the test instead of freezing the fixture.
  */
 const FIXTURE_BASE_MS = Date.now() - 3_600_000;
+
+/**
+ * Radar fixtures at REALISTIC FIELD WIDTHS, which is the whole point.
+ *
+ * The committed radar fixtures are 20 items with ~38-character summaries — two
+ * orders of magnitude below the response that failed, and precisely why BL-109's
+ * defect was invisible to every pre-existing test. A budget measured on those would
+ * prove nothing.
+ *
+ * Widths are calibrated from the production-shaped figure recorded in
+ * `src/docs/hub/RADAR.md` (78,737 chars over ~45 items post-fix, ~1,750 B/item), not
+ * from a live capture: a capture would need a bearer credential and would commit
+ * third-party article prose to the repo. Summaries carry raw HTML because that is
+ * what Inoreader returns and what `projectItemForModel` strips at the tool boundary.
+ */
 
 function makeSnapshotItem(id: number, tier: 'fyi' | 'wire', category: string) {
   const title = `Regulatory and market developments in enterprise technology, item ${String(id).padStart(3, '0')} headline`;

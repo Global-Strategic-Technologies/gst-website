@@ -61,7 +61,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
       <div class="irl-ext__shell">
         <!-- ── 01 pick ─────────────────────────────────────────────── -->
-        <div class="irl-ext__panel">
+        <div class="irl-ext__panel irl-ext__panel--pick">
           <div class="irl-ext__step">
             <span class="irl-ext__label">01 / Choose the workbook</span>
             <span class="irl-ext__hint">Any filled Information Request List (.xlsx)</span>
@@ -110,7 +110,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
         </div>
 
         <!-- ── 02 output ───────────────────────────────────────────── -->
-        <div class="irl-ext__panel">
+        <div class="irl-ext__panel irl-ext__panel--out">
           <div class="irl-ext__outhead">
             <div class="irl-ext__step">
               <span class="irl-ext__label">02 / Canonical markdown</span>
@@ -140,7 +140,21 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               <p class="irl-ext__error-body" id="irl-ext-error-body"></p>
               <p class="irl-ext__error-hint" id="irl-ext-error-hint"></p>
             </div>
-            <pre class="irl-ext__md" id="irl-ext-md" hidden></pre>
+            <!-- `tabindex="0"` is load-bearing, not decoration: a converted body is
+                 routinely taller than this box, and without a tab stop a keyboard-only
+                 user cannot scroll to the rest of it. axe rates that
+                 `scrollable-region-focusable` (WCAG 2.1.1 Keyboard, Level A) at serious,
+                 a severity this repo carries none of. Same fix, same reasoning, as the
+                 timeline on `/hub/tools/regulatory-map/`; the role and label give the
+                 stop an announceable identity instead of a bare unnamed group. -->
+            <pre
+              class="irl-ext__md"
+              id="irl-ext-md"
+              tabindex="0"
+              role="region"
+              aria-label="Canonical markdown output, scrollable"
+              hidden>
+            </pre>
           </div>
         </div>
       </div>
@@ -499,6 +513,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   /* ── shell ──────────────────────────────────────────────────────── */
 
   .irl-ext__shell {
+    /* One source for the panel height, consumed as a fixed `height` by the
+       output panel and as a `min-height` by the pick panel below. */
+    --irl-ext-panel-h: clamp(600px, calc(100vh - 300px), 760px);
+
     display: grid;
     grid-template-columns: 420px minmax(0, 1fr);
     gap: var(--spacing-2xl);
@@ -523,15 +541,26 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     box-shadow:
       inset 0 1px 0 var(--frost-highlight),
       0 0 0 1px var(--frost-edge);
-    /* A FIXED height, so swapping between the idle, error and markdown states
-       never resizes the panel or moves anything below it — but sized against
-       the viewport rather than pinned at 900px, which was taller than the
-       whole viewport it had to fit inside. It is fixed at any given viewport,
-       so the no-shift property is unchanged. The 600px floor is the left
-       panel's own natural content height (label + dropzone + all five
-       diagnostic rows); below it the diagnostics start scrolling. */
-    height: clamp(600px, calc(100vh - 300px), 760px);
     box-sizing: border-box;
+  }
+
+  /* The OUTPUT panel is the one whose height must not move: it swaps between
+     the idle, error and markdown states, and anything below it would jump on
+     every conversion. Sized against the viewport rather than pinned at the
+     900px it used to be — taller than the viewport it had to fit inside — but
+     still FIXED at any given viewport, so the no-shift property holds. */
+  .irl-ext__panel--out {
+    height: var(--irl-ext-panel-h);
+  }
+
+  /* The PICK panel matches that height so the two read as a pair, but as a
+     FLOOR rather than a ceiling. Its content is stable except for the advisory
+     paragraph, which appears on some results and needs about 90px that the
+     floor does not have; letting this panel grow is what keeps all five
+     diagnostic rows on screen. The output panel is untouched by that, and the
+     growth is downward, on a state the reader just triggered. */
+  .irl-ext__panel--pick {
+    min-height: var(--irl-ext-panel-h);
   }
 
   .irl-ext__step {
@@ -641,11 +670,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     opacity: 0.4;
   }
 
-  /* The list is what yields, not the advisory. The panel's height is fixed, so
-     something has to give when the advisory paragraph appears; scrolling the
-     five diagnostic rows keeps the advisory — the message that actually needs
-     reading — pinned in view at the bottom of the panel. Reversing the two
-     scrolled the advisory out of sight instead. */
+  /* Deliberately NOT a scroll container. It was one briefly, so the advisory
+     could stay pinned inside a fixed-height panel — but at the clamp's 600px
+     floor that pushed three of the five rows (including the contradictions
+     count) out of view whenever the advisory fired, and made the list a
+     keyboard trap axe rates `scrollable-region-focusable`. The left panel
+     grows instead; see `.irl-ext__panel`. */
   .irl-ext__diag-list {
     display: flex;
     flex-direction: column;
@@ -653,7 +683,6 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     margin: 0;
     flex: 1;
     min-height: 0;
-    overflow-y: auto;
   }
 
   .irl-ext__diag-row {
@@ -894,16 +923,28 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       grid-template-columns: 1fr;
     }
 
-    .irl-ext__panel {
+    /* Stacked, so the panels size to their own content and the shared height
+       stops applying. */
+    .irl-ext__panel--out {
       height: auto;
     }
 
-    .irl-ext__body {
-      min-height: 420px;
+    .irl-ext__panel--pick {
+      min-height: 0;
     }
 
-    .irl-ext__md {
-      max-height: 520px;
+    /* A FIXED size, not a minimum. The stacked tier used `min-height` here
+       with a `max-height` on the readout, which let a body over 420px grow the
+       panel by up to 100px on a state change — the exact shift the desktop
+       layout is built to avoid, silently absent below 1024px because all three
+       Playwright projects are desktop-width.
+
+       It has to be the FLEX BASIS, not `height`: the base rule makes this a
+       `flex: 1` item, and a flex item with `flex-basis: 0` takes its main size
+       from flex layout, so a `height` here is simply ignored. The first
+       attempt at this fix set `height` and the panel still moved 45px. */
+    .irl-ext__body {
+      flex: 0 0 420px;
     }
   }
 
