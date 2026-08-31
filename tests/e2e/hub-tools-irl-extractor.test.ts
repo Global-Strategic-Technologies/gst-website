@@ -423,6 +423,41 @@ test.describe('IRL Extractor — the page reads as one column', () => {
     expect(new Set(shape.map((r) => r.indent)).size).toBe(1);
   });
 
+  test('at the cap tier an advisory moves nothing at all', async ({ page }) => {
+    // The floor-tier case above accepts an 87px downstream shift. At the CAP
+    // tier the panel has slack and the correct behaviour is zero movement —
+    // which held until the diagnostics went to two lines per row, ate the old
+    // 760px cap's remaining slack, and started shifting the cap tier by 7px
+    // with nothing to catch it. The cap is 780px with only 12.64px of headroom,
+    // so a sixth diagnostic row or longer advisory copy would re-break it; this
+    // is the test that refuses to let that happen quietly.
+    await page.setViewportSize({ width: 1920, height: 1200 });
+    await gotoTool(page);
+
+    const heights = async () => ({
+      pick: (await page.locator('.irl-ext__panel--pick').boundingBox())!.height,
+      out: (await page.locator('.irl-ext__panel--out').boundingBox())!.height,
+      cardsTop: (await page.locator('.irl-ext__cards').boundingBox())!.y,
+    });
+    const before = await heights();
+
+    const blank = FILLED_ROWS.map((row) =>
+      /^\d{1,2}-\d{2}$/.test(String(row[0] ?? '')) ? [row[0], row[1], 'OPEN', '', '', '', ''] : row
+    );
+    await pickWorkbook(page, 'blank-template.xlsx', buildWorkbook(blank));
+    await expect(page.locator('#irl-ext-advisory')).toBeVisible({ timeout: 10000 });
+
+    const after = await heights();
+    expect(after.out).toBeCloseTo(before.out, 0);
+    expect(after.pick).toBeCloseTo(before.pick, 0);
+    // Nothing below the shell moves either — the property in full.
+    expect(after.cardsTop).toBeCloseTo(before.cardsTop, 0);
+    // And the headroom is real rather than incidental: the advisory-state
+    // content must still fit under the cap. Named separately so a failure
+    // points at the cap rather than at an opaque height diff.
+    expect(after.pick).toBeLessThanOrEqual(780);
+  });
+
   test('the guidance cards carry the frosted-glass treatment', async ({ page }) => {
     await gotoTool(page);
 

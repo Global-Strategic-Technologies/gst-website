@@ -577,23 +577,32 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
      does not have; letting this panel grow is what keeps all five diagnostic
      rows on screen instead of scrolling three of them away.
 
-     Measured, so the trade is on the record rather than implied:
+     Measured, so the trade is on the record rather than implied. The shift is
+     a RAMP across the middle of the clamp, not a two-state thing — sampling
+     only the floor and the cap steps straight over the band that matters, and
+     doing exactly that is how the previous version of this comment came to
+     claim something false:
 
-       1440x900   rest 680/680   advisory pick 767.36, out 680, shift 87.36px
-       1920x1200  rest 780/780   advisory pick 780,    out 780, shift 0
-       1920x1400  rest 780/780   advisory pick 780,    out 780, shift 0
+       viewport height   panel   advisory pick   out   downstream shift
+       900 (and below)     680          767.36   680             87.36
+       1000                740          767.36   740             67.36
+       1040                740          767.36   740             27.36
+       1067                767          767.36   767              0.36
+       1068 and above      768+         767.36   768+             0.00
 
-     So: both panels equal in every resting state; at the FLOOR tier the pick
-     panel grows, the out panel does not move, and the cards and Back link below
-     the shell go down 87px; at the CAP tier the slack absorbs it and nothing
-     moves at all. The shift is real, confined to the floor tier, and happens on
-     a state the reader just triggered — which beats hiding the contradictions
-     count.
+     So: both panels are equal in every resting state and the out panel never
+     moves at any viewport. What moves is everything below the shell, by the
+     amount the advisory overshoots the panel — the full 87px under 980, ramping
+     to zero at 1068. That band includes the usual maximized-window content
+     height on a 1080p display, so it is the common case, not an edge one. It is
+     still the right trade: it happens on a state the reader just triggered, and
+     the alternative was hiding the contradictions count.
 
-     The cap is 780px for exactly this: at 760px the advisory overshot by ~7px
-     and the cap tier moved too, which the numbers above are here to keep
-     honest. Break-even is 768px. Re-measure this table if the diagnostics gain
-     a row or the advisory copy grows. */
+     The cap is 780px for exactly this. At 760px the advisory overshot even at
+     the cap tier by 7.36px; break-even is 768px, and 780 leaves headroom —
+     12.64px of it, which is not much. The E2E pins the cap tier so a sixth
+     diagnostic row or longer advisory copy fails a test instead of silently
+     re-breaking this. Re-measure the table if either changes. */
   .irl-ext__panel--pick {
     min-height: var(--irl-ext-panel-h);
   }
