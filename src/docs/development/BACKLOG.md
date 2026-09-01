@@ -134,7 +134,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-133: Payments Platform — automated MCP access checkout on Cloudflare
 
-**Source**: operator directive 2026-08-15 — build the payment rail as a reusable capability, first consumer being self-serve MCP client purchase + provisioning | **Effort**: ~2–3 weeks engineering across the slices below, plus vendor/tax lead time | **Status**: Open | **Reverses**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, which lists "public checkout / webhook-driven tier automation" as deferred pending a volume trigger — this item is the operator go-decision that supersedes it
+**Source**: operator directive 2026-08-15 — build the payment rail as a reusable capability, first consumer being self-serve MCP client purchase + provisioning | **Effort**: ~2–3 weeks engineering across the slices below, plus vendor/tax lead time | **Status**: Open — designed, implementation deferred 2026-09-01 | **Architecture & plan**: [PAYMENTS_PLATFORM_BL-133.md](PAYMENTS_PLATFORM_BL-133.md) | **Reverses**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, which lists "public checkout / webhook-driven tier automation" as deferred pending a volume trigger — this item is the operator go-decision that supersedes it
 
 **As a** prospective MCP client, **I want** to buy access with a credit card and receive working credentials immediately, **so that** neither I nor the GST operator has to run an email thread to get provisioned — and **as** the GST operator, **I want** that same rail to serve every future productized good or service, **so that** the second thing GST sells does not need a second payments integration.
 
