@@ -8,6 +8,10 @@
 > **Provenance**: eight adversarial review rounds via the `plan-reviewer` gate (Directive 2), final
 > verdict APPROVE with zero blockers. The passages marked _an earlier revision …_ record designs that
 > looked correct and were not — they are kept so the same mistakes are not re-derived.
+> **Blocked on**:
+> [BL-145](BACKLOG.md#bl-145-design-partner-program--set-the-price-from-evidence-not-from-a-guess)
+> for Slice 4 — it owns the price, and its stated purpose is to stop a low number being published,
+> which cannot be walked back. **No price figure in this document is authoritative.**
 > **First task for whoever picks this up**: § Vendor behaviour: documented, not executed. The
 > lifecycle rests on Stripe behaviour inferred from docs and never exercised.
 
@@ -24,12 +28,12 @@ per-`keyOwner` telemetry. What is missing is the money and the automation around
 
 ### Decisions taken (operator, 2026-09-01)
 
-| Decision             | Choice                                     | Consequence                                                                                                                                                                                                                                                    |
-| -------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rail + tax liability | **Stripe with Managed Payments**           | Stripe/Link is merchant of record. No VAT/GST/sales-tax registration, filing or remittance for GST in 80+ countries. Costs 3.5% on top of standard processing. Operator rationale: at low volume the regulatory overhead of being MoR costs more than the fee. |
-| Self-serve SKU       | **`paid` / "Deal Team" only**              | One SKU, one fulfillment handler. Pilot stays request-based, Firm stays negotiated. Radar scopes excluded.                                                                                                                                                     |
-| Price                | **$200–500/month recurring**               | Exact figure outstanding; set in Stripe on the Payment Link and restated on the page.                                                                                                                                                                          |
-| Branch               | **`feat/mcp-website-marketing`, directly** | Asked for and reaffirmed at design time, against Directive 13's one-branch-one-concern rule. **Re-confirm before implementing**: that branch will likely have merged by then, in which case the work cuts from `master` as normal and this decision lapses.    |
+| Decision             | Choice                                                                                                                       | Consequence                                                                                                                                                                                                                                                                                                                                           |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rail + tax liability | **Stripe with Managed Payments**                                                                                             | Stripe/Link is merchant of record, so GST carries no VAT, sales-tax or GST-equivalent registration, filing or remittance obligation across 80+ countries. Costs 3.5% on top of standard processing. Operator rationale: at low volume the regulatory overhead of being MoR costs more than the fee.                                                   |
+| Self-serve SKU       | **`paid` / "Deal Team" only**                                                                                                | One SKU, one fulfillment handler. Pilot stays request-based, Firm stays negotiated. Radar scopes excluded.                                                                                                                                                                                                                                            |
+| Price                | **Not set here — [BL-145](BACKLOG.md#bl-145-design-partner-program--set-the-price-from-evidence-not-from-a-guess)'s output** | BL-145 owns the number and **blocks Slice 4**: the purchase surface cannot display a price that item has not produced. Its recorded hypothesis is an internal list price of **$18–24k/yr** for `paid`, deliberately unpublished, on the basis that the buyer is a PE/corp-dev deal team, not a per-seat SaaS user. Take no figure from this document. |
+| Branch               | **`feat/mcp-website-marketing`, directly**                                                                                   | Asked for and reaffirmed at design time, against Directive 13's one-branch-one-concern rule. **Re-confirm before implementing**: that branch will likely have merged by then, in which case the work cuts from `master` as normal and this decision lapses.                                                                                           |
 
 ### Why Managed Payments removes most of the build
 
@@ -55,6 +59,9 @@ operator's low-volume rationale quoted. Must carry:
   or if a buyer refuses "Sold through Link" as merchant of record.
 - **Accepted costs**: buyer sees _Sold through Link_; statement descriptor `LINK.COM*`; no custom
   checkout domain; Stripe may refund without approval if a support escalation goes unanswered 48h.
+  Every vendor figure in this document — that 48h, the 300s signature tolerance, the three-day retry
+  window, the 15/30-day resend limits — is **read from Stripe's docs, not exercised**, and inherits
+  the caveat below.
 - **`workerd` verification**: no SDK is bundled, so the vendor-SDK risk is retired by construction —
   signature verification is Web Crypto only.
 - **Slice 5 second consumer scored now**: engagement invoices want ACH/wire and POs, where a
@@ -686,10 +693,16 @@ for retry safety, so they get assertions, not prose:
 
 Rewrite `mcp-server/src/docs/operations/PILOT_ONBOARDING.md` § 0 so self-serve purchase is the primary
 intake, operator provisioning is the negotiated/enterprise path, and the recovery route is documented,
-including what replaces the NDA/DPA precondition. Close BL-093's 🟡 intake AC (`BACKLOG.md:1226`) and
-update `:1216`. **Also fix `BACKLOG.md:1230-1232`** — its first AC reads "no payment code on the
-website or the Worker (none exists today; this stanza keeps it that way)", which this initiative
-falsifies, and it carries a duplicate invoice-traceability AC.
+including what replaces the NDA/DPA precondition. Then, in
+[BL-093](BACKLOG.md#bl-093-mcp-server--commercialization-phase-4): close the 🟡 intake AC (the one
+ending "Whichever ships first closes this") and update the request-access-form AC above it (the one
+beginning "Request-access form/CTA"). **Also fix that stanza's Payments & invoicing block** — its
+first AC reads "no payment code on the website or the Worker (none exists today; this stanza keeps it
+that way)", which this initiative falsifies, and it carries a duplicate invoice-traceability AC.
+
+_(Referenced by anchor and quoted phrase, not by line number: `BACKLOG.md` is ~292 KB and
+append-heavy, nothing guards line pointers, and the three that were here drifted by 63 lines the day
+after they were written.)_
 
 Update **`mcp-server/src/docs/ARCHITECTURE.md`** § Request pipeline (`:80-88`) — a maintained numbered
 dispatch list whose anchors code comments cite. A branch inserted between its steps 4 and 5, a
@@ -703,6 +716,8 @@ Public-contract discipline rule requires naming.
 **No new route.** Put the price and buy CTA on the existing `#tiers` block of
 `src/pages/hub/mcp/index.astro:395-522`: it already renders the tier table, is already in the axe
 sweep and the E2E suite, and its numbers are already pinned to `tiers.ts`.
+
+**Slice 4 cannot start until [BL-145](BACKLOG.md#bl-145-design-partner-program--set-the-price-from-evidence-not-from-a-guess) has produced a price.** Everything below describes how to present one; none of it authorises inventing one. BL-145 is explicit that publishing a low number costs the positioning permanently and cannot be walked back, and that the tools-are-free copy on `/hub/index.astro` has to agree with whatever it decides.
 
 - Deal Team card (`:426-439`) — add price and billing period; swap `accessHref('paid')` for the
   Stripe Payment Link. Pilot (`:420`) and Firm (`:450`) keep `mailto:`.
