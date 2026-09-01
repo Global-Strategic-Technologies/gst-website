@@ -84,6 +84,9 @@ import DeltaIcon from './DeltaIcon.astro';
     line-height: 1.6;
   }
 
+  /* Inherits `text-align: right` from `.services-content` — deliberately NOT
+     overridden. See the `::after` note below for why the marker moved
+     instead. */
   .closing-text {
     font-size: var(--text-base);
     font-family: var(--font-family-mono);
@@ -94,8 +97,19 @@ import DeltaIcon from './DeltaIcon.astro';
     border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
-  .closing-text::before {
-    content: '// ';
+  /* `::after`, where `WhoWeSupport.astro`'s twin rule uses `::before`. That is
+     the mirror, not a divergence: this section is right-aligned and its delta
+     bullets trail, so the marker belongs on the RIGHT edge. Leading it here
+     stranded `//` mid-line at every width where this paragraph wraps — which
+     is most of them: 3 lines at 320px, 2 up to 669px, 1 only from 670px
+     (measured 2026-09-01). Anchoring it to the alignment edge is what makes
+     the two sections read as a pair.
+
+     The NBSP is load-bearing. With a plain space the marker is its own wrap
+     opportunity, so `//` can land alone on the last line, right-aligned under
+     the sentence. `\00a0` binds it to the final word. */
+  .closing-text::after {
+    content: '\00a0//';
     color: var(--color-primary);
     font-weight: 900;
   }
