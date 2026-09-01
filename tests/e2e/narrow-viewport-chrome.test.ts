@@ -200,15 +200,32 @@ test.describe('Site chrome at phone widths', () => {
    * WHAT CLEARANCE MEASURES. `footer .footer-links` carries `flex: 1` inside a
    * `space-between` parent, so its box IS the space available to the row, and
    * (row box right − last anchor right) is exactly the slack the budget in
-   * FooterLinks.astro predicts: 23.8px at 360. Do NOT measure against the
+   * FooterLinks.astro predicts: 16.8px at 360. Do NOT measure against the
    * viewport instead — that folds in the 53.6px ThemeToggle and the 16px
    * `.footer-top` gap, and the number stops meaning anything.
    *
-   * 16 rather than the predicted 23.8: four times the 4px rasterization floor
-   * this repo uses elsewhere, comfortably below the derivation, and still fails
-   * on any material regression. If a real run lands materially under 23.8, the
-   * budget is wrong — most likely the derived, never-measured toggle box — and
-   * that gets investigated rather than this number lowered.
+   * BOTH NUMBERS MOVED ON 2026-09-01, and the reason is on the record rather
+   * than absorbed. The prediction was 23.8px and the floor was 16. FooterLinks
+   * then took a deliberate 7px `padding-left` — an optical inset, because the
+   * live gutter ladder pays 1rem at this tier where the pre-ADR-0027 gutter
+   * paid a flat 3rem — and that padding sits inside `flex: 1`, so it comes
+   * out of this exact slack. Re-derived to 16.8; measured 16.78 (Chromium,
+   * 2026-09-01).
+   *
+   * The previous revision of this comment said that a run landing materially
+   * under 23.8 means the budget is wrong and "gets investigated rather than
+   * this number lowered." That was investigated, and the escape clause does not
+   * apply: the drop is a declared 7px, the re-derivation predicted it to within
+   * 0.02px, and the never-measured toggle box is exonerated rather than
+   * implicated. The rule still stands for an UNEXPLAINED drop.
+   *
+   * 12 rather than the predicted 16.8. Leaving it at 16 would have passed by
+   * 0.78px, which is not a pass — `stats-bar-fit.test.ts` correction 2 is this
+   * repo shipping a red CI check on exactly that, 0.39px of margin that held
+   * locally and lost to Linux rasterization. 12 keeps ~4.8px of real headroom,
+   * stays three times the 4px rasterization floor used elsewhere, and still
+   * fails on any regression costing more than ~5px — one extra character in a
+   * label is 7.8px at this tier, so the guard keeps its teeth.
    */
   test('the footer link row stays on one line from 360px up', async ({ page }) => {
     test.slow();
@@ -219,7 +236,7 @@ test.describe('Site chrome at phone widths', () => {
     await page.setViewportSize({ width: 360, height: 700 });
     await page.goto('/services/');
 
-    const MIN_CLEARANCE = 16;
+    const MIN_CLEARANCE = 12;
     const measured: { width: number; rows: number; clearance: number }[] = [];
 
     for (let width = 360; width <= 480; width += 10) {
@@ -260,7 +277,7 @@ test.describe('Site chrome at phone widths', () => {
     expect(tightest.width).toBe(360);
     expect(
       tightest.clearance,
-      `the row clears its box by at least ${MIN_CLEARANCE}px at 360px (derived: 23.8px)`
+      `the row clears its box by at least ${MIN_CLEARANCE}px at 360px (derived: 16.8px)`
     ).toBeGreaterThanOrEqual(MIN_CLEARANCE);
   });
 

@@ -43,10 +43,29 @@ const { links = PRODUCTION_LINKS } = Astro.props;
 </div>
 
 <style>
+  /* The 7px is a deliberate optical inset, not alignment with anything. The
+     row sits alone on the left of `.footer-top` (its only sibling is the
+     ThemeToggle, hard right), so nothing above or beside it shares this left
+     edge to misalign against — which is what makes a value this small safe to
+     pick by eye. It reads as cramped without it now that `.container`'s gutter
+     ladder is live and pays 1rem at phone widths instead of the flat 3rem that
+     shipped before (global.css, ADR-0027).
+
+     OFF-SCALE ON PURPOSE, and operator-chosen. The spacing scale runs
+     4/8/12/16/24/32/48px, so there is no 7px token and this is a raw value
+     against the repo's "spacing comes from the design system" rule. It is 7
+     because the operator picked 7 by eye against the pre-ladder rendering.
+     `--spacing-sm` (8px) is the on-system neighbour and is one pixel away if
+     this should ever be normalised — but do not swap it silently: the width
+     budget below is derived from 7, and the E2E clearance floor from that.
+
+     It costs 7px of the row's width budget at <=480 — see below, where that is
+     re-derived rather than assumed. */
   .footer-links {
     display: flex;
     gap: 0.75rem;
     align-items: center;
+    padding-left: 7px;
   }
 
   .footer-links a {
@@ -93,19 +112,23 @@ const { links = PRODUCTION_LINKS } = Astro.props;
       /* THE WIDTH BUDGET. Everything here is derived, not measured — re-derive
          rather than re-measure if a label, the face, or the gutter changes.
 
-           available(w) = w − 32 − 53.6 − 16
+           available(w) = w − 32 − 53.6 − 16 − 7
              32   = .container's 2 × 1rem gutters at this tier (global.css)
              53.6 = the ThemeToggle: ThemeToggleButton's font-size: 5rem × the
                     icon's width: 0.67em. The button declares no width, so its
                     box IS the icon — a DeltaIcon, so this is independent of
                     theme, palette and font.
              16   = .footer-top's gap (Footer.astro)
+             7    = this component's own padding-left (base rule above). It is
+                    inside `flex: 1`, so it takes from the content box rather
+                    than widening the row.
 
            needed = 27 characters × 12px × (0.6 advance + 0.05 tracking) + 3 × 8px
                   = 210.6 + 24 = 234.6
 
-         So one row from 337px up, clearing 360px — the narrowest current phone —
-         by 23.8px.
+         So one row from 344px up, clearing 360px — the narrowest current phone —
+         by 16.8px. Both numbers moved by exactly the 7px the inset costs (they
+         were 337px and 23.8px before it).
 
          WHY THE TRACKING STEPS DOWN HERE. At the base 0.1em the row needs
          250.8px and clears 360px by 7.6px. That is not an overflow, but a 0.1em
@@ -116,9 +139,10 @@ const { links = PRODUCTION_LINKS } = Astro.props;
          which widened these four labels by 16.2px and pushed the row to two
          lines on a 430px phone.
 
-         WHY IT STILL WRAPS. 320px offers 218.4px against 210.6px of glyph — 7.8px
-         for three gaps. One row is arithmetically impossible there without type
-         below 12px, so the row wraps to two lines and nothing leaves the screen.
+         WHY IT STILL WRAPS. 320px offers 211.4px against 210.6px of glyph — 0.8px
+         for three gaps that need 24. One row is arithmetically impossible there
+         without type below 12px, so the row wraps to two lines and nothing
+         leaves the screen.
          Without flex-wrap it would instead push the ThemeToggle off-screen, which
          is the defect this pair of rules exists to prevent. min-width: 0 releases
          the flex item's `auto` floor so the row can actually take the wrap.
