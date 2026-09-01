@@ -86,24 +86,50 @@ const { links = PRODUCTION_LINKS } = Astro.props;
 
   @media (max-width: 480px) {
     .footer-links {
-      gap: 1rem;
+      gap: var(--spacing-sm);
       flex: 1;
       justify-content: flex-start;
 
-      /* Four links do not fit one row on a phone, and a flex item's default
-         min-width: auto means this row could neither wrap nor shrink — so it
-         pushed the sibling ThemeToggle past the viewport and every page scrolled
-         sideways below ~376px (~392 in WebKit, whose mono metrics run wider).
-         The toggle was the widest box on the page at those widths, not the nav.
-         Wrapping is the fix that does not shrink the type: the row becomes two
-         lines on the narrowest phones and nothing leaves the screen. */
+      /* THE WIDTH BUDGET. Everything here is derived, not measured — re-derive
+         rather than re-measure if a label, the face, or the gutter changes.
+
+           available(w) = w − 32 − 53.6 − 16
+             32   = .container's 2 × 1rem gutters at this tier (global.css)
+             53.6 = the ThemeToggle: ThemeToggleButton's font-size: 5rem × the
+                    icon's width: 0.67em. The button declares no width, so its
+                    box IS the icon — a DeltaIcon, so this is independent of
+                    theme, palette and font.
+             16   = .footer-top's gap (Footer.astro)
+
+           needed = 27 characters × 12px × (0.6 advance + 0.05 tracking) + 3 × 8px
+                  = 210.6 + 24 = 234.6
+
+         So one row from 337px up, clearing 360px — the narrowest current phone —
+         by 23.8px.
+
+         WHY THE TRACKING STEPS DOWN HERE. At the base 0.1em the row needs
+         250.8px and clears 360px by 7.6px. That is not an overflow, but a 0.1em
+         → 0.05em step (the same tracking .text-uppercase and .button-text use)
+         buys 16.2px and turns a 7px squeak into a real margin. This row has
+         already been caught once by a margin that thin: BL-144 pinned the mono
+         face from generic `monospace` (0.55em on Windows) to GST Mono (0.6em),
+         which widened these four labels by 16.2px and pushed the row to two
+         lines on a 430px phone.
+
+         WHY IT STILL WRAPS. 320px offers 218.4px against 210.6px of glyph — 7.8px
+         for three gaps. One row is arithmetically impossible there without type
+         below 12px, so the row wraps to two lines and nothing leaves the screen.
+         Without flex-wrap it would instead push the ThemeToggle off-screen, which
+         is the defect this pair of rules exists to prevent. min-width: 0 releases
+         the flex item's `auto` floor so the row can actually take the wrap.
+         Guarded by tests/e2e/narrow-viewport-chrome.test.ts. */
       flex-wrap: wrap;
-      row-gap: var(--spacing-sm);
       min-width: 0;
     }
 
     .footer-links a {
       font-size: var(--text-xs);
+      letter-spacing: 0.05em;
     }
   }
 
