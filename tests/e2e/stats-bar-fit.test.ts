@@ -27,7 +27,9 @@
  *     overflowed by up to 15px — the 2.5rem tier inheriting 2rem side padding
  *     down to a 384px container — and the sample steps 480 -> 540 straight over
  *     it. Sampling a continuous space cannot show where the edges are, so this
- *     now sweeps, and the sweep is what found that band.
+ *     now sweeps, and the sweep is what found that band. (Those viewport numbers
+ *     are from before the gutter ladder went live; the container widths are the
+ *     durable half of that account. See ADR-0027.)
  *  2. It asserted `overflow <= 0`, which passed on 0.39px of margin. At a
  *     1160px viewport the four-column band's interior was 202px against
  *     201.61px of ink; `scrollWidth` rounds 201.61 to 202, so the two tie here
@@ -53,9 +55,21 @@ const MIN_INK_MARGIN = 4;
  * Swept, not sampled. 4px steps across the whole supported range, plus every
  * tier edge and its immediate neighbours named explicitly — a threshold is
  * exactly where a step is most likely to land just past the defect.
+ *
+ * 416/417 and 720/721 are where the container thresholds now fall in VIEWPORT
+ * terms. The thresholds themselves did not move; the gutter ladder in global.css
+ * (2026-09-01) did, so the same container widths are produced at narrower
+ * viewports than before — the tier steps that used to land at 480/481 and
+ * 768/769 now land here. Those older edges are kept: they are still the gutter
+ * breakpoints, which is its own reason to sample them. The 4px sweep from 320
+ * already lands on 416 and 720; 417 and 721 are the ones it would miss.
+ * See ADR-0027 for why no threshold moved.
  */
 const SWEEP_STEP = 4;
-const EDGES = [320, 480, 481, 510, 511, 512, 767, 768, 769, 1159, 1160, 1189, 1190, 1191, 1500];
+const EDGES = [
+  320, 416, 417, 480, 481, 510, 511, 512, 720, 721, 767, 768, 769, 1159, 1160, 1189, 1190, 1191,
+  1500,
+];
 const WIDTHS = [
   ...new Set([
     ...Array.from(
