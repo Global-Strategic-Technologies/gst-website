@@ -71,6 +71,17 @@ async function waitForFooterLinkStyles(page: Page) {
     const row = document.querySelector('footer .footer-links');
     return !!row && getComputedStyle(row).flexWrap === 'wrap';
   });
+
+  // And on the FACE, not just the rules. Every number this file asserts about
+  // the footer is a font-metric budget off GST Mono's 0.6em advance, so a page
+  // measured mid-swap against a fallback is measuring a different budget. This
+  // is the regression's own mechanism: BL-144 changed the advance and that is
+  // what moved the row. stats-bar-fit does the same pair for the same reason.
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForFunction(() => {
+    const link = document.querySelector('footer .footer-links a');
+    return !!link && getComputedStyle(link).fontFamily.includes('GST Mono');
+  });
 }
 
 /**
@@ -213,6 +224,10 @@ test.describe('Site chrome at phone widths', () => {
 
     for (let width = 360; width <= 480; width += 10) {
       await page.setViewportSize({ width, height: 700 });
+      // Width-dependent, so the wait tracks each resize. The style gate alone
+      // is a no-op after the first iteration — `flex-wrap` never changes across
+      // this band, so it would pass instantly whether or not layout had settled.
+      await page.waitForFunction((w) => document.documentElement.clientWidth === w, width);
       await waitForFooterLinkStyles(page);
 
       const sample = await page.evaluate(() => {
