@@ -1828,7 +1828,11 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   /* Wraps for the same reason the footer link row does: four fixed-width items
      in a nowrap flex row cannot shrink, so at 320px the last one sat 8px off
-     the right edge in WebKit and the page scrolled sideways. */
+     the right edge in WebKit and the page scrolled sideways. That 8px was
+     measured under the flat 96px gutter; the ladder (global.css, 2026-09-01)
+     has since given 320px 64px more room, so the wrap is now CONSERVATIVE
+     RATHER THAN EXACT. Kept as the safety net — a nowrap row that cannot shrink
+     is one label change away from overflowing again. */
   .timeline-legend {
     display: flex;
     flex-wrap: wrap;

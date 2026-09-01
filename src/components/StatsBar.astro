@@ -66,12 +66,19 @@ const { stats } = Astro.props;
 
   /* These steps key on the CONTAINER, not the viewport, because this component
      is rendered at two different widths for the same viewport: `/ma-portfolio/`
-     gives it the full `.container` (min(100vw, 1600px) - 96px), while the
-     `/brand` specimen frame gives it the narrower content column. Viewport
-     queries got the specimen wrong at every desktop width — at 1280px the
-     specimen's cells are 218px wide where the real page's are 296px, so `$2.8B`
-     hung 14px outside its cell on the page that exists to show the component
-     rendering correctly.
+     gives it the full `.container`, while the `/brand` specimen frame gives it
+     the narrower content column. Viewport queries got the specimen wrong at
+     every desktop width — at 1280px the specimen's cells are 218px wide where
+     the real page's are 296px, so `$2.8B` hung 14px outside its cell on the page
+     that exists to show the component rendering correctly.
+
+     WHERE THE TWO RENDERINGS ACTUALLY DIVERGE (measured 2026-09-01, both routes,
+     14 widths): only at 769px and up, where /brand's layout goes two-column and
+     the specimen drops to a 361px box while the page holds 673px. At 768px and
+     below /brand renders the specimen full-width inside an ordinary page
+     `.container`, so BOTH routes get exactly `viewport - gutter` and step tiers
+     at the same widths. The divergence is a desktop phenomenon; do not assume
+     the specimen is insulated from a page-level layout change at phone widths.
 
      Where the thresholds come from: the longest value a real page passes is
      `$2.8B+`, six characters, and the pinned face (BL-144) sets six characters
@@ -97,21 +104,27 @@ const { stats } = Astro.props;
 
      The middle tier's side padding steps down WITH the type for that reason:
      at 2rem sides it needed a 416px container, but it inherits down to 384,
-     so containers 385-415 (viewport 481-511) overflowed by up to 15px. No
-     sampled width sat in that 30px band — the E2E widths step 480 -> 540
-     straight over it — which is why that file now sweeps rather than samples.
+     so containers 385-415 overflowed by up to 15px. (That band was viewport
+     481-511 when it was found, under the flat 96px gutter this file used to
+     assume — a historical figure, not a current mapping. See below.) No sampled
+     width sat in that 30px band — the E2E widths step 480 -> 540 straight over
+     it — which is why that file now sweeps rather than samples.
 
-     The two lower thresholds remain the old 768px and 480px viewport tiers
-     expressed as the container widths they produce (viewport - 96px); only the
-     top one is derived, and it now corresponds to a 1191px viewport.
+     A THRESHOLD HERE IS A CONTAINER FACT, NOT A VIEWPORT TIER. This block used
+     to describe 672 and 384 as "the 768 and 480 viewport tiers expressed as the
+     container widths they produce (viewport - 96px)", which was true only while
+     `.container` paid a flat 96px at every width. It no longer does: the gutter
+     ladder in global.css (3rem / 1.5rem / 1rem) went live on 2026-09-01, and it
+     makes viewport -> container DISCONTINUOUS — a wider viewport can produce a
+     NARROWER container across a breakpoint. So no container number can express a
+     viewport tier any more, and none of these three thresholds tries to.
 
-     CAUTION on that -96px: `.container` carries `padding: 0 3rem` at EVERY
-     width, which is not what buttons.css appears to say. That sheet declares
-     responsive `.container` padding at 768 and 480, but global.css re-declares
-     `.container { padding: 0 3rem }` after the import at equal specificity, so
-     the responsive rules have never applied — measured 48px at 320px. The
-     mapping above is therefore correct today and depends on that rule staying
-     dead. Anyone repairing buttons.css must re-derive these three thresholds. */
+     They were re-derived when the ladder landed, as the old note demanded, and
+     the answer was that all three stay put: leaving them produces only tier
+     UPGRADES, on both routes, at every width measured. Moving them to chase the
+     old viewport tiers would have downgraded one rendering or the other. The
+     mapping table, the discontinuity, and the rejected alternative are in
+     ADR-0027 — read that before touching a number here. */
   .container {
     container-type: inline-size;
   }
@@ -124,7 +137,9 @@ const { stats } = Astro.props;
 
   @container (max-width: 672px) {
     /* The sides step down with the type. At 2rem they need a 416px container,
-       but this tier inherits down to 384 — the 481-511px viewport band. */
+       but this tier inherits down to 384. (That was the 481-511px viewport band
+       when the overflow was found, under the pre-2026-09-01 flat gutter —
+       historical, not a current mapping. See ADR-0027.) */
     .stat-item {
       padding: 2rem var(--spacing-lg);
     }
@@ -139,12 +154,18 @@ const { stats } = Astro.props;
   }
 
   @container (max-width: 384px) {
-    /* Two columns at a 224px container (the 320px viewport) leave a 112px
-       cell. Six characters at --text-2xl need 86.4px, so trimming the sides to
-       0.5rem leaves 96px of interior — 9.6px of slack — rather than stacking to
-       one column, which would make four stats four screens tall on the
-       narrowest phone. The label's tracking steps with it: `Engagements` is its
-       longest unbreakable word and 0.15em put it 3px past the cell. */
+    /* Two columns rather than stacking to one, which would make four stats four
+       screens tall on the narrowest phone. The sizing was derived at a 224px
+       container (a 320px viewport under the old flat 96px gutter): a 112px cell,
+       six characters at --text-2xl needing 86.4px, so 0.5rem sides left 96px of
+       interior and 9.6px of slack. Since the gutter ladder landed (2026-09-01) a
+       320px viewport gives a 288px container, so those figures are the tight
+       CASE THAT NO LONGER OCCURS — the cell is now 144px and the interior 128px.
+       The tier is kept as-is because it is what a genuinely narrow container
+       needs, and this component is also rendered in a specimen frame that can be
+       narrower than any viewport. The label's tracking steps with it:
+       `Engagements` is its longest unbreakable word and 0.15em put it 3px past
+       the cell. */
     .stat-item {
       padding: 1.75rem var(--spacing-sm);
     }
@@ -155,11 +176,18 @@ const { stats } = Astro.props;
     }
 
     /* `Engagements` is 11 characters, and tracking is charged per character:
-       at --text-xs it is 79.2px of glyph plus 11 x the tracking. A 96px
-       interior therefore clears 0.1em by only 3.6px — not an overflow, which is
-       why the old clamped assertion passed it, but under the floor the sweep
-       now demands. 0.06em costs 7.92px instead of 13.2px and clears by 8.9px,
-       while still reading as tracked uppercase. */
+       at --text-xs it is 79.2px of glyph plus 11 x the tracking. Against the
+       96px interior this was derived at, 0.1em cleared by only 3.6px — not an
+       overflow, which is why the old clamped assertion passed it, but under the
+       floor the sweep now demands. 0.06em costs 7.92px instead of 13.2px and
+       cleared by 8.9px, while still reading as tracked uppercase.
+
+       That 96px interior is no longer the narrowest a real viewport produces
+       (the gutter ladder makes it 128px at 320px, where 0.1em would clear by
+       ~35px), so this is now CONSERVATIVE RATHER THAN EXACT. It stays: the tier
+       exists for genuinely narrow containers including the /brand specimen
+       frame, and 0.06em is the value that holds at the width the tier is
+       actually sized for. */
     .stat-label {
       letter-spacing: 0.06em;
     }

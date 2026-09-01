@@ -2130,9 +2130,11 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <div class="brand-component-item brand-component-item--full">
         {
           /* The real component (BL-095 AC-1). The wrapper neutralises the
-             `.container` StatsBar renders internally (max-width 1600px +
-             3rem side padding), which would otherwise inset the specimen —
-             same technique as `.brand-toc-specimen .toc` in brand.astro. */
+             `.container` StatsBar renders internally (max-width 1600px plus the
+             gutter ladder's 3rem/1.5rem/1rem side padding), which would
+             otherwise inset the specimen inside the page container it already
+             sits in — same technique as `.brand-toc-specimen .toc` in
+             brand.astro. */
         }
         <div class="brand-statsbar-specimen">
           <StatsBar
@@ -2221,7 +2223,7 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
       <div class="brand-component-item brand-component-item--full">
         <div class="brand-container-demo">
           <div class="brand-container-inner">
-            .container — 1600px max-width, 3rem horizontal padding
+            .container — 1600px max-width, 3rem gutter (1.5rem ≤768px, 1rem ≤480px)
           </div>
         </div>
         <code class="brand-code">.container</code>

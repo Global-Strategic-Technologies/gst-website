@@ -44,10 +44,18 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
   }
 
   /* Last-resort safety on the narrowest phones: the logo plus four links need
-     ~307px beside the container's 3rem gutters, so below ~330px (~345 in WebKit)
-     the row cannot fit and previously overflowed the viewport. HeaderNavLinks
-     tightens its gap under the same 400px, which is what keeps the row intact at
-     every width a current phone reports — this only takes over below that.
+     ~307px, and beside the 3rem gutters `.container` paid at every width until
+     2026-09-01 the row could not fit below ~330px (~345 in WebKit) and
+     overflowed the viewport. Those two thresholds are measured history, not
+     arithmetic — they are not reproducible from 307 + 96, so do not "correct"
+     them to a derived number.
+
+     The gutter ladder (global.css) has since given a 320px viewport 288px
+     instead of 224px, and the row now holds one line at 320px even with
+     HeaderNavLinks' gap-tightening disabled — measured 2026-09-01, Chromium. So
+     this rule and that one are both belt-and-braces at every width a current
+     phone reports. Kept deliberately: they cost nothing, and they are the safety
+     net if the gutter ever moves back.
 
      Deliberately NOT on the base rule, and the reason is a measurement tool, not
      tidiness: the sash's 540/512 tiers were derived by finding where the nav

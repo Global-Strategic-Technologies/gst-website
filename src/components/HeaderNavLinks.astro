@@ -230,12 +230,16 @@ const { currentPath = '/', links } = Astro.props;
     }
   }
 
-  /* Below 400px the logo and four links stop fitting one row beside the
-     container's 3rem gutters — 320px leaves only 224px for ~283px of content.
-     Tightening the gap buys back 24px, which keeps the row intact at every
-     width a current phone actually reports (360 and up, both engines). Header
-     .site-header nav carries flex-wrap as the safety below that; this rule is
-     what stops it ever being reached in practice. */
+  /* Written when `.container` paid 3rem at every width, which left a 320px
+     viewport only 224px for ~283px of content; tightening the gap bought back
+     24px and kept the row on one line at every width a current phone reports.
+
+     The gutter ladder (global.css, 2026-09-01) now gives 320px a 288px
+     container, and the row holds one line there even with this rule disabled —
+     measured 2026-09-01, Chromium. So this is CONSERVATIVE RATHER THAN EXACT,
+     not load-bearing. Kept because it costs nothing and is the first line of
+     defence if the gutter moves again; `Header.astro`'s `flex-wrap` is the
+     second. */
   @media (max-width: 400px) {
     ul {
       gap: 0.5rem;
