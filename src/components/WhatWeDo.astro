@@ -101,11 +101,12 @@ import DeltaIcon from './DeltaIcon.astro';
      the mirror, not a divergence: this section is right-aligned and its delta
      bullets trail, so the marker belongs on the RIGHT edge. Leading it here
      stranded `//` mid-line at every width where this paragraph wraps, and it
-     wraps at every phone and tablet width — it reaches a single line only on
-     desktop. No exact boundary is quoted on purpose: it is a function of the
-     computed font size, and `.closing-text`'s own responsive step-down is
-     currently inert (see BL-147), so any figure written here would be
-     measuring a bug rather than a design. Anchoring the marker to the
+     wraps at phone widths and in narrow desktop windows — it reaches a single
+     line from around the small-tablet range up, so common tablet widths (768
+     and above) are NOT affected. No exact boundary is quoted on purpose: it is
+     a function of the computed font size, and `.closing-text`'s own responsive
+     step-down is currently inert (see BL-147), so any figure written here
+     would be measuring a bug rather than a design. Anchoring the marker to the
      alignment edge is what makes the two sections read as a pair, and that
      holds at every width regardless.
 
