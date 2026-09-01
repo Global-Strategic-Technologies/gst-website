@@ -216,9 +216,12 @@ test.describe('Site chrome at phone widths', () => {
    * under 23.8 means the budget is wrong and "gets investigated rather than
    * this number lowered." That was investigated, and the escape clause does not
    * apply: the drop is a declared 8px, the re-derivation predicted it to within
-   * 0.02px, and the never-measured 53.6px toggle box is exonerated rather than
-   * implicated — an error there would not land this close twice. The rule still
-   * stands for an UNEXPLAINED drop.
+   * 0.02px, and the 53.6px toggle box is exonerated rather than implicated. It
+   * was the prime suspect precisely because it was the one derived term nobody
+   * had measured; it has since been measured at 53.59375, so it is now a fact
+   * rather than an assumption and the paragraph no longer rests on "an error
+   * there would not land this close twice." The rule still stands for an
+   * UNEXPLAINED drop.
    *
    * 10 rather than the predicted 15.8, and the arithmetic behind that choice
    * matters more than the value. The floor could not stay at 16: measured
