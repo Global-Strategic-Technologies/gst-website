@@ -868,7 +868,25 @@ function accessHref(tier?: string) {
     min-width: 6rem;
   }
 
+  /* `display: block` is load-bearing, and only ONE of these two rows shows why.
+     The Endpoint row's <code> is a direct child of the flex/grid parent, so it
+     is BLOCKIFIED automatically and paints one box. The Status row's <code> is
+     wrapped in an <a> (it is meant to be visited, not just copied), so the
+     ANCHOR is the item that gets blockified and the <code> inside it stays
+     `display: inline`.
+
+     An inline box that wraps paints one fragment per line — border-left plus
+     top/bottom on the first, border-right plus top/bottom on the last — so at
+     phone widths the Status URL's border tore in half across two lines while
+     the Endpoint's, identical in every declared style, did not. Measured at
+     430px before the fix: Endpoint 1 client rect, Status 2. Nothing overflowed
+     the row or the page; the box simply fragmented.
+
+     Declaring it here rather than on the anchor keeps the two rows' <code>
+     boxes governed by one rule, so wrapping a future value in a link cannot
+     reintroduce this. */
   .mcp-endpoint code {
+    display: block;
     font-family: var(--font-family-mono);
     font-size: var(--text-base);
     color: var(--color-primary);
