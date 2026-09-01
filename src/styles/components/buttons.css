@@ -38,28 +38,33 @@ Distinct from .brutal-btn (compact utility button for tool UIs). */
   outline: none;
 }
 
-/* Responsive Design */
+/* Responsive Design
+ *
+ * `.container`'s responsive padding used to be declared here and never applied —
+ * global.css re-declared the base rule after importing this sheet, at equal
+ * specificity. Both blocks now live beside that base rule in global.css, where
+ * one file owns the whole ladder. Do not reintroduce a `.container` rule here. */
 
 @media (max-width: 768px) {
-  .container {
-    padding: 0 1.5rem;
-  }
-
   .cta-button {
     width: fit-content;
   }
 }
 
 @media (max-width: 480px) {
-  .container {
-    padding: 0 1rem;
-  }
+  /* The horizontal padding is --spacing-md, not --spacing-xl. This started as a
+     fit requirement: the CTA labels are function-style and 20 characters long
+     (`REQUEST_MCP_ACCESS()`, `BOOK_CALENDAR_SLOT()`), and under the old flat
+     96px page gutter a 320px viewport left them almost no room — the pre-BL-144
+     face fitted by 0.4px, which is not a fit, it is a coincidence.
 
-  /* The horizontal padding is --spacing-md, not --spacing-xl: the CTA labels are
-     function-style and 20 characters long (`REQUEST_MCP_ACCESS()`,
-     `BOOK_CALENDAR_SLOT()`), which the pinned face (BL-144) sets at 173px. At
-     320px that leaves 159px between --spacing-xl paddings — the old face fitted
-     it with 0.4px to spare, which is not a fit, it is a coincidence. */
+     It is now CONSERVATIVE RATHER THAN EXACT. Measured at 320px after the gutter
+     ladder went live (2026-09-01): `REQUEST_MCP_ACCESS()` sets 168px of ink in a
+     227px interior — ~59px of slack, and still ~35px at --spacing-xl. So the
+     padding is retained by choice, not necessity: it keeps the full-width phone
+     CTA's proportions consistent with the tier rather than buying width the
+     button no longer needs. (The 173px this comment used to assert was itself an
+     unmeasured BL-144 figure; 168 is measured. Measure, don't inherit.) */
   .cta-button {
     width: 100%;
     text-align: center;

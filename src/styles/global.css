@@ -122,6 +122,32 @@ body {
   z-index: 1;
 }
 
+/* The gutter ladder. These two blocks lived in components/buttons.css until
+   2026-09-01, where they had never once applied: that sheet is @imported above,
+   so the base rule's `padding: 0 3rem` came LATER in source order at equal
+   specificity (0,1,0) and won at every width. The site paid a flat 96px of
+   gutter on a 320px phone — 30% of the screen — while `.design-sync/conventions.md`
+   published the ladder to claude.ai/design as though it were real.
+
+   They live here now because `.container` is a layout primitive and one file
+   should own all three of its rules; a responsive override parked in a button
+   sheet is how the shadowing happened in the first place.
+
+   ORDER IS LOAD-BEARING: 768 before 480. Equal specificity means the later block
+   wins where both match, so reversing these silently restores the 1.5rem gutter
+   at phone widths — the same class of bug this replaces. */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 1rem;
+  }
+}
+
 a {
   color: var(--color-secondary);
   transition: color 0.2s;
