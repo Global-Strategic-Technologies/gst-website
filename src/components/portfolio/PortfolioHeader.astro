@@ -255,8 +255,11 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       z-index: 1002;
     }
 
+    /* Sides match the page gutter at this tier (global.css) so the sticky bar's
+       content lines up with the content it floats over. The vertical is its own
+       value and load-bearing — do not collapse this to a single number. */
     .portfolio-controls-fixed .container {
-      padding: 0.625rem 1rem;
+      padding: 0.625rem 1.5rem;
     }
 
     .search-box {
@@ -272,11 +275,16 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
   /* The header row is title + controls under `space-between`, and the title is
      `white-space: nowrap`, so the row cannot fit until the container holds the
-     title's full width plus the controls' minimum — measured at 436px, i.e. a
-     540px viewport once the container's 3rem padding is taken off. It stacked
-     at 480 instead, so 481–531px overflowed by up to 51px. Stacking is already
-     the ≤480 behaviour; this only moves the threshold up to where the row
-     genuinely fits, and the 480 block below keeps its own tighter values. */
+     title's full width plus the controls' minimum — measured at 436px. That was
+     a 540px viewport when this was derived, with the container's 3rem padding
+     taken off. It stacked at 480 instead, so 481–531px overflowed by up to 51px.
+
+     Since the gutter ladder landed (global.css, 2026-09-01) a 540px viewport
+     gives a 492px container and 436px is reached at ~484px, so this threshold is
+     now CONSERVATIVE RATHER THAN EXACT — 485–540 stacks a little earlier than it
+     strictly must. Left at 540 deliberately: 481–483 still genuinely needs it,
+     the cost is one breakpoint of early stacking, and moving it would re-open
+     the overflow band this rule was added to close. */
   @media (max-width: 540px) {
     .portfolio-header-content {
       flex-direction: column;
@@ -316,8 +324,9 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       z-index: 1002;
     }
 
+    /* Sides match the page gutter at this tier (global.css), as above. */
     .portfolio-controls-fixed .container {
-      padding: 0 1.5rem;
+      padding: 0 1rem;
       width: 100%;
     }
 
