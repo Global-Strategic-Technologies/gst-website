@@ -90,6 +90,16 @@ container queries earn their place; it is a desktop phenomenon, and gutters do n
   legend wrap, `StatsBar`'s 0.06em label tracking, `PortfolioHeader`'s 540px stack, and the
   header's ≤400px gap-tightening. Each declaration is kept and its comment now says why it is
   kept, rather than asserting a fit constraint the measurement no longer supports.
+- **The design system was re-synced on 2026-09-01**, and this change is why the trigger
+  fires twice over. `CLAUDE_DESIGN_SYNC.md` names "the four docs under `src/docs/styles/`" as
+  a re-sync trigger and two of them are edited here; separately, `global.css` is in the
+  published bundle's `ROOTS`, so `.container`'s exported gutter behaviour changes for the
+  first time. `.design-sync/conventions.md:157` has been telling the design agent the ladder
+  was real all along — the re-sync is what finally makes the published system true rather
+  than aspirational. Ran `npm run build` → `build-css.mjs` → `resync.mjs` →
+  `extract-chrome.mjs --check` (19/19 cards, dark twins resolve dark), then uploaded the
+  styling closure, both edited guideline docs and all 19 chrome cards. **Any future change
+  to the gutter ladder carries the same obligation.**
 - **Accepted trade-off:** tablet gutters halve (48 → 24px per side) at 481–768px and phone
   gutters drop 48 → 16px. That is the published ladder applying for the first time, and it is
   a real visual change on every page in those bands.

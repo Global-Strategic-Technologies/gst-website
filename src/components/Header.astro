@@ -43,12 +43,14 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
     align-items: center;
   }
 
-  /* Last-resort safety on the narrowest phones: the logo plus four links need
-     ~307px, and beside the 3rem gutters `.container` paid at every width until
-     2026-09-01 the row could not fit below ~330px (~345 in WebKit) and
-     overflowed the viewport. Those two thresholds are measured history, not
-     arithmetic — they are not reproducible from 307 + 96, so do not "correct"
-     them to a derived number.
+  /* Last-resort safety on the narrowest phones. The logo plus four links need
+     ~307px. Until 2026-09-01 `.container` paid 3rem of gutter at every width,
+     and against that the row could not fit below ~330px (~345 in WebKit): it
+     overflowed the viewport instead.
+
+     Those two thresholds are measured history, not arithmetic. They are not
+     reproducible from 307 + 96, so do not "correct" them to a derived number —
+     re-measure or leave them.
 
      The gutter ladder (global.css) has since given a 320px viewport 288px
      instead of 224px, and the row now holds one line at 320px even with

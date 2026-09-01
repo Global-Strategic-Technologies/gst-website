@@ -394,7 +394,9 @@ test.describe('Announcement sash', () => {
    * resolved a different advance width — the live subtext measured 222px on
    * Chromium and Firefox and 240px on WebKit, and a chromium-only check once
    * passed a band WebKit was clipping by 5px. BL-144 pinned the face and that
-   * spread is gone (253.2 / 252.7 / 253.2), but per-engine is still right:
+   * spread is gone (253.2 / 252.7 / 253.2 for the 35-character single-node
+   * subtext this was measured against; the band is a two-field list now and the
+   * live pair lives in Sash.astro's header), but per-engine is still right:
    * engines round and shape text differently even from identical metrics, and
    * this file's whole history is sub-pixel passes hiding real clips.
    */

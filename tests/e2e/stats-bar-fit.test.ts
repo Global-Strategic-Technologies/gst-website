@@ -185,7 +185,10 @@ test.describe('StatsBar value fit', () => {
     expect(wide, 'four columns at 1440px').toBe(4);
 
     await page.setViewportSize({ width: 1000, height: 900 });
-    await page.waitForTimeout(150);
+    // Wait on the resize landing, not on a duration. A fixed sleep is the
+    // anti-pattern this file's own corrections are about: it passes for the
+    // wrong reason under load and hides the state it was meant to settle.
+    await page.waitForFunction(() => document.documentElement.clientWidth === 1000);
     const narrow = await page.evaluate(
       () =>
         getComputedStyle(document.querySelector('.stats-grid')!).gridTemplateColumns.split(' ')
