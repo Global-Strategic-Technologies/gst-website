@@ -224,11 +224,11 @@ test.describe('Site chrome at phone widths', () => {
    * matters more than the value. The floor could not stay at 16: measured
    * clearance is 15.78, the assertion is `>=`, so 16 does not pass narrowly —
    * it FAILS by 0.22px. (An earlier revision of this comment said 16 "would
-   * have passed by 0.78px". That was true of the 7px inset it was written for,
-   * where clearance was 16.78; it was carried across the change to the 8px
-   * token without being re-derived, and 0.78 is the distance from 15, not a
-   * margin against 16. Corrected rather than deleted, because the mistake is
-   * the one this file keeps catching: a number that was true one revision ago.)
+   * have passed by 0.78px". That was true of the 7px inset it was written for
+   * — measured 16.78 there, so 16 really did pass by 0.78 — and it was carried
+   * across the change to the 8px token without being re-derived. Corrected
+   * rather than deleted, because the mistake is the one this file keeps
+   * catching: a number that was true one revision ago.)
    *
    * So the choice was never 16-or-lower, it was how far below 15.78 to sit.
    * An intermediate 12 was rejected: 15.78 − 12 = 3.78px of headroom, under the

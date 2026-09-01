@@ -882,6 +882,15 @@ function accessHref(tier?: string) {
      430px before the fix: Endpoint 1 client rect, Status 2. Nothing overflowed
      the row or the page; the box simply fragmented.
 
+     "Identical in every declared style" was true of the CSS and NOT of the
+     rendering, at any width. The two boxes also differed by 3px of height at
+     desktop — Status 41px against Endpoint 44px, same x and same width —
+     because an inline box is sized by font metrics where a block box is sized
+     by line-height plus padding and border. So this rule fixes two things: a
+     visible fragmentation at phone widths, and a silent 3px discrepancy at
+     desktop that nobody had reported. Blockifying lands Status on exactly the
+     44px Endpoint already had.
+
      Declaring it here rather than on the anchor keeps the two rows' <code>
      boxes governed by one rule, so wrapping a future value in a link cannot
      reintroduce this. */
