@@ -164,10 +164,16 @@
       padding: var(--spacing-md);
     }
 
+    /* No `text-align` here. A centered title over a left-aligned paragraph
+       inside the same bordered box is mixed alignment, not a mobile
+       treatment — and ≤480 was the ONLY width that did it, so the card
+       changed axis at one breakpoint for no stated reason. Added
+       incidentally in af3abe41 (2026-04-15), a three-concern PR; removed
+       2026-09-01 so the title agrees with the body, as it does at every
+       other width. */
     .trust-card h3 {
       font-size: var(--text-small);
       margin-bottom: var(--spacing-sm);
-      text-align: center;
     }
 
     .trust-card p {
