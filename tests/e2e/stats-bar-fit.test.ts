@@ -188,7 +188,10 @@ test.describe('StatsBar value fit', () => {
     // Wait on the resize landing, not on a duration. A fixed sleep is the
     // anti-pattern this file's own corrections are about: it passes for the
     // wrong reason under load and hides the state it was meant to settle.
-    await page.waitForFunction(() => document.documentElement.clientWidth === 1000);
+    // `<=`, not `===`: the previous width is 1440, so this still proves the
+    // resize landed, and it survives an engine that lays out a classic
+    // scrollbar. Playwright's builds do not, but that is the harness, not us.
+    await page.waitForFunction(() => document.documentElement.clientWidth <= 1000);
     const narrow = await page.evaluate(
       () =>
         getComputedStyle(document.querySelector('.stats-grid')!).gridTemplateColumns.split(' ')
