@@ -12,6 +12,13 @@
 > [BL-145](BACKLOG.md#bl-145-design-partner-program--set-the-price-from-evidence-not-from-a-guess)
 > for Slice 4 — it owns the price, and its stated purpose is to stop a low number being published,
 > which cannot be walked back. **No price figure in this document is authoritative.**
+> **BL-145 owns the pricing _unit_ as well as the amount**, and that reaches further than Slice 4.
+> This design is subscription-shaped throughout — `mcp:pay:subs:<clientId>`, demotion on
+> `customer.subscription.deleted`, renewal-keeps-tier, a monthly billing period on the card. BL-145
+> Slice 3 calls the bursty-usage question "the single highest-leverage output of the program": if the
+> standing job does not carry the months between deals, the unit is per-deal or per-engagement and
+> the monthly framing is wrong. **That outcome invalidates parts of Slices 2 and 3, not just the
+> number on the card** — re-read the lifecycle before building it.
 > **First task for whoever picks this up**: § Vendor behaviour: documented, not executed. The
 > lifecycle rests on Stripe behaviour inferred from docs and never exercised.
 
@@ -597,8 +604,8 @@ rotates the secret with the operator-invoked capability and hands it over out of
 duplicate. Document this in `PILOT_ONBOARDING.md` § 0 as the one residual manual path, and as the
 reason the webhook itself never rotates.
 
-**Named deviation from `BACKLOG.md:169`.** That AC asks for a follow-up email carrying setup links and
-the client id. GST sends **no email in v1** — Stripe/Link sends the receipt and invoice, and adding a
+**Named deviation** from this item's own Slice 3 AC ending "The follow-up email carries setup links
+and the client id, not the secret". GST sends **no email in v1** — Stripe/Link sends the receipt and invoice, and adding a
 sender would pull in the BL-004 email-vendor decision this design otherwise avoids. Record it in
 ADR-0027 as a deliberate deviation rather than an omission, with the trigger for revisiting it: if
 recovery contacts become routine, the follow-up email is the fix, not more page copy. The
@@ -721,8 +728,8 @@ sweep and the E2E suite, and its numbers are already pinned to `tiers.ts`.
 
 - Deal Team card (`:426-439`) — add price and billing period; swap `accessHref('paid')` for the
   Stripe Payment Link. Pilot (`:420`) and Firm (`:450`) keep `mailto:`.
-- Add the grace/refund line and a `/terms/` link adjacent to the buy CTA. `BACKLOG.md:170` requires
-  that policy be published **before** the buyer pays, so **pin the line in
+- Add the grace/refund line and a `/terms/` link adjacent to the buy CTA. The Slice 3 lifecycle AC
+  requires "the policy is published where the buyer sees it before paying", so **pin the line in
   `mcp-marketing-parity.test.ts` alongside the price** — an unpinned policy sentence is one copy edit
   from disappearing, and its absence is invisible.
 - **Abandoned checkout, declined card and vendor outage** (a Slice 4 AC) are all handled **on Stripe's
