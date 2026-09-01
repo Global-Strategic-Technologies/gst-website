@@ -498,7 +498,9 @@ The pre-commit hook runs `stylelint --fix` on staged `.css` and `.astro` files. 
 
 ### `@layer` support
 
-The base and override configs both register `layer` as an allowed at-rule (`at-rule-no-unknown: [true, { "ignoreAtRules": ["import", "layer"] }]`) so CSS cascade layer declarations parse cleanly. This supports the `@layer reset, tokens, utilities, components, theme, overrides;` scheme introduced in Phase 3 commit 0b.
+The base and override configs both register `layer` as an allowed at-rule (`at-rule-no-unknown: [true, { "ignoreAtRules": ["import", "layer"] }]`) so CSS cascade layer declarations parse cleanly if one is ever introduced.
+
+**No CSS under `src/styles` uses the at-rule.** This section previously described a live `@layer reset, tokens, utilities, components, theme, overrides;` scheme; no such scheme exists, and the cascade is plain source order throughout. That matters — source order at equal specificity is exactly what made `.container`'s responsive gutter rules sit dead in `components/buttons.css` for months, shadowed by the base rule that `global.css` declares after importing it. Introducing layers would be a real architectural decision needing its own ADR; permitting the at-rule in lint config is not that decision.
 
 ### Complexity rules in the `.astro` override
 

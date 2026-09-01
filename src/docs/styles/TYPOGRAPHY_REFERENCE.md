@@ -129,7 +129,20 @@ resolutions differ by ~9%. Fixed geometry was sized against one of them: the
 sash's 45° chord clips rather than reflows, a grid floor was derived from a wire
 identifier's ink width, and a CTA label fitted its button with 0.4px to spare.
 Pinning the face made the three engines agree: the sash's 35-character subtext
-now measures 253.2 / 252.7 / 253.2px where it was 222 / 222 / 240.
+now measures 242.55 / 242.05 / 242.55px where it was 222 / 222 / 240. (The
+earlier 253.2 / 252.7 / 253.2 figures quoted here were superseded by the field
+list in [sash.css](../../styles/components/sash.css); that file is
+authoritative for the sash's measurements.)
+
+**The pin also made things WIDER, which broke something.** Geist Mono's 0.6em
+advance is wider than the 0.55em Consolas that Windows resolved `monospace` to,
+so every mono string grew ~9%. The footer's four-link row
+([FooterLinks.astro](../../components/FooterLinks.astro)) gained 16.2px across
+its 27 characters — exactly enough to push it off one line on a 430px phone. It
+shipped because the narrow-viewport suite asserted only that nothing left the
+screen, which a wrapped row satisfies. When changing this face, the risk is not
+only clipping: re-check every row whose fit is a budget, and prefer asserting the
+LAYOUT (line count) over the symptom (overflow).
 
 **Known and accepted:** WebKit does not apply this face's weight axis — every
 weight paints identically there, while Chromium and Firefox vary correctly. It
