@@ -221,13 +221,21 @@ test.describe('Site chrome at phone widths', () => {
    * stands for an UNEXPLAINED drop.
    *
    * 10 rather than the predicted 15.8, and the arithmetic behind that choice
-   * matters more than the value. Leaving it at 16 would have passed by 0.78px,
-   * which is not a pass: `stats-bar-fit.test.ts` correction 2 is this repo
-   * shipping a red CI check on exactly that shape, 0.39px of margin that held
-   * locally and lost to Linux rasterization. An intermediate 12 was rejected for
-   * the same reason in miniature — 15.78 − 12 = 3.78px of headroom, which is
-   * under the 4px rasterization floor this repo uses elsewhere, so it would be
-   * conceding the principle by one pixel rather than applying it.
+   * matters more than the value. The floor could not stay at 16: measured
+   * clearance is 15.78, the assertion is `>=`, so 16 does not pass narrowly —
+   * it FAILS by 0.22px. (An earlier revision of this comment said 16 "would
+   * have passed by 0.78px". That was true of the 7px inset it was written for,
+   * where clearance was 16.78; it was carried across the change to the 8px
+   * token without being re-derived, and 0.78 is the distance from 15, not a
+   * margin against 16. Corrected rather than deleted, because the mistake is
+   * the one this file keeps catching: a number that was true one revision ago.)
+   *
+   * So the choice was never 16-or-lower, it was how far below 15.78 to sit.
+   * An intermediate 12 was rejected: 15.78 − 12 = 3.78px of headroom, under the
+   * 4px rasterization floor this repo uses elsewhere, which concedes the
+   * principle by a pixel rather than applying it. The principle is
+   * `stats-bar-fit.test.ts` correction 2 — this repo shipping a red CI check on
+   * 0.39px of margin that held locally and lost to Linux rasterization.
    *
    * 10 keeps 5.78px of headroom, comfortably clear of that floor, and still
    * fails on any regression costing more than ~5.8px — one extra character in a

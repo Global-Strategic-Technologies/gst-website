@@ -133,10 +133,15 @@ const { links = PRODUCTION_LINKS } = Astro.props;
          which widened these four labels by 16.2px and pushed the row to two
          lines on a 430px phone.
 
-         WHY IT STILL WRAPS. 320px offers 210.4px against 210.6px of glyph — the
-         labels alone no longer fit, before a single one of the three 8px gaps is
-         paid. One row is arithmetically impossible there without type below 12px,
-         so the row wraps to two lines and nothing leaves the screen.
+         WHY IT STILL WRAPS. 320px offers 210.41px against 210.63px of glyph, so
+         the labels alone no longer fit before a single one of the three 8px gaps
+         is paid — but that deficit is 0.22px, and the thinness is the point.
+         Before the inset the same width had 7.8px of slack against the glyph and
+         failed only on the 24px of gaps; now it fails on the glyph too, by a
+         quarter of a pixel. Returning even that much to this box flips 320 to one
+         row and falsifies the sentence, so treat it as a measured margin rather
+         than as the word "impossible". One row there still needs type below 12px.
+         The row wraps to two lines and nothing leaves the screen.
          Without flex-wrap it would instead push the ThemeToggle off-screen, which
          is the defect this pair of rules exists to prevent. min-width: 0 releases
          the flex item's `auto` floor so the row can actually take the wrap.
