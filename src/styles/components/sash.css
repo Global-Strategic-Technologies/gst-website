@@ -474,7 +474,7 @@ moves.)
    and by 9px at 486.
 
    Both figures were measured against the flat 96px `.container` gutter that
-   preceded the ladder in global.css (2026-09-01). The nav now has 24–64px more
+   preceded the ladder in global.css (2026-09-01). The nav now has 48–64px more
    room at these widths, so they are CONSERVATIVE RATHER THAN EXACT. Do not move
    512 on that basis: it is one of three numbers this sheet shares with
    HeaderNavLinks' reserve table and announcement-sash.test.ts's BREAKPOINTS, and

@@ -129,10 +129,13 @@ resolutions differ by ~9%. Fixed geometry was sized against one of them: the
 sash's 45° chord clips rather than reflows, a grid floor was derived from a wire
 identifier's ink width, and a CTA label fitted its button with 0.4px to spare.
 Pinning the face made the three engines agree: the sash's 35-character subtext
-now measures 242.55 / 242.05 / 242.55px where it was 222 / 222 / 240. (The
-earlier 253.2 / 252.7 / 253.2 figures quoted here were superseded by the field
-list in [sash.css](../../styles/components/sash.css); that file is
-authoritative for the sash's measurements.)
+measured 222 / 222 / 240px before the pin and 253.2 / 252.7 / 253.2px after — an
+8% engine spread collapsed to 0.5px. That band has since been restructured into a
+two-field list and no longer sets the same string, so those are the pin's result
+for the copy it was measured against, not live numbers. **The live pair is
+recorded once, in [Sash.astro](../../components/Sash.astro)'s header block** —
+go there, not to a copy, and prove new sash copy by running
+`announcement-sash.test.ts` rather than by counting characters.
 
 **The pin also made things WIDER, which broke something.** Geist Mono's 0.6em
 advance is wider than the 0.55em Consolas that Windows resolved `monospace` to,

@@ -191,6 +191,8 @@ test.describe('StatsBar value fit', () => {
         getComputedStyle(document.querySelector('.stats-grid')!).gridTemplateColumns.split(' ')
           .length
     );
-    expect(narrow, 'two columns once the container drops below 1064px').toBe(2);
+    // 1094, not the 1064 this message used to say — 1064 was the first cut,
+    // the one that cleared by 0.39px and went red in CI (correction 2 above).
+    expect(narrow, 'two columns once the container drops to 1094px or below').toBe(2);
   });
 });
