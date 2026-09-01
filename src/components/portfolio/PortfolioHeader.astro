@@ -148,14 +148,15 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     box-shadow: var(--shadow-sm);
   }
 
-  .portfolio-controls-fixed .container {
-    width: fit-content;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    background: transparent;
-  }
+  /* `.portfolio-controls-fixed .container` used to be declared here at all three
+     tiers and matched NOTHING at any of them: the fixed bar's only child is
+     `.controls-wrapper` (see the markup above), and no `.container` exists
+     anywhere inside it — in this component or in StickyControls, which renders
+     the copy that actually goes sticky. Deleted 2026-09-01 rather than
+     re-pointed, per STYLES_GUIDE § "a rule that matches nothing": the first
+     question is whether the rule should apply at all, and here the element it
+     describes does not exist. The bar's own geometry lives on
+     `.portfolio-controls-fixed` above and in StickyControls.astro. */
 
   /* `flex: 1 1 375px` with `min-width: 0`, not a hard `min-width: 375px`. This
      row sits beside the page title in a flex row, and a hard floor cannot
@@ -255,13 +256,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       z-index: 1002;
     }
 
-    /* Sides match the page gutter at this tier (global.css) so the sticky bar's
-       content lines up with the content it floats over. The vertical is its own
-       value and load-bearing — do not collapse this to a single number. */
-    .portfolio-controls-fixed .container {
-      padding: 0.625rem 1.5rem;
-    }
-
     .search-box {
       flex-basis: 270px;
     }
@@ -322,12 +316,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       width: 100%;
       max-width: 100%;
       z-index: 1002;
-    }
-
-    /* Sides match the page gutter at this tier (global.css), as above. */
-    .portfolio-controls-fixed .container {
-      padding: 0 1rem;
-      width: 100%;
     }
 
     .search-box {
