@@ -1782,19 +1782,30 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 
 **What it is.** `--text-small` and `--text-tiny` are **defined nowhere in the repo.** [`variables.css`](../../styles/variables.css) declares `--text-xs: 0.75rem` and `--text-sm: 0.875rem`; there is no `small` or `tiny` spelling of either. There are **13 `var()` references to those two undefined names**, across four components on two routes:
 
-| component                                                             | route                     | inert refs                  |
-| --------------------------------------------------------------------- | ------------------------- | --------------------------- |
-| [`WhyClientsTrustUs.astro`](../../components/WhyClientsTrustUs.astro) | `/`                       | 117, 145, 175, 180          |
-| [`WhatWeDo.astro`](../../components/WhatWeDo.astro)                   | `/`                       | 139, 143                    |
-| [`WhoWeSupport.astro`](../../components/WhoWeSupport.astro)           | `/`                       | 122, 126                    |
-| [`EngagementFlow.astro`](../../components/EngagementFlow.astro)       | **`/services/`**, not `/` | **252**, 299, 321, 325, 343 |
+Cited by **selector and breakpoint, not line number** — deliberately. An earlier revision of this table used line numbers, and the very commit that wrote them shifted two by one, because it also grew a comment in one of the cited files. Selectors and token names are greppable and do not drift.
+
+| component                                                             | route                     | inert declaration                         | applies at                  |
+| --------------------------------------------------------------------- | ------------------------- | ----------------------------------------- | --------------------------- |
+| [`WhyClientsTrustUs.astro`](../../components/WhyClientsTrustUs.astro) | `/`                       | `.trust-card p` → `--text-small`          | ≤1024                       |
+|                                                                       |                           | `.trust-card p` → `--text-small`          | ≤768                        |
+|                                                                       |                           | `.trust-card h3` → `--text-small`         | ≤480                        |
+|                                                                       |                           | `.trust-card p` → `--text-tiny`           | ≤480                        |
+| [`WhatWeDo.astro`](../../components/WhatWeDo.astro)                   | `/`                       | `.services-list li span` → `--text-small` | ≤768                        |
+|                                                                       |                           | `.closing-text` → `--text-small`          | ≤768                        |
+| [`WhoWeSupport.astro`](../../components/WhoWeSupport.astro)           | `/`                       | `.support-list li span` → `--text-small`  | ≤768                        |
+|                                                                       |                           | `.closing-text` → `--text-small`          | ≤768                        |
+| [`EngagementFlow.astro`](../../components/EngagementFlow.astro)       | **`/services/`**, not `/` | **`.step-detail` → `--text-small`**       | **base rule — EVERY width** |
+|                                                                       |                           | `.tagline` → `--text-small`               | ≤768                        |
+|                                                                       |                           | `.step-text` → `--text-small`             | ≤768                        |
+|                                                                       |                           | `.step-detail` → `--text-tiny`            | ≤768                        |
+|                                                                       |                           | `.step-text` → `--text-small`             | ≤480                        |
 
 An undefined custom property makes the declaration invalid at computed-value time, so `font-size` falls back to the inherited value rather than to the declared step. Confirmed in-browser against a production build: `.trust-card h3` and `.trust-card p` both compute **16px at 320, 480 and 768** — identical to desktop.
 
 **Two scoping facts an implementer will otherwise get wrong:**
 
 1. **`EngagementFlow.astro:252` (`.step-detail`) is a BASE rule, not a `@media` rule** — the file's first `@media` is at line 260. Twelve of the thirteen are responsive; that one is dead at **every** width, desktop included. Fixing only the `@media` cases leaves the sole desktop-affecting instance standing and teaches the next reader that this bug is purely responsive. It is not.
-2. **The inert set is exactly these 13 references, not "the responsive type scale".** `--text-lg`, `--text-xl`, `--text-base`, `--text-sm` and `--text-xs` are all defined and all working; live step-downs using them sit alongside the dead ones in the same files (`WhyClientsTrustUs` 113/140/155, `WhatWeDo` 130, `WhoWeSupport` 113, `EngagementFlow` 276/280/313/317). The defect is two misspelled names, not a broken system.
+2. **The inert set is exactly these 13 references, not "the responsive type scale".** `--text-lg`, `--text-xl`, `--text-base`, `--text-sm` and `--text-xs` are all defined and all working; live step-downs using them sit alongside the dead ones in the same files — `.trust-card h3` → `--text-base` at ≤1024 and ≤768 and `.brutal-heading-lg` → `--text-xl` at ≤480; `.intro-text` → `--text-base` at ≤768 in both `WhatWeDo` and `WhoWeSupport`; `.step-label` → `--text-sm` and `.step-number` → `--text-lg` at ≤1024 in `EngagementFlow`. The defect is two misspelled names, not a broken system.
 
 **Why this is a ruling and not a rename.** [BL-139](#bl-139-the-filter-drawers-entire-mobile-treatment-is-dead-css) closed on exactly this shape and its finding is the governing precedent: **a dead rule is a product decision wearing a bug's clothing — render it before assuming the original author was right.** There, the dead mobile treatment was rendered, reviewed and _rejected_; the shipped behaviour was better than the code that had never run.
 
