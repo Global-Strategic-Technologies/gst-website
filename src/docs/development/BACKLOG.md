@@ -1488,6 +1488,70 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 ---
 
+### BL-146: The tool surface asserts it is self-describing and nothing measures it
+
+**Source**: _Agent Seer: Synthesizing Scenarios from Specification Understanding_ (Apple, arXiv:2608.26133v1), read 2026-09-01 | **Effort**: Medium — Slices 1–3; the stretch slice is scoped separately and deliberately not costed | **Status**: Open
+
+**As an** operator whose clients reach these tools through an LLM I do not control, **I want** a repeatable measurement of whether a cold model picks the right tool and fills its arguments correctly **so that** a description which has stopped being discoverable fails a test instead of a client call.
+
+**What it is.** [CLAUDE.md](../../../.claude/CLAUDE.md) § Extending an MCP Tool step 2 requires self-documenting id/enum args in `.describe()` "so a cold LLM call can discover valid values". That is a convention with a review gate and **no measurement**. Every existing suite checks a shape we control: `contract-parity.test.ts` binds docs to Zod, `mcp-uat-parity.test.ts` binds registered capabilities to UAT rows, `mcp-docs-parity.test.ts` binds the public registry to server source, and the unit/integration suites exercise the engines. None of them puts a model in front of the surface and observes what it does with it.
+
+The defect class is not hypothetical — it is already on this backlog three times, and **every instance was found by a production sweep rather than by a test**: [BL-125](#bl-125-the-prompt-states-none-of-its-own-run-parameters) (arguments the model was never shown, making `auditLevel: debug` unreachable through the model), [BL-126](#bl-126-compute_techpar-is-mode-conditional-and-the-prompt-never-named-a-mode) (a required enum with no default and no documented mode — two sweeps over identical bytes inverted a partner-facing verdict, 32.6% "healthy" against 47.5% "above the PE ceiling"), and [BL-132](#bl-132-search_portfolios-deeplink-description-promises-fidelity-the-encoder-deliberately-withholds). [BL-119](#bl-119-mcp-server--user-acceptance-test-suite) is the closest existing surface and is a different instrument: it is human-executed, runs against the live Worker, and proves the server **works**. This item is automated, never executes the server, and probes whether the surface is **legible**.
+
+**The method**, from the paper: a tool specification — names, descriptions, typed parameter schemas — already carries enough for an LLM to synthesize evaluation scenarios with no live tool access and no hand-authored cases. Each generated case is a natural-language request paired with the tool calls it should produce; mock outputs stand in for real responses. The paper reports mean tool-calling 0.911 across seven public MCP specs, with two findings that bear directly on us:
+
+- **Parameter schema complexity, not tool count, is the strongest correlate of quality** (per-MCP r = -0.60 on average params, -0.66 on optional fraction; confirmed at tool level, n = 222, p < 0.001).
+- **Argument value accuracy is the dominant failure mode** — 57% of records score partial on arguments — and it is invisible to name-match metrics that only check whether the right tool was called.
+
+**Where GST sits on that axis** (measured 2026-09-01 from `src/data/mcp/capabilities.ts`): 16 tools, 66 arguments, **mean 4.1 per tool** — Slack-sized in tool count (16) at roughly double its parameter density (2.2), and above every spec in the study except Git (11.2). The distribution is bimodal: six tools take 0–1 arguments, three take 10–13 (`generate_diligence_agenda` 13, `compute_techpar` 13, `estimate_tech_debt_cost` 10). The paper's failures localize to exactly such high-parameter tools, which is where this item starts.
+
+Two things cut the other way and are the reason this is worth doing rather than fearing. Git's failures came from **semantic ambiguity** (`ref` in seven tools meaning three different things), not raw count; our heavy tools are enum-dominated, and a constrained vocabulary attacks argument-value accuracy directly. And **we have the Zod schemas the paper's pipeline did not** — it saw only spec text. Validating generated cases against real schemas converts most of what the paper left to human review into a mechanical check.
+
+#### Acceptance Criteria
+
+**Slice 1 — generate and mechanically reject**
+
+- [ ] A script reads the registered tool surface (names, descriptions, input schemas) and emits candidate cases: a natural-language request plus an ordered list of expected calls with typed arguments
+- [ ] Every candidate is validated against the **real Zod input schema** and auto-rejected on: unknown tool name (the paper's hallucination mode — 3 of 893 calls, all concentrated in one spec), unknown argument name, missing required argument, or a value that fails `safeParse`
+- [ ] The reject log records which check fired, so the rejection rate is itself a readable signal about the surface
+- [ ] Generation is seeded from the nine `gst_*` prompts where one covers the workflow, not from spec inference alone — those encode sequences we have already blessed
+- [ ] Slice 1 runs offline against a checked-in spec snapshot; it does not call the Worker and needs no credential
+
+**Slice 2 — curate and freeze**
+
+- [ ] A human pass accepts, corrects or deletes each surviving candidate; the accepted set is committed as fixtures under `mcp-server/tests/` with the generating model and date recorded per case
+- [ ] **First cohort is the three heavy tools** (`generate_diligence_agenda`, `compute_techpar`, `estimate_tech_debt_cost`), target 20–30 accepted cases
+- [ ] Once frozen, the fixtures are the oracle — no generation runs in the scoring path. This is the whole answer to the paper's stated limitation that "the generated scenarios serve as both output and oracle"
+- [ ] A case that a reviewer rejects records **why** in one line, because the rejection reasons are the raw material for the stretch slice
+
+**Slice 3 — score and wire in**
+
+- [ ] A runner presents a fresh model with the tool specs plus the request, captures the emitted calls, and scores against the frozen expectation, decomposed as the paper does: usage, selection, ordering, and **arguments broken below the call level** (name, value, type, format, completeness, relevancy) — a name-match verdict would hide the dominant failure mode
+- [ ] A per-tool score table lands in the repo so movement is visible per tool, not just in aggregate
+- [ ] Wired to run when a tool description, `.describe()` string, or input schema changes — not on every commit
+- [ ] A floor is set from the first green run and regressions fail; the floor is recorded with the model that produced it, since scores are model-dependent
+- [ ] Not a required PR check until it has been stable across at least three runs — an eval that flaps trains people to ignore it
+
+**Stretch / follow-on — reduce the human pass toward zero**
+
+- [ ] Reviewer rejection reasons from Slice 2 are mined into additional mechanical checks, shrinking what reaches a human
+- [ ] Candidate regeneration on schema change, with the frozen set as a diff base rather than a replacement
+- [ ] Cross-call referential integrity — shared state across a workflow so IDs align between dependent calls. **This is the paper's own unsolved limitation** and it lands squarely on the IRL chain (`prepare_irl_body` → `generate_information_request_list_xlsx` → `fill_information_request_list_xlsx` → `validate_irl_provenance` → `compose_dossier_envelope`), so multi-tool cases stay out of the frozen set until it is answered
+- [ ] An out-of-family judge for scoring, per the paper's cross-family replication (paired r ≈ 0.79 on tool-calling, MCP ranking preserved) — with absolute coherence read as judge-dependent
+- [ ] Explicitly **not** in scope: unattended generate-and-score with no frozen oracle. That is the circularity the paper flags and mitigates but does not close; its own Limitations name a human correlation study as future work
+
+#### Technical Context
+
+- **What this does not test.** The server never runs and mock outputs are fabricated, so this says nothing about engine correctness — that is what the unit/integration suites and BL-119 already cover. It measures one property: is the surface legible to a model that has never seen our docs
+- **Why the Zod validator carries most of the load.** The paper's argument-failure counts were value 223, relevancy 44, format 35, type 31, completeness 16, name 11. `safeParse` against the real schema mechanically covers name, type, format and completeness, and — because our heavy tools are enum-dominated — a large share of value. That is the structural advantage over the paper's setting and the reason "close to full automation" is a credible target rather than a wish
+- **Relationship to enum parity.** BL-119's Technical Context records a deliberate decision that its guard does **not** bind documented enum values to Zod, since most IRL tuples are module-private and wiring them would mean exporting from server source to satisfy a doc test. This item needs schema access at test time, not doc time, so it does not reopen that decision — but if it forces exports, say so in the PR rather than widening the surface quietly
+- **Local-only tools are out of scope**: `search_radar_offline` and `search_radar_cache` are registered only on stdio (`tools/_local-only.ts`) and no remote client can reach them; the latter is additionally a deprecated alias. Same exclusion BL-119 applies
+- **Cost shape**: Slices 1 and 3 are ordinary scripting. Slice 2 is operator time and is the only part that scales with case count, which is why the first cohort is capped at three tools. Slices 1–2 happen once; Slice 3 is what persists
+- **Coverage is not a risk at our size**: the paper reached 100% tool coverage on every spec up to 56 tools, with the only ceiling observed at 64 (56%). At 16 we sit comfortably inside that
+- **Related**: [BL-092](#bl-092-mcp-server--declare-outputschema-on-the-tool-surface-candidate) would give the runner a typed response contract to assert against and makes this item stronger if it lands first, but is not a prerequisite
+
+---
+
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype
