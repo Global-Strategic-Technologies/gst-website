@@ -1773,3 +1773,43 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 - Full spec-delta analysis, including why these two were the only deltas worth deferring rather than declining outright: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)
 
 ---
+
+### BL-147: The homepage's entire responsive type scale is dead CSS
+
+**Source**: found 2026-09-01 by the code-reviewer gate while reviewing an unrelated two-line alignment fix on `feat/mcp-website-marketing`; the reviewer's own diagnosis was right even though several figures in its report were not | **Effort**: Small to change, Medium to decide — the rename is mechanical, the resulting type sizes are a design ruling | **Status**: Open
+
+**As a** phone reader of the homepage, **I want** the responsive type step-down those components already declare to actually apply **so that** body copy is sized for the width it is being read at, instead of silently rendering at the desktop size.
+
+**What it is.** `--text-small` and `--text-tiny` are **defined nowhere in the repo.** [`variables.css`](../../styles/variables.css) declares `--text-xs: 0.75rem` and `--text-sm: 0.875rem`; there is no `small` or `tiny` spelling of either. There are **13 `var()` references to those two undefined names**, all inside `@media` blocks, across four homepage components:
+
+- [`WhyClientsTrustUs.astro`](../../components/WhyClientsTrustUs.astro)
+- [`WhatWeDo.astro`](../../components/WhatWeDo.astro)
+- [`WhoWeSupport.astro`](../../components/WhoWeSupport.astro)
+- [`EngagementFlow.astro`](../../components/EngagementFlow.astro)
+
+An undefined custom property makes the declaration invalid at computed-value time, so `font-size` falls back to the inherited value rather than to the declared step. Confirmed in-browser against a production build: `.trust-card h3` and `.trust-card p` both compute **16px at 320, 480 and 768** — identical to desktop. Every `@media` font-size rule in these four components is inert, and has been since they were written.
+
+**Why this is a ruling and not a rename.** [BL-139](#bl-139-the-filter-drawers-entire-mobile-treatment-is-dead-css) closed on exactly this shape and its finding is the governing precedent: **a dead rule is a product decision wearing a bug's clothing — render it before assuming the original author was right.** There, the dead mobile treatment was rendered, reviewed and _rejected_; the shipped behaviour was better than the code that had never run.
+
+The same caution applies with force here, because the naive mapping has an accessibility edge:
+
+- `--text-small` → `--text-sm` takes homepage body copy to **14px** on phones.
+- `--text-tiny` → `--text-xs` takes `.trust-card p` to **12px** — which is small for sustained body copy on a phone, and is the size the author never actually saw.
+
+So the fix is not "correct the token names"; it is "decide what these four sections should read like on a phone, then express that in real tokens." The dead declarations are evidence of intent, not a specification.
+
+**Known interaction, already live.** This is why the homepage wraps as heavily as it does at phone widths, and it is the reason [`WhatWeDo.astro`](../../components/WhatWeDo.astro)'s `.closing-text::after` comment deliberately quotes **no** wrap-boundary figure: any such number would be measuring this bug rather than a design. That comment cites this item. Fixing this item **invalidates any wrap measurement taken before it** — re-measure rather than inherit, on this one especially.
+
+#### Acceptance Criteria
+
+- [ ] A guard fails on a `var(--…)` reference to a custom property that is defined nowhere in `src/styles` — this class is currently invisible to `astro check`, `lint`, `lint:css` and the full unit/integration suite, all four of which were green over these 13 references
+- [ ] All 13 references resolve to defined tokens, or the declarations are deleted, per the ruling below
+- [ ] The four sections are rendered and reviewed at 320/360/390/430/480/768 in **both** themes before any mapping is adopted — BL-139's procedure, not a diff review
+- [ ] A ruling is recorded here: adopt the step-down, adopt a different one, or delete the declarations and keep the desktop size
+- [ ] `.trust-card p` at 12px is explicitly accepted or rejected on accessibility grounds rather than inherited from the token name
+- [ ] Any wrap-dependent comment in these four files is re-measured afterwards, `WhatWeDo`'s marker comment included
+- [ ] Design-sync re-run: all four components are extracted chrome cards, so the published system currently mirrors the dead scale
+
+**Not a regression from the alignment work.** The two commits that prompted the review (`23f3c343`, `ab526fea`) neither introduced nor touched these declarations. Filed separately rather than folded in, because the visual change is a design decision the operator has not seen, and this branch is a marketing branch whose scope is already argued in its PR body.
+
+---

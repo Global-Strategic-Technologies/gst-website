@@ -100,14 +100,20 @@ import DeltaIcon from './DeltaIcon.astro';
   /* `::after`, where `WhoWeSupport.astro`'s twin rule uses `::before`. That is
      the mirror, not a divergence: this section is right-aligned and its delta
      bullets trail, so the marker belongs on the RIGHT edge. Leading it here
-     stranded `//` mid-line at every width where this paragraph wraps — which
-     is most of them: 3 lines at 320px, 2 up to 669px, 1 only from 670px
-     (measured 2026-09-01). Anchoring it to the alignment edge is what makes
-     the two sections read as a pair.
+     stranded `//` mid-line at every width where this paragraph wraps, and it
+     wraps at every phone and tablet width — it reaches a single line only on
+     desktop. No exact boundary is quoted on purpose: it is a function of the
+     computed font size, and `.closing-text`'s own responsive step-down is
+     currently inert (see BL-147), so any figure written here would be
+     measuring a bug rather than a design. Anchoring the marker to the
+     alignment edge is what makes the two sections read as a pair, and that
+     holds at every width regardless.
 
-     The NBSP is load-bearing. With a plain space the marker is its own wrap
-     opportunity, so `//` can land alone on the last line, right-aligned under
-     the sentence. `\00a0` binds it to the final word. */
+     The NBSP is load-bearing, and this one IS worth a number. With a plain
+     space the marker is its own wrap opportunity, so `//` lands alone on the
+     last line, right-aligned under the sentence — at 58 distinct viewport
+     widths between 320 and 662. `\00a0` binds it to the final word: zero.
+     (Chromium, production build, 1px sweep, 2026-09-01.) */
   .closing-text::after {
     content: '\00a0//';
     color: var(--color-primary);

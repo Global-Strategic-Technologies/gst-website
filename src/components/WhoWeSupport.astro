@@ -91,6 +91,12 @@ import DeltaIcon from './DeltaIcon.astro';
     border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
+  /* `::before` here, `::after` in `WhatWeDo.astro`. Both put the marker on the
+     edge its own section aligns to — this one is left-aligned with leading
+     delta bullets, that one is right-aligned with trailing ones. The two are
+     mirror twins, so a reader who "fixes" one to match the other's PSEUDO
+     breaks the symmetry they were trying to restore. Match the edge, not the
+     selector. */
   .closing-text::before {
     content: '// ';
     color: var(--color-primary);
