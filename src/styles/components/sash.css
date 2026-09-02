@@ -390,7 +390,11 @@ moves.)
 /* stylelint-disable-next-line no-descending-specificity -- disjoint by construction:
    Sash.astro gates `underFields` on `scale === 'page'`, so a card corner can never
    carry a .brutal-sash-under and the :has() rules above can never match the same
-   element. Reordering would imply a cascade interaction that cannot occur. */
+   element. Reordering would imply a cascade interaction that cannot occur.
+   Checked against BOTH producers of this markup: Sash.astro, and the hand-written
+   specimens in BrandUILibrary.astro, whose under-band demo sits on a plain
+   .brutal-sash-corner and whose card demo passes no subtext. A third producer
+   pairing --card with an under-band would invalidate this and should reorder. */
 .brutal-sash-corner--card .brutal-sash {
   top: 26px;
   width: 150px;

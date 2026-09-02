@@ -231,7 +231,7 @@ const faqItems = [
 
 <style>
   .services-section {
-    padding: 2.5rem 0;
+    padding: var(--spacing-2_5xl) 0;
   }
 
   .mcp-offer {
@@ -270,11 +270,11 @@ const faqItems = [
   .services-cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 2.5rem;
+    gap: var(--spacing-2_5xl);
   }
 
   .service-card {
-    padding: 2.5rem;
+    padding: var(--spacing-2_5xl);
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-top: 3px solid var(--color-primary);
     transition: all var(--transition-normal);
@@ -351,7 +351,7 @@ const faqItems = [
   .audience-cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 2.5rem;
+    gap: var(--spacing-2_5xl);
   }
 
   .audience-card {
@@ -441,7 +441,7 @@ const faqItems = [
 
   @media (max-width: 768px) {
     .services-section {
-      padding: 2.5rem 0;
+      padding: var(--spacing-2_5xl) 0;
     }
 
     .services-cards {
