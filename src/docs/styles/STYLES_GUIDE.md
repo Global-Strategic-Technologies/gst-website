@@ -199,7 +199,7 @@ In stylesheets, always import in cascade order:
 | --------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Design system tokens, resets, page layout           | Global CSS in `src/styles/`                                                   |
 | Single-component visual styles                      | Scoped `<style>` in the `.astro` file                                         |
-| **Styling an element a _child_ component renders**  | **Shared module in `src/styles/components/` — see below**                     |
+| **Styling an element a _child_ component renders**  | **Shared module in `src/styles/components/` — see below; or, for a single parent's positional tweak, an anchored `:global()`** |
 | Styling dynamically injected HTML (`innerHTML`)     | `:global()` wrapper on the selector                                           |
 | Dark theme color switching                          | `light-dark(light, dark)` inline — preferred over `:global(html.dark-theme)`  |
 | Dark theme non-color overrides (opacity, etc.)      | `:global(html.dark-theme)` prefix — only for properties that aren't colors    |
@@ -276,10 +276,17 @@ wrap and looks arbitrary rather than systematic. Fourteen were live across six f
 | `&#32;` | a character reference is not source whitespace                            | plain template regions — no expression needed, survives Prettier rewrap |
 | `{' '}` | compiles to an expression (`${' '}`), not a text node a compressor can see | JSX-ish regions that already carry expressions                        |
 
-`&#32;` is the default. `{' '}` is equally sound and already load-bearing in the repo — four
+`&#32;` is the default. `{' '}` is equally sound and already load-bearing in the repo — five
 sites in `diligence-machine/index.astro` and one in `CTABox.astro`, the latter with a comment
 saying so. Do **not** reach for `&nbsp;`: it would wrongly suppress wrapping at that point.
 Either form collapses harmlessly against real whitespace if compression is ever turned off.
+
+**It is one mechanism, in both region kinds.** Expression regions (`{cond && (<p>…)}`) are not
+exempt, and JSX whitespace handling is not the cause there — established by a 2×2 build probe
+(2026-09-02): with the space expression removed, the newline **survives** compilation when
+`compressHTML` is off and is **deleted** when it is on, in an expression region, exactly as in
+plain template markup. `CTABox.astro`'s comment used to attribute its own instance to JSX; it
+now points here.
 
 Turning `compressHTML` off fixes the whole class in one line; it was measured at **+305 KB raw /
 +29 KB gzipped** across the site's HTML and rejected on those grounds. Revisit that trade if the
@@ -352,6 +359,13 @@ const accentColor = getThemeColor(category);
    A bare `:global(.delta-chevron) { … }` with no ancestor is a site-wide edit to a shared
    utility; that belongs in `interactions.css`, not a component. If the declaration is anything
    more than positional, remedy steps 1 and 2 still win.
+
+   **Discriminator against remedy step 1**, which also claims positional styling: does the
+   declaration serve *this one parent* or a *recurring arrangement*? One parent — where it puts
+   the utility is its own business — take the anchored `:global()` here. Recurring across
+   components — it is a property of the arrangement, not of any caller — move it to
+   `src/styles/components/*.css`. Three components zeroing the same declaration is the signal
+   that it has stopped being local.
 
 **Prefer `light-dark()` over `:global(html.dark-theme)`** for color properties. Use `light-dark(light-value, dark-value)` inline or define a CSS variable with `light-dark()` in `variables.css`. Reserve `:global(html.dark-theme)` only for non-color properties (opacity, display, backdrop-filter).
 

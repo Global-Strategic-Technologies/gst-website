@@ -52,12 +52,17 @@ const emailAttrs = isDemo ? {} : { onclick: "trackCTA('email', 'cta-section')" }
   {
     emailAddress && (
       <p class="cta-email">
-        {/* The trailing {' '} is load-bearing, not formatting. JSX drops
-            whitespace runs that contain a newline, so `&mdash;` sitting on its
-            own line rendered hard against the address — `directly —contact@…`
-            on every page that passes an emailAddress. Prettier owns the line
-            breaks here, so the space cannot live in the source layout; it has
-            to be an explicit expression. */}
+        {/* The trailing {' '} is load-bearing, not formatting: without it
+            `&mdash;` sitting on its own line rendered hard against the address
+            — `directly —contact@…` on every page that passes an emailAddress.
+            The culprit is `compressHTML`, NOT JSX whitespace handling as this
+            comment used to claim: a 2×2 build probe (2026-09-02) showed the
+            newline survives compilation in an expression region and is deleted
+            by the compressor, exactly as in a plain template region. Prettier
+            owns the line breaks here, so the space cannot live in the source
+            layout — it has to be an expression or a `&#32;`. See STYLES_GUIDE
+            § "`compressHTML` deletes the space before a wrapped inline
+            element". */}
         {emailText} &mdash;{' '}
         <a href={`mailto:${emailAddress}`} {...emailAttrs}>
           {emailAddress}

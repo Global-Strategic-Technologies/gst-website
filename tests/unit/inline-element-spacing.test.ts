@@ -90,6 +90,15 @@ describe('inline elements keep their leading space through compressHTML', () => 
     expect(findUnspacedBreaks(fixed)).toEqual([]);
   });
 
+  it('the detector covers the widened tag list and sentence enders', () => {
+    // `span` is the most-used inline element here, and `?`/`!` end prose as
+    // readily as `.` — neither was covered before, so both were free to break.
+    const broken = ['<p>', '  Ready to compare?', '  <span class="x">Now</span>', '</p>'].join(
+      '\n'
+    );
+    expect(findUnspacedBreaks(broken)).toEqual([3]);
+  });
+
   it('the detector ignores a tag boundary, where no space is owed', () => {
     const fine = ['<p class="lead">', '  <a href="/privacy/">Privacy Policy</a>', '</p>'].join(
       '\n'

@@ -139,7 +139,8 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
      headline row already centres the icon with `align-items: center`, which
      halves any negative margin (the nudge rendered as 1px, not 2px), and the
      delta rotates 180deg on open, so one fixed offset cannot suit both states.
-     The class stays as the markup hook `.fyi-item__headline` styles through. */
+     The class is left on the icon as a semantic hook that nothing selects; the
+     row's flex rules and the global `.delta-chevron` position it. */
 
   /* Expanded body */
   .fyi-item__body {
