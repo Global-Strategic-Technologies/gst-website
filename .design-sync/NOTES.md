@@ -427,12 +427,19 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   bundle. This is the concrete case the standing rule ("the `finalize_plan` write set must
   include `components/chrome/*/*`") exists for: nothing tracks those files, so no verdict can
   list them, and reading the verdict alone ships a stale footer and a stale StatsBar.
-- Uploaded 48 paths: README, `styles.css`, `_ds_bundle.css`/`.js`, `_ds_sync.json`, the four
-  guidelines + index, and all 19 chrome cards ×2 files. **Deliberately NOT re-uploaded**:
-  the ten specimens (unchanged per the diff stage), and `fonts/fonts.css` + the woff2 — the
-  font pair was untouched this round, but note Guard 6's warning that the pinned face reaches
-  designs only via `cfg.extraFonts` and fails invisibly when lost, so re-upload it in any sync
-  that touches `fonts.css`.
+- **Upload the FULL 103-file set. Do not scope writes to what changed** — I did, and it was
+  wrong. The first pass here uploaded 48 paths (the styling/aux files plus all 19 chrome cards)
+  and skipped 55 as "unchanged": the ten specimens ×4, the ten `_preview/*.js`, the two
+  `_vendor` files, the font pair and `_ds_needs_recompile`. Nothing went stale — specimen HTML
+  LINKS `styles.css` and `_ds_bundle.css` rather than inlining them, and `_preview/*.js` carry
+  no token text — but the skill is explicit that this is luck, not method:
+  `.ds-sync/storybook/SKILL.md:279` ("Writes — everything, always … an under-scoped writes list
+  silently and permanently desyncs the project") and `:335` ("never scope writes by the
+  verification partition"), and `lib/remote-diff.mjs:31-37` says the `components` array is NOT
+  a write scope. The remaining 55 were uploaded immediately after, so the project holds the
+  full set — but the correct plan is the one-line glob list from SKILL.md:279, first time.
+  Note especially `fonts/` in that list: Guard 6 records that the pinned face reaches designs
+  only via `cfg.extraFonts` and fails invisibly when lost.
 - Verified after upload rather than assumed: re-read
   `guidelines/src/docs/styles/VARIABLES_REFERENCE.md` off the REMOTE and confirmed both new
   rows sit in the Spacing Scale table at the right ladder positions.
@@ -441,9 +448,12 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   twin whose background differs from its light sibling. `dark-probe` and `palette-probe` are
   **single-card** — both hardcode `DataSpecimen.html`. `dark-probe` read 4/7 switched; the three
   that did not are `--border-light` and `--color-primary` (both correct — VARIABLES_REFERENCE
-  documents them as deliberately not theme-switched) and `_bodyBg`, a RENDERED proxy, which is
-  expected here because a specimen card cannot go dark at all (the root-only constraint above).
-  `palette-probe`: all six as expected, on that one card.
+  documents them as deliberately not theme-switched) and `_bodyBg`, a RENDERED proxy, expected
+  to stay put because the converter's card scaffold hardcodes `body{background:#fff}` in a
+  `<style>` that FOLLOWS both stylesheet links — reason one of the two under "Dark-mode
+  converter cards are not buildable" above. The card's tokens themselves do switch; the
+  root-only reason is NOT why, since the probe puts `.dark-theme` on `documentElement` and four
+  values moved. `palette-probe`: all six as expected, on that one card.
 - **Run the probes from the repo root — this is intrinsic, not a papercut.** Both resolve a bare
   relative `ds-bundle/...` against `process.cwd()`. A leftover `cd ds-bundle` earlier in a
   session makes them fail with `MODULE_NOT_FOUND` on a path under `ds-bundle/.design-sync/`,
