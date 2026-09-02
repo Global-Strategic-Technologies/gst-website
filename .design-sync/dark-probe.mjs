@@ -3,13 +3,21 @@
 // Opens a real preview card, reads the computed values of the tokens that are
 // supposed to switch, then adds the dark-theme class and reads them again.
 // If light-dark() survived the lightningcss flattening, these differ.
+//
+// Needs a prior full package-build (ds-bundle/ is gitignored). Run from the
+// repo root: node .design-sync/dark-probe.mjs
 /* global document, getComputedStyle -- the page.evaluate() callbacks below are
    serialised and run inside the browser, where these are defined. */
 import { chromium } from 'playwright';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 
 const card = resolve('ds-bundle/components/specimens/DataSpecimen/DataSpecimen.html');
+if (!existsSync(card)) {
+  console.error(`[DARK_PROBE] ${card} not found — run a full package-build first (see NOTES.md).`);
+  process.exit(1);
+}
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1200, height: 700 } });
 await page.goto(pathToFileURL(card).href, { waitUntil: 'networkidle' });
