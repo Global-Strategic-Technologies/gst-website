@@ -204,10 +204,11 @@ export const CardSpecimen = () => (
     <Row label="FAQ (accordion)">
       {/* Ported from src/pages/services.astro: native <details>/<summary>; the
           [open] attribute drives the border, so the elements are not optional.
-          Production co-applies .brutal-frosted on each item and puts a
-          .delta-chevron in the summary (rotates via details[open]). */}
+          The item is frosted by its own base rule — do NOT co-apply
+          .brutal-frosted, which double-blurs. Put a .delta-chevron in the summary
+          (rotates via details[open]). */}
       <div className="brutal-faq brutal-faq--lg" style={{ width: '100%', maxWidth: '600px' }}>
-        <details className="brutal-faq__item brutal-frosted" open>
+        <details className="brutal-faq__item" open>
           <summary className="brutal-faq__question">
             <span>How long does a technical diligence engagement take?</span>
             <Delta className="delta-chevron" />
@@ -216,7 +217,7 @@ export const CardSpecimen = () => (
             <p>Two to three weeks from data-room access to executive readout.</p>
           </div>
         </details>
-        <details className="brutal-faq__item brutal-frosted">
+        <details className="brutal-faq__item">
           <summary className="brutal-faq__question">
             <span>Do you work buy-side and sell-side?</span>
             <Delta className="delta-chevron" />

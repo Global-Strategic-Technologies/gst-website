@@ -1,3 +1,6 @@
+/* fonts.css first: the @font-face blocks must be declared ahead of every sheet
+   that consumes --font-family-mono, print rules included (BL-144). */
+@import './fonts.css';
 @import './variables.css';
 @import './typography.css';
 @import './interactions.css';
@@ -13,10 +16,12 @@
 @import './components/table.css';
 @import './components/cards.css';
 @import './components/form.css';
+@import './components/sash.css';
 
 /* Page-specific component CSS — NOT loaded site-wide; imported by the pages that
    use them. Any page rendering these components must import the sheet itself:
-   filter.css     → PortfolioHeader.astro (ma-portfolio), regulatory-map/index.astro, brand.astro
+   filter.css     → PortfolioHeader.astro (ma-portfolio), regulatory-map/index.astro,
+                    hub/mcp/docs/index.astro, brand.astro
    portfolio.css  → PortfolioGrid.astro (ma-portfolio), brand.astro
    map.css        → MapVisualizer.astro (regulatory-map), brand.astro
    progress.css   → diligence-machine/index.astro, brand.astro
@@ -51,6 +56,18 @@
 
 .skip-nav:focus {
   top: 0;
+}
+
+/* Not decorative. `a:hover` below sets `color: var(--color-primary)` at
+   (0,1,1), which out-ranks `.skip-nav`'s own `color` at (0,1,0) — and
+   --color-primary is exactly the fill this link is painted on, so a pointer
+   landing on the revealed bypass link erased its label. The usual interaction
+   is tab-to-reveal then click, so the hover state is on the normal path, not an
+   edge case. Restated here at (0,2,0). Guarded by
+   tests/e2e/hover-ink-invariance.test.ts. */
+.skip-nav:hover,
+.skip-nav:focus {
+  color: var(--bg-dark);
 }
 
 body {
@@ -103,6 +120,32 @@ body {
   padding: 0 3rem;
   position: relative;
   z-index: 1;
+}
+
+/* The gutter ladder. These two blocks lived in components/buttons.css until
+   2026-09-01, where they had never once applied: that sheet is @imported above,
+   so the base rule's `padding: 0 3rem` came LATER in source order at equal
+   specificity (0,1,0) and won at every width. The site paid a flat 96px of
+   gutter on a 320px phone — 30% of the screen — while `.design-sync/conventions.md`
+   published the ladder to claude.ai/design as though it were real.
+
+   They live here now because `.container` is a layout primitive and one file
+   should own all three of its rules; a responsive override parked in a button
+   sheet is how the shadowing happened in the first place.
+
+   ORDER IS LOAD-BEARING: 768 before 480. Equal specificity means the later block
+   wins where both match, so reversing these silently restores the 1.5rem gutter
+   at phone widths — the same class of bug this replaces. */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 1rem;
+  }
 }
 
 a {
@@ -297,6 +340,13 @@ Legal Page Layout (Privacy, Terms)
   line-height: 1.8;
   font-family: var(--font-family-mono);
   color: var(--text-secondary);
+
+  /* Legal copy carries unbreakable tokens — the contact address, bare domains —
+     and a mono face gives them a fixed, wide advance: contact@globalstrategic.tech
+     is 269px against the 205px the contact box leaves at 320px, so without this
+     the page itself scrolls sideways. `anywhere` rather than `break-word` so the
+     token stops contributing its full width to min-content sizing as well. */
+  overflow-wrap: anywhere;
 }
 
 .legal-page-body h2 {

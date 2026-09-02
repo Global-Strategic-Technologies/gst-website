@@ -3,6 +3,13 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Hero from '../../components/Hero.astro';
 import CTASection from '../../components/CTASection.astro';
 import DeltaIcon from '../../components/DeltaIcon.astro';
+import Sash from '../../components/Sash.astro';
+import { getActiveAnnouncement } from '../../data/announcements';
+
+// Null unless an announcement's window is open and lists this route — see
+// src/data/announcements.ts. It gates BOTH sashes on this page, so the page
+// sash and the card sash retire together.
+const announcement = getActiveAnnouncement(Astro.url.pathname);
 
 const faqItems = [
   {
@@ -13,7 +20,7 @@ const faqItems = [
   {
     question: 'Are the Hub tools free to use?',
     answer:
-      'Yes. All tools, frameworks, and resources in the GST Hub are freely available. We built them to help PE investors and technical leaders make better-informed decisions, whether or not they engage GST for advisory work.',
+      'Yes. Every interactive tool, framework, and reference in the GST Hub is freely available in the browser, whether or not you engage GST for advisory work. The one thing that is provisioned rather than open is the <a href="/hub/mcp/">MCP Server</a>, which lets your own AI agents call these same tools programmatically: access there is granted per client, with a free pilot tier.',
   },
   {
     question: 'Who are these resources designed for?',
@@ -33,6 +40,8 @@ const faqItems = [
   ogUrl="https://globalstrategic.tech/hub/"
   faqItems={faqItems}
 >
+  {announcement && <Sash slot="sash" {...announcement} />}
+
   <Hero
     title="The GST Hub"
     description="Professional-grade tools, frameworks, and technical perspectives to help you de-risk technology investments and accelerate outcomes."
@@ -201,6 +210,66 @@ const faqItems = [
           </p>
           <span class="hub-card-cta">Read the Perspective →</span>
         </a>
+
+        <a href="/hub/mcp/" class="hub-card brutal-frosted">
+          {/* Decorative — the card is already the link, and already tracked. */}
+          {announcement && <Sash label="New" scale="card" />}
+          <div class="hub-card-header">
+            <svg
+              class="hub-card-icon"
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <rect x="6" y="6" width="14" height="14" stroke="currentColor" stroke-width="2"
+              ></rect>
+              <rect x="28" y="6" width="14" height="14" stroke="currentColor" stroke-width="2"
+              ></rect>
+              <rect x="6" y="28" width="14" height="14" stroke="currentColor" stroke-width="2"
+              ></rect>
+              <path
+                d="M35 28V35H28"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+              <line
+                x1="20"
+                y1="13"
+                x2="28"
+                y2="13"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"></line>
+              <line
+                x1="13"
+                y1="20"
+                x2="13"
+                y2="28"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"></line>
+              <line
+                x1="35"
+                y1="20"
+                x2="35"
+                y2="28"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"></line>
+            </svg>
+            <span class="hub-card-label">Interface</span>
+          </div>
+          <h2>MCP Server</h2>
+          <p>
+            The same diligence engine, portfolio record, and regulatory map, callable by your own AI
+            agents over the Model Context Protocol.
+          </p>
+          <span class="hub-card-cta">See the Interface →</span>
+        </a>
       </div>
     </div>
   </section>
@@ -211,7 +280,7 @@ const faqItems = [
       <div class="brutal-faq brutal-faq--lg">
         {
           faqItems.map((item) => (
-            <details class="brutal-faq__item brutal-frosted">
+            <details class="brutal-faq__item">
               <summary class="brutal-faq__question">
                 <span>{item.question}</span>
                 <DeltaIcon class="delta-chevron" />
@@ -251,9 +320,12 @@ const faqItems = [
     padding: 2.5rem 0;
   }
 
+  /* Two-by-two since the MCP Server card made this a four-card grid; the 1024
+     breakpoint below already declares the same two columns, so only this base
+     rule changed. */
   .hub-cards {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 2.5rem;
   }
 
@@ -269,6 +341,9 @@ const faqItems = [
     text-decoration: none;
     color: inherit;
     position: relative;
+
+    /* Clips the card-scale sash's rotated band to the corner box. */
+    overflow: hidden;
   }
 
   .hub-card:hover {

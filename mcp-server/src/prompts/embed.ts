@@ -69,7 +69,7 @@ export const IRL_SOURCE_EMBED_URI = 'gst://irl/source';
  * The directives are machine annotations for the parser/filter engine, not
  * content — a model reproducing the embedded list verbatim must never render
  * them. Stripping at the embed boundary is deterministic and covers every
- * consumer (`gst_information_request_list` one-shot AND interactive bodies,
+ * consumer (`gst_irl_create` one-shot AND interactive bodies,
  * plus `gst_irl_ingestion`'s taxonomy embed), with no reliance on
  * per-prompt "don't render comments" instructions.
  */
@@ -85,7 +85,7 @@ function stripDirectiveLines(body: string): string {
  * bundled via `loadIrlSourceBody()`) as an `EmbeddedResource` content block,
  * with directive comment lines stripped (see {@link stripDirectiveLines}).
  *
- * Used by `gst_information_request_list` so the in-chat artifact the model
+ * Used by `gst_irl_create` so the in-chat artifact the model
  * reproduces is the SAME content `generate_information_request_list_xlsx`
  * renders — keeping the pasted list and the downloaded .xlsx identical. It is
  * intentionally NOT `embedLibraryArticle(gst://library/information-request-list)`:
@@ -189,14 +189,14 @@ export function authorialIntentLine(promptName: string): string {
  * `filledIrl` argument, so the render demonstrably happened." Four of the six
  * rendered bodies in this workspace never emit it — both interactive arms of
  * `gst_irl_ingestion` (no `filledIrl` argument to hash at render time) and both
- * `gst_information_request_list` branches — so a copy-paste would assert
+ * `gst_irl_create` branches — so a copy-paste would assert
  * evidence that does not exist there.
  *
  * This form argues **structurally** instead, from content the client could not
  * have synthesized. It deliberately does NOT prescribe a tool probe as the
  * recovery path: the extract-only arms permit exactly one call
  * (`prepare_irl_body`, to mint the record's provenance) and forbid every
- * analysis tool, while the `gst_information_request_list` bodies orchestrate
+ * analysis tool, while the `gst_irl_create` bodies orchestrate
  * neither of the IRL-pipeline tools that probe would use.
  *
  * Written in the register BL-086 established for `authorialIntentLine`: state
@@ -210,7 +210,7 @@ export function deliveredAsDocumentClause(opts: { citesRunParameters: boolean })
   // The evidence is parameterized for the same reason this second form exists
   // at all: the original clause cited a `**Body-binding hash:**` directive that
   // three of the five bodies never render. Citing a "Run parameters" block on
-  // the two `gst_information_request_list` bodies — which have none — would
+  // the two `gst_irl_create` bodies — which have none — would
   // reproduce that defect one layer down, in the clause whose whole job is to
   // be believed by a model already wondering whether it is reading a
   // transcript.
@@ -232,7 +232,7 @@ export function deliveredAsDocumentClause(opts: { citesRunParameters: boolean })
  * precedent; `deliveredAsDocumentClause()` is deliberately in three. This one
  * is in six, and the set is DECLARED rather than inferred — the registry guard
  * asserts clause-present ⇔ flag-set, so every later prompt has to choose. The
- * tenth (`gst_irl_create`, BL-140) chose EXCLUSION: this clause's mandatory
+ * tenth (`gst_irl_populate`, BL-140) chose EXCLUSION: this clause's mandatory
  * upgrade path (`prepare_irl_body` → `validate_irl_provenance`) instructs the
  * model to invoke the sweep tools, which directly contradicts that prompt's
  * stop-at-artifact ruling — a human review checkpoint sits between fill and
@@ -298,7 +298,7 @@ export function embeddedTaxonomyFraming(isIngestion: boolean): string {
  * mode on {@link embeddedTaxonomyFraming}: the existing branches' output is
  * pinned by the ingestion body-hash baseline, and their "reproduce it
  * as-is rather than reconciling it against another source" continuation is
- * actively wrong for `gst_irl_create`, whose entire job IS reconciling the
+ * actively wrong for `gst_irl_populate`, whose entire job IS reconciling the
  * taxonomy against evidence in context — a compliant model following the
  * generator framing would emit a blank list instead of authored fills.
  */

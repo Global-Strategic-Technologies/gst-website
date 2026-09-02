@@ -19,7 +19,7 @@ schema: mcp-server/src/schemas/compose-dossier-envelope.ts
 > - **Canonical question source**: [`src/data/irl/information-request-list.md`](../../../../../src/data/irl/information-request-list.md) — what the generator and `list_irl_requests` actually read (67 bullets). **Not** the `gst://library/information-request-list` Resource, which is a separate Library-surface article (65 bullets) that the loader's own docstring says is deliberately decoupled and expected to diverge: edit the former to change the workbook, the latter to change the published article.
 > - **Cross-tool SOP**: [`library/irl-tool-input-mapping.md`](../../library/irl-tool-input-mapping.md) — which IRL bullet feeds which Hub tool input.
 >
-> **Used by prompts**: [`gst_information_request_list`](../../prompts/README.md) (emits the intake ask) and [`gst_irl_ingestion`](../../prompts/irl-ingestion.md) (ingests a populated IRL and orchestrates the full dossier sweep).
+> **Used by prompts**: [`gst_irl_create`](../../prompts/README.md) (emits the intake ask) and [`gst_irl_ingestion`](../../prompts/irl-ingestion.md) (ingests a populated IRL and orchestrates the full dossier sweep).
 >
 > **Version**: `v1` | **Last authored**: 2026-08-20
 >
@@ -86,7 +86,7 @@ Every field is optional; `{}` produces the full canonical workbook.
 
 **Sections**: `00` Basics · `01` Product · `02` Software Architecture · `03` Infrastructure & Operations · `04` SDLC · `05` Data, Analytics & AI · `06` Security · `07` People & Organization · `08` Corporate IT · `09` Governance & Compliance.
 
-**Three independent subtractions compose.** `includeSections` keeps whole sections; `excludeRequests` removes individual questions by key; `transactionContext` fires the source's authored skip-if directives, auto-removing every question tagged for that context. Surviving questions keep their Reference IDs, so the gaps are visible and read as deliberate. `productSummary` is accepted for shape parity with the `gst_information_request_list` prompt and has no effect on the workbook.
+**Three independent subtractions compose.** `includeSections` keeps whole sections; `excludeRequests` removes individual questions by key; `transactionContext` fires the source's authored skip-if directives, auto-removing every question tagged for that context. Surviving questions keep their Reference IDs, so the gaps are visible and read as deliberate. `productSummary` is accepted for shape parity with the `gst_irl_create` prompt and has no effect on the workbook.
 
 ### Output shape
 

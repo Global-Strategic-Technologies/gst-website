@@ -4,6 +4,8 @@ Complete catalog of all CSS custom properties defined in `src/styles/variables.c
 
 **Source of truth**: `src/styles/variables.css`. This reference is kept in exact parity with it by `tests/integration/docs-variables-sync.test.ts` (run via `npm run test:docs`) — every `:root` token must be documented here, and every documented token must exist there.
 
+**What dark theme does and does not touch.** `html.dark-theme` sets `color-scheme: dark`, which is what makes every `light-dark()` token resolve to its dark value — the block itself carries only `color-scheme` and the RGB-triplet overrides (see [Adding New Variables](#adding-new-variables)). Surfaces and text switch that way: `--text-primary`, `--bg-light`, `--bg-light-alt`. **Two tokens do not.** `--color-primary` holds the same teal in both themes — it is the brand constant, and the **alternative palettes**, not the theme, are what re-point it, so never author a dark variant of it. `--border-light` has no dark counterpart value; dark borders come from the `--border-dark-subtle` / `--border-dark-default` / `--border-dark-prominent` scale, normally paired as `light-dark(var(--border-light), var(--border-dark-default))` — a bare `--border-light` on a dark surface is invisible. (`--color-secondary` and `--color-tertiary` are different again: they genuinely carry per-theme values, listed below.) Verify with `node .design-sync/dark-probe.mjs`, which prints exactly which tokens switch.
+
 ---
 
 ## Primary Colors
@@ -140,7 +142,11 @@ Theme-switched wash backgrounds for layered surfaces. Distinct from the `--accen
 
 ### Frosted-Glass Edge Treatment
 
-The inset highlight + hairline edge pair applied to every frosted surface — see [STYLES_GUIDE.md § Frosted Glass](./STYLES_GUIDE.md).
+The inset highlight + hairline edge pair carried by the **control-shaped** frost — the nine
+`.brutal-*` control and card families. NOT every frosted surface: the container pair
+(`.brutal-tool-shell`, the `.brutal-frosted` utility) and the opaque panel (`.tool-tab-bar`)
+carry neither, and it is the edge rather than the blur that makes frost visible on a flat
+background. See [STYLES_GUIDE.md § Frosted Glass](./STYLES_GUIDE.md), Three shapes.
 
 | Variable            | Value                                                              | Usage                               |
 | ------------------- | ------------------------------------------------------------------ | ----------------------------------- |
@@ -169,7 +175,9 @@ Neutral black at fixed alpha, for modal backdrops, drawer shadows and inset dept
 | `--spacing-sm`    | `0.5rem`  | 8px                   |
 | `--spacing-md`    | `0.75rem` | 12px                  |
 | `--spacing-lg`    | `1rem`    | 16px                  |
+| `--spacing-1_25`  | `1.25rem` | 20px                  |
 | `--spacing-xl`    | `1.5rem`  | 24px                  |
+| `--spacing-1_75`  | `1.75rem` | 28px                  |
 | `--spacing-2xl`   | `2rem`    | 32px                  |
 | `--spacing-2_5xl` | `2.5rem`  | 40px                  |
 | `--spacing-3xl`   | `3rem`    | 48px                  |
@@ -192,21 +200,21 @@ Neutral black at fixed alpha, for modal backdrops, drawer shadows and inset dept
 
 ## Typography
 
-| Variable                 | Value                                 |
-| ------------------------ | ------------------------------------- |
-| `--font-family`          | `'Helvetica Neue', Arial, sans-serif` |
-| `--font-family-mono`     | `monospace`                           |
-| `--font-weight-normal`   | `400`                                 |
-| `--font-weight-semibold` | `600`                                 |
-| `--font-weight-bold`     | `700`                                 |
-| `--text-2xs`             | `0.65rem` (10.4px)                    |
-| `--text-xs`              | `0.75rem` (12px)                      |
-| `--text-sm`              | `0.875rem` (14px)                     |
-| `--text-base`            | `1rem` (16px)                         |
-| `--text-lg`              | `1.1rem` (17.6px)                     |
-| `--text-xl`              | `1.25rem` (20px)                      |
-| `--text-2xl`             | `1.5rem` (24px)                       |
-| `--text-3xl`             | `2rem` (32px)                         |
+| Variable                 | Value                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `--font-family`          | `var(--font-family-mono)`                                                          |
+| `--font-family-mono`     | `'GST Mono', 'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace` |
+| `--font-weight-normal`   | `400`                                                                              |
+| `--font-weight-semibold` | `600`                                                                              |
+| `--font-weight-bold`     | `700`                                                                              |
+| `--text-2xs`             | `0.65rem` (10.4px)                                                                 |
+| `--text-xs`              | `0.75rem` (12px)                                                                   |
+| `--text-sm`              | `0.875rem` (14px)                                                                  |
+| `--text-base`            | `1rem` (16px)                                                                      |
+| `--text-lg`              | `1.1rem` (17.6px)                                                                  |
+| `--text-xl`              | `1.25rem` (20px)                                                                   |
+| `--text-2xl`             | `1.5rem` (24px)                                                                    |
+| `--text-3xl`             | `2rem` (32px)                                                                      |
 
 ## Transitions
 
@@ -296,12 +304,24 @@ These variables exist for page sections and UI components that need distinct lig
 | `--about-image-border`   | `var(--bg-dark-secondary)` | `#2a2a2a`                  |
 | `--about-image-text`     | `#404040`                  | `#808080`                  |
 
+### Announcement Sash
+
+The tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Borders, hover and the under-band's inversion are derived from the first two with `color-mix()`, so they follow all six palettes and both themes with no extra CSS; the badge chip reads the third under constant `--bg-dark` ink (measured at every palette × theme when it left the two-token pair, 2026-08-28).
+
+| Variable          | Value                    | Usage                                           |
+| ----------------- | ------------------------ | ----------------------------------------------- |
+| `--sash-bg`       | `var(--color-primary)`   | The band. Colour is never a variant of the sash |
+| `--sash-ink`      | `var(--bg-dark)`         | The label, and the under-band's background      |
+| `--sash-badge-bg` | `var(--color-secondary)` | The badge chip's fill, under `--bg-dark` ink    |
+
+`--sash-ink` is re-pointed in `palettes.css` for `palette-1`, `-2`, `-3` and `-5`, whose light-theme primary is a dark saturated hue: those get `light-dark(var(--text-dark-primary), var(--bg-dark))`. Note the token names read backwards — `--text-dark-primary` is the LIGHT ink, i.e. text _for_ dark surfaces. `palette-0` and `palette-4` inherit the `:root` value deliberately. `--sash-badge-bg` is re-pointed for `palette-1` only (`#f472b6`, its dark-theme secondary promoted to both themes): the light-theme `#db2777` was the one combo of twelve measuring under 4.5:1 against the chip's dark ink.
+
 ### Miscellaneous
 
-| Variable               | Light                 | Dark                      |
-| ---------------------- | --------------------- | ------------------------- |
-| `--checkerboard-line`  | `rgba(0,0,0, 0.08)`   | `rgba(255,255,255, 0.08)` |
-| `--theme-toggle-color` | `rgba(74,74,74, 0.8)` | `rgba(200,200,200, 0.8)`  |
+| Variable               | Light                 | Dark                       |
+| ---------------------- | --------------------- | -------------------------- |
+| `--checkerboard-line`  | `rgba(0,0,0, 0.032)`  | `rgba(255,255,255, 0.032)` |
+| `--theme-toggle-color` | `rgba(74,74,74, 0.8)` | `rgba(200,200,200, 0.8)`   |
 
 ---
 
@@ -488,7 +508,7 @@ Also overrides `--color-primary-rgb`, `--border-dark`, `--accent-light-bg`, `--a
 
 1. Check if an existing variable already covers your need
 2. Add the token to `:root` in `variables.css` — use `light-dark(lightValue, darkValue)` for anything theme-dependent (the `html.dark-theme` block only carries `color-scheme` and the RGB-triplet overrides that `light-dark()` cannot express)
-3. Use semantic names: `--component-property` (e.g., `--filter-chip-bg`)
+3. Use semantic names: `--component-property` (e.g., `--filter-chip-bg`) — **except inside a scale family**, where the name is the value: `--spacing-1_25`, `--scrim-15`, `--color-primary-02`. A scale step has no component and no property to name after, and a semantic name would hide its position in the ramp (see [ADR-0028](../adr/0028-extended-spacing-scale.md))
 4. Update this reference file — `npm run test:docs` fails until the new token is documented here
 
 ---

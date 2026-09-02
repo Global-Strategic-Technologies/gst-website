@@ -32,15 +32,20 @@ const { stats } = Astro.props;
     padding: 0;
   }
 
+  /* minmax(0, 1fr), not 1fr: a bare 1fr track is minmax(auto, 1fr), so each
+     column is floored at its own min-content and the grid can grow past its
+     container rather than letting a label wrap. At 320px that put the second
+     column's edge 13px off-screen in WebKit — whose text runs wider than
+     Chromium's, which is why only one engine showed it. */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
   }
 
   .stat-item {
     text-align: center;
-    padding: 2rem;
+    padding: var(--spacing-2xl);
   }
 
   .stat-value {
@@ -48,7 +53,7 @@ const { stats } = Astro.props;
     font-weight: 900;
     color: light-dark(var(--bg-dark), var(--bg-light));
     line-height: 1;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
   }
 
   .stat-label {
@@ -59,9 +64,84 @@ const { stats } = Astro.props;
     letter-spacing: 0.15em;
   }
 
-  @media (max-width: 768px) {
+  /* These steps key on the CONTAINER, not the viewport, because this component
+     is rendered at two different widths for the same viewport: `/ma-portfolio/`
+     gives it the full `.container`, while the `/brand` specimen frame gives it
+     the narrower content column. Viewport queries got the specimen wrong at
+     every desktop width — at 1280px the specimen's cells are 218px wide where
+     the real page's are 296px, so `$2.8B` hung 14px outside its cell on the page
+     that exists to show the component rendering correctly.
+
+     WHERE THE TWO RENDERINGS ACTUALLY DIVERGE (measured 2026-09-01, both routes,
+     14 widths): only at 769px and up, where /brand's layout goes two-column and
+     the specimen drops to a 361px box while the page holds 673px. At 768px and
+     below /brand renders the specimen full-width inside an ordinary page
+     `.container`, so BOTH routes get exactly `viewport - gutter` and step tiers
+     at the same widths. The divergence is a desktop phenomenon; do not assume
+     the specimen is insulated from a page-level layout change at phone widths.
+
+     Where the thresholds come from: the longest value a real page passes is
+     `$2.8B+`, six characters, and the pinned face (BL-144) sets six characters
+     at 3.6 x the font size. A cell interior is `container / columns - 2 x
+     padding`, and each tier is sized so that interior clears the text by AT
+     LEAST 8px.
+
+     That 8px floor is the correction, and it is not decoration. The first cut
+     of this block solved each threshold as an equality and took whatever slack
+     fell out: four columns "cleared" a 1064px container by 0.39px (202px of
+     interior against 201.61px of text). It passed locally — `scrollWidth`
+     rounds 201.61 up to 202, so the two tie — and failed in CI, where the same
+     assertion reported 2px of overflow. Sub-pixel rounding is not a margin.
+     8px also absorbs the widest realistic fallback: generic `monospace` on
+     Linux is DejaVu at 602/1000, 0.7px wider over six characters than the
+     pinned face's 600/1000.
+
+     So, per tier (text = 6 x 0.6 x font-size):
+       4 cols, 3.5rem (201.6px), 2rem sides -> c/4 - 64 >= 209.6 -> c >= 1095
+       2 cols, 3.5rem (201.6px), 2rem sides -> clears from c = 673 up
+       2 cols, 2.5rem (144px),   1rem sides -> c/2 - 32 >= 152 -> c >= 368
+       2 cols, 1.5rem (86.4px),  0.5rem sides -> c/2 - 16 >= 94.4 -> c >= 221
+
+     The middle tier's side padding steps down WITH the type for that reason:
+     at 2rem sides it needed a 416px container, but it inherits down to 384,
+     so containers 385-415 overflowed by up to 15px. (That band was viewport
+     481-511 when it was found, under the flat 96px gutter this file used to
+     assume — a historical figure, not a current mapping. See below.) No sampled
+     width sat in that 30px band — the E2E widths step 480 -> 540 straight over
+     it — which is why that file now sweeps rather than samples.
+
+     A THRESHOLD HERE IS A CONTAINER FACT, NOT A VIEWPORT TIER. This block used
+     to describe 672 and 384 as "the 768 and 480 viewport tiers expressed as the
+     container widths they produce (viewport - 96px)", which was true only while
+     `.container` paid a flat 96px at every width. It no longer does: the gutter
+     ladder in global.css (3rem / 1.5rem / 1rem) went live on 2026-09-01, and it
+     makes viewport -> container DISCONTINUOUS — a wider viewport can produce a
+     NARROWER container across a breakpoint. So no container number can express a
+     viewport tier any more, and none of these three thresholds tries to.
+
+     They were re-derived when the ladder landed, as the old note demanded, and
+     the answer was that all three stay put: leaving them produces only tier
+     UPGRADES, on both routes, at every width measured. Moving them to chase the
+     old viewport tiers would have downgraded one rendering or the other. The
+     mapping table, the discontinuity, and the rejected alternative are in
+     ADR-0027 — read that before touching a number here. */
+  .container {
+    container-type: inline-size;
+  }
+
+  @container (max-width: 1094px) {
     .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container (max-width: 672px) {
+    /* The sides step down with the type. At 2rem they need a 416px container,
+       but this tier inherits down to 384. (That was the 481-511px viewport band
+       when the overflow was found, under the pre-2026-09-01 flat gutter —
+       historical, not a current mapping. See ADR-0027.) */
+    .stat-item {
+      padding: var(--spacing-2xl) var(--spacing-lg);
     }
 
     .stat-value {
@@ -73,27 +153,43 @@ const { stats } = Astro.props;
     }
   }
 
-  @media (max-width: 480px) {
-    .stats-bar {
-      padding: 0;
-    }
-
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0;
-    }
-
+  @container (max-width: 384px) {
+    /* Two columns rather than stacking to one, which would make four stats four
+       screens tall on the narrowest phone. The sizing was derived at a 224px
+       container (a 320px viewport under the old flat 96px gutter): a 112px cell,
+       six characters at --text-2xl needing 86.4px, so 0.5rem sides left 96px of
+       interior and 9.6px of slack. Since the gutter ladder landed (2026-09-01) a
+       320px viewport gives a 288px container, so those figures are the tight
+       CASE THAT NO LONGER OCCURS — the cell is now 144px and the interior 128px.
+       The tier is kept as-is because it is what a genuinely narrow container
+       needs, and this component is also rendered in a specimen frame that can be
+       narrower than any viewport. The label's tracking steps with it:
+       `Engagements` is its longest unbreakable word and 0.15em put it 3px past
+       the cell. */
     .stat-item {
-      padding: 1.75rem 1.25rem;
+      padding: var(--spacing-1_75) var(--spacing-sm);
     }
 
     .stat-value {
-      font-size: var(--text-3xl);
-      margin-bottom: 0.25rem;
+      font-size: var(--text-2xl);
+      margin-bottom: var(--spacing-xs);
     }
 
+    /* `Engagements` is 11 characters, and tracking is charged per character:
+       at --text-xs it is 79.2px of glyph plus 11 x the tracking. Against the
+       96px interior this was derived at, 0.1em cleared by only 3.6px — not an
+       overflow, which is why the old clamped assertion passed it, but under the
+       floor the sweep now demands. 0.06em costs 7.92px instead of 13.2px and
+       cleared by 8.9px, while still reading as tracked uppercase.
+
+       That 96px interior is no longer the narrowest a real viewport produces
+       (the gutter ladder makes it 128px at 320px, where 0.1em would clear by
+       ~35px), so this is now CONSERVATIVE RATHER THAN EXACT. It stays: the tier
+       exists for genuinely narrow containers including the /brand specimen
+       frame, and 0.06em is the value that holds at the width the tier is
+       actually sized for. */
     .stat-label {
-      font-size: var(--text-xs);
+      letter-spacing: 0.06em;
     }
   }
 </style>

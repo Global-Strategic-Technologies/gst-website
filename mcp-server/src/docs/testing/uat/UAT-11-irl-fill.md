@@ -1,12 +1,12 @@
 # UAT-11 — IRL fill (evidence-populated workbook)
 
-**Covers**: `fill_information_request_list_xlsx` (tool), `gst_irl_create` (prompt — renamed from `gst_irl_fill` in server 0.62.0).
+**Covers**: `fill_information_request_list_xlsx` (tool), `gst_irl_populate` (prompt — renamed from `gst_irl_fill` in server 0.62.0).
 
 **What this family does**: produces a _populated_ Information Request List `.xlsx` from evidence already in the model's context — sourcing reference into File Location (column D), answer into Comments (column E) — so the dossier pipeline can start before the target returns a filled workbook. Rows the evidence cannot answer stay blank: the partially populated workbook is itself the follow-up ask. The tool stops at the artifact; a human reviews it before running `gst_irl_ingestion` exactly as for a target-returned IRL.
 
 **Contract**: [`irl-fill/CONTRACT.md`](../../tools/irl-fill/CONTRACT.md) owns the input surface and the D-cell sourcing grammar. The frozen five-tool pipeline family is [`irl-pipeline/CONTRACT.md`](../../tools/irl-pipeline/CONTRACT.md) — nothing in this family modifies it.
 
-**Prerequisites**: [`SETUP.md`](SETUP.md) once; Excel or any xlsx viewer for 11.2; the repo checkout only for 11.3 (`npm run irl:extract` is a repo script — the one case here that assumes repo access, marked as such).
+**Prerequisites**: [`SETUP.md`](SETUP.md) once; Excel or any xlsx viewer for 11.2. No case here requires a repo checkout any more — 11.3 was the last one, and since ADR-0025 it can be run either from the CLI or from the Hub extractor page.
 
 ---
 
@@ -22,7 +22,7 @@
 **Expected**
 
 - Success payload: `filename` (`GST-IRL-UAT-Eleven-Corp-<date>.xlsx`), `base64`, `mimeType`, `filledRowCount: 3`, `blankRowCount` = `bulletCount − 3`, `filledRefs: ["0-01", "1-01", "9-01"]`.
-- The summary names the blank rows as the remaining ask and tells the operator to review and then run `gst_irl_ingestion` themselves — the tool must NOT have invoked any further tool.
+- The summary names the blank rows as the remaining ask and tells the operator to review and then run `gst_irl_sweep` themselves (server 0.63.0 moved the recommendation off `gst_irl_ingestion`, which still coexists) — the tool must NOT have invoked any further tool, and the prohibition the body carries now names both prompts.
 
 **If it looks wrong**
 
@@ -58,11 +58,11 @@
 
 ---
 
-## UAT-11.3 — The frozen extractor reads it correctly _(repo access required)_
+## UAT-11.3 — The frozen extractor reads it correctly
 
 **Steps**
 
-1. `npm run irl:extract -- <path-to-11.1-file>` from `mcp-server/`.
+1. `npm run irl:extract -- <path-to-11.1-file>` from `mcp-server/`, **or** drop the same file on [`/hub/tools/information-request-list-extractor/`](https://globalstrategic.tech/hub/tools/information-request-list-extractor/) — the two produce byte-identical markdown for the same workbook (ADR-0025), so either satisfies this case. The browser path reports the operator notes on-page rather than on stderr.
 
 **Expected**
 

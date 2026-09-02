@@ -120,13 +120,13 @@ Heading + one paragraph; keys on bare `h3` and `p`, no BEM children. Grids of 2�
 ### FAQ (accordion)
 
 Native `<details>` / `<summary>` — the `[open]` attribute drives the border, so the
-elements are not optional. Production co-applies `.brutal-frosted` on each `__item` and
-puts a `.delta-chevron` in the summary (it rotates via `details[open]`). `--lg` for
+elements are not optional. `__item` is frosted by its own base rule, so do NOT
+co-apply `.brutal-frosted` — it double-blurs. Put a `.delta-chevron` in the summary (it rotates via `details[open]`). `--lg` for
 marketing/gateway pages.
 
 ```jsx
 <div className="brutal-faq brutal-faq--lg">
-  <details className="brutal-faq__item brutal-frosted">
+  <details className="brutal-faq__item">
     <summary className="brutal-faq__question">
       <span>How long does an engagement take?</span>
       <svg className="delta-chevron" viewBox="0 0 64 64" fill="none" aria-hidden="true">

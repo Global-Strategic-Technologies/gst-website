@@ -17,8 +17,14 @@
     // The previews import the bundle by package name (`from 'gst-website'`),
     // which the converter resolves to the extraEntries bundle at build time.
     // For type-checking, point it at the same source.
-    "baseUrl": ".",
-    "paths": { "gst-website": ["specimens/index.tsx"] }
+    //
+    // No `baseUrl`: since TS 4.1 a `paths` entry resolves relative to the
+    // directory holding this file, which is what `baseUrl: "."` meant here, and
+    // `baseUrl` is deprecated for removal in TS 7 (editors on TS 6 already flag
+    // it). The target needs its leading `./` for the same reason — without a
+    // `baseUrl` a bare `specimens/…` is a non-relative path and TS refuses it
+    // (TS5090).
+    "paths": { "gst-website": ["./specimens/index.tsx"] }
   },
   "include": ["specimens/**/*.tsx", "previews/**/*.tsx"]
 }

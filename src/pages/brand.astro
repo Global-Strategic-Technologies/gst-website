@@ -382,6 +382,39 @@ import '../styles/components/progress.css';
     width: 100%;
   }
 
+  /* ── Announcement sash specimens ──
+     The sash positions itself against the nearest positioned ancestor and is
+     clipped by its own corner box, so a specimen needs a relative frame. 190px
+     is the handoff's frame height and is deliberately shorter than the 200px
+     corner: the MAIN band is what that specimen documents, and it sits in the
+     top ~120px. The under-band specimen needs the full corner — its band
+     reaches ≈y=180, and a 190px frame would chop the ribbon's tail flat
+     instead of letting the corner clip it on the diagonal — hence the taller
+     modifier. The card frame mirrors a .hub-card — position + overflow are
+     what let the 104px band sit in a card corner. */
+  .brand-sash-frame {
+    position: relative;
+    width: 320px;
+    height: 190px;
+    background: var(--bg-light-alt);
+    border: 2px solid var(--border-hairline);
+    overflow: hidden;
+  }
+
+  .brand-sash-frame--under {
+    /* Taller than the plain frame because the under-band grows its corner box
+       to 220px (sash.css) — the frame must clear the whole box, or it, not the
+       corner, would cut the ribbon. */
+    height: 236px;
+  }
+
+  .brand-sash-frame--card {
+    width: 240px;
+    height: 150px;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-top: 3px solid var(--color-primary);
+  }
+
   /* ── Hover specimens ──
      Cards whose documented behaviour IS the hover transition (trust card,
      step card, service card, hub gateway card — the project card left this
@@ -669,6 +702,14 @@ import '../styles/components/progress.css';
   .brutal-choice-btn[data-demo-state='hover'] {
     border-color: var(--color-primary);
     color: var(--text-primary);
+  }
+
+  /* Mirrors .brutal-sash-under__field:hover in sash.css — the family's 82% mix
+     with the poles swapped for the inverted fill. Restated here because :hover
+     cannot be forced statically; keep the two in step. On the FIELD, not the
+     band: the fill is per field now. */
+  .brutal-sash-under__field[data-demo-state='hover'] {
+    background: color-mix(in srgb, var(--sash-ink) 82%, var(--sash-bg));
   }
 
   /* ── Forced state: focus ── */
@@ -1266,6 +1307,18 @@ import '../styles/components/progress.css';
   /* The specimen renders the real <StatsBar>, whose own scoped styles apply.
      This only neutralises the `.container` it wraps its grid in, which would
      otherwise inset the specimen inside the brand column. */
+  /* `align-self: stretch` gives the specimen a DEFINITE inline size, and it is
+     load-bearing rather than tidy: `.brand-component-item` is a flex column with
+     `align-items: flex-start`, so without it this wrapper sizes to its content —
+     the same indefinite-inline-size trap the CTA specimen below documents.
+     StatsBar now sizes itself with a container query, and a container query
+     cannot consult its own contents: an indefinite width plus
+     `container-type: inline-size` resolves to ZERO, which collapsed this whole
+     specimen to 0px tracks. */
+  .brand-statsbar-specimen {
+    align-self: stretch;
+  }
+
   .brand-statsbar-specimen .container {
     max-width: none;
     padding: 0;

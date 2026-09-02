@@ -25,6 +25,9 @@ Use the classes below on real elements.
 ```
 
 Prefer these classes over raw `font-size`. If you must set one, use the `--text-*` scale
-(`--text-2xs` … `--text-3xl`) — never a pixel value. The system ships no webfonts:
-`--font-family` is `'Helvetica Neue', Arial, sans-serif` and `--font-family-mono` is
-`monospace`, which is what gives the brutalist surfaces their character.
+(`--text-2xs` … `--text-3xl`) — never a pixel value.
+
+The system ships **one** family and pins it: `--font-family-mono` is `'GST Mono'` — a
+self-hosted subset of Geist Mono Variable — and `--font-family` points at the same token,
+so there is no sans. That single monospace face is what gives the brutalist surfaces their
+character. Never name a typeface in a style; always go through `var(--font-family-mono)`.

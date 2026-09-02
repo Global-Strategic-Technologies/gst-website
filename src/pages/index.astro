@@ -5,8 +5,13 @@ import WhoWeSupport from '../components/WhoWeSupport.astro';
 import WhatWeDo from '../components/WhatWeDo.astro';
 import WhyClientsTrustUs from '../components/WhyClientsTrustUs.astro';
 import CTASection from '../components/CTASection.astro';
+import Sash from '../components/Sash.astro';
+import { getActiveAnnouncement } from '../data/announcements';
 
-// Track page view
+// Null unless an announcement's window is open and lists this route — see
+// src/data/announcements.ts. Nothing renders when it is null, and the nav's
+// corner reservation switches itself off via :has().
+const announcement = getActiveAnnouncement(Astro.url.pathname);
 ---
 
 <BaseLayout
@@ -18,6 +23,8 @@ import CTASection from '../components/CTASection.astro';
   ogImageAlt="GST - Strategic Technology Advisory for M&A and Digital Transformation"
   ogUrl="https://globalstrategic.tech/"
 >
+  {announcement && <Sash slot="sash" {...announcement} />}
+
   <Hero
     description="Global Strategic Technologies helps technology-focused investors, founders, and executives scale with confidence to create value, manage risks, and accelerate their business."
     primaryCTA={{

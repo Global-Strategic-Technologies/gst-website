@@ -55,6 +55,7 @@ describe('Security Headers', () => {
         'connect-src',
         'style-src',
         'img-src',
+        "media-src 'self'",
         'font-src',
         'frame-ancestors',
         'upgrade-insecure-requests',

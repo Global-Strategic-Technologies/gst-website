@@ -17,12 +17,34 @@
 // whitespace drift made the generated files perpetually appear "modified."
 
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { format, resolveConfig } from 'prettier';
 
 const here = dirname(fileURLToPath(import.meta.url));
+
+// ─── --check mode ────────────────────────────────────────────────────────────
+//
+// Renders every output in memory and diffs it against what is on disk, instead
+// of writing. Exits non-zero if any generated file does not match what its
+// sources would produce right now.
+//
+// WHY: a generated bundle can be committed stale, and nothing announced it.
+// Commit d4ceada6 shipped `library-data.generated.ts` whose embedded copy of
+// `src/data/library/irl-tool-input-mapping/article.md` no longer matched the
+// article — the pre-commit prettier hook reflowed a markdown table AFTER the
+// codegen had run. The skip cache below then had no reason to regenerate.
+// `tests/integration/mcp-generated-bundle-freshness.test.ts` (website
+// workspace) spawns this mode.
+//
+// Running the REAL emitter rather than re-comparing embedded content is what
+// makes this catch banner drift, prettier-config drift, and hand-edits of a
+// generated file — none of which a content comparison can see.
+const CHECK_MODE = process.argv.includes('--check');
+/** Paths whose on-disk bytes differ from a fresh render (or are missing). */
+const drifted = [];
 
 // ─── Content-hash skip cache ─────────────────────────────────────────────────
 //
@@ -79,6 +101,35 @@ function computeInputHash() {
   ];
   if (existsSync(prettierConfigPath)) inputFiles.push(prettierConfigPath);
 
+  // Prettier's VERSION is an input too: the emitter renders through it, so an
+  // upgrade can change output bytes while every file above is untouched.
+  // Without this, `--check` would go red on all three bundles after a prettier
+  // bump, on a REQUIRED check, reporting "drift" for a formatter upgrade — and
+  // the obvious fixes would not work, because `pretest` / `pretypecheck` /
+  // `build` would all hit the unchanged-hash early exit below and never
+  // regenerate. The developer would have to know to delete a gitignored cache.
+  //
+  // The resolve() goes INSIDE the try, not beside an existsSync: a package
+  // whose `exports` map does not expose the subpath throws
+  // ERR_PACKAGE_PATH_NOT_EXPORTED at RESOLVE time, before any existsSync could
+  // run. Prettier permits it today only via an `exports["./*"]` wildcard, which
+  // is prettier's to revoke — and surviving a version bump is the whole point.
+  // This function runs at the head of every prebuild/pretest/pretypecheck, so a
+  // throw here would break every mcp-server build and test.
+  try {
+    const prettierManifest = createRequire(import.meta.url).resolve('prettier/package.json');
+    if (existsSync(prettierManifest)) inputFiles.push(prettierManifest);
+  } catch (err) {
+    // Never silent: dropping this input restores exactly the trap it closes, on
+    // the very event it exists to survive, and a silent skip would leave that
+    // to be inferred later from a mystery drift failure.
+    console.warn(
+      `[gst-mcp] WARNING: prettier version excluded from the regen input hash ` +
+        `(${err.code ?? err.message}). A prettier upgrade will no longer invalidate ` +
+        `the cache; delete mcp-server/src/content/.regen-cache.json after bumping it.`
+    );
+  }
+
   // Hash each input file independently then combine — order-insensitive
   // because we sort inside listDirRecursive.
   const combined = inputFiles.map((p) => `${p}:${hashFile(p)}`).join('\n');
@@ -106,7 +157,10 @@ function outputsExist() {
 {
   const inputHash = computeInputHash();
   const cached = tryReadCache();
-  if (cached && cached.inputHash === inputHash && outputsExist()) {
+  // `--check` must ALWAYS render: a cache hit is precisely the state in which a
+  // stale bundle survives unnoticed, so short-circuiting here would make the
+  // check pass on the one case it exists to catch.
+  if (!CHECK_MODE && cached && cached.inputHash === inputHash && outputsExist()) {
     // Belt-and-braces: also verify outputs haven't been touched since the
     // cache was last written. If a contributor edited a generated file by
     // hand, the mtime will be newer than the cache file — force regen.
@@ -139,7 +193,25 @@ async function writeFormatted(filePath, content) {
     parser: 'typescript',
     filepath: filePath,
   });
+  if (CHECK_MODE) {
+    // A missing output is drift with its own message, not an ENOENT stack
+    // trace — the script already treats absent outputs as a real state
+    // (`outputsExist()` above).
+    if (!existsSync(filePath)) {
+      drifted.push({ path: filePath, reason: 'generated file is missing' });
+    } else if (readFileSync(filePath, 'utf8') !== formatted) {
+      drifted.push({ path: filePath, reason: 'on-disk bytes differ from a fresh render' });
+    }
+    return;
+  }
   writeFileSync(filePath, formatted, 'utf8');
+}
+
+/** `mkdirSync` is a disk write; under --check the output dir must not be created. */
+function ensureDir(dir) {
+  // If the directory is genuinely absent, --check should report "outputs
+  // missing" via writeFormatted, not create it and then report three drifts.
+  if (!CHECK_MODE) mkdirSync(dir, { recursive: true });
 }
 
 // ─── Regulations ─────────────────────────────────────────────────────────────
@@ -176,7 +248,7 @@ async function writeFormatted(filePath, content) {
     }
   }
 
-  mkdirSync(dirname(outFile), { recursive: true });
+  ensureDir(dirname(outFile));
 
   const banner = [
     '// AUTO-GENERATED by scripts/generate-regulations-index.mjs.',
@@ -199,7 +271,8 @@ async function writeFormatted(filePath, content) {
 
   const content = [...banner, ...body, '];', ''].join('\n');
   await writeFormatted(outFile, content);
-  console.log(`[gst-mcp] generated regulations-data.generated.ts (${records.length} frameworks)`);
+  if (!CHECK_MODE)
+    console.log(`[gst-mcp] generated regulations-data.generated.ts (${records.length} frameworks)`);
 }
 
 // ─── Library articles ────────────────────────────────────────────────────────
@@ -233,7 +306,7 @@ async function writeFormatted(filePath, content) {
     })
     .filter((r) => r !== null);
 
-  mkdirSync(dirname(outFile), { recursive: true });
+  ensureDir(dirname(outFile));
 
   const banner = [
     '// AUTO-GENERATED by scripts/generate-regulations-index.mjs (library section).',
@@ -251,7 +324,8 @@ async function writeFormatted(filePath, content) {
 
   const content = [...banner, ...body, '};', ''].join('\n');
   await writeFormatted(outFile, content);
-  console.log(`[gst-mcp] generated library-data.generated.ts (${records.length} articles)`);
+  if (!CHECK_MODE)
+    console.log(`[gst-mcp] generated library-data.generated.ts (${records.length} articles)`);
 }
 
 // ─── IRL generator source ────────────────────────────────────────────────────
@@ -268,7 +342,7 @@ async function writeFormatted(filePath, content) {
   // across platforms (same rationale as the library block above).
   const body = readFileSync(sourcePath, 'utf8').replace(/\r\n/g, '\n');
 
-  mkdirSync(dirname(outFile), { recursive: true });
+  ensureDir(dirname(outFile));
 
   const content = [
     '// AUTO-GENERATED by scripts/generate-regulations-index.mjs (IRL source section).',
@@ -280,24 +354,42 @@ async function writeFormatted(filePath, content) {
     '',
   ].join('\n');
   await writeFormatted(outFile, content);
-  console.log('[gst-mcp] generated irl-source-data.generated.ts');
+  if (!CHECK_MODE) console.log('[gst-mcp] generated irl-source-data.generated.ts');
 }
 
-// Persist the input hash so the next invocation can short-circuit if nothing
-// changed. Written LAST so a mid-script failure leaves the cache stale (next
-// run regenerates fresh rather than skipping with a half-written output).
-writeFileSync(
-  CACHE_FILE,
-  JSON.stringify(
-    {
-      inputHash: globalThis.__GST_REGEN_INPUT_HASH__,
-      generatedAt: new Date().toISOString(),
-    },
-    null,
-    2
-  ) + '\n',
-  'utf8'
-);
-console.log(
-  `[gst-mcp] regen-cache updated (hash ${globalThis.__GST_REGEN_INPUT_HASH__.slice(0, 12)})`
-);
+if (CHECK_MODE) {
+  // No cache write: --check must leave the tree exactly as it found it, and
+  // stamping the cache would additionally let a LATER run skip a regen it owes.
+  if (drifted.length > 0) {
+    console.error('[gst-mcp] generated files are STALE — they do not match their sources:\n');
+    for (const { path, reason } of drifted) console.error(`  ${path}\n    ${reason}`);
+    console.error(
+      '\nRegenerate with:  node mcp-server/scripts/generate-regulations-index.mjs' +
+        '\n(or any mcp-server build/test, whose pre-hooks run it), then commit the result.\n' +
+        'If you just bumped prettier and every file above is listed, that is a formatter\n' +
+        'upgrade rather than content drift — regenerate and commit the reformatted bytes.'
+    );
+    process.exitCode = 1;
+  } else {
+    console.log('[gst-mcp] --check: all 3 generated files match their sources');
+  }
+} else {
+  // Persist the input hash so the next invocation can short-circuit if nothing
+  // changed. Written LAST so a mid-script failure leaves the cache stale (next
+  // run regenerates fresh rather than skipping with a half-written output).
+  writeFileSync(
+    CACHE_FILE,
+    JSON.stringify(
+      {
+        inputHash: globalThis.__GST_REGEN_INPUT_HASH__,
+        generatedAt: new Date().toISOString(),
+      },
+      null,
+      2
+    ) + '\n',
+    'utf8'
+  );
+  console.log(
+    `[gst-mcp] regen-cache updated (hash ${globalThis.__GST_REGEN_INPUT_HASH__.slice(0, 12)})`
+  );
+}

@@ -40,12 +40,21 @@ Text colors use opacity-based rgba values for consistent contrast against backgr
 
 ## Typography
 
-| Property            | Value                             |
-| ------------------- | --------------------------------- |
-| **Font family**     | Helvetica Neue, Arial, sans-serif |
-| **Normal weight**   | 400                               |
-| **Semibold weight** | 600                               |
-| **Bold weight**     | 700                               |
+| Property            | Value                                        |
+| ------------------- | -------------------------------------------- |
+| **Font family**     | GST Mono (Geist Mono, OFL 1.1) — self-hosted |
+| **Normal weight**   | 400                                          |
+| **Semibold weight** | 600                                          |
+| **Bold weight**     | 700                                          |
+
+**One family, named.** GST is a monospace brand and now ships the face to prove
+it: a subset variable Geist Mono, served from our own origin and aliased as
+`GST Mono` so nothing in the repo names the typeface directly. There is no
+second family — the sans token points at the mono, because nav links and button
+text were its only consumers and the system's own rule is that type is monospace
+and tracked. Never write a family name in a stylesheet; go through
+`var(--font-family-mono)`. Details and the re-cut recipe:
+[TYPOGRAPHY_REFERENCE.md § The pinned mono](./TYPOGRAPHY_REFERENCE.md).
 
 See [TYPOGRAPHY_REFERENCE.md](./TYPOGRAPHY_REFERENCE.md) for the full set of semantic text utility classes.
 
@@ -192,7 +201,9 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 
   So the honest statement is a guarantee plus an aspiration, not a site-wide rule with a growing exception list:
   - **Guaranteed and enforced at 44px**: `.brutal-btn`, `.brutal-choice-btn`, `.cta-button`, `.filter-button`, `.modal-close`, `.theme-toggle`.
-  - **Everywhere else**: AA 2.5.8 (24×24 or its spacing exception), via `--touch-target-min-aa`. Since 2026-08-03 this is **machine-enforced, not asserted** — `accessibility.test.ts` runs axe with the `wcag22aa` tag, so `target-size` fails CI on all 22 scanned routes. 44px is welcome where it costs nothing and is **not** a reason to rebuild a working layout.
+  - **Everywhere else**: AA 2.5.8 (24×24 or its spacing exception), via `--touch-target-min-aa`. Since 2026-08-03 this is **machine-enforced, not asserted** — `accessibility.test.ts` runs axe with the `wcag22aa` tag, so `target-size` fails CI on every route it scans. 44px is welcome where it costs nothing and is **not** a reason to rebuild a working layout.
+
+  > **One recorded carve-out from the 44px guarantee (2026-08-27).** The MCP onboarding pages' compact per-field Copy buttons (`CopyRow.astro` `.copy-row__btn`, and the Using page's `.field-panel__copy`) render as `.brutal-btn--secondary` but a bespoke scoped class floors them at `--touch-target-min-aa` (24px), per the reviewed design — a five-row argument panel at 44px per row stops reading as one unit. They clear AA 2.5.8 and axe scans those routes; the source guard does not flag them because its matching is by guarded-family class in the CSS selector, and these floors live on the bespoke classes.
 
   **Measure the target, not the element.** 2.5.5 governs the region that accepts the pointer action, so a 16px checkbox inside a `cursor: pointer` `<label>` is already a label-sized target. Check for a larger clickable ancestor before raising anything.
 

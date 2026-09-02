@@ -56,7 +56,7 @@ export interface GstPrompt<TArgs extends z.ZodObject<z.ZodRawShape> = z.ZodObjec
    * `prompt.name === '…'` check in the registry is a special case at one and a
    * pattern at two. The guard asserts clause-present ⇔ flag-set across
    * `ALL_PROMPTS`, so every new prompt has to make a choice rather than
-   * silently opting out — prompt #10 (`gst_irl_create`, BL-140) chose exclusion
+   * silently opting out — prompt #10 (`gst_irl_populate`, BL-140) chose exclusion
    * for its stop-at-artifact ruling; the guard's rationale block records why.
    *
    * The literal type (matching `needsFyiSnapshot`) is deliberate: there is no

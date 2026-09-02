@@ -1,7 +1,7 @@
 /**
  * Prompt: gst_irl_ingestion (renamed from `gst_diligence_sweep` under BL-045).
  *
- * Bookend to `gst_information_request_list`. Where the IRL prompt emits the
+ * Bookend to `gst_irl_create`. Where the IRL prompt emits the
  * *request* artifact (universal intake checklist), this prompt ingests a
  * *populated* IRL — the structured response a target returns — and uses the
  * full content to drive every applicable Hub tool surface and downstream
@@ -181,7 +181,7 @@ const PROMPT_NAME = 'gst_irl_ingestion';
  * RUN-AUDIT block — the body has to state it, and a hand-copied literal beside
  * the registry field is exactly the drift this repo keeps finding in prose pins.
  */
-const PROMPT_VERSION = '0.30.0';
+const PROMPT_VERSION = '0.30.1';
 
 // Per BL-045 design doc § Decisions row "Scenario reframing", each of the
 // four `transactionContext` values gets a meaningful, distinct posture.
@@ -887,7 +887,7 @@ function buildOneShotBody(args: {
   return [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Run the GST Discovery sweep against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent has come back filled — the canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. Your job is to translate the filled answers into a coordinated invocation of every relevant GST Hub tool and downstream artifact, then synthesize the outputs into a single dossier.`,
+    `Run the GST Discovery sweep against the populated Information Request List below. This is the bookend to \`gst_irl_create\` — the request the partner sent has come back filled — the canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. Your job is to translate the filled answers into a coordinated invocation of every relevant GST Hub tool and downstream artifact, then synthesize the outputs into a single dossier.`,
     '',
     'Engagement context:',
     `- ${targetClause}`,
@@ -1227,7 +1227,7 @@ function buildExtractOnlyBody(args: {
   return [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Run the GST IRL ingestion in **EXTRACT-ONLY mode** against the populated Information Request List below. This is the bookend to \`gst_information_request_list\` — the request the partner sent has come back filled — the canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. **In extract-only mode you DO NOT invoke any ANALYSIS tool and DO NOT compose a dossier.** You produce a portable JSON artifact describing the target — the IRL extract record — plus the dimension worksheet and the per-tool input payloads derived from it. The record is what travels: an operator can save it, paste it into a later session, or hand it to any other GST prompt, and it resolves that prompt's inputs without re-reading the IRL.`,
+    `Run the GST IRL ingestion in **EXTRACT-ONLY mode** against the populated Information Request List below. This is the bookend to \`gst_irl_create\` — the request the partner sent has come back filled — the canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. **In extract-only mode you DO NOT invoke any ANALYSIS tool and DO NOT compose a dossier.** You produce a portable JSON artifact describing the target — the IRL extract record — plus the dimension worksheet and the per-tool input payloads derived from it. The record is what travels: an operator can save it, paste it into a later session, or hand it to any other GST prompt, and it resolves that prompt's inputs without re-reading the IRL.`,
     '',
     'Engagement context:',
     `- ${targetClause}`,
@@ -1352,8 +1352,8 @@ function buildInteractiveBody(args: {
     ? // No mention of the VDR taxonomy: this arm renders no Step 3 and emits no
       // follow-up document requests, and a body that points at a section it does
       // not render is the dangling reference this arm was built to avoid.
-      `Help the user run the GST IRL ingestion in **EXTRACT-ONLY mode** — the bookend to \`gst_information_request_list\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. The filled IRL has not been supplied as an argument, so Step 1 checks whether it is already in your context — attached to this message or supplied earlier — and asks for a paste only if nothing has reached you. Once you have it you mint its provenance and extract. **You DO NOT invoke any ANALYSIS tool and DO NOT compose a dossier.** The primary output is the portable IRL extract record — a JSON document describing the target that an operator can save, paste into a later session, or hand to any other GST prompt.`
-    : `Help the user run the GST Discovery sweep — the bookend to \`gst_information_request_list\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference; the VDR folder taxonomy (\`${VDR_RESOURCE_URI}\`) is reproduced inline at Step 3 for synthesis follow-ups.`;
+      `Help the user run the GST IRL ingestion in **EXTRACT-ONLY mode** — the bookend to \`gst_irl_create\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference. The filled IRL has not been supplied as an argument, so Step 1 checks whether it is already in your context — attached to this message or supplied earlier — and asks for a paste only if nothing has reached you. Once you have it you mint its provenance and extract. **You DO NOT invoke any ANALYSIS tool and DO NOT compose a dossier.** The primary output is the portable IRL extract record — a JSON document describing the target that an operator can save, paste into a later session, or hand to any other GST prompt.`
+    : `Help the user run the GST Discovery sweep — the bookend to \`gst_irl_create\`. The canonical IRL taxonomy (\`${IRL_SOURCE_EMBED_URI}\`) is embedded as the next message for reference; the VDR folder taxonomy (\`${VDR_RESOURCE_URI}\`) is reproduced inline at Step 3 for synthesis follow-ups.`;
   // Everything up to and including the Step 1 paste ask is common to both arms.
   const sharedPrefix = [
     authorialIntentLine(PROMPT_NAME),
@@ -1582,9 +1582,9 @@ ${ENG_COST_DEDUP_RULE}`,
 export const irlIngestionPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
-    'Bookend to gst_information_request_list — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
+    'Bookend to gst_irl_create — ingest a populated IRL and orchestrate every applicable Hub tool + downstream artifact to produce a unified engagement dossier. Scenario-neutral: serves buy-side diligence, sell-side prep, value-creation engagements, and post-close hardening. The "high-fidelity intake → full platform ingestion" workflow.',
   version: PROMPT_VERSION,
-  lastReviewedAt: '2026-08-20',
+  lastReviewedAt: '2026-08-28',
   orchestrates: [...ORCHESTRATED_TOOLS, IRL_SOURCE_EMBED_URI, VDR_RESOURCE_URI] as const,
   argsSchema,
   // No `consumesTargetEvidence`: this prompt is the PRODUCER of the extract

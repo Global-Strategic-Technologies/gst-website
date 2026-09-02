@@ -1,6 +1,6 @@
 # ADR-0021: The IRL fill writes answers into E and sourcing into D under a grammar the frozen path cannot misread
 
-- **Status**: Accepted 2026-08-23 (BL-140, server 0.59.0; tool `fill_information_request_list_xlsx`, prompt `gst_irl_fill@0.1.0` — renamed `gst_irl_create@0.2.0` in server 0.62.0, 2026-08-26, no behavior change)
+- **Status**: Accepted 2026-08-23 (BL-140, server 0.59.0; tool `fill_information_request_list_xlsx`, prompt `gst_irl_fill@0.1.0` — renamed `gst_irl_create@0.2.0` in server 0.62.0, 2026-08-26, and `gst_irl_populate@0.3.0` in server 0.63.0, 2026-08-28; neither rename changed behavior, and 0.63.0's one behavior change repointed the post-fill handoff at `gst_irl_sweep`)
 - **Source initiative**: BL-140 (the BACKLOG stanza it replaces — including the 2026-08-23 operator rulings this ADR distills — is recoverable via `git log -- src/docs/development/BACKLOG.md`)
 
 ## Context

@@ -1,33 +1,70 @@
 /**
- * Prompt: gst_irl_create (BL-140; renamed from gst_irl_fill in server 0.62.0)
+ * Prompt: gst_irl_create
  *
- * Walks the model through POPULATING an Information Request List from
- * evidence it already holds in context — a virtual-data-room export,
- * documents remitted piecemeal, public filings, statements made in chat,
- * prior-session extractions — and hands the authored per-row fills to the
- * `fill_information_request_list_xlsx` tool, which builds the populated
- * `.xlsx` server-side (sourcing → File Location D, answer → Comments E).
+ * Emits GST's universal one-page intake checklist, organized by VDR taxonomy
+ * (00 Basics + sections 01-09 mirroring the VDR-9 folders). The canonical
+ * generator source (`src/data/irl/information-request-list.md`, bundled via
+ * `loadIrlSourceBody()`) is embedded inline as the second message of every
+ * expansion — the SAME source `generate_information_request_list_xlsx` renders,
+ * so the reproduced in-chat artifact and the downloaded .xlsx are identical.
+ * This is DECOUPLED from the `gst://library/information-request-list` article
+ * Resource (free-form library prose that may differ).
  *
- * Third member of the IRL prompt family, between the other two:
- * `gst_information_request_list` emits the blank ask; THIS prompt answers
- * it from evidence; `gst_irl_ingestion` sweeps a populated body into the
- * dossier. This prompt STOPS AT THE ARTIFACT — a human review
- * checkpoint sits between fill and ingest by operator ruling, so this
- * body never instructs an ingestion or sweep call.
+ * Input modes (any combination of args triggers the one-shot variant):
  *
- * Deliberately NOT `consumesTargetEvidence`: that flag's clause carries a
- * mandatory upgrade path (`prepare_irl_body` → `validate_irl_provenance`)
- * that would contradict stop-at-artifact. The exclusion and its reason
- * are recorded in `irl-evidence-precedence-clause.test.ts`'s rationale
- * block and `src/docs/prompts/README.md`.
+ *   1. Bare invocation (no args) — interactive mode. The model first asks
+ *      the user for target context, then emits the universal IRL.
+ *   2. `targetName` — the company being diligenced; personalizes framing.
+ *   3. `companyName` / `projectName` — compose the artifact title.
+ *   4. `transactionContext` — light voice tuning per engagement type.
+ *   5. `includeSections` — section pick-list (comma-separated numbers).
+ *   6. `excludeRequests` — per-question removal (comma-separated NN-II keys).
+ *   7. `customRequests` — extra per-section requests ("NN: text" lines).
+ *   8. `showCanonicalReference` — canonical-row toggle.
+ *   9. `productSummary` — the model may compress answerable questions.
  *
- * Sourcing discipline (ADR-0021, binding): every fill carries BOTH the
- * answer and what it rests on; a reference must name something actually
- * present in context; bare unattributable inference stays unwritten. The
- * D-cell grammar (no em-dash, no parens, no control characters,
- * '; '-joined segments, bracketed non-document origins) is enforced by
- * the tool's schema — this body teaches it with examples so the first
- * call succeeds.
+ * Pair with `gst_diligence_kickoff` once the IRL has been filled.
+ *
+ * **v0.0.2 (BL-044) — file-attachment behavior**: when ANY arg is supplied,
+ * the one-shot body instructs the model to also call the
+ * `generate_information_request_list_xlsx` tool so the partner receives a
+ * downloadable fillable `.xlsx` workbook alongside the paste-ready text.
+ * Bare invocation (interactive mode) is unchanged behaviorally.
+ *
+ * **v0.0.5 (2026-07 configurability) — full option parity with the Hub
+ * generator**: the prompt gained `companyName` / `projectName` (title),
+ * `includeSections` (pick-list), `customRequests`, and
+ * `showCanonicalReference`. The one-shot body computes the EXACT
+ * `generate_information_request_list_xlsx` payload and instructs the model to
+ * pass it verbatim, and reproduces the in-chat artifact honoring the same
+ * config (filtered sections, appended custom requests, composed title) so the
+ * paste-ready text and the downloadable file match. Prompt args arrive as
+ * strings over the wire (`arrayFromWire` / `booleanFromWire` coerce them).
+ *
+ * **v0.0.6 (2026-07 IRL decoupling)**: the embedded body + section catalog moved
+ * off the `gst://library/information-request-list` article Resource onto the
+ * dedicated generator source (`gst://irl/source` → `src/data/irl/…`), so the
+ * library article can vary independently of the generated list. No arg/output
+ * shape change; the seed content is identical, so behavior is unchanged at cutover.
+ *
+ * **v0.0.7 (per-question removal + BL-044.5 directives)**: new `excludeRequests`
+ * wire arg (comma-separated `NN-II` keys) removes individual canonical
+ * questions; `transactionContext` now ALSO fires the source's authored
+ * skip-if directives (auto-removal). The one-shot body SERVER-computes the
+ * full omission list (directive diff via the shared `applyDirectives` +
+ * manual keys) and instructs the model to omit exactly those requests
+ * without renumbering — the prompt applies no filter logic itself, honoring
+ * the BL-044.5 single-filter-engine rule. Directive comment lines are
+ * stripped from the embed at the `embedIrlGeneratorSource` boundary.
+ *
+ * **v0.1.0 (2026-08-28) — renamed `gst_information_request_list` →
+ * `gst_irl_create`**, joining the `gst_irl_*` family. Behavior, arguments and
+ * both rendered bodies are unchanged apart from the self-naming line. Note for
+ * anyone reading the ledger: this name previously belonged to a DIFFERENT
+ * prompt — 0.62.0 gave it to the evidence-population workflow, which 0.63.0
+ * renamed on to `gst_irl_populate` before this prompt took the name. A client
+ * pinned to `/gst_irl_create` against 0.62.0 now reaches this prompt instead of
+ * that one; see the 0.63.0 stanza in `BREAKING_CHANGES.md`.
  */
 
 import { z } from 'zod';
@@ -35,7 +72,7 @@ import type { GstPrompt } from './types';
 import {
   authorialIntentLine,
   deliveredAsDocumentClause,
-  embeddedTaxonomyFramingForFill,
+  embeddedTaxonomyFraming,
   embedIrlGeneratorSource,
   IRL_SOURCE_EMBED_URI,
 } from './embed';
@@ -43,11 +80,13 @@ import { arrayFromWire, booleanFromWire, enumFromWire, stringFromWire } from './
 import { irlSectionCatalog } from '../content/irl-section-catalog';
 import { loadIrlSourceBody } from '../content/irl-source-loader';
 import { parseIrlArticle } from '../../../src/utils/irl/parse-article';
-import { customizeIrlArticle } from '../../../src/utils/irl/customize-article';
-import { enumerateWorkbookRefs } from '../../../src/utils/irl/generate-xlsx';
+import { applyDirectives } from '../../../src/utils/irl/customize-article';
 
-const FILL_TOOL_NAME = 'fill_information_request_list_xlsx';
+const XLSX_TOOL_NAME = 'generate_information_request_list_xlsx';
 
+// "00 Basics · 01 Product · …" — enumerated in the section-number arg describes
+// so the model AND the human filling the Claude Desktop prompt form know which
+// numbers exist and what each covers, without reading the whole article first.
 const SECTION_CATALOG = irlSectionCatalog();
 
 const transactionContextValues = ['sell-side', 'buy-side', 'value-creation', 'unknown'] as const;
@@ -56,7 +95,7 @@ const argsSchema = z.object({
   targetName: stringFromWire(z.string().min(1).optional())
     .optional()
     .describe(
-      "The target or client the evidence describes — personalizes the 'Target' row and the download filename (e.g., 'MedSig Health')."
+      "The target or client name being diligenced — personalizes the 'Target' row and the download filename (e.g., 'MedSig Health'). Distinct from companyName. Omit to emit the universal template."
     ),
   companyName: stringFromWire(z.string().min(1).optional())
     .optional()
@@ -69,7 +108,7 @@ const argsSchema = z.object({
   transactionContext: enumFromWire(z.enum(transactionContextValues).optional())
     .optional()
     .describe(
-      'Engagement context. Must be one of: sell-side · buy-side · value-creation · unknown. Also fires the authored skip-if directives — questions tagged for the supplied context are removed from the workbook.'
+      'Engagement context. Must be one of: sell-side · buy-side · value-creation · unknown.'
     ),
   includeSections: arrayFromWire(
     z
@@ -84,7 +123,7 @@ const argsSchema = z.object({
   customRequests: stringFromWire(z.string().optional())
     .optional()
     .describe(
-      `Extra engagement-specific requests to append, one per line as 'NN: request text' (NN = two-digit section number). Custom rows are fillable too — their Reference ids continue past the section's canonical count. Sections: ${SECTION_CATALOG}.`
+      `Extra engagement-specific requests to append, one per line as 'NN: request text' (NN = two-digit section number), e.g. '01: Describe your top 3 competitors by ARR'. Sections: ${SECTION_CATALOG}.`
     ),
   excludeRequests: arrayFromWire(
     z
@@ -94,19 +133,25 @@ const argsSchema = z.object({
   )
     .optional()
     .describe(
-      "Comma-separated 'NN-II' keys of individual canonical questions to REMOVE, e.g. '02-03,05-01'. Surviving questions keep their Reference IDs — gaps are intentional. Use the list_irl_requests tool to map question text to keys."
+      "Comma-separated 'NN-II' keys of individual canonical questions to REMOVE, e.g. '02-03,05-01' (two-digit section + two-digit position in the canonical source; the workbook Reference shows '2-03'). Surviving questions keep their Reference IDs — gaps are intentional. Use the list_irl_requests tool to map question text to keys."
     ),
   showCanonicalReference: booleanFromWire(z.boolean().optional())
     .optional()
     .describe(
       "Set 'true' to include the canonical reference-link row in the workbook header (default: omitted)."
     ),
+  productSummary: stringFromWire(z.string().min(10).max(500).optional())
+    .optional()
+    .describe(
+      "One-paragraph product description if known. Lets the model compress questions it can answer from context (e.g., if productSummary clearly says 'pure SaaS, no hardware', Section 01 deployment questions can be tightened)."
+    ),
 });
 
 /**
- * Parse the freeform `customRequests` prompt string ("NN: text" per line)
- * into the structured `{ section, text }[]` shape the fill tool expects.
- * Same line grammar as the sibling generator prompt.
+ * Parse the freeform `customRequests` prompt string ("NN: text" per line) into
+ * the structured `{ section, text }[]` shape the XLSX tool expects. Lines that
+ * don't start with a two-digit section number are dropped (the describe tells
+ * the user the required shape).
  */
 function parseCustomRequests(raw: string | undefined): { section: string; text: string }[] {
   if (!raw) return [];
@@ -121,140 +166,196 @@ function parseCustomRequests(raw: string | undefined): { section: string; text: 
     .filter((entry): entry is { section: string; text: string } => entry !== null);
 }
 
+/** `NN-II` key for a bullet (dense fallback mirrors the shared layer). */
+function keyOf(sectionNumber: string, ordinal: number | undefined, denseIndex: number): string {
+  return `${sectionNumber}-${String(ordinal ?? denseIndex).padStart(2, '0')}`;
+}
+
 /**
- * Server-computed Reference set for THIS configuration — the same shared
- * pipeline the tool runs (`customizeIrlArticle` → `enumerateWorkbookRefs`),
- * so the refs the body hands the model are exactly the refs the tool will
- * accept. No prompt-side filter logic (BL-044.5 single-filter-engine rule).
+ * Server-computed omission list: which canonical requests the generated
+ * workbook will NOT contain, and why. Directive-skipped entries come from
+ * diffing the article against `applyDirectives` output (the SAME shared
+ * filter the tool runs — the prompt authors no filter logic of its own);
+ * manual entries come from the `excludeRequests` arg, resolved to their
+ * question text where the key matches. The model reproduces the artifact by
+ * omitting exactly these — so the in-chat text and the .xlsx stay identical.
  */
-function computeValidRefs(args: z.infer<typeof argsSchema>): string[] {
+function computeOmissions(
+  context: string | undefined,
+  manualKeys: readonly string[]
+): { key: string; text: string; reason: string }[] {
   try {
     const article = parseIrlArticle(loadIrlSourceBody());
-    const built = customizeIrlArticle(article, {
-      context: args.transactionContext,
-      includeSections: args.includeSections,
-      excludeRequests: args.excludeRequests,
-      customRequests: parseCustomRequests(args.customRequests),
-    });
-    return enumerateWorkbookRefs(built);
+    const filtered = applyDirectives(article, { context });
+    const surviving = new Set(
+      filtered.sections.flatMap((s) => s.bullets.map((b, i) => keyOf(s.number, b.ordinal, i + 1)))
+    );
+    const textByKey = new Map<string, string>();
+    const omissions: { key: string; text: string; reason: string }[] = [];
+    for (const section of article.sections) {
+      section.bullets.forEach((bullet, i) => {
+        const key = keyOf(section.number, bullet.ordinal, i + 1);
+        textByKey.set(key, bullet.text);
+        if (!surviving.has(key)) {
+          omissions.push({
+            key,
+            text: bullet.text,
+            reason: `auto — skip-if directive for ${context}`,
+          });
+        }
+      });
+    }
+    for (const key of manualKeys) {
+      if (omissions.some((o) => o.key === key)) continue; // directive already dropped it
+      omissions.push({
+        key,
+        text: textByKey.get(key) ?? '(unknown key — the tool ignores it)',
+        reason: 'manually excluded',
+      });
+    }
+    return omissions;
   } catch {
-    // Source unavailable at build time (prebuild not run) — the embed itself
-    // surfaces the error; degrade to an empty list and let the body's
-    // fallback sentence direct the model to list_irl_requests.
-    return [];
+    // Source unavailable at build time (prebuild not run) — degrade to the
+    // manual keys without resolved text; the embed itself surfaces the error.
+    return manualKeys.map((key) => ({ key, text: '', reason: 'manually excluded' }));
   }
 }
 
 const PROMPT_NAME = 'gst_irl_create';
 
-const SOURCING_RULES = [
-  'Author one `fills` entry per row the evidence can answer — `{ ref, fileLocation, comments }`:',
-  '',
-  '- **`comments` is the answer**, drawn from the evidence, single-line plain prose. Under the frozen extraction rules it joins the row\'s answer span and counts as substantive — so never write a placeholder, a caveat, or a "see document" pointer there: an entry in `comments` IS an answer.',
-  '- **`fileLocation` is what the answer rests on** — a succinct reference, not an excerpt. Before writing one, confirm the reference names something ACTUALLY PRESENT in this context. One or more segments joined by `; `:',
-  '  - a document reference with an optional comma-separated locator — `TechDebtRegistryAndRoadmap.pdf, page 4, paragraph 2` · `VDR/06/soc2-2025.pdf, section 3.2`',
-  '  - a bracketed non-document origin — `[User stated this Jan 4 2026 2pm in session chat]`',
-  '  - a bracketed named-inputs inference — `[inferred from FileA.pdf + FileB.xlsx]`',
-  '- **Forbidden in `fileLocation`** (the tool rejects them; each traces to a frozen-path mechanism): em-dashes — write `TechDebt.pdf, page 4`, never `TechDebt.pdf — page 4`; parentheses — `SOC 2 report (2025)` fails, write `SOC 2 report 2025`; newlines; `;` inside a segment; nested brackets.',
-  '- **Bare unattributable inference stays unwritten.** An answer you cannot pin to a document, a named statement, or named inputs: OMIT the row. Rows you omit stay blank in the workbook, and those blanks are precisely the follow-up ask to put to the target — never pad them.',
-  '- Every entry needs BOTH fields — an answer without sourcing and sourcing without an answer are both rejected by the tool schema.',
-].join('\n');
-
-const RERUN_RULE = [
-  'If you populated this IRL earlier — in this session or a prior one — pass the FULL UNION: every previously authored fill unchanged, new sources appended to an existing row as additional `; `-joined `fileLocation` segments, extended answers appended to the existing `comments` prose rather than rewriting it. Never drop or rewrite a previously authored fill; the tool drops exact-duplicate source segments itself, so a re-sent union is safe.',
-].join('\n');
+const VOICE_CUES: Record<(typeof transactionContextValues)[number], string> = {
+  'sell-side':
+    'Sell-side framing: this is your story to tell. The IRL helps GST help you put the strongest, most defensible version of your business in front of buyers.',
+  'buy-side':
+    'Buy-side framing: GST is supporting your evaluation of the target. The IRL is the structured information we need to size technical, regulatory, and organizational risk for this engagement (whether pre-LOI or LOI-stage).',
+  'value-creation':
+    'Value-creation framing: GST is partnering with you on platform investments. The IRL is the baseline we need to prioritize the 100-day roadmap and the first 12 months of work.',
+  unknown:
+    'Engagement context unspecified — frame the IRL as universal. The recipient can self-select which framing applies.',
+};
 
 function buildOneShotBody(args: z.infer<typeof argsSchema>): string {
+  const sections = args.includeSections ?? [];
   const customRequests = parseCustomRequests(args.customRequests);
-  const validRefs = computeValidRefs(args);
+  const excludeRequests = args.excludeRequests ?? [];
+  const showCanonical = args.showCanonicalReference === true;
+  const omissions = computeOmissions(args.transactionContext, excludeRequests);
 
-  // Compute the EXACT scoping payload here so the model copies it verbatim
-  // into the tool call — the workbook then matches this configuration with no
-  // model-side translation drift. The model adds ONLY the `fills` array.
+  // Compute the EXACT tool payload here so the model copies it verbatim into
+  // the tool call — the generated .xlsx (and its Hub download link) then
+  // matches the requested configuration with no model-side translation drift.
+  // NOTE: directive auto-skips are NOT in the payload — the tool derives them
+  // from transactionContext itself (single filter engine).
   const toolArgs: Record<string, unknown> = {};
   if (args.targetName) toolArgs.targetName = args.targetName;
   if (args.transactionContext) toolArgs.transactionContext = args.transactionContext;
   if (args.companyName) toolArgs.companyName = args.companyName;
   if (args.projectName) toolArgs.projectName = args.projectName;
-  if (args.includeSections && args.includeSections.length > 0) {
-    toolArgs.includeSections = args.includeSections;
-  }
-  if (args.excludeRequests && args.excludeRequests.length > 0) {
-    toolArgs.excludeRequests = args.excludeRequests;
-  }
+  if (args.productSummary) toolArgs.productSummary = args.productSummary;
+  if (sections.length > 0) toolArgs.includeSections = sections;
+  if (excludeRequests.length > 0) toolArgs.excludeRequests = excludeRequests;
   if (customRequests.length > 0) toolArgs.customRequests = customRequests;
-  if (args.showCanonicalReference === true) toolArgs.showCanonicalReference = true;
+  if (showCanonical) toolArgs.showCanonicalReference = true;
 
+  const titleParts = [args.companyName, args.projectName].filter(Boolean);
+  const titleClause = titleParts.length
+    ? `Title the artifact "${titleParts.join(' ')} Information Request List".`
+    : 'Title the artifact "Information Request List".';
   const targetClause = args.targetName
-    ? `The evidence describes **${args.targetName}**.`
-    : 'The evidence describes the target named in the conversation.';
-  const refsClause =
-    validRefs.length > 0
-      ? `The workbook this configuration produces contains exactly these Reference ids (fill only these — rows removed by section filters, exclusions, or skip-if directives are not addressable): ${validRefs.join(', ')}.`
-      : 'Derive the fillable Reference ids from the embedded taxonomy (unpadded section digit + two-digit ordinal, e.g. `0-03`); the tool rejects unknown refs with an actionable list.';
+    ? `The recipient is **${args.targetName}**.`
+    : 'The recipient is the target/client named at the top of the artifact.';
+  const voiceClause = args.transactionContext
+    ? `Voice: ${VOICE_CUES[args.transactionContext]}`
+    : 'Voice: universal. No engagement-specific framing.';
+  const productClause = args.productSummary
+    ? `The model already knows this about the product: "${args.productSummary}". Where a question is unambiguously answered by that summary, compress or annotate the bullet — do not drop sections wholesale.`
+    : 'No product summary provided. Emit the full IRL verbatim.';
+
+  const sectionsClause =
+    sections.length > 0
+      ? `Reproduce ONLY these sections from the embedded article, in ascending order: ${sections.join(', ')}. Omit every other section.`
+      : 'Reproduce every section (`00` → `09`).';
+  const customClause =
+    customRequests.length > 0
+      ? `Then append these engagement-specific requests as additional bullets under their section (they are additive — keep the canonical bullets too):\n${customRequests
+          .map((entry) => `  - Section ${entry.section}: ${entry.text}`)
+          .join('\n')}`
+      : 'Do not add engagement-specific requests beyond the canonical bullets.';
+  const canonicalClause = showCanonical
+    ? 'Include a "Canonical reference" line in the artifact header pointing at the live article.'
+    : 'Do not include a canonical reference line (the workbook omits it by default).';
+  // Server-computed omission list — rendered ONLY when non-empty (no phantom
+  // "omit nothing" text on unconfigured invocations).
+  const omissionClause =
+    omissions.length > 0
+      ? `\n\nOmit these canonical requests from the reproduced artifact — keep every other bullet and DO NOT renumber the remaining requests (their reference positions keep intentional gaps, matching the workbook):\n${omissions
+          .map((o) => `  - ${o.key} (${o.reason})${o.text ? `: ${o.text}` : ''}`)
+          .join('\n')}`
+      : '';
 
   return [
     authorialIntentLine(PROMPT_NAME),
     '',
-    `Populate the GST Information Request List from the evidence already in this context, so the engagement can proceed without waiting for the target to return a filled workbook. The canonical question set is embedded inline as the next message (\`${IRL_SOURCE_EMBED_URI}\`).`,
+    `Deliver the GST Information Request List as a paste-ready artifact the partner can email or attach to a kickoff meeting. The canonical IRL text is embedded inline as the next message (\`${IRL_SOURCE_EMBED_URI}\`) — use it verbatim, preserving the section structure and bullet ordering.`,
     '',
-    embeddedTaxonomyFramingForFill(),
+    embeddedTaxonomyFraming(false),
     '',
     deliveredAsDocumentClause({ citesRunParameters: false }),
     '',
-    `Context: ${targetClause}`,
+    `Context for the personalization:`,
+    `- ${targetClause}`,
+    `- ${titleClause}`,
+    `- ${voiceClause}`,
+    `- ${productClause}`,
     '',
-    'Step 1. **Inventory the evidence.** List, by name, every source in this context you can answer from: attached or pasted documents, data-room exports, public filings, prior-session extractions, and specific statements the user has made in chat. This list is what your `fileLocation` references must come from — if a source is not in front of you, nothing may rest on it.',
+    'Step 1. Add a one-line greeting addressed to the recipient (use their name if supplied). Mention the engagement context (transaction, kickoff, value-creation cadence) in the same line. The article body that follows already opens with the universal recipient instructions ("respond per bullet, mark n/a rather than skip…") — do not duplicate them.',
     '',
-    `Step 2. **Walk every request row of the embedded taxonomy and author the fills.** ${refsClause}`,
+    `Step 2. Reproduce the IRL from the next message as the deliverable — do not summarize, restructure, or annotate the canonical bullets inline. ${sectionsClause} Keep the bullet ordering within each section. ${customClause} ${canonicalClause}${omissionClause}`,
     '',
-    SOURCING_RULES,
+    'Step 3. Close with a single-line ask covering turnaround, point of contact, and preferred return format (filled markdown, attached PDFs, or VDR upload). Match the voice cue above.',
     '',
-    `Step 3. **Re-runs extend, never overwrite.** ${RERUN_RULE}`,
+    'Do not invent additional sections beyond the ones requested. Do not add a tools-attribution appendix (the artifact is intentionally clean for client consumption). If a question is materially answered by `productSummary`, you may add a single inline annotation like "_(already noted: …)_" next to the bullet — but never delete it.',
     '',
-    `Step 4. Call the **\`${FILL_TOOL_NAME}\`** tool with EXACTLY these scoping arguments plus your authored \`fills\` array (pass the scoping unchanged so the workbook matches this configuration):`,
+    `Step 4. Call the **\`${XLSX_TOOL_NAME}\`** tool with EXACTLY these arguments (they encode the configuration above — pass them unchanged so the workbook matches this artifact):`,
     '',
     '```json',
     JSON.stringify(toolArgs, null, 2),
     '```',
     '',
-    `Step 5. **Stop at the artifact.** The tool returns \`{ filename, base64, mimeType, filledRowCount, blankRowCount, filledRefs, … }\` in \`structuredContent\`. Report the counts and \`filledRefs\`, and say plainly that the blank rows are the outstanding ask to put to the target. The operator reviews the populated workbook and then runs \`gst_irl_ingestion\` themselves, exactly as for a target-returned IRL — **do NOT invoke \`gst_irl_ingestion\`, \`prepare_irl_body\`, or any other tool after the fill call**; a human review checkpoint sits between fill and ingest by design. Delivery note: the base64 payload is the artifact — there is no Hub download page for populated workbooks, and Claude Desktop cannot render arbitrary-mimeType attachments, so write the file client-side where the client supports it.`,
+    `The tool returns \`{ filename, base64, mimeType, byteLength, sectionCount, bulletCount, downloadUrl, canonicalUrl }\` in \`structuredContent\` — use the filename and counts in your reply so the partner knows what's available. **DO NOT promise an attachment in this chat**: Claude Desktop's MCP tool-result renderer cannot surface arbitrary-mimeType file payloads today. Instead, relay **\`structuredContent.downloadUrl\`** — the Hub generator page (https://globalstrategic.tech/hub/tools/information-request-list-generator/) with this exact configuration pre-filled — so the partner gets a one-click download of the identical file. Take the link from that field rather than retyping the base URL, and do NOT use \`canonicalUrl\`: that is a different page (the library article), not the download surface. (The base64 in \`structuredContent\` remains available for programmatic API consumers that aren't Claude Desktop.)`,
   ].join('\n');
 }
 
 const INTERACTIVE_BODY = [
   authorialIntentLine(PROMPT_NAME),
   '',
-  `Help the user populate GST's Information Request List from evidence already in this context. The canonical question set is embedded inline as the next message (\`${IRL_SOURCE_EMBED_URI}\`).`,
+  `Help the user assemble GST's Information Request List for an engagement. The canonical IRL text is embedded inline as the next message (\`${IRL_SOURCE_EMBED_URI}\`).`,
   '',
-  embeddedTaxonomyFramingForFill(),
+  embeddedTaxonomyFraming(false),
   '',
   deliveredAsDocumentClause({ citesRunParameters: false }),
   '',
   'Step 1. Ask the user:',
   '',
-  '> Which target is this for, and what evidence should I draw from — attached documents, a data-room export, public filings, prior sessions, or things you tell me here? Is the engagement sell-side, buy-side, or value-creation?',
+  '> What target or client is this for, and is the engagement sell-side, buy-side, or value-creation? If you can share a one-paragraph product summary, I can lightly tune the artifact; otherwise I will emit the universal template.',
   '',
-  'Step 2. Once the user answers, inventory the evidence by name — attached or pasted documents, filings, prior-session extractions, specific statements from chat. Only what is actually in front of you may be sourced from.',
+  'Step 2. Once the user answers, deliver the IRL as a paste-ready artifact:',
+  '  - Add a one-line greeting addressed to the recipient (use their name if supplied) that mentions the engagement context. The article body already opens with universal recipient instructions — do not duplicate them.',
+  '  - Reproduce the embedded IRL verbatim from the next message (sections `00` through `09`, every bullet preserved).',
+  '  - Close with a one-line ask covering turnaround, point of contact, and preferred return format.',
   '',
-  'Step 3. Walk every request row of the embedded taxonomy and author the fills:',
+  'Step 3. If the user only supplies partial context (e.g., target name but no transaction type), proceed with universal framing and note in the close-out line that the recipient can self-select the relevant context.',
   '',
-  SOURCING_RULES,
-  '',
-  RERUN_RULE,
-  '',
-  `Step 4. Call the **\`${FILL_TOOL_NAME}\`** tool with the scoping arguments the user gave you (targetName, transactionContext, and any section configuration) plus your authored \`fills\` array.`,
-  '',
-  'Step 5. **Stop at the artifact.** Report `filledRowCount`, `blankRowCount`, and `filledRefs`; say plainly that the blank rows are the outstanding ask to put to the target. The operator reviews the populated workbook and then runs `gst_irl_ingestion` themselves — do NOT invoke `gst_irl_ingestion`, `prepare_irl_body`, or any other tool after the fill call; a human review checkpoint sits between fill and ingest by design.',
+  'Do not invent additional sections. Do not add a tools-attribution appendix — the artifact is intentionally clean for client consumption.',
 ].join('\n');
 
 export const irlCreatePrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
-    'Populate the Information Request List from evidence already in context — a data-room export, remitted documents, public filings, prior sessions, statements in chat — instead of waiting for the target to return a filled workbook. The model inventories its evidence, authors per-row fills (answer + a sourcing reference under the D-cell grammar; unattributable rows stay blank), and calls fill_information_request_list_xlsx to build the populated .xlsx. Blank rows ARE the follow-up ask. Stops at the artifact: the operator reviews, then runs gst_irl_ingestion exactly as for a target-returned IRL.',
-  version: '0.2.0',
-  lastReviewedAt: '2026-08-26',
-  orchestrates: [IRL_SOURCE_EMBED_URI, FILL_TOOL_NAME] as const,
+    'Assemble the input-gathering ask GST hands to a target/client before running diligence tools. Configurable per engagement — company/project title, section pick-list, per-question removal (NN-II keys via excludeRequests; see list_irl_requests), custom per-section requests, canonical-row toggle — with the same options as the Hub generator. transactionContext also fires the authored skip-if directives (auto-removing tagged questions). When called with args, also calls generate_information_request_list_xlsx (forwarding the full configuration) and directs the partner to the Hub page for a one-click .xlsx download. Pair with gst_diligence_kickoff once the IRL is filled.',
+  version: '0.1.0',
+  lastReviewedAt: '2026-08-28',
+  orchestrates: [IRL_SOURCE_EMBED_URI, XLSX_TOOL_NAME] as const,
   argsSchema,
   build: (args) => {
     const hasAnyArg =
@@ -265,7 +366,8 @@ export const irlCreatePrompt: GstPrompt<typeof argsSchema> = {
       (args.includeSections !== undefined && args.includeSections.length > 0) ||
       (args.excludeRequests !== undefined && args.excludeRequests.length > 0) ||
       args.customRequests !== undefined ||
-      args.showCanonicalReference !== undefined;
+      args.showCanonicalReference !== undefined ||
+      args.productSummary !== undefined;
     const bodyText = hasAnyArg ? buildOneShotBody(args) : INTERACTIVE_BODY;
     return {
       messages: [

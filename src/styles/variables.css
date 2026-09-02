@@ -105,8 +105,11 @@
   --surface-panel-bg: light-dark(rgba(255, 255, 255, 0.85), rgba(10, 10, 10, 0.85));
   --surface-overlay-bg: light-dark(rgba(245, 245, 245, 0.92), rgba(20, 20, 20, 0.92));
 
-  /* Frosted-glass edge treatment — the inset highlight + hairline edge pair applied
-   * to every frosted surface (see STYLES_GUIDE.md § Frosted Glass).
+  /* Frosted-glass edge treatment — the inset highlight + hairline edge pair carried by
+   * the CONTROL-shaped frost (the nine `.brutal-*` control and card families), NOT by
+   * every frosted surface: the container pair and the opaque panel carry neither. This
+   * comment used to claim "every frosted surface", which is the misreading that leads
+   * an author to the invisible shape. See STYLES_GUIDE.md § Frosted Glass, Three shapes.
    */
   --frost-highlight: light-dark(rgba(255, 255, 255, 0.12), var(--border-dark-subtle));
   --frost-edge: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05));
@@ -150,9 +153,20 @@
   --gap-wide: 1.5rem;
   --gap-extra-wide: 2rem;
 
-  /* Typography */
-  --font-family: 'Helvetica Neue', Arial, sans-serif;
-  --font-family-mono: monospace;
+  /* Typography — BL-144: both tokens are pinned to the self-hosted face declared
+     in fonts.css. Neither may end in a bare generic with nothing named in front
+     of it; tests/integration/font-token-pin.test.ts fails the build if one does.
+     `ui-monospace, monospace` remains as the last resort for a visitor with no
+     webfont and none of the two named fallbacks. */
+  --font-family-mono:
+    'GST Mono', 'GST Mono Fallback', 'GST Mono Fallback WD', ui-monospace, monospace;
+
+  /* The sans collapses onto the mono. It was `'Helvetica Neue', Arial,
+     sans-serif` — absent off Apple hardware, so most visitors already got Arial,
+     an accidental second family rather than a chosen one. Nav links and button
+     text were its only consumers, and the system's own rule is that type is
+     monospace and tracked. */
+  --font-family: var(--font-family-mono);
   --font-weight-normal: 400;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
@@ -230,8 +244,22 @@
   --cta-box-text: light-dark(rgba(26, 26, 26, 0.85), rgba(200, 200, 200, 0.8));
   --stat-item-border: light-dark(var(--color-primary), var(--color-primary-20));
 
+  /* Announcement sash (.brutal-sash) — the band and its ink. The band is always
+     --color-primary; the ink is dark by default and is re-pointed per palette in
+     palettes.css for the palettes whose LIGHT-theme primary is a dark saturated
+     hue. Defined here (not in palettes.css) for the same reason
+     --stat-item-border is: variables.css owns the base value, palettes.css owns
+     the per-palette override. */
+  --sash-bg: var(--color-primary);
+  --sash-ink: var(--bg-dark);
+  /* The badge chip's fill (2026-08-28, operator direction): the secondary
+     accent, under constant --bg-dark ink. Re-pointed for palette-1 in
+     palettes.css — its light-theme secondary is the one of twelve
+     palette × theme combos measuring under 4.5:1 against the dark ink. */
+  --sash-badge-bg: var(--color-secondary);
+
   /* Misc */
-  --checkerboard-line: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.08));
+  --checkerboard-line: light-dark(rgba(0, 0, 0, 0.032), rgba(255, 255, 255, 0.032));
   --theme-toggle-color: light-dark(rgba(74, 74, 74, 0.8), rgba(200, 200, 200, 0.8));
   --service-card-border: light-dark(#1a1a1a, #2a2a2a);
   --about-image-bg: light-dark(#141414, #1a1a1a);
@@ -300,7 +328,24 @@
   --techpar-chart-above-border: light-dark(rgba(217, 54, 54, 0.45), rgba(240, 70, 70, 0.5));
   --techpar-chart-revenue-line: light-dark(rgba(26, 26, 26, 0.55), rgba(200, 200, 200, 0.6));
 
-  /* Spacing — Extended */
+  /* Spacing — Extended
+   *
+   * The base scale above is a 4px ramp: 4, 8, 12, 16, · , 24, · , 32 — with 20px
+   * and 28px missing. These two fill it, so 4px→32px is uniform and the scale
+   * coarsens to 8px steps only above 32 (40, 48). That arithmetic is the whole
+   * admission rule for this group: a step the ramp is missing, not a value some
+   * component happened to want.
+   *
+   * NAMING is value-as-suffix with no ordinal claim, matching --scrim-15…-60 and
+   * --color-primary-02…-65. NOT `--spacing-1_25xl`: `xl` is 1.5rem, so a name
+   * ending in `xl` that sorts BELOW --spacing-xl would be a false ordinal.
+   *
+   * --spacing-2_5xl predates the rule. It arrived incidentally in 7a831efc (the
+   * original shared-variables commit) and is NOT renamed — it is published to
+   * claude.ai/design, where a rename produces silently unstyled output. So this
+   * group is deliberately not uniform in naming; see ADR-0028. */
+  --spacing-1_25: 1.25rem;
+  --spacing-1_75: 1.75rem;
   --spacing-2_5xl: 2.5rem;
 }
 

@@ -24,10 +24,71 @@ import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, chmodSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, delimiter } from 'node:path';
+import { join, delimiter, dirname, isAbsolute } from 'node:path';
 
 const SCRIPT = 'scripts/await-mcp-test-run.sh';
 const SHA = 'a'.repeat(40);
+
+/**
+ * Resolve a bash that actually executes commands, and refuse to run if there is none.
+ *
+ * `spawnSync('bash', …)` is unsafe on Windows. PowerShell resolves bare `bash` to the WSL
+ * app-execution alias (`…\WindowsApps\bash.exe`); with no distro installed it prints an
+ * install hint and exits **1** without ever running the script. Every assertion in this
+ * file is an exit code, so the 22 cases expecting something other than 1 fail with a
+ * completely wrong diagnosis, and the 2 expecting 1 PASS VACUOUSLY — a launch failure
+ * graded as the script's verdict. Observed 2026-08-17 running `npm run test` from
+ * PowerShell; Git Bash resolves `/usr/bin/bash` first and the same tree is green.
+ *
+ * CI is `runs-on: ubuntu-latest` everywhere, where `bash` is real, so nothing upstream
+ * catches this — which is exactly why the check belongs here. Probing beats sniffing the
+ * path: the alias looks like a bash executable and only misbehaves when run.
+ */
+function resolveBash(): string {
+  const programFiles = process.env.ProgramFiles ?? 'C:\\Program Files';
+  const programFilesX86 = process.env['ProgramFiles(x86)'] ?? 'C:\\Program Files (x86)';
+  const candidates = [
+    process.env.TEST_BASH,
+    ...(process.platform === 'win32'
+      ? [
+          join(programFiles, 'Git', 'usr', 'bin', 'bash.exe'),
+          join(programFilesX86, 'Git', 'usr', 'bin', 'bash.exe'),
+        ]
+      : []),
+    'bash',
+  ].filter((c): c is string => Boolean(c));
+
+  const tried: string[] = [];
+  for (const candidate of candidates) {
+    const probe = spawnSync(candidate, ['-c', 'printf %s __bash_ok__'], {
+      encoding: 'utf8',
+      timeout: 10_000,
+    });
+    if (probe.status === 0 && probe.stdout?.includes('__bash_ok__')) return candidate;
+    tried.push(`${candidate} → ${probe.error ? probe.error.message : `exit ${probe.status}`}`);
+  }
+  throw new Error(
+    `No working POSIX bash found, so ${SCRIPT} cannot be exercised. Tried:\n  ${tried.join('\n  ')}\n` +
+      'On Windows: run from Git Bash, or put "C:\\Program Files\\Git\\bin" ahead of the WSL ' +
+      'alias on PATH, or disable the bash.exe App execution alias (Settings → Apps → ' +
+      'Advanced app settings). Or set TEST_BASH to a bash executable.'
+  );
+}
+const BASH = resolveBash();
+
+/**
+ * The directory holding the POSIX utilities that go with the bash we chose.
+ *
+ * The script calls `sleep`, and the harness inherits the parent shell's PATH. Git Bash
+ * carries `C:\Program Files\Git\usr\bin` (where sleep.exe, cat.exe and friends live), but
+ * PowerShell's PATH gets only `Git\cmd`, which holds git.exe and nothing else — so bash
+ * launched fine and then died with `sleep: command not found`, exit 127, on every case
+ * that reaches the poll loop. Shipping the utilities alongside the interpreter keeps the
+ * two from being resolved out of different installs.
+ *
+ * Empty when `bash` came off PATH (Linux, and every CI runner), so this is a no-op there.
+ */
+const BASH_UTILS: string[] = isAbsolute(BASH) ? [dirname(BASH)] : [];
 
 const tmpRoot = mkdtempSync(join(tmpdir(), 'await-mcp-'));
 afterAll(() => rmSync(tmpRoot, { recursive: true, force: true }));
@@ -71,14 +132,30 @@ interface RunOpts {
   everyS?: string;
 }
 
+/**
+ * Delete an env key whatever case the parent shell used.
+ *
+ * Windows env vars are case-insensitive, and `process.env` honours that — but spreading it
+ * into a plain object does not. PowerShell exports `Path`, so `{...process.env}` followed by
+ * `env.PATH = …` hands the child BOTH keys and it resolves the stale one: the stub `gh`
+ * never lands on PATH and every case exits 127. Git Bash exports `PATH`, so the identical
+ * code is correct there and on CI. Observed 2026-08-17, alongside the WSL-alias bug above.
+ *
+ * The same hazard applies to the inputs stripped below — "genuinely unset rather than
+ * inheriting a CI value" is only true if a differently-cased twin goes too.
+ */
+function unset(env: NodeJS.ProcessEnv, name: string): void {
+  for (const key of Object.keys(env)) {
+    if (key.toLowerCase() === name.toLowerCase()) delete env[key];
+  }
+}
+
 function run(opts: RunOpts = {}): { code: number; output: string; ms: number; attempts: number } {
   // Start from the real environment (bash, node and the stub all need PATH), then strip
   // every input the script reads so an "unset TARGET_SHA" case is genuinely unset rather
-  // than inheriting a CI value.
+  // than inheriting a CI value. PATH goes too, and is rebuilt below.
   const env: NodeJS.ProcessEnv = { ...process.env };
-  delete env.TARGET_SHA;
-  delete env.REPO;
-  delete env.GITHUB_REPOSITORY;
+  for (const name of ['TARGET_SHA', 'REPO', 'GITHUB_REPOSITORY', 'PATH']) unset(env, name);
 
   if (opts.targetSha !== undefined) env.TARGET_SHA = opts.targetSha;
   if (opts.repo !== undefined) env.REPO = opts.repo;
@@ -89,10 +166,11 @@ function run(opts: RunOpts = {}): { code: number; output: string; ms: number; at
   // these are real seconds.
   env.POLL_CAP_S = opts.capS ?? '1';
   env.POLL_EVERY_S = opts.everyS ?? '0.2';
-  env.PATH = `${stubDir}${delimiter}${process.env.PATH ?? ''}`;
+  // Stub first so its `gh` outranks a real one; the interpreter's own utilities next.
+  env.PATH = [stubDir, ...BASH_UTILS, process.env.PATH ?? ''].join(delimiter);
 
   const started = Date.now();
-  const r = spawnSync('bash', [SCRIPT], {
+  const r = spawnSync(BASH, [SCRIPT], {
     cwd: process.cwd(),
     env,
     encoding: 'utf8',
@@ -159,7 +237,13 @@ describe('await-mcp-test-run.sh — the suite reached a verdict', () => {
 
   it('exits 1 fast when every run is terminal and none succeeded', () => {
     writeStub(`  *) ${body(ALL_TERMINAL_NO_SUCCESS)} ;;`);
-    expect(run({ targetSha: SHA, repo: 'o/r', capS: '20' }).code).toBe(1);
+    const r = run({ targetSha: SHA, repo: 'o/r', capS: '20' });
+    expect(r.code).toBe(1);
+    // 1 is also what a harness that never launched the script returns, so this case and
+    // the one below are the only two here a broken bash can pass vacuously (it did — see
+    // the resolver above). Pinning a real poll makes the assertion mean "the script ran
+    // and judged", not "something exited 1".
+    expect(r.attempts).toBeGreaterThan(0);
   });
 
   it('exits 1 — not 3 — when the in-flight run concludes a failure', () => {
@@ -167,7 +251,11 @@ describe('await-mcp-test-run.sh — the suite reached a verdict', () => {
     // negative transition rather than polling to the cap.
     writeStub(`  1) ${body(CANCELLED_PLUS_PENDING)} ;;
   *) ${body(ALL_TERMINAL_NO_SUCCESS)} ;;`);
-    expect(run({ targetSha: SHA, repo: 'o/r', capS: '20' }).code).toBe(1);
+    const r = run({ targetSha: SHA, repo: 'o/r', capS: '20' });
+    expect(r.code).toBe(1);
+    // Two polls minimum: this case is about the negative TRANSITION, so a single attempt
+    // would not have exercised it even with a working bash.
+    expect(r.attempts).toBeGreaterThan(1);
   });
 });
 
@@ -332,23 +420,29 @@ describe('await-mcp-test-run.sh — inputs are validated before the first API ca
     writeStub(`  *) ${body(SUCCESS)} ;;`);
     // `cygpath -u` because a lone `C:/...` entry in PATH is not a path msys bash resolves;
     // on Linux there is no cygpath and the value is already POSIX, so the fallback stands.
+    // cygpath itself lives in the interpreter's utility dir, so the OUTER shell needs
+    // BASH_UTILS on PATH or the fallback fires, the inner PATH stays Windows-shaped, and
+    // the `gh` probe trips first — exit 2 either way, so only the message below catches it.
+    const outerEnv: NodeJS.ProcessEnv = {
+      ...process.env,
+      STUB: stubDir.replace(/\\/g, '/'),
+      TARGET_SCRIPT: SCRIPT,
+      TARGET_SHA: SHA,
+      REPO: 'o/r',
+      POLL_CAP_S: '1',
+      POLL_EVERY_S: '0.2',
+    };
+    unset(outerEnv, 'PATH');
+    outerEnv.PATH = [...BASH_UTILS, process.env.PATH ?? ''].join(delimiter);
     const r = spawnSync(
-      'bash',
+      BASH,
       [
         '-c',
         'P="$(cygpath -u "$STUB" 2>/dev/null || echo "$STUB")"; PATH="$P" "$BASH" "$TARGET_SCRIPT"',
       ],
       {
         cwd: process.cwd(),
-        env: {
-          ...process.env,
-          STUB: stubDir.replace(/\\/g, '/'),
-          TARGET_SCRIPT: SCRIPT,
-          TARGET_SHA: SHA,
-          REPO: 'o/r',
-          POLL_CAP_S: '1',
-          POLL_EVERY_S: '0.2',
-        },
+        env: outerEnv,
         encoding: 'utf8',
         timeout: 30_000,
       }

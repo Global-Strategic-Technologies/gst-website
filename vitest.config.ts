@@ -17,6 +17,9 @@ export default defineConfig({
         'src/utils/techpar/chart.ts',
         'src/utils/techpar/dom.ts',
         'src/utils/copy-feedback.ts',
+        'src/utils/mcp-onboarding.ts',
+        'src/utils/mcp-docs.ts',
+        'src/utils/scroll-spy.ts',
       ],
       thresholds: {
         lines: 70,

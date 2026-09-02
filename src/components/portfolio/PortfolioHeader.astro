@@ -148,19 +148,30 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     box-shadow: var(--shadow-sm);
   }
 
-  .portfolio-controls-fixed .container {
-    width: fit-content;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    background: transparent;
-  }
+  /* `.portfolio-controls-fixed .container` used to be declared here at all three
+     tiers and matched NOTHING at any of them: the fixed bar's only child is
+     `.controls-wrapper` (see the markup above), and no `.container` exists
+     anywhere inside it — in this component or in StickyControls, which renders
+     the copy that actually goes sticky. Deleted 2026-09-01 rather than
+     re-pointed, per STYLES_GUIDE § "a rule that matches nothing": the first
+     question is whether the rule should apply at all, and here the element it
+     describes does not exist. The bar's own geometry lives on
+     `.portfolio-controls-fixed` above and in StickyControls.astro. */
 
+  /* `flex: 1 1 375px` with `min-width: 0`, not a hard `min-width: 375px`. This
+     row sits beside the page title in a flex row, and a hard floor cannot
+     shrink: the row's min-content stayed 496px wide and simply overflowed the
+     viewport — 24px at 900px, 144px at 780px, and worse at every width down to
+     481px, where the ≤480 tier's `min-width: 0` finally rescued it. It is the
+     preferred width that matters here, not a floor; when the row is tight the
+     placeholder truncates, exactly as it already did below 480px.
+     BL-144 made this visible by widening the mono, but only the top of the band
+     was new — the rest had been overflowing unseen, because the overflow guard
+     stops at 390px and the axe sweep is desktop-only. */
   .search-box {
     position: relative;
-    flex: 1;
-    min-width: 375px;
+    flex: 1 1 375px;
+    min-width: 0;
     display: flex;
     align-items: center;
     margin-left: 0;
@@ -206,7 +217,10 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     display: inline;
   }
 
-  /* Drawer styles moved to FilterDrawer.astro */
+  /* The drawer is rendered by FilterDrawer.astro, so scoped rules here cannot
+     reach it — they compile to `[data-astro-cid-<this file>]` and the element
+     carries the child's id. Its layout lives in
+     src/styles/components/filter.css (BL-139). */
 
   /* Dark Theme Component Overrides */
 
@@ -242,12 +256,8 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       z-index: 1002;
     }
 
-    .portfolio-controls-fixed .container {
-      padding: 0.625rem 1rem;
-    }
-
     .search-box {
-      min-width: 270px;
+      flex-basis: 270px;
     }
 
     .search-icon {
@@ -255,19 +265,29 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       width: 16px;
       height: 16px;
     }
+  }
 
-    .portfolio-filter-drawer {
-      right: -100%;
-      width: 100%;
-      top: 133px;
-      bottom: 0;
-      height: auto;
-      border-left: none;
-      border-top: 2px solid var(--color-primary);
+  /* The header row is title + controls under `space-between`, and the title is
+     `white-space: nowrap`, so the row cannot fit until the container holds the
+     title's full width plus the controls' minimum — measured at 436px. That was
+     a 540px viewport when this was derived, with the container's 3rem padding
+     taken off. It stacked at 480 instead, so 481–531px overflowed by up to 51px.
+
+     Since the gutter ladder landed (global.css, 2026-09-01) a 540px viewport
+     gives a 492px container and 436px is reached at ~484px, so this threshold is
+     now CONSERVATIVE RATHER THAN EXACT — 485–540 stacks a little earlier than it
+     strictly must. Left at 540 deliberately: 481–483 still genuinely needs it,
+     the cost is one breakpoint of early stacking, and moving it would re-open
+     the overflow band this rule was added to close. */
+  @media (max-width: 540px) {
+    .portfolio-header-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
     }
 
-    .portfolio-filter-drawer.open {
-      right: 0;
+    .portfolio-controls-fixed {
+      width: 100%;
     }
   }
 
@@ -296,11 +316,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       width: 100%;
       max-width: 100%;
       z-index: 1002;
-    }
-
-    .portfolio-controls-fixed .container {
-      padding: 0 1.5rem;
-      width: 100%;
     }
 
     .search-box {
@@ -341,19 +356,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     .filter-text {
       display: none;
     }
-
-    .portfolio-filter-drawer {
-      right: -100%;
-      bottom: 0;
-      top: auto;
-      width: 100%;
-      height: auto;
-      max-height: 85vh;
-      border-left: none;
-      border-top: 2px solid var(--color-primary);
-    }
-
-    /* Drawer responsive styles moved to FilterDrawer.astro */
   }
 </style>
 

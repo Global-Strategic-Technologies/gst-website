@@ -45,7 +45,7 @@ Monospace, bold, primary-colored. Purpose-built for numeric readouts (KPIs, perc
 
 ## Navigation
 
-Sans-serif (inherits `--font-family`), uppercase, bold.
+Uppercase, bold, in the pinned mono (inherits `--font-family`, which points at `--font-family-mono`).
 
 | Class       | Size              | Weight     | Transform | Spacing | Color              |
 | ----------- | ----------------- | ---------- | --------- | ------- | ------------------ |
@@ -55,7 +55,7 @@ States: `:hover` and `.active` change color to `--color-primary` with `border-bo
 
 ## Button Text
 
-Sans-serif (inherits `--font-family`), uppercase, bold.
+Uppercase, bold, in the pinned mono (inherits `--font-family`, which points at `--font-family-mono`).
 
 | Class             | Size               | Weight     | Transform | Spacing  |
 | ----------------- | ------------------ | ---------- | --------- | -------- |
@@ -103,8 +103,91 @@ No dark theme overrides needed for text colors — the variables handle theme sw
 
 1. **Use utility classes** instead of hardcoding font sizes. For values not covered by a utility class, use `var(--text-*)` tokens.
 2. **Don't create new text utilities** without checking if existing ones work.
-3. **Font family**: Brutalist utilities use `monospace`. Navigation and button text inherit `--font-family` ('Helvetica Neue', Arial, sans-serif).
+3. **Font family**: everything resolves to one family. `--font-family-mono` is the pinned `GST Mono`, and `--font-family` points at it — so navigation and button text are the same face as the brutalist utilities, not a second one. Never name a family in a stylesheet; `tests/integration/font-token-pin.test.ts` fails the build on a literal family outside `variables.css` / `fonts.css`.
 4. **Responsive**: Utilities work at all screen sizes. If responsive adjustments are needed, add them in component-specific styles using `var(--text-*)` tokens.
+
+---
+
+## The pinned mono
+
+Every text surface on the site resolves to one family, declared in
+`src/styles/fonts.css` and reached only through `var(--font-family-mono)`.
+
+|                |                                                                                                                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Face**       | Geist Mono Variable, weight axis 100–900                                                                                                                                                                                                      |
+| **Licence**    | OFL 1.1 — shipped at `public/fonts/GEIST-MONO-OFL.txt`                                                                                                                                                                                        |
+| **Upstream**   | `vercel/geist-font` v1.7.2, `GeistMono[wght].ttf`                                                                                                                                                                                             |
+| **Shipped as** | `public/fonts/gst-mono-var-latin-v1.woff2` — 25,952 bytes, 367 codepoints                                                                                                                                                                     |
+| **Alias**      | `GST Mono`. Nothing in the repo names the real face; a change is one `src` line                                                                                                                                                               |
+| **Fallbacks**  | `GST Mono Fallback` (Menlo/DejaVu, `size-adjust: 99.7%` — DejaVu measured at 602.1/1000 from the font binary; Menlo published at 602, unverified on real metal), `GST Mono Fallback WD` (Consolas, `109.1%` — measured in-browser, 0.03% off) |
+| **Metrics**    | upem 1000, uniform 600/1000 advance at every weight, hhea 1005 / −295 / 0                                                                                                                                                                     |
+
+**Why it is pinned.** The token was the bare generic `monospace`, so the face
+was the visitor's OS's choice — and advance widths across the plausible
+resolutions differ by ~9%. Fixed geometry was sized against one of them: the
+sash's 45° chord clips rather than reflows, a grid floor was derived from a wire
+identifier's ink width, and a CTA label fitted its button with 0.4px to spare.
+Pinning the face made the three engines agree: the sash's 35-character subtext
+measured 222 / 222 / 240px before the pin and 253.2 / 252.7 / 253.2px after — an
+8% engine spread collapsed to 0.5px. That band has since been restructured into a
+two-field list and no longer sets the same string, so those are the pin's result
+for the copy it was measured against, not live numbers. **The live pair is
+recorded once, in [Sash.astro](../../components/Sash.astro)'s header block** —
+go there, not to a copy, and prove new sash copy by running
+`announcement-sash.test.ts` rather than by counting characters.
+
+**The pin also made things WIDER, which broke something.** Geist Mono's 0.6em
+advance is wider than the 0.55em Consolas that Windows resolved `monospace` to,
+so every mono string grew ~9%. The footer's four-link row
+([FooterLinks.astro](../../components/FooterLinks.astro)) gained 16.2px across
+its 27 characters — exactly enough to push it off one line on a 430px phone. It
+shipped because the narrow-viewport suite asserted only that nothing left the
+screen, which a wrapped row satisfies. When changing this face, the risk is not
+only clipping: re-check every row whose fit is a budget, and prefer asserting the
+LAYOUT (line count) over the symptom (overflow).
+
+**Known and accepted:** WebKit does not apply this face's weight axis — every
+weight paints identically there, while Chromium and Firefox vary correctly. It
+is the face, not the subset (the untouched upstream file and two independent
+rebuilds behave the same, and a control variable font varies in the same
+engine); upstream carries an open cluster of weight-axis bugs
+(`vercel/geist-font` #12, #65, #68, #90). Shipping the variable file alone is a
+deliberate decision — nothing about layout depends on it, because the advance is
+uniform across the axis.
+
+### Re-cutting the subset
+
+Do not hand-edit the `unicode-range` in `fonts.css`: it is the range the file was
+cut to. To change coverage, re-cut and update both — and **bump the `-vN` suffix
+on the filename**, in `fonts.css` and in the `BaseLayout.astro` preload. `/fonts/*`
+is served `immutable` for a year, so a re-cut under the same name never reaches a
+returning visitor.
+
+```bash
+# fonttools + brotli in a throwaway venv; nothing needs installing globally
+python -m venv fontenv && ./fontenv/bin/pip install fonttools brotli
+
+./fontenv/bin/python -m fontTools.subset 'GeistMono[wght].ttf' \
+  --output-file=public/fonts/gst-mono-var-latin-v1.woff2 \
+  --flavor=woff2 \
+  --unicodes="U+0000-00FF,U+0131,U+2000-206F,U+20AC,U+2190-2199,U+2212,U+221A,U+2248,U+2264-2265,U+25A0-25FF,U+2500-257F" \
+  --drop-tables+=DSIG --no-hinting
+```
+
+Two notes on that range, both learned the hard way:
+
+- **`U+2500-257F` (box drawing) is load-bearing.** The TableOfContents tree and
+  the `/brand` rules draw ~16,000 of those characters; in a fallback face they
+  misalign against the mono grid.
+- **Do not pass `--layout-features='kern,liga,tnum,zero'`.** This face has none
+  of those four features, so the flag would drop `ccmp`, `mark`, `mkmk` and
+  `locl` (which it does have, and needs) while keeping nothing. Tabular figures
+  come free: every glyph has the same advance.
+
+Δ (U+0394), ⓘ (U+24D8) and ⚠ (U+26A0) are deliberately outside the range —
+Geist Mono has no glyph for them at all, so they fall through to the
+metric-matched fallback per-glyph, which is correct.
 
 ---
 

@@ -65,12 +65,13 @@ Two rules cover almost everything:
 - **Dark literals** — `--bg-dark`, `--bg-dark-secondary`, `--bg-dark-tertiary`, `--text-dark-primary/-secondary/-muted`, `--text-light-primary/-secondary/-muted` — the raw ends of a `light-dark()` pair; use inside `light-dark()` when a token has no theme-aware form
 - **Borders** — `--border-light`, `--border-hairline`, `--border-dark`, `--border-dark-subtle/-default/-prominent`
 - **Accents** — `--accent-light-bg` (+ `-hover`), `--accent-dark-bg`, `--accent-tint-bg`, `--accent-subtle-bg`, `--accent-wash-bg`, `--accent-faint-bg`, `--accent-border-light/-medium`
-- **Spacing** — `--spacing-xs` … `--spacing-3xl` (plus `--spacing-2_5xl`), `--gap-tight/-normal/-wide/-extra-wide`
+- **Spacing** — `--spacing-xs` … `--spacing-3xl` (plus the extended steps `--spacing-1_25`, `--spacing-1_75`, `--spacing-2_5xl`), `--gap-tight/-normal/-wide/-extra-wide`
 - **Type scale** — `--text-2xs` … `--text-3xl`, `--font-weight-normal/-semibold/-bold`, `--font-family`, `--font-family-mono`
 - **Motion** — `--transition-fast`, `--transition-normal`, `--transition-slow`
 - **Elevation** — `--shadow-sm/-md/-lg`, `--frost-highlight`, `--frost-edge`, `--scrim-15` … `--scrim-60`
 - **Layering** — `--z-negative`, `--z-base`, `--z-raised`, `--z-sticky`, `--z-dropdown`, `--z-overlay`, `--z-modal`, `--z-modal-overlay`, `--z-skip-nav`
 - **Touch** — `--touch-target-min` (44px, AAA), `--touch-target-min-aa` (24px floor)
+- **Announcement sash** — `--sash-bg` (always `--color-primary`), `--sash-ink` (re-pointed per palette in `palettes.css` for the four whose light-theme primary is a dark hue), `--sash-badge-bg` (the badge chip's fill — the secondary accent, re-pointed for palette-1; the chip's ink is constant `--bg-dark`). The borders and the hover mix `--sash-bg` toward `--bg-dark` (68% / 82%) with `color-mix()`, and the under-band swaps bg/ink; every value is a token, so the family follows every palette and both themes with no extra CSS
 - **Dataviz scales** — **Use these for any chart, gauge or scoring band — never invent chart colours.** TechPar: `--techpar-zone-*` (healthy/elevated/critical/underinvest/ahead/above, each + `-bg`), `--techpar-category-*` (infra/personnel/rd-opex/rd-capex), `--techpar-kpi-positive/-negative/-warn`, `--techpar-chart-*` (band/ahead/above/under `-fill`/`-border`, `revenue-line`). ICG: `--icg-maturity-reactive/-aware/-strategic/-optimizing`, `--icg-radar-grid/-label`. Diligence Machine: `--dm-positive/-negative/-success/-warning`, `--dm-results-blue/-tan`, `--dm-methodology-brown`. Regulatory map: `--regmap-category-industry/-cyber`
 
 Need a tint with no token? Use `color-mix(in srgb, var(--color-success) 12%, transparent)` —
@@ -84,6 +85,7 @@ it stays correct across themes and palettes. Never a frozen `rgba()`.
 - **Containers** — `.container` (page width), `.brutal-tool-shell` + `--narrow`/`--wide`/`--document`/`--fluid`, with `.brutal-tool-shell__content` inside for responsive padding; `.brutal-panel`; hero text uses `.brutal-hero__title` / `.brutal-hero__description` / `.brutal-hero__trustline` (no bare `.brutal-hero`)
 - **Hub-tool chrome** — `.tool-action-bar` (+ `--center`/`--end`/`--bordered`/`--frosted`/`--stack`), `.tool-tab-bar` + `.tool-tab` (+ `--active`), `.tool-wizard-progress` + `.tool-wizard-step` (+ `--completed`/`--active`/`--reachable`), `.tool-wizard-progress-mobile` + `.tool-wizard-dot`, `.tool-methodology` (+ `--delta`), `.tool-bench-note` — see ToolChromeSpecimen
 - **Navigation** — `.brutal-breadcrumb`, `.brutal-tab-bar` + `.brutal-tab` (+ `--active`/`--done`), `.brutal-search`, `.skip-nav`; `.toc` (owned by the `TableOfContents` component — its `__heading/__list/__sublist/__layer/__separator/__chevron` classes ship, but the runtime that builds sublists and sets `is-active` does not)
+- **Announcement sash** — `.brutal-sash-corner` (the clipping corner box) wrapping `.brutal-sash` (the rotated band, which is itself the link) and, optionally, `.brutal-sash-under` (a smaller sibling band below it, itself a list of independently-linked `__field` parts); corner variant `--card`; `.brutal-sash--flat` is **documentation only** — the unrotated band, so a gallery can show it in a row. Rendered in production by `Sash.astro` off an announcement registry. It has no card of its own and is NOT in the `SiteHeader` slice — see the reference markup at the end of this file
 - **Data** — `.brutal-bench-table`, `.brutal-stat-tile`, `.brutal-callout` (+ `--warning`), `.brutal-progress-bar`, `.editors-pick-tag`; `.brutal-stat__value/__label` and `.brutal-cta__title/__description` are mono-font **modifiers only** (no block, no size — pair with your own layout)
 - **Forms** — `.brutal-input`, `.brutal-field`, `.brutal-slider`, `.brutal-segmented` (+ `--sm`/`--wide`), `.brutal-filter-chip` (+ `--active`), `.brutal-filter-chips`, `.brutal-filter-drawer`
 - **Frosted glass** — `.brutal-frosted` (3px), `--heavy` (6px), `--blur-only` (1.5px), `--overlay` (6px + a 92%-opaque surface, for sheets/drawers)
@@ -91,13 +93,23 @@ it stays correct across themes and palettes. Never a frozen `rgba()`.
 - **Utilities** — `.flex-center`, `.flex-between`, `.text-uppercase`, `.text-label`, `.interactive`, `.link-interactive`, `.focus-outline`, `.focus-outline-sm`, `.sr-only`, `.no-print`, `.delta-chevron`, `.bullet-icon`
 - **State classes** — JS toggles these on a block; the CSS keys on them: `.is-collapsed` (hides a card body / TOC list, un-rotates its `.delta-chevron`), `.is-dismissed` (fades a rec/attention card), `.is-active` (current TOC link)
 
-`.brutal-btn` already carries the frosted-glass treatment (`backdrop-filter`, inset
-highlight) — don't re-add it.
+`.brutal-btn`, `.brutal-choice-btn`, `.brutal-search`, `.brutal-segmented`,
+`.brutal-option-card`, `.brutal-trust-card`, `.brutal-stat-tile`, `.brutal-callout`,
+`.brutal-faq__item`, `.brutal-tool-shell` and `.tool-tab-bar` already carry the
+frosted-glass treatment — don't re-add it, on any of them. It comes in three shapes: the
+nine control and card families use a 2% tint, a 2px blur AND an inset highlight plus
+hairline edge; `.brutal-tool-shell` (like the `.brutal-frosted` utility) uses a 0.5% tint
+and a 3px blur with no edge; `.tool-tab-bar` uses an 85% panel and an 8px blur. The edge
+is what makes frost visible on a flat background — over one, the 0.5% shape reads as no
+treatment at all. On `.brutal-segmented` the frost is on the container; the segments stay
+transparent and `--active` stays a solid fill so the selected state reads. Nesting a
+frosted surface inside another double-blurs — one pane owns the glass.
 
 **Not documented on purpose** (page one-offs, fine to ignore): the regulatory-map
-families `.brutal-timeline-*`, `.brutal-map-*`, `.brutal-reg-card`, `.brutal-legend`,
+families `.brutal-timeline-*`, `.brutal-map-*`, `.brutal-quick-zoom`, `.brutal-reg-card`,
+`.brutal-legend`,
 `.brutal-bottom-sheet`; `.legal-page-*`; the `/brand`-only demo boxes `.brutal-shadow`,
-`.brutal-transition`, `.brutal-interactive`, `.brutal-link-interactive`,
+`.brutal-skeleton-demo`, `.brutal-transition`, `.brutal-interactive`, `.brutal-link-interactive`,
 `.brutal-focus-outline`. If you see one in `styles.css`, that is why it is not here.
 
 ### BEM sub-elements (these are not optional)
@@ -121,6 +133,8 @@ alone renders unstyled content — the specimen cards show every one of these in
 - **`.brutal-filter-drawer`** — `__header` › `__title`, `__close`; `__content` › `__clear`, `__section` › `__label` + `.brutal-filter-chips`
 - **`.brutal-search`** — `__icon`, `__input`, `__clear`; results are a **sibling** `__results` › `__result` (+ `--active`) › `__result-name`, `__result-meta` › `__category` (+ `--privacy`/`--ai`/`--industry`/`--cyber`); `__no-results`
 - **`.brutal-breadcrumb`** — `__list` (an `<ol>`) › `__item` › link + `__sep`; the current crumb is `<span aria-current="page">` — that attribute is what styles it
+- **`.brutal-sash`** — `__label` (above the band's other segments on the type scale: `--text-sm` on the desktop page corner, `--text-xs` on the ≤768 tiers, base size on `--card`), `__badge` (a chip filled with `--sash-badge-bg` under constant dark ink — measured AA in every palette and theme), `__detail` (drops at 768px). The band element carries the href itself; there is no separate link child. `.brutal-sash-under` is a SIBLING block, not a `__` element: the optional band below the main one (hidden 512–768px with `__detail`; the second line of the ≤511 strip), inverting the same two tokens — that inversion is its only colorway; the family's color-mix derivations fail AA as text backgrounds and must not be used as under-band fills
+- **`.brutal-sash-under`** — `__field` (one run of copy, repeated; each carries its OWN href and aria-label, so the band's halves link to different places — the band itself is inert and takes no focus), `__rule` (the `aria-hidden` separator drawn between fields). Hover and the focus ring are per `__field`. The class rides the element in both forms, `<a>` and decorative `<span>`. The AA `min-height: var(--touch-target-min-aa)` floor is on `__field` in the ≤511 strip only — that is where a field is a real finger target rather than a rotated bounding box
 - **`.brutal-bench-table`** — rows of two `<td>`s; `__active` on the highlighted `<tr>`; `__label` (+ `--score`/`--stage`) pills inside the first cell
 - **`.brutal-panel`** — `__header` › `__title`, `__copy` (+ `--copied`), `__count`
 - **`.brutal-tab-bar`** — `.brutal-tab` › `__label`, optional `__icon`, `__badge` (+ `--on`)
@@ -130,7 +144,10 @@ alone renders unstyled content — the specimen cards show every one of these in
 - **`.brutal-tool-shell`** — `__content`, `__authority`, `__section-label`
 
 Gateway cards pair the block with `.brutal-frosted` and sit inside
-`.brutal-gateway-grid`.
+`.brutal-gateway-grid`. Both `__features` lists set `display: flex` on the `li`, and a
+flex `li` makes every child its own item — bare text nodes included. A bullet carrying
+any inline element (`<code>`, `<a>`) must wrap its prose in ONE `<span>`; wrap
+unconditionally.
 
 ### Layout conventions
 
@@ -156,7 +173,9 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
 - **Focus ring recipe**: `outline: 2px solid var(--color-primary); outline-offset: 2px`
   on `:focus-visible` (offset `0.25rem` on links, `-2px` on tabs). Never `outline: none`
   without a replacement.
-- **Type is monospace and tracked.** Labels and headings use `--font-family-mono`,
+- **Type is one pinned monospace.** `--font-family-mono` resolves to `GST Mono`
+  (Geist Mono Variable, OFL 1.1, self-hosted and subset), and `--font-family` points
+  at it — there is no second family, and nothing names a face directly. Labels and headings use `--font-family-mono`,
   uppercase, with letter-spacing `0.04em` (heading-xl/lg), `0.06em` (heading-md/sm,
   field labels), `0.1em` (small labels), `0.12em` (`.brutal-label`). Body copy is
   `1.7`/`1.6`/`1.5` line-height for base/small/tiny. There is no medium weight token — normal, semibold or bold.
@@ -166,6 +185,42 @@ Gateway cards pair the block with `.brutal-frosted` and sit inside
   wrap it in `@media (prefers-reduced-motion: reduce)` yourself.
 - **Icons are inline SVG in `currentColor`.** No icon font, no `<img>` icons — see
   "Brand delta" below; other glyphs (search, close, link) are 14–16px stroke SVGs.
+- **The sash's geometry moves in threes.** `.brutal-sash-corner`'s size, the band's `top`
+  and the band's `width` are one set: the band is centred on the 45° chord of its box, so
+  changing one without the others slides it off the corner. The pairs are 200/42/280
+  (desktop, label at `--text-sm`), 170/42/220 (≤768, label steps to `--text-xs`),
+  140/34/190 (≤540) and 104/26/150 (`--card`). The
+  responsive steps key on `.brutal-sash-corner:not(.brutal-sash-corner--card)`, so the page
+  scale steps down and `--card` is fixed at every width. Below 512px the production page
+  sash CHANGES FORM instead of hiding: it renders as a full-width, in-flow, two-line strip
+  above the header (a corner overlay there would overflow the nav, whose reserve is 0 at
+  that width). The strip is a media RESTYLE of the standard classes keyed on the
+  production mount (`body > …`) — nested gallery specimens keep the old stand-down. The
+  optional `.brutal-sash-under` adds a desktop-only fourth, and GROWS its corner box to
+  220px (the band runs nearly the whole chord, so the room is what keeps it off the box
+  edge): 220/53/310 for the main band, top 88 / left −40 / width 320 for the
+  under-band, nav reserve 220. That 220px box was sized against the widest face any
+  engine resolved the then-unpinned `monospace` generic to; the pinned face's advance IS
+  that widest case, so it is still exactly right and no longer headroom against an
+  unknown. The under-band's copy ceiling is ~34 characters ACROSS ALL ITS FIELDS — the
+  same on all three engines now, where it used to be 40/40/37 — and the rule plus the two
+  gaps around it cost ~23px per extra field, so the field count spends the chord too.
+  The under-band is 24px thick INCLUDING its two borders: the AA touch floor sits on the
+  field and only in the ≤511 strip, because stating it on the rotated corner grows the
+  band to 26px and drops its lower edge onto the box diagonal (measured).
+  Every band obeys a RIBBON-FORM invariant in chord space (c = x − y, box-local): its
+  LOWER EDGE — centre c minus height·√2/2, not the centre itself — must stay above the
+  box diagonal c = 0, its upper edge must leave the apex white, and its width must be
+  long enough to push both end caps outside the box. A band that breaks the first
+  condition covers the box's top-left corner and ends square in mid-page; one that
+  breaks the third shows a cut-off cap. Bands are chord-centred, so the copy centres
+  itself on the visible chord, and the axe target-size clearance between the two comes
+  from separating them in c — never from moving one toward the diagonal (the under-band's
+  FIELDS are the interactive targets there, not the band). sash.css
+  records the numbers; the invariant is asserted in the sash E2E suite.
+  In production its presence conditionally widens the nav's desktop corner reserve; it has
+  no smaller tiers (hidden 512–768px with `__detail`; below 512 it is the strip's second
+  line).
 
 ### Brand delta
 
@@ -225,8 +280,12 @@ the built site, re-extracted on every sync.
         <h2>Tech Debt Calculator</h2>
       </div>
       <ul className="brutal-gateway-card__features">
-        <li>Quantify remediation cost before you sign</li>
-        <li>Executive-ready output in minutes</li>
+        <li>
+          <span>Quantify remediation cost before you sign</span>
+        </li>
+        <li>
+          <span>Executive-ready output in minutes</span>
+        </li>
       </ul>
       <a href="#" className="cta-button brutal-gateway-card__cta">
         Open tool
@@ -244,5 +303,73 @@ the built site, re-extracted on every sync.
 ```
 
 Note the layout glue: flex and gaps written inline, but every _value_ is a token.
+
+### Announcement sash — the one family with no card
+
+Every other family is either drawn by a `*Specimen` gallery or sliced into
+`components/chrome/`. The sash is neither: `BaseLayout.astro` renders it as a
+`<body>`-level sibling **before** `<Header/>`, so the `header.site-header` slice cannot
+contain it, and it has a real component behind it (`Sash.astro`), which rules a specimen
+out. So this is its reference markup, transcribed from the built home page rather than
+written by hand — `class` → `className` and the analytics hook dropped, nothing else
+changed:
+
+```jsx
+<div className="brutal-sash-corner">
+  <a
+    className="brutal-sash"
+    href="/hub/mcp/"
+    aria-label="New: GST MCP — automate analysis, free pilot tier — open the linked page"
+  >
+    <span className="brutal-sash__badge">New</span>
+    <span className="brutal-sash__label">GST MCP</span>
+  </a>
+  <span className="brutal-sash-under">
+    <a
+      className="brutal-sash-under__field"
+      href="/hub/mcp/#what-it-does"
+      aria-label="Automate analysis — see what the MCP server does"
+    >
+      Automate analysis
+    </a>
+    <span className="brutal-sash-under__rule" aria-hidden="true">
+      |
+    </span>
+    <a
+      className="brutal-sash-under__field"
+      href="/hub/mcp/#tiers"
+      aria-label="Free pilot tier — see capability tiers"
+    >
+      Free pilot tier
+    </a>
+  </span>
+</div>
+```
+
+Both bands' copy runs against strict, measured width budgets (`Sash.astro` documents
+them: ~13 characters across the main band's segments with a badge at the `--text-sm`
+label, ~34 across ALL the under-band's fields — one ceiling on every engine, since the
+mono is pinned; this used to be 40/40/37 because the face was whatever each engine
+resolved a bare generic to).
+
+**The two bands are not two links.** The main band is one link carrying the whole
+announcement. The under-band is a LIST: each `__field` is its OWN link with its OWN
+destination and accessible name, so clicking the left half and the right half take you to
+different places — that independence is the point, not a link with two clickable zones.
+A field with no `href` renders as plain text beside a linked one, which is a legitimate
+state. The `__rule` between fields is `aria-hidden` because a literal pipe is spoken
+"vertical line", and each field's name spells out anything else a screen reader would
+mangle. Hover and the focus ring land on the FIELD, never the band — two destinations
+need two affordances. A `__detail` segment (rule-separated, after the label) also exists
+on the main band; the live entry currently uses none — do not pad the label out when one
+is present.
+
+The corner box must be a child of whatever the sash overlays — `<body>` in production —
+and that element needs `position: relative` unless it is the page itself. When the sash is
+decorative inside a card that is already a link, swap the `<a>` for a
+`<span aria-hidden="true">`; that is what `--card` is for. The class stays the same
+across that swap — `.brutal-sash` and `.brutal-sash-under__field` both name the ROLE the
+element plays, not whether it is interactive — so a decorative under-band is the same
+markup with spans in place of its field anchors.
 
 ---

@@ -1,0 +1,136 @@
+---
+/**
+ * The Reference lens sidebar: four groups, every capability, in registry order.
+ *
+ * It doubles as the page's search index. Each link carries `data-cap-id`,
+ * `data-cap-type` and `data-cap-gloss`, which is what `mcp-docs.ts` reads to
+ * build the lookup dropdown, so there is no second serialized copy of the
+ * registry in the page to fall out of step with this one.
+ *
+ * Items are anchors rather than buttons on purpose: they are addressable, they
+ * work with no JS, and `:target` is what actually reveals the contract pane.
+ */
+import type { Capability } from '../../../data/mcp/capabilities';
+import {
+  capabilityAnchor,
+  capabilitiesInGroup,
+  GROUP_ORDER,
+} from '../../../utils/mcp-capability-search';
+
+interface Props {
+  capabilities: readonly Capability[];
+  /** Group heading counts. Resources counts documents, not families. */
+  counts: Record<string, number>;
+}
+
+const { capabilities, counts } = Astro.props;
+
+const groups = GROUP_ORDER.map((group) => ({
+  group,
+  label: counts[group] === undefined ? group : `${group} · ${counts[group]}`,
+  items: capabilitiesInGroup(capabilities, group),
+}));
+---
+
+<nav class="mdoc-nav" aria-label="Capability reference" data-cap-nav>
+  {
+    groups.map(({ group, label, items }) => (
+      <div class="mdoc-nav__group" data-ref-group={group}>
+        <h2 class="mdoc-nav__heading">{label}</h2>
+        <ul class="mdoc-nav__list">
+          {items.map((cap) => (
+            <li>
+              <a
+                class="mdoc-nav__item"
+                href={`#${capabilityAnchor(cap.id)}`}
+                data-cap-link
+                data-cap-id={cap.id}
+                data-cap-type={cap.type}
+                data-cap-gloss={cap.gloss}
+              >
+                {cap.id}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+</nav>
+
+<style>
+  /* Sticky and height-bounded so the list stays reachable beside a long
+     contract, and so it is the NAV that scrolls when a group jump fires rather
+     than the whole page. `top` clears the sticky site header. */
+  .mdoc-nav {
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 120px);
+    border-right: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding: var(--spacing-lg);
+    overflow-y: auto;
+  }
+
+  .mdoc-nav__group + .mdoc-nav__group {
+    margin-top: var(--spacing-xl);
+  }
+
+  .mdoc-nav__heading {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-primary);
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding-bottom: var(--spacing-xs);
+    margin: 0 0 var(--spacing-sm);
+  }
+
+  .mdoc-nav__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* 24px is the AA target floor (`--touch-target-min-aa`), the density this
+     sidebar needs to show 34 identifiers without becoming a scroll marathon.
+     Bespoke class, so outside the 44px guarded families by design. */
+  .mdoc-nav__item {
+    display: block;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 6px 8px;
+    min-height: var(--touch-target-min-aa);
+    border-left: 3px solid transparent;
+    /* One identifier, one row. A wrapped name reads as two sidebar entries,
+       which is why the column is `max-content` sized rather than fixed. */
+    white-space: nowrap;
+    transition:
+      color var(--transition-fast),
+      background var(--transition-fast);
+  }
+
+  .mdoc-nav__item:hover {
+    color: var(--color-primary);
+  }
+
+  .mdoc-nav__item.is-active {
+    color: var(--color-primary);
+    border-left-color: var(--color-primary);
+    background: var(--accent-faint-bg);
+  }
+
+  @media (max-width: 768px) {
+    /* The sidebar moves above the content, so its divider moves with it and it
+       gets a height cap: an uncapped 34-item list would bury the contract. */
+    .mdoc-nav {
+      position: static;
+      border-right: none;
+      border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+      max-height: 40vh;
+    }
+  }
+</style>

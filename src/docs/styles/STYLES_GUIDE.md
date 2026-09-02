@@ -96,9 +96,10 @@ Two things that make replicas drift silently, both of which have happened:
 
 - **Astro `<style>` is scoped**, so a production component's styles never reach a replica of it on
   another page. That is why replicas carry inline styles, and why they diverge unnoticed.
-- **Read the media queries, not just the base rule.** `.footer-links` is `gap: 0.75rem` at the top of
-  `FooterLinks.astro` and `gap: 2rem` under `@media (min-width: 768px)` — the desktop value is the one
-  a desktop specimen had to match, and missing it is how the old replica drifted.
+- **Read the media queries, not just the base rule.** `.footer-links` is `gap: var(--spacing-md)` at the
+  top of `FooterLinks.astro` and `gap: var(--spacing-2xl)` under `@media (min-width: 768px)` — the
+  desktop value is the one a desktop specimen had to match, and missing it is how the old replica
+  drifted.
 
 ---
 
@@ -115,19 +116,23 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 
 ### Core Tokens (Summary)
 
-| Category              | Examples                                                        | Count   |
-| --------------------- | --------------------------------------------------------------- | ------- |
-| Colors (brand + text) | `--color-primary`, `--bg-light`, `--text-primary`               | 35      |
-| Primary opacity scale | `--color-primary-02` through `--color-primary-65`               | 19      |
-| Component colors      | `--filter-chip-bg`, `--service-card-text`, `--footer-bg`        | 31      |
-| Tool-domain colors    | `--hub-authority-blue`, `--dm-*`, `--icg-*`, `--techpar-*`      | 33      |
-| Misc colors           | `--checkerboard-line`, `--theme-toggle-color`                   | 6       |
-| Spacing               | `--spacing-xs` through `--spacing-3xl` + `--spacing-2_5xl`      | 8       |
-| Gaps                  | `--gap-tight` through `--gap-extra-wide`                        | 4       |
-| Typography            | `--font-family`, `--font-weight-*`, `--text-*`                  | 10      |
-| Transitions           | `--transition-fast`, `--transition-normal`, `--transition-slow` | 3       |
-| Shadows               | `--shadow-sm`, `--shadow-md`, `--shadow-lg`                     | 3       |
-| **Total**             |                                                                 | **160** |
+Counts are deliberately not stated, matching
+[VARIABLES_REFERENCE.md](VARIABLES_REFERENCE.md)'s rule — the parity test is the referee, and a
+hand-kept number is not. (The count column this table used to carry was wrong in three separate ways
+when it was removed: a Total of 160 against rows summing to 152, over a `:root` that holds 218.)
+
+| Category              | Examples                                                                       |
+| --------------------- | ------------------------------------------------------------------------------ |
+| Colors (brand + text) | `--color-primary`, `--bg-light`, `--text-primary`                              |
+| Primary opacity scale | `--color-primary-02` through `--color-primary-65`                              |
+| Component colors      | `--filter-chip-bg`, `--service-card-text`, `--footer-bg`                       |
+| Tool-domain colors    | `--hub-authority-blue`, `--dm-*`, `--icg-*`, `--techpar-*`, `--regmap-*`       |
+| Misc colors           | `--checkerboard-line`, `--theme-toggle-color`                                  |
+| Spacing               | `--spacing-xs` through `--spacing-3xl`, plus `--spacing-1_25`/`-1_75`/`-2_5xl` |
+| Gaps                  | `--gap-tight` through `--gap-extra-wide`                                       |
+| Typography            | `--font-family`, `--font-weight-*`, `--text-*`                                 |
+| Transitions           | `--transition-fast`, `--transition-normal`, `--transition-slow`                |
+| Shadows               | `--shadow-sm`, `--shadow-md`, `--shadow-lg`                                    |
 
 > Note: Dark theme variables use `light-dark()` in `:root` — only `color-scheme: dark` and 2 RGB triplets remain in the `html.dark-theme` block. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
 
@@ -156,6 +161,7 @@ src/styles/
     ├── table.css            # .brutal-bench-table
     ├── cards.css            # Option cards, trust cards, teaser cards, rec cards, attention cards, FAQ, gateway cards
     ├── form.css             # Input, choice buttons, tab bar, segmented controls, fields, sliders
+    ├── sash.css             # .brutal-sash + .brutal-sash-corner (announcement sash)
     ├── portfolio.css        # .brutal-project-card
     └── map.css              # Legend, timeline, map controls, panel, reg cards
 ```
@@ -189,14 +195,58 @@ In stylesheets, always import in cascade order:
 
 ### Scoped vs. Global Styles — Decision Tree
 
-| Scenario                                        | Use                                                                           |
-| ----------------------------------------------- | ----------------------------------------------------------------------------- |
-| Design system tokens, resets, page layout       | Global CSS in `src/styles/`                                                   |
-| Single-component visual styles                  | Scoped `<style>` in the `.astro` file                                         |
-| Styling dynamically injected HTML (`innerHTML`) | `:global()` wrapper on the selector                                           |
-| Dark theme color switching                      | `light-dark(light, dark)` inline — preferred over `:global(html.dark-theme)`  |
-| Dark theme non-color overrides (opacity, etc.)  | `:global(html.dark-theme)` prefix — only for properties that aren't colors    |
-| Global keyframes or animations                  | `src/styles/global.css`                                                       |
+| Scenario                                            | Use                                                                           |
+| --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Design system tokens, resets, page layout           | Global CSS in `src/styles/`                                                   |
+| Single-component visual styles                      | Scoped `<style>` in the `.astro` file                                         |
+| **Styling an element a _child_ component renders**  | **Shared module in `src/styles/components/` — see below**                     |
+| Styling dynamically injected HTML (`innerHTML`)     | `:global()` wrapper on the selector                                           |
+| Dark theme color switching                          | `light-dark(light, dark)` inline — preferred over `:global(html.dark-theme)`  |
+| Dark theme non-color overrides (opacity, etc.)      | `:global(html.dark-theme)` prefix — only for properties that aren't colors    |
+| Global keyframes or animations                      | `src/styles/global.css`                                                       |
+
+#### The scoped-rule / foreign-element trap
+
+Astro scopes by **attribute**, not by nesting: a rule written in `Parent.astro` compiles to
+`.thing[data-astro-cid-PARENT]`, and an element rendered by `<Child />` carries the **child's**
+cid. So a parent styling a child's element produces a rule that matches nothing — no error, no
+warning, no unstyled flash. It simply never applies, and the element quietly keeps whatever the
+base rule gave it.
+
+This is not the `/brand` replica drift documented above, and `:global()` is not the fix. It is
+also **not** caught by an orphan-class scan, because the class does exist and does have rules —
+they just carry a cid the element will never have.
+
+**Worked example (BL-139).** `.portfolio-filter-drawer`'s entire mobile treatment — roughly 270
+lines across `PortfolioHeader.astro` and `StickyControls.astro` — targeted an element rendered by
+`FilterDrawer.astro`. None of it had ever applied: at 375px the drawer computed
+`width: 350px; border-left: 2px` — the desktop side panel — on a route that had shipped a "mobile
+drawer" for its whole life. Two comments reading _"Drawer styles moved to FilterDrawer.astro"_
+recorded a move whose declarations were left behind.
+
+**Remedy order** — put the rule where it *applies*, not where the markup used to be:
+
+1. If the element is rendered by a child, and the styling is positional or shared, move it to a
+   `src/styles/components/*.css` module. A plain stylesheet cannot fall into this trap at all.
+2. If it genuinely belongs to one component, move it into **that** component's scoped block.
+3. Reach for `:global()` only for markup that has no component to own it — the `innerHTML` case
+   above.
+
+**But first ask whether the rule should apply at all.** Dead CSS has usually been dead for a
+long time, and nobody has been missing it. BL-139's rules turned out to be the wrong design once
+rendered — full-bleed, the drawer covered the page header and the control that opened it — so
+they were **deleted, not relocated**. Reviving a rule is a product decision wearing a bug's
+clothing: render it before you assume the original author was right.
+
+**Prove it with a rendered measurement, not a reading.** Authored CSS looks identical whether it
+applies or not, so the only evidence that a relocation worked is a computed style from a real
+browser. That is why the BL-139 tests assert `getComputedStyle` values at each breakpoint.
+
+**Check the browserslist floor before reaching for a newer CSS feature.** `package.json` declares
+`Safari >= 14`, and LightningCSS down-levels *some* constructs (`light-dark()`) while emitting
+others verbatim with no fallback — viewport units among them. An unsupported unit is therefore
+dropped silently at runtime rather than polyfilled at build time, taking its whole declaration
+with it.
 
 ### `class:list` — Conditional Classes
 
@@ -334,7 +384,8 @@ and `.brutal-gateway-grid` / `.brutal-gateway-card` (both `cards.css`):
 ```
 
 `auto-fill` with a floor beats fixed column counts: `.container` is a flat `max-width: 1600px`
-with no responsive override, so `repeat(3, 1fr)` yields 368px cards at a 1280 viewport and
+with no responsive **max-width** step (its horizontal padding does step — see § Container
+queries), so `repeat(3, 1fr)` yields 368px cards at a 1280 viewport and
 283px at 1025 — narrower than the same card on a phone. The 768px `1fr` override is also what
 stops the `minmax()` floor forcing horizontal scroll on small screens; do not remove it.
 And `auto-fill`, not `auto-fit`: `auto-fit` collapses empty tracks, so a sparsely-populated
@@ -360,6 +411,31 @@ And one trap in the **single-column fallback**, which is where BL-105 nearly shi
   filling the track and being clamped by `max-width`. It only shows between the cap and the
   breakpoint (600–768px here), so a check at 480px sees nothing wrong. Assert **uniformity**
   across all cards, not one card's upper bound.
+
+### A flex list item lays out every child, text nodes included
+
+`.brutal-gateway-card__features li` and its page-local equivalents are `display: flex`
+so a bullet icon can sit beside the text. That makes **every bare text node inside the
+`li` its own anonymous flex item**, laid out and wrapped independently of its
+neighbours. A bullet of plain text has exactly one text node and looks fine — which is
+why every existing call site looks fine, and why the rule stays hidden until someone
+adds a link.
+
+```html
+<!-- ✅ two flex items: the icon, and the whole sentence -->
+<li>
+  <DeltaIcon class="bullet-icon" />
+  <span>Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</span>
+</li>
+
+<!-- ❌ six flex items; renders as "Paste it into" · gap · "gst_irl_sweep" · gap · … -->
+<li><DeltaIcon class="bullet-icon" />Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument</li>
+```
+
+**The rule**: a bullet carrying any inline element (`<code>`, `<a>`, `<strong>`) must wrap
+its prose in one span, so the row is icon + span. Wrapping unconditionally is the safer
+habit — it survives the link someone adds later. This shipped broken on the IRL extractor
+page before it was caught.
 
 ### Variable Usage Priority
 
@@ -537,6 +613,17 @@ Additional breakpoints used sparingly:
 - `@media (min-width: 768px)` — desktop-only styles (used in some components)
 - `@media (min-width: 480px) and (max-width: 767px)` — tablet-only range
 - `@media print` — print stylesheet
+- `540px` / `512px` — the announcement sash only ([sash.css](../../styles/components/sash.css) + the reserve in [HeaderNavLinks.astro](../../components/HeaderNavLinks.astro)). These are not general breakpoints and nothing else should adopt them: a sash tier switches at the width where its **nav reserve fits**, measured on all three engines against the flat 96px gutter that preceded the ladder in global.css (the nav has since gained 48–64px of container at these widths — 64 below 481, 48 from 481 to 768, so the three numbers are conservative rather than exact — do not move them on that basis, see sash.css), and below 512px no corner reserve fits at all — so the reserve goes to 0 and the production sash **changes form** instead of hiding: it renders as a full-width, in-flow strip above the header (see sash.css), which costs the nav nothing. The two files must switch at the same three numbers or a sash page gains a horizontal scrollbar — and the pairing now has a **conditional fourth rule on the same three numbers**: a sash carrying the optional under-band (`.brutal-sash-under`) grows the desktop corner box to 220px and widens the reserve to match, via a `:has()` rule that is restated inside each tier block (`:has()` matches the band even while it is `display: none`, so a bare base rule would leak the desktop reserve into every tier). Three tables move together: sash.css's geometry header, HeaderNavLinks' reserve rules, and the `BREAKPOINTS` list in [announcement-sash.test.ts](../../../tests/e2e/announcement-sash.test.ts).
+
+- `540px` — [PortfolioHeader.astro](../../components/portfolio/PortfolioHeader.astro) only, and for a measured reason rather than a design one: its header row is the page title (`white-space: nowrap`) beside the search/filter controls under `space-between`, which needs 436px of container — a 540px viewport when this was measured — before it fits. It used to stack at 480 and overflowed every width from 481 to 531 by up to 51px. Since the gutter ladder went live a 540px viewport gives a 492px container and 436px is reached at ~484px, so the number is now conservative rather than exact; it stays at 540 because 481–483 still needs it. If the title's length or the controls' minimum changes, re-measure and move this number; do not adopt it elsewhere.
+
+**Container queries** are sanctioned where a component is rendered at more than one width for the SAME viewport, and only there. [StatsBar.astro](../../components/StatsBar.astro) is the first and currently only user: it renders inside the full `.container` on `/ma-portfolio/` and inside the narrower specimen frame on `/brand`, so viewport queries got the specimen wrong at every desktop width. It sets `container-type: inline-size` on its own scoped `.container` and switches at `1094px` / `672px` / `384px`. All three are now container facts, and **none of them can be read as a converted viewport tier**. Only `1094px` was derived from the fitting maths (four columns need a 1095px container to hold a six-character value at 3.5rem); `672px` and `384px` originated as the converted 768/480 tiers and are *retained* — re-derivation when the gutter ladder went live showed that leaving them produces only tier upgrades on both renderings.
+
+That last point used to be false: the lower two were documented as "the 768/480 viewport tiers expressed as container widths, since `.container` costs a constant 96px of padding". `.container` no longer costs a constant anything — its gutter steps 3rem / 1.5rem / 1rem ([global.css](../../styles/global.css)), which makes viewport→container **discontinuous**: a wider viewport can yield a narrower container across a breakpoint, so the same container width occurs in two separate viewport bands and no container number can express a viewport tier. The thresholds were re-derived when that ladder went live and all three stayed put, because leaving them produces only tier upgrades on both renderings. **[ADR-0027](../adr/0027-container-query-thresholds-are-container-facts.md) holds the mapping table, the discontinuity and the rejected alternative — read it before moving one of these numbers.**
+
+**Derive these with a margin, not as an equality.** The first cut solved each threshold exactly and shipped whatever slack fell out: four columns cleared a 1064px container by 0.39px, which passed locally (`scrollWidth` rounds the two to a tie) and failed in CI, where Linux rasterizes fractionally wider. A second, worse case hid in the same habit — the 2.5rem tier inherited 2rem side padding down to a 384px container and overflowed by up to 15px across viewports 481–511 (the container widths are the durable half of that account; those viewport numbers pre-date the gutter ladder), a 30px band no sampled test width sat inside. Every tier now clears its longest value by at least 8px, and [stats-bar-fit.test.ts](../../../tests/e2e/stats-bar-fit.test.ts) sweeps the whole range against a 4px ink floor rather than sampling widths. A sub-pixel pass is not a pass, and a sampled space cannot show you where its edges are.
+
+Prefer a viewport media query when a component has one rendering. Reach for `@container` when a specimen, a card, a drawer or a split layout gives the same component a second width, because a viewport query cannot see that.
 
 ### Touch Targets
 
@@ -578,6 +665,44 @@ Use the canonical `--z-*` tokens from [variables.css](../../styles/variables.css
 
 ## Frosted Glass
 
+Eleven component families carry the treatment **by default** — `.brutal-btn`,
+`.brutal-choice-btn`, `.brutal-search`, `.brutal-segmented`, `.brutal-option-card`,
+`.brutal-trust-card`, `.brutal-stat-tile`, `.brutal-callout`, `.brutal-faq__item`,
+`.brutal-tool-shell`, and `.tool-tab-bar`. (`.tool-action-bar--frosted` is a deliberate
+opt-in variant, not a default.) Don't re-apply a `.brutal-frosted*` utility on top of
+any of them; it double-blurs.
+
+### Three shapes, not one
+
+"Frosted" is three different treatments here, and picking the wrong one is the failure
+this section exists to prevent — it happened during the change that added the four
+card/tile families above, and the doc's own wording caused it.
+
+| Shape             | Background                     | Blur  | Edge treatment | Carried by                                                                                                                    |
+| ----------------- | ------------------------------ | ----- | -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Control triple** | `--surface-subtle-bg` (2%)     | 2px   | ✅ highlight + hairline | The nine control and card families above                                                                              |
+| **Container pair** | `--surface-faint-bg` (0.5%)    | 3px   | ❌ none        | `.brutal-tool-shell`; the `.brutal-frosted` utility and `.tool-action-bar--frosted` (neither is a default)                     |
+| **Opaque panel**   | `--surface-panel-bg` (85%)     | 8px   | ❌ none        | `.tool-tab-bar` alone                                                                                                          |
+
+**The edge treatment is what makes frost visible on a flat page**, not the blur. This
+site's ground is a checkerboard grid, and over it the container pair's half-percent tint
+is indistinguishable from no treatment at all — the published specimen doc says so
+outright ("a frosted pane on a flat background is indistinguishable from an unfrosted
+one"), and `BACKLOG.md` records a branch lost to exactly that. Reach for the container
+pair only over real content: scrolling body copy, an image, a colored surface.
+
+**One pane owns the glass.** A frosted surface nested inside another frosted surface
+blurs an already-blurred backdrop, so the child stays transparent and the container
+carries the treatment. Two consequences of that rule, both live in the codebase: on
+`.brutal-segmented` the frost sits on the **container** and the segments stay
+transparent — with `--active` keeping a **solid** fill, because that fill is the only
+signal saying which segment is selected and a translucent wash over the container's own
+glass would leave it barely distinguishable from its inactive neighbour; and on the
+`/hub/mcp/docs/` Jobs lens the frost was dropped entirely when the cards became
+index rows (ADR-0026 § Amendment): a 46px row is not an elevated surface, and the
+treatment read as noise at that density. Frost is for shapes with room to hold
+it, which is the other half of the same rule.
+
 All `.brutal-btn` buttons include a frosted-glass aesthetic by default:
 
 ```css
@@ -605,12 +730,17 @@ The `--frost-highlight` / `--frost-edge` pair carries the theme-switched values 
 
 Additional frosted-glass utilities in `global.css`:
 
-| Class                        | Blur               | Use Case                          |
-| ---------------------------- | ------------------ | --------------------------------- |
-| `.brutal-frosted`            | 3px                | Standard containers, action bars  |
-| `.brutal-frosted--heavy`     | 6px                | Drawers, sticky bars over content |
-| `.brutal-frosted--blur-only` | 1.5px              | Subtle wet-glass sheen            |
-| `.brutal-frosted--overlay`   | 6px + 92% opacity  | Modal/panel overlays              |
+| Class                        | Blur              | Shape                                  | Use Case                          |
+| ---------------------------- | ----------------- | -------------------------------------- | --------------------------------- |
+| `.brutal-frosted`            | 3px               | Container pair                         | Containers over content           |
+| `.brutal-frosted--heavy`     | 6px               | Container pair, heavier tint (75%/60%) | Drawers, sticky bars over content |
+| `.brutal-frosted--blur-only` | 1.5px             | **Its own** — edge treatment, but `transparent` in light theme, plus a dark-theme contrast/brightness lift | Subtle wet-glass sheen, over content only |
+| `.brutal-frosted--overlay`   | 6px + 92% opacity | Opaque panel                           | Modal/panel overlays              |
+
+`--blur-only` is the one to be careful with: it carries the highlight and hairline edge,
+which reads as the control triple, over a background that is fully transparent in light
+theme. That combination is precisely what `BACKLOG.md` records costing a branch, and it
+is why it does not reduce to any of the three shapes above.
 
 ---
 
@@ -618,9 +748,42 @@ Additional frosted-glass utilities in `global.css`:
 
 Recurring patterns used across hub tools (ICG, TechPar, Tech Debt Calculator, Diligence Machine).
 
+### `HubHeader` owns the space above and below the page title
+
+A page that renders `HubHeader` **must not add its own top padding** to the section
+wrapping it. The component already contributes `--spacing-3xl` above the title and
+`--spacing-2xl` below the subtitle, and both scale at the 768/480 breakpoints. A
+second helping on the section stacks: it does not replace the component's.
+
+```css
+/* ✅ the page owns its BOTTOM padding only */
+.my-hub-tool {
+  padding: 0 0 5rem;
+}
+
+/* ❌ stacks 3xl on the 3xl HubHeader already contributes, starting this page's
+   title 48px lower than every other Hub page */
+.my-hub-tool {
+  padding: var(--spacing-3xl) 0 5rem;
+}
+```
+
+Five pages had drifted this way (both IRL tools, the Diligence Machine, and all
+three Library guides), which is why the rule is written down rather than left to
+be noticed. The measurable invariant: on every page carrying an unmodified
+`HubHeader`, the `h1` starts at the same offset and the gap from the subtitle to
+the first content block is `--spacing-2xl`.
+
+The `/hub/mcp/*` guide pages are a deliberate exception — they zero the component
+and supply their own `.guide-hero` chrome (see `mcp-guide.css`).
+
 ### Print Stylesheets
 
-All hub tools include a `@media print` block in their scoped styles with a consistent structure:
+Hub tools whose output is meant to be taken into a meeting — ICG, TechPar, the Tech
+Debt Calculator, the Diligence Machine, the Regulatory Map — include a `@media print`
+block in their scoped styles with a consistent structure. The two IRL tools do not:
+their deliverable is a file you download or a body you paste, so there is nothing on
+screen worth printing. Add the block when a tool's on-screen result **is** the artifact.
 
 ```css
 @media print {
@@ -795,10 +958,23 @@ The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse
 
 **Behavior:**
 
-- Default state (expanded): triangle points down (`rotate(180deg)`), teal (`--color-primary`)
-- When a parent has `.is-collapsed`: triangle points up (`rotate(0deg)`), muted color
-- Color transitions smoothly between states via `var(--transition-fast)`
-- Dark theme collapsed color handled automatically via `var(--text-dark-muted)`
+- Expanded: triangle points down (`rotate(180deg)`), teal (`--color-primary`)
+- Collapsed: triangle points up (`rotate(0deg)`), muted (`--text-muted`)
+- Both transitions run on `var(--transition-fast)`
+- No dark-theme override needed — `--text-muted` is a `light-dark()` token, so the collapsed colour switches with the theme on its own
+
+**Collapsed is collapsed, whichever mechanism drives it.** Two are supported and they must
+look identical:
+
+| Mechanism    | Collapsed selector                            | Use when                    |
+| ------------ | --------------------------------------------- | --------------------------- |
+| JS-toggled   | a parent carries `.is-collapsed`               | the open state is scripted  |
+| `<details>`  | `details:not([open]) > summary .delta-chevron` | native disclosure, no JS    |
+
+Changing one branch's resting appearance means changing the other. The `<details>` branch
+shipped with the rotation but not the muted colour, so every native disclosure on the site
+sat teal while closed until it was corrected — and no `/brand` specimen caught it, because
+all of them demonstrate the JS-toggled pattern.
 
 **Convention:**
 
@@ -806,7 +982,7 @@ The `.delta-chevron` utility (defined in `interactions.css`) provides a collapse
 - Toggle `.is-collapsed` on the card/container element, not the chevron itself
 - In print styles, hide with `:global(.delta-chevron) { display: none !important; }`
 
-**Current usage**: ICG recommendations (`infrastructure-cost-governance`), Diligence Machine attention cards and questions (`diligence-machine`)
+**Current usage**: both branches are used widely — JS-toggled by ICG recommendations and Diligence Machine attention cards/questions, `<details>` by the Hub landing and MCP pages, services, regulatory map, ClipFigure and FyiItem. It is a shared utility, so treat any change to it as site-wide and enumerate consumers with `grep -rl delta-chevron src/` rather than trusting a list here.
 
 ---
 

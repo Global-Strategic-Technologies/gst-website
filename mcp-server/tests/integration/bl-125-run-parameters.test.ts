@@ -23,7 +23,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { irlIngestionPrompt } from '../../src/prompts/irl-ingestion';
-import { informationRequestListPrompt } from '../../src/prompts/information-request-list';
+import { irlCreatePrompt } from '../../src/prompts/irl-create';
 
 const BODY = 'x'.repeat(300);
 
@@ -33,8 +33,8 @@ function render(args: Record<string, unknown>): string {
   return result.messages.map((m) => (m.content.type === 'text' ? m.content.text : '')).join('\n');
 }
 function renderList(args: Record<string, unknown>): string {
-  const parsed = informationRequestListPrompt.argsSchema.parse(args);
-  const result = informationRequestListPrompt.build(parsed as never);
+  const parsed = irlCreatePrompt.argsSchema.parse(args);
+  const result = irlCreatePrompt.build(parsed as never);
   return result.messages.map((m) => (m.content.type === 'text' ? m.content.text : '')).join('\n');
 }
 
@@ -549,7 +549,7 @@ describe('BL-125 — the delivered-as-a-document and embed-framing clauses', () 
 
   it('the structural variant prescribes no tool probe', () => {
     // Extract-only forbids tool invocation outright, and the two
-    // gst_information_request_list bodies orchestrate neither IRL-pipeline tool
+    // gst_irl_create bodies orchestrate neither IRL-pipeline tool
     // the existing clause's recovery path uses.
     for (const text of [renderList({}), renderList({ companyName: 'Kestrel' })]) {
       expect(text).not.toContain('validate_irl_provenance');

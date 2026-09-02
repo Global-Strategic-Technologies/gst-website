@@ -71,6 +71,22 @@ const isHomepage = currentPath === '/' || currentPath === '';
       noindex={noindex}
     />
 
+    <!--
+      BL-144: the pinned brand mono. Above the fold on every page — the header
+      wordmark, the nav and every heading resolve to it — so this is a genuine
+      preload, not a speculative one. Exactly one: the two fallback faces behind
+      it are `local()` and have nothing to fetch. `crossorigin` is required even
+      same-origin, because font fetches are always CORS-mode; without it the
+      preload is discarded and the font is fetched a second time.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/gst-mono-var-latin-v1.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
     <!-- Favicons and Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
@@ -111,6 +127,16 @@ const isHomepage = currentPath === '/' || currentPath === '';
   </head>
   <body>
     <a href="#main-content" class="skip-nav">Skip to main content</a>
+    {
+      /* Announcement sash (Sash.astro), placed by the PAGE, not by this layout —
+         which pages carry one is the registry's decision (src/data/announcements.ts),
+         and /hub/mcp/ must never carry it. The slot exists because the corner box
+         is absolutely positioned against <body> and has to clear the sticky
+         header: the default slot renders inside <main>, which starts below the
+         header and opens its own stacking context at z-index 1, so a sash there
+         could neither reach the corner nor rise above the header. */
+    }
+    <slot name="sash" />
     <Header currentPath={currentPath} staticHeader={isHubSubPage} />
     <main id="main-content" role="main">
       {

@@ -2,7 +2,7 @@
  * Hub tool `WebApplication` JSON-LD — the helper's contract, and the guarantee
  * that every tool page actually emits it.
  *
- * BL-099: the six tool pages each inlined their own near-identical copy of this
+ * BL-099: the six tool pages that existed then each inlined their own copy of this
  * schema, and the copies drifted — the IRL generator shipped with no
  * `knowsAbout` array and a `datePublished` five weeks off. Nothing caught it,
  * because no test in the repo asserted on JSON-LD at all.
@@ -127,9 +127,12 @@ describe('hubToolSchema — emitted shape', () => {
   });
 
   it('keeps knowsAbout per-tool rather than collapsing it to a shared array', () => {
-    // The distinction BL-099's acceptance criteria got wrong: all six pages
+    // The distinction BL-099's acceptance criteria got wrong: the tool pages
     // carry DIFFERENT expertise arrays, so hoisting this into the shared author
-    // constant would delete real signal from five of them.
+    // constant would delete real signal from most of them. Six distinct arrays
+    // across seven pages as of the IRL extractor, which deliberately repeats the
+    // generator's: they are two halves of one subject, and that is a content
+    // judgement rather than the collapse this guard exists to prevent.
     const other = hubToolSchema({
       name: 'Other',
       description: 'Other',
@@ -151,6 +154,7 @@ describe('every hub tool page emits WebApplication JSON-LD', () => {
     // seventh tool lands.
     expect(TOOL_PAGES).toEqual([
       'diligence-machine',
+      'information-request-list-extractor',
       'information-request-list-generator',
       'infrastructure-cost-governance',
       'regulatory-map',

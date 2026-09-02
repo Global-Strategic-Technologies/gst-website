@@ -108,7 +108,7 @@ supply it. Follow in order:
    into `customizeIrlArticle`, emit it as a deeplink param, update
    `TOOL_DESCRIPTION` + the arg describes.
 4. **MCP prompt**: add the wire arg (see `wire-shape.ts` adapters) to
-   `gst_information_request_list`, map it into `toolArgs` + the omission-clause
+   `gst_irl_create`, map it into `toolArgs` + the omission-clause
    computation, bump the prompt version.
 5. **Hub page**: add the form control, thread the value into the client
    `customizeIrlArticle` call, add the deeplink param + hydration, extend the

@@ -45,7 +45,7 @@
   background: var(--search-input-bg);
   color: var(--search-input-text);
   font-size: 0.8125rem;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-family);
   transition: all 0.2s;
   min-height: 38px;
 }
@@ -106,7 +106,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-family);
   transition: all var(--transition-normal);
   border-radius: 0;
 }
@@ -141,9 +141,29 @@ behind) the footer. The box-shadow intentionally uses a clipped offset
 so it doesn't bleed past the drawer's own bounds onto the footer. */
 
 .filter-drawer {
+  /* How far down the drawer starts, and it is not decoration: two FIXED bars
+     sit above it — the site header (outside `main`, so it outranks everything
+     inside it) and the portfolio's sticky search/filter bar (z-index 9999
+     inside `main`, against this drawer's 1001). `main { position: relative;
+     z-index: 1 }` in global.css makes `main` a stacking context, so no
+     z-index this drawer can carry will lift it over either. Geometry is the
+     only lever, which is what this inset is.
+
+     Measured 2026-08-18 at 400x700: site header 0-58, sticky bar 58-130. The
+     panel's own top-left corner does overlap the bar's right end by a few px at
+     some widths; that is cosmetic and long-standing. What the inset protects is
+     the FILTERS title and the close button, which are clear at every width.
+
+     Named rather than left as a bare 133px because a previous attempt at a
+     bottom sheet set `top: auto` and lost this clearance without noticing:
+     `elementFromPoint` on the close button returned HEADER.site-header, so the
+     only in-sheet way to dismiss the drawer was not tappable. Anything that
+     changes `top` here has to answer for that. */
+  --drawer-top-inset: 133px;
+
   position: fixed;
   right: -400px;
-  top: 133px;
+  top: var(--drawer-top-inset);
   bottom: 0;
   width: 350px;
   border-left: 2px solid var(--color-primary);
@@ -193,6 +213,45 @@ html.dark-theme .filter-chip.chip-unavailable {
 
 html.dark-theme .filter-drawer {
   box-shadow: -4px 0 20px var(--scrim-40);
+}
+
+/* ==============================
+
+Filter Drawer — the production instance on /ma-portfolio
+
+============================== */
+
+/* Keyed on `.portfolio-filter-drawer`, not `.filter-drawer`: /brand renders a
+static specimen carrying only the base class, which must keep its desktop
+appearance and must never be hidden (it has no `.open` to restore it).
+
+Deliberately no responsive rules here. BL-139 found ~270 lines of drawer CSS in
+PortfolioHeader.astro and StickyControls.astro, neither of which renders the
+drawer, so Astro's scope attribute never matched and none of it had ever
+applied — including a full-width sheet at <=768px and a bottom sheet at <=480px.
+Rendering those for the first time showed why nobody had missed them: full-bleed,
+the drawer covers the page header and the controls that opened it, and the
+frosted sheen it is designed around is transparent in light theme. The 350px side
+panel that has always shipped is the better interaction at every width, so the
+dead rules were deleted rather than relocated. Do not "restore" them.
+
+The one other `.portfolio-filter-drawer` rule in the repo is the print-hide in
+pages/ma-portfolio.astro, which is live and unaffected. */
+
+.portfolio-filter-drawer {
+  /* A closed drawer is off-screen but still in the tab order without this, so
+     keyboard focus walks into controls nobody can see. `visibility` is
+     transitioned alongside `right`: per spec it interpolates as a step function
+     where any progress in (0,1) is `visible`, so the drawer reveals immediately
+     on open and stays visible for the whole slide-out on close. */
+  visibility: hidden;
+  transition:
+    right var(--transition-slow),
+    visibility var(--transition-slow);
+}
+
+.portfolio-filter-drawer.open {
+  visibility: visible;
 }
 
 /* ==============================
@@ -385,7 +444,17 @@ Brutalist Search
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) var(--spacing-md);
-  background: transparent;
+  /* Frosted glass, matching `.brutal-choice-btn` (the in-repo precedent for a
+     frosted control that is not a `.brutal-btn`). Tokens, not literals: the
+     `--frost-*` pair and `--surface-subtle-bg` are theme-switched via
+     `light-dark()`, so dark mode needs no override. No `-webkit-` twin —
+     LightningCSS prefixes from browserslist, and hand-writing both shipped a
+     Firefox regression (STYLES_GUIDE § Frosted Glass). */
+  background: var(--surface-subtle-bg);
+  backdrop-filter: blur(2px);
+  box-shadow:
+    inset 0 1px 0 var(--frost-highlight),
+    0 0 0 1px var(--frost-edge);
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-radius: 0;
   font-family: var(--font-family-mono);

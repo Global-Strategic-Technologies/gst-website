@@ -82,6 +82,93 @@ export function registeredToolNames(entrypoint: string): string[] {
 }
 
 /**
+ * The tool names `gst_irl_sweep` orchestrates, read from its
+ * `SWEEP_ORCHESTRATED_TOOLS` const. The onboarding guide publishes this count
+ * ("drives up to nine GST engines"), so the guard needs the source list.
+ */
+export function sweepOrchestratedToolNames(): string[] {
+  const src = read(`${PROMPTS_DIR}/irl-sweep.ts`);
+  const block = src.match(/SWEEP_ORCHESTRATED_TOOLS = \[([\s\S]*?)\]/)?.[1] ?? '';
+  return [...block.matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]);
+}
+
+/**
+ * The tool names `gst_target_quick_look` orchestrates, read from its prompt
+ * module's `orchestrates` literal. `/hub/mcp/docs/` publishes that list on the
+ * prompt's contract, so the guard needs the source of it.
+ *
+ * Anchored on `orchestrates: [` rather than on a named const: unlike the sweep,
+ * this prompt declares the array inline in its definition.
+ */
+export function targetQuickLookOrchestratedToolNames(): string[] {
+  const src = read(`${PROMPTS_DIR}/target-quick-look.ts`);
+  const block = src.match(/orchestrates: \[([\s\S]*?)\]/)?.[1] ?? '';
+  return [...block.matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]);
+}
+
+/**
+ * The published resource inventory: 4 library + 123 regulations + 6 radar.
+ *
+ * Derived rather than asserted, and derived HERE rather than in a suite, because
+ * both `/hub/mcp/` and `/hub/mcp/docs/` publish these numbers and two private
+ * derivations could disagree while both passing. Same single-definition policy
+ * the tool and prompt readers above follow.
+ *
+ * Radar is `fyi/latest` + `wire/latest` + one wire feed per category.
+ */
+export function resourceInventory(): {
+  library: number;
+  regulations: number;
+  radar: number;
+  total: number;
+} {
+  const library = (
+    read('mcp-server/src/content/library-loader.ts').match(/uri: 'gst:\/\/library\//g) ?? []
+  ).length;
+  const regulations = readdirSync(resolve('src/data/regulatory-map')).filter((f) =>
+    f.endsWith('.json')
+  ).length;
+  const radarCategories = (
+    read('mcp-server/src/content/radar-transform.ts')
+      .match(/export const RADAR_CATEGORIES[\s\S]*?\]/)?.[0]
+      .match(/'[a-z-]+'/g) ?? []
+  ).length;
+  const radar = 2 + radarCategories;
+  return { library, regulations, radar, total: library + regulations + radar };
+}
+
+/**
+ * Every INDIVIDUAL resource URI the server serves as a literal, as opposed to
+ * the three family templates the website registry documents.
+ *
+ * `resourceInventory()` above answers "how many", which is what the counts row
+ * needs. This answers "which", which is what a step claiming to mean one
+ * specific document has to be checked against (`JobStep.documentUri`). Both
+ * read the same source; neither can drift from it.
+ *
+ * Radar's category URIs are built at runtime from `RADAR_CATEGORIES`, so only
+ * the literal tier URIs appear here. That is the set a job step may name.
+ */
+export function servedResourceUris(): Set<string> {
+  const grab = (path: string, re: RegExp) => read(path).match(re) ?? [];
+  return new Set<string>([
+    ...grab('mcp-server/src/content/library-loader.ts', /gst:\/\/library\/[a-z0-9-]+/g),
+    ...grab('mcp-server/src/resources/radar.ts', /gst:\/\/radar\/[a-z]+\/latest/g),
+  ]);
+}
+
+/**
+ * The sweep's completeness-check rule text (`IRL_COMPLETENESS_CHECK`), whose
+ * halt predicate — zero substantive cells OR ratio below 5% — the onboarding
+ * guide restates. Returned raw so a guard can pin both arms.
+ */
+export function irlCompletenessCheckText(): string {
+  return read(`${PROMPTS_DIR}/extraction-rules.ts`).match(
+    /IRL_COMPLETENESS_CHECK = \[([\s\S]*?)\]\.join/
+  )![1];
+}
+
+/**
  * Prompt names, read from the `PROMPT_NAME` literal each prompt module declares.
  * Scoped to the modules the registry actually imports, so an orphaned file in
  * the directory cannot inflate the set.

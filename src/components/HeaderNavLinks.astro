@@ -88,6 +88,56 @@ const { currentPath = '/', links } = Astro.props;
     list-style: none;
   }
 
+  /* Corner reservation for the announcement sash (Sash.astro). This component
+     has no mobile menu trigger — all four links stay visible at every width —
+     so Hub and About sit under the sash footprint at every breakpoint. The nav
+     yields the corner; the sash never moves.
+
+     `> .brutal-sash-corner`, not a descendant match: only the PAGE sash is a
+     direct child of <body> (BaseLayout's named slot puts it there). A card-scale
+     sash sits inside a card, and /brand's specimens sit inside a section — a
+     descendant match reserved 168px on /brand for a corner that isn't there,
+     which also made the live HeaderNavLinks specimen misrepresent the
+     sash-less production nav it exists to mirror (BL-095 AC-2).
+
+     The three reserve values pair with the corner-box sizes in
+     src/styles/components/sash.css (200/170/140px boxes → 168/140/108px
+     reserve); edit both tables or neither, and switch tiers at the same widths
+     — 768 / 540 / 512, which are the widths at which each reserve FITS on all
+     three engines (WebKit's mono metrics run widest), not the handoff's 768/480.
+     Below 512px the reserve goes to 0 and the sash leaves the corner — it
+     renders as a full-width IN-FLOW strip above the header (sash.css), which
+     costs the nav nothing; the guard still matches the corner box there, so
+     the 0 keeps the pairing honest.
+
+     The :has() guard is what keeps every sash-less page byte-identical — no
+     sash in the DOM, no padding here. */
+  body:has(> .brutal-sash-corner) ul {
+    padding-right: 168px;
+  }
+
+  /* Fourth member of the pairing, conditional: a sash carrying the optional
+     under-band (.brutal-sash-under, sash.css) grows its corner box to 220px —
+     the subtext runs nearly the full chord, and the 220px box was sized against
+     the widest face any engine resolved the then-unpinned `monospace` generic
+     to. BL-144 pinned that face, and its advance IS that widest case, so the
+     box is still exactly right; it is no longer headroom against an unknown.
+     The reserve clears the whole box, so it grows with it: 220px.
+
+     Shape rules, both load-bearing:
+     - NO `min-width` companion. A min/max pair around 768/769 leaves
+       fractional widths (Windows 125% scaling, browser zoom) matching
+       NEITHER rule — under-band visible on a 168px reserve, the exact bug
+       this rule exists to prevent. Instead this base rule is restated inside
+       each tier block below with that tier's own value.
+     - The restatements are REQUIRED, not defensive: this selector out-ranks
+       the plain tier rules ((0,3,2) vs (0,2,2)), and :has() matches the
+       under-band even while sash.css display:nones it at ≤768 — without the
+       restatements, every tier would keep the 220px desktop reserve. */
+  body:has(> .brutal-sash-corner .brutal-sash-under) ul {
+    padding-right: 220px;
+  }
+
   a {
     color: var(--text-secondary);
     text-decoration: none;
@@ -131,8 +181,29 @@ const { currentPath = '/', links } = Astro.props;
       gap: 1.5rem;
     }
 
+    body:has(> .brutal-sash-corner) ul {
+      padding-right: 140px;
+    }
+
+    /* Under-band restatement (see the base rule's comment): the band is
+       hidden at this width, but :has() still matches it. */
+    body:has(> .brutal-sash-corner .brutal-sash-under) ul {
+      padding-right: 140px;
+    }
+
     a {
       font-size: var(--text-xs);
+    }
+  }
+
+  /* The sash's own tier, at ITS breakpoint (540), not the nav's (480 below). */
+  @media (max-width: 540px) {
+    body:has(> .brutal-sash-corner) ul {
+      padding-right: 108px;
+    }
+
+    body:has(> .brutal-sash-corner .brutal-sash-under) ul {
+      padding-right: 108px;
     }
   }
 
@@ -144,6 +215,34 @@ const { currentPath = '/', links } = Astro.props;
     a {
       font-size: var(--text-xs);
       letter-spacing: 0.05em;
+    }
+  }
+
+  /* Nothing to yield FOR — at the same width sash.css moves the sash out of
+     the corner into the in-flow strip, which costs the nav nothing. */
+  @media (max-width: 511px) {
+    body:has(> .brutal-sash-corner) ul {
+      padding-right: 0;
+    }
+
+    body:has(> .brutal-sash-corner .brutal-sash-under) ul {
+      padding-right: 0;
+    }
+  }
+
+  /* Written when `.container` paid 3rem at every width, which left a 320px
+     viewport only 224px for ~283px of content; tightening the gap bought back
+     24px and kept the row on one line at every width a current phone reports.
+
+     The gutter ladder (global.css, 2026-09-01) now gives 320px a 288px
+     container, and the row holds one line there even with this rule disabled —
+     measured 2026-09-01, Chromium. So this is CONSERVATIVE RATHER THAN EXACT,
+     not load-bearing. Kept because it costs nothing and is the first line of
+     defence if the gutter moves again; `Header.astro`'s `flex-wrap` is the
+     second. */
+  @media (max-width: 400px) {
+    ul {
+      gap: 0.5rem;
     }
   }
 </style>

@@ -111,6 +111,8 @@ const clientConfig = JSON.stringify({
 </nav>
 
 <script>
+  import { initScrollSpy } from '../utils/scroll-spy';
+
   interface TocConfigItem {
     href: string;
     source: {
@@ -212,23 +214,9 @@ const clientConfig = JSON.stringify({
       }
 
       // ── Scroll-spy ──────────────────────────────────────
+      // Shared with OnboardingToc.astro — see src/utils/scroll-spy.ts.
       if (config.scrollSpy) {
-        const tocLinks = nav.querySelectorAll<HTMLAnchorElement>('.toc__list a');
-        const sectionIds = Array.from(tocLinks).map((a) => a.getAttribute('href')!.slice(1));
-
-        const onScroll = () => {
-          let activeId = sectionIds[0];
-          for (const id of sectionIds) {
-            const el = document.getElementById(id);
-            if (el && el.getBoundingClientRect().top <= 80) activeId = id;
-          }
-          tocLinks.forEach((a) => {
-            a.classList.toggle('is-active', a.getAttribute('href') === `#${activeId}`);
-          });
-        };
-
-        window.addEventListener('scroll', onScroll, { passive: true });
-        onScroll();
+        initScrollSpy(nav.querySelectorAll<HTMLAnchorElement>('.toc__list a'));
       }
     });
   });

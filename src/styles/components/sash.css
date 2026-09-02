@@ -1,0 +1,561 @@
+/* ==============================
+
+Announcement Sash
+
+A clipping corner box plus a rotated band, rendered by Sash.astro from the
+announcement registry (src/data/announcements.ts) and exhibited on /brand.
+Lives here rather than in Sash.astro's scoped \3c style> because the /brand
+specimens use the same classes without rendering the component.
+
+GEOMETRY PAIRS — the band is centred on the 45° chord of its corner box, so the
+corner-box size, the band's `top` and the band's `width` move TOGETHER. Setting
+one without the others slides the band off the corner. The nav reserve in
+HeaderNavLinks.astro (168 / 140 / 108px) is the third member of the set — and
+when a page's sash carries the optional under-band (below), the desktop corner
+grows to 220px and its reserve widens to match, a conditional fourth member
+keyed on the SAME three breakpoints (no new BREAKPOINTS, one new box size).
+
+  scale          corner box   band width   band top   label size   nav reserve
+  page desktop   200px        280px        42px       --text-sm    168px
+  page desktop   220px        310px        53px       --text-sm    220px
+    with under-band (the box grows for it — see UNDER-BAND below)
+  page ≤768px    170px        220px        42px       --text-xs    140px
+  page ≤540px    140px        190px        34px       --text-xs    108px
+    (each tier also restates the band's `left` — see the ≤768 block)
+  page ≤511px    IN-FLOW STRIP — full-width two-line banner above the header
+                 (see the bottom of this file); reserve stays 0
+  card           104px        150px        26px       --text-2xs   n/a
+
+UNDER-BAND (optional, page scale): top 88px, left −40px, width 320px (the
+rule's own base triple is the smaller no-`:has()` fallback — see there). It is
+a LIST of rule-separated FIELDS, each its own link, spaced by --spacing-sm;
+the band itself is inert, 24px thick including its borders. The AA touch floor
+(--touch-target-min-aa) is stated on the FIELD, but only in the ≤511 strip
+block: that is the form where a field is a real finger target, and putting it
+on the rotated corner grows the band to 26px and drops c_min to 0.62, under the
+ribbon floor (measured). Its chord sits below the main band's and is LONGER
+(it lies nearer the box diagonal), so the under-band gets more room than the
+headline.
+
+RIBBON-FORM INVARIANT — work in CHORD SPACE, c = x − y in box-local coords. A
+45° band is the strip c ∈ [c_min, c_max] where c_min/c_max are its LOWER and
+UPPER EDGES (centre c ∓ height·√2/2), and the box's main diagonal is c = 0.
+Three conditions make a band read as a ribbon, and all three are asserted in
+tests/e2e/announcement-sash.test.ts so the numbers below stay free to move:
+
+  c_min > 0        Both long edges then run top-edge → right-edge, so the box
+                   cuts the band exactly like a ribbon crossing a corner. At
+                   c_min ≤ 0 the lower edge crosses the box's LEFT and BOTTOM
+                   edges instead: the band covers the box's top-left corner and
+                   ends square in mid-page, one box-width in from the
+                   viewport's right.
+  c_max < box      The apex above the top band stays white.
+  caps outside     Both end caps land outside the box, so no square cut end is
+                   ever visible. This is what sets the band WIDTHS (each must
+                   exceed 2.83·centre_y + height); they are not decorative.
+
+Learned the hard way (2026-08-28/29): an axe fix moved the under-band to
+top 89/−47/290 and then top 88/−41/300, whose centre c reads +8.5 — positive,
+and it still rendered broken, because the EDGE was at −10.4. Measuring the
+invariant at the centre instead of the edge is what let it ship twice.
+
+Both bands are chord-centred (centre_x = (box + c)/2), which is what keeps the
+flex-centred copy centred on the visible chord — no padding compensation.
+
+COPY ROOM is NOT the centreline chord. A band is a strip, so its chord shortens
+as c rises across it, and the copy is cut by the box first at the TEXT's upper
+edge: usable = (box − c_text_top)·√2, where c_text_top = c + (ink height)·√2/2.
+Measure the ink FLAT — un-rotate the band first. Reading a rect off a rotated
+band gives its axis-aligned bbox ((w+h)/√2), and comparing that to a chord
+length understates the copy by ~25%: it is what hid a WebKit overflow behind an
+apparent 60px of slack (2026-08-29). Measuring at the centreline instead of the
+text's upper edge is what let a clipped three-segment /brand specimen ship the
+same day. Both are asserted per engine in the sash E2E suite now.
+
+Live figures at the 220px box, flat ink into usable chord. Measured on all
+three engines 2026-08-29; the per-engine spread is now ≤0.5px, so one pair
+stands for all three (it used to be an 18px spread across the unpinned
+`monospace` generic — BL-144 pinned the face and that is gone):
+  main band   107 / 185
+  under-band  243 / 261
+
+The under-band pair moved when the band became a list of FIELDS: the fields
+stretch to the band's full 22px content box, where a single text node measured
+13px, and `usable` is read at the ink's UPPER edge — so 10px of extra ink
+height costs ~10px of usable chord. Ink itself grew only 2.3px (two rendered
+spaces became two --spacing-sm gaps). 18px of slack remains.
+
+The axe target-size clearance: the main band is a link and each under-band
+FIELD is a link (the under-band itself is not), and axe measures UNCLIPPED
+client rects against the UNOBSCURED area — the main band's unobscured strip
+above the fields' rect top must stay ≥ 24px. It is bought by SEPARATING the two
+bands in c, never by pushing either toward the diagonal: the current 10 c-unit
+gap yields a 7px visible gap and a 29px strip. The two fields are neighbours of
+each other too, but their rotated AABBs barely meet — each keeps far more than
+24×24 clear. Re-run the accessibility suite after any geometry change.
+
+No ≤768/≤540 variants exist: the under-band hides 512–768px alongside
+__detail, and below 512 it is the strip's second line.
+
+Colour comes from three tokens: --sash-bg and --sash-ink (variables.css, with
+the per-palette ink in palettes.css) draw the bands, borders and hover — the
+derivations use color-mix, so they follow all six palettes and both themes
+with no extra CSS — and --sash-badge-bg (the secondary accent, re-pointed for
+palette-1) fills the badge chip under constant --bg-dark ink, measured at
+every palette × theme when the chip left the two-token pair (2026-08-28).
+The under-band inverts the bg/ink pair — the chip's original move, whose
+per-palette ink was chosen to keep that inversion above AA — and that
+inversion is its ONLY colorway: design review computed the family's 68%/82%
+mixes at ≈3.5–3.9:1 as text backgrounds on several palette/theme combos (they
+were only ever validated as a 1px border and a transient hover), so any
+future colorway needs its own contrast measurement and its own /brand
+specimen before it ships.
+
+Spacing follows the same rule: anything that lands on the scale uses its token,
+and the rest are raw on purpose — they are the optical band thicknesses and
+paddings the 45° chord is drawn for, and no token lands on them. (Deliberately
+not enumerated: a hand-kept list of exceptions goes stale the first time one
+moves.)
+
+============================== */
+
+.brutal-sash-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+
+  /* The box must not eat clicks on the nav underneath it; the band re-enables
+     pointer events for itself. */
+  pointer-events: none;
+  z-index: var(--z-overlay);
+}
+
+.brutal-sash {
+  position: absolute;
+  top: 42px;
+  left: -1px;
+  width: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  box-sizing: border-box;
+  padding: var(--spacing-sm) 0;
+  transform: rotate(45deg);
+  pointer-events: auto;
+  text-decoration: none;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  background: var(--sash-bg);
+  color: var(--sash-ink);
+  border-top: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+  border-bottom: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+  transition: background var(--transition-fast);
+}
+
+/* The chip left the two-token family 2026-08-28 (operator direction: an
+   alternate colour): --sash-badge-bg (the secondary accent, re-pointed for
+   palette-1 in palettes.css) under CONSTANT dark ink — --bg-dark, not
+   --sash-ink, which goes light in some palettes. Measured at every
+   palette × theme when it changed — worst surviving combo 5.0:1; re-measure
+   all twelve before re-pointing either side. */
+.brutal-sash__badge {
+  padding: 0.0625rem 0.3125rem;
+  letter-spacing: 0.1em;
+  background: var(--sash-badge-bg);
+  color: var(--bg-dark);
+}
+
+/* Above the band's other segments on the type scale: the label is the subject
+   and reads first. One step up (--text-xs) is the family default — which the
+   --flat specimen shows, having no corner ancestor — and the DESKTOP page
+   corner goes two (--text-sm), ramping back to --text-xs on the ≤768 tiers
+   (their smaller chords; today's look there).
+   The CARD corner opts out to the band's base size: 104px leaves no chord to
+   spend, and its 104/150/26 geometry was drawn at that size (the table above
+   and conventions.md both record it). Budgets per tier: Sash.astro. */
+.brutal-sash__label {
+  letter-spacing: inherit;
+  font-size: var(--text-xs);
+}
+
+.brutal-sash-corner--card .brutal-sash__label {
+  font-size: var(--text-2xs);
+}
+
+.brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash__label {
+  font-size: var(--text-sm);
+}
+
+.brutal-sash__detail {
+  padding-left: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  border-left: 1px solid color-mix(in srgb, var(--sash-ink) 45%, transparent);
+  opacity: 0.85;
+}
+
+/* The optional under-band: subtext parallel to and below the main band, page
+   scale only (Sash.astro refuses it at card scale — a 104px corner has no
+   second chord to spare). A LINK in production (its own href, typically a
+   fragment; Sash.astro), so pointer events come back on and the AA
+   touch-target floor applies — the /brand specimens pass no href and render
+   the same class as a decorative span. The border mix matches the main
+   band's and is what keeps the inverted fill visible on a dark page.
+   Geometry and the colorway ruling: header comment above. */
+/* The triple here is the NO-`:has()` fallback, not the shipped geometry — the
+   rule below always wins in a browser that supports `:has()`, because every
+   under-band the codebase renders is inside a corner. It is the 200px box's
+   derivation, kept because that is the box such a browser also gets (the nav
+   reserve is `:has()`-keyed too, so it degrades as a set, not piecemeal).
+   Shipped values, and the ones the header paragraph documents: 88 / −40 / 320. */
+.brutal-sash-under {
+  position: absolute;
+  top: 78px;
+  left: -34px;
+  width: 288px;
+
+  /* 24px INCLUDING the two 1px borders, and the vertical padding this rule used
+     to carry is gone, so the fields stretch to the full 22px content box rather
+     than to the 18px the padding left them. The band's thickness cannot come
+     from the fields instead: a field carrying the 24px AA floor here makes the
+     band 26px (24 + borders), which measured c_min at 0.62 against the ribbon
+     guard's floor of 2 — the lower edge lands on the box diagonal and the band
+     stops being a ribbon. So the floor is stated on the ≤511 strip, where the
+     band is unrotated and the field is a real finger target; on this rotated
+     corner the field's client rect is its ~98px AABB, which is what
+     target-size actually measures (accessibility suite, green).
+     Be honest about what that gave back: when the BAND was the link its target
+     was 24px thick, and a field stretched into the 22px content box is 24 → 22.
+     The AABB makes it moot for the criterion, but the two pixels are real, so
+     do not read this rule as having surrendered nothing.
+     A thinner band may sit closer to the box diagonal without breaking the
+     ribbon invariant, and every px of c it gives back is 1.41px of chord for
+     the copy, which is the tightest on the sash. Realised: 2px of band height
+     bought ~2px of chord. Small on its own — the box growth below is what
+     actually made the copy fit — but it is also why c_min sits at 2.3 against
+     the ribbon guard's floor of 2 (see below): there is no slack left here, so
+     any change to this min-height, to --text-2xs, or to the inherited
+     line-height must re-run the ribbon sweep. */
+  min-height: var(--touch-target-min-aa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Separates the fields from the rule between them. The family's own idiom —
+     `.brutal-sash` spaces its segments the same way — and deliberately NOT
+     per-field padding, which would also pad the band's two OUTER edges and
+     spend ink the corner does not have. */
+  gap: var(--spacing-sm);
+  box-sizing: border-box;
+  transform: rotate(45deg);
+  pointer-events: auto;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+
+  /* 0.06em, not the 0.1em the other segments carry: the under-band's copy runs
+     nearly the full chord, and at 0.1em WebKit's wider mono metrics pushed the
+     live 35-character subtext 5.3px PAST the box (Chromium and Firefox cleared
+     it by under 1px — a chromium-only fit check called it fine). This is the
+     family's existing tighter step, already used by the ≤540 band and the ≤511
+     strip. Copy fit is asserted per engine in the sash E2E suite. */
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  background: var(--sash-ink);
+  color: var(--sash-bg);
+  border-top: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+  border-bottom: 1px solid color-mix(in srgb, var(--sash-bg) 68%, var(--bg-dark));
+}
+
+/* One field of the under-band: a run of copy that may carry its own href. The
+   class rides the element in BOTH forms — the live <a> and the /brand
+   specimens' decorative <span> — exactly as `.brutal-sash` does, because it
+   names the ROLE a field plays in the band, not whether it is interactive.
+   That is also what makes the gallery exhibit it at all: the specimens pass no
+   hrefs, so a class scoped to the anchor would never render there and nothing
+   would catch it.
+
+   It stretches to the band's full content box so the hover fill covers the
+   band's thickness rather than just the text line, and it carries its own
+   colour, because the anchor is now a CHILD: global.css's `a` sets
+   --color-secondary and `a:hover` --color-primary at (0,1,1), which out-ranks a
+   bare class at (0,1,0), and sash.css is @imported from global.css so source
+   order cannot save it. Hence the restatement under :hover below. */
+.brutal-sash-under__field {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  color: var(--sash-bg);
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+/* The separator between fields. Inert and aria-hidden in the markup — a
+   literal pipe is spoken "vertical line". Same de-emphasis as
+   `.brutal-sash__detail`, the family's other rule-ish part. */
+.brutal-sash-under__rule {
+  opacity: 0.85;
+}
+
+/* Hover changes the FILL only — no transform, no shadow, and no ink shift
+   (STYLES_GUIDE § anti-patterns). The `color` here is not decorative: without
+   it global.css's `a:hover` wins on specificity and repaints the label in
+   --color-primary, which IS --sash-bg — the band's own fill. The label would
+   not shift hue, it would disappear (~1.3:1 against the 82% mix, every palette,
+   both themes). Guarded by an ink-invariance assertion in the sash E2E suite. */
+.brutal-sash:hover,
+.brutal-sash:focus-visible {
+  background: color-mix(in srgb, var(--sash-bg) 82%, var(--bg-dark));
+  color: var(--sash-ink);
+}
+
+/* A field's hover: the family's 82% mix with the poles swapped for the
+   inverted fill (a slight teal lift on the dark band). Per FIELD, not per
+   band — two destinations need two affordances, and the fill landing on one
+   field is what makes the split legible without reading the copy. Measured and
+   shown as a frozen /brand hover specimen, per this file's own colorway
+   ruling.
+   `color` is restated here as DEFENCE, not because the leak bites today: a
+   field's rest ink is already --sash-bg, which is --color-primary, which is
+   exactly what the global `a:hover` would set — so the leak is a no-op on this
+   band and the mutation that fails for `.brutal-sash` passes here. It is kept
+   because the day --sash-bg stops being --color-primary, or a palette
+   re-points it, the no-op becomes a real defect silently. Do not mistake this
+   for a rule under test. */
+.brutal-sash-under__field:hover,
+.brutal-sash-under__field:focus-visible {
+  background: color-mix(in srgb, var(--sash-ink) 82%, var(--sash-bg));
+  color: var(--sash-bg);
+}
+
+/* Inset: an outside ring would be clipped by the corner box. */
+.brutal-sash:focus-visible {
+  outline: 2px solid var(--sash-ink);
+  outline-offset: -4px;
+}
+
+.brutal-sash-under__field:focus-visible {
+  outline: 2px solid var(--sash-bg);
+  outline-offset: -4px;
+}
+
+/* A corner carrying TWO bands needs a bigger box. This size was derived while
+   `--font-family-mono` was still the bare `monospace` generic, so the advance
+   width was whatever the engine and OS picked: the live 35-character subtext
+   measured 222px on Chromium and Firefox but 240px on WebKit, an 8% spread on
+   copy that occupies nearly the whole chord. At 200px the under-band fitted by
+   0.8px on WebKit — inside the noise of a font nobody specified — so the box
+   grew to 220 here. BL-144 then pinned the face, and its advance is that same
+   widest case, so 220 is still the right number and is no longer headroom
+   against an unknown. (The 253.2 / 252.7 / 253.2 figures this comment used to
+   quote were for the band as ONE text node; it is a list of fields now and
+   measures 242.55 / 242.05 / 242.55 — the live pair is recorded once, in the
+   header, rather than a second time here.) Both bands are re-derived for
+   the larger box rather than inherited (chord-centring is box-relative).
+   Keyed on :has() — the same signal HeaderNavLinks uses to widen the reserve,
+   which grows with it. The ≤768 tiers and the ≤511 strip override every rule
+   here (higher specificity, later source), so this is a desktop-only form. */
+.brutal-sash-corner:has(.brutal-sash-under) {
+  width: 220px;
+  height: 220px;
+}
+
+.brutal-sash-corner:has(.brutal-sash-under) .brutal-sash {
+  top: 53px;
+  left: -8px;
+  width: 310px;
+}
+
+.brutal-sash-corner:has(.brutal-sash-under) .brutal-sash-under {
+  top: 88px;
+  left: -40px;
+  width: 320px;
+}
+
+/* Decorative, inside a card that is itself the link — --z-raised, not --z-overlay. */
+.brutal-sash-corner--card {
+  width: 104px;
+  height: 104px;
+  z-index: var(--z-raised);
+}
+
+/* stylelint-disable-next-line no-descending-specificity -- disjoint by construction:
+   Sash.astro gates `underFields` on `scale === 'page'`, so a card corner can never
+   carry a .brutal-sash-under and the :has() rules above can never match the same
+   element. Reordering would imply a cascade interaction that cannot occur.
+   Checked against BOTH producers of this markup: Sash.astro, and the hand-written
+   specimens in BrandUILibrary.astro, whose under-band demo sits on a plain
+   .brutal-sash-corner and whose card demo mounts Sash at card scale and passes
+   no subtext. A third producer
+   pairing --card with an under-band would invalidate this and should reorder. */
+.brutal-sash-corner--card .brutal-sash {
+  top: 26px;
+  width: 150px;
+  padding: var(--spacing-xs) 0;
+  letter-spacing: 0.16em;
+}
+
+/* Documentation only — the unrotated band, so /brand can show it in a row.
+   Never mounted on a page. */
+.brutal-sash--flat {
+  position: static;
+  transform: none;
+  width: auto;
+  display: inline-flex;
+  padding: 0.4375rem 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .brutal-sash-corner:not(.brutal-sash-corner--card) {
+    width: 170px;
+    height: 170px;
+  }
+
+  /* `left` is restated here for the same reason the nav's reserve is: the
+     conditional desktop rules above match at every width (:has() sees the
+     under-band even while it is display:none), so a tier that leaves `left`
+     out inherits the 220px box's value and slides its band off-centre —
+     measured, that pulled the band's lower-right end cap 2px INSIDE the
+     170px box, which is the cut-off-square defect the ribbon test catches. */
+  .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash {
+    top: 42px;
+    left: 1px;
+    width: 220px;
+    padding: 0.4375rem 0;
+    letter-spacing: 0.1em;
+  }
+
+  /* The 170/140 chords are shorter; the label rides one step down here —
+     which is its historical size on these tiers. */
+  .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash__label {
+    font-size: var(--text-xs);
+  }
+
+  .brutal-sash__detail {
+    display: none;
+  }
+
+  /* The under-band stands down with the detail: the 170/140 corners have no
+     room for a second chord, and hiding here is what lets the nav's
+     conditional 220px reserve stay a desktop-only base rule with per-tier
+     restatements (HeaderNavLinks.astro) instead of a fourth breakpoint. */
+  .brutal-sash-under {
+    display: none;
+  }
+}
+
+/* 540, not the 480 the handoff specifies. A tier boundary is set by the width at
+   which its NAV RESERVE fits, and the 140px reserve does not fit at 481: a sash
+   page overflowed horizontally by 31px there in Chromium and was still 9px over
+   at 518 in WebKit, whose mono metrics run wider. Measured on all three engines,
+   140 needs ~527 and 108 needs ~495; the boundaries below carry a small margin
+   on top of that. The geometry triple is the handoff's ≤480 tier UNCHANGED —
+   only the width at which it takes over moved. See HeaderNavLinks.astro, which
+   switches at the same three numbers. */
+@media (max-width: 540px) {
+  .brutal-sash-corner:not(.brutal-sash-corner--card) {
+    width: 140px;
+    height: 140px;
+  }
+
+  .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash {
+    top: 34px;
+    left: -5px;
+    width: 190px;
+    padding: 0.375rem 0;
+    letter-spacing: 0.06em;
+  }
+}
+
+/* Below 512px the header nav has no corner left to yield: the logo and the four
+   links already fill the row (at 375px they fill it with ZERO reserve), so any
+   corner OVERLAY pushes the nav past the viewport and the whole document
+   scrolls sideways — measured at 64px of overflow on a 375px phone. 512, not
+   the 440 Chromium alone would allow: WebKit still overflowed by 13px at 440
+   and by 9px at 486.
+
+   Both figures were measured against the flat 96px `.container` gutter that
+   preceded the ladder in global.css (2026-09-01). The nav now has 48–64px more
+   room at these widths, so they are CONSERVATIVE RATHER THAN EXACT. Do not move
+   512 on that basis: it is one of three numbers this sheet shares with
+   HeaderNavLinks' reserve table and announcement-sash.test.ts's BREAKPOINTS, and
+   nothing catches a reserve that quietly stops clearing — a nav that can wrap
+   turns a mis-sized reserve into a two-row header rather than a test failure.
+   So below 512 the PRODUCTION sash changes FORM instead of hiding: the corner
+   becomes a full-width, in-flow, two-line strip above the header (the sash
+   slot is a direct child of <body> before <Header/>, so a static element
+   lands there naturally). In flow means no overlay, so HeaderNavLinks.astro
+   keeps the reserve at 0 at this width — that pairing is unchanged, and
+   :has() matching the box is harmless because the box costs the nav nothing.
+
+   The strip is a media RESTYLE of the standard classes — a class cannot be
+   toggled by a media query, so .brutal-sash--flat (a separate,
+   documentation-only presentation) is NOT what renders here.
+
+   Keyed on `body >` — the production mount discriminator HeaderNavLinks
+   already uses — so /brand's page-scale specimens (nested in section frames)
+   keep the display:none stand-down below and are unchanged on mobile.
+   The card scale is untouched: it lives inside a card and never meets the nav.
+
+   Notes: the focused .skip-nav (z-10000) briefly overlays the strip's first
+   line — standard skip-nav behavior, transient. __detail stays hidden here
+   (the strip shows badge + label + subtext). z-index is inert on the static
+   box and left as-is for the ≥512 forms. overflow stays hidden: the rows wrap
+   (white-space normal + flex-wrap), so nothing is there to clip. */
+@media (max-width: 511px) {
+  .brutal-sash-corner:not(.brutal-sash-corner--card) {
+    display: none;
+  }
+
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) {
+    display: block;
+    position: static;
+    width: 100%;
+    height: auto;
+    pointer-events: auto;
+  }
+
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash,
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash-under {
+    position: static;
+    transform: none;
+    width: 100%;
+    flex-wrap: wrap;
+    padding: var(--spacing-sm) var(--spacing-md);
+    letter-spacing: 0.06em;
+    white-space: normal;
+    text-align: center;
+  }
+
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash__label {
+    font-size: var(--text-sm);
+  }
+
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash-under {
+    display: flex;
+  }
+
+  /* The AA floor belongs HERE, not on the rotated corner. This is the one form
+     where a field is a real finger target: the band is unrotated and in flow,
+     so the field's client rect IS its 24px box rather than the ~98px AABB a
+     45° rotation gives it. On the corner the same declaration would push the
+     band to 26px and drop c_min under the ribbon floor (see the base rule). */
+  body > .brutal-sash-corner:not(.brutal-sash-corner--card) .brutal-sash-under__field {
+    min-height: var(--touch-target-min-aa);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brutal-sash,
+  .brutal-sash-under__field {
+    transition: none;
+  }
+}

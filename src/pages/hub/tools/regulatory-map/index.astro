@@ -249,7 +249,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       <div class="brutal-faq brutal-faq--lg">
         {
           faqItems.map((item) => (
-            <details class="brutal-faq__item brutal-frosted">
+            <details class="brutal-faq__item">
               <summary class="brutal-faq__question">
                 <span>{item.question}</span>
                 <DeltaIcon class="delta-chevron" />
@@ -1826,10 +1826,19 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     margin-bottom: var(--spacing-md);
   }
 
+  /* Wraps for the same reason the footer link row does: four fixed-width items
+     in a nowrap flex row cannot shrink, so at 320px the last one sat 8px off
+     the right edge in WebKit and the page scrolled sideways. That 8px was
+     measured under the flat 96px gutter; the ladder (global.css, 2026-09-01)
+     has since given 320px 64px more room, so the wrap is now CONSERVATIVE
+     RATHER THAN EXACT. Kept as the safety net — a nowrap row that cannot shrink
+     is one label change away from overflowing again. */
   .timeline-legend {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: var(--spacing-lg);
+    row-gap: var(--spacing-sm);
     margin-bottom: var(--spacing-xl);
     font-family: var(--font-family-mono);
     font-size: var(--text-xs);

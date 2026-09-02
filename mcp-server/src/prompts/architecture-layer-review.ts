@@ -16,7 +16,7 @@ const argsSchema = z.object({
     .string()
     .min(20)
     .describe(
-      'Free-text summary of the target — product, stage, technology stack signals, organizational shape.'
+      "Describe the target's architecture — software/product stack, infrastructure and hosting, data estate, engineering org shape, and industry context (the five layers the review walks). Free text; stage and scale signals help, and the more architectural detail supplied, the sharper the per-layer read."
     ),
 });
 

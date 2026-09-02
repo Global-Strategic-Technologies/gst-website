@@ -2,12 +2,13 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Four cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Five cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
 > - **2026-08-09**: 9 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. Three of them carried live content that did not go with the parent: BL-091's deliberately-cut half-open recovery probe became **[BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)**, BL-111's unbuilt-and-unfiled deploy-drift detector became **[BL-117](#bl-117-mcp-server--deploy-drift-detector-candidate)**, and BL-089's deferred docs-freshness check became **[BL-118](#bl-118-docs-last-updated-freshness-check-candidate)**. A fourth piece of live content — BL-111's repo-level secret decommission — needed no rescue, already being a Pending row in [SECRETS_INVENTORY § Decommission schedule](../operations/SECRETS_INVENTORY.md). A stanza marked closed is not automatically prunable — read it for live sub-blocks first, and note that all four were found by sweeping for the pattern rather than one per review round.
 > - **2026-08-22**: 1 stanza (BL-137, workers-types global shadowing) closed and pruned the same day it shipped. Last pre-prune revision: `677862fc`. Its live content — the accepted test-side residual, and the fact that a project-referenced tsconfig split was never shown to be impossible — went to [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md) rather than staying here. The BL-136 note below linked to its anchor and was retargeted at the ADR in the same commit.
+> - **2026-08-27**: 1 stanza (BL-138, CSP `media-src` + onboarding media) closed and pruned when the `/hub/mcp/get-started/` family shipped. Last pre-prune revision: `e4689e0d`. Its live content split by kind: the hosting decision, WebM do-not-re-add measurements, and 25–50 MiB revisit threshold went to [ADR-0022](../adr/0022-mcp-onboarding-media-in-git.md); the ffmpeg/GIF recipes (with the colour-stage proof and gifsicle hygiene note), per-clip page constraints, poster-as-reduced-motion rule, and the `prompts-resources` re-record trigger went to [hub/MCP_ONBOARDING.md](../hub/MCP_ONBOARDING.md). The BL-093 note below and the `.gitignore` `media-raw/` comment both linked the stanza and were retargeted in the same commit.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -133,7 +134,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-133: Payments Platform — automated MCP access checkout on Cloudflare
 
-**Source**: operator directive 2026-08-15 — build the payment rail as a reusable capability, first consumer being self-serve MCP client purchase + provisioning | **Effort**: ~2–3 weeks engineering across the slices below, plus vendor/tax lead time | **Status**: Open | **Reverses**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, which lists "public checkout / webhook-driven tier automation" as deferred pending a volume trigger — this item is the operator go-decision that supersedes it
+**Source**: operator directive 2026-08-15 — build the payment rail as a reusable capability, first consumer being self-serve MCP client purchase + provisioning | **Effort**: ~2–3 weeks engineering across the slices below, plus vendor/tax lead time | **Status**: Open — designed, implementation deferred 2026-09-01 | **Architecture & plan**: [PAYMENTS_PLATFORM_BL-133.md](PAYMENTS_PLATFORM_BL-133.md) | **Reverses**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, which lists "public checkout / webhook-driven tier automation" as deferred pending a volume trigger — this item is the operator go-decision that supersedes it
 
 **As a** prospective MCP client, **I want** to buy access with a credit card and receive working credentials immediately, **so that** neither I nor the GST operator has to run an email thread to get provisioned — and **as** the GST operator, **I want** that same rail to serve every future productized good or service, **so that** the second thing GST sells does not need a second payments integration.
 
@@ -194,7 +195,70 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - **Payment is not identity.** A card charge authenticates a payment instrument, not an organization. Decide and document what a buyer must supply before credentials are minted (verified email at minimum; firm name and use case if the radar/enterprise SKUs stay operator-gated), and whether any SKU still requires operator review before fulfillment
 - **Abuse surface.** A self-serve endpoint that mints credentials invites card-testing and throwaway-account farming. Rate-limit the checkout-creation endpoint, rely on the vendor's fraud tooling, and keep the low tier's ceilings low enough that a fraudulently-obtained free/entry credential is not worth farming
 - **Hosting split is deliberate**: the Worker owns the money-and-credentials path because that is where `OAUTH_KV`, the audit log, the tier logic, and the admin API already live; the website owns presentation and the return page. Do not split provisioning logic across both
-- **Related items**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) supplies the marketing page, public developer docs, and pricing-presentation ACs this checkout links into — its deferral premise ("a front door is not the bottleneck when nobody is at the gate") is what this operator directive revisits, so re-read that stanza's reasoning before deciding how much of the front door ships alongside. [BL-004](#bl-004-email-capture-system) overlaps on form UX, the email-service choice, and the privacy disclosure — a purchase-receipt sender and a marketing-email sender may or may not be the same vendor; decide once. BL-033's independent pen test remains the hard gate on public listing, and a live payment endpoint strengthens rather than weakens the case for running it
+- **Related items**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) supplies the marketing page, public developer docs, and pricing-presentation ACs this checkout links into — its deferral premise ("a front door is not the bottleneck when nobody is at the gate") is what this operator directive revisits, so re-read that stanza's reasoning before deciding how much of the front door ships alongside. [BL-004](#bl-004-email-capture-system) overlaps on form UX, the email-service choice, and the privacy disclosure — a purchase-receipt sender and a marketing-email sender may or may not be the same vendor; decide once. BL-033's independent pen test remains the hard gate on public listing, and a live payment endpoint strengthens rather than weakens the case for running it. **Sequencing**: [BL-145](#bl-145-design-partner-program--set-the-price-from-evidence-not-from-a-guess) runs ahead of this item and produces the number Slice 4's purchase surface has to display. Slice 1's vendor/tax decision has real lead time and can proceed in parallel; the rest of this item is building a checkout for demand that does not exist yet, and BL-145's manual fulfillment path is what carries the first customers meanwhile
+
+---
+
+### BL-145: Design Partner Program — set the price from evidence, not from a guess
+
+**Source**: operator decision 2026-08-31, taken after a pricing analysis that found no basis for a number — GST has zero customers and zero inbound, so willingness to pay is unmeasured. Pricing _implementation_ deferred in the same decision | **Effort**: ~2–4 weeks of operator time (target list, outbound, conversations); near-zero engineering — the fulfillment path already exists | **Status**: Open | **Blocks**: [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare) Slice 4 (the purchase surface cannot display a price this item has not produced) and the pricing-presentation AC in [BL-093](#bl-093-mcp-server--commercialization-phase-4)
+
+**As the** GST operator with a built product and no market contact, **I want** a small cohort of design partners recruited at a documented discount off a documented list price, **so that** the first paying relationships also produce the willingness-to-pay evidence, the reference logos, and the use-case detail that a price can honestly be set from — instead of publishing a guess that anchors the market against my advisory rates and cannot be walked back.
+
+> **Framing**: the deliverable is **a price backed by evidence, plus the first customers**, not a discount scheme. The design-partner discount is the instrument, not the point. Two properties make it the right instrument at zero customers: a conversation yields far more than a transaction when the sample size is zero, and a discount recorded _against a list price_ is reversible in a way that a low published price is not.
+
+> **The mistake this item exists to prevent** is publishing a low number. With no data, the two errors are not symmetric: too high costs silence, which is the current state anyway; too low costs the positioning permanently — it cannot be raised on existing buyers without churn, it gets cached and screenshotted, and it prices the diligence methodology that GST sells at consulting rates. The considered-and-rejected $75/mo figure is recorded here so the reasoning survives, not the number.
+
+> **Filed under Business Capabilities** on the same basis as BL-133, and with the same caveat: most of this item is operator work rather than engineering. It is here because the backlog is where GST's initiatives are triaged and because its outputs gate two engineering stanzas — not because it is a build.
+
+#### Acceptance Criteria
+
+**Slice 1 — The offer and the anchor (decision, no build)**
+
+- [ ] **Internal list price written down, with reasoning, and deliberately NOT published.** Starting hypothesis from the 2026-08-31 analysis: $18–24k/yr for the `paid` tier, on the basis that the buyer is a PE/corp-dev deal team whose adjacent line items are PitchBook/AlphaSense/Grata at $15–50k/yr and whose engagements run $25–150k — not a developer tool competing at per-seat SaaS rates. Record it as a hypothesis with its comparables, so Slice 5 can revise it against evidence rather than re-derive it
+- [ ] Design-partner offer defined in writing: discount off list (50–70% was the analysis's range), **term length**, and what GST receives in return — at minimum a named reference, feedback at a stated cadence, and case-study rights. A discount with nothing owed back is just a low price with extra steps
+- [ ] **Cohort size and a close date fixed** (3–5 partners was the analysis's figure). Both must be real constraints the operator will honour, not scarcity theatre — the offer's credibility is the asset being spent
+- [ ] End-of-term behaviour decided up front and stated in the offer: converts to list, converts to a named partner rate, or renegotiates. A partner discovering the terms at renewal is a churn event manufactured at signing
+- [ ] Decide whether the free browser Hub tools stay free as top-of-funnel. The analysis argued yes; whichever way it goes, `src/pages/hub/index.astro` currently tells visitors the tools are free and that copy has to agree with the answer (Directive-11 `grep tests/` check on any string changed)
+
+**Slice 2 — Target list and outbound motion**
+
+- [ ] A **named** target list exists — firms and people, not segments — sized to produce the Slice 3 conversation count at a realistic reply rate, and segmented by the routes that actually exist for GST (warm network, prior engagement relationships, cold outbound, inbound-from-content)
+- [ ] The ask is explicitly **a 30-minute conversation, not a sale.** The mailto CTA already on `/hub/mcp/` is a doorbell nobody is ringing; this slice is the part that makes someone ring it
+- [ ] Pipeline lives in one place with a decided home (sheet, CRM, or repo doc) — the point is that Slice 3's answers aggregate, which they cannot do if they live in an inbox
+- [ ] Outbound copy leads with the job the tools do (a defensible IRL round trip, a benchmarked cost ratio), never with rate-limit ceilings — same constraint as BL-133 Slice 4, for the same ADR-0010 reason, and it binds here first because outbound reaches a buyer before any pricing page does
+
+**Slice 3 — The conversation as an instrument**
+
+- [ ] A written question set that every conversation runs, covering: what the prospect does today instead (the real competitor is a junior analyst and a spreadsheet, not another vendor), who owns the budget, what event triggers a purchase, and an explicit willingness-to-pay probe. Ad-hoc conversations produce anecdotes; a fixed instrument produces a dataset
+- [ ] **The jobs-to-be-done hypothesis is written down first, then tested** — the conversations exist to falsify it. Current hypothesis, from the tool catalog: the deal-time job ("get me a defensible technical diligence position inside a 2–6 week window" — IRL generate/fill/extract/validate, diligence agenda, TechPar, tech-debt cost, ICG) and the standing job ("keep me current on regulation and market movement without a subscription analyst" — radar, insights, regulations, portfolio search). Record which job each prospect actually hires for, because it decides the pricing _unit_ as much as the amount
+- [ ] **The bursty-usage question answered from evidence**: diligence is a 2–6 week burst, and a flat monthly price on bursty usage invites subscribe-use-cancel. Determine whether the standing job is real enough to carry the months between deals — if it is, an annual firm seat is right; if it is not, the unit is per-deal or per-engagement and the monthly framing is wrong. This is the single highest-leverage output of the program
+- [ ] Answers recorded in the Slice 2 pipeline home in a consistent shape, so N conversations aggregate into a decision instead of a memory
+- [ ] **Falsifiable exit criteria stated before outbound starts** — the conversation count and partner count that constitute success, and the result that would say the product is mispositioned rather than underpriced. Without this the program cannot conclude, only peter out
+
+**Slice 4 — Manual fulfillment (deliberately no BL-133 dependency)**
+
+- [ ] First partners provisioned by the **existing** operator path — [`provision-client.mjs`](../../../mcp-server/scripts/provision-client.mjs) with an explicit tier, plus a manually-issued invoice — per the invoice-first ACs already in [BL-093](#bl-093-mcp-server--commercialization-phase-4). Nothing in this item waits on a checkout
+- [ ] Every partner's tier assignment traceable to an invoice, satisfying the same traceability property BL-133 Slice 3 automates later
+- [ ] **Operator cost per fulfillment measured and recorded.** This is the trigger BL-133 has been missing: when manual fulfillment exceeds a stated operator-hours-per-month threshold, the checkout stops being speculative. Five manual invoices is roughly a day of operator time total — record the real figure rather than this estimate
+- [ ] Known sharp edge, unchanged by this item: the admin API has **no PATCH**, so a tier change means delete-and-recreate and therefore a new credential. Tolerable at cohort scale if partners are told; it is BL-133 Slice 3's blocker to fix, not this item's
+- [ ] `tool:radar:*` / `resource:radar:read` remain operator-gated (`--allow-radar`) for partners as for anyone else — a design-partner discount must not become the radar bypass
+
+**Slice 5 — Set the price, and close**
+
+- [ ] After the Slice 3 exit criteria are met, the list price is **revised or confirmed against the evidence**, with the revision reasoning recorded — including the pricing unit (annual seat / per-deal / hybrid), not only the amount
+- [ ] Partner-cohort terms honoured or explicitly renegotiated at term end, per Slice 1
+- [ ] The settled price and unit are handed to [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare) Slice 4 and the [BL-093](#bl-093-mcp-server--commercialization-phase-4) pricing-presentation AC. Publishing the price is what closes this item
+- [ ] If the evidence says the product is mispositioned rather than mispriced, that conclusion closes this item too — and files its own successor. A program that can only conclude "charge $X" was not an instrument
+
+#### Technical Context
+
+- **Almost none of this is engineering, and that is the point.** The substrate BL-133 lists as already built — per-client tiers ([ADR-0010](../adr/0010-per-client-rate-limit-tiers.md)), M2M `client_credentials`, the admin API, the provisioning script, per-`keyOwner` telemetry — is sufficient to serve a five-partner cohort today. The only missing piece at this scale is a customer
+- **This does not reverse BL-133**, and should not be read as re-litigating the 2026-08-15 operator go-decision. It sequences ahead of it and supplies an input it needs. BL-133 Slice 1 (vendor and tax, which carries genuine external lead time) can run in parallel; Slices 2–4 build a checkout whose price is still unknown
+- **It does, however, restore BL-093's deferral premise as a live consideration.** That premise — "a front door is not the bottleneck when nobody is at the gate" — was revisited by operator directive, not falsified by evidence. With zero inbound as of 2026-08-31 it still describes the situation, and this item is the attempt to get someone to the gate. If it succeeds, BL-133's remaining slices stop being speculative; that is the honest trigger
+- **The constraint is distribution, not conversion.** Zero inbound means no funnel exists to optimize. Price tuning is downstream of a pipeline that has to be built by hand first, which is why Slice 2 is the load-bearing slice and Slice 1 is only an hour of writing
+- **Do not let the discount ratify an SLA.** A partner paying real money is exactly the client ADR-0014's re-enable trigger and BL-033's SLA-ratification deferral both contemplate. Capability ceilings stay non-contractual per [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md); if a partner contract requires an audit trail, that is a BL-133 Slice 2 decision surfacing early, not a thing to promise in a sales conversation
+- **Related items**: [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare) consumes this item's output and carries the automation. [BL-093](#bl-093-mcp-server--commercialization-phase-4) owns the marketing page, the developer docs, and the request-access intake this program's outbound points at — its 🟡 half-pending intake AC stays pending either way, since a cohort recruited by outbound does not close it. [BL-004](#bl-004-email-capture-system) is the same decision on the email-vendor axis; a partner-communication sender and a marketing sender may be one choice. [`PILOT_ONBOARDING.md`](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md) § 0 already describes the operator-inbox intake the manual path uses — it needs no change for this item, and its rewrite stays with whichever of BL-093 or BL-133 Slice 3 lands first
 
 ---
 
@@ -263,6 +327,78 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ---
 
+### BL-139: The filter drawer's entire mobile treatment is dead CSS
+
+> **Renumbered from BL-137 on 2026-08-22.** This item was filed as BL-137 on `feat/mcp-website-marketing` on 2026-08-18. Independently, and three days later, master filed a different BL-137 (workers-types global shadowing) — which then shipped, closed, and became [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md). Merging master into this branch put two BL-137s in one file, so the unmerged one moved. **The eleven commits dated 2026-08-18 that say "BL-137" mean this stanza** — all of them land on that one day, `4c2f675d docs(backlog): close BL-137` among them. Commit messages are immutable, so the mismatch is permanent and this note is the only thing that will ever explain it. **The converse also holds and is easier to trip over**: after the merge, `git log` on this branch also surfaces BL-137 commits dated 2026-08-21 and 2026-08-22, which came from master and mean workers-types. The date is what tells them apart, with one self-describing exception class: this renumber's own commits also carry that date and mention BL-137, because renaming an ID means naming it. Their subjects name BL-139 or this note, so a reader who lands on one is already reading the explanation. Stated as a class deliberately — an enumerated list of SHAs would be made wrong by the very commit that extended it. The wave-list entry in the header referring to "BL-137, workers-types global shadowing" is the other one, correctly.
+
+**Source**: found 2026-08-18 while chasing a WebKit overflow to the wrong cause — the overflow turned out to be a StatsBar grid and a legend row (both fixed in the same session), and this is what the investigation actually turned up | **Effort**: Small — move two rule blocks; the risk is in what they will change once live | **Status**: **CLOSED 2026-08-18**
+
+**Closed by deleting the dead CSS, not by adopting it.** The stanza assumed the dead rules were a designed mobile treatment worth restoring. They were rendered for the first time during this work, reviewed, and rejected — the 350px side panel that has always shipped is the better interaction at every width. See "The ruling" below.
+
+**Three things this stanza got wrong, all found by doing the work:**
+
+1. **It undercounted by a factor of four.** `StickyControls.astro:167-448` carried a **second, larger** dead copy — base positioning, `.drawer-header`, `.drawer-title`, `.drawer-close`, `.drawer-content`, `.filter-section`, `.filter-label`, `.filter-chips`, `.filter-chip`, `.clear-filters-btn`, `.portfolio-filter-overlay`, an `[id='filter-drawer'] { position: fixed !important }` stanza and its own 768/480 blocks. That component renders only the sticky search bar. Also dead there: `.filter-toggle`, a class that exists nowhere in the repo. 230 lines deleted, proven a no-op by the build emitting no `portfolio-filter-drawer[data-astro-cid-*]` rule at all afterwards.
+2. **"Both routes" was wrong** — `/hub/tools/regulatory-map/` renders no drawer; it imports `filter.css` only for `.brutal-filter-chip*`. The drawer renders on `/ma-portfolio/` alone, plus a static specimen on `/brand`.
+3. **The premise was wrong.** "Move two rule blocks" assumed the destination was worth reaching.
+
+**The ruling (operator, 2026-08-18): master's UX is correct; the mobile treatment is not restored.**
+
+The dead rules were made live on a branch and captured side by side against `master` at 375/400/600/1280 in both themes. What they produce:
+
+- **Full-bleed, the drawer covers the page it is filtering** — its own FILTERS title lands on the page title, its chips on the body copy, and it hides the search box and the very Filters button that opened it.
+- **The frosted utility it is built on is `transparent` in light theme.** `.brutal-frosted--blur-only`'s `--surface-sheen-bg` is a sheen, chosen deliberately so the 350px panel adds no contrast over the green stats band. At full width there is nothing behind it to sheen, so both layers are illegible. Making it readable meant swapping in `--surface-overlay-bg` — i.e. the treatment only works once you stop it being the thing it was designed as.
+- **`top: auto` silently spends the clearance the drawer needs.** See the inset note below.
+
+Each of those was fixable, and each fix was a step further from a design anyone had chosen. The rules were deleted. `filter.css` carries a "do not restore them" note at the point where someone would reintroduce them, and `tests/e2e/filter-drawer-layering.test.ts` asserts the drawer stays narrower than the viewport at 375px, so a revival trips a test rather than a review.
+
+**What survives from the attempt, because it is right regardless:**
+
+- **`--drawer-top-inset` replaces the bare `133px`.** Two **fixed** bars sit above the drawer — the site header (outside `main`, so it outranks everything inside it) and the sticky search/filter bar (`z-index: 9999` inside `main`, against the drawer's `1001`) — and `main { position: relative; z-index: 1 }` makes `main` a stacking context, so **no z-index the drawer can carry will lift it over either.** Geometry is the only lever. The bottom-sheet attempt set `top: auto`, lost that clearance without noticing, and put the close button under the site header: `elementFromPoint` returned `HEADER.site-header`, so the only in-sheet way to dismiss the drawer was **not tappable**. The number is now named and the constraint is written next to it.
+- **A hittability test.** Three of the attempt's own tests asserted geometry — `top >= 12`, header rect inside the viewport — and all three passed while the button was completely buried. **Rect assertions cannot see stacking.** The suite now checks `elementFromPoint`, which fails on that CSS.
+- **The scoping trap is documented** in [STYLES_GUIDE § Scoped vs. Global Styles](../styles/STYLES_GUIDE.md), with the added rule that a dead rule is a product decision wearing a bug's clothing: render it before assuming the original author was right.
+
+**Reverted with the ruling**, so the shipped drawer renders identically to master at every width: the `<=768` and `<=480` blocks, the `--surface-overlay-bg` override, the `--drawer-footer-clearance` custom property (its only consumer was the phone cap, so the listener writes `style.bottom` again), and `FilterDrawer`'s `.drawer-content` cap.
+
+**Verified against master** at 375/400/600/1280: `width: 350px`, `top: 133px`, `border-left: 2px`, no top border, close button tappable — and at 400x700 scrolled to the footer the drawer measures 445px, matching the pre-change measurement taken before any edit (clearance 122px).
+
+**Verification**: `astro check` 0 errors, `lint` clean, `lint:css` 0 errors (filter.css warning count unchanged at 9), 1579 unit/integration, `test:docs` 35, and 447 E2E passed across chromium/firefox/webkit at CI concurrency.
+
+**As a** phone user filtering the portfolio or the regulatory map, **I want** the drawer to use its designed mobile treatment **so that** a panel that was written to be a full-width sheet stops rendering as a desktop side-panel.
+
+**The defect is the Astro scoping trap this repo already has a rule about** ([CLAUDE.md § CSS Styling Standards](../../../.claude/CLAUDE.md)): `.portfolio-filter-drawer`'s mobile rules live in [`PortfolioHeader.astro`](../../components/portfolio/PortfolioHeader.astro)'s scoped `<style>` (the `768px` block at ~line 259 and the `480px` block at ~line 345), but the element they target is rendered by the CHILD component [`FilterDrawer.astro`](../../components/portfolio/FilterDrawer.astro), so it carries that child's `data-astro-cid-*` attribute and the parent's rules never match. Two comments in the file — "Drawer styles moved to FilterDrawer.astro" — say the move was intended; the declarations were left behind.
+
+**Measured, not inferred.** At 375px the drawer computes `right: -400px; width: 350px; border-left: 2px; max-height: none` — the desktop base rule from [`filter.css:143`](../../styles/components/filter.css). Every one of these is silently lost on both routes:
+
+| Intended (dead)                                             | Actual                      |
+| ----------------------------------------------------------- | --------------------------- |
+| `width: 100%` full-width sheet                              | `350px` side panel          |
+| `right: -100%` / `.open { right: 0 }`                       | `right: -400px`             |
+| `border-left: none` + `border-top: 2px solid`               | `border-left: 2px`          |
+| ≤480: `bottom: 0; top: auto; max-height: 85vh` bottom sheet | `top: 133px`, no max-height |
+
+`FilterDrawer.astro` has its own `@media (max-width: 480px)` block, which is why this was not obvious — but it only sets `.drawer-header` / `.drawer-content` / `.filter-chips` padding. It contains no `right`, `width`, `top` or `border` declaration at all, so nothing there substitutes for the dead rules.
+
+**Not a scroll-width defect.** An earlier version of this stanza blamed the closed drawer for 13px of horizontal overflow at 320px in WebKit. That was wrong and is disproven: removing the drawer from the DOM leaves the overflow unchanged, because it is `position: fixed` and does not contribute to `scrollWidth`. The real causes were a `.stats-grid` whose `1fr` tracks are floored at min-content and a nowrap `.timeline-legend`, both fixed 2026-08-18, and both routes are now in [`narrow-viewport-chrome.test.ts`](../../../tests/e2e/narrow-viewport-chrome.test.ts).
+
+#### Acceptance Criteria
+
+The stanza's ACs were written on the assumption that the mobile treatment would be restored. Three are met as written; the first is met by the opposite of what it asked for, which is the point of the closure above.
+
+- [x] **Not restored — deleted.** The AC asked that the mobile declarations "live where the drawer is rendered" and that a rendered measurement prove they apply. The rendered measurement is what killed them: made live, the sheet covers the page it filters, hides the control that opened it, and needs its own frosted utility replaced to be legible at all. Operator ruling 2026-08-18: master's side panel is the correct UX. What ships renders identically to master at every width, with the dead rules gone from both components and a "do not restore them" note where they would be reintroduced.
+- [x] The comments describe what is true — both stale "Drawer styles moved to FilterDrawer.astro" comments replaced with one naming the mechanism (a parent's scoped rule compiles to its own cid; the element carries the child's), and a third added to `StickyControls.astro` where its dead block was.
+- [x] `filter-drawer-layering.test.ts`, `portfolio-filtering.test.ts`, `regulatory-map-mobile.test.ts` and `narrow-viewport-chrome.test.ts` pass on all three engines — plus `portfolio-drawer-scroll`, `mobile-navigation`, `brand-page`, `accessibility` and `analytics`.
+- [x] The open/closed detection still describes the property the drawer animates. No code change was needed: open is still `right: 0`, closed still `-400px`. Its docblock now records that, and that a switch to `transform` would silently break the check — the fact the AC was protecting, written down rather than rediscovered.
+
+#### Technical Context
+
+- **No visible change ships on any route.** `/ma-portfolio/` renders the same drawer it always has. The diff is dead CSS removed, one magic number named, one a11y fix, and docs.
+- **A closed drawer is no longer in the tab order.** `visibility: hidden` with `visibility` in the transition, which does not disturb the `right`-based open/closed signal — its step-function interpolation reveals the drawer the instant `.open` lands and holds it visible through the slide-out. Asserted by focus reachability rather than a CSS proxy. This is the one behavioural change, and it is invisible.
+- **`--drawer-top-inset` is load-bearing, not cosmetic.** It is the only lever that clears the two fixed bars above the drawer, because `main`'s stacking context puts them permanently out of z-index reach. Anything that changes `top` has to answer for the close button, which the hittability test now guards.
+- **One thing left behind for whoever needs it**: `--filter-drawer-bg` (`variables.css:203`) is defined and documented but referenced by nothing.
+- **If a mobile treatment is ever actually wanted**, it is a design brief, not a bug fix: the panel would need a surface that works full-bleed, a way to not obscure the controls that opened it, and a decision about whether covering the filtered content is acceptable on a phone. None of that was in the dead CSS.
+
+---
+
 ### BL-114: Strip the 10 inert `.primary` / `.secondary` class tokens
 
 **Source**: relocated from BL-095's technical context when that initiative closed (2026-08-08) — the record predates the closeout and remains a real obligation | **Effort**: Small (the strip); the _define_ path needs a design decision first | **Status**: **CLOSED 2026-08-09** — stripped, not defined
@@ -303,7 +439,8 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 #### Technical Context
 
 - **Carry forward the existing guard's documented precision limit**: it counts a class as defined if the name appears in any selector anywhere, including as a descendant qualifier. A site-wide version inherits that, so it will not catch a class defined only under a parent it never actually sits inside.
-- Scope question to settle first: reuse the 22-route axe list from BL-096, or scan a narrower set. The 22 routes are already paid for as a Playwright fixture.
+- **The inverse case recurs too, and this guard's shape will not see it** (recorded from BL-139's closure, 2026-08-18). A rule whose target element is rendered by a _different_ component is dead — Astro scopes by attribute, so a parent's rule compiles to its own `data-astro-cid-*` while the element carries the child's. An orphan-**class** scan passes it cleanly: the class exists and has rules, they just carry a cid the element will never have. BL-139 was two such piles across two components, one of them 230 lines. Worth deciding whether this guard covers rules-without-elements as well as classes-without-rules, or whether that is a separate check — the trap is now documented in [STYLES_GUIDE § Scoped vs. Global Styles](../styles/STYLES_GUIDE.md), but documentation is not a guard.
+- Scope question to settle first: reuse the axe route list from BL-096, or scan a narrower set. Those routes are already paid for as a Playwright fixture. Read the count from `PAGES` in `tests/e2e/accessibility.test.ts` rather than from here: it was 22 at BL-096 and 30 as of the Jobs lens.
 - **Count files, then count routes — they diverge.** BL-114's 10 tokens sat in 8 files, but one was `Hero.astro`, a shared component rendering on five routes (`index`, `about`, `services`, `404`, `500`). A file-count reading of that recurrence understates the reach, and this guard is scoped by route, not by file.
 
 ---
@@ -457,6 +594,30 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 - BL-033 pilot needs inline file delivery for an automated workflow
 - Direct partner feedback that the Hub-page hop is friction worth removing
 
+### BL-148: Nothing lints spacing tokens, so a swept file re-rots silently
+
+**Source**: found 2026-09-02 while sweeping 90 rem spacing literals under [ADR-0028](../adr/0028-extended-spacing-scale.md) | **Effort**: Small to write, Medium to land — the rule is a few lines, absorbing 227 pre-existing violations is the work | **Status**: Open
+
+**As a** contributor adding a component, **I want** a hardcoded `padding: 1.5rem` to fail lint the way a hardcoded `#1a1a1a` already does **so that** the spacing scale stays real without depending on a reviewer noticing.
+
+**What it is.** [`.stylelintrc.json`](../../../.stylelintrc.json)'s `scale-unlimited/declaration-strict-value` rule covers only `/color$/`, `fill`, `stroke`, `box-shadow` and `text-shadow`, plus `font-size` on an allowed-list at `warning`. **No rule constrains `padding`, `margin` or `gap`.** That is why **321 rem spacing literals accumulated across 38 files** with every CI check green, and why the six files ADR-0028 cleared can re-rot the day after the sweep — the guard it shipped, `tests/integration/spacing-token-floor.test.ts`, is scoped to those six files only.
+
+**Two things make this more than a config edit:**
+
+1. **Adding the properties to the existing rule would be a silent no-op.** Its `ignoreValues` carries `/^-?[0-9.]+(px|rem|em|%)?,?$/`, which matches any bare number-plus-unit — so `padding: 1.5rem` is ignored by construction. The pattern appears in **both** the base `rules` block and the `**/*.astro` override, so a fix applied to one block would no-op precisely where most components live.
+2. **Breadth.** **227 literals across the 32 files this sweep did not touch** would light up at once (231 across 35 repo-wide, the difference being ADR-0028's four accepted residuals) (measured at HEAD with the ADR-0028 guard's own parser, which returns exactly the 4 documented residuals over the six swept files). Most are on-scale and mechanically substitutable (value-identical, as the ADR-0028 sweep established); an unknown remainder are off-scale and need the same case-by-case ruling ADR-0028 gave its four residuals — which is judgement, not codemod.
+
+**Deliberately not bundled into ADR-0028's PR.** That change was 90 value-identical substitutions in six files, reviewable by a mechanical end-state check. Absorbing the remaining 227 across 32 untouched files is a different risk shape and a different review.
+
+#### Acceptance Criteria
+
+- [ ] A lint rule (or a repo-wide extension of `spacing-token-floor`) fails on a raw rem/px spacing value that has an exact token, in **both** the base and `**/*.astro` stylelint blocks — and is proven to fail by mutation, not by observing a green run
+- [ ] The `ignoreValues` no-op above is confirmed handled rather than assumed — the current pattern would swallow the rule
+- [ ] The 227 existing violations in untouched files are either fixed in the same change or explicitly baselined with the baseline's expiry stated
+- [ ] Off-scale residuals get a per-value ruling in the ADR-0028 shape (kept with a reason, or snapped with evidence) — snapping is NOT automatic, since a value not on the ramp moves pixels when substituted
+- [ ] `calc()` contents stay out of scope, per ADR-0028's ruling that a derived constant is not a chosen spacing step
+- [ ] `src/docs/styles/STYLES_REMEDIATION_ROADMAP.md` §3 is updated again once this lands — it is the authoritative record BL-094 cites
+
 ---
 
 ## Infrastructure
@@ -465,7 +626,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 **Source**: BL-140 user ruling, 2026-08-23 — v1 of `fill_information_request_list_xlsx` delivers base64-only, and the ruling that accepted it also filed this follow-up | **Effort**: Medium | **Status**: Candidate — no committed consumer yet
 
-**As a** GST partner who just produced a populated IRL via `gst_irl_create`, **I want** a one-click download surface for it, **so that** delivery does not depend on the invoking client's ability to write a base64 payload to disk.
+**As a** GST partner who just produced a populated IRL via `gst_irl_populate`, **I want** a one-click download surface for it, **so that** delivery does not depend on the invoking client's ability to write a base64 payload to disk.
 
 **Why it does not exist yet.** The Hub generator page (`/hub/tools/information-request-list-generator/`) reconstructs _blank_ workbooks client-side from URL args — a populated workbook's `fills` cannot ride a deeplink the same way (hundreds of prose cells vs a handful of scoping params), so the frozen tool's `downloadUrl` pattern would hand the operator the wrong artifact. BL-140 therefore deliberately omitted `downloadUrl` from the fill tool's payload, and the residual is documented in [`irl-fill/CONTRACT.md`](../../../mcp-server/src/docs/tools/irl-fill/CONTRACT.md) § Accepted residuals. Note BL-046 (inline MCP file delivery, candidate) covers the same gap from the client side — if Claude Desktop ships arbitrary-mimeType attachment rendering, this stanza may be moot; evaluate both before building either.
 
@@ -1013,7 +1174,7 @@ The original acceptance criteria are moot, and the last one — _"`/hub/radar` s
 
 **Verification & docs**
 
-- [ ] Public-facing developer docs at `https://docs.mcp.globalstrategic.tech` — tool reference (auto-generated from Zod schemas), authentication guide, rate-limit policy, audit-log schema, status page link — **moved to [BL-093](#bl-093-mcp-server--commercialization-phase-4) 2026-07-27** (its § Public developer documentation block carries the full scope, now sourced from the CONTRACT/USAGE corpus)
+- [ ] Public-facing developer docs at `https://docs.mcp.globalstrategic.tech` — tool reference (auto-generated from Zod schemas), authentication guide, rate-limit policy, audit-log schema, status page link — **moved to [BL-093](#bl-093-mcp-server--commercialization-phase-4) 2026-07-27** (its § Public developer documentation block carries the full scope and its dispositions; the CONTRACT/USAGE-corpus sourcing this line once pointed at was retired 2026-08-28 by ADR-0023, and the docs shipped on-site at `/hub/mcp/docs/`)
 - [ ] Penetration test by an independent firm focused on the OAuth flow, prompt-injection surface, and audit-log integrity — findings remediated before public listing
 - [ ] Load test demonstrates the system handles the contracted SLA at 10× expected pilot volume without degradation
 - [ ] Final compliance review with each pilot client's information-security team — signed-off before they switch from sandbox to production tokens
@@ -1107,27 +1268,39 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 > **Slice 1 (provisioning automation) shipped anyway and stays** — see its ✅ ACs below. Honest framing: the script itself is inventory until there is someone to provision. What it delivered that pays off regardless was incidental to it — three pre-existing runbook defects found and fixed en route, one of which (an audit-guarantee overclaim) was headed into client-facing email.
 >
 > **Do not resume slice-by-slice.** The next BL-093 action is a decision about the premise, not a slice pick. Selecting the next-unblocked slice is what produced inventory the first time: the three remaining slices are blocked on operator decisions precisely because they are the ones that touch the market. All AC detail below is preserved so it isn't re-derived when a trigger fires.
+>
+> ✅ **§ Website marketing surface shipped 2026-08-09 — third re-engage trigger fired** (operator go-decision on building the front door ahead of demand; not a slice pick against the standing instruction above). Delivered: `/hub/mcp/` and the `services.astro` offer section + `/hub/` cross-link. Per-AC dispositions below. The radar human-in-the-loop caveat shipped with it and was **removed at operator direction on 2026-08-17** — see its AC.
+>
+> ✅ **§ Public developer documentation shipped 2026-08-28 — the same trigger fired again** (a fresh operator go-decision, which is a decision about the premise rather than a slice pick). This IS that slice, resumed: `/hub/mcp/docs/` publishes a contract for all 34 capabilities, and `docs.mcp.globalstrategic.tech` becomes a Worker-served 308 alias to it rather than a separate site. Design record and the retirement of AC 2: [ADR-0023](../adr/0023-mcp-capability-docs-rendering.md). Maintenance procedure: [hub/MCP_CAPABILITY_DOCS.md](../hub/MCP_CAPABILITY_DOCS.md). Per-AC dispositions below; the section stays OPEN on one criterion, the alias going live.
+>
+> **Request-access form, payments, and the directory listing stay deferred and the premise-decision instruction stands.** The marketing page still links no docs subdomain, and the guards that enforce that still hold — but for a new reason, recorded in each of them: the capability reference has one published address, `/hub/mcp/docs/`, and the subdomain is an alias that returns no document. `tests/integration/mcp-marketing-parity.test.ts` binds the page's published ceilings, tool catalog, and hostnames to `mcp-server` source and fails the build if a future edit adds an SLA claim, an uptime figure, or a `docs.mcp.globalstrategic.tech` link.
 
 #### Acceptance Criteria
 
 **Public developer documentation** (absorbed from BL-033 § Verification & docs, 2026-07-27)
 
-- [ ] Public developer docs published at `https://docs.mcp.globalstrategic.tech` — tool reference, authentication guide (M2M `client_credentials` + how to request access), rate-limit policy, audit-log guarantees, status-page link (the original BL-033 scope, carried verbatim)
-- [ ] Tool reference derives from the existing per-tool-family `CONTRACT.md`/`USAGE.md` corpus (`mcp-server/src/docs/tools/{icg,portfolio,regulatory-map,tech-debt,diligence,radar,techpar}/`), already drift-guarded by `mcp-server/tests/integration/contract-parity.test.ts` — a publication pipeline over that corpus, NOT a parallel hand-written or separately-generated reference (avoids a third description of every tool)
-- [ ] Consumer quickstart derived from [`REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) — its audience header currently says "GST team member (consumer)"; split or re-audience for external clients without breaking the internal doc
-- [ ] Rate-limit page carries the "tunable, non-contractual capability ceilings — NOT ratified SLA quotas" framing from [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) / ADR-0010 — no published doc may imply a ratified SLA
-- [ ] Published set reviewed against [`AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) / [`DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) so operator-only material (admin endpoints, key rotation, Upstash) stays private
+- [x] Public developer docs published — tool reference, authentication guide (M2M `client_credentials` + how to request access), rate-limit policy, status-page link — ✅ **shipped on-site at `/hub/mcp/docs/` 2026-08-28**, not at a separate `docs.` site: the subdomain is now a 308 alias to that page (ADR-0023). Two deviations from the letter, both deliberate: (a) **audit-log guarantees are not published** — the audit pipeline is not live per ADR-0014 and the marketing guard requires built-and-tested phrasing, so publishing a guarantee would be the overclaim that guard exists to prevent; (b) the reference is one page with two lenses rather than a doc site, which is what let it reuse the Hub's design system and parity culture wholesale
+- [x] ~~Tool reference derives from the existing per-tool-family `CONTRACT.md`/`USAGE.md` corpus … a publication pipeline over that corpus, NOT a parallel hand-written or separately-generated reference (avoids a third description of every tool)~~ — 🔁 **RETIRED 2026-08-28 by [ADR-0023](../adr/0023-mcp-capability-docs-rendering.md)**, on the record rather than by omission. The corpus is internal engineering prose (cache semantics, Upstash bindings, runbooks) and this same AC block separately requires the published set be curated for privacy, so both routes need curation; the question was only where the curated text lives. What replaces the pipeline is `src/data/mcp/capabilities.ts` bound to server source by `tests/integration/mcp-docs-parity.test.ts` — identifiers, orchestration lists, resource counts and per-capability examples all fail there on drift. The "third description" harm does not materialise because the end state is **one** public reference and one internal corpus. Accepted and named in the ADR: authored prose can drift where the guard cannot reach
+- [x] Consumer quickstart derived from [`REMOTE_CLIENT_SETUP.md`](../../../mcp-server/src/docs/operations/REMOTE_CLIENT_SETUP.md) — ✅ met by `/hub/mcp/get-started/` (shipped 2026-08-27), which is externally audienced from the start; the internal doc was not split or re-audienced and stays as it is
+- [x] Rate-limit page carries the "tunable, non-contractual capability ceilings — NOT ratified SLA quotas" framing from [`RATE_LIMITS.md`](../../../mcp-server/src/docs/operations/RATE_LIMITS.md) / ADR-0010 — ✅ the Rate limits contract carries it, and the parity suite asserts both that framing and that **every** tool's availability line repeats it, so a reader meets it wherever they land. Exact ceilings are not restated: they are published once, on `/hub/mcp/`
+- [x] Published set reviewed against [`AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) / [`DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) so operator-only material (admin endpoints, key rotation, Upstash) stays private — ✅ reviewed, and the review is now mechanical: the parity suite fails on `wrangler`, `upstash`, `/admin/`, `MCP_KEY_` or `secret put` appearing in any published string
+- [ ] **`docs.mcp.globalstrategic.tech` live in production.** The route and the 308 branch are merged (`mcp-server/wrangler.toml`, `worker.ts`, `src/dispatch/host-route.ts`), and `custom_domain` provisions DNS and the certificate on deploy — but there is no staging counterpart (staging carries a single route, as with the status subdomain), so the alias is first exercised after the gated `mcp-production` deploy. **This is the one criterion keeping the section open**: closing it means confirming the 308 resolves to `/hub/mcp/docs/` in production
 
 **Website marketing surface**
 
-- [ ] Dedicated page under `/hub` (route naming consistent with `/hub/radar`, `/hub/tools/*`): what the server is, the BL-033 use cases, tier table, links to the public docs + status page, request-access CTA
-- [ ] MCP offer section on `src/pages/services.astro` (zero MCP marketing exists site-wide today) + cross-link from `src/pages/hub/index.astro`
-- [ ] Page meets the existing hub-page bar: design-system tokens only, works in light/dark themes and all 6 palettes, desktop-first responsive; E2E coverage per [`TEST_STRATEGY.md`](../testing/TEST_STRATEGY.md); if any existing copy strings change, the Directive-11 `grep tests/` check applies
-- [ ] Copy includes the human-in-the-loop caveat for radar content (per BL-033 § Risks & mitigations: radar output should not be auto-actioned by client agents)
+> **The follow-on onboarding surface shipped 2026-08-27** under the operator's go-decision, extending this stanza's marketing surface with three guide pages (`/hub/mcp/get-started/`, `/hub/mcp/using/`, `/hub/mcp/advanced-operations/`), a guides section + `#request-access` anchor on `/hub/mcp/`, and the screen-capture media formerly tracked at BL-138 (pruned; media/hosting decision at [ADR-0022](../adr/0022-mcp-onboarding-media-in-git.md), clip pattern + recipes at [hub/MCP_ONBOARDING.md](../hub/MCP_ONBOARDING.md)). The CSP gap BL-138 carried is closed: `media-src 'self'` now ships in both `vercel.json` strings and `src/middleware.ts`. This does not resume BL-093's deferred slices — the stanza's "do not resume slice-by-slice" instruction stands; the guides were their own operator-directed initiative.
+
+- [~] Dedicated page under `/hub` (route naming consistent with `/hub/radar`, `/hub/tools/*`): what the server is, the BL-033 use cases, tier table, links to the public docs + status page, request-access CTA — 🟡 **partial, one half structurally unmeetable**: `/hub/mcp/` ships with the server explainer + endpoint, four use-case cards (four of BL-033's six until the 2026-08-17 revision re-cut two of them — see the closure note at the end of this AC), the tier presentation, the status-page link, and the request-access CTA. **"Links to the public docs" was unmeetable and is now met on-site** — until 2026-08-28 `docs.mcp.globalstrategic.tech` resolved to nothing, so the page carried an on-page tool catalog instead and the parity test asserted the subdomain was absent. The capability reference now ships at `/hub/mcp/docs/` and the page links it from a fourth Guides card. The subdomain assertion **stays**, for a new reason recorded in each guard: one surface, one published address, and the subdomain is a 308 alias that returns no document (ADR-0023). A route in `mcp-server/wrangler.toml` now exists; nothing was added to `vercel.json`. Two recorded deviations from its letter: (a) **"tier table" is rendered as three tier cards** — an operator presentation choice, NOT a missing capability: `.brutal-bench-table` (`src/styles/components/table.css`) exists and is in production on the TechPar and ICG tool pages, but it is two-column with no header-row styling, so a three-tier matrix needed new CSS either way; (b) **the request-access CTA is a prefilled `mailto:`**, not a form — see AC below. **Deviation (a) closed 2026-08-17** by the page's structural revision: the ceilings now render as one `.brutal-bench-table` matrix (four metric rows × three tier columns) under a tier-header row that supplies the column headings, so the AC's literal "tier table" is met. Same revision **re-cut the use-case cards** — Portfolio Monitoring and Pitch Preparation (a portfolio-services group and a sell-side banker, both off-persona for a page written for PE investors and portfolio executives) were replaced by Cost Benchmarking and Regulatory Exposure, so the four cards are no longer four of BL-033's own six
+- [x] MCP offer section on `src/pages/services.astro` (zero MCP marketing exists site-wide today) + cross-link from `src/pages/hub/index.astro` — ✅ a full-width offer panel between the service-lines grid and the audience section (the three-card grid is `repeat(3, 1fr)`, so a fourth card would have orphaned the desktop row), plus an MCP entry in the page's `faqItems` — which feeds the FAQPage JSON-LD automatically. `/hub/` gains a fourth `.hub-card`; its base grid moved `repeat(3, 1fr)` → `repeat(2, 1fr)` (2×2), the only rule that changed since the 1024/768 steps already declared two columns and one
+- [x] Page meets the existing hub-page bar: design-system tokens only, works in light/dark themes and all 6 palettes, desktop-first responsive; E2E coverage per [`TEST_STRATEGY.md`](../testing/TEST_STRATEGY.md); if any existing copy strings change, the Directive-11 `grep tests/` check applies — ✅ built on the section-index archetype (`/hub/tools/index.astro`) over global card families — `.brutal-trust-card` (this is its first production consumer; it was specimen-only), `.brutal-gateway-card`, `.brutal-stat-tile`, `.brutal-callout`. Tokens only, stylelint clean. `tests/e2e/hub-mcp-page.test.ts` covers page shape, both cross-links, and the CTA prefill; the route is added to `tests/e2e/accessibility.test.ts` (22 → 23 routes). **One deviation worth recording**: the tier grid needs a page-scoped `grid-template-columns` override — the shared `.brutal-gateway-grid` is `repeat(auto-fill, minmax(420px, 1fr))` at a 3rem gap, so three tracks need ≈1452px of viewport and the row would have broken to 2 + 1 at 1280/1366/1440. That scoped rule is also what produces the mobile stack, since it out-specifies the global single-column rule in `cards.css`. **Retired 2026-08-17**: the revision dropped `.brutal-gateway-card` from this page entirely, so neither the override nor the deviation exists any more. What replaced it carries its own constraint worth the same note — the tier headers are a grid and the ceilings are a `<table>`, two elements that must resolve to the same four-column split (four equal tracks with NO column gap against `table-layout: fixed`), so `hub-mcp-page.test.ts` measures header-vs-cell geometry rather than trusting the CSS
+- [ ] Copy includes the human-in-the-loop caveat for radar content (per BL-033 § Risks & mitigations: radar output should not be auto-actioned by client agents) — 🔴 **shipped 2026-08-09, REMOVED at operator direction 2026-08-17**. It rendered as a `.brutal-callout--warning` on `/hub/mcp/` and was asserted by both the E2E suite and the parity test; the callout and both assertions were removed together, so nothing now claims or checks it. **The underlying risk is unchanged and still recorded** at [BL-033 § Risks & mitigations](#bl-033-mcp-server--external-pilot-phase-3) — third-party article text remains the highest-risk surface, and the caveat still appears nowhere else as shipped **marketing** copy (not in the radar tool descriptions, not in the radar CONTRACT/USAGE docs, not on `/hub/radar`). **One runtime surface does carry the equivalent requirement**: Step 7 of the `radar-brief-today` prompt body (`mcp-server/src/prompts/radar-brief-today.ts`, added v0.0.5 per [`BREAKING_CHANGES.md`](../../../mcp-server/BREAKING_CHANGES.md)) instructs a one-line provenance caveat — not independently verified, confirm against sources before acting or sharing with a client — and a unit assertion pins its presence in the body. That is the artifact a partner actually forwards, so the prospect-facing gap is narrower than the removal alone suggests. Re-satisfying this AC means picking a surface for it; the marketing page is no longer that surface
+
+- [ ] **`.brutal-bench-table`'s cell border is a bare `--border-light` in `src/styles/components/table.css`** — `rgba(26, 26, 26, 0.1)`, dark ink at 10%, with no dark-theme override, so every bench table's row rules all but vanish in dark theme. `/hub/mcp/` restates it page-locally in the paired `light-dark(var(--border-light), var(--border-dark-default))` form; TechPar, ICG, and the `/brand` specimen still carry the bare one. Fix it at source and delete the page-local restatement rather than letting a third consumer reinvent it. Deliberately NOT bundled into the 2026-08-17 page revision: shared CSS with three other consumers needs those pages re-verified in both themes, which is a wider change than a page-scoped handoff
+- [x] **FAQ answers embedding anchors flow into the FAQPage JSON-LD verbatim** — ✅ **resolved 2026-08-28, same branch that opened it**: `SEO.astro` now absolutizes root-relative hrefs for the JSON-LD copy only (`absolutizeFaqHrefs`), so `<a href="/hub/mcp/">` in the authored data serializes as `https://globalstrategic.tech/hub/mcp/` in `acceptedAnswer.text` while the rendered `set:html` answer keeps the relative form. Absolutize-not-strip was the decision: Google's guidance allows anchors in answers and the link is meaningful in rich results. The chosen pattern is recorded at [`JSON_LD_SCHEMA.md`](../seo/JSON_LD_SCHEMA.md) § FAQPage
 
 **Request-access front door + provisioning automation**
 
-- [ ] Request-access form/CTA (name, firm, use case, email) delivering to the operator — ~~explicitly NOT self-serve credential issuance~~ and NOT a user directory (preserves ADR-0008's pre-registration / no-DCR stance). **Amended 2026-08-15**: self-serve credential issuance after payment is now in scope under [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare), which amends ADR-0008 for that bounded case. The no-user-directory / no-DCR half of this AC stands
+- [ ] Request-access form/CTA (name, firm, use case, email) delivering to the operator — ~~explicitly NOT self-serve credential issuance~~ and NOT a user directory (preserves ADR-0008's pre-registration / no-DCR stance). **Amended 2026-08-15**: self-serve credential issuance after payment is now in scope under [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare), which amends ADR-0008 for that bounded case. The no-user-directory / no-DCR half of this AC stands. **Still open, and what shipped in the meantime is a doorbell**: the 2026-08-09 marketing page carries a prefilled `mailto:` CTA (subject + name/firm/use-case/volume prompts, one per tier plus a page-level one) delivering into the same operator inbox [`PILOT_ONBOARDING.md`](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md) § 0 already describes — no structured intake, no validation, no delivery confirmation. Deliberate at the time, because a form needed an external endpoint on the `connect-src`/`form-action` allowlist in BOTH `vercel.json` and `src/middleware.ts`, plus the `privacy.astro` disclosure and BL-004 coordination below. Under the BL-133 amendment the eventual replacement may be **checkout rather than a form**, so do not build the form without re-reading that stanza first. § 0's "intake half pending" note stays accurate either way
 - [ ] CSP compliance: the site pins `form-action 'self'` and an explicit `connect-src` — an external form endpoint or submission API must be added to the allowlist in BOTH `vercel.json` and `src/middleware.ts`, per [`SECURITY_HEADERS.md`](../security/SECURITY_HEADERS.md)
 - [ ] BL-004 coordination: the form either builds on BL-004's email-capture service selection (form UX, WCAG 2.1 AA, error states, zero client-side PII) or records the deliberate divergence here; either way `src/pages/privacy.astro` gains the data-collection disclosure (BL-004's privacy AC applies to this form too)
 
@@ -1144,7 +1317,7 @@ The diligence engine takes structured enum inputs only — low risk. The portfol
 - [ ] Stripe Invoicing/Billing configured for the `paid`/`enterprise` tiers — **no payment code on the website or the Worker** (none exists today; this stanza keeps it that way)
 - [ ] Operator payments runbook (new operations doc or PILOT_ONBOARDING extension): contract signed → invoice sent → payment confirmed → tier assigned (the tier flip is the existing admin-API step, now via the provisioning script above)
 - [ ] Every `paid`/`enterprise` tier assignment traceable to a paid invoice (invoice ID recorded alongside the client record)
-- [ ] Pricing presentation decided and published on the marketing page + docs site; ceilings remain non-contractual per ADR-0010
+- [ ] Pricing presentation decided and published on the marketing page + docs site; ceilings remain non-contractual per ADR-0010. **The number itself is [BL-145](#bl-145-design-partner-program--set-the-price-from-evidence-not-from-a-guess)'s output** — as of 2026-08-31 there is no evidence to set one from, and that item exists to produce it. Presentation can be designed ahead of the figure; publishing it cannot
 
 **MCP directory listing** (candidate sub-block; absorbed from BL-033 § Pilot operations, 2026-07-27) — **Status**: Candidate · do NOT submit before the hard gate + a promotion trigger
 
@@ -1193,10 +1366,15 @@ Retained rather than pruned — not because its findings lack a home (both are d
 1. The SDK v2 handler runs its **own** Host/Origin gate. Left at its default the accepted set is the localhost trio, so on a custom domain every request carrying `Origin: https://claude.ai` gets a **403** — the exact browser clients the allowlist exists for, and a failure mode the legacy handler did not have. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the fix.
 2. `with-metrics.ts` located its notifier by duck-typing on a field v2 renamed, and the function is contractually non-throwing — so the rate-limit warning would have died **silently**, with the soft-limit tests staying green against their own fake. Both the production view and the fake are now bound to the SDK's `ServerContext` so a rename is a compile error.
 
-**Standing caution**: an unreproduced single-test failure in the mcp suite, now seen **twice**, name never captured either time. It fits the documented workerd cold-start flake but that remains an explanation, not evidence.
+**Standing caution**: an unreproduced single-test failure in the mcp suite, now seen **six times**. Four names captured, two lost. **Cold start is ruled out**, not merely unproven: instances three, four and six were not the first run of their day, and the fifth landed on a different `unstable_dev` file entirely. What is shared is the HARNESS, not the test, so diagnose it as a `unstable_dev`-under-full-suite-load problem — a per-test fix would only move it. Tally: three on `protocol-era-worker`, one on `oauth-introspection`, two unnamed. The CLAUDE.md § Testing Standards bullet carries the same record; keep them in step.
 
 - **2026-08-04** — `1 failed | 1973 passed`; seven other full runs green.
 - **2026-08-17** — `1 failed | 2391 passed`, during the BL-136 lockfile work. Two later runs passed, **including one deliberately executed against the pre-change lockfile** (stash the lockfile, reinstall, re-run), which is what rules the dependency bump out as the cause. Not the cold-start case either: an earlier `test:mcp` the same session had already passed 2392, so the worker was warm.
+- **2026-08-22** — `1 failed | 2574 passed`, on the merge of master into `feat/mcp-website-marketing`. **Name captured this time**: `tests/integration/protocol-era-worker.test.ts > BL-106 — Worker protocol era > serves a modern tools/list from a browser origin (origin gate is not ours to enforce)`, `Error: Test timed out in 5000ms`. That is a `unstable_dev` test, which is consistent with the workerd cold-start theory — but it was **not** the first run of the day: the same suite had already gone green several times that session, so "first run after a cold start" does not explain this instance. Re-run of the file alone passed 10/10; the full suite immediately after passed 2575/2575. Dependency drift was ruled out before rerunning — `package.json` was byte-identical to master's and `npm ls --depth=0` reported no unmet or invalid deps, so the merge had not desynced `node_modules`.
+
+- **2026-08-28** — `1 failed | 2703 passed`, during a code-review run. **Same test as 2026-08-22**, same 5000ms timeout; an isolated re-run went 10/10 green.
+- **2026-08-30** — `1 failed | 2711 passed`. **A different file**: `oauth-introspection.test.ts > POST /oauth/introspect > requires the admin key (401 without it)`, again a 5000ms timeout, again green in isolation, in a run whose diff touched no OAuth or Worker code. This is the instance that breaks the localization: the earlier read that it had narrowed to one test was wrong.
+- **2026-08-31** — `1 failed | 2711 passed`, during a pre-push run whose diff touched no Worker or protocol code. `protocol-era-worker` again, same 5000ms timeout, green 10/10 on two isolated re-runs.
 
 **If a red mcp run appears, capture the failing test name before rerunning** — a rerun destroys it. The 2026-08-17 instance was lost a step earlier than that: the suite was run through a `| grep "Test Files|Tests "` pipe, so the name was discarded before anyone could read it. **Redirect the run to a file and grep the file.**
 
@@ -1331,6 +1509,72 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 - **Cross-links closed**: `PILOT_ONBOARDING.md` § 2 previously stated that the provisioning script's generated email was the only thing sendable to an M2M pilot — true until `SETUP.md` § 0b/1b landed. That paragraph, the email itself (`provision-client.mjs`), and `REMOTE_CLIENT_SETUP.md` now point at the suite; the email pointer carries a unit assertion so it cannot be dropped silently
 - **`mcp-server/README.md` § Smoke test** keeps its heading verbatim and its dated stanzas intact — `_archive/MCP_SERVER_HUB_SURFACE_BL-031_5.md` links that anchor as closure evidence, and the doc-link guard skips `_archive/` as a scan source, so renaming it would break the citation on a green run. A pointer was added above the stanzas instead. Related: the [BL-034 open item](#bl-034-mcp-server--documentation-cleanup-rolling-catch-all-stub) on what a dated verification stanza should say once its numbers rot is now partly answered — new verification goes in the UAT run logs, which carry a version column precisely so they can age without lying
 - **Branch note**: cut from `master` in parallel with the unmerged BL-093 marketing branch, so `mcp-marketing-parity.test.ts`'s private registry readers could not be extracted. The shared helper was written fresh with identical signatures; the sole-definition assertion above is what forces the rewire when both have landed
+
+---
+
+### BL-146: The tool surface asserts it is self-describing and nothing measures it
+
+**Source**: _Agent Seer: Synthesizing Scenarios from Specification Understanding_ (Apple, arXiv:2608.26133v1), read 2026-09-01 | **Effort**: Medium — Slices 1–3; the stretch slice is scoped separately and deliberately not costed | **Status**: Open
+
+**As an** operator whose clients reach these tools through an LLM I do not control, **I want** a repeatable measurement of whether a cold model picks the right tool and fills its arguments correctly **so that** a description which has stopped being discoverable fails a test instead of a client call.
+
+**What it is.** [CLAUDE.md](../../../.claude/CLAUDE.md) § Extending an MCP Tool step 2 requires self-documenting id/enum args in `.describe()` "so a cold LLM call can discover valid values". That is a convention with a review gate and **no measurement**. Every existing suite checks a shape we control: `contract-parity.test.ts` binds docs to Zod, `mcp-uat-parity.test.ts` binds registered capabilities to UAT rows, `mcp-docs-parity.test.ts` binds the public registry to server source, and the unit/integration suites exercise the engines. None of them puts a model in front of the surface and observes what it does with it.
+
+The defect class is not hypothetical — it is already on this backlog three times, and **every instance was found by a production sweep rather than by a test**: [BL-125](#bl-125-the-prompt-states-none-of-its-own-run-parameters) (arguments the model was never shown, making `auditLevel: debug` unreachable through the model), [BL-126](#bl-126-compute_techpar-is-mode-conditional-and-the-prompt-never-named-a-mode) (a required enum with no default and no documented mode — two sweeps over identical bytes inverted a partner-facing verdict, 32.6% "healthy" against 47.5% "above the PE ceiling"), and [BL-132](#bl-132-search_portfolios-deeplink-description-promises-fidelity-the-encoder-deliberately-withholds). [BL-119](#bl-119-mcp-server--user-acceptance-test-suite) is the closest existing surface and is a different instrument: it is human-executed, runs against the live Worker, and proves the server **works**. This item is automated, never executes the server, and probes whether the surface is **legible**.
+
+**The method**, from the paper: a tool specification — names, descriptions, typed parameter schemas — already carries enough for an LLM to synthesize evaluation scenarios with no live tool access and no hand-authored cases. Each generated case is a natural-language request paired with the tool calls it should produce; mock outputs stand in for real responses. The paper reports mean tool-calling 0.911 across seven public MCP specs, with two findings that bear directly on us:
+
+- **Parameter schema complexity, not tool count, is the strongest correlate of quality** (per-MCP r = -0.60 on average params, -0.66 on optional fraction; confirmed at tool level, n = 222, p < 0.001).
+- **Argument value accuracy is the dominant failure mode** — 57% of records score partial on arguments — and it is invisible to name-match metrics that only check whether the right tool was called.
+
+**Where GST sits on that axis** (measured 2026-09-01 from `src/data/mcp/capabilities.ts`, corrected same day — see the counting note below): 16 tools, **74 arguments**, **mean 4.63 per tool** — Slack-sized in tool count (16) at roughly double its parameter density (2.2), and above every spec in the study except Git (11.2). The distribution is bimodal: **five** tools take 0–1 arguments, three take 10–14 (`compute_techpar` 14, `generate_diligence_agenda` 13, `estimate_tech_debt_cost` 10). The paper's failures localize to exactly such high-parameter tools, which is where this item starts.
+
+> **Counting note (2026-09-01).** This paragraph first read 66 arguments, mean 4.1, `compute_techpar` 13, six tools in the 0–1 band. Three of those were low and **the fourth was high**, because undercounting arguments pushes a tool _into_ the low-argument band rather than out of it — `validate_irl_provenance` really takes 3 and `get_latest_insights` really takes 2, and a line-anchored scan sees 1 for each. The cause is worth recording because it will catch the next person who counts this file by hand: **prettier collapses short argument objects onto one line** — `{ name: 'rdCapEx', desc: '...', example: '450000' },` — and a line-anchored scan for `name:` skips every one of them. There are 17 such objects in `capabilities.ts` and 8 fall inside `Tools` entries, which is exactly the 66 → 74 gap. Anything recounting this must match both layouts, and should be validated against a known collapsed object before its output is trusted. The argument's direction is unchanged by the correction: still roughly double Slack's density, still well under Git's 11.2.
+
+Two things cut the other way and are the reason this is worth doing rather than fearing. Git's failures came from **semantic ambiguity** (`ref` in seven tools meaning three different things), not raw count; our heavy tools are enum-dominated, and a constrained vocabulary attacks argument-value accuracy directly. And **we have the Zod schemas the paper's pipeline did not** — it saw only spec text. Validating generated cases against real schemas converts most of what the paper left to human review into a mechanical check.
+
+#### Acceptance Criteria
+
+**Slice 1 — generate and mechanically reject**
+
+- [ ] A script reads the registered tool surface (names, descriptions, input schemas) and emits candidate cases: a natural-language request plus an ordered list of expected calls with typed arguments
+- [ ] Every candidate is validated against the **real Zod input schema** and auto-rejected on: unknown tool name (the paper's hallucination mode — 3 of 893 calls, all concentrated in one spec), unknown argument name, missing required argument, or a value that fails `safeParse`
+- [ ] The reject log records which check fired, so the rejection rate is itself a readable signal about the surface
+- [ ] Generation is seeded from the nine `gst_*` prompts where one covers the workflow, not from spec inference alone — those encode sequences we have already blessed
+- [ ] Slice 1 runs offline against a checked-in spec snapshot; it does not call the Worker and needs no credential
+
+**Slice 2 — curate and freeze**
+
+- [ ] A human pass accepts, corrects or deletes each surviving candidate; the accepted set is committed as fixtures under `mcp-server/tests/` with the generating model and date recorded per case
+- [ ] **First cohort is the three heavy tools** (`generate_diligence_agenda`, `compute_techpar`, `estimate_tech_debt_cost`), target 20–30 accepted cases
+- [ ] Once frozen, the fixtures are the oracle — no generation runs in the scoring path. This is the whole answer to the paper's stated limitation that "the generated scenarios serve as both output and oracle"
+- [ ] A case that a reviewer rejects records **why** in one line, because the rejection reasons are the raw material for the stretch slice
+
+**Slice 3 — score and wire in**
+
+- [ ] A runner presents a fresh model with the tool specs plus the request, captures the emitted calls, and scores against the frozen expectation, decomposed as the paper does: usage, selection, ordering, and **arguments broken below the call level** (name, value, type, format, completeness, relevancy) — a name-match verdict would hide the dominant failure mode
+- [ ] A per-tool score table lands in the repo so movement is visible per tool, not just in aggregate
+- [ ] Wired to run when a tool description, `.describe()` string, or input schema changes — not on every commit
+- [ ] A floor is set from the first green run and regressions fail; the floor is recorded with the model that produced it, since scores are model-dependent
+- [ ] Not a required PR check until it has been stable across at least three runs — an eval that flaps trains people to ignore it
+
+**Stretch / follow-on — reduce the human pass toward zero**
+
+- [ ] Reviewer rejection reasons from Slice 2 are mined into additional mechanical checks, shrinking what reaches a human
+- [ ] Candidate regeneration on schema change, with the frozen set as a diff base rather than a replacement
+- [ ] Cross-call referential integrity — shared state across a workflow so IDs align between dependent calls. **This is the paper's own unsolved limitation** and it lands squarely on the IRL chain (`prepare_irl_body` → `generate_information_request_list_xlsx` → `fill_information_request_list_xlsx` → `validate_irl_provenance` → `compose_dossier_envelope`), so multi-tool cases stay out of the frozen set until it is answered
+- [ ] An out-of-family judge for scoring, per the paper's cross-family replication (paired r ≈ 0.79 on tool-calling, MCP ranking preserved) — with absolute coherence read as judge-dependent
+- [ ] Explicitly **not** in scope: unattended generate-and-score with no frozen oracle. That is the circularity the paper flags and mitigates but does not close; its own Limitations name a human correlation study as future work
+
+#### Technical Context
+
+- **What this does not test.** The server never runs and mock outputs are fabricated, so this says nothing about engine correctness — that is what the unit/integration suites and BL-119 already cover. It measures one property: is the surface legible to a model that has never seen our docs
+- **Why the Zod validator carries most of the load.** The paper's argument-failure counts were value 223, relevancy 44, format 35, type 31, completeness 16, name 11. `safeParse` against the real schema mechanically covers name, type, format and completeness, and — because our heavy tools are enum-dominated — a large share of value. That is the structural advantage over the paper's setting and the reason "close to full automation" is a credible target rather than a wish
+- **Relationship to enum parity.** BL-119's Technical Context records a deliberate decision that its guard does **not** bind documented enum values to Zod, since most IRL tuples are module-private and wiring them would mean exporting from server source to satisfy a doc test. This item needs schema access at test time, not doc time, so it does not reopen that decision — but if it forces exports, say so in the PR rather than widening the surface quietly
+- **Local-only tools are out of scope**: `search_radar_offline` and `search_radar_cache` are registered only on stdio (`tools/_local-only.ts`) and no remote client can reach them; the latter is additionally a deprecated alias. Same exclusion BL-119 applies
+- **Cost shape**: Slices 1 and 3 are ordinary scripting. Slice 2 is operator time and is the only part that scales with case count, which is why the first cohort is capped at three tools. Slices 1–2 happen once; Slice 3 is what persists
+- **Coverage is not a risk at our size**: the paper reached 100% tool coverage on every spec up to 56 tools, with the only ceiling observed at 64 (56%). At 16 we sit comfortably inside that
+- **Related**: [BL-092](#bl-092-mcp-server--declare-outputschema-on-the-tool-surface-candidate) would give the runner a typed response contract to assert against and makes this item stronger if it lands first, but is not a prerequisite
 
 ---
 
@@ -1553,5 +1797,65 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 - **Reversibility note carried from BL-106**: if Tasks activates, long-running Workers jobs want Durable Objects or Workflows — which is `agents`' actual competence. That is the trigger to reconsider ADR-0013 decision 4 (keeping `agents` as a thin adapter rather than dropping it)
 - **Not blocked by anything technical.** The server is on `@modelcontextprotocol/server@2.0.0` and both features are available today; the only thing missing is someone to use them
 - Full spec-delta analysis, including why these two were the only deltas worth deferring rather than declining outright: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)
+
+---
+
+### BL-147: Thirteen font-size declarations reference two tokens that do not exist
+
+**Source**: found 2026-09-01 by the code-reviewer gate while reviewing an unrelated two-line alignment fix on `feat/mcp-website-marketing` | **Effort**: Small to change, Medium to decide — the rename is mechanical, the resulting type sizes are a design ruling | **Status**: Open
+
+**As a** phone reader of the homepage and the services page, **I want** the responsive type step-down these components already declare to actually apply **so that** body copy is sized for the width it is being read at, instead of silently rendering at the desktop size.
+
+**What it is.** `--text-small` and `--text-tiny` are **defined nowhere in the repo.** [`variables.css`](../../styles/variables.css) declares `--text-xs: 0.75rem` and `--text-sm: 0.875rem`; there is no `small` or `tiny` spelling of either. There are **13 `var()` references to those two undefined names**, across four components on two routes:
+
+Cited by **selector and breakpoint, not line number** — deliberately. An earlier revision of this table used line numbers, and the very commit that wrote them shifted two by one, because it also grew a comment in one of the cited files. Selectors and token names are greppable and do not drift.
+
+| component                                                             | route                     | inert declaration                         | applies at                  |
+| --------------------------------------------------------------------- | ------------------------- | ----------------------------------------- | --------------------------- |
+| [`WhyClientsTrustUs.astro`](../../components/WhyClientsTrustUs.astro) | `/`                       | `.trust-card p` → `--text-small`          | ≤1024                       |
+|                                                                       |                           | `.trust-card p` → `--text-small`          | ≤768                        |
+|                                                                       |                           | `.trust-card h3` → `--text-small`         | ≤480                        |
+|                                                                       |                           | `.trust-card p` → `--text-tiny`           | ≤480                        |
+| [`WhatWeDo.astro`](../../components/WhatWeDo.astro)                   | `/`                       | `.services-list li span` → `--text-small` | ≤768                        |
+|                                                                       |                           | `.closing-text` → `--text-small`          | ≤768                        |
+| [`WhoWeSupport.astro`](../../components/WhoWeSupport.astro)           | `/`                       | `.support-list li span` → `--text-small`  | ≤768                        |
+|                                                                       |                           | `.closing-text` → `--text-small`          | ≤768                        |
+| [`EngagementFlow.astro`](../../components/EngagementFlow.astro)       | **`/services/`**, not `/` | **`.step-detail` → `--text-small`**       | **base rule — EVERY width** |
+|                                                                       |                           | `.tagline` → `--text-small`               | ≤768                        |
+|                                                                       |                           | `.step-text` → `--text-small`             | ≤768                        |
+|                                                                       |                           | `.step-detail` → `--text-tiny`            | ≤768                        |
+|                                                                       |                           | `.step-text` → `--text-small`             | ≤480                        |
+
+An undefined custom property makes the declaration invalid at computed-value time, so `font-size` falls back to the inherited value rather than to the declared step. Confirmed in-browser against a production build: `.trust-card h3` and `.trust-card p` both compute **16px at 320, 480 and 768** — identical to desktop.
+
+**Two scoping facts an implementer will otherwise get wrong:**
+
+1. **`EngagementFlow`'s `.step-detail` → `--text-small` declaration is a BASE rule, not a `@media` rule** — it sits above the file's first `@media`. Twelve of the thirteen are responsive; that one is dead at **every** width, desktop included. Fixing only the `@media` cases leaves the sole desktop-affecting instance standing and teaches the next reader that this bug is purely responsive. It is not.
+2. **The inert set is exactly these 13 references, not "the responsive type scale".** `--text-lg`, `--text-xl`, `--text-base`, `--text-sm` and `--text-xs` are all defined and all working; live step-downs using them sit alongside the dead ones in the same files — `.trust-card h3` → `--text-base` at ≤1024 and ≤768 and `.brutal-heading-lg` → `--text-xl` at ≤480; `.intro-text` → `--text-base` at ≤768 in both `WhatWeDo` and `WhoWeSupport`; `.step-label` → `--text-sm` and `.step-number` → `--text-lg` at ≤1024 in `EngagementFlow`. The defect is two misspelled names, not a broken system.
+
+**Why this is a ruling and not a rename.** [BL-139](#bl-139-the-filter-drawers-entire-mobile-treatment-is-dead-css) closed on exactly this shape and its finding is the governing precedent: **a dead rule is a product decision wearing a bug's clothing — render it before assuming the original author was right.** There, the dead mobile treatment was rendered, reviewed and _rejected_; the shipped behaviour was better than the code that had never run.
+
+The same caution applies with force here, because the naive mapping has an accessibility edge:
+
+- `--text-small` → `--text-sm` takes body copy to **14px** on phones.
+- `--text-tiny` → `--text-xs` takes `.trust-card p` to **12px** — which is small for sustained body copy on a phone, and is the size the author never actually saw.
+- `EngagementFlow`'s base-rule instance (fact 1 above) changes `/services/` at **desktop** widths too, so its blast radius is not confined to small screens the way the other twelve are.
+
+So the fix is not "correct the token names"; it is "decide what these sections should read like, then express that in real tokens." The dead declarations are evidence of intent, not a specification.
+
+**Known interaction, already live.** This is why these sections wrap as heavily as they do at phone widths, and it is the reason [`WhatWeDo.astro`](../../components/WhatWeDo.astro)'s `.closing-text::after` comment deliberately quotes **no** wrap-boundary figure: any such number would be measuring this bug rather than a design. That comment cites this item. Fixing this item **invalidates any wrap measurement taken before it** — re-measure rather than inherit, on this one especially.
+
+#### Acceptance Criteria
+
+- [ ] A guard fails on a `var(--…)` reference to a custom property that is defined nowhere in `src/styles` — this class is currently invisible to `astro check`, `lint`, `lint:css` and the full unit/integration suite, all four of which were green over these 13 references
+- [ ] All 13 references resolve to defined tokens, or the declarations are deleted, per the ruling below
+- [ ] The four sections are rendered and reviewed at 320/360/390/430/480/768 in **both** themes on **both** routes (`/` and `/services/`) before any mapping is adopted — BL-139's procedure, not a diff review
+- [ ] `EngagementFlow`'s base-rule instance is reviewed at DESKTOP width as well; the other twelve cannot be judged there and it must not inherit their ruling by default
+- [ ] A ruling is recorded here: adopt the step-down, adopt a different one, or delete the declarations and keep the inherited size
+- [ ] `.trust-card p` at 12px is explicitly accepted or rejected on accessibility grounds rather than inherited from the token name
+- [ ] Any wrap-dependent comment in these four files is re-measured afterwards, `WhatWeDo`'s marker comment included
+- [ ] Design-sync re-run: all four are sliced components (`EngagementFlow` via `services/index.html`), so the published system currently mirrors the dead scale
+
+**Not a regression from the alignment work.** The two commits that prompted the review (`23f3c343`, `ab526fea`) neither introduced nor touched these declarations. Filed separately rather than folded in, because the visual change is a design decision the operator has not seen, and this branch is a marketing branch whose scope is already argued in its PR body.
 
 ---

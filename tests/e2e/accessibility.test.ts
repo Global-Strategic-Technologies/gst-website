@@ -1,7 +1,16 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA + 2.2 AA scanning.
  *
- * Scans 22 critical pages for accessibility violations.
+ * Scans 30 routes for accessibility violations. Routes, not pages:
+ * `/hub/mcp/docs/` is scanned three times, collapsed, expanded, and at a dense
+ * contract pane.
+ *
+ * COUNT THE ARRAY, do not increment this number. It and the lineage comment on
+ * `PAGES` had drifted to 27 and 29 against a real 30, and the two gaps are
+ * different routes: three landed without this line being touched, one without
+ * the lineage being touched. The same number is published in
+ * DEVELOPER_TOOLING.md § Running locally, which no guard checks, so change it
+ * there too.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -13,7 +22,7 @@
  *
  * Run locally: npm run test:a11y
  */
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
 import { RADAR_SETTLED_SELECTOR, RADAR_SETTLE_TIMEOUT_MS } from './helpers/radar';
 
@@ -35,6 +44,12 @@ interface A11yPage {
    * Pages without this keep the original `load` wait.
    */
   waitFor?: string;
+  /**
+   * Run after `waitFor` and before the scan, for markup that exists only once a
+   * reader interacts. axe audits the rendered tree, so anything behind a closed
+   * disclosure is not merely passing — it is invisible to the scan.
+   */
+  setup?: (page: Page) => Promise<void>;
 }
 
 const PAGES: A11yPage[] = [
@@ -45,7 +60,50 @@ const PAGES: A11yPage[] = [
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
   { name: 'Tech Debt Calculator', path: '/hub/tools/tech-debt-calculator/' },
-  // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline). Deliberately NOT excluded here are the
+  { name: 'MCP Server', path: '/hub/mcp/' },
+  { name: 'MCP Get Started', path: '/hub/mcp/get-started/', waitFor: 'h1' },
+  { name: 'MCP Using the Server', path: '/hub/mcp/using/', waitFor: 'h1' },
+  { name: 'MCP Advanced Operations', path: '/hub/mcp/advanced-operations/', waitFor: 'h1' },
+  { name: 'MCP Documentation', path: '/hub/mcp/docs/', waitFor: 'h1' },
+  // The row above loads with no hash, so the pane it scans is the four-argument
+  // default. This one addresses the densest contract deliberately: it is the
+  // only route where the sweep sees the fourteen argument-value controls at
+  // all, and the only one that exercises the runnable call's own markup —
+  // `target-size` on the controls, `td-has-header` on a three-column table, and
+  // `scrollable-region-focusable` on the multi-line snippet. Without it all
+  // three are structurally invisible to CI.
+  {
+    name: 'MCP Documentation (dense contract)',
+    path: '/hub/mcp/docs/#cap-compute_techpar',
+    waitFor: 'h1',
+  },
+  // The Jobs lens opens COLLAPSED (ADR-0026), so the row above scans twelve
+  // summaries and nothing else: thirty step links and every job blurb sit
+  // inside a closed `<details>` and are structurally invisible to axe. That is
+  // a coverage loss against the cards this lens replaced, whose steps were
+  // always in the tree. Open them all and scan again, for the same reason the
+  // dense-contract row above exists.
+  {
+    name: 'MCP Documentation (jobs expanded)',
+    path: '/hub/mcp/docs/',
+    waitFor: '.mdoc-job',
+    setup: async (page) => {
+      const opened = await page.evaluate(() => {
+        const rows = [...document.querySelectorAll('details.mdoc-job')];
+        rows.forEach((d) => ((d as HTMLDetailsElement).open = true));
+        return rows.length;
+      });
+      // Not decoration: a selector that stops matching would make this route a
+      // second scan of the collapsed page, passing while covering nothing.
+      expect(opened).toBe(12);
+      await expect(page.locator('.mdoc-step').first()).toBeVisible();
+    },
+  },
+  // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline);
+  // 23 as of the /hub/mcp/ marketing page; 26 as of the three MCP onboarding
+  // guides; 27 as of the capability reference; 28 as of its dense-contract pane;
+  // 29 as of the IRL extractor; 30 as of the jobs lens with every row opened.
+  // Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting
   // zero rather than excluding them is the honest choice: a violation in markup that
@@ -68,6 +126,11 @@ const PAGES: A11yPage[] = [
   {
     name: 'IRL Generator',
     path: '/hub/tools/information-request-list-generator/',
+    waitFor: 'h1',
+  },
+  {
+    name: 'IRL Extractor',
+    path: '/hub/tools/information-request-list-extractor/',
     waitFor: 'h1',
   },
   { name: 'Diligence Machine', path: '/hub/tools/diligence-machine/', waitFor: 'h1' },
@@ -190,8 +253,15 @@ const PAGES: A11yPage[] = [
  * Keep the mechanism. Two guards flank it and both still matter the moment anything is
  * added back: the ratchet fails on EXCEEDING a baseline, and the stale-baseline guard
  * below fails on falling under one. Between them, an entry of `n` asserts exactly `n` —
- * which is how the earlier rot was caught (tech-debt-calculator carried 14 against a
- * real 1; techpar 4 against 1; ma-portfolio 2 against 1).
+ * which is how the earlier rot was caught ('Tech Debt Calculator' carried 14 against a
+ * real 1; 'TechPar' 4 against 1; 'M&A Portfolio' 2 against 1).
+ *
+ * KEYED BY `name`, NOT `path`. Two entries now scan the identical path
+ * `/hub/mcp/docs/` — the Jobs lens collapsed and expanded — and they see
+ * different node counts, so one path-keyed baseline would cover both and the
+ * stale-baseline guard would fail on whichever scanned fewer. (A third entry
+ * carries a hash, so it never collided.) Harmless while the map is empty, which
+ * is exactly when it is cheap to close. Names are the key, so keep them unique.
  */
 const KNOWN_SERIOUS: Record<string, Record<string, number>> = {};
 
@@ -212,6 +282,8 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
         await page.goto(pg.path, { waitUntil: 'load' });
       }
 
+      if (pg.setup) await pg.setup(page);
+
       const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
 
       // Critical MUST always be zero
@@ -224,7 +296,7 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
       ).toHaveLength(0);
 
       // Serious: filter out known pre-existing violations (ratchet)
-      const knownForPage = KNOWN_SERIOUS[pg.path] ?? {};
+      const knownForPage = KNOWN_SERIOUS[pg.name] ?? {};
       const unknownSerious = results.serious.filter((v) => !(v.id in knownForPage));
       const ratchetBreaches = results.serious.filter(
         (v) => v.id in knownForPage && v.nodes > knownForPage[v.id]
@@ -250,7 +322,7 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
 
       // Stale-baseline guard. The ratchet only ever failed on EXCEEDING a baseline, so a
       // too-generous one passed forever — and three of seven had rotted into slack by
-      // 2026-08-03 (tech-debt-calculator carried 14 against a real 1). This is the same
+      // 2026-08-03 ('Tech Debt Calculator' carried 14 against a real 1). This is the same
       // mechanism FLOOR_EXCEPTIONS uses for its allowlist, applied to the other one:
       // fixing a violation now FAILS until the number comes down with it.
       const slack = Object.entries(knownForPage)

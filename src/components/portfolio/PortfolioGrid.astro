@@ -64,6 +64,11 @@ const { projects } = Astro.props;
     padding: 2rem 0 4rem;
   }
 
+  /* Deliberately NOT the global `.container` — a narrower grid column with its
+     own gutter ladder (1.5 / 1 / 0.75rem against the page's 3 / 1.5 / 1rem).
+     Astro scopes this at (0,2,0), so it overrides the global rule by design
+     rather than by accident; it is not the shadowing that global.css documents.
+     Keep the two ladders stepping at the same breakpoints. */
   .container {
     max-width: 1400px;
     margin: 0 auto;

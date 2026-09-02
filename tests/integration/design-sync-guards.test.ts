@@ -6,7 +6,7 @@
  * unstyled output, and nothing breaks loudly. `CLAUDE_DESIGN_SYNC.md` and
  * `.design-sync/NOTES.md` list this as the standing re-sync risk; before this
  * file the only check lived in the gitignored `.ds-sync/` skill, so a CSS
- * refactor could rot the docs between syncs with no CI signal. Five guards:
+ * refactor could rot the docs between syncs with no CI signal. Six guards:
  *
  *   1. NAME PARITY — every `.class`, BEM `__sub` / `--modifier`, and `--token`
  *      named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx`
@@ -23,6 +23,11 @@
  *      rename fails here before anyone re-syncs and hits the extractor's exit-1.
  *   5. README CEILING — `conventions.md` stays under 28,000 chars; the consumer
  *      truncates the README it is prepended to at 32,000, cutting the tail.
+ *   6. PINNED FACE — `cfg.extraFonts` still names the fonts entry `build-css.mjs`
+ *      emits, its `url()` targets exist under `public/`, and no synced surface
+ *      names the family directly. The face reaches designs only through that
+ *      wiring, and losing it fails silently: the metric-matched fallbacks keep
+ *      the layout identical, so nothing looks wrong.
  *
  * Hand-rolled parsers, proven against fixtures first — same posture as
  * `docs-variables-sync.test.ts` (no markdown/CSS parser dependency by design).
@@ -570,5 +575,103 @@ describe('conventions.md stays under the README inline ceiling', () => {
   it(`conventions.md is under ${CEILING} characters`, () => {
     const length = readFileSync(conventionsPath, 'utf-8').length;
     expect(length, `conventions.md is ${length} chars (ceiling ${CEILING})`).toBeLessThan(CEILING);
+  });
+});
+
+// --- Guard 6: the pinned face is still wired into the sync ------------------
+
+describe('the pinned brand face still ships to the design system', () => {
+  // BL-144 pinned `--font-family-mono` to a self-hosted `GST Mono`. It reaches
+  // designs ONLY through `cfg.extraFonts` — it cannot ride in `cssEntry`,
+  // because the converter drops `_ds_bundle.css` @font-face blocks whose src it
+  // judges unresolvable (NOTES.md § the extraFonts finding). Nothing else in CI
+  // sees that wiring: `_ds_sync.json` does not cover fonts, and a bundle that
+  // lost the face still validates clean AND still looks right on the contact
+  // sheet, because the fallbacks are metric-matched by design. So the failure
+  // is invisible until someone reads a design rendered in Consolas.
+  //
+  // This is the static half — that the wiring exists and its inputs resolve.
+  // The rendered half (does the face actually set text) needs a built bundle,
+  // so it lives in `.design-sync/font-probe.mjs`, which is mutation-proven on
+  // both surfaces and run as part of a sync.
+  const config = JSON.parse(readFileSync(resolve(SYNC_DIR, 'config.json'), 'utf-8'));
+  const FONTS_CSS = resolve(STYLES_DIR, 'fonts.css');
+  const buildCss = readFileSync(BUILD_CSS, 'utf-8');
+
+  /** The `@font-face` blocks that carry a real `url()` — the ones that must ship. */
+  const urlFaces = [...readFileSync(FONTS_CSS, 'utf-8').matchAll(/@font-face\s*\{[^}]*\}/g)]
+    .map((m) => m[0])
+    .filter((f) => /url\(/.test(f));
+
+  it('src/styles/fonts.css declares at least one url()-bearing face (sanity — the guard probes something)', () => {
+    expect(urlFaces.length).toBeGreaterThan(0);
+  });
+
+  it('cfg.extraFonts names a file build-css.mjs actually emits', () => {
+    const extraFonts: string[] = Array.isArray(config.extraFonts)
+      ? config.extraFonts
+      : config.extraFonts
+        ? [config.extraFonts]
+        : [];
+    expect(
+      extraFonts.length,
+      'cfg.extraFonts is unset — the pinned face would not ship'
+    ).toBeGreaterThan(0);
+
+    // The emitter and the config must agree on the path. Compared by basename:
+    // the config is repo-relative while build-css builds the path from its own
+    // location, so the strings legitimately differ.
+    const emitted = buildCss.match(/FONTS_OUT\s*=\s*join\(CACHE,\s*'([^']+)'\)/)?.[1];
+    expect(emitted, 'build-css.mjs no longer emits a fonts entry').toBeTruthy();
+    expect(
+      extraFonts.some((f) => f.endsWith(`/${emitted}`)),
+      `cfg.extraFonts ${JSON.stringify(extraFonts)} does not name build-css.mjs's ${emitted}`
+    ).toBe(true);
+  });
+
+  it('every font file the faces reference exists under public/', () => {
+    const targets = urlFaces.flatMap((face) =>
+      [...face.matchAll(/url\(['"]?([^'")]+)['"]?\)/g)].map((m) => m[1])
+    );
+    expect(targets.length, 'no url() targets parsed out of the faces').toBeGreaterThan(0);
+    for (const t of targets) {
+      // Root-absolute in production; build-css re-points these at public/.
+      expect(
+        t.startsWith('/'),
+        `${t} is not root-absolute — build-css.mjs only rewrites those`
+      ).toBe(true);
+      const onDisk = resolve(REPO_ROOT, 'public', t.slice(1));
+      expect(existsSync(onDisk), `${t} is declared but ${rel(onDisk)} does not exist`).toBe(true);
+    }
+  });
+
+  it('no call site names the face directly — everything goes through the token', () => {
+    // The alias is the whole point: swapping the face is one `src` line in
+    // fonts.css. A literal family in a specimen or in conventions.md would
+    // teach the design agent to hardcode it. (The website-side equivalent is
+    // tests/integration/font-token-pin.test.ts; this covers the synced surface,
+    // which that guard does not scan — .design-sync is a dot-directory.)
+    const family = urlFaces[0].match(/font-family:\s*['"]([^'"]+)['"]/)?.[1];
+    expect(family, 'could not read the pinned family name').toBeTruthy();
+
+    const surfaces = [
+      // conventions.md first, and deliberately: it sits at the .design-sync
+      // root rather than under either directory, so a glob over the two dirs
+      // misses the ONE file prepended verbatim to the published README.
+      resolve(SYNC_DIR, 'conventions.md'),
+      ...readdirSync(resolve(SYNC_DIR, 'specimens')).map((f) => resolve(SYNC_DIR, 'specimens', f)),
+      ...readdirSync(resolve(SYNC_DIR, 'specimen-docs')).map((f) =>
+        resolve(SYNC_DIR, 'specimen-docs', f)
+      ),
+    ].filter((p) => /\.(tsx|ts|md)$/.test(p));
+    expect(surfaces.length, 'no synced surfaces found to scan').toBeGreaterThan(0);
+
+    for (const p of surfaces) {
+      const body = readFileSync(p, 'utf-8');
+      expect(
+        new RegExp(`font-family\\s*[:=]\\s*['"\`]?${family}`, 'i').test(body),
+        `${rel(p)} names '${family}' directly — use var(--font-family-mono)`
+      ).toBe(false);
+    }
   });
 });

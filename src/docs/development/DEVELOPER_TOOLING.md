@@ -14,7 +14,8 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Run unit and integration tests (once)  | `npm run test:run`                                                           |
 | Run unit and integration tests (watch) | `npm run test`                                                               |
 | Run tests with coverage                | `npm run test:coverage`                                                      |
-| Run the docs guards (link/anchor integrity + variables parity + design-sync name/ROOTS parity) | `npm run test:docs`                                  |
+| Run the docs guards (link/anchor integrity + variables parity + design-sync name/ROOTS parity + published tool counts + generated-bundle freshness) | `npm run test:docs` |
+| Check the committed mcp-server bundles match their sources | `node mcp-server/scripts/generate-regulations-index.mjs --check` (renders in memory, writes nothing; drop `--check` to regenerate) |
 | Arm the Claude review gates (once/machine) | `npm run setup:claude-hooks` (see § Claude Code review gates)            |
 | Seed / clear the local stdio MCP radar snapshot | `npm run radar:seed` / `npm run radar:unseed` (mock data — see [RADAR.md § Working Offline](../hub/RADAR.md)) |
 | Serve a fake `/radar/snapshot` for the **website** | `npm run radar:stub` (the stdio seed above is a different consumer — the site never reads it; needed for the content-dependent radar E2E) |
@@ -54,7 +55,7 @@ If all four pass locally, CI will almost certainly pass too — **for website-on
 > ```bash
 > npm -w @gst/mcp-server run typecheck   # tsc --noEmit over mcp-server (src + tests)
 > npm run test:mcp                       # Vitest, mcp-server workspace
-> npm run test:docs                      # docs guards: link/anchor integrity + VARIABLES_REFERENCE parity + design-sync parity (required check)
+> npm run test:docs                      # docs guards: link/anchor integrity + VARIABLES_REFERENCE parity + design-sync parity + published tool counts + generated-bundle freshness (required check)
 > ```
 >
 > Discovered the hard way in BL-090: a two-argument call to a one-argument constructor sat green through `astro check`, `lint`, `test:run`, `test:mcp` (1917 passing) and `test:docs`, and would have failed CI.
@@ -282,7 +283,7 @@ concurrency:
 | [.github/workflows/rollback-mcp.yml](../../../.github/workflows/rollback-mcp.yml) | Manual `workflow_dispatch` rollback of the MCP Worker to a prior deployment ID; production rollbacks gated by the `mcp-production-rollback` environment's required reviewer (BL-037 Phase C). The staging arm binds `mcp-staging` — no reviewer, still self-service; it binds an environment purely so its Cloudflare credentials are environment-scoped rather than repository-scoped (BL-111). **Has never executed** — worth a low-stakes staging drill before an incident forces the first run |
 | [.github/workflows/npm-audit.yml](../../../.github/workflows/npm-audit.yml)       | Production-dep vuln scan — weekly cron + lockfile-change trigger                                 |
 | [.github/workflows/prettier-drift-check.yml](../../../.github/workflows/prettier-drift-check.yml) | Weekly cron + manual `workflow_dispatch` — runs `prettier --check .` repo-wide; opens a `tech-debt` Issue if drift accumulates (counter-pressure for the diff-scoped PR check; see § Prettier idempotency + drift) |
-| [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` — the BL-089 doc link & anchor guard plus the `VARIABLES_REFERENCE.md` ↔ `variables.css` parity guard (`tests/integration/docs-variables-sync.test.ts`) plus the claude.ai/design sync guards (`tests/integration/design-sync-guards.test.ts`, BL-135: every class/token the `.design-sync/` docs name exists in `src/styles`; `build-css.mjs` ROOTS reaches every sheet; the specimens type-check via `tsc -p .design-sync`; every chrome slice in `extract-chrome.mjs` still resolves to a route + tag/hook in `.astro` source; `conventions.md` stays under the 28,000-char guard for the consumer's 32,000-char README truncation) — on every PR + push to `master`. Exists as its own workflow because `test.yml`'s `changes` gate skips docs-only diffs — the exact case the guards must fire on. Its "Verify doc links" job **is a required branch-protection check** (added 2026-07-19; see CLAUDE.md § PR Requirements) |
+| [.github/workflows/docs-integrity.yml](../../../.github/workflows/docs-integrity.yml) | Runs `npm run test:docs` — the BL-089 doc link & anchor guard plus the `VARIABLES_REFERENCE.md` ↔ `variables.css` parity guard (`tests/integration/docs-variables-sync.test.ts`) plus the claude.ai/design sync guards (`tests/integration/design-sync-guards.test.ts`, BL-135: every class/token the `.design-sync/` docs name exists in `src/styles`; `build-css.mjs` ROOTS reaches every sheet; the specimens type-check via `tsc -p .design-sync`; every chrome slice in `extract-chrome.mjs` still resolves to a route + tag/hook in `.astro` source; `conventions.md` stays under the 28,000-char guard for the consumer's 32,000-char README truncation) plus the published-tool-count guard (`tests/integration/mcp-published-tool-count.test.ts`: the ten tool counts published across `ARCHITECTURE.md`, `BREAKING_CHANGES.md`, `mcp-server/README.md` and `mcp-server/src/docs/testing/README.md`, on three different bases, bound to what `server.ts` / `tools/_local-only.ts` register) and the generated-bundle freshness guard (`tests/integration/mcp-generated-bundle-freshness.test.ts`: spawns `mcp-server/scripts/generate-regulations-index.mjs --check`, which re-renders the three committed `*.generated.ts` bundles in memory and diffs them against disk, catching one committed stale). **That last guard makes this job spawn mcp-server tooling that loads prettier from the root `node_modules`** — covered by the existing root `npm ci` and cache paths, but a surprising dependency for a job named "Verify doc links". Runs on every PR + push to `master`. It exists as its own workflow because what these guards protect is markdown, so the commits that break them are docs-only diffs — the exact case `test.yml`'s `changes` gate skips. Its "Verify doc links" job **is a required branch-protection check** (added 2026-07-19; see CLAUDE.md § PR Requirements) |
 | [.github/workflows/latency-probe.yml](../../../.github/workflows/latency-probe.yml) | BL-033 synthetic latency probe — cron (`30 */6 * * *`, 30 min after the Worker's radar-refresh cron) + manual `workflow_dispatch`; runs `mcp-server/scripts/probe-latency.mjs` against production, publishes a p50/p95 job summary + 90-day JSON artifact. Needs the `MCP_PROBE_KEY` secret. Deliberately NOT a required check — evidence collection, not a gate. See [LATENCY_PROBE.md](../../../mcp-server/src/docs/operations/LATENCY_PROBE.md) |
 | [scripts/await-mcp-test-run.sh](../../../scripts/await-mcp-test-run.sh)           | The production deploy's pre-flight guard (BL-111) — polls the GitHub API for an MCP Server Test Suite verdict on the exact SHA being deployed, and refuses the deploy without one. Its **exit code is the contract** (0–6, table in the script header); the incident Issue body renders that table for the operator. Lives at repo root, not `mcp-server/scripts/`, because `mcp-server/**` is the first entry of both the test and production `paths` allowlists — a CI helper there would run the full MCP suite and queue a production approval on every edit. Guarded by `tests/integration/await-mcp-test-run.test.ts` (there is no shell lint in this repo) |
 | [.github/dependabot.yml](../../../.github/dependabot.yml)                         | Automated dependency updates (npm + GitHub Actions)                                             |
@@ -497,7 +498,9 @@ The pre-commit hook runs `stylelint --fix` on staged `.css` and `.astro` files. 
 
 ### `@layer` support
 
-The base and override configs both register `layer` as an allowed at-rule (`at-rule-no-unknown: [true, { "ignoreAtRules": ["import", "layer"] }]`) so CSS cascade layer declarations parse cleanly. This supports the `@layer reset, tokens, utilities, components, theme, overrides;` scheme introduced in Phase 3 commit 0b.
+The base and override configs both register `layer` as an allowed at-rule (`at-rule-no-unknown: [true, { "ignoreAtRules": ["import", "layer"] }]`) so CSS cascade layer declarations parse cleanly if one is ever introduced.
+
+**No CSS under `src/styles` uses the at-rule.** This section previously described a live `@layer reset, tokens, utilities, components, theme, overrides;` scheme; no such scheme exists, and the cascade is plain source order throughout. That matters — source order at equal specificity is exactly what made `.container`'s responsive gutter rules sit dead in `components/buttons.css` for months, shadowed by the base rule that `global.css` declares after importing it. Introducing layers would be a real architectural decision needing its own ADR; permitting the at-rule in lint config is not that decision.
 
 ### Complexity rules in the `.astro` override
 
@@ -529,10 +532,10 @@ The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-cor
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 22 routes (Chromium, ~9 seconds)
+npm run test:a11y        # Scans 30 routes (Chromium)
 ```
 
-This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all five tool pages, plus `/brand` and `/hub/radar/`.
+This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all seven tool pages, the five `/hub/mcp/*` pages, plus `/brand` and `/hub/radar/`. **Routes, not pages**: `/hub/mcp/docs/` is scanned three times, so those five pages are seven entries. Count the array when you change this number rather than incrementing it; every stale value this line has carried came from adding a route and adjusting the count by memory.
 
 `/hub/radar/` waits for its `server:defer` island to resolve before scanning; with no `MCP_KEY_WEBSITE_RADAR` bound it scans the shell plus the empty state — bind `npm run radar:stub` to cover the feed items too.
 
@@ -541,7 +544,7 @@ The `wcag22aa` tag was added 2026-08-03 and selects exactly one rule in axe-core
 ### How the ratchet works
 
 - **Critical violations**: must always be zero — blocks merge
-- **Serious violations**: new violation IDs must be zero; pre-existing ones can be tracked in a `KNOWN_SERIOUS` map of per-page max node counts
+- **Serious violations**: new violation IDs must be zero; pre-existing ones can be tracked in a `KNOWN_SERIOUS` map of max node counts, keyed by route NAME rather than path (of the three entries under `/hub/mcp/docs/`, two share the bare path — the Jobs lens collapsed and expanded — and see different node counts; the third carries a hash)
 - **Moderate/minor**: logged for visibility, not enforced
 
 `KNOWN_SERIOUS` is **currently empty**, and that is the finished state rather than an unfilled one — its last 16 entries were all the same active-nav-link contrast node, closed 2026-08-03. Two guards flank it and both matter the moment anything is added: the ratchet fails on _exceeding_ a baseline, and a stale-baseline guard fails on falling _under_ one, so an entry of `n` asserts exactly `n`. Prefer deleting an entry that reaches zero over zero-valuing it — with no entry, a regression fails as an **unknown** serious violation, which is louder.

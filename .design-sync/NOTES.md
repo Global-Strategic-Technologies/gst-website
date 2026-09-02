@@ -4,7 +4,7 @@ Repo-specific gotchas for syncing this repo to claude.ai/design. Read before re-
 
 ## What this sync is
 
-GST has **no React**. Components are 45 `.astro` files; there is no `@astrojs/react`
+GST has **no React**. Components are `.astro` files throughout; there is no `@astrojs/react`
 (or preact/svelte/vue/solid), no `.tsx`/`.jsx` under `src/`, and no compiled component
 package. The converter builds `_ds_bundle.js` from React exports, so **none of the
 `.astro` components can be imported** — see the "Scope" note in the skill's
@@ -46,6 +46,11 @@ reimplementation the skill forbids, and STYLES_GUIDE's own drift argument applie
 - It also bundles the four **code-split** sheets `global.css` deliberately does NOT import
   (`filter`, `portfolio`, `map`, `progress`) plus `toc.css`, and **inlines root-absolute
   `url()` refs as data URIs** from `public/` (a `mask-image` that 404s hides its element).
+- **It also emits `.cache/gst-fonts.css`, which is `cfg.extraFonts`' input** — the pinned
+  brand face (BL-144) ships through the converter's own font path, NOT through `cssEntry`.
+  See the `[FONT_MISSING]` finding below for why it cannot ride in the flattened sheet.
+  The file is derived from `src/styles/fonts.css` on every run (url()s re-pointed at
+  `public/` relative to `.cache/`), so a re-cut of the font needs no edit here.
 - **The React the bundle vendors comes from `.ds-sync/node_modules`.** `lib/emit.mjs`'s
   `vendorReact()` hard throws without it. Hence `--node-modules ./.ds-sync/node_modules`.
   Do not add `react` to the repo's `package.json` (a `react@19` does sit transitively in
@@ -71,6 +76,7 @@ node .ds-sync/resync.mjs --config .design-sync/config.json \
   --entry ./.design-sync/ds-entry.mjs --out ./ds-bundle \
   --remote .design-sync/.cache/remote-sync.json
 node .design-sync/extract-chrome.mjs --check   # AFTER resync — package-build wipes ds-bundle/
+node .design-sync/font-probe.mjs               # AFTER extract-chrome — it probes a chrome card
 ```
 
 Then the upload: `finalize_plan` writes must include `components/chrome/*/*` in addition
@@ -84,6 +90,41 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
 
 ## Hard-won findings (don't rediscover these)
 
+- **The pinned face cannot ship through `cssEntry` — it must go through `cfg.extraFonts`.**
+  Found 2026-08-29, the first sync after BL-144 pinned `--font-family-mono` to a self-hosted
+  `GST Mono`. `cfg.cssEntry` becomes `_ds_bundle.css`, and the converter REWRITES that file's
+  `@font-face` blocks (`lib/css.mjs` `rewriteBundleFontFaces`), dropping any whose `src` it
+  judges unresolvable — correct in general, because a dead face declared after
+  `fonts/fonts.css` would shadow the working one. Ours was dropped **either way**: a bare
+  `/fonts/…` url genuinely is unresolvable there, and the data URI `inlineRootUrls`
+  substitutes trips a quote-backtracking bug in the drop test
+  (`url\(\s*['"]?(?!…data:…)` — the optional quote matches ZERO width, so the lookahead
+  reads `"data:` and the negative lookahead passes). Either path left `GST Mono` referenced
+  but undeclared and validate printed `[FONT_MISSING]`; designs would have rendered in the
+  metric-matched fallbacks. **The fix is config, not a lib fork**: `build-css.mjs` emits
+  `.cache/gst-fonts.css` and `cfg.extraFonts` points at it, so extractFonts copies the woff2
+  into `fonts/`, rewrites the url to `./<name>`, and writes `fonts/fonts.css` — which
+  `styles.css` imports BEFORE `_ds_bundle.css`, so it reaches designs and is never shadowed.
+  `_ds_bundle.css` still logs `1 dead @font-face block(s) dropped` on every run: that is the
+  now-redundant copy being removed, and it is expected, not a regression.
+- **Measuring the font through `var(--font-family-mono)` proves NOTHING.** The fallbacks are
+  metric-matched on purpose, so Consolas at `size-adjust: 109.1%` sets 599.84px where the
+  pinned face sets 600.00 — indistinguishable at any sane tolerance. Mutation-proven on
+  2026-08-29: with the woff2 deleted from `ds-bundle/fonts/`, the token still measured
+  599.84px. The discriminating probe names `'GST Mono'` with **nothing behind it**, so a face
+  that failed to load collapses to the browser default (611.19px measured). `font-probe.mjs`
+  does that, on both surfaces.
+- **Chrome cards resolve the face from TWO sources, so isolate before concluding.** Each card
+  links `../../../styles.css` AND carries its own inlined `@font-face` blocks (three of them).
+  Corrupting the inlined data URI still measured 600.00px because the shared stylesheet
+  covered for it — the probe was re-testing the design surface while claiming to test
+  extract-chrome's pipeline. `font-probe.mjs` now `route.abort()`s `**/styles.css` on the
+  chrome page; with that block in place the same mutation correctly fails. Both arms are
+  mutation-proven — don't weaken either without re-proving it.
+- **`GST Mono Fallback error` in probe output is benign on Windows.** That face is
+  `local('Menlo'), local('DejaVu Sans Mono')`; neither is installed here or in the Playwright
+  engines, so it legitimately fails to load. `GST Mono Fallback WD` (Consolas) loads. Nothing
+  to chase — it is the same gap TYPOGRAPHY_REFERENCE records as needing a Mac to close.
 - **`[BUNDLE_EXPORT]` is a hard gate.** `componentSrcMap` + an authored preview is NOT
   enough to ship a card: validate exits 1 with _"not a component on window.GST"_. A card
   requires a genuine bundle export. That is the entire reason `extraEntries` exists here.
@@ -101,12 +142,111 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
   not `.ds-sync/node_modules`. Specimens take no props, so nothing is lost.
 - Playwright: the repo pins `playwright-core` 1.62.1 → chromium build **1234**, which was
   already in the local cache. No 200MB install was needed.
+- **The bundle root ships `_ds_needs_recompile`, and the upload deletes nothing.** The
+  build emits `_ds_needs_recompile` (`{"by":"design-sync-cli"}`) and does NOT emit
+  `_ds_manifest.json` or `_adherence.oxlintrc.json`, both of which exist on the remote.
+  They are compiled PRODUCT-SIDE from the uploaded files — CLAUDE_DESIGN_SYNC.md § Known
+  limits says the manifest "cannot be checked from the repo", and the adherence config
+  appears nowhere in this repo at all. So the marker is what asks the app to regenerate
+  them: upload it, and pass an EMPTY `deletes` set. Deleting the two as orphans would
+  remove artifacts this repo neither owns nor can rebuild. Confirmed on the 2026-08-18
+  sync: 101 files written, both app-side files still present afterwards.
+- **`_ds_sync.json` matching the remote proves NOTHING about the README.** `auxShaFor()`
+  (`.ds-sync/lib/sync-hashes.mjs`) hashes `README.md` and `guidelines/` from the LOCAL
+  output directory and writes that digest into the sidecar, which is then uploaded. So a
+  remote sidecar that matches local is your own hash echoed back — not a server-side hash
+  over the stored file. `sourceHashes` cannot cover the gap either: every key there is
+  `components/specimens/*`. Worse, the failure is self-perpetuating —
+  `remote-diff.mjs:211` sets `upload.aux` from `remote.auxSha !== local.auxSha`, so a
+  README that landed wrong beside a sidecar that landed right is never re-uploaded. **The
+  only way to confirm the README is `get_file` on it.** Done on the 2026-08-18 sync, and
+  it earned its keep: it caught a sentence still pointing the sash at the `SiteHeader`
+  chrome card, which is exactly what the same commit proved impossible.
+- **A specimen edit does NOT show up as `changed` in the verification partition — because
+  in this repo the card's markup lives in the BUNDLE.** Found 2026-08-30. `sourceKeys`
+  (the verification identity) hash the authored preview under `.design-sync/previews/`,
+  which is only the mount composition; the markup a specimen card actually displays comes
+  from `.design-sync/specimens/*.tsx` compiled into `_ds_bundle.js` via `cfg.extraEntries`.
+  The skill's design treats bundle churn as never invalidating grades — correct for a
+  normal DS, where the bundle is upstream `dist/` and the card content is the authored
+  preview. Here the relationship is inverted, so the rule silently protects the wrong
+  thing. Concretely: commit `5957c21c` rewrote two rows of `CardSpecimen.tsx` (dropping a
+  double-applied `.brutal-frosted` from the FAQ items) and the driver still reported
+  `CardSpecimen` **unchanged**, `renderChurned: []`, and skipped capture entirely
+  (`empty_worklist`) — while `bundleSha12` moved, which is where the change really was.
+  **So on any re-sync whose commits touched `.design-sync/specimens/`, do not let
+  "0 changed" stand in for visual verification**: diff `git log <last-sync>..HEAD --
+.design-sync/specimens/` and look at the affected card's fresh
+  `_screenshots/specimens__<Name>.png` (the render-check screenshot IS regenerated every
+  run, unlike the `_screenshots/review/` sheets, which a carried-forward capture leaves
+  stale). Done for `CardSpecimen` on 2026-08-30 — renders complete and correctly
+  single-frosted, grade holds. The same gap covers pure CSS changes: `styleChanged: true`
+  never enters the verification partition either.
+- **The upload set is 103 files, and the two exclusions are deliberate.** (101 before
+  2026-08-29; the two added are `fonts/fonts.css` and the pinned woff2 — which first
+  actually REACHED the remote on the SECOND 2026-08-29 session. The first session
+  verified the build and wrote this bullet, but its upload never ran; see the
+  upload-silence risk below.) Everything under
+  `ds-bundle/` except the 8 root dotfiles (local telemetry — `.resync-verdict.json`,
+  `.sync-diff.json`, `.render-check.json`, `.review.html`, …) and `_screenshots/` (32
+  render proofs). The verdict's `upload.components` block lists only specimens, so the
+  `finalize_plan` write set must add `components/chrome/*/*` by hand or the 19 chrome
+  cards silently never ship.
 
 ## Known render warns (expected — not new)
 
-- None outstanding. The latest run (Slice 3, 2026-08-16) was `render check: 10/10
-previews render cleanly`, `validate ✓ bundle is complete`, `10 carried forward / 0
-captured / 0 errors`; `extract-chrome.mjs --check` 19/19 with zero page errors.
+- None outstanding. The latest run (2026-08-29) was `render check: 10/10 previews render
+cleanly`, `validate ✓ bundle is complete` with **zero** warnings, `10 verified-by-upload
+/ 0 changed / 0 new`; `extract-chrome.mjs --check` 19/19 with zero page errors;
+  `font-probe.mjs` PASS on both surfaces; dark 4/7, all six palettes as expected.
+- `[FONT_MISSING] "GST Mono"` fired on that run's FIRST driver pass and was **resolved, not
+  tolerated** (the `cfg.extraFonts` finding above). If it reappears, the font stopped
+  shipping — do not record it as known.
+- The second 2026-08-29 session re-ran the whole pipeline from a clean tree and reproduced
+  that result exactly — `10/10 render cleanly`, `validate ✓`, zero warnings, `10
+verified-by-upload / 0 changed / 0 new`, chrome 19/19, `font-probe` PASS on both
+  surfaces (600.00px vs 549.81px control), dark 4/7, all six palettes. Its only real work
+  was the upload the first session never performed.
+- **2026-08-30 reproduced it again on the post-frost tree, and UPLOADED (confirmed).**
+  Same clean result across the board (`10/10 render cleanly`, `validate ✓`, zero warnings,
+  chrome 19/19, `font-probe` PASS both surfaces at 600.00px vs 549.81px, dark 4/7, all six
+  palettes, capture `10 carried forward / 0 cleared`). 103 files written, 0 deletes;
+  post-upload `list_files` shows 105 = our 103 plus the two app-side files
+  (`_ds_manifest.json`, `_adherence.oxlintrc.json`), and the remote anchor now reads
+  `styleSha de30af52…` / `bundleSha12 920f57047564` / `auxSha f44e69da…`. The README was
+  re-fetched and carries the header including today's frost paragraph.
+  - **Worth knowing for next time: `finalize_plan` was denied on the first attempt by the
+    HARNESS, not the user** — the session started in "don't ask" permission mode, where
+    the approval prompt cannot be raised at all. The failure is loud (an explicit denial
+    message), unlike the 2026-08-29 non-interactive case, and the fix is entirely
+    client-side: the user switches to accept-edits/default mode and the same plan goes
+    through. Everything built before the denial stayed valid — no rebuild was needed, only
+    a re-fetch of the sidecar to confirm nothing had moved.
+- **2026-08-31 reproduced it again and UPLOADED (confirmed).** Same clean result
+  (`10/10 render cleanly`, `validate ✓`, zero warnings, chrome 19/19, `font-probe` PASS
+  both surfaces at 600.00px vs 549.81px, dark 4/7, all six palettes, `10
+verified-by-upload / 0 changed / 0 new`). 103 files written, 0 deletes; post-upload
+  `list_files` shows 105 = our 103 plus the two app-side files. Remote anchor now
+  `styleSha de30af52…` (UNCHANGED — see below) / `bundleSha12 920f57047564` /
+  `auxSha 75ee39e4…`. README re-fetched: header intact, generated body not truncated.
+  The real content delta was outside the anchor's reach on both counts — two guideline
+  docs (`STYLES_GUIDE`, `VARIABLES_REFERENCE`) and the `HubToolsLanding` chrome slice,
+  which picked up the new IRL Extractor card and the `HubHeader` spacing fix.
+
+## The remote-sync cache is written by hand, and silently rots
+
+`--remote .design-sync/.cache/remote-sync.json` is a LOCAL file the driver reads; nothing
+in the pipeline refreshes it after an upload. On 2026-08-31 it still held the **2026-08-16**
+sidecar (`styleSha 50cd2a28…`), two syncs behind, so the driver reported `styleChanged:
+true` and a phantom `upload.components: ["CardSpecimen"]` against a remote that in fact
+matched local on every hash but `auxSha`. Harmless here — it only over-uploads — but it
+burns a debugging cycle every time, and it is indistinguishable from a real style change.
+
+**So: after a confirmed upload, `cp ds-bundle/_ds_sync.json
+.design-sync/.cache/remote-sync.json`.** Done for this run. And when the driver reports
+`styleChanged`, confirm it against `get_file _ds_sync.json` before believing it — the
+cache is a guess, the remote sidecar is the fact. (`.cache/` is gitignored, so a fresh
+clone has no cache at all and correctly does a full re-upload.)
 
 ## Re-syncing from a fresh clone (what it costs)
 
@@ -120,9 +260,59 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
 - `.design-sync/.cache/review/*.grade.json` (the "8 carried forward" human verdicts) is
   also gone, so the capture/grade step runs from scratch — **re-grade all ten**.
 - `dark-probe.mjs` and `palette-probe.mjs` need `ds-bundle/` — run them only after a full
-  `package-build`; both exit non-zero with a pointer here if it is missing.
+  `package-build`; both exit non-zero with a pointer here if it is missing. `font-probe.mjs`
+  needs it too, and its chrome arm additionally needs `extract-chrome.mjs` to have run (it
+  reports that arm as unbuilt rather than failing, so read its output, not just its exit code).
 
 ## Re-sync risks (what can silently go stale)
+
+- **A sync that verifies everything and then never uploads leaves NO trace — check the
+  remote file list, not this file.** Found 2026-08-29 (second session): the first session
+  did the full BL-144 font work, went green on every probe, wrote its findings here as
+  though shipped — and its upload never ran. Nothing detects that afterwards. The local
+  `ds-bundle/` is correct, `_ds_sync.json` on disk is correct, the driver reports
+  `10 verified-by-upload`, and the REMOTE anchor is untouched, so it agrees with itself
+  at the OLD value; `.cache/remote-sync.json` matching the remote proves only that the
+  fetch worked. The tell was structural and took one read-only call: `list_files` showed
+  **no `fonts/` directory at all** and 101 repo-owned files where the local build makes 103. So on every re-sync, **diff the remote path list against `find ds-bundle -type f`
+  before trusting any verdict** — a whole missing directory is the signature, because
+  `upload.styling`/`bundle`/`aux` are booleans over hashes and cannot tell "not uploaded
+  yet" from "uploaded and stale". Corollary: **never write "uploaded/shipped" into this
+  file until a post-upload `list_files` has confirmed it** — a premature note is worse
+  than no note, since the next session reads it as done and skips the only step that
+  mattered. (Related: the anchor already can't see the README or the chrome cards; this
+  is the third and widest blind spot.)
+
+  **Why that first upload never ran — recorded by the session it happened in, since the
+  second session could only see the hole, not its cause.** It was NOT a denied
+  `finalize_plan`: that call was never reached. Every `DesignSync` method, starting with
+  the opening `get_project`, failed with _"DesignSync needs design-system authorization,
+  and /design-login cannot run in this non-interactive session"_ — the VS Code extension
+  session reports as non-interactive, and `/design-login` is unavailable there, so the
+  authorization could not be obtained from inside it at all. The session did the whole
+  build and verification (that work is what commit `9aa71a16` carries) and told the user
+  plainly, twice, that the upload had not happened. **What it got wrong was this file**:
+  it updated the upload-set bullet to 103 as though the number described something
+  shipped. So the guard above is the right one, but note the shape of the real failure —
+  it was loud in the transcript and silent in the durable record, not silent everywhere.
+  Practically: a session that cannot authorize should write the build-and-verified state
+  here **explicitly marked unshipped**, and hand the upload to a session that can.
+
+- **After editing `conventions.md`, grep the WHOLE file for the family you touched — do
+  not review the hunk.** The uploaded README is read as one document by the agent, and a
+  family is usually described in three or four places (token bullet, class-families
+  bullet, BEM line, a rule, sometimes a worked example). Adding one and leaving another
+  stale produces a document that contradicts itself, which no diff shows and which is
+  worse than either sentence alone: a reader who checks the wrong one discards the rest.
+  This is not hypothetical — the 2026-08-18 sash pass shipped exactly that, a bullet still
+  saying "real markup is in the `SiteHeader` chrome card" while a new section 173 lines
+  and seven headings later (lines 88 and 261) explained why that slice structurally cannot
+  contain it. The DISTANCE is the argument for the rule: a contradiction three paragraphs
+  apart would plausibly be caught by rereading the section, which makes the grep look
+  optional; 173 lines apart in a 20,000-character document, a whole-file grep is the only
+  thing that finds it. It survived FOUR
+  review rounds, all of them reading diffs, and was found only by reading the published
+  README end to end. `grep -n "<family>" .design-sync/conventions.md` is the whole check.
 
 - **`conventions.md` and the ten `specimen-docs/*.md` enumerate real class and token
   names.** CSS refactors rot them silently — the agent trusts these names and will emit
@@ -154,8 +344,16 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
 - **The README header has a hard size ceiling.** The converter prepends `conventions.md`
   to the uploaded README precisely because the consumer truncates the README inline at
   **32,000 characters, cutting the TAIL** (skill `lib/emit.mjs`, `emitReadme`). The
-  header is ~17.5 KB today (Slice 3); `design-sync-guards.test.ts` guard 5 fails `test:docs`
-  at 28,000 chars. If it outgrows that, move the overflow into a shipped guideline doc under
+  header **no longer has comfortable headroom** — it grew past 26k during August 2026 and
+  now sits within a few hundred characters of guard 5's 28,000 limit, so the next
+  substantive addition is the one that trips CI. Treat "add a section to conventions.md"
+  as "and move something out". Read the exact figure off the guard rather than from here,
+  since a prose edit moves it and a hand-kept number in this file has already gone stale
+  twice:
+  `node -e "console.log(require('fs').readFileSync('.design-sync/conventions.md','utf-8').length)"`.
+  `design-sync-guards.test.ts` guard 5 fails `test:docs` at 28,000 chars. Measure it in
+  CHARACTERS, not bytes — the guard does, and the two differ once the prose carries
+  non-ASCII. If it outgrows that, move the overflow into a shipped guideline doc under
   `guidelinesGlob` rather than raising the number and letting the tail (the boilerplate) or,
   worse, the end of the header be cut.
 - **Specimen markup was ported from real sources** — `BrandComponents.astro`,
@@ -167,6 +365,18 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   new sheet out of `global.css` (its top comment tracks these), add it there or its classes stop
   shipping; `design-sync-guards.test.ts` fails `test:docs` when any sheet under `src/styles/`
   is unreachable from ROOTS, so the omission is caught in CI rather than in a design.
+- **The pinned typeface is a silent-staleness surface, and is VERIFIED (by measurement).**
+  Run `node .design-sync/font-probe.mjs` after `extract-chrome.mjs`. Result 2026-08-29:
+  600.00px for ten characters at 100px on BOTH surfaces — the design closure (`styles.css`
+  alone) and a chrome card with the shared sheet blocked — against 549.81px for the generic
+  control. Nothing else catches this: the face reaches designs through two independent
+  pipelines (`cfg.extraFonts` → `fonts/fonts.css` for the bundle; `inlineRootUrls` from
+  `dist/client/` for the chrome cards), neither is covered by `_ds_sync.json`, and a bundle
+  that has lost the font still validates clean **and still looks plausible on the contact
+  sheet**, because the metric-matched fallbacks occupy the same box by design. A re-cut that
+  renames the woff2, a ROOTS change that drops `fonts.css`, or an upstream fix to the
+  drop-test bug (which would make `_ds_bundle.css` re-declare the family after
+  `fonts/fonts.css`) all land here first.
 - **Dark theme is VERIFIED (by measurement, not by a card).** Run
   `node .design-sync/dark-probe.mjs` — it opens a real card, toggles `html.dark-theme`,
   and prints which tokens switch. Current result: 4/7 switch (`--text-primary`,

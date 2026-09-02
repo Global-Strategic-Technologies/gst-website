@@ -1,6 +1,6 @@
 name: Docs link integrity
 
-# Runs `npm run test:docs` — three guard files:
+# Runs `npm run test:docs` — five guard files:
 #   - `tests/integration/docs-link-integrity.test.ts` (BL-089): every relative
 #     markdown link and load-bearing `#anchor` across both doc trees resolves,
 #     so BL-088's distilled cross-references can't silently rot.
@@ -9,6 +9,23 @@ name: Docs link integrity
 #   - `tests/integration/design-sync-guards.test.ts` (BL-135): the claude.ai/design
 #     sync — names the `.design-sync/` docs use exist in src/styles, ROOTS
 #     coverage, specimen typecheck, chrome slices resolve, README ceiling.
+#   - `tests/integration/mcp-published-tool-count.test.ts`: the ten tool counts
+#     published across ARCHITECTURE.md, BREAKING_CHANGES.md and the two
+#     mcp-server READMEs — on three different bases (stdio registrations /
+#     stdio minus the deprecated alias / remote Worker) — bound to what
+#     `server.ts` and `tools/_local-only.ts` actually register. It lives here
+#     rather than only in test.yml for the reason stated below: the numbers it
+#     guards are IN markdown, so the commits that break them are docs-only.
+#   - `tests/integration/mcp-generated-bundle-freshness.test.ts`: spawns
+#     `mcp-server/scripts/generate-regulations-index.mjs --check`, which renders
+#     the three committed `*.generated.ts` bundles in memory and diffs them
+#     against disk. Catches a bundle committed stale (d4ceada6 shipped one whose
+#     embedded article had been reflowed by the pre-commit prettier hook AFTER
+#     the codegen ran). Same docs-only reasoning: its sources are markdown
+#     articles. NOTE this makes the job spawn mcp-server tooling that loads
+#     prettier from the ROOT node_modules — the `npm ci` and cache paths below
+#     already cover it, but it is a surprising dependency for a job named
+#     "Verify doc links".
 # The authoritative list is `test:docs` in package.json; DEVELOPER_TOOLING.md
 # describes each guard.
 #

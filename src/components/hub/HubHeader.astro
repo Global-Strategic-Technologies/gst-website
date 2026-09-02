@@ -7,8 +7,12 @@
 interface Props {
   /** Display name shown as page title */
   title: string;
-  /** Brief description shown below the title */
-  subtitle: string;
+  /**
+   * Brief description shown below the title. Optional because a page can pass
+   * a `subtitle` named slot instead (the slot wins) when the lede needs inline
+   * markup — a prop string is always escaped, so an anchor cannot ride in it.
+   */
+  subtitle?: string;
   /** Whether to show a "last updated" timestamp (default: false) */
   showTimestamp?: boolean;
 }
@@ -31,14 +35,21 @@ if (showTimestamp) {
 
 <header class="hub-header">
   <h1 class="hub-header__title brutal-heading-xl">{title}</h1>
-  <p class="hub-header__subtitle">{subtitle}</p>
+  <p class="hub-header__subtitle"><slot name="subtitle">{subtitle}</slot></p>
   {showTimestamp && <p class="hub-header__updated">Updated {dateStr}</p>}
 </header>
 
 <style>
+  /* The space below the subtitle is the padding ALONE. It used to be padding
+     plus an equal margin — the same job done twice — which put 64px of dead
+     band between a two-line lede and the body copy that continues it, on every
+     page in the Hub. 32px is the top of the range the `/hub/mcp/*` guide pages
+     already override this component to (measured: 32px on get-started, 24px on
+     using and advanced-operations, set on `.hub-header__subtitle`), so it stays
+     inside a number the design already uses rather than introducing a new one.
+     The responsive steps below scale it: 24px at 768, 16px at 480. */
   .hub-header {
     padding: var(--spacing-3xl) 0 var(--spacing-2xl);
-    margin-bottom: var(--spacing-2xl);
   }
 
   .hub-header__title {

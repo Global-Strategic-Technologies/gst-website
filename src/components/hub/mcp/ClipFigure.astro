@@ -1,0 +1,303 @@
+---
+/**
+ * Screen-capture video block for the MCP onboarding pages.
+ *
+ * Two variants from the design handoff:
+ * - `collapsible` — a bordered `<details>` ("See how it works") holding the
+ *   clip; the delta chevron rotates via the global `details[open] .delta-chevron`
+ *   rule and the summary turns primary while open.
+ * - `wide` — an always-visible figure whose frame stops scaling below 768px
+ *   and pans horizontally instead (the 1.90:1 clip is unreadable smaller);
+ *   supports a lazy-load placeholder and a "Sped up" badge.
+ *
+ * Sources are attached lazily by src/utils/mcp-onboarding.ts from the
+ * `data-mp4`/`data-webm`/`data-poster` attributes — the page must import that
+ * module. Reduced-motion behavior (no autoplay, poster as the static state)
+ * also lives there; the constraint record is src/docs/hub/MCP_ONBOARDING.md.
+ */
+import DeltaIcon from '../../DeltaIcon.astro';
+
+interface Props {
+  variant?: 'collapsible' | 'wide';
+  mp4: string;
+  webm?: string;
+  poster: string;
+  /** Intrinsic clip dimensions — drive the frame's aspect ratio. */
+  width: number;
+  height: number;
+  /** Accessible description of what the capture shows. */
+  ariaLabel: string;
+  /** Figcaption text (below the frame when collapsible, above when wide). */
+  caption: string;
+  /** Summary label for the collapsible variant. */
+  summary?: string;
+  /** Cap on the block's width, e.g. '520px' / '1160px'. */
+  maxWidth?: string;
+  /** Overlay badge, e.g. 'Sped up 5×' (wide variant). */
+  badge?: string;
+  /** Lazy-load placeholder text shown until sources attach (wide variant). */
+  placeholder?: string;
+}
+
+const {
+  variant = 'collapsible',
+  mp4,
+  webm,
+  poster,
+  width,
+  height,
+  ariaLabel,
+  caption,
+  summary = 'See how it works',
+  maxWidth = 'none',
+  badge,
+  placeholder,
+} = Astro.props;
+
+const vars = { clipAspect: `${width} / ${height}`, clipMaxWidth: maxWidth };
+---
+
+{
+  variant === 'collapsible' ? (
+    <details class="clip-details" data-clip-details>
+      <summary>
+        <DeltaIcon size={10} class="delta-chevron clip-chevron" />
+        {summary}
+      </summary>
+      <figure class="clip-figure">
+        <div class="clip-frame">
+          <video
+            data-clip
+            data-poster={poster}
+            data-mp4={mp4}
+            data-webm={webm}
+            width={width}
+            height={height}
+            preload="none"
+            aria-label={ariaLabel}
+          />
+          <button
+            type="button"
+            data-clip-toggle
+            hidden
+            class="brutal-btn brutal-btn--secondary clip-toggle clip-toggle--bottom"
+          >
+            Pause
+          </button>
+        </div>
+        <figcaption class="clip-caption">{caption}</figcaption>
+      </figure>
+    </details>
+  ) : (
+    <figure class="clip-wide">
+      <figcaption class="clip-caption clip-caption--above">{caption}</figcaption>
+      <div class="clip-scroll" data-clip-scroll>
+        <div class="clip-frame" data-clip-frame>
+          <video
+            data-clip
+            data-poster={poster}
+            data-mp4={mp4}
+            data-webm={webm}
+            width={width}
+            height={height}
+            preload="none"
+            aria-label={ariaLabel}
+          />
+          {placeholder && (
+            <span data-clip-placeholder class="clip-placeholder">
+              {placeholder}
+            </span>
+          )}
+          <button
+            type="button"
+            data-clip-toggle
+            hidden
+            class="brutal-btn brutal-btn--secondary clip-toggle clip-toggle--top"
+          >
+            Pause
+          </button>
+          {badge && (
+            <span data-clip-badge hidden class="clip-badge">
+              {badge}
+            </span>
+          )}
+        </div>
+      </div>
+      <p class="clip-panhint">Swipe the frame sideways to pan</p>
+      <slot />
+    </figure>
+  )
+}
+
+<style define:vars={vars}>
+  .clip-details {
+    max-width: var(--clipMaxWidth);
+    margin: var(--spacing-md) 0 0;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-left: 3px solid var(--color-primary);
+  }
+
+  .clip-details > summary {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    padding: var(--spacing-sm) var(--spacing-md);
+    min-height: var(--touch-target-min);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    list-style: none;
+  }
+
+  .clip-details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .clip-details[open] > summary {
+    color: var(--color-primary);
+  }
+
+  /* Rotation itself comes from the global `details[open] .delta-chevron` rule. */
+  .clip-chevron {
+    transition: transform var(--transition-fast);
+  }
+
+  .clip-figure {
+    margin: 0;
+    padding: var(--spacing-md);
+  }
+
+  .clip-frame {
+    position: relative;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-top: 3px solid var(--color-primary);
+    /* Always dark: the clips are recordings of a dark UI, whatever the theme. */
+    background: var(--bg-dark);
+    aspect-ratio: var(--clipAspect);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .clip-frame video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .clip-toggle {
+    position: absolute;
+    min-height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--text-2xs);
+  }
+
+  .clip-toggle--bottom {
+    bottom: var(--spacing-sm);
+    right: var(--spacing-sm);
+  }
+
+  .clip-toggle--top {
+    top: var(--spacing-sm);
+    left: var(--spacing-sm);
+  }
+
+  /* `hidden` must beat the button's display; attribute selector outranks the
+     base class rule, so no !important is needed. */
+  .clip-toggle[hidden],
+  .clip-badge[hidden] {
+    display: none;
+  }
+
+  .clip-caption {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+
+  .clip-caption--above {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  /* Overlays sit on the always-dark frame, so they use the dark-surface text
+     tokens directly rather than theme-switching ones. */
+  .clip-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dark-muted);
+  }
+
+  .clip-badge {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dark-secondary);
+    background: var(--scrim-50);
+    border: 1px solid var(--border-dark-subtle);
+    padding: 2px var(--spacing-xs);
+  }
+
+  .clip-wide {
+    margin: 0 0 var(--spacing-2xl);
+    max-width: var(--clipMaxWidth);
+  }
+
+  .clip-panhint {
+    display: none;
+    margin: var(--spacing-xs) 0 0;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .clip-details {
+      max-width: 380px;
+    }
+
+    /* The wide clip stops scaling and pans instead — below ~780px its text is
+       unreadable (see MCP_ONBOARDING.md § per-clip constraints). */
+    .clip-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
+    }
+
+    .clip-wide .clip-frame {
+      min-width: 780px;
+    }
+
+    .clip-panhint {
+      display: block;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .clip-details {
+      max-width: 100%;
+    }
+
+    .clip-wide .clip-frame {
+      min-width: 720px;
+    }
+  }
+</style>

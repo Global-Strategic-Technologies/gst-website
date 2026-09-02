@@ -43,10 +43,23 @@ const { links = PRODUCTION_LINKS } = Astro.props;
 </div>
 
 <style>
+  /* A deliberate optical inset, not alignment with anything. The row sits alone
+     on the left of `.footer-top` (its only sibling is the ThemeToggle, hard
+     right), so nothing above or beside it shares this left edge to misalign
+     against. It reads as cramped without it now that `.container`'s gutter
+     ladder is live and pays 1rem at phone widths instead of the flat 3rem that
+     shipped before (global.css, ADR-0027).
+
+     `--spacing-sm` and not a raw pixel value: the inset was picked by eye at
+     7px, then normalised to the 8px token, because the scale runs
+     4/8/12/16/24/32/48 and a one-pixel deviation is not worth standing outside
+     the design system for. Anything that changes this token changes the width
+     budget below — re-derive it, do not assume the difference is absorbed. */
   .footer-links {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--spacing-md);
     align-items: center;
+    padding-left: var(--spacing-sm);
   }
 
   .footer-links a {
@@ -61,7 +74,7 @@ const { links = PRODUCTION_LINKS } = Astro.props;
       color var(--transition-fast),
       border-bottom var(--transition-fast);
     position: relative;
-    padding-bottom: 0.25rem;
+    padding-bottom: var(--spacing-xs);
     border-bottom: 2px solid transparent;
   }
 
@@ -72,12 +85,12 @@ const { links = PRODUCTION_LINKS } = Astro.props;
 
   .footer-links a:focus {
     outline: 2px solid var(--color-primary);
-    outline-offset: 0.25rem;
+    outline-offset: var(--spacing-xs);
   }
 
   .footer-links a:focus-visible {
     outline: 2px solid var(--color-primary);
-    outline-offset: 0.25rem;
+    outline-offset: var(--spacing-xs);
   }
 
   .footer-links a:focus:not(:focus-visible) {
@@ -86,27 +99,74 @@ const { links = PRODUCTION_LINKS } = Astro.props;
 
   @media (max-width: 480px) {
     .footer-links {
-      gap: 1rem;
+      gap: var(--spacing-sm);
       flex: 1;
       justify-content: flex-start;
+
+      /* THE WIDTH BUDGET. Everything here is derived, not measured — re-derive
+         rather than re-measure if a label, the face, or the gutter changes.
+
+           available(w) = w − 32 − 53.6 − 16 − 8
+             32   = .container's 2 × 1rem gutters at this tier (global.css)
+             53.6 = the ThemeToggle: ThemeToggleButton's font-size: 5rem × the
+                    icon's width: 0.67em. The button declares no width, so its
+                    box IS the icon — a DeltaIcon, so this is independent of
+                    theme, palette and font.
+             16   = .footer-top's gap (Footer.astro)
+             8    = this component's own padding-left, `--spacing-sm` (base rule
+                    above). It is inside `flex: 1`, so it takes from the content
+                    box rather than widening the row.
+
+           needed = 27 characters × 12px × (0.6 advance + 0.05 tracking) + 3 × 8px
+                  = 210.6 + 24 = 234.6
+
+         So one row from 345px up, clearing 360px — the narrowest current phone —
+         by 15.8px. Both numbers moved by exactly the 8px the inset costs (they
+         were 337px and 23.8px before it existed).
+
+         WHY THE TRACKING STEPS DOWN HERE. At the base 0.1em the row needs
+         250.8px and clears 360px by 7.6px. That is not an overflow, but a 0.1em
+         → 0.05em step (the same tracking .text-uppercase and .button-text use)
+         buys 16.2px and turns a 7px squeak into a real margin. This row has
+         already been caught once by a margin that thin: BL-144 pinned the mono
+         face from generic `monospace` (0.55em on Windows) to GST Mono (0.6em),
+         which widened these four labels by 16.2px and pushed the row to two
+         lines on a 430px phone.
+
+         WHY IT STILL WRAPS. 320px offers 210.41px against 210.63px of glyph, so
+         the labels alone no longer fit before a single one of the three 8px gaps
+         is paid — but that deficit is 0.22px, and the thinness is the point.
+         Before the inset the same width had 7.8px of slack against the glyph and
+         failed only on the 24px of gaps; now it fails on the glyph too, by a
+         quarter of a pixel. Returning even that much to this box flips 320 to one
+         row and falsifies the sentence, so treat it as a measured margin rather
+         than as the word "impossible". One row there still needs type below 12px.
+         The row wraps to two lines and nothing leaves the screen.
+         Without flex-wrap it would instead push the ThemeToggle off-screen, which
+         is the defect this pair of rules exists to prevent. min-width: 0 releases
+         the flex item's `auto` floor so the row can actually take the wrap.
+         Guarded by tests/e2e/narrow-viewport-chrome.test.ts. */
+      flex-wrap: wrap;
+      min-width: 0;
     }
 
     .footer-links a {
       font-size: var(--text-xs);
+      letter-spacing: 0.05em;
     }
   }
 
   /* Tablet (480px - 768px) */
   @media (min-width: 480px) and (max-width: 767px) {
     .footer-links {
-      gap: 1.25rem;
+      gap: var(--spacing-1_25);
     }
   }
 
   /* Desktop (768px+) */
   @media (min-width: 768px) {
     .footer-links {
-      gap: 2rem;
+      gap: var(--spacing-2xl);
     }
   }
 </style>

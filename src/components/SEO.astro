@@ -109,7 +109,15 @@ const breadcrumbJsonLd = !isHomepage
     }
   : null;
 
-// Build FAQPage schema when faqItems are provided
+// Build FAQPage schema when faqItems are provided.
+// Answers may carry limited HTML (Google's FAQ rich-result guidance allows
+// anchors), but the JSON-LD copy is read out of page context, where a relative
+// href resolves to nothing. Absolutize root-relative hrefs for the structured
+// data only — the rendered set:html answers keep the site-relative form. The
+// (?!\/) guard leaves protocol-relative //host URLs alone.
+const absolutizeFaqHrefs = (answer: string): string =>
+  answer.replace(/href="\/(?!\/)/g, `href="${siteBase}/`);
+
 const faqJsonLd =
   faqItems && faqItems.length > 0
     ? {
@@ -120,7 +128,7 @@ const faqJsonLd =
           name: item.question,
           acceptedAnswer: {
             '@type': 'Answer',
-            text: item.answer,
+            text: absolutizeFaqHrefs(item.answer),
           },
         })),
       }
@@ -131,7 +139,10 @@ const jsonLdData = {
   '@type': 'ProfessionalService',
   name: 'Global Strategic Technologies',
   url: 'https://globalstrategic.tech',
-  logo: 'https://globalstrategic.tech/icon.svg',
+  // /images/icon.svg, not /icon.svg — the asset has only ever lived under
+  // public/images/, so the published logo URL 404'd for every consumer of this
+  // JSON-LD. Found 2026-08-29 while BL-144 was rewriting that same file.
+  logo: 'https://globalstrategic.tech/images/icon.svg',
   sameAs: ['https://www.linkedin.com/company/global-strategic-technologies/'],
   founder: {
     '@type': 'Person',

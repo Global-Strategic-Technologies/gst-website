@@ -18,7 +18,16 @@ import { RECOMMENDATIONS } from '../../data/techpar/recommendations';
 import { tp } from './state';
 import { trackEvent } from '../analytics';
 import * as Sentry from '@sentry/browser';
-import { g, $$, getInput, getStyle, fmtD, buildInputs, renderScenarios } from './dom';
+import {
+  g,
+  $$,
+  getInput,
+  getStyle,
+  chartFontFamily,
+  fmtD,
+  buildInputs,
+  renderScenarios,
+} from './dom';
 
 // Lazy-load Chart.js — only downloaded when the trajectory tab is first activated.
 // This removes ~180 KB from the initial TechPar bundle.
@@ -641,11 +650,11 @@ export async function renderTrajectory(r: TechParResult) {
             borderWidth: 1,
             padding: 8,
             titleFont: {
-              family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif",
+              family: chartFontFamily(),
               size: 9,
             },
             bodyFont: {
-              family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif",
+              family: chartFontFamily(),
               size: 9,
             },
             filter: (item: TooltipItem<'line'>) => item.dataset.label !== '_z',
@@ -661,7 +670,7 @@ export async function renderTrajectory(r: TechParResult) {
             ticks: {
               color: txtMuted,
               font: {
-                family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif",
+                family: chartFontFamily(),
                 size: 9,
               },
               maxTicksLimit: 7,
@@ -680,7 +689,7 @@ export async function renderTrajectory(r: TechParResult) {
             ticks: {
               color: txtMuted,
               font: {
-                family: getStyle('--font-family') || "'Helvetica Neue', Arial, sans-serif",
+                family: chartFontFamily(),
                 size: 9,
               },
               callback: (v: string | number) => fmtD(typeof v === 'number' ? v : Number(v)),

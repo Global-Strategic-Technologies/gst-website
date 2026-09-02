@@ -1,0 +1,129 @@
+/* BL-144 — the pinned brand face.
+   ---------------------------------------------------------------------------
+   GST is a monospace brand. Before this file `--font-family-mono` was the bare
+   generic `monospace`, so the actual typeface was whatever the visitor's OS
+   picked — Menlo, Consolas, DejaVu Sans Mono — while 449 declarations, the
+   tracked `.brutal-*` headings, the `ch`-sized tool chrome and the sash's fixed
+   45° chord were all sized against one machine's rendering. Advance widths
+   across those resolutions differ by ~9%, which is the width of a whole
+   character on a 35-character label; the sash clips rather than reflows.
+
+   The fix is to name a face and ship it: one subset variable file from our own
+   origin, aliased so no call site names it.
+
+   WHY THE ALIAS. Every consumer goes through `--font-family-mono`, whose first
+   family is `'GST Mono'`. The face behind that alias is Geist Mono today; a
+   future change is one `src` line here, not a rename across the repo. Never
+   write `font-family: 'Geist Mono'` — the guard in
+   tests/integration/font-token-pin.test.ts fails the build on a literal family
+   outside this file.
+
+   PROVENANCE. Geist Mono Variable, OFL 1.1, from vercel/geist-font v1.7.2
+   (`GeistMono[wght].ttf`, upem 1000, weight axis 100–900). Licence shipped
+   alongside the font at public/fonts/GEIST-MONO-OFL.txt. The subset recipe and
+   how to re-cut it live in docs/styles/TYPOGRAPHY_REFERENCE.md § The pinned
+   mono — re-cut it there rather than by hand, so the declared `unicode-range`
+   below and the file's real coverage cannot drift apart.
+
+   PLACEMENT. Imported first from global.css. Font matching is not source-order
+   dependent, so this is not a correctness requirement — it is so that the one
+   file naming the faces sits above every file consuming them, print rules
+   included (they are a `@media print` block in global.css). */
+
+/* KNOWN, ACCEPTED: WebKit does not apply this face's weight axis — 400 and 900
+   paint byte-identically there, while Chromium and Firefox vary correctly. It is
+   the face, not this subset: the untouched upstream file and two independent
+   rebuilds behave the same, and a control variable font varies in the same
+   engine. Upstream carries an open cluster of weight-axis bugs against Geist
+   (vercel/geist-font #12, #65, #68, #90), so a future release may fix it for
+   free. Shipping the variable file alone is the product owner's decision
+   (2026-08-29); nothing about LAYOUT depends on it, because every glyph in this
+   face has the same 600/1000 advance at every weight. Do not add a static Bold
+   cut to work around it without re-taking that decision. */
+@font-face {
+  font-family: 'GST Mono';
+
+  /* `format('woff2')` is the CSS Fonts 4 spelling, and variable axes ride on it.
+     The handoff proposed `format('woff2-variations')`; all three engines accept
+     all three spellings (plain, `-variations`, and `format('woff2')
+     tech('variations')`) — measured, not assumed — so this picks the
+     non-deprecated one. */
+  src: url('/fonts/gst-mono-var-latin-v1.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+
+  /* The range the subset was cut to, which is a SUPERSET of what the file
+     actually carries — the subsetter drops codepoints the face has no glyph
+     for, so 367 of these resolve and the rest fall through per-glyph. That is
+     harmless and is how per-glyph fallback is supposed to work.
+
+     Two blocks the handoff's proposed range omitted are load-bearing here:
+     U+2500–257F box drawing (the TableOfContents tree and the /brand rules draw
+     ~16k of them — in a fallback face they misalign against the mono grid) and
+     U+20AC, which the tech-debt calculator renders. Δ (U+0394), ⓘ (U+24D8) and
+     ⚠ (U+26A0) are deliberately outside it: Geist Mono has no glyph for them at
+     all. */
+  unicode-range:
+    U+0000-00FF, U+0131, U+2000-206F, U+20AC, U+2190-2199, U+2212, U+221A, U+2248, U+2264-2265,
+    U+25A0-25FF, U+2500-257F;
+}
+
+/* Metric-matched fallbacks. `font-display: swap` is only safe because of these:
+   the pre-swap frame occupies the pinned face's box, so the swap changes glyph
+   shapes and not one line break, column width or sash chord.
+
+   The pinned face's metrics are read off the file itself, not from published
+   tables: GeistMono[wght].ttf has upem 1000, hhea ascent 1005, descent −295,
+   lineGap 0, and a uniform 600/1000 advance across all 867 glyphs. So
+   `size-adjust` is 600 ÷ (the fallback's own advance per 1000): Menlo 602 →
+   99.7%, Consolas 1126/2048 = 549.8 → 109.1%.
+
+   THE OVERRIDES ARE DIVIDED BY THAT FACTOR, and this is the part that is easy
+   to get wrong: `ascent-override` COMPOSES with `size-adjust` rather than
+   replacing it. Declaring the pinned face's own 100.5%/29.5% on both faces
+   looked right and measured wrong — the Consolas fallback's line box came out
+   at 108.4% of the pinned face's, a vertical reflow on swap, which is the exact
+   thing a metric-matched fallback exists to prevent. So each face carries
+   100.5 ÷ s and 29.5 ÷ s. Measured after the fix at `line-height: normal`,
+   100px: pinned 180x131, fallback 179.95x131 — 100.0% on both axes, in Chromium
+   and Firefox.
+
+   WebKit is the exception and cannot be fixed here: it applies `size-adjust`
+   but ignores `ascent-override`/`descent-override` entirely, so the fallback
+   line box sits at 96.9% of the pinned face's there. That is a 3.1% vertical
+   difference during the swap window only, down from 8.4% before this
+   correction, and it is invisible horizontally — the width match is exact on
+   all three engines, which is the axis every fixed geometry on this site is
+   sized against.
+
+   Both figures are checked against something real, by different means:
+
+   - Consolas, in a browser: on Windows a 44-character sample sets 2639.30px
+     against the pinned face's 2640.00px — 0.03% apart, well inside the 0.5%
+     the handoff asks for.
+   - DejaVu Sans Mono, from the font binary: upem 2048, advance 1233, i.e.
+     602.1/1000, so the exact match is 99.66% against the 99.7% shipped.
+
+   Menlo itself is the one value still unproven on real metal — it is not
+   installed on Windows or in any of the three Playwright engines. Its published
+   602 advance agrees with DejaVu's measured 602.1, which is expected (both
+   descend from Bitstream Vera), so the shared figure is well supported; confirm
+   it on a Mac if you want it closed out properly. */
+@font-face {
+  font-family: 'GST Mono Fallback';
+  src: local('Menlo'), local('DejaVu Sans Mono');
+  size-adjust: 99.7%;
+  ascent-override: 100.8%;
+  descent-override: 29.59%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'GST Mono Fallback WD';
+  src: local('Consolas');
+  size-adjust: 109.1%;
+  ascent-override: 92.12%;
+  descent-override: 27.04%;
+  line-gap-override: 0%;
+}

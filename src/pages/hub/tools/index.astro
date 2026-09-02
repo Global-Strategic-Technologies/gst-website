@@ -24,7 +24,7 @@ const isDev = import.meta.env.DEV;
       name: 'GST Strategic Intelligence Tools',
       description:
         'Interactive calculators and generators to quantify risk and value in technology investments',
-      numberOfItems: 6,
+      numberOfItems: 7,
       itemListElement: [
         {
           '@type': 'ListItem',
@@ -61,6 +61,12 @@ const isDev = import.meta.env.DEV;
           position: 6,
           name: 'Information Request List Generator',
           url: 'https://globalstrategic.tech/hub/tools/information-request-list-generator/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 7,
+          name: 'Information Request List Extractor',
+          url: 'https://globalstrategic.tech/hub/tools/information-request-list-extractor/',
         },
       ],
     })}
@@ -206,6 +212,30 @@ const isDev = import.meta.env.DEV;
           </ul>
           <a
             href="/hub/tools/information-request-list-generator/"
+            class="cta-button brutal-gateway-card__cta">Launch Tool</a
+          >
+        </article>
+
+        <article class="brutal-gateway-card brutal-frosted">
+          <div class="brutal-gateway-card__header">
+            <h2>Information Request List Extractor</h2>
+          </div>
+          <ul class="brutal-gateway-card__features">
+            <li>
+              <DeltaIcon class="bullet-icon" />Turn a filled IRL workbook back into canonical
+              markdown, ready to paste into the sweep
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />Every answered row carried across verbatim, with its
+              status and whatever sourcing the responder recorded
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />Runs entirely in your browser: the workbook is never
+              uploaded and nothing is stored
+            </li>
+          </ul>
+          <a
+            href="/hub/tools/information-request-list-extractor/"
             class="cta-button brutal-gateway-card__cta">Launch Tool</a
           >
         </article>

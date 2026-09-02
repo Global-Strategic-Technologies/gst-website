@@ -36,7 +36,7 @@ ProfessionalService (Organization)
 ├── knowsAbout: [10 expertise areas]
 └── address: PostalAddress
 
-WebApplication (per hub tool — 6 tools, built by src/utils/hub-tool-schema.ts)
+WebApplication (per hub tool — 7 tools, built by src/utils/hub-tool-schema.ts)
 ├── name, description, applicationCategory
 ├── operatingSystem: "Web"
 ├── offers: Free
@@ -47,7 +47,7 @@ WebApplication (per hub tool — 6 tools, built by src/utils/hub-tool-schema.ts)
 
 ItemList (hub tools landing page)
 ├── name: GST Strategic Intelligence Tools
-├── numberOfItems: 6
+├── numberOfItems: 7
 └── itemListElement: [ListItem with position, name, url]
 
 BreadcrumbList (per-page, non-homepage only)
@@ -470,7 +470,7 @@ The shape the helper emits:
 Only `name`, `description`, `featureList`, `knowsAbout`, `datePublished` and `dateModified` are
 per-tool parameters. Everything else is a constant inside the helper.
 
-### Current Tool Schemas (6 Tools)
+### Current Tool Schemas
 
 #### 1. The Diligence Machine
 
@@ -526,6 +526,15 @@ per-tool parameters. Everything else is a constant inside the helper.
 | **featureList** | Fillable .xlsx workbook generated client-side, Per-section selection mirroring VDR folder structure, Engagement-specific custom requests, Context-aware request removal |
 | **knowsAbout** | Technical Due Diligence, Information Request Lists, Virtual Data Room Structure, M&A Tech Strategy |
 
+#### 7. Information Request List Extractor
+
+| Field | Value |
+|-------|-------|
+| **File** | `src/pages/hub/tools/information-request-list-extractor/index.astro` |
+| **datePublished** | 2026-08-30 |
+| **featureList** | Filled .xlsx converted to canonical markdown client-side, Byte-identical to the operator extractor for the same workbook, Answered rows carried across verbatim with status and sourcing, Workbook never leaves the browser |
+| **knowsAbout** | Technical Due Diligence, Information Request Lists, Virtual Data Room Structure, M&A Tech Strategy |
+
 ### Adding a New Tool
 
 When creating a new hub tool:
@@ -534,8 +543,8 @@ When creating a new hub tool:
 2. Set tool-specific `name`, `description`, and `featureList`
 3. Set `datePublished` to the launch date, `dateModified` to today
 4. Customize the `knowsAbout` array for the tool's domain (4–5 distinct items, always including "Technical Due Diligence" and "M&A Tech Strategy" — enforced by `tests/unit/hub-tool-schema.test.ts`)
-5. Add the tool to the `ItemList` on the tools landing page
-6. Update this document with the new tool's details, and the expected-page list in `tests/unit/hub-tool-schema.test.ts`
+5. Add the tool to the `ItemList` on the tools landing page, **incrementing its `numberOfItems`** — and mirror both here, in the ItemList block below
+6. Add the new directory name to the sorted expected-page list in `tests/unit/hub-tool-schema.test.ts` — the walk DISCOVERS pages, but the guard asserts the discovered set against a declared list, so skipping this fails a required check. Then update this document with the new tool's details: nothing binds the counts here to source, which is how the `numberOfItems` and heading counts went stale even though the test file was updated with the seventh tool
 7. Validate with Google Structured Data Testing Tool
 
 ### Updating dateModified
@@ -560,7 +569,7 @@ Describes the tools collection page as an ordered list of web applications, enab
   "@type": "ItemList",
   "name": "GST Strategic Intelligence Tools",
   "description": "Interactive calculators and generators to quantify risk and value in technology investments",
-  "numberOfItems": 6,
+  "numberOfItems": 7,
   "itemListElement": [
     {
       "@type": "ListItem",
@@ -597,6 +606,12 @@ Describes the tools collection page as an ordered list of web applications, enab
       "position": 6,
       "name": "Information Request List Generator",
       "url": "https://globalstrategic.tech/hub/tools/information-request-list-generator/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "name": "Information Request List Extractor",
+      "url": "https://globalstrategic.tech/hub/tools/information-request-list-extractor/"
     }
   ]
 }
@@ -681,7 +696,9 @@ Unmapped slugs are auto-formatted: hyphens replaced with spaces, words capitaliz
 
 ### Purpose
 
-Enables FAQ rich results in Google SERPs when a page contains structured question/answer content. Currently active on the Services page and Regulatory Map.
+Enables FAQ rich results in Google SERPs when a page contains structured question/answer content. Currently active on three pages: Services, Regulatory Map, and the Hub landing page — the Hub entry was missing from this list rather than new. What the `/hub/mcp/` marketing surface added was an MCP **answer** on Services and on the Hub landing page; Regulatory Map's FAQ is untouched by it.
+
+**Answer strings flow into `acceptedAnswer.text` with root-relative hrefs absolutized** by `SEO.astro` (`absolutizeFaqHrefs`), so an answer may embed limited HTML — Google's FAQ rich-result guidance allows anchors — and a site-relative `<a href="/hub/mcp/">` in the authored data becomes `https://globalstrategic.tech/hub/mcp/` in the structured-data copy only; the rendered `set:html` answer keeps the relative form. This is the pattern for FAQ answers that link: author the href root-relative with double quotes, exactly as elsewhere in the page, and let the component absolutize. Tags are deliberately NOT stripped: the anchor is meaningful in rich results, and stripping would diverge the two copies for no gain.
 
 ### Schema Definition
 
@@ -870,7 +887,7 @@ npm run test:all
 
 #### Step 1: Edit the Appropriate File
 - **Organization/Person**: `src/components/SEO.astro`
-- **Hub Tools — shared fields** (`offers`, `publisher`, `author`, `applicationCategory`, `operatingSystem`): `src/utils/hub-tool-schema.ts` — one edit changes all six tools
+- **Hub Tools — shared fields** (`offers`, `publisher`, `author`, `applicationCategory`, `operatingSystem`): `src/utils/hub-tool-schema.ts` — one edit changes every tool page
 - **Hub Tools — per-tool fields** (`name`, `description`, `featureList`, `knowsAbout`, dates): `src/pages/hub/tools/[tool-name]/index.astro`
 - **Tools Landing**: `src/pages/hub/tools/index.astro`
 

@@ -1,0 +1,312 @@
+---
+/**
+ * One row in the Jobs lens: the analyst's task and the artifact it returns on
+ * one line, with the blurb and the ordered steps opening underneath.
+ *
+ * WHY AN INDEX RATHER THAN A CARD. The lens shipped as nine stacked cards with
+ * a 260px intro column, and that column was what set each card's height: the
+ * blurb wrapped to five lines while the steps beside it occupied 79px, so the
+ * right half of most cards was empty. Horizontal emptiness is free; vertical
+ * emptiness is a scroll. Four layouts were built and measured against each
+ * other at a matched 1264px column: the nine stacked cards ran 3,282px and the
+ * same nine as an index 765px, a 77% cut. In production the collapsed lens now
+ * measures 711px at 1440 across twelve rows, the row list being 553px of it.
+ * Nothing is deleted, only deferred. Measured, not estimated; see ADR-0026
+ * § Amendment.
+ *
+ * The lens no longer clears the fold on a 1440x900 viewport: splitting the IRL
+ * round trip into four jobs added three rows, and the last row now sits 1,034px
+ * down the document. That is the accepted price of rows a reader can act on,
+ * and it is still a 78% cut on the cards. The number to watch is the ROW, not
+ * the list: 46px each, uniform, is what keeps twelve legible where twelve cards
+ * would not be.
+ *
+ * `<details>` rather than a script: the page's whole doctrine is that it works
+ * without JS (ADR-0023), and a native disclosure gives the summary a button
+ * role and `aria-expanded` for free. Rows open CLOSED — the collapsed index is
+ * the point, and opening one arbitrarily would imply it is special.
+ *
+ * Steps are anchors, not buttons: a step is an address, it works without JS,
+ * and `:target` does the reveal.
+ */
+import DeltaIcon from '../../../components/DeltaIcon.astro';
+import type { Job } from '../../../data/mcp/capabilities';
+import { capabilityAnchor } from '../../../utils/mcp-capability-search';
+
+interface Props {
+  job: Job;
+}
+
+const { job } = Astro.props;
+---
+
+<details class="mdoc-job">
+  <summary class="mdoc-job__sum">
+    {
+      /* Leading, not trailing. STYLES_GUIDE § Delta Chevron and BRAND_GUIDELINES
+        § Delta Icon Usage Rules both say inline-END, and every other disclosure
+        on the site follows that; this lens is a deliberate exception. A dozen
+        rows read as an index, and in an index the disclosure is what you aim at
+        before you read the row, so it leads the line the way a list marker
+        does. Only the POSITION deviates: the utility still owns the rotation,
+        the collapsed muting and the palette response. */
+    }
+    <DeltaIcon class="delta-chevron" />
+    <span class="mdoc-job__name">{job.title}</span>
+    {
+      /* Unlabelled by design: the lens header already says each job names "what
+        you get back", and a "YOU GET BACK" caption repeated down every row was
+        twelve repetitions of something the column says once. */
+    }
+    {job.youGetBack && <span class="mdoc-job__yield">{job.youGetBack}</span>}
+    {
+      /* Pluralised because a one-step job is legitimate: `Extract useful
+        context from an IRL` runs one prompt that calls nothing, and that is the
+        property worth stating, not a gap to pad. */
+    }
+    <span class="brutal-label-small mdoc-job__count">
+      {job.steps.length}
+      {job.steps.length === 1 ? 'step' : 'steps'}
+    </span>
+  </summary>
+
+  <div class="mdoc-job__body">
+    <p class="brutal-text-small mdoc-job__desc">{job.description}</p>
+    <div class="mdoc-job__steps">
+      {
+        job.steps.map((step, index) => (
+          <a class="mdoc-step" href={`#${capabilityAnchor(step.capabilityId)}`}>
+            <span class="brutal-label-small mdoc-step__label">
+              {String(index + 1).padStart(2, '0')} · {step.kind}
+            </span>
+            {/* The family is what the anchor can reach; `documentUri` is what the
+                step actually means. See JobStep.documentUri. */}
+            <span class="mdoc-step__id">{step.documentUri ?? step.capabilityId}</span>
+            <span class="brutal-text-tiny mdoc-step__gloss">{step.gloss}</span>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</details>
+
+<style>
+  /* A row in a list, not a card in a stack: one hairline between rows carries
+     the separation the old 2px frame + 24px gap used to, at a fraction of the
+     height. The frost went with the box — a 46px row is not an elevated
+     surface, and `.brutal-option-card`'s treatment reads as noise at this
+     density. */
+  .mdoc-job {
+    border-bottom: 1px solid var(--border-hairline);
+  }
+
+  /* The title column is 430px because the longest title,
+     `Populate a request list from available information`, measures 420px at
+     `--text-sm` on the pinned mono, and the next two are 404px and 378px. It
+     went 340 to 380 to 430 as titles were rewritten, each time because a title
+     wrapped and one tall row among a column of uniform ones is exactly the
+     raggedness an index exists to avoid. Measured on the live elements, not
+     estimated: a detached clone does not inherit Astro's scoped rules and
+     reported these 40px to 60px wide.
+     The artifact column is `minmax(0, 1fr)`, so the width comes out of its
+     slack; at 1440 it still runs 714px against a widest artifact line of
+     555px, and it is the column that SHOULD absorb the pressure, since it
+     wraps to two lines gracefully where a wrapped title makes the row ragged.
+     The SUMMARY is 45px at the default size (the `<details>` measures one more,
+     its bottom hairline), and `min-height` DECLARES the WCAG 2.5.5 floor rather
+     than leaving it a by-product of the padding: at token spacing the content
+     clears 44px by a single pixel, which is not a margin to rest an
+     accessibility guarantee on. `min-height` rather than `height`, since a fixed
+     height does not clip an overflowing row, it lets the artifact line spill
+     across the next row's rule. The summary grows to 67px once the artifact
+     stacks under the name at 900px and below, and to 145px at 390px. Those
+     three are MEASUREMENTS, not assertions: what
+     tests/e2e/hub-mcp-docs.test.ts pins at 1440, 768 and 390 is the 44px floor,
+     which is the property that matters and the one a redesign must keep. */
+  .mdoc-job__sum {
+    display: grid;
+    grid-template-columns: auto 430px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--spacing-lg);
+    min-height: var(--touch-target-min);
+    padding: var(--spacing-md) var(--spacing-sm);
+    cursor: pointer;
+    /* Both are needed: `list-style` for standards browsers, the pseudo-element
+       for WebKit, which ignores it. */
+    list-style: none;
+  }
+
+  .mdoc-job__sum::-webkit-details-marker {
+    display: none;
+  }
+
+  .mdoc-job__sum:hover {
+    background: var(--accent-faint-bg);
+  }
+
+  .mdoc-job__sum:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+  }
+
+  /* The utility carries `margin-left: auto` for its inline-end home, which is
+     inert in an auto-sized grid track but would be wrong the moment this row
+     became flex. Zeroed here rather than relied upon. Position only: nothing
+     else about the shared utility is touched. */
+  .mdoc-job__sum :global(.delta-chevron) {
+    margin-left: 0;
+  }
+
+  .mdoc-job__name {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+  }
+
+  /* Full ink on the value, muted on the label: the artifact is the half of this
+     row a reader is scanning for, and it must not read as a caption. */
+  .mdoc-job__yield {
+    font-size: var(--text-xs);
+    color: var(--text-primary);
+    min-width: 0;
+  }
+
+  .mdoc-job__count {
+    color: var(--text-muted);
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  /* Aligned to the TITLE, not to the row: the body belongs to the name, and the
+     shared left edge is what says so once several rows are open at once. The
+     indent is the summary's own left padding plus the delta and its gap, spelled
+     out so it follows the grid rather than being a number to re-guess. */
+  .mdoc-job__body {
+    padding: 2px var(--spacing-sm) var(--spacing-xl)
+      calc(var(--spacing-sm) + 14px + var(--spacing-lg));
+  }
+
+  .mdoc-job__desc {
+    color: var(--text-secondary);
+    margin: 0 0 var(--spacing-md);
+    text-wrap: pretty;
+  }
+
+  /* The floor is the id's INTRINSIC minimum, carried over verbatim from the
+     card this row replaced, along with the reasoning: an auto-fit track equals
+     its floor exactly at every column-add threshold, so a floor below that
+     minimum leaves narrow bands where the id overflows its own track even
+     though the sampled widths look clean. 18.5rem = 296px against 267px of ink
+     plus 15px of chrome. 17rem was a real CI failure. Auto-fit rather than a
+     fixed four tracks for the same reason it was auto-fit before: dropping to
+     three, two and then one is the graceful failure; splitting a wire
+     identifier across two lines, which reads as two steps, is not. */
+  .mdoc-job__steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18.5rem), 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .mdoc-step {
+    display: block;
+    text-decoration: none;
+    border-left: 3px solid var(--color-primary);
+    padding: 2px 0 2px var(--spacing-md);
+    transition: background var(--transition-fast);
+  }
+
+  .mdoc-step:hover {
+    background: var(--accent-faint-bg);
+  }
+
+  .mdoc-step:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .mdoc-step__label {
+    display: block;
+    color: var(--text-muted);
+  }
+
+  .mdoc-step__id {
+    display: block;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    color: var(--color-primary);
+    white-space: nowrap;
+  }
+
+  .mdoc-step__gloss {
+    display: block;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+  }
+
+  /* The summary's four columns cannot survive a phone: 20px + 340px + a value
+     + a count is ~700px of content, so at 390px it overflowed its own row by
+     315px and took the page with it. Two rows instead, the artifact under the
+     name it belongs to, with the count staying beside the name because it is
+     three characters and reads as part of the heading. */
+  @media (max-width: 900px) {
+    .mdoc-job__sum {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-areas:
+        'delta name  count'
+        '.     yield yield';
+      row-gap: var(--spacing-xs);
+      align-items: start;
+    }
+
+    .mdoc-job__name {
+      grid-area: name;
+    }
+
+    .mdoc-job__count {
+      grid-area: count;
+    }
+
+    /* `.delta-chevron` is a shared utility, so it is placed here and never
+       restyled: only its grid slot is this component's business. */
+    .mdoc-job__sum :global(.delta-chevron) {
+      grid-area: delta;
+      margin-top: 3px;
+    }
+
+    .mdoc-job__yield {
+      grid-area: yield;
+    }
+  }
+
+  @media (max-width: 768px) {
+    /* minmax(0, 1fr), not 1fr: a bare 1fr is minmax(auto, 1fr), so the track is
+       floored at its content's min-content — here the nowrap wire id — and the
+       grid grows past its container instead of the id overflowing its own
+       track. Same blowout, and the same fix, as `.stats-grid` in StatsBar. */
+    .mdoc-job__steps {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The doctrine above says the id neither splits nor shrinks, and it yields
+       here, exactly as it did on the card: below 768px a step is a full-width
+       block with its label above and its gloss below, so a wrapped id still
+       reads as one id — the "reads as two steps" failure is a property of the
+       side-by-side desktop layout, which does not exist at this width.
+       `anywhere` rather than `break-word` so the id also stops contributing its
+       full width to min-content sizing. Scrolling was tried on the card and
+       reversed: it makes a scroll container axe rates
+       `scrollable-region-focusable`, SERIOUS, and the usual `tabindex="0"`
+       remedy would put a tab stop inside a link on every step. */
+    .mdoc-step__id {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    /* The 38px title alignment is worth less than 38px of line length once the
+       wire ids are wrapping, so the body goes flush at this tier. */
+    .mdoc-job__body {
+      padding-left: var(--spacing-sm);
+    }
+  }
+</style>

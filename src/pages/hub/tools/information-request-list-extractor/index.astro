@@ -1,0 +1,1101 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import HubHeader from '../../../../components/hub/HubHeader.astro';
+import DeltaIcon from '../../../../components/DeltaIcon.astro';
+import { hubToolSchema } from '../../../../utils/hub-tool-schema';
+---
+
+<BaseLayout
+  title="Information Request List Extractor | GST"
+  description="Convert a filled Information Request List (.xlsx) into canonical markdown in your browser. The workbook is never uploaded."
+  ogTitle="Information Request List Extractor | GST"
+  ogDescription="Turn a filled IRL workbook into the canonical markdown gst_irl_sweep expects, deterministically and entirely in the browser."
+  ogImage="/og-image.png"
+  ogImageAlt="GST Information Request List Extractor"
+  ogUrl="https://globalstrategic.tech/hub/tools/information-request-list-extractor/"
+>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      hubToolSchema({
+        name: 'Information Request List Extractor',
+        description:
+          'Convert a filled Information Request List workbook into the canonical markdown body, deterministically and entirely in the browser',
+        datePublished: '2026-08-30',
+        dateModified: '2026-08-30',
+        featureList: [
+          'Filled .xlsx converted to canonical markdown client-side',
+          'Byte-identical to the operator extractor for the same workbook',
+          'Answered rows carried across verbatim with status and sourcing',
+          'Workbook never leaves the browser',
+        ],
+        knowsAbout: [
+          'Technical Due Diligence',
+          'Information Request Lists',
+          'Virtual Data Room Structure',
+          'M&A Tech Strategy',
+        ],
+      })
+    )}
+  />
+
+  <section class="irl-ext">
+    <div class="container">
+      <HubHeader
+        title="Information Request List Extractor"
+        subtitle="Turn a filled IRL workbook into the canonical markdown the sweep expects. Same bytes in, same text out, every time."
+      />
+
+      <div class="irl-ext__intro">
+        <p>
+          A filled <strong>.xlsx</strong> has to become text before <a
+            href="/hub/mcp/docs/#cap-gst_irl_sweep"><code>gst_irl_sweep</code></a
+          > can read it. This page does that in your browser, carrying every answered row across exactly
+          as written with its status and any sourcing. Need the blank workbook first? Use the <a
+            href="/hub/tools/information-request-list-generator/"
+            >Information Request List Generator</a
+          >.
+        </p>
+      </div>
+
+      <div class="irl-ext__shell">
+        <!-- ── 01 pick ─────────────────────────────────────────────── -->
+        <div class="irl-ext__panel irl-ext__panel--pick">
+          <div class="irl-ext__step">
+            <span class="irl-ext__label">01 / Choose the workbook</span>
+            <span class="irl-ext__hint">Any filled Information Request List (.xlsx)</span>
+          </div>
+
+          <div class="irl-ext__dropwrap">
+            <input
+              type="file"
+              id="irl-ext-file"
+              class="irl-ext__input"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            />
+            <label class="irl-ext__drop" id="irl-ext-drop" for="irl-ext-file">
+              <DeltaIcon size={120} class="irl-ext__drop-icon" />
+              <span class="irl-ext__drop-text">Drop a workbook here, or <span>browse</span></span>
+              <span class="irl-ext__drop-note">Stays on your machine</span>
+            </label>
+          </div>
+
+          <div class="irl-ext__diag" id="irl-ext-diag" data-empty="true">
+            <span class="irl-ext__label">What came back</span>
+            <dl class="irl-ext__diag-list">
+              <div class="irl-ext__diag-row">
+                <dt>Requests extracted</dt>
+                <dd id="diag-bullets">&middot;</dd>
+              </div>
+              <div class="irl-ext__diag-row">
+                <dt>Sections seen</dt>
+                <dd id="diag-sections">&middot;</dd>
+              </div>
+              <div class="irl-ext__diag-row">
+                <dt>Body size</dt>
+                <dd id="diag-bytes">&middot;</dd>
+              </div>
+              <div class="irl-ext__diag-row">
+                <dt>Answers taken from Comments</dt>
+                <dd id="diag-comments">&middot;</dd>
+              </div>
+              <div class="irl-ext__diag-row">
+                <dt>Status contradictions</dt>
+                <dd id="diag-contradictions">&middot;</dd>
+              </div>
+            </dl>
+            <p class="irl-ext__advisory" id="irl-ext-advisory" hidden></p>
+          </div>
+        </div>
+
+        <!-- ── 02 output ───────────────────────────────────────────── -->
+        <div class="irl-ext__panel irl-ext__panel--out">
+          <div class="irl-ext__outhead">
+            <div class="irl-ext__step">
+              <span class="irl-ext__label">02 / Canonical markdown</span>
+              <span class="irl-ext__status" id="irl-ext-status" role="status" aria-live="polite"
+                >Waiting for a workbook</span
+              >
+            </div>
+            <div class="irl-ext__actions" id="irl-ext-actions" data-enabled="false">
+              <button type="button" class="brutal-btn brutal-btn--secondary" id="irl-ext-copy"
+                >Copy markdown</button
+              >
+              <button type="button" class="brutal-btn brutal-btn--secondary" id="irl-ext-download"
+                >Download .md</button
+              >
+            </div>
+          </div>
+
+          <div class="irl-ext__body">
+            <div class="irl-ext__idle" id="irl-ext-idle">
+              <p class="irl-ext__idle-text">
+                Pick a workbook and its canonical markdown appears here, ready to paste into the
+                sweep's <code>filledIrl</code> argument.
+              </p>
+            </div>
+            <div class="irl-ext__error" id="irl-ext-error" hidden>
+              <span class="irl-ext__error-title">Nothing to extract</span>
+              <p class="irl-ext__error-body" id="irl-ext-error-body"></p>
+              <p class="irl-ext__error-hint" id="irl-ext-error-hint"></p>
+            </div>
+            <!-- `tabindex="0"` is load-bearing, not decoration: a converted body is
+                 routinely taller than this box, and without a tab stop a keyboard-only
+                 user cannot scroll to the rest of it. axe rates that
+                 `scrollable-region-focusable` (WCAG 2.1.1 Keyboard, Level A) at serious,
+                 a severity this repo carries none of. Same fix, same reasoning, as the
+                 timeline on `/hub/tools/regulatory-map/`; the role and label give the
+                 stop an announceable identity instead of a bare unnamed group.
+
+                 The attribute list is too long for one line, so the formatter breaks
+                 the tag and puts the closing tag on a line of its own — and `pre` is
+                 whitespace-significant, so this element's initial text content is a
+                 newline plus the indent rather than nothing. It is inert: the element
+                 is hidden until the first conversion, which replaces the content
+                 outright. Left as the formatter writes it deliberately. A
+                 prettier-ignore directive was tried and the Astro plugin mangled the
+                 surrounding markup, twice, which is a worse trade than an inert
+                 whitespace node. -->
+            <pre
+              class="irl-ext__md"
+              id="irl-ext-md"
+              tabindex="0"
+              role="region"
+              aria-label="Canonical markdown output, scrollable"
+              hidden>
+            </pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="irl-ext__cards">
+        <!-- Each item's prose is wrapped in a single span on purpose. The `li`
+             is a flex container, so every bare text node and every inline
+             `code`/`a` inside it would otherwise become its own flex item and
+             be laid out (and wrapped) independently — which is exactly how the
+             first bullet came to render as "Paste it into" beside a gap beside
+             the rest of the sentence. One span keeps the sentence one run of
+             inline text next to the icon. -->
+        <div class="irl-ext__card">
+          <h2>The file never leaves your machine</h2>
+          <ul class="irl-ext__card-list">
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <span>Your browser reads the workbook and converts it locally</span>
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <span>Nothing is uploaded, nothing is stored, and no account is involved</span>
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <span>Close the tab and it is gone</span>
+            </li>
+          </ul>
+        </div>
+        <div class="irl-ext__card">
+          <h2>What to do with the markdown</h2>
+          <ul class="irl-ext__card-list">
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <span
+                >Paste it into <code>gst_irl_sweep</code>'s <code>filledIrl</code> argument to get the
+                dossier back. The <a
+                  class="irl-ext__card-link"
+                  href="/hub/mcp/docs/#cap-gst_irl_sweep">sweep contract</a
+                > lists everything that comes back.</span
+              >
+            </li>
+            <li>
+              <DeltaIcon class="bullet-icon" />
+              <span
+                >Every row reading <code>&lt;NO RESPONSE&gt;</code> is a request the target did not answer.
+                Those are the questions still outstanding, so read them before you pass the markdown on.</span
+              >
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <a href="/hub/tools/" class="cta-button irl-ext__back">Back to Tools</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // Namespace import, matching `src/utils/irl/generate-xlsx.ts` — this is the
+  // form proven to work through Vite in the browser. The operator CLI needs
+  // the DEFAULT import instead (raw Node's CJS interop); the two differ on
+  // purpose and are commented at both sites.
+  import * as XLSX from 'xlsx-js-style';
+  import {
+    PRIMARY_SHEET_NAME,
+    extractIrlMarkdownFromRows,
+  } from '../../../../utils/irl/extract-markdown.mjs';
+  import { copyWithFeedback } from '../../../../utils/copy-feedback';
+
+  /**
+   * The claude.ai web prompt-argument ceiling. Above this the body still
+   * converts and is still valid — only the web client refuses to carry it as
+   * a prompt arg, and Desktop does not. Advisory, never an error: the CLI
+   * treats it the same way.
+   */
+  const WEB_PROMPT_ARG_CEILING = 57_000;
+
+  const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T | null;
+
+  const fileInput = el<HTMLInputElement>('irl-ext-file');
+  const drop = el<HTMLLabelElement>('irl-ext-drop');
+  const statusEl = el<HTMLSpanElement>('irl-ext-status');
+  const idleEl = el<HTMLDivElement>('irl-ext-idle');
+  const errorEl = el<HTMLDivElement>('irl-ext-error');
+  const errorBody = el<HTMLParagraphElement>('irl-ext-error-body');
+  const errorHint = el<HTMLParagraphElement>('irl-ext-error-hint');
+  const mdEl = el<HTMLPreElement>('irl-ext-md');
+  const actions = el<HTMLDivElement>('irl-ext-actions');
+  const copyBtn = el<HTMLButtonElement>('irl-ext-copy');
+  const downloadBtn = el<HTMLButtonElement>('irl-ext-download');
+  const diag = el<HTMLDivElement>('irl-ext-diag');
+  const advisory = el<HTMLParagraphElement>('irl-ext-advisory');
+
+  /** Last successful extraction, held for the copy/download actions. */
+  let current: { markdown: string; filename: string } | null = null;
+
+  const DOT = '·';
+
+  function setDiag(values: {
+    bullets: string;
+    sections: string;
+    bytes: string;
+    comments: string;
+    contradictions: string;
+  }) {
+    const set = (id: string, v: string) => {
+      const node = el<HTMLElement>(id);
+      if (node) node.textContent = v;
+    };
+    set('diag-bullets', values.bullets);
+    set('diag-sections', values.sections);
+    set('diag-bytes', values.bytes);
+    set('diag-comments', values.comments);
+    set('diag-contradictions', values.contradictions);
+  }
+
+  function resetDiag() {
+    setDiag({
+      bullets: DOT,
+      sections: DOT,
+      bytes: DOT,
+      comments: DOT,
+      contradictions: DOT,
+    });
+    diag?.setAttribute('data-empty', 'true');
+    if (advisory) advisory.hidden = true;
+  }
+
+  /** Show exactly one of the three body states. */
+  function showState(state: 'idle' | 'error' | 'ok') {
+    if (idleEl) idleEl.hidden = state !== 'idle';
+    if (errorEl) errorEl.hidden = state !== 'error';
+    if (mdEl) mdEl.hidden = state !== 'ok';
+    actions?.setAttribute('data-enabled', String(state === 'ok'));
+    if (copyBtn) copyBtn.disabled = state !== 'ok';
+    if (downloadBtn) downloadBtn.disabled = state !== 'ok';
+  }
+
+  /**
+   * The zero-row path. Reached only when the sheet holds no request rows at
+   * all — i.e. the file is not an IRL. An unfilled TEMPLATE does not land
+   * here: its rows are present, so it converts successfully into a body of
+   * `<NO RESPONSE>` lines, exactly as the CLI does. That case is surfaced by
+   * `noteUnanswered()` instead of being mislabelled as a failure.
+   */
+  function fail(sheetName: string) {
+    current = null;
+    if (statusEl) statusEl.textContent = `Read “${sheetName}”: 0 requests`;
+    if (errorBody) {
+      errorBody.textContent = `No request rows were found in “${sheetName}”, so there is nothing to convert.`;
+    }
+    if (errorHint) {
+      errorHint.textContent = `This does not look like an Information Request List. “${sheetName}” is the sheet that was read.`;
+    }
+    setDiag({
+      bullets: '0',
+      sections: 'none',
+      bytes: DOT,
+      comments: DOT,
+      contradictions: DOT,
+    });
+    diag?.setAttribute('data-empty', 'false');
+    if (advisory) advisory.hidden = true;
+    showState('error');
+  }
+
+  // Parsing is synchronous and on the main thread, so a very large workbook
+  // locks the tab with the status stuck on “Reading…”. There is no server and
+  // no upload here, so this is a responsiveness ceiling, not a security one:
+  // an IRL workbook is a question list and runs orders of magnitude under it.
+  const MAX_FILE_MB = 15;
+  const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
+
+  async function handleFile(file: File) {
+    if (file.size > MAX_FILE_BYTES) {
+      current = null;
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      if (statusEl) statusEl.textContent = 'File too large';
+      if (errorBody) {
+        // Built from the constant, never typed twice: a literal here would go
+        // stale the first time the ceiling moves, and the copy is the only
+        // place a visitor learns what the limit is.
+        errorBody.textContent = `“${file.name}” is ${mb} MB. This tool reads workbooks up to ${MAX_FILE_MB} MB.`;
+      }
+      if (errorHint) {
+        errorHint.textContent =
+          'An IRL workbook is normally well under a megabyte — check this is the request list and not a data export.';
+      }
+      resetDiag();
+      showState('error');
+      return;
+    }
+
+    if (statusEl) statusEl.textContent = `Reading “${file.name}”…`;
+
+    let workbook: XLSX.WorkBook;
+    try {
+      // The browser half of the read. The operator CLI does the same thing
+      // with `readFileSync` + `{ type: 'buffer' }`; from the rows onward the
+      // two paths run identical shared code.
+      const buf = await file.arrayBuffer();
+      workbook = XLSX.read(new Uint8Array(buf), { type: 'array' });
+    } catch {
+      current = null;
+      if (statusEl) statusEl.textContent = 'Could not read that file';
+      if (errorBody) {
+        errorBody.textContent = `“${file.name}” could not be opened as a spreadsheet.`;
+      }
+      if (errorHint) {
+        errorHint.textContent = 'Export it as .xlsx and try again.';
+      }
+      resetDiag();
+      showState('error');
+      return;
+    }
+
+    // Fall back to the first sheet, exactly as the CLI does, so a workbook
+    // that is not an IRL lands on the legible zero-row path rather than an
+    // error about sheet names.
+    const sheetName = workbook.SheetNames.includes(PRIMARY_SHEET_NAME)
+      ? PRIMARY_SHEET_NAME
+      : workbook.SheetNames[0];
+    const sheet = sheetName ? workbook.Sheets[sheetName] : undefined;
+    if (!sheet || !sheetName) {
+      fail('(no sheet)');
+      return;
+    }
+
+    const rows = XLSX.utils.sheet_to_json<Array<string | number>>(sheet, {
+      header: 1,
+      defval: '',
+    });
+    const result = extractIrlMarkdownFromRows(rows);
+
+    if (result.bulletCount === 0) {
+      fail(sheetName);
+      return;
+    }
+
+    const byteLength = new TextEncoder().encode(result.markdown).length;
+    const kb = Math.round((byteLength / 1024) * 10) / 10;
+
+    current = {
+      markdown: result.markdown,
+      filename: file.name.replace(/\.xlsx$/i, '') + '.md',
+    };
+
+    if (mdEl) mdEl.textContent = result.markdown;
+    if (statusEl) {
+      statusEl.textContent =
+        `Read “${sheetName}”: ${result.bulletCount} ` +
+        `${result.bulletCount === 1 ? 'request' : 'requests'} across ` +
+        `${result.sectionsSeen.length} ${result.sectionsSeen.length === 1 ? 'section' : 'sections'}`;
+    }
+
+    setDiag({
+      bullets: String(result.bulletCount),
+      sections: result.sectionsSeen.length ? result.sectionsSeen.join(' ') : 'none',
+      bytes: `${kb} KB`,
+      comments: String(result.commentsSourcedAnswers.length),
+      contradictions: String(result.statusContradictions.length),
+    });
+    diag?.setAttribute('data-empty', 'false');
+
+    // Two advisories, neither of them an error. An unfilled template converts
+    // successfully into a body of `<NO RESPONSE>` rows — the CLI does the same
+    // — so the honest signal is "nothing here is answered yet", not a failure.
+    const unanswered = result.markdown.split('— <NO RESPONSE>').length - 1;
+    if (advisory) {
+      if (unanswered === result.bulletCount) {
+        advisory.textContent =
+          `All ${result.bulletCount} rows are unanswered, so this looks like a template that has ` +
+          'not been filled in yet. It converted, but there is nothing in it to sweep.';
+        advisory.hidden = false;
+      } else if (byteLength > WEB_PROMPT_ARG_CEILING) {
+        advisory.textContent =
+          `${byteLength.toLocaleString()} bytes exceeds the ~57,000-byte ceiling for a ` +
+          'claude.ai web prompt argument. The body is still valid; paste it in the desktop app.';
+        advisory.hidden = false;
+      } else {
+        advisory.hidden = true;
+      }
+    }
+
+    showState('ok');
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (file) void handleFile(file);
+    });
+  }
+
+  if (drop) {
+    for (const evt of ['dragenter', 'dragover'] as const) {
+      drop.addEventListener(evt, (e) => {
+        e.preventDefault();
+        drop.setAttribute('data-dragging', 'true');
+      });
+    }
+    for (const evt of ['dragleave', 'dragend'] as const) {
+      drop.addEventListener(evt, () => drop.removeAttribute('data-dragging'));
+    }
+    drop.addEventListener('drop', (e: DragEvent) => {
+      e.preventDefault();
+      drop.removeAttribute('data-dragging');
+      const file = e.dataTransfer?.files?.[0];
+      if (file) void handleFile(file);
+    });
+  }
+
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      if (!current) return;
+      // Shared helper rather than a hand-rolled swap: it locks the button's
+      // min-width for the duration, which matters on a page whose whole
+      // premise is that nothing moves when you interact with it.
+      void copyWithFeedback(current.markdown, copyBtn, {
+        label: 'Copied',
+        copiedClass: 'brutal-btn--copied',
+      });
+    });
+  }
+
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      if (!current) return;
+      const blob = new Blob([current.markdown], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = current.filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  showState('idle');
+  resetDiag();
+</script>
+
+<style>
+  /* No top padding of its own: `HubHeader` already contributes 3xl above the
+     title, and stacking a second 3xl here pushed the tool most of a screen
+     down for nothing. */
+  .irl-ext {
+    padding: 0 0 var(--spacing-3xl);
+  }
+
+  /* Left-aligned, NOT centred: every other block on this page starts at the
+     container's left edge, so an auto-margined intro sat ~310px inboard of the
+     title above it and the shell below it. 720px matches
+     `.hub-header__subtitle`'s measure, which is the line it reads as a
+     continuation of. */
+  .irl-ext__intro {
+    max-width: 720px;
+    margin: 0 0 var(--spacing-2xl);
+  }
+
+  .irl-ext__intro p {
+    margin: 0;
+    font-size: var(--text-base);
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .irl-ext__intro a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    transition: color var(--transition-fast);
+  }
+
+  .irl-ext__intro a:hover {
+    color: var(--color-primary-dark);
+  }
+
+  /* ── shell ──────────────────────────────────────────────────────── */
+
+  .irl-ext__shell {
+    /* One FLOOR for both panels. Neither takes it as a fixed height: the grid
+       row is sized by the taller of the two and `align-items: stretch` (the
+       default, restored from `start`) pulls the other up to match, so the pair
+       is always the same height — including when the advisory grows the pick
+       panel, which used to leave the output panel 87px short of it.
+
+       The 680px floor is measured, not chosen: it is the pick panel's own
+       resting content height (677px — step, dropzone, and five stacked
+       label/value pairs), rounded up. */
+    --irl-ext-panel-h: clamp(680px, calc(100vh - 300px), 780px);
+
+    display: grid;
+    grid-template-columns: 420px minmax(0, 1fr);
+    gap: var(--spacing-2xl);
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  /* The control frost triple — `--surface-subtle-bg`, a 2px blur, and the
+     inset highlight + hairline edge. The edge treatment is not decoration: on
+     this site's flat checkerboard ground it is the only part of the treatment
+     that reads at all (STYLES_GUIDE § Frosted Glass). Written out rather than
+     co-applying `.brutal-frosted`, which is the CONTAINER pair and would both
+     double-blur and use the wrong tint. */
+  .irl-ext__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    padding: var(--spacing-xl);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    background: var(--surface-subtle-bg);
+    backdrop-filter: blur(2px);
+    box-shadow:
+      inset 0 1px 0 var(--frost-highlight),
+      0 0 0 1px var(--frost-edge);
+    box-sizing: border-box;
+  }
+
+  /* Both panels take the shared value as a FLOOR, and the grid stretches the
+     shorter one to the taller. The output panel therefore tracks the pick
+     panel rather than sitting 87px short of it whenever the advisory fires.
+
+     The no-shift property this panel exists for is unaffected: what it must
+     never do is resize when the reader swaps between the idle, error and
+     markdown states, and none of those change either panel's content height.
+     The only thing that does is the advisory, and that is a result arriving,
+     not a state swap — at which point everything below the shell moves anyway.
+
+     `.irl-ext__body` is what makes the stretch safe. Its children are absolutely
+     positioned (see below), so it contributes nothing to intrinsic height; the
+     panel's max-content height is its header plus padding, and the floor takes
+     it from there. Without that, the `pre`'s `height: 100%` would resolve
+     against an indefinite parent, fall back to auto, and a 77KB body would size
+     the grid row to tens of thousands of pixels.
+
+     What the advisory costs, measured rather than implied. This is the
+     SHARED-HEIGHT TIER, i.e. viewports wider than 1024px; at 1024 and below the
+     panels stack, the floor stops applying and neither of these numbers holds
+     (see the `max-width: 1024px` block). Rows are viewport height; both panels
+     measure the same in every column, which is the point:
+
+       viewport height   resting   with advisory   downstream shift
+       980 and below         680          767.36              87.36
+       1000                  700          767.36              67.36
+       1040                  740          767.36              27.36
+       1067                  767          767.36               0.36
+       1068 and above        768+         = resting            0.00
+
+     So the growth is a RAMP across the middle of the clamp, not a two-state
+     thing — the full 87px at 980 and below, tapering to zero at 1068. Sampling
+     only the floor and the cap steps over the band that matters, and doing
+     exactly that is how an earlier version of this comment came to claim
+     something false, twice. The band includes the usual maximized-window
+     content height on a 1080p display, so it is the common case.
+
+     The cap is 780px for that reason. At 760 the advisory overshot even at the
+     cap tier by 7.36px; break-even is 768, and 780 leaves 12.64px of headroom —
+     not much, so the E2E pins the cap tier and a sixth diagnostic row or longer
+     advisory copy fails a test rather than silently re-breaking it. Re-measure
+     this table if either changes. */
+  .irl-ext__panel--out,
+  .irl-ext__panel--pick {
+    min-height: var(--irl-ext-panel-h);
+  }
+
+  .irl-ext__step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    min-width: 0;
+  }
+
+  .irl-ext__label {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+  }
+
+  .irl-ext__hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  /* ── dropzone ───────────────────────────────────────────────────── */
+
+  .irl-ext__dropwrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* Visually hidden but focusable, so the control stays keyboard-reachable
+     and the label's :focus-within ring is the visible focus indicator. */
+  .irl-ext__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .irl-ext__drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl);
+    text-align: center;
+    cursor: pointer;
+    border: 3px dashed var(--color-primary);
+    transition:
+      border-style var(--transition-fast),
+      background var(--transition-fast);
+  }
+
+  .irl-ext__drop:hover,
+  .irl-ext__drop[data-dragging='true'] {
+    border-style: solid;
+    background: var(--accent-tint-bg);
+  }
+
+  .irl-ext__input:focus-visible + .irl-ext__drop {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .irl-ext__drop :global(.irl-ext__drop-icon) {
+    color: var(--color-primary);
+    display: block;
+  }
+
+  .irl-ext__drop-text {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .irl-ext__drop-text span {
+    color: var(--color-primary);
+  }
+
+  .irl-ext__drop-note {
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  /* ── diagnostics ────────────────────────────────────────────────── */
+
+  .irl-ext__diag {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid light-dark(var(--border-light), var(--border-dark-subtle));
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Dimmed rather than absent: the rows hold their positions from first paint,
+     so FILLING them in never shifts the panel. The advisory paragraph is the
+     one thing that grows it — see the shared floor on `.irl-ext__panel--out,
+     .irl-ext__panel--pick`, which both panels take. */
+  .irl-ext__diag[data-empty='true'] {
+    opacity: 0.4;
+  }
+
+  /* Deliberately NOT a scroll container. It was one briefly, so the advisory
+     could stay pinned inside a fixed-height panel — but at the then-600px
+     floor that pushed three of the five rows (including the contradictions
+     count) out of view whenever the advisory fired, and made the list a
+     keyboard trap axe rates `scrollable-region-focusable`. The panels grow
+     instead — both of them, together; see `.irl-ext__panel--out,
+     .irl-ext__panel--pick`. */
+  .irl-ext__diag-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin: 0;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Label above, value indented beneath, rather than label-left/value-right on
+     one line. The two-column form put a variable gap between a question and its
+     answer — "Answers taken from Comments" ended up a long way from the number
+     it belonged to — and made the values a ragged right-hand column. Stacked and
+     indented, each pair reads as one unit and every value starts on the same
+     left edge. */
+  .irl-ext__diag-row {
+    font-size: var(--text-xs);
+    /* Tighter than the page's body leading, and inherited by both halves of the
+       pair rather than declared twice. No `--line-height-*` token exists; the
+       advisory (1.5) and the card list (1.7) carry literals for the same
+       reason. */
+    line-height: 1.4;
+  }
+
+  .irl-ext__diag-row dt {
+    color: var(--text-muted);
+  }
+
+  .irl-ext__diag-row dd {
+    /* The indent is what carries the label/value relationship now that they are
+       on separate lines; without it the two read as consecutive items. */
+    margin: 0 0 0 var(--spacing-lg);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .irl-ext__advisory {
+    flex-shrink: 0;
+    margin: 0;
+    padding: var(--spacing-md);
+    border-left: 3px solid var(--color-warning);
+    background: var(--surface-faint-bg);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  /* ── output ─────────────────────────────────────────────────────── */
+
+  .irl-ext__outhead {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-xl);
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .irl-ext__status {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Always present, so a longer status line cannot reflow the buttons and
+     a state change cannot move them. */
+  .irl-ext__actions {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-shrink: 0;
+  }
+
+  .irl-ext__actions[data-enabled='false'] {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* The positioning context for the three states. `position: relative` plus
+     absolutely-positioned children is what keeps this box out of the panel's
+     intrinsic height calculation — see `.irl-ext__panel--out` above for why
+     that is load-bearing rather than tidiness. */
+  .irl-ext__body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .irl-ext__idle,
+  .irl-ext__error,
+  .irl-ext__md {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* `hidden` must beat the flex display below: an author-origin `display`
+     outranks the UA's `[hidden] { display: none }`. Same trap, same fix, as
+     `ClipFigure.astro`.
+
+     WHAT IT PREVENTS CHANGED, and the old wording is kept honest here rather
+     than left to rot: this used to be a layout defect — the three states
+     rendered stacked and drove the panel past its height. Since the states
+     became `position: absolute; inset: 0` they are out of flow, so disabling
+     these resets leaves the panel at 680 either way and all three land on the
+     same box (measured at 1280x720, the Playwright default: panel 680 with the
+     resets and without, all three states at top 557.41, height 560 — the panel
+     figure is tier-dependent, so re-measure before reading it as a constant). The defect is now
+     three text layers painted over each other, and the idle and error copy
+     sitting in the accessibility tree to be read out over the result. Still
+     worth guarding, for a different reason. */
+  .irl-ext__idle[hidden],
+  .irl-ext__error[hidden] {
+    display: none;
+  }
+
+  .irl-ext__idle {
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-3xl) var(--spacing-2xl);
+    text-align: center;
+    border: 2px dashed var(--border-hairline);
+  }
+
+  .irl-ext__idle-text {
+    max-width: 340px;
+    font-size: var(--text-sm);
+    line-height: 1.6;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .irl-ext__error {
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl);
+    border: 2px solid var(--color-error);
+    border-left-width: 4px;
+    background: var(--surface-faint-bg);
+  }
+
+  .irl-ext__error-title {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-error);
+  }
+
+  .irl-ext__error-body {
+    margin: 0;
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .irl-ext__error-hint {
+    margin: 0;
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .irl-ext__md {
+    height: 100%;
+    box-sizing: border-box;
+    overflow: auto;
+    margin: 0;
+    padding: var(--spacing-lg);
+    border: 2px solid var(--border-hairline);
+    background: var(--surface-faint-bg);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    line-height: 1.85;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    /* Long VDR paths and canonical URLs must not force a horizontal scroll
+       inside the readout. `anywhere` is the non-deprecated equivalent of the
+       old `word-break: break-word`. */
+    overflow-wrap: anywhere;
+    user-select: text;
+  }
+
+  /* ── cards ──────────────────────────────────────────────────────── */
+
+  .irl-ext__cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-2xl);
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  /* Same control frost triple as `.irl-ext__panel` above — these cards sit on
+     the same page as a frosted panel and were the only unfrosted surfaces on
+     it. */
+  .irl-ext__card {
+    padding: var(--spacing-xl);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-top: 3px solid var(--color-primary);
+    background: var(--surface-subtle-bg);
+    backdrop-filter: blur(2px);
+    box-shadow:
+      inset 0 1px 0 var(--frost-highlight),
+      0 0 0 1px var(--frost-edge);
+  }
+
+  .irl-ext__card h2 {
+    font-size: var(--text-xl);
+    font-family: var(--font-family-mono);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-md);
+  }
+
+  /* `md` rather than `sm`: the bullets on the right-hand card run to two and
+     three lines at 1.7, and a gap smaller than the leading made consecutive
+     bullets read as one paragraph. */
+  .irl-ext__card-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  /* Exactly two flex items per row: the icon, and one span holding the whole
+     sentence. See the markup comment — bare text nodes beside inline elements
+     become anonymous flex items and wrap independently. */
+  .irl-ext__card-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    font-size: var(--text-sm);
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .irl-ext__card-list li > span {
+    min-width: 0;
+  }
+
+  /* Opacity only. `.brutal-gateway-card__features .bullet-icon` re-declares
+     `flex-shrink` alongside it, which is redundant rather than a precedent to
+     copy; what matters is that neither sibling touches `margin-top`. The shared
+     `.bullet-icon` rule in `cards.css` already sets the size, the colour,
+     `flex-shrink` and — the part that matters — the vertical offset, as
+     `calc((1lh - 14px) / 2)`: the glyph centred on its own line box, so it
+     tracks any font-size or line-height it is dropped into. This selector
+     out-specifies that rule, so the `margin-top: 0.4rem` it used to carry was
+     silently replacing a derived value with a magic number, and at this size and
+     leading the two differ by ~1.5px of visible droop. */
+  .irl-ext__card-list :global(.bullet-icon) {
+    opacity: 0.8;
+  }
+
+  .irl-ext__card-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    transition: color var(--transition-fast);
+  }
+
+  .irl-ext__card-link:hover {
+    color: var(--color-primary-dark);
+  }
+
+  .irl-ext__back {
+    display: inline-block;
+  }
+
+  /* ── responsive ─────────────────────────────────────────────────── */
+
+  @media (max-width: 1024px) {
+    .irl-ext__shell {
+      grid-template-columns: 1fr;
+    }
+
+    /* Stacked, so the panels size to their own content and the shared floor
+       stops applying. */
+    .irl-ext__panel--out,
+    .irl-ext__panel--pick {
+      min-height: 0;
+    }
+
+    /* A FIXED size, not a minimum. The stacked tier used `min-height` here
+       with a `max-height` on the readout, which let a body over 420px grow the
+       panel by up to 100px on a state change — the exact shift the desktop
+       layout is built to avoid, silently absent below 1024px because all three
+       Playwright projects are desktop-width.
+
+       It has to be the FLEX BASIS, not `height`: the base rule makes this a
+       `flex: 1` item, and a flex item with `flex-basis: 0` takes its main size
+       from flex layout, so a `height` here is simply ignored. The first
+       attempt at this fix set `height` and the panel still moved 45px. */
+    .irl-ext__body {
+      flex: 0 0 420px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .irl-ext {
+      padding: 0 0 var(--spacing-3xl);
+    }
+
+    .irl-ext__panel {
+      padding: var(--spacing-lg);
+    }
+
+    .irl-ext__cards {
+      grid-template-columns: 1fr;
+    }
+
+    .irl-ext__outhead {
+      flex-direction: column;
+      gap: var(--spacing-md);
+    }
+
+    .irl-ext__status {
+      white-space: normal;
+    }
+
+    .irl-ext__drop {
+      padding: var(--spacing-2xl) var(--spacing-lg);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .irl-ext {
+      padding: 0 0 var(--spacing-2xl);
+    }
+
+    .irl-ext__actions {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .irl-ext__back {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

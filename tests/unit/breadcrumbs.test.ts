@@ -15,6 +15,15 @@ describe('BREADCRUMB_NAMES', () => {
       'business-architectures',
       'vdr-structure',
       'radar',
+      'mcp',
+      // The four `/hub/mcp/*` sub-routes. This list had drifted behind the
+      // guides (they shipped 2026-08-27 with a mapping nothing asserted), so a
+      // missing entry would have rendered a title-cased fallback crumb with
+      // nothing failing. Closed while adding `docs`.
+      'get-started',
+      'using',
+      'advanced-operations',
+      'docs',
       'techpar',
       'regulatory-map',
       'tech-debt-calculator',

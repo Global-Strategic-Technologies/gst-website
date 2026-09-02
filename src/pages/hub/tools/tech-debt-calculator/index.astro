@@ -1114,6 +1114,21 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       grid-template-columns: repeat(2, 1fr);
     }
 
+    /* The label ellipsises rather than wrapping (see the override above), and
+       under the pinned face (BL-144) `Avg. Salary (all-in)` was 17px past the
+       146px it got at 320px — so it lost its last two characters on the
+       narrowest phone. One step down on the size, not the tracking: dropping
+       0.08em would only buy back 5px.
+
+       The gutter ladder (global.css, 2026-09-01) has since given a 320px
+       viewport 64px more room, turning that 17px deficit into headroom, so this
+       is now CONSERVATIVE RATHER THAN EXACT. Kept because --text-2xs is a
+       deliberate size step for a dense control stack, not a width workaround —
+       the label reads better small here regardless of what it would now fit. */
+    .brutal-slider__label {
+      font-size: var(--text-2xs);
+    }
+
     .brutal-slider__input {
       height: 28px;
     }

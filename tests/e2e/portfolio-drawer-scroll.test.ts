@@ -1,12 +1,15 @@
-import { test, expect, type Page } from '@playwright/test';
-import { openFilterDrawer } from './helpers/portfolio';
+import { test, expect } from '@playwright/test';
+import {
+  FOOTER_GAP_PX,
+  gotoPortfolio,
+  openFilterDrawer,
+  readRects,
+  waitForDrawerGap,
+} from './helpers/portfolio';
 
 test.describe('Filter Drawer Background Scroll - MA Portfolio Page', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 10000,
-    });
+    await gotoPortfolio(page);
   });
 
   test('should allow background scrolling while filter drawer is open', async ({ page }) => {
@@ -110,50 +113,19 @@ test.describe('Filter Drawer Background Scroll - MA Portfolio Page', () => {
 /**
  * Protects the "drawer bottom sits above the footer on scroll" fix:
  *   - Scroll/resize listener writes `drawer.style.bottom` in px so the
- *     drawer's bottom edge stays FOOTER_GAP_PX above the footer's top as
- *     the footer enters view (never flush, never behind).
+ *     drawer's bottom edge stays FOOTER_GAP_PX above the footer's top as the
+ *     footer enters view (never flush, never behind).
  *   - `.filter-drawer { overflow: hidden }` + `.drawer-content { min-height: 0 }`
  *     close the flexbox min-height trap so chips can't leak below.
+ *
+ * FOOTER_GAP_PX, readRects and waitForDrawerGap live in ./helpers/portfolio so
+ * the BL-139 narrow-width tests can use the same rAF-settle wait instead of
+ * hand-rolling a second one.
  */
 test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
-  // Must match FOOTER_GAP_PX in PortfolioHeader.astro's scroll listener.
-  const EXPECTED_GAP_PX = 16;
-
   test.beforeEach(async ({ page }) => {
-    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 10000,
-    });
+    await gotoPortfolio(page);
   });
-
-  // Read drawer + footer rects in the same paint frame (TEST_BEST_PRACTICES §22).
-  async function readRects(page: Page) {
-    return page.evaluate(() => {
-      const drawer = document.querySelector('[data-testid="portfolio-filter-drawer"]');
-      const footer = document.querySelector('footer[role="contentinfo"]');
-      if (!drawer || !footer) throw new Error('drawer or footer not found');
-      const d = drawer.getBoundingClientRect();
-      const f = footer.getBoundingClientRect();
-      return { drawerBottom: d.bottom, drawerLeft: d.left, drawerRight: d.right, footerTop: f.top };
-    });
-  }
-
-  // Wait for the scroll listener's rAF to settle the drawer above the footer
-  // (TEST_BEST_PRACTICES §13 - never waitForTimeout for rAF / listener settle).
-  async function waitForDrawerGap(page: Page, gapPx: number) {
-    await page.waitForFunction(
-      ({ gap }) => {
-        const drawer = document.querySelector('[data-testid="portfolio-filter-drawer"]');
-        const footer = document.querySelector('footer[role="contentinfo"]');
-        if (!drawer || !footer) return false;
-        const d = drawer.getBoundingClientRect();
-        const f = footer.getBoundingClientRect();
-        return f.top < window.innerHeight && Math.abs(f.top - d.bottom - gap) < 1;
-      },
-      { gap: gapPx },
-      { timeout: 5000 }
-    );
-  }
 
   test('drawer bottom keeps a gap above footer top as footer partially enters viewport', async ({
     page,
@@ -167,11 +139,11 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
       const scrollTarget = footer.offsetTop - targetFooterTop;
       window.scrollTo(0, scrollTarget);
     });
-    await waitForDrawerGap(page, EXPECTED_GAP_PX);
+    await waitForDrawerGap(page);
 
     const { drawerBottom, footerTop } = await readRects(page);
-    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(EXPECTED_GAP_PX - 2);
-    expect(footerTop - drawerBottom).toBeLessThanOrEqual(EXPECTED_GAP_PX + 2);
+    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(FOOTER_GAP_PX - 2);
+    expect(footerTop - drawerBottom).toBeLessThanOrEqual(FOOTER_GAP_PX + 2);
   });
 
   test('drawer clips all chip content above footer top when scrolled to page bottom', async ({
@@ -180,11 +152,11 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     await openFilterDrawer(page);
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await waitForDrawerGap(page, EXPECTED_GAP_PX);
+    await waitForDrawerGap(page);
 
     const { drawerBottom, drawerLeft, drawerRight, footerTop } = await readRects(page);
-    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(EXPECTED_GAP_PX - 2);
-    expect(footerTop - drawerBottom).toBeLessThanOrEqual(EXPECTED_GAP_PX + 2);
+    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(FOOTER_GAP_PX - 2);
+    expect(footerTop - drawerBottom).toBeLessThanOrEqual(FOOTER_GAP_PX + 2);
 
     // Sample 3 horizontal points inside the gap + footer zone. No chip should
     // render here - both the overflow clip and the gap should keep chips
@@ -206,17 +178,17 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
   test('drawer recomputes gap after viewport resize', async ({ page }) => {
     await openFilterDrawer(page);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await waitForDrawerGap(page, EXPECTED_GAP_PX);
+    await waitForDrawerGap(page);
 
     // Shrink viewport. scrollY may not auto-update, so re-scroll to the bottom
     // so the footer is in view and the resize listener has something to measure.
     await page.setViewportSize({ width: 1280, height: 600 });
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await waitForDrawerGap(page, EXPECTED_GAP_PX);
+    await waitForDrawerGap(page);
 
     const { drawerBottom, footerTop } = await readRects(page);
-    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(EXPECTED_GAP_PX - 2);
-    expect(footerTop - drawerBottom).toBeLessThanOrEqual(EXPECTED_GAP_PX + 2);
+    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(FOOTER_GAP_PX - 2);
+    expect(footerTop - drawerBottom).toBeLessThanOrEqual(FOOTER_GAP_PX + 2);
   });
 
   test('drawer internal scroll advances as page scroll shrinks the drawer', async ({ page }) => {
@@ -233,12 +205,17 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     // scrollTop by the same amount so the chip list's bottom stays
     // anchored and no chip gets bisected at the shrinking clip boundary.
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await waitForDrawerGap(page, EXPECTED_GAP_PX);
+    await waitForDrawerGap(page);
 
     const { scrollTop, clearance } = await page.evaluate(() => {
       const drawer = document.getElementById('filter-drawer') as HTMLElement;
       const content = drawer.querySelector('.drawer-content') as HTMLElement;
-      return { scrollTop: content.scrollTop, clearance: parseFloat(drawer.style.bottom) };
+      // Resolved value rather than the inline style, so this stays correct if
+      // the clearance is ever delivered some other way.
+      return {
+        scrollTop: content.scrollTop,
+        clearance: parseFloat(getComputedStyle(drawer).bottom),
+      };
     });
 
     // scrollTop must have advanced by at least the clearance amount (up to
@@ -246,21 +223,21 @@ test.describe('Filter Drawer Footer Gap - MA Portfolio Page', () => {
     expect(scrollTop).toBeGreaterThanOrEqual(Math.min(clearance, 1));
   });
 
-  test('mobile bottom-sheet drawer keeps gap above footer at page bottom', async ({ page }) => {
-    // Viewport must be set before reload so the 480px media-query styles apply
-    // during the drawer's initial render.
+  test('drawer keeps its gap above the footer at phone width too', async ({ page }) => {
+    // A phone viewport, not a different drawer: the panel is the same 350px
+    // side panel at every width (BL-139). What this covers is the short
+    // viewport, where the footer occupies proportionally more of the screen and
+    // the clearance the listener computes is correspondingly larger. The
+    // viewport is set before navigation so the first render is the measured one.
     await page.setViewportSize({ width: 400, height: 700 });
-    await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => (window as any).__portfolioInitialized === true, {
-      timeout: 10000,
-    });
+    await gotoPortfolio(page);
 
     await openFilterDrawer(page);
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await waitForDrawerGap(page, EXPECTED_GAP_PX);
+    await waitForDrawerGap(page);
 
     const { drawerBottom, footerTop } = await readRects(page);
-    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(EXPECTED_GAP_PX - 2);
-    expect(footerTop - drawerBottom).toBeLessThanOrEqual(EXPECTED_GAP_PX + 2);
+    expect(footerTop - drawerBottom).toBeGreaterThanOrEqual(FOOTER_GAP_PX - 2);
+    expect(footerTop - drawerBottom).toBeLessThanOrEqual(FOOTER_GAP_PX + 2);
   });
 });

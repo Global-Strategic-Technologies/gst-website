@@ -8,7 +8,7 @@
  * registry is a special case at one, a pattern at two"*. The guard below is a
  * BICONDITIONAL — clause present ⇔ flag set — so every new prompt has to make
  * a choice rather than silently opting out of a discipline that governs how it
- * treats evidence. Prompt #10 (`gst_irl_create`, BL-140) made that choice:
+ * treats evidence. Prompt #10 (`gst_irl_populate`, BL-140) made that choice:
  * excluded, for the stop-at-artifact reason recorded on `EXPECTED_EXCLUDED`.
  *
  * **Non-zero counts are asserted on BOTH arms.** A guard iterating an empty set
@@ -45,12 +45,12 @@ const EXPECTED_OPT_IN = [
 /**
  * Deliberately excluded, each for a stated reason:
  *   - `gst_radar_brief_today` takes no target inputs at all.
- *   - `gst_information_request_list` PRODUCES the blank IRL.
- *   - `gst_irl_create` (BL-140; renamed from `gst_irl_fill` in 0.62.0)
+ *   - `gst_irl_create` PRODUCES the blank IRL.
+ *   - `gst_irl_populate` (BL-140; renamed from `gst_irl_fill` in 0.62.0)
  *     genuinely resolves answers from target evidence in context — but the
  *     clause's mandatory upgrade path ("call `prepare_irl_body` … then
  *     `validate_irl_provenance`") instructs the model to invoke the sweep
- *     tools, a direct contradiction of the create prompt's
+ *     tools, a direct contradiction of the populate prompt's
  *     stop-at-artifact ruling (a human review checkpoint sits
  *     between fill and ingest by design). The stop-at-artifact contradiction
  *     alone carries the exclusion; the prompt's own body states the
@@ -59,7 +59,10 @@ const EXPECTED_OPT_IN = [
  *     from an artifact it is writing would be circular.
  */
 const EXPECTED_EXCLUDED = [
-  'gst_information_request_list',
+  // Sorted position, not authoring order (see the note below). This entry was
+  // `gst_information_request_list` until 0.63.0 and happened to keep index 0
+  // through that rename: `gst_i|n` sorted ahead of every `gst_i|rl_`, and
+  // `gst_irl_create` sorts first among them. Coincidence, not stability.
   'gst_irl_create',
   // The trust-the-operator successors are excluded for the same reason as
   // their predecessor: the extract PRODUCES the record (resolving inputs
@@ -68,6 +71,12 @@ const EXPECTED_EXCLUDED = [
   // precedence.
   'gst_irl_extract',
   'gst_irl_ingestion',
+  // Sorted position, not authoring order: the comparison below is against a
+  // sorted set, so a rename moves the entry. This prompt sat above
+  // `gst_irl_extract` under its former name (`gst_irl_create`, 0.62.0) and
+  // moved here when 0.63.0 renamed it — which is also why `gst_irl_create`
+  // above is now a DIFFERENT prompt, not this one.
+  'gst_irl_populate',
   'gst_irl_sweep',
   'gst_radar_brief_today',
 ];
