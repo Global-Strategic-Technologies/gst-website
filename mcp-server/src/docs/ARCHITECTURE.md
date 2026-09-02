@@ -131,7 +131,7 @@ and `docs.` 308-redirects every path to `https://globalstrategic.tech/hub/mcp/do
 (ADR-0023). The docs branch runs **before** every path-based branch, because
 `/health`, the `/status` arm and `isOAuthSurfacePath` carry no hostname test and
 would otherwise answer on a documentation hostname; `tests/unit/dispatch/host-route.test.ts`
-asserts that ordering against this file's source. Neither extra host exists in
+asserts that ordering against `src/worker.ts`'s source. Neither extra host exists in
 staging, so both are first exercised in production.
 
 The `globalstrategic.tech` DNS zone is on Cloudflare (the website itself deploys to Vercel); the Worker routes are `custom_domain = true` bindings, so DNS records and TLS certs are Cloudflare-managed. Secrets are provisioned per environment via `wrangler secret put <NAME> --env <staging|production>` — the full matrix (bearer keys, Upstash MCP DB, Inoreader OAuth, Sentry DSN, `CF_AE_TOKEN`) is commented in `wrangler.toml` and operationalized in [`operations/DEPLOY.md`](operations/DEPLOY.md).

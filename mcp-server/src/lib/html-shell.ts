@@ -48,9 +48,12 @@ export const FAVICON_LINK = `<link rel="icon" type="image/svg+xml" href="data:im
  * server-rendered HTML: resolve the pinned face or its metric-matched fallback,
  * never a bare generic.
  *
- * Keep the numbers identical to `src/styles/fonts.css`. Nothing enforces that
- * across the workspace boundary — `tests/integration/font-token-pin.test.ts`
- * checks this file has the faces, not that the percentages agree.
+ * Keep the numbers identical to `src/styles/fonts.css`. That IS enforced across
+ * the workspace boundary, by the website workspace's
+ * `tests/integration/font-token-pin.test.ts` → "the metric-matched fallbacks
+ * agree across the workspace boundary": it parses both files and compares all
+ * four descriptors AND the `src` list, so editing one side alone fails there,
+ * not here. Edit both.
  */
 export const MONO_FALLBACK_FACES = `
 @font-face { font-family: 'GST Mono Fallback'; src: local('Menlo'), local('DejaVu Sans Mono'); size-adjust: 99.7%; ascent-override: 100.8%; descent-override: 29.59%; line-gap-override: 0%; }

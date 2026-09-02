@@ -68,6 +68,22 @@ describe('resolveHostRoute — the docs alias', () => {
     expect(DOCS_CANONICAL_URL).not.toMatch(/[?#]/);
   });
 
+  it('matches the alias host exactly, not by a `docs.` prefix', () => {
+    // The arm is an equality test on purpose (see the docblock): one alias host
+    // is all wrangler.toml, ADR-0023 and ARCHITECTURE.md describe. These hosts
+    // do not exist today — every route is a `custom_domain` binding — so this
+    // pins the narrow reading against the deployment fact that currently makes
+    // a prefix arm look harmless. Widening the match should fail here first.
+    for (const host of [
+      'docs.example.com',
+      'docs.globalstrategic.tech',
+      'docs.mcp-staging.globalstrategic.tech',
+      'docs.mcp.globalstrategic.tech.evil.test',
+    ]) {
+      expect(route(`https://${host}/`)).toBeNull();
+    }
+  });
+
   it('leaves the JSON-RPC and status hosts alone', () => {
     for (const host of [
       'mcp.globalstrategic.tech',

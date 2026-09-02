@@ -42,9 +42,17 @@ export const DOCS_REDIRECT_STATUS = 308;
  * The target must stay a bare page URL with no hash or query — permanent
  * redirects are cached hard and durably by browsers, so whatever ships here is
  * what a visitor keeps.
+ *
+ * EXACT EQUALITY, not a `docs.` prefix test. One alias host is what
+ * `wrangler.toml`, ADR-0023 and ARCHITECTURE.md all describe, and a prefix arm
+ * would reach further than any of them: every route on this Worker is a
+ * `custom_domain` binding today, so a prefix match is unreachable only because
+ * of a DEPLOYMENT fact, and adding a wildcard route or a second `docs.`-prefixed
+ * domain would silently start 308ing it to the website. Widening this is a
+ * decision to make deliberately, with the docs and a test moved in step.
  */
 export function resolveHostRoute(url: URL): { location: string; status: number } | null {
-  if (url.hostname === DOCS_ALIAS_HOST || url.hostname.startsWith('docs.')) {
+  if (url.hostname === DOCS_ALIAS_HOST) {
     return { location: DOCS_CANONICAL_URL, status: DOCS_REDIRECT_STATUS };
   }
   return null;
