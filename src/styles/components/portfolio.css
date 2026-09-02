@@ -7,7 +7,7 @@ Brutalist Project Card
 .brutal-project-card {
   background: transparent;
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-  padding: 1.5rem;
+  padding: var(--spacing-xl);
   cursor: pointer;
   transition: border-color var(--transition-fast);
   display: flex;
@@ -22,8 +22,8 @@ Brutalist Project Card
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
-  gap: 1rem;
+  margin-bottom: var(--spacing-lg);
+  gap: var(--spacing-lg);
 }
 
 .brutal-project-card__title {
@@ -40,7 +40,7 @@ Brutalist Project Card
   font-size: var(--text-xs);
   font-family: var(--font-family-mono);
   color: var(--text-muted);
-  margin-top: 0.25rem;
+  margin-top: var(--spacing-xs);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -51,16 +51,16 @@ Brutalist Project Card
   font-weight: 700;
   color: var(--text-muted);
   border: 1px solid var(--border-light);
-  padding: 0.25rem 0.5rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
   white-space: nowrap;
 }
 
 .brutal-project-card__metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin: 1rem 0;
-  padding: 1rem;
+  gap: var(--spacing-lg);
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-lg);
   background: transparent;
   border-left: 3px solid var(--color-primary);
 }
@@ -81,7 +81,7 @@ Brutalist Project Card
   font-family: var(--font-family-mono);
   color: var(--text-secondary);
   line-height: 1.6;
-  margin: 1rem 0;
+  margin: var(--spacing-lg) 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;
@@ -92,14 +92,14 @@ Brutalist Project Card
 .brutal-project-card__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
 }
 
 .brutal-project-card__tag {
   background: transparent;
   color: var(--text-secondary);
-  padding: 0.25rem 0.5rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
   font-size: var(--text-2xs);
   font-weight: 700;
   font-family: var(--font-family-mono);
@@ -115,7 +115,7 @@ Brutalist Project Card
 
 .brutal-project-card__cta {
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.875rem var(--spacing-lg);
   background: var(--color-primary);
   color: var(--bg-dark);
   border: 2px solid var(--color-primary);

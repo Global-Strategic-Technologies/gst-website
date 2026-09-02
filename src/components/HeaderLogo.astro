@@ -31,7 +31,7 @@ const trackAttrs = isDemo ? {} : { onclick: "trackNavigation('/', 'Logo')" };
   .logo-wrapper {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--spacing-xs);
   }
 
   /* :global() needed — .delta-icon is on a DeltaIcon child component
