@@ -98,9 +98,9 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 3. Hardcoded Spacing Remediation
 
-**Status**: Partially complete, and the earlier "Complete" was wrong about scope. The March 23, 2026 pass did replace actionable **pixel** spacing, and the micro-spacing exception it describes is real (1-3px badge padding and optical alignment — `cards.css:351` `padding: 2px var(--spacing-sm)` is exactly it). What was false is the claim that those exceptions were all that remained: **rem** spacing literals were never swept, and ~540 of them across 64 files were still in the source when ADR-0028 was written (2026-09-02).
+**Status**: Partially complete, and the earlier "Complete" was wrong about scope. The March 23, 2026 pass did replace actionable **pixel** spacing, and the micro-spacing exception it describes is real (1-3px badge padding and optical alignment — `cards.css:351` `padding: 2px var(--spacing-sm)` is exactly it). What was false is the claim that those exceptions were all that remained: **rem** spacing literals were never swept, and **321 of them across 38 files** were still in the source when ADR-0028 was written (2026-09-02).
 
-ADR-0028 closed 90 of them in six files and added the two ramp steps (`--spacing-1_25`, `--spacing-1_75`) that made the last six of those tokenizable at all. The rest, and the absence of any lint rule that would have caught them, are **BL-148**.
+ADR-0028 closed 90 of them in six files, leaving 231 across 35 and added the two ramp steps (`--spacing-1_25`, `--spacing-1_75`) that made the last six of those tokenizable at all. The rest, and the absence of any lint rule that would have caught them, are **BL-148**.
 
 **Problem**: The spacing scale (`--spacing-xs` through `--spacing-3xl`, plus the extended steps) covers 4px to 48px, but some components use hardcoded values, often mixing hardcoded and variable spacing in the same rule.
 

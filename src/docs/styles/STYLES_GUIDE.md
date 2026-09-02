@@ -119,7 +119,7 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 Counts are deliberately not stated, matching
 [VARIABLES_REFERENCE.md](VARIABLES_REFERENCE.md)'s rule — the parity test is the referee, and a
 hand-kept number is not. (The count column this table used to carry was wrong in three separate ways
-when it was removed: a Total of 160 against rows summing to 152, over a `:root` that holds 216.)
+when it was removed: a Total of 160 against rows summing to 152, over a `:root` that holds 218.)
 
 | Category              | Examples                                                                       |
 | --------------------- | ------------------------------------------------------------------------------ |

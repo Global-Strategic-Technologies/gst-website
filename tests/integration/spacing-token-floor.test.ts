@@ -126,11 +126,14 @@ function collectRemUses(): RemUse[] {
       const css = stripComments(sheet);
       for (const m of css.matchAll(DECL_RE)) {
         const [prop, value] = [m[2], m[3].trim()];
-        const inCalc = /calc\(/.test(value);
         // Shorthands are the common case, and feeding one to a single-length
         // resolver returns null — which reads as "nothing to judge" and passes
         // silently. Split first.
         for (const part of splitShorthand(value)) {
+          // calc-ness is judged PER PART, not per declaration: in
+          // `padding: 1.25rem calc(…)` only the second component is derived, and
+          // a per-declaration flag would silently exempt the first.
+          const inCalc = /calc\(/.test(part);
           for (const lit of part.matchAll(/(?<![\w.-])([0-9]*\.?[0-9]+)rem\b/g)) {
             uses.push({ file, prop, value, literal: `${lit[1]}rem`, inCalc });
           }
