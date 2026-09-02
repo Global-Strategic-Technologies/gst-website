@@ -268,8 +268,8 @@ Same-line spacing is fine, and so is text→text across a break. The **text → 
 tag** boundary loses its space, which is why the defect appears wherever Prettier happens to
 wrap and looks arbitrary rather than systematic. So does an **expression → expression**
 boundary: `{count}` on one line and `{unit}` on the next shipped as `3STEPS` in `JobCard.astro`
-(2026-09-02); render both from one expression (`{`${count} ${unit}`}`) instead, which leaves
-no source whitespace to delete. Fourteen of the text → tag kind were live across six files before
+(2026-09-02); render both from one expression instead, a single template literal that carries
+the space itself, which leaves no source whitespace to delete. Fourteen of the text → tag kind were live across six files before
 `tests/unit/inline-element-spacing.test.ts` started guarding it.
 
 **Two forms work; both put the space somewhere the compressor cannot reach.**
