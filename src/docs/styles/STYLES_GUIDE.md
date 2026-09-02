@@ -1153,6 +1153,32 @@ html.dark-theme {
 
 **Micro-spacing exception**: Values below `--spacing-xs` (4px) are acceptable for badge padding, border-radius fine-tuning, and optical alignment. Use `1px` or `2px` directly since the spacing scale does not cover sub-4px values. Example: `padding: 2px var(--spacing-sm)` is acceptable for compact badges.
 
+**This is enforced, as of ADR-0029 — a rem spacing literal that has an exact token fails
+`lint:css`.** Two instruments hold it, and they have different reach:
+
+| | catches | misses |
+| --- | --- | --- |
+| `declaration-property-value-disallowed-list` (stylelint, **error**) | `<style>` blocks **and inline `style=` attributes**; fails at editor, pre-commit and CI | exempts a whole declaration containing `calc()` |
+| `tests/integration/spacing-token-floor.test.ts` (vitest) | `<style>` blocks; judges `calc()` **per shorthand part**, so `1.25rem calc(…)` is still caught | inline `style=` attributes |
+
+The guard is the referee — it derives the scale from `variables.css` rather than hardcoding it, and
+it owns the accepted-residual table.
+
+**Adding an off-scale value?** It is not a lint failure (the rule names on-scale values only), but
+the guard will flag it as an unaccepted residual. The remedy is a ruling in ADR-0029's table with a
+reason, not a `stylelint-disable`. Reserve the disable comment for the shape the `@media print`
+exception uses — a whole block that is deliberately literal — and always with a justification:
+
+```css
+/* stylelint-disable declaration-property-value-disallowed-list -- <why this block is literal> */
+```
+
+**Sixteen values are already admitted** — above the ramp (`4rem`, `5rem`), below its 4px floor
+(`0.0625rem`, `0.125rem`, `0.15rem`), and between steps. Three are derived constants rather than
+chosen steps: the search input's icon clearance (`0.875rem` + `2.25rem`) and the values inside
+`calc()`. Read the table before adding a seventeenth — several are partners in one declaration, and
+snapping half of a tuned pair is worse than either leaving both or moving both.
+
 ### 4. Hardcoded Font Sizes
 
 ```css

@@ -9,6 +9,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 > - **2026-08-09**: 9 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. Three of them carried live content that did not go with the parent: BL-091's deliberately-cut half-open recovery probe became **[BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)**, BL-111's unbuilt-and-unfiled deploy-drift detector became **[BL-117](#bl-117-mcp-server--deploy-drift-detector-candidate)**, and BL-089's deferred docs-freshness check became **[BL-118](#bl-118-docs-last-updated-freshness-check-candidate)**. A fourth piece of live content — BL-111's repo-level secret decommission — needed no rescue, already being a Pending row in [SECRETS_INVENTORY § Decommission schedule](../operations/SECRETS_INVENTORY.md). A stanza marked closed is not automatically prunable — read it for live sub-blocks first, and note that all four were found by sweeping for the pattern rather than one per review round.
 > - **2026-08-22**: 1 stanza (BL-137, workers-types global shadowing) closed and pruned the same day it shipped. Last pre-prune revision: `677862fc`. Its live content — the accepted test-side residual, and the fact that a project-referenced tsconfig split was never shown to be impossible — went to [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md) rather than staying here. The BL-136 note below linked to its anchor and was retargeted at the ADR in the same commit.
 > - **2026-08-27**: 1 stanza (BL-138, CSP `media-src` + onboarding media) closed and pruned when the `/hub/mcp/get-started/` family shipped. Last pre-prune revision: `e4689e0d`. Its live content split by kind: the hosting decision, WebM do-not-re-add measurements, and 25–50 MiB revisit threshold went to [ADR-0022](../adr/0022-mcp-onboarding-media-in-git.md); the ffmpeg/GIF recipes (with the colour-stage proof and gifsicle hygiene note), per-clip page constraints, poster-as-reduced-motion rule, and the `prompts-resources` re-record trigger went to [hub/MCP_ONBOARDING.md](../hub/MCP_ONBOARDING.md). The BL-093 note below and the `.gitignore` `media-raw/` comment both linked the stanza and were retargeted in the same commit.
+> - **2026-09-02**: 1 stanza (BL-148, spacing-token lint enforcement) closed and pruned when [ADR-0029](../adr/0029-spacing-scale-enforcement.md) shipped — 217 literals swept, the guard widened repo-wide, and a lint rule added that fails the build. Last pre-prune revision: `4f664745`.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -596,29 +597,37 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ---
 
-### BL-148: Nothing lints spacing tokens, so a swept file re-rots silently
+### BL-151: The px half of the spacing sweep, and where the micro-spacing exception ends
 
-**Source**: found 2026-09-02 while sweeping 90 rem spacing literals under [ADR-0028](../adr/0028-extended-spacing-scale.md) | **Effort**: Small to write, Medium to land — the rule is a few lines, absorbing 227 pre-existing violations is the work | **Status**: Open
+**Source**: measured while closing [BL-148](../adr/0029-spacing-scale-enforcement.md) 2026-09-02; deliberately excluded from that change | **Effort**: Small to sweep, Medium to decide — the substitutions are mechanical, the exception boundary is a ruling | **Status**: Open
 
-**As a** contributor adding a component, **I want** a hardcoded `padding: 1.5rem` to fail lint the way a hardcoded `#1a1a1a` already does **so that** the spacing scale stays real without depending on a reviewer noticing.
+**As a** contributor reading `padding: 4px` beside `padding: var(--spacing-sm)`, **I want** one spelling for the same 4px **so that** the scale means what it says in px as well as rem.
 
-**What it is.** [`.stylelintrc.json`](../../../.stylelintrc.json)'s `scale-unlimited/declaration-strict-value` rule covers only `/color$/`, `fill`, `stroke`, `box-shadow` and `text-shadow`, plus `font-size` on an allowed-list at `warning`. **No rule constrains `padding`, `margin` or `gap`.** That is why **321 rem spacing literals accumulated across 38 files** with every CI check green, and why the six files ADR-0028 cleared can re-rot the day after the sweep — the guard it shipped, `tests/integration/spacing-token-floor.test.ts`, is scoped to those six files only.
+**What it is.** ADR-0029 closed the rem half and enforces it: a rem spacing literal with an exact token fails `lint:css`. The **px** half was left standing on purpose. Roughly 55 px literals in spacing properties have an exact token:
 
-**Two things make this more than a config edit:**
+| literal | token             | count |
+| ------- | ----------------- | ----- |
+| `4px`   | `--spacing-xs`    | 26    |
+| `8px`   | `--spacing-sm`    | 17    |
+| `12px`  | `--spacing-md`    | 7     |
+| `16px`  | `--spacing-lg`    | 3     |
+| `40px`  | `--spacing-2_5xl` | 2     |
 
-1. **Adding the properties to the existing rule would be a silent no-op.** Its `ignoreValues` carries `/^-?[0-9.]+(px|rem|em|%)?,?$/`, which matches any bare number-plus-unit — so `padding: 1.5rem` is ignored by construction. The pattern appears in **both** the base `rules` block and the `**/*.astro` override, so a fix applied to one block would no-op precisely where most components live.
-2. **Breadth.** **227 literals across the 32 files this sweep did not touch** would light up at once (231 across 35 repo-wide, the difference being ADR-0028's four accepted residuals) (measured at HEAD with the ADR-0028 guard's own parser, which returns exactly the 4 documented residuals over the six swept files). Most are on-scale and mechanically substitutable (value-identical, as the ADR-0028 sweep established); an unknown remainder are off-scale and need the same case-by-case ruling ADR-0028 gave its four residuals — which is judgement, not codemod.
+(Counted across `src/**/*.{css,astro}` with the guard's property list; re-measure before acting — that is ADR-0029's own instruction, and two hand-counts of its residual set disagreed before the guard settled it.)
 
-**Deliberately not bundled into ADR-0028's PR.** That change was 90 value-identical substitutions in six files, reviewable by a mechanical end-state check. Absorbing the remaining 227 across 32 untouched files is a different risk shape and a different review.
+**Why it was not folded into BL-148.** The [STYLES_GUIDE micro-spacing exception](../styles/STYLES_GUIDE.md#3-hardcoded-spacing) authorises "`1px` or `2px` directly" for badge padding and optical alignment, and it is written in **px**. There are 89 `2px`, 22 `1px` and 6 `3px` spacing literals living under it legitimately. **`4px` sits exactly on that boundary**: it is both the ramp's floor (`--spacing-xs`) and one step above the exception's ceiling. Deciding whether `padding: 4px` must become `var(--spacing-xs)` while `2px` stays literal is a ruling about where the exception ends — not a codemod — and folding it into a 217-substitution rem sweep would have buried it.
+
+**The rem sweep is the template.** Substitutions are value-identical under a 16px root, the same property ADR-0028 established; the risk is not the edit but the boundary.
 
 #### Acceptance Criteria
 
-- [ ] A lint rule (or a repo-wide extension of `spacing-token-floor`) fails on a raw rem/px spacing value that has an exact token, in **both** the base and `**/*.astro` stylelint blocks — and is proven to fail by mutation, not by observing a green run
-- [ ] The `ignoreValues` no-op above is confirmed handled rather than assumed — the current pattern would swallow the rule
-- [ ] The 227 existing violations in untouched files are either fixed in the same change or explicitly baselined with the baseline's expiry stated
-- [ ] Off-scale residuals get a per-value ruling in the ADR-0028 shape (kept with a reason, or snapped with evidence) — snapping is NOT automatic, since a value not on the ramp moves pixels when substituted
-- [ ] `calc()` contents stay out of scope, per ADR-0028's ruling that a derived constant is not a chosen spacing step
-- [ ] `src/docs/styles/STYLES_REMEDIATION_ROADMAP.md` §3 is updated again once this lands — it is the authoritative record BL-094 cites
+- [ ] A ruling is recorded (extend ADR-0029 or a new ADR) on where the micro-spacing exception ends — specifically whether `4px` is inside or outside it, with the `1px`/`2px`/`3px` population named so the decision is made against the real corpus rather than the principle
+- [ ] The px literals the ruling makes tokenizable are swept, and value-identity is proven by resolving each substituted token against `:root` and comparing px — **not** by diffing built CSS, which differs by construction
+- [ ] The lint rule's value list and `spacing-token-floor.test.ts` are extended to cover px, in **both** stylelint blocks, and proven to fail by mutation
+- [ ] `STYLES_REMEDIATION_ROADMAP.md` §3's "px tail is open" line is closed in the same change
+- [ ] Any px value the ruling keeps gets a residual entry with a reason, in ADR-0029's table shape, so it fails when it stops matching a real declaration
+
+**Not in scope**: `em` values (they resolve against the element's own font-size, so a 16px-based conversion can invent a plausible wrong answer — the shared `lengthToPx` helper excludes them deliberately), and `font-size`, which is [BL-094](#bl-094-off-scale-font-size-literals--type-scale-ruling--sweep-deferred) and stays deferred.
 
 ---
 
