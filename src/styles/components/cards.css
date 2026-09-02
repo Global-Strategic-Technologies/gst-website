@@ -236,7 +236,7 @@ Brutalist Content Label
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--spacing-xs);
   color: var(--color-primary);
 }
 
@@ -301,7 +301,7 @@ Brutalist Teaser Card
 
 .brutal-teaser-card {
   max-width: 600px;
-  padding: 2rem;
+  padding: var(--spacing-2xl);
   background: transparent;
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-top: 3px solid var(--color-primary);
@@ -721,7 +721,7 @@ Brutalist FAQ
 .project-card {
   background: light-dark(var(--bg-light), var(--bg-dark-secondary));
   border: 1px solid light-dark(var(--border-light), var(--border-dark));
-  padding: 1.5rem;
+  padding: var(--spacing-xl);
   cursor: pointer;
   transition: all var(--transition-normal);
   position: relative;
@@ -743,7 +743,7 @@ Brutalist FAQ
 
 @media (max-width: 480px) {
   .project-card {
-    padding: 1rem;
+    padding: var(--spacing-lg);
   }
 }
 
@@ -764,8 +764,8 @@ Brutalist FAQ
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
-  gap: 1rem;
+  margin-bottom: var(--spacing-lg);
+  gap: var(--spacing-lg);
 }
 
 .project-card__title {
@@ -773,7 +773,7 @@ Brutalist FAQ
   font-weight: 900;
   font-size: var(--text-xl);
   color: var(--text-primary);
-  margin: 0 0 0.25rem;
+  margin: 0 0 var(--spacing-xs);
   letter-spacing: -0.01em;
   line-height: 1.3;
 }
@@ -789,9 +789,9 @@ Brutalist FAQ
 .project-card__metrics {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin: 1rem 0;
-  padding: 1rem;
+  gap: var(--spacing-lg);
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-lg);
   background: var(--search-input-bg);
   border-left: 3px solid var(--color-primary);
 }
@@ -800,7 +800,7 @@ Brutalist FAQ
   font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: 1.6;
-  margin: 1rem 0;
+  margin: var(--spacing-lg) 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;
@@ -825,13 +825,13 @@ Brutalist FAQ
   }
 
   .project-card__metrics {
-    gap: 0.75rem;
+    gap: var(--spacing-md);
   }
 }
 
 @media (max-width: 480px) {
   .project-card__header {
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--spacing-md);
   }
 
   .project-card__title {
@@ -839,14 +839,14 @@ Brutalist FAQ
   }
 
   .project-card__metrics {
-    margin: 0.75rem 0;
-    padding: 0.75rem;
-    gap: 0.5rem;
+    margin: var(--spacing-md) 0;
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
   }
 
   .project-card__summary {
     font-size: var(--text-sm);
-    margin: 0.75rem 0;
+    margin: var(--spacing-md) 0;
   }
 }
 
@@ -875,7 +875,7 @@ Brutalist Gateway Card (Library/Tools index pages)
    indexes as one 600px column in a 1504px container, 60% of every row unused
    (BL-105). `.brutal-gateway-grid` below owns layout instead. */
 .brutal-gateway-card {
-  padding: 2rem;
+  padding: var(--spacing-2xl);
   border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   border-top: 3px solid var(--color-primary);
   text-align: center;
@@ -994,7 +994,7 @@ Brutalist Gateway Card (Library/Tools index pages)
      Must stay AFTER the base rules: `> .brutal-gateway-card` ties them on
      specificity (0,2,0) and wins on source order alone. */
   .brutal-gateway-card {
-    padding: 1.5rem;
+    padding: var(--spacing-xl);
   }
 
   .brutal-gateway-card h2,
@@ -1022,7 +1022,7 @@ Brutalist Gateway Card (Library/Tools index pages)
 
 @media (max-width: 480px) {
   .brutal-gateway-card {
-    padding: 1.25rem;
+    padding: var(--spacing-1_25);
   }
 }
 

@@ -355,7 +355,7 @@ const faqItems = [
   }
 
   .audience-card {
-    padding: 2rem;
+    padding: var(--spacing-2xl);
     border-left: 3px solid var(--color-primary);
   }
 
@@ -379,7 +379,7 @@ const faqItems = [
   @media (max-width: 1024px) {
     .audience-cards {
       grid-template-columns: repeat(2, 1fr);
-      gap: 1.75rem;
+      gap: var(--spacing-1_75);
     }
   }
 
@@ -390,11 +390,11 @@ const faqItems = [
 
     .audience-cards {
       grid-template-columns: 1fr;
-      gap: 1.5rem;
+      gap: var(--spacing-xl);
     }
 
     .audience-card {
-      padding: 1.5rem;
+      padding: var(--spacing-xl);
     }
 
     .audience-card h3 {
@@ -408,7 +408,7 @@ const faqItems = [
 
   @media (max-width: 480px) {
     .audience-card {
-      padding: 1.25rem;
+      padding: var(--spacing-1_25);
     }
 
     .audience-card h3 {
@@ -423,11 +423,11 @@ const faqItems = [
   @media (max-width: 1024px) {
     .services-cards {
       grid-template-columns: repeat(2, 1fr);
-      gap: 1.75rem;
+      gap: var(--spacing-1_75);
     }
 
     .service-card {
-      padding: 1.75rem;
+      padding: var(--spacing-1_75);
     }
 
     .service-card h2 {
@@ -444,11 +444,11 @@ const faqItems = [
        byte-identical to the base rule, so it only ever restated it. */
     .services-cards {
       grid-template-columns: 1fr;
-      gap: 1.5rem;
+      gap: var(--spacing-xl);
     }
 
     .service-card {
-      padding: 1.5rem;
+      padding: var(--spacing-xl);
     }
 
     .service-card h2 {
@@ -462,15 +462,15 @@ const faqItems = [
 
   @media (max-width: 480px) {
     .services-section {
-      padding: 2rem 0;
+      padding: var(--spacing-2xl) 0;
     }
 
     .services-cards {
-      gap: 1.25rem;
+      gap: var(--spacing-1_25);
     }
 
     .service-card {
-      padding: 1.25rem;
+      padding: var(--spacing-1_25);
     }
 
     .service-card h2 {

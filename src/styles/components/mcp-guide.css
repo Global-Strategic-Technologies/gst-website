@@ -367,8 +367,10 @@
   margin-bottom: 0;
 }
 
-/* Compound: keeps `--spacing-lg` padding through cards.css's ≤768px 1.5rem
-   and ≤480px 1.25rem overrides, as the pages' scoped rules always did. */
+/* Compound: keeps `--spacing-lg` padding through cards.css's ≤768px
+   `--spacing-xl` and ≤480px `--spacing-1_25` overrides, as the pages' scoped
+   rules always did. (Those two were the literals 1.5rem and 1.25rem until
+   ADR-0028 tokenized them; the ladder they belong to is unchanged.) */
 .brutal-gateway-card.guide-card {
   padding: var(--spacing-lg);
 }

@@ -128,7 +128,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
 
 <style>
   .about-section {
-    padding: 3rem 0;
+    padding: var(--spacing-3xl) 0;
     background: transparent;
     border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
@@ -144,7 +144,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xl);
   }
 
   .about-section p {
@@ -165,18 +165,18 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 3rem;
+    margin-bottom: var(--spacing-3xl);
     text-align: center;
   }
 
   .experience-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 2.5rem;
+    gap: var(--spacing-2_5xl);
   }
 
   .experience-card {
-    padding: 2.5rem;
+    padding: var(--spacing-2_5xl);
     background: transparent;
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     transition: all var(--transition-normal);
@@ -193,7 +193,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
     font-family: var(--font-family-mono);
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 1rem;
+    margin-bottom: var(--spacing-lg);
     line-height: 1.3;
   }
 
@@ -205,7 +205,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
   }
 
   .founder-section {
-    padding: 3rem 0;
+    padding: var(--spacing-3xl) 0;
     background: transparent;
     border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
   }
@@ -213,7 +213,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
   .founder-content {
     display: grid;
     grid-template-columns: 1fr 1.5fr;
-    gap: 3rem;
+    gap: var(--spacing-3xl);
     align-items: center;
     max-width: 1200px;
   }
@@ -264,7 +264,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
     font-weight: 700;
     text-transform: uppercase;
     color: var(--text-primary);
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xl);
     line-height: 1.3;
   }
 
@@ -273,7 +273,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
     font-family: var(--font-family-mono);
     color: var(--text-secondary);
     line-height: 1.8;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xl);
   }
 
   .founder-bio p:last-child {
@@ -281,7 +281,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
   }
 
   .founder-signature {
-    margin: 1.5rem 2rem 1.5rem auto;
+    margin: var(--spacing-xl) var(--spacing-2xl) var(--spacing-xl) auto;
     max-width: 200px;
   }
 
@@ -333,11 +333,11 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
   @media (max-width: 1024px) {
     .experience-grid {
       grid-template-columns: repeat(2, 1fr);
-      gap: 1.75rem;
+      gap: var(--spacing-1_75);
     }
 
     .experience-card {
-      padding: 1.75rem;
+      padding: var(--spacing-1_75);
     }
 
     .experience-card h3 {
@@ -350,7 +350,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
 
     .founder-content {
       grid-template-columns: 1fr;
-      gap: 2rem;
+      gap: var(--spacing-2xl);
     }
 
     .founder-portrait {
@@ -361,12 +361,12 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
 
   @media (max-width: 768px) {
     .about-section {
-      padding: 2rem 0;
+      padding: var(--spacing-2xl) 0;
     }
 
     .about-section h2 {
       font-size: var(--text-2xl);
-      margin-bottom: 1rem;
+      margin-bottom: var(--spacing-lg);
     }
 
     .about-section p {
@@ -374,21 +374,21 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
     }
 
     .experience-section {
-      padding: 2.5rem 0;
+      padding: var(--spacing-2_5xl) 0;
     }
 
     .experience-section h2 {
       font-size: var(--text-2xl);
-      margin-bottom: 2rem;
+      margin-bottom: var(--spacing-2xl);
     }
 
     .experience-grid {
       grid-template-columns: 1fr;
-      gap: 1.5rem;
+      gap: var(--spacing-xl);
     }
 
     .experience-card {
-      padding: 1.5rem;
+      padding: var(--spacing-xl);
     }
 
     .experience-card h3 {
@@ -400,11 +400,11 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
     }
 
     .founder-section {
-      padding: 2rem 0;
+      padding: var(--spacing-2xl) 0;
     }
 
     .founder-content {
-      gap: 1.5rem;
+      gap: var(--spacing-xl);
     }
 
     .founder-portrait {
@@ -413,7 +413,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
 
     .founder-bio h2 {
       font-size: var(--text-2xl);
-      margin-bottom: 1rem;
+      margin-bottom: var(--spacing-lg);
     }
 
     .founder-bio p {
@@ -423,12 +423,12 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
 
   @media (max-width: 480px) {
     .about-section {
-      padding: 1.5rem 0;
+      padding: var(--spacing-xl) 0;
     }
 
     .about-section h2 {
       font-size: var(--text-xl);
-      margin-bottom: 0.75rem;
+      margin-bottom: var(--spacing-md);
     }
 
     .about-section p {
@@ -437,21 +437,21 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
     }
 
     .experience-section {
-      padding: 2rem 0;
+      padding: var(--spacing-2xl) 0;
     }
 
     .experience-section h2 {
       font-size: var(--text-xl);
-      margin-bottom: 1.5rem;
+      margin-bottom: var(--spacing-xl);
     }
 
     .experience-card {
-      padding: 1.25rem;
+      padding: var(--spacing-1_25);
     }
 
     .experience-card h3 {
       font-size: var(--text-base);
-      margin-bottom: 0.75rem;
+      margin-bottom: var(--spacing-md);
     }
 
     .experience-card p {
@@ -460,7 +460,7 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
     }
 
     .founder-section {
-      padding: 1.5rem 0;
+      padding: var(--spacing-xl) 0;
     }
 
     .founder-portrait {
@@ -473,13 +473,13 @@ import PrintReportHeader from '../components/PrintReportHeader.astro';
 
     .founder-bio h2 {
       font-size: var(--text-lg);
-      margin-bottom: 0.75rem;
+      margin-bottom: var(--spacing-md);
     }
 
     .founder-bio p {
       font-size: var(--text-sm);
       line-height: 1.6;
-      margin-bottom: 1rem;
+      margin-bottom: var(--spacing-lg);
     }
 
     .founder-bio p:last-child {

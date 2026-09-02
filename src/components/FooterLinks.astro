@@ -57,7 +57,7 @@ const { links = PRODUCTION_LINKS } = Astro.props;
      budget below — re-derive it, do not assume the difference is absorbed. */
   .footer-links {
     display: flex;
-    gap: 0.75rem;
+    gap: var(--spacing-md);
     align-items: center;
     padding-left: var(--spacing-sm);
   }
@@ -74,7 +74,7 @@ const { links = PRODUCTION_LINKS } = Astro.props;
       color var(--transition-fast),
       border-bottom var(--transition-fast);
     position: relative;
-    padding-bottom: 0.25rem;
+    padding-bottom: var(--spacing-xs);
     border-bottom: 2px solid transparent;
   }
 
@@ -85,12 +85,12 @@ const { links = PRODUCTION_LINKS } = Astro.props;
 
   .footer-links a:focus {
     outline: 2px solid var(--color-primary);
-    outline-offset: 0.25rem;
+    outline-offset: var(--spacing-xs);
   }
 
   .footer-links a:focus-visible {
     outline: 2px solid var(--color-primary);
-    outline-offset: 0.25rem;
+    outline-offset: var(--spacing-xs);
   }
 
   .footer-links a:focus:not(:focus-visible) {
@@ -159,14 +159,14 @@ const { links = PRODUCTION_LINKS } = Astro.props;
   /* Tablet (480px - 768px) */
   @media (min-width: 480px) and (max-width: 767px) {
     .footer-links {
-      gap: 1.25rem;
+      gap: var(--spacing-1_25);
     }
   }
 
   /* Desktop (768px+) */
   @media (min-width: 768px) {
     .footer-links {
-      gap: 2rem;
+      gap: var(--spacing-2xl);
     }
   }
 </style>
