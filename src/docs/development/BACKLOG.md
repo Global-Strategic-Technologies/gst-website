@@ -594,6 +594,32 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 - BL-033 pilot needs inline file delivery for an automated workflow
 - Direct partner feedback that the Hub-page hop is friction worth removing
 
+### BL-148: Nothing lints spacing tokens, so a swept file re-rots silently
+
+**Source**: found 2026-09-02 while sweeping 90 rem spacing literals under [ADR-0028](../adr/0028-extended-spacing-scale.md) | **Effort**: Small to write, Medium to land — the rule is a few lines, absorbing ~450 pre-existing violations is the work | **Status**: Open
+
+**As a** contributor adding a component, **I want** a hardcoded `padding: 1.5rem` to fail lint the way a hardcoded `#1a1a1a` already does **so that** the spacing scale stays real without depending on a reviewer noticing.
+
+**What it is.** [`.stylelintrc.json`](../../../.stylelintrc.json)'s `scale-unlimited/declaration-strict-value` rule covers only `/color$/`, `fill`, `stroke`, `box-shadow` and `text-shadow`, plus `font-size` on an allowed-list at `warning`. **No rule constrains `padding`, `margin` or `gap`.** That is why ~540 raw spacing literals accumulated across 64 files with every CI check green, and why the six files ADR-0028 cleared can re-rot the day after the sweep — the guard it shipped, `tests/integration/spacing-token-floor.test.ts`, is scoped to those six files only.
+
+**Two things make this more than a config edit:**
+
+1. **Adding the properties to the existing rule would be a silent no-op.** Its `ignoreValues` carries `/^-?[0-9.]+(px|rem|em|%)?,?$/`, which matches any bare number-plus-unit — so `padding: 1.5rem` is ignored by construction. The pattern appears in **both** the base `rules` block and the `**/*.astro` override, so a fix applied to one block would no-op precisely where most components live.
+2. **Breadth.** ~450 literals across ~58 files would light up at once. Most are on-scale and mechanically substitutable (value-identical, as the ADR-0028 sweep established); an unknown remainder are off-scale and need the same case-by-case ruling ADR-0028 gave its four residuals — which is judgement, not codemod.
+
+**Deliberately not bundled into ADR-0028's PR.** That change was 90 value-identical substitutions in six files, reviewable by a mechanical end-state check. Absorbing 450 more across 58 files is a different risk shape and a different review.
+
+#### Acceptance Criteria
+
+- [ ] A lint rule (or a repo-wide extension of `spacing-token-floor`) fails on a raw rem/px spacing value that has an exact token, in **both** the base and `**/*.astro` stylelint blocks — and is proven to fail by mutation, not by observing a green run
+- [ ] The `ignoreValues` no-op above is confirmed handled rather than assumed — the current pattern would swallow the rule
+- [ ] The ~450 existing violations are either fixed in the same change or explicitly baselined with the baseline's expiry stated
+- [ ] Off-scale residuals get a per-value ruling in the ADR-0028 shape (kept with a reason, or snapped with evidence) — snapping is NOT automatic, since a value not on the ramp moves pixels when substituted
+- [ ] `calc()` contents stay out of scope, per ADR-0028's ruling that a derived constant is not a chosen spacing step
+- [ ] `src/docs/styles/STYLES_REMEDIATION_ROADMAP.md` §3 is updated again once this lands — it is the authoritative record BL-094 cites
+
+---
+
 ---
 
 ## Infrastructure
