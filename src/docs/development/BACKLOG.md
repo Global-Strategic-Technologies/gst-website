@@ -709,12 +709,12 @@ Cited by **selector, not line number** — BL-147's convention, for the same rea
 
 #### Acceptance Criteria
 
-- [ ] A guard fails on a bare scoped selector whose class only ever rides a child-component invocation in that file — the class this trap belongs to is invisible to `astro check`, `lint`, `lint:css` and the full suite, all four of which were green over all six. A working detector already exists (written for `tests/unit/inline-element-spacing.test.ts`'s sibling investigation); it strips CSS comments and `:global()` groups and cross-checks native-element usage in the same file to avoid false positives
-- [ ] Each of the six is rendered at desktop, 768 and 480 in **both** themes with the rule applied, and a ruling recorded here: adopt it via an anchored `:global()`, adopt a different treatment, or delete the declaration and keep the global base
+- [ ] A guard fails on a bare scoped selector whose class only ever rides a child-component invocation in that file — the class this trap belongs to is invisible to `astro check`, `lint`, `lint:css` and the full suite, all four of which were green over all nine. A working detector already exists (written for `tests/unit/inline-element-spacing.test.ts`'s sibling investigation); it strips CSS comments and `:global()` groups and cross-checks native-element usage in the same file to avoid false positives
+- [ ] Each of the **nine declaration blocks** — not just the seven selectors; the two 480px duplicates sit far from their base rules in the same file and are what a table-driven pass skips — is rendered at desktop, 768 and 480 in **both** themes with the rule applied, and a ruling recorded here: adopt it via an anchored `:global()`, adopt a different treatment, or delete the declaration and keep the global base
 - [ ] The `opacity` cases (`0.7`, `0.8`, `0.5`) are ruled on explicitly — they are the only declarations whose absence is currently visible
 - [ ] Whatever survives is expressed as `<ancestor> :global(.bullet-icon)`, anchored to a scoped ancestor per [When `:global()` Is Necessary](../styles/STYLES_GUIDE.md#when-global-is-necessary) case 3 — never a bare `:global()`, which would edit the shared utility site-wide
 
-**Not a regression from the spacing work.** The three commits that prompted the review (`a3efe3c6`, `cba56058`, `c89d8601`) neither introduced nor touched these declarations; two of the six pre-date the branch by a long way. Filed separately rather than folded in, because reviving them changes icon opacity on five shipped pages and that is a design decision the operator has not seen.
+**Not a regression from the spacing work.** The three commits that prompted the review (`a3efe3c6`, `cba56058`, `c89d8601`) neither introduced nor touched these declarations; two of the seven pre-date the branch by a long way. Filed separately rather than folded in, because reviving them changes icon opacity on five shipped pages and that is a design decision the operator has not seen.
 
 ---
 
