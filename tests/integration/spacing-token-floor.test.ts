@@ -8,11 +8,13 @@
  * immediately — that is the whole reason this file exists.
  *
  * WHY ONLY SIX FILES. Nothing lints spacing repo-wide: `.stylelintrc.json`'s
- * strict-value rule covers the color families and `font-size` only, and its
- * `ignoreValues` carries a bare-number-plus-unit pattern that would swallow a
- * naively-added `padding`/`margin`/`gap` rule. ~450 literals remain in ~58 other
- * files. Widening this guard to reach them is BL-148, and it is a different
- * review: those are not all value-identical substitutions.
+ * strict-value rule covers the color families only (`font-size` is governed
+ * separately, by a `declaration-property-value-allowed-list` at warning
+ * severity), and its `ignoreValues` carries a bare-number-plus-unit pattern that
+ * would swallow a naively-added `padding`/`margin`/`gap` rule. 227 literals
+ * remain in the 32 files this sweep did not touch. Widening this guard to reach
+ * them is BL-148, and it is a different review: those are not all
+ * value-identical substitutions.
  *
  * WHAT IT DOES NOT DO. It reads SOURCE TEXT and does not resolve the cascade, so
  * it cannot tell you what a browser computes. It also does not descend into
@@ -114,32 +116,37 @@ interface RemUse {
   inCalc: boolean;
 }
 
+/** Every rem value in a spacing property within one stylesheet's text. */
+export function scanSheet(sheet: string, file: string): RemUse[] {
+  const uses: RemUse[] = [];
+  // Comments first: FooterLinks.astro carries a `font-size: 5rem` INSIDE a
+  // comment inside a rule body, which a naive declaration split misreads.
+  const css = stripComments(sheet);
+  for (const m of css.matchAll(DECL_RE)) {
+    const [prop, value] = [m[2], m[3].trim()];
+    // Shorthands are the common case, and feeding one to a single-length
+    // resolver returns null — which reads as "nothing to judge" and passes
+    // silently. Split first.
+    for (const part of splitShorthand(value)) {
+      // calc-ness is judged PER PART, not per declaration: in
+      // `padding: 1.25rem calc(…)` only the second component is derived, and
+      // a per-declaration flag would silently exempt the first.
+      const inCalc = /calc\(/.test(part);
+      for (const lit of part.matchAll(/(?<![\w.-])([0-9]*\.?[0-9]+)rem\b/g)) {
+        uses.push({ file, prop, value, literal: `${lit[1]}rem`, inCalc });
+      }
+    }
+  }
+  return uses;
+}
+
 /** Every rem value appearing in a spacing property across the swept files. */
 function collectRemUses(): RemUse[] {
   const uses: RemUse[] = [];
   for (const file of SWEPT_FILES) {
     const source = readFileSync(join(REPO_ROOT, file), 'utf-8');
     const sheets = file.endsWith('.astro') ? extractAstroStyles(source) : [source];
-    for (const sheet of sheets) {
-      // Comments first: FooterLinks.astro carries a `font-size: 5rem` INSIDE a
-      // comment inside a rule body, which a naive declaration split misreads.
-      const css = stripComments(sheet);
-      for (const m of css.matchAll(DECL_RE)) {
-        const [prop, value] = [m[2], m[3].trim()];
-        // Shorthands are the common case, and feeding one to a single-length
-        // resolver returns null — which reads as "nothing to judge" and passes
-        // silently. Split first.
-        for (const part of splitShorthand(value)) {
-          // calc-ness is judged PER PART, not per declaration: in
-          // `padding: 1.25rem calc(…)` only the second component is derived, and
-          // a per-declaration flag would silently exempt the first.
-          const inCalc = /calc\(/.test(part);
-          for (const lit of part.matchAll(/(?<![\w.-])([0-9]*\.?[0-9]+)rem\b/g)) {
-            uses.push({ file, prop, value, literal: `${lit[1]}rem`, inCalc });
-          }
-        }
-      }
-    }
+    for (const sheet of sheets) uses.push(...scanSheet(sheet, file));
   }
   return uses;
 }
@@ -203,6 +210,22 @@ describe('spacing-token floor (ADR-0028)', () => {
           `declaration. If it was tokenized, delete this entry and ADR-0028's table row.`
       ).toBe(true);
     }
+  });
+
+  it('judges calc-ness per component, so a literal beside a calc is still seen', () => {
+    // Synthetic rather than a mutation of a real file: the per-part property was
+    // introduced BECAUSE a per-declaration flag exempted a whole shorthand, and a
+    // mutation test proves that only for as long as the mutation exists. There is
+    // no such declaration in the six files today, so nothing else pins this.
+    const uses = scanSheet(
+      `.x { padding: 1.25rem calc(100% - var(--touch-target-min)); }`,
+      'synthetic.css'
+    );
+    expect(uses.map((u) => [u.literal, u.inCalc])).toEqual([['1.25rem', false]]);
+
+    // …and a pure-calc value stays wholly exempt, so the ruling is not weakened.
+    const pure = scanSheet(`.y { margin-block: calc((0.85rem - 44px) / 2); }`, 'synthetic.css');
+    expect(pure.map((u) => [u.literal, u.inCalc])).toEqual([['0.85rem', true]]);
   });
 
   it('does not descend into calc(), by ruling', () => {

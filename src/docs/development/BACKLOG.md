@@ -596,7 +596,7 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 ### BL-148: Nothing lints spacing tokens, so a swept file re-rots silently
 
-**Source**: found 2026-09-02 while sweeping 90 rem spacing literals under [ADR-0028](../adr/0028-extended-spacing-scale.md) | **Effort**: Small to write, Medium to land — the rule is a few lines, absorbing ~450 pre-existing violations is the work | **Status**: Open
+**Source**: found 2026-09-02 while sweeping 90 rem spacing literals under [ADR-0028](../adr/0028-extended-spacing-scale.md) | **Effort**: Small to write, Medium to land — the rule is a few lines, absorbing 227 pre-existing violations is the work | **Status**: Open
 
 **As a** contributor adding a component, **I want** a hardcoded `padding: 1.5rem` to fail lint the way a hardcoded `#1a1a1a` already does **so that** the spacing scale stays real without depending on a reviewer noticing.
 
@@ -605,15 +605,15 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 **Two things make this more than a config edit:**
 
 1. **Adding the properties to the existing rule would be a silent no-op.** Its `ignoreValues` carries `/^-?[0-9.]+(px|rem|em|%)?,?$/`, which matches any bare number-plus-unit — so `padding: 1.5rem` is ignored by construction. The pattern appears in **both** the base `rules` block and the `**/*.astro` override, so a fix applied to one block would no-op precisely where most components live.
-2. **Breadth.** **231 literals across 35 files** would light up at once (measured at HEAD with the ADR-0028 guard's own parser, which returns exactly the 4 documented residuals over the six swept files). Most are on-scale and mechanically substitutable (value-identical, as the ADR-0028 sweep established); an unknown remainder are off-scale and need the same case-by-case ruling ADR-0028 gave its four residuals — which is judgement, not codemod.
+2. **Breadth.** **227 literals across the 32 files this sweep did not touch** would light up at once (231 across 35 repo-wide, the difference being ADR-0028's four accepted residuals) (measured at HEAD with the ADR-0028 guard's own parser, which returns exactly the 4 documented residuals over the six swept files). Most are on-scale and mechanically substitutable (value-identical, as the ADR-0028 sweep established); an unknown remainder are off-scale and need the same case-by-case ruling ADR-0028 gave its four residuals — which is judgement, not codemod.
 
-**Deliberately not bundled into ADR-0028's PR.** That change was 90 value-identical substitutions in six files, reviewable by a mechanical end-state check. Absorbing 231 more across 35 files is a different risk shape and a different review.
+**Deliberately not bundled into ADR-0028's PR.** That change was 90 value-identical substitutions in six files, reviewable by a mechanical end-state check. Absorbing the remaining 227 across 32 untouched files is a different risk shape and a different review.
 
 #### Acceptance Criteria
 
 - [ ] A lint rule (or a repo-wide extension of `spacing-token-floor`) fails on a raw rem/px spacing value that has an exact token, in **both** the base and `**/*.astro` stylelint blocks — and is proven to fail by mutation, not by observing a green run
 - [ ] The `ignoreValues` no-op above is confirmed handled rather than assumed — the current pattern would swallow the rule
-- [ ] The 231 existing violations are either fixed in the same change or explicitly baselined with the baseline's expiry stated
+- [ ] The 227 existing violations in untouched files are either fixed in the same change or explicitly baselined with the baseline's expiry stated
 - [ ] Off-scale residuals get a per-value ruling in the ADR-0028 shape (kept with a reason, or snapped with evidence) — snapping is NOT automatic, since a value not on the ramp moves pixels when substituted
 - [ ] `calc()` contents stay out of scope, per ADR-0028's ruling that a derived constant is not a chosen spacing step
 - [ ] `src/docs/styles/STYLES_REMEDIATION_ROADMAP.md` §3 is updated again once this lands — it is the authoritative record BL-094 cites
