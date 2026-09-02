@@ -130,7 +130,11 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     color: var(--color-primary);
   }
 
-  .fyi-item__toggle {
+  /* Optical nudge against the title's 1.4 line box. `:global()` is required:
+     `.fyi-item__toggle` rides a <DeltaIcon> call, so Astro's scope attribute
+     never lands on the rendered <svg> and the bare class selected nothing —
+     measured at margin-top 0px before this. Same trap as ClipFigure.astro. */
+  .fyi-item__headline :global(.fyi-item__toggle) {
     margin-top: -0.125rem;
   }
 

@@ -248,6 +248,35 @@ others verbatim with no fallback — viewport units among them. An unsupported u
 dropped silently at runtime rather than polyfilled at build time, taking its whole declaration
 with it.
 
+#### `compressHTML` deletes the space before a wrapped inline element
+
+`compressHTML` defaults to **on** and is not set in `astro.config.mjs`. It does not *collapse*
+the newline+indent between a line of prose and an inline element opening the next line — it
+**deletes** it:
+
+```astro
+<!-- Source -->
+<p>…request volume) is published at
+  <a href="https://status.mcp.globalstrategic.tech/">status.mcp.globalstrategic.tech</a>.</p>
+
+<!-- Ships as -->
+published atstatus.mcp.globalstrategic.tech.
+```
+
+Same-line spacing is fine, and so is text→text across a break. Only the **text → inline open
+tag** boundary loses its space, which is why the defect appears wherever Prettier happens to
+wrap and looks arbitrary rather than systematic. Fourteen were live across six files before
+`tests/unit/inline-element-spacing.test.ts` started guarding it.
+
+**End the prose line with a literal `&#32;`.** A character reference is not source whitespace,
+so the compressor leaves it alone, and it collapses harmlessly against real whitespace if
+compression is ever turned off. `{' '}` does **not** work — it emits a whitespace text node the
+compressor treats like any other — and `&nbsp;` would wrongly suppress wrapping at that point.
+
+Turning `compressHTML` off fixes the whole class in one line; it was measured at **+305 KB raw /
++29 KB gzipped** across the site's HTML and rejected on those grounds. Revisit that trade if the
+entity count ever gets large.
+
 ### `class:list` — Conditional Classes
 
 Use Astro's `class:list` directive for conditionally applying classes. Preferred over template literal concatenation for new code.
@@ -981,6 +1010,22 @@ all of them demonstrate the JS-toggled pattern.
 - Place the SVG as the last child inside the collapsible header/title row
 - Toggle `.is-collapsed` on the card/container element, not the chevron itself
 - In print styles, hide with `:global(.delta-chevron) { display: none !important; }`
+- **Leading with the chevron instead? Zero its `margin-left`.** The utility carries
+  `margin-left: auto` for the last-child home above. First in a flex row, that margin absorbs
+  the row's free space and shoves the whole row flush right — measured at 352px and 433px on
+  ClipFigure's two `/hub/mcp/get-started` blocks, landing the label at a different x in each,
+  since the free space is whatever the container's `max-width` leaves. It is silent wherever a
+  sibling has `flex: 1` (FyiItem's title), because flexing consumes the free space first — so
+  the bug appears only in some leading-chevron rows, which is what makes it easy to miss.
+  `JobCard.astro`, `ClipFigure.astro` and the IRL generator all zero it the same way:
+
+  ```css
+  /* :global() is required — the class rides a <DeltaIcon> call, so the scope
+     attribute never lands on the rendered <svg>. See the scoped-rule trap above. */
+  .clip-details > summary :global(.delta-chevron) {
+    margin-left: 0;
+  }
+  ```
 
 **Current usage**: both branches are used widely — JS-toggled by ICG recommendations and Diligence Machine attention cards/questions, `<details>` by the Hub landing and MCP pages, services, regulatory map, ClipFigure and FyiItem. It is a shared utility, so treat any change to it as site-wide and enumerate consumers with `grep -rl delta-chevron src/` rather than trusting a list here.
 
