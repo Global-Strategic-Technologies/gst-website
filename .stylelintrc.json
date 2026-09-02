@@ -3,8 +3,18 @@
   "extends": "stylelint-config-standard",
   "rules": {
     "import-notation": null,
-    "no-descending-specificity": [true, { "severity": "warning" }],
-    "selector-max-specificity": ["0,4,1", { "severity": "warning" }],
+    "no-descending-specificity": [
+      true,
+      {
+        "severity": "warning"
+      }
+    ],
+    "selector-max-specificity": [
+      "0,4,1",
+      {
+        "severity": "warning"
+      }
+    ],
     "selector-class-pattern": null,
     "custom-property-pattern": null,
     "keyframes-name-pattern": null,
@@ -27,8 +37,18 @@
     "at-rule-empty-line-before": null,
     "declaration-empty-line-before": null,
     "custom-property-empty-line-before": null,
-    "selector-pseudo-class-no-unknown": [true, { "ignorePseudoClasses": ["global"] }],
-    "at-rule-no-unknown": [true, { "ignoreAtRules": ["import", "layer"] }],
+    "selector-pseudo-class-no-unknown": [
+      true,
+      {
+        "ignorePseudoClasses": ["global"]
+      }
+    ],
+    "at-rule-no-unknown": [
+      true,
+      {
+        "ignoreAtRules": ["import", "layer"]
+      }
+    ],
     "scale-unlimited/declaration-strict-value": [
       ["/color$/", "fill", "stroke", "box-shadow", "text-shadow"],
       {
@@ -57,7 +77,19 @@
       {
         "font-size": ["/var[(]/", "inherit", "initial", "unset", "revert", "smaller", "larger"]
       },
-      { "severity": "warning" }
+      {
+        "severity": "warning"
+      }
+    ],
+    "declaration-property-value-disallowed-list": [
+      {
+        "/^(padding|padding-top|padding-right|padding-bottom|padding-left|padding-block|padding-inline|padding-block-start|padding-block-end|padding-inline-start|padding-inline-end|margin|margin-top|margin-right|margin-bottom|margin-left|margin-block|margin-inline|margin-block-start|margin-block-end|margin-inline-start|margin-inline-end|gap|row-gap|column-gap|inset|inset-block|inset-inline|inset-block-start|inset-block-end|inset-inline-start|inset-inline-end|top|right|bottom|left|outline-offset)$/": [
+          "/^(?!.*calc\\().*(?<![\\w.-])(0\\.25|0\\.5|0\\.75|1\\.25|1\\.5|1\\.75|2\\.5|1|2|3)rem/"
+        ]
+      },
+      {
+        "severity": "error"
+      }
     ]
   },
   "overrides": [
@@ -87,12 +119,37 @@
         "at-rule-empty-line-before": null,
         "declaration-empty-line-before": null,
         "custom-property-empty-line-before": null,
-        "selector-pseudo-class-no-unknown": [true, { "ignorePseudoClasses": ["global"] }],
-        "at-rule-no-unknown": [true, { "ignoreAtRules": ["import", "layer"] }],
-        "no-descending-specificity": [true, { "severity": "warning" }],
-        "selector-max-specificity": ["0,4,1", { "severity": "warning" }],
+        "selector-pseudo-class-no-unknown": [
+          true,
+          {
+            "ignorePseudoClasses": ["global"]
+          }
+        ],
+        "at-rule-no-unknown": [
+          true,
+          {
+            "ignoreAtRules": ["import", "layer"]
+          }
+        ],
+        "no-descending-specificity": [
+          true,
+          {
+            "severity": "warning"
+          }
+        ],
+        "selector-max-specificity": [
+          "0,4,1",
+          {
+            "severity": "warning"
+          }
+        ],
         "no-invalid-position-declaration": null,
-        "max-nesting-depth": [3, { "ignoreAtRules": ["media", "supports", "container"] }],
+        "max-nesting-depth": [
+          3,
+          {
+            "ignoreAtRules": ["media", "supports", "container"]
+          }
+        ],
         "selector-max-compound-selectors": 4,
         "declaration-block-no-shorthand-property-overrides": true,
         "shorthand-property-no-redundant-values": true,
@@ -125,7 +182,19 @@
           {
             "font-size": ["/var[(]/", "inherit", "initial", "unset", "revert", "smaller", "larger"]
           },
-          { "severity": "warning" }
+          {
+            "severity": "warning"
+          }
+        ],
+        "declaration-property-value-disallowed-list": [
+          {
+            "/^(padding|padding-top|padding-right|padding-bottom|padding-left|padding-block|padding-inline|padding-block-start|padding-block-end|padding-inline-start|padding-inline-end|margin|margin-top|margin-right|margin-bottom|margin-left|margin-block|margin-inline|margin-block-start|margin-block-end|margin-inline-start|margin-inline-end|gap|row-gap|column-gap|inset|inset-block|inset-inline|inset-block-start|inset-block-end|inset-inline-start|inset-inline-end|top|right|bottom|left|outline-offset)$/": [
+              "/^(?!.*calc\\().*(?<![\\w.-])(0\\.25|0\\.5|0\\.75|1\\.25|1\\.5|1\\.75|2\\.5|1|2|3)rem/"
+            ]
+          },
+          {
+            "severity": "error"
+          }
         ]
       }
     }

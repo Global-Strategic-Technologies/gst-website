@@ -9,12 +9,13 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 > - **2026-08-09**: 9 stanzas closed 2026-07-17 → 08-06 (BL-088, BL-089, BL-091, BL-096, BL-103, BL-108, BL-109, BL-111, BL-112). Last pre-prune revision: `0f7bbec2`. Three of them carried live content that did not go with the parent: BL-091's deliberately-cut half-open recovery probe became **[BL-115](#bl-115-mcp-server--safe-half-open-recovery-probe-candidate)**, BL-111's unbuilt-and-unfiled deploy-drift detector became **[BL-117](#bl-117-mcp-server--deploy-drift-detector-candidate)**, and BL-089's deferred docs-freshness check became **[BL-118](#bl-118-docs-last-updated-freshness-check-candidate)**. A fourth piece of live content — BL-111's repo-level secret decommission — needed no rescue, already being a Pending row in [SECRETS_INVENTORY § Decommission schedule](../operations/SECRETS_INVENTORY.md). A stanza marked closed is not automatically prunable — read it for live sub-blocks first, and note that all four were found by sweeping for the pattern rather than one per review round.
 > - **2026-08-22**: 1 stanza (BL-137, workers-types global shadowing) closed and pruned the same day it shipped. Last pre-prune revision: `677862fc`. Its live content — the accepted test-side residual, and the fact that a project-referenced tsconfig split was never shown to be impossible — went to [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md) rather than staying here. The BL-136 note below linked to its anchor and was retargeted at the ADR in the same commit.
 > - **2026-08-27**: 1 stanza (BL-138, CSP `media-src` + onboarding media) closed and pruned when the `/hub/mcp/get-started/` family shipped. Last pre-prune revision: `e4689e0d`. Its live content split by kind: the hosting decision, WebM do-not-re-add measurements, and 25–50 MiB revisit threshold went to [ADR-0022](../adr/0022-mcp-onboarding-media-in-git.md); the ffmpeg/GIF recipes (with the colour-stage proof and gifsicle hygiene note), per-clip page constraints, poster-as-reduced-motion rule, and the `prompts-resources` re-record trigger went to [hub/MCP_ONBOARDING.md](../hub/MCP_ONBOARDING.md). The BL-093 note below and the `.gitignore` `media-raw/` comment both linked the stanza and were retargeted in the same commit.
+> - **2026-09-02**: 1 stanza (BL-148, spacing-token lint enforcement) closed and pruned when [ADR-0029](../adr/0029-spacing-scale-enforcement.md) shipped — 217 literals swept, the guard widened repo-wide, and a lint rule added that fails the build. Last pre-prune revision: `4f664745`.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
 > - **BL-034** (MCP-server doc-cleanup catch-all, substantially complete 2026-07-02) — a slim stub that remains the append-target for BL-033-era cleanup items.
 > - **BL-098** (radar negative caching) — closed by removing the requirement rather than implementing it; its own closure note says the reasoning is the point.
-> - **BL-106** (2026-07-28 spec alignment) — retained by its own in-stanza decision, because the unreproduced flake instance behind the CLAUDE.md testing rule is stanza-level evidence with no better home. [`.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) and [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md) both still cite it as open. **The 2026-08-09 wave deleted it in error and restored it** — that wave's ID list is the corrected one.
+> - **BL-106** (2026-07-28 spec alignment) — retained by its own in-stanza decision. Its original reason — that the flake evidence had no better home — was **retired 2026-09-02 when BL-149 became that home**; it is now kept for the instance-level detail of sightings 1–6, which BL-149's table does not carry. [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md) still cites it as open; [`.claude/CLAUDE.md`](../../../.claude/CLAUDE.md) now cites it only to record that the caution is retired. **The 2026-08-09 wave deleted it in error and restored it** — that wave's ID list is the corrected one.
 
 ---
 
@@ -594,29 +595,141 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 - BL-033 pilot needs inline file delivery for an automated workflow
 - Direct partner feedback that the Hub-page hop is friction worth removing
 
-### BL-148: Nothing lints spacing tokens, so a swept file re-rots silently
+---
 
-**Source**: found 2026-09-02 while sweeping 90 rem spacing literals under [ADR-0028](../adr/0028-extended-spacing-scale.md) | **Effort**: Small to write, Medium to land — the rule is a few lines, absorbing 227 pre-existing violations is the work | **Status**: Open
+### BL-151: The px half of the spacing sweep, and where the micro-spacing exception ends
 
-**As a** contributor adding a component, **I want** a hardcoded `padding: 1.5rem` to fail lint the way a hardcoded `#1a1a1a` already does **so that** the spacing scale stays real without depending on a reviewer noticing.
+**Source**: measured while closing [BL-148](../adr/0029-spacing-scale-enforcement.md) 2026-09-02; deliberately excluded from that change | **Effort**: Small to sweep, Medium to decide — the substitutions are mechanical, the exception boundary is a ruling | **Status**: Open
 
-**What it is.** [`.stylelintrc.json`](../../../.stylelintrc.json)'s `scale-unlimited/declaration-strict-value` rule covers only `/color$/`, `fill`, `stroke`, `box-shadow` and `text-shadow`, plus `font-size` on an allowed-list at `warning`. **No rule constrains `padding`, `margin` or `gap`.** That is why **321 rem spacing literals accumulated across 38 files** with every CI check green, and why the six files ADR-0028 cleared can re-rot the day after the sweep — the guard it shipped, `tests/integration/spacing-token-floor.test.ts`, is scoped to those six files only.
+**As a** contributor reading `padding: 4px` beside `padding: var(--spacing-sm)`, **I want** one spelling for the same 4px **so that** the scale means what it says in px as well as rem.
 
-**Two things make this more than a config edit:**
+**What it is.** ADR-0029 closed the rem half and enforces it: a rem spacing literal with an exact token fails `lint:css`. The **px** half was left standing on purpose. **46** px literals in spacing properties have an exact token:
 
-1. **Adding the properties to the existing rule would be a silent no-op.** Its `ignoreValues` carries `/^-?[0-9.]+(px|rem|em|%)?,?$/`, which matches any bare number-plus-unit — so `padding: 1.5rem` is ignored by construction. The pattern appears in **both** the base `rules` block and the `**/*.astro` override, so a fix applied to one block would no-op precisely where most components live.
-2. **Breadth.** **227 literals across the 32 files this sweep did not touch** would light up at once (231 across 35 repo-wide, the difference being ADR-0028's four accepted residuals) (measured at HEAD with the ADR-0028 guard's own parser, which returns exactly the 4 documented residuals over the six swept files). Most are on-scale and mechanically substitutable (value-identical, as the ADR-0028 sweep established); an unknown remainder are off-scale and need the same case-by-case ruling ADR-0028 gave its four residuals — which is judgement, not codemod.
+| literal | token             | count |
+| ------- | ----------------- | ----- |
+| `4px`   | `--spacing-xs`    | 22    |
+| `8px`   | `--spacing-sm`    | 12    |
+| `12px`  | `--spacing-md`    | 7     |
+| `16px`  | `--spacing-lg`    | 3     |
+| `28px`  | `--spacing-1_75`  | 1     |
+| `40px`  | `--spacing-2_5xl` | 1     |
 
-**Deliberately not bundled into ADR-0028's PR.** That change was 90 value-identical substitutions in six files, reviewable by a mechanical end-state check. Absorbing the remaining 227 across 32 untouched files is a different risk shape and a different review.
+Counted across `src/**/*.{css,astro}` with the guard's property list, inline `style=` attributes included, **positive and non-`calc` only**. Both qualifiers are load-bearing:
+
+- **Negatives are not part of this tail.** There is no negative spacing token, so a `-8px` can never become a `var()`. `src/` holds 26 negative px values in spacing properties — including `-8px` ×5 and `-4px` ×4 — and summing them with the positives is exactly how a first draft of this table read "~55" and overstated the actionable work by a fifth. If the sweep wants them, it needs `calc(var(--spacing-sm) * -1)`, which is a different edit under a different ruling.
+- **`calc()` contents are exempt by ADR-0028's ruling** — `filter.css:558`'s `calc(var(--spacing-md) - 3px)` is the only spacing-property `calc` holding a value in this range.
+
+Re-measure before acting — that is ADR-0029's own instruction, and the count above has already been wrong once. Two hand-counts of the rem residual set disagreed before the guard settled it, and the `4px` figure moved by one when a walker's directory skip stopped matching `src/pages/hub/mcp/docs/` by name.
+
+**Why it was not folded into BL-148.** The [STYLES_GUIDE micro-spacing exception](../styles/STYLES_GUIDE.md#3-hardcoded-spacing) authorises "`1px` or `2px` directly" for badge padding and optical alignment, and it is written in **px**. There are 82 `2px`, 18 `1px` and 5 `3px` positive spacing literals living under it legitimately (plus one `3px` inside a `calc`). **`4px` sits exactly on that boundary**: it is both the ramp's floor (`--spacing-xs`) and one step above the exception's ceiling. Deciding whether `padding: 4px` must become `var(--spacing-xs)` while `2px` stays literal is a ruling about where the exception ends — not a codemod — and folding it into a 217-substitution rem sweep would have buried it.
+
+**The rem sweep is the template.** Substitutions are value-identical under a 16px root, the same property ADR-0028 established; the risk is not the edit but the boundary.
 
 #### Acceptance Criteria
 
-- [ ] A lint rule (or a repo-wide extension of `spacing-token-floor`) fails on a raw rem/px spacing value that has an exact token, in **both** the base and `**/*.astro` stylelint blocks — and is proven to fail by mutation, not by observing a green run
-- [ ] The `ignoreValues` no-op above is confirmed handled rather than assumed — the current pattern would swallow the rule
-- [ ] The 227 existing violations in untouched files are either fixed in the same change or explicitly baselined with the baseline's expiry stated
-- [ ] Off-scale residuals get a per-value ruling in the ADR-0028 shape (kept with a reason, or snapped with evidence) — snapping is NOT automatic, since a value not on the ramp moves pixels when substituted
-- [ ] `calc()` contents stay out of scope, per ADR-0028's ruling that a derived constant is not a chosen spacing step
-- [ ] `src/docs/styles/STYLES_REMEDIATION_ROADMAP.md` §3 is updated again once this lands — it is the authoritative record BL-094 cites
+- [ ] A ruling is recorded (extend ADR-0029 or a new ADR) on where the micro-spacing exception ends — specifically whether `4px` is inside or outside it, with the `1px`/`2px`/`3px` population named so the decision is made against the real corpus rather than the principle
+- [ ] The px literals the ruling makes tokenizable are swept, and value-identity is proven by resolving each substituted token against `:root` and comparing px — **not** by diffing built CSS, which differs by construction
+- [ ] The lint rule's value list and `spacing-token-floor.test.ts` are extended to cover px, in **both** stylelint blocks, and proven to fail by mutation
+- [ ] `STYLES_REMEDIATION_ROADMAP.md` §3's "px tail is open" line is closed in the same change
+- [ ] Any px value the ruling keeps gets a residual entry with a reason, in ADR-0029's table shape, so it fails when it stops matching a real declaration
+
+**Not in scope**: `em` values (they resolve against the element's own font-size, so a 16px-based conversion can invent a plausible wrong answer — the shared `lengthToPx` helper excludes them deliberately), and `font-size`, which is [BL-094](#bl-094-off-scale-font-size-literals--type-scale-ruling--sweep-deferred) and stays deferred.
+
+---
+
+### BL-147: Thirteen font-size declarations reference two tokens that do not exist
+
+**Source**: found 2026-09-01 by the code-reviewer gate while reviewing an unrelated two-line alignment fix on `feat/mcp-website-marketing` | **Effort**: Small to change, Medium to decide — the rename is mechanical, the resulting type sizes are a design ruling | **Status**: Open
+
+**As a** phone reader of the homepage and the services page, **I want** the responsive type step-down these components already declare to actually apply **so that** body copy is sized for the width it is being read at, instead of silently rendering at the desktop size.
+
+**What it is.** `--text-small` and `--text-tiny` are **defined nowhere in the repo.** [`variables.css`](../../styles/variables.css) declares `--text-xs: 0.75rem` and `--text-sm: 0.875rem`; there is no `small` or `tiny` spelling of either. There are **13 `var()` references to those two undefined names**, across four components on two routes:
+
+Cited by **selector and breakpoint, not line number** — deliberately. An earlier revision of this table used line numbers, and the very commit that wrote them shifted two by one, because it also grew a comment in one of the cited files. Selectors and token names are greppable and do not drift.
+
+| component                                                             | route                     | inert declaration                         | applies at                  |
+| --------------------------------------------------------------------- | ------------------------- | ----------------------------------------- | --------------------------- |
+| [`WhyClientsTrustUs.astro`](../../components/WhyClientsTrustUs.astro) | `/`                       | `.trust-card p` → `--text-small`          | ≤1024                       |
+|                                                                       |                           | `.trust-card p` → `--text-small`          | ≤768                        |
+|                                                                       |                           | `.trust-card h3` → `--text-small`         | ≤480                        |
+|                                                                       |                           | `.trust-card p` → `--text-tiny`           | ≤480                        |
+| [`WhatWeDo.astro`](../../components/WhatWeDo.astro)                   | `/`                       | `.services-list li span` → `--text-small` | ≤768                        |
+|                                                                       |                           | `.closing-text` → `--text-small`          | ≤768                        |
+| [`WhoWeSupport.astro`](../../components/WhoWeSupport.astro)           | `/`                       | `.support-list li span` → `--text-small`  | ≤768                        |
+|                                                                       |                           | `.closing-text` → `--text-small`          | ≤768                        |
+| [`EngagementFlow.astro`](../../components/EngagementFlow.astro)       | **`/services/`**, not `/` | **`.step-detail` → `--text-small`**       | **base rule — EVERY width** |
+|                                                                       |                           | `.tagline` → `--text-small`               | ≤768                        |
+|                                                                       |                           | `.step-text` → `--text-small`             | ≤768                        |
+|                                                                       |                           | `.step-detail` → `--text-tiny`            | ≤768                        |
+|                                                                       |                           | `.step-text` → `--text-small`             | ≤480                        |
+
+An undefined custom property makes the declaration invalid at computed-value time, so `font-size` falls back to the inherited value rather than to the declared step. Confirmed in-browser against a production build: `.trust-card h3` and `.trust-card p` both compute **16px at 320, 480 and 768** — identical to desktop.
+
+**Two scoping facts an implementer will otherwise get wrong:**
+
+1. **`EngagementFlow`'s `.step-detail` → `--text-small` declaration is a BASE rule, not a `@media` rule** — it sits above the file's first `@media`. Twelve of the thirteen are responsive; that one is dead at **every** width, desktop included. Fixing only the `@media` cases leaves the sole desktop-affecting instance standing and teaches the next reader that this bug is purely responsive. It is not.
+2. **The inert set is exactly these 13 references, not "the responsive type scale".** `--text-lg`, `--text-xl`, `--text-base`, `--text-sm` and `--text-xs` are all defined and all working; live step-downs using them sit alongside the dead ones in the same files — `.trust-card h3` → `--text-base` at ≤1024 and ≤768 and `.brutal-heading-lg` → `--text-xl` at ≤480; `.intro-text` → `--text-base` at ≤768 in both `WhatWeDo` and `WhoWeSupport`; `.step-label` → `--text-sm` and `.step-number` → `--text-lg` at ≤1024 in `EngagementFlow`. The defect is two misspelled names, not a broken system.
+
+**Why this is a ruling and not a rename.** [BL-139](#bl-139-the-filter-drawers-entire-mobile-treatment-is-dead-css) closed on exactly this shape and its finding is the governing precedent: **a dead rule is a product decision wearing a bug's clothing — render it before assuming the original author was right.** There, the dead mobile treatment was rendered, reviewed and _rejected_; the shipped behaviour was better than the code that had never run.
+
+The same caution applies with force here, because the naive mapping has an accessibility edge:
+
+- `--text-small` → `--text-sm` takes body copy to **14px** on phones.
+- `--text-tiny` → `--text-xs` takes `.trust-card p` to **12px** — which is small for sustained body copy on a phone, and is the size the author never actually saw.
+- `EngagementFlow`'s base-rule instance (fact 1 above) changes `/services/` at **desktop** widths too, so its blast radius is not confined to small screens the way the other twelve are.
+
+So the fix is not "correct the token names"; it is "decide what these sections should read like, then express that in real tokens." The dead declarations are evidence of intent, not a specification.
+
+**Known interaction, already live.** This is why these sections wrap as heavily as they do at phone widths, and it is the reason [`WhatWeDo.astro`](../../components/WhatWeDo.astro)'s `.closing-text::after` comment deliberately quotes **no** wrap-boundary figure: any such number would be measuring this bug rather than a design. That comment cites this item. Fixing this item **invalidates any wrap measurement taken before it** — re-measure rather than inherit, on this one especially.
+
+#### Acceptance Criteria
+
+- [ ] A guard fails on a `var(--…)` reference to a custom property that is defined nowhere in `src/styles` — this class is currently invisible to `astro check`, `lint`, `lint:css` and the full unit/integration suite, all four of which were green over these 13 references
+- [ ] All 13 references resolve to defined tokens, or the declarations are deleted, per the ruling below
+- [ ] The four sections are rendered and reviewed at 320/360/390/430/480/768 in **both** themes on **both** routes (`/` and `/services/`) before any mapping is adopted — BL-139's procedure, not a diff review
+- [ ] `EngagementFlow`'s base-rule instance is reviewed at DESKTOP width as well; the other twelve cannot be judged there and it must not inherit their ruling by default
+- [ ] A ruling is recorded here: adopt the step-down, adopt a different one, or delete the declarations and keep the inherited size
+- [ ] `.trust-card p` at 12px is explicitly accepted or rejected on accessibility grounds rather than inherited from the token name
+- [ ] Any wrap-dependent comment in these four files is re-measured afterwards, `WhatWeDo`'s marker comment included
+- [ ] Design-sync re-run: all four are sliced components (`EngagementFlow` via `services/index.html`), so the published system currently mirrors the dead scale
+
+**Not a regression from the alignment work.** The two commits that prompted the review (`23f3c343`, `ab526fea`) neither introduced nor touched these declarations. Filed separately rather than folded in, because the visual change is a design decision the operator has not seen, and this branch is a marketing branch whose scope is already argued in its PR body.
+
+---
+
+### BL-150: Seven selectors style an icon a child component renders, so none of them apply
+
+**Source**: found 2026-09-02 by the code-reviewer gate while reviewing an unrelated text-spacing and chevron-alignment fix on `feat/mcp-next-steps`; surfaced by the detector written for that branch's `inline-element-spacing` guard | **Effort**: Small to change, Medium to decide — the `:global()` wrap is mechanical, the resulting icon treatment is a design ruling on five shipped pages | **Status**: Open
+
+**As a** reader of the services, MCP landing and library pages, **I want** the per-page bullet-icon treatment those pages declare to either apply or be deleted **so that** what ships is a decision somebody made, rather than the accident of which rules happened to reach the element.
+
+**What it is.** `.bullet-icon` and `.delta-accent` are passed to `<DeltaIcon class="…" />`, so the rendered `<svg>` carries **DeltaIcon's** cid, never the calling page's. Seven selectors across five files — nine declaration blocks, counting the two duplicated inside 480px media queries — select those classes bare and therefore match nothing — the [scoped-rule / foreign-element trap](../styles/STYLES_GUIDE.md#the-scoped-rule--foreign-element-trap), the same shape as [BL-139](#bl-139-the-filter-drawers-entire-mobile-treatment-is-dead-css) and [BL-147](#bl-147-thirteen-font-size-declarations-reference-two-tokens-that-do-not-exist).
+
+Cited by **selector, not line number** — BL-147's convention, for the same reason.
+
+| file                                                                                                           | dead selector                                             | declares                                                                      |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [`services.astro`](../../pages/services.astro)                                                                 | `.service-list .bullet-icon` (+ a copy in its ≤480 block) | `width/height: 14px`, `margin-top: 0.3em`, **`opacity: 0.7`**; `12px` at ≤480 |
+| [`booking-confirmed.astro`](../../pages/booking-confirmed.astro)                                               | `.confirmation-steps li .bullet-icon`                     | `color: --color-primary`, `margin-top: 0.35em`                                |
+| [`booking-confirmed.astro`](../../pages/booking-confirmed.astro)                                               | `.delta-accent`                                           | `color: --color-primary`                                                      |
+| [`hub/mcp/index.astro`](../../pages/hub/mcp/index.astro)                                                       | `.bullet-icon`                                            | `color: --color-primary`, `margin-top: 0.35em`                                |
+| [`hub/library/vdr-structure/index.astro`](../../pages/hub/library/vdr-structure/index.astro)                   | `.bullet-icon` (+ a copy in its ≤480 block)               | `flex-shrink: 0`, `margin-top: 0.35em`, **`opacity: 0.8`**; `0.3em` at ≤480   |
+| [`hub/library/business-architectures/index.astro`](../../pages/hub/library/business-architectures/index.astro) | `.bullet-icon`, `.arch-diligence-list .bullet-icon`       | `flex-shrink: 0`, **`opacity: 0.8`** / **`0.5`**                              |
+
+**Confirmed in-browser** against a production build, not read off the source: every one of those icons computes `opacity: 1` and carries no `data-astro-cid` attribute. What actually styles them is the global base in [`cards.css`](../../styles/components/cards.css) — `width/height: 14px`, `color: var(--color-primary)`, `margin-top: calc((1lh - 14px) / 2)`. The width and colour the dead rules ask for are therefore already in force by coincidence; **the opacity and the hand-tuned `margin-top` values are what is missing.**
+
+**Two of these files already know the trap.** `vdr-structure` and `business-architectures` each contain a correct `:global(.bullet-icon)` rule (`.vdr-section-heading`, `.arch-section-heading`) **42 and 111 lines** from a bare one — close enough to read in one sitting. The knowledge was present in the file and did not generalise — which is why the remedy below is a guard, not a fix-and-hope.
+
+**Why this is a ruling and not a wrap.** BL-139's governing finding applies: **a dead rule is a product decision wearing a bug's clothing.** The global `margin-top: calc((1lh - 14px) / 2)` optically centres the icon against the line box at any font size; the dead per-page rules replace it with hand-tuned `0.3em`/`0.35em` constants, and there is a live argument that the global is simply better. Enabling `opacity: 0.5` on `business-architectures`' diligence lists is a visible change to a shipped page nobody has asked for. Render each before deciding.
+
+#### Acceptance Criteria
+
+- [ ] A guard fails on a bare scoped selector whose class only ever rides a child-component invocation in that file — the class this trap belongs to is invisible to `astro check`, `lint`, `lint:css` and the full suite, all four of which were green over all nine. A working detector already exists (written for `tests/unit/inline-element-spacing.test.ts`'s sibling investigation); it strips CSS comments and `:global()` groups and cross-checks native-element usage in the same file to avoid false positives
+- [ ] Each of the **nine declaration blocks** — not just the seven selectors; the two 480px duplicates sit far from their base rules in the same file and are what a table-driven pass skips — is rendered at desktop, 768 and 480 in **both** themes with the rule applied, and a ruling recorded here: adopt it via an anchored `:global()`, adopt a different treatment, or delete the declaration and keep the global base
+- [ ] The `opacity` cases (`0.7`, `0.8`, `0.5`) are ruled on explicitly — they are the only declarations whose absence is currently visible
+- [ ] Whatever survives is expressed as `<ancestor> :global(.bullet-icon)`, anchored to a scoped ancestor per [When `:global()` Is Necessary](../styles/STYLES_GUIDE.md#when-global-is-necessary) case 3 — never a bare `:global()`, which would edit the shared utility site-wide
+
+**Not a regression from the spacing work.** The three commits that prompted the review (`a3efe3c6`, `cba56058`, `c89d8601`) neither introduced nor touched these declarations; two of the seven pre-date the branch by a long way. Filed separately rather than folded in, because reviving them changes icon opacity on five shipped pages and that is a design decision the operator has not seen.
 
 ---
 
@@ -1355,7 +1468,7 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 >
 > The evidence was right and the question was wrong: "no external clients" was verified, but what governs is _what protocol version the client software speaks_. This stanza's own decision to keep **stdio** on its legacy lane made exactly that argument, and it was not applied to the Worker — the team points Claude Desktop at the remote surface too. The `era` telemetry that would have shown this in one log line was an AC of this initiative that was silently dropped during implementation; it ships in 0.44.1. Full account: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) § Amendment 2026-08-04.
 
-Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because the unreproduced instance behind the [`CLAUDE.md`](../../../.claude/CLAUDE.md) flake rule is stanza-level evidence with no better home, and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury.
+Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because its six dated per-instance bullets are the only record of sightings 1–6 of the flake now owned by [BL-149](#bl-149-diagnose-the-unstable_dev-suite-flake--nine-instances-three-files-no-reproduction) — they hold evidence BL-149's table does not — and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury. (The reason it was ORIGINALLY kept, that the flake evidence had nowhere better to live, was retired 2026-09-02 when BL-149 became that home.)
 
 **What shipped**: migration to `@modelcontextprotocol/server@2.0.0`; `Mcp-Method` / `Mcp-Name` through the CORS preflight; `ttlMs` / `cacheScope` published on library and regulation reads; `cors.ts` promoted to sole origin authority; production `npm audit` restored to zero (it was already failing on `master`).
 
@@ -1366,7 +1479,7 @@ Retained rather than pruned — not because its findings lack a home (both are d
 1. The SDK v2 handler runs its **own** Host/Origin gate. Left at its default the accepted set is the localhost trio, so on a custom domain every request carrying `Origin: https://claude.ai` gets a **403** — the exact browser clients the allowlist exists for, and a failure mode the legacy handler did not have. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the fix.
 2. `with-metrics.ts` located its notifier by duck-typing on a field v2 renamed, and the function is contractually non-throwing — so the rate-limit warning would have died **silently**, with the soft-limit tests staying green against their own fake. Both the production view and the fake are now bound to the SDK's `ServerContext` so a rename is a compile error.
 
-**Standing caution**: an unreproduced single-test failure in the mcp suite, now seen **six times**. Four names captured, two lost. **Cold start is ruled out**, not merely unproven: instances three, four and six were not the first run of their day, and the fifth landed on a different `unstable_dev` file entirely. What is shared is the HARNESS, not the test, so diagnose it as a `unstable_dev`-under-full-suite-load problem — a per-test fix would only move it. Tally: three on `protocol-era-worker`, one on `oauth-introspection`, two unnamed. The CLAUDE.md § Testing Standards bullet carries the same record; keep them in step.
+**Standing caution** — **superseded by [BL-149](#bl-149-diagnose-the-unstable_dev-suite-flake--nine-instances-three-files-no-reproduction), which now owns the tally and the diagnosis.** This stanza carried the record while it had no better home; it had gone stale at six instances (the count reached nine on 2026-09-01). The finding it established still stands and is restated there: cold start is ruled out by evidence, and what is shared is the HARNESS, not the test — so a per-test fix would only move it. Do not maintain a second tally here. **The six dated bullets below are retained as instance-level detail for 1–6 only** — they hold evidence BL-149's table does not (the lockfile-stash experiment, the `npm ls` check, the 2575 full-suite pass). The canonical record, and the count, live in BL-149.
 
 - **2026-08-04** — `1 failed | 1973 passed`; seven other full runs green.
 - **2026-08-17** — `1 failed | 2391 passed`, during the BL-136 lockfile work. Two later runs passed, **including one deliberately executed against the pre-change lockfile** (stash the lockfile, reinstall, re-run), which is what rules the dependency bump out as the cause. Not the cold-start case either: an earlier `test:mcp` the same session had already passed 2392, so the worker was warm.
@@ -1575,6 +1688,53 @@ Two things cut the other way and are the reason this is worth doing rather than 
 - **Cost shape**: Slices 1 and 3 are ordinary scripting. Slice 2 is operator time and is the only part that scales with case count, which is why the first cohort is capped at three tools. Slices 1–2 happen once; Slice 3 is what persists
 - **Coverage is not a risk at our size**: the paper reached 100% tool coverage on every spec up to 56 tools, with the only ceiling observed at 64 (56%). At 16 we sit comfortably inside that
 - **Related**: [BL-092](#bl-092-mcp-server--declare-outputschema-on-the-tool-surface-candidate) would give the runner a typed response contract to assert against and makes this item stronger if it lands first, but is not a prerequisite
+
+---
+
+### BL-149: Diagnose the `unstable_dev` suite flake — nine instances, three files, no reproduction
+
+**Source**: nine unreproduced single-test failures in the `@gst/mcp-server` suite between 2026-08-04 and 2026-09-01, recorded in [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) and carried as a standing caution on [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) until 2026-09-02 | **Effort**: Medium — the work is reproduction and instrumentation, not a fix; the fix may be small once the cause is known | **Status**: Open
+
+**As an** engineer running `npm run test:mcp` before a push, **I want** a green suite to mean the code is green **so that** I stop spending a re-run and a judgement call on every full-suite invocation, and stop having to prove a failure is the known flake rather than my own regression.
+
+**What it is.** One test in the mcp-server suite times out at ~5000ms, in a run that is otherwise entirely green. It has never reproduced in isolation — every captured instance went green on an immediate re-run of the same file alone (10/10, 7/7, 5/5 across instances). In every instance whose name survives and whose branch is on record — 5 through 9 — it landed in code the diff did not touch. For 1 and 2 the name is lost and for 3 the branch is on record (a master merge) but its diff was never checked against the failure, and for 4 not even the branch was recorded, so for 1–4 this is unestablished rather than true.
+
+| #   | Date       | Total                     | Test                                                | Isolated re-run |
+| --- | ---------- | ------------------------- | --------------------------------------------------- | --------------- |
+| 1   | 2026-08-04 | `1 failed \| 1973 passed` | **name lost**                                       | —               |
+| 2   | 2026-08-17 | `1 failed \| 2391 passed` | **name lost to a `grep` pipe**                      | —               |
+| 3   | 2026-08-22 | `1 failed \| 2574 passed` | `protocol-era-worker` › browser-origin `tools/list` | 10/10 green     |
+| 4   | 2026-08-28 | `1 failed \| 2703 passed` | same                                                | 10/10 green     |
+| 5   | 2026-08-30 | `1 failed \| 2711 passed` | `oauth-introspection` › admin key 401               | green           |
+| 6   | 2026-08-31 | `1 failed \| 2711 passed` | `protocol-era-worker` › same case                   | 10/10 green ×2  |
+| 7   | 2026-09-01 | `1 failed \| 2711 passed` | same                                                | 10/10 green     |
+| 8   | 2026-09-01 | `1 failed \| 2712 passed` | `cors` › OPTIONS preflight 204                      | 7/7 green       |
+| 9   | 2026-09-01 | —                         | `protocol-era-worker` › same case                   | 5/5 green       |
+
+Tally: **five** on `protocol-era-worker`, one on `oauth-introspection`, one on `cors`, two unnamed. All three named files use `unstable_dev`.
+
+**What is already ruled out, by evidence rather than assumption:**
+
+- **Cold start.** The original theory was workerd's first-run-of-the-day cost. **Attested** for instances 2 (an earlier `test:mcp` that session had already passed), 3 ("not the first run of that day"), 8 ("minutes after the seventh") and 9 (third of three runs that day). Instances 4, 6 and 7 carry no day-boundary attestation and are only _inferred_ warm from being code-review or pre-push runs — the conclusion rests on the four that are attested. Instances 1 and 5 carry no warmth evidence in either source, in neither direction — listed so the omission reads as a check rather than an oversight.
+- **A single bad test.** Instance 5 landed on a different file, and 8 on a third. The read that it had "localized to `protocol-era-worker`" was wrong: what is shared is the harness, not the test. The concentration is a frequency, not a cause — `protocol-era-worker` is the heaviest `unstable_dev` file.
+- **The diff**, for instances 5–9: the branch under test touched no Worker, OAuth, protocol or CORS source. Not established for 1–4, so this rules out a code cause for the majority rather than for all nine.
+- **Parallel file execution.** `mcp-server/vitest.config.ts` already sets `fileParallelism: false` (BL-032 Phase 2, for exactly this class of miniflare cross-talk). Files run serially — so whatever this is, it survives serialization. Within-file parallelism is still on, which is the remaining untested axis.
+- **A missing teardown.** All **nine** files that actually boot a worker call `await worker?.stop()` in `afterAll`, awaited in every case (checked file by file). Three further files mention `unstable_dev` only in comments stating they deliberately do NOT boot one — `audit-emission`, `radar-resources-worker`, `radar-snapshot-endpoint` — so the population is 9, not the 12 a grep for the symbol returns.
+- **Dependency drift.** Ruled out at instance 3: `package.json` byte-identical to master's, `npm ls --depth=0` clean.
+
+**Why it matters more than one flaky test.** Three of the nine landed on 2026-09-01 alone, across two files, in three consecutive full-suite runs — one of them inside a `code-reviewer` gate. Every occurrence costs a re-run plus the judgement of whether it is the known flake, and that judgement is made under exactly the conditions where a real regression is most likely to be waved through. Instances 1 and 2 are permanently unusable because the name was destroyed before it was read.
+
+#### Acceptance Criteria
+
+- [ ] **Reproduce it, or instrument until it reproduces.** Nine files spawn and tear down a miniflare runtime each, serially but **each in its own forked worker process** — vitest's default pool is `forks` with `isolate: true`, and `fileParallelism: false` orders them without merging them (measured: three trivial test files under this config, each appending `process.pid` to a file since vitest captures stdout — three distinct pids, none the runner's, which also excludes the `threads` pool since worker_threads share a pid). That excludes an in-process leaked handle, because nothing in-process survives from one file to the next. What survives is OS-level: a port still in `TIME_WAIT`, a `stop()` that resolves before the socket is actually released, or an orphaned workerd child. Run the suite in a loop with per-file setup/teardown timing recorded and see whether the failing file's `beforeAll` cost trends upward with position in the run
+- [ ] **Do NOT raise the 5000ms timeout**, and do not add a retry. Both convert a diagnosable signal into silence. Note the CLAUDE.md rule does NOT originate here — it entered on 2026-07-19 (`a8c99431`), sixteen days before the first sighting, out of the E2E timeout-band-aid lesson recorded in [TEST_BEST_PRACTICES.md](../testing/TEST_BEST_PRACTICES.md) §3 and §13; this flake is the worked example appended to it, not its cause
+- [ ] **Do not chase within-file parallelism — it is nominally available but unexercised.** The config comment says "within-file test parallelism is preserved", which describes an option, not a behaviour: `.concurrent` appears nowhere in `mcp-server/tests` and no `sequence.concurrent` is set, so cases inside a file already run serially. The two axes actually open are the OS-level carryover above and the workerd child's lifetime after `stop()` resolves
+- [ ] **The teardown exists; establish whether it COMPLETES.** All nine boot files await `worker?.stop()`, so the cheap explanation is already excluded — the open question is whether that promise resolving means the runtime and its port are actually released, or merely that wrangler stopped tracking them. A stranded runtime the next file pays for fits "lands on the heaviest file" without that file being at fault
+- [ ] Whatever the outcome, **preserve the evidence-capture rules** the flake taught: capture the failing test name before re-running, and redirect suite output to a file rather than piping through `grep`. Two instances are unusable for want of that
+- [ ] **Keep the three records in step** — [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md), BL-106's standing caution, and [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md). BL-106's caution was retired in the same commit that filed this stanza, so the residual is [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md), which names the flake and attributes it to BL-106 ("this is why BL-106's unreproduced flake stayed open") — retarget that attribution here. [`CLAUDE.md`](../../../.claude/CLAUDE.md) already points here, and **keeps its full nine-instance narrative deliberately**: it is auto-loaded context, so the record has to be readable there without a lookup. That is the one intended exception to "one tally" — it is the same tally, not a competing one, and it moves with this stanza
+- [ ] If the cause proves to be upstream (`wrangler`/`workerd`/`miniflare`), either pin or file upstream — the nine instances are attributable to **wrangler 4.125.0 / vitest 4.1.11** (resolved, not the floating `^` specifiers), recorded now while they are still what ran — an unfixable cause is still a closed question, but "we think it is upstream" is not
+
+**Not a candidate for deferral-with-trigger.** The trigger already fired nine times; the reason this has not been worked is that each individual instance is cheap to shrug off, which is how a harness defect survives four weeks and nine sightings without an owner.
 
 ---
 
@@ -1797,65 +1957,5 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 - **Reversibility note carried from BL-106**: if Tasks activates, long-running Workers jobs want Durable Objects or Workflows — which is `agents`' actual competence. That is the trigger to reconsider ADR-0013 decision 4 (keeping `agents` as a thin adapter rather than dropping it)
 - **Not blocked by anything technical.** The server is on `@modelcontextprotocol/server@2.0.0` and both features are available today; the only thing missing is someone to use them
 - Full spec-delta analysis, including why these two were the only deltas worth deferring rather than declining outright: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)
-
----
-
-### BL-147: Thirteen font-size declarations reference two tokens that do not exist
-
-**Source**: found 2026-09-01 by the code-reviewer gate while reviewing an unrelated two-line alignment fix on `feat/mcp-website-marketing` | **Effort**: Small to change, Medium to decide — the rename is mechanical, the resulting type sizes are a design ruling | **Status**: Open
-
-**As a** phone reader of the homepage and the services page, **I want** the responsive type step-down these components already declare to actually apply **so that** body copy is sized for the width it is being read at, instead of silently rendering at the desktop size.
-
-**What it is.** `--text-small` and `--text-tiny` are **defined nowhere in the repo.** [`variables.css`](../../styles/variables.css) declares `--text-xs: 0.75rem` and `--text-sm: 0.875rem`; there is no `small` or `tiny` spelling of either. There are **13 `var()` references to those two undefined names**, across four components on two routes:
-
-Cited by **selector and breakpoint, not line number** — deliberately. An earlier revision of this table used line numbers, and the very commit that wrote them shifted two by one, because it also grew a comment in one of the cited files. Selectors and token names are greppable and do not drift.
-
-| component                                                             | route                     | inert declaration                         | applies at                  |
-| --------------------------------------------------------------------- | ------------------------- | ----------------------------------------- | --------------------------- |
-| [`WhyClientsTrustUs.astro`](../../components/WhyClientsTrustUs.astro) | `/`                       | `.trust-card p` → `--text-small`          | ≤1024                       |
-|                                                                       |                           | `.trust-card p` → `--text-small`          | ≤768                        |
-|                                                                       |                           | `.trust-card h3` → `--text-small`         | ≤480                        |
-|                                                                       |                           | `.trust-card p` → `--text-tiny`           | ≤480                        |
-| [`WhatWeDo.astro`](../../components/WhatWeDo.astro)                   | `/`                       | `.services-list li span` → `--text-small` | ≤768                        |
-|                                                                       |                           | `.closing-text` → `--text-small`          | ≤768                        |
-| [`WhoWeSupport.astro`](../../components/WhoWeSupport.astro)           | `/`                       | `.support-list li span` → `--text-small`  | ≤768                        |
-|                                                                       |                           | `.closing-text` → `--text-small`          | ≤768                        |
-| [`EngagementFlow.astro`](../../components/EngagementFlow.astro)       | **`/services/`**, not `/` | **`.step-detail` → `--text-small`**       | **base rule — EVERY width** |
-|                                                                       |                           | `.tagline` → `--text-small`               | ≤768                        |
-|                                                                       |                           | `.step-text` → `--text-small`             | ≤768                        |
-|                                                                       |                           | `.step-detail` → `--text-tiny`            | ≤768                        |
-|                                                                       |                           | `.step-text` → `--text-small`             | ≤480                        |
-
-An undefined custom property makes the declaration invalid at computed-value time, so `font-size` falls back to the inherited value rather than to the declared step. Confirmed in-browser against a production build: `.trust-card h3` and `.trust-card p` both compute **16px at 320, 480 and 768** — identical to desktop.
-
-**Two scoping facts an implementer will otherwise get wrong:**
-
-1. **`EngagementFlow`'s `.step-detail` → `--text-small` declaration is a BASE rule, not a `@media` rule** — it sits above the file's first `@media`. Twelve of the thirteen are responsive; that one is dead at **every** width, desktop included. Fixing only the `@media` cases leaves the sole desktop-affecting instance standing and teaches the next reader that this bug is purely responsive. It is not.
-2. **The inert set is exactly these 13 references, not "the responsive type scale".** `--text-lg`, `--text-xl`, `--text-base`, `--text-sm` and `--text-xs` are all defined and all working; live step-downs using them sit alongside the dead ones in the same files — `.trust-card h3` → `--text-base` at ≤1024 and ≤768 and `.brutal-heading-lg` → `--text-xl` at ≤480; `.intro-text` → `--text-base` at ≤768 in both `WhatWeDo` and `WhoWeSupport`; `.step-label` → `--text-sm` and `.step-number` → `--text-lg` at ≤1024 in `EngagementFlow`. The defect is two misspelled names, not a broken system.
-
-**Why this is a ruling and not a rename.** [BL-139](#bl-139-the-filter-drawers-entire-mobile-treatment-is-dead-css) closed on exactly this shape and its finding is the governing precedent: **a dead rule is a product decision wearing a bug's clothing — render it before assuming the original author was right.** There, the dead mobile treatment was rendered, reviewed and _rejected_; the shipped behaviour was better than the code that had never run.
-
-The same caution applies with force here, because the naive mapping has an accessibility edge:
-
-- `--text-small` → `--text-sm` takes body copy to **14px** on phones.
-- `--text-tiny` → `--text-xs` takes `.trust-card p` to **12px** — which is small for sustained body copy on a phone, and is the size the author never actually saw.
-- `EngagementFlow`'s base-rule instance (fact 1 above) changes `/services/` at **desktop** widths too, so its blast radius is not confined to small screens the way the other twelve are.
-
-So the fix is not "correct the token names"; it is "decide what these sections should read like, then express that in real tokens." The dead declarations are evidence of intent, not a specification.
-
-**Known interaction, already live.** This is why these sections wrap as heavily as they do at phone widths, and it is the reason [`WhatWeDo.astro`](../../components/WhatWeDo.astro)'s `.closing-text::after` comment deliberately quotes **no** wrap-boundary figure: any such number would be measuring this bug rather than a design. That comment cites this item. Fixing this item **invalidates any wrap measurement taken before it** — re-measure rather than inherit, on this one especially.
-
-#### Acceptance Criteria
-
-- [ ] A guard fails on a `var(--…)` reference to a custom property that is defined nowhere in `src/styles` — this class is currently invisible to `astro check`, `lint`, `lint:css` and the full unit/integration suite, all four of which were green over these 13 references
-- [ ] All 13 references resolve to defined tokens, or the declarations are deleted, per the ruling below
-- [ ] The four sections are rendered and reviewed at 320/360/390/430/480/768 in **both** themes on **both** routes (`/` and `/services/`) before any mapping is adopted — BL-139's procedure, not a diff review
-- [ ] `EngagementFlow`'s base-rule instance is reviewed at DESKTOP width as well; the other twelve cannot be judged there and it must not inherit their ruling by default
-- [ ] A ruling is recorded here: adopt the step-down, adopt a different one, or delete the declarations and keep the inherited size
-- [ ] `.trust-card p` at 12px is explicitly accepted or rejected on accessibility grounds rather than inherited from the token name
-- [ ] Any wrap-dependent comment in these four files is re-measured afterwards, `WhatWeDo`'s marker comment included
-- [ ] Design-sync re-run: all four are sliced components (`EngagementFlow` via `services/index.html`), so the published system currently mirrors the dead scale
-
-**Not a regression from the alignment work.** The two commits that prompted the review (`23f3c343`, `ab526fea`) neither introduced nor touched these declarations. Filed separately rather than folded in, because the visual change is a design decision the operator has not seen, and this branch is a marketing branch whose scope is already argued in its PR body.
 
 ---

@@ -52,12 +52,17 @@ const emailAttrs = isDemo ? {} : { onclick: "trackCTA('email', 'cta-section')" }
   {
     emailAddress && (
       <p class="cta-email">
-        {/* The trailing {' '} is load-bearing, not formatting. JSX drops
-            whitespace runs that contain a newline, so `&mdash;` sitting on its
-            own line rendered hard against the address — `directly —contact@…`
-            on every page that passes an emailAddress. Prettier owns the line
-            breaks here, so the space cannot live in the source layout; it has
-            to be an explicit expression. */}
+        {/* The trailing {' '} is load-bearing, not formatting: without it
+            `&mdash;` sitting on its own line rendered hard against the address
+            — `directly —contact@…` on every page that passes an emailAddress.
+            The culprit is `compressHTML`, NOT JSX whitespace handling as this
+            comment used to claim: a 2×2 build probe (2026-09-02) showed the
+            newline survives compilation in an expression region and is deleted
+            by the compressor, exactly as in a plain template region. Prettier
+            owns the line breaks here, so the space cannot live in the source
+            layout — it has to be an expression or a `&#32;`. See STYLES_GUIDE
+            § "`compressHTML` deletes the space before a wrapped inline
+            element". */}
         {emailText} &mdash;{' '}
         <a href={`mailto:${emailAddress}`} {...emailAttrs}>
           {emailAddress}
@@ -85,20 +90,20 @@ const emailAttrs = isDemo ? {} : { onclick: "trackCTA('email', 'cta-section')" }
   .cta-box h2 {
     font-size: 2.5rem;
     color: light-dark(var(--text-primary), var(--text-dark-primary));
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xl);
     font-weight: 600;
   }
 
   .cta-box p {
     color: var(--cta-box-text);
     font-size: var(--text-lg);
-    margin-bottom: 2.5rem;
+    margin-bottom: var(--spacing-2_5xl);
   }
 
   .cta-email {
     font-size: var(--text-sm);
     color: var(--text-secondary);
-    margin-top: 1.5rem;
+    margin-top: var(--spacing-xl);
     margin-bottom: 0;
   }
 
@@ -116,18 +121,18 @@ const emailAttrs = isDemo ? {} : { onclick: "trackCTA('email', 'cta-section')" }
 
   @media (max-width: 480px) {
     .cta-box {
-      padding: 2rem;
+      padding: var(--spacing-2xl);
     }
 
     .cta-box h2 {
       font-size: var(--text-2xl);
       line-height: 1.3;
-      margin-bottom: 1rem;
+      margin-bottom: var(--spacing-lg);
     }
 
     .cta-box p {
       font-size: var(--text-sm);
-      margin-bottom: 1.5rem;
+      margin-bottom: var(--spacing-xl);
     }
   }
 </style>

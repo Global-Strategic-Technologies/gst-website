@@ -316,6 +316,25 @@ Sitemap: https://globalstrategic.tech/sitemap-index.xml
 - `Allow: /` - Permits full site crawling
 - `Sitemap:` - Points to XML sitemap URL
 
+### llms.txt
+
+Location: `public/llms.txt`, served at `https://globalstrategic.tech/llms.txt`.
+
+**Purpose**: the agent-facing site index (the [llms.txt convention](https://llmstxt.org/)): an H1, a one-paragraph summary, then grouped links with a one-line gloss each. It exists so an AI assistant fetching the site cold lands on the MCP documentation, the tools and the library without crawling the navigation. The MCP endpoint and status hostnames are listed as plain URLs; the docs subdomain is not (ADR-0023: one published address).
+
+**Maintenance**: hand-written, and guarded. `tests/unit/llms-txt.test.ts` checks every `globalstrategic.tech` link against the routes under `src/pages/`, against the sitemap exclusion list (a page kept out of the sitemap is not advertised to agents either), and for the docs-subdomain rule. Add a line when a page ships; the test fails on a typo'd or removed route.
+
+### Crawler access on the Worker hosts
+
+`globalstrategic.tech` itself is served by Vercel (DNS-only at Cloudflare), so nothing in this section applies to the website. The three `*.mcp.globalstrategic.tech` hosts are Cloudflare-proxied Workers, and the zone's Cloudflare settings sit in front of them:
+
+- **Managed `robots.txt`** is on: Cloudflare serves a generated `robots.txt` on every Worker host (the Worker has none of its own) with Content Signals `search=yes, ai-train=no, use=reference` and a `Disallow: /` for the named training crawlers (GPTBot, ClaudeBot, CCBot, Google-Extended, and others).
+- **AI-bot blocking** is on: requests from AI crawler and AI assistant user agents (GPTBot, ClaudeBot, Claude-User, ChatGPT-User, PerplexityBot, and others) get a Cloudflare 403 page ("Sorry, you have been blocked") on the `docs.` and `status.` hosts. Googlebot and generic clients are unaffected. Observed 2026-09-02 by user-agent probe; the block is user-agent based on the Free plan.
+
+  What the same probe found on the apex host, `mcp.globalstrategic.tech`, with the Claude-User and ClaudeBot user agents: `/mcp` (GET and an `initialize` POST) reached the Worker and returned its own 401, so the MCP transport is **not** behind the block and a client is refused only for lacking a credential; `/robots.txt` and `/.well-known/oauth-authorization-server` returned 200; `/authorize` and `/health` returned the Cloudflare 403. Real MCP clients are unaffected in practice (the claude.ai connector's traffic shows as allowed in AI Crawl Control), but a browser-driven OAuth consent started by one of those user agents would be blocked at `/authorize`.
+
+Both are dashboard state, not repo configuration. The per-crawler switches in AI Crawl Control → Security were flipped for one crawler on 2026-09-02 with no change to the 403, and the block page is the WAF's generic one rather than AI Crawl Control's configurable response, so the block originates elsewhere in the zone (Bot Fight Mode or a WAF rule; identify it from the Ray ID under Security → Events). The `docs.` host is only a 308 to this site, so blocking it costs nothing for search; it does mean an AI assistant that follows the alias gets a 403 rather than the redirect.
+
 ## Semantic HTML
 
 ### Heading Hierarchy

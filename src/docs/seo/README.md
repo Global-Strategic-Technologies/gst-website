@@ -20,10 +20,10 @@ The GST website implements a high-authority SEO foundation designed to maximize 
 
 ## Key Features
 
-- **JSON-LD Structured Data**: ProfessionalService, Person, BreadcrumbList, FAQPage, WebApplication (per hub tool) and ItemList schemas with complete credential information
-- **Open Graph Tags**: Optimized for social media sharing across LinkedIn, Twitter, and other platforms
+- **JSON-LD Structured Data**: ProfessionalService, Person, BreadcrumbList, FAQPage, WebApplication (per hub tool), ItemList, and for the MCP server SoftwareApplication + TechArticle (derived from the capability registry, see [JSON_LD_SCHEMA.md § MCP Server Schemas](JSON_LD_SCHEMA.md#mcp-server-schemas))
+- **Open Graph Tags**: Optimized for social media sharing across LinkedIn, Twitter, and other platforms; guides declare `og:type=article`
 - **Meta Tags**: Title, description, keywords, author, and robots directives
-- **Sitemap & Robots**: Automated crawling configuration for search engines
+- **Sitemap & Robots**: Automated crawling configuration for search engines, plus `public/llms.txt` for AI assistants (see [SEO_IMPLEMENTATION.md § llms.txt](SEO_IMPLEMENTATION.md#llmstxt))
 - **Semantic HTML**: Proper heading hierarchy and descriptive alt text on all images
 - **Professional Credentials**: 18 certifications and executive education programs from Microsoft, UC Berkeley Haas, and The Linux Foundation
 

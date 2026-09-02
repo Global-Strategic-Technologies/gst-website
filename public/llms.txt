@@ -1,0 +1,40 @@
+# Global Strategic Technologies (GST)
+
+> M&A technical due diligence, post-acquisition integration and platform modernization advisory for private equity investors and portfolio executives. Led by Reid Peryam.
+
+GST publishes free browser-based diligence tools, a reference library, and an MCP (Model Context Protocol) server that exposes the same engines to AI agents. Access to the MCP server is operator-provisioned; the documentation is public.
+
+## MCP Server
+
+- [MCP Server overview](https://globalstrategic.tech/hub/mcp/): what the server exposes, access tiers, and how to request a credential
+- [Capability reference](https://globalstrategic.tech/hub/mcp/docs/): every tool, prompt and resource family, with arguments, an example call and what comes back. Renders fully without JavaScript
+- [Get started](https://globalstrategic.tech/hub/mcp/get-started/): connect Claude Desktop or another MCP client and verify the connection
+- [Using the server](https://globalstrategic.tech/hub/mcp/using/): a first query, prompt argument forms, pinned resources, and what each failure means
+- [Advanced operations](https://globalstrategic.tech/hub/mcp/advanced-operations/): the information request list ingestion workflow
+- Endpoint: https://mcp.globalstrategic.tech/mcp (Streamable HTTP, bearer or OAuth; a credential is required)
+- Status: https://status.mcp.globalstrategic.tech/
+
+## Tools
+
+- [Tools index](https://globalstrategic.tech/hub/tools/)
+- [The Diligence Machine](https://globalstrategic.tech/hub/tools/diligence-machine/): a technology diligence agenda customized to a target profile
+- [Technical Debt Cost Calculator](https://globalstrategic.tech/hub/tools/tech-debt-calculator/): annual carrying cost of technical debt
+- [TechPar](https://globalstrategic.tech/hub/tools/techpar/): technology cost ratio benchmarked against stage-adjusted ranges
+- [Infrastructure Cost Governance](https://globalstrategic.tech/hub/tools/infrastructure-cost-governance/): cloud cost maturity assessment
+- [Regulatory Map](https://globalstrategic.tech/hub/tools/regulatory-map/): global data privacy and AI regulation map
+- [Information Request List Generator](https://globalstrategic.tech/hub/tools/information-request-list-generator/): fillable .xlsx information request list
+- [Information Request List Extractor](https://globalstrategic.tech/hub/tools/information-request-list-extractor/): filled workbook to canonical markdown, in the browser
+
+## Library
+
+- [Library index](https://globalstrategic.tech/hub/library/)
+- [Business and Technology Architectures](https://globalstrategic.tech/hub/library/business-architectures/)
+- [Information Request List](https://globalstrategic.tech/hub/library/information-request-list/)
+- [Virtual Data Room structure](https://globalstrategic.tech/hub/library/vdr-structure/)
+
+## Company
+
+- [Services](https://globalstrategic.tech/services/)
+- [About](https://globalstrategic.tech/about/)
+- [M&A portfolio](https://globalstrategic.tech/ma-portfolio/): 50+ technology diligence and value creation engagements
+- [Sitemap](https://globalstrategic.tech/sitemap-index.xml)

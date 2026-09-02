@@ -134,6 +134,16 @@ would otherwise answer on a documentation hostname; `tests/unit/dispatch/host-ro
 asserts that ordering against `src/worker.ts`'s source. Neither extra host exists in
 staging, so both are first exercised in production.
 
+All three hosts are Cloudflare-proxied, so the zone's bot settings apply to them and
+not to the Vercel-served website: as of 2026-09-02 the managed `robots.txt` (Content
+Signals `ai-train=no`, training crawlers disallowed) and an AI-user-agent block are both
+on. Probed with the Claude-User and ClaudeBot user agents: `docs.` and `status.` return a
+Cloudflare 403 on every path, and on the apex host `/authorize` and `/health` do too, while
+`/mcp` (GET and POST) reaches the Worker and gets its normal 401, and `/robots.txt` and
+`/.well-known/*` return 200. So the MCP transport itself is not behind the block. Neither
+setting is declared in `wrangler.toml`; they are dashboard state, documented from the
+website side in `src/docs/seo/SEO_IMPLEMENTATION.md` § Crawler access on the Worker hosts.
+
 The `globalstrategic.tech` DNS zone is on Cloudflare (the website itself deploys to Vercel); the Worker routes are `custom_domain = true` bindings, so DNS records and TLS certs are Cloudflare-managed. Secrets are provisioned per environment via `wrangler secret put <NAME> --env <staging|production>` — the full matrix (bearer keys, Upstash MCP DB, Inoreader OAuth, Sentry DSN, `CF_AE_TOKEN`) is commented in `wrangler.toml` and operationalized in [`operations/DEPLOY.md`](operations/DEPLOY.md).
 
 **CI/CD**: staging auto-deploys via `.github/workflows/deploy-mcp-staging.yml` (`workflow_run` chained off a green "MCP Server Test Suite", and — BL-111 — only when that run came from a `push` in this repository, never a fork `pull_request`); production deploys via `.github/workflows/deploy-mcp-production.yml` on push to `master` touching MCP paths, gated by the `mcp-production` GitHub Environment's required-reviewer approval. Both deploy jobs — and the rollback job on either arm — bind a GitHub Environment, so their credentials are environment-scoped rather than repository-scoped (BL-111; `mcp-staging` carries **no** protection rules, since required reviewers would defeat an unattended post-merge deploy — the secret scoping alone is the point). Note `mcp-staging` the GitHub Environment is a different thing from `[env.staging]` in `wrangler.toml`; see [DEPLOY.md § Two things called "environment"](./operations/DEPLOY.md#two-things-called-environment--read-this-once). Both delegate to `mcp-server/scripts/deploy.mjs`, which injects `GIT_SHA` / `SENTRY_RELEASE` vars and uploads source maps. `rollback-mcp.yml` provides operator rollback. Never manually rebuild/redeploy staging — CI owns it.

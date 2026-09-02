@@ -25,7 +25,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Type-check the **mcp-server** workspace | `npm -w @gst/mcp-server run typecheck` (`astro check` does NOT cover it — see below) |
 | Lint all JS/TS/Astro                   | `npm run lint`                                                               |
 | Lint and auto-fix                      | `npm run lint:fix`                                                           |
-| Lint CSS and Astro scoped styles       | `npm run lint:css` (hardcoded colors are an **error**; off-scale font sizes warn — see § stylelint configuration notes) |
+| Lint CSS and Astro scoped styles       | `npm run lint:css` (hardcoded colors **and on-scale spacing literals** are an **error**; off-scale font sizes warn — see § stylelint configuration notes) |
 | Format all files                       | `npm run format`                                                             |
 | Check formatting without writing       | `npm run format:check`                                                       |
 | Build for production                   | `npm run build`                                                              |
@@ -458,7 +458,7 @@ The override block in `.stylelintrc.json`:
 ]
 ```
 
-The base rules are duplicated inside the `.astro` override because stylelint's `extends` + `overrides` interaction does not inherit rules from the parent config. Keep the two rule sets in sync when editing.
+The base rules are duplicated inside the `.astro` override. **The reason previously given here — that stylelint's `extends` + `overrides` interaction does not inherit rules from the parent config — is wrong**, corrected 2026-09-02 by running it: a rule declared ONLY in the base block fires on a `.astro` file (and one declared only in the override does NOT fire on `.css`, which is the direction that matters). So the duplication is belt-and-braces, not load-bearing — but keep the two rule sets in sync anyway, because a rule added only to the override silently skips every plain stylesheet.
 
 #### Design-token enforcement (added July 28, 2026)
 
@@ -468,6 +468,7 @@ Two rules enforce the "no hardcoded values" convention from [STYLES_GUIDE.md](..
 | --------------------------------------------------- | -------------------------------------------------------------- | ----------- | ------------------------------------------------------------------- |
 | `scale-unlimited/declaration-strict-value`           | `/color$/`, `fill`, `stroke`, `box-shadow`, `text-shadow`      | **error**   | A hardcoded color fails `lint:css`, the pre-commit hook, and CI      |
 | `declaration-property-value-allowed-list`            | `font-size`                                                     | **warning** | Off-scale font sizes are reported but do not fail the build (BL-094) |
+| `declaration-property-value-disallowed-list`         | `padding`, `margin`, `gap`, `inset`, `top`/`right`/`bottom`/`left`, `outline-offset` and their longhands | **error**   | A rem spacing literal that has an exact token fails `lint:css` (ADR-0029) |
 
 Configuration notes — each of these is load-bearing, do not "simplify" them:
 
@@ -476,6 +477,7 @@ Configuration notes — each of these is load-bearing, do not "simplify" them:
 - Regexes in `ignoreValues` use a character class — `"/var[(]/"`. The double-backslash form (`"/var\\(/"`) also works, but the single-backslash spelling a maintainer reaches for first is **invalid JSON** and aborts stylelint with a "Bad escaped character" parse error. The character class sidesteps escaping entirely.
 - `box-shadow`/`text-shadow` are not expandable shorthands, so they are listed explicitly; the numeric-length and `inset` entries in `ignoreValues` let their geometry through while the color slot is still checked.
 - **Custom property declarations are never checked.** `--my-token: #c44040` is always allowed — that is how tokens are defined, and how the documented exceptions below stay legal.
+- **The spacing rule is a DIFFERENT rule on purpose, and this is the one thing not to "simplify".** Adding `padding`/`margin`/`gap` to `scale-unlimited/declaration-strict-value` is the obvious move and a **silent no-op**: that rule's `ignoreValues` carries `/^-?[0-9.]+(px|rem|em|%)?,?$/`, which matches any bare number-plus-unit, so `padding: 1.5rem` is ignored by construction. `declaration-property-value-disallowed-list` is a core rule with no `ignoreValues` of its own, which is how it evades the trap instead of fighting it. It lists the ten on-scale rem values longest-first (so `1.5rem` cannot match as `1` plus a failed `rem`), with a leading `(?!.*calc\()` that preserves ADR-0028's ruling that a value inside `calc()` is a derived constant, and a `(?<![\w.-])` lookbehind so `21rem`, `12.5rem` and `-0.25rem` do not match. Its property list mirrors `spacing-token-floor.test.ts`'s `SPACING_PROPS` exactly — divergence would mean `top: 1rem` failing one instrument and passing the other. `tests/integration/spacing-lint-rule.test.ts` proves it fires by mutation and binds its value list to `variables.css`; **off-scale** spacing values are governed by `spacing-token-floor.test.ts`'s residual table, not by lint.
 - `font-size` uses the core allow-list rule rather than the strict-value plugin because the two cannot carry different severities under one rule key. `clamp(var(--a), 2vw, var(--b))` passes; `clamp(1rem, 2vw, 2rem)` warns.
 
 **Documented exceptions** (both are deliberate, and both are recorded in STYLES_GUIDE.md):
