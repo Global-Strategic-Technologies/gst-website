@@ -52,14 +52,15 @@
  * red/green fixtures below.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { dirname, join, resolve, relative } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   stripComments,
   extractAstroStyles,
   lengthToPx,
   parseRootTokens,
+  walkStyleSources,
 } from './helpers/css-parse';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -289,20 +290,9 @@ export function findFloorViolations(
 }
 
 // --- File walking ----------------------------------------------------------
-
-function walkStyleSources(absDir: string, acc: string[]): void {
-  if (!existsSync(absDir)) return;
-  for (const entry of readdirSync(absDir, { withFileTypes: true })) {
-    const abs = join(absDir, entry.name);
-    if (entry.isDirectory()) {
-      // `src/docs` markdown fences legitimately contain example `.brutal-btn` rules.
-      if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'docs') continue;
-      walkStyleSources(abs, acc);
-    } else if (entry.isFile() && (entry.name.endsWith('.css') || entry.name.endsWith('.astro'))) {
-      acc.push(abs);
-    }
-  }
-}
+// `walkStyleSources` moved to helpers/css-parse.ts when spacing-token-floor
+// went repo-wide and needed the same walk (BL-148). Same behaviour, including
+// the deliberate `src/docs` skip.
 
 // --- Fixtures (prove the parser before trusting the sweep) ------------------
 

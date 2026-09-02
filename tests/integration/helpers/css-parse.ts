@@ -11,6 +11,9 @@
  * them asserts what the SOURCE says, not what a browser computes.
  */
 
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+
 /** Strip `/* … *\/` comments so commented-out CSS can't trip a scan. */
 export function stripComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -76,4 +79,28 @@ export function parseRootTokens(css: string): Record<string, string> {
     out[m[1]] = m[2].trim();
   }
   return out;
+}
+
+/**
+ * Every `.css` and `.astro` file under `absDir`, recursively, as ABSOLUTE paths.
+ *
+ * Promoted here from `touch-target-floor.test.ts` when `spacing-token-floor`
+ * went repo-wide and needed the same walk (BL-148) — two sibling guards
+ * standing up two discovery mechanisms is how they drift apart.
+ *
+ * `src/docs` is skipped deliberately: its markdown fences carry example
+ * `.brutal-*` rules that are documentation, not shipped CSS. Callers that key
+ * on repo-relative paths must `relative()` the result themselves.
+ */
+export function walkStyleSources(absDir: string, acc: string[]): void {
+  if (!existsSync(absDir)) return;
+  for (const entry of readdirSync(absDir, { withFileTypes: true })) {
+    const abs = join(absDir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'docs') continue;
+      walkStyleSources(abs, acc);
+    } else if (entry.isFile() && (entry.name.endsWith('.css') || entry.name.endsWith('.astro'))) {
+      acc.push(abs);
+    }
+  }
 }
