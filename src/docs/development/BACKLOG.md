@@ -594,6 +594,8 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 - BL-033 pilot needs inline file delivery for an automated workflow
 - Direct partner feedback that the Hub-page hop is friction worth removing
 
+---
+
 ### BL-148: Nothing lints spacing tokens, so a swept file re-rots silently
 
 **Source**: found 2026-09-02 while sweeping 90 rem spacing literals under [ADR-0028](../adr/0028-extended-spacing-scale.md) | **Effort**: Small to write, Medium to land — the rule is a few lines, absorbing 227 pre-existing violations is the work | **Status**: Open
@@ -678,13 +680,15 @@ So the fix is not "correct the token names"; it is "decide what these sections s
 
 **Not a regression from the alignment work.** The two commits that prompted the review (`23f3c343`, `ab526fea`) neither introduced nor touched these declarations. Filed separately rather than folded in, because the visual change is a design decision the operator has not seen, and this branch is a marketing branch whose scope is already argued in its PR body.
 
-### BL-150: Six selectors style an icon a child component renders, so none of them apply
+---
+
+### BL-150: Seven selectors style an icon a child component renders, so none of them apply
 
 **Source**: found 2026-09-02 by the code-reviewer gate while reviewing an unrelated text-spacing and chevron-alignment fix on `feat/mcp-next-steps`; surfaced by the detector written for that branch's `inline-element-spacing` guard | **Effort**: Small to change, Medium to decide — the `:global()` wrap is mechanical, the resulting icon treatment is a design ruling on five shipped pages | **Status**: Open
 
 **As a** reader of the services, MCP landing and library pages, **I want** the per-page bullet-icon treatment those pages declare to either apply or be deleted **so that** what ships is a decision somebody made, rather than the accident of which rules happened to reach the element.
 
-**What it is.** `.bullet-icon` and `.delta-accent` are passed to `<DeltaIcon class="…" />`, so the rendered `<svg>` carries **DeltaIcon's** cid, never the calling page's. Six selectors — nine declaration blocks, counting the two duplicated inside 480px media queries — select those classes bare and therefore match nothing — the [scoped-rule / foreign-element trap](../styles/STYLES_GUIDE.md#the-scoped-rule--foreign-element-trap), the same shape as [BL-139](#bl-139-the-filter-drawers-entire-mobile-treatment-is-dead-css) and [BL-147](#bl-147-thirteen-font-size-declarations-reference-two-tokens-that-do-not-exist).
+**What it is.** `.bullet-icon` and `.delta-accent` are passed to `<DeltaIcon class="…" />`, so the rendered `<svg>` carries **DeltaIcon's** cid, never the calling page's. Seven selectors across five files — nine declaration blocks, counting the two duplicated inside 480px media queries — select those classes bare and therefore match nothing — the [scoped-rule / foreign-element trap](../styles/STYLES_GUIDE.md#the-scoped-rule--foreign-element-trap), the same shape as [BL-139](#bl-139-the-filter-drawers-entire-mobile-treatment-is-dead-css) and [BL-147](#bl-147-thirteen-font-size-declarations-reference-two-tokens-that-do-not-exist).
 
 Cited by **selector, not line number** — BL-147's convention, for the same reason.
 

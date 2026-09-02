@@ -288,6 +288,11 @@ exempt, and JSX whitespace handling is not the cause there — established by a 
 plain template markup. `CTABox.astro`'s comment used to attribute its own instance to JSX; it
 now points here.
 
+**Reproduce it through a real `npm run build`, not the standalone compiler.** Astro 7 bundles its
+own compiler build, and `@astrojs/compiler` installed on its own *collapses* the whitespace to a
+single character where the shipped pipeline *deletes* it — a session checking this the fast way
+would conclude this section is wrong.
+
 Turning `compressHTML` off fixes the whole class in one line; it was measured at **+305 KB raw /
 +29 KB gzipped** across the site's HTML and rejected on those grounds. Revisit that trade if the
 entity count ever gets large.
