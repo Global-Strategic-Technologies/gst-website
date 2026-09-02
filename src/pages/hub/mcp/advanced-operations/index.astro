@@ -4,6 +4,7 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
 import CopyRow from '../../../../components/hub/mcp/CopyRow.astro';
 import '../../../../styles/components/mcp-guide.css';
+import { mcpGuideSchema } from '../../../../utils/mcp-schema';
 
 // Copy is transcribed from the content-reviewed design handoff (2026-08-27),
 // with em dashes rewritten per operator direction. Published facts (engine
@@ -30,7 +31,22 @@ const TOC_LINKS = [
   ogImage="/og-image.png"
   ogImageAlt="GST MCP Server - IRL ingestion guide"
   ogUrl="https://globalstrategic.tech/hub/mcp/advanced-operations/"
+  ogType="article"
 >
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      mcpGuideSchema({
+        headline: 'Ingest an information request list',
+        description:
+          'Ingest a populated information request list with gst_irl_sweep: one optional argument, up to nine GST engines, and a dossier whose claims cite the workbook rows they came from.',
+        url: 'https://globalstrategic.tech/hub/mcp/advanced-operations/',
+        datePublished: '2026-08-27',
+        dateModified: '2026-09-02',
+      })
+    )}
+  />
   <section class="mcp-guide-section">
     <div class="container">
       <div class="guide-hero">

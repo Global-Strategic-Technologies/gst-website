@@ -10,11 +10,12 @@ Complete reference guide for the JSON-LD structured data implementation on globa
 4. [Credential Objects](#credential-objects)
 5. [Hub Tools: WebApplication Schema](#hub-tools-webapplication-schema)
 6. [Hub Tools Landing: ItemList Schema](#hub-tools-landing-itemlist-schema)
-7. [BreadcrumbList Schema](#breadcrumblist-schema)
-8. [FAQPage Schema](#faqpage-schema)
-9. [Skills Association](#skills-association)
-10. [Validation](#validation)
-11. [Update Guidelines](#update-guidelines)
+7. [MCP Server Schemas](#mcp-server-schemas)
+8. [BreadcrumbList Schema](#breadcrumblist-schema)
+9. [FAQPage Schema](#faqpage-schema)
+10. [Skills Association](#skills-association)
+11. [Validation](#validation)
+12. [Update Guidelines](#update-guidelines)
 
 ## Schema Overview
 
@@ -631,6 +632,59 @@ When adding or removing tools from the landing page:
 2. Update `numberOfItems` to match the array length
 3. Ensure each tool's `url` matches its actual route
 4. Position order should match the visual order on the page
+
+## MCP Server Schemas
+
+### Purpose
+
+Describes the GST MCP Server to crawlers as one product with three page kinds: the landing page and the capability reference carry a `SoftwareApplication` node, the reference additionally carries an `ItemList` of every capability, and the three onboarding guides carry a `TechArticle` whose `about` points at the application node.
+
+### Where it comes from
+
+`src/utils/mcp-schema.ts` exports `mcpServerSchema()`, `mcpCapabilityListSchema()` and `mcpGuideSchema()`. The first two are **derived from the capability registry** (`src/data/mcp/capabilities.ts`): every tool identifier, every count and every item URL is read from it, and the registry is itself bound to server source by `tests/integration/mcp-docs-parity.test.ts`. Nothing in the schema hardcodes a tool name or a number. `tests/unit/mcp-schema.test.ts` asserts the shapes, the copy rules over the few literals the helpers add, and that each of the five `/hub/mcp/` pages renders its JSON-LD from the helper.
+
+| Page                         | Schema(s)                          |
+| ---------------------------- | ---------------------------------- |
+| `/hub/mcp/`                  | `SoftwareApplication`              |
+| `/hub/mcp/docs/`             | `SoftwareApplication` + `ItemList` |
+| `/hub/mcp/get-started/`      | `TechArticle`                      |
+| `/hub/mcp/using/`            | `TechArticle`                      |
+| `/hub/mcp/advanced-operations/` | `TechArticle`                   |
+
+### Why SoftwareApplication, not WebApplication
+
+The hub tools are `WebApplication` because they run in the browser. The MCP server is a remote service a visitor connects a client to; nothing runs on the page. `operatingSystem` is `Any` for the same reason. The application node carries a stable `@id` (`https://globalstrategic.tech/hub/mcp/#software`) so the guides' `about` resolves to it across pages.
+
+### What is deliberately absent
+
+No `offers` block and no `isAccessibleForFree`. Access is operator-provisioned and tiered, and the terms are not published, so neither claim would be true to state. The unit test asserts the absence.
+
+### Schema Template (SoftwareApplication)
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": "https://globalstrategic.tech/hub/mcp/#software",
+  "name": "GST MCP Server",
+  "url": "https://globalstrategic.tech/hub/mcp/",
+  "description": "<tool count> technology diligence, portfolio and regulatory tools, <prompt count> prompts and <resource count> reference resources, exposed to AI agents over the Model Context Protocol.",
+  "applicationCategory": "BusinessApplication",
+  "applicationSubCategory": "Model Context Protocol server",
+  "operatingSystem": "Any",
+  "installUrl": "https://globalstrategic.tech/hub/mcp/get-started/",
+  "softwareHelp": { "@type": "CreativeWork", "url": "https://globalstrategic.tech/hub/mcp/docs/" },
+  "featureList": ["<every remote tool id, in registry order>"],
+  "publisher": { "@type": "Organization", "name": "Global Strategic Technologies" },
+  "author": { "@type": "Person", "name": "Reid Peryam", "...": "shared author node" }
+}
+```
+
+The `ItemList` items are `{ name: <capability id>, description: <gloss>, url: https://globalstrategic.tech/hub/mcp/docs/#cap-<slug> }`, one per registry entry, so each deep-links to its contract pane.
+
+### Maintenance
+
+None for the derived schemas: adding a capability to the registry updates the counts, the feature list and the item list. The guides pass `datePublished` / `dateModified` as literals; bump `dateModified` on a substantive copy change, the same rule as the hub tools.
 
 ## BreadcrumbList Schema
 

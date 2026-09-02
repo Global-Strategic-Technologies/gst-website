@@ -5,6 +5,7 @@ import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
 import ClipFigure from '../../../../components/hub/mcp/ClipFigure.astro';
 import '../../../../styles/components/mcp-guide.css';
+import { mcpGuideSchema } from '../../../../utils/mcp-schema';
 
 // Copy is transcribed from the content-reviewed design handoff (2026-08-27),
 // with em dashes rewritten per operator direction. Published facts (prompt
@@ -26,7 +27,22 @@ const TOC_LINKS = [
   ogImage="/og-image.png"
   ogImageAlt="GST MCP Server - connector setup guide"
   ogUrl="https://globalstrategic.tech/hub/mcp/get-started/"
+  ogType="article"
 >
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      mcpGuideSchema({
+        headline: 'Get started with the GST MCP Server',
+        description:
+          'Connect Claude Desktop to the GST MCP Server: prerequisites, the four-step connector quick start, and how to verify that every capability resolved.',
+        url: 'https://globalstrategic.tech/hub/mcp/get-started/',
+        datePublished: '2026-08-27',
+        dateModified: '2026-09-02',
+      })
+    )}
+  />
   <section class="mcp-guide-section">
     <div class="container">
       <div class="guide-hero">
