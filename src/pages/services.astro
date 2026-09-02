@@ -440,10 +440,8 @@ const faqItems = [
   }
 
   @media (max-width: 768px) {
-    .services-section {
-      padding: var(--spacing-2_5xl) 0;
-    }
-
+    /* .services-section deliberately has no override here: the 768px rule was
+       byte-identical to the base rule, so it only ever restated it. */
     .services-cards {
       grid-template-columns: 1fr;
       gap: 1.5rem;

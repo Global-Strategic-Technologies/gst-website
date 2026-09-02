@@ -549,11 +549,16 @@ test.describe('IRL Extractor — the size ceiling', () => {
     await gotoTool(page);
 
     // 16 MB of zeroes: past the 15 MB ceiling, and deliberately NOT a valid
-    // .xlsx. That is the point of the case — the guard is a `file.size` test
-    // that must return before SheetJS is handed anything, so a buffer that
-    // would certainly fail to parse still has to produce the size message
-    // rather than the unreadable-file one. Asserting the copy distinguishes
-    // the two branches; asserting a generic error state would not.
+    // .xlsx. With the guard removed, SheetJS does NOT throw on this — it reads
+    // an empty `Sheet1` and the page lands on the ZERO-ROW branch (measured by
+    // disabling the guard, not assumed). So the size copy is what separates the
+    // guard from its nearest look-alike error; asserting a generic error state
+    // would pass with the guard gone.
+    //
+    // The `15` below is hardcoded because MAX_FILE_MB is module-scoped in the
+    // page script and cannot be imported. That is the point rather than a
+    // limitation: this asserts the copy a visitor actually reads, so a literal
+    // that drifted from the constant fails here.
     await pickWorkbook(page, 'vdr-export.xlsx', Buffer.alloc(16 * 1024 * 1024));
 
     const err = page.locator('#irl-ext-error');
