@@ -1174,9 +1174,11 @@ exception uses — a whole block that is deliberately literal — and always wit
 ```
 
 **Sixteen values are already admitted** — above the ramp (`4rem`, `5rem`), below its 4px floor
-(`0.0625rem`, `0.125rem`, `0.15rem`), and between steps. Three are derived constants rather than
-chosen steps: the search input's icon clearance (`0.875rem` + `2.25rem`) and the values inside
-`calc()`. Read the table before adding a seventeenth — several are partners in one declaration, and
+(`0.0625rem`, `0.125rem`, `0.15rem`), and between steps. Two are derived constants rather than
+chosen steps — the search input's icon clearance, `left: 0.875rem` and the `2.25rem` padding that
+clears it. (Values inside `calc()` are derived too, but they are exempt by ruling and are therefore
+not among the sixteen.) Read the table before adding a seventeenth — several are partners in one
+declaration, and
 snapping half of a tuned pair is worse than either leaving both or moving both.
 
 ### 4. Hardcoded Font Sizes

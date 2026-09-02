@@ -83,7 +83,7 @@
     ],
     "declaration-property-value-disallowed-list": [
       {
-        "/^(padding|padding-top|padding-right|padding-bottom|padding-left|padding-block|padding-inline|margin|margin-top|margin-right|margin-bottom|margin-left|margin-block|margin-inline|gap|row-gap|column-gap|inset|top|right|bottom|left|outline-offset)$/": [
+        "/^(padding|padding-top|padding-right|padding-bottom|padding-left|padding-block|padding-inline|padding-block-start|padding-block-end|padding-inline-start|padding-inline-end|margin|margin-top|margin-right|margin-bottom|margin-left|margin-block|margin-inline|margin-block-start|margin-block-end|margin-inline-start|margin-inline-end|gap|row-gap|column-gap|inset|inset-block|inset-inline|inset-block-start|inset-block-end|inset-inline-start|inset-inline-end|top|right|bottom|left|outline-offset)$/": [
           "/^(?!.*calc\\().*(?<![\\w.-])(0\\.25|0\\.5|0\\.75|1\\.25|1\\.5|1\\.75|2\\.5|1|2|3)rem/"
         ]
       },
@@ -188,7 +188,7 @@
         ],
         "declaration-property-value-disallowed-list": [
           {
-            "/^(padding|padding-top|padding-right|padding-bottom|padding-left|padding-block|padding-inline|margin|margin-top|margin-right|margin-bottom|margin-left|margin-block|margin-inline|gap|row-gap|column-gap|inset|top|right|bottom|left|outline-offset)$/": [
+            "/^(padding|padding-top|padding-right|padding-bottom|padding-left|padding-block|padding-inline|padding-block-start|padding-block-end|padding-inline-start|padding-inline-end|margin|margin-top|margin-right|margin-bottom|margin-left|margin-block|margin-inline|margin-block-start|margin-block-end|margin-inline-start|margin-inline-end|gap|row-gap|column-gap|inset|inset-block|inset-inline|inset-block-start|inset-block-end|inset-inline-start|inset-inline-end|top|right|bottom|left|outline-offset)$/": [
               "/^(?!.*calc\\().*(?<![\\w.-])(0\\.25|0\\.5|0\\.75|1\\.25|1\\.5|1\\.75|2\\.5|1|2|3)rem/"
             ]
           },

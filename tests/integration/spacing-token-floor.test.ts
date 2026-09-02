@@ -43,10 +43,19 @@ const SRC_DIR = join(REPO_ROOT, 'src');
  * and `FooterLinks.astro` uses it on-scale); `font-size` is out by TYPE, and that
  * boundary belongs to BL-094's type-scale ruling, not here.
  */
+// Mirrors the stylelint rule's property key EXACTLY, in the same order — a
+// spacing-lint-rule.test.ts case compares the two as ordered lists, so a
+// property added here and not there would let `top: 1rem` fail one instrument
+// and pass the other. The logical longhands have zero occurrences in src/
+// today; they are listed so that adding the first one is covered rather than
+// silently exempt.
 const SPACING_PROPS =
   '(?:padding|padding-top|padding-right|padding-bottom|padding-left|padding-block|padding-inline|' +
+  'padding-block-start|padding-block-end|padding-inline-start|padding-inline-end|' +
   'margin|margin-top|margin-right|margin-bottom|margin-left|margin-block|margin-inline|' +
-  'gap|row-gap|column-gap|inset|top|right|bottom|left|outline-offset)';
+  'margin-block-start|margin-block-end|margin-inline-start|margin-inline-end|' +
+  'gap|row-gap|column-gap|inset|inset-block|inset-inline|inset-block-start|inset-block-end|' +
+  'inset-inline-start|inset-inline-end|top|right|bottom|left|outline-offset)';
 
 const DECL_RE = new RegExp(`(^|[;{])\\s*(${SPACING_PROPS})\\s*:\\s*([^;{}]+)`, 'g');
 
@@ -190,17 +199,26 @@ const ACCEPTED_RESIDUALS = [
   },
   {
     value: '0.875rem',
+    files: ['src/components/portfolio/StickyControls.astro'],
+    reason:
+      'A DERIVED CONSTANT, and the ONLY 0.875rem site that is one: `left: 0.875rem` ' +
+      'positions the search icon. 14px + an 18px icon = a 32px right edge, cleared ' +
+      "by the input's 36px padding-left (2.25rem). Snapping puts text under the icon.",
+  },
+  {
+    value: '0.875rem',
     files: [
       'src/components/portfolio/PortfolioHeader.astro',
-      'src/components/portfolio/StickyControls.astro',
       'src/styles/components/filter.css',
       'src/styles/components/portfolio.css',
       'src/styles/components/sash.css',
     ],
     reason:
-      '14px, between md (12) and lg (16). A DERIVED CONSTANT where it positions the ' +
-      'search icon: left 14px + width 18px = a 32px right edge, cleared by the ' +
-      "input's 36px padding-left. Snapping puts text under the icon.",
+      '14px, between md (12) and lg (16) — ordinary padding, kept on the ' +
+      'between-steps reason alone. Split from the icon-clearance entry above ' +
+      'because `filter.css:43` invites exactly the wrong reading: its 0.875rem is ' +
+      "the search input's RIGHT padding, in the same shorthand whose 2.25rem left " +
+      'padding IS part of the icon geometry. One value, two unrelated jobs.',
   },
   {
     value: '1.275rem',

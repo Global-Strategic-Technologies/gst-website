@@ -87,6 +87,40 @@ describe('spacing lint rule (ADR-0029)', () => {
     });
   });
 
+  it('covers exactly the properties the vitest guard scans', () => {
+    // Without this, the two instruments drift apart silently and `top: 1rem`
+    // fails one while passing the other. Until now the lists were compared by
+    // HAND during review — which held right up until both were edited by hand
+    // in the same change, at which point nothing was checking the thing the
+    // reviewer had checked. Read as TEXT rather than imported: importing a
+    // `*.test.ts` re-registers its describe blocks (see css-parse.ts's header).
+    const guardSrc = readFileSync(
+      join(REPO_ROOT, 'tests/integration/spacing-token-floor.test.ts'),
+      'utf-8'
+    );
+    const decl = /const SPACING_PROPS =([\s\S]*?);\n/.exec(guardSrc);
+    expect(decl, 'could not find SPACING_PROPS in the guard').toBeTruthy();
+    const guardList = [...decl![1].matchAll(/'([^']*)'/g)]
+      .map((m) => m[1])
+      .join('')
+      .replace(/^\(\?:/, '')
+      .replace(/\)$/, '')
+      .split('|');
+    expect(guardList.length).toBeGreaterThan(20);
+    expect(guardList).toContain('outline-offset');
+
+    const config = JSON.parse(readFileSync(CONFIG, 'utf-8'));
+    for (const [i, block] of [config.rules[RULE], config.overrides[0].rules[RULE]].entries()) {
+      const key = Object.keys(block[0] as Record<string, unknown>)[0];
+      const ruleList = /^\/\^\((.*)\)\$\/$/.exec(key)?.[1].split('|');
+      expect(ruleList, `could not read the property key out of: ${key}`).toBeTruthy();
+      expect(
+        ruleList,
+        `${i === 0 ? 'base' : '.astro override'} block diverges from SPACING_PROPS`
+      ).toEqual(guardList);
+    }
+  });
+
   it('stays bound to the scale in variables.css', () => {
     // The rule hardcodes ten values; variables.css owns them. Without this, the
     // rule silently stops covering a token the next time the ramp grows — which

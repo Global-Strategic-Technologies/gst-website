@@ -104,8 +104,8 @@ ADR-0028 added the two ramp steps (`--spacing-1_25`, `--spacing-1_75`) that made
 
 **What remains, deliberately:**
 
-- **Sixteen off-scale rem values, ruled and kept** — above the ramp (`4rem`, `5rem`), below its 4px floor, or between steps where moving them moves pixels. Three are derived constants. ADR-0029 carries the table; `tests/integration/spacing-token-floor.test.ts` enforces it and fails when a ruling stops matching a real declaration.
-- **~55 px literals with exact tokens** (`4px` ×26, `8px` ×17, `12px` ×7, `16px` ×3, `40px` ×2). Out of scope on purpose: deciding where the micro-spacing exception below ends is its own ruling, and `4px` sits exactly on that boundary. Filed as **BL-151**.
+- **Sixteen off-scale rem values, ruled and kept** — above the ramp (`4rem`, `5rem`), below its 4px floor, or between steps where moving them moves pixels. Two are derived constants. ADR-0029 carries the table; `tests/integration/spacing-token-floor.test.ts` enforces it and fails when a ruling stops matching a real declaration.
+- **46 px literals with exact tokens** (`4px` ×22, `8px` ×12, `12px` ×7, `16px` ×3, `28px` ×1, `40px` ×1) — positive and non-`calc`; the 26 negative px values have no token to become and are not part of this tail. Out of scope on purpose: deciding where the micro-spacing exception below ends is its own ruling, and `4px` sits exactly on that boundary. Filed as **BL-151**.
 - **Five off-scale literals in inline `style=` attributes** in `BrandUILibrary.astro`, governed by neither instrument — the lint rule names on-scale values only, and the vitest guard cannot see inline attributes at all.
 
 **Enforcement** (the absence of which is why these accumulated): a rem spacing literal with an exact token now fails `lint:css` at error severity, and the vitest guard covers all of `src/` rather than six files. See [STYLES_GUIDE § 3](STYLES_GUIDE.md#3-hardcoded-spacing) for the reach of each.

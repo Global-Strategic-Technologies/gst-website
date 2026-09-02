@@ -603,19 +603,25 @@ None of these are currently load-bearing for active partners. Revisit when (a) C
 
 **As a** contributor reading `padding: 4px` beside `padding: var(--spacing-sm)`, **I want** one spelling for the same 4px **so that** the scale means what it says in px as well as rem.
 
-**What it is.** ADR-0029 closed the rem half and enforces it: a rem spacing literal with an exact token fails `lint:css`. The **px** half was left standing on purpose. Roughly 55 px literals in spacing properties have an exact token:
+**What it is.** ADR-0029 closed the rem half and enforces it: a rem spacing literal with an exact token fails `lint:css`. The **px** half was left standing on purpose. **46** px literals in spacing properties have an exact token:
 
 | literal | token             | count |
 | ------- | ----------------- | ----- |
-| `4px`   | `--spacing-xs`    | 26    |
-| `8px`   | `--spacing-sm`    | 17    |
+| `4px`   | `--spacing-xs`    | 22    |
+| `8px`   | `--spacing-sm`    | 12    |
 | `12px`  | `--spacing-md`    | 7     |
 | `16px`  | `--spacing-lg`    | 3     |
-| `40px`  | `--spacing-2_5xl` | 2     |
+| `28px`  | `--spacing-1_75`  | 1     |
+| `40px`  | `--spacing-2_5xl` | 1     |
 
-(Counted across `src/**/*.{css,astro}` with the guard's property list; re-measure before acting — that is ADR-0029's own instruction, and two hand-counts of its residual set disagreed before the guard settled it.)
+Counted across `src/**/*.{css,astro}` with the guard's property list, inline `style=` attributes included, **positive and non-`calc` only**. Both qualifiers are load-bearing:
 
-**Why it was not folded into BL-148.** The [STYLES_GUIDE micro-spacing exception](../styles/STYLES_GUIDE.md#3-hardcoded-spacing) authorises "`1px` or `2px` directly" for badge padding and optical alignment, and it is written in **px**. There are 89 `2px`, 22 `1px` and 6 `3px` spacing literals living under it legitimately. **`4px` sits exactly on that boundary**: it is both the ramp's floor (`--spacing-xs`) and one step above the exception's ceiling. Deciding whether `padding: 4px` must become `var(--spacing-xs)` while `2px` stays literal is a ruling about where the exception ends — not a codemod — and folding it into a 217-substitution rem sweep would have buried it.
+- **Negatives are not part of this tail.** There is no negative spacing token, so a `-8px` can never become a `var()`. `src/` holds 26 negative px values in spacing properties — including `-8px` ×5 and `-4px` ×4 — and summing them with the positives is exactly how a first draft of this table read "~55" and overstated the actionable work by a fifth. If the sweep wants them, it needs `calc(var(--spacing-sm) * -1)`, which is a different edit under a different ruling.
+- **`calc()` contents are exempt by ADR-0028's ruling** — `filter.css:558`'s `calc(var(--spacing-md) - 3px)` is the only spacing-property `calc` holding a value in this range.
+
+Re-measure before acting — that is ADR-0029's own instruction, and the count above has already been wrong once. Two hand-counts of the rem residual set disagreed before the guard settled it, and the `4px` figure moved by one when a walker's directory skip stopped matching `src/pages/hub/mcp/docs/` by name.
+
+**Why it was not folded into BL-148.** The [STYLES_GUIDE micro-spacing exception](../styles/STYLES_GUIDE.md#3-hardcoded-spacing) authorises "`1px` or `2px` directly" for badge padding and optical alignment, and it is written in **px**. There are 82 `2px`, 18 `1px` and 5 `3px` positive spacing literals living under it legitimately (plus one `3px` inside a `calc`). **`4px` sits exactly on that boundary**: it is both the ramp's floor (`--spacing-xs`) and one step above the exception's ceiling. Deciding whether `padding: 4px` must become `var(--spacing-xs)` while `2px` stays literal is a ruling about where the exception ends — not a codemod — and folding it into a 217-substitution rem sweep would have buried it.
 
 **The rem sweep is the template.** Substitutions are value-identical under a 16px root, the same property ADR-0028 established; the risk is not the edit but the boundary.
 
