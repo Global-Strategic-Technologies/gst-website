@@ -316,6 +316,23 @@ Sitemap: https://globalstrategic.tech/sitemap-index.xml
 - `Allow: /` - Permits full site crawling
 - `Sitemap:` - Points to XML sitemap URL
 
+### llms.txt
+
+Location: `public/llms.txt`, served at `https://globalstrategic.tech/llms.txt`.
+
+**Purpose**: the agent-facing site index (the [llms.txt convention](https://llmstxt.org/)): an H1, a one-paragraph summary, then grouped links with a one-line gloss each. It exists so an AI assistant fetching the site cold lands on the MCP documentation, the tools and the library without crawling the navigation. The MCP endpoint and status hostnames are listed as plain URLs; the docs subdomain is not (ADR-0023: one published address).
+
+**Maintenance**: hand-written, and guarded. `tests/unit/llms-txt.test.ts` checks every `globalstrategic.tech` link against the routes under `src/pages/`, against the sitemap exclusion list (a page kept out of the sitemap is not advertised to agents either), and for the docs-subdomain rule. Add a line when a page ships; the test fails on a typo'd or removed route.
+
+### Crawler access on the Worker hosts
+
+`globalstrategic.tech` itself is served by Vercel (DNS-only at Cloudflare), so nothing in this section applies to the website. The three `*.mcp.globalstrategic.tech` hosts are Cloudflare-proxied Workers, and the zone's Cloudflare settings sit in front of them:
+
+- **Managed `robots.txt`** is on: Cloudflare serves a generated `robots.txt` on every Worker host (the Worker has none of its own) with Content Signals `search=yes, ai-train=no, use=reference` and a `Disallow: /` for the named training crawlers (GPTBot, ClaudeBot, CCBot, Google-Extended, and others).
+- **AI-bot blocking** is on: requests from AI crawler and AI assistant user agents (GPTBot, ClaudeBot, Claude-User, ChatGPT-User, PerplexityBot, and others) get a Cloudflare 403 on the `docs.` and `status.` hosts. Googlebot and generic clients are unaffected. Observed 2026-09-02; `/robots.txt` and `/.well-known/*` on the apex host were exempt.
+
+Both are dashboard toggles (Cloudflare → `globalstrategic.tech` → Security → Settings, and AI Crawl Control), not repo configuration. The `docs.` host is only a 308 to this site, so blocking it costs nothing for search; it does mean an AI assistant that follows the alias gets a 403 rather than the redirect. Flip the toggle, or allow specific crawlers in AI Crawl Control, if that is not the intended posture.
+
 ## Semantic HTML
 
 ### Heading Hierarchy
