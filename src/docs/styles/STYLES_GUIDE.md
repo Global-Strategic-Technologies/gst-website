@@ -96,9 +96,10 @@ Two things that make replicas drift silently, both of which have happened:
 
 - **Astro `<style>` is scoped**, so a production component's styles never reach a replica of it on
   another page. That is why replicas carry inline styles, and why they diverge unnoticed.
-- **Read the media queries, not just the base rule.** `.footer-links` is `gap: 0.75rem` at the top of
-  `FooterLinks.astro` and `gap: 2rem` under `@media (min-width: 768px)` — the desktop value is the one
-  a desktop specimen had to match, and missing it is how the old replica drifted.
+- **Read the media queries, not just the base rule.** `.footer-links` is `gap: var(--spacing-md)` at the
+  top of `FooterLinks.astro` and `gap: var(--spacing-2xl)` under `@media (min-width: 768px)` — the
+  desktop value is the one a desktop specimen had to match, and missing it is how the old replica
+  drifted.
 
 ---
 
@@ -115,19 +116,23 @@ Centralized CSS variable-based design system. Single source of truth in `variabl
 
 ### Core Tokens (Summary)
 
-| Category              | Examples                                                        | Count   |
-| --------------------- | --------------------------------------------------------------- | ------- |
-| Colors (brand + text) | `--color-primary`, `--bg-light`, `--text-primary`               | 35      |
-| Primary opacity scale | `--color-primary-02` through `--color-primary-65`               | 19      |
-| Component colors      | `--filter-chip-bg`, `--service-card-text`, `--footer-bg`        | 31      |
-| Tool-domain colors    | `--hub-authority-blue`, `--dm-*`, `--icg-*`, `--techpar-*`      | 33      |
-| Misc colors           | `--checkerboard-line`, `--theme-toggle-color`                   | 6       |
-| Spacing               | `--spacing-xs` through `--spacing-3xl` + `--spacing-2_5xl`      | 8       |
-| Gaps                  | `--gap-tight` through `--gap-extra-wide`                        | 4       |
-| Typography            | `--font-family`, `--font-weight-*`, `--text-*`                  | 10      |
-| Transitions           | `--transition-fast`, `--transition-normal`, `--transition-slow` | 3       |
-| Shadows               | `--shadow-sm`, `--shadow-md`, `--shadow-lg`                     | 3       |
-| **Total**             |                                                                 | **160** |
+Counts are deliberately not stated, matching
+[VARIABLES_REFERENCE.md](VARIABLES_REFERENCE.md)'s rule — the parity test is the referee, and a
+hand-kept number is not. (The count column this table used to carry was wrong in three separate ways
+when it was removed: a Total of 160 against rows summing to 152, over a `:root` that holds 216.)
+
+| Category              | Examples                                                                       |
+| --------------------- | ------------------------------------------------------------------------------ |
+| Colors (brand + text) | `--color-primary`, `--bg-light`, `--text-primary`                              |
+| Primary opacity scale | `--color-primary-02` through `--color-primary-65`                              |
+| Component colors      | `--filter-chip-bg`, `--service-card-text`, `--footer-bg`                       |
+| Tool-domain colors    | `--hub-authority-blue`, `--dm-*`, `--icg-*`, `--techpar-*`, `--regmap-*`       |
+| Misc colors           | `--checkerboard-line`, `--theme-toggle-color`                                  |
+| Spacing               | `--spacing-xs` through `--spacing-3xl`, plus `--spacing-1_25`/`-1_75`/`-2_5xl` |
+| Gaps                  | `--gap-tight` through `--gap-extra-wide`                                       |
+| Typography            | `--font-family`, `--font-weight-*`, `--text-*`                                 |
+| Transitions           | `--transition-fast`, `--transition-normal`, `--transition-slow`                |
+| Shadows               | `--shadow-sm`, `--shadow-md`, `--shadow-lg`                                    |
 
 > Note: Dark theme variables use `light-dark()` in `:root` — only `color-scheme: dark` and 2 RGB triplets remain in the `html.dark-theme` block. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
 

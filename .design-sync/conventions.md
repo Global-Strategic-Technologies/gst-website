@@ -65,7 +65,7 @@ Two rules cover almost everything:
 - **Dark literals** — `--bg-dark`, `--bg-dark-secondary`, `--bg-dark-tertiary`, `--text-dark-primary/-secondary/-muted`, `--text-light-primary/-secondary/-muted` — the raw ends of a `light-dark()` pair; use inside `light-dark()` when a token has no theme-aware form
 - **Borders** — `--border-light`, `--border-hairline`, `--border-dark`, `--border-dark-subtle/-default/-prominent`
 - **Accents** — `--accent-light-bg` (+ `-hover`), `--accent-dark-bg`, `--accent-tint-bg`, `--accent-subtle-bg`, `--accent-wash-bg`, `--accent-faint-bg`, `--accent-border-light/-medium`
-- **Spacing** — `--spacing-xs` … `--spacing-3xl` (plus `--spacing-2_5xl`), `--gap-tight/-normal/-wide/-extra-wide`
+- **Spacing** — `--spacing-xs` … `--spacing-3xl` (plus the extended steps `--spacing-1_25`, `--spacing-1_75`, `--spacing-2_5xl`), `--gap-tight/-normal/-wide/-extra-wide`
 - **Type scale** — `--text-2xs` … `--text-3xl`, `--font-weight-normal/-semibold/-bold`, `--font-family`, `--font-family-mono`
 - **Motion** — `--transition-fast`, `--transition-normal`, `--transition-slow`
 - **Elevation** — `--shadow-sm/-md/-lg`, `--frost-highlight`, `--frost-edge`, `--scrim-15` … `--scrim-60`

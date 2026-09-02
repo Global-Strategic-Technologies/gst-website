@@ -175,7 +175,9 @@ Neutral black at fixed alpha, for modal backdrops, drawer shadows and inset dept
 | `--spacing-sm`    | `0.5rem`  | 8px                   |
 | `--spacing-md`    | `0.75rem` | 12px                  |
 | `--spacing-lg`    | `1rem`    | 16px                  |
+| `--spacing-1_25`  | `1.25rem` | 20px                  |
 | `--spacing-xl`    | `1.5rem`  | 24px                  |
+| `--spacing-1_75`  | `1.75rem` | 28px                  |
 | `--spacing-2xl`   | `2rem`    | 32px                  |
 | `--spacing-2_5xl` | `2.5rem`  | 40px                  |
 | `--spacing-3xl`   | `3rem`    | 48px                  |
@@ -506,7 +508,7 @@ Also overrides `--color-primary-rgb`, `--border-dark`, `--accent-light-bg`, `--a
 
 1. Check if an existing variable already covers your need
 2. Add the token to `:root` in `variables.css` — use `light-dark(lightValue, darkValue)` for anything theme-dependent (the `html.dark-theme` block only carries `color-scheme` and the RGB-triplet overrides that `light-dark()` cannot express)
-3. Use semantic names: `--component-property` (e.g., `--filter-chip-bg`)
+3. Use semantic names: `--component-property` (e.g., `--filter-chip-bg`) — **except inside a scale family**, where the name is the value: `--spacing-1_25`, `--scrim-15`, `--color-primary-02`. A scale step has no component and no property to name after, and a semantic name would hide its position in the ramp (see [ADR-0028](../adr/0028-extended-spacing-scale.md))
 4. Update this reference file — `npm run test:docs` fails until the new token is documented here
 
 ---

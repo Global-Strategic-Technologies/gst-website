@@ -98,9 +98,11 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 ## 3. Hardcoded Spacing Remediation
 
-**Status**: Complete — actionable spacing values replaced with variables (March 23, 2026). Remaining hardcoded values are micro-spacing exceptions (1-3px for badge padding, optical alignment) per documented convention.
+**Status**: Partially complete, and the earlier "Complete" was wrong about scope. The March 23, 2026 pass did replace actionable **pixel** spacing, and the micro-spacing exception it describes is real (1-3px badge padding and optical alignment — `cards.css:351` `padding: 2px var(--spacing-sm)` is exactly it). What was false is the claim that those exceptions were all that remained: **rem** spacing literals were never swept, and ~540 of them across 64 files were still in the source when ADR-0028 was written (2026-09-02).
 
-**Problem**: The spacing scale (`--spacing-xs` through `--spacing-3xl`) covers 4px to 48px, but some components use hardcoded pixel values, often mixing hardcoded and variable spacing in the same rule.
+ADR-0028 closed 90 of them in six files and added the two ramp steps (`--spacing-1_25`, `--spacing-1_75`) that made the last six of those tokenizable at all. The rest, and the absence of any lint rule that would have caught them, are **BL-148**.
+
+**Problem**: The spacing scale (`--spacing-xs` through `--spacing-3xl`, plus the extended steps) covers 4px to 48px, but some components use hardcoded values, often mixing hardcoded and variable spacing in the same rule.
 
 **Common violations**:
 
@@ -321,23 +323,23 @@ Tracked initiatives to close the gap between documented conventions and actual i
 
 > Init 1 / 1A note (reconciled July 28, 2026): the table below previously read "Requirements Defined" / "Awaiting Review" while the initiative sections themselves recorded both as Complete. The sections are authoritative — Init 1A was finalized March 24, 2026 — and the rows now match.
 
-| Initiative                       | Status             | Date   | Notes                                                                                                    |
-| -------------------------------- | ------------------ | ------ | -------------------------------------------------------------------------------------------------------- |
-| 1. Brand Guidelines              | Complete           | Mar 24 | Palette documented; 5 requirement areas finalized in Init 1A                                             |
-| 1A. Guidelines Completion        | Complete           | Mar 24 | Semantic colors, usage rules, contrast audit, data viz, brand assets                                     |
-| 2. Hardcoded Colors              | Complete           | Mar 23 | Design system colors standardized; data viz colors preserved as exceptions                               |
-| 3. Hardcoded Spacing             | Complete           | Mar 23 | Actionable values replaced; micro-spacing (1-3px) documented as exceptions                               |
-| 4. Diligence Machine             | Complete           | Mar 23 | 75+ color + spacing replacements; 6 redundant dark overrides removed                                     |
-| 5. TechPar Docs                  | Complete           | Mar 23 | 35 variables documented in VARIABLES_REFERENCE.md                                                        |
-| 6. ICG Colors                    | Complete           | Mar 23 | Engine, radar chart, and template standardized with CSS variables                                        |
-| 7. Tool Shell                    | Complete           | Mar 23 | `.tool-shell` class created; ICG + Tech Debt Calculator migrated                                         |
-| 8. Skeleton Loading              | Complete           | Mar 23 | Pattern documented; classes extracted in Init 10                                                         |
-| 9. Text Variable Refactor        | Complete           | Mar 24 | `--text-*` aliases added; 335 refs migrated; ~200 lines of redundant dark overrides removed              |
-| 10. Skeleton CSS Classes         | Complete           | Mar 24 | `.skeleton-bar`, `.skeleton-bar--sm`, `.skeleton-dot` extracted to global.css                            |
-| 11. Astro CSS Alignment          | Complete           | Mar 24 | Stylelint added; Astro CSS patterns documented; `:global()` reduced 631→577                              |
-| 12. Legacy Design System Removal | Complete           | Apr 4  | ~360 lines removed; legacy classes deleted; `portfolio-controls.css` merged; `--color-primary-rgb` added |
-| 13. Token Lint Enforcement       | Complete           | Jul 28 | Colors now a build error; 100 violations swept; `--surface-*`/`--frost-*`/`--scrim-*` families minted    |
-| 14. Off-Scale Font Sizes         | Deferred (trigger) | Jul 28 | 150 literals need a type-scale ruling + visual review; rule live at warning severity meanwhile           |
+| Initiative                       | Status             | Date   | Notes                                                                                                                                        |
+| -------------------------------- | ------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Brand Guidelines              | Complete           | Mar 24 | Palette documented; 5 requirement areas finalized in Init 1A                                                                                 |
+| 1A. Guidelines Completion        | Complete           | Mar 24 | Semantic colors, usage rules, contrast audit, data viz, brand assets                                                                         |
+| 2. Hardcoded Colors              | Complete           | Mar 23 | Design system colors standardized; data viz colors preserved as exceptions                                                                   |
+| 3. Hardcoded Spacing             | Partial            | Mar 23 | Pixel values replaced; micro-spacing (1-3px) documented as exceptions. **rem** literals were out of that pass — see §3 and ADR-0028 / BL-148 |
+| 4. Diligence Machine             | Complete           | Mar 23 | 75+ color + spacing replacements; 6 redundant dark overrides removed                                                                         |
+| 5. TechPar Docs                  | Complete           | Mar 23 | 35 variables documented in VARIABLES_REFERENCE.md                                                                                            |
+| 6. ICG Colors                    | Complete           | Mar 23 | Engine, radar chart, and template standardized with CSS variables                                                                            |
+| 7. Tool Shell                    | Complete           | Mar 23 | `.tool-shell` class created; ICG + Tech Debt Calculator migrated                                                                             |
+| 8. Skeleton Loading              | Complete           | Mar 23 | Pattern documented; classes extracted in Init 10                                                                                             |
+| 9. Text Variable Refactor        | Complete           | Mar 24 | `--text-*` aliases added; 335 refs migrated; ~200 lines of redundant dark overrides removed                                                  |
+| 10. Skeleton CSS Classes         | Complete           | Mar 24 | `.skeleton-bar`, `.skeleton-bar--sm`, `.skeleton-dot` extracted to global.css                                                                |
+| 11. Astro CSS Alignment          | Complete           | Mar 24 | Stylelint added; Astro CSS patterns documented; `:global()` reduced 631→577                                                                  |
+| 12. Legacy Design System Removal | Complete           | Apr 4  | ~360 lines removed; legacy classes deleted; `portfolio-controls.css` merged; `--color-primary-rgb` added                                     |
+| 13. Token Lint Enforcement       | Complete           | Jul 28 | Colors now a build error; 100 violations swept; `--surface-*`/`--frost-*`/`--scrim-*` families minted                                        |
+| 14. Off-Scale Font Sizes         | Deferred (trigger) | Jul 28 | 150 literals need a type-scale ruling + visual review; rule live at warning severity meanwhile                                               |
 
 **Key outcomes**:
 

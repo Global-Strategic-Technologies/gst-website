@@ -328,7 +328,24 @@
   --techpar-chart-above-border: light-dark(rgba(217, 54, 54, 0.45), rgba(240, 70, 70, 0.5));
   --techpar-chart-revenue-line: light-dark(rgba(26, 26, 26, 0.55), rgba(200, 200, 200, 0.6));
 
-  /* Spacing — Extended */
+  /* Spacing — Extended
+   *
+   * The base scale above is a 4px ramp: 4, 8, 12, 16, · , 24, · , 32 — with 20px
+   * and 28px missing. These two fill it, so 4px→32px is uniform and the scale
+   * coarsens to 8px steps only above 32 (40, 48). That arithmetic is the whole
+   * admission rule for this group: a step the ramp is missing, not a value some
+   * component happened to want.
+   *
+   * NAMING is value-as-suffix with no ordinal claim, matching --scrim-15…-60 and
+   * --color-primary-02…-65. NOT `--spacing-1_25xl`: `xl` is 1.5rem, so a name
+   * ending in `xl` that sorts BELOW --spacing-xl would be a false ordinal.
+   *
+   * --spacing-2_5xl predates the rule. It arrived incidentally in 7a831efc (the
+   * original shared-variables commit) and is NOT renamed — it is published to
+   * claude.ai/design, where a rename produces silently unstyled output. So this
+   * group is deliberately not uniform in naming; see ADR-0028. */
+  --spacing-1_25: 1.25rem;
+  --spacing-1_75: 1.75rem;
   --spacing-2_5xl: 2.5rem;
 }
 
