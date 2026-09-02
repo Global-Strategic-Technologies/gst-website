@@ -1905,4 +1905,38 @@ So the fix is not "correct the token names"; it is "decide what these sections s
 
 **Not a regression from the alignment work.** The two commits that prompted the review (`23f3c343`, `ab526fea`) neither introduced nor touched these declarations. Filed separately rather than folded in, because the visual change is a design decision the operator has not seen, and this branch is a marketing branch whose scope is already argued in its PR body.
 
+### BL-150: Six scoped rules style an icon a child component renders, so none of them apply
+
+**Source**: found 2026-09-02 by the code-reviewer gate while reviewing an unrelated text-spacing and chevron-alignment fix on `feat/mcp-next-steps`; surfaced by the detector written for that branch's `inline-element-spacing` guard | **Effort**: Small to change, Medium to decide — the `:global()` wrap is mechanical, the resulting icon treatment is a design ruling on five shipped pages | **Status**: Open
+
+**As a** reader of the services, MCP landing and library pages, **I want** the per-page bullet-icon treatment those pages declare to either apply or be deleted **so that** what ships is a decision somebody made, rather than the accident of which rules happened to reach the element.
+
+**What it is.** `.bullet-icon` and `.delta-accent` are passed to `<DeltaIcon class="…" />`, so the rendered `<svg>` carries **DeltaIcon's** cid, never the calling page's. Six scoped rules select those classes bare and therefore match nothing — the [scoped-rule / foreign-element trap](../styles/STYLES_GUIDE.md#the-scoped-rule--foreign-element-trap), the same shape as [BL-139](#bl-139-the-filter-drawers-entire-mobile-treatment-is-dead-css) and [BL-147](#bl-147-thirteen-font-size-declarations-reference-two-tokens-that-do-not-exist).
+
+Cited by **selector, not line number** — BL-147's convention, for the same reason.
+
+| file                                                                                                           | dead selector                                       | declares                                                             |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------- |
+| [`services.astro`](../../pages/services.astro)                                                                 | `.service-list .bullet-icon`                        | `width/height: 14px`, `margin-top: 0.3em`, **`opacity: 0.7`**        |
+| [`booking-confirmed.astro`](../../pages/booking-confirmed.astro)                                               | `.confirmation-steps li .bullet-icon`               | `color: --color-primary`, `margin-top: 0.35em`                       |
+| [`booking-confirmed.astro`](../../pages/booking-confirmed.astro)                                               | `.delta-accent`                                     | `color: --color-primary`                                             |
+| [`hub/mcp/index.astro`](../../pages/hub/mcp/index.astro)                                                       | `.bullet-icon`                                      | `color: --color-primary`, `margin-top: 0.35em`                       |
+| [`hub/library/vdr-structure/index.astro`](../../pages/hub/library/vdr-structure/index.astro)                   | `.bullet-icon` (+ its ≤768 override)                | `flex-shrink: 0`, `margin-top: 0.35em` / `0.3em`, **`opacity: 0.8`** |
+| [`hub/library/business-architectures/index.astro`](../../pages/hub/library/business-architectures/index.astro) | `.bullet-icon`, `.arch-diligence-list .bullet-icon` | `flex-shrink: 0`, **`opacity: 0.8`** / **`0.5`**                     |
+
+**Confirmed in-browser** against a production build, not read off the source: every one of those icons computes `opacity: 1` and carries no `data-astro-cid` attribute. What actually styles them is the global base in [`cards.css`](../../styles/components/cards.css) — `width/height: 14px`, `color: var(--color-primary)`, `margin-top: calc((1lh - 14px) / 2)`. The width and colour the dead rules ask for are therefore already in force by coincidence; **the opacity and the hand-tuned `margin-top` values are what is missing.**
+
+**Two of these files already know the trap.** `vdr-structure` and `business-architectures` each contain a correct `:global(.bullet-icon)` rule (`.vdr-section-heading`, `.arch-section-heading`) a few hundred lines from a bare one. The knowledge was present in the file and did not generalise — which is why the remedy below is a guard, not a fix-and-hope.
+
+**Why this is a ruling and not a wrap.** BL-139's governing finding applies: **a dead rule is a product decision wearing a bug's clothing.** The global `margin-top: calc((1lh - 14px) / 2)` optically centres the icon against the line box at any font size; the dead per-page rules replace it with hand-tuned `0.3em`/`0.35em` constants, and there is a live argument that the global is simply better. Enabling `opacity: 0.5` on `business-architectures`' diligence lists is a visible change to a shipped page nobody has asked for. Render each before deciding.
+
+#### Acceptance Criteria
+
+- [ ] A guard fails on a bare scoped selector whose class only ever rides a child-component invocation in that file — the class this trap belongs to is invisible to `astro check`, `lint`, `lint:css` and the full suite, all four of which were green over all six. A working detector already exists (written for `tests/unit/inline-element-spacing.test.ts`'s sibling investigation); it strips CSS comments and `:global()` groups and cross-checks native-element usage in the same file to avoid false positives
+- [ ] Each of the six is rendered at desktop, 768 and 480 in **both** themes with the rule applied, and a ruling recorded here: adopt it via an anchored `:global()`, adopt a different treatment, or delete the declaration and keep the global base
+- [ ] The `opacity` cases (`0.7`, `0.8`, `0.5`) are ruled on explicitly — they are the only declarations whose absence is currently visible
+- [ ] Whatever survives is expressed as `<ancestor> :global(.bullet-icon)`, anchored to a scoped ancestor per [When `:global()` Is Necessary](../styles/STYLES_GUIDE.md#when-global-is-necessary) case 3 — never a bare `:global()`, which would edit the shared utility site-wide
+
+**Not a regression from the spacing work.** The three commits that prompted the review (`a3efe3c6`, `cba56058`, `c89d8601`) neither introduced nor touched these declarations; two of the six pre-date the branch by a long way. Filed separately rather than folded in, because reviving them changes icon opacity on five shipped pages and that is a design decision the operator has not seen.
+
 ---

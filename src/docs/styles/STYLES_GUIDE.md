@@ -230,7 +230,8 @@ recorded a move whose declarations were left behind.
    `src/styles/components/*.css` module. A plain stylesheet cannot fall into this trap at all.
 2. If it genuinely belongs to one component, move it into **that** component's scoped block.
 3. Reach for `:global()` only for markup that has no component to own it — the `innerHTML` case
-   above.
+   above — or for a **positional** declaration on a shared utility a child renders, anchored to a
+   scoped ancestor. See [When `:global()` Is Necessary](#when-global-is-necessary) case 3.
 
 **But first ask whether the rule should apply at all.** Dead CSS has usually been dead for a
 long time, and nobody has been missing it. BL-139's rules turned out to be the wrong design once
@@ -248,7 +249,7 @@ others verbatim with no fallback — viewport units among them. An unsupported u
 dropped silently at runtime rather than polyfilled at build time, taking its whole declaration
 with it.
 
-#### `compressHTML` deletes the space before a wrapped inline element
+### `compressHTML` deletes the space before a wrapped inline element
 
 `compressHTML` defaults to **on** and is not set in `astro.config.mjs`. It does not *collapse*
 the newline+indent between a line of prose and an inline element opening the next line — it
@@ -268,10 +269,17 @@ tag** boundary loses its space, which is why the defect appears wherever Prettie
 wrap and looks arbitrary rather than systematic. Fourteen were live across six files before
 `tests/unit/inline-element-spacing.test.ts` started guarding it.
 
-**End the prose line with a literal `&#32;`.** A character reference is not source whitespace,
-so the compressor leaves it alone, and it collapses harmlessly against real whitespace if
-compression is ever turned off. `{' '}` does **not** work — it emits a whitespace text node the
-compressor treats like any other — and `&nbsp;` would wrongly suppress wrapping at that point.
+**Two forms work; both put the space somewhere the compressor cannot reach.**
+
+| Form    | Why it survives                                                          | Use in                                                                |
+| ------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `&#32;` | a character reference is not source whitespace                            | plain template regions — no expression needed, survives Prettier rewrap |
+| `{' '}` | compiles to an expression (`${' '}`), not a text node a compressor can see | JSX-ish regions that already carry expressions                        |
+
+`&#32;` is the default. `{' '}` is equally sound and already load-bearing in the repo — four
+sites in `diligence-machine/index.astro` and one in `CTABox.astro`, the latter with a comment
+saying so. Do **not** reach for `&nbsp;`: it would wrongly suppress wrapping at that point.
+Either form collapses harmlessly against real whitespace if compression is ever turned off.
 
 Turning `compressHTML` off fixes the whole class in one line; it was measured at **+305 KB raw /
 +29 KB gzipped** across the site's HTML and rejected on those grounds. Revisit that trade if the
@@ -320,11 +328,30 @@ const accentColor = getThemeColor(category);
    ```
 
 2. **Parent state selectors** — When a component's appearance depends on a class on `<html>` or a parent element:
+
    ```css
    :global(html.dark-theme) .my-card {
      background: var(--bg-dark-secondary);
    }
    ```
+
+3. **A shared utility on an element a child component renders** — the [scoped-rule /
+   foreign-element trap](#the-scoped-rule--foreign-element-trap) above, remedy step 3. A class
+   passed to `<DeltaIcon class="…" />` never receives this file's cid, so a bare selector matches
+   nothing. Legitimate only when the declaration is **positional** — where the parent puts the
+   utility, which is the parent's business — and only ever **anchored to a scoped ancestor**, so
+   it stays as narrow as the component:
+
+   ```css
+   /* Anchored: .clip-details still carries this file's cid, so this cannot leak. */
+   .clip-details > summary :global(.delta-chevron) {
+     margin-left: 0;
+   }
+   ```
+
+   A bare `:global(.delta-chevron) { … }` with no ancestor is a site-wide edit to a shared
+   utility; that belongs in `interactions.css`, not a component. If the declaration is anything
+   more than positional, remedy steps 1 and 2 still win.
 
 **Prefer `light-dark()` over `:global(html.dark-theme)`** for color properties. Use `light-dark(light-value, dark-value)` inline or define a CSS variable with `light-dark()` in `variables.css`. Reserve `:global(html.dark-theme)` only for non-color properties (opacity, display, backdrop-filter).
 

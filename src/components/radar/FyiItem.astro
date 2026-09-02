@@ -130,13 +130,16 @@ const dateStr = pubDate.toLocaleDateString('en-US', { month: 'short', day: 'nume
     color: var(--color-primary);
   }
 
-  /* Optical nudge against the title's 1.4 line box. `:global()` is required:
-     `.fyi-item__toggle` rides a <DeltaIcon> call, so Astro's scope attribute
-     never lands on the rendered <svg> and the bare class selected nothing —
-     measured at margin-top 0px before this. Same trap as ClipFigure.astro. */
-  .fyi-item__headline :global(.fyi-item__toggle) {
-    margin-top: -0.125rem;
-  }
+  /* `.fyi-item__toggle` deliberately has no rule. It once carried an optical
+     nudge (`margin-top: -0.125rem`) that never applied: the class rides a
+     <DeltaIcon> call, so this file's cid never lands on the rendered <svg> —
+     the scoped-rule / foreign-element trap in STYLES_GUIDE. Measured at
+     margin-top 0px for its whole life, and deleted rather than revived per
+     that section's rule that reviving dead CSS is a product decision: the
+     headline row already centres the icon with `align-items: center`, which
+     halves any negative margin (the nudge rendered as 1px, not 2px), and the
+     delta rotates 180deg on open, so one fixed offset cannot suit both states.
+     The class stays as the markup hook `.fyi-item__headline` styles through. */
 
   /* Expanded body */
   .fyi-item__body {
