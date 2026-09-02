@@ -55,6 +55,12 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  stripComments,
+  extractAstroStyles,
+  lengthToPx,
+  parseRootTokens,
+} from './helpers/css-parse';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
@@ -148,20 +154,6 @@ const FLOOR_EXCEPTIONS: FloorException[] = [
 
 // --- Parsers ---------------------------------------------------------------
 
-/** Strip `/* … *\/` comments so commented-out CSS can't trip the scan. */
-function stripComments(css: string): string {
-  return css.replace(/\/\*[\s\S]*?\*\//g, '');
-}
-
-/** Extract the contents of every `<style>` block in an Astro file. */
-export function extractAstroStyles(source: string): string[] {
-  const blocks: string[] = [];
-  const re = /<style[^>]*>([\s\S]*?)<\/style>/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(source)) !== null) blocks.push(m[1]);
-  return blocks;
-}
-
 /** A size declaration below the floor, on a guarded selector. */
 export interface FloorViolation {
   selector: string;
@@ -233,38 +225,15 @@ export function isGuardedPrelude(prelude: string): boolean {
   return splitSelectorList(prelude).some((sel) => GUARDED_SELECTOR_RE.test(lastCompound(sel)));
 }
 
-/**
- * Resolve a CSS length to px, or null if it isn't a literal we can judge statically.
- *
- * Handles `!important` (the likeliest shape for the next page-local override, and
- * the one that silently slipped past the first version of this parser), unitless
- * `0`, and `rem` at the 16px root (no `html { font-size }` override exists in
- * `src/styles/`).
- *
- * `em` is deliberately NOT resolved. It is relative to the element's own font-size,
- * and `.brutal-btn` is `0.7rem` — so `3.5em` is 39.2px in the browser but would look
- * like 56px to a 16px-based resolver. That is a false PASS at almost exactly the
- * 33px failure this guard exists to prevent, so em joins calc/%/viewport units in
- * returning null: decline to judge rather than judge wrongly.
+/*
+ * `lengthToPx` and `parseRootTokens` now live in `./helpers/css-parse` (ADR-0028),
+ * shared with `spacing-token-floor.test.ts`. The `em` ruling that shaped
+ * `lengthToPx` is recorded there: em resolves against the element's own font-size,
+ * and `.brutal-btn` is `0.7rem`, so `3.5em` is 39.2px in the browser but 56px to a
+ * 16px-based resolver — a false PASS at almost exactly the 33px failure THIS guard
+ * exists to prevent. Declining to judge is the point; do not "improve" it into
+ * resolving em.
  */
-export function lengthToPx(value: string): number | null {
-  const bare = value.replace(/!\s*important\s*$/i, '').trim();
-  if (/^0$/.test(bare)) return 0;
-  const m = /^(-?[0-9]*\.?[0-9]+)(px|rem)$/.exec(bare);
-  if (!m) return null;
-  return m[2] === 'px' ? parseFloat(m[1]) : parseFloat(m[1]) * 16;
-}
-
-/** Parse `:root` custom properties from variables.css into a name -> value map. */
-export function parseRootTokens(css: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  const root = /:root\s*\{([\s\S]*?)\}/.exec(stripComments(css));
-  if (!root) return out;
-  for (const m of root[1].matchAll(/(--[A-Za-z0-9_-]+)\s*:\s*([^;]+);/g)) {
-    out[m[1]] = m[2].trim();
-  }
-  return out;
-}
 
 /**
  * Resolve a declaration value to px, following a single `var(--token)` indirection
