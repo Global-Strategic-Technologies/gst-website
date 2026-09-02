@@ -12,6 +12,10 @@ import { mcpGuideSchema } from '../../../../utils/mcp-schema';
 // count, prompt/tool names, resource URIs) are pinned by
 // tests/integration/mcp-onboarding-parity.test.ts.
 
+const PAGE_URL = 'https://globalstrategic.tech/hub/mcp/using/';
+const DESCRIPTION =
+  'The practitioner guide to the GST MCP Server: a first query worth running, prompt argument forms, pinned resources, and what each failure means.';
+
 const TOC_LINKS = [
   { id: 'first-query', label: '01 First query' },
   { id: 'prompts', label: '02 Prompt arguments' },
@@ -23,12 +27,12 @@ const TOC_LINKS = [
 
 <BaseLayout
   title="Using the GST MCP Server | GST"
-  description="The practitioner guide to the GST MCP Server: a first query worth running, prompt argument forms, pinned resources, and what each failure means."
+  description={DESCRIPTION}
   ogTitle="Using the GST MCP Server"
   ogDescription="Three ways to drive a connected server (ask, invoke, attach) and what each failure means."
   ogImage="/og-image.png"
   ogImageAlt="GST MCP Server - practitioner guide"
-  ogUrl="https://globalstrategic.tech/hub/mcp/using/"
+  ogUrl={PAGE_URL}
   ogType="article"
 >
   <script
@@ -37,9 +41,8 @@ const TOC_LINKS = [
     set:html={JSON.stringify(
       mcpGuideSchema({
         headline: 'Using the GST MCP Server',
-        description:
-          'The practitioner guide to the GST MCP Server: a first query worth running, prompt argument forms, pinned resources, and what each failure means.',
-        url: 'https://globalstrategic.tech/hub/mcp/using/',
+        description: DESCRIPTION,
+        url: PAGE_URL,
         datePublished: '2026-08-27',
         dateModified: '2026-09-02',
       })

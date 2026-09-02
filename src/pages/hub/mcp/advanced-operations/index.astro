@@ -11,6 +11,10 @@ import { mcpGuideSchema } from '../../../../utils/mcp-schema';
 // count, fill-ratio rule, prompt names, gst_irl_ingestion's coexistence) are
 // pinned by tests/integration/mcp-onboarding-parity.test.ts.
 
+const PAGE_URL = 'https://globalstrategic.tech/hub/mcp/advanced-operations/';
+const DESCRIPTION =
+  'Ingest a populated information request list with gst_irl_sweep: one optional argument, up to nine GST engines, and a dossier whose claims cite the workbook rows they came from.';
+
 const TOC_LINKS = [
   { id: 'why', label: '01 What it does' },
   { id: 'round-trip', label: '02 The round trip' },
@@ -25,12 +29,12 @@ const TOC_LINKS = [
 
 <BaseLayout
   title="MCP Advanced Operations | GST"
-  description="Ingest a populated information request list with gst_irl_sweep: one optional argument, up to nine GST engines, and a dossier whose claims cite the workbook rows they came from."
+  description={DESCRIPTION}
   ogTitle="GST MCP Server: Advanced Operations"
   ogDescription="The IRL ingestion workflow: gst_irl_populate, gst_irl_sweep, and the portable extract record."
   ogImage="/og-image.png"
   ogImageAlt="GST MCP Server - IRL ingestion guide"
-  ogUrl="https://globalstrategic.tech/hub/mcp/advanced-operations/"
+  ogUrl={PAGE_URL}
   ogType="article"
 >
   <script
@@ -39,9 +43,8 @@ const TOC_LINKS = [
     set:html={JSON.stringify(
       mcpGuideSchema({
         headline: 'Ingest an information request list',
-        description:
-          'Ingest a populated information request list with gst_irl_sweep: one optional argument, up to nine GST engines, and a dossier whose claims cite the workbook rows they came from.',
-        url: 'https://globalstrategic.tech/hub/mcp/advanced-operations/',
+        description: DESCRIPTION,
+        url: PAGE_URL,
         datePublished: '2026-08-27',
         dateModified: '2026-09-02',
       })

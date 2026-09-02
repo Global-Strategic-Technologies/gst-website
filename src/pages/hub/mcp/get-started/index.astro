@@ -11,6 +11,10 @@ import { mcpGuideSchema } from '../../../../utils/mcp-schema';
 // with em dashes rewritten per operator direction. Published facts (prompt
 // count, endpoint) are pinned by tests/integration/mcp-onboarding-parity.test.ts.
 
+const PAGE_URL = 'https://globalstrategic.tech/hub/mcp/get-started/';
+const DESCRIPTION =
+  'Connect Claude Desktop to the GST MCP Server: prerequisites, the four-step connector quick start, and how to verify that every capability resolved.';
+
 const TOC_LINKS = [
   { id: 'prerequisites', label: '01 Before you start' },
   { id: 'quick-start', label: '02 Quick Start' },
@@ -21,12 +25,12 @@ const TOC_LINKS = [
 
 <BaseLayout
   title="Get Started with the GST MCP Server | GST"
-  description="Connect Claude Desktop to the GST MCP Server: prerequisites, the four-step connector quick start, and how to verify that every capability resolved."
+  description={DESCRIPTION}
   ogTitle="Get Started with the GST MCP Server"
   ogDescription="Three steps between a provisioned credential and a connector Claude can call: prerequisites, quick start, and verification."
   ogImage="/og-image.png"
   ogImageAlt="GST MCP Server - connector setup guide"
-  ogUrl="https://globalstrategic.tech/hub/mcp/get-started/"
+  ogUrl={PAGE_URL}
   ogType="article"
 >
   <script
@@ -35,9 +39,8 @@ const TOC_LINKS = [
     set:html={JSON.stringify(
       mcpGuideSchema({
         headline: 'Get started with the GST MCP Server',
-        description:
-          'Connect Claude Desktop to the GST MCP Server: prerequisites, the four-step connector quick start, and how to verify that every capability resolved.',
-        url: 'https://globalstrategic.tech/hub/mcp/get-started/',
+        description: DESCRIPTION,
+        url: PAGE_URL,
         datePublished: '2026-08-27',
         dateModified: '2026-09-02',
       })

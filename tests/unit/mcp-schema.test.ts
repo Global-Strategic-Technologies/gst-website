@@ -214,7 +214,14 @@ describe('every /hub/mcp/ page renders its JSON-LD from the helpers', () => {
       expect(src).toMatch(/ogType="article"/);
       expect(src).toMatch(/datePublished: '\d{4}-\d{2}-\d{2}'/);
       expect(src).toMatch(/dateModified: '\d{4}-\d{2}-\d{2}'/);
-      expect(src).toContain(`url: 'https://globalstrategic.tech/hub/mcp/${guide}/'`);
+      // The URL and description are hoisted to frontmatter consts so the meta
+      // tags and the JSON-LD cannot drift apart; assert the const, and that the
+      // schema call and the layout both consume it.
+      expect(src).toContain(`const PAGE_URL = 'https://globalstrategic.tech/hub/mcp/${guide}/'`);
+      expect(src).toMatch(/url: PAGE_URL/);
+      expect(src).toMatch(/ogUrl=\{PAGE_URL\}/);
+      expect(src).toMatch(/description: DESCRIPTION/);
+      expect(src).toMatch(/description=\{DESCRIPTION\}/);
     }
   );
 });

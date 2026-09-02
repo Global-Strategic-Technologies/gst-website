@@ -33,6 +33,12 @@ import { join } from 'path';
  * sites currently sit in flex containers whose `gap` supplies the space, so the
  * narrower rule is the one worth enforcing mechanically.
  *
+ * Nor does it cover an expression→expression boundary: `{count}` on one line
+ * and `{unit}` on the next shipped as "3STEPS" in JobCard.astro (2026-09-02).
+ * The fix there is a single expression carrying the space. A scan of every
+ * .astro file found no other adjacent text-expression pair, and the shape is
+ * rare enough that the guide records it rather than this guard.
+ *
  * This reads source rather than rendering, so it stays a cheap unit test,
  * matching delta-chevron-collapsed-parity.test.ts; the rendered result was
  * verified in headless Chromium when the fix landed. The detector is validated
