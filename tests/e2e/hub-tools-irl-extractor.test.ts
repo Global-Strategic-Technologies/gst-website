@@ -542,6 +542,38 @@ test.describe('IRL Extractor — an unfilled template', () => {
   });
 });
 
+test.describe('IRL Extractor — the size ceiling', () => {
+  test('refuses a workbook past the ceiling without parsing it, and stays exclusively in error', async ({
+    page,
+  }) => {
+    await gotoTool(page);
+
+    // 16 MB of zeroes: past the 15 MB ceiling, and deliberately NOT a valid
+    // .xlsx. That is the point of the case — the guard is a `file.size` test
+    // that must return before SheetJS is handed anything, so a buffer that
+    // would certainly fail to parse still has to produce the size message
+    // rather than the unreadable-file one. Asserting the copy distinguishes
+    // the two branches; asserting a generic error state would not.
+    await pickWorkbook(page, 'vdr-export.xlsx', Buffer.alloc(16 * 1024 * 1024));
+
+    const err = page.locator('#irl-ext-error');
+    await expect(err).toBeVisible({ timeout: 10000 });
+    // Exclusively error — `[hidden]` loses to an author-origin `display`, so
+    // the sibling panels are asserted gone, not merely scrolled away.
+    await expect(page.locator('#irl-ext-idle')).toBeHidden();
+    await expect(page.locator('#irl-ext-md')).toBeHidden();
+
+    const body = page.locator('#irl-ext-error-body');
+    await expect(body).toContainText('16.0 MB');
+    // The ceiling is rendered from MAX_FILE_MB; a literal that drifted from
+    // the constant fails here.
+    await expect(body).toContainText('up to 15 MB');
+    await expect(page.locator('#irl-ext-status')).toContainText('File too large');
+    await expect(page.locator('#irl-ext-actions')).toHaveAttribute('data-enabled', 'false');
+    await expect(page.locator('#irl-ext-diag')).toHaveAttribute('data-empty', 'true');
+  });
+});
+
 test.describe('IRL Extractor — the zero-row path', () => {
   test('fails loudly on a workbook with no request rows, naming the sheet it read', async ({
     page,
