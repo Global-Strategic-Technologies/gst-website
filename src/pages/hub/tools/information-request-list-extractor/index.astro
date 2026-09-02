@@ -332,7 +332,29 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     showState('error');
   }
 
+  // Parsing is synchronous and on the main thread, so a very large workbook
+  // locks the tab with the status stuck on “Reading…”. There is no server and
+  // no upload here, so this is a responsiveness ceiling, not a security one:
+  // an IRL workbook is a question list and runs orders of magnitude under it.
+  const MAX_FILE_BYTES = 15 * 1024 * 1024;
+
   async function handleFile(file: File) {
+    if (file.size > MAX_FILE_BYTES) {
+      current = null;
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      if (statusEl) statusEl.textContent = 'File too large';
+      if (errorBody) {
+        errorBody.textContent = `“${file.name}” is ${mb} MB. This tool reads workbooks up to 15 MB.`;
+      }
+      if (errorHint) {
+        errorHint.textContent =
+          'An IRL workbook is normally well under a megabyte — check this is the request list and not a data export.';
+      }
+      resetDiag();
+      showState('error');
+      return;
+    }
+
     if (statusEl) statusEl.textContent = `Reading “${file.name}”…`;
 
     let workbook: XLSX.WorkBook;

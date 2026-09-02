@@ -387,6 +387,10 @@ moves.)
   z-index: var(--z-raised);
 }
 
+/* stylelint-disable-next-line no-descending-specificity -- disjoint by construction:
+   Sash.astro gates `underFields` on `scale === 'page'`, so a card corner can never
+   carry a .brutal-sash-under and the :has() rules above can never match the same
+   element. Reordering would imply a cascade interaction that cannot occur. */
 .brutal-sash-corner--card .brutal-sash {
   top: 26px;
   width: 150px;
