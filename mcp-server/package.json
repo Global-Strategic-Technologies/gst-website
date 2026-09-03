@@ -36,7 +36,7 @@
     "@sentry/cloudflare": "^10.72.0",
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.38.2",
-    "agents": "^0.21.0",
+    "agents": "^0.22.0",
     "fflate": "^0.8.3",
     "xlsx-js-style": "^1.2.0",
     "zod": "^4.3.6"
