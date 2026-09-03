@@ -35,7 +35,7 @@
     "@modelcontextprotocol/server": "2.0.0",
     "@sentry/cloudflare": "^10.72.0",
     "@upstash/ratelimit": "^2.0.5",
-    "@upstash/redis": "^1.38.2",
+    "@upstash/redis": "^1.38.3",
     "agents": "^0.22.0",
     "fflate": "^0.8.3",
     "xlsx-js-style": "^1.2.0",
