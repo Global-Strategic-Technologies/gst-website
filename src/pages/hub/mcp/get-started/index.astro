@@ -8,12 +8,21 @@ import '../../../../styles/components/mcp-guide.css';
 import { mcpGuideSchema } from '../../../../utils/mcp-schema';
 
 // Copy is transcribed from the content-reviewed design handoff (2026-08-27),
-// with em dashes rewritten per operator direction. Published facts (prompt
-// count, endpoint) are pinned by tests/integration/mcp-onboarding-parity.test.ts.
+// with em dashes rewritten per operator direction, and widened 2026-09-03 to
+// cover Claude on the web alongside Claude Desktop (the connector flow is the
+// same; the steps say where the two differ). Published facts (prompt count,
+// endpoint, the consent page's error string) are pinned by
+// tests/integration/mcp-onboarding-parity.test.ts.
+//
+// Media slots: the Quick Start's steps 02 and 03 are catalogued for
+// operator-recorded clips (add-connector on claude.ai and Desktop, the OAuth
+// consent round trip) that do not exist yet — see the media catalog in
+// src/docs/hub/MCP_ONBOARDING.md (BL-152). Nothing here references a file that
+// is not in public/, because a missing source renders a broken player.
 
 const PAGE_URL = 'https://globalstrategic.tech/hub/mcp/get-started/';
 const DESCRIPTION =
-  'Connect Claude Desktop to the GST MCP Server: prerequisites, the four-step connector quick start, and how to verify that every capability resolved.';
+  'Connect Claude on the web or Claude Desktop to the GST MCP Server: prerequisites, the four-step custom connector quick start, and how to verify that every capability resolved.';
 
 const TOC_LINKS = [
   { id: 'prerequisites', label: '01 Before you start' },
@@ -42,7 +51,7 @@ const TOC_LINKS = [
         description: DESCRIPTION,
         url: PAGE_URL,
         datePublished: '2026-08-27',
-        dateModified: '2026-09-02',
+        dateModified: '2026-09-03',
       })
     )}
   />
@@ -68,7 +77,8 @@ const TOC_LINKS = [
             <div class="checkpoint__kicker">Checkpoint 02</div>
             <div class="checkpoint__title">Connector approved</div>
             <p class="checkpoint__desc">
-              Claude Desktop lists the GST MCP tools in its connector menu.
+              Claude, on the web or in Claude Desktop, lists the GST MCP tools in its connector
+              menu.
             </p>
           </li>
           <li class="checkpoint checkpoint--muted">
@@ -123,12 +133,18 @@ const TOC_LINKS = [
               <input type="checkbox" id="prereq-desktop" class="check-row__box" />
               <div class="check-row__body">
                 <label for="prereq-desktop" class="check-row__title"
-                  >Update Claude Desktop and sign in</label
+                  >Sign in to Claude on the web or in Claude Desktop</label
                 >
-                <p class="check-row__desc check-row__desc--last">
-                  Run the current version and confirm Settings → Connectors is available. Skip any
-                  bridge or proxy: the server speaks OAuth 2.1 natively.
+                <p class="check-row__desc">
+                  Either client works, and a connector added in one appears in the other. Custom
+                  connectors are available on every Claude plan; the Free plan allows one. On
+                  Desktop, run the current version first. Skip any bridge or proxy: the server
+                  speaks OAuth 2.1 natively.
                 </p>
+                <span class="fineprint"
+                  >On a Team or Enterprise plan an organization Owner adds the connector under
+                  Organization settings. Ask them before you start.</span
+                >
               </div>
             </li>
           </ul>
@@ -143,8 +159,9 @@ const TOC_LINKS = [
         <section id="quick-start" data-section="quick-start" class="guide-section">
           <h2 class="brutal-heading-lg guide-heading">02 Quick Start</h2>
           <p class="guide-intro guide-intro--wide-gap">
-            Claude Desktop's native connector flow. Four steps; the only value you type is the
-            endpoint URL.
+            Claude's native custom connector flow, the same on claude.ai and in Claude Desktop. Four
+            steps; the only value you type is the endpoint URL. Where web and Desktop differ, the
+            step says so.
           </p>
 
           <ol class="quick-steps">
@@ -153,8 +170,9 @@ const TOC_LINKS = [
               <div>
                 <h3 class="quick-step__title">Open Settings → Connectors</h3>
                 <p class="quick-step__body">
-                  In Claude Desktop, choose <strong>Add custom connector</strong>. You do not need a
-                  client ID or secret: Claude registers itself with the server.
+                  On the web, open Settings and choose Connectors; in Claude Desktop it is the same
+                  menu. Choose <strong>Add custom connector</strong>. You do not need a client ID or
+                  secret: Claude registers itself with the server.
                 </p>
               </div>
             </li>
@@ -175,6 +193,14 @@ const TOC_LINKS = [
                     data-copy="https://mcp.globalstrategic.tech/mcp">Copy</button
                   >
                 </div>
+                <div class="endpoint-row endpoint-row--name">
+                  <code class="endpoint-code">GST MCP</code>
+                  <button
+                    type="button"
+                    class="brutal-btn brutal-btn--secondary endpoint-copy"
+                    data-copy="GST MCP">Copy<span class="sr-only"> connector name</span></button
+                  >
+                </div>
               </div>
             </li>
             <li class="quick-step">
@@ -182,20 +208,36 @@ const TOC_LINKS = [
               <div>
                 <h3 class="quick-step__title">Approve at the consent page</h3>
                 <p class="quick-step__body">
-                  A browser tab opens on the GST consent page. Paste your provisioned key into the
-                  field and approve. That paste is how the grant learns who you are; your access is
-                  bounded by the scopes on your record. Tokens last an hour and refresh silently,
-                  and the same connector then works on web and mobile.
+                  A browser tab opens on the GST consent page, shown below. It asks for one thing:
+                  your provisioned key. Paste it into the field and approve. That paste is how the
+                  grant learns who you are; your access is bounded by the scopes on your record.
+                  Tokens last an hour and refresh silently, and the same connector then works on
+                  web, Desktop and mobile.
                 </p>
+                <p class="quick-step__body">
+                  If the page comes back with <em>That MCP key was not recognized</em>, paste again
+                  from your password manager rather than retyping. Deny returns you to Claude with
+                  nothing granted.
+                </p>
+                <ClipFigure
+                  variant="still"
+                  src="/images/hub/mcp/consent-page-still.webp"
+                  width={1120}
+                  height={1030}
+                  maxWidth="520px"
+                  summary="See the consent page"
+                  alt="The GST consent page: a heading reading Authorize access to the GST MCP server, a line saying Claude is requesting access with your key's full scope set, one password field labelled Your MCP key, and Approve and Deny buttons"
+                  caption="The GST consent page. With no scope list in the request, as here, approving grants your key's full scope set"
+                />
               </div>
             </li>
             <li class="quick-step">
               <div class="quick-step__num">04</div>
               <div>
-                <h3 class="quick-step__title">Restart, then confirm the tools are there</h3>
+                <h3 class="quick-step__title">Confirm the tools are there</h3>
                 <p class="quick-step__body">
-                  Quit Claude Desktop fully (it stays in the tray) and relaunch. The chat
-                  input's&#32;
+                  On the web, start a new conversation; no restart is needed. In Claude Desktop,
+                  quit fully first (it stays in the tray) and relaunch. The chat input's&#32;
                   <strong>+ → Connectors</strong> menu should list <code>GST MCP</code> with the GST tools
                   and prompts under it.
                 </p>
@@ -385,6 +427,12 @@ debt, or information request lists:
   .guide-callout {
     max-width: 900px;
     margin-top: var(--spacing-xl);
+  }
+
+  /* The connector-name row sits under the endpoint row; the shared `.endpoint-row`
+     has no outer margin because the design shows one row per step. */
+  .endpoint-row--name {
+    margin-top: var(--spacing-sm);
   }
 
   .text-cta {

@@ -6,7 +6,7 @@ The three onboarding guides under `/hub/mcp/` — `get-started/`, `using/`, `adv
 
 ## The clip player
 
-Markup: `src/components/hub/mcp/ClipFigure.astro` (two variants — a collapsible `<details>` block and an always-visible wide figure). Behavior: `src/utils/mcp-onboarding.ts`, imported by each page's bundled script. The contract:
+Markup: `src/components/hub/mcp/ClipFigure.astro` (three variants — a collapsible `<details>` block, an always-visible wide figure, and a `still`: the collapsible frame around a lazy `<img>` for a screen rendered from source rather than recorded; it carries `data-still-details` instead of `data-clip`, so none of the clip behavior below applies and the image itself is the reduced-motion state). Behavior: `src/utils/mcp-onboarding.ts`, imported by each page's bundled script. The contract:
 
 - **Lazy source attach** — `<video data-clip>` ships with no `<source>` children; sources attach from `data-mp4`/`data-webm`/`data-poster` when the clip nears the viewport (IntersectionObserver, 600px margin) or when its wrapping `<details>` opens. `preload="none"` until then.
 - **Autoplay muted loop** while ≥35% visible and the tab is foreground; paused off-view and on hidden tabs. A Pause/Play overlay button carries the state in its accessible name (no `aria-pressed` — one state signal).
@@ -28,6 +28,63 @@ None of these are visible in the files themselves:
 2. **`regulations-query` legibility** — below ~780px it is unreadable, so under 768px the wide figure stops scaling and pans horizontally instead (`min-width: 780px` frame in an `overflow-x: auto` scroller, 720px under 480px — the shipped floors, chosen by the design against the ~870px comfort figure).
 3. **`regulations-query` is speed-edited** — 5× through the middle, where the real query took ~15s. It carries a mandatory visible "Sped up 5×" badge so the page does not imply a response time the server does not deliver.
 
+## Media catalog
+
+Every clip and still the guides embed, plus the ones the pages are written around but that do not exist yet. Naming: `<stem>-web.mp4` is the encode, `<stem>-poster.webp` its poster; `<stem>-still.webp` is a rendered still (neither an encode nor a poster companion). The client a clip was recorded in goes in the stem (`-claudeai`, `-desktop`), never in the suffix.
+
+| file                                | producer                                 | shows                                                                                                                 | slot                                               | status                   |
+| ----------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------ |
+| `connector-enabled-web.mp4`         | operator recording (Claude Desktop)      | + menu → Connectors → `GST MCP` toggled on                                                                            | get-started § 03 Verify, row 1                     | shipped 2026-08-27       |
+| `prompts-resources-web.mp4`         | operator recording (Claude Desktop)      | Add from GST MCP → prompt list → resource library                                                                     | get-started § 03 Verify, row 2                     | shipped (re-record owed) |
+| `regulations-query-web.mp4`         | operator recording (Claude Desktop)      | a regulatory query, 5× through the middle                                                                             | using § 01 First query                             | shipped 2026-08-27       |
+| `consent-page-still.webp`           | `npm run media:consent-still` (rendered) | the OAuth consent page, empty scope request, dark scheme, 2×, 1120×1030                                               | get-started § 02 Quick Start, step 03              | shipped 2026-09-03       |
+| `add-connector-claudeai-web.mp4`    | operator recording (claude.ai)           | Settings → Connectors → Add custom connector → paste the endpoint → name it `GST MCP` → Add                           | get-started § 02 Quick Start, step 02              | **owed** (BL-152)        |
+| `add-connector-desktop-web.mp4`     | operator recording (Claude Desktop)      | the same actions in Desktop; keep only one of the two if the dialogs prove identical                                  | get-started § 02 Quick Start, step 02, below       | **owed** (BL-152)        |
+| `oauth-consent-web.mp4`             | operator recording (browser)             | the tab opening on the consent page, the key paste (a password field, nothing to mask), Approve, the return to Claude | get-started § 02 Quick Start, step 03, above still | **owed** (BL-152)        |
+| `connector-enabled-desktop-web.mp4` | operator recording (Claude Desktop)      | optional: only if Desktop's + → Connectors menu differs visibly from the shipped verify clip                          | get-started § 03 Verify, row 1                     | optional (BL-152)        |
+
+### Recording briefs for the owed clips
+
+Common to all three: 15 fps, `-an`, the libx264 recipe below, 6–8 s, cropped to the dialog or tab so the smallest text stays legible at the slot's `maxWidth`; poster from a frame where the key UI element is fully drawn. Target aspects: the add-connector dialogs ≈4:3 (slot `maxWidth="560px"`), the consent tab ≈1.1:1 (slot `maxWidth="520px"`, matching the still it sits above). Each poster is the clip's reduced-motion state, so it must exist.
+
+When a file lands: put the pair in `public/images/hub/mcp/`, paste the snippet into the slot named above, fill `{W}`/`{H}` from the encode, and bump `clips` for Get Started in `tests/e2e/hub-mcp-onboarding.test.ts` (the count is pinned). No other code changes.
+
+```astro
+<ClipFigure
+  variant="collapsible"
+  mp4="/images/hub/mcp/add-connector-claudeai-web.mp4"
+  poster="/images/hub/mcp/add-connector-claudeai-poster.webp"
+  width={W}
+  height={H}
+  maxWidth="560px"
+  summary="See it on claude.ai"
+  ariaLabel="Screen capture: Settings opens on Connectors, Add custom connector is chosen, the GST endpoint is pasted, the connector is named GST MCP and added"
+  caption="Screen capture: adding the custom connector on claude.ai"
+/>
+<ClipFigure
+  variant="collapsible"
+  mp4="/images/hub/mcp/add-connector-desktop-web.mp4"
+  poster="/images/hub/mcp/add-connector-desktop-poster.webp"
+  width={W}
+  height={H}
+  maxWidth="560px"
+  summary="See it in Claude Desktop"
+  ariaLabel="Screen capture: the same connector dialog in Claude Desktop, from Settings through Add"
+  caption="Screen capture: adding the custom connector in Claude Desktop"
+/>
+<ClipFigure
+  variant="collapsible"
+  mp4="/images/hub/mcp/oauth-consent-web.mp4"
+  poster="/images/hub/mcp/oauth-consent-poster.webp"
+  width={W}
+  height={H}
+  maxWidth="520px"
+  summary="See the consent round trip"
+  ariaLabel="Screen capture: a browser tab opens on the GST consent page, the MCP key is pasted into the password field, Approve is clicked, and Claude shows the connector connected"
+  caption="Screen capture: approving at the consent page and returning to Claude"
+/>
+```
+
 ## Re-record trigger
 
 `prompts-resources-web.mp4` was recorded when the server registered **nine** prompts; the page copy (correctly) says **twelve**. The clip also shows the pre-em-dash-strip phrasing of the starter regulatory query. Both are accepted mismatches: re-record when Claude Desktop's UI or the prompt roster changes materially, and drop the replacement in under the **same filename** — no code change. Same rule for the other two clips when the Desktop UI drifts.
@@ -41,6 +98,7 @@ Sources: `GST_MCP_Claude_Connection_Verify.mp4` (1506×1170, 10.4s) and `GST_MCP
 - **regulations-query** — from source 2, variable-speed concat: `trim=0.8:2.9` at 1×, `trim=2.9:16.2` at 5× (`setpts=(PTS-STARTPTS)/5`), `trim=16.2:18.4` at 1×; then `crop=1384:730:0:0`, `fps=30`, `tpad=stop_mode=clone:stop_duration=0.7`. Native width, no scaling. Poster at `t=7.2`.
 - **All**: `-an`. mp4 `libx264 -profile:v high -crf 30 -preset slow -pix_fmt yuv420p -movflags +faststart` at `fps=15`.
 - **Posters**: WebP at quality 82 (`ffmpeg -i poster.png -q:v 82 poster.webp`), measured 82% smaller than PNG with no visible loss at full size against the smallest text in the set. Do not commit the intermediate PNGs.
+- **consent-page-still** — not a recording: `npm run media:consent-still` (`scripts/render-consent-still.mjs`) bundles `mcp-server/src/oauth/consent.ts` with esbuild, drives the exported `handleAuthorizeGet` with a stub provider (client `Claude`, empty scope request, so the page renders its "your key's full scope set" branch) and an in-memory KV, screenshots the HTML with Playwright chromium (560px viewport, full page, 2×, dark colour scheme to match the always-dark frame), and converts to WebP with the poster recipe above. No Worker source, deployed environment, or credential is involved. **Rendered on Windows**: the shell's mono stack resolves through `local('Consolas')`, so another OS renders a different face; treat the output as write-once and regenerate only when `html-shell.ts` or the consent copy changes. If a real consent ever shows a scope list, set it in the script's `AUTH_REQUEST.scope` and re-render under the same filename.
 - **WebM**: do not re-add — measured 12.6% larger in total than the mp4s while reaching no additional browser; the numbers live in ADR-0022 so the rejection stays checkable.
 
 ### GIF pass (deleted variants, recorded so the deletion is reversible)

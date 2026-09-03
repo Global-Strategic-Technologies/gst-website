@@ -16,7 +16,13 @@
  */
 import { test, expect } from '@playwright/test';
 
-/** One entry per guide: route, h1, and its sticky-TOC section ids in order. */
+/**
+ * One entry per guide: route, h1, its sticky-TOC section ids in order, and the
+ * media it embeds: `clips` are `video[data-clip]` recordings, `stills` are
+ * ClipFigure's `still` variant (a rendered `<img>` in the same frame). Both are
+ * catalogued in src/docs/hub/MCP_ONBOARDING.md; dropping a catalogued clip in
+ * bumps `clips` here.
+ */
 const GUIDES = [
   {
     name: 'Get Started',
@@ -25,6 +31,7 @@ const GUIDES = [
     crumb: 'Get Started',
     sections: ['prerequisites', 'quick-start', 'verify', 'whats-next'],
     clips: 2,
+    stills: 1,
   },
   {
     name: 'Using the Server',
@@ -33,6 +40,7 @@ const GUIDES = [
     crumb: 'Using the Server',
     sections: ['first-query', 'prompts', 'resources', 'troubleshooting', 'next'],
     clips: 1,
+    stills: 0,
   },
   {
     name: 'Advanced Operations',
@@ -50,6 +58,7 @@ const GUIDES = [
       'next',
     ],
     clips: 0,
+    stills: 0,
   },
 ] as const;
 
@@ -140,6 +149,24 @@ for (const guide of GUIDES) {
         }
         await expect(first.locator('source')).not.toHaveCount(0);
         await expect(first).toHaveAttribute('poster', /\/images\/hub\/mcp\//);
+      });
+    }
+
+    if (guide.stills > 0) {
+      test('rendered stills open in the clip frame and their image resolves', async ({ page }) => {
+        const stills = page.locator('details[data-still-details]');
+        await expect(stills).toHaveCount(guide.stills);
+        const first = stills.first();
+        await first.locator('summary').click();
+        await expect(first).toHaveAttribute('open', '');
+        const img = first.locator('img');
+        await expect(img).toBeVisible();
+        const src = await img.getAttribute('src');
+        expect(src).toMatch(/^\/images\/hub\/mcp\//);
+        // The asset must exist — a renamed still would otherwise 404 silently
+        // behind a lazy-loading <img>.
+        const res = await page.request.get(src!);
+        expect(res.status()).toBe(200);
       });
     }
 
