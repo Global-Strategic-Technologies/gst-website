@@ -76,13 +76,13 @@ const { currentPath = '/', staticHeader = false } = Astro.props;
 
   @media (max-width: 768px) {
     .site-header {
-      padding: 1rem 0;
+      padding: var(--spacing-lg) 0;
     }
   }
 
   @media (max-width: 480px) {
     .site-header {
-      padding: 0.75rem 0;
+      padding: var(--spacing-md) 0;
     }
   }
 

@@ -117,7 +117,7 @@ body {
 .container {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 0 3rem;
+  padding: 0 var(--spacing-3xl);
   position: relative;
   z-index: 1;
 }
@@ -138,13 +138,13 @@ body {
    at phone widths — the same class of bug this replaces. */
 @media (max-width: 768px) {
   .container {
-    padding: 0 1.5rem;
+    padding: 0 var(--spacing-xl);
   }
 }
 
 @media (max-width: 480px) {
   .container {
-    padding: 0 1rem;
+    padding: 0 var(--spacing-lg);
   }
 }
 
@@ -309,14 +309,14 @@ Legal Page Layout (Privacy, Terms)
 .legal-page-container {
   max-width: 900px;
   margin: 0 auto;
-  padding: 4rem 1.5rem;
+  padding: 4rem var(--spacing-xl);
 }
 
 .legal-page-header {
   position: static !important;
   top: auto;
-  margin-bottom: 3rem;
-  padding-bottom: 2rem;
+  margin-bottom: var(--spacing-3xl);
+  padding-bottom: var(--spacing-2xl);
   border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-default));
   background: transparent;
 }
@@ -326,7 +326,7 @@ Legal Page Layout (Privacy, Terms)
   font-weight: 700;
   font-family: var(--font-family-mono);
   text-transform: uppercase;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
   color: var(--text-primary);
 }
 
@@ -354,22 +354,22 @@ Legal Page Layout (Privacy, Terms)
   font-weight: 600;
   font-family: var(--font-family-mono);
   text-transform: uppercase;
-  margin-top: 2.5rem;
-  margin-bottom: 1rem;
+  margin-top: var(--spacing-2_5xl);
+  margin-bottom: var(--spacing-lg);
   color: var(--text-primary);
 }
 
 .legal-page-body p {
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-lg);
 }
 
 .legal-page-body ul {
-  margin-left: 1.5rem;
-  margin-bottom: 1rem;
+  margin-left: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
 }
 
 .legal-page-body li {
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--spacing-md);
 }
 
 .legal-page-body a:hover {
@@ -377,8 +377,8 @@ Legal Page Layout (Privacy, Terms)
 }
 
 .legal-contact-section {
-  margin-top: 3rem;
-  padding: 2rem;
+  margin-top: var(--spacing-3xl);
+  padding: var(--spacing-2xl);
   background: transparent;
   border-left: 3px solid var(--color-primary);
 }
@@ -389,7 +389,7 @@ Legal Page Layout (Privacy, Terms)
 
 @media (min-width: 480px) {
   .legal-page-container {
-    padding: 4rem 2rem;
+    padding: 4rem var(--spacing-2xl);
   }
 
   .legal-page-header h1 {
@@ -399,7 +399,7 @@ Legal Page Layout (Privacy, Terms)
 
 @media (min-width: 768px) {
   .legal-page-container {
-    padding: 5rem 2rem;
+    padding: 5rem var(--spacing-2xl);
   }
 
   .legal-page-header h1 {

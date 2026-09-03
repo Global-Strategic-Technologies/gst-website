@@ -18,6 +18,7 @@ import CapabilityNav from '../../../../components/hub/mcp/CapabilityNav.astro';
 import JobCard from '../../../../components/hub/mcp/JobCard.astro';
 import { CAPABILITIES, DEFAULT_CAPABILITY_ID, JOBS } from '../../../../data/mcp/capabilities';
 import { capabilityCounts } from '../../../../utils/mcp-capability-search';
+import { mcpCapabilityListSchema, mcpServerSchema } from '../../../../utils/mcp-schema';
 // `filter.css` is code-split, NOT site-wide (see the roster comment in
 // global.css). This page renders `.brutal-search*` for the capability lookup and
 // `.brutal-filter-chip` for the orchestrates / related / job chips, so it
@@ -57,6 +58,12 @@ const countLinks = [
   ogImageAlt="GST MCP Server - capability documentation"
   ogUrl="https://globalstrategic.tech/hub/mcp/docs/"
 >
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(mcpServerSchema())} />
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(mcpCapabilityListSchema(CAPABILITIES))}
+  />
   <section class="mdoc-section">
     <script is:inline>
       // Runs BEFORE the panes below are parsed, which is the whole point: the

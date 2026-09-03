@@ -19,7 +19,12 @@ export function extractAstroMarkup(source: string): string {
     source
       .replace(/^---[\s\S]*?\n---/, '')
       .replace(/<style[^>]*>[\s\S]*?<\/style>/g, '')
-      .replace(/<script[\s\S]*?<\/script>/g, '')
+      // Both script forms: the paired `<script>…</script>` and Astro's
+      // self-closing `<script … set:html={…} />` (the JSON-LD idiom). Matching
+      // only the paired form let a self-closing one swallow the whole rest of
+      // the page, and every guard downstream then asserted over an empty
+      // region — found 2026-09-02 when the MCP pages gained structured data.
+      .replace(/<script\b[\s\S]*?(?:<\/script>|\/>)/g, '')
       // `\s*` inside the braces is required, not defensive: prettier reformats
       // `{/* … */}` to `{ /* … */ }` on commit.
       .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '')

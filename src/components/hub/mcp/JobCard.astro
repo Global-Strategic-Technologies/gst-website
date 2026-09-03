@@ -62,11 +62,15 @@ const { job } = Astro.props;
     {
       /* Pluralised because a one-step job is legitimate: `Extract useful
         context from an IRL` runs one prompt that calls nothing, and that is the
-        property worth stating, not a gap to pad. */
+        property worth stating, not a gap to pad.
+
+        One expression, not two on adjacent lines: compressHTML deletes the
+        newline between two expressions the same way it deletes the one before
+        an inline open tag (STYLES_GUIDE § compressHTML), and this shipped as
+        "3STEPS" for a round. */
     }
     <span class="brutal-label-small mdoc-job__count">
-      {job.steps.length}
-      {job.steps.length === 1 ? 'step' : 'steps'}
+      {`${job.steps.length} ${job.steps.length === 1 ? 'step' : 'steps'}`}
     </span>
   </summary>
 

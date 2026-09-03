@@ -199,7 +199,7 @@ In stylesheets, always import in cascade order:
 | --------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Design system tokens, resets, page layout           | Global CSS in `src/styles/`                                                   |
 | Single-component visual styles                      | Scoped `<style>` in the `.astro` file                                         |
-| **Styling an element a _child_ component renders**  | **Shared module in `src/styles/components/` — see below**                     |
+| **Styling an element a _child_ component renders**  | **Shared module in `src/styles/components/` — see below; or, for a single parent's positional tweak, an anchored `:global()`** |
 | Styling dynamically injected HTML (`innerHTML`)     | `:global()` wrapper on the selector                                           |
 | Dark theme color switching                          | `light-dark(light, dark)` inline — preferred over `:global(html.dark-theme)`  |
 | Dark theme non-color overrides (opacity, etc.)      | `:global(html.dark-theme)` prefix — only for properties that aren't colors    |
@@ -230,7 +230,8 @@ recorded a move whose declarations were left behind.
    `src/styles/components/*.css` module. A plain stylesheet cannot fall into this trap at all.
 2. If it genuinely belongs to one component, move it into **that** component's scoped block.
 3. Reach for `:global()` only for markup that has no component to own it — the `innerHTML` case
-   above.
+   above — or for a **positional** declaration on a shared utility a child renders, anchored to a
+   scoped ancestor. See [When `:global()` Is Necessary](#when-global-is-necessary) case 3.
 
 **But first ask whether the rule should apply at all.** Dead CSS has usually been dead for a
 long time, and nobody has been missing it. BL-139's rules turned out to be the wrong design once
@@ -247,6 +248,57 @@ browser. That is why the BL-139 tests assert `getComputedStyle` values at each b
 others verbatim with no fallback — viewport units among them. An unsupported unit is therefore
 dropped silently at runtime rather than polyfilled at build time, taking its whole declaration
 with it.
+
+### `compressHTML` deletes the space before a wrapped inline element
+
+`compressHTML` defaults to **on** and is not set in `astro.config.mjs`. It does not *collapse*
+the newline+indent between a line of prose and an inline element opening the next line — it
+**deletes** it:
+
+```astro
+<!-- Source -->
+<p>…request volume) is published at
+  <a href="https://status.mcp.globalstrategic.tech/">status.mcp.globalstrategic.tech</a>.</p>
+
+<!-- Ships as -->
+published atstatus.mcp.globalstrategic.tech.
+```
+
+Same-line spacing is fine, and so is text→text across a break. The **text → inline open
+tag** boundary loses its space, which is why the defect appears wherever Prettier happens to
+wrap and looks arbitrary rather than systematic. So does an **expression → expression**
+boundary: `{count}` on one line and `{unit}` on the next shipped as `3STEPS` in `JobCard.astro`
+(2026-09-02); render both from one expression instead, a single template literal that carries
+the space itself, which leaves no source whitespace to delete. Fourteen of the text → tag kind were live across six files before
+`tests/unit/inline-element-spacing.test.ts` started guarding it.
+
+**Two forms work; both put the space somewhere the compressor cannot reach.**
+
+| Form    | Why it survives                                                          | Use in                                                                |
+| ------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `&#32;` | a character reference is not source whitespace                            | plain template regions — no expression needed, survives Prettier rewrap |
+| `{' '}` | compiles to an expression (`${' '}`), not a text node a compressor can see | JSX-ish regions that already carry expressions                        |
+
+`&#32;` is the default. `{' '}` is equally sound and already load-bearing in the repo — five
+sites in `diligence-machine/index.astro` and one in `CTABox.astro`, the latter with a comment
+saying so. Do **not** reach for `&nbsp;`: it would wrongly suppress wrapping at that point.
+Either form collapses harmlessly against real whitespace if compression is ever turned off.
+
+**It is one mechanism, in both region kinds.** Expression regions (`{cond && (<p>…)}`) are not
+exempt, and JSX whitespace handling is not the cause there — established by a 2×2 build probe
+(2026-09-02): with the space expression removed, the newline **survives** compilation when
+`compressHTML` is off and is **deleted** when it is on, in an expression region, exactly as in
+plain template markup. `CTABox.astro`'s comment used to attribute its own instance to JSX; it
+now points here.
+
+**Reproduce it through a real `npm run build`, not the standalone compiler.** Astro 7 bundles its
+own compiler build, and `@astrojs/compiler` installed on its own *collapses* the whitespace to a
+single character where the shipped pipeline *deletes* it — a session checking this the fast way
+would conclude this section is wrong.
+
+Turning `compressHTML` off fixes the whole class in one line; it was measured at **+305 KB raw /
++29 KB gzipped** across the site's HTML and rejected on those grounds. Revisit that trade if the
+entity count ever gets large.
 
 ### `class:list` — Conditional Classes
 
@@ -291,11 +343,37 @@ const accentColor = getThemeColor(category);
    ```
 
 2. **Parent state selectors** — When a component's appearance depends on a class on `<html>` or a parent element:
+
    ```css
    :global(html.dark-theme) .my-card {
      background: var(--bg-dark-secondary);
    }
    ```
+
+3. **A shared utility on an element a child component renders** — the [scoped-rule /
+   foreign-element trap](#the-scoped-rule--foreign-element-trap) above, remedy step 3. A class
+   passed to `<DeltaIcon class="…" />` never receives this file's cid, so a bare selector matches
+   nothing. Legitimate only when the declaration is **positional** — where the parent puts the
+   utility, which is the parent's business — and only ever **anchored to a scoped ancestor**, so
+   it stays as narrow as the component:
+
+   ```css
+   /* Anchored: .clip-details still carries this file's cid, so this cannot leak. */
+   .clip-details > summary :global(.delta-chevron) {
+     margin-left: 0;
+   }
+   ```
+
+   A bare `:global(.delta-chevron) { … }` with no ancestor is a site-wide edit to a shared
+   utility; that belongs in `interactions.css`, not a component. If the declaration is anything
+   more than positional, remedy steps 1 and 2 still win.
+
+   **Discriminator against remedy step 1**, which also claims positional styling: does the
+   declaration serve *this one parent* or a *recurring arrangement*? One parent — where it puts
+   the utility is its own business — take the anchored `:global()` here. Recurring across
+   components — it is a property of the arrangement, not of any caller — move it to
+   `src/styles/components/*.css`. Three components zeroing the same declaration is the signal
+   that it has stopped being local.
 
 **Prefer `light-dark()` over `:global(html.dark-theme)`** for color properties. Use `light-dark(light-value, dark-value)` inline or define a CSS variable with `light-dark()` in `variables.css`. Reserve `:global(html.dark-theme)` only for non-color properties (opacity, display, backdrop-filter).
 
@@ -981,6 +1059,22 @@ all of them demonstrate the JS-toggled pattern.
 - Place the SVG as the last child inside the collapsible header/title row
 - Toggle `.is-collapsed` on the card/container element, not the chevron itself
 - In print styles, hide with `:global(.delta-chevron) { display: none !important; }`
+- **Leading with the chevron instead? Zero its `margin-left`.** The utility carries
+  `margin-left: auto` for the last-child home above. First in a flex row, that margin absorbs
+  the row's free space and shoves the whole row flush right — measured at 352px and 433px on
+  ClipFigure's two `/hub/mcp/get-started` blocks, landing the label at a different x in each,
+  since the free space is whatever the container's `max-width` leaves. It is silent wherever a
+  sibling has `flex: 1` (FyiItem's title), because flexing consumes the free space first — so
+  the bug appears only in some leading-chevron rows, which is what makes it easy to miss.
+  `JobCard.astro`, `ClipFigure.astro` and the IRL generator all zero it the same way:
+
+  ```css
+  /* :global() is required — the class rides a <DeltaIcon> call, so the scope
+     attribute never lands on the rendered <svg>. See the scoped-rule trap above. */
+  .clip-details > summary :global(.delta-chevron) {
+    margin-left: 0;
+  }
+  ```
 
 **Current usage**: both branches are used widely — JS-toggled by ICG recommendations and Diligence Machine attention cards/questions, `<details>` by the Hub landing and MCP pages, services, regulatory map, ClipFigure and FyiItem. It is a shared utility, so treat any change to it as site-wide and enumerate consumers with `grep -rl delta-chevron src/` rather than trusting a list here.
 
@@ -1061,6 +1155,34 @@ html.dark-theme {
 ```
 
 **Micro-spacing exception**: Values below `--spacing-xs` (4px) are acceptable for badge padding, border-radius fine-tuning, and optical alignment. Use `1px` or `2px` directly since the spacing scale does not cover sub-4px values. Example: `padding: 2px var(--spacing-sm)` is acceptable for compact badges.
+
+**This is enforced, as of ADR-0029 — a rem spacing literal that has an exact token fails
+`lint:css`.** Two instruments hold it, and they have different reach:
+
+| | catches | misses |
+| --- | --- | --- |
+| `declaration-property-value-disallowed-list` (stylelint, **error**) | `<style>` blocks **and inline `style=` attributes**; fails at editor, pre-commit and CI | exempts a whole declaration containing `calc()` |
+| `tests/integration/spacing-token-floor.test.ts` (vitest) | `<style>` blocks; judges `calc()` **per shorthand part**, so `1.25rem calc(…)` is still caught | inline `style=` attributes |
+
+The guard is the referee — it derives the scale from `variables.css` rather than hardcoding it, and
+it owns the accepted-residual table.
+
+**Adding an off-scale value?** It is not a lint failure (the rule names on-scale values only), but
+the guard will flag it as an unaccepted residual. The remedy is a ruling in ADR-0029's table with a
+reason, not a `stylelint-disable`. Reserve the disable comment for the shape the `@media print`
+exception uses — a whole block that is deliberately literal — and always with a justification:
+
+```css
+/* stylelint-disable declaration-property-value-disallowed-list -- <why this block is literal> */
+```
+
+**Sixteen values are already admitted** — above the ramp (`4rem`, `5rem`), below its 4px floor
+(`0.0625rem`, `0.125rem`, `0.15rem`), and between steps. Two are derived constants rather than
+chosen steps — the search input's icon clearance, `left: 0.875rem` and the `2.25rem` padding that
+clears it. (Values inside `calc()` are derived too, but they are exempt by ruling and are therefore
+not among the sixteen.) Read the table before adding a seventeenth — several are partners in one
+declaration, and
+snapping half of a tuned pair is worse than either leaving both or moving both.
 
 ### 4. Hardcoded Font Sizes
 

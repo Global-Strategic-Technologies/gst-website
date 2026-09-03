@@ -4,11 +4,16 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
 import CopyRow from '../../../../components/hub/mcp/CopyRow.astro';
 import '../../../../styles/components/mcp-guide.css';
+import { mcpGuideSchema } from '../../../../utils/mcp-schema';
 
 // Copy is transcribed from the content-reviewed design handoff (2026-08-27),
 // with em dashes rewritten per operator direction. Published facts (engine
 // count, fill-ratio rule, prompt names, gst_irl_ingestion's coexistence) are
 // pinned by tests/integration/mcp-onboarding-parity.test.ts.
+
+const PAGE_URL = 'https://globalstrategic.tech/hub/mcp/advanced-operations/';
+const DESCRIPTION =
+  'Ingest a populated information request list with gst_irl_sweep: one optional argument, up to nine GST engines, and a dossier whose claims cite the workbook rows they came from.';
 
 const TOC_LINKS = [
   { id: 'why', label: '01 What it does' },
@@ -24,13 +29,27 @@ const TOC_LINKS = [
 
 <BaseLayout
   title="MCP Advanced Operations | GST"
-  description="Ingest a populated information request list with gst_irl_sweep: one optional argument, up to nine GST engines, and a dossier whose claims cite the workbook rows they came from."
+  description={DESCRIPTION}
   ogTitle="GST MCP Server: Advanced Operations"
   ogDescription="The IRL ingestion workflow: gst_irl_populate, gst_irl_sweep, and the portable extract record."
   ogImage="/og-image.png"
   ogImageAlt="GST MCP Server - IRL ingestion guide"
-  ogUrl="https://globalstrategic.tech/hub/mcp/advanced-operations/"
+  ogUrl={PAGE_URL}
+  ogType="article"
 >
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      mcpGuideSchema({
+        headline: 'Ingest an information request list',
+        description: DESCRIPTION,
+        url: PAGE_URL,
+        datePublished: '2026-08-27',
+        dateModified: '2026-09-02',
+      })
+    )}
+  />
   <section class="mcp-guide-section">
     <div class="container">
       <div class="guide-hero">
@@ -337,7 +356,7 @@ const TOC_LINKS = [
                 class="snippet-pre snippet-pre--field">filledIrl:  &lt;the IRL markdown, or blank&gt;</pre>
               <ul class="mode-card__list">
                 <li>
-                  Calls each gate-passing engine once, base schemas only: <code>unknown</code> and
+                  Calls each gate-passing engine once, base schemas only: <code>unknown</code> and&#32;
                   <code>null</code> are honest inputs where the IRL is silent.
                 </li>
                 <li>
@@ -374,7 +393,7 @@ const TOC_LINKS = [
             <span class="brutal-callout__title">The predecessor is still listed</span>
             <code>gst_irl_ingestion</code> (the eight-argument workflow with audit levels, body hashing
             and server-side provenance) remains registered unchanged while the sweep is live-verified.
-            Its removal is scheduled, together with <code>prepare_irl_body</code>,
+            Its removal is scheduled, together with <code>prepare_irl_body</code>,&#32;
             <code>validate_irl_provenance</code> and <code>compose_dossier_envelope</code>. Start
             new work on the sweep.
           </p>
@@ -525,7 +544,8 @@ const TOC_LINKS = [
             <div class="args-table__row">
               <div class="args-table__key args-table__key--fact">It travels by being pasted</div>
               <p class="args-table__note args-table__note--fact">
-                The record is context-borne: there is no server copy and no cache behind it. Its
+                The record is context-borne: there is no server copy and no cache behind it.
+                Its&#32;
                 <code>_meta</code> block dates and versions itself, because nothing server-side can supply
                 that later.
               </p>

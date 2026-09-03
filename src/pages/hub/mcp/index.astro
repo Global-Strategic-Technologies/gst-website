@@ -2,6 +2,7 @@
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../components/hub/HubHeader.astro';
 import DeltaIcon from '../../../components/DeltaIcon.astro';
+import { mcpServerSchema } from '../../../utils/mcp-schema';
 
 // Published facts on this page are pinned by
 // `tests/integration/mcp-marketing-parity.test.ts`, which reads this file's
@@ -37,6 +38,7 @@ function accessHref(tier?: string) {
   ogImageAlt="GST MCP Server - Model Context Protocol access to GST diligence tooling"
   ogUrl="https://globalstrategic.tech/hub/mcp/"
 >
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(mcpServerSchema())} />
   <section class="mcp-section">
     <div class="container">
       <HubHeader title="GST MCP Server">

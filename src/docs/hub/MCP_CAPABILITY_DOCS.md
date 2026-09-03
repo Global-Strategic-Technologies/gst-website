@@ -202,3 +202,12 @@ Served by the MCP Worker, not Vercel: `mcp-server/wrangler.toml` declares it as 
   exercised in production, after the gated `mcp-production` deploy.
 - Never link it, and never point the redirect at a hash or query URL: permanent
   redirects are cached hard and durably by browsers.
+- Cloudflare's zone-level AI-bot block sits in front of it (observed 2026-09-02):
+  AI crawler and assistant user agents get a 403 there instead of the 308.
+  Search crawlers are unaffected, and the canonical page on Vercel is not behind
+  Cloudflare at all. Dashboard toggle, not repo state; see
+  [SEO_IMPLEMENTATION.md § Crawler access on the Worker hosts](../seo/SEO_IMPLEMENTATION.md#crawler-access-on-the-worker-hosts).
+
+The page itself carries `SoftwareApplication` and `ItemList` JSON-LD derived from
+the registry, so a new capability is described to crawlers without a separate
+edit: [JSON_LD_SCHEMA.md § MCP Server Schemas](../seo/JSON_LD_SCHEMA.md#mcp-server-schemas).
