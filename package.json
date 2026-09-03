@@ -99,21 +99,14 @@
     "world-atlas": "^2.0.2"
   },
   "overrides": {
-    "path-to-regexp": "6.3.0",
     "fast-uri": "3.1.7",
-    "@modelcontextprotocol/sdk": {
-      "express-rate-limit": "8.5.1"
-    },
-    "@hono/node-server": {
-      ".": "2.0.11"
-    },
     "@lhci/cli": {
       "tmp": "0.2.7",
       "uuid": "11.1.1"
     },
-    "hono": "4.12.34",
     "ip-address": "10.3.1",
-    "qs": "6.16.0"
+    "qs": "6.16.0",
+    "path-to-regexp": "6.3.0"
   },
   "lint-staged": {
     "*.{ts,tsx,mjs,cjs,js}": [

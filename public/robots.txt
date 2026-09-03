@@ -17,3 +17,7 @@ Sitemap: https://globalstrategic.tech/sitemap-index.xml
 
 # Crawl delay (in seconds) - optional, helps manage server load
 # Crawl-delay: 1
+
+# Agent-facing site index (llms.txt convention) - not a robots directive,
+# listed here so a crawler that only reads this file can find it.
+# https://globalstrategic.tech/llms.txt

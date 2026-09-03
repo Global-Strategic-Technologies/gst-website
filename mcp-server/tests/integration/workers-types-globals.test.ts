@@ -58,12 +58,14 @@
  *
  * ─── Reading the right copy ─────────────────────────────────────────────────
  *
- * Two copies of this package exist in the tree: `mcp-server/node_modules/…` at
- * 5.x (the direct devDependency) and a root-hoisted `node_modules/…` at 4.x
- * (pulled transitively via `agents → partyserver`). The package ships NO
+ * The copy may sit nested under `mcp-server/node_modules/…` or hoisted to the
+ * root `node_modules/…`, depending on the lockfile of the day (when BL-137
+ * wrote this there were two, a nested 5.x and a hoisted 4.x pulled through
+ * `agents → partyserver`; since 2026-09 there is one). The package ships NO
  * `main`, `types`, or `exports` field, so `require.resolve` cannot pick for us.
- * The subpath is resolved explicitly and the version asserted, otherwise a
- * hoist change would let this validate the v4 tree and pass vacuously.
+ * Both candidate paths are checked explicitly and whichever is found must
+ * satisfy the declared range, otherwise a hoist change could let this validate
+ * the wrong tree and pass vacuously.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
@@ -126,7 +128,7 @@ const ACCEPTED_SHADOWS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Every top-level `declare` name in the pinned `index.d.ts`, sorted. Generated
+ * Every top-level `declare` name in the installed `index.d.ts`, sorted. Generated
  * once against 5.20260804.1 and curated by hand since — see the header before
  * editing, including its note on why bare `interface`/`type` are out of scope
  * here but in scope for the collision check.
