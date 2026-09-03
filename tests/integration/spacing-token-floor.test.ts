@@ -1,20 +1,22 @@
 /**
- * Spacing-token floor for the six files ADR-0028 swept.
+ * Spacing-token floor, repo-wide.
  *
- * WHAT THIS ASSERTS. In these six files, a rem value in a spacing property that
- * has an exact token on the scale must BE that token. ADR-0028 replaced 90 such
- * literals with `var(--spacing-*)`, all value-identical; this keeps them that
- * way. A one-shot grep proved the sweep complete on the day it ran and expired
- * immediately — that is the whole reason this file exists.
+ * WHAT THIS ASSERTS. In every `.css` and `.astro` file under `src/`, a rem value
+ * in a spacing property that has an exact token on the scale must BE that token.
+ * ADR-0028 established the property that makes this enforceable: no sheet, theme
+ * or palette shadows a `--spacing-*`, so a `var()` substitution is
+ * value-identical and cannot resolve differently anywhere. ADR-0029 widened this
+ * guard from the six files ADR-0028 swept to all of `src/`, absorbing 217
+ * literals in the same change.
  *
- * WHY ONLY SIX FILES. Nothing lints spacing repo-wide: `.stylelintrc.json`'s
- * strict-value rule covers the color families only (`font-size` is governed
- * separately, by a `declaration-property-value-allowed-list` at warning
- * severity), and its `ignoreValues` carries a bare-number-plus-unit pattern that
- * would swallow a naively-added `padding`/`margin`/`gap` rule. 227 literals
- * remain in the 32 files this sweep did not touch. Widening this guard to reach
- * them is BL-148, and it is a different review: those are not all
- * value-identical substitutions.
+ * REACH, AND WHAT SITS OUTSIDE IT. This reads `<style>` blocks. It does NOT see
+ * inline `style="…"` attributes — stylelint does, and the
+ * `declaration-property-value-disallowed-list` rule added in ADR-0029 holds the
+ * 41 on-scale literals swept out of the two /brand specimen files. Five
+ * OFF-scale literals remain in `BrandUILibrary.astro`'s inline attributes and are
+ * governed by neither instrument: that rule names on-scale values only, and this
+ * guard cannot see them. Recorded rather than closed — the specimen replicas
+ * carry inline styles deliberately, because Astro's scoping cannot reach them.
  *
  * WHAT IT DOES NOT DO. It reads SOURCE TEXT and does not resolve the cascade, so
  * it cannot tell you what a browser computes. It also does not descend into
@@ -23,76 +25,237 @@
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   stripComments,
   extractAstroStyles,
   splitShorthand,
   parseRootTokens,
+  walkStyleSources,
 } from './helpers/css-parse';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-
-/** The files ADR-0028 swept. Adding one here means sweeping it first. */
-const SWEPT_FILES = [
-  'src/pages/about.astro',
-  'src/pages/services.astro',
-  'src/components/Footer.astro',
-  'src/components/FooterLinks.astro',
-  'src/components/StatsBar.astro',
-  'src/styles/components/cards.css',
-] as const;
+const SRC_DIR = join(REPO_ROOT, 'src');
 
 /**
  * Spacing properties. `outline-offset` is in deliberately (it is spacing-adjacent
  * and `FooterLinks.astro` uses it on-scale); `font-size` is out by TYPE, and that
  * boundary belongs to BL-094's type-scale ruling, not here.
  */
+// Mirrors the stylelint rule's property key EXACTLY, in the same order — a
+// spacing-lint-rule.test.ts case compares the two as ordered lists, so a
+// property added here and not there would let `top: 1rem` fail one instrument
+// and pass the other. The logical longhands have zero occurrences in src/
+// today; they are listed so that adding the first one is covered rather than
+// silently exempt.
 const SPACING_PROPS =
   '(?:padding|padding-top|padding-right|padding-bottom|padding-left|padding-block|padding-inline|' +
+  'padding-block-start|padding-block-end|padding-inline-start|padding-inline-end|' +
   'margin|margin-top|margin-right|margin-bottom|margin-left|margin-block|margin-inline|' +
-  'gap|row-gap|column-gap|inset|top|right|bottom|left|outline-offset)';
+  'margin-block-start|margin-block-end|margin-inline-start|margin-inline-end|' +
+  'gap|row-gap|column-gap|inset|inset-block|inset-inline|inset-block-start|inset-block-end|' +
+  'inset-inline-start|inset-inline-end|top|right|bottom|left|outline-offset)';
 
 const DECL_RE = new RegExp(`(^|[;{])\\s*(${SPACING_PROPS})\\s*:\\s*([^;{}]+)`, 'g');
 
 /**
- * Off-scale rem values these files keep, and why. Mirrors ADR-0028's table.
+ * Off-scale rem values the repo keeps, and why. Mirrors ADR-0029's table, which
+ * is keyed by VALUE with a file list rather than one row per site — sixteen
+ * reasons read better than forty near-duplicates.
  *
  * An entry that stops matching a real declaration FAILS rather than rotting —
  * the property `FLOOR_EXCEPTIONS` in touch-target-floor.test.ts established.
  *
- * `Footer.astro:42`'s `0.85rem` is NOT here: it sits inside
- * `calc((0.85rem - var(--touch-target-min)) / 2)`, and this guard does not descend
- * into calc. That is a ruling, not an oversight — a value inside a calc expression
- * is a derived constant (that one computes a 13.6px margin box), and substituting
- * a token there would break an arithmetic derivation rather than move a pixel.
- * ADR-0028 records all four residuals; this guard governs the three it can see.
+ * A value appears more than once when its sites are kept for DIFFERENT reasons:
+ * `0.375rem` carries three rulings, and flattening them into one sentence would
+ * be exactly the stale-but-plausible entry the liveness case exists to catch.
+ *
+ * Values inside `calc()` are NOT here — `Footer.astro`'s `0.85rem` and
+ * `CategoryFilter.astro`'s `1.6rem`. This guard does not descend into calc, by
+ * ruling: a value inside one is a derived constant, and substituting a token
+ * there would break an arithmetic derivation rather than move a pixel.
  */
 const ACCEPTED_RESIDUALS = [
+  // --- Above the ramp: the scale stops at 48px, so there is nothing to snap to.
   {
-    file: 'src/pages/about.astro',
     value: '5rem',
-    reason:
-      '80px is ABOVE the ramp top (48px), so the scale does not reach it. Six source ' +
-      'files use 5rem un-tokenized; snapping 80px->48px would move pixels.',
+    files: [
+      'src/pages/about.astro',
+      'src/styles/global.css',
+      'src/pages/hub/library/business-architectures/index.astro',
+      'src/pages/hub/library/information-request-list/index.astro',
+      'src/pages/hub/library/vdr-structure/index.astro',
+      'src/pages/hub/tools/information-request-list-generator/index.astro',
+    ],
+    reason: 'Ruled by ADR-0028: 80px is ABOVE the ramp top (48px), so snapping moves pixels.',
   },
   {
-    file: 'src/styles/components/cards.css',
+    value: '4rem',
+    files: [
+      'src/components/CTABox.astro',
+      'src/components/CTASection.astro',
+      'src/components/portfolio/PortfolioGrid.astro',
+      'src/styles/global.css',
+    ],
+    reason: 'Inherits the 5rem ruling: 64px is likewise above the ramp top.',
+  },
+
+  // --- Below the ramp: the floor is 4px (--spacing-xs).
+  {
     value: '0.125rem',
+    files: ['src/styles/components/cards.css'],
     reason:
-      'The STYLES_GUIDE micro-spacing exception (badge padding). That exception is ' +
-      'written in px; this is rem, and converting would break value-identity under a ' +
-      'non-16px root.',
+      'Ruled by ADR-0028: the STYLES_GUIDE micro-spacing badge case, in rem where ' +
+      'the exception is written in px.',
   },
   {
-    file: 'src/components/Footer.astro',
-    value: '0.375rem',
+    value: '0.0625rem',
+    files: ['src/styles/components/sash.css'],
     reason:
-      '6px sits between --spacing-xs (4px) and --spacing-sm (8px); moving it moves ' +
-      'pixels. The skeleton exception also names 0.375rem but is about text height.',
+      'The 1px half of the same exception, on the sash badge. Partner of 0.3125rem ' +
+      'in one declaration — rule them together.',
+  },
+  {
+    value: '0.15rem',
+    files: ['src/pages/brand.astro'],
+    reason:
+      'Does NOT shelter under the micro-spacing exception, which authorises "1px or ' +
+      '2px directly" — 2.4px is neither. Kept because the ramp floor is 4px, so no ' +
+      'token is below it. Partner of 0.45rem.',
+  },
+
+  // --- Between steps: moving them moves pixels (ADR-0028's standing rule).
+  {
+    value: '0.3125rem',
+    files: ['src/styles/components/sash.css'],
+    reason: '5px, between xs (4) and sm (8). Partner of 0.0625rem.',
+  },
+  {
+    value: '0.35rem',
+    files: [
+      'src/components/portfolio/PortfolioGrid.astro',
+      'src/components/portfolio/ProjectModal.astro',
+      'src/pages/brand.astro',
+    ],
+    reason: '5.6px, between xs and sm. The vertical half of a badge padding family.',
+  },
+  {
+    value: '0.375rem',
+    files: ['src/components/Footer.astro'],
+    reason:
+      'Ruled by ADR-0028: 6px sits between xs (4) and sm (8). The STYLES_GUIDE ' +
+      'skeleton exception names 0.375rem but is about text height, and ADR-0028 ' +
+      'says explicitly that it does not cover this site.',
+  },
+  {
+    value: '0.375rem',
+    files: ['src/components/radar/RadarFeedSkeleton.astro'],
+    reason:
+      'ADR-0029 boundary call: the STYLES_GUIDE skeleton-placeholder exception DOES ' +
+      'cover this one — it is the component that exception was written about.',
+  },
+  {
+    value: '0.375rem',
+    files: [
+      'src/components/radar/WireItem.astro',
+      'src/styles/components/filter.css',
+      'src/styles/components/sash.css',
+    ],
+    reason:
+      'Neither the skeleton exception nor ADR-0028 covers these; kept on the ' +
+      'between-steps reason alone (6px, between xs and sm).',
+  },
+  {
+    value: '0.4375rem',
+    files: ['src/styles/components/sash.css'],
+    reason: '7px, between xs and sm — one px below sm.',
+  },
+  {
+    value: '0.45rem',
+    files: ['src/pages/brand.astro'],
+    reason: '7.2px, between xs and sm. Partner of 0.15rem in one declaration.',
+  },
+  {
+    value: '0.625rem',
+    files: [
+      'src/components/portfolio/FilterDrawer.astro',
+      'src/components/portfolio/PortfolioHeader.astro',
+      'src/components/portfolio/StickyControls.astro',
+      'src/styles/components/filter.css',
+    ],
+    reason: '10px, between sm (8) and md (12). The vertical half of the search-input padding.',
+  },
+  {
+    value: '0.65rem',
+    files: [
+      'src/components/portfolio/PortfolioHeader.astro',
+      'src/components/portfolio/ProjectModal.astro',
+      'src/pages/brand.astro',
+    ],
+    reason:
+      '10.4px, between sm and md — and 0.4px from 0.625rem, which is a DIFFERENT ' +
+      'value. Snapping either would silently merge two families.',
+  },
+  {
+    value: '0.875rem',
+    files: ['src/components/portfolio/StickyControls.astro'],
+    reason:
+      'A DERIVED CONSTANT, and the ONLY 0.875rem site that is one: `left: 0.875rem` ' +
+      'positions the search icon. 14px + an 18px icon = a 32px right edge, cleared ' +
+      "by the input's 36px padding-left (2.25rem). Snapping puts text under the icon.",
+  },
+  {
+    value: '0.875rem',
+    files: [
+      'src/components/portfolio/PortfolioHeader.astro',
+      'src/styles/components/filter.css',
+      'src/styles/components/portfolio.css',
+      'src/styles/components/sash.css',
+    ],
+    reason:
+      '14px, between md (12) and lg (16) — ordinary padding, kept on the ' +
+      'between-steps reason alone. Split from the icon-clearance entry above ' +
+      'because `filter.css:43` invites exactly the wrong reading: its 0.875rem is ' +
+      "the search input's RIGHT padding, in the same shorthand whose 2.25rem left " +
+      'padding IS part of the icon geometry. One value, two unrelated jobs.',
+  },
+  {
+    value: '1.275rem',
+    files: ['src/components/Header.astro'],
+    reason:
+      '20.4px, 0.4px above --spacing-1_25. MEASURED, not assumed: the sticky header ' +
+      'renders 74.78px tall, so the tempting "this makes the header exactly 80px" ' +
+      'derivation (from mcp-guide.css scroll-margin-top: 80px) is FALSE. Do not ' +
+      're-derive it. Kept because it moves the most-visible element for no gain.',
+  },
+  {
+    value: '1.65rem',
+    files: ['src/pages/hub/tools/information-request-list-generator/index.astro'],
+    reason:
+      '26.4px, between xl (24) and 1_75 (28). An indent aligning a column against the ' +
+      'question rows above it — snapping misaligns, it does not resize.',
+  },
+  {
+    value: '2.25rem',
+    files: ['src/components/portfolio/StickyControls.astro', 'src/styles/components/filter.css'],
+    reason:
+      "36px, between 2xl (32) and 2_5xl (40). A DERIVED CONSTANT: the search input's " +
+      'padding-left, clearing a 32px icon right edge by 4px.',
   },
 ] as const;
+
+/** Flattened (file, value) pairs — the unit the guard actually compares. */
+const RESIDUAL_PAIRS = ACCEPTED_RESIDUALS.flatMap((r) => r.files.map((f) => `${f} ${r.value}`));
+
+/**
+ * Obtained by RUNNING the guard, not by counting the table above — deliberately.
+ * A count derived from ACCEPTED_RESIDUALS would be a tautology beside the
+ * set-equality assertion and would still pass if an entry and its violation were
+ * deleted together. Sixteen values across forty sites; two review passes
+ * hand-counted this as 41 and 40 and disagreed, which is why it is measured.
+ */
+const RESIDUAL_PAIR_COUNT = 40;
 
 /** px -> token, built from variables.css so the guard cannot drift from the scale. */
 function spacingScale(): Map<number, string> {
@@ -140,20 +303,25 @@ export function scanSheet(sheet: string, file: string): RemUse[] {
   return uses;
 }
 
-/** Every rem value appearing in a spacing property across the swept files. */
-function collectRemUses(): RemUse[] {
+/** Every rem value in a spacing property across every stylesheet under src/. */
+function collectRemUses(): { uses: RemUse[]; fileCount: number } {
+  const files: string[] = [];
+  walkStyleSources(SRC_DIR, files);
   const uses: RemUse[] = [];
-  for (const file of SWEPT_FILES) {
-    const source = readFileSync(join(REPO_ROOT, file), 'utf-8');
+  for (const abs of files) {
+    // The shared walker returns absolute paths; this guard's messages and its
+    // residual keys are repo-relative.
+    const file = relative(REPO_ROOT, abs).split(sep).join('/');
+    const source = readFileSync(abs, 'utf-8');
     const sheets = file.endsWith('.astro') ? extractAstroStyles(source) : [source];
     for (const sheet of sheets) uses.push(...scanSheet(sheet, file));
   }
-  return uses;
+  return { uses, fileCount: files.length };
 }
 
-describe('spacing-token floor (ADR-0028)', () => {
+describe('spacing-token floor (ADR-0028, widened repo-wide by ADR-0029)', () => {
   const scale = spacingScale();
-  const uses = collectRemUses();
+  const { uses, fileCount } = collectRemUses();
 
   it('the instrument found the scale and a populated corpus (it probes something)', () => {
     // Non-empty is not correctness, but empty is definitely not a pass. Both
@@ -183,32 +351,45 @@ describe('spacing-token floor (ADR-0028)', () => {
     ).toEqual([]);
   });
 
-  it('the off-scale residuals are exactly the three ADR-0028 accepts', () => {
+  it('the off-scale residuals are exactly the set ADR-0029 accepts', () => {
     const found = uses
       .filter((u) => !u.inCalc)
       .filter((u) => !scale.has(parseFloat(u.literal) * 16))
       .map((u) => `${u.file} ${u.literal}`);
 
-    const expected = ACCEPTED_RESIDUALS.map((r) => `${r.file} ${r.value}`);
-
     // Cardinality asserted as a NUMBER as well as a set: a parser regression that
-    // collected two would satisfy a subset check while silently seeing less.
-    expect(new Set(found).size).toBe(3);
-    expect([...new Set(found)].sort()).toEqual([...expected].sort());
+    // collected fewer would satisfy a subset check while silently seeing less.
+    // The number is a measurement, not a count of the table — see its docblock.
+    expect(new Set(found).size).toBe(RESIDUAL_PAIR_COUNT);
+    expect([...new Set(found)].sort()).toEqual([...RESIDUAL_PAIRS].sort());
+  });
+
+  it('the residual table itself carries no duplicate (file, value) pair', () => {
+    // Keyed by value with a file list, the same site could be listed under two
+    // entries — which would make the set comparison above pass while the
+    // cardinality assertion silently disagreed with the table.
+    expect(new Set(RESIDUAL_PAIRS).size).toBe(RESIDUAL_PAIRS.length);
+  });
+
+  it('scans the whole of src/, not a subset (the widening actually happened)', () => {
+    // ADR-0029 widened this from six files. A walker that silently returned a
+    // handful would make every assertion above vacuously true.
+    expect(fileCount).toBeGreaterThan(90);
   });
 
   it('every accepted residual still matches a real declaration', () => {
     // A stale exception is worse than none — it reads as a considered ruling
     // while guarding nothing.
     for (const residual of ACCEPTED_RESIDUALS) {
-      const live = uses.some(
-        (u) => u.file === residual.file && u.literal === residual.value && !u.inCalc
-      );
-      expect(
-        live,
-        `Accepted residual ${residual.value} in ${residual.file} no longer matches any ` +
-          `declaration. If it was tokenized, delete this entry and ADR-0028's table row.`
-      ).toBe(true);
+      for (const file of residual.files) {
+        const live = uses.some((u) => u.file === file && u.literal === residual.value && !u.inCalc);
+        expect(
+          live,
+          `Accepted residual ${residual.value} in ${file} no longer matches any ` +
+            `declaration. If it was tokenized, remove that file from the entry (and ` +
+            `the entry itself if it was the last one) plus ADR-0029's table row.`
+        ).toBe(true);
+      }
     }
   });
 
@@ -229,12 +410,16 @@ describe('spacing-token floor (ADR-0028)', () => {
   });
 
   it('does not descend into calc(), by ruling', () => {
-    // Footer.astro's margin-block calc carries an off-scale 0.85rem that is a
-    // derived constant, not a chosen step. It must be invisible here — if this
-    // stops finding it, the parser started reading calc contents and the residual
-    // set above will start failing for the wrong reason.
+    // Two calc expressions carry off-scale rem values that are derived constants,
+    // not chosen steps: Footer.astro's margin-block and CategoryFilter.astro's
+    // margin. Both must be invisible to the residual set above — if this stops
+    // finding them, the parser started reading calc contents and that set will
+    // start failing for the wrong reason.
     const calcUses = uses.filter((u) => u.inCalc);
     expect(calcUses.length).toBeGreaterThan(0);
-    expect(calcUses.every((u) => u.file === 'src/components/Footer.astro')).toBe(true);
+    expect([...new Set(calcUses.map((u) => `${u.file} ${u.literal}`))].sort()).toEqual([
+      'src/components/Footer.astro 0.85rem',
+      'src/components/radar/CategoryFilter.astro 1.6rem',
+    ]);
   });
 });

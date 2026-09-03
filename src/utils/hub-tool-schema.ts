@@ -18,7 +18,11 @@
 
 /** Every tool is free and browser-based, published by GST. */
 const OFFERS = { '@type': 'Offer', price: '0', priceCurrency: 'USD' } as const;
-const PUBLISHER = { '@type': 'Organization', name: 'Global Strategic Technologies' } as const;
+/** Exported for `mcp-schema.ts`, which describes the MCP server with the same publisher. */
+export const PUBLISHER = {
+  '@type': 'Organization',
+  name: 'Global Strategic Technologies',
+} as const;
 const APPLICATION_CATEGORY = 'BusinessApplication';
 const OPERATING_SYSTEM = 'Web';
 
@@ -28,8 +32,10 @@ const OPERATING_SYSTEM = 'Web';
  * hoisting it would delete real signal from five pages. BL-099's acceptance
  * criteria described it as shared — that was wrong about the code, and this
  * comment is the durable record of why the helper takes it as a parameter.
+ *
+ * Exported for `mcp-schema.ts`, so the MCP pages carry the same author node.
  */
-const AUTHOR = {
+export const AUTHOR = {
   '@type': 'Person',
   name: 'Reid Peryam',
   jobTitle: 'Strategic Technology Advisor',

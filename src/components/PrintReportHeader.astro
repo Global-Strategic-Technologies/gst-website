@@ -51,9 +51,9 @@ const generatedDate = new Date().toLocaleDateString('en-US', {
     :global(.print-report-header) {
       display: flex !important;
       align-items: center;
-      gap: 1rem;
-      padding-bottom: 1rem;
-      margin-bottom: 2rem;
+      gap: var(--spacing-lg);
+      padding-bottom: var(--spacing-lg);
+      margin-bottom: var(--spacing-2xl);
       border-bottom: 2px solid #000;
       font-family: var(--font-family-mono);
     }
@@ -61,7 +61,7 @@ const generatedDate = new Date().toLocaleDateString('en-US', {
     :global(.print-report-header__brand) {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--spacing-sm);
       font-weight: 900;
       font-size: var(--text-xl);
       text-transform: uppercase;

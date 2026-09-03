@@ -56,12 +56,12 @@ const { id, testId, title = 'Toggle dark theme', ariaLabel = 'Toggle dark theme'
 
   .theme-toggle:focus {
     outline: 2px solid var(--color-primary);
-    outline-offset: 0.25rem;
+    outline-offset: var(--spacing-xs);
   }
 
   .theme-toggle:focus-visible {
     outline: 2px solid var(--color-primary);
-    outline-offset: 0.25rem;
+    outline-offset: var(--spacing-xs);
   }
 
   .theme-toggle:focus:not(:focus-visible) {
