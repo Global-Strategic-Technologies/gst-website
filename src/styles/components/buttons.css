@@ -26,12 +26,12 @@ Distinct from .brutal-btn (compact utility button for tool UIs). */
 
 .cta-button:focus {
   outline: 2px solid var(--color-primary);
-  outline-offset: 0.25rem;
+  outline-offset: var(--spacing-xs);
 }
 
 .cta-button:focus-visible {
   outline: 2px solid var(--color-primary);
-  outline-offset: 0.25rem;
+  outline-offset: var(--spacing-xs);
 }
 
 .cta-button:focus:not(:focus-visible) {

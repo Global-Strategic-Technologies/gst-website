@@ -61,7 +61,7 @@ const vars = { clipAspect: `${width} / ${height}`, clipMaxWidth: maxWidth };
   variant === 'collapsible' ? (
     <details class="clip-details" data-clip-details>
       <summary>
-        <DeltaIcon size={10} class="delta-chevron clip-chevron" />
+        <DeltaIcon size={10} class="delta-chevron" />
         {summary}
       </summary>
       <figure class="clip-figure">
@@ -160,9 +160,16 @@ const vars = { clipAspect: `${width} / ${height}`, clipMaxWidth: maxWidth };
     color: var(--color-primary);
   }
 
-  /* Rotation itself comes from the global `details[open] .delta-chevron` rule. */
-  .clip-chevron {
-    transition: transform var(--transition-fast);
+  /* Rotation and its transition both come from the global `.delta-chevron`
+     rules. The one thing that utility gets wrong here is position: it carries
+     `margin-left: auto` for its usual inline-end home, but this chevron LEADS
+     the row, so the auto margin absorbed the summary's free space and shoved
+     the whole label flush right — to a different x per block, since the free
+     space is whatever `maxWidth` leaves. Zeroed the same way JobCard.astro and
+     the IRL generator do. `:global()` is required: the class rides a child
+     component, so the scope attribute never lands on the rendered `<svg>`. */
+  .clip-details > summary :global(.delta-chevron) {
+    margin-left: 0;
   }
 
   .clip-figure {

@@ -404,3 +404,58 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   the fix is stronger doc copy, not removing the exports (the `[BUNDLE_EXPORT]` gate needs them).
 - The four `guidelinesGlob` docs ship **verbatim** and contain repo-internal references
   (test paths, BL-### ids, `/brand` URLs). Acceptable context, but they leave the repo.
+
+## Sync 2026-09-02 — ADR-0028 spacing tokens (tokens + docs only, no specimen change)
+
+- **Every addition is invisible to the name-parity guard, and a new CLASS is the worst case —
+  not a new token.** Guard 1 in `design-sync-guards.test.ts` resolves docs→src only, so nothing
+  ever fails for a thing that exists in `src/styles` but is missing from the published
+  vocabulary. Tokens have a backstop that classes do not: `docs-variables-sync.test.ts` asserts
+  bidirectionally (":291 — every `:root` token is documented in VARIABLES_REFERENCE.md"), and
+  that file is one of the four uploaded guidelines, so CI drags a new token onto a shipped
+  surface. Nothing forces a new `.brutal-*` class or BEM modifier into `conventions.md` at all.
+  Neither forces the UPLOAD. If you are here after adding a class, you have less coverage than
+  this sync had, not more.
+- **Resync verdict: all ten specimens `unchanged`, zero components in the upload list** — the
+  correct result for a tokens-and-prose change, not a skipped upload. What moved was
+  `styling: true` (the flattened bundle) and `aux: true` (README + the four guideline docs).
+  An empty `components` array is still a real upload. ("Unchanged" is the diff stage's verdict
+  keyed on `sourceKeys`; do not describe it as a hash comparison — the artifacts do not say.)
+- **THREE chrome cards changed, and the verdict could not show any of them** — `SiteFooter`,
+  `SiteFooterDark` (`--spacing-1_25`, from `Footer.astro:17,67` and `FooterLinks.astro:162`)
+  and `StatsBar` (`--spacing-1_75`, from `StatsBar.astro:170`). Both new tokens reached the
+  bundle. This is the concrete case the standing rule ("the `finalize_plan` write set must
+  include `components/chrome/*/*`") exists for: nothing tracks those files, so no verdict can
+  list them, and reading the verdict alone ships a stale footer and a stale StatsBar.
+- **Upload the FULL 103-file set. Do not scope writes to what changed** — I did, and it was
+  wrong. The first pass here uploaded 48 paths (the styling/aux files plus all 19 chrome cards)
+  and skipped 55 as "unchanged": the ten specimens ×4, the ten `_preview/*.js`, the two
+  `_vendor` files, the font pair and `_ds_needs_recompile`. Nothing went stale — specimen HTML
+  LINKS `styles.css` and `_ds_bundle.css` rather than inlining them, and `_preview/*.js` carry
+  no token text — but the skill is explicit that this is luck, not method:
+  `.ds-sync/storybook/SKILL.md:279` ("Writes — everything, always … an under-scoped writes list
+  silently and permanently desyncs the project") and `:335` ("never scope writes by the
+  verification partition"), and `lib/remote-diff.mjs:31-37` says the `components` array is NOT
+  a write scope. The remaining 55 were uploaded immediately after, so the project holds the
+  full set — but the correct plan is the one-line glob list from SKILL.md:279, first time.
+  Note especially `fonts/` in that list: Guard 6 records that the pinned face reaches designs
+  only via `cfg.extraFonts` and fails invisibly when lost.
+- Verified after upload rather than assumed: re-read
+  `guidelines/src/docs/styles/VARIABLES_REFERENCE.md` off the REMOTE and confirmed both new
+  rows sit in the Spacing Scale table at the right ladder positions.
+- **Probe scope, so a future run compares like with like.** `extract-chrome --check` is the
+  broad one: 19/19 cards, each asserted for height, a byte floor, zero page errors, and a dark
+  twin whose background differs from its light sibling. `dark-probe` and `palette-probe` are
+  **single-card** — both hardcode `DataSpecimen.html`. `dark-probe` read 4/7 switched; the three
+  that did not are `--border-light` and `--color-primary` (both correct — VARIABLES_REFERENCE
+  documents them as deliberately not theme-switched) and `_bodyBg`, a RENDERED proxy, expected
+  to stay put because the converter's card scaffold hardcodes `body{background:#fff}` in a
+  `<style>` that FOLLOWS both stylesheet links — reason one of the two under "Dark-mode
+  converter cards are not buildable" above. The card's tokens themselves do switch; the
+  root-only reason is NOT why, since the probe puts `.dark-theme` on `documentElement` and four
+  values moved. `palette-probe`: all six as expected, on that one card.
+- **Run the probes from the repo root — this is intrinsic, not a papercut.** Both resolve a bare
+  relative `ds-bundle/...` against `process.cwd()`. A leftover `cd ds-bundle` earlier in a
+  session makes them fail with `MODULE_NOT_FOUND` on a path under `ds-bundle/.design-sync/`,
+  which reads like a broken probe. `palette-probe` already had a header comment and an
+  `existsSync` guard that exits with a clear message; `dark-probe` did not, and now does.

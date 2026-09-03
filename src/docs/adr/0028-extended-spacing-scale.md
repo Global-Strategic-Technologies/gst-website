@@ -57,3 +57,13 @@ Four off-scale **rem** spacing values remain in the six swept files, each kept d
 - **The design system must be re-synced.** `.design-sync/conventions.md:68` now names all three extended tokens, but publishing is a separate operator action; until it runs, claude.ai/design does not know these two exist. Additions go stale rather than breaking, since the design-sync guard is one-directional (docs→src) — which is exactly why nothing fails loudly.
 - **`STYLES_GUIDE.md`'s token census lost its Count column** in the same change. It claimed a Total of 160 over rows summing to 152, against a `:root` holding 218, and nothing guarded it. `VARIABLES_REFERENCE.md` had already ruled that counts are not stated and the parity test is the referee.
 - **`STYLES_REMEDIATION_ROADMAP.md` §3 was corrected**, not rewritten: its March 2026 "Complete" was true of _pixel_ spacing and of the micro-spacing exception it documents; it was false in implying nothing else remained. rem literals were never in that pass.
+
+## Superseded in part by ADR-0029 (2026-09-02)
+
+The first consequence above — "the scale is enforced where it was swept, and only there", with its
+227-literal count — describes the state this ADR closed in, not the state today.
+[ADR-0029](0029-spacing-scale-enforcement.md) absorbed those literals, widened the guard repo-wide
+and added the lint rule (via a different rule, which is how it evades the `ignoreValues` trap named
+above). The count stands as the historical figure; do not edit it. Every other consequence, the
+accepted-residual table, and the value-identity argument that made a sweep this size reviewable all
+remain in force, and ADR-0029 rests on them.

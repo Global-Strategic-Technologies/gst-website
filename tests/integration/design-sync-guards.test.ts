@@ -564,8 +564,10 @@ function tagHasClassToken(source: string, tag: string, cls: string): boolean {
 
 describe('conventions.md stays under the README inline ceiling', () => {
   // The converter PREPENDS conventions.md to the uploaded README, and the
-  // consumer truncates that README inline at 32,000 characters, cutting the
-  // TAIL (NOTES.md § re-sync risks). Slice 2 hit 31.8 KB when prettier padded
+  // consumer truncates that README inline at 32,000 characters, cutting its
+  // TAIL — which is the converter's own boilerplate (the Components list), NOT
+  // NOTES.md: NOTES.md is never part of the uploaded README, and an earlier
+  // version of this comment said it was. Slice 2 hit 31.8 KB when prettier padded
   // three enumerations into tables — nothing in CI noticed. 28,000 leaves the
   // converter's own boilerplate tail ~4 KB of room; if the header outgrows it,
   // move the overflow into a shipped guideline doc, do not raise the number.

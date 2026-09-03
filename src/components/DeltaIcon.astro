@@ -1,4 +1,15 @@
 ---
+/**
+ * The brand delta, inline so it inherits `currentColor` (never an <img>).
+ *
+ * A class you pass in lands on THIS file's `<svg>`, so it never receives the
+ * CALLER's scope attribute — a bare `.your-class { … }` in the calling
+ * component's `<style>` compiles to `.your-class[data-astro-cid-CALLER]` and
+ * matches nothing, silently. Style it through a scoped ancestor instead:
+ * `.your-row :global(.your-class) { … }`. See STYLES_GUIDE § "The scoped-rule /
+ * foreign-element trap" and § "When `:global()` Is Necessary" case 3; BL-150
+ * tracks seven selectors already lost this way.
+ */
 interface Props {
   size?: number;
   class?: string;

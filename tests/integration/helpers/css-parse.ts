@@ -11,6 +11,13 @@
  * them asserts what the SOURCE says, not what a browser computes.
  */
 
+import { existsSync, readdirSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/** The one directory `walkStyleSources` skips — matched by path, never by name. */
+const DOCS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../..', 'src', 'docs');
+
 /** Strip `/* … *\/` comments so commented-out CSS can't trip a scan. */
 export function stripComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -76,4 +83,38 @@ export function parseRootTokens(css: string): Record<string, string> {
     out[m[1]] = m[2].trim();
   }
   return out;
+}
+
+/**
+ * Every `.css` and `.astro` file under `absDir`, recursively, as ABSOLUTE paths.
+ *
+ * Promoted here from `touch-target-floor.test.ts` when `spacing-token-floor`
+ * went repo-wide and needed the same walk (BL-148) — two sibling guards
+ * standing up two discovery mechanisms is how they drift apart.
+ *
+ * `src/docs` is skipped as a cheap statement of intent — a doc example must
+ * never become a scanned source. It holds no `.css`/`.astro` today, so the skip
+ * is currently a no-op; that is the honest reason, not the "markdown fences
+ * carry example `.brutal-*` rules" one this docblock used to give, which would
+ * only matter if this walker collected `.md`.
+ *
+ * The skip is PATH-based on purpose. Matching the directory NAME also excluded
+ * `src/pages/hub/mcp/docs/` — a live route, silently exempt from both this
+ * guard's callers. It was not hypothetical: that page carries `padding: 4px 2px`,
+ * and the exclusion made a review's px-tail count read 21 where it is 22.
+ *
+ * Callers that key on repo-relative paths must `relative()` the result themselves.
+ */
+export function walkStyleSources(absDir: string, acc: string[]): void {
+  if (!existsSync(absDir)) return;
+  for (const entry of readdirSync(absDir, { withFileTypes: true })) {
+    const abs = join(absDir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === 'dist') continue;
+      if (abs === DOCS_DIR) continue;
+      walkStyleSources(abs, acc);
+    } else if (entry.isFile() && (entry.name.endsWith('.css') || entry.name.endsWith('.astro'))) {
+      acc.push(abs);
+    }
+  }
 }

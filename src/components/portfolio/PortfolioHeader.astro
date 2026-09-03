@@ -107,7 +107,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 2rem;
+    gap: var(--spacing-2xl);
   }
 
   .portfolio-brand {
@@ -179,7 +179,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
   .search-icon {
     position: absolute;
-    left: 0.75rem;
+    left: var(--spacing-md);
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
@@ -197,7 +197,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     color: var(--bg-light);
     font-size: var(--text-2xs);
     font-weight: 700;
-    padding: 0.25rem 0.5rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
     border-radius: 50%;
     min-width: 20px;
     text-align: center;
@@ -235,7 +235,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
   /* Responsive */
   @media (max-width: 768px) {
     .portfolio-header-content {
-      gap: 1rem;
+      gap: var(--spacing-lg);
     }
 
     .portfolio-title {
@@ -261,7 +261,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     }
 
     .search-icon {
-      left: 0.75rem;
+      left: var(--spacing-md);
       width: 16px;
       height: 16px;
     }
@@ -283,7 +283,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     .portfolio-header-content {
       flex-direction: column;
       align-items: flex-start;
-      gap: 0.75rem;
+      gap: var(--spacing-md);
     }
 
     .portfolio-controls-fixed {
@@ -293,7 +293,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
   @media (max-width: 480px) {
     .portfolio-header-content {
-      gap: 0.75rem;
+      gap: var(--spacing-md);
       flex-direction: column;
       align-items: flex-start;
     }

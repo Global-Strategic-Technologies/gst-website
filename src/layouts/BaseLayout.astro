@@ -16,6 +16,8 @@ interface Props {
   ogDescription?: string;
   ogImage?: string;
   ogUrl?: string;
+  /** Open Graph object type. Defaults to `website`; guides and articles pass `article`. */
+  ogType?: string;
   // Enhanced social media meta tags
   ogImageAlt?: string;
   ogImageWidth?: number;
@@ -34,6 +36,7 @@ const {
   ogDescription,
   ogImage,
   ogUrl,
+  ogType,
   ogImageAlt,
   ogImageWidth,
   ogImageHeight,
@@ -63,6 +66,7 @@ const isHomepage = currentPath === '/' || currentPath === '';
       ogDescription={ogDescription}
       ogImage={ogImage}
       ogUrl={ogUrl}
+      ogType={ogType}
       ogImageAlt={ogImageAlt}
       ogImageWidth={ogImageWidth}
       ogImageHeight={ogImageHeight}

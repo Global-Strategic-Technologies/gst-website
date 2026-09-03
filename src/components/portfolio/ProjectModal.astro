@@ -116,7 +116,7 @@
     max-width: 700px;
     width: 90%;
     max-height: 85vh;
-    padding: 2rem;
+    padding: var(--spacing-2xl);
     background: light-dark(var(--bg-light), var(--bg-dark-secondary));
     border: 1px solid light-dark(var(--border-light), var(--border-dark-default));
     border-radius: 0;
@@ -145,13 +145,13 @@
 
   .modal-close {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
     background: transparent;
     border: 2px solid transparent;
     cursor: pointer;
     color: var(--text-muted);
-    padding: 0.75rem;
+    padding: var(--spacing-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -179,8 +179,8 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1.5rem;
-    gap: 1rem;
+    margin-bottom: var(--spacing-xl);
+    gap: var(--spacing-lg);
   }
 
   .modal-title {
@@ -188,7 +188,7 @@
     font-family: var(--font-family-mono);
     font-weight: 900;
     color: var(--text-primary);
-    margin: 0 0 0.25rem;
+    margin: 0 0 var(--spacing-xs);
     letter-spacing: -0.01em;
   }
 
@@ -203,9 +203,9 @@
   .modal-metrics {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-    padding-bottom: 2rem;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-2xl);
+    padding-bottom: var(--spacing-2xl);
     border-bottom: 1px solid light-dark(var(--border-light), var(--border-dark-default));
   }
 
@@ -221,7 +221,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: light-dark(var(--text-secondary), var(--text-muted));
-    margin: 0 0 0.5rem;
+    margin: 0 0 var(--spacing-sm);
   }
 
   .metric-value {
@@ -233,7 +233,7 @@
   }
 
   .modal-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xl);
   }
 
   .modal-section-title {
@@ -243,7 +243,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: light-dark(var(--text-secondary), var(--text-muted));
-    margin: 0 0 0.75rem;
+    margin: 0 0 var(--spacing-md);
   }
 
   .modal-text {
@@ -257,7 +257,7 @@
   :global(.modal-tech-tags) {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
   }
 
   :global(.modal-tech-tags .tech-tag) {
@@ -287,19 +287,19 @@
     .project-modal {
       width: 95%;
       max-height: 90vh;
-      padding: 1.5rem;
+      padding: var(--spacing-xl);
     }
 
     .modal-close {
-      top: 0.75rem;
-      right: 0.75rem;
+      top: var(--spacing-md);
+      right: var(--spacing-md);
     }
 
     .modal-metrics {
       grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1.5rem;
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+      padding-bottom: var(--spacing-xl);
     }
   }
 
@@ -308,7 +308,7 @@
       width: 100%;
       max-width: none;
       max-height: 100vh;
-      padding: 1rem;
+      padding: var(--spacing-lg);
       transform: translate(0, 0);
       top: 0;
       left: 0;
@@ -321,9 +321,9 @@
     }
 
     .modal-close {
-      top: 0.5rem;
-      right: 0.5rem;
-      padding: 0.5rem;
+      top: var(--spacing-sm);
+      right: var(--spacing-sm);
+      padding: var(--spacing-sm);
       min-width: var(--touch-target-min);
       min-height: var(--touch-target-min);
     }
@@ -334,7 +334,7 @@
 
     .modal-metrics {
       grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
+      gap: var(--spacing-md);
     }
 
     .modal-section-title {

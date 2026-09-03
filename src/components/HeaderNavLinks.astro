@@ -84,7 +84,7 @@ const { currentPath = '/', links } = Astro.props;
 <style>
   ul {
     display: flex;
-    gap: 3rem;
+    gap: var(--spacing-3xl);
     list-style: none;
   }
 
@@ -150,7 +150,7 @@ const { currentPath = '/', links } = Astro.props;
       color var(--transition-fast),
       border-bottom var(--transition-fast);
     position: relative;
-    padding-bottom: 0.25rem;
+    padding-bottom: var(--spacing-xs);
     border-bottom: 2px solid transparent;
   }
 
@@ -166,7 +166,7 @@ const { currentPath = '/', links } = Astro.props;
 
   a:focus {
     outline: 2px solid var(--color-primary);
-    outline-offset: 0.25rem;
+    outline-offset: var(--spacing-xs);
   }
 
   /* Same treatment as :hover above — the two states are one visual design, and
@@ -178,7 +178,7 @@ const { currentPath = '/', links } = Astro.props;
 
   @media (max-width: 768px) {
     ul {
-      gap: 1.5rem;
+      gap: var(--spacing-xl);
     }
 
     body:has(> .brutal-sash-corner) ul {
@@ -209,7 +209,7 @@ const { currentPath = '/', links } = Astro.props;
 
   @media (max-width: 480px) {
     ul {
-      gap: 1rem;
+      gap: var(--spacing-lg);
     }
 
     a {
@@ -242,7 +242,7 @@ const { currentPath = '/', links } = Astro.props;
      second. */
   @media (max-width: 400px) {
     ul {
-      gap: 0.5rem;
+      gap: var(--spacing-sm);
     }
   }
 </style>
