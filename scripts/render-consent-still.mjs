@@ -23,7 +23,7 @@
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -91,13 +91,14 @@ try {
 
 const ffmpeg = spawnSync('ffmpeg', ['-y', '-i', png, '-q:v', '82', OUT], { stdio: 'inherit' });
 if (ffmpeg.error || ffmpeg.status !== 0) {
-  const keep = join(ROOT, 'consent-page-still.png');
-  copyFileSync(png, keep);
+  // Leave the PNG in the temp dir, never in the repo: the intermediate must
+  // not be committed (MCP_ONBOARDING.md § recipes), and a `git add -A` after
+  // a failed run would otherwise pick it up.
   console.error(
-    `ffmpeg unavailable; PNG left at ${keep}. Convert with:\n  ffmpeg -i consent-page-still.png -q:v 82 ${OUT}`
+    `ffmpeg unavailable; PNG left at ${png}. Convert with:\n  ffmpeg -i "${png}" -q:v 82 ${OUT}`
   );
   process.exitCode = 1;
 } else {
   console.log(`wrote ${OUT}`);
+  rmSync(tmp, { recursive: true, force: true });
 }
-rmSync(tmp, { recursive: true, force: true });
