@@ -33,7 +33,7 @@
     "@cfworker/json-schema": "^4.1.1",
     "@cloudflare/workers-oauth-provider": "0.10.3",
     "@modelcontextprotocol/server": "2.0.0",
-    "@sentry/cloudflare": "^10.69.0",
+    "@sentry/cloudflare": "^10.72.0",
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.38.2",
     "agents": "^0.21.0",
