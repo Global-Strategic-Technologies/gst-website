@@ -286,10 +286,13 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
      block became a shrinkable flex item (see `.portfolio-controls-fixed` above)
      that row squeezed the search input as the title's fixed width ate the
      container: 303px at 900, 183px at 780, 160px at 640 (measured 2026-09-04),
-     which clips even the shortened placeholder. A full-width bar under the
-     title is the better reading everywhere the row cannot give it ~375px,
-     which the measurements put at 1024 and below. This also retires the 540
-     threshold and the 481–540 overflow band it existed to close. */
+     which clips even the shortened placeholder. The stack is aligned to the
+     site-wide 1024 tier rather than fitted: just above it the row still gives
+     the input 428px (1025) and 439px (1100), and the first tier below is
+     where a bespoke number would otherwise be needed. Measured 2026-09-04;
+     the boundary is in narrow-viewport-chrome.test.ts's overflow sweep. This
+     also retires the 540 threshold and the 481–540 overflow band it existed
+     to close. */
   @media (max-width: 1024px) {
     .portfolio-header-content {
       flex-direction: column;
@@ -304,12 +307,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
   }
 
   @media (max-width: 480px) {
-    .portfolio-header-content {
-      gap: var(--spacing-md);
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
+    /* Stacking, gap and width come from the 1024 tier above. */
     .portfolio-title {
       font-size: var(--text-lg);
     }
@@ -317,7 +315,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     .portfolio-controls-fixed {
       padding: 0.625rem 0;
       height: auto;
-      width: 100%;
     }
 
     .portfolio-controls-fixed.sticky-active {
