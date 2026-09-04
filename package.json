@@ -102,7 +102,8 @@
   },
   "overrides": {
     "path-to-regexp": "6.3.0",
-    "fast-uri": "3.1.5",
+    "fast-uri": "3.1.7",
+    "qs": "6.16.0",
     "@modelcontextprotocol/sdk": {
       "express-rate-limit": "8.5.1"
     },
