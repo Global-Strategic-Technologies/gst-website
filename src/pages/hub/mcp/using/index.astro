@@ -534,25 +534,23 @@ const TOC_LINKS = [
                 Its opening sentence committed to the wrong path.
               </p>
               <p class="args-table__note">
-                Add the <a href="#addendum">system-prompt addendum</a> below and retry in a fresh conversation.
+                Add the <a href="#addendum">system-prompt addendum</a> and retry in a fresh conversation.
               </p>
-            </div>
-          </div>
-          <details class="brutal-faq__item guide-addendum" id="addendum">
-            <summary class="brutal-faq__question">
-              <span>The system-prompt addendum: stop the agent answering from memory</span>
-              <DeltaIcon class="delta-chevron" />
-            </summary>
-            <div class="brutal-faq__answer">
-              <p class="guide-addendum__note">
-                Without guidance, an agent will often answer a portfolio or regulatory question from
-                training knowledge instead of calling a tool. The first sentence of its reply
-                decides the path, so bias that sentence. Paste this into Settings → Profile, then
-                start a fresh conversation.
-              </p>
-              <pre
-                data-snippet
-                class="snippet-pre">For any question about GST's portfolio, engagements, radar, regulatory
+              <details class="brutal-faq__item guide-addendum" id="addendum">
+                <summary class="brutal-faq__question">
+                  <span>The system-prompt addendum: stop the agent answering from memory</span>
+                  <DeltaIcon class="delta-chevron" />
+                </summary>
+                <div class="brutal-faq__answer">
+                  <p class="guide-addendum__note">
+                    Without guidance, an agent will often answer a portfolio or regulatory question
+                    from training knowledge instead of calling a tool. The first sentence of its
+                    reply decides the path, so bias that sentence. Paste this into Settings →
+                    Profile, then start a fresh conversation.
+                  </p>
+                  <pre
+                    data-snippet
+                    class="snippet-pre">For any question about GST's portfolio, engagements, radar, regulatory
 analysis, TechPar, infrastructure cost governance, diligence, technical
 debt, or information request lists:
 
@@ -564,13 +562,15 @@ debt, or information request lists:
    empty arguments rather than describing it from memory.
 4. When a task matches a published GST prompt, invoke the prompt rather
    than orchestrating its tool calls yourself.</pre>
-              <button
-                type="button"
-                class="brutal-btn brutal-btn--secondary guide-addendum__copy"
-                data-copy-prev>Copy addendum</button
-              >
+                  <button
+                    type="button"
+                    class="brutal-btn brutal-btn--secondary guide-addendum__copy"
+                    data-copy-prev>Copy addendum</button
+                  >
+                </div>
+              </details>
             </div>
-          </details>
+          </div>
         </section>
 
         <section id="next" data-section="next" class="guide-section">
@@ -850,11 +850,13 @@ debt, or information request lists:
     flex-basis: 200px;
   }
 
-  /* ── Addendum disclosure (moved here from Get Started 2026-09-04: it is a
-     remedy for the fifth failure above, not a setup step) ────────────── */
+  /* ── Addendum disclosure: the remedy for the "tools listed, never called"
+     failure, so it sits inside that row as a full-width flex item under the
+     key and its two notes rather than as a sibling of the table. ────── */
   .guide-addendum {
+    flex: 1 1 100%;
     max-width: 900px;
-    margin-top: var(--spacing-xl);
+    margin-top: var(--spacing-sm);
   }
 
   .guide-addendum__note {
@@ -866,7 +868,7 @@ debt, or information request lists:
 
   /* The addendum snippet carries a full outer border on top of the shared left
      rule; the shorthand resets border-left, so the left rule is restated. */
-  .snippet-pre {
+  .guide-addendum .snippet-pre {
     border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
     border-left: 3px solid var(--color-primary);
   }
