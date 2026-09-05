@@ -1,6 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
+import ErrorLocaleHint from '../components/ErrorLocaleHint.astro';
+// English chrome by design: Vercel serves ONE static 404 for every URL, so the
+// page cannot know a locale (ADR-0030 § 11). ErrorLocaleHint adds a line per
+// live locale instead; it renders nothing until a translation is live.
 ---
 
 <BaseLayout
@@ -15,4 +19,5 @@ import Hero from '../components/Hero.astro';
     primaryCTA={{ text: 'Return Home', href: '/' }}
     secondaryCTA={{ text: 'View Services', href: '/services/' }}
   />
+  <ErrorLocaleHint />
 </BaseLayout>

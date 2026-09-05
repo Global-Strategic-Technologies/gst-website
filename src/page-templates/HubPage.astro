@@ -1,0 +1,638 @@
+---
+/**
+ * /hub/ in every locale. Rendered by src/pages/hub/index.astro (English) and
+ * by src/pages/[locale]/[...route].astro.
+ *
+ * Two of the four cards (Library, Radar) lead to English-only surfaces, so on
+ * a non-English page they carry the `common.notice.contentInEnglish` line and
+ * keep their English hrefs (localizedHref leaves non-registry paths alone).
+ * The announcement sashes render in every locale with catalog copy — see
+ * HomePage and `localizeAnnouncement`.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import CTASection from '../components/CTASection.astro';
+import DeltaIcon from '../components/DeltaIcon.astro';
+import Sash from '../components/Sash.astro';
+import { getActiveAnnouncement } from '../data/announcements';
+import { cardBadgeFor, localizeAnnouncement } from '../data/announcements-i18n';
+import { isDefaultLocale, localeFromPath, type Locale } from '../i18n/locales';
+import { isLocalizedRoute, localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t, tHtml } = useTranslations(locale, 'hub');
+const common = useTranslations(locale, 'common');
+const isEnglish = isDefaultLocale(locale);
+const mcpHref = localizedHref('/hub/mcp/', locale);
+
+// Null unless an announcement's window is open and lists this route — see
+// src/data/announcements.ts. It gates BOTH sashes on this page, so the page
+// sash and the card sash retire together. Matched on the locale-free path,
+// rendered in the page locale.
+const active = getActiveAnnouncement(localeFromPath(Astro.url.pathname).routePath);
+const announcement = active ? localizeAnnouncement(active, locale) : null;
+const cardBadge = active ? cardBadgeFor(active, locale) : '';
+
+const faqItems = ([1, 2, 3] as const).map((n) => ({
+  question: t(`faq.q${n}`),
+  answer: tHtml(`faq.a${n}`, { mcpHref }),
+}));
+
+const cards = (['tools', 'library', 'radar', 'mcp'] as const).map((id) => {
+  const path = {
+    tools: '/hub/tools/',
+    library: '/hub/library/',
+    radar: '/hub/radar/',
+    mcp: '/hub/mcp/',
+  }[id];
+  return {
+    id,
+    href: localizedHref(path, locale),
+    englishOnly: !isEnglish && !isLocalizedRoute(path),
+    label: t(`cards.${id}.label`),
+    title: t(`cards.${id}.title`),
+    body: t(`cards.${id}.body`),
+    cta: t(`cards.${id}.cta`),
+  };
+});
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('meta.ogTitle')}
+  ogDescription={t('meta.ogDescription')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('meta.ogImageAlt')}
+  ogUrl={`https://globalstrategic.tech${localizedHref('/hub/', locale)}`}
+  faqItems={faqItems}
+>
+  {announcement && <Sash slot="sash" {...announcement} />}
+
+  <Hero title={t('hero.title')} description={t('hero.description')} locale={locale} />
+
+  <section class="hub-intro">
+    <div class="container">
+      <p>{t('intro')}</p>
+    </div>
+  </section>
+
+  <section class="hub-grid-section">
+    <div class="container">
+      <div class="hub-cards">
+        {
+          cards.map((card) => (
+            <a
+              href={card.href}
+              class="hub-card brutal-frosted"
+              hreflang={card.englishOnly ? 'en' : undefined}
+            >
+              {/* Decorative — the card is already the link, and already tracked. */}
+              {card.id === 'mcp' && announcement && <Sash label={cardBadge} scale="card" />}
+              <div class="hub-card-header">
+                {card.id === 'tools' && (
+                  <svg
+                    class="hub-card-icon"
+                    width="48"
+                    height="48"
+                    viewBox="0 0 48 48"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="4"
+                      y="8"
+                      width="40"
+                      height="32"
+                      rx="2"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="M12 20L18 26L12 32"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <line
+                      x1="22"
+                      y1="32"
+                      x2="36"
+                      y2="32"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                )}
+                {card.id === 'library' && (
+                  <svg
+                    class="hub-card-icon"
+                    width="48"
+                    height="48"
+                    viewBox="0 0 48 48"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M8 6H32L40 14V42H8V6Z"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M32 6V14H40"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linejoin="round"
+                    />
+                    <line
+                      x1="16"
+                      y1="22"
+                      x2="32"
+                      y2="22"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <line
+                      x1="16"
+                      y1="28"
+                      x2="32"
+                      y2="28"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <line
+                      x1="16"
+                      y1="34"
+                      x2="28"
+                      y2="34"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                )}
+                {card.id === 'radar' && (
+                  <svg
+                    class="hub-card-icon"
+                    width="48"
+                    height="48"
+                    viewBox="0 0 48 48"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <circle cx="24" cy="24" r="4" stroke="currentColor" stroke-width="2" />
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="12"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      opacity="0.6"
+                    />
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="20"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      opacity="0.3"
+                    />
+                    <line
+                      x1="24"
+                      y1="2"
+                      x2="24"
+                      y2="8"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <line
+                      x1="24"
+                      y1="40"
+                      x2="24"
+                      y2="46"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <line
+                      x1="2"
+                      y1="24"
+                      x2="8"
+                      y2="24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <line
+                      x1="40"
+                      y1="24"
+                      x2="46"
+                      y2="24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                )}
+                {card.id === 'mcp' && (
+                  <svg
+                    class="hub-card-icon"
+                    width="48"
+                    height="48"
+                    viewBox="0 0 48 48"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="6"
+                      y="6"
+                      width="14"
+                      height="14"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                    <rect
+                      x="28"
+                      y="6"
+                      width="14"
+                      height="14"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                    <rect
+                      x="6"
+                      y="28"
+                      width="14"
+                      height="14"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="M35 28V35H28"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <line
+                      x1="20"
+                      y1="13"
+                      x2="28"
+                      y2="13"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <line
+                      x1="13"
+                      y1="20"
+                      x2="13"
+                      y2="28"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                    <line
+                      x1="35"
+                      y1="20"
+                      x2="35"
+                      y2="28"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                )}
+                <span class="hub-card-label">{card.label}</span>
+              </div>
+              <h2>{card.title}</h2>
+              <p>{card.body}</p>
+              {card.englishOnly && (
+                <span class="hub-card-notice">{common.t('notice.contentInEnglish')}</span>
+              )}
+              <span class="hub-card-cta">{card.cta}</span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="faq-section">
+    <div class="container">
+      <h2 class="brutal-heading-lg">{t('faq.heading')}</h2>
+      <div class="brutal-faq brutal-faq--lg">
+        {
+          faqItems.map((item) => (
+            <details class="brutal-faq__item">
+              <summary class="brutal-faq__question">
+                <span>{item.question}</span>
+                <DeltaIcon class="delta-chevron" />
+              </summary>
+              <div class="brutal-faq__answer" set:html={item.answer} />
+            </details>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <CTASection
+    title={t('cta.title')}
+    description={t('cta.description')}
+    buttonText={t('cta.button')}
+    bookingUrl="https://calendarbridge.com/book/globalstrategictech/"
+    emailAddress="contact@globalstrategic.tech"
+    locale={locale}
+  />
+</BaseLayout>
+
+<style>
+  .hub-intro {
+    padding: 0 0 var(--spacing-3xl);
+  }
+
+  .hub-intro p {
+    max-width: 800px;
+    font-size: var(--text-2xl);
+    font-family: var(--font-family-mono);
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .hub-grid-section {
+    padding: var(--spacing-2_5xl) 0;
+  }
+
+  /* Two-by-two since the MCP Server card made this a four-card grid; the 1024
+     breakpoint below already declares the same two columns, so only this base
+     rule changed. */
+  .hub-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-2_5xl);
+  }
+
+  .hub-card {
+    padding: var(--spacing-2xl);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-top: 3px solid var(--color-primary);
+    transition: all var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+
+    /* Clips the card-scale sash's rotated band to the corner box. */
+    overflow: hidden;
+  }
+
+  .hub-card:hover {
+    border-color: var(--color-primary);
+  }
+
+  .hub-card:active {
+    border-color: var(--color-primary);
+  }
+
+  .hub-card:focus {
+    outline: 3px solid var(--color-secondary);
+    outline-offset: 2px;
+  }
+
+  .hub-card:focus-visible {
+    outline: 3px solid var(--color-secondary);
+    outline-offset: 2px;
+  }
+
+  .hub-card:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  .hub-card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .hub-card-icon {
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .hub-card-label {
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-tertiary);
+  }
+
+  .hub-card h2 {
+    font-size: var(--text-2xl);
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.3;
+  }
+
+  .hub-card p {
+    font-size: var(--text-base);
+    font-family: var(--font-family-mono);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--spacing-xl);
+    flex-grow: 1;
+  }
+
+  /* Tier C notice (BL-153): the card leads to an English-only surface. Muted
+     and small so it reads as a footnote to the CTA, not a warning. */
+  .hub-card-notice {
+    font-size: var(--text-xs);
+    font-family: var(--font-family-mono);
+    font-style: italic;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .hub-card-cta {
+    font-size: var(--text-base);
+    font-family: var(--font-family-mono);
+    font-weight: 600;
+    color: var(--color-tertiary);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    transition: gap var(--transition-fast);
+  }
+
+  .hub-card:hover .hub-card-cta {
+    gap: var(--spacing-sm);
+  }
+
+  @media (max-width: 1024px) {
+    .hub-cards {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--spacing-xl);
+    }
+
+    .hub-card {
+      padding: var(--spacing-xl);
+    }
+
+    .hub-card h2 {
+      font-size: var(--text-xl);
+    }
+
+    .hub-card p {
+      font-size: var(--text-base);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .hub-intro p {
+      font-size: var(--text-lg);
+    }
+
+    .hub-grid-section {
+      padding: var(--spacing-2xl) 0;
+    }
+
+    .hub-cards {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-lg);
+    }
+
+    .hub-card {
+      padding: var(--spacing-xl);
+    }
+
+    .hub-card-header {
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .hub-card-icon {
+      width: 40px;
+      height: 40px;
+    }
+
+    .hub-card h2 {
+      font-size: var(--text-xl);
+    }
+
+    .hub-card p {
+      font-size: var(--text-base);
+      line-height: 1.7;
+      margin-bottom: var(--spacing-lg);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hub-intro {
+      padding: 0 0 var(--spacing-2xl);
+    }
+
+    .hub-intro p {
+      font-size: var(--text-base);
+      line-height: 1.7;
+    }
+
+    .hub-grid-section {
+      padding: var(--spacing-xl) 0;
+    }
+
+    .hub-cards {
+      gap: var(--spacing-md);
+    }
+
+    .hub-card {
+      padding: var(--spacing-lg);
+    }
+
+    .hub-card-header {
+      margin-bottom: var(--spacing-md);
+    }
+
+    .hub-card-icon {
+      width: 36px;
+      height: 36px;
+    }
+
+    .hub-card h2 {
+      font-size: var(--text-lg);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .hub-card p {
+      font-size: var(--text-sm);
+      line-height: 1.65;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .hub-card-cta {
+      font-size: var(--text-sm);
+    }
+  }
+
+  .faq-section {
+    padding: var(--spacing-3xl) 0;
+  }
+
+  .faq-section .brutal-heading-lg {
+    margin-bottom: var(--spacing-2xl);
+    text-align: center;
+  }
+
+  .brutal-faq {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 768px) {
+    .faq-section {
+      padding: var(--spacing-2xl) 0;
+    }
+  }
+</style>
+
+<script>
+  import { trackEvent } from '../utils/analytics';
+
+  document.querySelectorAll('.brutal-faq__item').forEach((item) => {
+    item.addEventListener('toggle', () => {
+      const details = item as HTMLDetailsElement;
+      const question = details.querySelector('.brutal-faq__question')?.textContent?.trim() || '';
+      trackEvent({
+        event: 'faq_interaction',
+        category: 'engagement',
+        question,
+        action: details.open ? 'open' : 'close',
+        page: 'hub',
+      });
+    });
+  });
+</script>

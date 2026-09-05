@@ -559,7 +559,7 @@ import DeltaIcon from '../components/DeltaIcon.astro';
 <DeltaIcon size={14} class="bullet-icon" />
 ```
 
-Renders an inline SVG with `stroke="currentColor"`, so the icon inherits color from its parent CSS. Responds automatically to palette switching and dark theme. Used site-wide for bullet points (`.bullet-icon`), the header logo (`.delta-icon`), theme toggle, chevron indicators, and TOC markers.
+Renders an inline SVG with `stroke="currentColor"`, so the icon inherits color from its parent CSS. Responds automatically to palette switching and dark theme. Used site-wide for bullet points (`.bullet-icon`), the header logo (`.delta-icon`), theme toggle, chevron indicators, and TOC markers. `<DeltaIcon filled />` paints the same path solid in `currentColor` with no stroke — the current-locale marker in the language menu (BL-153); the default rendering is unchanged.
 
 **2. CSS mask-image (for pseudo-elements only)**
 
@@ -702,6 +702,15 @@ That last point used to be false: the lower two were documented as "the 768/480 
 **Derive these with a margin, not as an equality.** The first cut solved each threshold exactly and shipped whatever slack fell out: four columns cleared a 1064px container by 0.39px, which passed locally (`scrollWidth` rounds the two to a tie) and failed in CI, where Linux rasterizes fractionally wider. A second, worse case hid in the same habit — the 2.5rem tier inherited 2rem side padding down to a 384px container and overflowed by up to 15px across viewports 481–511 (the container widths are the durable half of that account; those viewport numbers pre-date the gutter ladder), a 30px band no sampled test width sat inside. Every tier now clears its longest value by at least 8px, and [stats-bar-fit.test.ts](../../../tests/e2e/stats-bar-fit.test.ts) sweeps the whole range against a 4px ink floor rather than sampling widths. A sub-pixel pass is not a pass, and a sampled space cannot show you where its edges are.
 
 Prefer a viewport media query when a component has one rendering. Reach for `@container` when a specimen, a card, a drawer or a split layout gives the same component a second width, because a viewport query cannot see that.
+
+### Text expansion (localized copy)
+
+Since BL-153 the Tier A pages and the chrome render in Spanish and Brazilian Portuguese too ([LOCALIZATION.md](../development/LOCALIZATION.md)). Romance-language copy runs **20–35% longer** than the English it translates, and the header/footer labels are uppercase mono with tracking, which magnifies it. Consequences for CSS:
+
+- Never size a text container to the English string. Anything with `white-space: nowrap`, a fixed `width`, or a width budget derived from a character count (the footer's is documented in [FooterLinks.astro](../../components/FooterLinks.astro)) must be re-derived against the **longest** live locale, and the widest page for that check is `/es/services/`.
+- Let long words break rather than overflow: `overflow-wrap: anywhere` on prose containers is preferable to `hyphens: auto`, because `hyphens` needs the correct `lang` (which `<html lang>` now supplies) and the mono face has no hyphenation-friendly metrics.
+- The nav row is the tightest budget on the site. Header labels are 4–8 characters in every locale by design (`Servicios`, `Serviços`, `Sobre`, `Nosotros`); do not pick a longer translation to fix a nuance — pick a shorter word.
+- Verify every localized surface at desktop / 768px / 480px in light and dark, exactly as for a new component; the draft→live checklist in LOCALIZATION.md requires it.
 
 ### Touch Targets
 

@@ -13,15 +13,20 @@
 // intentionally inert. The footer-fit negative margin lives in Footer.astro
 // (the context that needs it), not here.
 import DeltaIcon from './DeltaIcon.astro';
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
 
 interface Props {
   id?: string;
   testId?: string;
   title?: string;
   ariaLabel?: string;
+  locale?: Locale;
 }
 
-const { id, testId, title = 'Toggle dark theme', ariaLabel = 'Toggle dark theme' } = Astro.props;
+const { id, testId, locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'common');
+const { title = t('theme.toggle'), ariaLabel = t('theme.toggle') } = Astro.props;
 ---
 
 <button class="theme-toggle" id={id} data-testid={testId} title={title} aria-label={ariaLabel}>

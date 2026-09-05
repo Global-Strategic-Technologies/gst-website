@@ -81,7 +81,9 @@ const ACCEPTED_RESIDUALS = [
   {
     value: '5rem',
     files: [
-      'src/pages/about.astro',
+      // The About body moved from src/pages/about.astro (now a locale wrapper)
+      // into the shared page template in BL-153; the declaration is unchanged.
+      'src/page-templates/AboutPage.astro',
       'src/styles/global.css',
       'src/pages/hub/library/business-architectures/index.astro',
       'src/pages/hub/library/information-request-list/index.astro',
@@ -115,6 +117,14 @@ const ACCEPTED_RESIDUALS = [
     reason:
       'The 1px half of the same exception, on the sash badge. Partner of 0.3125rem ' +
       'in one declaration — rule them together.',
+  },
+  {
+    value: '0.0625rem',
+    files: ['src/styles/components/lang-band.css'],
+    reason:
+      "The 1px half of the language band's two-letter chip padding, from the BL-153 " +
+      'design hand-off (`.0625rem .375rem`). Same badge case as the sash: below the ' +
+      '4px floor, nothing to snap to. Partner of 0.375rem in one declaration.',
   },
   {
     value: '0.15rem',
@@ -165,6 +175,13 @@ const ACCEPTED_RESIDUALS = [
     reason:
       'Neither the skeleton exception nor ADR-0028 covers these; kept on the ' +
       'between-steps reason alone (6px, between xs and sm).',
+  },
+  {
+    value: '0.375rem',
+    files: ['src/styles/components/lang-band.css'],
+    reason:
+      "The 6px half of the language band's chip padding (BL-153 hand-off), between " +
+      'xs (4) and sm (8). Partner of 0.0625rem; rule them together.',
   },
   {
     value: '0.4375rem',
@@ -254,8 +271,10 @@ const RESIDUAL_PAIRS = ACCEPTED_RESIDUALS.flatMap((r) => r.files.map((f) => `${f
  * set-equality assertion and would still pass if an entry and its violation were
  * deleted together. Sixteen values across forty sites; two review passes
  * hand-counted this as 41 and 40 and disagreed, which is why it is measured.
+ * BL-153 added two sites (the language band's chip padding, 0.0625rem and
+ * 0.375rem in lang-band.css): 42, re-run rather than re-counted.
  */
-const RESIDUAL_PAIR_COUNT = 40;
+const RESIDUAL_PAIR_COUNT = 42;
 
 /** px -> token, built from variables.css so the guard cannot drift from the scale. */
 function spacingScale(): Map<number, string> {

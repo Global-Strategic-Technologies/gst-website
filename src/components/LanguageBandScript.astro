@@ -1,0 +1,68 @@
+---
+/**
+ * The first-visit band's inline script, in its own file so LanguageBand.astro
+ * can render it conditionally: prettier's Astro parser rejects a `<script>`
+ * inside a `{cond && (…)}` expression, and a top-level script would ship on
+ * every page — including production, where no band renders at all.
+ *
+ * `is:inline` and placed right after the band markup, before `<main>` parses,
+ * so the reveal happens before first paint and costs no layout shift. Plain
+ * ES2019 (no imports): it must not wait for the module graph.
+ */
+---
+
+<script is:inline>
+  (() => {
+    const host = document.querySelector('.lang-band-host');
+    if (!host) return;
+    const KEY = 'gstLang';
+    try {
+      if (localStorage.getItem(KEY)) return;
+    } catch {
+      return; // no storage → no way to remember a dismissal → never nag
+    }
+    const live = (host.getAttribute('data-live-locales') || '').split(',').filter(Boolean);
+    const current = host.getAttribute('data-current-locale') || '';
+    const langs =
+      navigator.languages && navigator.languages.length
+        ? navigator.languages
+        : [navigator.language];
+    // Exact → language → nothing, over the live set only (ADR-0030).
+    const lower = (s) => String(s || '').toLowerCase();
+    let suggested = '';
+    for (const raw of langs) {
+      const cand = lower(raw);
+      if (!cand) continue;
+      suggested = live.find((code) => lower(code) === cand) || '';
+      if (suggested) break;
+      const lang = cand.split('-')[0];
+      suggested = live.find((code) => lower(code).split('-')[0] === lang) || '';
+      if (suggested) break;
+    }
+    if (!suggested || suggested === current) return;
+    const band = host.querySelector(`.lang-band[data-suggests="${suggested}"]`);
+    if (!band) return;
+    band.hidden = false;
+    const remember = (choice) => {
+      try {
+        localStorage.setItem(KEY, choice);
+      } catch {
+        /* ignore */
+      }
+    };
+    const track = (event, params) => {
+      if (typeof window.gtag === 'function') window.gtag('event', event, params);
+    };
+    band.querySelector('.lang-band__accept')?.addEventListener('click', () => {
+      remember(suggested);
+      track('locale_band_accept', { event_category: 'ui', locale: current, to: suggested });
+    });
+    const dismiss = () => {
+      remember(current);
+      band.hidden = true;
+      track('locale_band_decline', { event_category: 'ui', locale: current, suggested });
+    };
+    band.querySelector('.lang-band__decline')?.addEventListener('click', dismiss);
+    band.querySelector('.lang-band__close')?.addEventListener('click', dismiss);
+  })();
+</script>

@@ -204,7 +204,13 @@ interface Link {
 
 const LINK_RE = /(!?)\[[^\]]*\]\(\s*([^)\s]+)(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g;
 
-/** Extract inline markdown links, skipping images and fenced code blocks. */
+/**
+ * Extract inline markdown links, skipping fenced code blocks. Images are
+ * INCLUDED — a `![alt](assets/x.png)` whose file is gone is as broken as a
+ * dead link, and the docs now carry images (BL-153's hand-off screenshots
+ * under `src/docs/development/assets/`). The `!` is captured only so the
+ * regex stays anchored on the same shape.
+ */
 function extractLinks(content: string): Link[] {
   const links: Link[] = [];
   const lines = toLines(content);
@@ -222,7 +228,6 @@ function extractLinks(content: string): Link[] {
     LINK_RE.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = LINK_RE.exec(scanned)) !== null) {
-      if (m[1] === '!') continue; // image
       links.push({ line: i + 1, target: m[2] });
     }
   }

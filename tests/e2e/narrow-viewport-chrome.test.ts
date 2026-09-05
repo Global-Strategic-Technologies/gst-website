@@ -182,7 +182,10 @@ test.describe('Site chrome at phone widths', () => {
       await page.goto('/services/');
       await waitForStyles(page);
 
-      const links = page.locator('.site-header nav ul a');
+      // The four PRIMARY links. The fifth <li>, the language switcher
+      // (BL-153), renders only while ≥2 locales are live and carries its own
+      // <a>s inside a menu; it is excluded here and asserted separately below.
+      const links = page.locator('.site-header nav ul > li:not(.lang-switch) a');
       await expect(links).toHaveCount(4);
 
       for (let i = 0; i < 4; i++) {

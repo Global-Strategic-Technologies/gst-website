@@ -22,6 +22,12 @@ export function trackEvent(eventData: AnalyticsEvent): void {
     const { event, category, ...params } = eventData;
     window.gtag('event', event, {
       event_category: category,
+      // Page locale (BL-153): `<html lang>` is set by BaseLayout from the
+      // locale registry, so this is `en` / `es` / `pt-BR`. Attached to every
+      // event so GA4 can segment engagement by language; event names, labels
+      // and destinations stay English everywhere.
+      locale:
+        typeof document !== 'undefined' ? document.documentElement.lang || undefined : undefined,
       ...params,
     });
   }

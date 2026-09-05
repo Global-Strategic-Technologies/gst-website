@@ -1,0 +1,10 @@
+{
+  "mcp-launch.badge": "Nuevo",
+  "mcp-launch.label": "GST MCP",
+  "mcp-launch.subtext.1": "Automatice análisis",
+  "mcp-launch.subtext.1.ariaLabel": "Automatice análisis — vea qué hace el servidor MCP",
+  "mcp-launch.subtext.2": "Piloto gratis",
+  "mcp-launch.subtext.2.ariaLabel": "Piloto gratis — vea los niveles de capacidad",
+  "mcp-launch.ariaLabel": "Nuevo: GST MCP — automatice análisis, piloto gratis — abrir la página enlazada",
+  "mcp-launch.cardBadge": "Nuevo"
+}

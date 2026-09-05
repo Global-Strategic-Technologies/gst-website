@@ -17,6 +17,8 @@
 @import './components/cards.css';
 @import './components/form.css';
 @import './components/sash.css';
+@import './components/lang-switch.css';
+@import './components/lang-band.css';
 
 /* Page-specific component CSS — NOT loaded site-wide; imported by the pages that
    use them. Any page rendering these components must import the sheet itself:
@@ -333,6 +335,13 @@ Legal Page Layout (Privacy, Terms)
 .legal-page-updated {
   font-size: 0.85rem;
   font-family: var(--font-family-mono);
+  color: var(--text-muted);
+}
+
+/* "This translation is provided for convenience; the English version governs."
+   Rendered only on the non-English legal pages (BL-153). */
+.legal-page-governs {
+  font-style: italic;
   color: var(--text-muted);
 }
 

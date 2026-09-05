@@ -10,6 +10,11 @@ import { browserslistToTargets } from 'lightningcss';
 // can be unit-tested directly — see src/utils/sitemap-filter.ts for the
 // absolute-URL contract this depends on.
 import { sitemapFilter } from './src/utils/sitemap-filter';
+// Same loader, same reason: the locale registry is the single source for
+// `i18n.locales` here, the sitemap's hreflang alternates, and everything the
+// pages render (`<html lang>`, hreflang, the switcher). See ADR-0030 and
+// src/docs/development/LOCALIZATION.md.
+import { toAstroLocales, toSitemapI18n, DEFAULT_LOCALE_CODE } from './src/i18n/locales';
 
 // Load-bearing: Vite does NOT forward browserslist to LightningCSS automatically.
 // Without this, LightningCSS strips -webkit-backdrop-filter, breaking frosted glass in Firefox.
@@ -17,6 +22,18 @@ const lightningcssTargets = browserslistToTargets(browserslist());
 
 export default defineConfig({
   site: 'https://globalstrategic.tech',
+  // BL-153 localization. English stays unprefixed (root `src/pages/*` files);
+  // every other locale is served by `src/pages/[locale]/[...route].astro` from
+  // the Tier A route registry. The default locale needs a non-empty `path`
+  // even though no `/en/` URL exists — an empty one breaks Astro's
+  // `computeCurrentLocale` and is meaningless as a sitemap key (verified in
+  // the Phase 0 spike, ADR-0030). No `fallback`: a locale launches whole at
+  // Tier A or not at all, never as English served under `/es/`.
+  i18n: {
+    defaultLocale: DEFAULT_LOCALE_CODE,
+    locales: toAstroLocales(),
+    routing: { prefixDefaultLocale: false },
+  },
   env: {
     schema: {
       // BL-032.8 Phase 4 — MCP Worker /radar/snapshot consumer credentials.
@@ -82,6 +99,9 @@ export default defineConfig({
       : []),
     sitemap({
       filter: sitemapFilter,
+      // `<xhtml:link rel="alternate" hreflang>` per URL, from the LIVE locales
+      // only; draft-locale URLs never reach here (the filter drops them).
+      i18n: toSitemapI18n(),
     }),
   ],
   adapter: vercel({

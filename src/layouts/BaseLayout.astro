@@ -6,6 +6,9 @@ import GoogleAnalytics from '../components/GoogleAnalytics.astro';
 import SEO from '../components/SEO.astro';
 import SpeedInsights from '@vercel/speed-insights/astro';
 import PalettePanel from '../components/brand/PalettePanel.astro';
+import LanguageBand from '../components/LanguageBand.astro';
+import { localeFromPath, resolveLocale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
 import '../styles/global.css';
 
 interface Props {
@@ -46,13 +49,23 @@ const {
   noindex,
 } = Astro.props;
 
+// Page locale (BL-153). `Astro.currentLocale` is the locale CODE (`pt-BR`) on a
+// page under a locale prefix and `undefined` on a root page; the resolver maps
+// both onto the registry (`undefined` → English). Everything that varies by
+// language — `<html lang>`, chrome copy, hreflang, the breadcrumb names — flows
+// from this one object.
+const locale = resolveLocale(Astro.currentLocale);
+const { t } = useTranslations(locale, 'common');
+
 const currentPath = Astro.url.pathname;
-const isHubSubPage = currentPath.startsWith('/hub/') && currentPath !== '/hub/';
-const isHomepage = currentPath === '/' || currentPath === '';
+// Prefix-insensitive: `/pt/hub/tools/` is a hub sub-page too.
+const { routePath } = localeFromPath(currentPath);
+const isHubSubPage = routePath.startsWith('/hub/') && routePath !== '/hub/';
+const isHomepage = routePath === '/' || routePath === '';
 ---
 
 <!doctype html>
-<html lang="en" data-palette-always={showPalettePanel || undefined}>
+<html lang={locale.htmlLang} data-palette-always={showPalettePanel || undefined}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -73,6 +86,7 @@ const isHomepage = currentPath === '/' || currentPath === '';
       twitterSite={twitterSite}
       faqItems={faqItems}
       noindex={noindex}
+      locale={locale}
     />
 
     <!--
@@ -130,7 +144,7 @@ const isHomepage = currentPath === '/' || currentPath === '';
     <GoogleAnalytics />
   </head>
   <body>
-    <a href="#main-content" class="skip-nav">Skip to main content</a>
+    <a href="#main-content" class="skip-nav">{t('skipNav')}</a>
     {
       /* Announcement sash (Sash.astro), placed by the PAGE, not by this layout —
          which pages carry one is the registry's decision (src/data/announcements.ts),
@@ -141,18 +155,24 @@ const isHomepage = currentPath === '/' || currentPath === '';
          could neither reach the corner nor rise above the header. */
     }
     <slot name="sash" />
-    <Header currentPath={currentPath} staticHeader={isHubSubPage} />
+    <Header currentPath={currentPath} staticHeader={isHubSubPage} locale={locale} />
+    {
+      /* First-visit language suggestion (BL-153): in flow directly under the
+         header, in the suggested language, once. Renders nothing until two
+         locales are live. The sash corner above the header stays free. */
+    }
+    <LanguageBand locale={locale} currentPath={currentPath} />
     <main id="main-content" role="main">
       {
         !isHomepage && (
           <div class="container">
-            <Breadcrumb />
+            <Breadcrumb locale={locale} />
           </div>
         )
       }
       <slot />
     </main>
-    <Footer />
+    <Footer locale={locale} />
     <PalettePanel />
     {isProduction && <SpeedInsights />}
   </body>

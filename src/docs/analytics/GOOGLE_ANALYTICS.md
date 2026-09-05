@@ -50,7 +50,7 @@ The GA4 component is integrated in the root layout (`src/layouts/BaseLayout.astr
 
 TypeScript utility module providing type-safe event tracking functions:
 
-- `trackEvent(eventData)` - Low-level event tracking with custom parameters (use directly for one-off event types)
+- `trackEvent(eventData)` - Low-level event tracking with custom parameters (use directly for one-off event types). Since BL-153 every event it sends carries a `locale` parameter (`en` / `es` / `pt-BR`, read from `<html lang>`), so engagement can be segmented by language in GA4 — register `locale` as a custom dimension. Event names, labels and destinations stay English in every locale; only the visible copy is translated
 - `trackNavigation(destination, label)` - Track navigation link clicks
 - `trackCTA(ctaType, location)` - Track call-to-action button clicks
 - `trackThemeToggle(theme)` - Track light/dark mode switches

@@ -18,17 +18,20 @@
  * override sites first.
  */
 import DeltaIcon from './DeltaIcon.astro';
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { formatDate } from '../i18n/formatters';
+import { useTranslations } from '../i18n/t';
 
 interface Props {
   title: string;
+  locale?: Locale;
 }
 
-const { title } = Astro.props;
+const { title, locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'common');
 
-const generatedDate = new Date().toLocaleDateString('en-US', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
+const generatedLine = t('print.generated', {
+  date: formatDate(new Date(), locale, { year: 'numeric', month: 'long', day: 'numeric' }),
 });
 ---
 
@@ -38,7 +41,7 @@ const generatedDate = new Date().toLocaleDateString('en-US', {
     <span>GST</span>
   </div>
   <div class="print-report-header__title">{title}</div>
-  <div class="print-report-header__date">Generated {generatedDate}</div>
+  <div class="print-report-header__date">{generatedLine}</div>
 </div>
 
 <style>

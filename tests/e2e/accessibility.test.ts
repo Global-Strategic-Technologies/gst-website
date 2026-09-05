@@ -1,7 +1,7 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA + 2.2 AA scanning.
  *
- * Scans 30 routes for accessibility violations. Routes, not pages:
+ * Scans 32 routes for accessibility violations. Routes, not pages:
  * `/hub/mcp/docs/` is scanned three times, collapsed, expanded, and at a dense
  * contract pane.
  *
@@ -56,6 +56,11 @@ const PAGES: A11yPage[] = [
   { name: 'Homepage', path: '/' },
   { name: 'Services', path: '/services/' },
   { name: 'About', path: '/about/' },
+  // Two localized routes (BL-153). Every locale, live or draft, builds and is
+  // reachable, so these scan at rest; the switcher (open) and band (shown) are
+  // audited in localization.test.ts instead.
+  { name: 'About (es)', path: '/es/about/' },
+  { name: 'About (pt-BR)', path: '/pt/about/' },
   { name: 'M&A Portfolio', path: '/ma-portfolio/' },
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },
@@ -102,7 +107,8 @@ const PAGES: A11yPage[] = [
   // BL-096 AC3, 2026-08-03: 9 routes -> 22 (13 added, 9 of which needed a baseline);
   // 23 as of the /hub/mcp/ marketing page; 26 as of the three MCP onboarding
   // guides; 27 as of the capability reference; 28 as of its dense-contract pane;
-  // 29 as of the IRL extractor; 30 as of the jobs lens with every row opened.
+  // 29 as of the IRL extractor; 30 as of the jobs lens with every row opened;
+  // 32 as of the two localized About routes (BL-153).
   // Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting

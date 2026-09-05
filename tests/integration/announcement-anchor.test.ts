@@ -21,7 +21,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { ANNOUNCEMENTS } from '@/data/announcements';
 import { extractAstroMarkup } from './helpers/astro-markup';
 
@@ -56,8 +56,14 @@ describe('announcement under-band field fragments resolve to real anchors', () =
       pageFile,
       `${id}: no page for the field href's path — tried ${candidates.join(', ')}`
     ).toBeDefined();
-    const markup = extractAstroMarkup(readFileSync(pageFile!, 'utf-8'));
-    expect(markup, `${id}: id="${fragment}" not found in ${pageFile}`).toMatch(
+    // A Tier A route file is a one-line locale WRAPPER since BL-153: its body
+    // (and the anchor ids) live in the `src/page-templates/*.astro` it imports.
+    // Follow that import so the guard reads what the route actually renders.
+    const source = readFileSync(pageFile!, 'utf-8');
+    const templateImport = source.match(/from\s+'([^']*page-templates\/[^']+\.astro)'/)?.[1];
+    const bodyFile = templateImport ? join(dirname(pageFile!), templateImport) : pageFile!;
+    const markup = extractAstroMarkup(readFileSync(bodyFile, 'utf-8'));
+    expect(markup, `${id}: id="${fragment}" not found in ${bodyFile}`).toMatch(
       new RegExp(`id="${fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`)
     );
   });

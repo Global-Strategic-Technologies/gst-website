@@ -1,40 +1,48 @@
 ---
 // WhatWeDo section - displays core service offerings with SVG bullet indicators
+// Copy comes from the `home` catalog (BL-153); `locale` defaults to English.
 import DeltaIcon from './DeltaIcon.astro';
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale?: Locale;
+}
+
+const { locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'home');
 ---
 
-<section class="what-we-do" aria-label="What we do">
+<section class="what-we-do" aria-label={t('whatWeDo.ariaLabel')}>
   <div class="container">
     <div class="services-content">
-      <h2 class="brutal-heading-lg">What We Do</h2>
-      <p class="intro-text">
-        GST unlocks enterprise value through expert business technology advisory.
-      </p>
+      <h2 class="brutal-heading-lg">{t('whatWeDo.heading')}</h2>
+      <p class="intro-text">{t('whatWeDo.intro')}</p>
 
       <ul class="services-list">
         <li>
-          <span>Buy-side and sell-side technical diligence</span>
+          <span>{t('whatWeDo.item1')}</span>
           <DeltaIcon class="bullet-icon" />
         </li>
         <li>
-          <span>Architecture and platform assessments</span>
+          <span>{t('whatWeDo.item2')}</span>
           <DeltaIcon class="bullet-icon" />
         </li>
         <li>
-          <span>Security, compliance, and operational risk evaluation</span>
+          <span>{t('whatWeDo.item3')}</span>
           <DeltaIcon class="bullet-icon" />
         </li>
         <li>
-          <span>Product development and execution roadmaps</span>
+          <span>{t('whatWeDo.item4')}</span>
           <DeltaIcon class="bullet-icon" />
         </li>
         <li>
-          <span>Independent advisory for executives and boards</span>
+          <span>{t('whatWeDo.item5')}</span>
           <DeltaIcon class="bullet-icon" />
         </li>
       </ul>
 
-      <p class="closing-text">Clear findings. Decision-ready outputs. Practical next steps.</p>
+      <p class="closing-text">{t('whatWeDo.closing')}</p>
     </div>
   </div>
 </section>

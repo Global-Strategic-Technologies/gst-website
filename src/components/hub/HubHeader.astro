@@ -4,6 +4,10 @@
  * Title, subtitle, optional timestamp — matches GST design language.
  * Breadcrumb navigation is handled site-wide by Breadcrumb.astro in BaseLayout.
  */
+import { DEFAULT_LOCALE, type Locale } from '../../i18n/locales';
+import { formatDate } from '../../i18n/formatters';
+import { useTranslations } from '../../i18n/t';
+
 interface Props {
   /** Display name shown as page title */
   title: string;
@@ -15,20 +19,24 @@ interface Props {
   subtitle?: string;
   /** Whether to show a "last updated" timestamp (default: false) */
   showTimestamp?: boolean;
+  /** Page locale (BL-153): formats the timestamp and supplies its label. Defaults to English. */
+  locale?: Locale;
 }
 
-const { title, subtitle, showTimestamp = false } = Astro.props;
+const { title, subtitle, showTimestamp = false, locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'common');
 
-let dateStr = '';
+let updatedLine = '';
 if (showTimestamp) {
-  const now = new Date();
-  dateStr = now.toLocaleDateString('en-US', {
-    timeZone: 'America/Santiago',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+  updatedLine = t('hub.updated', {
+    date: formatDate(new Date(), locale, {
+      timeZone: 'America/Santiago',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }),
   });
 }
 ---
@@ -36,7 +44,7 @@ if (showTimestamp) {
 <header class="hub-header">
   <h1 class="hub-header__title brutal-heading-xl">{title}</h1>
   <p class="hub-header__subtitle"><slot name="subtitle">{subtitle}</slot></p>
-  {showTimestamp && <p class="hub-header__updated">Updated {dateStr}</p>}
+  {showTimestamp && <p class="hub-header__updated">{updatedLine}</p>}
 </header>
 
 <style>

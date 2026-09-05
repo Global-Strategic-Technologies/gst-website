@@ -1,150 +1,67 @@
 ---
 // EngagementFlow component - displays 4-step engagement process
+// Copy comes from the `services` catalog (BL-153); `locale` defaults to English.
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale?: Locale;
+}
+
+const { locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'services');
+
+const steps = ([1, 2, 3, 4] as const).map((n) => ({
+  number: n,
+  label: t(`engagement.step${n}.label`),
+  text: t(`engagement.step${n}.text`),
+  detail: t(`engagement.step${n}.detail`),
+}));
 ---
 
-<section class="engagement-flow" aria-label="Engagement model">
+<section class="engagement-flow" aria-label={t('engagement.ariaLabel')}>
   <div class="container">
     <div class="flow-content">
-      <h2 class="brutal-heading-lg">Typical Engagement Model</h2>
-      <p class="tagline">Engagements are intentionally focused to drive outcomes.</p>
+      <h2 class="brutal-heading-lg">{t('engagement.heading')}</h2>
+      <p class="tagline">{t('engagement.tagline')}</p>
 
       <div class="flow-steps">
-        <div class="step brutal-frosted">
-          <div class="step-icon-container">
-            <svg
-              class="step-icon"
-              viewBox="0 0 64 64"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M32 12 L52 52 L12 52 Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="5.5"
-                stroke-linejoin="miter"></path>
-              <text
-                x="32"
-                y="40"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                class="step-number">1</text
-              >
-            </svg>
-            <span class="step-label">Align</span>
-          </div>
-          <p class="step-text">
-            Introductory discussion to clarify objectives, decision context, and constraints
-          </p>
-          <div class="step-divider"></div>
-          <p class="step-detail">
-            Confidential, no-commitment conversation. We assess fit, understand your timeline, and
-            identify the highest-leverage questions to answer first. Typical duration: 30 to 60
-            minutes.
-          </p>
-        </div>
-        <div class="step brutal-frosted">
-          <div class="step-icon-container">
-            <svg
-              class="step-icon"
-              viewBox="0 0 64 64"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M32 12 L52 52 L12 52 Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="5.5"
-                stroke-linejoin="miter"></path>
-              <text
-                x="32"
-                y="40"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                class="step-number">2</text
-              >
-            </svg>
-            <span class="step-label">Define</span>
-          </div>
-          <p class="step-text">Focused scope aligned to decision-critical priorities</p>
-          <div class="step-divider"></div>
-          <p class="step-detail">
-            We design a work plan targeting your specific risk areas, whether that's a 2-week
-            diligence sprint or a 90-day remediation roadmap. No boilerplate. Every deliverable maps
-            to a decision you need to make.
-          </p>
-        </div>
-        <div class="step brutal-frosted">
-          <div class="step-icon-container">
-            <svg
-              class="step-icon"
-              viewBox="0 0 64 64"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M32 12 L52 52 L12 52 Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="5.5"
-                stroke-linejoin="miter"></path>
-              <text
-                x="32"
-                y="40"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                class="step-number">3</text
-              >
-            </svg>
-            <span class="step-label">Deliver</span>
-          </div>
-          <p class="step-text">
-            Clear findings, prioritized recommendations, and implementation-ready path forward
-          </p>
-          <div class="step-divider"></div>
-          <p class="step-detail">
-            Executive-ready outputs with quantified risk, concrete remediation steps, and
-            priority-ranked recommendations. Every finding includes severity, business impact, and a
-            clear next action.
-          </p>
-        </div>
-        <div class="step brutal-frosted">
-          <div class="step-icon-container">
-            <svg
-              class="step-icon"
-              viewBox="0 0 64 64"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M32 12 L52 52 L12 52 Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="5.5"
-                stroke-linejoin="miter"></path>
-              <text
-                x="32"
-                y="40"
-                text-anchor="middle"
-                dominant-baseline="middle"
-                class="step-number">4</text
-              >
-            </svg>
-            <span class="step-label">Guide</span>
-          </div>
-          <p class="step-text">Optional ongoing advisory or execution support</p>
-          <div class="step-divider"></div>
-          <p class="step-detail">
-            Fractional engagement model: weekly or monthly cadence scaled to your needs. Board prep,
-            architecture reviews, vendor evaluations, or hands-on execution alongside your team.
-            Disengage anytime.
-          </p>
-        </div>
+        {
+          steps.map((step) => (
+            <div class="step brutal-frosted">
+              <div class="step-icon-container">
+                <svg
+                  class="step-icon"
+                  viewBox="0 0 64 64"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M32 12 L52 52 L12 52 Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="5.5"
+                    stroke-linejoin="miter"
+                  />
+                  <text
+                    x="32"
+                    y="40"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                    class="step-number"
+                  >
+                    {step.number}
+                  </text>
+                </svg>
+                <span class="step-label">{step.label}</span>
+              </div>
+              <p class="step-text">{step.text}</p>
+              <div class="step-divider" />
+              <p class="step-detail">{step.detail}</p>
+            </div>
+          ))
+        }
       </div>
     </div>
   </div>

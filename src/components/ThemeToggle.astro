@@ -7,9 +7,16 @@
 // same component without duplicating this wrapper's singleton id (BL-095
 // AC-2). This file owns the id, the test hook, and the script bound to them.
 import ThemeToggleButton from './ThemeToggleButton.astro';
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+
+interface Props {
+  locale?: Locale;
+}
+
+const { locale = DEFAULT_LOCALE } = Astro.props;
 ---
 
-<ThemeToggleButton id="themeToggle" testId="theme-toggle" />
+<ThemeToggleButton id="themeToggle" testId="theme-toggle" locale={locale} />
 
 <script>
   import { trackThemeToggle } from '../utils/analytics';

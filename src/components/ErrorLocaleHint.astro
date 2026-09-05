@@ -1,0 +1,63 @@
+---
+/**
+ * The trilingual hint on the two static error pages (BL-153, ADR-0030 § 11).
+ *
+ * Vercel serves one `404.html` / `500.html` for every URL, so those pages
+ * cannot know the visitor's locale and stay English. This adds one line per
+ * LIVE non-English locale, in that language, pointing at that locale's home —
+ * the one thing a Spanish or Portuguese reader who mistyped a `/es/…` URL needs.
+ * Renders nothing while no translation is live, so production is unchanged
+ * until then.
+ */
+import { DEFAULT_LOCALE, liveLocales } from '../i18n/locales';
+import { localeHome } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+const hints = liveLocales()
+  .filter((l) => l.code !== DEFAULT_LOCALE.code)
+  .map((l) => ({
+    htmlLang: l.htmlLang,
+    href: localeHome(l),
+    text: useTranslations(l, 'common').t('errors.homeLink'),
+  }));
+---
+
+{
+  hints.length > 0 && (
+    <section class="error-locale-hint" aria-label="Other languages">
+      <div class="container">
+        {hints.map((h) => (
+          <p lang={h.htmlLang}>
+            <a href={h.href} hreflang={h.htmlLang}>
+              {h.text}
+            </a>
+          </p>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .error-locale-hint {
+    padding: 0 0 var(--spacing-2xl);
+  }
+
+  .error-locale-hint p {
+    margin: 0 0 var(--spacing-sm);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+  }
+
+  .error-locale-hint a {
+    color: light-dark(var(--color-tertiary-dark), var(--color-primary));
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-bottom var(--transition-fast);
+  }
+
+  .error-locale-hint a:hover {
+    border-bottom-color: currentColor;
+  }
+</style>

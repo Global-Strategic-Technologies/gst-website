@@ -201,7 +201,8 @@ npm run dev                    # Dev server (http://localhost:4321)
 npm run build                  # Production build
 npm run test:run               # Website unit + integration (once)
 npm run test:mcp               # MCP server suite (delegates to the workspace)
-npm run test:docs              # Docs guards: link/anchor integrity + VARIABLES_REFERENCE↔variables.css parity + design-sync name/ROOTS parity + published MCP tool counts + mcp-server generated-bundle freshness (required CI check)
+npm run test:docs              # Docs guards: link/anchor integrity + VARIABLES_REFERENCE↔variables.css parity + design-sync name/ROOTS parity + published MCP tool counts + mcp-server generated-bundle freshness + i18n catalog parity/staleness (required CI check)
+npm run i18n:stamp             # Stamp translation sidecars against current English AFTER review (never to silence the guard) — see LOCALIZATION.md
 npm run test:e2e               # Playwright E2E (only when told — see Directive 5)
 npm run lint / lint:css        # ESLint / stylelint
 npm run setup:claude-hooks     # One-time per machine: arm the review-gate hooks
@@ -238,6 +239,12 @@ The `@gst/mcp-server` workspace has its **own** maintained doc tree — the webs
 - **Development Backlog**: [src/docs/development/BACKLOG.md](src/docs/development/BACKLOG.md) - All open initiatives consolidated with user stories (open + deferred/candidate items only; completed stanzas are pruned — recover via `git log`)
 - **Initiative-doc lifecycle**: closed-initiative design docs are distilled into maintained docs/ADRs, then archived — see [src/docs/development/README.md § Initiative-doc lifecycle](src/docs/development/README.md). Never leave a closed initiative's doc in the active directory; never archive without distilling first.
 - **Sentry Setup**: [src/docs/development/SENTRY_MANUAL_SETUP.md](src/docs/development/SENTRY_MANUAL_SETUP.md) - Alert rules, source maps, consent gating
+
+### Localization (BL-153)
+
+- **Operating manual**: [src/docs/development/LOCALIZATION.md](src/docs/development/LOCALIZATION.md) — locale registry (`src/i18n/locales.ts`), catalogs `src/i18n/<locale>/<ns>.json` with English as the schema, `useTranslations(locale, ns)` in templates, one template per route under `src/page-templates/`, draft→live checklist. Decisions: [ADR-0030](src/docs/adr/0030-website-locale-model.md)
+- **Every user-visible string on a Tier A page or in the chrome goes through a catalog** — no literals in templates; every English edit needs the other locales revisited and re-stamped (`npm run i18n:stamp`), or `test:docs` fails on staleness
+- **Locale codes and URL prefixes are typed in ONE file** — `tests/unit/i18n-no-stray-literals.test.ts` fails on a quoted `'pt-BR'` / `'/es/'` anywhere else in `src/`
 
 ### Security
 
@@ -331,12 +338,13 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 
 ### Adding a New Page
 
-1. **Model page**: [src/pages/hub/index.astro](src/pages/hub/index.astro) — copy its shape (BaseLayout + composed components), don't hand-roll structure. The **in-repo control examples** for every component/token are [src/pages/brand.astro](src/pages/brand.astro) + [src/components/brand/](src/components/brand/) (see STYLES_GUIDE § In-repo control examples)
+1. **Model page**: [src/page-templates/HubPage.astro](src/page-templates/HubPage.astro) with its one-line route wrapper [src/pages/hub/index.astro](src/pages/hub/index.astro) — copy that shape (BaseLayout + composed components, copy from a catalog, `locale` prop), don't hand-roll structure. The **in-repo control examples** for every component/token are [src/pages/brand.astro](src/pages/brand.astro) + [src/components/brand/](src/components/brand/) (see STYLES_GUIDE § In-repo control examples)
 2. Design-system tokens only — no hardcoded colors, spacing, font sizes (stylelint enforces colors; see STYLES_GUIDE)
 3. Verify in light AND dark theme AND all 6 palettes (PalettePanel pop-out from /brand — see BRAND_GUIDELINES § Alternative Palette System)
 4. Desktop-first responsive: base styles for desktop, `max-width` overrides at 768px and 480px
 5. Page copy: use the `gst-page-content` skill (audience, voice, structure)
 6. Add E2E coverage per [TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md); ensure the route is covered by `tests/e2e/accessibility.test.ts`
+7. **Decide the page's tier** ([LOCALIZATION.md § Content tiers](src/docs/development/LOCALIZATION.md)). Tier A (every locale): body in `src/page-templates/`, copy in `src/i18n/<locale>/<ns>.json`, one row in `TIER_A_ROUTES` + one in the template registry. English-only: an ordinary page under `src/pages/`, linked from localized pages with the English-only notice
 
 ### Working with Palettes
 

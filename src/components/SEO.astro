@@ -30,6 +30,13 @@ interface Props {
    * to drop is a contradictory signal.
    */
   noindex?: boolean;
+  /**
+   * Page locale from the registry (BL-153). Drives `og:locale`, the hreflang
+   * alternates, the localized BreadcrumbList names and `inLanguage`. Defaults
+   * to English so callers outside BaseLayout are unchanged. A DRAFT locale
+   * forces `noindex` — its pages are reachable for review but never indexed.
+   */
+  locale?: Locale;
 }
 
 const {
@@ -46,24 +53,52 @@ const {
   ogImageHeight = 630,
   ogImageType = 'image/png',
   ogSiteName = 'GST',
-  ogLocale = 'en_US',
+  ogLocale: ogLocaleProp,
   twitterSite = '@globalstrategic',
   faqItems,
-  noindex = false,
+  noindex: noindexProp = false,
+  locale = DEFAULT_LOCALE,
 } = Astro.props;
 
+// A draft locale is never indexed, whatever the page asked for.
+const noindex = noindexProp || locale.status === 'draft';
 const robotsDirective = noindex ? 'noindex, follow' : 'index, follow';
+
+const ogLocale = ogLocaleProp ?? locale.ogLocale;
 
 // Derive og:title from page title when not explicitly provided
 const finalOgTitle = ogTitle || title;
 
 import { slugToName } from '../utils/breadcrumbs';
+import { DEFAULT_LOCALE, localeFromPath, type Locale } from '../i18n/locales';
+import { absoluteLocalizedUrl, alternatesFor, localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+const { t } = useTranslations(locale, 'common');
 
 // Use Astro.site (from astro.config.mjs) for stable URLs across environments
 const siteBase = Astro.site?.origin || `${Astro.url.protocol}//${Astro.url.host}`;
 const currentPath = Astro.url.pathname;
 const currentUrl = `${siteBase}${currentPath}`;
 const baseUrl = siteBase;
+
+// hreflang (BL-153). Alternates are the LIVE locales that carry this route. A
+// list of one means "no alternates" — English-only route, or a DRAFT page —
+// and emits no cluster at all (a cluster of one is noise; a draft-to-English
+// link would be non-reciprocal). `x-default` points at the English URL.
+const { routePath } = localeFromPath(currentPath);
+const alternates = alternatesFor(routePath, locale);
+const hreflangLinks =
+  alternates.length > 1
+    ? [
+        ...alternates.map((alt) => ({
+          hreflang: alt.htmlLang,
+          href: absoluteLocalizedUrl(siteBase, routePath, alt),
+        })),
+        { hreflang: 'x-default', href: absoluteLocalizedUrl(siteBase, routePath, DEFAULT_LOCALE) },
+      ]
+    : [];
+const ogLocaleAlternates = alternates.filter((alt) => alt !== locale).map((alt) => alt.ogLocale);
 
 // Use provided URLs or auto-generate from current page
 const finalCanonicalUrl = canonicalUrl || currentUrl;
@@ -74,8 +109,9 @@ const absoluteOgImage = ogImage.startsWith('http')
   ? ogImage
   : `${baseUrl}${ogImage.startsWith('/') ? ogImage : '/' + ogImage}`;
 
-// Build BreadcrumbList from pathname
-const pathname = Astro.url.pathname.replace(/\/$/, '');
+// Build BreadcrumbList from the locale-free pathname (the locale prefix is not
+// a crumb), with names and item URLs in the page locale — mirrors Breadcrumb.astro.
+const pathname = routePath.replace(/\/$/, '');
 const segments = pathname.split('/').filter(Boolean);
 const isHomepage = segments.length === 0;
 
@@ -87,12 +123,12 @@ const breadcrumbJsonLd = !isHomepage
         {
           '@type': 'ListItem',
           position: 1,
-          name: 'Home',
-          item: 'https://globalstrategic.tech/',
+          name: t('breadcrumb.home'),
+          item: `https://globalstrategic.tech${localizedHref('/', locale)}`,
         },
         ...segments.map((slug, index) => {
           const position = index + 2;
-          const name = slugToName(slug);
+          const name = slugToName(slug, locale);
           const isLast = index === segments.length - 1;
           const path = '/' + segments.slice(0, index + 1).join('/') + '/';
 
@@ -102,7 +138,7 @@ const breadcrumbJsonLd = !isHomepage
                 '@type': 'ListItem' as const,
                 position: position,
                 name: name,
-                item: `https://globalstrategic.tech${path}`,
+                item: `https://globalstrategic.tech${localizedHref(path, locale)}`,
               };
         }),
       ],
@@ -139,6 +175,7 @@ const jsonLdData = {
   '@type': 'ProfessionalService',
   name: 'Global Strategic Technologies',
   url: 'https://globalstrategic.tech',
+  inLanguage: locale.htmlLang,
   // /images/icon.svg, not /icon.svg — the asset has only ever lived under
   // public/images/, so the published logo URL 404'd for every consumer of this
   // JSON-LD. Found 2026-08-29 while BL-144 was rewriting that same file.
@@ -443,6 +480,7 @@ const jsonLdData = {
 <meta property="og:image:alt" content={ogImageAlt} />
 <meta property="og:site_name" content={ogSiteName} />
 <meta property="og:locale" content={ogLocale} />
+{ogLocaleAlternates.map((alt) => <meta property="og:locale:alternate" content={alt} />)}
 
 <!-- Twitter Card Meta Tags -->
 <meta name="twitter:card" content="summary_large_image" />
@@ -452,8 +490,11 @@ const jsonLdData = {
 <meta name="twitter:image" content={absoluteOgImage} />
 <meta name="twitter:image:alt" content={ogImageAlt} />
 
-<!-- Canonical URL -->
+<!-- Canonical URL (always the current locale's own URL — never cross-locale) -->
 <link rel="canonical" href={finalCanonicalUrl} />
+
+<!-- Language alternates (BL-153): only when this route exists in ≥2 live locales -->
+{hreflangLinks.map((l) => <link rel="alternate" hreflang={l.hreflang} href={l.href} />)}
 
 <!-- Additional SEO Meta Tags -->
 <meta

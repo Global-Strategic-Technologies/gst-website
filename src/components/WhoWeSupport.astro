@@ -1,39 +1,44 @@
 ---
 // WhoWeSupport section - displays target audience segments with SVG bullet indicators
+// Copy comes from the `home` catalog (BL-153); `locale` defaults to English.
 import DeltaIcon from './DeltaIcon.astro';
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale?: Locale;
+}
+
+const { locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'home');
 ---
 
-<section class="who-we-support" aria-label="Who we support">
+<section class="who-we-support" aria-label={t('support.ariaLabel')}>
   <div class="container">
     <div class="support-content">
-      <h2 class="brutal-heading-lg">Who We Support</h2>
-      <p class="intro-text">
-        GST partners with leaders who need clarity, confidence, and credible technical direction.
-      </p>
+      <h2 class="brutal-heading-lg">{t('support.heading')}</h2>
+      <p class="intro-text">{t('support.intro')}</p>
 
       <ul class="support-list">
         <li>
           <DeltaIcon class="bullet-icon" />
-          <span>Private equity & investment teams</span>
+          <span>{t('support.item1')}</span>
         </li>
         <li>
           <DeltaIcon class="bullet-icon" />
-          <span>Founders and executive leadership</span>
+          <span>{t('support.item2')}</span>
         </li>
         <li>
           <DeltaIcon class="bullet-icon" />
-          <span>SaaS and technology-enabled businesses</span>
+          <span>{t('support.item3')}</span>
         </li>
         <li>
           <DeltaIcon class="bullet-icon" />
-          <span>Security- or compliance-sensitive organizations</span>
+          <span>{t('support.item4')}</span>
         </li>
       </ul>
 
-      <p class="closing-text">
-        Engagements range from buy-side pre-investment diligence, post-close execution, integration,
-        value creation, sell-side preparation, and continual advisory.
-      </p>
+      <p class="closing-text">{t('support.closing')}</p>
     </div>
   </div>
 </section>

@@ -2,6 +2,9 @@
 // Note: trackCTA is imported in the <script> block below to wire it to
 // window for inline onclick handlers — the frontmatter does not need it.
 
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
+
 interface Props {
   title?: string;
   subtitle?: string;
@@ -15,12 +18,23 @@ interface Props {
     href: string;
   };
   trustLine?: string;
+  /** Page locale: supplies the landmark label and the default two-line title (BL-153). */
+  locale?: Locale;
 }
 
-const { title, subtitle, description, primaryCTA, secondaryCTA, trustLine } = Astro.props;
+const {
+  title,
+  subtitle,
+  description,
+  primaryCTA,
+  secondaryCTA,
+  trustLine,
+  locale = DEFAULT_LOCALE,
+} = Astro.props;
+const { t } = useTranslations(locale, 'common');
 ---
 
-<section class="hero" aria-label="Page introduction">
+<section class="hero" aria-label={t('hero.ariaLabel')}>
   <div class="container">
     <div class="hero-layout">
       <h1 class="brutal-hero__title">
@@ -29,9 +43,9 @@ const { title, subtitle, description, primaryCTA, secondaryCTA, trustLine } = As
             <span class="line">{title}</span>
           ) : (
             <>
-              <span class="line">Technology Advisory</span>
+              <span class="line">{t('hero.defaultTitle')}</span>
               <span class="line">
-                <span class="highlight">& Execution</span>
+                <span class="highlight">{t('hero.defaultHighlight')}</span>
               </span>
             </>
           )

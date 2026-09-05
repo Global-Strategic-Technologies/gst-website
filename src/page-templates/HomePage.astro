@@ -1,0 +1,79 @@
+---
+/**
+ * / in every locale. Rendered by src/pages/index.astro (English) and by
+ * src/pages/[locale]/[...route].astro. Section copy lives in the `home`
+ * namespace; the three section components take `locale` and read it too.
+ *
+ * The announcement sash renders in every locale: the registry is matched on
+ * the locale-free route path and its copy is overlaid from the
+ * `announcements` catalog by `localizeAnnouncement` (an earlier cut hid the
+ * sash off English, which read as the banner "disappearing" on /es/).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import WhoWeSupport from '../components/WhoWeSupport.astro';
+import WhatWeDo from '../components/WhatWeDo.astro';
+import WhyClientsTrustUs from '../components/WhyClientsTrustUs.astro';
+import CTASection from '../components/CTASection.astro';
+import Sash from '../components/Sash.astro';
+import { getActiveAnnouncement } from '../data/announcements';
+import { localizeAnnouncement } from '../data/announcements-i18n';
+import { localeFromPath, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t } = useTranslations(locale, 'home');
+
+// Null unless an announcement's window is open and lists this route — see
+// src/data/announcements.ts. Nothing renders when it is null, and the nav's
+// corner reservation switches itself off via :has(). Matched on the
+// locale-free path (`/es/` → `/`), rendered in the page locale.
+const active = getActiveAnnouncement(localeFromPath(Astro.url.pathname).routePath);
+const announcement = active ? localizeAnnouncement(active, locale) : null;
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('meta.ogTitle')}
+  ogDescription={t('meta.ogDescription')}
+  ogImage="https://globalstrategic.tech/og-image.png"
+  ogImageAlt={t('meta.ogImageAlt')}
+  ogUrl={`https://globalstrategic.tech${localizedHref('/', locale)}`}
+>
+  {announcement && <Sash slot="sash" {...announcement} />}
+
+  <Hero
+    description={t('hero.description')}
+    primaryCTA={{
+      text: t('hero.primaryCta'),
+      href: 'https://calendarbridge.com/book/globalstrategictech/',
+    }}
+    secondaryCTA={{
+      text: t('hero.secondaryCta'),
+      href: localizedHref('/services/', locale),
+    }}
+    trustLine={t('hero.trustLine')}
+    locale={locale}
+  />
+
+  <WhoWeSupport locale={locale} />
+
+  <WhatWeDo locale={locale} />
+
+  <WhyClientsTrustUs locale={locale} />
+
+  <CTASection
+    title={t('cta.title')}
+    description={t('cta.description')}
+    buttonText={t('cta.button')}
+    bookingUrl="https://calendarbridge.com/book/globalstrategictech/"
+    emailAddress="contact@globalstrategic.tech"
+    locale={locale}
+  />
+</BaseLayout>
