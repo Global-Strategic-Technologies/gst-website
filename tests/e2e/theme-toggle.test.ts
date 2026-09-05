@@ -251,8 +251,11 @@ test.describe('Theme Toggle Journey', () => {
     await clickThemeToggle(page);
     await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'));
 
-    // Should still be able to interact with other elements
-    const buttons = page.locator('button');
+    // Should still be able to interact with other elements. Visible buttons
+    // only: the first-visit language band renders hidden <button>s ahead of
+    // the page's own (BL-153), and on a route without a switcher a bare
+    // `button` locator resolves to one of them (see mobile-navigation.test.ts).
+    const buttons = page.locator('button:visible');
     const count = await buttons.count();
     expect(count).toBeGreaterThan(0);
 
