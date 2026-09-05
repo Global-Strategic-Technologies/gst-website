@@ -75,8 +75,12 @@ const REGISTRY: readonly Locale[] = [
     path: 'es',
     language: 'es',
     htmlLang: 'es',
-    ogLocale: 'es_ES',
-    intl: 'es-ES',
+    // Colombian Spanish (operator decision 2026-09-05): the catalogs use the
+    // Colombian business register, and `Intl`/Open Graph carry the CO region.
+    // The code, URL prefix and switcher name stay the bare `es` / "Español",
+    // because the site has one Spanish, not a dialect set (ADR-0030 § 13).
+    ogLocale: 'es_CO',
+    intl: 'es-CO',
     name: 'Español',
     short: 'ES',
     status: 'live',
@@ -88,7 +92,9 @@ const REGISTRY: readonly Locale[] = [
     htmlLang: 'pt-BR',
     ogLocale: 'pt_BR',
     intl: 'pt-BR',
-    name: 'Português (Brasil)',
+    // Bare "Português", not "Português (Brasil)": the menu is content-width and
+    // the region made it the widest row for nothing — there is one Portuguese.
+    name: 'Português',
     short: 'PT',
     status: 'live',
   },

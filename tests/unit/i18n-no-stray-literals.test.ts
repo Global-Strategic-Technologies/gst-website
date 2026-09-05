@@ -22,9 +22,9 @@ const EXTENSIONS = /\.(astro|ts|mjs|js|css)$/;
 // code). Backticked mentions in comments (`pt-BR`) are prose and are not matched.
 const PATTERNS: { name: string; re: RegExp }[] = [
   { name: "locale code 'pt-BR' / 'pt-br'", re: /['"]pt-br['"]/i },
-  { name: "og locale 'es_ES' / 'pt_BR'", re: /['"](es_ES|pt_BR)['"]/ },
+  { name: "og locale 'es_CO' / 'es_ES' / 'pt_BR'", re: /['"](es_CO|es_ES|pt_BR)['"]/ },
   { name: "URL '/es/…' or '/pt-br/…'", re: /['"]\/(es|pt-br)\//i },
-  { name: "Intl tag 'es-ES'", re: /['"]es-ES['"]/ },
+  { name: "Intl tag 'es-CO' / 'es-ES'", re: /['"]es-(CO|ES)['"]/ },
 ];
 
 function walk(dir: string): string[] {

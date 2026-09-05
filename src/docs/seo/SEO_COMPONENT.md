@@ -186,8 +186,8 @@ interface Props {
 
 #### `ogLocale` (NEW)
 - Language and region code for content
-- **Default**: the page locale's `ogLocale` from the registry (`en_US`, `es_ES`, `pt_BR`) — since BL-153 this is derived, not a constant
-- Format: language_TERRITORY (e.g., `en_US`, `es_ES`, `fr_FR`)
+- **Default**: the page locale's `ogLocale` from the registry (`en_US`, `es_CO`, `pt_BR`) — since BL-153 this is derived, not a constant
+- Format: language_TERRITORY (e.g., `en_US`, `es_CO`, `fr_FR`)
 - Helps social platforms display content appropriately
 
 #### `locale` (BL-153)

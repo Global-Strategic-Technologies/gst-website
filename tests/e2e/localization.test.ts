@@ -70,7 +70,7 @@ test.describe('server sanity', () => {
 test.describe('document-level SEO per locale', () => {
   for (const [path, lang, og] of [
     ['/about/', 'en', 'en_US'],
-    ['/es/about/', 'es', 'es_ES'],
+    ['/es/about/', 'es', 'es_CO'],
     ['/pt-br/about/', 'pt-BR', 'pt_BR'],
   ] as const) {
     test(`${path}: <html lang>, canonical, og:locale and a full hreflang cluster`, async ({
@@ -177,7 +177,7 @@ test.describe('language switcher', () => {
     const menu = page.locator(MENU);
     await expect(menu).toBeVisible();
     const items = menu.locator('[role="menuitem"]');
-    await expect(items).toHaveText(['English', 'Español', 'Português (Brasil)']);
+    await expect(items).toHaveText(['English', 'Español', 'Português']);
     await expect(items.filter({ hasText: 'English' })).toHaveAttribute('aria-current', 'page');
     await expect(items.filter({ hasText: 'English' }).locator('svg')).toHaveCount(1);
 

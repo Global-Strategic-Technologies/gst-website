@@ -22,7 +22,7 @@ A locale is `language[-REGION]` — `en`, `es`, `pt-BR` today — and lives as o
 | `scripts/i18n-stamp-sources.mjs`                | The stamping script (`npm run i18n:stamp [locale] [ns]`, `npm run i18n:check`).                                                                                      |
 | `tests/unit/i18n-locale.test.ts`                | Resolver, path parsing, `localizedHref` rule, alternates/draft behaviour, config adapters, template↔route alignment.                                                 |
 | `tests/integration/i18n-catalog-parity.test.ts` | Key parity, staleness, markup allowlist, no empty strings. Runs in `npm run test:docs`.                                                                              |
-| `tests/unit/i18n-no-stray-literals.test.ts`     | No `'pt-BR'`, `'/es/'`, `'es_ES'`… quoted outside `src/i18n/`.                                                                                                       |
+| `tests/unit/i18n-no-stray-literals.test.ts`     | No `'pt-BR'`, `'/es/'`, `'es_CO'`… quoted outside `src/i18n/`.                                                                                                       |
 | `tests/e2e/localization.test.ts`                | Rendered-page contract: `<html lang>`, canonical, `og:locale`, hreflang per status, switcher and band behaviour (against the forced-live dev server, see § Testing). |
 
 ## Content tiers
@@ -90,6 +90,8 @@ What multilingual SEO requires of Google is mostly patience; the signals it read
 ## Translation workflow
 
 English is authored first, in the `gst-page-content` register. First-pass translations are generated in-session and marked for review; the sidecar hash pins which English each was made from. A translation is _current_ when its sidecar hash equals the hash of today's English string — that is the whole staleness model, and it is why the guard fails the moment English is edited without the translation being revisited. Register notes for translators: formal address (`usted` / `você`), no flags or locale clichés, product and tool names stay in English (`TechPar`, `Diligence Machine`, `MCP`), the CTA button string `BOOK_CALENDAR_SLOT()` is code-styled and untranslated.
+
+**Spanish is Colombian Spanish** (operator decision 2026-09-05). The locale stays `es` — one URL prefix, `Español` in the switcher — but the registry's `intl` / `ogLocale` are `es-CO` / `es_CO` and the catalogs use the Colombian business register: _inversionistas_ (not _inversores_), _junta directiva_ (not _consejo_), _gerencia_ / _alta gerencia_ (not _la dirección_), _transacción_ for a deal (not _operación_), _participación de mercado_ (not _cuota_), _utilidades_ for profits (not _beneficios_), _diligenciar_ a form (not _rellenar_), _cancelar la suscripción_ (not _darse de baja_), _arrendar_ (not _alquilar_), _ingrese_ / _digite_ (not _introduzca_ / _teclee_), _en la nube_ (not _cloud_), _de forma predeterminada_ (not _por defecto_), _escalamiento_, _desempeño_, _calificar_ a score. Portuguese is Brazilian: the menu shows the bare `Português` because there is one Portuguese on the site, not a dialect pair.
 
 ## Testing
 
