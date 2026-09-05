@@ -165,6 +165,21 @@ describe('MCP onboarding pages — supported clients and the consent page', () =
     expect(markup.getStarted).toContain(match![1]!.replace(/\.$/, ''));
   });
 
+  it('renders the consent still with scopes the server actually defines', () => {
+    // The still's scope list is pinned in the render script from a real
+    // consent recording. A scope renamed or removed server-side would render
+    // without a description, so every pinned id must be in the catalog.
+    const script = read('scripts/render-consent-still.mjs');
+    const block = script.match(/scope: \[([^\]]+)\]/);
+    expect(block, 'render-consent-still.mjs no longer pins a scope list').not.toBeNull();
+    const pinned = [...block![1]!.matchAll(/'([^']+)'/g)].map((m) => m[1]!);
+    expect(pinned.length).toBeGreaterThan(0);
+    const catalog = read('mcp-server/src/auth/scopes.ts');
+    for (const scope of pinned) {
+      expect(catalog, `scope ${scope} is not in the server catalog`).toContain(`'${scope}'`);
+    }
+  });
+
   it('ships the rendered consent still it embeds', () => {
     // `npm run media:consent-still` regenerates this from the same handler; the
     // page must never point at a file that is not in public/.

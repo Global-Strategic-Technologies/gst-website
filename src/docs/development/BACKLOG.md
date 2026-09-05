@@ -263,29 +263,6 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ---
 
-### BL-152: Operator-recorded onboarding clips for `/hub/mcp/get-started/`
-
-**Source**: the 2026-09-03 revision of the Get Started guide, which widened the copy to Claude on the web and Claude Desktop and wrote steps 02 and 03 around screen captures of adding the connector and approving at the consent page | **Effort**: Small — three short recordings plus the documented ffmpeg pass; the page slots, snippets and E2E pin are ready | **Status**: Open · **needs a human with a live Claude session** — the raws are recordings of a real claude.ai / Desktop session and, like the three shipped clips ([ADR-0022](../adr/0022-mcp-onboarding-media-in-git.md)), cannot be produced by anything else
-
-**As a** first-time reader of the setup guide, **I want** to watch the connector being added and the consent page being approved, in the client I am using, **so that** the two steps that involve leaving the guide (a settings dialog, then a browser tab asking for a credential) hold no surprises.
-
-#### Acceptance Criteria
-
-- [ ] `add-connector-claudeai-web.mp4` + poster recorded, encoded and dropped in per the brief in [MCP_ONBOARDING.md § Media catalog](../hub/MCP_ONBOARDING.md#media-catalog)
-- [ ] `add-connector-desktop-web.mp4` + poster likewise, **or** a recorded decision that the Desktop dialog is identical and one clip serves both (the page copy already says the menu is the same)
-- [ ] `oauth-consent-web.mp4` + poster likewise; the shipped `consent-page-still.webp` stays beneath it as the reduced-motion companion
-- [ ] Each drop-in pastes the catalogued `<ClipFigure>` snippet into its slot and bumps `clips` for Get Started in `tests/e2e/hub-mcp-onboarding.test.ts`; `npm run test:run` and the onboarding E2E pass
-- [ ] The `prompts-resources-web.mp4` re-record already owed (recorded at nine prompts, copy says twelve) is taken in the same session, since the same live session produces it
-- [ ] Catalog rows flip from **owed** to shipped with the date; this stanza is pruned
-
-#### Technical Context
-
-- Nothing on the page references a file that does not exist: a missing source renders a broken native player, so the slots are comments, not placeholders
-- Naming follows the shipped convention (`<stem>-web.mp4` is the encode, `<stem>-poster.webp` the poster, client in the stem); the catalog records it so the rule reads as intact
-- The consent still is rendered from source (`npm run media:consent-still`) and is not part of this item
-
----
-
 ## CSS and Design System
 
 ### BL-102: Regulatory map — how is the map exposed to assistive tech?

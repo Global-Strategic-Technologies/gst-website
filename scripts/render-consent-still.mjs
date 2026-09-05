@@ -11,7 +11,7 @@
  * consent nonce), so the HTML is exactly what a first-time onboarder sees, with
  * no Worker source change and no deployed environment involved.
  *
- * Output: public/images/hub/mcp/consent-page-still.webp via the poster recipe
+ * Output: public/images/hub/mcp/consent-page-still.webp (1120x1578) via the poster recipe
  * in src/docs/hub/MCP_ONBOARDING.md (ffmpeg, WebP q82). The PNG intermediate
  * stays in the OS temp dir and is not committed. Fonts resolve through the
  * shell's `local()` fallbacks (Consolas on Windows), so the still is a
@@ -31,17 +31,24 @@ const ROOT = resolve(import.meta.dirname, '..');
 const OUT = resolve(ROOT, 'public/images/hub/mcp/consent-page-still.webp');
 const ORIGIN = 'https://mcp.globalstrategic.tech';
 
-// The client name Claude registers under is what the page prints in bold; the
-// scope list is left empty on purpose: what Claude's connector requests is not
-// recorded anywhere in the repo, and an empty request renders the "your key's
-// full scope set" branch, which the page caption describes. Swap in a scope
-// array here if a real consent ever shows one.
+// The client name Claude registers under is what the page prints in bold. The
+// scope list is what Claude's connector actually requested in the 2026-09-04
+// recording (media-raw/oauth-consent-web.mp4, the consent tab), in that order;
+// the descriptions come from the server's scope catalog, so only the ids are
+// pinned here. Re-read them from a fresh recording if Claude's request changes.
 const CLIENT = { clientId: 'claude', clientName: 'Claude' };
 const AUTH_REQUEST = {
   clientId: CLIENT.clientId,
   responseType: 'code',
   redirectUri: 'https://claude.ai/api/mcp/auth_callback',
-  scope: [],
+  scope: [
+    'tool:*',
+    'resource:library:read',
+    'resource:regulations:read',
+    'resource:radar:read',
+    'prompt:*',
+    'tool:radar:*',
+  ],
   state: '',
   codeChallenge: '',
   codeChallengeMethod: 'S256',

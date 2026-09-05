@@ -14,11 +14,12 @@ import { mcpGuideSchema } from '../../../../utils/mcp-schema';
 // endpoint, the consent page's error string) are pinned by
 // tests/integration/mcp-onboarding-parity.test.ts.
 //
-// Media slots: the Quick Start's steps 02 and 03 are catalogued for
-// operator-recorded clips (add-connector on claude.ai and Desktop, the OAuth
-// consent round trip) that do not exist yet — see the media catalog in
-// src/docs/hub/MCP_ONBOARDING.md (BL-152). Nothing here references a file that
-// is not in public/, because a missing source renders a broken player.
+// Media: every clip and still embedded here is catalogued, with its crop and
+// encode recipe, in src/docs/hub/MCP_ONBOARDING.md § Media catalog. The
+// claude.ai recordings landed 2026-09-04; the Desktop dialog was judged
+// identical, so one add-connector clip serves both clients. Nothing here
+// references a file that is not in public/, because a missing source renders
+// a broken player.
 
 const PAGE_URL = 'https://globalstrategic.tech/hub/mcp/get-started/';
 const DESCRIPTION =
@@ -169,11 +170,12 @@ const TOC_LINKS = [
             <li class="quick-step">
               <div class="quick-step__num">01</div>
               <div>
-                <h3 class="quick-step__title">Open Settings → Connectors</h3>
+                <h3 class="quick-step__title">Open the connector dialog</h3>
                 <p class="quick-step__body">
-                  On the web, open Settings and choose Connectors; in Claude Desktop it is the same
-                  menu. Choose <strong>Add custom connector</strong>. You do not need a client ID or
-                  secret: Claude registers itself with the server.
+                  In the chat input, open the <strong>+</strong> menu and choose&#32;
+                  <strong>Connectors → Add connector → Add custom connector</strong>. Settings →
+                  Connectors reaches the same dialog, and Claude Desktop has the same menu. You do
+                  not need a client ID or secret: Claude registers itself with the server.
                 </p>
               </div>
             </li>
@@ -182,9 +184,11 @@ const TOC_LINKS = [
               <div>
                 <h3 class="quick-step__title">Enter the GST endpoint</h3>
                 <p class="quick-step__body">
-                  Paste the production URL and save. You choose the display name here. Call it&#32;
-                  <code>GST MCP</code> to match the rest of this guide, since you address the connector
-                  by that name in a prompt.
+                  Name the connector and paste the production URL. Call it <code>GST MCP</code> to match
+                  the rest of this guide, since you address the connector by that name in a prompt. Choose
+                  <strong>Continue</strong>: Claude checks the server, then shows an Authentication
+                  and an OAuth client section with both settings already detected. Leave those
+                  defaults and choose <strong>Add</strong>.
                 </p>
                 <div class="endpoint-row">
                   <code class="endpoint-code">https://mcp.globalstrategic.tech/mcp</code>
@@ -202,6 +206,17 @@ const TOC_LINKS = [
                     data-copy="GST MCP">Copy<span class="sr-only"> connector name</span></button
                   >
                 </div>
+                <ClipFigure
+                  variant="collapsible"
+                  mp4="/images/hub/mcp/add-connector-claudeai-web.mp4"
+                  poster="/images/hub/mcp/add-connector-claudeai-poster.webp"
+                  width={960}
+                  height={880}
+                  maxWidth="560px"
+                  summary="See the connector added"
+                  ariaLabel="Screen capture: the chat input's plus menu opens, Connectors then Add connector then Add custom connector are chosen, the connector is named GST MCP, the GST endpoint is pasted, Continue is clicked and Claude checks the server"
+                  caption="Screen capture: adding the custom connector on claude.ai. The dialog is the same in Claude Desktop"
+                />
               </div>
             </li>
             <li class="quick-step">
@@ -221,14 +236,25 @@ const TOC_LINKS = [
                   nothing granted.
                 </p>
                 <ClipFigure
+                  variant="collapsible"
+                  mp4="/images/hub/mcp/oauth-consent-web.mp4"
+                  poster="/images/hub/mcp/oauth-consent-poster.webp"
+                  width={800}
+                  height={1000}
+                  maxWidth="520px"
+                  summary="See the consent round trip"
+                  ariaLabel="Screen capture: the Authentication and OAuth client sections are confirmed with Add, Claude shows Connecting to GST MCP, a browser tab opens on the GST consent page listing the six requested scopes, the MCP key is pasted into the password field, Approve is clicked, and Claude shows Connected to GST MCP"
+                  caption="Screen capture, at twice the recorded speed: approving at the consent page and returning to Claude"
+                />
+                <ClipFigure
                   variant="still"
                   src="/images/hub/mcp/consent-page-still.webp"
                   width={1120}
-                  height={1030}
+                  height={1578}
                   maxWidth="520px"
                   summary="See the consent page"
-                  alt="The GST consent page: a heading reading Authorize access to the GST MCP server, a line saying Claude is requesting access with your key's full scope set, one password field labelled Your MCP key, and Approve and Deny buttons"
-                  caption="The GST consent page. With no scope list in the request, as here, approving grants your key's full scope set"
+                  alt="The GST consent page: a heading reading Authorize access to the GST MCP server, a list of the six scopes Claude is requesting with a one-line description of each, one password field labelled Your MCP key, and Approve and Deny buttons"
+                  caption="The GST consent page as Claude opens it, listing the scopes the connector requests. Approving grants those, bounded by your key's own scopes"
                 />
               </div>
             </li>
@@ -304,8 +330,20 @@ debt, or information request lists:
                   width={1000}
                   height={952}
                   maxWidth="520px"
+                  summary="See it in Claude Desktop"
                   ariaLabel="Screen capture: the composer's plus menu opens, Connectors is hovered, and GST MCP appears in the list with its toggle on"
-                  caption="Screen capture: the connector list with GST MCP enabled"
+                  caption="Screen capture: the connector list with GST MCP enabled, in Claude Desktop"
+                />
+                <ClipFigure
+                  variant="collapsible"
+                  mp4="/images/hub/mcp/connector-enabled-claudeai-web.mp4"
+                  poster="/images/hub/mcp/connector-enabled-claudeai-poster.webp"
+                  width={1200}
+                  height={760}
+                  maxWidth="600px"
+                  summary="See it on claude.ai"
+                  ariaLabel="Screen capture: on claude.ai the plus menu opens, Connectors shows GST MCP toggled on, and Add from GST MCP opens a searchable list of the GST prompts"
+                  caption="Screen capture: the same menu on claude.ai, with Add from GST MCP opening the prompt list"
                 />
               </div>
             </li>

@@ -30,7 +30,7 @@ const GUIDES = [
     h1: /Get started with the GST MCP Server/,
     crumb: 'Get Started',
     sections: ['prerequisites', 'quick-start', 'verify', 'whats-next'],
-    clips: 2,
+    clips: 5,
     stills: 1,
   },
   {
