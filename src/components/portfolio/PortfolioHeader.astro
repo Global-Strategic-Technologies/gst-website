@@ -44,7 +44,7 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
               type="search"
               id="search-input-fixed"
               class="search-input"
-              placeholder="Name, industry, or technology..."
+              placeholder="Name, industry, technology"
               aria-label="Search projects"
               data-testid="portfolio-search-input"
             />
@@ -126,6 +126,16 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     white-space: nowrap;
   }
 
+  /* A growing, shrinkable flex item of the header row, capped so the bar reads
+     as a control beside the title rather than a second column. Without the
+     grow, the block sized to its content, and since global.css gives
+     `.controls-wrapper` `width: fit-content`, the search box's 375px basis
+     below resolved against the input's intrinsic width instead: measured
+     ~235px at 1280 AND at 768, clipping a 26-character placeholder at both.
+     The wrapper is widened to fill this block for the same reason. From 1024px
+     down the controls stack under the title and both go full width (see the
+     tier below). The sticky copy in StickyControls.astro is position: fixed
+     and unaffected. */
   .portfolio-controls-fixed {
     border-bottom: none;
     padding: 0;
@@ -133,9 +143,16 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 560px;
     transition:
       position var(--transition-fast) ease-out,
       top var(--transition-fast) ease-out;
+  }
+
+  .controls-wrapper {
+    width: 100%;
   }
 
   .portfolio-controls-fixed.sticky-active {
@@ -256,10 +273,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
       z-index: 1002;
     }
 
-    .search-box {
-      flex-basis: 270px;
-    }
-
     .search-icon {
       left: var(--spacing-md);
       width: 16px;
@@ -267,19 +280,20 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     }
   }
 
-  /* The header row is title + controls under `space-between`, and the title is
-     `white-space: nowrap`, so the row cannot fit until the container holds the
-     title's full width plus the controls' minimum — measured at 436px. That was
-     a 540px viewport when this was derived, with the container's 3rem padding
-     taken off. It stacked at 480 instead, so 481–531px overflowed by up to 51px.
-
-     Since the gutter ladder landed (global.css, 2026-09-01) a 540px viewport
-     gives a 492px container and 436px is reached at ~484px, so this threshold is
-     now CONSERVATIVE RATHER THAN EXACT — 485–540 stacks a little earlier than it
-     strictly must. Left at 540 deliberately: 481–483 still genuinely needs it,
-     the cost is one breakpoint of early stacking, and moving it would re-open
-     the overflow band this rule was added to close. */
-  @media (max-width: 540px) {
+  /* Stack the controls under the title from here down. The stack used to start
+     at 540px, chosen so the nowrap title plus the controls' minimum (436px) fit
+     the container, and everything above it stayed a row. Once the controls
+     block became a shrinkable flex item (see `.portfolio-controls-fixed` above)
+     that row squeezed the search input as the title's fixed width ate the
+     container: 303px at 900, 183px at 780, 160px at 640 (measured 2026-09-04),
+     which clips even the shortened placeholder. The stack is aligned to the
+     site-wide 1024 tier rather than fitted: just above it the row still gives
+     the input 428px (1025) and 439px (1100), and the first tier below is
+     where a bespoke number would otherwise be needed. Measured 2026-09-04;
+     the boundary is in narrow-viewport-chrome.test.ts's overflow sweep. This
+     also retires the 540 threshold and the 481–540 overflow band it existed
+     to close. */
+  @media (max-width: 1024px) {
     .portfolio-header-content {
       flex-direction: column;
       align-items: flex-start;
@@ -288,16 +302,12 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
 
     .portfolio-controls-fixed {
       width: 100%;
+      max-width: none;
     }
   }
 
   @media (max-width: 480px) {
-    .portfolio-header-content {
-      gap: var(--spacing-md);
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
+    /* Stacking, gap and width come from the 1024 tier above. */
     .portfolio-title {
       font-size: var(--text-lg);
     }
@@ -305,7 +315,6 @@ const uniqueEngagementCategories = getUniqueEngagementCategories(projects);
     .portfolio-controls-fixed {
       padding: 0.625rem 0;
       height: auto;
-      width: 100%;
     }
 
     .portfolio-controls-fixed.sticky-active {

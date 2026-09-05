@@ -48,11 +48,11 @@ The MCP endpoint URLs:
 
 **Use the production URL unless you have a specific reason to use staging.** The snippets below all show the production URL; to point at staging, swap the host (`mcp` → `mcp-staging`) and rename the connector (e.g. `gst-mcp` → `gst-mcp-staging`).
 
-### Claude Desktop (native Connectors — recommended)
+### Claude web and Claude Desktop (native Connectors — recommended)
 
-> ✅ **The Worker speaks OAuth 2.1 natively (BL-033 Slice 2, 2026-07-24)** — Claude Desktop's Settings → Connectors UI now works directly. **The `mcp-remote` bridge is no longer required**; it remains documented in the legacy appendix below for existing configs, which keep working unchanged (dual auth — see [`ARCHITECTURE.md` § Dual auth](../ARCHITECTURE.md#dual-auth-static-bearers--oauth-21-q11q13--bl-033)).
+> ✅ **The Worker speaks OAuth 2.1 natively (BL-033 Slice 2, 2026-07-24)** — Claude's Settings → Connectors UI works directly, on claude.ai and in Claude Desktop alike, and a connector added in one appears in the other. **The `mcp-remote` bridge is no longer required**; it remains documented in the legacy appendix below for existing configs, which keep working unchanged (dual auth — see [`ARCHITECTURE.md` § Dual auth](../ARCHITECTURE.md#dual-auth-static-bearers--oauth-21-q11q13--bl-033)). The public version of these steps, with screen captures, is `/hub/mcp/get-started/`.
 
-1. **Settings → Connectors → Add custom connector**; enter `https://mcp.globalstrategic.tech/mcp` (no client ID/secret needed — Claude registers itself via CIMD).
+1. **Settings → Connectors → Add custom connector** (on claude.ai or in Claude Desktop; on a Team/Enterprise plan an org Owner adds it under Organization settings → Connectors); enter `https://mcp.globalstrategic.tech/mcp` (no client ID/secret needed — Claude registers itself via CIMD).
 2. A browser tab opens the Worker's consent page. **Paste your `MCP_KEY_*` value** (from your password manager) into the key field and click Approve — that one paste is how the grant knows who you are; your delegated access is bounded by your key's scopes.
 3. Done. Tokens are 1-hour and refresh silently; the same connector works on claude.ai web and mobile.
 

@@ -114,9 +114,23 @@ const PHONE_WIDTHS = [320, 360, 375, 390, 430] as const;
  * Sorted, because it spreads PHONE_WIDTHS: 430 would otherwise land before 420
  * and the list would stop reading as a ladder.
  */
-const OVERFLOW_WIDTHS = [...PHONE_WIDTHS, 420, 481, 540, 660, 720, 769, 840, 900, 960].sort(
-  (a, b) => a - b
-);
+// 1025 and 1100 sit just above PortfolioHeader's 1024 stack tier, where the
+// nowrap title and the shrinkable search/filter block share one row and the
+// row is at its tightest; the sweep otherwise stopped at 960.
+const OVERFLOW_WIDTHS = [
+  ...PHONE_WIDTHS,
+  420,
+  481,
+  540,
+  660,
+  720,
+  769,
+  840,
+  900,
+  960,
+  1025,
+  1100,
+].sort((a, b) => a - b);
 
 /**
  * Routes whose chrome is the whole site's chrome, plus the two that carry the

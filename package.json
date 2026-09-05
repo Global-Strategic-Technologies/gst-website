@@ -25,6 +25,7 @@
     "radar:seed": "node mcp-server/scripts/seed-radar-cache.mjs",
     "radar:unseed": "node mcp-server/scripts/seed-radar-cache.mjs --unseed",
     "radar:stub": "node scripts/radar-stub.mjs",
+    "media:consent-still": "node scripts/render-consent-still.mjs",
     "test:all": "npm run test:run && npm run test:e2e && npm run test:mcp",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -77,6 +78,7 @@
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.1.11",
     "browserslist": "^4.28.8",
+    "esbuild": "^0.28.2",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^3.1.0",
@@ -100,7 +102,8 @@
   },
   "overrides": {
     "path-to-regexp": "6.3.0",
-    "fast-uri": "3.1.5",
+    "fast-uri": "3.1.7",
+    "qs": "6.16.0",
     "@modelcontextprotocol/sdk": {
       "express-rate-limit": "8.5.1"
     },
