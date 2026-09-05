@@ -41,7 +41,7 @@ A locale is `language[-REGION]` — `en`, `es`, `pt-BR` today — and lives as o
 ### Add or change a string
 
 1. Add the key to `src/i18n/en/<ns>.json` (flat, dot-separated: `founder.p1`). Use `{name}` for interpolation.
-2. Use it: `const { t } = useTranslations(locale, '<ns>')` then `{t('founder.p1')}`. For inline markup (`<a>`, `<strong>`, `<em>`, `<br>`, `<code>` only) use `set:html={tHtml('key')}`.
+2. Use it: `const { t } = useTranslations(locale, '<ns>')` then `{t('founder.p1')}`. For inline markup (`<a>`, `<strong>`, `<em>`, `<br>`, `<code>`, plus `<p>` for a multi-paragraph answer — nothing else) use `set:html={tHtml('key')}`.
 3. Add the same key to every other locale's `<ns>.json`. English changed but the translation didn't? Leave it — the staleness guard will say so.
 4. When each translation has been reviewed against the current English, stamp it: `npm run i18n:stamp <locale> <ns>`. Stamping is a reviewer's act, not a build step; never run it to silence the guard.
 5. `npm run test:docs` (parity + staleness) and, per CLAUDE.md Directive 11, grep `tests/` for any English string you changed.

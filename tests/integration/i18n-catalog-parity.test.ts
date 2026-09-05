@@ -11,7 +11,8 @@
  *     string each translation was made from. English moved on → this fails
  *     until a reviewer re-stamps (`node scripts/i18n-stamp-sources.mjs`).
  *  3. Markup allowlist — a string may carry only `<a> <strong> <em> <br> <code>`
- *     (what `tHtml` is for), and placeholders must match English's.
+ *     plus `<p>` for multi-paragraph answers (what `tHtml` is for), and
+ *     placeholders must match English's.
  *  4. No empty strings, anywhere.
  */
 import { describe, it, expect } from 'vitest';
@@ -37,7 +38,9 @@ const namespaces = readdirSync(join(I18N, DEFAULT))
 
 const otherLocales = LOCALES.filter((l) => l.code !== DEFAULT).map((l) => l.code);
 
-const ALLOWED_TAGS = new Set(['a', 'strong', 'em', 'br', 'code']);
+// `p` is here for multi-paragraph FAQ answers (services.faq.a1 predates the
+// catalogs with two <p>s); block-level structure beyond that stays in templates.
+const ALLOWED_TAGS = new Set(['a', 'strong', 'em', 'br', 'code', 'p']);
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
 describe('i18n catalogs — English is the schema', () => {

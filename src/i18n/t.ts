@@ -27,12 +27,14 @@ import enCommon from './en/common.json';
 import enAbout from './en/about.json';
 import enHome from './en/home.json';
 import enPrivacy from './en/privacy.json';
+import enServices from './en/services.json';
 import enTerms from './en/terms.json';
 
 /** The English catalogs, one static import per namespace: they ARE the types. */
 export const EN = {
   common: enCommon,
   home: enHome,
+  services: enServices,
   about: enAbout,
   privacy: enPrivacy,
   terms: enTerms,
