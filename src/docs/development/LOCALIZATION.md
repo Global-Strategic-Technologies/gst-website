@@ -77,7 +77,7 @@ New page copy gets its own namespace named after the route id (`about`, `hub-too
 
 ## Search Console and Google after go-live
 
-What multilingual SEO requires of Google is mostly patience; the signals it reads are already on every page (own URL per language, `<html lang>`, a full `hreflang` cluster with `x-default` → English, a self-canonical, translated titles/descriptions/Open Graph, `inLanguage`, sitemap alternates, and no language-based redirect). Operator steps:
+What multilingual SEO requires of Google is mostly patience; the signals it reads are already on every page (own URL per language, `<html lang>`, a full `hreflang` cluster with `x-default` → English, a self-canonical, translated titles/descriptions/Open Graph, `inLanguage`, sitemap alternates, and no language-based redirect). The page tags are the source of truth: `@astrojs/sitemap` writes the three language alternates per URL but not `x-default`, which only the pages carry — Google accepts hreflang from either source, so this is complete, not a gap to fix. Operator steps:
 
 1. **No new property, no country target.** The domain property covers `/es/` and `/pt/`. Language is not country: do not set geotargeting.
 2. **Sitemap.** `sitemap-index.xml` is already submitted; re-submit the same URL after the first deploy to prompt a fetch. Never submit `/sitemap.xml` (see SEO_IMPLEMENTATION.md).
