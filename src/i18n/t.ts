@@ -26,6 +26,9 @@ import { DEFAULT_LOCALE_CODE, type Locale } from './locales';
 import enCommon from './en/common.json';
 import enAbout from './en/about.json';
 import enHome from './en/home.json';
+import enHub from './en/hub.json';
+import enHubMcp from './en/hub-mcp.json';
+import enHubTools from './en/hub-tools.json';
 import enPrivacy from './en/privacy.json';
 import enServices from './en/services.json';
 import enTerms from './en/terms.json';
@@ -36,6 +39,9 @@ export const EN = {
   home: enHome,
   services: enServices,
   about: enAbout,
+  hub: enHub,
+  'hub-tools': enHubTools,
+  'hub-mcp': enHubMcp,
   privacy: enPrivacy,
   terms: enTerms,
 } as const;

@@ -12,6 +12,9 @@
  */
 import AboutPage from './AboutPage.astro';
 import HomePage from './HomePage.astro';
+import HubMcpPage from './HubMcpPage.astro';
+import HubPage from './HubPage.astro';
+import HubToolsPage from './HubToolsPage.astro';
 import PrivacyPage from './PrivacyPage.astro';
 import ServicesPage from './ServicesPage.astro';
 import TermsPage from './TermsPage.astro';
@@ -20,6 +23,9 @@ export const TEMPLATES = {
   home: HomePage,
   services: ServicesPage,
   about: AboutPage,
+  hub: HubPage,
+  'hub-tools': HubToolsPage,
+  'hub-mcp': HubMcpPage,
   privacy: PrivacyPage,
   terms: TermsPage,
 } as const;

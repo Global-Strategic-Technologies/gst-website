@@ -178,7 +178,13 @@ describe('copy rules over the literals the helpers add', () => {
 
 describe('every /hub/mcp/ page renders its JSON-LD from the helpers', () => {
   const pages: Array<[string, RegExp[]]> = [
-    ['index.astro', [/set:html=\{JSON\.stringify\(\s*mcpServerSchema\(/]],
+    // The landing page's body is the shared locale template since BL-153
+    // (src/pages/hub/mcp/index.astro is a one-line wrapper), so its JSON-LD is
+    // read from the template. The guides below are English-only and unmoved.
+    [
+      join('..', '..', '..', 'page-templates', 'HubMcpPage.astro'),
+      [/set:html=\{JSON\.stringify\(\s*mcpServerSchema\(/],
+    ],
     [
       join('docs', 'index.astro'),
       [

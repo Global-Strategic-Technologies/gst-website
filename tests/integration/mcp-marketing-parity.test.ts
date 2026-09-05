@@ -40,12 +40,55 @@ import {
 // one definition of "what the page renders", same policy as the registry
 // readers above.
 import { extractAstroMarkup } from './helpers/astro-markup';
+import enCatalog from '../../src/i18n/en/hub-mcp.json';
 
-const PAGE_PATH = 'src/pages/hub/mcp/index.astro';
+// The page body lives in the shared locale template since BL-153;
+// `src/pages/hub/mcp/index.astro` is a one-line English wrapper. The template
+// renders its prose through `t('key')` / `tHtml('key', { literal params })` and
+// its tier ceilings through `num('2,000')`, so the fixture below inlines the
+// ENGLISH catalog into those expressions before any assertion runs. Every
+// existing assertion then reads what an English visitor reads, while the wire
+// identifiers, counts, hostnames and `data-*` hooks it pins are literal in the
+// template for every locale.
+const PAGE_PATH = 'src/page-templates/HubMcpPage.astro';
+
+/**
+ * Resolve `{t('key')}`, `{t('key', { count: 16, name: 'x' })}`, `{tHtml(…)}` and
+ * `{num('2,000')}` against the English catalog. Attribute positions
+ * (`data-tier={t('…')}`) come back quoted so `attr="value"` matchers still bind.
+ * Anything it cannot resolve is left in place, so an unresolved expression shows
+ * up as a literal `{t(` in a failing assertion rather than passing silently.
+ */
+function inlineEnglish(src: string): string {
+  const catalog = enCatalog as Record<string, string>;
+  const params = (raw: string | undefined): Record<string, string> => {
+    const out: Record<string, string> = {};
+    if (!raw) return out;
+    for (const m of raw.matchAll(/(\w+)\s*:\s*(?:'([^']*)'|"([^"]*)"|(\d[\d,.]*))/g)) {
+      out[m[1]] = m[2] ?? m[3] ?? m[4] ?? '';
+    }
+    return out;
+  };
+  const resolve = (fn: string, key: string, rawParams: string | undefined): string | null => {
+    if (fn === 'num') return key;
+    const value = catalog[key];
+    if (value === undefined) return null;
+    const p = params(rawParams);
+    return value.replace(/\{(\w+)\}/g, (whole, name: string) => (name in p ? p[name] : whole));
+  };
+  const EXPR = /\{\s*(t|tHtml|num)\(\s*'([^']+)'\s*(?:,\s*\{([^}]*)\}\s*)?\)\s*\}/g;
+  // Attribute position first, so the quotes land around the value.
+  return src
+    .replace(new RegExp(`=${EXPR.source}`, 'g'), (whole, fn, key, raw) => {
+      const v = resolve(fn, key, raw);
+      return v === null ? whole : `="${v}"`;
+    })
+    .replace(EXPR, (whole, fn, key, raw) => resolve(fn, key, raw) ?? whole);
+}
 
 // --- Fixtures --------------------------------------------------------------
 
-const markup = extractAstroMarkup(read(PAGE_PATH));
+const markup = inlineEnglish(extractAstroMarkup(read(PAGE_PATH)));
 const remoteTools = registeredToolNames(SERVER_PATH);
 const stdioOnlyTools = registeredToolNames(LOCAL_ONLY_PATH);
 const prompts = registeredPromptNames();
@@ -70,6 +113,15 @@ describe('MCP marketing page — extraction sanity', () => {
     expect(markup).not.toContain('grid-template-columns'); // <style>
     expect(markup).not.toContain('(window as any).trackCTA'); // <script>
     expect(markup).not.toContain('ADR-0014'); // {/* … */} comment
+  });
+
+  it('inlines every catalog expression (none left unresolved)', () => {
+    // A `{t(` surviving here means a key the English catalog lacks or a param
+    // shape the inliner does not understand — either way the guards below would
+    // be asserting against the wrong text.
+    expect(markup).not.toMatch(/\{\s*(t|tHtml|num)\(/);
+    // And the inlining did something: a phrase that exists only in the catalog.
+    expect(markup).toContain('Browse all 16 tools');
   });
 });
 

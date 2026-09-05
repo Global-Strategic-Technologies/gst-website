@@ -201,7 +201,11 @@ describe('every hub tool page emits WebApplication JSON-LD', () => {
 });
 
 describe('the tools listing page is not a tool page', () => {
-  const listing = () => read(TOOLS_DIR, 'index.astro');
+  // The listing's body moved to the shared page template in BL-153
+  // (src/pages/hub/tools/index.astro is now a locale wrapper); the ItemList is
+  // emitted from the template, so that is what this reads. The tool-page scan
+  // above is unaffected: tool pages are Tier B and still live under TOOLS_DIR.
+  const listing = () => read(REPO_ROOT, 'src', 'page-templates', 'HubToolsPage.astro');
 
   it('emits ItemList', () => {
     expect(listing()).toMatch(/'@type':\s*'ItemList'/);

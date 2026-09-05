@@ -137,7 +137,9 @@ export const SLICES = [
     name: 'HubToolsLanding',
     page: 'hub/tools/index.html',
     selector: 'section.tools-section',
-    source: 'src/pages/hub/tools/index.astro',
+    // The page body moved to the shared locale template in BL-153; the route
+    // file src/pages/hub/tools/index.astro is now a one-line wrapper.
+    source: 'src/page-templates/HubToolsPage.astro',
     title: 'Hub tools landing (section)',
     note: 'The hub header + gateway grid as a page section — how the class-level gateway cards compose into a landing page.',
   },

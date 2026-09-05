@@ -471,6 +471,10 @@ describe('extract-chrome.mjs SLICES resolve to source', () => {
     ...walk(resolve(REPO_ROOT, 'src/pages'), '.astro'),
     ...walk(resolve(REPO_ROOT, 'src/components'), '.astro'),
     ...walk(resolve(REPO_ROOT, 'src/layouts'), '.astro'),
+    // Tier A page bodies live here since BL-153; the route files under
+    // src/pages are wrappers, so a slice hook such as `section.tools-section`
+    // is only findable in the template.
+    ...walk(resolve(REPO_ROOT, 'src/page-templates'), '.astro'),
   ];
   const astroSource = astroFiles.map((f) => readFileSync(f, 'utf-8')).join('\n');
 
