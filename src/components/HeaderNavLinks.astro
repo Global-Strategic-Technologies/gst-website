@@ -13,19 +13,31 @@
 // 'M&A Portfolio') — see analytics/README.md — and no test pins it, so a
 // derived model could silently change GA4 data.
 //
+// Localization (BL-153): only the VISIBLE text and the hrefs vary by locale.
+// The onclick payloads stay English — they are GA4 data, not copy. `hrefs`
+// go through `localizedHref`, which prefixes Tier A routes (`/es/services/`)
+// and leaves English-only routes (`/ma-portfolio/`) untouched.
+//
 // `links` exists so /brand can exhibit this as a live specimen instead of the
 // hand-rolled replica it used to carry (BL-095); it is set nowhere else.
 // Passing it selects a demo branch whose entries render with NO analytics
 // onclick — a specimen click must never emit a real `navigation_click` event.
+import { DEFAULT_LOCALE, localeFromPath, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
 
 interface Props {
-  /** Production only: the path used to derive each link's `.active` state. */
+  /** Production only: the path used to derive each link's `.active` state (may carry a locale prefix). */
   currentPath?: string;
   /** Demo-only override; entries render untracked, `.active` from the prop. */
   links?: { label: string; href: string; active?: boolean }[];
+  locale?: Locale;
 }
 
-const { currentPath = '/', links } = Astro.props;
+const { currentPath = '/', links, locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'common');
+const { routePath } = localeFromPath(currentPath);
+const href = (path: string) => localizedHref(path, locale);
 ---
 
 {
@@ -33,38 +45,38 @@ const { currentPath = '/', links } = Astro.props;
     <ul>
       <li>
         <a
-          href="/services/"
+          href={href('/services/')}
           onclick="trackNavigation('/services', 'Services')"
-          class={currentPath?.startsWith('/services') ? 'active' : ''}
+          class={routePath.startsWith('/services') ? 'active' : ''}
         >
-          Services
+          {t('nav.services')}
         </a>
       </li>
       <li>
         <a
-          href="/ma-portfolio/"
+          href={href('/ma-portfolio/')}
           onclick="trackNavigation('/ma-portfolio', 'M&A Portfolio')"
-          class={currentPath?.startsWith('/ma-portfolio') ? 'active' : ''}
+          class={routePath.startsWith('/ma-portfolio') ? 'active' : ''}
         >
-          M&A
+          {t('nav.ma')}
         </a>
       </li>
       <li>
         <a
-          href="/hub/"
+          href={href('/hub/')}
           onclick="trackNavigation('/hub', 'Hub')"
-          class={currentPath?.startsWith('/hub') ? 'active' : ''}
+          class={routePath.startsWith('/hub') ? 'active' : ''}
         >
-          Hub
+          {t('nav.hub')}
         </a>
       </li>
       <li>
         <a
-          href="/about/"
+          href={href('/about/')}
           onclick="trackNavigation('/about', 'About')"
-          class={currentPath?.startsWith('/about') ? 'active' : ''}
+          class={routePath.startsWith('/about') ? 'active' : ''}
         >
-          About
+          {t('nav.about')}
         </a>
       </li>
     </ul>

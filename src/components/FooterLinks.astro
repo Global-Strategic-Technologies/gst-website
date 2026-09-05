@@ -10,26 +10,37 @@
 // override keeps specimen links in-page (Breadcrumb `crumbs` precedent). No
 // analytics handlers exist on these links in production, so the demo branch
 // differs only in destinations.
+//
+// Localization (BL-153): labels come from the `common` catalog and the two
+// site links go through `localizedHref` (Privacy and Terms are Tier A routes).
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
 interface Props {
   links?: { label: string; href: string; target?: string; rel?: string }[];
+  locale?: Locale;
 }
+
+const { links: linksProp, locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'common');
 
 const PRODUCTION_LINKS: NonNullable<Props['links']> = [
   {
-    label: 'LinkedIn',
+    label: t('footer.linkedin'),
     href: 'https://www.linkedin.com/company/global-strategic-technologies/',
     target: '_blank',
     rel: 'noopener noreferrer',
   },
-  { label: 'Privacy', href: '/privacy/' },
-  { label: 'Terms', href: '/terms/' },
+  { label: t('footer.privacy'), href: localizedHref('/privacy/', locale) },
+  { label: t('footer.terms'), href: localizedHref('/terms/', locale) },
   {
-    label: 'Contact',
+    label: t('footer.contact'),
     href: "mailto:contact@globalstrategic.tech?subject=GST%20%7C%20Global%20Strategic%20Tech%20%7C%20https%3A%2F%2Fglobalstrategic.tech&body=Hi%20GST%2C%20I%20have%20a%20question%2Fcomment%2Finsight%20I'd%20like%20to%20share",
   },
 ];
 
-const { links = PRODUCTION_LINKS } = Astro.props;
+const links = linksProp ?? PRODUCTION_LINKS;
 ---
 
 <div class="footer-links">

@@ -11,14 +11,18 @@
 // `href="/"` — the trackNavigation onclick is omitted, because a specimen
 // click must never emit a real `navigation_click` event.
 import DeltaIcon from './DeltaIcon.astro';
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { localeHome } from '../i18n/routes';
 
 interface Props {
   /** Demo-only href override; passing it also drops the analytics onclick. */
   href?: string;
+  /** Page locale: the wordmark links to that locale's home (`/es/`). */
+  locale?: Locale;
 }
 
 const isDemo = Astro.props.href !== undefined;
-const href = Astro.props.href ?? '/';
+const href = Astro.props.href ?? localeHome(Astro.props.locale ?? DEFAULT_LOCALE);
 const trackAttrs = isDemo ? {} : { onclick: "trackNavigation('/', 'Logo')" };
 ---
 

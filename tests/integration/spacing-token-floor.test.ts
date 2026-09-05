@@ -81,7 +81,9 @@ const ACCEPTED_RESIDUALS = [
   {
     value: '5rem',
     files: [
-      'src/pages/about.astro',
+      // The About body moved from src/pages/about.astro (now a locale wrapper)
+      // into the shared page template in BL-153; the declaration is unchanged.
+      'src/page-templates/AboutPage.astro',
       'src/styles/global.css',
       'src/pages/hub/library/business-architectures/index.astro',
       'src/pages/hub/library/information-request-list/index.astro',

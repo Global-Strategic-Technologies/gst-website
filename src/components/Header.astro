@@ -6,19 +6,24 @@ import HeaderNavLinks from './HeaderNavLinks.astro';
 // HeaderNavLinks, whose presentational markup lives in those components
 // so /brand can render the same thing — BL-095 AC-2).
 
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
+
 interface Props {
   currentPath?: string;
   staticHeader?: boolean;
+  locale?: Locale;
 }
 
-const { currentPath = '/', staticHeader = false } = Astro.props;
+const { currentPath = '/', staticHeader = false, locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'common');
 ---
 
 <header class={`site-header${staticHeader ? ' site-header--static' : ''}`} role="banner">
   <div class="container">
-    <nav role="navigation" aria-label="Main navigation">
-      <HeaderLogo />
-      <HeaderNavLinks currentPath={currentPath} />
+    <nav role="navigation" aria-label={t('nav.ariaLabel')}>
+      <HeaderLogo locale={locale} />
+      <HeaderNavLinks currentPath={currentPath} locale={locale} />
     </nav>
   </div>
 </header>

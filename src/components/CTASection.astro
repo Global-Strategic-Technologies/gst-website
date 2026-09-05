@@ -9,11 +9,15 @@
 // caller); the runtime spread would pass an untyped extra through.
 import CTABox from './CTABox.astro';
 import type { Props as CTABoxProps } from './CTABox.astro';
+import { DEFAULT_LOCALE } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
 
 type Props = Omit<CTABoxProps, 'demoHref'>;
+
+const { t } = useTranslations(Astro.props.locale ?? DEFAULT_LOCALE, 'common');
 ---
 
-<section class="cta-section" id="contact" aria-label="Schedule a consultation">
+<section class="cta-section" id="contact" aria-label={t('cta.sectionAriaLabel')}>
   <div class="container">
     <CTABox {...Astro.props} />
   </div>

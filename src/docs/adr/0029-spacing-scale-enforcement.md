@@ -80,10 +80,10 @@ convention, for the reason it gives.
 
 ### Above the ramp — the scale does not reach these
 
-| Value  | px  | Sites                                                                      | Why it stays                                                                                                                              |
-| ------ | --- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `5rem` | 80  | `about.astro`, `global.css`, three Hub library pages, IRL generator        | **Already ruled by ADR-0028.** 80px is above the ramp's 48px top; snapping 80→48 is exactly the pixel-moving operation that ADR forbids.  |
-| `4rem` | 64  | `CTABox.astro`, `CTASection.astro`, `PortfolioGrid.astro`, `global.css` ×2 | Inherits the `5rem` ruling verbatim — 64px is likewise above the top, and the gap from 48 to 64 is larger than any step the ramp defines. |
+| Value  | px  | Sites                                                                                                      | Why it stays                                                                                                                              |
+| ------ | --- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `5rem` | 80  | `AboutPage.astro` (the About template, since BL-153), `global.css`, three Hub library pages, IRL generator | **Already ruled by ADR-0028.** 80px is above the ramp's 48px top; snapping 80→48 is exactly the pixel-moving operation that ADR forbids.  |
+| `4rem` | 64  | `CTABox.astro`, `CTASection.astro`, `PortfolioGrid.astro`, `global.css` ×2                                 | Inherits the `5rem` ruling verbatim — 64px is likewise above the top, and the gap from 48 to 64 is larger than any step the ramp defines. |
 
 ### Below the ramp — micro-spacing
 

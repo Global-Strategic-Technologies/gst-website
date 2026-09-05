@@ -23,6 +23,7 @@
  * Submitting a URL in the sitemap while telling crawlers to drop it is a
  * contradictory signal. `tests/unit/indexability.test.ts` enforces the pairing.
  */
+import { localeFromPath } from '../i18n/locales';
 
 /**
  * Path prefixes excluded from the sitemap.
@@ -66,11 +67,18 @@ export function sitemapFilter(page: string): boolean {
   //
   // Assumes `astro.config.mjs` sets no `base`. If one is ever added, pathnames
   // gain that prefix and every exclusion below silently stops matching.
-  const pathname = new URL(page, 'https://sitemap-filter.invalid').pathname;
+  const fullPathname = new URL(page, 'https://sitemap-filter.invalid').pathname;
+
+  // Locale prefix (BL-153). `/es/brand/` must be judged as `/brand/`, or every
+  // exclusion below would silently stop matching under a prefix. And a DRAFT
+  // locale is out wholesale: its pages render `noindex` (SEO.astro), so listing
+  // them would be the contradictory signal this file exists to prevent.
+  const { locale, routePath } = localeFromPath(fullPathname);
+  if (locale.status === 'draft') return false;
 
   // Normalise the trailing slash the site emits (`trailingSlash: true` in
   // vercel.json) so `/brand/` and `/brand` compare identically.
-  const normalized = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
+  const normalized = routePath.length > 1 ? routePath.replace(/\/$/, '') : routePath;
 
   return !SITEMAP_EXCLUDED_PREFIXES.some(
     (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`)

@@ -6,10 +6,18 @@
  *
  * Placed in BaseLayout.astro — every non-homepage page gets breadcrumbs automatically.
  *
- * Both props exist so `/brand` can exhibit this as a live specimen instead of the
- * hand-rolled replica it used to carry (BL-095); neither is set anywhere else.
+ * Localization (BL-153): the locale prefix is not a crumb. `/pt-br/about/`
+ * yields Home → Sobre, with Home linking to `/pt-br/` and names from the
+ * locale's catalog via `slugToName(slug, locale)`.
+ *
+ * Both `crumbs` and `ariaLabel` exist so `/brand` can exhibit this as a live
+ * specimen instead of the hand-rolled replica it used to carry (BL-095);
+ * neither is set anywhere else.
  */
 import { slugToName } from '../utils/breadcrumbs';
+import { DEFAULT_LOCALE, localeFromPath, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
 
 interface Props {
   /**
@@ -31,23 +39,27 @@ interface Props {
    * out — so nothing in CI would catch a collision here.
    */
   ariaLabel?: string;
+  locale?: Locale;
 }
 
-const { crumbs: crumbsProp, ariaLabel = 'Breadcrumb' } = Astro.props;
+const { crumbs: crumbsProp, locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'common');
+const { ariaLabel = t('breadcrumb.ariaLabel') } = Astro.props;
 
-const pathname = Astro.url.pathname.replace(/\/$/, '');
+const { routePath } = localeFromPath(Astro.url.pathname);
+const pathname = routePath.replace(/\/$/, '');
 const segments = pathname.split('/').filter(Boolean);
 
 // Build full crumb list including Home, then FIFO-truncate to 3 max
 const allCrumbs = crumbsProp ?? [
-  { name: 'Home', href: '/', isLast: false },
+  { name: t('breadcrumb.home'), href: localizedHref('/', locale), isLast: false },
   ...segments.map((slug, index) => ({
-    name: slugToName(slug),
+    name: slugToName(slug, locale),
     // Trailing slash keeps these links consistent with the site-wide
     // trailing-slash canonicalization (Vercel `trailingSlash: true`) and the
     // BreadcrumbList JSON-LD in SEO.astro (which already emits the slash), so
     // breadcrumb clicks land on the canonical URL without a 308 hop.
-    href: '/' + segments.slice(0, index + 1).join('/') + '/',
+    href: localizedHref('/' + segments.slice(0, index + 1).join('/') + '/', locale),
     isLast: index === segments.length - 1,
   })),
 ];

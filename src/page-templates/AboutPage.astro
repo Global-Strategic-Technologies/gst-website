@@ -1,0 +1,506 @@
+---
+/**
+ * /about/ in every locale. Rendered by src/pages/about.astro (English) and by
+ * src/pages/[locale]/[...route].astro (everything else). Copy comes from the
+ * `about` catalog; chrome copy from `common` via BaseLayout.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import CTASection from '../components/CTASection.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
+import type { Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t } = useTranslations(locale, 'about');
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('meta.ogTitle')}
+  ogDescription={t('meta.ogDescription')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('meta.ogImageAlt')}
+>
+  <PrintReportHeader title={t('print.title')} locale={locale} />
+
+  <Hero
+    title={t('hero.title')}
+    subtitle={t('hero.subtitle')}
+    description={t('hero.description')}
+    locale={locale}
+  />
+
+  <section class="about-section">
+    <div class="container">
+      <div class="about-content">
+        <h2>{t('intro.heading')}</h2>
+        <p>{t('intro.body')}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="founder-section">
+    <div class="container">
+      <div class="founder-content">
+        <a
+          href="https://www.linkedin.com/in/reidperyam/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="founder-photo-link"
+          id="founder-photo-link"
+          title={t('founder.photoTitle')}
+        >
+          <picture class="founder-portrait founder-portrait-light">
+            <img
+              src="/images/founder-light-450.jpg"
+              alt={t('founder.photoAlt')}
+              class="founder-image"
+              fetchpriority="high"
+              width="600"
+              height="450"
+            />
+          </picture>
+          <picture class="founder-portrait founder-portrait-dark" aria-hidden="true">
+            <img
+              src="/images/founder-dark-450.jpg"
+              alt=""
+              class="founder-image"
+              fetchpriority="high"
+              width="600"
+              height="450"
+            />
+          </picture>
+        </a>
+        <div class="founder-bio">
+          <h2>{t('founder.heading')}</h2>
+          <p>{t('founder.p1')}</p>
+          <p>{t('founder.p2')}</p>
+          <p>{t('founder.p3')}</p>
+          <div class="founder-signature founder-signature-light">
+            <img
+              src="/images/signature-light.png"
+              alt={t('founder.signatureAlt')}
+              class="signature-image"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <div class="founder-signature founder-signature-dark" aria-hidden="true">
+            <img
+              src="/images/signature-dark.png"
+              alt=""
+              class="signature-image"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <p class="founder-credentials">
+            <em>{t('founder.credentials')}</em>
+          </p>
+          <p class="founder-contact">
+            <a href="mailto:contact@globalstrategic.tech">contact@globalstrategic.tech</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <CTASection
+    title={t('cta.title')}
+    description={t('cta.description')}
+    buttonText={t('cta.button')}
+    bookingUrl="https://calendarbridge.com/book/globalstrategictech/"
+    emailAddress="contact@globalstrategic.tech"
+    locale={locale}
+  />
+</BaseLayout>
+
+<style>
+  .about-section {
+    padding: var(--spacing-3xl) 0;
+    background: transparent;
+    border-bottom: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .about-content {
+    max-width: 900px;
+  }
+
+  .about-section h2 {
+    font-size: var(--text-3xl);
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .about-section p {
+    font-size: var(--text-lg);
+    font-family: var(--font-family-mono);
+    color: var(--text-secondary);
+    line-height: 1.8;
+  }
+
+  .experience-section {
+    padding: 5rem 0;
+  }
+
+  .experience-section h2 {
+    font-size: var(--text-3xl);
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--spacing-3xl);
+    text-align: center;
+  }
+
+  .experience-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-2_5xl);
+  }
+
+  .experience-card {
+    padding: var(--spacing-2_5xl);
+    background: transparent;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    transition: all var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .experience-card:hover {
+    border-color: var(--color-primary);
+  }
+
+  .experience-card h3 {
+    font-size: var(--text-xl);
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.3;
+  }
+
+  .experience-card p {
+    font-size: var(--text-sm);
+    font-family: var(--font-family-mono);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .founder-section {
+    padding: var(--spacing-3xl) 0;
+    background: transparent;
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .founder-content {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: var(--spacing-3xl);
+    align-items: center;
+    max-width: 1200px;
+  }
+
+  .founder-photo-link {
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity var(--transition-normal);
+  }
+
+  .founder-photo-link:hover {
+    opacity: 0.9;
+  }
+
+  .founder-portrait {
+    display: none;
+    width: 100%;
+    max-width: 450px;
+  }
+
+  .founder-portrait-light {
+    display: block;
+  }
+
+  .founder-portrait-dark {
+    display: none;
+  }
+
+  :global(html.dark-theme) .founder-portrait-light {
+    display: none;
+  }
+
+  :global(html.dark-theme) .founder-portrait-dark {
+    display: block;
+  }
+
+  .founder-image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    display: block;
+  }
+
+  .founder-bio h2 {
+    font-size: var(--text-3xl);
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xl);
+    line-height: 1.3;
+  }
+
+  .founder-bio p {
+    font-size: var(--text-base);
+    font-family: var(--font-family-mono);
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .founder-bio p:last-child {
+    margin-bottom: 0;
+  }
+
+  .founder-signature {
+    margin: var(--spacing-xl) var(--spacing-2xl) var(--spacing-xl) auto;
+    max-width: 200px;
+  }
+
+  .founder-signature-light {
+    display: block;
+  }
+
+  .founder-signature-dark {
+    display: none;
+  }
+
+  :global(html.dark-theme) .founder-signature-light {
+    display: none;
+  }
+
+  :global(html.dark-theme) .founder-signature-dark {
+    display: block;
+  }
+
+  .signature-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .founder-credentials {
+    font-style: italic;
+    color: var(--text-secondary);
+  }
+
+  .founder-contact {
+    margin-top: var(--spacing-md);
+  }
+
+  .founder-contact a {
+    color: light-dark(var(--color-tertiary-dark), var(--color-primary));
+    text-decoration: none;
+    font-family: var(--font-family-mono);
+    font-size: var(--text-sm);
+    letter-spacing: 0.05em;
+    transition: border-bottom var(--transition-fast);
+    border-bottom: 1px solid transparent;
+  }
+
+  .founder-contact a:hover {
+    border-bottom-color: currentColor;
+  }
+
+  @media (max-width: 1024px) {
+    .experience-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--spacing-1_75);
+    }
+
+    .experience-card {
+      padding: var(--spacing-1_75);
+    }
+
+    .experience-card h3 {
+      font-size: var(--text-lg);
+    }
+
+    .experience-card p {
+      font-size: var(--text-sm);
+    }
+
+    .founder-content {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-2xl);
+    }
+
+    .founder-portrait {
+      max-width: 350px;
+      margin: 0 auto;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .about-section {
+      padding: var(--spacing-2xl) 0;
+    }
+
+    .about-section h2 {
+      font-size: var(--text-2xl);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .about-section p {
+      font-size: var(--text-base);
+    }
+
+    .experience-section {
+      padding: var(--spacing-2_5xl) 0;
+    }
+
+    .experience-section h2 {
+      font-size: var(--text-2xl);
+      margin-bottom: var(--spacing-2xl);
+    }
+
+    .experience-grid {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-xl);
+    }
+
+    .experience-card {
+      padding: var(--spacing-xl);
+    }
+
+    .experience-card h3 {
+      font-size: var(--text-lg);
+    }
+
+    .experience-card p {
+      font-size: var(--text-sm);
+    }
+
+    .founder-section {
+      padding: var(--spacing-2xl) 0;
+    }
+
+    .founder-content {
+      gap: var(--spacing-xl);
+    }
+
+    .founder-portrait {
+      max-width: 100%;
+    }
+
+    .founder-bio h2 {
+      font-size: var(--text-2xl);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .founder-bio p {
+      font-size: var(--text-sm);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .about-section {
+      padding: var(--spacing-xl) 0;
+    }
+
+    .about-section h2 {
+      font-size: var(--text-xl);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .about-section p {
+      font-size: var(--text-sm);
+      line-height: 1.6;
+    }
+
+    .experience-section {
+      padding: var(--spacing-2xl) 0;
+    }
+
+    .experience-section h2 {
+      font-size: var(--text-xl);
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .experience-card {
+      padding: var(--spacing-1_25);
+    }
+
+    .experience-card h3 {
+      font-size: var(--text-base);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .experience-card p {
+      font-size: var(--text-sm);
+      line-height: 1.6;
+    }
+
+    .founder-section {
+      padding: var(--spacing-xl) 0;
+    }
+
+    .founder-portrait {
+      max-width: 100%;
+    }
+
+    .founder-image {
+      aspect-ratio: 4 / 3;
+    }
+
+    .founder-bio h2 {
+      font-size: var(--text-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .founder-bio p {
+      font-size: var(--text-sm);
+      line-height: 1.6;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .founder-bio p:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  /* Print */
+  @media print {
+    @page {
+      margin: 1.5cm;
+    }
+  }
+</style>
+
+<script is:inline>
+  // Track founder photo link clicks
+  const founderPhotoLink = document.getElementById('founder-photo-link');
+  if (founderPhotoLink) {
+    founderPhotoLink.addEventListener('click', () => {
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'founder_profile_click', {
+          event_category: 'engagement',
+          destination: 'https://www.linkedin.com/in/reidperyam/',
+        });
+      }
+    });
+  }
+</script>

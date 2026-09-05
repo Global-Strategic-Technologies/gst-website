@@ -1,13 +1,20 @@
 ---
 import FooterLinks from './FooterLinks.astro';
 import ThemeToggle from './ThemeToggle.astro';
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+
+interface Props {
+  locale?: Locale;
+}
+
+const { locale = DEFAULT_LOCALE } = Astro.props;
 ---
 
 <footer role="contentinfo">
   <div class="container">
     <div class="footer-top">
-      <FooterLinks />
-      <ThemeToggle />
+      <FooterLinks locale={locale} />
+      <ThemeToggle locale={locale} />
     </div>
   </div>
 </footer>

@@ -12,6 +12,9 @@
 // Passing it keeps the booking link in-page AND drops both trackCTA onclicks
 // (and the booking `target`/`rel`) — a specimen click must never emit a real
 // `cta_click` event. Only handlers are suppressed, never markup.
+import { DEFAULT_LOCALE, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
+
 export interface Props {
   title: string;
   description: string;
@@ -21,15 +24,20 @@ export interface Props {
   emailText?: string;
   /** Demo-only booking-href override; passing it also drops the analytics onclicks. */
   demoHref?: string;
+  /** Page locale: supplies the default button and email-line copy (BL-153). */
+  locale?: Locale;
 }
+
+const { locale = DEFAULT_LOCALE } = Astro.props;
+const { t } = useTranslations(locale, 'common');
 
 const {
   title,
   description,
-  buttonText = 'BOOK_CALENDAR_SLOT()',
+  buttonText = t('cta.button'),
   bookingUrl = 'https://calendarbridge.com/book/globalstrategictech/',
   emailAddress,
-  emailText = 'Or reach out directly',
+  emailText = t('cta.emailText'),
   demoHref,
 } = Astro.props;
 

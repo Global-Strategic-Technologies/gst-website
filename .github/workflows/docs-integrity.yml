@@ -1,6 +1,6 @@
 name: Docs link integrity
 
-# Runs `npm run test:docs` — five guard files:
+# Runs `npm run test:docs` — six guard files:
 #   - `tests/integration/docs-link-integrity.test.ts` (BL-089): every relative
 #     markdown link and load-bearing `#anchor` across both doc trees resolves,
 #     so BL-088's distilled cross-references can't silently rot.
@@ -26,6 +26,11 @@ name: Docs link integrity
 #     prettier from the ROOT node_modules — the `npm ci` and cache paths below
 #     already cover it, but it is a surprising dependency for a job named
 #     "Verify doc links".
+#   - `tests/integration/i18n-catalog-parity.test.ts` (BL-153): every locale's
+#     `src/i18n/<locale>/<ns>.json` has exactly the English key set, its
+#     `.source.json` sidecar hashes match the current English (a translation
+#     cannot go stale silently), strings carry only the `tHtml` tag allowlist,
+#     and nothing is empty. Docs-only reasoning again: catalogs are copy.
 # The authoritative list is `test:docs` in package.json; DEVELOPER_TOOLING.md
 # describes each guard.
 #
