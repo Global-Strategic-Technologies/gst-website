@@ -115,12 +115,20 @@ const emailAttrs = isDemo ? {} : { onclick: "trackCTA('email', 'cta-section')" }
     margin-bottom: 0;
   }
 
+  /* The underline is always on, not hover-only. The link sits inside a
+     sentence, and its colour is only 1.5:1 against the surrounding text, so
+     colour alone does not distinguish it (WCAG 1.4.1; axe link-in-text-block,
+     which fired on the Portuguese About page — the one locale whose sentence
+     is longer than the address, the threshold axe's heuristic uses — while the
+     same defect sat unflagged on every other locale, 2026-09-05). Hover
+     switches the rule to the link colour rather than adding one, so nothing
+     shifts. */
   .cta-email a {
     color: light-dark(var(--color-tertiary-dark), var(--color-primary));
     text-decoration: none;
     font-family: var(--font-family-mono);
-    transition: border-bottom var(--transition-fast);
-    border-bottom: 1px solid transparent;
+    transition: border-bottom-color var(--transition-fast);
+    border-bottom: 1px solid var(--text-secondary);
   }
 
   .cta-email a:hover {
