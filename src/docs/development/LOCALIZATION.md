@@ -4,7 +4,7 @@ How the website speaks more than one language: the locale model, where copy live
 
 ## The model in one paragraph
 
-A locale is `language[-REGION]` — `en`, `es`, `pt-BR` today — and lives as one row in [`src/i18n/locales.ts`](../../i18n/locales.ts). Everything that varies by language reads that registry: `astro.config.mjs` (routing and sitemap alternates), `BaseLayout` (`<html lang>`, chrome copy), `SEO.astro` (canonical, hreflang, `og:locale`, BreadcrumbList), the switcher and the first-visit band. English is unprefixed (`/about/`); every other locale is prefixed by its `path` (`/es/about/`, `/pt-br/about/`). A visitor's language is resolved **exact → language → default**, so `pt-PT` lands on `pt-BR` until a `pt-PT` row exists. Region (currency, units) is a separate preference axis and never selects a catalog.
+A locale is `language[-REGION]` — `en`, `es`, `pt-BR` today — and lives as one row in [`src/i18n/locales.ts`](../../i18n/locales.ts). Everything that varies by language reads that registry: `astro.config.mjs` (routing and sitemap alternates), `BaseLayout` (`<html lang>`, chrome copy), `SEO.astro` (canonical, hreflang, `og:locale`, BreadcrumbList), the switcher and the first-visit band. English is unprefixed (`/about/`); every other locale is prefixed by its `path` (`/es/about/`, `/pt/about/`). A visitor's language is resolved **exact → language → default**, so `pt-PT` lands on `pt-BR` until a `pt-PT` row exists. Region (currency, units) is a separate preference axis and never selects a catalog.
 
 ## Files
 
@@ -79,10 +79,10 @@ New page copy gets its own namespace named after the route id (`about`, `hub-too
 
 What multilingual SEO requires of Google is mostly patience; the signals it reads are already on every page (own URL per language, `<html lang>`, a full `hreflang` cluster with `x-default` → English, a self-canonical, translated titles/descriptions/Open Graph, `inLanguage`, sitemap alternates, and no language-based redirect). Operator steps:
 
-1. **No new property, no country target.** The domain property covers `/es/` and `/pt-br/`. Language is not country: do not set geotargeting.
+1. **No new property, no country target.** The domain property covers `/es/` and `/pt/`. Language is not country: do not set geotargeting.
 2. **Sitemap.** `sitemap-index.xml` is already submitted; re-submit the same URL after the first deploy to prompt a fetch. Never submit `/sitemap.xml` (see SEO_IMPLEMENTATION.md).
-3. **URL Inspection** on `/es/` and `/pt-br/` once deployed: confirm Google has crawled them and that the canonical it chose is the page's own URL. A Google-selected English canonical on a translated page is the failure to chase.
-4. **Expect a lag** of days to weeks before the URLs appear in Performance; then filter by page (`/es/`, `/pt-br/`) and by country. The International Targeting report no longer exists (removed 2022); `hreflang` correctness is proven by `tests/e2e/localization.test.ts` and URL Inspection.
+3. **URL Inspection** on `/es/` and `/pt/` once deployed: confirm Google has crawled them and that the canonical it chose is the page's own URL. A Google-selected English canonical on a translated page is the failure to chase.
+4. **Expect a lag** of days to weeks before the URLs appear in Performance; then filter by page (`/es/`, `/pt/`) and by country. The International Targeting report no longer exists (removed 2022); `hreflang` correctness is proven by `tests/e2e/localization.test.ts` and URL Inspection.
 5. **Translation quality is the SEO lever.** Google treats unreviewed machine translation offered to users as low-value; complete the native-speaker review in the checklist above.
 6. **GA4**: register the `locale` event parameter as a custom dimension once, or engagement cannot be segmented by language.
 7. **Do not**: add a language subdomain or domain, auto-redirect by browser language or IP, or translate URL slugs.
@@ -105,7 +105,7 @@ English is authored first, in the `gst-page-content` register. First-pass transl
 
 ## Announcement sash
 
-The sash registry (`src/data/announcements.ts`) stays English and is matched on the locale-free route path. Other locales' copy lives in `src/i18n/<locale>/announcements.json` under `<id>.badge`, `<id>.label`, `<id>.subtext.<n>`, `<id>.subtext.<n>.ariaLabel`, `<id>.ariaLabel` and `<id>.cardBadge`; `localizeAnnouncement` (`src/data/announcements-i18n.ts`, a separate module because Playwright specs import the registry under plain Node) overlays it and prefixes Tier A hrefs (fragments kept). The English catalog mirrors the registry and a unit test holds them equal. A translation must fit the sash's copy budget (~34 characters across the under-band fields, badge ≤ 5); `tests/e2e/localization.test.ts` measures the ink against the corner box on `/es/` and `/pt-br/` the way the English spec does.
+The sash registry (`src/data/announcements.ts`) stays English and is matched on the locale-free route path. Other locales' copy lives in `src/i18n/<locale>/announcements.json` under `<id>.badge`, `<id>.label`, `<id>.subtext.<n>`, `<id>.subtext.<n>.ariaLabel`, `<id>.ariaLabel` and `<id>.cardBadge`; `localizeAnnouncement` (`src/data/announcements-i18n.ts`, a separate module because Playwright specs import the registry under plain Node) overlays it and prefixes Tier A hrefs (fragments kept). The English catalog mirrors the registry and a unit test holds them equal. A translation must fit the sash's copy budget (~34 characters across the under-band fields, badge ≤ 5); `tests/e2e/localization.test.ts` measures the ink against the corner box on `/es/` and `/pt/` the way the English spec does.
 
 ## Switcher and band — where they live
 

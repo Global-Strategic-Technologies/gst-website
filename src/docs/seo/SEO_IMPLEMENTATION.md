@@ -281,7 +281,7 @@ Every page's `og:locale` comes from the locale registry (`src/i18n/locales.ts`),
 ```html
 <link rel="alternate" hreflang="en" href="https://globalstrategic.tech/about/" />
 <link rel="alternate" hreflang="es" href="https://globalstrategic.tech/es/about/" />
-<link rel="alternate" hreflang="pt-BR" href="https://globalstrategic.tech/pt-br/about/" />
+<link rel="alternate" hreflang="pt-BR" href="https://globalstrategic.tech/pt/about/" />
 <link rel="alternate" hreflang="x-default" href="https://globalstrategic.tech/about/" />
 <meta property="og:locale:alternate" content="es_CO" />
 <meta property="og:locale:alternate" content="pt_BR" />

@@ -71,7 +71,7 @@ test.describe('document-level SEO per locale', () => {
   for (const [path, lang, og] of [
     ['/about/', 'en', 'en_US'],
     ['/es/about/', 'es', 'es_CO'],
-    ['/pt-br/about/', 'pt-BR', 'pt_BR'],
+    ['/pt/about/', 'pt-BR', 'pt_BR'],
   ] as const) {
     test(`${path}: <html lang>, canonical, og:locale and a full hreflang cluster`, async ({
       page,
@@ -126,7 +126,7 @@ test.describe('language switcher', () => {
     await expect(trigger).not.toHaveClass(/brutal-segmented__btn--active/);
     const enBox = await trigger.boundingBox();
 
-    await page.goto('/pt-br/about/');
+    await page.goto('/pt/about/');
     await waitForNavStyles(page);
     await expect(page.locator(TRIGGER)).toHaveText('PT'); // never PT-BR
     const ptBox = await page.locator(TRIGGER).boundingBox();
@@ -208,7 +208,7 @@ test.describe('language switcher', () => {
     await page.locator(TRIGGER).click();
     const items = page.locator(`${MENU} [role="menuitem"]`);
     await expect(items.filter({ hasText: 'English' })).toHaveAttribute('href', '/about/');
-    await expect(items.filter({ hasText: 'Português' })).toHaveAttribute('href', '/pt-br/about/');
+    await expect(items.filter({ hasText: 'Português' })).toHaveAttribute('href', '/pt/about/');
   });
 
   test('keyboard: Enter opens, arrows move, Home/End jump, Escape closes and restores focus', async ({
@@ -317,7 +317,7 @@ test.describe('first-visit band', () => {
     page,
   }) => {
     await preferLanguages(page, ['en-US']);
-    await page.goto('/pt-br/about/');
+    await page.goto('/pt/about/');
     const band = page.locator('.lang-band:not([hidden])');
     await expect(band).toHaveAttribute('lang', 'en');
     await expect(band.locator('.lang-band__accept')).toHaveAttribute('href', '/about/');
@@ -353,7 +353,7 @@ test.describe('announcement sash in other locales', () => {
 
   for (const [path, badge, mcp] of [
     ['/es/', 'Nuevo', '/es/hub/mcp/'],
-    ['/pt-br/', 'Novo', '/pt-br/hub/mcp/'],
+    ['/pt/', 'Novo', '/pt/hub/mcp/'],
   ] as const) {
     test(`${path} carries the sash, localized, with its copy inside the corner`, async ({
       page,
@@ -416,7 +416,7 @@ test.describe('announcement sash in other locales', () => {
     await presetLang(page, 'en');
     for (const width of [360, 375, 390, 430, 480, 540]) {
       await page.setViewportSize({ width, height: 800 });
-      for (const path of ['/es/about/', '/pt-br/about/']) {
+      for (const path of ['/es/about/', '/pt/about/']) {
         await page.goto(path);
         await page.waitForFunction(() => {
           const row = document.querySelector('footer .footer-links');
@@ -441,7 +441,7 @@ test.describe('announcement sash in other locales', () => {
     for (const width of [360, 375, 390, 430]) {
       await page.setViewportSize({ width, height: 800 });
       const rows: Record<string, boolean> = {};
-      for (const path of ['/', '/es/', '/pt-br/']) {
+      for (const path of ['/', '/es/', '/pt/']) {
         await page.goto(path);
         await waitForNavStyles(page);
         rows[path] = await page.evaluate(() => {
@@ -452,7 +452,7 @@ test.describe('announcement sash in other locales', () => {
         });
       }
       expect(rows['/es/'], `${width}px: /es/ wraps but / does not`).toBe(rows['/']);
-      expect(rows['/pt-br/'], `${width}px: /pt-br/ wraps but / does not`).toBe(rows['/']);
+      expect(rows['/pt/'], `${width}px: /pt/ wraps but / does not`).toBe(rows['/']);
       if (width >= 360) expect(rows['/'], `${width}px: English header is one row`).toBe(false);
     }
   });

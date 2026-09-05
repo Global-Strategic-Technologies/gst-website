@@ -58,7 +58,7 @@ const locale = resolveLocale(Astro.currentLocale);
 const { t } = useTranslations(locale, 'common');
 
 const currentPath = Astro.url.pathname;
-// Prefix-insensitive: `/pt-br/hub/tools/` is a hub sub-page too.
+// Prefix-insensitive: `/pt/hub/tools/` is a hub sub-page too.
 const { routePath } = localeFromPath(currentPath);
 const isHubSubPage = routePath.startsWith('/hub/') && routePath !== '/hub/';
 const isHomepage = routePath === '/' || routePath === '';

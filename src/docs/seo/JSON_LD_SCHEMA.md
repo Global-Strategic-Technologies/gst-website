@@ -722,7 +722,7 @@ Provides structured breadcrumb navigation data to search engines, enabling bread
 
 ### How It Works
 
-- Automatically generated from `Astro.url.pathname` — no props needed. The locale prefix (`/es/`, `/pt-br/`) is not a crumb: names and `item` URLs are rendered in the page locale (`Home` → `Inicio` → `Início`, `item: https://globalstrategic.tech/es/`), mirroring `Breadcrumb.astro`
+- Automatically generated from `Astro.url.pathname` — no props needed. The locale prefix (`/es/`, `/pt/`) is not a crumb: names and `item` URLs are rendered in the page locale (`Home` → `Inicio` → `Início`, `item: https://globalstrategic.tech/es/`), mirroring `Breadcrumb.astro`
 - Only rendered on non-homepage pages
 - The last breadcrumb item omits the `item` URL (Google best practice for current page)
 - Slug-to-name mapping is `slugToName(slug, locale)` in `src/utils/breadcrumbs.ts`, whose names come from the `breadcrumb.<slug>` keys of `src/i18n/<locale>/common.json` — so the English map is one catalog among three, not a separate table. `tests/unit/breadcrumbs.test.ts` pins the English slugs and names; a stale copy of that table used to live here and is not repeated

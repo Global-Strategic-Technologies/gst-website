@@ -60,7 +60,7 @@ const PAGES: A11yPage[] = [
   // these scan on the ordinary server; the switcher/band are covered by
   // localization.test.ts against the forced-live server instead.
   { name: 'About (es)', path: '/es/about/' },
-  { name: 'About (pt-BR)', path: '/pt-br/about/' },
+  { name: 'About (pt-BR)', path: '/pt/about/' },
   { name: 'M&A Portfolio', path: '/ma-portfolio/' },
   { name: 'Hub', path: '/hub/' },
   { name: 'TechPar', path: '/hub/tools/techpar/' },

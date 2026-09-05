@@ -23,7 +23,7 @@ const EXTENSIONS = /\.(astro|ts|mjs|js|css)$/;
 const PATTERNS: { name: string; re: RegExp }[] = [
   { name: "locale code 'pt-BR' / 'pt-br'", re: /['"]pt-br['"]/i },
   { name: "og locale 'es_CO' / 'es_ES' / 'pt_BR'", re: /['"](es_CO|es_ES|pt_BR)['"]/ },
-  { name: "URL '/es/…' or '/pt-br/…'", re: /['"]\/(es|pt-br)\//i },
+  { name: "URL '/es/…' or '/pt/…'", re: /['"]\/(es|pt)\//i },
   { name: "Intl tag 'es-CO' / 'es-ES'", re: /['"]es-(CO|ES)['"]/ },
 ];
 

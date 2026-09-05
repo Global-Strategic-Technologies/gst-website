@@ -41,7 +41,7 @@ export type LocaleStatus = 'draft' | 'live';
 export interface Locale {
   /** BCP 47 tag, the identity used everywhere in code: `en`, `es`, `pt-BR`. */
   code: string;
-  /** URL segment (`/pt-br/…`); lowercase by convention. `en` is unprefixed but still needs a segment for Astro and the sitemap. */
+  /** URL segment (`/pt/…`); lowercase by convention. `en` is unprefixed but still needs a segment for Astro and the sitemap. */
   path: string;
   /** The language half of `code`, used by the resolver's second step. */
   language: string;
@@ -87,7 +87,7 @@ const REGISTRY: readonly Locale[] = [
   },
   {
     code: 'pt-BR',
-    path: 'pt-br',
+    path: 'pt',
     language: 'pt',
     htmlLang: 'pt-BR',
     ogLocale: 'pt_BR',
@@ -152,7 +152,7 @@ export function findLocale(code: string | undefined | null): Locale | undefined 
   return LOCALES.find((l) => l.code.toLowerCase() === lower);
 }
 
-/** Match by URL segment (`pt-br`), case-insensitive. */
+/** Match by URL segment (`pt`), case-insensitive. */
 export function localeByPath(segment: string | undefined | null): Locale | undefined {
   if (!segment) return undefined;
   const lower = segment.toLowerCase();
@@ -187,9 +187,9 @@ export function resolveLocale(candidate: string | readonly string[] | undefined 
 
 /**
  * Split a pathname into its locale and the locale-free route path.
- * `/pt-br/about/` → `{ locale: pt-BR, routePath: '/about/' }`;
+ * `/pt/about/` → `{ locale: pt-BR, routePath: '/about/' }`;
  * `/about/` → `{ locale: en, routePath: '/about/' }`;
- * `/pt-br/` → `{ locale: pt-BR, routePath: '/' }`.
+ * `/pt/` → `{ locale: pt-BR, routePath: '/' }`.
  *
  * The default locale is unprefixed (`prefixDefaultLocale: false`), so `/en/…`
  * is NOT a route on this site and is returned as an English path verbatim —

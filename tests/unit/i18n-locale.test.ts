@@ -94,10 +94,10 @@ describe('resolveLocale — exact → language → default', () => {
 
 describe('localeFromPath', () => {
   it('splits a prefixed path into locale and route', () => {
-    expect(localeFromPath('/pt-br/about/')).toEqual({ locale: ptBR, routePath: '/about/' });
+    expect(localeFromPath('/pt/about/')).toEqual({ locale: ptBR, routePath: '/about/' });
     expect(localeFromPath('/es/')).toEqual({ locale: es, routePath: '/' });
     expect(localeFromPath('/es')).toEqual({ locale: es, routePath: '/' });
-    expect(localeFromPath('/PT-BR/hub/tools/')).toEqual({
+    expect(localeFromPath('/PT/hub/tools/')).toEqual({
       locale: ptBR,
       routePath: '/hub/tools/',
     });
@@ -118,8 +118,8 @@ describe('localeFromPath', () => {
 describe('localizedHref — prefixes registry routes only', () => {
   it('prefixes Tier A routes for non-default locales', () => {
     expect(localizedHref('/about/', es)).toBe('/es/about/');
-    expect(localizedHref('/hub/tools/', ptBR)).toBe('/pt-br/hub/tools/');
-    expect(localizedHref('/', ptBR)).toBe('/pt-br/');
+    expect(localizedHref('/hub/tools/', ptBR)).toBe('/pt/hub/tools/');
+    expect(localizedHref('/', ptBR)).toBe('/pt/');
     expect(localizedHref('/about', es)).toBe('/es/about/');
   });
 
@@ -137,7 +137,7 @@ describe('localizedHref — prefixes registry routes only', () => {
 
   it('never double-prefixes an already localized path', () => {
     expect(localizedHref('/es/about/', es)).toBe('/es/about/');
-    expect(localizedHref('/es/about/', ptBR)).toBe('/pt-br/about/');
+    expect(localizedHref('/es/about/', ptBR)).toBe('/pt/about/');
   });
 
   it('passes external, mailto, tel, hash and protocol-relative hrefs through', () => {
@@ -155,7 +155,7 @@ describe('localizedHref — prefixes registry routes only', () => {
   it('localeHome is / for English and /<path>/ otherwise', () => {
     expect(localeHome(en)).toBe('/');
     expect(localeHome(es)).toBe('/es/');
-    expect(localeHome(ptBR)).toBe('/pt-br/');
+    expect(localeHome(ptBR)).toBe('/pt/');
   });
 });
 
@@ -168,7 +168,7 @@ describe('alternatesFor — live-only, draft emits nothing', () => {
   it('returns only the current locale for a draft page', () => {
     if (es.status !== 'draft') return; // liveness override active — covered below
     expect(alternatesFor('/about/', es)).toEqual([es]);
-    expect(alternatesFor('/pt-br/about/', ptBR)).toEqual([ptBR]);
+    expect(alternatesFor('/pt/about/', ptBR)).toEqual([ptBR]);
   });
 
   it('returns the live locales, in registry order, for a live page', () => {
@@ -188,7 +188,7 @@ describe('sitemapFilter under locale prefixes', () => {
 
   it('applies the exclusion list beneath a prefix', () => {
     expect(sitemapFilter(`${SITE}/es/brand/`)).toBe(false);
-    expect(sitemapFilter(`${SITE}/pt-br/hub/radar/`)).toBe(false);
+    expect(sitemapFilter(`${SITE}/pt/hub/radar/`)).toBe(false);
   });
 
   it('drops every URL of a draft locale', () => {
