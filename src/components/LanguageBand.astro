@@ -1,0 +1,105 @@
+---
+/**
+ * First-visit language suggestion band (BL-153, hand-off §2).
+ *
+ * Rendered by BaseLayout directly under `<header class="site-header">`, in
+ * flow (it pushes content down; no overlay), in the SUGGESTED language. It
+ * shows once, only when the suggestion differs from the page locale and
+ * `localStorage.gstLang` is unset. Accept is a link to the same page in the
+ * suggested locale (or that locale's home when the route is not translated);
+ * decline stays; close hides. Any of the three writes `gstLang`, after which
+ * the band never returns. It never redirects.
+ *
+ * The suggestion is resolved client-side from `navigator.languages` against
+ * the LIVE locale codes stamped on the wrapper — no geolocation, no cookie.
+ * One hidden band is server-rendered per live locale other than the current
+ * one, in that locale's own words, so the reveal is a single `hidden` flip and
+ * no copy lives in script. The inline script (LanguageBandScript.astro, its own
+ * file so it can be rendered conditionally) sits right after the markup and
+ * runs before `<main>` parses, so the reveal costs no layout shift.
+ *
+ * Announced, not merely revealed: the wrapper is a persistent
+ * `aria-live="polite"` region, so un-hiding a band inside it is read out.
+ * Close and decline are `<button>`s, so the band is keyboard-dismissable.
+ *
+ * Renders nothing unless ≥2 locales are live (same rule as the switcher).
+ */
+import LanguageBandScript from './LanguageBandScript.astro';
+import { liveLocales, localeFromPath, type Locale } from '../i18n/locales';
+import { isLocalizedRoute, localeHome, localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+  /** The current page path, possibly locale-prefixed (`Astro.url.pathname`). */
+  currentPath: string;
+}
+
+const { locale, currentPath } = Astro.props;
+const live = liveLocales();
+const render = live.length > 1;
+const others = live.filter((l) => l.code !== locale.code);
+// Strip the locale prefix before consulting the registry (see LanguageSwitcher).
+const { routePath } = localeFromPath(currentPath);
+
+// Decline stays in the CURRENT language, so its label comes from the page
+// locale's catalog, not the suggested one (hand-off §2 copy table).
+const current = useTranslations(locale, 'common');
+
+const bands = others.map((suggested) => {
+  const { t } = useTranslations(suggested, 'common');
+  return {
+    code: suggested.code,
+    htmlLang: suggested.htmlLang,
+    short: suggested.short,
+    ariaLabel: t('band.ariaLabel'),
+    available: t('band.available'),
+    view: t('band.view'),
+    close: t('band.close'),
+    href: isLocalizedRoute(routePath) ? localizedHref(routePath, suggested) : localeHome(suggested),
+  };
+});
+---
+
+{
+  render && (
+    <div
+      class="lang-band-host"
+      aria-live="polite"
+      data-live-locales={live.map((l) => l.code).join(',')}
+      data-current-locale={locale.code}
+    >
+      {bands.map((band) => (
+        <div
+          class="lang-band"
+          role="region"
+          aria-label={band.ariaLabel}
+          lang={band.htmlLang}
+          data-suggests={band.code}
+          hidden
+        >
+          <div class="container">
+            <p>
+              <span class="lang-band__code">{band.short}</span>
+              {band.available}
+            </p>
+            <div class="lang-band__actions">
+              <a class="lang-band__accept" href={band.href} hreflang={band.htmlLang}>
+                {band.view}
+              </a>
+              <button class="lang-band__decline" type="button" lang={locale.htmlLang}>
+                {current.t('band.continue')}
+              </button>
+              <button class="lang-band__close" type="button" aria-label={band.close}>
+                <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true" fill="none">
+                  <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+{render && <LanguageBandScript />}

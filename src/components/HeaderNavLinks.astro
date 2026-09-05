@@ -22,6 +22,7 @@
 // hand-rolled replica it used to carry (BL-095); it is set nowhere else.
 // Passing it selects a demo branch whose entries render with NO analytics
 // onclick — a specimen click must never emit a real `navigation_click` event.
+import LanguageSwitcher from './LanguageSwitcher.astro';
 import { DEFAULT_LOCALE, localeFromPath, type Locale } from '../i18n/locales';
 import { localizedHref } from '../i18n/routes';
 import { useTranslations } from '../i18n/t';
@@ -79,6 +80,8 @@ const href = (path: string) => localizedHref(path, locale);
           {t('nav.about')}
         </a>
       </li>
+      {/* Fifth item, only while ≥2 locales are live (BL-153) — see LanguageSwitcher. */}
+      <LanguageSwitcher locale={locale} currentPath={currentPath} />
     </ul>
   ) : (
     <ul>
@@ -89,6 +92,8 @@ const href = (path: string) => localizedHref(path, locale);
           </a>
         </li>
       ))}
+      {/* Same rule as production so the specimen keeps mirroring it; inert. */}
+      <LanguageSwitcher locale={locale} currentPath={currentPath} demo />
     </ul>
   )
 }
@@ -101,9 +106,10 @@ const href = (path: string) => localizedHref(path, locale);
   }
 
   /* Corner reservation for the announcement sash (Sash.astro). This component
-     has no mobile menu trigger — all four links stay visible at every width —
-     so Hub and About sit under the sash footprint at every breakpoint. The nav
-     yields the corner; the sash never moves.
+     has no mobile menu trigger — all four links (and the language switcher,
+     while ≥2 locales are live — BL-153) stay visible at every width — so Hub
+     and About sit under the sash footprint at every breakpoint. The nav yields
+     the corner; the sash never moves.
 
      `> .brutal-sash-corner`, not a descendant match: only the PAGE sash is a
      direct child of <body> (BaseLayout's named slot puts it there). A card-scale

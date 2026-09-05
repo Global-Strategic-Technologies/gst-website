@@ -6,6 +6,7 @@ import GoogleAnalytics from '../components/GoogleAnalytics.astro';
 import SEO from '../components/SEO.astro';
 import SpeedInsights from '@vercel/speed-insights/astro';
 import PalettePanel from '../components/brand/PalettePanel.astro';
+import LanguageBand from '../components/LanguageBand.astro';
 import { localeFromPath, resolveLocale } from '../i18n/locales';
 import { useTranslations } from '../i18n/t';
 import '../styles/global.css';
@@ -155,6 +156,12 @@ const isHomepage = routePath === '/' || routePath === '';
     }
     <slot name="sash" />
     <Header currentPath={currentPath} staticHeader={isHubSubPage} locale={locale} />
+    {
+      /* First-visit language suggestion (BL-153): in flow directly under the
+         header, in the suggested language, once. Renders nothing until two
+         locales are live. The sash corner above the header stays free. */
+    }
+    <LanguageBand locale={locale} currentPath={currentPath} />
     <main id="main-content" role="main">
       {
         !isHomepage && (

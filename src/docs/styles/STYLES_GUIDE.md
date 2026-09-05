@@ -559,7 +559,7 @@ import DeltaIcon from '../components/DeltaIcon.astro';
 <DeltaIcon size={14} class="bullet-icon" />
 ```
 
-Renders an inline SVG with `stroke="currentColor"`, so the icon inherits color from its parent CSS. Responds automatically to palette switching and dark theme. Used site-wide for bullet points (`.bullet-icon`), the header logo (`.delta-icon`), theme toggle, chevron indicators, and TOC markers.
+Renders an inline SVG with `stroke="currentColor"`, so the icon inherits color from its parent CSS. Responds automatically to palette switching and dark theme. Used site-wide for bullet points (`.bullet-icon`), the header logo (`.delta-icon`), theme toggle, chevron indicators, and TOC markers. `<DeltaIcon filled />` paints the same path solid in `currentColor` with no stroke — the current-locale marker in the language menu (BL-153); the default rendering is unchanged.
 
 **2. CSS mask-image (for pseudo-elements only)**
 

@@ -9,17 +9,23 @@
  * `.your-row :global(.your-class) { … }`. See STYLES_GUIDE § "The scoped-rule /
  * foreign-element trap" and § "When `:global()` Is Necessary" case 3; BL-150
  * tracks seven selectors already lost this way.
+ *
+ * `filled` (BL-153) paints the same path solid in `currentColor` instead of
+ * stroking it — the marker the language menu puts on the current locale. It is
+ * additive: the default rendering is byte-identical to before the prop existed.
  */
 interface Props {
   size?: number;
   class?: string;
+  /** Solid `currentColor` fill, no stroke. Default: stroked outline. */
+  filled?: boolean;
 }
-const { size = 14, class: className = '' } = Astro.props;
+const { size = 14, class: className = '', filled = false } = Astro.props;
 ---
 
 <svg
   viewBox="0 0 64 64"
-  fill="none"
+  fill={filled ? 'currentColor' : 'none'}
   aria-hidden="true"
   width={size}
   height={size}
@@ -28,8 +34,8 @@ const { size = 14, class: className = '' } = Astro.props;
 >
   <path
     d="M32 12 L52 52 L12 52 Z"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="6"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke={filled ? undefined : 'currentColor'}
+    stroke-width={filled ? undefined : '6'}
     stroke-linejoin="miter"></path>
 </svg>

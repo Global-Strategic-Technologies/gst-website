@@ -58,11 +58,19 @@ const { t } = useTranslations(locale, 'common');
      re-measure or leave them.
 
      The gutter ladder (global.css) has since given a 320px viewport 288px
-     instead of 224px, and the row now holds one line at 320px even with
-     HeaderNavLinks' gap-tightening disabled — measured 2026-09-01, Chromium. So
-     this rule and that one are both belt-and-braces at every width a current
-     phone reports. Kept deliberately: they cost nothing, and they are the safety
-     net if the gutter ever moves back.
+     instead of 224px, and the row held one line at 320px even with
+     HeaderNavLinks' gap-tightening disabled — measured 2026-09-01, Chromium.
+
+     BL-153 then added a fifth <li>, the language switcher, which renders only
+     while ≥2 locales are live. WITH it the row needs 318px (logo 101 + list
+     217: four links 148 + switcher 37 + four 8px gaps — measured 2026-09-05,
+     Chromium, forced-live server), so it holds one line from a 350px viewport
+     (288 + 30 more of container) and wraps to two rows below that, which is
+     exactly the case this rule exists for: at 320px the list drops under the
+     logo, nothing overflows (measured 0px), and every link stays on screen
+     (localization.test.ts sweeps 320–1440). Without live translations the
+     numbers above are unchanged. The sash reserve tiers (540/512) are not
+     touched by the fifth item: it sits inside the same <ul> the reserve pads.
 
      Deliberately NOT on the base rule, and the reason is a measurement tool, not
      tidiness: the sash's 540/512 tiers were derived by finding where the nav

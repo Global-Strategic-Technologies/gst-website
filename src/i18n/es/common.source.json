@@ -1,4 +1,9 @@
 {
+  "band.ariaLabel": "cd7107c6",
+  "band.available": "10ac01d6",
+  "band.close": "7d9eb7ac",
+  "band.continue": "dda43c1f",
+  "band.view": "340d8282",
   "breadcrumb.about": "4efca0d1",
   "breadcrumb.advanced-operations": "5c710194",
   "breadcrumb.ariaLabel": "2bd873d6",
@@ -43,5 +48,7 @@
   "notice.contentInEnglish": "cb44b5e7",
   "print.generated": "54db68ab",
   "skipNav": "c887f134",
+  "switcher.current": "d99eed9b",
+  "switcher.label": "a4fe6526",
   "theme.toggle": "f4c4d215"
 }

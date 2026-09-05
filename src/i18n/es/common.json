@@ -43,5 +43,12 @@
   "print.generated": "Generado el {date}",
   "hub.updated": "Actualizado el {date}",
   "notice.contentInEnglish": "Esta página solo está disponible en inglés.",
+  "switcher.label": "Idioma",
+  "switcher.current": "Idioma: {name}",
+  "band.ariaLabel": "Sugerencia de idioma",
+  "band.available": "Este sitio está disponible en español.",
+  "band.view": "Ver en español",
+  "band.continue": "Continuar en español",
+  "band.close": "Cerrar",
   "legal.englishGoverns": "Esta traducción se ofrece por conveniencia. La versión en inglés prevalece."
 }

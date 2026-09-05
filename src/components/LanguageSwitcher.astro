@@ -1,0 +1,101 @@
+---
+/**
+ * Language switcher — the last `<li>` of the header nav (BL-153, hand-off §1).
+ *
+ * One `.brutal-segmented--sm` segment showing the current locale's SHORT code
+ * (`EN` / `ES` / `PT`, never `PT-BR`, so the nav width is stable across
+ * languages), which opens a right-aligned `.lang-menu` of native language names.
+ * The current row carries `aria-current="page"` and a filled brand delta.
+ *
+ * Renders NOTHING — no `<li>`, no one-item control — unless at least two
+ * locales are live, so the production nav is byte-identical to its pre-BL-153
+ * form until a translation ships (drafts are hidden here by design; they stay
+ * reachable by URL for review). Test runs force liveness with
+ * `PUBLIC_I18N_LIVE_LOCALES`, see LOCALIZATION.md § Testing.
+ *
+ * Targets: the same path in the other locale when the route is in the Tier A
+ * registry, else that locale's home (hand-off §3). Without JS the `<button>`
+ * is hidden and a `<noscript>` link to the current locale's home stands in;
+ * the menu items are real links either way.
+ *
+ * `data-live-locales` lists the live codes so the Playwright spec can assert it
+ * is testing against a server where ≥2 locales are live, instead of passing
+ * vacuously against a page that rendered no switcher.
+ */
+import DeltaIcon from './DeltaIcon.astro';
+import { DEFAULT_LOCALE, liveLocales, localeFromPath, type Locale } from '../i18n/locales';
+import { alternatesFor, isLocalizedRoute, localeHome, localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale?: Locale;
+  /** The current page path, possibly locale-prefixed (`Astro.url.pathname`). */
+  currentPath?: string;
+  /**
+   * Specimen mode (/brand): render without the behaviour script and with inert
+   * `#`-style hrefs, mirroring the production markup exactly (BL-095).
+   */
+  demo?: boolean;
+}
+
+const { locale = DEFAULT_LOCALE, currentPath = '/', demo = false } = Astro.props;
+const { t } = useTranslations(locale, 'common');
+
+const alternates = alternatesFor(currentPath, locale);
+const render = alternates.length > 1;
+const live = liveLocales();
+
+// `currentPath` may carry a locale prefix (`/es/about/`); strip it before
+// asking the registry, or every localized page would look untranslated.
+const { routePath } = localeFromPath(currentPath);
+const targetFor = (target: Locale) =>
+  isLocalizedRoute(routePath) ? localizedHref(routePath, target) : localeHome(target);
+---
+
+{
+  render && (
+    <li class="lang-switch" data-live-locales={live.map((l) => l.code).join(',')}>
+      <div
+        class="brutal-segmented brutal-segmented--sm lang-switch__segment"
+        role="group"
+        aria-label={t('switcher.label')}
+      >
+        <button
+          class="brutal-segmented__btn lang-switch__trigger"
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-label={t('switcher.current', { name: locale.name })}
+          lang={locale.htmlLang}
+        >
+          {locale.short}
+        </button>
+        <noscript>
+          <a
+            class="brutal-segmented__btn lang-switch__fallback"
+            href={demo ? '#' : localeHome(locale)}
+            aria-label={t('switcher.current', { name: locale.name })}
+            lang={locale.htmlLang}
+          >
+            {locale.short}
+          </a>
+        </noscript>
+      </div>
+      <div class="lang-menu" role="menu" aria-label={t('switcher.label')} hidden>
+        {alternates.map((alt) => (
+          <a
+            role="menuitem"
+            href={demo ? '#' : targetFor(alt)}
+            lang={alt.htmlLang}
+            hreflang={alt.htmlLang}
+            aria-current={alt.code === locale.code ? 'page' : undefined}
+          >
+            <span>{alt.name}</span>
+            {alt.code === locale.code && <DeltaIcon size={14} filled />}
+          </a>
+        ))}
+      </div>
+      {!demo && <script src="../scripts/lang-switch.ts" />}
+    </li>
+  )
+}

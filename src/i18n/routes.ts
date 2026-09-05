@@ -4,9 +4,10 @@
  *
  * Tier A (ADR-0030, BL-153) is the set of pages a locale must carry to launch.
  * A page is added to a locale by adding it HERE and giving it a template in
- * `src/pages/[locale]/[...route].astro`'s template map — the catch-all's
- * `getStaticPaths` is `nonDefaultLocales() × TIER_A_ROUTES`, so nothing else
- * needs to know a page exists.
+ * `src/page-templates/registry.ts` — the catch-all
+ * `src/pages/[locale]/[...route].astro` builds `getStaticPaths` from
+ * `nonDefaultLocales() × TIER_A_ROUTES`, so nothing else needs to know a page
+ * exists. `tests/unit/i18n-locale.test.ts` holds the two lists to each other.
  *
  * Everything not listed (tool pages, guides, the portfolio, brand) is English
  * only. `localizedHref` returns those paths UNCHANGED for every locale, so a

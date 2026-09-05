@@ -43,5 +43,12 @@
   "print.generated": "Generated {date}",
   "hub.updated": "Updated {date}",
   "notice.contentInEnglish": "This page is available in English only.",
+  "switcher.label": "Language",
+  "switcher.current": "Language: {name}",
+  "band.ariaLabel": "Language suggestion",
+  "band.available": "This site is available in English.",
+  "band.view": "View in English",
+  "band.continue": "Continue in English",
+  "band.close": "Close",
   "legal.englishGoverns": "This translation is provided for convenience. The English version governs."
 }

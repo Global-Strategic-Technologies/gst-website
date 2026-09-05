@@ -338,12 +338,13 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 
 ### Adding a New Page
 
-1. **Model page**: [src/pages/hub/index.astro](src/pages/hub/index.astro) — copy its shape (BaseLayout + composed components), don't hand-roll structure. The **in-repo control examples** for every component/token are [src/pages/brand.astro](src/pages/brand.astro) + [src/components/brand/](src/components/brand/) (see STYLES_GUIDE § In-repo control examples)
+1. **Model page**: [src/page-templates/HubPage.astro](src/page-templates/HubPage.astro) with its one-line route wrapper [src/pages/hub/index.astro](src/pages/hub/index.astro) — copy that shape (BaseLayout + composed components, copy from a catalog, `locale` prop), don't hand-roll structure. The **in-repo control examples** for every component/token are [src/pages/brand.astro](src/pages/brand.astro) + [src/components/brand/](src/components/brand/) (see STYLES_GUIDE § In-repo control examples)
 2. Design-system tokens only — no hardcoded colors, spacing, font sizes (stylelint enforces colors; see STYLES_GUIDE)
 3. Verify in light AND dark theme AND all 6 palettes (PalettePanel pop-out from /brand — see BRAND_GUIDELINES § Alternative Palette System)
 4. Desktop-first responsive: base styles for desktop, `max-width` overrides at 768px and 480px
 5. Page copy: use the `gst-page-content` skill (audience, voice, structure)
 6. Add E2E coverage per [TEST_STRATEGY.md](src/docs/testing/TEST_STRATEGY.md); ensure the route is covered by `tests/e2e/accessibility.test.ts`
+7. **Decide the page's tier** ([LOCALIZATION.md § Content tiers](src/docs/development/LOCALIZATION.md)). Tier A (every locale): body in `src/page-templates/`, copy in `src/i18n/<locale>/<ns>.json`, one row in `TIER_A_ROUTES` + one in the template registry. English-only: an ordinary page under `src/pages/`, linked from localized pages with the English-only notice
 
 ### Working with Palettes
 

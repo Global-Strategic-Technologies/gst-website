@@ -536,10 +536,10 @@ The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-cor
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 30 routes (Chromium)
+npm run test:a11y        # Scans 32 routes (Chromium)
 ```
 
-This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all seven tool pages, the five `/hub/mcp/*` pages, plus `/brand` and `/hub/radar/`. **Routes, not pages**: `/hub/mcp/docs/` is scanned three times, so those five pages are seven entries. Count the array when you change this number rather than incrementing it; every stale value this line has carried came from adding a route and adjusting the count by memory.
+This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all seven tool pages, the five `/hub/mcp/*` pages, `/brand` and `/hub/radar/`, plus the Spanish and Portuguese About routes (BL-153). **Routes, not pages**: `/hub/mcp/docs/` is scanned three times, so those five pages are seven entries. Count the array when you change this number rather than incrementing it; every stale value this line has carried came from adding a route and adjusting the count by memory.
 
 `/hub/radar/` waits for its `server:defer` island to resolve before scanning; with no `MCP_KEY_WEBSITE_RADAR` bound it scans the shell plus the empty state — bind `npm run radar:stub` to cover the feed items too.
 
@@ -957,6 +957,12 @@ Then immediately follow up with a normal commit that fixes whatever the hook wou
 ### "I need to update a dependency and the override blocks it"
 
 The `overrides` block in `package.json` pins `path-to-regexp: 6.3.0`. If you upgrade `@astrojs/vercel` to a version whose transitive `path-to-regexp` is already 6.3.0+ or later, you can delete the override. Verify by running `npm audit --omit=dev` after the upgrade — if it stays at zero vulnerabilities, the override is safe to remove.
+
+### "The localization E2E spec cannot reach its server" (BL-153)
+
+`playwright.config.ts` boots **two** dev servers. The first is the usual one on 4321 (reused locally if you already have one running). The second is `astro dev --port 4326 --ignore-lock` with `PUBLIC_I18N_LIVE_LOCALES=es,pt-BR` and `ASTRO_DEV_BACKGROUND=0`, never reused, and `tests/e2e/localization.test.ts` pins its `baseURL` to it. It exists because the language switcher and the first-visit band render only while ≥2 locales are **live**, which production is not yet, and the override is a build/dev-server input that a reused 4321 server cannot carry — so it gets a server of its own, and your 4321 server is never touched. The spec asserts first that the served page reports ≥2 live locales, so a mis-wired server fails loudly rather than passing against a page with no switcher.
+
+Astro auto-increments a busy port: if something already holds 4326 the second server comes up on 4327 and the pinned URL misses it. Free 4326 (kill by port) rather than moving the pin. In CI nothing holds the port, so both servers boot cold. Details: [LOCALIZATION.md § Testing](LOCALIZATION.md#testing).
 
 ### "I want to run tests only for one file"
 

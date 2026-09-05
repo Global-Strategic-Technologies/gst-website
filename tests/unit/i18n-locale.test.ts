@@ -228,14 +228,15 @@ describe('route registry ↔ template map', () => {
     }
   });
 
-  it('every template id in page-templates/registry.ts is a Tier A route id', () => {
+  it('page-templates/registry.ts has exactly one template per Tier A route', () => {
     // `.astro` imports keep registry.ts out of vitest, so match the source.
+    // Equality, not subset: a route without a template is a locale that
+    // silently lacks a page (the catch-all filters it out), and a template
+    // without a route is dead code.
     const src = read('src/page-templates/registry.ts');
     const block = /export const TEMPLATES = \{([\s\S]*?)\} as const;/.exec(src);
     expect(block, 'TEMPLATES block not found').toBeTruthy();
-    const ids = [...block![1].matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]);
-    expect(ids.length).toBeGreaterThan(0);
-    const routeIds = TIER_A_ROUTES.map((r) => r.id);
-    for (const id of ids) expect(routeIds, `template "${id}" has no route`).toContain(id);
+    const ids = [...block![1].matchAll(/^\s*'?([\w-]+)'?\s*:/gm)].map((m) => m[1]).sort();
+    expect(ids).toEqual(TIER_A_ROUTES.map((r) => r.id).sort());
   });
 });
