@@ -643,13 +643,13 @@ Describes the GST MCP Server to crawlers as one product with three page kinds: t
 
 `src/utils/mcp-schema.ts` exports `mcpServerSchema()`, `mcpCapabilityListSchema()` and `mcpGuideSchema()`. The first two are **derived from the capability registry** (`src/data/mcp/capabilities.ts`): every tool identifier, every count and every item URL is read from it, and the registry is itself bound to server source by `tests/integration/mcp-docs-parity.test.ts`. Nothing in the schema hardcodes a tool name or a number. `tests/unit/mcp-schema.test.ts` asserts the shapes, the copy rules over the few literals the helpers add, and that each of the five `/hub/mcp/` pages renders its JSON-LD from the helper.
 
-| Page                         | Schema(s)                          |
-| ---------------------------- | ---------------------------------- |
-| `/hub/mcp/`                  | `SoftwareApplication`              |
-| `/hub/mcp/docs/`             | `SoftwareApplication` + `ItemList` |
-| `/hub/mcp/get-started/`      | `TechArticle`                      |
-| `/hub/mcp/using/`            | `TechArticle`                      |
-| `/hub/mcp/advanced-operations/` | `TechArticle`                   |
+| Page                            | Schema(s)                          |
+| ------------------------------- | ---------------------------------- |
+| `/hub/mcp/`                     | `SoftwareApplication`              |
+| `/hub/mcp/docs/`                | `SoftwareApplication` + `ItemList` |
+| `/hub/mcp/get-started/`         | `TechArticle`                      |
+| `/hub/mcp/using/`               | `TechArticle`                      |
+| `/hub/mcp/advanced-operations/` | `TechArticle`                      |
 
 ### Why SoftwareApplication, not WebApplication
 

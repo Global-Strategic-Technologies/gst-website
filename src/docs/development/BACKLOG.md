@@ -1468,7 +1468,7 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 >
 > The evidence was right and the question was wrong: "no external clients" was verified, but what governs is _what protocol version the client software speaks_. This stanza's own decision to keep **stdio** on its legacy lane made exactly that argument, and it was not applied to the Worker — the team points Claude Desktop at the remote surface too. The `era` telemetry that would have shown this in one log line was an AC of this initiative that was silently dropped during implementation; it ships in 0.44.1. Full account: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) § Amendment 2026-08-04.
 
-Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because its six dated per-instance bullets are the only record of sightings 1–6 of the flake now owned by [BL-149](#bl-149-diagnose-the-unstable_dev-suite-flake--nine-instances-three-files-no-reproduction) — they hold evidence BL-149's table does not — and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury. (The reason it was ORIGINALLY kept, that the flake evidence had nowhere better to live, was retired 2026-09-02 when BL-149 became that home.)
+Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because its six dated per-instance bullets are the only record of sightings 1–6 of the flake now owned by [BL-149](#bl-149-diagnose-the-unstable_dev-suite-flake--ten-instances-three-files-no-reproduction) — they hold evidence BL-149's table does not — and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury. (The reason it was ORIGINALLY kept, that the flake evidence had nowhere better to live, was retired 2026-09-02 when BL-149 became that home.)
 
 **What shipped**: migration to `@modelcontextprotocol/server@2.0.0`; `Mcp-Method` / `Mcp-Name` through the CORS preflight; `ttlMs` / `cacheScope` published on library and regulation reads; `cors.ts` promoted to sole origin authority; production `npm audit` restored to zero (it was already failing on `master`).
 
@@ -1479,7 +1479,7 @@ Retained rather than pruned — not because its findings lack a home (both are d
 1. The SDK v2 handler runs its **own** Host/Origin gate. Left at its default the accepted set is the localhost trio, so on a custom domain every request carrying `Origin: https://claude.ai` gets a **403** — the exact browser clients the allowlist exists for, and a failure mode the legacy handler did not have. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the fix.
 2. `with-metrics.ts` located its notifier by duck-typing on a field v2 renamed, and the function is contractually non-throwing — so the rate-limit warning would have died **silently**, with the soft-limit tests staying green against their own fake. Both the production view and the fake are now bound to the SDK's `ServerContext` so a rename is a compile error.
 
-**Standing caution** — **superseded by [BL-149](#bl-149-diagnose-the-unstable_dev-suite-flake--nine-instances-three-files-no-reproduction), which now owns the tally and the diagnosis.** This stanza carried the record while it had no better home; it had gone stale at six instances (the count reached nine on 2026-09-01). The finding it established still stands and is restated there: cold start is ruled out by evidence, and what is shared is the HARNESS, not the test — so a per-test fix would only move it. Do not maintain a second tally here. **The six dated bullets below are retained as instance-level detail for 1–6 only** — they hold evidence BL-149's table does not (the lockfile-stash experiment, the `npm ls` check, the 2575 full-suite pass). The canonical record, and the count, live in BL-149.
+**Standing caution** — **superseded by [BL-149](#bl-149-diagnose-the-unstable_dev-suite-flake--ten-instances-three-files-no-reproduction), which now owns the tally and the diagnosis.** This stanza carried the record while it had no better home; it had gone stale at six instances (the count reached nine on 2026-09-01). The finding it established still stands and is restated there: cold start is ruled out by evidence, and what is shared is the HARNESS, not the test — so a per-test fix would only move it. Do not maintain a second tally here. **The six dated bullets below are retained as instance-level detail for 1–6 only** — they hold evidence BL-149's table does not (the lockfile-stash experiment, the `npm ls` check, the 2575 full-suite pass). The canonical record, and the count, live in BL-149.
 
 - **2026-08-04** — `1 failed | 1973 passed`; seven other full runs green.
 - **2026-08-17** — `1 failed | 2391 passed`, during the BL-136 lockfile work. Two later runs passed, **including one deliberately executed against the pre-change lockfile** (stash the lockfile, reinstall, re-run), which is what rules the dependency bump out as the cause. Not the cold-start case either: an earlier `test:mcp` the same session had already passed 2392, so the worker was warm.
@@ -1691,9 +1691,9 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 ---
 
-### BL-149: Diagnose the `unstable_dev` suite flake — nine instances, three files, no reproduction
+### BL-149: Diagnose the `unstable_dev` suite flake — ten instances, three files, no reproduction
 
-**Source**: nine unreproduced single-test failures in the `@gst/mcp-server` suite between 2026-08-04 and 2026-09-01, recorded in [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) and carried as a standing caution on [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) until 2026-09-02 | **Effort**: Medium — the work is reproduction and instrumentation, not a fix; the fix may be small once the cause is known | **Status**: Open
+**Source**: ten unreproduced single-test failures in the `@gst/mcp-server` suite between 2026-08-04 and 2026-09-03, recorded in [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) and carried as a standing caution on [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) until 2026-09-02 | **Effort**: Medium — the work is reproduction and instrumentation, not a fix; the fix may be small once the cause is known | **Status**: Open
 
 **As an** engineer running `npm run test:mcp` before a push, **I want** a green suite to mean the code is green **so that** I stop spending a re-run and a judgement call on every full-suite invocation, and stop having to prove a failure is the known flake rather than my own regression.
 
@@ -1710,8 +1710,9 @@ Two things cut the other way and are the reason this is worth doing rather than 
 | 7   | 2026-09-01 | `1 failed \| 2711 passed` | same                                                | 10/10 green     |
 | 8   | 2026-09-01 | `1 failed \| 2712 passed` | `cors` › OPTIONS preflight 204                      | 7/7 green       |
 | 9   | 2026-09-01 | —                         | `protocol-era-worker` › same case                   | 5/5 green       |
+| 10  | 2026-09-03 | `1 failed \| 2712 passed` | `protocol-era-worker` › same case                   | 10/10 green ×3  |
 
-Tally: **five** on `protocol-era-worker`, one on `oauth-introspection`, one on `cors`, two unnamed. All three named files use `unstable_dev`.
+Tally: **six** on `protocol-era-worker`, one on `oauth-introspection`, one on `cors`, two unnamed. All three named files use `unstable_dev`. Instance 10 landed in a full-suite validation of a dependency-override change (PR #447) that touched no Worker source; it was the fourth `test:mcp` run of that day on the same machine, so warm.
 
 **What is already ruled out, by evidence rather than assumption:**
 
