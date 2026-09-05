@@ -18,19 +18,22 @@ Markup: `src/components/hub/mcp/ClipFigure.astro` (three variants — a collapsi
 
 None of these are visible in the files themselves:
 
-| clip                | output   | aspect | duration | constraint                                                               |
-| ------------------- | -------- | ------ | -------- | ------------------------------------------------------------------------ |
-| `connector-enabled` | 1000×952 | 1.05:1 | 5.1s     | comfortable at ~520px                                                    |
-| `prompts-resources` | 1000×780 | 1.28:1 | 6.0s     | comfortable at ~600px                                                    |
-| `regulations-query` | 1384×730 | 1.90:1 | 7.7s     | needs ≈870px display width — its text is ~0.6× the others' relative size |
+| clip                         | output   | aspect | duration | constraint                                                                      |
+| ---------------------------- | -------- | ------ | -------- | ------------------------------------------------------------------------------- |
+| `connector-enabled`          | 1000×952 | 1.05:1 | 5.1s     | comfortable at ~520px                                                           |
+| `prompts-resources`          | 1000×780 | 1.28:1 | 6.0s     | comfortable at ~600px                                                           |
+| `regulations-query`          | 1384×730 | 1.90:1 | 7.7s     | needs ≈870px display width — its text is ~0.6× the others' relative size        |
+| `add-connector-claudeai`     | 960×880  | 1.09:1 | 11.7s    | comfortable at ~560px; the dialog text is the smallest in the set at that width |
+| `oauth-consent`              | 800×1000 | 0.80:1 | 11.5s    | portrait; comfortable at ~520px, matching the still beneath it                  |
+| `connector-enabled-claudeai` | 1200×760 | 1.58:1 | 6.5s     | three-level menu; comfortable at ~600px                                         |
 
-1. **Three different aspect ratios** — the clips cannot share one fixed media slot.
+1. **Six different aspect ratios** — the clips cannot share one fixed media slot.
 2. **`regulations-query` legibility** — below ~780px it is unreadable, so under 768px the wide figure stops scaling and pans horizontally instead (`min-width: 780px` frame in an `overflow-x: auto` scroller, 720px under 480px — the shipped floors, chosen by the design against the ~870px comfort figure).
-3. **`regulations-query` is speed-edited** — 5× through the middle, where the real query took ~15s. It carries a mandatory visible "Sped up 5×" badge so the page does not imply a response time the server does not deliver.
+3. **Speed-edited clips disclose it visibly** — `regulations-query` runs 5× through the middle, where the real query took ~15s, and carries the wide variant's "Sped up 5×" badge so the page does not imply a response time the server does not deliver. `oauth-consent` runs at 2× (the raw is mostly the key being typed) and says so in its caption, because the collapsible variant has no badge. Either route is acceptable; silence is not.
 
 ## Media catalog
 
-Every clip and still the guides embed. Naming: `<stem>-web.mp4` is the encode, `<stem>-poster.webp` its poster; `<stem>-still.webp` is a rendered still (neither an encode nor a poster companion). The client a clip was recorded in goes in the stem (`-claudeai`, `-desktop`), never in the suffix; the three original 2026-08 clips predate that rule and keep their unsuffixed Desktop stems.
+Every clip and still the guides embed. Naming: `<stem>-web.mp4` is the encode, `<stem>-poster.webp` its poster; `<stem>-still.webp` is a rendered still (neither an encode nor a poster companion). The client a clip was recorded in goes in the stem (`-claudeai`, `-desktop`), never in the suffix. Two exceptions: the three original 2026-08 clips predate that rule and keep their unsuffixed Desktop stems, and `oauth-consent` names no client because it spans claude.ai and a browser tab (the consent page is the same whichever client opened it).
 
 | file                                 | producer                                 | shows                                                                                                                                                     | slot                                                   | status                  |
 | ------------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------- |
