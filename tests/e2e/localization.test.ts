@@ -3,8 +3,9 @@
  *
  * Runs against the SECOND dev server in playwright.config.ts (port 4326), which
  * is started with `PUBLIC_I18N_LIVE_LOCALES=es,pt-BR` so the switcher and the
- * first-visit band render; production has zero live translations and renders
- * neither. `test.use({ baseURL })` pins that server for this file only.
+ * first-visit band render whatever the registry says: `es` and `pt-BR` are live
+ * today, but this file must keep passing when a locale is parked as `draft`.
+ * `test.use({ baseURL })` pins that server for this file only.
  *
  * The first test is a vacuity guard: it fails unless the page reports ≥2 live
  * locales, so a mis-wired server (wrong port, env not applied) cannot make the

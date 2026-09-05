@@ -56,9 +56,12 @@ export default defineConfig({
       env: { ASTRO_DEV_BACKGROUND: '0' },
     },
     // Second server, forced-live locales (BL-153). The language switcher and the
-    // first-visit band render only while ≥2 locales are live, which production
-    // is not yet; `tests/e2e/localization.test.ts` pins its baseURL to THIS
-    // server. It is never reused: the operator's own 4321 server cannot carry
+    // first-visit band render only while ≥2 locales are live. `es` and `pt-BR`
+    // are live in the registry today, so 4321 renders them too — this server
+    // exists so the spec stays valid when a locale is parked as `draft` (a new
+    // one under review, or a live one pulled back), and so the liveness input
+    // never depends on the operator's server; `tests/e2e/localization.test.ts`
+    // pins its baseURL to THIS server. It is never reused: the 4321 server cannot carry
     // the env var, and `reuseExistingServer` on 4321 is what keeps that server
     // untouched by every other spec. `ASTRO_DEV_BACKGROUND=0` + `--ignore-lock`
     // let a second astro dev run beside the first (see feedback memory on dev

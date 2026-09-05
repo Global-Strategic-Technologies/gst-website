@@ -166,9 +166,14 @@ describe('alternatesFor — live-only, draft emits nothing', () => {
   });
 
   it('returns only the current locale for a draft page', () => {
-    if (es.status !== 'draft') return; // liveness override active — covered below
-    expect(alternatesFor('/about/', es)).toEqual([es]);
-    expect(alternatesFor('/pt/about/', ptBR)).toEqual([ptBR]);
+    // A synthetic draft, so this branch is exercised whatever the registry
+    // says today (es and pt-BR are live; the review found this test returning
+    // early and the draft branch running in no test at all).
+    const draftEs = { ...es, status: 'draft' as const };
+    expect(alternatesFor('/about/', draftEs)).toEqual([draftEs]);
+    expect(alternatesFor('/pt/about/', { ...ptBR, status: 'draft' as const })).toHaveLength(1);
+    // …and the same route for a live locale still yields the cluster.
+    expect(alternatesFor('/about/', en).length).toBeGreaterThan(1);
   });
 
   it('returns the live locales, in registry order, for a live page', () => {

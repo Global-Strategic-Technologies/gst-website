@@ -178,8 +178,8 @@ const href = (path: string) => localizedHref(path, locale);
      overflow at 541 with 24px gaps). 8px also clears the 108px tier below 540
      (445 ≤ 464 at 512). Restated inside the ≤768 block because this selector
      out-ranks the plain tier rules — the same reason the under-band rule is
-     restated. Sash-less pages, and every page until two locales are live, are
-     unaffected: neither :has() matches. */
+     restated. Sash-less pages, and every page while fewer than two locales are
+     live, are unaffected: neither :has() matches. */
   body:has(> .brutal-sash-corner) ul:has(> .lang-switch) {
     gap: var(--spacing-xl);
   }

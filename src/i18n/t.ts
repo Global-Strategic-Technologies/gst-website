@@ -22,6 +22,7 @@
  * tool needs them (ADR-0030).
  */
 import { DEFAULT_LOCALE_CODE, type Locale } from './locales';
+import { escapeHtml } from '../utils/escape-html';
 
 import enCommon from './en/common.json';
 import enAbout from './en/about.json';
@@ -86,14 +87,6 @@ export function interpolate(template: string, params?: Params): string {
   );
 }
 
-export function escapeHtml(value: string | number): string {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 export interface Translator<N extends Namespace> {
   /** Plain-text lookup; Astro escapes the result when rendered as `{t(...)}`. */
   t(key: Key<N>, params?: Params): string;
@@ -123,7 +116,9 @@ export function useTranslations<N extends Namespace>(locale: Locale, ns: N): Tra
     tHtml: (key, params) => {
       if (!params) return lookup(key);
       const escaped: Params = {};
-      for (const [k, v] of Object.entries(params)) escaped[k] = escapeHtml(v);
+      // The shared escaper (src/utils/escape-html.ts) also escapes `'`, which
+      // is what an attribute-position param needs.
+      for (const [k, v] of Object.entries(params)) escaped[k] = escapeHtml(String(v));
       return interpolate(lookup(key), escaped);
     },
   };

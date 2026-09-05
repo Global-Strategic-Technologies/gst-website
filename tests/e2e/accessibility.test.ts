@@ -56,9 +56,9 @@ const PAGES: A11yPage[] = [
   { name: 'Homepage', path: '/' },
   { name: 'Services', path: '/services/' },
   { name: 'About', path: '/about/' },
-  // Two localized routes (BL-153). Draft locales build and are reachable, so
-  // these scan on the ordinary server; the switcher/band are covered by
-  // localization.test.ts against the forced-live server instead.
+  // Two localized routes (BL-153). Every locale, live or draft, builds and is
+  // reachable, so these scan on the ordinary server; the switcher/band are
+  // covered by localization.test.ts against the forced-live server instead.
   { name: 'About (es)', path: '/es/about/' },
   { name: 'About (pt-BR)', path: '/pt/about/' },
   { name: 'M&A Portfolio', path: '/ma-portfolio/' },
