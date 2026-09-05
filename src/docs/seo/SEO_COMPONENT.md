@@ -119,7 +119,8 @@ interface Props {
 | **`ogImageHeight`** | number | 630 | Image height in pixels |
 | **`ogImageType`** | string | "image/png" | MIME type of image |
 | **`ogSiteName`** | string | "GST" | Site name for social cards |
-| **`ogLocale`** | string | "en_US" | Locale for content |
+| **`ogLocale`** | string | the page locale's `ogLocale` (`en_US` for English) | Open Graph locale; override only for a page whose language differs from its URL locale |
+| **`locale`** | `Locale` | `DEFAULT_LOCALE` (English) | Page locale from `src/i18n/locales.ts` (BL-153). BaseLayout passes it; drives `og:locale`, `og:locale:alternate`, hreflang + `x-default`, localized BreadcrumbList names/URLs, `inLanguage`. A `draft` locale forces `noindex` |
 | **`twitterSite`** | string | "@globalstrategic" | Twitter/X handle for attribution |
 | **`faqItems`** | Array | undefined | FAQ question/answer pairs for FAQPage schema markup |
 
@@ -185,9 +186,16 @@ interface Props {
 
 #### `ogLocale` (NEW)
 - Language and region code for content
-- **Default**: `en_US`
+- **Default**: the page locale's `ogLocale` from the registry (`en_US`, `es_ES`, `pt_BR`) — since BL-153 this is derived, not a constant
 - Format: language_TERRITORY (e.g., `en_US`, `es_ES`, `fr_FR`)
 - Helps social platforms display content appropriately
+
+#### `locale` (BL-153)
+- The page's registry locale (`src/i18n/locales.ts`); `BaseLayout` resolves it from `Astro.currentLocale` and passes it down
+- Drives: `og:locale` default, one `og:locale:alternate` per other live locale, `<link rel="alternate" hreflang>` for every live locale that carries the route plus `hreflang="x-default"` → the English URL (emitted only when ≥2 live locales carry the route; a **draft** locale or an English-only route emits none), the BreadcrumbList names and item URLs in the page language, and `inLanguage` on the ProfessionalService node
+- A `draft` locale forces `noindex, follow` whatever the page passed — draft pages are reachable for review but never indexed, and the sitemap filter drops them for the same reason
+- Canonical is always the page's own locale URL, never cross-locale
+- See [LOCALIZATION.md](../development/LOCALIZATION.md) and [ADR-0030](../adr/0030-website-locale-model.md)
 
 #### `ogType`
 - Must be valid Open Graph type

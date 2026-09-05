@@ -703,6 +703,15 @@ That last point used to be false: the lower two were documented as "the 768/480 
 
 Prefer a viewport media query when a component has one rendering. Reach for `@container` when a specimen, a card, a drawer or a split layout gives the same component a second width, because a viewport query cannot see that.
 
+### Text expansion (localized copy)
+
+Since BL-153 the Tier A pages and the chrome render in Spanish and Brazilian Portuguese too ([LOCALIZATION.md](../development/LOCALIZATION.md)). Romance-language copy runs **20–35% longer** than the English it translates, and the header/footer labels are uppercase mono with tracking, which magnifies it. Consequences for CSS:
+
+- Never size a text container to the English string. Anything with `white-space: nowrap`, a fixed `width`, or a width budget derived from a character count (the footer's is documented in [FooterLinks.astro](../../components/FooterLinks.astro)) must be re-derived against the **longest** live locale, and the widest page for that check is `/es/services/`.
+- Let long words break rather than overflow: `overflow-wrap: anywhere` on prose containers is preferable to `hyphens: auto`, because `hyphens` needs the correct `lang` (which `<html lang>` now supplies) and the mono face has no hyphenation-friendly metrics.
+- The nav row is the tightest budget on the site. Header labels are 4–8 characters in every locale by design (`Servicios`, `Serviços`, `Sobre`, `Nosotros`); do not pick a longer translation to fix a nuance — pick a shorter word.
+- Verify every localized surface at desktop / 768px / 480px in light and dark, exactly as for a new component; the draft→live checklist in LOCALIZATION.md requires it.
+
 ### Touch Targets
 
 **Two floors, and the difference is a ruling, not a preference.** The guarded component families clear **44×44px** (WCAG 2.5.5, AAA) via `--touch-target-min`; everywhere else the bar is **24×24px** (2.5.8, AA) via `--touch-target-min-aa`. Never a raw `44px` or `24px` — see [BRAND_GUIDELINES § Accessibility](./BRAND_GUIDELINES.md#accessibility) for which controls sit where and why the AAA sweep was scoped back. The AA floor is enforced by axe's `target-size` on every route `accessibility.test.ts` scans, so dropping below it fails CI.

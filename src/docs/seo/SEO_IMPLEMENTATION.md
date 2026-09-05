@@ -272,7 +272,22 @@ Open Graph tags control how the site appears when shared on social platforms. Es
 <meta name="twitter:image:alt" content="GST - M&A Strategic Technology Advisory and Technical Due Diligence" />
 ```
 
-**Total**: 17 meta tags (up from 9 before February 2026 enhancement)
+**Total**: 17 meta tags (up from 9 before February 2026 enhancement) — plus, since BL-153, one `og:locale:alternate` per other live locale on pages that exist in more than one language.
+
+### Language alternates (BL-153)
+
+Every page's `og:locale` comes from the locale registry (`src/i18n/locales.ts`), and a page that exists in ≥2 **live** locales also emits:
+
+```html
+<link rel="alternate" hreflang="en" href="https://globalstrategic.tech/about/" />
+<link rel="alternate" hreflang="es" href="https://globalstrategic.tech/es/about/" />
+<link rel="alternate" hreflang="pt-BR" href="https://globalstrategic.tech/pt-br/about/" />
+<link rel="alternate" hreflang="x-default" href="https://globalstrategic.tech/about/" />
+<meta property="og:locale:alternate" content="es_ES" />
+<meta property="og:locale:alternate" content="pt_BR" />
+```
+
+Rules: canonical is always the page's own locale URL; `x-default` is the English URL; an English-only route (tools, guides, portfolio) emits no cluster; a **draft** locale emits no cluster and is `noindex` (a draft→English link would be non-reciprocal, which crawlers discard). The `<html lang>` attribute is `en` / `es` / `pt-BR`. `@astrojs/sitemap` receives the same registry as its `i18n` option, so `sitemap-0.xml` carries `<xhtml:link rel="alternate" hreflang>` entries for the live locales and no draft-locale URLs at all. Operating manual: [LOCALIZATION.md](../development/LOCALIZATION.md); decisions: [ADR-0030](../adr/0030-website-locale-model.md).
 
 ### Platform-Specific Rendering
 

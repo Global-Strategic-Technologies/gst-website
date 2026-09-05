@@ -80,3 +80,4 @@ architectural integrity.
 - Portfolio entries → invoke `gst-ma-portfolio-card`.
 - Company-name usage → [BRAND_GUIDELINES.md](src/docs/styles/BRAND_GUIDELINES.md) § Company Name (prohibited forms exist — check before writing any name variant).
 - **After ANY copy change**: grep `tests/` for every old string before committing (CLAUDE.md Directive 11) — E2E tests assert on visible text.
+- **Tier A pages and chrome are localized** (BL-153): English copy goes into `src/i18n/en/<ns>.json`, not into the template, and every English edit needs the `es` / `pt-BR` catalogs revisited and re-stamped (`npm run i18n:stamp`) or `test:docs` fails on staleness. Translation register: formal address (`usted` / `você`), product and tool names stay English, no locale clichés, header labels ≤ 8 characters — see [LOCALIZATION.md § Translation workflow](src/docs/development/LOCALIZATION.md#translation-workflow).

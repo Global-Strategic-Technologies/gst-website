@@ -722,29 +722,14 @@ Provides structured breadcrumb navigation data to search engines, enabling bread
 
 ### How It Works
 
-- Automatically generated from `Astro.url.pathname` — no props needed
+- Automatically generated from `Astro.url.pathname` — no props needed. The locale prefix (`/es/`, `/pt-br/`) is not a crumb: names and `item` URLs are rendered in the page locale (`Home` → `Inicio` → `Início`, `item: https://globalstrategic.tech/es/`), mirroring `Breadcrumb.astro`
 - Only rendered on non-homepage pages
 - The last breadcrumb item omits the `item` URL (Google best practice for current page)
-- Slug-to-name mapping is defined in `SEO.astro` for clean display names
-
-### Slug-to-Name Mapping
-
-| Slug | Display Name |
-|------|-------------|
-| `services` | Services |
-| `about` | About |
-| `ma-portfolio` | M&A Portfolio |
-| `privacy` | Privacy Policy |
-| `terms` | Terms of Service |
-| `hub` | The GST Hub |
-| `tools` | The Workbench |
-| `diligence-machine` | Diligence Machine |
-| `library` | The Library |
-| `business-architectures` | Business Architectures |
-| `vdr-structure` | VDR Structure |
-| `radar` | The Radar |
+- Slug-to-name mapping is `slugToName(slug, locale)` in `src/utils/breadcrumbs.ts`, whose names come from the `breadcrumb.<slug>` keys of `src/i18n/<locale>/common.json` — so the English map is one catalog among three, not a separate table. `tests/unit/breadcrumbs.test.ts` pins the English slugs and names; a stale copy of that table used to live here and is not repeated
 
 Unmapped slugs are auto-formatted: hyphens replaced with spaces, words capitalized.
+
+The ProfessionalService root node also carries `inLanguage` = the page locale's BCP 47 tag (`en`, `es`, `pt-BR`) since BL-153.
 
 ## FAQPage Schema
 
