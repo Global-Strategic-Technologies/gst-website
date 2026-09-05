@@ -1,7 +1,6 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
-import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
 import ClipFigure from '../../../../components/hub/mcp/ClipFigure.astro';
 import '../../../../styles/components/mcp-guide.css';
@@ -185,10 +184,12 @@ const TOC_LINKS = [
                 <h3 class="quick-step__title">Enter the GST endpoint</h3>
                 <p class="quick-step__body">
                   Name the connector and paste the production URL. Call it <code>GST MCP</code> to match
-                  the rest of this guide, since you address the connector by that name in a prompt. Choose
-                  <strong>Continue</strong>: Claude checks the server, then shows an Authentication
-                  and an OAuth client section with both settings already detected. Leave those
-                  defaults and choose <strong>Add</strong>.
+                  the rest of this guide, since you address the connector by that name in a prompt. Choose&#32;<strong
+                    >Continue</strong
+                  >: Claude checks the server, then shows an Authentication and an OAuth client
+                  section with both settings already detected. Leave those defaults and choose <strong
+                    >Add</strong
+                  >.
                 </p>
                 <div class="endpoint-row">
                   <code class="endpoint-code">https://mcp.globalstrategic.tech/mcp</code>
@@ -271,39 +272,6 @@ const TOC_LINKS = [
               </div>
             </li>
           </ol>
-          <details class="brutal-faq__item guide-addendum" id="addendum">
-            <summary class="brutal-faq__question">
-              <span>Optional: stop the agent answering from memory</span>
-              <DeltaIcon class="delta-chevron" />
-            </summary>
-            <div class="brutal-faq__answer">
-              <p class="guide-addendum__note">
-                Without guidance, an agent will often answer a portfolio or regulatory question from
-                training knowledge instead of calling a tool. The first sentence of its reply
-                decides the path, so bias that sentence. Paste this into Settings → Profile, then
-                start a fresh conversation.
-              </p>
-              <pre
-                data-snippet
-                class="snippet-pre">For any question about GST's portfolio, engagements, radar, regulatory
-analysis, TechPar, infrastructure cost governance, diligence, technical
-debt, or information request lists:
-
-1. Your FIRST sentence must name the GST MCP tool you intend to call.
-   Do not open with "I'll search past conversations" or "Based on what
-   I know"; the MCP tools are the authoritative source, not memory.
-2. Call the GST MCP tool first, even when the prompt does not mention GST.
-3. For "what does this framework cover?" questions, call the MCP tool with
-   empty arguments rather than describing it from memory.
-4. When a task matches a published GST prompt, invoke the prompt rather
-   than orchestrating its tool calls yourself.</pre>
-              <button
-                type="button"
-                class="brutal-btn brutal-btn--secondary guide-addendum__copy"
-                data-copy-prev>Copy addendum</button
-              >
-            </div>
-          </details>
         </section>
 
         <section id="verify" data-section="verify" class="guide-section">
@@ -382,7 +350,7 @@ debt, or information request lists:
           <p class="brutal-callout guide-callout">
             <span class="brutal-callout__title">Neither check passing?</span>
             The five failures a first connection runs into, and what each one means, are catalogued under&#32;
-            <a href="/hub/mcp/using/#troubleshooting">When it fails</a> in the practitioner guide.
+            <a href="/hub/mcp/using/#troubleshooting">Troubleshooting</a> in the practitioner guide.
           </p>
         </section>
 
@@ -482,30 +450,6 @@ debt, or information request lists:
     color: var(--text-secondary);
     text-decoration: none;
     border-bottom: 1px solid currentColor;
-  }
-
-  /* ── Addendum disclosure ──────────────────────────────────────────── */
-  .guide-addendum {
-    max-width: 900px;
-    margin-top: var(--spacing-xl);
-  }
-
-  .guide-addendum__note {
-    margin: 0 0 var(--spacing-md);
-    font-size: var(--text-sm);
-    color: var(--text-secondary);
-    line-height: 1.7;
-  }
-
-  /* This page's snippet carries a full outer border on top of the shared left
-     rule; the shorthand resets border-left, so the left rule is restated. */
-  .snippet-pre {
-    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
-    border-left: 3px solid var(--color-primary);
-  }
-
-  .guide-addendum__copy {
-    margin-top: var(--spacing-md);
   }
 
   .status-note {

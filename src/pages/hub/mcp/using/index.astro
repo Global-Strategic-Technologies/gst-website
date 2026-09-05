@@ -4,6 +4,7 @@ import HubHeader from '../../../../components/hub/HubHeader.astro';
 import OnboardingToc from '../../../../components/hub/mcp/OnboardingToc.astro';
 import ClipFigure from '../../../../components/hub/mcp/ClipFigure.astro';
 import CopyRow from '../../../../components/hub/mcp/CopyRow.astro';
+import DeltaIcon from '../../../../components/DeltaIcon.astro';
 import '../../../../styles/components/mcp-guide.css';
 import { mcpGuideSchema } from '../../../../utils/mcp-schema';
 
@@ -20,7 +21,7 @@ const TOC_LINKS = [
   { id: 'first-query', label: '01 First query' },
   { id: 'prompts', label: '02 Prompt arguments' },
   { id: 'resources', label: '03 Resources' },
-  { id: 'troubleshooting', label: '04 When it fails' },
+  { id: 'troubleshooting', label: '04 Troubleshooting' },
   { id: 'next', label: '05 Next steps' },
 ];
 ---
@@ -179,9 +180,9 @@ const TOC_LINKS = [
                 </li>
                 <li>
                   A plausible list with no MCP tool call in the transcript; regulation is exactly
-                  where a model will confabulate an effective date. Add the <a
-                    href="/hub/mcp/get-started/#addendum">system-prompt addendum</a
-                  > from the setup guide and retry in a fresh thread.
+                  where a model will confabulate an effective date. Add the <a href="#addendum"
+                    >system-prompt addendum</a
+                  > under Troubleshooting and retry in a fresh thread.
                 </li>
               </ul>
             </div>
@@ -479,9 +480,10 @@ const TOC_LINKS = [
         </section>
 
         <section id="troubleshooting" data-section="troubleshooting" class="guide-section">
-          <h2 class="brutal-heading-lg guide-heading">04 When it fails</h2>
+          <h2 class="brutal-heading-lg guide-heading">04 Troubleshooting</h2>
           <p class="guide-intro">
-            The five failures a first connection runs into, and what each one means.
+            The five failures a first connection runs into, what each one means, and the one fix
+            that lives in your Claude settings rather than on the server.
           </p>
           <div class="args-table args-table--fails">
             <div class="args-table__row">
@@ -532,11 +534,43 @@ const TOC_LINKS = [
                 Its opening sentence committed to the wrong path.
               </p>
               <p class="args-table__note">
-                Add the <a href="/hub/mcp/get-started/#addendum">system-prompt addendum</a> from the setup
-                guide and retry in a fresh conversation.
+                Add the <a href="#addendum">system-prompt addendum</a> below and retry in a fresh conversation.
               </p>
             </div>
           </div>
+          <details class="brutal-faq__item guide-addendum" id="addendum">
+            <summary class="brutal-faq__question">
+              <span>The system-prompt addendum: stop the agent answering from memory</span>
+              <DeltaIcon class="delta-chevron" />
+            </summary>
+            <div class="brutal-faq__answer">
+              <p class="guide-addendum__note">
+                Without guidance, an agent will often answer a portfolio or regulatory question from
+                training knowledge instead of calling a tool. The first sentence of its reply
+                decides the path, so bias that sentence. Paste this into Settings → Profile, then
+                start a fresh conversation.
+              </p>
+              <pre
+                data-snippet
+                class="snippet-pre">For any question about GST's portfolio, engagements, radar, regulatory
+analysis, TechPar, infrastructure cost governance, diligence, technical
+debt, or information request lists:
+
+1. Your FIRST sentence must name the GST MCP tool you intend to call.
+   Do not open with "I'll search past conversations" or "Based on what
+   I know"; the MCP tools are the authoritative source, not memory.
+2. Call the GST MCP tool first, even when the prompt does not mention GST.
+3. For "what does this framework cover?" questions, call the MCP tool with
+   empty arguments rather than describing it from memory.
+4. When a task matches a published GST prompt, invoke the prompt rather
+   than orchestrating its tool calls yourself.</pre>
+              <button
+                type="button"
+                class="brutal-btn brutal-btn--secondary guide-addendum__copy"
+                data-copy-prev>Copy addendum</button
+              >
+            </div>
+          </details>
         </section>
 
         <section id="next" data-section="next" class="guide-section">
@@ -814,6 +848,31 @@ const TOC_LINKS = [
 
   .args-table__key--fail {
     flex-basis: 200px;
+  }
+
+  /* ── Addendum disclosure (moved here from Get Started 2026-09-04: it is a
+     remedy for the fifth failure above, not a setup step) ────────────── */
+  .guide-addendum {
+    max-width: 900px;
+    margin-top: var(--spacing-xl);
+  }
+
+  .guide-addendum__note {
+    margin: 0 0 var(--spacing-md);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  /* The addendum snippet carries a full outer border on top of the shared left
+     rule; the shorthand resets border-left, so the left rule is restated. */
+  .snippet-pre {
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    border-left: 3px solid var(--color-primary);
+  }
+
+  .guide-addendum__copy {
+    margin-top: var(--spacing-md);
   }
 
   /* ── Numbered steps ───────────────────────────────────────────────── */
