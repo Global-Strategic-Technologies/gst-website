@@ -1,0 +1,10 @@
+{
+  "mcp-launch.badge": "New",
+  "mcp-launch.label": "GST MCP",
+  "mcp-launch.subtext.1": "Automate analysis",
+  "mcp-launch.subtext.1.ariaLabel": "Automate analysis — see what the MCP server does",
+  "mcp-launch.subtext.2": "Free pilot tier",
+  "mcp-launch.subtext.2.ariaLabel": "Free pilot tier — see capability tiers",
+  "mcp-launch.ariaLabel": "New: GST MCP — automate analysis, free pilot tier — open the linked page",
+  "mcp-launch.cardBadge": "New"
+}

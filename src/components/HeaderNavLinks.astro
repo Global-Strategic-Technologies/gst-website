@@ -297,5 +297,17 @@ const href = (path: string) => localizedHref(path, locale);
     ul {
       gap: var(--spacing-sm);
     }
+
+    /* With the switcher present the Spanish row is the widest: 9 + 3 + 3 + 6
+       characters against English's 8 + 3 + 3 + 5. At 12px with 0.05em tracking
+       that row needed 349px at 375 (Servicios / M&A / Hub / Nosotros) against a
+       343px container and wrapped under the logo down to 390 (measured
+       2026-09-05). Two moves, both scoped to the fifth item being present:
+       `nav.about` became the six-character "Equipo" (−2 chars), and the
+       tracking goes to 0 here (−0.6px per character). Result: 321px at 360
+       against 328 available, the same one-line row English gets. */
+    ul:has(> .lang-switch) a {
+      letter-spacing: 0;
+    }
   }
 </style>

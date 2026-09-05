@@ -89,6 +89,10 @@ English is authored first, in the `gst-page-content` register. First-pass transl
 
 `localStorage.gstLang` holds the locale code. It is written when a visitor picks a language in the switcher or interacts with the first-visit band, and read only to decide whether to show the band. It never redirects. The suggestion comes from `navigator.languages` through `resolveLocale`; there is no cookie and no geolocation.
 
+## Announcement sash
+
+The sash registry (`src/data/announcements.ts`) stays English and is matched on the locale-free route path. Other locales' copy lives in `src/i18n/<locale>/announcements.json` under `<id>.badge`, `<id>.label`, `<id>.subtext.<n>`, `<id>.subtext.<n>.ariaLabel`, `<id>.ariaLabel` and `<id>.cardBadge`; `localizeAnnouncement` (`src/data/announcements-i18n.ts`, a separate module because Playwright specs import the registry under plain Node) overlays it and prefixes Tier A hrefs (fragments kept). The English catalog mirrors the registry and a unit test holds them equal. A translation must fit the sash's copy budget (~34 characters across the under-band fields, badge ≤ 5); `tests/e2e/localization.test.ts` measures the ink against the corner box on `/es/` and `/pt-br/` the way the English spec does.
+
 ## Switcher and band — where they live
 
 | Path                                        | What it is                                                                                                                                                                 |

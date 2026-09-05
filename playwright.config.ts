@@ -39,15 +39,20 @@ export default defineConfig({
   // Start dev server for E2E tests
   webServer: [
     {
-      command: 'npm run dev',
+      // `npx astro dev`, not `npm run dev` (which is the same command). On
+      // Windows Playwright kills the process it spawned, and `npm run` puts a
+      // shell between Playwright and node, so the real server outlived every
+      // run, was REUSED by the next one, and twice died mid-run (connection
+      // refused on 4321 for the rest of the suite). npx hands node straight to
+      // Playwright, and the 4326 server below has never lingered for that reason.
+      command: 'npx astro dev --port 4321',
       url: 'http://localhost:4321',
       reuseExistingServer: !process.env.CI,
       timeout: 60 * 1000,
       // Astro 7 backgrounds `astro dev` by default outside CI: the parent
       // process forks a daemon and exits, which Playwright reports as
       // "Process from config.webServer exited early" whenever 4321 is NOT
-      // already running (a cold local start). Foreground it; the daemon it
-      // would otherwise leave behind is also what used to outlive every run.
+      // already running (a cold local start). Foreground it.
       env: { ASTRO_DEV_BACKGROUND: '0' },
     },
     // Second server, forced-live locales (BL-153). The language switcher and the

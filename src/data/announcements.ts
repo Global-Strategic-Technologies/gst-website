@@ -19,6 +19,12 @@
  *     first deploy after its date, not at midnight.
  *   - `scale` is chosen by copy length against the budget in
  *     `Sash.astro`'s docblock, not by importance.
+ *   - Copy here is ENGLISH. Other locales' copy lives in
+ *     `src/i18n/<locale>/announcements.json` and is overlaid by
+ *     `localizeAnnouncement` in `announcements-i18n.ts` (BL-153) — a separate
+ *     module because Playwright specs import THIS file under plain Node, where
+ *     the catalog loader cannot run. Pass the locale-free route path to
+ *     `getActiveAnnouncement`, since `routes` are English paths.
  */
 
 /**

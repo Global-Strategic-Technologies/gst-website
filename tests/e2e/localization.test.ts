@@ -344,6 +344,95 @@ test.describe('first-visit band', () => {
   });
 });
 
+test.describe('announcement sash in other locales', () => {
+  // Reported 2026-09-05: switching to ES made the "New GST MCP" banner vanish,
+  // because the sash was rendered on the English page only. It now renders in
+  // every locale with catalog copy; the ink must still fit the corner box, and
+  // its links must point at the localized MCP page.
+  const MIN_INK_MARGIN = 4;
+
+  for (const [path, badge, mcp] of [
+    ['/es/', 'Nuevo', '/es/hub/mcp/'],
+    ['/pt-br/', 'Novo', '/pt-br/hub/mcp/'],
+  ] as const) {
+    test(`${path} carries the sash, localized, with its copy inside the corner`, async ({
+      page,
+    }) => {
+      await presetLang(page, 'en');
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.goto(path);
+      const corner = page.locator('body > .brutal-sash-corner');
+      await expect(corner).toHaveCount(1);
+      await expect(corner.locator('.brutal-sash__badge')).toHaveText(badge);
+      await expect(corner.locator('a.brutal-sash')).toHaveAttribute('href', mcp);
+      const fields = corner.locator('.brutal-sash-under a');
+      await expect(fields).toHaveCount(2);
+      await expect(fields.first()).toHaveAttribute('href', `${mcp}#what-it-does`);
+
+      // Same ink-containment measurement as announcement-sash.test.ts.
+      const margins = await corner.evaluate((el) => {
+        const box = (el as HTMLElement).offsetWidth;
+        return ['.brutal-sash', '.brutal-sash-under']
+          .map((sel) => {
+            const band = el.querySelector<HTMLElement>(sel);
+            if (!band || getComputedStyle(band).display === 'none') return null;
+            const prior = band.style.transform;
+            band.style.transform = 'none';
+            const range = document.createRange();
+            range.selectNodeContents(band);
+            const ink = range.getBoundingClientRect();
+            const flat = band.getBoundingClientRect();
+            const dx = ink.left + ink.width / 2 - (flat.left + flat.width / 2);
+            const dy = ink.top + ink.height / 2 - (flat.top + flat.height / 2);
+            band.style.transform = prior;
+            const bcx = band.offsetLeft + band.offsetWidth / 2;
+            const bcy = band.offsetTop + band.offsetHeight / 2;
+            const r2 = Math.SQRT1_2;
+            const m: number[] = [];
+            for (const sx of [-1, 1])
+              for (const sy of [-1, 1]) {
+                const px = dx + (sx * ink.width) / 2;
+                const py = dy + (sy * ink.height) / 2;
+                const x = bcx + (px - py) * r2;
+                const y = bcy + (px + py) * r2;
+                m.push(x, y, box - x, box - y);
+              }
+            return { sel, margin: Math.min(...m) };
+          })
+          .filter((b): b is { sel: string; margin: number } => b !== null);
+      });
+      expect(margins.length).toBeGreaterThan(0);
+      for (const b of margins) {
+        expect(b.margin, `${path} ${b.sel} clearance`).toBeGreaterThanOrEqual(MIN_INK_MARGIN);
+      }
+    });
+  }
+
+  test('the localized header stays one row at phone widths, like English', async ({ page }) => {
+    // Reported 2026-09-05: the Spanish labels wrapped the header to two rows
+    // from 375px down. Compare each locale to English at the same width rather
+    // than to a fixed rule: whatever English does, the others must match.
+    await presetLang(page, 'en');
+    for (const width of [360, 375, 390, 430]) {
+      await page.setViewportSize({ width, height: 800 });
+      const rows: Record<string, boolean> = {};
+      for (const path of ['/', '/es/', '/pt-br/']) {
+        await page.goto(path);
+        await waitForNavStyles(page);
+        rows[path] = await page.evaluate(() => {
+          const nav = document.querySelector('.site-header nav')!;
+          const ul = nav.querySelector('ul')!.getBoundingClientRect();
+          const logo = nav.querySelector('.logo-wrapper')!.getBoundingClientRect();
+          return ul.top >= logo.bottom - 1;
+        });
+      }
+      expect(rows['/es/'], `${width}px: /es/ wraps but / does not`).toBe(rows['/']);
+      expect(rows['/pt-br/'], `${width}px: /pt-br/ wraps but / does not`).toBe(rows['/']);
+      if (width >= 360) expect(rows['/'], `${width}px: English header is one row`).toBe(false);
+    }
+  });
+});
+
 test.describe('accessibility of the switcher and the band', () => {
   // accessibility.test.ts scans against the ordinary server, where neither
   // control renders (no live translations yet), so they are audited here, in the

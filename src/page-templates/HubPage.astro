@@ -6,7 +6,8 @@
  * Two of the four cards (Library, Radar) lead to English-only surfaces, so on
  * a non-English page they carry the `common.notice.contentInEnglish` line and
  * keep their English hrefs (localizedHref leaves non-registry paths alone).
- * The announcement sashes render on the English page only — see HomePage.
+ * The announcement sashes render in every locale with catalog copy — see
+ * HomePage and `localizeAnnouncement`.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
@@ -14,7 +15,8 @@ import CTASection from '../components/CTASection.astro';
 import DeltaIcon from '../components/DeltaIcon.astro';
 import Sash from '../components/Sash.astro';
 import { getActiveAnnouncement } from '../data/announcements';
-import { isDefaultLocale, type Locale } from '../i18n/locales';
+import { cardBadgeFor, localizeAnnouncement } from '../data/announcements-i18n';
+import { isDefaultLocale, localeFromPath, type Locale } from '../i18n/locales';
 import { isLocalizedRoute, localizedHref } from '../i18n/routes';
 import { useTranslations } from '../i18n/t';
 
@@ -30,8 +32,11 @@ const mcpHref = localizedHref('/hub/mcp/', locale);
 
 // Null unless an announcement's window is open and lists this route — see
 // src/data/announcements.ts. It gates BOTH sashes on this page, so the page
-// sash and the card sash retire together.
-const announcement = isEnglish ? getActiveAnnouncement(Astro.url.pathname) : null;
+// sash and the card sash retire together. Matched on the locale-free path,
+// rendered in the page locale.
+const active = getActiveAnnouncement(localeFromPath(Astro.url.pathname).routePath);
+const announcement = active ? localizeAnnouncement(active, locale) : null;
+const cardBadge = active ? cardBadgeFor(active, locale) : '';
 
 const faqItems = ([1, 2, 3] as const).map((n) => ({
   question: t(`faq.q${n}`),
@@ -88,7 +93,7 @@ const cards = (['tools', 'library', 'radar', 'mcp'] as const).map((id) => {
               hreflang={card.englishOnly ? 'en' : undefined}
             >
               {/* Decorative — the card is already the link, and already tracked. */}
-              {card.id === 'mcp' && announcement && <Sash label="New" scale="card" />}
+              {card.id === 'mcp' && announcement && <Sash label={cardBadge} scale="card" />}
               <div class="hub-card-header">
                 {card.id === 'tools' && (
                   <svg

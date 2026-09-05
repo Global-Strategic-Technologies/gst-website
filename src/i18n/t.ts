@@ -25,6 +25,7 @@ import { DEFAULT_LOCALE_CODE, type Locale } from './locales';
 
 import enCommon from './en/common.json';
 import enAbout from './en/about.json';
+import enAnnouncements from './en/announcements.json';
 import enHome from './en/home.json';
 import enHub from './en/hub.json';
 import enHubMcp from './en/hub-mcp.json';
@@ -36,6 +37,7 @@ import enTerms from './en/terms.json';
 /** The English catalogs, one static import per namespace: they ARE the types. */
 export const EN = {
   common: enCommon,
+  announcements: enAnnouncements,
   home: enHome,
   services: enServices,
   about: enAbout,
