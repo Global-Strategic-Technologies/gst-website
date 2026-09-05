@@ -64,7 +64,7 @@ const { t } = useTranslations(locale, 'common');
      BL-153 then added a fifth <li>, the language switcher, which renders only
      while ≥2 locales are live. WITH it the row needs 318px (logo 101 + list
      217: four links 148 + switcher 37 + four 8px gaps — measured 2026-09-05,
-     Chromium, forced-live server), so it holds one line from a 350px viewport
+     Chromium, both locales live), so it holds one line from a 350px viewport
      (288 + 30 more of container) and wraps to two rows below that, which is
      exactly the case this rule exists for: at 320px the list drops under the
      logo, nothing overflows (measured 0px), and every link stays on screen

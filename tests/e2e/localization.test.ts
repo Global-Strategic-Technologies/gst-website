@@ -1,15 +1,16 @@
 /**
  * Localization — the rendered-page contract (BL-153, hand-off §6).
  *
- * Runs against the SECOND dev server in playwright.config.ts (port 4326), which
- * is started with `PUBLIC_I18N_LIVE_LOCALES=es,pt-BR` so the switcher and the
- * first-visit band render whatever the registry says: `es` and `pt-BR` are live
- * today, but this file must keep passing when a locale is parked as `draft`.
- * `test.use({ baseURL })` pins that server for this file only.
+ * Runs against the ordinary dev server like every other spec. `es` and `pt-BR`
+ * are live in the registry, which is what makes the switcher and the first-visit
+ * band render. (A second, forced-live server on 4326 was tried and removed: two
+ * cold Vite dev servers sharing `node_modules/.vite` in CI produced
+ * `504 Outdated Optimize Dep` on another spec's dynamic import — see
+ * playwright.config.ts.)
  *
  * The first test is a vacuity guard: it fails unless the page reports ≥2 live
- * locales, so a mis-wired server (wrong port, env not applied) cannot make the
- * rest of this file pass against a page that carries no switcher.
+ * locales, so parking a locale as `draft` cannot make the rest of this file pass
+ * against a page that carries no switcher — it fails here, by name, instead.
  *
  * What is asserted here and not in vitest: everything that needs a rendered
  * document — `<html lang>`, canonical, `og:locale`, hreflang presence per
@@ -19,8 +20,6 @@
  */
 import { test, expect, type Page } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
-
-test.use({ baseURL: 'http://localhost:4326' });
 
 const SWITCH = '.site-header nav ul > li.lang-switch';
 const TRIGGER = `${SWITCH} button[aria-haspopup="menu"]`;
@@ -63,7 +62,10 @@ test.describe('server sanity', () => {
     await presetLang(page, 'en');
     await page.goto('/about/');
     const live = await page.locator(SWITCH).getAttribute('data-live-locales');
-    expect(live, 'switcher missing: is the forced-live server on 4326?').not.toBeNull();
+    expect(
+      live,
+      'switcher missing: are at least two locales `live` in src/i18n/locales.ts?'
+    ).not.toBeNull();
     expect(live!.split(',').length).toBeGreaterThanOrEqual(2);
   });
 });

@@ -8,22 +8,22 @@ A locale is `language[-REGION]` — `en`, `es`, `pt-BR` today — and lives as o
 
 ## Files
 
-| Path                                            | What it is                                                                                                                                                           |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/i18n/locales.ts`                           | The registry + `resolveLocale`, `localeFromPath`, `liveLocales`, config adapters. Pure TS — imported by `astro.config.mjs` in Node.                                  |
-| `src/i18n/routes.ts`                            | `TIER_A_ROUTES` (the routes every locale carries), `localizedHref`, `alternatesFor`, `localeHome`.                                                                   |
-| `src/i18n/t.ts`                                 | `useTranslations(locale, ns)` → `t()` / `tHtml()`, typed from the English catalogs.                                                                                  |
-| `src/i18n/formatters.ts`                        | `formatDate` / `formatNumber` / `formatCurrency` over `Intl`, by registry locale or bare tag.                                                                        |
-| `src/i18n/<locale>/<ns>.json`                   | Catalogs: flat dot-keys → strings. `en/` is the schema.                                                                                                              |
-| `src/i18n/<locale>/<ns>.source.json`            | Sidecars: key → hash of the English string the translation was made from. Written by `npm run i18n:stamp`, checked by `test:docs`.                                   |
-| `src/page-templates/<Name>Page.astro`           | One body per route, taking `locale`. Rendered by the English route file and by the catch-all.                                                                        |
-| `src/page-templates/registry.ts`                | Route id → template, for the catch-all.                                                                                                                              |
-| `src/pages/[locale]/[...route].astro`           | Every non-English page. `getStaticPaths` = non-default locales × Tier A routes with a template.                                                                      |
-| `scripts/i18n-stamp-sources.mjs`                | The stamping script (`npm run i18n:stamp [locale] [ns]`, `npm run i18n:check`).                                                                                      |
-| `tests/unit/i18n-locale.test.ts`                | Resolver, path parsing, `localizedHref` rule, alternates/draft behaviour, config adapters, template↔route alignment.                                                 |
-| `tests/integration/i18n-catalog-parity.test.ts` | Key parity, staleness, markup allowlist, no empty strings. Runs in `npm run test:docs`.                                                                              |
-| `tests/unit/i18n-no-stray-literals.test.ts`     | No `'pt-BR'`, `'/es/'`, `'es_CO'`… quoted outside `src/i18n/`.                                                                                                       |
-| `tests/e2e/localization.test.ts`                | Rendered-page contract: `<html lang>`, canonical, `og:locale`, hreflang per status, switcher and band behaviour (against the forced-live dev server, see § Testing). |
+| Path                                            | What it is                                                                                                                          |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `src/i18n/locales.ts`                           | The registry + `resolveLocale`, `localeFromPath`, `liveLocales`, config adapters. Pure TS — imported by `astro.config.mjs` in Node. |
+| `src/i18n/routes.ts`                            | `TIER_A_ROUTES` (the routes every locale carries), `localizedHref`, `alternatesFor`, `localeHome`.                                  |
+| `src/i18n/t.ts`                                 | `useTranslations(locale, ns)` → `t()` / `tHtml()`, typed from the English catalogs.                                                 |
+| `src/i18n/formatters.ts`                        | `formatDate` / `formatNumber` / `formatCurrency` over `Intl`, by registry locale or bare tag.                                       |
+| `src/i18n/<locale>/<ns>.json`                   | Catalogs: flat dot-keys → strings. `en/` is the schema.                                                                             |
+| `src/i18n/<locale>/<ns>.source.json`            | Sidecars: key → hash of the English string the translation was made from. Written by `npm run i18n:stamp`, checked by `test:docs`.  |
+| `src/page-templates/<Name>Page.astro`           | One body per route, taking `locale`. Rendered by the English route file and by the catch-all.                                       |
+| `src/page-templates/registry.ts`                | Route id → template, for the catch-all.                                                                                             |
+| `src/pages/[locale]/[...route].astro`           | Every non-English page. `getStaticPaths` = non-default locales × Tier A routes with a template.                                     |
+| `scripts/i18n-stamp-sources.mjs`                | The stamping script (`npm run i18n:stamp [locale] [ns]`, `npm run i18n:check`).                                                     |
+| `tests/unit/i18n-locale.test.ts`                | Resolver, path parsing, `localizedHref` rule, alternates/draft behaviour, config adapters, template↔route alignment.                |
+| `tests/integration/i18n-catalog-parity.test.ts` | Key parity, staleness, markup allowlist, no empty strings. Runs in `npm run test:docs`.                                             |
+| `tests/unit/i18n-no-stray-literals.test.ts`     | No `'pt-BR'`, `'/es/'`, `'es_CO'`… quoted outside `src/i18n/`.                                                                      |
+| `tests/e2e/localization.test.ts`                | Rendered-page contract: `<html lang>`, canonical, `og:locale`, hreflang per status, switcher and band behaviour (see § Testing).    |
 
 ## Content tiers
 
@@ -96,8 +96,8 @@ English is authored first, in the `gst-page-content` register. First-pass transl
 ## Testing
 
 - `npm run test:run` covers the unit guards; `npm run test:docs` runs catalog parity + staleness.
-- The switcher and band render only when ≥2 locales are **live**. `es` and `pt-BR` are live today, so an ordinary dev server renders them; `PUBLIC_I18N_LIVE_LOCALES=es,pt-BR` forces liveness for a build or dev server regardless, so the E2E spec keeps passing when a locale is parked as `draft` (a new one under review, or a live one pulled back). The Playwright config boots a **second** dev server on port **4326** with that variable set, and `tests/e2e/localization.test.ts` pins its `baseURL` to it — the operator's own server on 4321 is neither reused for that spec nor touched (see [DEVELOPER_TOOLING.md § Playwright](DEVELOPER_TOOLING.md)). The spec asserts up front that the served page reports ≥2 live locales, so a mis-wired server fails loudly instead of passing vacuously.
-- Astro auto-increments a busy port: if 4326 is taken the second server comes up on 4327 and the spec's pinned `baseURL` misses it. Free the port rather than moving the pin.
+- The switcher and band render only when ≥2 locales are **live**. `es` and `pt-BR` are live, so `tests/e2e/localization.test.ts` runs against the ordinary Playwright server like every other spec, and its first test fails by name if fewer than two locales are live — so parking a locale as `draft` is a visible spec change, not a silent pass. `PUBLIC_I18N_LIVE_LOCALES=<codes>` still forces liveness for a one-off build or dev server (previewing a draft as live).
+- **Do not add a second dev server to `playwright.config.ts`** for a forced-live run. It was tried: in CI both servers boot cold and share `node_modules/.vite`, and one's dependency re-optimization served the other's page a `504 Outdated Optimize Dep` on a dynamic import (TechPar's `chart.js`), emptying a UI region with no console error (2026-09-05, trace-confirmed, two consecutive red runs). See [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md#a-ui-region-renders-empty-and-the-test-fails-locally-but-ci-is-green).
 
 ## Persistence and suggestion
 

@@ -10,12 +10,15 @@ test.describe('Mobile Navigation Journey', () => {
   });
 
   test('should have touchable buttons on mobile', async ({ page }) => {
-    // Find buttons
-    const buttons = page.locator('button');
+    // Visible buttons only. The page legitimately carries hidden <button>s
+    // ahead of the first visible one — the first-visit language band renders
+    // one hidden band per live locale and reveals at most one (BL-153) — and
+    // `button` alone resolved to a hidden band button and failed (CI, 2026-09-05).
+    const buttons = page.locator('button:visible');
     const count = await buttons.count();
     expect(count).toBeGreaterThan(0);
 
-    // First button should be visible and enabled
+    // First visible button should be enabled
     const firstButton = buttons.first();
     await expect(firstButton).toBeVisible();
     await expect(firstButton).toBeEnabled();
