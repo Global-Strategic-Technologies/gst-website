@@ -101,6 +101,14 @@ const href = (path: string) => localizedHref(path, locale);
 <style>
   ul {
     display: flex;
+    /* `center`, not the flex default `stretch`: the language switcher's 36px
+       segment is taller than a text link, and under `stretch` every <li> grows
+       to that height while its <a> stays at the top of the box — the four links
+       rode 8px above the switcher's centre line (reported 2026-09-05, BL-153).
+       Centring the items puts the link text and the segment on one axis, and is
+       a no-op while the switcher is absent, since the four <li>s are then all
+       the same height. */
+    align-items: center;
     gap: var(--spacing-3xl);
     list-style: none;
   }

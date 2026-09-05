@@ -133,6 +133,32 @@ test.describe('language switcher', () => {
     expect(Math.abs(enBox!.width - ptBox!.width)).toBeLessThanOrEqual(1);
   });
 
+  test('sits on the same vertical axis as the four text links', async ({ page }) => {
+    // The property a visitor sees: the segment's centre line and each link's
+    // centre line agree. Under the flex default (`stretch`) the links rode 8px
+    // above the segment — reported 2026-09-05.
+    await page.goto('/about/');
+    await waitForNavStyles(page);
+    const trigger = await page.locator(TRIGGER).boundingBox();
+    const triggerMid = trigger!.y + trigger!.height / 2;
+    // The GLYPHS, not the <a> box: the link box carries 6px of padding and
+    // underline below the text, so its centre is not what the eye aligns.
+    const textMids = await page
+      .locator('.site-header nav ul > li:not(.lang-switch) a')
+      .evaluateAll((els) =>
+        els.map((el) => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          const r = range.getBoundingClientRect();
+          return r.top + r.height / 2;
+        })
+      );
+    expect(textMids).toHaveLength(4);
+    for (const mid of textMids) {
+      expect(Math.abs(mid - triggerMid)).toBeLessThanOrEqual(1.5);
+    }
+  });
+
   test('opens on click with the primary fill and container border; menu is right-aligned with native names', async ({
     page,
   }) => {

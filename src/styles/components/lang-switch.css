@@ -23,6 +23,13 @@ src/scripts/lang-switch.ts against these class names.
      segment's box to the row rather than letting it stretch. */
   display: flex;
   align-items: center;
+  /* No vertical nudge here, and this was measured before being left out: the
+     nav links are INLINE <a>s, so their 4px padding and 2px underline do not
+     enlarge the <li>'s line box, and the <ul>'s `align-items: center` already
+     puts this segment's centre on the links' text axis (43.4px on both, at
+     1280 — 2026-09-05). A 6px bottom margin "compensating" for that padding
+     put the segment 3px HIGH. Measure the glyphs (a Range over the text), not
+     the <a> box, whose centre is 3px below the text. */
 }
 
 /* The segment is width-fit around one two-letter code (`max-width: 180px` on
