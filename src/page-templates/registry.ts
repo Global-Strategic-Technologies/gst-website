@@ -11,9 +11,15 @@
  * templates with `DEFAULT_LOCALE`, so a page has exactly one body.
  */
 import AboutPage from './AboutPage.astro';
+import HomePage from './HomePage.astro';
+import PrivacyPage from './PrivacyPage.astro';
+import TermsPage from './TermsPage.astro';
 
 export const TEMPLATES = {
+  home: HomePage,
   about: AboutPage,
+  privacy: PrivacyPage,
+  terms: TermsPage,
 } as const;
 
 export type TemplateId = keyof typeof TEMPLATES;

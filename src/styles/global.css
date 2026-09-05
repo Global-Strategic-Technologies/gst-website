@@ -336,6 +336,13 @@ Legal Page Layout (Privacy, Terms)
   color: var(--text-muted);
 }
 
+/* "This translation is provided for convenience; the English version governs."
+   Rendered only on the non-English legal pages (BL-153). */
+.legal-page-governs {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
 .legal-page-body {
   line-height: 1.8;
   font-family: var(--font-family-mono);

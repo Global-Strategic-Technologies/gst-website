@@ -1,0 +1,124 @@
+---
+/**
+ * /terms/ in every locale. Rendered by src/pages/terms.astro (English) and by
+ * src/pages/[locale]/[...route].astro. The SMS paragraph links to the Privacy
+ * Policy in the SAME locale via a `{privacyHref}` param (escaped by tHtml).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
+import { isDefaultLocale, type Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t, tHtml } = useTranslations(locale, 'terms');
+const common = useTranslations(locale, 'common');
+const privacyHref = localizedHref('/privacy/', locale);
+---
+
+<BaseLayout title={t('meta.title')} description={t('meta.description')}>
+  <PrintReportHeader title={t('title')} locale={locale} />
+
+  <div class="legal-page-container">
+    <div>
+      <header class="legal-page-header">
+        <h1>{t('title')}</h1>
+        <p class="legal-page-updated">{t('updated')}</p>
+      </header>
+
+      <section class="legal-page-body">
+        {
+          !isDefaultLocale(locale) && (
+            <p class="legal-page-governs">{common.t('legal.englishGoverns')}</p>
+          )
+        }
+
+        <p>{t('intro')}</p>
+
+        <h2>{t('acceptance.heading')}</h2>
+        <p set:html={tHtml('acceptance.body')} />
+
+        <h2>{t('services.heading')}</h2>
+        <p>{t('services.body')}</p>
+
+        <h2>{t('use.heading')}</h2>
+        <p>{t('use.lead')}</p>
+        <ul>
+          <li>{t('use.item1')}</li>
+          <li>{t('use.item2')}</li>
+          <li>{t('use.item3')}</li>
+          <li>{t('use.item4')}</li>
+          <li>{t('use.item5')}</li>
+        </ul>
+
+        <h2>{t('ip.heading')}</h2>
+        <p>{t('ip.body')}</p>
+
+        <h2>{t('confidentiality.heading')}</h2>
+        <p>{t('confidentiality.body')}</p>
+
+        <h2>{t('warranties.heading')}</h2>
+        <p>{t('warranties.body')}</p>
+
+        <h2>{t('liability.heading')}</h2>
+        <p>{t('liability.body')}</p>
+
+        <h2>{t('indemnification.heading')}</h2>
+        <p>{t('indemnification.body')}</p>
+
+        <h2>{t('sms.heading')}</h2>
+        <p>{t('sms.p1')}</p>
+        <p set:html={tHtml('sms.p2')} />
+        <p set:html={tHtml('sms.p3', { privacyHref })} />
+
+        <h2>{t('links.heading')}</h2>
+        <p>{t('links.body')}</p>
+
+        <h2>{t('law.heading')}</h2>
+        <p>{t('law.body')}</p>
+
+        <h2>{t('changes.heading')}</h2>
+        <p>{t('changes.body')}</p>
+
+        <h2>{t('severability.heading')}</h2>
+        <p>{t('severability.body')}</p>
+
+        <h2>{t('copyright.heading')}</h2>
+        <p>{t('copyright.body')}</p>
+
+        <section class="legal-contact-section">
+          <h2>{t('contact.heading')}</h2>
+          <p>{t('contact.lead')}</p>
+          <p set:html={tHtml('contact.block')} />
+        </section>
+      </section>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
+    .legal-page-container {
+      padding: 0;
+      max-width: 100%;
+    }
+
+    .legal-page-header {
+      border-bottom: 2px solid #000;
+    }
+
+    .legal-contact-section {
+      border-left: 3px solid #000;
+    }
+
+    @page {
+      margin: 1.5cm;
+    }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
+  }
+</style>

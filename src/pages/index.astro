@@ -1,54 +1,8 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import Hero from '../components/Hero.astro';
-import WhoWeSupport from '../components/WhoWeSupport.astro';
-import WhatWeDo from '../components/WhatWeDo.astro';
-import WhyClientsTrustUs from '../components/WhyClientsTrustUs.astro';
-import CTASection from '../components/CTASection.astro';
-import Sash from '../components/Sash.astro';
-import { getActiveAnnouncement } from '../data/announcements';
-
-// Null unless an announcement's window is open and lists this route — see
-// src/data/announcements.ts. Nothing renders when it is null, and the nav's
-// corner reservation switches itself off via :has().
-const announcement = getActiveAnnouncement(Astro.url.pathname);
+// English route for /. Body: src/page-templates/HomePage.astro, shared with
+// every locale via src/pages/[locale]/[...route].astro (BL-153).
+import HomePage from '../page-templates/HomePage.astro';
+import { DEFAULT_LOCALE } from '../i18n/locales';
 ---
 
-<BaseLayout
-  title="GST | M&A Strategic Technology Advisory"
-  description="M&A technical due diligence, post-acquisition integration, and platform modernization. Led by Reid Peryam, 20-year technology strategy veteran."
-  ogTitle="GST | Strategic Technology Advisory"
-  ogDescription="Specialized technical diligence and AI strategy for organizations navigating complex product transitions."
-  ogImage="https://globalstrategic.tech/og-image.png"
-  ogImageAlt="GST - Strategic Technology Advisory for M&A and Digital Transformation"
-  ogUrl="https://globalstrategic.tech/"
->
-  {announcement && <Sash slot="sash" {...announcement} />}
-
-  <Hero
-    description="Global Strategic Technologies helps technology-focused investors, founders, and executives scale with confidence to create value, manage risks, and accelerate their business."
-    primaryCTA={{
-      text: 'Schedule an Intro Call',
-      href: 'https://calendarbridge.com/book/globalstrategictech/',
-    }}
-    secondaryCTA={{
-      text: 'View Advisory Services',
-      href: '/services/',
-    }}
-    trustLine="Vendor-neutral. Executive-ready outputs. Built for high-stakes decisions."
-  />
-
-  <WhoWeSupport />
-
-  <WhatWeDo />
-
-  <WhyClientsTrustUs />
-
-  <CTASection
-    title="Let's discuss your next challenge"
-    description="Schedule a confidential consultation to discuss your objectives."
-    buttonText="Schedule a Consultation"
-    bookingUrl="https://calendarbridge.com/book/globalstrategictech/"
-    emailAddress="contact@globalstrategic.tech"
-  />
-</BaseLayout>
+<HomePage locale={DEFAULT_LOCALE} />

@@ -41,5 +41,6 @@
   "cta.button": "BOOK_CALENDAR_SLOT()",
   "cta.emailText": "Ou fale conosco diretamente",
   "print.generated": "Gerado em {date}",
-  "notice.contentInEnglish": "Esta página está disponível apenas em inglês."
+  "notice.contentInEnglish": "Esta página está disponível apenas em inglês.",
+  "legal.englishGoverns": "Esta tradução é fornecida por conveniência. A versão em inglês prevalece."
 }

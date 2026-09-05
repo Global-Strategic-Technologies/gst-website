@@ -1,0 +1,133 @@
+---
+/**
+ * /privacy/ in every locale. Rendered by src/pages/privacy.astro (English) and
+ * by src/pages/[locale]/[...route].astro. Prose with inline markup renders via
+ * tHtml (tags limited to the catalog-parity allowlist). A non-English page
+ * opens with the "English version governs" line from `common`.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PrintReportHeader from '../components/PrintReportHeader.astro';
+import { isDefaultLocale, type Locale } from '../i18n/locales';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t, tHtml } = useTranslations(locale, 'privacy');
+const common = useTranslations(locale, 'common');
+---
+
+<BaseLayout title={t('meta.title')} description={t('meta.description')}>
+  <PrintReportHeader title={t('title')} locale={locale} />
+
+  <div class="legal-page-container">
+    <div>
+      <header class="legal-page-header">
+        <h1>{t('title')}</h1>
+        <p class="legal-page-updated">{t('updated')}</p>
+      </header>
+
+      <section class="legal-page-body">
+        {
+          !isDefaultLocale(locale) && (
+            <p class="legal-page-governs">{common.t('legal.englishGoverns')}</p>
+          )
+        }
+
+        <p>{t('intro')}</p>
+
+        <h2>{t('collect.heading')}</h2>
+        <p>{t('collect.lead')}</p>
+        <ul>
+          <li set:html={tHtml('collect.item1')} />
+          <li set:html={tHtml('collect.item2')} />
+          <li set:html={tHtml('collect.item3')} />
+        </ul>
+
+        <h2>{t('use.heading')}</h2>
+        <p>{t('use.lead')}</p>
+        <ul>
+          <li>{t('use.item1')}</li>
+          <li>{t('use.item2')}</li>
+          <li>{t('use.item3')}</li>
+          <li>{t('use.item4')}</li>
+          <li>{t('use.item5')}</li>
+        </ul>
+
+        <h2>{t('sharing.heading')}</h2>
+        <p>{t('sharing.lead')}</p>
+        <ul>
+          <li set:html={tHtml('sharing.item1')} />
+          <li set:html={tHtml('sharing.item2')} />
+          <li set:html={tHtml('sharing.item3')} />
+        </ul>
+
+        <h2>{t('thirdParty.heading')}</h2>
+        <p>{t('thirdParty.lead')}</p>
+        <ul>
+          <li set:html={tHtml('thirdParty.item1')} />
+          <li set:html={tHtml('thirdParty.item2')} />
+        </ul>
+        <p>{t('thirdParty.note')}</p>
+
+        <h2>{t('cookies.heading')}</h2>
+        <p>{t('cookies.body')}</p>
+
+        <h2>{t('security.heading')}</h2>
+        <p>{t('security.body')}</p>
+
+        <h2>{t('rights.heading')}</h2>
+        <p>{t('rights.lead')}</p>
+        <ul>
+          <li>{t('rights.item1')}</li>
+          <li>{t('rights.item2')}</li>
+          <li>{t('rights.item3')}</li>
+          <li>{t('rights.item4')}</li>
+        </ul>
+
+        <h2>{t('confidentiality.heading')}</h2>
+        <p>{t('confidentiality.body')}</p>
+
+        <h2>{t('children.heading')}</h2>
+        <p>{t('children.body')}</p>
+
+        <h2>{t('changes.heading')}</h2>
+        <p>{t('changes.body')}</p>
+
+        <h2>{t('california.heading')}</h2>
+        <p>{t('california.body')}</p>
+
+        <section class="legal-contact-section">
+          <h2>{t('contact.heading')}</h2>
+          <p>{t('contact.lead')}</p>
+          <p set:html={tHtml('contact.block')} />
+        </section>
+      </section>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  @media print {
+    /* stylelint-disable scale-unlimited/declaration-strict-value -- print output is deliberately literal (paper has no theme) */
+    .legal-page-container {
+      padding: 0;
+      max-width: 100%;
+    }
+
+    .legal-page-header {
+      border-bottom: 2px solid #000;
+    }
+
+    .legal-contact-section {
+      border-left: 3px solid #000;
+    }
+
+    @page {
+      margin: 1.5cm;
+    }
+    /* stylelint-enable scale-unlimited/declaration-strict-value */
+  }
+</style>

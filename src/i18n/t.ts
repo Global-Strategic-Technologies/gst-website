@@ -25,11 +25,17 @@ import { DEFAULT_LOCALE_CODE, type Locale } from './locales';
 
 import enCommon from './en/common.json';
 import enAbout from './en/about.json';
+import enHome from './en/home.json';
+import enPrivacy from './en/privacy.json';
+import enTerms from './en/terms.json';
 
 /** The English catalogs, one static import per namespace: they ARE the types. */
 export const EN = {
   common: enCommon,
+  home: enHome,
   about: enAbout,
+  privacy: enPrivacy,
+  terms: enTerms,
 } as const;
 
 export type Namespace = keyof typeof EN;
