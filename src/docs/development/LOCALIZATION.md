@@ -75,6 +75,18 @@ New page copy gets its own namespace named after the route id (`about`, `hub-too
 - [ ] `PUBLIC_I18N_LIVE_LOCALES=<code> npm run build`: hreflang + `x-default` appear on English pages, `dist/client/sitemap-0.xml` lists the locale's URLs with `xhtml:link` alternates
 - [ ] Flip `status: 'live'` in the registry; commit; Search Console verifies the locale indexes with no hreflang errors before it is announced (BL-152)
 
+## Search Console and Google after go-live
+
+What multilingual SEO requires of Google is mostly patience; the signals it reads are already on every page (own URL per language, `<html lang>`, a full `hreflang` cluster with `x-default` → English, a self-canonical, translated titles/descriptions/Open Graph, `inLanguage`, sitemap alternates, and no language-based redirect). Operator steps:
+
+1. **No new property, no country target.** The domain property covers `/es/` and `/pt-br/`. Language is not country: do not set geotargeting.
+2. **Sitemap.** `sitemap-index.xml` is already submitted; re-submit the same URL after the first deploy to prompt a fetch. Never submit `/sitemap.xml` (see SEO_IMPLEMENTATION.md).
+3. **URL Inspection** on `/es/` and `/pt-br/` once deployed: confirm Google has crawled them and that the canonical it chose is the page's own URL. A Google-selected English canonical on a translated page is the failure to chase.
+4. **Expect a lag** of days to weeks before the URLs appear in Performance; then filter by page (`/es/`, `/pt-br/`) and by country. The International Targeting report no longer exists (removed 2022); `hreflang` correctness is proven by `tests/e2e/localization.test.ts` and URL Inspection.
+5. **Translation quality is the SEO lever.** Google treats unreviewed machine translation offered to users as low-value; complete the native-speaker review in the checklist above.
+6. **GA4**: register the `locale` event parameter as a custom dimension once, or engagement cannot be segmented by language.
+7. **Do not**: add a language subdomain or domain, auto-redirect by browser language or IP, or translate URL slugs.
+
 ## Translation workflow
 
 English is authored first, in the `gst-page-content` register. First-pass translations are generated in-session and marked for review; the sidecar hash pins which English each was made from. A translation is _current_ when its sidecar hash equals the hash of today's English string — that is the whole staleness model, and it is why the guard fails the moment English is edited without the translation being revisited. Register notes for translators: formal address (`usted` / `você`), no flags or locale clichés, product and tool names stay in English (`TechPar`, `Diligence Machine`, `MCP`), the CTA button string `BOOK_CALENDAR_SLOT()` is code-styled and untranslated.

@@ -408,6 +408,31 @@ test.describe('announcement sash in other locales', () => {
     });
   }
 
+  test('the localized footer link row stays on one line from 360px up, like English', async ({
+    page,
+  }) => {
+    // Reported 2026-09-05 (screenshot): "LINKEDIN PRIVACIDADE TERMOS / CONTATO".
+    // Same design requirement narrow-viewport-chrome.test.ts pins for English.
+    await presetLang(page, 'en');
+    for (const width of [360, 375, 390, 430, 480, 540]) {
+      await page.setViewportSize({ width, height: 800 });
+      for (const path of ['/es/about/', '/pt-br/about/']) {
+        await page.goto(path);
+        await page.waitForFunction(() => {
+          const row = document.querySelector('footer .footer-links');
+          return !!row && getComputedStyle(row).display === 'flex';
+        });
+        await page.evaluate(() => document.fonts.ready);
+        const lines = await page
+          .locator('footer .footer-links a')
+          .evaluateAll(
+            (els) => new Set(els.map((e) => Math.round(e.getBoundingClientRect().top))).size
+          );
+        expect(lines, `${path} at ${width}px`).toBe(1);
+      }
+    }
+  });
+
   test('the localized header stays one row at phone widths, like English', async ({ page }) => {
     // Reported 2026-09-05: the Spanish labels wrapped the header to two rows
     // from 375px down. Compare each locale to English at the same width rather
