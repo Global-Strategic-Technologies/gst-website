@@ -67,6 +67,8 @@ New page copy gets its own namespace named after the route id (`about`, `hub-too
 
 ### Draft → live checklist
 
+> `es` and `pt-BR` were set live on 2026-09-05 by operator decision before this checklist was run, so the switcher and band ship at once. The first two items below are still owed for both; treat the catalogs as first-pass translations until they are done.
+
 - [ ] Native-speaker review of every namespace recorded (who, when) in the PR
 - [ ] `npm run i18n:check` clean (no stale sidecars)
 - [ ] Longest strings checked at desktop / 768px / 480px in light and dark (`/es/services/` is the widest page)

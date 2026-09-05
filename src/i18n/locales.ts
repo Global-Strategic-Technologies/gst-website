@@ -22,8 +22,11 @@
  *
  * A `draft` locale builds and is reachable by URL, so translation review can
  * happen on preview deploys — but it is `noindex`, kept out of the sitemap,
- * emits no hreflang, and is offered by neither the switcher nor the band. Flip
- * it to `live` when a native speaker has signed the catalog off (see
+ * emits no hreflang, and is offered by neither the switcher nor the band.
+ *
+ * `es` and `pt-BR` went live on 2026-09-05 by operator decision, ahead of a
+ * native-speaker review, so the switcher and band ship at once; the catalogs
+ * are first-pass translations and the review is still owed (see
  * `src/docs/development/LOCALIZATION.md` § Draft → live).
  *
  * Test runs can force liveness without editing this file:
@@ -76,7 +79,7 @@ const REGISTRY: readonly Locale[] = [
     intl: 'es-ES',
     name: 'Español',
     short: 'ES',
-    status: 'draft',
+    status: 'live',
   },
   {
     code: 'pt-BR',
@@ -87,7 +90,7 @@ const REGISTRY: readonly Locale[] = [
     intl: 'pt-BR',
     name: 'Português (Brasil)',
     short: 'PT',
-    status: 'draft',
+    status: 'live',
   },
 ];
 

@@ -1,6 +1,6 @@
 # ADR-0030: The website's locale model is `language[-REGION]`, resolved exact → language → default, served from one template per route
 
-- **Status**: Accepted 2026-09-05 (BL-153 Phases 0–3 landed the same day: foundation, all eight Tier A pages, the switcher and the first-visit band; `es` and `pt-BR` ship as **draft** locales until native-speaker review flips them live)
+- **Status**: Accepted 2026-09-05 (BL-153 Phases 0–3 landed the same day: foundation, all eight Tier A pages, the switcher and the first-visit band; `es` and `pt-BR` were flipped **live** the same day by operator decision, ahead of native-speaker review, which remains owed)
 - **Source initiative**: BL-153 — [BACKLOG.md § BL-153](../development/BACKLOG.md#bl-153-website-localization--spanish-and-brazilian-portuguese-on-an-architecture-that-can-carry-dialects-and-regions-later); design hand-off at [LOCALIZATION_HANDOFF_BL-153.md](../development/LOCALIZATION_HANDOFF_BL-153.md); maintained how-to at [LOCALIZATION.md](../development/LOCALIZATION.md)
 
 ## Context

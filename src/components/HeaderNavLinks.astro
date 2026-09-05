@@ -156,6 +156,26 @@ const href = (path: string) => localizedHref(path, locale);
     padding-right: 220px;
   }
 
+  /* Fifth item AND a sash reserve (BL-153): the row stopped fitting on the two
+     sash-bearing routes — measured 35px of horizontal overflow at 769px (the
+     220px under-band reserve) and 20px at 512px (the 108px tier), Chromium,
+     2026-09-05, with the live announcement. The reserve is the sash's and is
+     not touched; the GAP is the design system's to tune, so it steps down only
+     when both are present. 24px clears 769–1024 with 52px to spare against a
+     673px container (logo 108 + links 160 + switcher 37 + 4×24 + 220 = 621).
+     From 768 down the reserve is 140px against a container that bottoms out
+     at 493px (541 − 48), and 8px is the first token that fits the whole tier
+     (108 + 197 + 32 + 140 = 477 ≤ 493; 12px gives exactly 493, a 0px margin,
+     and margins that thin have already bitten this header — measured 23px of
+     overflow at 541 with 24px gaps). 8px also clears the 108px tier below 540
+     (445 ≤ 464 at 512). Restated inside the ≤768 block because this selector
+     out-ranks the plain tier rules — the same reason the under-band rule is
+     restated. Sash-less pages, and every page until two locales are live, are
+     unaffected: neither :has() matches. */
+  body:has(> .brutal-sash-corner) ul:has(> .lang-switch) {
+    gap: var(--spacing-xl);
+  }
+
   a {
     color: var(--text-secondary);
     text-decoration: none;
@@ -207,6 +227,13 @@ const href = (path: string) => localizedHref(path, locale);
        hidden at this width, but :has() still matches it. */
     body:has(> .brutal-sash-corner .brutal-sash-under) ul {
       padding-right: 140px;
+    }
+
+    /* Sash + switcher gap restatement (see the base rule): the tightest token,
+       which is also what the plain ≤400 tier uses, so no tier below needs
+       another restatement. */
+    body:has(> .brutal-sash-corner) ul:has(> .lang-switch) {
+      gap: var(--spacing-sm);
     }
 
     a {
