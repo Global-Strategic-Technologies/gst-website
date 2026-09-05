@@ -460,9 +460,9 @@ test.describe('announcement sash in other locales', () => {
 });
 
 test.describe('accessibility of the switcher and the band', () => {
-  // accessibility.test.ts scans against the ordinary server, where neither
-  // control renders (no live translations yet), so they are audited here, in the
-  // states a visitor actually meets: menu open, band shown.
+  // accessibility.test.ts scans pages at rest, so the menu is closed and the
+  // band hidden there; the controls are audited here, in the states a visitor
+  // actually meets: menu open, band shown.
   test('axe: open menu and visible band carry no critical or serious violations', async ({
     page,
   }) => {
