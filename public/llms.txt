@@ -36,5 +36,5 @@ GST publishes free browser-based diligence tools, a reference library, and an MC
 
 - [Services](https://globalstrategic.tech/services/)
 - [About](https://globalstrategic.tech/about/)
-- [M&A portfolio](https://globalstrategic.tech/ma-portfolio/): 50+ technology diligence and value creation engagements
+- [M&A portfolio](https://globalstrategic.tech/ma-portfolio/): the track record across technology buy-side, sell-side and value creation engagements
 - [Sitemap](https://globalstrategic.tech/sitemap-index.xml)

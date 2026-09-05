@@ -14,7 +14,7 @@
  * The guardrails that do carry over — no em dashes (operator preference,
  * extended to these pages 2026-08-27), no docs subdomain — are restated here.
  */
-import { readdirSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 import { resolve } from 'path';
 import { extractAstroMarkup } from './helpers/astro-markup';
 import {
@@ -142,6 +142,50 @@ describe('MCP onboarding pages — cited names exist on the server', () => {
     // assertion that makes it do so loudly.
     expect(markup.advanced).toContain('gst_irl_ingestion');
     expect(prompts).toContain('gst_irl_ingestion');
+  });
+});
+
+describe('MCP onboarding pages — supported clients and the consent page', () => {
+  it('Get Started names both native-connector clients', () => {
+    // The connector flow is the same on claude.ai and in Claude Desktop, and the
+    // guide was widened to say so (2026-09-03). A rewrite that drops either name
+    // silently narrows the published audience.
+    expect(markup.getStarted).toContain('claude.ai');
+    expect(markup.getStarted).toContain('Claude Desktop');
+    // The sibling pages' cross-references widened with it.
+    expect(markup.using).toContain('on the web or in Desktop');
+  });
+
+  it('quotes the consent page error string exactly as the Worker renders it', () => {
+    // Step 03 tells the reader what a rejected key looks like. That sentence is
+    // owned by the consent handler; a reword there must reach the page.
+    const consent = read('mcp-server/src/oauth/consent.ts');
+    const match = consent.match(/'(That MCP key was not recognized\.)'/);
+    expect(match, 'consent.ts no longer carries the rejected-key message').not.toBeNull();
+    expect(markup.getStarted).toContain(match![1]!.replace(/\.$/, ''));
+  });
+
+  it('renders the consent still with scopes the server actually defines', () => {
+    // The still's scope list is pinned in the render script from a real
+    // consent recording. A scope renamed or removed server-side would render
+    // without a description, so every pinned id must be in the catalog.
+    const script = read('scripts/render-consent-still.mjs');
+    const block = script.match(/scope: \[([^\]]+)\]/);
+    expect(block, 'render-consent-still.mjs no longer pins a scope list').not.toBeNull();
+    const pinned = [...block![1]!.matchAll(/'([^']+)'/g)].map((m) => m[1]!);
+    expect(pinned.length).toBeGreaterThan(0);
+    const catalog = read('mcp-server/src/auth/scopes.ts');
+    for (const scope of pinned) {
+      expect(catalog, `scope ${scope} is not in the server catalog`).toContain(`'${scope}'`);
+    }
+  });
+
+  it('ships the rendered consent still it embeds', () => {
+    // `npm run media:consent-still` regenerates this from the same handler; the
+    // page must never point at a file that is not in public/.
+    const src = markup.getStarted.match(/src="(\/images\/hub\/mcp\/consent-page-still\.webp)"/);
+    expect(src).not.toBeNull();
+    expect(existsSync(resolve('public', src![1]!.slice(1)))).toBe(true);
   });
 });
 
