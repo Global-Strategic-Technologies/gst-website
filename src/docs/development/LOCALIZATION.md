@@ -86,3 +86,17 @@ English is authored first, in the `gst-page-content` register. First-pass transl
 ## Persistence and suggestion
 
 `localStorage.gstLang` holds the locale code. It is written when a visitor picks a language in the switcher or interacts with the first-visit band, and read only to decide whether to show the band. It never redirects. The suggestion comes from `navigator.languages` through `resolveLocale`; there is no cookie and no geolocation.
+
+## Switcher and band — where they live
+
+| Path                                        | What it is                                                                                                                                                                 |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/LanguageSwitcher.astro`     | The last `<li>` of the nav (composed by `HeaderNavLinks.astro`, both branches): one `.brutal-segmented--sm` trigger + `.lang-menu`. Renders nothing under two live locales |
+| `src/scripts/lang-switch.ts`                | Disclosure + `role="menu"` keyboard contract, `gstLang` write and `locale_switch` event on pick. Loaded by the component's `<script>`                                      |
+| `src/components/LanguageBand.astro`         | One hidden band per live locale other than the current one, inside an `aria-live` host; rendered by `BaseLayout` right after `<Header>`                                    |
+| `src/components/LanguageBandScript.astro`   | The band's inline reveal script (`is:inline`, no imports), in its own file so it can be rendered conditionally with the band                                               |
+| `src/styles/components/lang-switch.css`     | Menu, open-state border, header density (36px / 32px at ≤480), 44px rows (52px at ≤480). Imported by `global.css`                                                          |
+| `src/styles/components/lang-band.css`       | The hand-off's band CSS via tokens; the 1px/6px chip padding is an accepted spacing residual                                                                               |
+| `src/components/DeltaIcon.astro` (`filled`) | Additive prop: solid `currentColor` delta, the current-row marker in the menu                                                                                              |
+
+Copy for both lives in `common.json` (`switcher.*`, `band.*`); the band's decline label is the CURRENT page locale's `band.continue`, everything else in the band is the suggested locale's.
