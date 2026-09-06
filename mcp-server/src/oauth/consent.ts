@@ -9,6 +9,14 @@
  * by that key's scopes. No separate user directory exists — deferred to
  * the Access-upstream-IdP trigger in ADR-0008.
  *
+ * BL-155 Slice 2b widens that to a SECOND identity source behind the same
+ * one field: a `<clientId>:<secret>` string for an M2M client record in
+ * OAUTH_KV (a self-serve trial, or a pilot converted in place). Resolution
+ * order, failure uniformity and attribution rules live in
+ * `consent-identity.ts`; here the only visible difference is that a
+ * KV-backed grant's props also carry `tier`, `expiresAt` and
+ * `rateLimitSubject`, which `api-handler.ts` and `token-exchange.ts` read.
+ *
  * CSRF defense (parameterized from the admin reauth pattern — the
  * admin-auth cookie helpers are hardcoded to the reauth cookie name/path
  * so this module builds its own): double-submit cookie nonce + one-shot
@@ -35,12 +43,11 @@
  */
 
 import type { AuthRequest, ClientInfo, OAuthHelpers } from '@cloudflare/workers-oauth-provider';
-import { matchToken } from '../auth/bearer';
 import { hasScope, SCOPE_DESCRIPTIONS } from '../auth/scopes';
 import { safeLog, scrubUrlForLog } from '../auth/safe-logger';
 import { mintNonce } from '../admin/admin-auth';
 import { escapeHtml, htmlShell } from '../lib/html-shell';
-import { oauthKeyOwner } from './key-owner';
+import { resolveConsentIdentity } from './consent-identity';
 import type { Env } from '../env';
 
 /**
@@ -290,10 +297,16 @@ export async function handleAuthorizePost(
     });
   }
 
-  // Identity: the submitted MCP key IS the user credential. Same
-  // constant-time scan as the Authorization-header path.
-  const keyMatch = matchToken(submittedKey.trim(), env as Record<string, unknown>);
-  if (!keyMatch.ok) {
+  // Identity: the submitted value IS the user credential — a roster
+  // `MCP_KEY_*` (same constant-time scan as the Authorization-header path)
+  // or, since BL-155, a `<clientId>:<secret>` for a KV client record. One
+  // `null` for every failure, so the form is not a namespace oracle.
+  const identity = await resolveConsentIdentity(
+    submittedKey.trim(),
+    env as Record<string, unknown>,
+    env.OAUTH_KV
+  );
+  if (!identity) {
     safeLog({
       event: 'oauth.consent.rejected',
       keyOwner: 'OAUTH',
@@ -327,7 +340,7 @@ export async function handleAuthorizePost(
     );
   }
 
-  const grantedScopes = grantedScopesFor(authRequest.scope, keyMatch.scopes);
+  const grantedScopes = grantedScopesFor(authRequest.scope, identity.scopes);
   if (authRequest.scope.length > 0 && grantedScopes.length === 0) {
     return htmlResponse(
       consentErrorPage(
@@ -337,23 +350,31 @@ export async function handleAuthorizePost(
     );
   }
 
-  const userId = keyMatch.keyOwner;
+  // Props shape is the `OAuthGrantProps` contract in api-handler.ts. A
+  // roster grant writes exactly the four fields it always has; the three
+  // optional ones appear only for KV-backed identities.
   const { redirectTo } = await env.OAUTH_PROVIDER.completeAuthorization({
     request: authRequest,
-    userId,
+    userId: identity.userId,
     scope: grantedScopes,
     metadata: { consentedAt: new Date().toISOString() },
     props: {
-      keyOwner: oauthKeyOwner(userId),
-      userId,
+      keyOwner: identity.keyOwner,
+      userId: identity.userId,
       scopes: grantedScopes,
       authKind: 'oauth',
+      ...(identity.tier ? { tier: identity.tier } : {}),
+      ...(identity.expiresAt ? { expiresAt: identity.expiresAt } : {}),
+      ...(identity.rateLimitSubject ? { rateLimitSubject: identity.rateLimitSubject } : {}),
     },
   });
 
+  // Log the bounded `keyOwner`, never the userId — for a KV identity the
+  // userId is the per-visitor clientId, which would be an unbounded AE
+  // dimension (`key-owner.ts`).
   safeLog({
     event: 'oauth.consent.approved',
-    keyOwner: oauthKeyOwner(userId),
+    keyOwner: identity.keyOwner,
     success: true,
   });
 

@@ -14,10 +14,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { KVNamespace } from '@cloudflare/workers-types';
 import {
   createM2mClient,
+  splitClientCredential,
   updateM2mClient,
   M2M_CLIENT_KEY_PREFIX,
   REAP_GRACE_SECONDS,
 } from '../../../src/oauth/m2m-clients';
+
+describe('splitClientCredential (BL-155 Slice 2b — shared first-colon split)', () => {
+  it('splits on the first colon only, preserving colons inside the secret', () => {
+    expect(splitClientCredential('m2m_abc:se:cr:et')).toEqual({
+      clientId: 'm2m_abc',
+      secret: 'se:cr:et',
+    });
+  });
+
+  it('returns null with no colon, an empty id, or an empty secret', () => {
+    expect(splitClientCredential('m2m_abc')).toBeNull();
+    expect(splitClientCredential(':secret')).toBeNull();
+    expect(splitClientCredential('m2m_abc:')).toBeNull();
+  });
+});
 
 type PutOptions = { expiration?: number; expirationTtl?: number } | undefined;
 

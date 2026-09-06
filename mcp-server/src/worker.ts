@@ -438,7 +438,7 @@ export const handler: ExportedHandler<Env> = {
     //      (claude.ai) must POST /token cross-origin.
     if (isOAuthSurfacePath(url.pathname)) {
       // client_credentials intercept — the library's grant model has no
-      // such grant (verified v0.8.2); oauth/m2m-token.ts issues the
+      // such grant (verified v0.8.2, still true at 0.10.3); oauth/m2m-token.ts issues the
       // self-contained `mcp_m2m_*` JWTs. Body is read from a clone so
       // other grants reach the provider with the stream intact.
       if (url.pathname === '/token' && request.method === 'POST') {

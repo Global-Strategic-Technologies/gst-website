@@ -32,7 +32,13 @@
 import type { AuthSuccess } from '../auth/bearer';
 import { hasScope } from '../auth/scopes';
 import { safeLog } from '../auth/safe-logger';
-import { getM2mClient, keyOwnerFor, verifyM2mSecret, type M2mJwk } from './m2m-clients';
+import {
+  getM2mClient,
+  keyOwnerFor,
+  splitClientCredential,
+  verifyM2mSecret,
+  type M2mJwk,
+} from './m2m-clients';
 import type { Env } from '../env';
 
 export const M2M_TOKEN_PREFIX = 'mcp_m2m_';
@@ -288,13 +294,12 @@ export async function handleClientCredentialsToken(request: Request, env: Env): 
   const basic = request.headers.get('Authorization') ?? '';
   if (basic.startsWith('Basic ')) {
     try {
-      // Split on the FIRST colon only — a client secret may itself
-      // contain colons (RFC 6749 §2.3.1); a 2-arg split would truncate it.
-      const decoded = atob(basic.slice('Basic '.length));
-      const sep = decoded.indexOf(':');
-      if (sep === -1) throw new Error('no colon');
-      clientId = decodeURIComponent(decoded.slice(0, sep));
-      secret = decodeURIComponent(decoded.slice(sep + 1));
+      // First-colon split lives in `splitClientCredential` (shared with the
+      // consent page); the percent-decoding is HTTP Basic's own concern.
+      const parts = splitClientCredential(atob(basic.slice('Basic '.length)));
+      if (!parts) throw new Error('no colon');
+      clientId = decodeURIComponent(parts.clientId);
+      secret = decodeURIComponent(parts.secret);
     } catch {
       return tokenError('invalid_client', 'Malformed Basic authorization header', 401);
     }

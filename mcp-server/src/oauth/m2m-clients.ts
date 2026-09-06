@@ -31,6 +31,8 @@ import { m2mKeyOwner } from './key-owner';
 export { sha256Hex };
 
 export const M2M_CLIENT_KEY_PREFIX = 'mcp:oauth:m2m-client:';
+/** Every minted clientId starts with this; the consent page uses it to recognise one. */
+export const M2M_CLIENT_ID_PREFIX = 'm2m_';
 
 export interface M2mJwk {
   kty: string;
@@ -97,7 +99,7 @@ export async function createM2mClient(
   kv: KVNamespace,
   input: CreateM2mClientInput
 ): Promise<{ record: M2mClientRecord; clientSecret: string }> {
-  const clientId = `m2m_${b64url(crypto.getRandomValues(new Uint8Array(16)))}`;
+  const clientId = `${M2M_CLIENT_ID_PREFIX}${b64url(crypto.getRandomValues(new Uint8Array(16)))}`;
   const clientSecret = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const record: M2mClientRecord = {
     clientId,
@@ -236,6 +238,19 @@ export async function listM2mClients(kv: KVNamespace): Promise<M2mClientRecord[]
 
 export async function deleteM2mClient(kv: KVNamespace, clientId: string): Promise<void> {
   await kv.delete(`${M2M_CLIENT_KEY_PREFIX}${clientId}`);
+}
+
+/**
+ * Split a `<clientId>:<secret>` credential on the FIRST colon only — a
+ * client secret may itself contain colons (RFC 6749 §2.3.1), so a 2-arg
+ * `split` would truncate it. Shared by the `/token` HTTP Basic path and,
+ * since BL-155 Slice 2b, the consent page (one pasted string, one field).
+ * Returns `null` when there is no colon or either half is empty.
+ */
+export function splitClientCredential(value: string): { clientId: string; secret: string } | null {
+  const sep = value.indexOf(':');
+  if (sep <= 0 || sep === value.length - 1) return null;
+  return { clientId: value.slice(0, sep), secret: value.slice(sep + 1) };
 }
 
 /** Constant-time secret check against the stored hash. */

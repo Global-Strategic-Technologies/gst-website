@@ -52,8 +52,8 @@ export const TIER_LIMITS: Record<string, TierLimits> = {
   // abuse containment for an unvetted external pilot.
   //
   // The radar ceilings are defense-in-depth, NOT the control. Radar is denied
-  // to this tier at the pipeline seam (BL-155 Slice 2) before the limiter is
-  // consulted, because radar is the Inoreader-funded product a self-serve path
+  // to this tier at the pipeline seam (`pipeline/tier-gate.ts`, BL-155 Slice
+  // 2b) before the limiter is consulted, because radar is the Inoreader-funded product a self-serve path
   // must not become a bypass for. These numbers exist only so that accidentally
   // removing that deny does not silently hand a stranger free-pilot-level radar
   // access. They are 1/1 rather than 0/0 because a zero sliding window is not

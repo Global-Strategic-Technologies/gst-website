@@ -49,6 +49,17 @@ export interface AuthSuccess {
    * behavior, not a gap.
    */
   readonly tier?: string;
+  /**
+   * BL-155 Slice 2b — limiter identifier when it must differ from
+   * `keyOwner`. **Left unset** for every identity except KV-backed consent
+   * grants (a trial credential pasted at the consent page), where `keyOwner`
+   * is a constant per tier to keep the AE index roster-sized
+   * (`oauth/key-owner.ts`) but the limiter needs one bucket per client —
+   * otherwise every trial worldwide shares one 100/day budget. The pipeline
+   * reads `rateLimitSubject ?? keyOwner`, so omitting it is the
+   * no-regression behavior, not a gap.
+   */
+  readonly rateLimitSubject?: string;
 }
 
 /**

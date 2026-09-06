@@ -8,11 +8,12 @@
  * per-key rate limit → /radar/snapshot convenience endpoint → per-request
  * MCP handler → structured request log → rate-limit + CORS headers.
  *
- * The `AuthSuccess` contract ({ keyOwner, scopes }) is the seam: whatever
- * produced it, everything downstream — limiter buckets, AE metrics
- * attribution (blob3), safeLog lines, Sentry tags, scope gating — behaves
- * identically. Living in its own module (not worker.ts) breaks the
- * would-be import cycle worker.ts → oauth/* → worker.ts.
+ * The `AuthSuccess` contract ({ keyOwner, scopes, tier?, rateLimitSubject? })
+ * is the seam: whatever produced it, everything downstream — limiter
+ * buckets, AE metrics attribution (blob3), safeLog lines, Sentry tags,
+ * scope gating, the tier gate — behaves identically. Living in its own
+ * module (not worker.ts) breaks the would-be import cycle
+ * worker.ts → oauth/* → worker.ts.
  */
 
 // Narrowed from `agents/mcp` (BL-106): that barrel carries the whole Durable
@@ -34,7 +35,8 @@ import {
   tooManyRequestsResponse,
   withRateLimitHeaders,
 } from '../ratelimit/headers';
-import { extractToolName, toolClassFor } from '../dispatch/extract-tool-name';
+import { extractToolCall, toolClassFor } from '../dispatch/extract-tool-name';
+import { trialRadarDenial } from './tier-gate';
 import { tagRequest } from '../observability/sentry';
 import { AnalyticsEngineSink } from '../metrics/_index';
 import { QueueAuditSink, newRequestId, truncateIp, type AuditContext } from '../audit/_index';
@@ -72,24 +74,53 @@ export async function handleAuthenticated(
   // Inoreader budget. Tool name is extracted at the Worker boundary via
   // a cloned-body JSON-RPC parse; non-tools/call requests + parse
   // failures fail-safe to `'general'`.
-  const toolName = await extractToolName(request);
-  const toolClass = toolClassFor(toolName);
-  // BL-033 Slice 5: the client's tier (carried on the M2M token claim;
-  // undefined for static keys + OAuth human-consent) selects the four
-  // sliding-window ceilings. `RateLimit-Policy` advertises those ceilings
-  // on every authenticated response (200 and 429) — the transport-agnostic
-  // throttle signal, guaranteed even for clients that don't parse the SSE
-  // soft-limit notification.
+  const call = await extractToolCall(request);
+  const toolClass = toolClassFor(call?.name ?? null);
+
+  // BL-155 Slice 2b — tier gate. A `trial` identity is refused the radar
+  // tools here, BEFORE the limiter (so the refusal burns no radar-window
+  // token) and before the MCP handler (so no stream starts). Scopes cannot
+  // do this — `tool:*` covers radar by prefix — and it is a commercial gate,
+  // not a cost one; the reasoning lives in `tier-gate.ts`.
+  const denied = trialRadarDenial(auth, call);
+  if (denied) {
+    safeLog({
+      event: 'tool.tier-denied',
+      keyOwner: auth.keyOwner,
+      rateLimitSubject: auth.rateLimitSubject,
+      path: url.pathname,
+      reason: 'trial-no-radar',
+      success: false,
+      errorCode: 'missing-scope',
+    });
+    return withCors(denied, origin);
+  }
+
+  // BL-033 Slice 5: the client's tier (carried on the M2M token claim or,
+  // since BL-155, a KV-backed consent grant's props; undefined for static
+  // keys + roster OAuth consent) selects the four sliding-window ceilings.
+  // `RateLimit-Policy` advertises those ceilings on every authenticated
+  // response (200 and 429) — the transport-agnostic throttle signal,
+  // guaranteed even for clients that don't parse the SSE soft-limit
+  // notification.
+  //
+  // The limiter identifier is `rateLimitSubject` when set (one bucket per
+  // KV client — those sliding-window keys self-reap at 60s/1d, unlike an AE
+  // index dimension, so per-client growth here is fine) and `keyOwner`
+  // otherwise — byte-for-byte the pre-BL-155 bucket for every other identity.
   const limits = resolveTierLimits(auth.tier);
   const rlPolicy = rateLimitPolicyHeader(limits, toolClass);
   const limiter = createLimiter(env, limits);
   let rlResult = null;
   if (limiter) {
-    rlResult = await limiter.check(auth.keyOwner, toolClass);
+    rlResult = await limiter.check(auth.rateLimitSubject ?? auth.keyOwner, toolClass);
     if (!rlResult.allowed) {
+      // `rateLimitSubject` on the line is what tells a constant-owner trial
+      // throttle apart — the farming signal. Log field, not an AE index.
       safeLog({
         event: 'ratelimit.exceeded',
         keyOwner: auth.keyOwner,
+        rateLimitSubject: auth.rateLimitSubject,
         path: url.pathname,
         status: 429,
         reason: reasonForTier(rlResult.tier),
