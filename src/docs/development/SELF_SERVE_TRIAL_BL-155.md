@@ -1,6 +1,6 @@
 # BL-155 — Self-serve 3-day MCP trial, gated by Turnstile, no Stripe
 
-> **Status**: designed and reviewed — **not implemented**. Designed 2026-09-06.
+> **Status**: designed and reviewed 2026-09-06. **Slice 1 implemented** (2026-09-06, branch `feat/bl-155-self-serve-mcp-trial`); Slices 2–4 not started.
 > **Scope**: this document is the controlling design for BL-155. The acceptance criteria live in the
 > BL-155 stanza in [BACKLOG.md](BACKLOG.md), which this design satisfies or explicitly deviates
 > from; it does not restate them.

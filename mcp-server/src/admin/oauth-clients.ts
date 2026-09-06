@@ -36,7 +36,6 @@ import {
   getM2mClient,
   listM2mClients,
   updateM2mClient,
-  REAP_GRACE_SECONDS,
   type M2mJwk,
   type UpdateM2mClientInput,
 } from '../oauth/m2m-clients';
@@ -212,9 +211,8 @@ export async function handleAdminM2mClients(request: Request, env: Env): Promise
         );
       }
       // BL-155: an optional ISO-8601 expiry. Omitted means "never expires",
-      // which is every pre-BL-155 client. The reap TTL is DERIVED from it
-      // rather than supplied, so a caller cannot set an expiry without also
-      // getting the garbage collection, or vice versa.
+      // which is every pre-BL-155 client. The KV reap is derived from it
+      // inside `createM2mClient`, never supplied here.
       if (body.expiresAt !== undefined) {
         if (typeof body.expiresAt !== 'string' || Number.isNaN(Date.parse(body.expiresAt))) {
           return json(
@@ -228,14 +226,7 @@ export async function handleAdminM2mClients(request: Request, env: Env): Promise
         allowedScopes: body.allowedScopes,
         tier: body.tier,
         jwks: body.jwks,
-        ...(body.expiresAt
-          ? {
-              expiresAt: body.expiresAt,
-              reapAfterSeconds:
-                Math.max(0, Math.floor((Date.parse(body.expiresAt) - Date.now()) / 1000)) +
-                REAP_GRACE_SECONDS,
-            }
-          : {}),
+        ...(body.expiresAt ? { expiresAt: body.expiresAt } : {}),
       });
       safeLog({
         event: 'admin.oauth.m2m-client-created',

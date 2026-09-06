@@ -182,6 +182,19 @@ Deliver the returned `clientId` + `clientSecret` via the secure channel (or skip
 
 `allowedScopes` is the hard ceiling; radar access requires explicitly granting `tool:radar:*` / `resource:radar:read` (deliberately excluded from typical pilot grants).
 
+**Optional `expiresAt`** (ISO-8601, BL-155): after that instant `/token` refuses the client with `invalid_client`. Omitted means never expires — every client provisioned before BL-155 has none. A time-boxed record is garbage-collected from KV 30 days after `expiresAt` (`REAP_GRACE_SECONDS` in `src/oauth/m2m-clients.ts`), long enough that a conversion or support question still finds it; the reap is derived from `expiresAt` on every write, never supplied.
+
+### Change an M2M client's tier, scopes or expiry (in place)
+
+```bash
+# Convert a trial to paid: tier up, expiry cleared (null) — same clientId + secret keep working
+curl -s -X PATCH https://mcp.globalstrategic.tech/admin/oauth/m2m-clients/<clientId> \
+  -H "Authorization: Bearer $MCP_ADMIN_KEY" -H "Content-Type: application/json" \
+  -d '{"tier":"paid","expiresAt":null}'
+```
+
+Any subset of `tier`, `allowedScopes`, `expiresAt` (string sets, `null` clears). `clientId` and the secret are untouched, so this is the right tool for every administrative change that is not a revocation — before BL-155 the only option was delete-and-recreate, which handed the client a new credential. `allowedScopes` is validated against the advertised catalog here (stricter than `POST`, which leaves that to the provisioning script). **The new `tier` and scopes reach the client at its next `/token` exchange** — tokens already minted carry the old claims until they lapse (≤1h), the same residual as revocation.
+
 ### Introspect a token (support/debugging)
 
 ```bash
@@ -215,4 +228,4 @@ Per-key/per-client scope variation is live across all three credential paths: `M
 
 ---
 
-_Last updated: 2026-07-24 (BL-033 Slice 2 — OAuth onboarding/revocation/introspection runbooks added; dual-auth framing)_
+_Last updated: 2026-09-06 (BL-155 Slice 1 — `expiresAt` on M2M clients and the in-place `PATCH` runbook)_

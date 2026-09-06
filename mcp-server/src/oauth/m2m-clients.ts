@@ -83,17 +83,13 @@ export interface CreateM2mClientInput {
   allowedScopes: string[];
   tier?: string;
   jwks?: { keys: M2mJwk[] };
-  /** ISO-8601 expiry; omit for a client that never expires. See `M2mClientRecord.expiresAt`. */
-  expiresAt?: string;
   /**
-   * Seconds after which KV **reaps the record entirely** (BL-155). Distinct
-   * from `expiresAt`, which only stops the grant: this is garbage collection,
-   * and it should be set to `expiresAt` plus a grace window long enough that
-   * conversion and support questions still find the record. Omit for a
-   * permanent record — every pre-BL-155 caller does, and keeps a record that
-   * never disappears.
+   * ISO-8601 expiry; omit for a client that never expires. See
+   * `M2mClientRecord.expiresAt`. Setting it also schedules the KV reap at
+   * `expiresAt + REAP_GRACE_SECONDS` — derived here, never supplied, so no
+   * caller can create a time-boxed record that is never garbage-collected.
    */
-  reapAfterSeconds?: number;
+  expiresAt?: string;
 }
 
 /** Create + persist a record; the returned clientSecret is shown once. */
@@ -113,14 +109,23 @@ export async function createM2mClient(
     createdAt: new Date().toISOString(),
     ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
   };
-  await kv.put(
-    `${M2M_CLIENT_KEY_PREFIX}${clientId}`,
-    JSON.stringify(record),
-    // Omitted (not `undefined`) when no reap is wanted, so the call is
-    // byte-identical to the pre-BL-155 bare `put` for every existing caller.
-    input.reapAfterSeconds ? { expirationTtl: input.reapAfterSeconds } : undefined
-  );
+  await putM2mClient(kv, record);
   return { record, clientSecret };
+}
+
+/**
+ * The single write path for a record. Every write recomputes the reap from
+ * `expiresAt` (see `reapExpirationFor`), so create and update cannot disagree
+ * on when a record disappears. A record with no `expiresAt` is written with
+ * no options — the same bare `put` every pre-BL-155 caller made.
+ */
+async function putM2mClient(kv: KVNamespace, record: M2mClientRecord): Promise<void> {
+  const expiration = reapExpirationFor(record);
+  await kv.put(
+    `${M2M_CLIENT_KEY_PREFIX}${record.clientId}`,
+    JSON.stringify(record),
+    expiration ? { expiration } : undefined
+  );
 }
 
 /**
@@ -197,12 +202,7 @@ export async function updateM2mClient(
   if (input.expiresAt === null) delete updated.expiresAt;
   else if (input.expiresAt !== undefined) updated.expiresAt = input.expiresAt;
 
-  const expiration = reapExpirationFor(updated);
-  await kv.put(
-    `${M2M_CLIENT_KEY_PREFIX}${clientId}`,
-    JSON.stringify(updated),
-    expiration ? { expiration } : undefined
-  );
+  await putM2mClient(kv, updated);
   return updated;
 }
 
