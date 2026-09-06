@@ -46,6 +46,19 @@ export const INTERNAL_TIER: TierLimits = {
 
 /** Known tier → ceilings. Keys match the M2M record's `tier` taxonomy. */
 export const TIER_LIMITS: Record<string, TierLimits> = {
+  // BL-155 self-serve trial: minted for a STRANGER with no operator and no
+  // payment in the loop, and alive for only 72h. Deliberately the tightest
+  // tier — every ceiling at or below `free-pilot`, which is itself framed as
+  // abuse containment for an unvetted external pilot.
+  //
+  // The radar ceilings are defense-in-depth, NOT the control. Radar is denied
+  // to this tier at the pipeline seam (BL-155 Slice 2) before the limiter is
+  // consulted, because radar is the Inoreader-funded product a self-serve path
+  // must not become a bypass for. These numbers exist only so that accidentally
+  // removing that deny does not silently hand a stranger free-pilot-level radar
+  // access. They are 1/1 rather than 0/0 because a zero sliding window is not
+  // verified to be representable in `@upstash/ratelimit`.
+  trial: { perMinute: 15, perDay: 100, radarPerMinute: 1, radarPerDay: 1 },
   'free-pilot': { perMinute: 30, perDay: 300, radarPerMinute: 3, radarPerDay: 20 },
   paid: { perMinute: 60, perDay: 2000, radarPerMinute: 5, radarPerDay: 50 },
   enterprise: { perMinute: 120, perDay: 10000, radarPerMinute: 10, radarPerDay: 150 },
@@ -62,7 +75,7 @@ export const DEFAULT_TIER = 'internal';
  * the admin endpoint to reject a mistyped `tier` up front rather than let it
  * fail generous to `internal` (60/1000, looser than `free-pilot`).
  */
-export const ASSIGNABLE_TIERS = ['free-pilot', 'paid', 'enterprise'] as const;
+export const ASSIGNABLE_TIERS = ['trial', 'free-pilot', 'paid', 'enterprise'] as const;
 
 /** Whether `tier` is an operator-assignable tier (see `ASSIGNABLE_TIERS`). */
 export function isAssignableTier(tier: string): boolean {

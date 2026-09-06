@@ -54,7 +54,7 @@ export const BASE_URLS = Object.freeze({
  * cannot import the TypeScript module at runtime; the drift guard is the
  * parity test in `tests/unit/scripts/provision-client.test.ts`.
  */
-export const ASSIGNABLE_TIERS = Object.freeze(['free-pilot', 'paid', 'enterprise']);
+export const ASSIGNABLE_TIERS = Object.freeze(['trial', 'free-pilot', 'paid', 'enterprise']);
 
 /**
  * Mirror of `SCOPES_SUPPORTED` in `src/oauth/provider.ts` — the scope strings

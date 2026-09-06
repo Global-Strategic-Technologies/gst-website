@@ -23,14 +23,19 @@ The ceilings depend on the caller's **tier** (below). The table shows the **`int
 
 ### Per-client tiers (BL-033 Slice 5)
 
-An external pilot's tier is set on its M2M client record (`tier`: `free-pilot` / `paid` / `enterprise`) and carried in the access-token claim, so the limiter reads it locally with no KV round-trip (see [ADR-0010](../../../../src/docs/adr/0010-per-client-rate-limit-tiers.md)). Callers with no tier — static `MCP_KEY_*` keys, OAuth human-consent — resolve to `internal`.
+An external pilot's tier is set on its M2M client record (`tier`: `trial` / `free-pilot` / `paid` / `enterprise`) and carried in the access-token claim, so the limiter reads it locally with no KV round-trip (see [ADR-0010](../../../../src/docs/adr/0010-per-client-rate-limit-tiers.md)). Callers with no tier — static `MCP_KEY_*` keys, OAuth human-consent — resolve to `internal`.
 
 | Tier         | General /min | General /day | Radar /min | Radar /day |
 | ------------ | ------------ | ------------ | ---------- | ---------- |
+| `trial`      | 15           | 100          | 1          | 1          |
 | `free-pilot` | 30           | 300          | 3          | 20         |
 | `paid`       | 60           | 2000         | 5          | 50         |
 | `enterprise` | 120          | 10000        | 10         | 150        |
 | `internal`   | 60           | 1000         | 5          | 50         |
+
+> **`trial` is an internal-only tier and is deliberately not published** on the marketing tier surface (BL-155 operator decision). It is minted for a stranger with no operator and no payment in the loop and lives 72h, so it is the tightest tier by construction — a unit test pins it at or below `free-pilot` on every ceiling.
+>
+> Its **radar numbers are defense-in-depth, not the control**. Radar is denied to this tier at the pipeline seam, because radar reads the Inoreader-funded snapshot and a self-serve path must not become a bypass for it. The ceilings exist only so that accidentally removing that deny does not silently grant a stranger `free-pilot`-level radar. They are `1`/`1` rather than `0`/`0` because a zero sliding window is not verified to be representable in `@upstash/ratelimit`.
 
 > **These are tunable, non-contractual capability ceilings — NOT ratified SLA quotas.** They are abuse/capacity limits. `free-pilot` is deliberately tighter than `internal` (abuse containment for an unvetted pilot), not a promised allowance. No pilot rate SLA is contractually committed.
 

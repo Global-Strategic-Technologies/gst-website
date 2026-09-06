@@ -35,8 +35,12 @@ import {
   deleteM2mClient,
   getM2mClient,
   listM2mClients,
+  updateM2mClient,
+  REAP_GRACE_SECONDS,
   type M2mJwk,
+  type UpdateM2mClientInput,
 } from '../oauth/m2m-clients';
+import { SCOPES_SUPPORTED } from '../oauth/provider';
 import { ASSIGNABLE_TIERS, isAssignableTier } from '../ratelimit/tiers';
 import type { Env } from '../env';
 
@@ -181,6 +185,7 @@ export async function handleAdminM2mClients(request: Request, env: Env): Promise
         allowedScopes?: string[];
         tier?: string;
         jwks?: { keys: M2mJwk[] };
+        expiresAt?: string;
       };
       try {
         body = await request.json();
@@ -206,11 +211,31 @@ export async function handleAdminM2mClients(request: Request, env: Env): Promise
           400
         );
       }
+      // BL-155: an optional ISO-8601 expiry. Omitted means "never expires",
+      // which is every pre-BL-155 client. The reap TTL is DERIVED from it
+      // rather than supplied, so a caller cannot set an expiry without also
+      // getting the garbage collection, or vice versa.
+      if (body.expiresAt !== undefined) {
+        if (typeof body.expiresAt !== 'string' || Number.isNaN(Date.parse(body.expiresAt))) {
+          return json(
+            { error: 'bad-request', message: 'expiresAt must be an ISO-8601 string' },
+            400
+          );
+        }
+      }
       const { record, clientSecret } = await createM2mClient(env.OAUTH_KV, {
         name: body.name,
         allowedScopes: body.allowedScopes,
         tier: body.tier,
         jwks: body.jwks,
+        ...(body.expiresAt
+          ? {
+              expiresAt: body.expiresAt,
+              reapAfterSeconds:
+                Math.max(0, Math.floor((Date.parse(body.expiresAt) - Date.now()) / 1000)) +
+                REAP_GRACE_SECONDS,
+            }
+          : {}),
       });
       safeLog({
         event: 'admin.oauth.m2m-client-created',
@@ -251,7 +276,97 @@ export async function handleAdminM2mClients(request: Request, env: Env): Promise
       });
       return json({ deleted: clientId });
     }
-    return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'DELETE' } });
+    if (request.method === 'PATCH') {
+      // BL-155 Slice 1. Exists so a tier change is not delete-and-recreate,
+      // which would hand the client a new credential for an administrative
+      // change. `clientId` and `secretHash` are untouched by construction.
+      let body: unknown;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ error: 'bad-request', message: 'Body must be valid JSON' }, 400);
+      }
+      const patch = (body ?? {}) as {
+        tier?: unknown;
+        allowedScopes?: unknown;
+        expiresAt?: unknown;
+      };
+
+      const update: UpdateM2mClientInput = {};
+
+      if (patch.tier !== undefined) {
+        if (typeof patch.tier !== 'string' || !isAssignableTier(patch.tier)) {
+          return json(
+            { error: 'bad-request', message: `tier must be one of ${ASSIGNABLE_TIERS.join(', ')}` },
+            400
+          );
+        }
+        update.tier = patch.tier;
+      }
+
+      if (patch.allowedScopes !== undefined) {
+        // Deliberately stricter than POST, which checks only Array.isArray +
+        // non-empty and leaves scope validation to the CLI — a typo there
+        // provisions a client that can call nothing. PATCH validates against
+        // the catalog rather than inheriting that gap.
+        if (
+          !Array.isArray(patch.allowedScopes) ||
+          patch.allowedScopes.length === 0 ||
+          !patch.allowedScopes.every((s) => typeof s === 'string' && SCOPES_SUPPORTED.includes(s))
+        ) {
+          return json(
+            {
+              error: 'bad-request',
+              message: 'allowedScopes must be a non-empty array of known scope strings',
+            },
+            400
+          );
+        }
+        update.allowedScopes = patch.allowedScopes as string[];
+      }
+
+      if (patch.expiresAt !== undefined) {
+        // `null` clears the expiry (and, via the derived reap, the KV TTL) —
+        // this is what a trial→paid conversion sends.
+        if (patch.expiresAt === null) {
+          update.expiresAt = null;
+        } else if (
+          typeof patch.expiresAt !== 'string' ||
+          Number.isNaN(Date.parse(patch.expiresAt))
+        ) {
+          return json(
+            { error: 'bad-request', message: 'expiresAt must be an ISO-8601 string or null' },
+            400
+          );
+        } else {
+          update.expiresAt = patch.expiresAt;
+        }
+      }
+
+      if (Object.keys(update).length === 0) {
+        return json(
+          { error: 'bad-request', message: 'Nothing to update (tier, allowedScopes, expiresAt)' },
+          400
+        );
+      }
+
+      const updated = await updateM2mClient(env.OAUTH_KV, clientId, update);
+      if (!updated) return json({ error: 'not-found', message: 'Unknown clientId' }, 404);
+
+      safeLog({
+        event: 'admin.oauth.m2m-client-updated',
+        keyOwner: 'ADMIN',
+        reason: `client=${clientId} fields=${Object.keys(update).join(',')}`,
+        success: true,
+      });
+
+      const { secretHash: _secretHash, jwks, ...safe } = updated;
+      return json({ ...safe, hasJwks: Boolean(jwks) });
+    }
+    return new Response('Method Not Allowed', {
+      status: 405,
+      headers: { Allow: 'DELETE, PATCH' },
+    });
   }
 
   return json({ error: 'not-found', message: 'Unknown admin OAuth route' }, 404);

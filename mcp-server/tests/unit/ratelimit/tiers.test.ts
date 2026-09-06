@@ -33,6 +33,12 @@ describe('INTERNAL_TIER (no-regression anchor)', () => {
 
 describe('resolveTierLimits', () => {
   it('resolves each known tier to its own ceilings', () => {
+    expect(resolveTierLimits('trial')).toEqual({
+      perMinute: 15,
+      perDay: 100,
+      radarPerMinute: 1,
+      radarPerDay: 1,
+    });
     expect(resolveTierLimits('free-pilot')).toEqual({
       perMinute: 30,
       perDay: 300,
@@ -67,5 +73,28 @@ describe('resolveTierLimits', () => {
     const fp = resolveTierLimits('free-pilot');
     expect(fp.perMinute).toBeLessThan(INTERNAL_TIER.perMinute);
     expect(fp.perDay).toBeLessThan(INTERNAL_TIER.perDay);
+  });
+
+  // BL-155: `trial` is minted for a stranger with no operator and no payment in
+  // the loop, so it must never be loosened past the tier for a vetted pilot.
+  // This is the invariant, not the specific numbers — it holds if either is
+  // retuned, and fails the moment someone raises trial above free-pilot.
+  it('trial is no looser than free-pilot on every ceiling (stranger-minted containment)', () => {
+    const trial = resolveTierLimits('trial');
+    const fp = resolveTierLimits('free-pilot');
+    expect(trial.perMinute).toBeLessThanOrEqual(fp.perMinute);
+    expect(trial.perDay).toBeLessThanOrEqual(fp.perDay);
+    expect(trial.radarPerMinute).toBeLessThanOrEqual(fp.radarPerMinute);
+    expect(trial.radarPerDay).toBeLessThanOrEqual(fp.radarPerDay);
+  });
+
+  // The radar ceilings above are defense-in-depth only — radar is denied to
+  // this tier at the pipeline seam. Nonzero because a zero sliding window is
+  // not verified to be representable in `@upstash/ratelimit`; pinning that
+  // here stops someone "simplifying" them to 0 on the assumption it works.
+  it('trial radar ceilings are minimal but nonzero', () => {
+    const trial = resolveTierLimits('trial');
+    expect(trial.radarPerMinute).toBeGreaterThan(0);
+    expect(trial.radarPerDay).toBeGreaterThan(0);
   });
 });

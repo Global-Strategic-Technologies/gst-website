@@ -351,6 +351,29 @@ export async function handleClientCredentialsToken(request: Request, env: Env): 
     }
   }
 
+  // --- Client expiry (BL-155 time-boxed trial clients) -----------------
+  // Deliberately placed AFTER both auth branches, not beside the record fetch
+  // above: checking pre-auth would let an unauthenticated caller probe which
+  // client ids exist and when they lapse. An absent `expiresAt` means "never
+  // expires" — every client provisioned before BL-155 has none.
+  //
+  // Note this does NOT revoke tokens already minted. `mcp_m2m_*` tokens are
+  // self-contained JWTs verified without a KV read (ADR-0008 § Consequences),
+  // so a token issued just before `expiresAt` stays valid for up to its
+  // remaining hour. That residual is inherent to the token design, is the same
+  // property revocation-by-deletion already has, and is documented rather than
+  // worked around.
+  if (record.expiresAt && Date.parse(record.expiresAt) <= Date.now()) {
+    safeLog({
+      event: 'oauth.m2m.rejected',
+      keyOwner: keyOwnerFor(record),
+      reason: 'client-expired',
+      success: false,
+      errorCode: 'invalid_client',
+    });
+    return tokenError('invalid_client', 'Client credentials have expired', 401);
+  }
+
   // --- RFC 8707 resource validation (when the client sends one) -------
   const resource = form.get('resource');
   if (resource && resource !== canonicalAudience(origin) && resource !== origin) {
