@@ -39,7 +39,7 @@ import {
   type M2mJwk,
   type UpdateM2mClientInput,
 } from '../oauth/m2m-clients';
-import { SCOPES_SUPPORTED } from '../oauth/provider';
+import { SCOPES_SUPPORTED } from '../auth/scopes';
 import { ASSIGNABLE_TIERS, isAssignableTier } from '../ratelimit/tiers';
 import type { Env } from '../env';
 

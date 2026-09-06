@@ -220,7 +220,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-155: Self-serve 3-day MCP trial — connector flow, gated by Turnstile, no payment
 
-**Source**: operator directive 2026-09-06 — "people can get a working GST MCP key without the operator in the loop"; unparks [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)'s trial directive as its own initiative | **Effort**: Slice 1 done; Slices 2/2b are Worker work, Slice 3 is a localized page | **Status**: Open — Slice 1 implemented 2026-09-06 on `feat/bl-155-self-serve-mcp-trial`; **rescoped to the connector flow 2026-09-06** | **Architecture & plan**: [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) — **controlling; read § Scope first** | **Splits off**: [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial)
+**Source**: operator directive 2026-09-06 — "people can get a working GST MCP key without the operator in the loop"; unparks [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)'s trial directive as its own initiative | **Effort**: Slices 1 and 2b done; Slice 2 is Worker work, Slice 3 is a localized page | **Status**: Open — Slices 1 and 2b implemented 2026-09-06 on `feat/bl-155-self-serve-mcp-trial`; **rescoped to the connector flow 2026-09-06** | **Architecture & plan**: [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) — **controlling; read § Scope first** | **Splits off**: [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial)
 
 **As a** technical evaluator at a PE or corp-dev firm, **I want** to get a working GST MCP credential and use it from Claude without talking to anyone, **so that** I can answer "is this worth my time?" in one sitting rather than one email round-trip.
 
@@ -239,13 +239,13 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - [ ] IP rate limit + one-trial-per-identity via an HMAC'd IP, two-phase lease for mint atomicity
 - [ ] Minted record: `trial` tier, `expiresAt` = now + 72h, minimum scopes — all asserted at the **record** level, since a dropped field degrades looser and silently
 
-**Slice 2b — Consent-page identity, tier propagation, refresh binding** ⚠ **net-new; NO `plan-reviewer` pass**
+**Slice 2b — Consent-page identity, tier propagation, refresh binding** — ✅ **done** (`8076a1e9` + docs `c8e45943`; plan-reviewed REVISE → APPROVE, code-reviewed). Built ahead of Slice 2 because it is verifiable with an admin-provisioned trial record, and it absorbed the tier-scoped radar deny and `rateLimitSubject` split that Slice 2's design still describes.
 
-- [ ] A second identity branch in [`oauth/consent.ts`](../../../mcp-server/src/oauth/consent.ts) resolving a trial credential against KV, tried **after** the env roster, with an **identical failure response** to both — a distinguishable error makes the form a namespace oracle
-- [ ] **Tier and expiry into the grant props.** `completeAuthorization` writes no tier today, so Slice 2's tier-scoped radar deny and the `keyOwner`/`rateLimitSubject` split **silently do not apply** to a connector trial — a trial user gets radar through Claude Desktop. Easiest thing here to forget, most expensive to forget
-- [ ] Expiry bound to the **refresh** path via `tokenExchangeCallback` (verified present on the installed `@cloudflare/workers-oauth-provider`; **not wired today** — `provider.ts` sets only `accessTokenTTL`). Connector grants carry refresh tokens, so a grant minted at T+71h would otherwise refresh forever
-- [ ] **Regression guard**: an existing `MCP_KEY_*` consent flow and an existing pilot's refresh are unchanged. Adding the callback routes _every_ grant through new code
-- [ ] **Open decision — consent form shape**: one pasted `id:secret` string, or two fields? Slice 3's copy and the Claude Design brief both depend on it. **Settle before the brief goes out** — discovering it in a mockup is the mistake that caused the rescope
+- [x] A second identity branch ([`oauth/consent-identity.ts`](../../../mcp-server/src/oauth/consent-identity.ts)) resolving `<clientId>:<secret>` against KV, tried **after** the env roster, verify-then-expiry, one `null` for every failure — the integration test compares wrong-secret / fabricated-id / wrong-roster-key pages byte-for-byte
+- [x] **Tier and expiry in the grant props**, threaded onto `AuthSuccess` with a per-client `rateLimitSubject`; `keyOwner` stays `OAUTH:M2M:TRIAL` (all trials named `trial`). A `trial` grant is refused radar at the pipeline seam ([`pipeline/tier-gate.ts`](../../../mcp-server/src/pipeline/tier-gate.ts), JSON-RPC `-32002`, before the limiter)
+- [x] Expiry bound to the grant via `tokenExchangeCallback` ([`oauth/token-exchange.ts`](../../../mcp-server/src/oauth/token-exchange.ts)): refresh + access TTL clamped to `expiresAt` at the code exchange, and `api-handler.ts` refuses a validated token past it. **Not** revoke-on-refresh — the callback has no env/helpers and the library refuses an expired grant before it runs; see the design doc § What the rescope requires. Corollary in AUTH.md: an early PATCH/DELETE does not cut a consented grant short
+- [x] **Regression guard**: grants without `expiresAt` exit the callback untouched (unit-pinned on both grant types); `oauth-flow.test.ts` untouched and green
+- [x] **Consent form shape — decided**: one field, one `<clientId>:<secret>` string (operator, 2026-09-06)
 
 **Slice 3 / 3a — Signup page and its UX design** (Tier A: `en`, `es`, `pt-BR`)
 

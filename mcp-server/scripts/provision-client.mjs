@@ -57,7 +57,7 @@ export const BASE_URLS = Object.freeze({
 export const ASSIGNABLE_TIERS = Object.freeze(['trial', 'free-pilot', 'paid', 'enterprise']);
 
 /**
- * Mirror of `SCOPES_SUPPORTED` in `src/oauth/provider.ts` — the scope strings
+ * Mirror of `SCOPES_SUPPORTED` in `src/auth/scopes.ts` — the scope strings
  * advertised in AS metadata + PRM, i.e. `DEFAULT_SCOPES` from
  * `src/auth/scopes.ts` plus the `tool:radar:*` narrowing wildcard. Same
  * parity test guards it.

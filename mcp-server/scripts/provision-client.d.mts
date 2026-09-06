@@ -16,7 +16,7 @@ export declare const BASE_URLS: Readonly<{
 /** Mirror of `ASSIGNABLE_TIERS` in `src/ratelimit/tiers.ts`. */
 export declare const ASSIGNABLE_TIERS: readonly string[];
 
-/** Mirror of `SCOPES_SUPPORTED` in `src/oauth/provider.ts`. */
+/** Mirror of `SCOPES_SUPPORTED` in `src/auth/scopes.ts`. */
 export declare const SUPPORTED_SCOPES: readonly string[];
 
 /** Scopes granted when `--scopes` is omitted (radar-free by construction). */

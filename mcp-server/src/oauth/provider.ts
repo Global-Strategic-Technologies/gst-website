@@ -32,16 +32,14 @@
  */
 
 import { OAuthProvider } from '@cloudflare/workers-oauth-provider';
-import { DEFAULT_SCOPES } from '../auth/scopes';
+import { SCOPES_SUPPORTED } from '../auth/scopes';
 import { oauthApiHandler } from './api-handler';
 import { oauthDefaultHandler } from './default-handler';
 import { trialTokenExchange } from './token-exchange';
 
-/** Scope strings advertised in AS metadata + PRM (catalog + radar narrowing wildcard). */
-export const SCOPES_SUPPORTED: readonly string[] = Object.freeze([
-  ...DEFAULT_SCOPES,
-  'tool:radar:*',
-]);
+// Declared in `auth/scopes.ts` (provider-free, so admin code and node-pool
+// tests can import it); re-exported here for existing importers.
+export { SCOPES_SUPPORTED };
 
 export const oauthProvider = new OAuthProvider({
   apiRoute: ['/mcp', '/radar/snapshot'],

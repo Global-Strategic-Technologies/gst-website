@@ -238,4 +238,4 @@ Per-key/per-client scope variation is live across all three credential paths: `M
 
 ---
 
-_Last updated: 2026-09-06 (BL-155 Slice 1 — `expiresAt` on M2M clients and the in-place `PATCH` runbook)_
+_Last updated: 2026-09-06 (BL-155 Slices 1 + 2b — `expiresAt` on M2M clients, the in-place `PATCH` runbook, and an M2M record as a consent-page credential)_
