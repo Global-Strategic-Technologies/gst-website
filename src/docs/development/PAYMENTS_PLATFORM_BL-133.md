@@ -21,6 +21,20 @@
 > number on the card** — re-read the lifecycle before building it.
 > **First task for whoever picks this up**: § Vendor behaviour: documented, not executed. The
 > lifecycle rests on Stripe behaviour inferred from docs and never exercised.
+> **Parked directive (2026-09-06)**: the operator asked for a self-serve 3-day trial, expiring
+> rather than auto-converting. It is **parked pending the staging pass named above**, because the
+> mechanism is constrained by the Managed Payments decision below. The directive, the three
+> candidate mechanisms and their costs, and the ADR-0008/BL-093 hazard it creates are recorded in
+> the [BL-133 stanza](BACKLOG.md#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)
+> — **not designed here**. Read it before treating this document as the whole scope.
+> **ADR number correction (2026-09-06)**: **ADR-0027 is taken** (container-query thresholds), so
+> every `ADR-0027` reference in this document means _the next free number_, to be **re-derived from
+> [`../adr/README.md`](../adr/README.md) at creation time** — never treated as a reservation, since
+> other open items also terminate in an ADR. As of 2026-09-06 the index runs to 0030 and 0031 is
+> unclaimed. Note § Slice 5's observation that the ADR's links and its `adr/README.md` row are
+> checked by `docs-link-integrity.test.ts` against `git ls-files`: the number becomes load-bearing
+> for `test:docs` once the ADR is actually written. Slice 1's instruction to update `adr/README.md`
+> ("a row per ADR through 0026") is likewise a snapshot, not a bound.
 
 ## Context
 
