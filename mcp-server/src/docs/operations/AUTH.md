@@ -195,6 +195,16 @@ curl -s -X PATCH https://mcp.globalstrategic.tech/admin/oauth/m2m-clients/<clien
 
 Any subset of `tier`, `allowedScopes`, `expiresAt` (string sets, `null` clears). `clientId` and the secret are untouched, so this is the right tool for every administrative change that is not a revocation — before BL-155 the only option was delete-and-recreate, which handed the client a new credential. `allowedScopes` is validated against the advertised catalog here (stricter than `POST`, which leaves that to the provisioning script). **The new `tier` and scopes reach the client at its next `/token` exchange** — tokens already minted carry the old claims until they lapse (≤1h), the same residual as revocation.
 
+### An M2M record at the consent page (BL-155 Slice 2b)
+
+The consent form's one field also accepts an M2M client record as **`<clientId>:<secret>`** (split on the first colon; a secret may contain colons). This is how a self-serve trial — and a pilot converted in place via PATCH — connects from Claude Desktop, Claude Code or Cursor without an `MCP_KEY_*`. Resolution order is roster first, then KV; every failure renders the same "not recognized" page, so the form is not a namespace oracle (`src/oauth/consent-identity.ts`).
+
+What the resulting grant carries, and what follows from it:
+
+- **Attribution**: `keyOwner` is `OAUTH:M2M:<NAME>` — every trial record is named `trial`, so all trials attribute as `OAUTH:M2M:TRIAL` (bounded AE cardinality); the limiter buckets **per client** (`rateLimitSubject`), so one trial cannot exhaust another's budget. A throttled trial's `ratelimit.exceeded` line carries its `rateLimitSubject`.
+- **Tier**: the record's `tier` rides in the grant props, so a `trial` grant gets trial ceilings and is **refused the radar tools** at the pipeline seam with JSON-RPC error `-32002` (`src/pipeline/tier-gate.ts`). Radar Resources / `/radar/snapshot` are governed by the record's `allowedScopes` as usual.
+- **Expiry binds to the grant, not to the record.** At consent the grant's refresh TTL and access TTL are clamped to the record's `expiresAt`, and every OAuth request re-checks that instant from the props (`src/oauth/api-handler.ts`, zero KV). So the trial ends on time even though connector grants refresh. **The corollary**: a later `PATCH` that shortens `expiresAt`, or a `DELETE`, does **not** cut an already-consented grant short — it runs to the `expiresAt` captured at consent (≤72h for a trial). The exchange callback has no KV access by construction (`src/oauth/token-exchange.ts`). Converting a trial to `paid` likewise takes effect at the person's **next consent**, not on their existing grant. In the grant's final minute a refresh may be refused as `invalid_request` rather than `invalid_grant` — cosmetic.
+
 ### Introspect a token (support/debugging)
 
 ```bash
@@ -208,12 +218,12 @@ RFC 7662 semantics: every token problem (unknown, expired, revoked, malformed) i
 
 ### Revoke OAuth access
 
-| Target                     | Action                                                                                        | Effect                                                                                                                                                                                          |
-| -------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| One human's grants         | Rotate/delete their `MCP_KEY_*` (runbooks above)                                              | Existing access tokens live ≤1h; refresh continues until the grant is replaced — for immediate kill also delete the client or have them re-consent (new grants revoke old ones per user+client) |
-| One pre-registered client  | `DELETE /admin/oauth/clients/<id>`                                                            | Grants orphan; tokens die at access-token expiry (≤1h)                                                                                                                                          |
-| One M2M client             | `DELETE /admin/oauth/m2m-clients/<id>`                                                        | Re-issuance blocked immediately; minted tokens carry ≤1h residual (introspection already reports them inactive)                                                                                 |
-| ALL M2M tokens (emergency) | Rotate `OAUTH_M2M_SIGNING_KEY` (`wrangler secret put ... --env production`, new random value) | Every `mcp_m2m_*` token dies at the next isolate pickup                                                                                                                                         |
+| Target                     | Action                                                                                        | Effect                                                                                                                                                                                                                                                |
+| -------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One human's grants         | Rotate/delete their `MCP_KEY_*` (runbooks above)                                              | Existing access tokens live ≤1h; refresh continues until the grant is replaced — for immediate kill also delete the client or have them re-consent (new grants revoke old ones per user+client)                                                       |
+| One pre-registered client  | `DELETE /admin/oauth/clients/<id>`                                                            | Grants orphan; tokens die at access-token expiry (≤1h)                                                                                                                                                                                                |
+| One M2M client             | `DELETE /admin/oauth/m2m-clients/<id>`                                                        | Re-issuance blocked immediately; minted `mcp_m2m_*` tokens carry ≤1h residual (introspection already reports them inactive). A **consent-page grant** made with the record runs to its captured `expiresAt` (see § An M2M record at the consent page) |
+| ALL M2M tokens (emergency) | Rotate `OAUTH_M2M_SIGNING_KEY` (`wrangler secret put ... --env production`, new random value) | Every `mcp_m2m_*` token dies at the next isolate pickup                                                                                                                                                                                               |
 
 ### Operational notes
 
