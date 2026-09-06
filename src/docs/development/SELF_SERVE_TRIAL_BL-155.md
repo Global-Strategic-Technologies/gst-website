@@ -215,69 +215,90 @@ The signup page is the only surface a stranger ever sees, and — because `trial
 
 #### The prompt to hand to Claude Design
 
+> **Rewritten 2026-09-06 for the connector user.** The first version of this brief described an M2M developer and asked for "how to plug these into an MCP client" while supplying no wire detail — which is how the mockup came to invent a `claude_desktop_config.json` block, `X-GST-*` headers and credential prefixes. Every fact below has been checked against the code as built in Slices 1 and 2b. The design-system, state-list and accessibility requirements survive from the first version unchanged.
+
 ```text
 Design the sign-up page for a free 3-day trial of the GST MCP server — the
-Model Context Protocol server that exposes GST's technical–diligence tooling
-over an authenticated HTTP API.
+Model Context Protocol server that gives an AI assistant GST's
+technical-diligence tools (portfolio search, TechPar, cost governance,
+tech-debt estimation, regulatory search, diligence agendas and IRLs).
 
 AUDIENCE
-A developer, or a technically sophisticated evaluator at a private-equity or
-corp-dev firm who writes code. They arrived to answer one question: "is this
-worth my time?" They are not a consumer signing up for a newsletter.
+A technical evaluator at a private-equity or corp-dev firm who already uses
+Claude Desktop, Claude Code or Cursor. They arrived to answer one question:
+"is this worth my time?" They are not a developer wiring up an API, and not
+a consumer signing up for a newsletter. They expect to be using the tools
+inside their assistant within five minutes.
 
-WHAT THE CREDENTIAL ACTUALLY IS — read before designing anything
-A machine-to-machine OAuth client_credentials pair, for scripted and headless
-use. It is NOT usable from Claude Desktop, Claude Code or Cursor: those
-connect through a separate consent flow that requires an operator-issued key
-this visitor does not have. Do not design tabs, config-file snippets or
-custom headers for those clients.
-The real flow is two steps:
-  1. POST the client ID and secret to
-     https://mcp.globalstrategic.tech/token with
-     grant_type=client_credentials
-  2. Receive a bearer token valid for ONE HOUR, and send it as
-     Authorization: Bearer against https://mcp.globalstrategic.tech/mcp
-There is no refresh token; the token is re-exchanged hourly. The official MCP
-SDKs' ClientCredentialsProvider handles that loop.
-Credential shapes: the client ID is `m2m_` followed by 22 base64url
-characters; the secret is 32 random bytes, base64url, with no prefix. Use
-those shapes for realistic dummy values — do not invent prefixes.
+WHAT THE VISITOR RECEIVES — read before designing anything
+ONE credential string, shown once. It looks like this:
+
+  m2m_Xk3pQ9rT2vB7nM4wL8sD1g:9fJ2kP5mR8vT1xW4zA7cE0hN3qU6yB9dG2iK5oL8sV1a
+
+(a client id, a colon, a secret — treat it as one opaque value; the visitor
+never needs the two halves separately). Use exactly that shape for dummy
+values: `m2m_` + 22 base64url characters, a colon, 43 base64url characters.
+Do not invent any other prefix or format.
+
+WHAT THE VISITOR DOES WITH IT — the first three things, concretely
+  1. In their assistant, add a custom connector / MCP server with the URL
+     https://mcp.globalstrategic.tech/mcp  (Claude: Settings → Connectors →
+     Add custom connector; no client ID or secret is asked for there).
+  2. A browser tab opens GST's consent page, which has ONE field labelled
+     "Your MCP key". They paste the credential string into it and click
+     Approve.
+  3. Back in their assistant, the GST tools are listed and callable. Access
+     renews itself silently for the 3 days; nothing else to configure.
+
+That is the whole integration. There is no config file to edit, no header
+to set, no token to exchange, no API call to make. The issued state's "next
+step" is exactly those three steps and a link to the existing public guide
+at /hub/mcp/get-started/, which already shows the connector flow with
+screenshots for Claude Desktop and Cursor. Do not design a fuller guide
+here and do not invent one.
 
 WHAT THE PAGE DOES
-One action: the visitor clicks a button and immediately receives working API
-credentials — a client ID and a client secret — that expire in 72 hours.
-There is no email field, no password, no account, and no payment. Cloudflare
-Turnstile runs invisibly in the background to block bots.
+One action: the visitor clicks a button and immediately receives the
+credential, which expires 72 hours later. There is no email field, no
+password, no account, and no payment. Cloudflare Turnstile runs invisibly in
+the background to block bots.
+
+WHAT THE TRIAL INCLUDES — this page is the ONLY place it is stated
+- Every GST analysis tool except the Radar feed, which is a paid capability
+  (say so plainly; do not hide it and do not apologise for it).
+- 3 days from the moment of issue, then the credential stops working. There
+  is no automatic charge and no automatic conversion. If they want to keep
+  going, the path is a conversation with GST — link to the existing contact
+  route; do not design a pricing table or an upgrade flow.
+- Usage limits low enough for evaluation, not production. Do not quote
+  numbers; a line of copy is enough.
 
 THE CRITICAL UX CONSTRAINT
-The secret is displayed EXACTLY ONCE and can never be retrieved again. If the
-visitor closes the tab without saving it, their only recourse is to sign up
-again, which replaces it. The single most important job of this design is
-making sure a competent person does not lose that secret. Offer both
+The credential is displayed EXACTLY ONCE and can never be retrieved again.
+If the visitor closes the tab without saving it, their only recourse is to
+sign up again, which replaces it. The single most important job of this
+design is making sure a competent person does not lose it. Offer both
 copy-to-clipboard and download-as-file, and make the one-time nature
 impossible to miss without resorting to alarm-styling on the whole page.
 
 STATES TO DESIGN — all of them, not just the happy path
-1. Idle — before the visitor acts. Must convey what the trial includes and
-   what happens in 3 days. This page is the ONLY place that information
-   appears; there is no public pricing table describing this tier.
+1. Idle — before the visitor acts. Conveys what the trial includes and what
+   happens in 3 days (see above).
 2. Verifying — the invisible bot check is running. It renders NOTHING of its
    own, so this page must supply the entire sense of progress. Usually
    sub-second, occasionally several seconds.
-3. Issued — credentials on screen. The most important state. Includes copy,
-   download, and a clear next step. The next step is a LINK to a separate
-   developer-onboarding page, plus at most a minimal inline taste of the
-   token exchange. Do not design a full integration guide here, and do not
-   invent one: if you need more wire detail than the section above gives
-   you, say so rather than filling the gap.
-4. Re-issued — the visitor already had a trial and signed up again. Same as
-   Issued, plus an unmissable warning that their PREVIOUS secret has just
-   stopped working, so anything already configured with it will break.
+3. Issued — the credential on screen. The most important state. Includes
+   copy, download, the three steps above, and the link to the guide.
+4. Re-issued — the visitor already had a trial and signed up again inside
+   the 3 days. Same as Issued, plus an unmissable notice that their PREVIOUS
+   credential has just stopped working, so a connector already approved with
+   it will start failing and must be re-approved with the new one. The
+   3-day clock does NOT restart; show the original expiry.
 5. Errors, each needing its own treatment and its own recovery path:
    - bot check failed (retryable)
    - too many requests from this network (wait, retry later)
-   - already used a trial and the previous one has expired (not retryable —
-     explain what to do instead)
+   - a trial from this network already ran and expired (not retryable —
+     point at the contact route)
    - service unavailable (our fault; retryable)
 
 REQUIREMENTS
@@ -285,33 +306,34 @@ REQUIREMENTS
   .brutal-* classes, existing spacing scale. No new colours or type sizes.
 - Must work in light AND dark theme AND all six palettes.
 - Desktop-first, with breakpoints at 768px and 480px.
-- The page is localized into English, Spanish and Brazilian Portuguese. Design
-  every string to tolerate roughly 30% expansion without breaking layout, and
-  avoid layouts that depend on a specific word length.
-- WCAG 2.1 AA. The credential block and the state transitions must be usable
-  by a screen reader — a state change that is only conveyed visually is a bug.
-- The credential is long, monospace, and must be selectable and readable. Show
-  the client ID and the secret as distinct labelled fields, not one blob.
+- The page is localized into English, Spanish and Brazilian Portuguese.
+  Design every string to tolerate roughly 30% expansion without breaking
+  layout, and avoid layouts that depend on a specific word length.
+- WCAG 2.1 AA. The credential block and the state transitions must be
+  usable by a screen reader — a state change that is only conveyed visually
+  is a bug.
+- The credential is long and monospace; show it as ONE selectable field
+  with a single copy action. Do not split it into two fields.
 
 WHAT NOT TO DO
 - Do not design an email capture, an account, or a password.
-- Do not design a pricing table or a paid-tier comparison — that surface is
-  deliberately not part of this page.
+- Do not design a pricing table, a tier comparison, or an upgrade flow.
 - Do not design a visible CAPTCHA widget or checkbox. The bot check is
   invisible by design and renders nothing.
 - Do not invent measurements from screenshots of the existing site; use the
   synced tokens.
-- Do not design a Claude Desktop / Claude Code / Cursor integration, in any
-  form — no client tabs, no claude_desktop_config.json, no X-GST-* headers.
-  None of that exists and the credential cannot drive those clients.
-- Do not invent endpoint hosts, credential prefixes, header names or
-  parameter names. Everything you need is specified above; anything missing
-  is a question to raise, not a blank to fill.
+- Do not design a config-file snippet, a custom HTTP header, a token
+  exchange, a curl example, or a "developer" tab. None of that is part of
+  this flow. (A separate developer page exists as a later initiative and
+  is not this page.)
+- Do not invent endpoint hosts, credential prefixes, field labels or step
+  wording beyond what is specified above; anything missing is a question
+  to raise, not a blank to fill.
 
 DELIVERABLE
-An interactive HTML prototype showing all the states above at desktop, 768px
-and 480px, in light and dark, with a written spec of the markup and the
-classes used for each state.
+An interactive HTML prototype showing all the states above at desktop,
+768px and 480px, in light and dark, with a written spec of the markup and
+the classes used for each state.
 ```
 
 ### Slice 3 — Website signup surface
