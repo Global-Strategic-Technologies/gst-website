@@ -79,7 +79,7 @@ The secret exists only in the mint response (`secretHash` is stored, never the s
 
 ## Slices
 
-Sliced so each ships independently and the first is useful even if the rest never lands.
+Sliced so each ships independently and the first is useful even if the rest never lands. Slice 3a is the one exception to independence — it produces the design Slice 3 builds, so it runs first, and it can run in parallel with Slices 1 and 2 since it needs no code.
 
 ### Slice 1 — Credential substrate (no public surface)
 
@@ -142,10 +142,95 @@ Server-side only; nothing external can reach it. Valuable on its own — `PATCH`
 - **The ≤1h token residual is inherent and must be disclosed.** `mcp_m2m_*` tokens are self-contained JWTs verified without a KV read (ADR-0008 § Consequences), so a token minted just before `expiresAt` keeps working until it expires. Say so in the ADR amendment and in the user-facing copy, and build the staging exercise expecting it rather than treating it as a bug.
 - **CORS**: `https://globalstrategic.tech` and `www.` are already allowed (`auth/cors.ts:44-50`). **Vercel preview origins and localhost are not**, so a browser-side form will fail CORS on every preview branch — decide explicitly whether to add them or to test previews against staging.
 
+### Slice 3a — UX design hand-off to Claude Design (precedes Slice 3)
+
+The signup page is the only surface a stranger ever sees, and — because `trial` stays undocumented on the public tier table — it is also the only place they learn what they get. It is worth designing rather than assembling. This slice produces the design; Slice 3 builds it.
+
+**Follow the BL-153 precedent exactly** ([LOCALIZATION_HANDOFF_BL-153.md](LOCALIZATION_HANDOFF_BL-153.md)): the returned hand-off is committed here as an initiative doc with its screenshots under `assets/`, reproduced verbatim with only file references adjusted; **the interactive prototype is NOT committed** — Claude Design remains its source of truth. At closure the hand-off is archived per the [initiative-doc lifecycle](README.md).
+
+**The design system is already synced** to the Claude Design project (`https://claude.ai/design/p/660c7df6-e99f-4f47-b9f7-b1ab32e52969`) — tokens, `html.dark-theme`, all six `html.palette-N` blocks, the `.brutal-*` vocabulary, ten specimen galleries and 19 chrome cards sliced from real production output. See [CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md). The agent writes its own JSX and styles it with GST classes; it **cannot** import `.astro` components, and we never hand-write React versions of them.
+
+**Guard against the ADR-0026 failure mode.** A previous design hand-off shipped three assumptions that did not survive contact with source: screenshot-derived measurements, a `role="tablist"` the page did not use, and two unresolvable slugs. So: **every value in the returned hand-off is a proposal until checked against the repo**, and the reviewer of Slice 3 checks them rather than trusting them. Say so in the doc when it lands.
+
+#### The prompt to hand to Claude Design
+
+```text
+Design the sign-up page for a free 3-day trial of the GST MCP server — the
+Model Context Protocol server that exposes GST's technical–diligence tooling
+to LLM clients like Claude Desktop, Claude Code and Cursor.
+
+AUDIENCE
+A technically sophisticated evaluator at a private-equity or corp-dev firm, or
+a developer scoping the tooling for one. They arrived to answer one question:
+"is this worth my time?" They are not a consumer signing up for a newsletter.
+
+WHAT THE PAGE DOES
+One action: the visitor clicks a button and immediately receives working API
+credentials — a client ID and a client secret — that expire in 72 hours.
+There is no email field, no password, no account, and no payment. Cloudflare
+Turnstile runs invisibly in the background to block bots.
+
+THE CRITICAL UX CONSTRAINT
+The secret is displayed EXACTLY ONCE and can never be retrieved again. If the
+visitor closes the tab without saving it, their only recourse is to sign up
+again, which replaces it. The single most important job of this design is
+making sure a competent person does not lose that secret. Offer both
+copy-to-clipboard and download-as-file, and make the one-time nature
+impossible to miss without resorting to alarm-styling on the whole page.
+
+STATES TO DESIGN — all of them, not just the happy path
+1. Idle — before the visitor acts. Must convey what the trial includes and
+   what happens in 3 days. This page is the ONLY place that information
+   appears; there is no public pricing table describing this tier.
+2. Verifying — the invisible bot check is running. It renders NOTHING of its
+   own, so this page must supply the entire sense of progress. Usually
+   sub-second, occasionally several seconds.
+3. Issued — credentials on screen. The most important state. Includes copy,
+   download, and a clear next step: how to actually plug these into an MCP
+   client.
+4. Re-issued — the visitor already had a trial and signed up again. Same as
+   Issued, plus an unmissable warning that their PREVIOUS secret has just
+   stopped working, so anything already configured with it will break.
+5. Errors, each needing its own treatment and its own recovery path:
+   - bot check failed (retryable)
+   - too many requests from this network (wait, retry later)
+   - already used a trial and the previous one has expired (not retryable —
+     explain what to do instead)
+   - service unavailable (our fault; retryable)
+
+REQUIREMENTS
+- Use ONLY the GST design system synced to this project: existing tokens,
+  .brutal-* classes, existing spacing scale. No new colours or type sizes.
+- Must work in light AND dark theme AND all six palettes.
+- Desktop-first, with breakpoints at 768px and 480px.
+- The page is localized into English, Spanish and Brazilian Portuguese. Design
+  every string to tolerate roughly 30% expansion without breaking layout, and
+  avoid layouts that depend on a specific word length.
+- WCAG 2.1 AA. The credential block and the state transitions must be usable
+  by a screen reader — a state change that is only conveyed visually is a bug.
+- The credential is long, monospace, and must be selectable and readable. Show
+  the client ID and the secret as distinct labelled fields, not one blob.
+
+WHAT NOT TO DO
+- Do not design an email capture, an account, or a password.
+- Do not design a pricing table or a paid-tier comparison — that surface is
+  deliberately not part of this page.
+- Do not design a visible CAPTCHA widget or checkbox. The bot check is
+  invisible by design and renders nothing.
+- Do not invent measurements from screenshots of the existing site; use the
+  synced tokens.
+
+DELIVERABLE
+An interactive HTML prototype showing all the states above at desktop, 768px
+and 480px, in light and dark, with a written spec of the markup and the
+classes used for each state.
+```
+
 ### Slice 3 — Website signup surface
 
 - **The signup page is Tier A — localized across every locale.** Operator decision: users arrive from multiple locales and must be able to sign up in their own. This reverses an earlier recommendation of English-only, which was made to save copy work and is overridden. Concretely, per LOCALIZATION.md and ADR-0030: a body template in `src/page-templates/`, one row in `TIER_A_ROUTES` (`src/i18n/routes.ts`) **and** one in the template registry (`src/page-templates/registry.ts`) — `tests/unit/i18n-locale.test.ts` holds those two lists to each other — plus catalogs in `en`, `es` and `pt-BR`, with `en` as the schema. **No literal user-visible strings in the template**; every string goes through `useTranslations(locale, ns)`, and `tests/unit/i18n-no-stray-literals.test.ts` fails on a quoted locale code or `/es/` path anywhere outside `src/i18n/locales.ts`.
   Note the copy includes error and edge states (challenge failed, already used a trial, rate-limited, credential issued) — all of which need translating, not just the happy path. Budget for that rather than discovering it.
+- **Build to the Slice 3a hand-off**, not from scratch — and check its values against source rather than trusting them (ADR-0026). Recreate the behaviour in Astro using the repo's existing patterns; the prototype is a reference, never shipped code.
 - Turnstile via **explicit rendering** with the **Invisible** widget: `<script src="…/api.js?render=explicit" defer>` plus `turnstile.render(el, { sitekey, callback })`. Invisible widgets run with no visible element, so the page must carry its own "verifying…" affordance — the widget provides none. Design-system tokens only; verify light/dark and all 6 palettes; desktop-first responsive.
 - **The credential is shown once, on the page** — no email, so no BL-004 dependency. Make the one-time nature unmistakable in the copy, and offer both a copy-to-clipboard affordance (`src/utils/copy-feedback.ts` exists) **and a download** — a `.env` fragment or JSON built client-side from the mint response via a Blob URL, never sent to a server. The download is the preventive half of § Lost-credential recovery.
 - **Copy must cover the re-issue path**, in all three locales: signing up again within the window returns a _new_ secret and **invalidates the old one**, so a client still configured with the previous credential will start failing. A visitor who does not know that will read a working-then-broken setup as a product bug.
