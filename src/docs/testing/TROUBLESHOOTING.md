@@ -176,20 +176,29 @@ One trap while probing: `npx vitest run --force` is **not** a cold-cache substit
 
 **On the correlation.** Of three sightings that day, **two** coincided with a subagent running vitest in the same directory and **one did not** — the process list held nothing newer than the previous day. Concurrency is present in most sightings, absent in at least one, and insufficient in every controlled attempt. Treat it as the first thing to rule out, not the cause.
 
+#### Why `npm run test:docs` always fails 6/6, and never partially (2026-09-06)
+
+All six files in that command — `docs-link-integrity`, `docs-variables-sync`, `design-sync-guards`, `mcp-published-tool-count`, `mcp-generated-bundle-freshness`, `i18n-catalog-parity` — use explicit `import { describe, it, expect } from 'vitest'`. **Not one relies on `globals: true`.** So the import-shape split above cannot express itself here: when this failure strikes `test:docs`, it takes the entire command, and there is no passing file left in the run to contrast against.
+
+That matters for diagnosis. Elsewhere the split is the discriminator; on this command the same failure presents as **total, uniform breakage of a required CI check**, which reads like a genuinely broken toolchain rather than a known flake. The blast-radius test at point 1 above also degrades here — every file is "unrelated to your change", so nothing stands out. On `test:docs` specifically, fall back to reproducibility (point 2) and to the `import 0ms` / `tests 0ms` tell.
+
+**Sighting 2026-09-06**: `npm run test:docs` failed 6/6 with the standard signature (`Cannot read properties of undefined (reading 'config')`, `Tests no tests`, `import 0ms`, `tests 0ms`, 1.02s). **Nothing was running concurrently** — a single sequential command, no subagent vitest, no dev server. Adds to the no-concurrency counter-evidence at § On the correlation. Never reproduced afterwards across ~10 further runs including a cold-cache run and explicit lowercase/uppercase `--root`.
+
 **Related:** ["npm run test:all hangs or times out"](#npm-run-testall-hangs-or-times-out) covers resource exhaustion _within_ one run; this entry is contention _between_ runs.
 
 **Record it even though it's benign.** [CLAUDE.md](../../../.claude/CLAUDE.md) requires capturing evidence before a re-run, because a green re-run destroys it (this is why BL-106's unreproduced flake stayed open). When collection fails there is no test name, so capture the **signature** instead: the phase, the full set of failing files, and what else was running. Observed 2026-08-06, where it was first misdiagnosed as a permanently broken local vitest install — the misdiagnosis was corrected only when the same command later passed in the same shell.
 
 **Capture means redirect, not scrollback.** The 2026-08-09 sightings were lost three times over precisely because the command was run bare and then re-run. Redirect the first attempt to a file **outside the repo** — PowerShell `npm run test:docs *> $env:TEMP\td.txt; "exit=$LASTEXITCODE"; Get-Content $env:TEMP\td.txt`, or bash `npm run test:docs > /tmp/td.txt 2>&1; echo "exit=$?"; cat /tmp/td.txt`. Either costs nothing and survives the re-run. Outside the repo matters: an earlier draft of this line wrote `td.txt` to the repo root, and the next `git add -A` committed the capture artifact into the branch. Do not pipe through `tail` on the first attempt either — that is how the `Test Files N failed` line, the one that distinguishes this failure from a fast pass, got truncated away twice.
 
-**Four diagnoses of this failure have now been wrong**, and the pattern is more useful than any of them:
+**Five diagnoses of this failure have now been wrong**, and the pattern is more useful than any of them:
 
 1. "Permanently broken vitest install" (2026-08-06) — corrected only when the same command later passed in the same shell.
 2. "Concurrent `astro check`" (2026-08-09) — offered for a sighting that had nothing running in parallel.
 3. "Cold `node_modules/.vite`" (2026-08-09) — drafted into this entry, then refuted by its own timeline; the failure preceded the deletion and outlasted it by ten runs.
 4. "Two vitest instances, by elimination" (2026-08-09) — asserted because the other candidates had fallen, not because it explained anything. It doesn't explain the no-concurrency sighting or the intra-run import-shape split.
+5. **"The shell" — it fails under the Bash tool and passes in PowerShell** (2026-09-06). The failing run happened to be in Git Bash and the re-run happened to be in PowerShell, so the shell looked like the variable. It is not: the same command passed in Git Bash minutes later, repeatedly. **A re-run in a different shell is still a re-run** — the thing that changed was the attempt, not the interpreter. This one is worth guarding against specifically, because [CLAUDE.md](../../../.claude/CLAUDE.md) rightly tells you to re-run in the user's shell before claiming a failure, and doing so here manufactures a shell-shaped correlation out of an ordinary green re-run. It also re-derived the drive-letter lead at § Not sufficient on its own, which this entry had already recorded and refuted a month earlier — reading this entry first, as CLAUDE.md instructs, would have cost 30 seconds.
 
-The first three asserted a cause from a plausible mechanism. The fourth asserted one from **elimination**, which feels more rigorous and is not — a candidate list is only as good as its completeness, and this one's was never established. The honest position is that the trigger is unidentified. State that rather than reaching for the nearest surviving mechanism.
+The first three asserted a cause from a plausible mechanism. The fourth asserted one from **elimination**, which feels more rigorous and is not — a candidate list is only as good as its completeness, and this one's was never established. The fifth mistook **the re-run itself** for the variable that changed, which is the general shape all five share: a green second attempt invites you to credit whatever else differed about it. The honest position is that the trigger is unidentified. State that rather than reaching for the nearest surviving mechanism.
 
 ---
 
