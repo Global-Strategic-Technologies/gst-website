@@ -143,6 +143,8 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >
 > **Filed under Business Capabilities, not Infrastructure**, on that same framing — deliberately, even though its first product and most of its ACs live in the MCP server alongside BL-033/BL-093. Read as a filing decision, not a sweep error.
 
+> **UNPARKED the same day as [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) — the block below is kept for its reasoning, not as current status.** The park bar was set too high: it assumed the trial had to ride this item's Stripe rail, but the **GST-side, no-card** option below touches Stripe not at all — no price, no Payment Link, no webhook, no API key — so nothing about it waited on the staging pass, and it is independent of BL-145. It was unparked as its own initiative and **Slice 1 has since shipped**. Two things in the block below are now superseded: the GST-side option's "identity gate becomes email verification, needing BL-004" is wrong — **Turnstile is the gate**, and BL-004 is avoided entirely; and the hazard paragraph's list of "no self-serve signup" copy to revisit is now BL-155's Slice 4, not a future finder's problem. The two **Stripe-based** mechanisms below remain genuinely parked on the staging pass.
+>
 > **Parked directive — self-serve trial (operator, 2026-09-06).** The operator asked for a **self-serve 3-day trial** of MCP access, having onboarded Stripe (publishable + secret key, company bank account linked). The stated shape: the trial **expires at T+72h rather than auto-converting**, and conversion is a separate, explicit purchase. That preference is recorded here because it is the input a future session would otherwise re-derive.
 >
 > **Why it is parked rather than built.** The trial mechanism is not free to choose under this item's own recorded rail decision. [`PAYMENTS_PLATFORM_BL-133.md`](PAYMENTS_PLATFORM_BL-133.md) § Decisions taken commits to **Stripe with Managed Payments**, which deliberately removes the machinery a trial would want — Payment Links only, no Stripe API key in the Worker, one webhook endpoint. Three candidate mechanisms, none free:
@@ -213,6 +215,84 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - **Abuse surface.** A self-serve endpoint that mints credentials invites card-testing and throwaway-account farming. Rate-limit the checkout-creation endpoint, rely on the vendor's fraud tooling, and keep the low tier's ceilings low enough that a fraudulently-obtained free/entry credential is not worth farming
 - **Hosting split is deliberate**: the Worker owns the money-and-credentials path because that is where `OAUTH_KV`, the audit log, the tier logic, and the admin API already live; the website owns presentation and the return page. Do not split provisioning logic across both
 - **Related items**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) supplies the marketing page, public developer docs, and pricing-presentation ACs this checkout links into — its deferral premise ("a front door is not the bottleneck when nobody is at the gate") is what this operator directive revisits, so re-read that stanza's reasoning before deciding how much of the front door ships alongside. [BL-004](#bl-004-email-capture-system) overlaps on form UX, the email-service choice, and the privacy disclosure — a purchase-receipt sender and a marketing-email sender may or may not be the same vendor; decide once. BL-033's independent pen test remains the hard gate on public listing, and a live payment endpoint strengthens rather than weakens the case for running it. **Sequencing**: [BL-145](#bl-145-design-partner-program--set-the-price-from-evidence-not-from-a-guess) runs ahead of this item and produces the number Slice 4's purchase surface has to display. Slice 1's vendor/tax decision has real lead time and can proceed in parallel; the rest of this item is building a checkout for demand that does not exist yet, and BL-145's manual fulfillment path is what carries the first customers meanwhile
+
+---
+
+### BL-155: Self-serve 3-day MCP trial — connector flow, gated by Turnstile, no payment
+
+**Source**: operator directive 2026-09-06 — "people can get a working GST MCP key without the operator in the loop"; unparks [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)'s trial directive as its own initiative | **Effort**: Slice 1 done; Slices 2/2b are Worker work, Slice 3 is a localized page | **Status**: Open — Slice 1 implemented 2026-09-06 on `feat/bl-155-self-serve-mcp-trial`; **rescoped to the connector flow 2026-09-06** | **Architecture & plan**: [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) — **controlling; read § Scope first** | **Splits off**: [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial)
+
+**As a** technical evaluator at a PE or corp-dev firm, **I want** to get a working GST MCP credential and use it from Claude without talking to anyone, **so that** I can answer "is this worth my time?" in one sitting rather than one email round-trip.
+
+> **Rescoped 2026-09-06 — read before building.** This initiative was designed to mint an **M2M `client_credentials`** pair. That credential **cannot be used from Claude Desktop, Claude Code or Cursor**: those connect through the consent page, which identifies a human by an operator-issued `MCP_KEY_*` matched against **Worker env vars** ([`auth/bearer.ts`](../../../mcp-server/src/auth/bearer.ts) `matchToken`), and a signup-page stranger has none. The trial therefore reached only someone willing to hand-write a token exchange. The operator's call: **BL-155 delivers the connector flow**; self-serve `client_credentials` becomes [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial), which **reuses this item's signup workflow and design** so a visitor meets one signup experience either way.
+>
+> **The design doc's pre-rescope passages have not all been reconciled**, and its § Scope says so. Treat text written before the rescope as suspect wherever the two auth paths differ.
+
+#### Acceptance Criteria
+
+**Slice 1 — Credential substrate** — ✅ **done** (`cd926280` + review pass `89975b2a`). `trial` tier, `expiresAt` on `M2mClientRecord` with a derived reap, `PATCH /admin/oauth/m2m-clients/:id`, and expiry enforcement on the `client_credentials` grant. Re-verified against the rescope and kept intact: typecheck clean, mcp-server 2731/2731. Serves both this item and BL-156 — the two are the same KV record presented at different doors.
+
+**Slice 2 — Public mint endpoint** (design doc § Slice 2)
+
+- [ ] `POST /trial/signup` on the Worker, Turnstile-verified server-side, wrapped in `withCors`, routed ahead of the `isRoutedPath` gate
+- [ ] **Fails closed everywhere** — a null Upstash, an unbound `OAUTH_KV`, or a Turnstile verify that throws or hangs each returns 503 with **nothing minted**. Every neighbouring primitive in this Worker fails _open_; inheriting that would mint unlimited free credentials during a brownout
+- [ ] IP rate limit + one-trial-per-identity via an HMAC'd IP, two-phase lease for mint atomicity
+- [ ] Minted record: `trial` tier, `expiresAt` = now + 72h, minimum scopes — all asserted at the **record** level, since a dropped field degrades looser and silently
+
+**Slice 2b — Consent-page identity, tier propagation, refresh binding** ⚠ **net-new; NO `plan-reviewer` pass**
+
+- [ ] A second identity branch in [`oauth/consent.ts`](../../../mcp-server/src/oauth/consent.ts) resolving a trial credential against KV, tried **after** the env roster, with an **identical failure response** to both — a distinguishable error makes the form a namespace oracle
+- [ ] **Tier and expiry into the grant props.** `completeAuthorization` writes no tier today, so Slice 2's tier-scoped radar deny and the `keyOwner`/`rateLimitSubject` split **silently do not apply** to a connector trial — a trial user gets radar through Claude Desktop. Easiest thing here to forget, most expensive to forget
+- [ ] Expiry bound to the **refresh** path via `tokenExchangeCallback` (verified present on the installed `@cloudflare/workers-oauth-provider`; **not wired today** — `provider.ts` sets only `accessTokenTTL`). Connector grants carry refresh tokens, so a grant minted at T+71h would otherwise refresh forever
+- [ ] **Regression guard**: an existing `MCP_KEY_*` consent flow and an existing pilot's refresh are unchanged. Adding the callback routes _every_ grant through new code
+- [ ] **Open decision — consent form shape**: one pasted `id:secret` string, or two fields? Slice 3's copy and the Claude Design brief both depend on it. **Settle before the brief goes out** — discovering it in a mockup is the mistake that caused the rescope
+
+**Slice 3 / 3a — Signup page and its UX design** (Tier A: `en`, `es`, `pt-BR`)
+
+- [ ] Claude Design hand-off produced first and committed as an initiative doc per the BL-153 precedent; **its current prompt is stale** — written for an M2M user and needs rewriting for a connector user
+- [ ] Page states: idle, verifying, issued, re-issued, and each error with its own recovery path — all localized, not just the happy path
+- [ ] Credential shown **once**, with copy **and** client-side download; re-issue copy states that the previous secret stops working
+- [ ] Turnstile Invisible via explicit rendering; CSP updated in **both** `vercel.json` and `src/middleware.ts`
+- [ ] **Privacy policy gains the Turnstile disclosure** in all three locales, linking Cloudflare's Turnstile Privacy Addendum — a condition of service for Invisible mode, and independently required by the IP-HMAC retention. **Blocking**
+
+**Slice 4 — The record**
+
+- [ ] **Amend [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md)** — the consent page accepting a non-roster identity breaks its _identity premise_, not merely its "no self-serve signup" clause
+- [ ] Correct [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, [`get-started/index.astro`](../../pages/hub/mcp/get-started/index.astro) and [`capabilities.ts`](../../data/mcp/capabilities.ts) where they say no self-serve signup exists — **Directive 11: `grep tests/` for both strings**
+- [ ] `TURNSTILE_SECRET_KEY` + the IP-HMAC secret in **staging and production before merge** — the endpoint fails closed, so a merge ahead of the secrets gives a 503 endpoint in production
+- [ ] `trial` stays **undocumented** on the public tier surface (operator decision); internal tier-table mirrors still get the row
+
+#### Technical Context
+
+- **Nothing gates the `client_credentials` grant by tier** — `m2m-token.ts` reads `record.tier` only to stamp it into the token. So the moment this ships, BL-156's flow works too, undocumented. **Operator decision needed**: leave it open (the path is hardened; BL-156 becomes docs and UX rather than capability), or gate `client_credentials` to non-trial tiers until BL-156 ships. If left open, the ADR amendment must describe both flows
+- **Minting a short-lived `MCP_KEY_*` is mechanically impossible** for self-serve — `matchToken` scans Worker env vars, so issuing one means a deploy per signup. Recorded so it is not re-proposed as the "simple" option
+- **Related items**: [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare) (the payments rail this deliberately does not use), [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial), [BL-154](#bl-154-architecture-reference--five-layer-diagram-set-and-a-storage-store-review) Slice 1 (the KV-vs-relational question this forces), [BL-004](#bl-004-email-capture-system) (deliberately avoided — Turnstile is the identity gate, not email)
+
+---
+
+### BL-156: Self-serve M2M credentials — the developer half of the trial
+
+**Source**: split out of [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) by operator call, 2026-09-06, to cut complexity | **Effort**: Small if BL-155 has shipped — mostly docs and UX, since the capability largely exists | **Status**: Open — not started | **Design**: inherits [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md); the former Slice 3b there is retained verbatim as this item's seed
+
+**As a** developer scoping GST's tooling for a pipeline, **I want** a self-serve credential I can exchange for a token from a script, **so that** I can prototype an integration without an onboarding conversation.
+
+> **Reuse BL-155's signup workflow and design wherever possible** (operator instruction). A visitor should meet **one** signup experience regardless of which credential they end up with. Inherited unchanged: the mint endpoint's Turnstile gate, IP limiter, lease/atomicity and fail-closed posture; the signup page's states, copy patterns and one-time-secret handling; and § Lost-credential recovery. Do not design a second front door.
+
+#### Acceptance Criteria
+
+- [ ] **Decide first whether this is capability work at all.** BL-155's § Technical Context records that nothing gates `client_credentials` by tier, so a trial credential already works at `/token` the moment BL-155 ships. If that is left open, this item is documentation and UX only. **Establish which before scoping**
+- [ ] **A published developer-onboarding page.** Nothing on the website documents the `client_credentials` flow — [`/hub/mcp/get-started/`](../../pages/hub/mcp/get-started/index.astro) covers only the connector flow. Seed it from [`testing/uat/SETUP.md`](../../../mcp-server/src/docs/testing/uat/SETUP.md) § 0b/§ 1b, which is **client-safe by construction**. **Never** seed from [`operations/AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) — an operator doc carrying `$MCP_ADMIN_KEY` curls and the revocation runbook
+- [ ] Content is the two-step exchange, concretely: `POST /token` with `grant_type=client_credentials` → an `mcp_m2m_*` bearer → `Authorization: Bearer` against `/mcp`
+- [ ] **State the hourly re-exchange out loud.** The bearer lasts one hour with **no refresh token**; a developer who mistakes the first token for the credential is confused sixty minutes later and reads it as a product defect
+- [ ] **Do not describe a config-file or custom-header integration.** There are no `X-GST-Client-*` headers and the credential cannot drive Claude Desktop. An early mockup invented both — see BL-155's § Scope for why, so it is not re-derived
+- [ ] Tier A if the page is to match BL-155's signup surface — note `/hub/mcp/get-started/` is **English-only** today, so localizing this one creates a deliberate asymmetry worth recording rather than silently resolving
+- [ ] The issued state **links** to this page rather than carrying instructions inline — one place to correct when the flow changes
+
+#### Technical Context
+
+- **Already landed early, do not re-implement**: BL-155 Slice 1's expiry check on the `client_credentials` grant (`m2m-token.ts`) is strictly _this_ item's enforcement point. It shipped in BL-155 before the split, is correct where it sits, and costs nothing
+- **Why this was ever the whole initiative**: BL-155 was built upward from the credential and never backward from the user, so "mint an M2M client" looked like the trial rather than half of it. The full account, and the review-process gap that let it through eight rounds, is in [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) § Scope
+- **Related items**: [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) (must ship first — this reuses its signup surface), [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)
 
 ---
 
