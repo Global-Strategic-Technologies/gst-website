@@ -1,6 +1,7 @@
 # BL-155 — Self-serve 3-day MCP trial, gated by Turnstile, no Stripe
 
-> **Status**: designed and reviewed 2026-09-06. **Slice 1 implemented** (2026-09-06, branch `feat/bl-155-self-serve-mcp-trial`); Slices 2–4 not started.
+> **Status**: designed and reviewed 2026-09-06, then **rescoped to the connector flow only** (operator, 2026-09-06) — see § Scope. **Slice 1 implemented** (2026-09-06, branch `feat/bl-155-self-serve-mcp-trial`, in a separate session); Slice 2b is net-new and unreviewed; Slices 2–4 not started.
+> **⚠ The rescope post-dates the eight review rounds below.** Everything written before it was designed for the M2M path. Slice 2b in particular has had **no** `plan-reviewer` pass, and passages elsewhere may still assume an M2M-shaped trial — read § Scope first and treat pre-rescope text as suspect wherever the two flows differ.
 > **Scope**: this document is the controlling design for BL-155. The acceptance criteria live in the
 > BL-155 stanza in [BACKLOG.md](BACKLOG.md), which this design satisfies or explicitly deviates
 > from; it does not restate them.
@@ -77,6 +78,46 @@ The secret exists only in the mint response (`secretHash` is stored, never the s
 
 **Verification**: re-issue returns a working new secret; the old secret is refused at `POST /token`; `expiresAt` is unchanged across a re-issue; and a re-issue does **not** create a second client record. The expiry-unchanged assertion is the one that catches the unbounded-trial mistake.
 
+### Scope: the connector flow only — rescoped 2026-09-06
+
+**BL-155 delivers a self-serve trial for the _connector_ flow: the visitor signs up, receives a credential, pastes it at the consent page, and uses GST from Claude Desktop, Claude Code or Cursor exactly as an operator-onboarded pilot does. The M2M / `client_credentials` self-serve path is a separate initiative** — see § The M2M initiative below. The operator's call, taken to cut complexity after an earlier draft of this design covered only the M2M path.
+
+**Why the M2M-only shape happened, recorded because the failure mode is reusable.** This design was built _upward from the credential_ and never backward from the user. BL-133 had already established the M2M substrate (tiers, `client_credentials`, the provisioning script), so "mint an M2M client with an expiry" was the obvious next brick — and it is a correct brick. Every question the design then asked was about the moment of issuance: how to mint safely, rate-limit, reap, fail closed. Nobody asked what the recipient does at minute two. It survived eight `plan-reviewer` rounds because those rounds check the design against the codebase — line numbers, limiter behaviour, fail-open claims — which is internal consistency, not reachability. The verification step said _"connect an MCP client, make a call"_, vague enough to read as covered while being the exact unexamined gap. It surfaced only when Claude Design drew the issued state, because a picture of a success state is the first artifact in the process that has to depict a **user** rather than a mechanism. **The lesson for the next initiative: a plan that mints something must name, concretely, the first three things the recipient does with it.**
+
+**How the design brief then compounded it.** The first Claude Design hand-off opened by naming "Claude Desktop, Claude Code and Cursor" as the clients and asked the issued state for "how to actually plug these into an MCP client", while supplying no wire detail — i.e. it described connector users while the credential was M2M. The returned mockup fused the two: a correct M2M signup, then a `claude_desktop_config.json` block with `X-GST-Client-Id` / `X-GST-Client-Secret` headers, invented credential prefixes (`gst_trial_…`, `gsk_live_…`) and a placeholder host. **None of those exist.** The contradiction was in the brief, not the design work. Under the rescope the mockup's _instinct_ was right and its details were not.
+
+### The two auth paths — the distinction this initiative kept confusing
+
+Keep these separate in every document, page and prompt. Fusing them is what produced the defect above.
+
+|                | **Connector flow** — BL-155                                                | **M2M flow** — separate initiative                                |
+| -------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Who            | Roster humans and pilots; now also trial visitors                          | Developers, headless pipelines                                    |
+| Credential     | `MCP_KEY_*` (operator-issued) — **plus, after BL-155, a trial credential** | `m2m_…` client id + secret                                        |
+| How it is used | Paste the server URL into the client, approve the consent page             | `POST /token` with `grant_type=client_credentials`, then a bearer |
+| Token shape    | Auth-code grant, **refresh tokens in KV**                                  | Self-contained 1h JWT, no refresh                                 |
+| Documented at  | [`/hub/mcp/get-started/`](../../pages/hub/mcp/get-started/index.astro)     | Nowhere public yet — only `testing/uat/SETUP.md` in-repo          |
+
+The connector path identifies the human by having them submit an existing **`MCP_KEY_*`** value ([`oauth/consent.ts:5-6`](../../../mcp-server/src/oauth/consent.ts): _"OAuth is a delegation layer over the existing key roster"_), matched by [`matchToken`](../../../mcp-server/src/auth/bearer.ts) against **Worker env vars**. That last detail matters twice: it is why a stranger cannot use the connector flow today, and it is why "just mint them an `MCP_KEY_*`" is not an option — a deploy-time secret cannot be issued self-serve. [PILOT_ONBOARDING.md:42](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md) already records the split for external pilots: an M2M holder "never has an `MCP_KEY_*`", and the connector guide "does not describe their flow".
+
+### What the rescope requires — the new core of BL-155
+
+Slices 1–3a survive; the credential record is the same record. What changes is where it is _presented_. Three pieces, all in the OAuth path (detailed in Slice 2b):
+
+1. **A second identity source in `consent.ts`** — a KV lookup of the trial client, secret verification and an `expiresAt` check, as an _alternative_ to the env-var scan, not a replacement.
+2. **Props must carry tier and expiry.** The connector path builds its own props at `completeAuthorization` ([`consent.ts:338-349`](../../../mcp-server/src/oauth/consent.ts)) and carries **no tier** today. Without it the tier-scoped radar deny and the `rateLimitSubject` split — both designed in Slice 2 for the M2M path — silently do not apply to connector trials, and a trial user gets radar. This is the easiest thing in the rescope to forget and the most expensive to forget.
+3. **Expiry must bind the refresh path.** M2M tokens are self-contained and lapse in an hour, so expiry nearly enforced itself. Connector grants carry **refresh tokens**, so a grant minted at T+71h could refresh indefinitely and **the trial would never end**.
+
+**The refresh problem is solved and the mechanism was verified against the installed library, not assumed.** `@cloudflare/workers-oauth-provider` exposes `tokenExchangeCallback`, invoked with `grantType: GrantType.REFRESH_TOKEN`, the grant's `props`, and a `grantId` + `userId` pair whose docstring names `revokeGrant` as the intended response. There is also a per-grant `refreshTokenTTL` override. So: stash the trial's `expiresAt` in props at consent, check it on refresh, revoke past it — no KV read on the hot path. **It is not wired today** — [`provider.ts:50`](../../../mcp-server/src/oauth/provider.ts) sets only `accessTokenTTL` — so this is a clean addition rather than a fight with the library.
+
+### The M2M initiative — split out, not dropped
+
+Self-serve `client_credentials` becomes its own backlog stanza. **It reuses BL-155's signup workflow and design wherever possible** — operator instruction — so that a visitor meets one signup experience regardless of which credential they end up holding. Concretely, it inherits: the mint endpoint's Turnstile gate, IP limiter, lease/atomicity and fail-closed posture; the signup page's states, copy patterns and one-time-secret handling; and the § Lost-credential recovery decisions. What is genuinely its own: the `/token` exchange, the published developer-onboarding page (the former Slice 3b), and the hourly re-exchange story.
+
+**Already landed early, and left where it is:** Slice 1's expiry check on the `client_credentials` grant in `m2m-token.ts` is strictly the M2M initiative's enforcement point. It shipped in BL-155 Slice 1 (2026-09-06) before the rescope. It is correct where it sits and costs nothing; do not unwind it, and do not re-implement it in the new initiative.
+
+**Not chosen: minting a short-lived `MCP_KEY_*`.** It would fit the connector flow with no consent-page change at all — but `matchToken` scans Worker env vars, so issuing one means a deploy per signup. Mechanically impossible for self-serve, independent of whether it would be wise.
+
 ## Slices
 
 Sliced so each ships independently and the first is useful even if the rest never lands. Slice 3a is the one exception to independence — it produces the design Slice 3 builds, so it runs first, and it can run in parallel with Slices 1 and 2 since it needs no code.
@@ -146,6 +187,18 @@ Server-side only; nothing external can reach it. Valuable on its own — `PATCH`
 - **The ≤1h token residual is inherent and must be disclosed.** `mcp_m2m_*` tokens are self-contained JWTs verified without a KV read (ADR-0008 § Consequences), so a token minted just before `expiresAt` keeps working until it expires. Say so in the ADR amendment and in the user-facing copy, and build the staging exercise expecting it rather than treating it as a bug.
 - **CORS**: `https://globalstrategic.tech` and `www.` are already allowed (`auth/cors.ts:44-50`). **Vercel preview origins and localhost are not**, so a browser-side form will fail CORS on every preview branch — decide explicitly whether to add them or to test previews against staging.
 
+### Slice 2b — Consent-page identity, tier propagation, and refresh binding
+
+**The core of the rescoped initiative, and the one slice with no `plan-reviewer` pass. Review it before building it.** Slice 2 mints the credential; this slice is what makes it usable from a connector client. Ships with Slice 2 — a mint endpoint whose output nothing accepts is not shippable.
+
+- **A second identity branch in [`consent.ts`](../../../mcp-server/src/oauth/consent.ts)`.handleAuthorizePost`.** Today identity is `matchToken(submittedKey, env)`, a constant-time scan of `MCP_KEY_*` **Worker env vars**. Add a branch that resolves a submitted trial credential against the KV record instead: `getM2mClient` → `verifyM2mSecret` → `expiresAt` check. **Order matters**: try the env roster first so no existing operator flow changes shape, then the trial lookup. Keep the failure response identical for both — a distinguishable error tells an attacker which namespace a submitted value lives in.
+- **Reuse, do not re-derive.** `verifyM2mSecret` and the `expiresAt` semantics already exist from Slice 1, and the token-mint path's expiry check (`m2m-token.ts`) is the reference for placement: **after** the credential is verified, never before, so the form cannot be used to probe which client ids exist.
+- **Decide and record the form's shape.** The consent form today has one field (`mcp_key`). A trial credential is two values. Either accept a single pasted `id:secret` string or add a second field — the second is clearer for a human but changes the form for roster users too. Pick one, and note that Slice 3's copy and the Claude Design brief both depend on the answer.
+- **Props must carry `tier` and the trial's `expiresAt`.** `completeAuthorization` currently writes `{ keyOwner, userId, scopes, authKind: 'oauth' }` — **no tier**. Slice 2's tier-scoped radar deny and the `keyOwner`/`rateLimitSubject` split were both designed against the M2M path and **silently do not apply** to a connector trial until the tier reaches the pipeline through these props. Left undone, a trial user gets radar through Claude Desktop — the exact commercial gate this initiative exists to hold. Note [`api-handler.ts:17-30`](../../../mcp-server/src/oauth/api-handler.ts) validates the props shape `consent.ts` writes and fails closed on a mismatch, so this is a two-file change with a guard already in place.
+- **Bind expiry to the refresh path via `tokenExchangeCallback`.** Verified against the installed `@cloudflare/workers-oauth-provider`: the callback receives `grantType: GrantType.REFRESH_TOKEN`, the grant's `props`, and a `grantId` + `userId` pair its own docstring points at `revokeGrant`. Read `expiresAt` from props, revoke past it — **zero KV reads on the hot path**. `refreshTokenTTL` (per-grant, settable from the callback result) is a second, declarative belt; use both, since the TTL alone cannot react to a credential revoked early. **Not wired today** — [`provider.ts:50`](../../../mcp-server/src/oauth/provider.ts) sets only `accessTokenTTL` — so adding the callback is net-new surface that every _existing_ grant will also flow through. **Make the non-trial path an explicit early return and test it**, or this slice silently becomes a change to every pilot's refresh behaviour.
+- **`keyOwner` for a connector trial.** The M2M design settled on a constant owner for AE cardinality plus a per-client `rateLimitSubject` for the limiter. The OAuth path derives `oauthKeyOwner(userId)` from the roster key name, so the same split has to be re-established here rather than inherited — a per-visitor `OAUTH:<clientId>` would reintroduce exactly the unbounded-cardinality mistake § What makes this different records.
+- **Verification.** Mutation-prove each: a trial credential is refused at consent after `expiresAt`; a refresh past `expiresAt` is revoked rather than renewed; a connector trial is denied radar (the check that fails if props lose the tier); an existing `MCP_KEY_*` consent flow and an existing pilot's refresh are **byte-for-byte unchanged**. The last one is the regression guard for the whole slice.
+
 ### Slice 3a — UX design hand-off to Claude Design (precedes Slice 3)
 
 The signup page is the only surface a stranger ever sees, and — because `trial` stays undocumented on the public tier table — it is also the only place they learn what they get. It is worth designing rather than assembling. This slice produces the design; Slice 3 builds it.
@@ -161,12 +214,30 @@ The signup page is the only surface a stranger ever sees, and — because `trial
 ```text
 Design the sign-up page for a free 3-day trial of the GST MCP server — the
 Model Context Protocol server that exposes GST's technical–diligence tooling
-to LLM clients like Claude Desktop, Claude Code and Cursor.
+over an authenticated HTTP API.
 
 AUDIENCE
-A technically sophisticated evaluator at a private-equity or corp-dev firm, or
-a developer scoping the tooling for one. They arrived to answer one question:
-"is this worth my time?" They are not a consumer signing up for a newsletter.
+A developer, or a technically sophisticated evaluator at a private-equity or
+corp-dev firm who writes code. They arrived to answer one question: "is this
+worth my time?" They are not a consumer signing up for a newsletter.
+
+WHAT THE CREDENTIAL ACTUALLY IS — read before designing anything
+A machine-to-machine OAuth client_credentials pair, for scripted and headless
+use. It is NOT usable from Claude Desktop, Claude Code or Cursor: those
+connect through a separate consent flow that requires an operator-issued key
+this visitor does not have. Do not design tabs, config-file snippets or
+custom headers for those clients.
+The real flow is two steps:
+  1. POST the client ID and secret to
+     https://mcp.globalstrategic.tech/token with
+     grant_type=client_credentials
+  2. Receive a bearer token valid for ONE HOUR, and send it as
+     Authorization: Bearer against https://mcp.globalstrategic.tech/mcp
+There is no refresh token; the token is re-exchanged hourly. The official MCP
+SDKs' ClientCredentialsProvider handles that loop.
+Credential shapes: the client ID is `m2m_` followed by 22 base64url
+characters; the secret is 32 random bytes, base64url, with no prefix. Use
+those shapes for realistic dummy values — do not invent prefixes.
 
 WHAT THE PAGE DOES
 One action: the visitor clicks a button and immediately receives working API
@@ -190,8 +261,11 @@ STATES TO DESIGN — all of them, not just the happy path
    own, so this page must supply the entire sense of progress. Usually
    sub-second, occasionally several seconds.
 3. Issued — credentials on screen. The most important state. Includes copy,
-   download, and a clear next step: how to actually plug these into an MCP
-   client.
+   download, and a clear next step. The next step is a LINK to a separate
+   developer-onboarding page, plus at most a minimal inline taste of the
+   token exchange. Do not design a full integration guide here, and do not
+   invent one: if you need more wire detail than the section above gives
+   you, say so rather than filling the gap.
 4. Re-issued — the visitor already had a trial and signed up again. Same as
    Issued, plus an unmissable warning that their PREVIOUS secret has just
    stopped working, so anything already configured with it will break.
@@ -223,6 +297,12 @@ WHAT NOT TO DO
   invisible by design and renders nothing.
 - Do not invent measurements from screenshots of the existing site; use the
   synced tokens.
+- Do not design a Claude Desktop / Claude Code / Cursor integration, in any
+  form — no client tabs, no claude_desktop_config.json, no X-GST-* headers.
+  None of that exists and the credential cannot drive those clients.
+- Do not invent endpoint hosts, credential prefixes, header names or
+  parameter names. Everything you need is specified above; anything missing
+  is a question to raise, not a blank to fill.
 
 DELIVERABLE
 An interactive HTML prototype showing all the states above at desktop, 768px
@@ -242,6 +322,25 @@ classes used for each state.
 - **Privacy policy (Tier A, all three locales) gains the Turnstile disclosure** — a link to `https://www.cloudflare.com/turnstile-privacy-policy/` ("Turnstile Privacy Addendum"), covering both the Cloudflare condition of service for Invisible mode and GST's own IP-HMAC retention. Catalogs in `en`, `es`, `pt-BR` + `npm run i18n:stamp`. **Blocking, not follow-up.**
 - **Do not reach for `INTERNAL_ENDPOINTS` in `src/middleware.ts`** — `isAnonymousProbe` 404s any request without a `Bearer` header before `next()`, and a visitor's browser has none. The page calls the Worker directly. (That Set is currently **empty** at `middleware.ts:41`, so this is a warning against re-populating it, not a description of something in the way.)
 - E2E coverage per TEST_STRATEGY.md, and add the route to `tests/e2e/accessibility.test.ts`. **Turnstile cannot be solved in CI** — use Cloudflare's documented always-passes test sitekey, and assert the page's states (idle / verifying / issued / error) rather than driving a real challenge.
+
+### Slice 3b — Published developer-onboarding page — ⚠ MOVED to the M2M initiative (2026-09-06 rescope)
+
+**This slice is no longer part of BL-155.** A connector-flow trial needs no developer-onboarding page: [`/hub/mcp/get-started/`](../../pages/hub/mcp/get-started/index.astro) already documents the connector flow, and BL-155's issued state points there. The content below is retained **verbatim as the seed for the M2M initiative's equivalent slice** — it is researched and correct, and re-deriving it would waste the work. Move it, do not rewrite it.
+
+Note one item that does **not** move: correcting [`get-started/index.astro:100`](../../pages/hub/mcp/get-started/index.astro) and `src/data/mcp/capabilities.ts:1343` where they say no self-serve signup exists. Under the rescope those become false the moment BL-155 ships, so the correction stays in BL-155's Slice 4 — and now points readers at the connector flow they are already reading about.
+
+_Retained for the M2M initiative:_ **This is critical path, not a follow-on.** The trial mints an M2M `client_credentials` pair, and **nothing on the website documents how to use one.** [`/hub/mcp/get-started/`](../../pages/hub/mcp/get-started/index.astro) covers only the custom-connector flow, which a trial credential cannot drive (see § The trial is a developer credential). So without this page the signup page's success state has nowhere to point, and the failure lands _after_ the visitor has already spent their one-time secret. Ship it with Slice 3 or the trial does not work.
+
+- **Seed it from [`mcp-server/src/docs/testing/uat/SETUP.md`](../../../mcp-server/src/docs/testing/uat/SETUP.md) § 0b and § 1b** — that doc already describes this exact flow from the recipient's side and is **client-safe by construction** ([PILOT_ONBOARDING.md:42](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md) records why). Do **not** seed from [`operations/AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md): it is an operator doc carrying `$MCP_ADMIN_KEY` curls and the revocation runbook, and must never be reproduced on a public page. Read it for wire accuracy only.
+- **The content is the two-step exchange**, stated concretely: `POST https://mcp.globalstrategic.tech/token` with `grant_type=client_credentials` → a `mcp_m2m_*` bearer → `Authorization: Bearer` against `https://mcp.globalstrategic.tech/mcp`.
+- **Say the hourly re-exchange out loud.** The bearer lasts **one hour with no refresh token**. A developer who mistakes the first token for the credential is confused sixty minutes later and reads it as a product defect. Name the SDKs' `ClientCredentialsProvider` as the thing that handles the loop.
+- **Do not describe a config-file or custom-header integration.** There are no `X-GST-Client-*` headers, and a trial credential pasted into `claude_desktop_config.json` cannot work. An early Claude Design mockup invented both — see § The trial is a developer credential for why, so nobody re-derives it.
+- **Tier A — localized into `en`, `es`, `pt-BR`** (operator decision, 2026-09-06). Same mechanics as Slice 3: body template in `src/page-templates/`, a row in `TIER_A_ROUTES` (`src/i18n/routes.ts`) **and** one in `src/page-templates/registry.ts` (`tests/unit/i18n-locale.test.ts` holds the two lists to each other), catalogs with `en` as schema, no literal user-visible strings.
+  **Note the inconsistency this creates and accept it deliberately:** `TIER_A_ROUTES` currently carries `/hub/mcp/` but **not** `/hub/mcp/get-started/`, so the sibling connector guide is English-only. After this slice the _self-serve_ onboarding page is localized while the _operator-issued_ one beside it is not. That is defensible — strangers arrive from any locale, roster pilots are onboarded by a human who speaks to them — but write it down, because it otherwise reads as an oversight and someone will "fix" it in the wrong direction.
+- **Code blocks are not exempt from localization discipline.** The prose around them goes through catalogs; the commands themselves stay English. Decide the split explicitly so the catalogs do not end up carrying `curl` invocations that then drift across three files.
+- **The issued state links here** rather than carrying instructions inline — one place to correct when the flow changes.
+- **Route the corrected copy here, not to the connector guide.** Slice 4 already corrects [`get-started/index.astro:100`](../../pages/hub/mcp/get-started/index.astro) and `src/data/mcp/capabilities.ts:1343` where they say no self-serve signup exists. Those corrections must point a self-serve reader at _this_ page; sending them to the connector flow reproduces the original defect in prose.
+- E2E coverage and a row in `tests/e2e/accessibility.test.ts`, as for any new route.
 
 ### Slice 4 — The record (ships with Slice 2, not after)
 
@@ -264,8 +363,10 @@ classes used for each state.
 5. **Test mint atomicity, re-issue, and the TTL rules directly**: concurrent signups from one identity mint exactly one client; a mint that fails after the lease is won releases it rather than locking the visitor out; a repeat signup inside the window **rotates the secret on the existing record** — new secret works, old secret is refused at `POST /token`, `expiresAt` is **unchanged**, and **no second client record exists**; a repeat signup after `expiresAt` is refused rather than rotated; a PATCH clearing `expiresAt` (the `trial`→`paid` conversion) **also clears the reap**, and any other PATCH leaves the reap instant **where it was** rather than sliding it — which follows automatically from deriving it as `expiresAt + grace`, so the test is really asserting that derivation stayed idempotent. The `expiresAt`-unchanged assertion is the one that catches the unbounded-trial mistake. These branches are all easy to omit and invisible until a real outage or a real conversion.
 6. Integration tests on `unstable_dev`, modelled on `tests/integration/oauth-m2m.test.ts:253-281` ("a deleted client cannot re-issue tokens") — same shape: create via admin, mutate, assert `POST /token` behaviour. Decode the `mcp_m2m_` payload and assert `tier === 'trial'` — the pattern is at `tests/unit/oauth/m2m-token.test.ts:86-98` ("round-trips the tier claim" / "surfaces the tier into the AuthSuccess result"). An earlier draft cited `:248`, which is a `tier: 'free-pilot'` fixture, not the assertion — the fifth stale citation this plan carried, hence the standing instruction to re-derive line numbers at implementation time.
 7. E2E for the signup page with the always-passes test sitekey; light/dark and 6 palettes; axe on the new route.
-8. **A real end-to-end exercise against staging** — sign up, receive credentials, connect an MCP client, make a call. For expiry, **the primary method is minting a client with a past `expiresAt` via the admin API and proving the grant is refused** — not a fallback, since a 72h wall-clock wait is not a test anyone will repeat. Assert the ≤1h residual as expected behaviour too: a token minted before expiry keeps working until the JWT lapses, which is inherent to self-contained tokens and must not be filed as a bug. Directive 5: not done until proven.
+8. **A real end-to-end exercise against staging — driven only by what the Slice 3b page tells a stranger to do.** Sign up, receive credentials, then follow that page's own instructions: exchange at `/token`, call `/mcp` with the bearer, and re-exchange after the hour to prove the loop is documented correctly. Do not substitute knowledge you have and the visitor does not — the page failing to say something is exactly the defect this exercise exists to catch. Note the connector clients are **not** part of this path (§ The trial is a developer credential); an exercise that reaches for Claude Desktop has left the supported flow. For expiry, **the primary method is minting a client with a past `expiresAt` via the admin API and proving the grant is refused** — not a fallback, since a 72h wall-clock wait is not a test anyone will repeat. Assert the ≤1h residual as expected behaviour too: a token minted before expiry keeps working until the JWT lapses, which is inherent to self-contained tokens and must not be filed as a bug. Directive 5: not done until proven.
 
 ## Sequencing note
 
 Slice 1 is independent of every operator decision still open and is worth landing first on its own merits — PATCH alone removes a standing defect. Slices 2–4 land together, since the ADR amendment must not trail the code that contradicts it.
+
+**Slice 3b is inside that bundle, not after it.** A signup page whose success state points nowhere is worse than no signup page: the visitor discovers the gap only after spending a one-time secret. If 3b is at risk of slipping, cut scope inside it (fewer examples, plainer page) rather than deferring it past Slice 3.
