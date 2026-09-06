@@ -264,7 +264,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 #### Technical Context
 
-- **Nothing gates the `client_credentials` grant by tier** — `m2m-token.ts` reads `record.tier` only to stamp it into the token. So the moment this ships, BL-156's flow works too, undocumented. **Operator decision needed**: leave it open (the path is hardened; BL-156 becomes docs and UX rather than capability), or gate `client_credentials` to non-trial tiers until BL-156 ships. If left open, the ADR amendment must describe both flows
+- **Nothing gates the `client_credentials` grant by tier** — `m2m-token.ts` reads `record.tier` only to stamp it into the token. So the moment this ships, BL-156's flow works too. **Operator decision (2026-09-06): leave it open.** The trial is contained identically at either door (expiry, trial ceilings, tier-scoped radar deny all read the token), a gate would be code BL-156 deletes, and BL-156 becomes docs and UX rather than capability. Consequence: the ADR amendment must describe both flows, since that is what the code does
 - **Minting a short-lived `MCP_KEY_*` is mechanically impossible** for self-serve — `matchToken` scans Worker env vars, so issuing one means a deploy per signup. Recorded so it is not re-proposed as the "simple" option
 - **Related items**: [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare) (the payments rail this deliberately does not use), [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial), [BL-154](#bl-154-architecture-reference--five-layer-diagram-set-and-a-storage-store-review) Slice 1 (the KV-vs-relational question this forces), [BL-004](#bl-004-email-capture-system) (deliberately avoided — Turnstile is the identity gate, not email)
 
@@ -280,7 +280,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 #### Acceptance Criteria
 
-- [ ] **Decide first whether this is capability work at all.** BL-155's § Technical Context records that nothing gates `client_credentials` by tier, so a trial credential already works at `/token` the moment BL-155 ships. If that is left open, this item is documentation and UX only. **Establish which before scoping**
+- [x] **Decided: this is documentation and UX, not capability.** The operator chose (2026-09-06) to leave `client_credentials` ungated by tier, so a trial credential works at `/token` the moment BL-155 ships — see BL-155 § Technical Context
 - [ ] **A published developer-onboarding page.** Nothing on the website documents the `client_credentials` flow — [`/hub/mcp/get-started/`](../../pages/hub/mcp/get-started/index.astro) covers only the connector flow. Seed it from [`testing/uat/SETUP.md`](../../../mcp-server/src/docs/testing/uat/SETUP.md) § 0b/§ 1b, which is **client-safe by construction**. **Never** seed from [`operations/AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) — an operator doc carrying `$MCP_ADMIN_KEY` curls and the revocation runbook
 - [ ] Content is the two-step exchange, concretely: `POST /token` with `grant_type=client_credentials` → an `mcp_m2m_*` bearer → `Authorization: Bearer` against `/mcp`
 - [ ] **State the hourly re-exchange out loud.** The bearer lasts one hour with **no refresh token**; a developer who mistakes the first token for the credential is confused sixty minutes later and reads it as a product defect
