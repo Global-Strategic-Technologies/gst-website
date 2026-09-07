@@ -32,9 +32,11 @@
  *    outbound call second, and the first write after both pass.
  *
  * Wire contract (Slice 3 builds to it):
- *   200 { credential: "<clientId>:<secret>", clientId, expiresAt, reissued }
- *   400 bad-request | 400 challenge-failed { retryable } | 403 trial-expired
- *   409 in-progress { retryAfterSeconds } | 429 rate-limited (+ Retry-After)
+ *   200 { credential: "<clientId>:<secret>", clientId, expiresAt, reissued,
+ *         issuedAt? }            (issuedAt only on a re-issue: the prior mint)
+ *   400 bad-request | 400 challenge-failed { retryable }
+ *   403 trial-expired { issuedAt? }   (absent once the record has reaped)
+ *   409 in-progress { retryAfterSeconds } | 429 rate-limited { retryAfterSeconds } (+ Retry-After)
  *   503 unavailable. All `{ error, message, ... }`, all `no-store`.
  * The credential string is exactly what the consent page accepts (Slice 2b).
  */
@@ -45,7 +47,7 @@ import { safeLog } from '../auth/safe-logger';
 import { TRIAL_SCOPES } from '../auth/scopes';
 import { hmacHex } from '../lib/hmac';
 import { createMcpClient } from '../lib/upstash-clients';
-import { createM2mClient, rotateM2mSecret } from '../oauth/m2m-clients';
+import { createM2mClient, getM2mClient, rotateM2mSecret } from '../oauth/m2m-clients';
 import { TRIAL_IDENTITY_TTL_SECONDS, TRIAL_TTL_SECONDS } from '../ratelimit/tiers';
 import { parseHostnames, verifyTurnstile } from './turnstile';
 import type { Env } from '../env';
@@ -134,6 +136,9 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
         {
           error: 'rate-limited',
           message: 'Too many signup attempts from this network. Try again later.',
+          // Mirrors the header: `Retry-After` is not a CORS-exposed response
+          // header, so the browser page can only read the wait from the body.
+          retryAfterSeconds: retryAfter,
         },
         { 'Retry-After': String(retryAfter) }
       );
@@ -254,9 +259,16 @@ async function reissue(kv: KVNamespace, clientId: string): Promise<Response> {
   const rotated = await rotateM2mSecret(kv, clientId);
   if (!rotated) {
     safeLog({ event: 'trial.signup.expired', success: false, errorCode: 'trial-expired' });
+    // The page tells the visitor WHEN their trial was issued. The record
+    // outlives the identity key by ~3 days (reap = expiresAt + grace), so it is
+    // usually still there; when it has been reaped the field is simply absent
+    // and the page renders the dateless variant. A second read on a cold error
+    // path is cheaper than widening `rotateM2mSecret`'s return shape.
+    const expired = await getM2mClient(kv, clientId);
     return json(403, {
       error: 'trial-expired',
       message: 'A trial from this network has already ended. Contact GST to keep going.',
+      ...(expired ? { issuedAt: expired.createdAt } : {}),
     });
   }
   safeLog({
@@ -270,5 +282,8 @@ async function reissue(kv: KVNamespace, clientId: string): Promise<Response> {
     clientId: rotated.record.clientId,
     expiresAt: rotated.record.expiresAt,
     reissued: true,
+    // When the PREVIOUS secret was issued — the page names it in the
+    // "your previous secret has stopped working" notice.
+    issuedAt: rotated.record.createdAt,
   });
 }

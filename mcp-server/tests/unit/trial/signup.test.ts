@@ -209,6 +209,8 @@ describe('handleTrialSignup — re-issue', () => {
     };
     expect(second.reissued).toBe(true);
     expect(second.clientId).toBe(first.clientId);
+    // The page names when the PREVIOUS secret was issued: the record's mint time.
+    expect((second as { issuedAt?: string }).issuedAt).toBe(new Date(NOW).toISOString());
     expect(second.expiresAt).toBe(first.expiresAt);
     expect(second.credential).not.toBe(first.credential);
 
@@ -229,13 +231,31 @@ describe('handleTrialSignup — re-issue', () => {
     expect(store.get(identityKey!)).toEqual(identityBefore);
   });
 
-  it('a repeat signup after the trial expired (inside the identity window) is refused', async () => {
+  it('a repeat signup after the trial expired (inside the identity window) is refused, naming the issue date', async () => {
     await handleTrialSignup(req(), env());
     vi.setSystemTime(NOW + (TRIAL_TTL_SECONDS + 60) * 1000);
     const res = await handleTrialSignup(req(), env());
     expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ error: 'trial-expired' });
+    expect(await res.json()).toEqual({
+      error: 'trial-expired',
+      message: expect.any(String),
+      issuedAt: new Date(NOW).toISOString(),
+    });
     expect(await listM2mClients(kv)).toHaveLength(1);
+  });
+
+  it('a repeat signup whose record has already REAPED is refused without an issue date', async () => {
+    const first = (await (await handleTrialSignup(req(), env())).json()) as { clientId: string };
+    // KV reaps the record at expiresAt + grace; the identity key may outlive
+    // it by a few days. Simulate that window: record gone, identity key live.
+    kvStore.clear();
+    vi.setSystemTime(NOW + (TRIAL_TTL_SECONDS + 60) * 1000);
+    const res = await handleTrialSignup(req(), env());
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.error).toBe('trial-expired');
+    expect(body).not.toHaveProperty('issuedAt');
+    expect(kvStore.has(`mcp:oauth:m2m-client:${first.clientId}`)).toBe(false);
   });
 
   it('after the identity window lapses, the same identity gets a fresh trial', async () => {
@@ -253,6 +273,11 @@ describe('handleTrialSignup — ordering and the lease', () => {
     const res = await handleTrialSignup(req(), env());
     expect(res.status).toBe(429);
     expect(Number(res.headers.get('Retry-After'))).toBeGreaterThan(0);
+    // The body mirrors the header — the browser page cannot read Retry-After cross-origin.
+    expect(await res.json()).toMatchObject({
+      error: 'rate-limited',
+      retryAfterSeconds: Number(res.headers.get('Retry-After')),
+    });
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(identityKeys()).toHaveLength(0);
   });

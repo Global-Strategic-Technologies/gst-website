@@ -205,9 +205,10 @@ TURNSTILE_EXPECTED_HOSTNAMES = "globalstrategic.tech,www.globalstrategic.tech,lo
 # BL-155 Slice 2 — extra browser origins the trial endpoint's CORS accepts on
 # STAGING ONLY (ignored elsewhere by `parseExtraOrigins`). Exact origins, or
 # one-label suffix patterns `https://*-<team>.vercel.app`; a bare
-# `*.vercel.app` is rejected at parse. Fill the team slug from a real preview
-# deployment URL when the Slice 3 page first runs against staging.
-TRIAL_EXTRA_ORIGINS = "http://localhost:4321"
+# `*.vercel.app` is rejected at parse. The team slug (`thefastcats-projects`)
+# was read off the Vercel team record 2026-09-07 (Slice 3): preview hosts are
+# `gst-website-<…>-thefastcats-projects.vercel.app`.
+TRIAL_EXTRA_ORIGINS = "http://localhost:4321,https://*-thefastcats-projects.vercel.app"
 
 # Analytics Engine — staging dataset (BL-032.75 Phase 1).
 # Separate dataset from production so staging soak traffic doesn't
