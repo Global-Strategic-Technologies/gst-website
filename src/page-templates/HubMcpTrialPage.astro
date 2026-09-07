@@ -5,8 +5,9 @@
  * src/pages/hub/mcp/trial/index.astro (English) and by
  * src/pages/[locale]/[...route].astro.
  *
- * Built to the design handoff in src/design_handoff_mcp_trial_signup/
- * (README + SPEC + strings + page-glue.css), checked against source rather
+ * Built to the Claude Design hand-off recorded in
+ * src/docs/development/MCP_TRIAL_SIGNUP_HANDOFF_BL-155.md (the prototype
+ * bundle itself is not committed), checked against source rather
  * than trusted (ADR-0026): the ceilings are `TIER_LIMITS.trial` (15/100, not
  * the handoff's 30/300), the request-access anchor is `#request-access`, and
  * `token_type` is `bearer` on the wire. Facts published here are pinned by
@@ -177,7 +178,12 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
 
             {/* ----------------------------------------------------- 2. Verifying */}
             <div class="state-block" data-state="verifying" hidden>
-              <div class="brutal-callout" role="status" aria-live="polite" aria-busy="true">
+              {
+                /* No `aria-busy`: it would tell assistive tech to hold updates
+                from this region, and the 2.5 s "still verifying" swap relies
+                on the status region re-announcing. */
+              }
+              <div class="brutal-callout" role="status" aria-live="polite">
                 <span class="brutal-callout__title verify-title">
                   <span class="verify-dots" aria-hidden="true">
                     <span class="brutal-skeleton-dot"></span>
@@ -431,7 +437,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
       is:inline
       type="application/json"
       data-trial-strings
-      set:html={JSON.stringify(SCRIPT_STRINGS)}
+      set:html={JSON.stringify(SCRIPT_STRINGS).replace(/</g, '\\u003c')}
     />
   </section>
 </BaseLayout>

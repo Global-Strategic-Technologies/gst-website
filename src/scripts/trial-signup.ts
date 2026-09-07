@@ -236,7 +236,10 @@ function init(root: HTMLElement): void {
     try {
       ts = await loadTurnstile();
     } catch {
-      fail({ kind: 'err-unavail' });
+      // The realistic cause is a privacy extension or blocker refusing
+      // challenges.cloudflare.com — the bot-check copy names exactly that
+      // and says to retry or try another browser. "Unavailable" would blame GST.
+      fail({ kind: 'err-bot' });
       return;
     }
     if (state !== 'verifying') return;
@@ -448,8 +451,9 @@ function init(root: HTMLElement): void {
   }
   q('[data-download]')!.addEventListener('click', download);
   window.addEventListener('beforeunload', (e) => {
-    // `preventDefault()` is the standard signal; the deprecated `returnValue`
-    // form is not needed by any browser the site targets.
+    // `preventDefault()` is the standard signal and is honoured by every
+    // evergreen engine in the browserslist (DEVELOPER_TOOLING § Browser
+    // targets); the deprecated `returnValue` form is deliberately omitted.
     if ((state === 'issued' || state === 'reissued') && saved === null) e.preventDefault();
   });
 
