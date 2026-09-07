@@ -232,12 +232,13 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 **Slice 1 — Credential substrate** — ✅ **done** (`cd926280` + review pass `89975b2a`). `trial` tier, `expiresAt` on `M2mClientRecord` with a derived reap, `PATCH /admin/oauth/m2m-clients/:id`, and expiry enforcement on the `client_credentials` grant. Re-verified against the rescope and kept intact: typecheck clean, mcp-server 2731/2731. Serves both this item and BL-156 — the two are the same KV record presented at different doors.
 
-**Slice 2 — Public mint endpoint** (design doc § Slice 2)
+**Slice 2 — Public mint endpoint** — ✅ **done** (2026-09-07; plan-reviewed REVISE → APPROVE). Wire contract and settled decisions in the design doc § Slice 2 header; operator account in [AUTH.md § Self-serve trial mint](../../../mcp-server/src/docs/operations/AUTH.md).
 
-- [ ] `POST /trial/signup` on the Worker, Turnstile-verified server-side, wrapped in `withCors`, routed ahead of the `isRoutedPath` gate
-- [ ] **Fails closed everywhere** — a null Upstash, an unbound `OAUTH_KV`, or a Turnstile verify that throws or hangs each returns 503 with **nothing minted**. Every neighbouring primitive in this Worker fails _open_; inheriting that would mint unlimited free credentials during a brownout
-- [ ] IP rate limit + one-trial-per-identity via an HMAC'd IP, two-phase lease for mint atomicity
-- [ ] Minted record: `trial` tier, `expiresAt` = now + 72h, minimum scopes — all asserted at the **record** level, since a dropped field degrades looser and silently
+- [x] `POST /trial/signup` on the Worker ([`trial/signup.ts`](../../../mcp-server/src/trial/signup.ts)), Turnstile-verified server-side with `hostname` + `action` asserted and an explicit timeout ([`trial/turnstile.ts`](../../../mcp-server/src/trial/turnstile.ts)), CORS-wrapped with the env-aware wrapper, routed ahead of the `isRoutedPath` gate (ordering pinned in `host-route.test.ts`)
+- [x] **Fails closed everywhere** — unbound Upstash / `OAUTH_KV` / either secret / expected hostnames, a Redis throw, and a Turnstile verify that throws, 5xxs, returns non-JSON or **hangs** each return 503 with **nothing minted**; unit-pinned per guard, and the `unstable_dev` test proves it with only Upstash absent
+- [x] IP limiter (10/h on an HMAC of the full IP, `mcp:ratelimit:trial:ip`) + one-trial-per-identity via `mcp:trial:ident:<hmac>` (30-day TTL), two-phase lease branching on value; repeat signup **rotates** the existing record's secret (`rotateM2mSecret`) with `expiresAt` and the key's TTL untouched; expired → `trial-expired`
+- [x] Minted record: `trial` tier, `expiresAt` = now + 72h, `TRIAL_SCOPES` (catalog minus the radar Resource) — asserted at the **record** level in the unit test and re-asserted in the handler before the identity key is written
+- [x] Order limiter → Turnstile → lease → mint, so nothing is written before the visitor is proven human (mutation-proved by "rate-limited costs no siteverify call")
 
 **Slice 2b — Consent-page identity, tier propagation, refresh binding** — ✅ **done** (`8076a1e9` + docs `c8e45943`; plan-reviewed REVISE → APPROVE, code-reviewed). Built ahead of Slice 2 because it is verifiable with an admin-provisioned trial record, and it absorbed the tier-scoped radar deny and `rateLimitSubject` split that Slice 2's design still describes.
 
@@ -255,12 +256,12 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - [ ] Turnstile Invisible via explicit rendering; CSP updated in **both** `vercel.json` and `src/middleware.ts`
 - [ ] **Privacy policy gains the Turnstile disclosure** in all three locales, linking Cloudflare's Turnstile Privacy Addendum — a condition of service for Invisible mode, and independently required by the IP-HMAC retention. **Blocking**
 
-**Slice 4 — The record**
+**Slice 4 — The record** — split: the Worker-side half shipped with Slice 2 (2026-09-07); the website-side half lands with Slice 3, and **that is the production gate**, not deferred work. Until Slice 3 merges, production's two trial secrets stay unset and the `mcp-production` approval is withheld, so `/trial/signup` is 503 in production by construction and "no self-serve signup exists" remains literally true for the public.
 
-- [ ] **Amend [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md)** — the consent page accepting a non-roster identity breaks its _identity premise_, not merely its "no self-serve signup" clause
-- [ ] Correct [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, [`get-started/index.astro`](../../pages/hub/mcp/get-started/index.astro) and [`capabilities.ts`](../../data/mcp/capabilities.ts) where they say no self-serve signup exists — **Directive 11: `grep tests/` for both strings**
-- [ ] `TURNSTILE_SECRET_KEY` + the IP-HMAC secret in **staging and production before merge** — the endpoint fails closed, so a merge ahead of the secrets gives a 503 endpoint in production
-- [ ] `trial` stays **undocumented** on the public tier surface (operator decision); internal tier-table mirrors still get the row
+- [x] **Amended [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md)** (2026-09-07) — the widened identity premise, the "still not DCR" argument stated precisely, every bound named as its enforcing mechanism (radar as the tier-scoped pipeline check), both doors described, the two residuals disclosed, the revisit trigger
+- [x] `TURNSTILE_SECRET_KEY` + `TRIAL_IP_HMAC_SECRET` declared (`env.ts`, both wrangler manifests, `SECRETS_INVENTORY.md` rows marked pending); `TURNSTILE_EXPECTED_HOSTNAMES` / `TRIAL_EXTRA_ORIGINS` `[vars]` committed. **Staging**: operator sets both secrets (test Turnstile secret) so the endpoint can be exercised. **Production: set both, then approve — as Slice 3's final step, not before**
+- [x] `trial` stays **undocumented** on the public tier surface (operator decision); internal tier-table mirrors (RATE_LIMITS, UAT SETUP, PILOT_ONBOARDING, ARCHITECTURE, AUTH) carry the row
+- [ ] **With Slice 3**: correct [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, [`get-started/index.astro`](../../pages/hub/mcp/get-started/index.astro) and [`capabilities.ts`](../../data/mcp/capabilities.ts) where they say no self-serve signup exists — **Directive 11: `grep tests/` for both strings**; the website CSP and the `SECURITY_HEADERS.md` Turnstile row; the privacy disclosure (Slice 3's own Blocking AC)
 
 #### Technical Context
 
