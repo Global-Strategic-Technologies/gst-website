@@ -23,7 +23,7 @@ Strategic documentation for GST website development initiatives, tooling, and op
 
 - **Looking for work to do?** Read [BACKLOG.md](./BACKLOG.md) — grouped by theme, each item is a self-contained user story
 - **Picking up BL-133 (payments)?** Read [PAYMENTS_PLATFORM_BL-133.md](./PAYMENTS_PLATFORM_BL-133.md) — the design is complete and reviewed; start at its "Vendor behaviour: documented, not executed" section, because the lifecycle rests on Stripe behaviour never yet exercised
-- **Picking up BL-155 (self-serve trial)?** Read [SELF_SERVE_TRIAL_BL-155.md](./SELF_SERVE_TRIAL_BL-155.md) § Scope first — the initiative was rescoped to the connector flow; Slices 1 and 2b are shipped, Slice 2 (the mint endpoint) is next. It is deliberately **not** built on BL-133's payments rail
+- **Picking up BL-155 (self-serve trial)?** Read [SELF_SERVE_TRIAL_BL-155.md](./SELF_SERVE_TRIAL_BL-155.md) § Scope first — the initiative was rescoped to the connector flow; every slice is built, and what remains is the operator's production go-live (BACKLOG § BL-155 Slice 4) and closure distillation. The page's design hand-off is [MCP_TRIAL_SIGNUP_HANDOFF_BL-155.md](./MCP_TRIAL_SIGNUP_HANDOFF_BL-155.md). It is deliberately **not** built on BL-133's payments rail
 - **Configuring tooling?** Read [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md) first
 - **Adding a string, a page, or a language?** Read [LOCALIZATION.md](./LOCALIZATION.md) — English is the schema, translations are stamped against it, and a locale goes live by one word in the registry
 - **Renamed a `.brutal-*` class or a design token?** Read [CLAUDE_DESIGN_SYNC.md](./CLAUDE_DESIGN_SYNC.md) — the published design system names classes explicitly and goes stale silently
