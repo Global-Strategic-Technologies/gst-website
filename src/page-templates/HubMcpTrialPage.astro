@@ -1,0 +1,812 @@
+---
+/**
+ * /hub/mcp/trial/ in every locale — the self-serve 3-day trial signup
+ * (BL-155 Slice 3; the "From code" presentation serves BL-156). Rendered by
+ * src/pages/hub/mcp/trial/index.astro (English) and by
+ * src/pages/[locale]/[...route].astro.
+ *
+ * Built to the design handoff in src/design_handoff_mcp_trial_signup/
+ * (README + SPEC + strings + page-glue.css), checked against source rather
+ * than trusted (ADR-0026): the ceilings are `TIER_LIMITS.trial` (15/100, not
+ * the handoff's 30/300), the request-access anchor is `#request-access`, and
+ * `token_type` is `bearer` on the wire. Facts published here are pinned by
+ * `tests/integration/mcp-trial-parity.test.ts`.
+ *
+ * Every state block is rendered from the catalog and hidden; the client
+ * script (`src/scripts/trial-signup.ts`) shows one at a time and fills the
+ * values the mint endpoint returns, so this file's scoped styles reach every
+ * element and no string lives in the script. The handful of strings that need
+ * interpolation travel in the JSON block at the bottom.
+ *
+ * The only page CSS is the handoff's page-glue.css, transcribed under the
+ * page root, plus the few per-state treatments the SPEC writes inline. Every
+ * colour is a token; the literals are layout (the 420px state-region floor,
+ * the 1040px shell cap, the 768/480 breakpoints, the title's `vw` clamp).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DeltaIcon from '../components/DeltaIcon.astro';
+import { PUBLIC_TRIAL_SIGNUP_ORIGIN, PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client';
+import type { Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t } = useTranslations(locale, 'hub-mcp-trial');
+const common = useTranslations(locale, 'common');
+
+/** Strings the script interpolates or swaps at runtime; everything else is in the DOM. */
+const SCRIPT_STRINGS = Object.fromEntries(
+  (
+    [
+      'verifyTitle',
+      'verifyBody',
+      'verifyLongTitle',
+      'verifyLongBody',
+      'expires',
+      'revokedBody',
+      'errExpiredBody',
+      'errExpiredBodyNoDate',
+      'errBotTitle',
+      'errRateTitle',
+      'errExpiredTitle',
+      'errUnavailTitle',
+      'retry',
+      'retryIn',
+      'copy',
+      'copied',
+      'copyKey',
+      'copyBoth',
+      'keyLabel',
+      'clientId',
+      'clientSecret',
+      'snippetWhat',
+      'savedNone',
+      'savedCopied',
+      'savedDownloaded',
+      'liveVerifying',
+      'liveIssuedC',
+      'liveIssued',
+      'liveError',
+      'liveCopied',
+      'liveDownloaded',
+    ] as const
+  ).map((k) => [k, t(k)])
+);
+
+const ABOUT_HREF = localizedHref('/hub/mcp/', locale);
+const CONTACT_HREF = `${localizedHref('/hub/mcp/', locale)}#request-access`;
+const GUIDE_HREF = '/hub/mcp/get-started/#quick-start';
+const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('title')}
+  ogDescription={t('meta.description')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('authority')}
+  ogUrl={`https://globalstrategic.tech${localizedHref('/hub/mcp/trial/', locale)}`}
+>
+  <section
+    id="gst-trial"
+    class="trial-section"
+    data-site-key={PUBLIC_TURNSTILE_SITE_KEY}
+    data-mint-origin={PUBLIC_TRIAL_SIGNUP_ORIGIN}
+    data-trial-state="idle"
+  >
+    <div class="container">
+      <section
+        class="brutal-tool-shell brutal-tool-shell--fluid trial-shell"
+        aria-labelledby="trial-title"
+      >
+        <div class="brutal-tool-shell__content">
+          <p class="brutal-tool-shell__authority">{t('authority')}</p>
+          <h1 id="trial-title" class="brutal-heading-lg trial-title">{t('title')}</h1>
+
+          <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-live></p>
+          {
+            /* Invisible widget mount: renders nothing; the verifying callout is the progress cue. */
+          }
+          <div data-turnstile></div>
+
+          <div class="state-region">
+            {/* ---------------------------------------------------------- 1. Idle */}
+            <div class="state-block" data-state="idle">
+              <dl class="facts" aria-label={t('includesLabel')}>
+                <div>
+                  <dt class="brutal-label-small">{t('facts.tools.term')}</dt>
+                  <dd class="brutal-text-tiny">{t('facts.tools.desc')}</dd>
+                </div>
+                <div>
+                  <dt class="brutal-label-small">{t('facts.ceilings.term')}</dt>
+                  <dd class="brutal-text-tiny" data-fact="ceilings">{t('facts.ceilings.desc')}</dd>
+                </div>
+                <div>
+                  <dt class="brutal-label-small">{t('facts.after.term')}</dt>
+                  <dd class="brutal-text-tiny">{t('facts.after.desc')}</dd>
+                </div>
+              </dl>
+
+              <div class="brutal-gateway-grid" role="group" aria-label={t('flowLabel')}>
+                <article class="brutal-gateway-card brutal-frosted" aria-labelledby="path-claude">
+                  <div class="brutal-gateway-card__header">
+                    <h2 id="path-claude">{t('flowConnectorTitle')}</h2>
+                  </div>
+                  <ul class="brutal-gateway-card__features">
+                    <li><DeltaIcon class="bullet-icon" /><span>{t('connFeatures.1')}</span></li>
+                    <li><DeltaIcon class="bullet-icon" /><span>{t('connFeatures.2')}</span></li>
+                    <li><DeltaIcon class="bullet-icon" /><span>{t('connFeatures.3')}</span></li>
+                  </ul>
+                  <span class="brutal-gateway-card__badge">{t('recommended')}</span>
+                  <button
+                    type="button"
+                    class="cta-button brutal-gateway-card__cta"
+                    data-start="connector">{t('cta')}</button
+                  >
+                </article>
+                <article
+                  class="brutal-gateway-card brutal-gateway-card--secondary brutal-frosted"
+                  aria-labelledby="path-code"
+                >
+                  <div class="brutal-gateway-card__header">
+                    <h2 id="path-code">{t('flowM2mTitle')}</h2>
+                  </div>
+                  <ul class="brutal-gateway-card__features">
+                    <li><DeltaIcon class="bullet-icon" /><span>{t('m2mFeatures.1')}</span></li>
+                    <li><DeltaIcon class="bullet-icon" /><span>{t('m2mFeatures.2')}</span></li>
+                  </ul>
+                  <button
+                    type="button"
+                    class="brutal-btn brutal-btn--secondary brutal-gateway-card__cta"
+                    data-start="m2m">{t('ctaCode')}</button
+                  >
+                </article>
+              </div>
+
+              <div class="brutal-callout">
+                <span class="brutal-callout__title">{t('onceTitle')}</span>
+                <span data-flow-block="connector">{t('onceBodyIdleC')}</span>
+                <span data-flow-block="m2m" hidden>{t('onceBodyIdle')}</span>
+              </div>
+            </div>
+
+            {/* ----------------------------------------------------- 2. Verifying */}
+            <div class="state-block" data-state="verifying" hidden>
+              <div class="brutal-callout" role="status" aria-live="polite" aria-busy="true">
+                <span class="brutal-callout__title verify-title">
+                  <span class="verify-dots" aria-hidden="true">
+                    <span class="brutal-skeleton-dot"></span>
+                    <span class="brutal-skeleton-dot verify-dot--2"></span>
+                    <span class="brutal-skeleton-dot verify-dot--3"></span>
+                  </span>
+                  <span data-verify-title>{t('verifyTitle')}</span>
+                </span>
+                <span data-verify-body>{t('verifyBody')}</span>
+              </div>
+            </div>
+
+            {/* ---------------------------------------------- 3. Issued / 4. Re-issued */}
+            <div class="state-block" data-state="issued" hidden>
+              <div
+                class="brutal-callout brutal-callout--warning callout--revoked"
+                role="alert"
+                data-reissue
+                hidden
+              >
+                <span class="brutal-callout__title">{t('revokedTitle')}</span>
+                <span data-revoked-body></span>
+              </div>
+
+              <div class="brutal-callout brutal-callout--warning callout--once" role="note">
+                <span class="brutal-callout__title">{t('onceTitle')}</span>
+                <span data-flow-block="connector">{t('onceBodyIssuedC')}</span>
+                <span data-flow-block="m2m" hidden>{t('onceBodyIssued')}</span>
+              </div>
+
+              <section class="brutal-panel cred-panel" aria-labelledby="cred-title">
+                <div class="brutal-panel__header">
+                  <h2 id="cred-title" class="brutal-panel__title cred-title" tabindex="-1">
+                    {t('credTitle')}
+                  </h2>
+                  <span class="brutal-panel__count cred-expires" data-expires></span>
+                </div>
+
+                <div class="cred-body" data-flow-block="connector">
+                  <div class="brutal-field cred-field">
+                    <label class="brutal-field__label" for="cred-key"
+                      >{t('keyLabel')} <em class="brutal-field__req">{t('shownOnce')}</em></label
+                    >
+                    <div class="cred-grid">
+                      <output
+                        id="cred-key"
+                        class="brutal-field__input cred-value cred-value--secret"
+                        data-cred-key></output>
+                      <button
+                        type="button"
+                        class="brutal-btn brutal-btn--secondary"
+                        data-copy="key"
+                        aria-describedby="cred-key">{t('copy')}</button
+                      >
+                    </div>
+                    <p class="brutal-field__hint brutal-text-tiny cred-hint">{t('keyHint')}</p>
+                  </div>
+                </div>
+
+                <div class="cred-body" data-flow-block="m2m" hidden>
+                  <div class="brutal-field">
+                    <label class="brutal-field__label" for="cred-id">{t('clientId')}</label>
+                    <div class="cred-grid">
+                      <output id="cred-id" class="brutal-field__input cred-value" data-cred-id
+                      ></output>
+                      <button
+                        type="button"
+                        class="brutal-btn brutal-btn--secondary"
+                        data-copy="id"
+                        aria-describedby="cred-id">{t('copy')}</button
+                      >
+                    </div>
+                  </div>
+                  <div class="brutal-field cred-field">
+                    <label class="brutal-field__label" for="cred-secret"
+                      >{t('clientSecret')}
+                      <em class="brutal-field__req">{t('shownOnce')}</em></label
+                    >
+                    <div class="cred-grid">
+                      <output
+                        id="cred-secret"
+                        class="brutal-field__input cred-value cred-value--secret"
+                        data-cred-secret></output>
+                      <button
+                        type="button"
+                        class="brutal-btn brutal-btn--secondary"
+                        data-copy="secret"
+                        aria-describedby="cred-secret">{t('copy')}</button
+                      >
+                    </div>
+                    <p class="brutal-field__hint brutal-text-tiny cred-hint">{t('secretHint')}</p>
+                  </div>
+                </div>
+
+                <div class="cred-footer">
+                  <div class="btn-row">
+                    <button type="button" class="brutal-btn brutal-btn--primary" data-copy="primary"
+                      >{t('copyKey')}</button
+                    >
+                    <button type="button" class="brutal-btn brutal-btn--secondary" data-download
+                      >{t('download')}</button
+                    >
+                  </div>
+                  <p
+                    class="brutal-text-tiny cred-saved"
+                    role="status"
+                    data-saved
+                    data-saved-state="none"
+                  >
+                    {t('savedNone')}
+                  </p>
+                </div>
+              </section>
+
+              <div class="use-it" data-flow-block="connector">
+                <p class="brutal-tool-shell__section-label">{t('cLabel')}</p>
+                <p class="brutal-text-small use-it__intro">{t('cIntro')}</p>
+                <div class="btn-row">
+                  <a href={GUIDE_HREF} hreflang="en" class="cta-button">{t('cGuide')}</a>
+                </div>
+                <div class="brutal-callout use-it__callout">
+                  <span class="brutal-callout__title">{t('cEndsTitle')}</span>
+                  {t('cEndsBody')}
+                </div>
+                <p class="brutal-text-tiny use-it__after">{t('cAfterExpiry')}</p>
+              </div>
+
+              <div class="use-it" data-flow-block="m2m" hidden>
+                <p class="brutal-tool-shell__section-label">{t('connectLabel')}</p>
+                <p class="brutal-text-small use-it__intro">{t('connectIntro')}</p>
+                <ol class="steps">
+                  <li>
+                    <span class="brutal-data-sm step-num" aria-hidden="true">01</span>
+                    <div class="step-body">
+                      <h3 class="brutal-heading-sm step-title">{t('step1Title')}</h3>
+                      <p class="brutal-text-small step-text">{t('step1Body')}</p>
+                      <div class="snippet">
+                        <pre
+                          class="snippet__pre"
+                          tabindex="0"
+                          aria-label={t('copyStep1')}
+                          data-snippet="tok">
+                        </pre>
+                        <button
+                          type="button"
+                          class="brutal-panel__copy snippet__copy"
+                          data-copy="tok"
+                          aria-label={t('copyStep1')}
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            aria-hidden="true"
+                            ><rect x="5" y="5" width="9" height="9"></rect><path d="M11 5V2H2v9h3"
+                            ></path></svg
+                          >
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="brutal-data-sm step-num" aria-hidden="true">02</span>
+                    <div class="step-body">
+                      <h3 class="brutal-heading-sm step-title">{t('step2Title')}</h3>
+                      <p class="brutal-text-small step-text">{t('step2Body')}</p>
+                      <div class="snippet">
+                        <pre
+                          class="snippet__pre"
+                          tabindex="0"
+                          aria-label={t('copyStep2')}
+                          data-snippet="call">
+                        </pre>
+                        <button
+                          type="button"
+                          class="brutal-panel__copy snippet__copy"
+                          data-copy="call"
+                          aria-label={t('copyStep2')}
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            aria-hidden="true"
+                            ><rect x="5" y="5" width="9" height="9"></rect><path d="M11 5V2H2v9h3"
+                            ></path></svg
+                          >
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                </ol>
+                <div class="brutal-callout use-it__callout">
+                  <span class="brutal-callout__title">{t('hourlyTitle')}</span>
+                  {t('hourlyBody')}
+                </div>
+                <p class="brutal-text-tiny use-it__after">{t('afterExpiry')}</p>
+              </div>
+            </div>
+
+            {/* ----------------------------------------------------------- 5. Errors */}
+            <div class="state-block" data-state="error" hidden>
+              <div
+                class="brutal-callout callout--error"
+                role="alert"
+                data-error-callout
+                data-err-kind="unavail"
+              >
+                <span class="brutal-callout__title" data-err-title></span>
+                <span data-err-static="err-bot" hidden>{t('errBotBody')}</span>
+                <span data-err-static="err-rate" hidden>{t('errRateBody')}</span>
+                <span data-err-static="err-unavail" hidden>{t('errUnavailBody')}</span>
+                <span data-err-body></span>
+              </div>
+              <div class="btn-row">
+                <button type="button" class="brutal-btn brutal-btn--primary" data-retry
+                  >{t('retry')}</button
+                >
+                <a href={CONTACT_HREF} class="brutal-btn brutal-btn--primary" data-contact hidden
+                  >{t('contactAccess')}</a
+                >
+                <a
+                  href={STATUS_HREF}
+                  class="brutal-btn brutal-btn--secondary"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-status-link
+                  hidden>{t('statusPage')}</a
+                >
+                <a href={ABOUT_HREF} class="brutal-btn brutal-btn--secondary" data-about
+                  >{t('readDocs')}</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      {
+        locale.code !== 'en' && (
+          <p class="brutal-text-tiny trial-english-note">{common.t('notice.contentInEnglish')}</p>
+        )
+      }
+    </div>
+    <script
+      is:inline
+      type="application/json"
+      data-trial-strings
+      set:html={JSON.stringify(SCRIPT_STRINGS)}
+    />
+  </section>
+</BaseLayout>
+
+<script>
+  import '../scripts/trial-signup';
+</script>
+
+<style>
+  /* page-glue.css from the handoff, scoped under #gst-trial, minus the three
+     harness-only rules (top-bar nav, the `main` padding hack, the segmented
+     control); the SPEC's inline treatments follow it. Tokens throughout; the
+     literals are layout (state-region floor, shell cap, breakpoints, clamp). */
+  .trial-section {
+    padding-bottom: var(--spacing-3xl);
+  }
+
+  /* The script toggles `hidden`. Several DS classes set `display` (`.brutal-btn`
+     is inline-flex, the state blocks are flex), which outranks the UA
+     `[hidden]` rule, so the attribute must win explicitly here. */
+  .trial-section [hidden] {
+    display: none !important;
+  }
+
+  /* The DS `--wide` caps at 760px, too narrow for two path cards side by side. */
+  .trial-shell {
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  /* Never wraps. */
+  .trial-title {
+    margin: 0 0 var(--spacing-xl);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: clamp(var(--text-lg), 3.2vw, var(--text-3xl));
+  }
+
+  .state-region {
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* `display: none` → shown restarts the animation, so every transition fades. */
+  .state-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    animation: gst-fade var(--transition-normal);
+  }
+
+  @keyframes gst-fade {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-md);
+    margin: 0;
+  }
+
+  /* Demoted: 2px top rule only — the path cards are the CTA. */
+  .facts > div {
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    padding: var(--spacing-sm) 0 0;
+  }
+
+  .facts dt {
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .facts dd {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
+
+  .brutal-gateway-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-xl);
+    margin-bottom: 0;
+  }
+
+  /* Page modifier: only the recommended card keeps the primary top rule. */
+  .brutal-gateway-card--secondary {
+    border-top-color: light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .brutal-gateway-card__cta {
+    min-height: var(--touch-target-min);
+  }
+
+  /* The badge sits on its own centred row directly above the button, and
+     `margin-top: auto` on it (not the CTA) is what keeps both CTAs level. */
+  .brutal-gateway-grid .brutal-gateway-card__badge {
+    margin-top: auto;
+    align-self: center;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .brutal-gateway-card__badge + .brutal-gateway-card__cta {
+    margin-top: 0;
+  }
+
+  .verify-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .verify-dots {
+    display: inline-flex;
+    gap: var(--spacing-xs);
+  }
+
+  .verify-dot--2 {
+    animation-delay: 0.25s;
+  }
+
+  .verify-dot--3 {
+    animation-delay: 0.5s;
+  }
+
+  .callout--once .brutal-callout__title {
+    color: var(--color-warning);
+  }
+
+  .callout--revoked {
+    border-left-color: var(--color-error);
+  }
+
+  .callout--revoked .brutal-callout__title {
+    color: var(--color-error);
+  }
+
+  .cred-title {
+    margin: 0;
+    outline: none;
+  }
+
+  /* Allowed to wrap (ES/PT run longer), right-aligned. */
+  .cred-expires {
+    white-space: normal;
+    text-align: right;
+  }
+
+  .cred-body {
+    padding: var(--spacing-lg);
+  }
+
+  .cred-field {
+    margin-bottom: 0;
+  }
+
+  .cred-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--spacing-sm);
+    align-items: start;
+  }
+
+  .cred-value {
+    display: block;
+    word-break: break-all;
+    user-select: all;
+    line-height: 1.6;
+    min-height: var(--touch-target-min);
+    box-sizing: border-box;
+  }
+
+  /* The one emphasised field: the value that is shown once. */
+  .cred-value--secret {
+    border-color: var(--color-primary);
+    border-style: solid;
+  }
+
+  .cred-hint {
+    margin-bottom: 0;
+  }
+
+  .cred-footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cred-saved {
+    margin: 0;
+    color: var(--color-warning);
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .cred-saved[data-saved-state='copied'],
+  .cred-saved[data-saved-state='downloaded'] {
+    color: var(--color-success);
+  }
+
+  .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+  }
+
+  .btn-row a {
+    text-decoration: none;
+  }
+
+  .use-it__intro {
+    margin: 0 0 var(--spacing-lg);
+    color: var(--text-secondary);
+    text-wrap: pretty;
+    max-width: 64ch;
+  }
+
+  .use-it__callout {
+    margin-top: var(--spacing-lg);
+  }
+
+  .use-it__after {
+    margin: var(--spacing-md) 0 0;
+    color: var(--text-muted);
+    text-wrap: pretty;
+  }
+
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  .steps > li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .step-num {
+    padding-top: 2px;
+  }
+
+  .step-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-width: 0;
+  }
+
+  .step-title,
+  .step-text {
+    margin: 0;
+  }
+
+  .step-text {
+    color: var(--text-secondary);
+    text-wrap: pretty;
+  }
+
+  .snippet {
+    position: relative;
+  }
+
+  .snippet__pre {
+    margin: 0;
+    padding: var(--spacing-md) var(--spacing-3xl) var(--spacing-md) var(--spacing-lg);
+    border: 2px solid light-dark(var(--border-light), var(--border-dark-default));
+    background: var(--surface-subtle-bg);
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .snippet__copy {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    background: light-dark(var(--bg-light), var(--bg-dark-secondary));
+  }
+
+  /* Left-edge colour per error class; the page stays otherwise calm. */
+  .callout--error[data-err-kind='bot'],
+  .callout--error[data-err-kind='unavail'] {
+    border-left-color: var(--color-error);
+  }
+
+  .callout--error[data-err-kind='rate'] {
+    border-left-color: var(--color-warning);
+  }
+
+  /* Informational, not a fault. */
+  .callout--error[data-err-kind='expired'] {
+    border-left-color: var(--color-subdued);
+  }
+
+  .trial-english-note {
+    max-width: 1040px;
+    margin: var(--spacing-md) auto 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .state-block {
+      animation: none;
+    }
+
+    .brutal-skeleton-dot {
+      animation: none;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .facts {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .brutal-gateway-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* cards.css reverts the card to `display: block` below 768, which puts the
+       badge and the CTA inline on one row. This page keeps the flex column so
+       the badge stays on its own centred row above the button at every width. */
+    .brutal-gateway-grid > .brutal-gateway-card {
+      display: flex;
+      flex-direction: column;
+      max-width: none;
+    }
+
+    .state-region {
+      min-height: 0;
+    }
+
+    .brutal-tool-shell__content {
+      padding: var(--spacing-lg) var(--spacing-md);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .cred-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .facts {
+      grid-template-columns: 1fr;
+    }
+
+    .btn-row .brutal-btn,
+    .btn-row .cta-button {
+      width: 100%;
+    }
+  }
+</style>

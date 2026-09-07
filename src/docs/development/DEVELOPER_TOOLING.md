@@ -536,7 +536,7 @@ The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-cor
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 32 routes (Chromium)
+npm run test:a11y        # Scans 33 routes (Chromium)
 ```
 
 This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all seven tool pages, the five `/hub/mcp/*` pages, `/brand` and `/hub/radar/`, plus the Spanish and Portuguese About routes (BL-153). **Routes, not pages**: `/hub/mcp/docs/` is scanned three times, so those five pages are seven entries. Count the array when you change this number rather than incrementing it; every stale value this line has carried came from adding a route and adjusting the count by memory.

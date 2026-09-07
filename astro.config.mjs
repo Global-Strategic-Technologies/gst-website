@@ -61,6 +61,25 @@ export default defineConfig({
         default: 'https://mcp.globalstrategic.tech/radar/snapshot',
       }),
 
+      // BL-155 — the trial signup page (/hub/mcp/trial/). Both are PUBLIC by
+      // nature: the Turnstile SITE key is rendered into the page, and the mint
+      // origin is where the browser POSTs. The defaults make dev, preview and
+      // CI work without configuration: Cloudflare's documented always-pass
+      // test sitekey for an INVISIBLE widget, paired with the test secret on
+      // the staging Worker. Vercel Production sets the real widget's sitekey;
+      // previews point the origin at staging (production's CORS admits only
+      // the website's own hosts). See SECRETS_INVENTORY.md.
+      PUBLIC_TURNSTILE_SITE_KEY: envField.string({
+        context: 'client',
+        access: 'public',
+        default: '1x00000000000000000000BB',
+      }),
+      PUBLIC_TRIAL_SIGNUP_ORIGIN: envField.string({
+        context: 'client',
+        access: 'public',
+        default: 'https://mcp.globalstrategic.tech',
+      }),
+
       // Sentry — public DSN for client init (auth token stays in process.env for build-time config)
       PUBLIC_SENTRY_DSN: envField.string({ context: 'client', access: 'public', optional: true }),
 
