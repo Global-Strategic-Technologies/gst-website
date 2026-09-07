@@ -4,19 +4,20 @@ Strategic documentation for GST website development initiatives, tooling, and op
 
 ## Active Documents
 
-| Doc                                                                | Purpose                                                                                                                            |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| [BACKLOG.md](./BACKLOG.md)                                         | Consolidated backlog of all open development initiatives (completed stanzas pruned — see its header note for recovery)             |
-| [PAYMENTS_PLATFORM_BL-133.md](./PAYMENTS_PLATFORM_BL-133.md)       | BL-133 initiative design: Stripe Managed Payments checkout and automated MCP provisioning — designed, not yet implemented          |
-| [SELF_SERVE_TRIAL_BL-155.md](./SELF_SERVE_TRIAL_BL-155.md)         | BL-155 initiative design: self-serve 3-day MCP trial gated by Turnstile, no Stripe — Slices 1 and 2b shipped; Slice 2 (mint) next  |
-| [CLAUDE_DESIGN_SYNC.md](./CLAUDE_DESIGN_SYNC.md)                   | Publishing the design system to claude.ai/design: what ships, when to re-sync, and the rules that keep it from drifting            |
-| [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                     | Authoritative reference for lint, format, hooks, CI, browser targets                                                               |
-| [LOCALIZATION.md](./LOCALIZATION.md)                               | How the site speaks more than one language: locale registry, catalogs and staleness guard, adding a string/page/locale, draft→live |
-| [LOCALIZATION_HANDOFF_BL-153.md](./LOCALIZATION_HANDOFF_BL-153.md) | BL-153 Claude Design hand-off (switcher, first-visit band, routing/SEO/persistence spec, screenshots) — open initiative doc        |
-| [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md)                       | Running `gst_irl_ingestion` dossiers: run tiers, reading the VERIFY block, client-ready gating, signoff, failure recovery          |
-| [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md)     | Converting a partner's filled `.xlsx` IRL to canonical markdown via `npm run irl:extract` for the partner-paste path               |
-| [PERFORMANCE_OBSERVABILITY.md](./PERFORMANCE_OBSERVABILITY.md)     | Lighthouse CI on PRs, weekly dashboard at <https://performance.globalstrategic.tech>, and the workflows that run them              |
-| [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md)                 | Sentry alert rules, source map upload, and consent gating setup reference                                                          |
+| Doc                                                                        | Purpose                                                                                                                            |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| [BACKLOG.md](./BACKLOG.md)                                                 | Consolidated backlog of all open development initiatives (completed stanzas pruned — see its header note for recovery)             |
+| [PAYMENTS_PLATFORM_BL-133.md](./PAYMENTS_PLATFORM_BL-133.md)               | BL-133 initiative design: Stripe Managed Payments checkout and automated MCP provisioning — designed, not yet implemented          |
+| [SELF_SERVE_TRIAL_BL-155.md](./SELF_SERVE_TRIAL_BL-155.md)                 | BL-155 initiative design: self-serve 3-day MCP trial gated by Turnstile, no Stripe — every slice built; production go-live pending |
+| [MCP_TRIAL_SIGNUP_HANDOFF_BL-155.md](./MCP_TRIAL_SIGNUP_HANDOFF_BL-155.md) | BL-155 Claude Design hand-off for the trial signup page (states, class spec, behaviour, open questions) — open initiative doc      |
+| [CLAUDE_DESIGN_SYNC.md](./CLAUDE_DESIGN_SYNC.md)                           | Publishing the design system to claude.ai/design: what ships, when to re-sync, and the rules that keep it from drifting            |
+| [DEVELOPER_TOOLING.md](./DEVELOPER_TOOLING.md)                             | Authoritative reference for lint, format, hooks, CI, browser targets                                                               |
+| [LOCALIZATION.md](./LOCALIZATION.md)                                       | How the site speaks more than one language: locale registry, catalogs and staleness guard, adding a string/page/locale, draft→live |
+| [LOCALIZATION_HANDOFF_BL-153.md](./LOCALIZATION_HANDOFF_BL-153.md)         | BL-153 Claude Design hand-off (switcher, first-visit band, routing/SEO/persistence spec, screenshots) — open initiative doc        |
+| [OPERATOR_RUNBOOK.md](./OPERATOR_RUNBOOK.md)                               | Running `gst_irl_ingestion` dossiers: run tiers, reading the VERIFY block, client-ready gating, signoff, failure recovery          |
+| [IRL_PARTNER_PASTE_RUNBOOK.md](./IRL_PARTNER_PASTE_RUNBOOK.md)             | Converting a partner's filled `.xlsx` IRL to canonical markdown via `npm run irl:extract` for the partner-paste path               |
+| [PERFORMANCE_OBSERVABILITY.md](./PERFORMANCE_OBSERVABILITY.md)             | Lighthouse CI on PRs, weekly dashboard at <https://performance.globalstrategic.tech>, and the workflows that run them              |
+| [SENTRY_MANUAL_SETUP.md](./SENTRY_MANUAL_SETUP.md)                         | Sentry alert rules, source map upload, and consent gating setup reference                                                          |
 
 ## How to Use
 

@@ -510,7 +510,9 @@ function accessHref(tier?: string) {
             <div class="brutal-label mcp-access__label">{t('access.provisioning.label')}</div>
             <ul class="mcp-facts">
               <li>
-                <DeltaIcon class="bullet-icon" /><span>{t('access.provisioning.item1')}</span>
+                <DeltaIcon class="bullet-icon" /><span
+                  set:html={tHtml('access.provisioning.item1')}
+                />
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span>{t('access.provisioning.item2')}</span>
