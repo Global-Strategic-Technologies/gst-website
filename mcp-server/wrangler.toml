@@ -197,10 +197,11 @@ ENV_NAME = "staging"
 # BL-155 Slice 2 — hostnames a Turnstile siteverify response must name for
 # the trial mint to accept it (exact, or `.suffix`). Staging accepts the
 # website's hosts, localhost, and any Vercel preview so the signup page can
-# be exercised before it ships. Record here what the always-pass TEST secret
-# reports as `hostname` once observed on staging; if it is not one of these,
-# add it — do not loosen the check in code.
-TURNSTILE_EXPECTED_HOSTNAMES = "globalstrategic.tech,www.globalstrategic.tech,localhost,.vercel.app"
+# be exercised before it ships. `example.com` is what the always-pass TEST
+# secret reports as `hostname` (observed 2026-09-07; it reports no `action`,
+# which `verifyTurnstile` waives only for a flagged testing-key response).
+# Never add `example.com` to production.
+TURNSTILE_EXPECTED_HOSTNAMES = "globalstrategic.tech,www.globalstrategic.tech,localhost,.vercel.app,example.com"
 # BL-155 Slice 2 — extra browser origins the trial endpoint's CORS accepts on
 # STAGING ONLY (ignored elsewhere by `parseExtraOrigins`). Exact origins, or
 # one-label suffix patterns `https://*-<team>.vercel.app`; a bare

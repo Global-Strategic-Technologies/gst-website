@@ -23,6 +23,14 @@
  *
  * The fetch carries an explicit timeout. Without it a stalled upstream would
  * hold the request open and the 503 path would be unreachable.
+ *
+ * Testing keys (observed 2026-09-07 against the always-pass secret with the
+ * dummy token): siteverify answers `hostname: "example.com"`, NO `action`
+ * field, and `metadata.result_with_testing_key: true`. So staging lists
+ * `example.com` among its expected hostnames, and the action assertion is
+ * waived ONLY when that metadata flag is present and the field is absent —
+ * a production secret never yields the flag, and a testing-key response that
+ * carries a WRONG action is still refused.
  */
 
 export const TURNSTILE_ACTION = 'trial-signup';
@@ -55,6 +63,7 @@ interface SiteverifyBody {
   hostname?: unknown;
   action?: unknown;
   'error-codes'?: unknown;
+  metadata?: { result_with_testing_key?: unknown };
 }
 
 /** Comma-separated env var → trimmed, lower-cased, empties dropped. */
@@ -113,7 +122,9 @@ export async function verifyTurnstile(input: VerifyInput): Promise<VerifyOutcome
   ) {
     return { ok: false, kind: 'rejected', retryable: false, reason: 'hostname-mismatch' };
   }
-  if (parsed.action !== TURNSTILE_ACTION) {
+  const testingKeyNoAction =
+    parsed.action === undefined && parsed.metadata?.result_with_testing_key === true;
+  if (parsed.action !== TURNSTILE_ACTION && !testingKeyNoAction) {
     return { ok: false, kind: 'rejected', retryable: false, reason: 'action-mismatch' };
   }
   return { ok: true };

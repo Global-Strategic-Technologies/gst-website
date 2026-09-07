@@ -343,11 +343,28 @@ describe('MCP marketing page — tier parity', () => {
     expect(table).toContain('<tbody');
   });
 
-  it('publishes every assignable tier identifier, and only those', () => {
-    expect(TIER_COLUMNS.map(([id]) => id)).toEqual([...ASSIGNABLE_TIERS]);
+  /**
+   * `trial` is assignable but deliberately NOT published here: BL-155 keeps
+   * the self-serve trial off the public tier table (the signup page is the
+   * only place a stranger learns what it grants — SELF_SERVE_TRIAL_BL-155.md
+   * § Decisions taken). So the page enumerates the assignable tiers MINUS
+   * `trial`, and a `trial` column appearing here is a defect, not a fix.
+   */
+  const UNPUBLISHED_TIERS: ReadonlySet<string> = new Set(['trial']);
+  const PUBLISHED_TIERS = ASSIGNABLE_TIERS.filter((t) => !UNPUBLISHED_TIERS.has(t));
+
+  it('publishes every assignable tier identifier except the trial, and only those', () => {
+    expect(TIER_COLUMNS.map(([id]) => id)).toEqual(PUBLISHED_TIERS);
     for (const [id] of TIER_COLUMNS) {
       expect(markup).toContain(`<code class="mcp-tier__id">${id}</code>`);
     }
+  });
+
+  it('does not publish the trial tier on the public tier table', () => {
+    // Vacuity guard first: the set must name a real assignable tier, or this
+    // asserts over nothing.
+    for (const id of UNPUBLISHED_TIERS) expect(ASSIGNABLE_TIERS).toContain(id);
+    expect(markup).not.toContain('<code class="mcp-tier__id">trial</code>');
   });
 
   it('binds each display name to its own identifier, in table-column order', () => {

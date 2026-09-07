@@ -99,6 +99,43 @@ describe('verifyTurnstile', () => {
     expect(await verifyTurnstile(base)).toMatchObject({ ok: false, reason: 'action-mismatch' });
   });
 
+  it('waives a MISSING action only for a testing-key response (observed staging shape)', async () => {
+    fetchSpy.mockResolvedValue(
+      ok({
+        success: true,
+        hostname: 'example.com',
+        'error-codes': [],
+        metadata: { result_with_testing_key: true },
+      })
+    );
+    expect(
+      await verifyTurnstile({ ...base, expectedHostnames: ['globalstrategic.tech', 'example.com'] })
+    ).toEqual({ ok: true });
+  });
+
+  it('a testing-key response carrying the WRONG action is still refused', async () => {
+    fetchSpy.mockResolvedValue(
+      ok({
+        success: true,
+        hostname: 'example.com',
+        action: 'login',
+        'error-codes': [],
+        metadata: { result_with_testing_key: true },
+      })
+    );
+    expect(await verifyTurnstile({ ...base, expectedHostnames: ['example.com'] })).toMatchObject({
+      ok: false,
+      reason: 'action-mismatch',
+    });
+  });
+
+  it('a missing action WITHOUT the testing-key flag is refused', async () => {
+    fetchSpy.mockResolvedValue(
+      ok({ success: true, hostname: 'globalstrategic.tech', 'error-codes': [] })
+    );
+    expect(await verifyTurnstile(base)).toMatchObject({ ok: false, reason: 'action-mismatch' });
+  });
+
   it.each([
     ['internal-error', () => ok({ success: false, 'error-codes': ['internal-error'] })],
     ['a 5xx', () => ok({}, 502)],
