@@ -68,6 +68,19 @@ export const TIER_LIMITS: Record<string, TierLimits> = {
 /** The tier applied when a request carries no (or an unrecognized) tier. */
 export const DEFAULT_TIER = 'internal';
 
+/** BL-155 — a self-serve trial credential lives this long from mint (operator: 72h). */
+export const TRIAL_TTL_SECONDS = 72 * 60 * 60;
+
+/**
+ * BL-155 — how long the signup endpoint remembers a visitor identity (an HMAC
+ * of their IP) after minting. Must exceed `TRIAL_TTL_SECONDS` so one identity
+ * cannot hold two live trials; 30 days is also the retention bound the privacy
+ * disclosure quotes for the IP-derived key. Note the client RECORD reaps later
+ * (`expiresAt + REAP_GRACE_SECONDS` ≈ mint + 33d) — the two lifetimes are
+ * deliberately close, not equal.
+ */
+export const TRIAL_IDENTITY_TTL_SECONDS = 30 * 24 * 60 * 60;
+
 /**
  * The tiers an operator may assign at provisioning. Excludes `internal` —
  * that is the implicit default for callers WITHOUT a tier (static keys,

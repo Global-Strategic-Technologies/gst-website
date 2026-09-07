@@ -10,7 +10,7 @@ The end-to-end playbook for bringing a BL-033 external-pilot client onto the GST
 
 - [ ] **Intake received.** Today this is an email/introduction landing in the operator inbox; BL-093's request-access slice will add a form on the website that delivers into the same place. Either way the intake supplies the four things step 0 needs: name, firm, use case, contact address.
 - [ ] Legal sign-off; **NDA + DPA executed** (front-loaded, amortized across pilots).
-- [ ] Agree the tier (`free-pilot` / `paid` / `enterprise`) and the tool scopes the client needs.
+- [ ] Agree the tier (`free-pilot` / `paid` / `enterprise` — `trial` exists too but is minted only by the self-serve signup, never assigned by hand) and the tool scopes the client needs.
 - [ ] Agree success metrics (target ≥100 tool invocations/month per client).
 
 ## 1. Provision the client credential (engineering)

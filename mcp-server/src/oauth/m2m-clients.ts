@@ -100,7 +100,7 @@ export async function createM2mClient(
   input: CreateM2mClientInput
 ): Promise<{ record: M2mClientRecord; clientSecret: string }> {
   const clientId = `${M2M_CLIENT_ID_PREFIX}${b64url(crypto.getRandomValues(new Uint8Array(16)))}`;
-  const clientSecret = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const clientSecret = newClientSecret();
   const record: M2mClientRecord = {
     clientId,
     name: input.name,
@@ -111,6 +111,37 @@ export async function createM2mClient(
     createdAt: new Date().toISOString(),
     ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
   };
+  await putM2mClient(kv, record);
+  return { record, clientSecret };
+}
+
+/** 32 random bytes, base64url — shared by create and rotate. */
+function newClientSecret(): string {
+  return b64url(crypto.getRandomValues(new Uint8Array(32)));
+}
+
+/**
+ * Replace a record's secret in place (BL-155 Slice 2 — the re-issue path).
+ * When a visitor who already holds a live trial signs up again, the handler
+ * rotates the secret on the EXISTING record rather than minting a second
+ * client: one identity keeps mapping to one client, the previous secret dies
+ * immediately (≤1h JWT residual aside), and nothing else on the record moves.
+ * In particular `expiresAt` is untouched, so the reap `putM2mClient` derives
+ * from it lands on the same instant — a re-issue cannot extend a trial.
+ *
+ * Returns `null` for an unknown record or one already past `expiresAt`: an
+ * expired trial is refused, never revived.
+ */
+export async function rotateM2mSecret(
+  kv: KVNamespace,
+  clientId: string,
+  now: number = Date.now()
+): Promise<{ record: M2mClientRecord; clientSecret: string } | null> {
+  const existing = await getM2mClient(kv, clientId);
+  if (!existing) return null;
+  if (existing.expiresAt && Date.parse(existing.expiresAt) <= now) return null;
+  const clientSecret = newClientSecret();
+  const record: M2mClientRecord = { ...existing, secretHash: await sha256Hex(clientSecret) };
   await putM2mClient(kv, record);
   return { record, clientSecret };
 }

@@ -169,6 +169,15 @@ traces = { enabled = true, persist = true, head_sampling_rate = 1 }
 #                                  the Upstash-stored value isn't present (bootstrap state).
 #   SENTRY_DSN                    Sentry project — service:mcp-server (Q6)
 #
+#   # BL-155 Slice 2 — self-serve trial mint (POST /trial/signup). The endpoint
+#   # FAILS CLOSED (503, nothing minted) while either is unbound, so set both
+#   # BEFORE the deploy that carries the code is approved. Staging pairs the
+#   # documented always-pass Turnstile TEST secret with the test sitekey on
+#   # the page; production gets the real widget's secret.
+#   TURNSTILE_SECRET_KEY          Turnstile widget secret (server-side siteverify only)
+#   TRIAL_IP_HMAC_SECRET          Keys the per-visitor identity (HMAC of client IP).
+#                                  Rotating it forgets every identity — rotate deliberately.
+#
 # Phase 1 spike runs locally via `wrangler dev` with no secrets set; the only
 # code path exercised before Phase 2 ships auth is /health (uncached, no auth).
 
@@ -185,6 +194,19 @@ routes = [
 # non-sensitive routing metadata.
 [env.staging.vars]
 ENV_NAME = "staging"
+# BL-155 Slice 2 — hostnames a Turnstile siteverify response must name for
+# the trial mint to accept it (exact, or `.suffix`). Staging accepts the
+# website's hosts, localhost, and any Vercel preview so the signup page can
+# be exercised before it ships. Record here what the always-pass TEST secret
+# reports as `hostname` once observed on staging; if it is not one of these,
+# add it — do not loosen the check in code.
+TURNSTILE_EXPECTED_HOSTNAMES = "globalstrategic.tech,www.globalstrategic.tech,localhost,.vercel.app"
+# BL-155 Slice 2 — extra browser origins the trial endpoint's CORS accepts on
+# STAGING ONLY (ignored elsewhere by `parseExtraOrigins`). Exact origins, or
+# one-label suffix patterns `https://*-<team>.vercel.app`; a bare
+# `*.vercel.app` is rejected at parse. Fill the team slug from a real preview
+# deployment URL when the Slice 3 page first runs against staging.
+TRIAL_EXTRA_ORIGINS = "http://localhost:4321"
 
 # Analytics Engine — staging dataset (BL-032.75 Phase 1).
 # Separate dataset from production so staging soak traffic doesn't
@@ -257,6 +279,9 @@ routes = [
 # Environment discriminator — see staging block for rationale.
 [env.production.vars]
 ENV_NAME = "production"
+# BL-155 Slice 2 — see the staging block. Production accepts only the
+# website's own hosts; no TRIAL_EXTRA_ORIGINS here by design.
+TURNSTILE_EXPECTED_HOSTNAMES = "globalstrategic.tech,www.globalstrategic.tech"
 
 # Analytics Engine — production dataset (BL-032.75 Phase 1).
 # Canonical dataset for Phase 3 Grafana dashboards + the `/status` page

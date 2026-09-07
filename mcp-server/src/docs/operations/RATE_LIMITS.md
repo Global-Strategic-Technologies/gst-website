@@ -243,6 +243,10 @@ The general tier still applies to radar calls — they count toward the general 
 
 **Upstash command budget**: each `Ratelimit.limit()` call costs 2 Redis commands. A general request consumes 4 commands (2 buckets), a radar request consumes 8 commands (4 buckets). Worst-case sizing for the Upstash free tier (10k commands/day): one operator at 1000 general + 50 radar calls/day = 4,400 commands; sized for 2 active operators (8,800/day) within free tier headroom. A third active operator pushes the math over the 10k threshold — the upgrade trigger is documented in the BL-038 design doc § Risks.
 
+### Trial signup IP limiter (BL-155 Slice 2)
+
+`POST /trial/signup` carries its own bucket, `mcp:ratelimit:trial:ip` — a single sliding window of **10 per hour**, keyed on an HMAC of the visitor's full IP (never the raw address, never a /24). It bounds Turnstile and Upstash spend from retries; the one-trial-per-identity lease is the real control. Unlike every bucket above, **a null or throwing Upstash here is a 503, not a skip** — for a credential minter, fail-open is the wrong default (`src/trial/signup.ts`).
+
 ---
 
-_Last updated: 2026-07-27 (stale gst-radar-tokens references retired; circuit-breaker reset command corrected to the REST API)_
+_Last updated: 2026-09-07 (BL-155 Slice 2 — trial signup IP limiter)_

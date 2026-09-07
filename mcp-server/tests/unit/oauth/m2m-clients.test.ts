@@ -14,11 +14,56 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { KVNamespace } from '@cloudflare/workers-types';
 import {
   createM2mClient,
+  rotateM2mSecret,
   splitClientCredential,
   updateM2mClient,
+  verifyM2mSecret,
   M2M_CLIENT_KEY_PREFIX,
   REAP_GRACE_SECONDS,
 } from '../../../src/oauth/m2m-clients';
+
+describe('rotateM2mSecret (BL-155 Slice 2 — re-issue on the same record)', () => {
+  const NOW_R = Date.parse('2026-09-06T12:00:00.000Z');
+  const EXP = '2026-09-09T12:00:00.000Z';
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW_R);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('replaces only the secret; expiresAt, tier, scopes, clientId and the reap instant are unchanged', async () => {
+    const { kv, puts } = mockKv();
+    const { record, clientSecret } = await createM2mClient(kv, {
+      name: 'trial',
+      allowedScopes: ['tool:*'],
+      tier: 'trial',
+      expiresAt: EXP,
+    });
+    vi.setSystemTime(NOW_R + 3600_000);
+    const rotated = (await rotateM2mSecret(kv, record.clientId))!;
+    expect(rotated.clientSecret).not.toBe(clientSecret);
+    expect(await verifyM2mSecret(rotated.record, rotated.clientSecret)).toBe(true);
+    expect(await verifyM2mSecret(rotated.record, clientSecret)).toBe(false);
+    const { secretHash: _a, ...restBefore } = record;
+    const { secretHash: _b, ...restAfter } = rotated.record;
+    expect(restAfter).toEqual(restBefore);
+    expect(puts).toHaveLength(2);
+    expect(puts[1]!.options).toEqual(puts[0]!.options);
+  });
+
+  it('refuses an unknown record and an expired one', async () => {
+    const { kv } = mockKv();
+    expect(await rotateM2mSecret(kv, 'm2m_nope')).toBeNull();
+    const { record } = await createM2mClient(kv, {
+      name: 'trial',
+      allowedScopes: ['tool:*'],
+      tier: 'trial',
+      expiresAt: EXP,
+    });
+    vi.setSystemTime(Date.parse(EXP) + 1);
+    expect(await rotateM2mSecret(kv, record.clientId)).toBeNull();
+  });
+});
 
 describe('splitClientCredential (BL-155 Slice 2b — shared first-colon split)', () => {
   it('splits on the first colon only, preserving colons inside the secret', () => {

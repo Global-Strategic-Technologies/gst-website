@@ -55,6 +55,19 @@ export const DEFAULT_SCOPES: readonly string[] = Object.freeze([
 ]);
 
 /**
+ * BL-155 — the scope set a self-serve trial record is minted with: every
+ * catalog scope EXCEPT the radar Resource. The radar TOOLS cannot be excluded
+ * here — `tool:*` covers them by prefix — so those are refused by the
+ * tier-scoped gate in `pipeline/tier-gate.ts`; this constant is what keeps
+ * the radar Resource (`gst://radar/*`, `/radar/snapshot`) out. Prompts stay
+ * in: a connector user's product experience is the `gst_*` prompts as much
+ * as the tools. Pinned by a test that no scope here matches `radar`.
+ */
+export const TRIAL_SCOPES: readonly string[] = Object.freeze(
+  DEFAULT_SCOPES.filter((s) => s !== SCOPES.RESOURCE_RADAR_READ)
+);
+
+/**
  * Scope strings advertised in AS metadata + PRM (catalog + the radar
  * narrowing wildcard), and the ceiling `PATCH /admin/oauth/m2m-clients/:id`
  * validates `allowedScopes` against. Lives here rather than in

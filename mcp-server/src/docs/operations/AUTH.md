@@ -205,6 +205,17 @@ What the resulting grant carries, and what follows from it:
 - **Tier**: the record's `tier` rides in the grant props, so a `trial` grant gets trial ceilings and is **refused the radar tools** at the pipeline seam with JSON-RPC error `-32002` (`src/pipeline/tier-gate.ts`). Radar Resources / `/radar/snapshot` are governed by the record's `allowedScopes` as usual.
 - **Expiry binds to the grant, not to the record.** At consent the grant's refresh TTL and access TTL are clamped to the record's `expiresAt`, and every OAuth request re-checks that instant from the props (`src/oauth/api-handler.ts`, zero KV). So the trial ends on time even though connector grants refresh. **The corollary**: a later `PATCH` that shortens `expiresAt`, or a `DELETE`, does **not** cut an already-consented grant short — it runs to the `expiresAt` captured at consent (≤72h for a trial). The exchange callback has no KV access by construction (`src/oauth/token-exchange.ts`). Converting a trial to `paid` likewise takes effect at the person's **next consent**, not on their existing grant. In the grant's final minute a refresh may be refused as `invalid_request` rather than `invalid_grant` — cosmetic.
 
+### Self-serve trial mint — `POST /trial/signup` (BL-155 Slice 2)
+
+The one endpoint that creates a credential with no operator in the loop. The website's signup page (Slice 3) calls it with a Turnstile token; the Worker verifies the token server-side (asserting `hostname` and `action`, not just `success`), rate-limits by an HMAC of the visitor's IP, takes a one-per-identity lease, and mints an M2M record `{ name: 'trial', tier: 'trial', allowedScopes: TRIAL_SCOPES (everything except the radar Resource), expiresAt: now + 72h }`. The response carries the `<clientId>:<secret>` string the consent page accepts (§ above).
+
+What an operator needs to know:
+
+- **It fails closed.** Unbound `TURNSTILE_SECRET_KEY`, `TRIAL_IP_HMAC_SECRET`, `TURNSTILE_EXPECTED_HOSTNAMES`, `OAUTH_KV` or Upstash, a Redis error, or an unreachable/slow Turnstile all return **503 with nothing minted**. So a deploy that lands ahead of its secrets gives a 503 endpoint — set the secrets first (`wrangler secret put … --env <env>`, stdin). Production's secrets are deliberately **not set until Slice 3** ships the privacy disclosure and public copy; until then the endpoint is dark there by construction.
+- **One trial per identity per 30 days.** The identity is `mcp:trial:ident:<HMAC(secret, ip)>` in Upstash — a speed bump, not an identity control (IPs are shared and rotated); the containment is the trial tier's ceilings and the expiry. A repeat signup inside the window **rotates the secret on the existing record** (the previous credential stops working; `expiresAt` is unchanged; no second record). A repeat after `expiresAt` but inside the 30 days is refused with `trial-expired`. **Rotating `TRIAL_IP_HMAC_SECRET` forgets every identity** — every visitor becomes eligible again.
+- **Inspect**: `GET /admin/oauth/m2m-clients` lists trials as `name: "trial"`, `tier: "trial"`; `PATCH … {"tier":"paid","expiresAt":null}` converts one (the person re-consents to pick up the new tier). `DELETE` blocks re-issue and `/token`; a consent grant already made runs to its captured `expiresAt` (§ above).
+- **Staging vs production**: staging pairs the documented always-pass Turnstile **test** secret (`1x0000000000000000000000000000000AA`) with the test sitekey on the page and accepts `localhost` / preview hostnames (`TURNSTILE_EXPECTED_HOSTNAMES`, `TRIAL_EXTRA_ORIGINS` in `wrangler.toml`); production accepts only the website's own hosts.
+
 ### Introspect a token (support/debugging)
 
 ```bash
@@ -238,4 +249,4 @@ Per-key/per-client scope variation is live across all three credential paths: `M
 
 ---
 
-_Last updated: 2026-09-06 (BL-155 Slices 1 + 2b — `expiresAt` on M2M clients, the in-place `PATCH` runbook, and an M2M record as a consent-page credential)_
+_Last updated: 2026-09-07 (BL-155 Slices 1, 2 + 2b — `expiresAt` on M2M clients, the in-place `PATCH` runbook, an M2M record as a consent-page credential, and the self-serve trial mint)_

@@ -7,10 +7,20 @@ import { describe, it, expect } from 'vitest';
 import {
   SCOPES,
   DEFAULT_SCOPES,
+  TRIAL_SCOPES,
   hasScope,
   assertScope,
   MissingScopeError,
 } from '../../../src/auth/scopes';
+
+describe('TRIAL_SCOPES (BL-155)', () => {
+  it('is DEFAULT_SCOPES with every radar scope removed, and nothing else', () => {
+    expect(TRIAL_SCOPES.some((s) => s.includes('radar'))).toBe(false);
+    expect(TRIAL_SCOPES.every((s) => DEFAULT_SCOPES.includes(s))).toBe(true);
+    expect(TRIAL_SCOPES).toEqual(DEFAULT_SCOPES.filter((s) => s !== SCOPES.RESOURCE_RADAR_READ));
+    expect(TRIAL_SCOPES).toContain(SCOPES.PROMPT_ALL);
+  });
+});
 
 describe('SCOPES catalog', () => {
   it('exposes stable scope strings — none change without an explicit refactor', () => {
