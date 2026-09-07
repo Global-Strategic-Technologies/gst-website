@@ -124,7 +124,8 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
       prefix: 'mcp:ratelimit:trial:ip',
       analytics: false,
     });
-    const rl = await limiter.limit(identityKey);
+    // Identifier is the bare HMAC; the limiter adds its own prefix.
+    const rl = await limiter.limit(identityKey.slice(TRIAL_IDENTITY_KEY_PREFIX.length));
     if (!rl.success) {
       const retryAfter = Math.max(1, Math.ceil((rl.reset - Date.now()) / 1000));
       safeLog({ event: 'trial.signup.rate-limited', success: false, errorCode: 'rate-limit' });
@@ -167,6 +168,7 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
 
   // --- 3. Lease: SET NX a short lease, branch on the value if it loses -----
   let won: boolean;
+  let existingClientId: string | undefined;
   try {
     won = (await redis.set(identityKey, LEASE_VALUE, { nx: true, ex: LEASE_TTL_SECONDS })) === 'OK';
     if (!won) {
@@ -176,9 +178,9 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
         won =
           (await redis.set(identityKey, LEASE_VALUE, { nx: true, ex: LEASE_TTL_SECONDS })) === 'OK';
       } else if (typeof current === 'string' && current.startsWith(MINTED_PREFIX)) {
-        return reissue(kv, current.slice(MINTED_PREFIX.length));
+        existingClientId = current.slice(MINTED_PREFIX.length);
       }
-      if (!won) {
+      if (!won && existingClientId === undefined) {
         return json(
           409,
           {
@@ -192,6 +194,15 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
     }
   } catch (e) {
     return unavailable(`lease: ${(e as Error).message}`);
+  }
+  // Outside the lease block so a KV failure here is attributed to re-issue,
+  // not to the lease, in `wrangler tail`.
+  if (existingClientId !== undefined) {
+    try {
+      return await reissue(kv, existingClientId);
+    } catch (e) {
+      return unavailable(`reissue: ${(e as Error).message}`);
+    }
   }
 
   // --- 4. Mint — the lease is held; release it on any failure --------------

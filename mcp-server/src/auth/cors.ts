@@ -96,7 +96,10 @@ export function corsHeadersFor(origin: string | null): Record<string, string> {
  *
  * Entries are exact origins, or ONE-LABEL suffix patterns written as
  * `*-<team>.vercel.app` (Vercel preview hosts are a single label, so the
- * suffix must include the team slug). A bare `*.vercel.app` — or any pattern
+ * suffix must include the team slug). Residual: the match is a plain suffix,
+ * so a foreign team whose slug happens to END in `-<team>` (`x-<team>`) also
+ * passes — accepted because the list is staging-only and the endpoint is
+ * reachable without a browser anyway. A bare `*.vercel.app` — or any pattern
  * whose suffix begins with `.` — would let every Vercel-hosted site drive the
  * staging mint and read the credential, so it is rejected at parse and
  * logged, never honoured. `*` alone is a wildcard and forbidden above.
