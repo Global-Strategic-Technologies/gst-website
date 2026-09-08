@@ -423,14 +423,22 @@ function accessHref(tier?: string) {
             <code class="mcp-tier__id">trial</code>
             <p class="mcp-tier__note">{t('tiers.trial.note')}</p>
             {
-              /* The only tier whose CTA is not a mailto: this one needs no
-              operator, so sending the reader to an inbox would be the wrong
-              instruction. `localizedHref` keeps es/pt-BR on their own prefix
-              rather than dropping them onto the English route. */
+              /* The only tier whose CTA is not a mailto, and the only one
+              styled as a BUTTON. Both follow from the same fact: this tier
+              needs no operator, so the action is "go and get it" rather than
+              "ask for it". Set as a text link like its two neighbours it read
+              as a third request — the affordance said email-us while the href
+              said self-serve. `.brutal-btn--primary` is the design system's
+              own control (44px floor, frosted, mono caps), not a local
+              restyling of the link.
+
+              `localizedHref` keeps es/pt-BR on their own prefix rather than
+              dropping them onto the English route. */
             }
             <a
               href={localizedHref('/hub/mcp/trial/', locale)}
-              class="mcp-tier__cta"
+              class="brutal-btn brutal-btn--primary mcp-tier__start"
+              data-tier-cta
               onclick="trackCTA('mcp-tier-trial', 'hub-mcp')">{t('tiers.trial.cta')}</a
             >
           </div>
@@ -447,6 +455,7 @@ function accessHref(tier?: string) {
             <a
               href={accessHref('paid')}
               class="mcp-tier__cta"
+              data-tier-cta
               onclick="trackCTA('mcp-access-paid', 'hub-mcp')">{t('tiers.request')}</a
             >
           </div>
@@ -460,6 +469,7 @@ function accessHref(tier?: string) {
             <a
               href={accessHref('enterprise')}
               class="mcp-tier__cta"
+              data-tier-cta
               onclick="trackCTA('mcp-access-enterprise', 'hub-mcp')">{t('tiers.request')}</a
             >
           </div>
@@ -1276,6 +1286,17 @@ function accessHref(tier?: string) {
 
   .mcp-tier__cta:hover {
     border-bottom-color: currentColor;
+  }
+
+  /* The trial's button, bottom-aligned with the two text links beside it so all
+     three CTAs sit on one baseline despite notes of different lengths. Only
+     placement is declared — `.brutal-btn--primary` owns every visual property,
+     including the 44px touch floor. `align-self` shrink-wraps it; a flex item
+     would otherwise stretch to the column width and read as a banner. */
+  .mcp-tier__start {
+    margin-top: auto;
+    align-self: flex-start;
+    text-decoration: none;
   }
 
   /* `fixed` so the four columns divide evenly and match the header grid; the

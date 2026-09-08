@@ -118,7 +118,10 @@ test.describe('MCP Server page', () => {
   // the weaker "some CTA exists" would stop catching a trial column that
   // silently reverts to an inbox.
   test('each tier CTA leads where that tier is actually obtained', async ({ page }) => {
-    const ctas = page.locator('.mcp-tiers .mcp-tier__cta');
+    // Located by `data-tier-cta`, not by a styling class: the trial's CTA is a
+    // button and the other two are text links, so no shared class survives, and
+    // binding this to one would make a restyle look like a missing CTA.
+    const ctas = page.locator('.mcp-tiers [data-tier-cta]');
     await expect(ctas).toHaveCount(EXPECTED_TIERS.length);
 
     for (let i = 0; i < EXPECTED_TIERS.length; i++) {
