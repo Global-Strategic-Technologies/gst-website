@@ -333,10 +333,22 @@ describe('MCP marketing page — tier parity', () => {
    * what the value cells carry, so both halves are pinned.
    */
   const TIER_COLUMNS = [
-    ['free-pilot', 'Pilot'],
+    ['trial', 'Trial'],
     ['paid', 'Deal Team'],
     ['enterprise', 'Firm'],
   ] as const;
+
+  /**
+   * The two ceilings the trial column publishes as a WORD rather than a number,
+   * and the label it publishes. `TIER_LIMITS.trial` carries `radarPerMinute: 1`
+   * and `radarPerDay: 1`, but a trial identity gets ZERO radar calls: the
+   * pipeline refuses radar tools for the tier outright (`trialRadarDenial`)
+   * before the limiter is consulted, so those 1s are defense-in-depth against
+   * the deny being removed, not an allowance on offer. Publishing "1" would be
+   * a false claim, so these cells are bound to the deny below instead.
+   */
+  const RADAR_ROWS: ReadonlySet<string> = new Set(['radarPerMinute', 'radarPerDay']);
+  const RADAR_NONE_LABEL = 'None';
 
   it('renders the ceilings as one comparison table', () => {
     expect(tableStart, 'tier comparison table not found').toBeGreaterThan(-1);
@@ -344,27 +356,33 @@ describe('MCP marketing page — tier parity', () => {
   });
 
   /**
-   * `trial` is assignable but deliberately NOT published here: BL-155 keeps
-   * the self-serve trial off the public tier table (the signup page is the
-   * only place a stranger learns what it grants — SELF_SERVE_TRIAL_BL-155.md
-   * § Decisions taken). So the page enumerates the assignable tiers MINUS
-   * `trial`, and a `trial` column appearing here is a defect, not a fix.
+   * `free-pilot` is still assignable — existing client records carry it and an
+   * operator may still grant it — but it is RETIRED as a public offering
+   * (2026-09-08): the BL-155 self-serve trial replaced it, and the two are one
+   * offering as far as a visitor is concerned. So the page enumerates the
+   * assignable tiers MINUS `free-pilot`, and a `free-pilot` column reappearing
+   * here means the retired tier is being advertised again.
+   *
+   * This inverts the rule that stood here until 2026-09-08, which kept `trial`
+   * OFF this table on the reasoning that the signup page should be the only
+   * public description of it (SELF_SERVE_TRIAL_BL-155.md § Decisions taken,
+   * amended in place). The trial is now the first column.
    */
-  const UNPUBLISHED_TIERS: ReadonlySet<string> = new Set(['trial']);
+  const UNPUBLISHED_TIERS: ReadonlySet<string> = new Set(['free-pilot']);
   const PUBLISHED_TIERS = ASSIGNABLE_TIERS.filter((t) => !UNPUBLISHED_TIERS.has(t));
 
-  it('publishes every assignable tier identifier except the trial, and only those', () => {
+  it('publishes every assignable tier identifier except the retired pilot, and only those', () => {
     expect(TIER_COLUMNS.map(([id]) => id)).toEqual(PUBLISHED_TIERS);
     for (const [id] of TIER_COLUMNS) {
       expect(markup).toContain(`<code class="mcp-tier__id">${id}</code>`);
     }
   });
 
-  it('does not publish the trial tier on the public tier table', () => {
+  it('does not publish the retired free-pilot tier on the public tier table', () => {
     // Vacuity guard first: the set must name a real assignable tier, or this
     // asserts over nothing.
     for (const id of UNPUBLISHED_TIERS) expect(ASSIGNABLE_TIERS).toContain(id);
-    expect(markup).not.toContain('<code class="mcp-tier__id">trial</code>');
+    expect(markup).not.toContain('<code class="mcp-tier__id">free-pilot</code>');
   });
 
   it('binds each display name to its own identifier, in table-column order', () => {
@@ -407,14 +425,46 @@ describe('MCP marketing page — tier parity', () => {
       // Thousands separators are a display choice; the guard formats the source
       // value the same way rather than accepting either shape.
       expect(cells).toEqual(
-        TIER_COLUMNS.map(([id, name]) => [name, TIER_LIMITS[id][key].toLocaleString('en-US')])
+        TIER_COLUMNS.map(([id, name]) => [
+          name,
+          // The trial's radar cells publish the deny, not the config's 1/1.
+          id === 'trial' && RADAR_ROWS.has(key)
+            ? RADAR_NONE_LABEL
+            : TIER_LIMITS[id][key].toLocaleString('en-US'),
+        ])
       );
     }
   );
 
+  /**
+   * Binds the published "None" to the code that makes it true. Without this the
+   * label is just a string the page happens to print, and someone deleting
+   * `trialRadarDenial` would leave the site advertising a refusal the server no
+   * longer performs — the one direction of drift the numeric cells cannot
+   * catch, since `TIER_LIMITS.trial` would still read 1/1 either way.
+   */
+  it('backs the published radar refusal with the tier gate that enforces it', () => {
+    const gate = read('mcp-server/src/pipeline/tier-gate.ts');
+
+    // Vacuity guards: prove the file really contains the deny before treating
+    // its presence as evidence, and that the page really prints the label.
+    expect(gate, 'tier-gate.ts must define the trial tier constant').toContain(
+      "export const TRIAL_TIER = 'trial'"
+    );
+    expect(gate, 'tier-gate.ts must export the radar denial').toContain(
+      'export function trialRadarDenial'
+    );
+    expect(gate, 'the denial must key off the trial tier').toContain('auth.tier !== TRIAL_TIER');
+    expect(table, 'the trial column must publish the refusal label').toContain(RADAR_NONE_LABEL);
+  });
+
   it('gives each tier a DIFFERENT set of ceilings', () => {
     // Backstop for the failure above: if the cards ever converge on one tier's
     // numbers, the per-tier assertions could all pass against a duplicated card.
+    //
+    // Note this reads `TIER_LIMITS` only, so it no longer backstops the two
+    // radar cells in the trial column — those publish a label rather than a
+    // number, and the tier-gate assertion above is what holds them.
     const rendered = ASSIGNABLE_TIERS.map((tier) =>
       CEILINGS.map(([key]) => TIER_LIMITS[tier][key]).join('/')
     );

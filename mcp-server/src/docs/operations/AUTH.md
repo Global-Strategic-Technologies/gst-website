@@ -170,12 +170,12 @@ The human then adds the connector in their client; at the consent page they auth
 
 ### Onboard an M2M client (headless client_credentials)
 
-**Normal path**: `npm run provision:client -- --name "<client>" --tier free-pilot` from `mcp-server/` — it wraps this endpoint, requires an explicit tier, validates scopes against the advertised catalog, gates radar behind `--allow-radar`, and prints the onboarding email. See [PILOT_ONBOARDING.md § 1](PILOT_ONBOARDING.md). The raw contract below stays here as the reference — and is still the way to register a JWKS, which the script does not do.
+**Normal path**: `npm run provision:client -- --name "<client>" --tier paid` from `mcp-server/` — it wraps this endpoint, requires an explicit tier, validates scopes against the advertised catalog, gates radar behind `--allow-radar`, and prints the onboarding email. See [PILOT_ONBOARDING.md § 1](PILOT_ONBOARDING.md). The raw contract below stays here as the reference — and is still the way to register a JWKS, which the script does not do.
 
 ```bash
 curl -s -X POST https://mcp.globalstrategic.tech/admin/oauth/m2m-clients \
   -H "Authorization: Bearer $MCP_ADMIN_KEY" -H "Content-Type: application/json" \
-  -d '{"name":"<client-name>","allowedScopes":["tool:*","resource:regulations:read"],"tier":"free-pilot","jwks":{"keys":[<ES256 public JWK, optional>]}}'
+  -d '{"name":"<client-name>","allowedScopes":["tool:*","resource:regulations:read"],"tier":"paid","jwks":{"keys":[<ES256 public JWK, optional>]}}'
 ```
 
 Deliver the returned `clientId` + `clientSecret` via the secure channel (or skip the secret entirely: register their ES256 public key and have them authenticate with RFC 7523 `private_key_jwt` assertions — preferred). Their pipeline then exchanges at `/token` with `grant_type=client_credentials` for a 1-hour `mcp_m2m_*` token (no refresh token — re-exchange on expiry; the official MCP SDKs' `ClientCredentialsProvider` handles this).

@@ -104,19 +104,27 @@ export const ANNOUNCEMENTS: Announcement[] = [
     // SOURCED claim (an earlier '2.0' shipped a version number nothing
     // published and was removed for it). Both fields are sourced by the page:
     // /hub/mcp/ markets the server as agents running the GST analysis tools,
-    // and the free pilot tier is in its tier presentation (and the hub FAQ).
-    // 32 characters of copy across the two fields, against a ceiling of ~34 —
+    // and the free trial is its first tier column, its lede CTA and its own
+    // page at /hub/mcp/trial/ (and the hub FAQ). The retired 'Free pilot tier'
+    // named an offering that no longer exists: the self-serve trial replaced it
+    // (2026-09-08), so the sash would have been advertising a dead tier.
+    // 27 characters of copy across the two fields, against a ceiling of ~34 —
     // one ceiling on every engine, because BL-144 pinned the mono (the spread
-    // is now ≤0.5px where it used to be 18px). Measured 2026-08-29: 243px of
-    // ink into 261px of usable chord, 18px spare. The rule and the two gaps
+    // is now ≤0.5px where it used to be 18px). Measured 2026-08-29 against the
+    // RETIRED 32-character copy: 243px of ink into 261px of usable chord, 18px
+    // spare. This copy is five characters shorter, so it clears that margin
+    // rather than eating into it — but the figure above has not been
+    // re-measured for it, and the sash E2E is what actually checks it. The rule and the two gaps
     // around it cost ~23px, so a THIRD field would spend more chord than its
     // copy alone. Count characters to sanity-check, then PROVE new copy by
     // running the sash E2E suite on all three engines: it measures the ink
     // against the corner and is the only budget that has ever been right.
     //
     // Two fields, two destinations: the pitch half deep-links to what the
-    // server does, the offer half to the tier matrix it names. Each is its own
-    // anchor — clicking "Automate analysis" must not land on the tiers.
+    // server does, the offer half to the trial page itself. Each is its own
+    // anchor — clicking "Automate analysis" must not land on the signup. The
+    // offer half used to point at /hub/mcp/#tiers; now that the offer is
+    // self-serve, the tier matrix is a detour on the way to the thing.
     subtext: [
       {
         text: 'Automate analysis',
@@ -124,9 +132,9 @@ export const ANNOUNCEMENTS: Announcement[] = [
         ariaLabel: 'Automate analysis — see what the MCP server does',
       },
       {
-        text: 'Free pilot tier',
-        href: '/hub/mcp/#tiers',
-        ariaLabel: 'Free pilot tier — see capability tiers',
+        text: 'Free trial',
+        href: '/hub/mcp/trial/',
+        ariaLabel: 'Free trial — start a free 3-day MCP trial',
       },
     ],
     href: '/hub/mcp/',
@@ -135,7 +143,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
     until: '2026-10-01',
     // Spoken form is overridden: the rule the component draws between fields
     // is a visual separator a screen reader would announce as "vertical line".
-    ariaLabel: 'New: GST MCP — automate analysis, free pilot tier — open the linked page',
+    ariaLabel: 'New: GST MCP — automate analysis, free trial — open the linked page',
   },
 ];
 

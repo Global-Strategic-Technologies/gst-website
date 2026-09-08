@@ -33,11 +33,13 @@ An external pilot's tier is set on its M2M client record (`tier`: `trial` / `fre
 | `enterprise` | 120          | 10000        | 10         | 150        |
 | `internal`   | 60           | 1000         | 5          | 50         |
 
-> **`trial` is an internal-only tier and is deliberately not published** on the marketing tier surface (BL-155 operator decision). It is minted for a stranger with no operator and no payment in the loop and lives 72h, so it is the tightest tier by construction — a unit test pins it at or below `free-pilot` on every ceiling.
+> **`trial` is the public entry tier** (operator decision, 2026-09-08): it replaced `free-pilot` as the advertised free offering, and `/hub/mcp/` publishes its `15`/`100` in the first column of the tier table. It is minted for a stranger with no operator and no payment in the loop and lives 72h, so it is the tightest tier by construction — a unit test pins it at or below `free-pilot` on every ceiling.
 >
-> Its **radar numbers are defense-in-depth, not the control**. Radar is denied to this tier at the pipeline seam, because radar reads the Inoreader-funded snapshot and a self-serve path must not become a bypass for it. The ceilings exist only so that accidentally removing that deny does not silently grant a stranger `free-pilot`-level radar. They are `1`/`1` rather than `0`/`0` because a zero sliding window is not verified to be representable in `@upstash/ratelimit`.
+> **`free-pilot` is retired as a public offering** but remains assignable: existing client records carry it, and an operator may still grant it deliberately. It is simply no longer advertised anywhere on the website.
+>
+> Its **radar numbers are defense-in-depth, not the control** — and note the public table prints **"None"** rather than these `1`/`1`, which is the honest figure: radar is denied to this tier outright at the pipeline seam (`pipeline/tier-gate.ts`, `trialRadarDenial`) **before the limiter is consulted**, because radar reads the Inoreader-funded snapshot and a self-serve path must not become a bypass for it. So a trial caller gets zero radar calls, not one. The ceilings exist only so that accidentally removing that deny does not silently grant a stranger `free-pilot`-level radar. They are `1`/`1` rather than `0`/`0` because a zero sliding window is not verified to be representable in `@upstash/ratelimit`.
 
-> **These are tunable, non-contractual capability ceilings — NOT ratified SLA quotas.** They are abuse/capacity limits. `free-pilot` is deliberately tighter than `internal` (abuse containment for an unvetted pilot), not a promised allowance. No pilot rate SLA is contractually committed.
+> **These are tunable, non-contractual capability ceilings — NOT ratified SLA quotas.** They are abuse/capacity limits. `trial` and `free-pilot` are deliberately tighter than `internal` (abuse containment for an unvetted caller), not a promised allowance. No pilot rate SLA is contractually committed.
 
 **Changing a tier** takes effect on the next window evaluation — the limiter reuses the same per-`keyOwner` Redis keys, so there's no migration; the new ceiling simply applies going forward (a client mid-window keeps whatever tokens it already consumed).
 

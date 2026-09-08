@@ -1,11 +1,17 @@
 /**
  * Trial signup page parity guard (`/hub/mcp/trial/`, BL-155 Slice 3).
  *
- * The page is the ONLY public description of the `trial` tier (it is kept off
- * the marketing tier table by operator decision), so the facts it states are
- * bound to server source the same way the marketing and onboarding guards
- * bind theirs: the tool count, the ceilings, the cited identifiers, the
- * hostnames, and the copy guardrails (no em dash, no docs subdomain).
+ * The facts this page states are bound to server source the same way the
+ * marketing and onboarding guards bind theirs: the tool count, the ceilings,
+ * the cited identifiers, the hostnames, and the copy guardrails (no em dash,
+ * no docs subdomain).
+ *
+ * This page is no longer the only public description of the `trial` tier. Until
+ * 2026-09-08 the trial was deliberately kept off the marketing tier table; it
+ * is now that table's FIRST column, because the self-serve trial replaced the
+ * retired `free-pilot` as the public entry offering. Both surfaces state the
+ * ceilings, so both are pinned to `TIER_LIMITS.trial` — here, and in
+ * `mcp-marketing-parity.test.ts`.
  *
  * The design handoff shipped the FREE-PILOT ceilings (30/300) under the trial
  * heading; this guard is what turns that class of error into a red test
