@@ -35,6 +35,10 @@
 import type { ServerContext } from '@modelcontextprotocol/server';
 import { safeLog } from '../auth/safe-logger';
 import { utf8ByteLength } from '../lib/utf8-bytes';
+// Value-only import from the dependency-free tier-policy module. NOT from
+// `ratelimit/limiter`, which would pull `@upstash/ratelimit` into this module
+// — the same reason `RateLimitCheck` below is mirrored rather than imported.
+import { SOFT_LIMIT_RATIO } from '../ratelimit/tiers';
 import { guardEvent } from './guard';
 import type { EventType, MetricEvent } from './_schema';
 import type { MetricSink } from './sinks/_interface';
@@ -161,7 +165,7 @@ export interface MetricsContext {
   readonly audit?: AuditContext;
   /**
    * BL-033 Slice 5 — the boundary's rate-limit result for this request.
-   * When some bucket is ≥80% consumed (`minRemainingRatio <= 0.20`),
+   * When some bucket is ≥80% consumed (`minRemainingRatio <= SOFT_LIMIT_RATIO`),
    * `withMetricsCore` emits a best-effort `notifications/message` warning on
    * the request's SSE stream so a compliant agent can throttle itself before
    * the hard 429. Undefined for stdio / tests / graceful-skip (→ no warning).
@@ -329,7 +333,7 @@ function findMcpNotifier(args: readonly unknown[]): McpServerContextView | undef
 
 /**
  * BL-033 Slice 5 — emit the 80%-consumed soft-limit warning, best-effort.
- * When some rate-limit bucket is ≥80% spent (`minRemainingRatio <= 0.20`),
+ * When some rate-limit bucket is ≥80% spent (`minRemainingRatio <= SOFT_LIMIT_RATIO`),
  * write a `notifications/message` onto this request's SSE stream so a
  * compliant agent can throttle itself before the hard 429. NEVER throws:
  * a missing `logging` capability, a non-SSE client, or an aborted request is
@@ -338,7 +342,7 @@ function findMcpNotifier(args: readonly unknown[]): McpServerContextView | undef
  * consume interim notifications.
  */
 function maybeWarnSoftLimit(rl: RateLimitCheck | undefined, args: readonly unknown[]): void {
-  if (!rl || rl.minRemainingRatio == null || rl.minRemainingRatio > 0.2) return;
+  if (!rl || rl.minRemainingRatio == null || rl.minRemainingRatio > SOFT_LIMIT_RATIO) return;
   const notify = findMcpNotifier(args)?.mcpReq?.notify;
   if (!notify) return;
   // Report the bucket that TRIPPED the ratio (`nearestLimit`), not the binding

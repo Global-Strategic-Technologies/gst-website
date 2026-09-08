@@ -22,7 +22,7 @@ Cloudflare's own guidance is the **Altinity plugin for ClickHouse** (`vertamedia
    - **URL**: `https://api.cloudflare.com/client/v4/accounts/<ACCOUNT_ID>/analytics_engine/sql`
    - **Auth**: leave every built-in auth toggle **off**. The API does not use basic auth or a TLS client cert.
    - **Custom HTTP header**: `Authorization` = `Bearer <YOUR_AE_TOKEN>`. This is the only credential path.
-   - **DateTime column**: `timestamp`, type DATETIME. **The macros do not expand without this** — a panel will fail with a confusing parse error rather than a missing-column one.
+   - **DateTime column**: nothing to set here. Every target in the shipped JSON already carries `dateTimeColDataType: "timestamp"` and `dateTimeType: "DATETIME"`, which is what the `$timeSeries` / `$timeFilter` macros expand against. (This step previously described it as a datasource-level setting; it is per-target. Left in place because a panel you build by hand in the UI **does** need it, and without it fails with a confusing parse error rather than a missing-column one.)
 
 4. **Import** `observability/grafana-dashboard.json`. Grafana prompts for the datasource (the JSON ships a `DS_CLICKHOUSE` placeholder rather than a hard-coded UID, so it is portable between accounts).
 
@@ -32,24 +32,28 @@ Cloudflare's own guidance is the **Altinity plugin for ClickHouse** (`vertamedia
 
 **The SQL in this dashboard has NOT been executed against a live AE dataset.** It was verified mechanically — the guard test pins both dialect rules (`GROUP BY` takes the raw column; counts are `sum(_sample_interval)`) and binds every column and event-type literal to `metrics/_schema.ts` — and the shapes were lifted from queries already running in production (`scripts/invoke-ae-baseline.mjs`, `src/observability/status-metrics.ts`). That is strong, but it is not execution: a dialect surprise would first surface on import.
 
-**Run the probe before you trust a panel.** `scripts/Verify-AeEmission.ps1` and the `curl` shape in [DEPLOY.md § C.X](DEPLOY.md) both execute arbitrary SQL against the API with the same token the datasource uses — paste a panel's query in and confirm it returns rows. Doing this for all twelve takes a few minutes and converts "should work" into "does".
+**Run the probe before you trust a panel.** `scripts/Verify-AeEmission.ps1` and the `curl` shape in [DEPLOY.md § C.X](DEPLOY.md) both execute arbitrary SQL against the API with the same token the datasource uses — paste a panel's query in and confirm it returns rows. Doing this for all sixteen takes a few minutes and converts "should work" into "does".
 
 Then walk this list once after import:
 
-| Panel                               | Expect                                                                                              |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Trial signups over time             | **Empty until the trial goes live in production.** Not a defect.                                    |
-| Signup outcomes in window           | Empty likewise. Once live: `minted` / `reissued` are successes, everything else a refusal or fault. |
-| Distinct active trials              | Empty likewise.                                                                                     |
-| Per-trial call volume               | Empty likewise.                                                                                     |
-| Invocations over time, by primitive | Rows for `tool_invocation`, and `resource_read` / `prompt_invocation` if either has traffic.        |
-| Invocations over time, by keyOwner  | One series per team key plus `__none__` for unauthenticated/cron.                                   |
-| Top tools in window                 | The tools actually being called.                                                                    |
-| Status codes                        | Mostly `200`.                                                                                       |
-| Tool latency percentiles            | p50/p95/p99 per tool. Compare against `/status` — same query shape, so they should agree.           |
-| Outcomes by tool                    | `success` dominant; a tool appearing only as `error` is worth chasing.                              |
-| Zone-1 calls over time              | Radar-refresh cadence. Cross-check against the Zone-1 spend badge on `/status`.                     |
-| Inoreader calls by category         | `oauth-refresh` appears here but not in the Zone-1 panel — that is correct, it is not Zone-1.       |
+| Panel                                     | Expect                                                                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Trial signups over time                   | **Empty until the trial goes live in production.** Not a defect.                                                                                 |
+| Signup outcomes in window                 | Empty likewise. Once live: `minted` / `reissued` are successes, everything else a refusal or fault.                                              |
+| Distinct active trials                    | Empty likewise.                                                                                                                                  |
+| Per-trial call volume                     | Empty likewise.                                                                                                                                  |
+| Invocations over time, by primitive       | Rows for `tool_invocation`, and `resource_read` / `prompt_invocation` if either has traffic.                                                     |
+| Invocations over time, by keyOwner        | One series per team key plus `__none__` for unauthenticated/cron.                                                                                |
+| Top tools in window                       | The tools actually being called.                                                                                                                 |
+| Status codes                              | Mostly `200`.                                                                                                                                    |
+| Tool latency percentiles                  | p50/p95/p99 per tool. Compare against `/status` — same query shape, so they should agree.                                                        |
+| Outcomes by tool                          | `success` dominant; a tool appearing only as `error` is worth chasing.                                                                           |
+| Refusals over time, by outcome            | `deny` and `throttle` only — **there is no `allow` series, by design** (ADR-0032). Empty is plausible: it means nobody hit a wall in the window. |
+| Refusals by client and responsible bucket | Which client hit which limit. `blob8` is empty for static bearer keys — they have no per-client identity, which is not a defect.                 |
+| Trial paywall hits over time              | **Empty until the trial goes live in production.** Not a defect.                                                                                 |
+| Which radar tools trials ask for          | Empty likewise. Once live, this is the upgrade-intent ranking, not a fault list.                                                                 |
+| Zone-1 calls over time                    | Radar-refresh cadence. Cross-check against the Zone-1 spend badge on `/status`.                                                                  |
+| Inoreader calls by category               | `oauth-refresh` appears here but not in the Zone-1 panel — that is correct, it is not Zone-1.                                                    |
 
 ### When a panel is empty
 
@@ -57,7 +61,7 @@ Three different causes look identical in Grafana, and only the last is a defect:
 
 | Cause                             | How to tell                                                                                                                                                                                                                           |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nothing emits this event type** | Should be impossible — the guard test forbids panels over the five non-emitting types. If you see one, the guard was bypassed.                                                                                                        |
+| **Nothing emits this event type** | Should be impossible — the guard test forbids panels over the four non-emitting types. If you see one, the guard was bypassed.                                                                                                        |
 | **No traffic in the window**      | Widen the time range. Trial panels are expected empty until go-live; a quiet weekend empties others.                                                                                                                                  |
 | **Broken query**                  | Grafana shows a query error, not an empty chart. Copy the SQL into the `curl` probe from [DEPLOY.md § C.X](DEPLOY.md) to see the dialect error. Most likely on first import, since the SQL ships guard-verified rather than executed. |
 
@@ -69,12 +73,14 @@ Three different causes look identical in Grafana, and only the last is a defect:
 
 ## What the dashboard deliberately omits
 
-Five of the twelve event types declared in `src/metrics/_schema.ts` **emit nothing in production**. Panels over them would render empty charts that read as _good news_ — "no throttling", "all healthy" — so they are absent by design and the guard test fails if one is added:
+Four of the thirteen event types declared in `src/metrics/_schema.ts` **emit nothing in production**. Panels over them would render empty charts that read as _good news_ — "all healthy" — so they are absent by design and the guard test fails if one is added:
 
-- `rate_limit_decision` and `health_check` — declared, **no emitter anywhere**. Tracked as BL-157.
-- `prompt_span`, `wrong_irl_detected`, `gate_elided` — emitter functions exist, nothing calls them.
+- `health_check` — declared, **no emitter anywhere**. `/status` health comes from live probes, not AE. Tracked as BL-157.
+- `prompt_span`, `wrong_irl_detected`, `gate_elided` — emitter functions exist, nothing calls them. Also BL-157.
 
 Also omitted, for different reasons: `audit_batch` (emitted, but the pipeline is deactivated — ADR-0014), and `cron_outcome` (genuinely live, but `/status` and the seven alert rules already cover cron health).
+
+**`rate_limit_decision` left this list on 2026-09-08** — BL-157 wired its emitter. One thing about it is deliberately partial, and the panels will look wrong if you don't know it: it is emitted **only on refusal**, never on `allow`, so there is no allow series and no exact denial _rate_. An `allow` event would fire on every authenticated request and push this dataset toward sampling, which silently degrades the `uniq()` panel above. Reasoning, rejected alternatives and revisit triggers: [ADR-0032](../../../../src/docs/adr/0032-rate-limit-decisions-emit-only-on-refusal.md). A separate guard fails the build if a panel ever filters on `'allow'`, since that series would be permanently empty and read as "nothing is getting through".
 
 ## Relationship to `/status`
 

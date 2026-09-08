@@ -106,6 +106,16 @@ Before the hard 429, when any bucket is ≥80% consumed the server emits an MCP 
 
 This is **best-effort**: it's delivered on the streamable-HTTP SSE response, so a client that only reads the terminal result frame won't see it. That's fine — the `RateLimit-Remaining` / `RateLimit-Policy` **headers on every response are the guaranteed signal**; the notification is a convenience for clients that consume interim frames. A failure to deliver it never affects the tool call.
 
+The 80% threshold is `SOFT_LIMIT_RATIO` in [`ratelimit/tiers.ts`](../../ratelimit/tiers.ts), read by both this warning and the `rate_limit_decision` `throttle` metric below, so the two can never disagree about what "near the limit" means.
+
+### Observing refusals (BL-157)
+
+Throttles and 429s reach Analytics Engine as `rate_limit_decision` events, and trial radar refusals as `tier_denial` — before this they existed only as `safeLog` lines, i.e. only while someone held a `wrangler tail` open. Both have Grafana panels ([GRAFANA.md](GRAFANA.md), "Rate-limit pressure and tier gates") and copy-pasteable SQL in [AUTH.md](AUTH.md).
+
+**Emitted on refusal only — never on `allow`.** So these answer _"who is hitting a wall"_, not _"what fraction of requests were allowed"_. An `allow` event would fire on every authenticated request and push the AE dataset toward sampling, which silently degrades the `uniq()`-based distinct-trials count; the reasoning, the rejected alternatives and the revisit triggers are in [ADR-0032](../../../../src/docs/adr/0032-rate-limit-decisions-emit-only-on-refusal.md). A denial _rate_ can be approximated as denies ÷ (invocations + denies), which slightly overstates it — non-tool traffic like `initialize` and `tools/list` passes the limiter without emitting an invocation.
+
+Still missing: **no alert fires on any of this.** The seven canonical rules do not cover refusal volume. Deliberate for now — a threshold has to cite a baseline in `slo-baselines.md`, and there is no baseline for a metric that has only just started being recorded. Set one from observed trial traffic after go-live.
+
 ---
 
 ## Circuit breaker (radar protection)

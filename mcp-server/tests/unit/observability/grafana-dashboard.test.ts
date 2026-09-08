@@ -68,12 +68,15 @@ const TIME_MACRO_ALIAS = 't';
  * recorded" — the precise failure this guard exists to prevent. Widening this
  * list is fine; quietly querying one of them is not.
  *
- * `rate_limit_decision` and `health_check` have no emitter at all;
- * `prompt_span`, `wrong_irl_detected` and `gate_elided` have emitter functions
- * that nothing in `src/` calls. Tracked as BL-157.
+ * `health_check` has no emitter at all; `prompt_span`, `wrong_irl_detected`
+ * and `gate_elided` have emitter functions that nothing in `src/` calls.
+ * Tracked as BL-157.
+ *
+ * `rate_limit_decision` LEFT this list when BL-157 wired its emitter in
+ * `metrics/pipeline-events.ts` — refusals only, never `allow`, which is what
+ * the separate allow-series guard below protects.
  */
 const NON_EMITTING_TYPES = [
-  'rate_limit_decision',
   'health_check',
   'prompt_span',
   'wrong_irl_detected',
@@ -242,6 +245,32 @@ describe('grafana-dashboard.json — bound to the metrics schema', () => {
           `${q.title} queries "${type}", which nothing emits — the panel would render empty and read as good news (BL-157)`
         ).not.toContain(type);
       }
+    }
+  });
+
+  it('never plots an "allow" series, which is emitted by design and always empty', () => {
+    // ADR-0032: `rate_limit_decision` is emitted ONLY on refusal. An `allow`
+    // series would therefore render permanently empty — and unlike the dead
+    // event types above, the event type itself IS live, so the vacuity guard
+    // cannot catch it. The failure mode is the same and worse: a flat line at
+    // zero next to real deny data reads as "nothing is being allowed through"
+    // or "we stopped counting", rather than "this was never recorded".
+    for (const q of queries) {
+      if (!q.sql.includes('rate_limit_decision')) continue;
+      expect(
+        q.sql,
+        `${q.title} filters rate_limit_decision on 'allow', which is never emitted (ADR-0032) — the series would be permanently empty`
+      ).not.toMatch(/'allow'/);
+    }
+  });
+
+  it('carries a panel for every event type that BL-157 newly wired', () => {
+    // Vacuity guard's mirror image: wiring an emitter without a panel leaves
+    // the data unobserved, which is the gap this whole change exists to close.
+    const allSql = queries.map((q) => q.sql).join('\n');
+    for (const type of ['rate_limit_decision', 'tier_denial']) {
+      expect(EVENT_TYPES as readonly string[], `${type} must still be declared`).toContain(type);
+      expect(allSql, `${type} is emitted in production but no panel reads it`).toContain(type);
     }
   });
 

@@ -28,7 +28,8 @@ import { withCors } from '../auth/cors';
 import { safeLog } from '../auth/safe-logger';
 import { hasScope } from '../auth/scopes';
 import { createLimiter } from '../ratelimit/limiter';
-import { resolveTierLimits } from '../ratelimit/tiers';
+import { resolveTierLimits, SOFT_LIMIT_RATIO } from '../ratelimit/tiers';
+import { emitRateLimitDecision, emitTierDenial } from '../metrics/pipeline-events';
 import {
   reasonForTier,
   rateLimitPolicyHeader,
@@ -93,6 +94,16 @@ export async function handleAuthenticated(
       success: false,
       errorCode: 'missing-scope',
     });
+    // BL-157 — the upgrade-intent signal. A trial asking for the gated
+    // product is the most commercially interesting thing the trial produces,
+    // and until this it existed only as the stdout line above. `call` is
+    // non-null here by construction: `trialRadarDenial` returns null without
+    // one.
+    emitTierDenial(env, {
+      keyOwner: auth.keyOwner,
+      clientRef: auth.rateLimitSubject,
+      toolName: call?.name ?? 'unknown',
+    });
     return withCors(denied, origin);
   }
 
@@ -127,7 +138,27 @@ export async function handleAuthenticated(
         success: false,
         errorCode: 'rate-limit',
       });
+      // BL-157 — the same fact, durably. The safeLog above is stdout-only.
+      emitRateLimitDecision(env, {
+        keyOwner: auth.keyOwner,
+        clientRef: auth.rateLimitSubject,
+        outcome: 'deny',
+        responsibleTier: rlResult.tier,
+      });
       return withCors(tooManyRequestsResponse(rlResult, rlPolicy), origin);
+    }
+    // BL-157 — allowed, but some bucket is ≥80% spent. This is the same
+    // condition that raises the client-facing soft-limit warning at the tool
+    // wrapper, read from the one shared constant so the metric and the warning
+    // can never disagree. Report the bucket NEAREST its cliff, which is not
+    // necessarily the binding one.
+    if ((rlResult.minRemainingRatio ?? 1) <= SOFT_LIMIT_RATIO) {
+      emitRateLimitDecision(env, {
+        keyOwner: auth.keyOwner,
+        clientRef: auth.rateLimitSubject,
+        outcome: 'throttle',
+        responsibleTier: rlResult.nearestLimit?.tier ?? rlResult.tier,
+      });
     }
   } else {
     safeLog({

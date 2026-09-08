@@ -221,8 +221,95 @@
     },
     {
       "type": "row",
-      "title": "Latency and errors",
+      "title": "Rate-limit pressure and tier gates (BL-157)",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Refusals over time, by outcome",
+      "description": "Only REFUSALS are emitted \u2014 'deny' (the window was exhausted, the caller got a 429) and 'throttle' (allowed, but some bucket is >=80% spent). There is deliberately no 'allow' series: emitting one would write a row per authenticated request and push this dataset into sampling, which silently degrades the uniq() query on 'Distinct active trials'. See ADR-0032.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT $timeSeries AS t, blob4 AS outcome, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'rate_limit_decision' AND $timeFilter\nGROUP BY blob4, t\nORDER BY t"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Refusals by client and responsible bucket",
+      "description": "Who is hitting which wall. blob2 is the bucket the operator should act on, filled asymmetrically by design: on 'deny' it is the bucket that refused; on 'throttle' it is the bucket nearest its cliff, which is not necessarily the binding one. That is why this groups by outcome too \u2014 reading blob2 alone mixes the two meanings. blob8 is the per-client ref (ADR-0031), empty for static bearer keys, which have no per-client identity.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob8 AS client_ref, blob2 AS responsible_bucket, blob4 AS outcome, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'rate_limit_decision' AND $timeFilter\nGROUP BY blob8, blob2, blob4\nORDER BY n DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Trial paywall hits over time",
+      "description": "A trial identity was refused a radar tool by the tier gate. This is upgrade INTENT, not an error: someone wanted the gated product. Expected empty until the self-serve trial goes live in production \u2014 an empty chart here is not a broken query.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT $timeSeries AS t, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'tier_denial' AND $timeFilter\nGROUP BY t\nORDER BY t"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Which radar tools trials ask for",
+      "description": "The commercial signal in this dashboard: which gated capability trials reach for, ranked. Read it as a demand curve for the paid tier, not a fault list. Expected empty until trial go-live.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob2 AS refused_tool, blob8 AS client_ref, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'tier_denial' AND $timeFilter\nGROUP BY blob2, blob8\nORDER BY n DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "type": "row",
+      "title": "Latency and errors",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 49 },
       "collapsed": false,
       "panels": []
     },
@@ -232,7 +319,7 @@
       "title": "Tool latency percentiles",
       "description": "Server-side handler latency, weighted by sample interval. Same query shape the /status page renders (status-metrics.ts), with the dataset and time window macro-swapped. Includes probe/synthetic traffic — it is real handler latency.",
       "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 33 },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 50 },
       "targets": [
         {
           "refId": "A",
@@ -252,7 +339,7 @@
       "title": "Outcomes by tool",
       "description": "success vs error per tool. A tool appearing only with outcome 'error' is the shape worth chasing.",
       "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
-      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 33 },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 50 },
       "targets": [
         {
           "refId": "A",
@@ -269,7 +356,7 @@
     {
       "type": "row",
       "title": "Inoreader egress (Zone-1 budget)",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 42 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 59 },
       "collapsed": false,
       "panels": []
     },
@@ -279,7 +366,7 @@
       "title": "Zone-1 calls over time, by category",
       "description": "blob7 = '1' isolates Zone-1 categories from the OAuth refresh path. This is the Inoreader-funded budget the radar tools draw on, and the reason radar is denied to the trial tier.",
       "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 43 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 60 },
       "targets": [
         {
           "refId": "A",
@@ -299,7 +386,7 @@
       "title": "Inoreader calls by category, outcome and status",
       "description": "status_code '0' isolates network-side failures from Inoreader-side ones.",
       "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 43 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 60 },
       "targets": [
         {
           "refId": "A",
@@ -316,7 +403,7 @@
     {
       "type": "row",
       "title": "What is missing, and why",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 51 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 68 },
       "collapsed": false,
       "panels": []
     },
@@ -324,10 +411,10 @@
       "id": 13,
       "type": "text",
       "title": "What this dashboard deliberately does not show",
-      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 52 },
+      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 69 },
       "options": {
         "mode": "markdown",
-        "content": "Five of the twelve event types declared in `mcp-server/src/metrics/_schema.ts` **emit nothing in production**. A panel over any of them would render an empty chart that reads as *good news* — \"no throttling\", \"all healthy\" — rather than *no data*. So they are absent on purpose, and a guard test (`mcp-server/tests/unit/observability/grafana-dashboard.test.ts`) fails if one is added back.\n\n| Not shown | Why |\n| --- | --- |\n| **Rate-limit pressure** (`rate_limit_decision`) | Declared in the schema with `allow`/`throttle`/`deny` outcomes and **no emitter anywhere**. Throttles reach AE for no tier at all. Tracked as **BL-157**. |\n| **Health checks** (`health_check`) | Same: declared, never emitted. `/status` health comes from live probes (`buildHealthPayload`), not from AE. |\n| **Prompt spans** (`prompt_span`) | Emitter exists (`metrics/prompt-span.ts`); nothing calls it. |\n| **IRL counters** (`wrong_irl_detected`, `gate_elided`) | Emitters exist (`metrics/irl-ingestion-events.ts`); nothing calls them. |\n| **Audit batches** (`audit_batch`) | Emitted, but the pipeline is deactivated (ADR-0014), so counters legitimately read 0. |\n| **Cron outcomes** (`cron_outcome`) | Genuinely live — omitted because `/status` and the seven alert rules already cover cron health. Add a panel here if that stops being true. |\n\n**Expected empty at import**: the trial panels, until the self-serve trial goes live in production. An empty trial panel is not a broken query.\n\n**Reading the numbers**: every count is `sum(_sample_interval)`, not `count()`, because AE samples. `uniq()` has no such correction — see the caveat on the *Distinct active trials* panel and [ADR-0031](https://github.com/reidperyam/gst-website/blob/master/src/docs/adr/0031-per-client-analytics-identity-is-a-blob.md)."
+        "content": "Four of the thirteen event types declared in `mcp-server/src/metrics/_schema.ts` **emit nothing in production**. A panel over any of them would render an empty chart that reads as *good news* — \"no throttling\", \"all healthy\" — rather than *no data*. So they are absent on purpose, and a guard test (`mcp-server/tests/unit/observability/grafana-dashboard.test.ts`) fails if one is added back.\n\n| Not shown | Why |\n| --- | --- |\n| **Health checks** (`health_check`) | Same: declared, never emitted. `/status` health comes from live probes (`buildHealthPayload`), not from AE. |\n| **Prompt spans** (`prompt_span`) | Emitter exists (`metrics/prompt-span.ts`); nothing calls it. |\n| **IRL counters** (`wrong_irl_detected`, `gate_elided`) | Emitters exist (`metrics/irl-ingestion-events.ts`); nothing calls them. |\n| **Audit batches** (`audit_batch`) | Emitted, but the pipeline is deactivated (ADR-0014), so counters legitimately read 0. |\n| **Cron outcomes** (`cron_outcome`) | Genuinely live — omitted because `/status` and the seven alert rules already cover cron health. Add a panel here if that stops being true. |\n\n**Why the refusal panels have no `allow` series**: `rate_limit_decision` is emitted **only on refusal**. An `allow` event would fire on every authenticated request \u2014 a volume class nothing else here occupies \u2014 and more rows means Cloudflare samples this dataset sooner. `uniq()` has no sample correction, so that would quietly degrade *Distinct active trials* in exchange for a number recoverable anyway (attempts \u2248 invocations + denies). The trade and its rejected alternatives: [ADR-0032](https://github.com/reidperyam/gst-website/blob/master/src/docs/adr/0032-rate-limit-decisions-emit-only-on-refusal.md).\n\n**Expected empty at import**: the trial signup panels and the two tier-gate panels, until the self-serve trial goes live in production. An empty trial panel is not a broken query.\n\n**Reading the numbers**: every count is `sum(_sample_interval)`, not `count()`, because AE samples. `uniq()` has no such correction — see the caveat on the *Distinct active trials* panel and [ADR-0031](https://github.com/reidperyam/gst-website/blob/master/src/docs/adr/0031-per-client-analytics-identity-is-a-blob.md)."
       }
     }
   ]

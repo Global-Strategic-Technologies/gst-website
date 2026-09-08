@@ -123,3 +123,16 @@ Once this doc is filled and signed off, Phase 3 (alerts + status surface; dashbo
   datasource is the **Altinity ClickHouse plugin** (`vertamedia-clickhouse-datasource`), not
   Infinity as this line previously recorded: Altinity is what Cloudflare documents, and only it
   supplies the `$timeSeries`/`$timeFilter` macros the time-series panels use
+
+### Baseline still owed: rate-limit refusal volume (BL-157, 2026-09-08)
+
+`rate_limit_decision` and `tier_denial` began emitting on 2026-09-08 and have **no baseline here
+yet**, because until that date nothing had ever recorded a throttle or a tier refusal. That is why
+the slice shipped panels but **no eighth alert rule**: every rule's threshold must cite a baseline
+in this document (enforced by `runbook-freshness.test.ts`), and inventing a "denials per minute"
+figure for a metric with no history would be ratifying a number from nothing.
+
+**Trigger to close this**: once the self-serve trial has run in production long enough to show a
+normal refusal rate, record it below and add the rule plus its runbook. Read the numbers per
+ADR-0032 — refusals only, never `allow`, so a denial _rate_ is denies ÷ (invocations + denies) and
+is a slight overstatement.

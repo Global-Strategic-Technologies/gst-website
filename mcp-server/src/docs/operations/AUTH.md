@@ -257,6 +257,33 @@ What an operator needs to know:
 
   Not covered: there is **no alert rule** on signup volume or failure rate yet, so nothing pages you when signup breaks — these queries are pull, not push.
 
+  **Refusals — did the trial hit a wall?** (BL-157). Two event types, same `GROUP BY`-the-raw-column rule:
+
+  ```sql
+  -- Rate-limit refusals. There is NO 'allow' row and that is correct:
+  -- rate_limit_decision is emitted on refusal only (ADR-0032), so this
+  -- answers "who hit a limit", not "what fraction of calls were allowed".
+  -- blob2 is the responsible bucket: minute / day / radar-minute / radar-day.
+  SELECT blob8 AS client_ref, blob2 AS bucket, blob4 AS outcome,
+         sum(_sample_interval) AS n
+  FROM mcp_events
+  WHERE blob1 = 'rate_limit_decision' AND index1 = 'OAUTH:M2M:TRIAL'
+    AND timestamp > NOW() - INTERVAL '7' DAY
+  GROUP BY blob8, blob2, blob4
+  ORDER BY n DESC
+
+  -- Trial paywall hits: which gated tool did a trial reach for? This is the
+  -- upgrade-intent signal, not a fault list. blob2 is the refused TOOL here
+  -- (different meaning from the query above — do not union them).
+  SELECT blob2 AS refused_tool, sum(_sample_interval) AS n
+  FROM mcp_events
+  WHERE blob1 = 'tier_denial' AND timestamp > NOW() - INTERVAL '30' DAY
+  GROUP BY blob2
+  ORDER BY n DESC
+  ```
+
+  A `throttle` row means the caller was **allowed** but was ≥80% through some bucket — the same threshold that raises the client-facing soft-limit warning. A `deny` row is a 429 the caller actually received.
+
 - **Staging vs production**: staging pairs the documented always-pass Turnstile **test** secret (`1x0000000000000000000000000000000AA`) with the test sitekey on the page and accepts `localhost` / preview hostnames (`TURNSTILE_EXPECTED_HOSTNAMES`, `TRIAL_EXTRA_ORIGINS` in `wrangler.toml`); production accepts only the website's own hosts. The test secret reports `hostname: "example.com"` and no `action` (observed 2026-09-07), so staging lists `example.com` and the verifier waives a missing action only for a response Cloudflare flags as a testing-key result. A scripted staging mint is `curl -X POST …/trial/signup -H 'Content-Type: application/json' -d '{"turnstileToken":"XXXX.DUMMY.TOKEN.XXXX"}'`.
 
 ### Introspect a token (support/debugging)

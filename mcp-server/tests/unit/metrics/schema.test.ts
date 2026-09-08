@@ -41,6 +41,7 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "wrong_irl_detected",
         "gate_elided",
         "trial_signup",
+        "tier_denial",
       ]
     `);
   });
@@ -168,6 +169,9 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "success",
           "error",
         ],
+        "tier_denial": [
+          "denied",
+        ],
         "tool_invocation": [
           "success",
           "error",
@@ -223,6 +227,12 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "http-radar-snapshot",
           "oauth-refresh",
           "401-retry",
+        ],
+        "rate_limit_decision": [
+          "minute",
+          "day",
+          "radar-minute",
+          "radar-day",
         ],
         "trial_signup": [
           "trial-signup",

@@ -23,6 +23,28 @@
 
 import { safeLog } from '../auth/safe-logger';
 
+/**
+ * The soft-limit threshold: a bucket whose `remaining / limit` ratio is at or
+ * below this is ≥80% spent. Compared against `CheckResult.minRemainingRatio`.
+ *
+ * **Two consumers that must agree**, which is the only reason this is a named
+ * constant: the `notifications/message` soft-limit warning at the tool wrapper
+ * (`metrics/with-metrics.ts`), and the `rate_limit_decision` `throttle` metric
+ * (`metrics/pipeline-events.ts`). A metric reporting a different notion of
+ * "near the limit" than the warning the client actually received would be
+ * worse than no metric. Until BL-157 wired the second consumer this lived as a
+ * bare `0.2` literal in `with-metrics.ts` plus prose in three JSDoc blocks.
+ *
+ * **Why it lives in `tiers.ts` and not `limiter.ts`**, which is where the
+ * ratio is computed: `with-metrics.ts` deliberately mirrors `RateLimitCheck`
+ * locally rather than importing the limiter, to keep the `@upstash/ratelimit`
+ * dependency out of the metrics module (see the note above that interface).
+ * Importing this from `limiter.ts` would defeat that. `tiers.ts` is the
+ * dependency-free policy module both sides can reach, and it already owns the
+ * other tunable rate-limit numbers.
+ */
+export const SOFT_LIMIT_RATIO = 0.2;
+
 /** The four sliding-window ceilings a tier grants. All per-`keyOwner`. */
 export interface TierLimits {
   readonly perMinute: number;

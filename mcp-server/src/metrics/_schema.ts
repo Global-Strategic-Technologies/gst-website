@@ -59,6 +59,15 @@ export const EVENT_TYPES = [
   // only via `safeLog` — i.e. only while someone held a `wrangler tail` open —
   // so "how many trials were minted last week" had no answer at all.
   'trial_signup',
+  // BL-157 — a trial identity refused a radar tool by the tier gate
+  // (`pipeline/tier-gate.ts`). A SEPARATE type rather than a `tool_invocation`
+  // outcome for two reasons: the refusal returns before any tool wrapper runs,
+  // so no invocation exists to carry it; and folding it into `tool_invocation`
+  // would inflate that type's error count, which the `scope-mismatch-403-rate`
+  // alert rule reads. Commercially this is the most interesting event the
+  // trial produces — a caller asking for the gated product is the upgrade
+  // signal — and before this it reached nothing but `safeLog`.
+  'tier_denial',
 ] as const;
 
 export type EventType = (typeof EVENT_TYPES)[number];
@@ -277,6 +286,10 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   //   carried in `name`).
   wrong_irl_detected: ['halt', 'partial', 'ok'],
   gate_elided: ['elided'],
+  // BL-157 — single-value outcome, following the `gate_elided` precedent
+  // above: the discriminator that matters is `name` (the refused tool), and
+  // keeping `outcome` narrow lets dashboard SQL `GROUP BY blob2` directly.
+  tier_denial: ['denied'],
 };
 
 /**
@@ -294,8 +307,12 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
  *
  * Event types where `name` is intentionally open (`tool_invocation` —
  * tool names; `resource_read` — URI prefixes; `prompt_invocation` —
- * prompt names; `prompt_span` — same; `rate_limit_decision` — call site
- * identifiers) have no entry here; the guard skips them.
+ * prompt names; `prompt_span` — same; `tier_denial` — the refused tool
+ * name) have no entry here; the guard skips them.
+ *
+ * `rate_limit_decision` was described here as open ("call site identifiers")
+ * while it had no emitter. BL-157 wired one, and the `name` it writes is the
+ * responsible bucket — a bounded four-value set — so it is pinned below.
  */
 export const NAME_VALUES: Partial<Record<EventType, readonly string[]>> = {
   inoreader_call: ['cron-radar', 'live-radar', 'http-radar-snapshot', 'oauth-refresh', '401-retry'],
@@ -306,6 +323,13 @@ export const NAME_VALUES: Partial<Record<EventType, readonly string[]>> = {
   // constant on this event type, which makes the pin free and a typo in it
   // otherwise undetectable.
   trial_signup: ['trial-signup'],
+  // BL-157 — the bucket RESPONSIBLE for the decision, which is `CheckResult`'s
+  // own `tier` union and therefore bounded. Pinned on the same reasoning as
+  // `trial_signup` above: the set is closed, so the pin is free and a typo is
+  // otherwise undetectable. Note the emitter fills this asymmetrically —
+  // the bucket that refused on `deny`, the bucket nearest its cliff on
+  // `throttle` — which is documented at `metrics/pipeline-events.ts`.
+  rate_limit_decision: ['minute', 'day', 'radar-minute', 'radar-day'],
 };
 
 /**
