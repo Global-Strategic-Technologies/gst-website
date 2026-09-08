@@ -142,5 +142,32 @@ FORMAT JSON
                 Select-Object name, outcome, status_code, zone1, @{Name='n'; Expression={[int]$_.n}} |
                 Format-Table -AutoSize
         }
+
+        # BL-155 — trial signup outcomes and the per-client blob. Probed here
+        # rather than assumed: these are the two columns added by ADR-0031, and
+        # a deploy that silently stopped emitting them would otherwise look
+        # identical to "no trials this window".
+        Write-Host "  --- trial_signup outcomes (blob8 = client_ref) ---" -ForegroundColor DarkCyan
+        $trialSql = @"
+SELECT blob4 AS outcome, blob6 AS status_code, blob8 AS client_ref, sum(_sample_interval) AS n
+FROM $dataset
+WHERE blob1 = 'trial_signup' AND timestamp > NOW() - INTERVAL '$WindowHours' HOUR
+GROUP BY blob4, blob6, blob8
+ORDER BY n DESC
+FORMAT JSON
+"@
+        try {
+            $trial = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $trialSql
+        } catch {
+            Write-Host "  trial_signup query failed: $_" -ForegroundColor Red
+            continue
+        }
+        if (-not $trial.data -or $trial.data.Count -eq 0) {
+            Write-Host "  (no trial_signup rows in window)" -ForegroundColor Yellow
+        } else {
+            $trial.data |
+                Select-Object outcome, status_code, client_ref, @{Name='n'; Expression={[int]$_.n}} |
+                Format-Table -AutoSize
+        }
     }
 }

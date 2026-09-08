@@ -50,7 +50,14 @@ const { store, redisSet, redisGet, redisDel, redisEval, MockRedis, mockSafeLog }
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
 vi.mock('../../../src/auth/safe-logger', () => ({ safeLog: mockSafeLog }));
 
-import { handleTrialSignup, TRIAL_IDENTITY_KEY_PREFIX } from '../../../src/trial/signup';
+import {
+  handleTrialSignup,
+  TRIAL_IDENTITY_KEY_PREFIX,
+  TRIAL_KEY_OWNER,
+} from '../../../src/trial/signup';
+import { OUTCOME_VALUES } from '../../../src/metrics/_schema';
+import { keyOwnerFor } from '../../../src/oauth/m2m-clients';
+import { oauthKeyOwner } from '../../../src/oauth/key-owner';
 import { TURNSTILE_ACTION } from '../../../src/trial/turnstile';
 import { TRIAL_SCOPES } from '../../../src/auth/scopes';
 import { TRIAL_IDENTITY_TTL_SECONDS, TRIAL_TTL_SECONDS } from '../../../src/ratelimit/tiers';
@@ -79,6 +86,31 @@ const kv = {
 } as unknown as KVNamespace;
 
 const fetchSpy = vi.fn();
+
+/**
+ * BL-155 observability — the AE dataset the handler writes signup outcomes to.
+ * Captures the positional data points so a test can assert on the column map
+ * rather than on a mock's call arguments.
+ */
+const aePoints: { blobs: (string | null)[]; doubles: number[]; indexes: string[] }[] = [];
+const metricsDataset = {
+  writeDataPoint: vi.fn((dp: (typeof aePoints)[number]) => {
+    aePoints.push(dp);
+  }),
+};
+/** Blob slots, by name, so the assertions read as fields not indices. */
+const signupEvents = () =>
+  aePoints
+    .filter((dp) => dp.blobs[0] === 'trial_signup')
+    .map((dp) => ({
+      name: dp.blobs[1],
+      keyOwner: dp.blobs[2],
+      outcome: dp.blobs[3],
+      status_code: dp.blobs[5],
+      client_ref: dp.blobs[7],
+      index: dp.indexes[0],
+    }));
+
 const env = (): Env =>
   ({
     OAUTH_KV: kv,
@@ -87,6 +119,7 @@ const env = (): Env =>
     TURNSTILE_EXPECTED_HOSTNAMES: 'globalstrategic.tech',
     UPSTASH_MCP_REST_URL: 'https://mcp.upstash.io',
     UPSTASH_MCP_REST_TOKEN: 'rw',
+    METRICS: metricsDataset,
   }) as unknown as Env;
 
 const req = (body: unknown = { turnstileToken: 'tok' }, ip: string | null = IP) =>
@@ -132,6 +165,8 @@ beforeEach(() => {
   redisDel.mockClear();
   redisEval.mockReset();
   mockSafeLog.mockReset();
+  aePoints.length = 0;
+  metricsDataset.writeDataPoint.mockClear();
   fetchSpy.mockReset();
   // A fresh Response per call — a body can only be read once.
   fetchSpy.mockImplementation(async () => siteverifyOk());
@@ -381,5 +416,181 @@ describe('handleTrialSignup — request shape', () => {
   it('rejects a request with no client address', async () => {
     const res = await handleTrialSignup(req({ turnstileToken: 'tok' }, null), env());
     expect(res.status).toBe(400);
+  });
+});
+
+/**
+ * BL-155 observability. Before these events existed, signup was visible only
+ * through `safeLog` — i.e. only while someone held a `wrangler tail` open — so
+ * "how many trials were minted last week" and "is signup broken" had no answer
+ * after the fact. Each test drives a real branch and asserts the data point it
+ * leaves behind, so a branch that stops emitting fails here rather than going
+ * quietly unobserved.
+ */
+describe('handleTrialSignup — AE signup events', () => {
+  /** Drives one scenario and returns the single signup event it emitted. */
+  const only = () => {
+    const events = signupEvents();
+    expect(events, 'exactly one signup event per request').toHaveLength(1);
+    return events[0];
+  };
+
+  it('emits `minted` carrying the new client as its per-client dimension', async () => {
+    const res = await handleTrialSignup(req(), env());
+    const body = (await res.json()) as { clientId: string };
+    expect(only()).toEqual({
+      name: 'trial-signup',
+      keyOwner: TRIAL_KEY_OWNER,
+      outcome: 'minted',
+      status_code: '200',
+      // The canonical `OAUTH:<clientId>` form — the SAME shape usage events
+      // carry, which is the whole point: a mint can be joined to the calls it
+      // later produces. A bare `m2m_…` here would silently break that join.
+      client_ref: `OAUTH:${body.clientId}`,
+      index: TRIAL_KEY_OWNER,
+    });
+  });
+
+  it('emits `reissued` for a repeat signup, still attributed to the same client', async () => {
+    const first = await handleTrialSignup(req(), env());
+    const { clientId } = (await first.json()) as { clientId: string };
+    aePoints.length = 0;
+
+    await handleTrialSignup(req(), env());
+    const event = only();
+    expect(event.outcome).toBe('reissued');
+    expect(event.client_ref).toBe(`OAUTH:${clientId}`);
+  });
+
+  it('emits `expired` WITH the client, since the client is what was refused', async () => {
+    const first = await handleTrialSignup(req(), env());
+    const { clientId } = (await first.json()) as { clientId: string };
+    vi.setSystemTime(NOW + (TRIAL_TTL_SECONDS + 60) * 1000);
+    aePoints.length = 0;
+
+    await handleTrialSignup(req(), env());
+    const event = only();
+    expect(event.outcome).toBe('expired');
+    expect(event.status_code).toBe('403');
+    expect(event.client_ref).toBe(`OAUTH:${clientId}`);
+  });
+
+  it.each([
+    ['rate-limited', '429', async () => deny()],
+    [
+      'challenge-failed',
+      '400',
+      async () =>
+        fetchSpy.mockImplementation(
+          async () =>
+            new Response(
+              JSON.stringify({ success: false, 'error-codes': ['timeout-or-duplicate'] }),
+              { status: 200 }
+            )
+        ),
+    ],
+    ['unavailable', '503', async () => redisSet.mockRejectedValueOnce(new Error('redis down'))],
+  ])('emits `%s` with no client attached', async (outcome, status, arrange) => {
+    await arrange();
+    await handleTrialSignup(req(), env());
+    const event = only();
+    expect(event.outcome).toBe(outcome);
+    expect(event.status_code).toBe(status);
+    // No client exists on any pre-mint failure, so attributing one would be a
+    // fabrication — and would pollute `uniq(blob8)` with phantom trials.
+    expect(event.client_ref).toBeNull();
+  });
+
+  it('emits `in-progress` when a concurrent signup holds the lease', async () => {
+    await redisSet('mcp:trial:ident:x', 'lease', { ex: 300 });
+    // Take the lease under the real identity key by running one request that
+    // wins it, then re-entering while the lease is still live.
+    redisSet.mockImplementationOnce(async () => null);
+    redisGet.mockImplementationOnce(async () => 'lease');
+    redisSet.mockImplementationOnce(async () => null);
+    aePoints.length = 0;
+
+    const res = await handleTrialSignup(req(), env());
+    expect(res.status).toBe(409);
+    const event = only();
+    expect(event.outcome).toBe('in-progress');
+    expect(event.client_ref).toBeNull();
+  });
+
+  it('emits `bad-request` for a malformed body, a path that was silent in BOTH channels', async () => {
+    await handleTrialSignup(req('not json'), env());
+    const event = only();
+    expect(event.outcome).toBe('bad-request');
+    expect(event.status_code).toBe('400');
+  });
+
+  it('covers every outcome the schema declares', async () => {
+    // The guard rejects an outcome missing from OUTCOME_VALUES, so an emit with
+    // a typo'd outcome is silently dropped rather than loud. This asserts the
+    // other direction — that the declared set is not aspirational — by running
+    // one scenario per value and checking the union.
+    const seen = new Set<string | null>();
+    const scenarios: (() => Promise<unknown>)[] = [
+      async () => handleTrialSignup(req(), env()),
+      async () => handleTrialSignup(req(), env()), // re-issue
+      async () => handleTrialSignup(req('not json'), env()),
+      async () => {
+        deny();
+        await handleTrialSignup(req(), env());
+        allow();
+      },
+      async () => {
+        fetchSpy.mockImplementationOnce(
+          async () =>
+            new Response(JSON.stringify({ success: false, 'error-codes': [] }), { status: 200 })
+        );
+        return handleTrialSignup(req(), env());
+      },
+      async () => {
+        redisSet.mockRejectedValueOnce(new Error('down'));
+        return handleTrialSignup(req(), env());
+      },
+      async () => {
+        redisSet.mockImplementationOnce(async () => null);
+        redisGet.mockImplementationOnce(async () => 'lease');
+        redisSet.mockImplementationOnce(async () => null);
+        return handleTrialSignup(req(), env());
+      },
+      async () => {
+        vi.setSystemTime(NOW + (TRIAL_TTL_SECONDS + 60) * 1000);
+        return handleTrialSignup(req(), env());
+      },
+    ];
+    for (const run of scenarios) await run();
+    for (const e of signupEvents()) seen.add(e.outcome);
+
+    expect([...seen].sort()).toEqual([...OUTCOME_VALUES.trial_signup].sort());
+  });
+
+  it('still returns 200 when the AE write throws — metrics never break a signup', async () => {
+    metricsDataset.writeDataPoint.mockImplementationOnce(() => {
+      throw new Error('AE substrate error');
+    });
+    const res = await handleTrialSignup(req(), env());
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { credential: string }).credential).toContain(':');
+  });
+
+  it('emits nothing at all when METRICS is unbound (stdio, tests, local dev)', async () => {
+    const noMetrics = { ...env(), METRICS: undefined } as unknown as Env;
+    const res = await handleTrialSignup(req(), noMetrics);
+    expect(res.status).toBe(200);
+    expect(aePoints).toHaveLength(0);
+  });
+
+  it('derives TRIAL_KEY_OWNER identically to the auth path', async () => {
+    // The constant is composed from `oauthKeyOwner(m2mKeyOwner(name))`; the auth
+    // path composes `oauthKeyOwner(keyOwnerFor(record))`. They must agree, or
+    // signup events and usage events land under two different index values and
+    // the "all trials in one indexed query" property quietly dies.
+    const res = await handleTrialSignup(req(), env());
+    const { clientId } = (await res.json()) as { clientId: string };
+    const record = await getM2mClient(kv, clientId);
+    expect(oauthKeyOwner(keyOwnerFor(record!))).toBe(TRIAL_KEY_OWNER);
   });
 });

@@ -264,6 +264,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - [x] `trial` stays **undocumented** on the public tier surface (operator decision); internal tier-table mirrors (RATE_LIMITS, UAT SETUP, PILOT_ONBOARDING, ARCHITECTURE, AUTH) carry the row
 - [x] **With Slice 3** (2026-09-07): corrected [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, [`get-started/index.astro`](../../pages/hub/mcp/get-started/index.astro), [`capabilities.ts`](../../data/mcp/capabilities.ts), `hub-mcp.json` (`access.provisioning.item1`, both meta descriptions), `services.json` `faq.a5`, `public/llms.txt` and the JSON-LD rationale where they said no self-serve signup exists (no test pinned the old strings; `grep tests/` done); the website CSP and the `SECURITY_HEADERS.md` rows; the privacy disclosure
 - [x] **`free-pilot` retired from the public site** (2026-09-08, operator decision: "the free pilot was replaced with the self-serve trial. they are now one and the same"). `/hub/mcp/`'s tier table publishes `trial` (15/100, radar "None" bound to `trialRadarDenial`) as its first column with a self-serve CTA, plus a trial CTA under the lede; the hub FAQ, the announcement sash and the design-sync surfaces were reworded in all three locales; `UNPUBLISHED_TIERS` inverted to `{'free-pilot'}`. `free-pilot` remains in `TIER_LIMITS`/`ASSIGNABLE_TIERS` and assignable by hand — no Worker change. Reverses the "trial stays undocumented" decision recorded twice in [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md), amended in place there. **Pending: re-sync claude.ai/design** (sash copy is in the published bundle)
+- [x] **Trial observability** (2026-09-08, operator request "should we enable observability into when, how many 3-day trials are being created and used?"). Audit found creation had **no durable observability** (`safeLog` = one `console.log`; two branches silent) while usage was queryable only in aggregate. Added `trial_signup` AE events (one outcome per handler branch, exhaustive in `OUTCOME_VALUES`) and `client_ref`/`blob8`, the per-client dimension — a **blob, never the index**, so `index1` stays roster-sized. Queries in [AUTH.md](../../../mcp-server/src/docs/operations/AUTH.md); decision + the `uniq`-has-no-sample-correction limitation in [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md). **Not done: no alert rule / `/status` row**, so nothing pages on a dead signup endpoint — next slice
 - [ ] **Production go-live (operator)**: set `TURNSTILE_SECRET_KEY` + `TRIAL_IP_HMAC_SECRET` on the production Worker, `PUBLIC_TURNSTILE_SITE_KEY` (the real widget) on Vercel Production and `PUBLIC_TRIAL_SIGNUP_ORIGIN` on Vercel Preview, then approve the `mcp-production` deploy — see `SECRETS_INVENTORY.md`
 
 #### Technical Context
@@ -2034,6 +2035,26 @@ Tally: **six** on `protocol-era-worker`, two on `trial-signup`, one on `oauth-in
 - [ ] If the cause proves to be upstream (`wrangler`/`workerd`/`miniflare`), either pin or file upstream — the nine instances are attributable to **wrangler 4.125.0 / vitest 4.1.11** (resolved, not the floating `^` specifiers), recorded now while they are still what ran — an unfixable cause is still a closed question, but "we think it is upstream" is not
 
 **Not a candidate for deferral-with-trigger.** The trigger already fired nine times; the reason this has not been worked is that each individual instance is cheap to shrug off, which is how a harness defect survives four weeks and nine sightings without an owner.
+
+---
+
+### BL-157: `rate_limit_decision` is a declared AE event type with no emitter — throttles are invisible in analytics
+
+**Source**: found 2026-09-08 while auditing trial observability for [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) | **Effort**: Small-to-Medium — the wiring is a few lines; the sampling policy is the actual decision | **Status**: Open
+
+**As an** operator, **I want** throttles to appear in Analytics Engine **so that** "is a client hitting its ceiling" is a query rather than a guess, and so a tier whose limits are wrong shows up before the client complains.
+
+**The evidence.** `rate_limit_decision` has been declared in `EVENT_TYPES` since BL-032.75 Phase 1, complete with an `OUTCOME_VALUES` entry of `['allow', 'throttle', 'deny']` — and **nothing in `src/` ever emits it**. A grep for the identifier outside [`metrics/_schema.ts`](../../../mcp-server/src/metrics/_schema.ts) returns nothing. So:
+
+- There is **no AE record of a throttle for any tier**, trial or otherwise.
+- The only throttle signal that exists is `safeLog({ event: 'ratelimit.exceeded', … })` at [`pipeline/handle-authenticated.ts`](../../../mcp-server/src/pipeline/handle-authenticated.ts) — stdout, i.e. visible only under a live `wrangler tail`. Same class of gap BL-155's observability slice just closed for signup.
+- The declared-but-dead entry is worse than an absent one: it makes the schema look like throttles are covered.
+
+**The decision to make first, before any code.** `rate_limit_decision` would fire on **every authenticated request**, unlike every event type currently emitted (which are per tool call, per cron, per batch). That is a different volume class, and it interacts with AE sampling — which matters more now that [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md) put a `uniq`-based query on the same index, and `uniq` has no sample correction. Options to weigh: emit only on `throttle`/`deny` (cheap, but loses the denominator, so "throttle rate" becomes unanswerable); emit all three and accept sampling; or emit all three with an explicit sample rate. **Do not wire it before choosing** — the wrong choice here degrades the trial queries ADR-0031 depends on.
+
+- [ ] Choose the emission policy above and record it (ADR amendment or a note on ADR-0031, since they share the index)
+- [ ] Wire the emitter at the limiter's decision point, or **delete the dead schema entry** if the answer is "we do not want this" — either is better than a declared type nothing writes
+- [ ] If wired: extend `Verify-AeEmission.ps1` and the AUTH.md/RATE_LIMITS.md query cookbooks
 
 ---
 

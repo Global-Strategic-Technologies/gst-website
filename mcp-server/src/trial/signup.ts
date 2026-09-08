@@ -47,7 +47,9 @@ import { safeLog } from '../auth/safe-logger';
 import { TRIAL_SCOPES } from '../auth/scopes';
 import { hmacHex } from '../lib/hmac';
 import { createMcpClient } from '../lib/upstash-clients';
+import { AnalyticsEngineSink, emit } from '../metrics/_index';
 import { createM2mClient, getM2mClient, rotateM2mSecret } from '../oauth/m2m-clients';
+import { m2mKeyOwner, oauthKeyOwner } from '../oauth/key-owner';
 import { TRIAL_IDENTITY_TTL_SECONDS, TRIAL_TTL_SECONDS } from '../ratelimit/tiers';
 import { parseHostnames, verifyTurnstile } from './turnstile';
 import type { Env } from '../env';
@@ -55,6 +57,66 @@ import type { Env } from '../env';
 export const TRIAL_IDENTITY_KEY_PREFIX = 'mcp:trial:ident:';
 /** Every trial record is named this — it is what makes `keyOwner` constant (`OAUTH:M2M:TRIAL`). */
 export const TRIAL_CLIENT_NAME = 'trial';
+
+/**
+ * `OAUTH:M2M:TRIAL` — DERIVED, not written out. This file previously carried
+ * the string as a literal in two places; a third copy for the metrics events
+ * would have been the one that eventually drifted from what the auth path
+ * actually computes for a trial record. Composed from the same two functions
+ * `consent-identity.ts` composes (`oauthKeyOwner(keyOwnerFor(record))`, and
+ * `keyOwnerFor` is `m2mKeyOwner(record.name)`), so the constant and the
+ * per-request derivation cannot disagree — `signup.test.ts` asserts they don't.
+ */
+export const TRIAL_KEY_OWNER = oauthKeyOwner(m2mKeyOwner(TRIAL_CLIENT_NAME));
+
+/** The canonical per-client analytics identity — see `MetricEvent.client_ref`. */
+const clientRefFor = (clientId: string) => `OAUTH:${clientId}`;
+
+/** Outcomes this handler can emit — the set is pinned in `OUTCOME_VALUES`. */
+type SignupOutcome =
+  | 'minted'
+  | 'reissued'
+  | 'challenge-failed'
+  | 'rate-limited'
+  | 'expired'
+  | 'in-progress'
+  | 'bad-request'
+  | 'unavailable';
+
+/**
+ * One AE data point per signup outcome (BL-155). Before this, signup was
+ * observable only through `safeLog` — i.e. only while a `wrangler tail` was
+ * attached — so mint volume, failure rate and re-issue ratio had no answer
+ * after the fact, and a signup path broken by an unbound secret was invisible.
+ *
+ * Best-effort by construction: `emit` validates through `guardEvent` and
+ * `AnalyticsEngineSink.write` swallows substrate throws, so a metrics failure
+ * can never turn a successful signup into an error. `env.METRICS` is unbound
+ * in tests and on the stdio path, hence the guard.
+ *
+ * `keyOwner` is set on EVERY outcome including the failures, so signup volume
+ * and failure rate are one indexed query rather than a scan. `client_ref` is
+ * set only where a client actually exists (mint and re-issue) — that is what
+ * lets a mint be joined to the usage it later produces.
+ */
+function emitSignup(
+  env: Env,
+  outcome: SignupOutcome,
+  statusCode: number,
+  startedAt: number,
+  clientId?: string
+): void {
+  if (!env.METRICS) return;
+  emit(new AnalyticsEngineSink(env.METRICS), {
+    event_type: 'trial_signup',
+    name: 'trial-signup',
+    keyOwner: TRIAL_KEY_OWNER,
+    outcome,
+    status_code: String(statusCode),
+    duration_ms: Date.now() - startedAt,
+    ...(clientId ? { client_ref: clientRefFor(clientId) } : {}),
+  });
+}
 /** Short: bounds the lockout a lost DEL can cause to minutes (BL-133 reasoning). */
 const LEASE_TTL_SECONDS = 300;
 const LEASE_VALUE = 'lease';
@@ -80,20 +142,30 @@ function json(
   });
 }
 
-function unavailable(reason: string): Response {
+/**
+ * The single exit for eight distinct failure reasons. Takes `env` and the
+ * handler-entry timestamp so the metrics event carries a real status and
+ * duration — the alternative, a module-level mutable, would be wrong the
+ * moment two requests overlap in one isolate.
+ */
+function unavailable(env: Env, startedAt: number, reason: string): Response {
   safeLog({ event: 'trial.signup.unavailable', reason, success: false, errorCode: 'unavailable' });
+  emitSignup(env, 'unavailable', 503, startedAt);
   return json(503, { error: 'unavailable', message: 'Trial signup is temporarily unavailable.' });
 }
 
 export async function handleTrialSignup(request: Request, env: Env): Promise<Response> {
+  const startedAt = Date.now();
+  const fail = (reason: string) => unavailable(env, startedAt, reason);
+
   // --- Fail-closed guards: every dependency present, or nothing happens ----
-  if (!env.OAUTH_KV) return unavailable('oauth-kv-unbound');
-  if (!env.TURNSTILE_SECRET_KEY) return unavailable('turnstile-secret-unbound');
-  if (!env.TRIAL_IP_HMAC_SECRET) return unavailable('ip-hmac-secret-unbound');
+  if (!env.OAUTH_KV) return fail('oauth-kv-unbound');
+  if (!env.TURNSTILE_SECRET_KEY) return fail('turnstile-secret-unbound');
+  if (!env.TRIAL_IP_HMAC_SECRET) return fail('ip-hmac-secret-unbound');
   const expectedHostnames = parseHostnames(env.TURNSTILE_EXPECTED_HOSTNAMES);
-  if (expectedHostnames.length === 0) return unavailable('turnstile-hostnames-unbound');
+  if (expectedHostnames.length === 0) return fail('turnstile-hostnames-unbound');
   const redis = createMcpClient(env, { retry: false });
-  if (!redis) return unavailable('upstash-unbound');
+  if (!redis) return fail('upstash-unbound');
   const kv = env.OAUTH_KV;
 
   // --- Request shape -------------------------------------------------------
@@ -107,6 +179,11 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
     /* fall through to the 400 */
   }
   if (!token) {
+    // Both 400s were silent in BOTH channels before BL-155's observability
+    // pass — no log line and no metric, so a page sending a malformed body
+    // looked identical to no traffic at all.
+    safeLog({ event: 'trial.signup.bad-request', reason: 'token', success: false });
+    emitSignup(env, 'bad-request', 400, startedAt);
     return json(400, {
       error: 'bad-request',
       message: 'Expected JSON { "turnstileToken": string }.',
@@ -114,6 +191,8 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
   }
   const ip = request.headers.get('CF-Connecting-IP')?.trim();
   if (!ip) {
+    safeLog({ event: 'trial.signup.bad-request', reason: 'no-client-ip', success: false });
+    emitSignup(env, 'bad-request', 400, startedAt);
     return json(400, { error: 'bad-request', message: 'Client address unavailable.' });
   }
   const identityKey = await trialIdentityKey(ip, env.TRIAL_IP_HMAC_SECRET);
@@ -131,6 +210,7 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
     if (!rl.success) {
       const retryAfter = Math.max(1, Math.ceil((rl.reset - Date.now()) / 1000));
       safeLog({ event: 'trial.signup.rate-limited', success: false, errorCode: 'rate-limit' });
+      emitSignup(env, 'rate-limited', 429, startedAt);
       return json(
         429,
         {
@@ -144,7 +224,7 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
       );
     }
   } catch (e) {
-    return unavailable(`limiter: ${(e as Error).message}`);
+    return fail(`limiter: ${(e as Error).message}`);
   }
 
   // --- 2. Turnstile (the outbound call) ------------------------------------
@@ -155,13 +235,14 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
     expectedHostnames,
   });
   if (!verdict.ok) {
-    if (verdict.kind === 'unavailable') return unavailable(verdict.reason);
+    if (verdict.kind === 'unavailable') return fail(verdict.reason);
     safeLog({
       event: 'trial.signup.challenge-failed',
       reason: verdict.reason,
       success: false,
       errorCode: 'challenge-failed',
     });
+    emitSignup(env, 'challenge-failed', 400, startedAt);
     return json(400, {
       error: 'challenge-failed',
       message: verdict.retryable
@@ -186,6 +267,8 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
         existingClientId = current.slice(MINTED_PREFIX.length);
       }
       if (!won && existingClientId === undefined) {
+        safeLog({ event: 'trial.signup.in-progress', success: false, errorCode: 'in-progress' });
+        emitSignup(env, 'in-progress', 409, startedAt);
         return json(
           409,
           {
@@ -198,15 +281,15 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
       }
     }
   } catch (e) {
-    return unavailable(`lease: ${(e as Error).message}`);
+    return fail(`lease: ${(e as Error).message}`);
   }
   // Outside the lease block so a KV failure here is attributed to re-issue,
   // not to the lease, in `wrangler tail`.
   if (existingClientId !== undefined) {
     try {
-      return await reissue(kv, existingClientId);
+      return await reissue(kv, existingClientId, env, startedAt);
     } catch (e) {
-      return unavailable(`reissue: ${(e as Error).message}`);
+      return fail(`reissue: ${(e as Error).message}`);
     }
   }
 
@@ -229,10 +312,11 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
     });
     safeLog({
       event: 'trial.signup.minted',
-      keyOwner: 'OAUTH:M2M:TRIAL',
-      rateLimitSubject: `OAUTH:${record.clientId}`,
+      keyOwner: TRIAL_KEY_OWNER,
+      rateLimitSubject: clientRefFor(record.clientId),
       success: true,
     });
+    emitSignup(env, 'minted', 200, startedAt, record.clientId);
     return json(200, {
       credential: `${record.clientId}:${clientSecret}`,
       clientId: record.clientId,
@@ -245,7 +329,7 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
     } catch {
       /* the short lease TTL is the safety net */
     }
-    return unavailable(`mint: ${(e as Error).message}`);
+    return fail(`mint: ${(e as Error).message}`);
   }
 }
 
@@ -255,10 +339,19 @@ export async function handleTrialSignup(request: Request, env: Env): Promise<Res
  * original mint put it, and `rotateM2mSecret` leaves `expiresAt` alone, so
  * a re-issue cannot slide the trial. An expired record is a refusal.
  */
-async function reissue(kv: KVNamespace, clientId: string): Promise<Response> {
+async function reissue(
+  kv: KVNamespace,
+  clientId: string,
+  env: Env,
+  startedAt: number
+): Promise<Response> {
   const rotated = await rotateM2mSecret(kv, clientId);
   if (!rotated) {
     safeLog({ event: 'trial.signup.expired', success: false, errorCode: 'trial-expired' });
+    // `client_ref` IS set here, unlike the other failures: the client exists,
+    // it is simply past its expiry, and attributing the refusal to it is what
+    // distinguishes "this trial came back" from "a stranger was refused".
+    emitSignup(env, 'expired', 403, startedAt, clientId);
     // The page tells the visitor WHEN their trial was issued. The record
     // outlives the identity key by ~3 days (reap = expiresAt + grace), so it is
     // usually still there; when it has been reaped the field is simply absent
@@ -273,10 +366,11 @@ async function reissue(kv: KVNamespace, clientId: string): Promise<Response> {
   }
   safeLog({
     event: 'trial.signup.reissued',
-    keyOwner: 'OAUTH:M2M:TRIAL',
-    rateLimitSubject: `OAUTH:${rotated.record.clientId}`,
+    keyOwner: TRIAL_KEY_OWNER,
+    rateLimitSubject: clientRefFor(rotated.record.clientId),
     success: true,
   });
+  emitSignup(env, 'reissued', 200, startedAt, rotated.record.clientId);
   return json(200, {
     credential: `${rotated.record.clientId}:${rotated.clientSecret}`,
     clientId: rotated.record.clientId,

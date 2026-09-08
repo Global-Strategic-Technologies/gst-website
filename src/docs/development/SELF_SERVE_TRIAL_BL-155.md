@@ -398,6 +398,19 @@ What changed on the website:
 - The hub FAQ answer (which renders into FAQPage JSON-LD) and the site-wide announcement sash were reworded off "free pilot", in all three locales. The sash's second field also moved from `/hub/mcp/#tiers` to the trial page.
 - The guards inverted with the copy: `UNPUBLISHED_TIERS` is now `{'free-pilot'}`.
 
+## Amendment — 2026-09-08: signup is instrumented, and trials are individually countable
+
+The operator asked what observability exists for trial creation and use. The honest answer at the time: **usage was queryable in aggregate** (all trials share `keyOwner` `OAUTH:M2M:TRIAL`, which is `blob3`/`index1`), and **creation had none** — `signup.ts` emitted only through `safeLog`, i.e. one `console.log`, visible solely while a `wrangler tail` was attached. Two branches (400 bad-request, 409 in-progress) emitted nothing at all.
+
+What changed:
+
+- **`trial_signup` AE events**, one outcome per branch of `handleTrialSignup` — `minted`, `reissued`, `challenge-failed`, `rate-limited`, `expired`, `in-progress`, `bad-request`, `unavailable`. The set is exhaustive in `OUTCOME_VALUES` and the guard rejects anything outside it, so a new branch cannot ship unobserved. Mint volume, failure rate and re-issue ratio now survive past a live tail; so does a signup path broken by an unbound secret, which was previously invisible.
+- **`client_ref` (`blob8`)** — the per-client dimension, canonical form `OAUTH:<clientId>` (exactly `AuthSuccess.rateLimitSubject`). Deliberately a **blob, never the index**: `keyOwner` stays the roster-sized constant the design chose, and per-client identity rides alongside it. This is what makes "how many distinct trials are active" answerable at all.
+- **Both silent branches** now emit in both channels (`safeLog` and AE).
+- The decision, its rejected alternatives, and the limitation it accepts (`uniq` has no sample correction) are recorded in [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md); the runnable queries are in [AUTH.md § Self-serve trial mint](../../../mcp-server/src/docs/operations/AUTH.md).
+
+**Still absent, deliberately**: no alert rule and no `/status` row, so nothing _pages_ an operator when signup breaks — the queries are pull, not push. That is the natural next slice now that the events exist.
+
 **`free-pilot` is retired, not deleted.** It stays in `TIER_LIMITS` and `ASSIGNABLE_TIERS`, existing client records may carry it, and an operator may still assign it deliberately. No Worker behaviour changed in this amendment — it is a marketing-surface change only.
 
 ## Verification

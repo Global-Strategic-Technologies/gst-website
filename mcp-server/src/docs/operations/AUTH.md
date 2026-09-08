@@ -214,6 +214,42 @@ What an operator needs to know:
 - **It fails closed.** Unbound `TURNSTILE_SECRET_KEY`, `TRIAL_IP_HMAC_SECRET`, `TURNSTILE_EXPECTED_HOSTNAMES`, `OAUTH_KV` or Upstash, a Redis error, or an unreachable/slow Turnstile all return **503 with nothing minted**. So a deploy that lands ahead of its secrets gives a 503 endpoint — set the secrets first (`wrangler secret put … --env <env>`, stdin). Production's secrets are deliberately **not set until Slice 3** ships the privacy disclosure and public copy; until then the endpoint is dark there by construction.
 - **One trial per identity per 30 days.** The identity is `mcp:trial:ident:<HMAC(secret, ip)>` in Upstash — a speed bump, not an identity control (IPs are shared and rotated); the containment is the trial tier's ceilings and the expiry. A repeat signup inside the window **rotates the secret on the existing record** (the previous credential stops working; `expiresAt` is unchanged; no second record) and returns `reissued: true` plus `issuedAt` (the original mint time, which the page names in its "previous secret has stopped working" notice). A repeat after `expiresAt` but inside the 30 days is refused with `trial-expired`, carrying `issuedAt` while the record still exists (it reaps ~3 days after the identity key lapses, so the field is usually present). **Rotating `TRIAL_IP_HMAC_SECRET` forgets every identity** — every visitor becomes eligible again.
 - **Inspect**: `GET /admin/oauth/m2m-clients` lists trials as `name: "trial"`, `tier: "trial"`; `PATCH … {"tier":"paid","expiresAt":null}` converts one (the person re-consents to pick up the new tier). `DELETE` blocks re-issue and `/token`; a consent grant already made runs to its captured `expiresAt` (§ above).
+- **Observability — what to actually run** (BL-155, [ADR-0031](../../../../src/docs/adr/0031-per-client-analytics-identity-is-a-blob.md)). Signup emits one `trial_signup` AE event per outcome, and every trial's tool call carries the trial's `client_ref` in `blob8`. Query `mcp_events` (or `mcp_events_staging`) with the AE SQL API — `src/observability/ae-query.ts` and `scripts/Verify-AeEmission.ps1` both run SQL for you.
+
+  ```sql
+  -- Mints and re-issues per day, and everything that failed instead.
+  SELECT blob4 AS outcome, sum(_sample_interval) AS n
+  FROM mcp_events
+  WHERE blob1 = 'trial_signup' AND timestamp > NOW() - INTERVAL '7' DAY
+  GROUP BY outcome ORDER BY n DESC
+
+  -- Signup health: is the endpoint dead? A run of `unavailable` means a
+  -- secret is unbound or Upstash/Turnstile is failing — the failure mode that
+  -- is otherwise invisible without a live `wrangler tail`.
+  SELECT blob4 AS outcome, blob6 AS status, sum(_sample_interval) AS n
+  FROM mcp_events
+  WHERE blob1 = 'trial_signup' AND timestamp > NOW() - INTERVAL '1' DAY
+  GROUP BY outcome, status
+
+  -- Per-trial call volume — the "is someone farming this" query. Sample-
+  -- correct, because sum(_sample_interval) is the corrected form of count().
+  SELECT blob8 AS client, sum(_sample_interval) AS calls
+  FROM mcp_events
+  WHERE index1 = 'OAUTH:M2M:TRIAL' AND blob1 = 'tool_invocation'
+    AND timestamp > NOW() - INTERVAL '7' DAY
+  GROUP BY client ORDER BY calls DESC LIMIT 50
+
+  -- Distinct active trials. SCOPE IT (index1 + blob1) or it counts every
+  -- client_ref-bearing identity, not just trials.
+  SELECT uniq(blob8) FROM mcp_events
+  WHERE index1 = 'OAUTH:M2M:TRIAL' AND blob1 = 'tool_invocation'
+    AND timestamp > NOW() - INTERVAL '7' DAY
+  ```
+
+  **Read `uniq` honestly.** It has no sample correction (Cloudflare corrects only `count`/`sum`/`avg`/`quantile`), so it is exact while the dataset is unsampled — which is today, at trial ceilings — and a **lower bound** once sampling engages, dropping the quietest talkers first. For an exact count of trials that exist _right now_, don't use AE at all: `GET /admin/oauth/m2m-clients` and count `tier === 'trial'`. AE is the history; KV is the present.
+
+  Not covered: there is **no alert rule** on signup volume or failure rate yet, so nothing pages you when signup breaks — these queries are pull, not push.
+
 - **Staging vs production**: staging pairs the documented always-pass Turnstile **test** secret (`1x0000000000000000000000000000000AA`) with the test sitekey on the page and accepts `localhost` / preview hostnames (`TURNSTILE_EXPECTED_HOSTNAMES`, `TRIAL_EXTRA_ORIGINS` in `wrangler.toml`); production accepts only the website's own hosts. The test secret reports `hostname: "example.com"` and no `action` (observed 2026-09-07), so staging lists `example.com` and the verifier waives a missing action only for a response Cloudflare flags as a testing-key result. A scripted staging mint is `curl -X POST …/trial/signup -H 'Content-Type: application/json' -d '{"turnstileToken":"XXXX.DUMMY.TOKEN.XXXX"}'`.
 
 ### Introspect a token (support/debugging)

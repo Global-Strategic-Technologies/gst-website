@@ -51,6 +51,14 @@ export const EVENT_TYPES = [
   // arg under BL-122.)
   'wrong_irl_detected',
   'gate_elided',
+  // BL-155 — self-serve trial mint outcomes. The ONLY event type emitted from
+  // an UNAUTHENTICATED public path (`POST /trial/signup`), which is why its
+  // `keyOwner` is a constant rather than a caller identity: at emit time there
+  // usually is no caller, and on the two success branches the client was
+  // created microseconds earlier. Before this existed, signup was observable
+  // only via `safeLog` — i.e. only while someone held a `wrangler tail` open —
+  // so "how many trials were minted last week" had no answer at all.
+  'trial_signup',
 ] as const;
 
 export type EventType = (typeof EVENT_TYPES)[number];
@@ -100,6 +108,33 @@ export interface MetricEvent {
    * without consulting the schema doc. Absent for non-inoreader_call events.
    */
   zone1?: '1' | '0';
+  /**
+   * BL-155 — per-client analytics identity, canonical form `OAUTH:<clientId>`
+   * (exactly `AuthSuccess.rateLimitSubject`; see `auth/bearer.ts`). Present
+   * only for KV-backed client identities — absent for static `MCP_KEY_*` keys
+   * and the OAuth human-consent path, which carry no per-client subject.
+   *
+   * **A BLOB, deliberately never the index.** `keyOwner` is a constant per
+   * tier precisely to keep `index1` roster-sized (`oauth/key-owner.ts`), and
+   * AE allows exactly one index per data point (`AE_LIMITS`), which
+   * `alert-rules.ts`'s traffic-spike rule groups by. Promoting this field to
+   * `index1` is the "obvious" improvement a later reader will reach for; it
+   * would blow up the sampling key's cardinality and break that rule. Don't.
+   *
+   * **Sampling caveat, because it changes what a query MEANS.** Distinct
+   * actives is `uniq(blob8)`. Cloudflare publishes sample corrections for
+   * `count`/`sum`/`avg`/`quantile` only — there is none for `uniq`, because a
+   * distinct-count over dropped rows cannot be weighted back. So `uniq` is
+   * exact while the dataset is unsampled and a LOWER BOUND once it is not,
+   * and when sampling does engage it drops the quietest talkers first —
+   * exactly the population a distinct-actives count is asking about. Per-client
+   * VOLUME (`GROUP BY blob8` + `sum(_sample_interval)`) is sample-correct and
+   * is the query to trust for "is someone farming this". See ADR-0031.
+   *
+   * Not a secret: this is the client IDENTIFIER, never the client secret, and
+   * it already appears in `safeLog` lines and R2 audit entries.
+   */
+  client_ref?: string;
 }
 
 /**
@@ -135,6 +170,9 @@ export const BLOB_SLOTS: readonly BlobSpec[] = [
   { slot: 5, field: 'correlation_id', maxChars: 64 },
   { slot: 6, field: 'status_code', maxChars: 8 },
   { slot: 7, field: 'zone1', maxChars: 1 },
+  // BL-155. 48 against a needed 32 (`OAUTH:` + `m2m_` + 22 b64url chars) —
+  // headroom for a longer future subject without a schema migration.
+  { slot: 8, field: 'client_ref', maxChars: 48 },
 ] as const;
 
 export const DOUBLE_SLOTS: readonly DoubleSpec[] = [
@@ -211,6 +249,20 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
     'skipped-budget',
     'deduplicated',
   ],
+  // BL-155 — one value per BRANCH of `handleTrialSignup`, not a summary of
+  // them. That is the point: with the set exhaustive, an outcome the handler
+  // can produce but this list omits is a rejected event (the guard checks
+  // membership), so a new branch cannot ship unobserved.
+  trial_signup: [
+    'minted',
+    'reissued',
+    'challenge-failed',
+    'rate-limited',
+    'expired',
+    'in-progress',
+    'bad-request',
+    'unavailable',
+  ],
   // BL-033 Slice 3a — audit-consumer batch outcome. MANDATORY entry: the guard
   // does `OUTCOME_VALUES[event_type].includes(outcome)`, so a missing key
   // would throw `undefined.includes` for any emitted audit_batch event.
@@ -249,6 +301,11 @@ export const NAME_VALUES: Partial<Record<EventType, readonly string[]>> = {
   inoreader_call: ['cron-radar', 'live-radar', 'http-radar-snapshot', 'oauth-refresh', '401-retry'],
   // 'alert-evaluator' — BL-032.75 Phase 3 SLO alert evaluator cron
   cron_outcome: ['radar-refresh', 'alert-evaluator'],
+  // BL-155. This map is Partial and the guard skips types with no entry, so
+  // an entry here is OPTIONAL — added deliberately because `name` is a single
+  // constant on this event type, which makes the pin free and a typo in it
+  // otherwise undetectable.
+  trial_signup: ['trial-signup'],
 };
 
 /**

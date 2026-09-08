@@ -48,6 +48,15 @@ export interface MetricsContext {
   readonly sink: MetricSink;
   readonly keyOwner?: string;
   /**
+   * BL-155 — per-client analytics identity (`OAUTH:<clientId>`), emitted to
+   * `blob8`. Distinct from `keyOwner`, which is deliberately CONSTANT per tier
+   * to keep the AE index roster-sized: without this, every trial in the world
+   * is one indistinguishable row and "how many distinct trials are active" has
+   * no answer. Absent for static keys and OAuth-human identities, which carry
+   * no per-client subject. See `MetricEvent.client_ref` and ADR-0031.
+   */
+  readonly clientRef?: string;
+  /**
    * BL-071 — optional server-arithmetic counter accumulator. When present,
    * `withToolMetrics` records one `attempted` event at wrap entry (BEFORE
    * inner runs) and one `success` | `rejected` | `errored` event at wrap
@@ -520,6 +529,7 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
         event_type: eventType,
         name,
         keyOwner: ctx.keyOwner,
+        client_ref: ctx.clientRef,
         outcome,
         duration_ms: Date.now() - startedAt,
       });
@@ -537,6 +547,7 @@ export function withMetricsCore<TArgs extends readonly unknown[], TResult>(
         event_type: eventType,
         name,
         keyOwner: ctx.keyOwner,
+        client_ref: ctx.clientRef,
         outcome: 'error',
         duration_ms: Date.now() - startedAt,
       });

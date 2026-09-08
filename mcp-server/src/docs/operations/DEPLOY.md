@@ -1293,6 +1293,7 @@ See [`mcp-server/src/metrics/_schema.ts`](../../metrics/_schema.ts) — the snap
 | `blob5`   | `correlation_id` (prompt_span only)                                                                                                                                   |
 | `blob6`   | `status_code` (string, e.g. `'200'`; `'0'` = no response received / network error)                                                                                    |
 | `blob7`   | `zone1` (`'1'` / `'0'`; `inoreader_call` only — Zone-1 quota classification; absent for other event types)                                                            |
+| `blob8`   | `client_ref` (`OAUTH:<clientId>` — per-client identity, BL-155; absent for static keys and the OAuth human path, which have no per-client subject)                    |
 | `double1` | `duration_ms`                                                                                                                                                         |
 | `double2` | `seq` (prompt_span step index)                                                                                                                                        |
 | `index1`  | `keyOwner` (mirror of blob3 for AE sampling)                                                                                                                          |
@@ -1303,6 +1304,7 @@ See [`mcp-server/src/metrics/_schema.ts`](../../metrics/_schema.ts) — the snap
 - Per-category breakdown: `... GROUP BY blob2` (excludes `oauth-refresh` automatically via `blob7='1'` filter)
 - Inoreader error rate: `... WHERE blob1='inoreader_call' AND blob4='error' GROUP BY blob6` (status code distribution; `'0'` rows isolate network-side failures from Inoreader-side ones)
 - Per-keyOwner attribution: `... GROUP BY index1` (authenticated traffic only — cron/oauth-refresh land in `'__none__'`)
+- Per-CLIENT attribution (BL-155): `... GROUP BY blob8` with `sum(_sample_interval)`. Use this, not `uniq`, whenever you need a volume — it is sample-correct where `uniq` is not.
 
 ### Token rotation
 

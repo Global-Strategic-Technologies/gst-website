@@ -311,6 +311,11 @@ export async function handleAuthenticated(
         radarSource: 'worker',
         metricsSink,
         keyOwner: auth.keyOwner,
+        // BL-155 — the per-client analytics dimension. `keyOwner` above is
+        // constant per tier (roster-sized AE index), so without this every
+        // trial is one indistinguishable row. Undefined for identities with no
+        // per-client subject, which is the no-regression case.
+        clientRef: auth.rateLimitSubject,
         audit,
         // BL-033 Slice 5: hand the boundary's already-computed rate-limit
         // result to the tool wrapper so it can emit the 80%-consumed soft-limit

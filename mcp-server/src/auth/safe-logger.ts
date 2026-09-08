@@ -52,7 +52,7 @@ export interface LogEvent {
    * BL-155 — per-client limiter identifier when it differs from `keyOwner`
    * (KV-backed consent grants share a constant `keyOwner`). Carried on
    * `ratelimit.exceeded` / `tool.tier-denied` so a throttled trial can be
-   * told apart — the farming signal. A log field, not an AE index dimension.
+   * told apart — the farming signal. A log field and (as `client_ref`, BL-155) an AE BLOB — never an AE index dimension; see ADR-0031.
    */
   rateLimitSubject?: string;
   /** Pathname of the inbound request. */
