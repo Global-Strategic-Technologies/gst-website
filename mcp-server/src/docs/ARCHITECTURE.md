@@ -375,7 +375,7 @@ Spend accounting is complete by construction: `recordInoreaderEgress()` in `src/
 
 ### Deferred, and what lives elsewhere
 
-The Grafana dashboard is the one deliberately deferred item — it needs a Grafana Cloud account (Infinity datasource → AE SQL API); the `/status` page and alert rules cover the operational need meanwhile. Operational procedure detail is deliberately not here: Sentry rule setup and maintenance live in [`operations/SENTRY_ALERT_RULES.md`](operations/SENTRY_ALERT_RULES.md), and per-alert response procedure lives in `observability/runbooks/`.
+The Grafana dashboard was the one deliberately deferred item. **Its trigger fired 2026-09-08**: the dashboard artifact now ships as [`observability/grafana-dashboard.json`](../../observability/grafana-dashboard.json) with a guard test, and **creating the Grafana Cloud account, configuring the datasource and importing it remain operator tasks** — see [`operations/GRAFANA.md`](operations/GRAFANA.md). Until that import happens, `/status` and the alert rules remain the only rendered surfaces. Note the datasource is the **Altinity ClickHouse plugin**, not Infinity as this line previously recorded — Altinity is what Cloudflare documents, and it supplies the `$timeSeries`/`$timeFilter` macros the panels need. Operational procedure detail is deliberately not here: Sentry rule setup and maintenance live in [`operations/SENTRY_ALERT_RULES.md`](operations/SENTRY_ALERT_RULES.md), and per-alert response procedure lives in `observability/runbooks/`.
 
 _Distilled from MCP_SERVER_OBSERVABILITY_BL-032_75.md (May–July 2026) — archived at `src/docs/development/_archive/`._
 

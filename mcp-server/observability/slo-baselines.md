@@ -117,6 +117,9 @@ Once this doc is filled and signed off, Phase 3 (alerts + status surface; dashbo
 - Alerts evaluated by a scheduled Worker cron querying AE + Upstash directly and routed
   through the existing Sentry envelope infra (fingerprinted issue events → email rules);
   thresholds derived from the signed-off SLO targets above
-- Grafana Infinity datasource pointed at `POST /accounts/{id}/analytics_engine/sql` —
-  **deferred** until a Grafana Cloud account exists (recorded in the design doc as the
-  remaining Phase 3 item)
+- Grafana dashboard against `POST /accounts/{id}/analytics_engine/sql` — **artifact shipped
+  2026-09-08** as [`grafana-dashboard.json`](grafana-dashboard.json); datasource configuration
+  and import are operator tasks, see [`GRAFANA.md`](../src/docs/operations/GRAFANA.md). The
+  datasource is the **Altinity ClickHouse plugin** (`vertamedia-clickhouse-datasource`), not
+  Infinity as this line previously recorded: Altinity is what Cloudflare documents, and only it
+  supplies the `$timeSeries`/`$timeFilter` macros the time-series panels use

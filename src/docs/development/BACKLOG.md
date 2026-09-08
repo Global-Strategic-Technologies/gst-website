@@ -1996,22 +1996,25 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 **What it is.** One test in the mcp-server suite times out at ~5000ms, in a run that is otherwise entirely green. It has never reproduced in isolation — every captured instance went green on an immediate re-run of the same file alone (10/10, 7/7, 5/5 across instances). In every instance whose name survives and whose branch is on record — 5 through 9 — it landed in code the diff did not touch. For 1 and 2 the name is lost and for 3 the branch is on record (a master merge) but its diff was never checked against the failure, and for 4 not even the branch was recorded, so for 1–4 this is unestablished rather than true.
 
-| #   | Date       | Total                     | Test                                                | Isolated re-run |
-| --- | ---------- | ------------------------- | --------------------------------------------------- | --------------- |
-| 1   | 2026-08-04 | `1 failed \| 1973 passed` | **name lost**                                       | —               |
-| 2   | 2026-08-17 | `1 failed \| 2391 passed` | **name lost to a `grep` pipe**                      | —               |
-| 3   | 2026-08-22 | `1 failed \| 2574 passed` | `protocol-era-worker` › browser-origin `tools/list` | 10/10 green     |
-| 4   | 2026-08-28 | `1 failed \| 2703 passed` | same                                                | 10/10 green     |
-| 5   | 2026-08-30 | `1 failed \| 2711 passed` | `oauth-introspection` › admin key 401               | green           |
-| 6   | 2026-08-31 | `1 failed \| 2711 passed` | `protocol-era-worker` › same case                   | 10/10 green ×2  |
-| 7   | 2026-09-01 | `1 failed \| 2711 passed` | same                                                | 10/10 green     |
-| 8   | 2026-09-01 | `1 failed \| 2712 passed` | `cors` › OPTIONS preflight 204                      | 7/7 green       |
-| 9   | 2026-09-01 | —                         | `protocol-era-worker` › same case                   | 5/5 green       |
-| 10  | 2026-09-03 | `1 failed \| 2712 passed` | `protocol-era-worker` › same case                   | 10/10 green ×3  |
-| 11  | 2026-09-07 | `1 failed \| 2816 passed` | `trial-signup` › routed ahead of the auth gate      | 4/4 green       |
-| 12  | 2026-09-08 | `1 failed \| 2816 passed` | same                                                | 4/4 green       |
+| #   | Date       | Total                     | Test                                                                                            | Isolated re-run                                         |
+| --- | ---------- | ------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 1   | 2026-08-04 | `1 failed \| 1973 passed` | **name lost**                                                                                   | —                                                       |
+| 2   | 2026-08-17 | `1 failed \| 2391 passed` | **name lost to a `grep` pipe**                                                                  | —                                                       |
+| 3   | 2026-08-22 | `1 failed \| 2574 passed` | `protocol-era-worker` › browser-origin `tools/list`                                             | 10/10 green                                             |
+| 4   | 2026-08-28 | `1 failed \| 2703 passed` | same                                                                                            | 10/10 green                                             |
+| 5   | 2026-08-30 | `1 failed \| 2711 passed` | `oauth-introspection` › admin key 401                                                           | green                                                   |
+| 6   | 2026-08-31 | `1 failed \| 2711 passed` | `protocol-era-worker` › same case                                                               | 10/10 green ×2                                          |
+| 7   | 2026-09-01 | `1 failed \| 2711 passed` | same                                                                                            | 10/10 green                                             |
+| 8   | 2026-09-01 | `1 failed \| 2712 passed` | `cors` › OPTIONS preflight 204                                                                  | 7/7 green                                               |
+| 9   | 2026-09-01 | —                         | `protocol-era-worker` › same case                                                               | 5/5 green                                               |
+| 10  | 2026-09-03 | `1 failed \| 2712 passed` | `protocol-era-worker` › same case                                                               | 10/10 green ×3                                          |
+| 11  | 2026-09-07 | `1 failed \| 2816 passed` | `trial-signup` › routed ahead of the auth gate                                                  | 4/4 green                                               |
+| 12  | 2026-09-08 | `1 failed \| 2816 passed` | same                                                                                            | 4/4 green                                               |
+| 13  | 2026-09-08 | `2 failed \| 2845 passed` | `trial-signup` › routed ahead of the auth gate **and** › fails CLOSED with only Upstash unbound | **first isolated re-run ALSO failed**; second 4/4 green |
 
-Tally: **six** on `protocol-era-worker`, two on `trial-signup`, one on `oauth-introspection`, one on `cors`, two unnamed. All four named files use `unstable_dev`. Instances 11 and 12 are the same test on consecutive days; 12 landed in a full-suite validation whose diff touched **no mcp-server source at all** (a website marketing-copy change plus three operator docs), which is the cleanest "the diff is not the cause" datapoint in the table — there was no Worker code under test to have broken it. Instance 10 landed in a full-suite validation of a dependency-override change (PR #447) that touched no Worker source; it was the fourth `test:mcp` run of that day on the same machine, so warm.
+Tally: **six** on `protocol-era-worker`, three on `trial-signup`, one on `oauth-introspection`, one on `cors`, two unnamed. All four named files use `unstable_dev`. Instances 11 and 12 are the same test on consecutive days; 12 landed in a full-suite validation whose diff touched **no mcp-server source at all** (a website marketing-copy change plus three operator docs), which is the cleanest "the diff is not the cause" datapoint in the table — there was no Worker code under test to have broken it.
+
+**Instance 13 breaks the "green in isolation" pattern and is the most diagnostic entry yet.** It is the first to fail **two** tests in one run, and the first whose _isolated_ re-run also failed before a second attempt went green — every prior instance recovered on the first isolated retry. Its diff added a JSON artifact, a test file and docs; no Worker source. The read this supports: the flake is a function of **machine load at boot time**, not of full-suite execution per se — the failing isolated run came immediately after a full suite, while the green one came a few minutes later. That predicts the `beforeAll` `unstable_dev` boot is the contended step, and it is a testable hypothesis: instrument the boot duration and correlate against concurrent load, rather than continuing to re-run and shrug. Instance 10 landed in a full-suite validation of a dependency-override change (PR #447) that touched no Worker source; it was the fourth `test:mcp` run of that day on the same machine, so warm.
 
 **What is already ruled out, by evidence rather than assumption:**
 
@@ -2038,23 +2041,36 @@ Tally: **six** on `protocol-era-worker`, two on `trial-signup`, one on `oauth-in
 
 ---
 
-### BL-157: `rate_limit_decision` is a declared AE event type with no emitter — throttles are invisible in analytics
+### BL-157: five declared AE event types emit nothing — the metrics schema advertises twice the coverage that exists
 
-**Source**: found 2026-09-08 while auditing trial observability for [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) | **Effort**: Small-to-Medium — the wiring is a few lines; the sampling policy is the actual decision | **Status**: Open
+**Source**: found 2026-09-08 while auditing trial observability for [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment); **widened the same day** from one dead type to five while building the Grafana dashboard, when the plan-reviewer caught `health_check` and a per-type emit-site count turned up three more | **Effort**: Small-to-Medium per type — the wiring is a few lines; the sampling policy for `rate_limit_decision` is the actual decision | **Status**: Open
 
-**As an** operator, **I want** throttles to appear in Analytics Engine **so that** "is a client hitting its ceiling" is a query rather than a guess, and so a tier whose limits are wrong shows up before the client complains.
+**As an** operator, **I want** the event types the schema declares to actually be recorded **so that** reading `_schema.ts` tells me what is observable, and so a dashboard panel over one of them shows data rather than a convincing blank.
 
-**The evidence.** `rate_limit_decision` has been declared in `EVENT_TYPES` since BL-032.75 Phase 1, complete with an `OUTCOME_VALUES` entry of `['allow', 'throttle', 'deny']` — and **nothing in `src/` ever emits it**. A grep for the identifier outside [`metrics/_schema.ts`](../../../mcp-server/src/metrics/_schema.ts) returns nothing. So:
+**The evidence.** `EVENT_TYPES` in [`metrics/_schema.ts`](../../../mcp-server/src/metrics/_schema.ts) declares twelve types. **Five emit nothing in production:**
 
-- There is **no AE record of a throttle for any tier**, trial or otherwise.
+| Type                  | State                                                                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `rate_limit_decision` | Declared `:39` with `OUTCOME_VALUES` `['allow','throttle','deny']` at `:241`. **No emitter anywhere.**                                 |
+| `health_check`        | Declared `:41` with outcomes at `:243`. **No emitter anywhere.** `/status` health comes from live `buildHealthPayload` probes, not AE. |
+| `prompt_span`         | `emitPromptSpan` exists (`metrics/prompt-span.ts:47`); **no call site** outside `metrics/` and its own test.                           |
+| `wrong_irl_detected`  | `emitWrongIrlDetected` exists (`metrics/irl-ingestion-events.ts:43`); no call site.                                                    |
+| `gate_elided`         | `emitGateElided` exists (`:68`); no call site.                                                                                         |
+
+Consequences:
+
+- There is **no AE record of a throttle for any tier**, trial or otherwise, and none of a health check.
 - The only throttle signal that exists is `safeLog({ event: 'ratelimit.exceeded', … })` at [`pipeline/handle-authenticated.ts`](../../../mcp-server/src/pipeline/handle-authenticated.ts) — stdout, i.e. visible only under a live `wrangler tail`. Same class of gap BL-155's observability slice just closed for signup.
-- The declared-but-dead entry is worse than an absent one: it makes the schema look like throttles are covered.
+- **A declared-but-dead entry is worse than an absent one**: it makes the schema look like throttles and health are covered. This nearly shipped five empty Grafana panels reading as "no throttling, all healthy" — the dashboard's guard test now forbids panels over all five, and its text panel names each one, but that is containment, not a fix.
 
 **The decision to make first, before any code.** `rate_limit_decision` would fire on **every authenticated request**, unlike every event type currently emitted (which are per tool call, per cron, per batch). That is a different volume class, and it interacts with AE sampling — which matters more now that [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md) put a `uniq`-based query on the same index, and `uniq` has no sample correction. Options to weigh: emit only on `throttle`/`deny` (cheap, but loses the denominator, so "throttle rate" becomes unanswerable); emit all three and accept sampling; or emit all three with an explicit sample rate. **Do not wire it before choosing** — the wrong choice here degrades the trial queries ADR-0031 depends on.
 
-- [ ] Choose the emission policy above and record it (ADR amendment or a note on ADR-0031, since they share the index)
-- [ ] Wire the emitter at the limiter's decision point, or **delete the dead schema entry** if the answer is "we do not want this" — either is better than a declared type nothing writes
-- [ ] If wired: extend `Verify-AeEmission.ps1` and the AUTH.md/RATE_LIMITS.md query cookbooks
+- [ ] `rate_limit_decision`: choose the emission policy above and record it (ADR amendment or a note on ADR-0031, since they share the index)
+- [ ] `rate_limit_decision`: wire the emitter at the limiter's decision point, or **delete the dead schema entry** if the answer is "we do not want this" — either is better than a declared type nothing writes
+- [ ] `health_check`: decide whether AE should carry it at all, given `/status` reads live probes. If not, delete the declaration rather than leave it advertising coverage
+- [ ] `prompt_span` / `wrong_irl_detected` / `gate_elided`: wire the existing emitters at their intended call sites, or delete emitter + declaration together. These are cheaper decisions than the first two — the code exists, it was simply never called
+- [ ] Whatever is wired: extend `Verify-AeEmission.ps1`, the AUTH.md / RATE_LIMITS.md query cookbooks, and **add a panel + remove the name from `NON_EMITTING_TYPES`** in `tests/unit/observability/grafana-dashboard.test.ts` and the dashboard's text panel
+- [ ] Whatever is deleted: remove it from `EVENT_TYPES`, `OUTCOME_VALUES`, the `schema.test.ts` snapshots, and the `blob1` lists in `ARCHITECTURE.md` / `DEPLOY.md`
 
 ---
 
