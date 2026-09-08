@@ -30,7 +30,11 @@ Cloudflare's own guidance is the **Altinity plugin for ClickHouse** (`vertamedia
 
 ## Verification checklist — this is the acceptance test
 
-The dashboard's SQL was executed against the real AE API before shipping, so the queries are known-valid. **What was never verified is whether Grafana renders them**, because that needs an account. Walk this list once after import:
+**The SQL in this dashboard has NOT been executed against a live AE dataset.** It was verified mechanically — the guard test pins both dialect rules (`GROUP BY` takes the raw column; counts are `sum(_sample_interval)`) and binds every column and event-type literal to `metrics/_schema.ts` — and the shapes were lifted from queries already running in production (`scripts/invoke-ae-baseline.mjs`, `src/observability/status-metrics.ts`). That is strong, but it is not execution: a dialect surprise would first surface on import.
+
+**Run the probe before you trust a panel.** `scripts/Verify-AeEmission.ps1` and the `curl` shape in [DEPLOY.md § C.X](DEPLOY.md) both execute arbitrary SQL against the API with the same token the datasource uses — paste a panel's query in and confirm it returns rows. Doing this for all twelve takes a few minutes and converts "should work" into "does".
+
+Then walk this list once after import:
 
 | Panel                               | Expect                                                                                              |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -51,11 +55,11 @@ The dashboard's SQL was executed against the real AE API before shipping, so the
 
 Three different causes look identical in Grafana, and only the last is a defect:
 
-| Cause                             | How to tell                                                                                                                                     |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nothing emits this event type** | Should be impossible — the guard test forbids panels over the five non-emitting types. If you see one, the guard was bypassed.                  |
-| **No traffic in the window**      | Widen the time range. Trial panels are expected empty until go-live; a quiet weekend empties others.                                            |
-| **Broken query**                  | Grafana shows a query error, not an empty chart. Copy the SQL into the `curl` probe from [DEPLOY.md § C.X](DEPLOY.md) to see the dialect error. |
+| Cause                             | How to tell                                                                                                                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nothing emits this event type** | Should be impossible — the guard test forbids panels over the five non-emitting types. If you see one, the guard was bypassed.                                                                                                        |
+| **No traffic in the window**      | Widen the time range. Trial panels are expected empty until go-live; a quiet weekend empties others.                                                                                                                                  |
+| **Broken query**                  | Grafana shows a query error, not an empty chart. Copy the SQL into the `curl` probe from [DEPLOY.md § C.X](DEPLOY.md) to see the dialect error. Most likely on first import, since the SQL ships guard-verified rather than executed. |
 
 ## Reading the numbers correctly
 
