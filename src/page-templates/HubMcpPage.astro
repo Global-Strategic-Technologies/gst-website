@@ -741,9 +741,11 @@ function accessHref(tier?: string) {
     padding-bottom: var(--spacing-3xl);
   }
 
-  /* No `scroll-margin-top` here, deliberately. Three of these blocks are
-     deep-link targets (#what-it-does and #tiers from the announcement sash,
-     #request-access from the guides), and the reflex is to offset them for the
+  /* No `scroll-margin-top` here, deliberately. Two of these blocks are
+     deep-link targets (#what-it-does from the announcement sash, and
+     #request-access from the guides — the sash's second field pointed at
+     #tiers until the trial replaced the free pilot as the public offering and
+     it was repointed at /hub/mcp/trial/), and the reflex is to offset them for the
      sticky header — but this is a hub SUB-page, and BaseLayout renders those
      with `staticHeader` (Header.astro's .site-header--static), so the header
      scrolls away and there is nothing to clear. Measured 2026-08-29: both

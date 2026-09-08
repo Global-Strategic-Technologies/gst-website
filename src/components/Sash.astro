@@ -139,8 +139,8 @@ const spokenLabel =
 // trackNavigation call on the site (see HeaderNavLinks.astro) — otherwise the
 // same page arrives in GA4 under two names. Fragments are PRESERVED (defined
 // here 2026-08-29; there was no prior convention — the guide pages'
-// #request-access links are untracked): '/hub/mcp/#tiers' records as
-// '/hub/mcp#tiers'. The split is what makes the slash-strip work at all — the
+// #request-access links are untracked): '/hub/mcp/#what-it-does' records as
+// '/hub/mcp#what-it-does'. The split is what makes the slash-strip work at all — the
 // old one-line regex was a no-op on a fragment URL.
 const toDestination = (raw: string): string => {
   const hashAt = raw.indexOf('#');

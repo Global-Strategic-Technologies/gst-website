@@ -456,6 +456,17 @@ describe('MCP marketing page — tier parity', () => {
     );
     expect(gate, 'the denial must key off the trial tier').toContain('auth.tier !== TRIAL_TIER');
     expect(table, 'the trial column must publish the refusal label').toContain(RADAR_NONE_LABEL);
+
+    // A defined-but-uncalled deny refuses nothing. Without this line the whole
+    // assertion is satisfied by a function sitting unreferenced in the tree:
+    // delete the call below and its import, and every suite stays green while
+    // the page keeps advertising a refusal the server no longer performs. That
+    // is the exact drift this test exists to catch, so the call site is part of
+    // what it pins — not just the definition.
+    const wired = read('mcp-server/src/pipeline/handle-authenticated.ts');
+    expect(wired, 'the deny must be invoked in the authenticated request path').toContain(
+      'trialRadarDenial(auth, call)'
+    );
   });
 
   it('gives each tier a DIFFERENT set of ceilings', () => {

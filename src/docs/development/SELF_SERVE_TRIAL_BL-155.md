@@ -378,27 +378,27 @@ _Retained for the M2M initiative:_ **This is critical path, not a follow-on.** T
 - **Correct BL-093** — note the anchors moved when BL-154 was filed: the "Self-serve signup / user directory / dynamic client registration" out-of-scope bullet is at **`:1668`**, its closing "self-serve _signup_/DCR … remain out of scope as recorded" sentence at **`:1671`**, and the house strike-through + `**Amended <date>**:` form to copy is at **`:1628`**. Both statements are now false on their self-serve term. **Re-derive these line numbers at implementation time rather than trusting them** — this plan already carried one stale set.
 - ~~**`trial` stays undocumented on the public tier surface** (operator decision). `mcp-marketing-parity.test.ts` and `hub-mcp-page.test.ts` enumerate three tiers and should keep doing so, unchanged. Internal docs that mirror the tier table still get the row; public marketing copy does not. Note the consequence and accept it deliberately: the signup page offers a tier the pricing surface never mentions, so the page's own copy is the only place a visitor learns what they get.~~ **REVERSED 2026-09-08 — see § Amendment below.**
 
-## Amendment — 2026-09-08: the trial replaced `free-pilot` as the public offering
-
-**Operator decision, in their words:** "The free pilot was replaced with the self-serve trial. they are now one and the same. replace any old, outdated information relating to the free pilot with the actual values of the self-serve trial."
-
-The decision recorded twice above — keep `trial` off the public tier table so the signup page is the only place a visitor learns what it grants — is reversed. It rested on the trial being an extra, quieter offering alongside a provisioned free pilot. It is not: it **is** the free entry offering now, and hiding it left the public tier table advertising a `free-pilot` that no longer takes signups.
-
-What changed on the website:
-
-- `/hub/mcp/`'s tier table publishes **`trial` as its first column** — `15`/min, `100`/day — and no longer publishes `free-pilot`. Its CTA links to `/hub/mcp/trial/` rather than the operator mailto, and a second trial CTA sits under the page lede.
-- The two **radar cells publish "None", not the config's `1`/`1`**: `trialRadarDenial` refuses radar for the tier before the limiter is consulted, so a trial caller gets zero radar calls. `mcp-marketing-parity.test.ts` binds that cell to the tier gate rather than to `TIER_LIMITS`.
-- The hub FAQ answer (which renders into FAQPage JSON-LD) and the site-wide announcement sash were reworded off "free pilot", in all three locales.
-- The guards inverted with the copy: `UNPUBLISHED_TIERS` is now `{'free-pilot'}`.
-
-**`free-pilot` is retired, not deleted.** It stays in `TIER_LIMITS` and `ASSIGNABLE_TIERS`, existing client records may carry it, and an operator may still assign it deliberately. No Worker behaviour changed in this amendment — it is a marketing-surface change only.
-
 - **Correct the public copy** that says otherwise — `src/pages/hub/mcp/get-started/index.astro:100` ("there is no self-serve signup and no dynamic client registration") and `src/data/mcp/capabilities.ts:1343`. **Directive 11: `grep tests/` for both strings before committing.**
 - **BL-133's parked blockquote** must be updated to say the trial was unparked as BL-155 rather than left describing it as pending a Stripe staging pass.
 - **Secrets, and their sequencing — which is a deploy hazard, not paperwork.** `TURNSTILE_SECRET_KEY` (plus the HMAC secret for the IP key) into `mcp-server/src/env.ts` beside `OAUTH_M2M_SIGNING_KEY`, both prose manifests in `wrangler.toml` (staging and production blocks separately), and rows in `SECRETS_INVENTORY.md`. Set via `wrangler secret put` reading stdin — never inline (Directive 15). The **site key is public** and belongs in the page.
   **Both `TURNSTILE_SECRET_KEY` and the IP-HMAC secret must exist in staging AND production before the code deploys.** The endpoint fails closed by design, so a merge that lands ahead of the secrets gives a 503 endpoint in production. Staging auto-deploys on a green MCP test run, and production is gated behind the `mcp-production` environment approval — so the order is: `wrangler secret put` both secrets in both environments → merge → let staging deploy → approve production. Do not invert it.
 - **Docs that mirror the tier table and will drift**: `RATE_LIMITS.md:26-35, 178-185`, `PILOT_ONBOARDING.md:13, 34`, `testing/uat/SETUP.md:128`, `ARCHITECTURE.md:170`, `operations/AUTH.md:173-178`. Add a Turnstile row to `SECURITY_HEADERS.md`.
 - **New BL-155 stanza** in BACKLOG.md carrying these ACs.
+
+## Amendment — 2026-09-08: the trial replaced `free-pilot` as the public offering
+
+**Operator decision, in their words:** "The free pilot was replaced with the self-serve trial. they are now one and the same. replace any old, outdated information relating to the free pilot with the actual values of the self-serve trial."
+
+The decision recorded twice above — in § Operator decisions taken and again in Slice 4, keeping `trial` off the public tier table so the signup page is the only place a visitor learns what it grants — is reversed. It rested on the trial being an extra, quieter offering alongside a provisioned free pilot. It is not: it **is** the free entry offering now, and hiding it left the public tier table advertising a `free-pilot` that no longer takes signups.
+
+What changed on the website:
+
+- `/hub/mcp/`'s tier table publishes **`trial` as its first column** — `15`/min, `100`/day — and no longer publishes `free-pilot`. Its CTA links to `/hub/mcp/trial/` rather than the operator mailto, and a second trial CTA sits under the page lede.
+- The two **radar cells publish "None", not the config's `1`/`1`**: `trialRadarDenial` refuses radar for the tier before the limiter is consulted, so a trial caller gets zero radar calls. `mcp-marketing-parity.test.ts` binds that cell to the tier gate — including its call site in `handle-authenticated.ts`, since a defined-but-uncalled deny refuses nothing — rather than to `TIER_LIMITS`.
+- The hub FAQ answer (which renders into FAQPage JSON-LD) and the site-wide announcement sash were reworded off "free pilot", in all three locales. The sash's second field also moved from `/hub/mcp/#tiers` to the trial page.
+- The guards inverted with the copy: `UNPUBLISHED_TIERS` is now `{'free-pilot'}`.
+
+**`free-pilot` is retired, not deleted.** It stays in `TIER_LIMITS` and `ASSIGNABLE_TIERS`, existing client records may carry it, and an operator may still assign it deliberately. No Worker behaviour changed in this amendment — it is a marketing-surface change only.
 
 ## Verification
 
