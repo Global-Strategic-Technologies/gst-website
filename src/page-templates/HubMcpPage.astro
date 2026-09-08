@@ -109,7 +109,6 @@ function accessHref(tier?: string) {
           class="cta-button"
           onclick="trackCTA('mcp-lede-trial', 'hub-mcp')">{t('header.trialCta')}</a
         >
-        <p class="mcp-trial-cta__note">{t('header.trialCtaNote')}</p>
       </div>
 
       <div class="mcp-block" id="what-it-does">
@@ -763,15 +762,6 @@ function accessHref(tier?: string) {
      target; only the surrounding space is declared here. */
   .mcp-trial-cta {
     margin-bottom: var(--spacing-3xl);
-  }
-
-  /* The qualifier under the button, deliberately small: it answers "what
-     happens when I click" without competing with the button's own label. */
-  .mcp-trial-cta__note {
-    max-width: var(--mcp-measure);
-    margin-top: var(--spacing-sm);
-    font-size: var(--text-sm);
-    color: var(--text-muted);
   }
 
   .mcp-block h2 {
