@@ -56,8 +56,7 @@ import {
   TRIAL_KEY_OWNER,
 } from '../../../src/trial/signup';
 import { OUTCOME_VALUES } from '../../../src/metrics/_schema';
-import { keyOwnerFor } from '../../../src/oauth/m2m-clients';
-import { oauthKeyOwner } from '../../../src/oauth/key-owner';
+import { resolveConsentIdentity } from '../../../src/oauth/consent-identity';
 import { TURNSTILE_ACTION } from '../../../src/trial/turnstile';
 import { TRIAL_SCOPES } from '../../../src/auth/scopes';
 import { TRIAL_IDENTITY_TTL_SECONDS, TRIAL_TTL_SECONDS } from '../../../src/ratelimit/tiers';
@@ -567,6 +566,33 @@ describe('handleTrialSignup — AE signup events', () => {
     expect([...seen].sort()).toEqual([...OUTCOME_VALUES.trial_signup].sort());
   });
 
+  it('emits ONE event when the expired-record lookup fails, not expired + unavailable', async () => {
+    // Regression: the `getM2mClient` read that fetches the issue date used to
+    // sit inside the caller's try, so a KV throw there turned one refusal into
+    // two data points — `expired`, then `unavailable` from the catch. That
+    // double-counts precisely the failure the signup-health query watches.
+    const first = await handleTrialSignup(req(), env());
+    const { clientId } = (await first.json()) as { clientId: string };
+    vi.setSystemTime(NOW + (TRIAL_TTL_SECONDS + 60) * 1000);
+    aePoints.length = 0;
+
+    // `rotateM2mSecret` reads the record first (and returns null, since it is
+    // expired); the date lookup is the SECOND read. Only that one fails here —
+    // failing the first would be a different path (a 503, correctly).
+    const getMock = kv.get as unknown as ReturnType<typeof vi.fn>;
+    getMock
+      .mockImplementationOnce(async (key: string) => kvStore.get(key) ?? null)
+      .mockRejectedValueOnce(new Error('kv read failed'));
+
+    const res = await handleTrialSignup(req(), env());
+    expect(res.status).toBe(403);
+    // The visitor loses only the issue date, not the correct refusal.
+    expect(await res.json()).not.toHaveProperty('issuedAt');
+    const event = only();
+    expect(event.outcome).toBe('expired');
+    expect(event.client_ref).toBe(`OAUTH:${clientId}`);
+  });
+
   it('still returns 200 when the AE write throws — metrics never break a signup', async () => {
     metricsDataset.writeDataPoint.mockImplementationOnce(() => {
       throw new Error('AE substrate error');
@@ -583,14 +609,25 @@ describe('handleTrialSignup — AE signup events', () => {
     expect(aePoints).toHaveLength(0);
   });
 
-  it('derives TRIAL_KEY_OWNER identically to the auth path', async () => {
-    // The constant is composed from `oauthKeyOwner(m2mKeyOwner(name))`; the auth
-    // path composes `oauthKeyOwner(keyOwnerFor(record))`. They must agree, or
-    // signup events and usage events land under two different index values and
-    // the "all trials in one indexed query" property quietly dies.
+  it('lands signup events and usage events under the SAME index value', async () => {
+    // The property that matters: a signup event and the trial's later tool
+    // calls must share `index1`, or "all trials in one indexed query" quietly
+    // dies and the AUTH.md cookbook returns half the truth.
+    //
+    // Driven through `resolveConsentIdentity` — the real function the auth path
+    // calls — rather than by re-deriving with `oauthKeyOwner(keyOwnerFor(…))`.
+    // That re-derivation is what the constant already does, so asserting it
+    // would only prove the constant equals itself; and `consent-identity.ts`
+    // builds its keyOwner as a template literal, so a change to `oauthKeyOwner`
+    // would break the join while leaving the re-derived form agreeing.
     const res = await handleTrialSignup(req(), env());
-    const { clientId } = (await res.json()) as { clientId: string };
-    const record = await getM2mClient(kv, clientId);
-    expect(oauthKeyOwner(keyOwnerFor(record!))).toBe(TRIAL_KEY_OWNER);
+    const body = (await res.json()) as { credential: string; clientId: string };
+    expect(only().index).toBe(TRIAL_KEY_OWNER);
+
+    const identity = await resolveConsentIdentity(body.credential, {}, kv);
+    expect(identity, 'the minted credential must resolve at the consent page').not.toBeNull();
+    expect(identity!.keyOwner).toBe(TRIAL_KEY_OWNER);
+    // And the per-client dimension agrees end to end, which is the join.
+    expect(identity!.rateLimitSubject).toBe(`OAUTH:${body.clientId}`);
   });
 });

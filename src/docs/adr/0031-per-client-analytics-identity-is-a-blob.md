@@ -30,7 +30,7 @@ The value has **one canonical form, `OAUTH:<clientId>`** — exactly `AuthSucces
 
 ### The limitation this decision accepts, stated plainly
 
-Distinct actives is `uniq(blob8)`. Cloudflare publishes sample corrections for exactly four aggregates — `count() → sum(_sample_interval)`, `sum(x) → sum(x*_sample_interval)`, `avg`, and `quantileExactWeighted`. **`uniq` is not among them, and cannot be**: a distinct-count over rows that were dropped by sampling cannot be recovered by weighting the survivors.
+Distinct actives is `uniq(blob8)`. Cloudflare publishes sample corrections for exactly four aggregates — `count() → sum(_sample_interval)`, `sum(x) → sum(x*_sample_interval)`, `avg`, and the weighted quantiles (this repo uses `quantileWeighted`, per `status-metrics.ts`). **`uniq` is not among them, and cannot be**: a distinct-count over rows that were dropped by sampling cannot be recovered by weighting the survivors.
 
 Therefore:
 

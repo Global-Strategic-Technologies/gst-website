@@ -216,12 +216,15 @@ What an operator needs to know:
 - **Inspect**: `GET /admin/oauth/m2m-clients` lists trials as `name: "trial"`, `tier: "trial"`; `PATCH … {"tier":"paid","expiresAt":null}` converts one (the person re-consents to pick up the new tier). `DELETE` blocks re-issue and `/token`; a consent grant already made runs to its captured `expiresAt` (§ above).
 - **Observability — what to actually run** (BL-155, [ADR-0031](../../../../src/docs/adr/0031-per-client-analytics-identity-is-a-blob.md)). Signup emits one `trial_signup` AE event per outcome, and every trial's tool call carries the trial's `client_ref` in `blob8`. Query `mcp_events` (or `mcp_events_staging`) with the AE SQL API — `src/observability/ae-query.ts` and `scripts/Verify-AeEmission.ps1` both run SQL for you.
 
+  **`GROUP BY` takes the raw column, never the `SELECT` alias** — the AE dialect rejects the alias (proven in `observability/status-metrics.ts`, and every working query in this repo follows it). Aliasing in `SELECT` and `ORDER BY` is fine.
+
   ```sql
-  -- Mints and re-issues per day, and everything that failed instead.
+  -- Mints and re-issues per week, and everything that failed instead.
   SELECT blob4 AS outcome, sum(_sample_interval) AS n
   FROM mcp_events
   WHERE blob1 = 'trial_signup' AND timestamp > NOW() - INTERVAL '7' DAY
-  GROUP BY outcome ORDER BY n DESC
+  GROUP BY blob4
+  ORDER BY n DESC
 
   -- Signup health: is the endpoint dead? A run of `unavailable` means a
   -- secret is unbound or Upstash/Turnstile is failing — the failure mode that
@@ -229,7 +232,8 @@ What an operator needs to know:
   SELECT blob4 AS outcome, blob6 AS status, sum(_sample_interval) AS n
   FROM mcp_events
   WHERE blob1 = 'trial_signup' AND timestamp > NOW() - INTERVAL '1' DAY
-  GROUP BY outcome, status
+  GROUP BY blob4, blob6
+  ORDER BY n DESC
 
   -- Per-trial call volume — the "is someone farming this" query. Sample-
   -- correct, because sum(_sample_interval) is the corrected form of count().
@@ -237,11 +241,14 @@ What an operator needs to know:
   FROM mcp_events
   WHERE index1 = 'OAUTH:M2M:TRIAL' AND blob1 = 'tool_invocation'
     AND timestamp > NOW() - INTERVAL '7' DAY
-  GROUP BY client ORDER BY calls DESC LIMIT 50
+  GROUP BY blob8
+  ORDER BY calls DESC
+  LIMIT 50
 
   -- Distinct active trials. SCOPE IT (index1 + blob1) or it counts every
   -- client_ref-bearing identity, not just trials.
-  SELECT uniq(blob8) FROM mcp_events
+  SELECT uniq(blob8) AS distinct_trials
+  FROM mcp_events
   WHERE index1 = 'OAUTH:M2M:TRIAL' AND blob1 = 'tool_invocation'
     AND timestamp > NOW() - INTERVAL '7' DAY
   ```

@@ -348,16 +348,28 @@ async function reissue(
   const rotated = await rotateM2mSecret(kv, clientId);
   if (!rotated) {
     safeLog({ event: 'trial.signup.expired', success: false, errorCode: 'trial-expired' });
-    // `client_ref` IS set here, unlike the other failures: the client exists,
-    // it is simply past its expiry, and attributing the refusal to it is what
-    // distinguishes "this trial came back" from "a stranger was refused".
-    emitSignup(env, 'expired', 403, startedAt, clientId);
     // The page tells the visitor WHEN their trial was issued. The record
     // outlives the identity key by ~3 days (reap = expiresAt + grace), so it is
     // usually still there; when it has been reaped the field is simply absent
     // and the page renders the dateless variant. A second read on a cold error
     // path is cheaper than widening `rotateM2mSecret`'s return shape.
-    const expired = await getM2mClient(kv, clientId);
+    //
+    // Its own try/catch, and the metric emitted only AFTER it: a throw here
+    // used to propagate to the caller's `catch`, which turns it into `fail()` —
+    // so one expired signup emitted TWO data points (`expired` AND
+    // `unavailable`), inflating the failure count that the signup-health query
+    // keys on. The refusal is already decided at this point; a failed lookup
+    // only costs the visitor the issue date, so it must not change the outcome.
+    let expired: Awaited<ReturnType<typeof getM2mClient>> = null;
+    try {
+      expired = await getM2mClient(kv, clientId);
+    } catch {
+      /* the dateless variant is the graceful degradation the page already renders */
+    }
+    // `client_ref` IS set here, unlike the other failures: the client exists,
+    // it is simply past its expiry, and attributing the refusal to it is what
+    // distinguishes "this trial came back" from "a stranger was refused".
+    emitSignup(env, 'expired', 403, startedAt, clientId);
     return json(403, {
       error: 'trial-expired',
       message: 'A trial from this network has already ended. Contact GST to keep going.',
