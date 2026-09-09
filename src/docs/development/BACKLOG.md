@@ -220,7 +220,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-155: Self-serve 3-day MCP trial — connector flow, gated by Turnstile, no payment
 
-**Source**: operator directive 2026-09-06 — "people can get a working GST MCP key without the operator in the loop"; unparks [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)'s trial directive as its own initiative | **Effort**: all slices built | **Status**: Open — Slices 1, 2, 2b, 3 and 4 built 2026-09-06/07 on `feat/bl-155-self-serve-mcp-trial`; remaining: production go-live (operator, Slice 4 last bullet); **rescoped to the connector flow 2026-09-06** | **Architecture & plan**: [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) — **controlling; read § Scope first** | **Splits off**: [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial)
+**Source**: operator directive 2026-09-06 — "people can get a working GST MCP key without the operator in the loop"; unparks [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)'s trial directive as its own initiative | **Effort**: all slices built | **Status**: Open — Slices 1, 2, 2b, 3 and 4 built 2026-09-06/07 on `feat/bl-155-self-serve-mcp-trial`; LIVE in production 2026-09-08 (secrets set, `mcp-production` approved, first mint verified). Remaining: no alert rule on signup or refusal volume (needs a production baseline first — see BL-157), and the claude.ai/design re-sync for the retired free-pilot copy; **rescoped to the connector flow 2026-09-06** | **Architecture & plan**: [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) — **controlling; read § Scope first** | **Splits off**: [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial)
 
 **As a** technical evaluator at a PE or corp-dev firm, **I want** to get a working GST MCP credential and use it from Claude without talking to anyone, **so that** I can answer "is this worth my time?" in one sitting rather than one email round-trip.
 
@@ -257,7 +257,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - [x] **Privacy policy gains the Turnstile disclosure** in all three locales, linking the Turnstile Privacy Addendum, plus the 30-day IP-hash retention sentence
 - [x] E2E ([`hub-mcp-trial.test.ts`](../../../tests/e2e/hub-mcp-trial.test.ts)) stubs Turnstile and the mint endpoint and drives every state, with axe on issued and error states; `/hub/mcp/trial/` added to the a11y sweep
 
-**Slice 4 — The record** — split: the Worker-side half shipped with Slice 2 (2026-09-07); the website-side half lands with Slice 3, and **that is the production gate**, not deferred work. Until Slice 3 merges, production's two trial secrets stay unset and the `mcp-production` approval is withheld, so `/trial/signup` is 503 in production by construction and "no self-serve signup exists" remains literally true for the public.
+**Slice 4 — The record** — split: the Worker-side half shipped with Slice 2 (2026-09-07); the website-side half lands with Slice 3, and **that is the production gate**, not deferred work. Slice 3 merged and the gate was met: production's trial secrets were set and the `mcp-production` deploy approved on **2026-09-08**, verified end to end by a real Turnstile-gated mint. Until then `/trial/signup` was 503 in production by construction and "no self-serve signup exists" remained literally true for the public until it did.
 
 - [x] **Amended [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md)** (2026-09-07) — the widened identity premise, the "still not DCR" argument stated precisely, every bound named as its enforcing mechanism (radar as the tier-scoped pipeline check), both doors described, the two residuals disclosed, the revisit trigger
 - [x] `TURNSTILE_SECRET_KEY` + `TRIAL_IP_HMAC_SECRET` declared (`env.ts`, both wrangler manifests, `SECRETS_INVENTORY.md` rows marked pending); `TURNSTILE_EXPECTED_HOSTNAMES` / `TRIAL_EXTRA_ORIGINS` `[vars]` committed. **Staging**: operator sets both secrets (test Turnstile secret) so the endpoint can be exercised. **Production: set both, then approve — as Slice 3's final step, not before**
@@ -265,7 +265,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - [x] **With Slice 3** (2026-09-07): corrected [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, [`get-started/index.astro`](../../pages/hub/mcp/get-started/index.astro), [`capabilities.ts`](../../data/mcp/capabilities.ts), `hub-mcp.json` (`access.provisioning.item1`, both meta descriptions), `services.json` `faq.a5`, `public/llms.txt` and the JSON-LD rationale where they said no self-serve signup exists (no test pinned the old strings; `grep tests/` done); the website CSP and the `SECURITY_HEADERS.md` rows; the privacy disclosure
 - [x] **`free-pilot` retired from the public site** (2026-09-08, operator decision: "the free pilot was replaced with the self-serve trial. they are now one and the same"). `/hub/mcp/`'s tier table publishes `trial` (15/100, radar "None" bound to `trialRadarDenial`) as its first column with a self-serve CTA, plus a trial CTA under the lede; the hub FAQ, the announcement sash and the design-sync surfaces were reworded in all three locales; `UNPUBLISHED_TIERS` inverted to `{'free-pilot'}`. `free-pilot` remains in `TIER_LIMITS`/`ASSIGNABLE_TIERS` and assignable by hand — no Worker change. Reverses the "trial stays undocumented" decision recorded twice in [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md), amended in place there. **Pending: re-sync claude.ai/design** (sash copy is in the published bundle)
 - [x] **Trial observability** (2026-09-08, operator request "should we enable observability into when, how many 3-day trials are being created and used?"). Audit found creation had **no durable observability** (`safeLog` = one `console.log`; two branches silent) while usage was queryable only in aggregate. Added `trial_signup` AE events (one outcome per handler branch, exhaustive in `OUTCOME_VALUES`) and `client_ref`/`blob8`, the per-client dimension — a **blob, never the index**, so `index1` stays roster-sized. Queries in [AUTH.md](../../../mcp-server/src/docs/operations/AUTH.md); decision + the `uniq`-has-no-sample-correction limitation in [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md). **Not done: no alert rule / `/status` row**, so nothing pages on a dead signup endpoint — next slice
-- [ ] **Production go-live (operator)**: set `TURNSTILE_SECRET_KEY` + `TRIAL_IP_HMAC_SECRET` on the production Worker, `PUBLIC_TURNSTILE_SITE_KEY` (the real widget) on Vercel Production and `PUBLIC_TRIAL_SIGNUP_ORIGIN` on Vercel Preview, then approve the `mcp-production` deploy — see `SECRETS_INVENTORY.md`
+- [x] **Production go-live (operator)** — done 2026-09-08, verified by a real mint through the widget: set `TURNSTILE_SECRET_KEY` + `TRIAL_IP_HMAC_SECRET` on the production Worker, `PUBLIC_TURNSTILE_SITE_KEY` (the real widget) on Vercel Production and `PUBLIC_TRIAL_SIGNUP_ORIGIN` on Vercel Preview, then approve the `mcp-production` deploy — see `SECRETS_INVENTORY.md`
 
 #### Technical Context
 
@@ -2092,6 +2092,63 @@ Consequences:
 - [ ] `prompt_span` / `wrong_irl_detected` / `gate_elided`: wire the existing emitters at their intended call sites, or delete emitter + declaration together. These are cheaper decisions than the first two — the code exists, it was simply never called
 - [ ] Whatever is wired: extend `Verify-AeEmission.ps1`, the AUTH.md / RATE_LIMITS.md query cookbooks, and **add a panel + remove the name from `NON_EMITTING_TYPES`** in `tests/unit/observability/grafana-dashboard.test.ts` and the dashboard's text panel
 - [ ] Whatever is deleted: remove it from `EVENT_TYPES`, `OUTCOME_VALUES`, the `schema.test.ts` snapshots, and the `blob1` lists in `ARCHITECTURE.md` / `DEPLOY.md`
+
+### BL-158: the Grafana dashboard renders, but two of its SQL assumptions are wrong
+
+**Source**: found 2026-09-08 the hour the dashboard first saw real data, when BL-155's first production mint made the trial panels non-empty | **Effort**: Small-to-Medium — five panel queries, a guard-test rule, and an ADR correction; the `uniq` half may be larger depending on one observation | **Status**: Open
+
+**As an** operator reading this dashboard, **I want** a panel titled "by outcome" to actually split by outcome **so that** I am not reading one merged line as though it were a breakdown, and **so that** a panel which cannot work fails loudly instead of looking quiet.
+
+Both defects shipped in `deb4034b` / `68b83d0f` and neither was catchable by the guard test, because both are **semantic**: the SQL is syntactically valid, obeys the two dialect rules the guard pins, and renders without error. This is the exact class of failure [`GRAFANA.md`](../../../mcp-server/src/docs/operations/GRAFANA.md) warned about when it recorded the SQL as _guard-verified, not executed_ — and executing it is what found them, within minutes.
+
+#### Defect 1 — the multi-series panels silently merge (confirmed)
+
+Five `timeseries` panels are written as:
+
+```sql
+SELECT $timeSeries AS t, blob4 AS outcome, sum(_sample_interval) AS n ... GROUP BY blob4, t
+```
+
+Altinity's documentation is explicit that this yields **multiple rows per timestamp, not multiple series**. Observed in production: _Trial signups over time, by outcome_ rendered a single legend entry `n` while the neighbouring table showed three distinct outcomes in the same window. The panel is not empty and not erroring — it is **wrong in a way that reads as right**, which is worse.
+
+Affected: _Trial signups over time_ (`blob4`), _Invocations over time, by primitive_ (`blob1`), _Invocations over time, by keyOwner_ (`index1`), _Refusals over time, by outcome_ (`blob4`), _Zone-1 calls over time, by category_ (`blob2`). **Not** affected: _Trial paywall hits over time_, which splits by nothing.
+
+**The documented fix does not apply here.** Altinity's `$columns(key, value)` macro exists for exactly this and expands to `groupArray(...)` over a subquery — and `groupArray` is **not** in Cloudflare AE's supported aggregate list. Note that is the same evidence class as Defect 2 — absence from a reference page, not an observed rejection — so probe it before committing to a five-panel rewrite. One query settles it. AE does support `sumIf`, so the available shape is one column per series:
+
+```sql
+SELECT $timeSeries AS t,
+       sumIf(_sample_interval, blob4 = 'minted')   AS minted,
+       sumIf(_sample_interval, blob4 = 'reissued') AS reissued
+FROM $dataset WHERE blob1 = 'trial_signup' AND $timeFilter GROUP BY t ORDER BY t
+```
+
+That stays a flat SELECT and keeps sample-weighting. It requires the split dimension to be **enumerable**, which is true for four of the five — outcomes and event types are closed sets in `metrics/_schema.ts`, and Inoreader categories are pinned in `NAME_VALUES`.
+
+**The open design question is the fifth**: _Invocations over time, by keyOwner_ splits on `index1`, a roster that grows without a schema change, so no column list can be written. Options to weigh — convert it to a table (top keyOwners in window, which is arguably the more useful instrument anyway); keep it as a single total line and retitle it honestly; or generate the column list at import time and accept that it goes stale when a key is added.
+
+- [ ] Rewrite the four enumerable panels using `sumIf`, with the column list **derived from `_schema.ts`** so a new outcome cannot silently go unplotted
+- [ ] Decide and implement the `keyOwner` panel (the question above)
+- [ ] **Guard rule**: a `timeseries` panel must not `GROUP BY` a blob/index column — that is precisely the merge bug, and it is mechanically detectable. This is the guard that would have caught it
+- [ ] Re-verify each panel against production after import, since only execution surfaces this class
+
+#### Defect 2 — `uniq()` may not exist in AE at all (needs one observation)
+
+The _Distinct active trials_ panel uses `uniq(blob8)`. `uniq(blob8)` was written directly in `cb249a05` on the stated basis that AE supported it — a claim re-checked 2026-09-08 against the aggregate-function reference, where **the token `uniq` does not appear**, while `count(DISTINCT column_name)` is documented.
+
+**No committed regression exists**, and an earlier draft of this stanza asserted one: it said the panel had been changed _from_ `count(DISTINCT blob8)`, which a pickaxe over the full history disproves — that form appears nowhere except in a rejected plan draft. So the question is whether the function was ever right, not whether something broke it.
+
+**Resolve empirically before touching anything**: look at that panel in production. A query error means `uniq` is rejected and the panel has never worked. A number or an empty chart means AE accepts it and only the docs are incomplete.
+
+If it is rejected, the correction reaches further than the panel: [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md) names `uniq` in its decision text, `AUTH.md`'s cookbook uses it, `GRAFANA.md` explains its sampling caveat, and the guard test asserts a `uniq` panel exists and carries that caveat. It reaches further still: `ARCHITECTURE.md`, `RATE_LIMITS.md`, `metrics/_schema.ts`, `metrics/pipeline-events.ts`, the `adr/README.md` rows for 0031 and 0032, the dashboard's refusal-panel description and its text panel, and comments in four test files. **Most importantly, [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md)'s entire trade rests on `uniq` having no sample correction** — if the function is rejected outright, that argument needs re-examining, not just renaming. Note the **underlying limitation survives the rename** — a distinct count cannot be sample-corrected whatever it is spelled — so ADR-0031's reasoning stands even if its function name does not.
+
+- [ ] Observe the panel; record the verdict here before editing
+- [ ] **While here**: `SECRETS_INVENTORY.md` line 227 still calls the Grafana datasource configuration "pending", which this stanza contradicts — the dashboard has been serving real production data since 2026-09-08. Deliberately left for a considered edit rather than folded into the go-live commit
+- [ ] If rejected: `count(DISTINCT blob8)` across the panel, `AUTH.md`, ADR-0031 (as an amendment, not a rewrite — the decision was sound, the function name was not), `GRAFANA.md`, and the guard's `uniq` assertion
+- [ ] Either way, add a guard binding panel SQL to a list of **AE-supported aggregates**, so an unsupported function is a red test rather than a red panel
+
+#### The lesson worth keeping
+
+The guard test pins _dialect rules_ and _schema bindings_, and it did both jobs. Neither defect is in that class. A query can be valid, schema-bound, sample-weighted, and still answer a different question than its title claims. **Execution against real data is not interchangeable with static verification**, and the window between shipping the dashboard and the first real row was the whole exposure. Cheapest mitigation is the one already written into `GRAFANA.md`: run each panel's SQL through the probe before trusting it.
 
 ---
 
