@@ -118,8 +118,12 @@ Once this doc is filled and signed off, Phase 3 (alerts + status surface; dashbo
   through the existing Sentry envelope infra (fingerprinted issue events → email rules);
   thresholds derived from the signed-off SLO targets above
 - Grafana dashboard against `POST /accounts/{id}/analytics_engine/sql` — **artifact shipped
-  2026-09-08** as [`grafana-dashboard.json`](grafana-dashboard.json); datasource configuration
-  and import are operator tasks, see [`GRAFANA.md`](../src/docs/operations/GRAFANA.md). The
+  2026-09-08** as [`grafana-dashboard.json`](grafana-dashboard.json); **configured, imported and
+  probed against production on 2026-09-09** — every panel executed, see
+  [`GRAFANA.md`](../src/docs/operations/GRAFANA.md). Note the latency figures it now shows
+  (`search_radar` p50 124ms / p95 479ms / p99 2181ms) are **in-Worker upstream I/O wait over
+  100% synthetic probe traffic**, and are NOT the client-observed tool latency this document
+  defers to the latency probe below — do not read one as the other. The
   datasource is the **Altinity ClickHouse plugin** (`vertamedia-clickhouse-datasource`), not
   Infinity as this line previously recorded: Altinity is what Cloudflare documents, and only it
   supplies the `$timeSeries`/`$timeFilter` macros the time-series panels use
