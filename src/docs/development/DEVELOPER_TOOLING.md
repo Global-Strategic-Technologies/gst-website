@@ -350,6 +350,35 @@ scripts under `mcp-server/scripts/` are safe because **both Windows PowerShell 5
 parse LF-only script files**, including the here-strings in `Verify-AeEmission.ps1`; this does not
 depend on which host an operator happens to use.
 
+**Line endings are not the only edition trap, and the other one is worse.** `.ps1` files in this
+repo must be **ASCII-only**, enforced by
+[`tests/unit/scripts/powershell-scripts-ascii.test.ts`](../../../mcp-server/tests/unit/scripts/powershell-scripts-ascii.test.ts).
+Windows PowerShell 5.1 — the shell that ships with Windows, so the one an operator following a
+runbook is most likely to have — reads a script with no byte-order mark using the **ANSI code page**,
+not UTF-8. A single em dash in a comment becomes mojibake, and when one of those bytes lands on a
+quote character the parser loses string parity and the **entire file** fails to parse, reporting a
+wall of `missing closing '}'` errors against lines that are perfectly correct. PowerShell 7 decodes
+the same file as UTF-8 and parses it fine.
+
+That asymmetry is why this needs a guard rather than care: **an author on pwsh 7 cannot see the
+bug.** On 2026-09-09 an operator hit it running `Probe-DashboardSql.ps1`, and five of the six tracked
+scripts turned out to be unparseable under 5.1 — including `Verify-AeEmission.ps1`, which
+[GRAFANA.md](../../../mcp-server/src/docs/operations/GRAFANA.md) tells operators to run. Use `-` for
+dashes, `->` for arrows, `...` for ellipses. Adding a BOM also fixes it, but ASCII survives an editor
+or tool that rewrites the file.
+
+The same guard rejects **PowerShell 7-only syntax** (`??`, `?.`, ternary, and the `&&` / `||`
+pipeline chain operators), which are parse errors in 5.1 for the same all-or-nothing reason. If a
+script genuinely needs 7, declare `#Requires -Version 7` — that fails with one clear line instead.
+
+> **Verifying a `.ps1` change in `pwsh` proves nothing about 5.1.** To parse-check under 5.1 — prints `0` when the file is clean:
+>
+> ```powershell
+> powershell.exe -NoProfile -Command { $e=$null; $t=$null; [System.Management.Automation.Language.Parser]::ParseFile('<absolute path>',[ref]$t,[ref]$e) | Out-Null; $e.Count }
+> ```
+>
+> **The braces are load-bearing — do not rewrite this as a double-quoted `-Command "…"` string.** The outer shell expands `$e` and `$t` before the child ever sees them, so the child receives `=;=;…ParseFile(…,[ref],[ref])` and answers with a wall of parse errors. That failure looks exactly like the broken-script signal this section teaches you to recognise, which makes it worse than no instrument at all. (A single-quoted variant fails differently — native-argument quote stripping eats the quotes around the path.) An earlier version of this very note shipped the broken double-quoted form; it was caught in review by someone running it rather than reading it.
+
 One consequence for macOS/Linux contributors, who were already unaffected in the working tree:
 `text=auto` now also normalizes CRLF→LF **on commit**. If a fixture ever needs literal CRLF on disk,
 give it an explicit `-text` override rather than relying on verbatim storage.

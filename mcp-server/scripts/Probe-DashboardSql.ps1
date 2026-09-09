@@ -6,8 +6,8 @@
 .DESCRIPTION
     The defect BL-158 fixed is invisible to a row count: a merged split still
     returns rows. What distinguishes a working split from a merged one is the
-    SHAPE — a fixed panel returns one column per series (`minted`, `reissued`,
-    …), a merged one returns the two columns `outcome` and `n`.
+    SHAPE - a fixed panel returns one column per series (`minted`, `reissued`,
+    ...), a merged one returns the two columns `outcome` and `n`.
 
     Grafana macros are not AE SQL, so each query is rewritten before sending:
       $dataset     -> the chosen dataset
@@ -84,7 +84,7 @@ foreach ($panel in $json.panels) {
                 -Headers @{ Authorization = "Bearer $env:CF_AE_TOKEN" } -ContentType 'application/json'
             $row = $res.data | Select-Object -First 1
             if ($null -eq $row) {
-                Write-Host '  no rows (may be legitimate — an empty window)' -ForegroundColor Yellow
+                Write-Host '  no rows (may be legitimate - an empty window)' -ForegroundColor Yellow
             }
             else {
                 $cols = $row.PSObject.Properties.Name
@@ -94,7 +94,7 @@ foreach ($panel in $json.panels) {
                 # Keyed off the ORIGINAL query's GROUP BY, not the column count.
                 # A time-series panel that splits by nothing legitimately returns
                 # a single `n` (Trial paywall hits is one), and an earlier version
-                # of this heuristic flagged it — a false positive on a correct
+                # of this heuristic flagged it - a false positive on a correct
                 # panel is worse than no check, because it trains you to ignore
                 # the red. The merge bug is specifically a GROUP BY on something
                 # other than the time alias, so test for exactly that.
@@ -106,7 +106,7 @@ foreach ($panel in $json.panels) {
                         Where-Object { $_ -and $_ -ne 't' }
                 }
                 if ($t.format -eq 'time_series' -and $splitTerms.Count -gt 0) {
-                    Write-Host "  ^^ MERGED — time_series panel groups by $($splitTerms -join ', '). Expected one sumIf column per series (BL-158)." -ForegroundColor Red
+                    Write-Host "  ^^ MERGED - time_series panel groups by $($splitTerms -join ', '). Expected one sumIf column per series (BL-158)." -ForegroundColor Red
                     $fails++
                 }
                 Write-Host "  first row: $($row | ConvertTo-Json -Compress)" -ForegroundColor DarkGray
@@ -121,6 +121,6 @@ foreach ($panel in $json.panels) {
 }
 
 Write-Host ''
-if ($DryRun) { Write-Host 'dry run — nothing sent' -ForegroundColor Yellow }
+if ($DryRun) { Write-Host 'dry run - nothing sent' -ForegroundColor Yellow }
 elseif ($fails -eq 0) { Write-Host 'All panels returned without error and none looks merged.' -ForegroundColor Green }
 else { Write-Host "$fails panel(s) need attention (see red above)." -ForegroundColor Red }
