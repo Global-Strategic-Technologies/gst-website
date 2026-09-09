@@ -496,7 +496,7 @@ describe('handleTrialSignup — AE signup events', () => {
     expect(event.outcome).toBe(outcome);
     expect(event.status_code).toBe(status);
     // No client exists on any pre-mint failure, so attributing one would be a
-    // fabrication — and would pollute `uniq(blob8)` with phantom trials.
+    // fabrication — and would pollute `count(DISTINCT blob8)` with phantom trials.
     expect(event.client_ref).toBeNull();
   });
 

@@ -16,7 +16,13 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { BLOB_SLOTS, DOUBLE_SLOTS, EVENT_TYPES } from '../../../src/metrics/_schema';
+import {
+  BLOB_SLOTS,
+  DOUBLE_SLOTS,
+  EVENT_TYPES,
+  NAME_VALUES,
+  OUTCOME_VALUES,
+} from '../../../src/metrics/_schema';
 
 const dashboard = JSON.parse(
   readFileSync(resolve(__dirname, '../../../observability/grafana-dashboard.json'), 'utf-8')
@@ -27,20 +33,28 @@ const dashboard = JSON.parse(
     type: string;
     title?: string;
     description?: string;
-    targets?: { query?: string }[];
+    targets?: { query?: string; format?: string }[];
   }[];
 };
 
-/** Every panel that carries SQL, flattened with its title for assertion messages. */
-const queries: { title: string; sql: string; description: string }[] = dashboard.panels
-  .filter((p) => Array.isArray(p.targets) && p.targets.length > 0)
-  .flatMap((p) =>
-    (p.targets ?? []).map((t) => ({
-      title: p.title ?? `panel ${p.id}`,
-      sql: t.query ?? '',
-      description: p.description ?? '',
-    }))
-  );
+/**
+ * Every panel that carries SQL, flattened with its title for assertion messages.
+ *
+ * `format` is carried through deliberately: it is the target-level field that
+ * decides whether Grafana reads the result as a time series or a table, and
+ * BL-158's merge bug was only detectable by reading it alongside the GROUP BY.
+ */
+const queries: { title: string; sql: string; description: string; format: string }[] =
+  dashboard.panels
+    .filter((p) => Array.isArray(p.targets) && p.targets.length > 0)
+    .flatMap((p) =>
+      (p.targets ?? []).map((t) => ({
+        title: p.title ?? `panel ${p.id}`,
+        sql: t.query ?? '',
+        description: p.description ?? '',
+        format: t.format ?? '',
+      }))
+    );
 
 /**
  * Columns a `GROUP BY` may legally name. Derived from the schema rather than
@@ -160,9 +174,18 @@ describe('grafana-dashboard.json — AE dialect rules', () => {
     // AE samples. An unweighted count/avg/quantile silently under-reports, and
     // the number looks perfectly reasonable while being wrong.
     for (const q of queries) {
-      expect(q.sql, `${q.title} uses bare count() — use sum(_sample_interval)`).not.toMatch(
-        /\bcount\s*\(/i
-      );
+      // `count(DISTINCT x)` is exempt and must stay exempt: it is a DIFFERENT
+      // aggregate from the row counter this rule is about, there is no weighted
+      // form of it to prefer, and the panel that uses it carries the caveat
+      // enforced below. Rejecting it outright (as this rule did until BL-158)
+      // would make the correct query fail and invite weakening the guard.
+      const countCalls = [...q.sql.matchAll(/\bcount\s*\(\s*(\w*)/gi)];
+      for (const [, firstToken] of countCalls) {
+        expect(
+          firstToken.toUpperCase(),
+          `${q.title} uses bare count() — use sum(_sample_interval), or count(DISTINCT x) for a distinct count`
+        ).toBe('DISTINCT');
+      }
       expect(q.sql, `${q.title} uses unweighted avg() — weight by _sample_interval`).not.toMatch(
         /\bavg\s*\(/i
       );
@@ -172,17 +195,198 @@ describe('grafana-dashboard.json — AE dialect rules', () => {
   });
 
   it('states the sampling caveat on any panel that counts distinct values', () => {
-    // `uniq` is the one aggregate Cloudflare publishes NO sample correction
-    // for, because a distinct-count over dropped rows cannot be weighted back.
-    // A number on a dashboard gets trusted more than a number in a doc, so the
-    // caveat has to travel with the panel.
-    const uniqPanels = queries.filter((q) => /\buniq\s*\(/i.test(q.sql));
-    expect(uniqPanels.length, 'expected at least one uniq() panel').toBeGreaterThan(0);
-    for (const q of uniqPanels) {
+    // A distinct-count is the one shape Cloudflare publishes NO sample
+    // correction for, because a distinct-count over dropped rows cannot be
+    // weighted back. Note this is NOT the corrected row counter: `count()`
+    // corrects to `sum(_sample_interval)`, `count(DISTINCT x)` corrects to
+    // nothing. A number on a dashboard gets trusted more than a number in a
+    // doc, so the caveat has to travel with the panel.
+    //
+    // Matches both spellings on purpose. BL-158 moved this dashboard from
+    // `uniq` (absent from Cloudflare's aggregate reference) to the documented
+    // `count(DISTINCT x)`; the CAVEAT is the invariant, the spelling is not.
+    // The floor below stays so the rule cannot go vacuous if the panel is
+    // deleted — a rule that iterates zero matches passes while proving nothing.
+    const distinctPanels = queries.filter((q) =>
+      /\buniq\s*\(|\bcount\s*\(\s*DISTINCT\b/i.test(q.sql)
+    );
+    expect(distinctPanels.length, 'expected at least one distinct-count panel').toBeGreaterThan(0);
+    for (const q of distinctPanels) {
       expect(
         q.description.toLowerCase(),
-        `${q.title} uses uniq() and must carry the sampling caveat in its description`
+        `${q.title} counts distinct values and must carry the sampling caveat in its description`
       ).toContain('sampl');
+    }
+  });
+});
+
+describe('grafana-dashboard.json — series shape and supported aggregates (BL-158)', () => {
+  it('never splits a time-series panel with GROUP BY — that merges instead of splitting', () => {
+    // THE BL-158 defect, made mechanical. The Altinity plugin turns extra
+    // COLUMNS into series; an extra GROUP BY term returns extra ROWS per
+    // timestamp, which collapse into ONE line carrying the aggregate's alias.
+    // The panel is not empty and does not error — it renders a single series
+    // titled `n` while looking exactly like a working breakdown, which is why
+    // review missed it and execution found it in minutes.
+    //
+    // The fix is one `sumIf(_sample_interval, col = 'value') AS value` column
+    // per value, which is why the next rule checks those lists are complete.
+    //
+    // Floor first, for the same reason the distinct-count rule keeps one: this
+    // rule iterates a FILTERED set, so if the last time_series panel were ever
+    // removed or its `format` renamed, it would pass over nothing and report
+    // success. A rule that cannot fail is not a guard.
+    const timeSeries = queries.filter((q) => q.format === 'time_series');
+    expect(timeSeries.length, 'expected at least one time_series panel').toBeGreaterThan(0);
+
+    for (const q of timeSeries) {
+      const groupByMatch = /\bGROUP BY\b([\s\S]*?)(?:\bHAVING\b|\bORDER BY\b|\bLIMIT\b|$)/i.exec(
+        q.sql
+      );
+      if (!groupByMatch) continue;
+      const terms = groupByMatch[1]
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      for (const term of terms) {
+        expect(
+          term,
+          `${q.title} is a time_series panel grouping by "${term}" — that returns extra ROWS per timestamp, which Grafana merges into one series. Use one sumIf() column per value instead (BL-158)`
+        ).toBe(TIME_MACRO_ALIAS);
+      }
+    }
+  });
+
+  it('uses only aggregates Cloudflare documents for Analytics Engine', () => {
+    // The OTHER BL-158 defect, made mechanical. `uniq()` shipped on the belief
+    // that AE supported it; it is absent from Cloudflare's aggregate reference,
+    // and an unsupported function is a red PANEL nobody is watching rather than
+    // a red test. Note absence from the reference is not proof of rejection —
+    // `quantileWeighted` is documented only as a backward-compat alias and
+    // demonstrably executes (`status-metrics.ts`, and /status renders its
+    // output) — so this list is "what Cloudflare documents", and the rule is
+    // "prefer the documented spelling", not "everything else is broken".
+    //
+    // Transcribed 2026-09-09 from
+    // https://developers.cloudflare.com/analytics/analytics-engine/sql-reference/aggregate-functions/
+    //
+    // This is also why the panels above are hand-written `sumIf` columns rather
+    // than Altinity's `$columns(key, value)` macro, which exists for exactly
+    // that job: `$columns` expands to `groupArray` over a subquery, and
+    // `groupArray` is absent from the reference above — so the macro would trip
+    // this rule if it were spelled out, and it also violates the flat-SELECT
+    // rule. Choosing `sumIf` made the question moot instead of needing a probe.
+    const AE_SUPPORTED_AGGREGATES = new Set(
+      [
+        'count',
+        'sum',
+        'avg',
+        'min',
+        'max',
+        'quantileExactWeighted',
+        'quantileWeighted',
+        'argMax',
+        'argMin',
+        'first_value',
+        'last_value',
+        'topK',
+        'topKWeighted',
+        'countIf',
+        'sumIf',
+        'avgIf',
+      ].map((f) => f.toLowerCase())
+    );
+
+    // Identifiers that appear in call position but are not aggregates. Kept
+    // explicit so a genuinely unknown function fails rather than being skipped
+    // by an over-broad exclusion.
+    const NON_AGGREGATE_CALLABLES = new Set(['in', 'now', 'interval', 'toDateTime'.toLowerCase()]);
+
+    for (const q of queries) {
+      for (const [, fn] of q.sql.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/g)) {
+        const name = fn.toLowerCase();
+        if (NON_AGGREGATE_CALLABLES.has(name)) continue;
+        expect(
+          AE_SUPPORTED_AGGREGATES.has(name),
+          `${q.title} calls "${fn}(", which Cloudflare's Analytics Engine aggregate reference does not document — an unsupported function renders as a query error, not an empty chart (BL-158)`
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('gives every enumerable split panel one sumIf column per schema value', () => {
+    // Completeness for the fix above: with the split expressed as columns, a
+    // value with no column is simply never plotted — silently, and forever.
+    // Binding the list to the schema means adding an outcome fails here rather
+    // than going unobserved.
+    //
+    // Exclusions are the sharp edge and are deliberately explicit. Each one is
+    // a value the schema declares but THIS panel must not plot, because the
+    // series would be permanently zero — the same "empty reads as good news"
+    // failure the vacuity guard exists for, one layer down.
+    //
+    // NOT every split panel is here, despite the title. "Invocations over time,
+    // by primitive" splits `blob1` over a CURATED 3-of-13 subset of EVENT_TYPES
+    // (the request primitives), not over an enum — binding it to EVENT_TYPES
+    // would demand a column for `cron_outcome` and every dead type. Its own
+    // `WHERE blob1 IN (...)` is the list, and the event-type guard below already
+    // pins those literals to the schema. Stated so the next reader does not
+    // assume a coverage this rule does not claim.
+    const cases: {
+      title: string;
+      column: string;
+      values: readonly string[];
+      excluded: readonly string[];
+    }[] = [
+      {
+        title: 'Trial signups over time, by outcome',
+        column: 'blob4',
+        values: OUTCOME_VALUES.trial_signup,
+        excluded: [],
+      },
+      {
+        title: 'Refusals over time, by outcome',
+        column: 'blob4',
+        values: OUTCOME_VALUES.rate_limit_decision,
+        // ADR-0032: emitted on refusal only. Also enforced by the allow-series
+        // rule below — the two must agree, or one of them is wrong.
+        excluded: ['allow'],
+      },
+      {
+        title: 'Zone-1 calls over time, by category',
+        column: 'blob2',
+        values: NAME_VALUES.inoreader_call ?? [],
+        // `oauth-refresh` is the one category carrying zone1='0', and this
+        // panel filters blob7 = '1'. Its series could never be non-zero.
+        excluded: ['oauth-refresh'],
+      },
+    ];
+
+    for (const c of cases) {
+      const panel = queries.find((q) => q.title === c.title);
+      expect(
+        panel,
+        `no panel titled "${c.title}" — this guard is asserting over nothing`
+      ).toBeDefined();
+      expect(c.values.length, `${c.title}: schema value list is empty`).toBeGreaterThan(0);
+
+      for (const value of c.values) {
+        const plotted = new RegExp(
+          `sumIf\\s*\\(\\s*_sample_interval\\s*,\\s*${c.column}\\s*=\\s*'${value}'\\s*\\)`,
+          'i'
+        ).test(panel!.sql);
+        if (c.excluded.includes(value)) {
+          expect(
+            plotted,
+            `${c.title} plots "${value}", which is excluded on purpose — the series would be permanently zero and read as a stopped signal`
+          ).toBe(false);
+        } else {
+          expect(
+            plotted,
+            `${c.title} has no sumIf column for "${value}" — the schema declares it, so it would go unplotted silently (BL-158)`
+          ).toBe(true);
+        }
+      }
     }
   });
 });

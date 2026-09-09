@@ -1,6 +1,6 @@
 # ADR-0031: Per-client analytics identity lives in an AE blob, never in the index
 
-- **Status**: Accepted (2026-09-08)
+- **Status**: Accepted (2026-09-08) · **Amended 2026-09-09 (BL-158)** — the decision is unchanged; the spelling of one function in it is. See _Amendment_ at the end.
 - **Source initiative**: BL-155 (self-serve 3-day MCP trial) — design doc [`../development/SELF_SERVE_TRIAL_BL-155.md`](../development/SELF_SERVE_TRIAL_BL-155.md)
 
 ## Context
@@ -30,11 +30,13 @@ The value has **one canonical form, `OAUTH:<clientId>`** — exactly `AuthSucces
 
 ### The limitation this decision accepts, stated plainly
 
-Distinct actives is `uniq(blob8)`. Cloudflare publishes sample corrections for exactly four aggregates — `count() → sum(_sample_interval)`, `sum(x) → sum(x*_sample_interval)`, `avg`, and the weighted quantiles (this repo uses `quantileWeighted`, per `status-metrics.ts`). **`uniq` is not among them, and cannot be**: a distinct-count over rows that were dropped by sampling cannot be recovered by weighting the survivors.
+Distinct actives is `count(DISTINCT blob8)`. Cloudflare publishes sample corrections for exactly four aggregates — `count() → sum(_sample_interval)`, `sum(x) → sum(x*_sample_interval)`, `avg`, and the weighted quantiles (this repo uses `quantileWeighted`, per `status-metrics.ts`). **A distinct count is not among them, and cannot be**: a distinct-count over rows that were dropped by sampling cannot be recovered by weighting the survivors.
+
+Note the corrected `count` in that list is the plain **row counter** — `count()`, whose correction is `sum(_sample_interval)`. `count(DISTINCT x)` is a different aggregate that shares its name, and it has no correction. The two must not be read as the same entry.
 
 Therefore:
 
-- `uniq(blob8)` is **exact while the dataset is unsampled, and a lower bound once it is not.**
+- `count(DISTINCT blob8)` is **exact while the dataset is unsampled, and a lower bound once it is not.**
 - Trial volume is low by construction (15/min, 100/day, 72h lifetime), which is the regime where AE does not sample. So the query is exact today.
 - When sampling does engage it drops the **quietest talkers first** — precisely the population a distinct-actives count is asking about. The number degrades exactly where it is most interesting.
 - The error is one-directional: it under-reports. It cannot manufacture a false farming alarm.
@@ -43,12 +45,26 @@ Therefore:
 
 ### Signup events
 
-`trial_signup` is added to `EVENT_TYPES` with one outcome per branch of `handleTrialSignup`, so a new branch cannot ship unobserved (the guard rejects an outcome absent from `OUTCOME_VALUES`). It is the only event type emitted from an **unauthenticated public path**, which is why its `keyOwner` is the constant trial owner rather than a caller identity: at emit time there usually is no caller. `client_ref` is set only on `minted`, `reissued` and `expired` — the branches where a client actually exists. Attaching one to a pre-mint failure would fabricate a trial and pollute `uniq(blob8)`.
+`trial_signup` is added to `EVENT_TYPES` with one outcome per branch of `handleTrialSignup`, so a new branch cannot ship unobserved (the guard rejects an outcome absent from `OUTCOME_VALUES`). It is the only event type emitted from an **unauthenticated public path**, which is why its `keyOwner` is the constant trial owner rather than a caller identity: at emit time there usually is no caller. `client_ref` is set only on `minted`, `reissued` and `expired` — the branches where a client actually exists. Attaching one to a pre-mint failure would fabricate a trial and pollute the distinct-actives count.
 
 ## Consequences
 
 - **Not a new exposure class.** `client_ref` is the client _identifier_, never the client secret, and it already appeared in `safeLog` lines and R2 audit entries. Nothing newly sensitive reaches AE.
 - **Cites this decision** (keep current): [`metrics/_schema.ts`](../../../mcp-server/src/metrics/_schema.ts) (`MetricEvent.client_ref`), [`metrics/with-metrics.ts`](../../../mcp-server/src/metrics/with-metrics.ts) (`MetricsContext.clientRef`), [`server.ts`](../../../mcp-server/src/server.ts) (`ServerFactoryOptions.clientRef`), [`pipeline/handle-authenticated.ts`](../../../mcp-server/src/pipeline/handle-authenticated.ts), [`trial/signup.ts`](../../../mcp-server/src/trial/signup.ts), [`ARCHITECTURE.md`](../../../mcp-server/src/docs/ARCHITECTURE.md) and [`operations/DEPLOY.md`](../../../mcp-server/src/docs/operations/DEPLOY.md) column maps, [`operations/AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) query cookbook.
 - **The roster-sized-index reasoning in `bearer.ts` / `key-owner.ts` / `safe-logger.ts` still stands** and was updated to point here rather than reading as a flat prohibition on per-client analytics.
-- **Revisit trigger**: if `mcp_events` starts sampling (trial traffic grows by orders of magnitude, or another high-volume event type shares the index), `uniq(blob8)` stops being exact. At that point either move distinct-actives to a purpose-built counter (an Upstash HLL or a KV census snapshot) or accept the lower bound explicitly in whatever surface reports it. Do not "fix" it by promoting the blob to the index.
+- **Revisit trigger**: if `mcp_events` starts sampling (trial traffic grows by orders of magnitude, or another high-volume event type shares the index), `count(DISTINCT blob8)` stops being exact. At that point either move distinct-actives to a purpose-built counter (an Upstash HLL or a KV census snapshot) or accept the lower bound explicitly in whatever surface reports it. Do not "fix" it by promoting the blob to the index.
 - **Not covered here**: `rate_limit_decision` is declared in `EVENT_TYPES` with `allow|throttle|deny` outcomes and has **no emitter anywhere**, so throttles reach AE for no tier at all. Filed separately — wiring it requires choosing a sampling policy for an event that fires on every request, which is a different decision from this one.
+
+## Amendment — 2026-09-09 (BL-158): the function is `count(DISTINCT blob8)`, not `uniq(blob8)`
+
+This ADR originally spelled the distinct-actives query `uniq(blob8)`, on the stated basis that Analytics Engine supported it. Re-checked against Cloudflare's [aggregate-functions reference](https://developers.cloudflare.com/analytics/analytics-engine/sql-reference/aggregate-functions/) on 2026-09-08: **the token `uniq` does not appear there, while `count(DISTINCT column_name)` is documented.** Every occurrence has been changed to the documented spelling.
+
+Three things this amendment deliberately does **not** claim:
+
+- **Not that `uniq` was broken.** It was never observed to be rejected, and absence from that page is demonstrably not proof of rejection — `quantileWeighted` is documented only as a backward-compat alias of `quantileExactWeighted`, and this repo executes it in production every fifteen minutes (`status-metrics.ts`; `/status` renders its output). The argument for the change is documented-beats-undocumented, and nothing stronger.
+- **Not that a regression occurred.** `uniq(blob8)` was written directly in `cb249a05`; a pickaxe over the full history finds no `count(DISTINCT blob8)` predecessor. An earlier draft of the BL-158 stanza asserted otherwise and was corrected.
+- **Not that the decision changes.** The limitation this ADR accepts is a property of _distinct counting_, not of a spelling: a distinct count over rows sampling dropped cannot be weighted back, whatever the function is called. Every "exact while unsampled, lower bound once not" statement above survives verbatim.
+
+What the amendment adds is the distinction the original text blurred: the sample-corrected `count` in Cloudflare's list is the plain **row counter**, and `count(DISTINCT x)` merely shares its name. Without that sentence the renamed text reads as a self-contradiction — "Cloudflare corrects `count`, but not `count(DISTINCT)`".
+
+A guard now binds every dashboard aggregate to the documented list ([`grafana-dashboard.test.ts`](../../../mcp-server/tests/unit/observability/grafana-dashboard.test.ts)), so an undocumented function fails a build instead of rendering a query error on a panel nobody is watching — which is how this survived review in the first place.

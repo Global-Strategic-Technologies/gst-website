@@ -131,10 +131,12 @@ export interface MetricEvent {
    * would blow up the sampling key's cardinality and break that rule. Don't.
    *
    * **Sampling caveat, because it changes what a query MEANS.** Distinct
-   * actives is `uniq(blob8)`. Cloudflare publishes sample corrections for
-   * `count`/`sum`/`avg`/`quantile` only — there is none for `uniq`, because a
-   * distinct-count over dropped rows cannot be weighted back. So `uniq` is
-   * exact while the dataset is unsampled and a LOWER BOUND once it is not,
+   * actives is `count(DISTINCT blob8)`. Cloudflare publishes sample
+   * corrections for `count`/`sum`/`avg`/`quantile` only — and the corrected
+   * `count` there is the plain ROW COUNTER (`count()` → `sum(_sample_interval)`).
+   * `count(DISTINCT x)` is a different aggregate and has no correction,
+   * because a distinct-count over dropped rows cannot be weighted back. So it
+   * is exact while the dataset is unsampled and a LOWER BOUND once it is not,
    * and when sampling does engage it drops the quietest talkers first —
    * exactly the population a distinct-actives count is asking about. Per-client
    * VOLUME (`GROUP BY blob8` + `sum(_sample_interval)`) is sample-correct and

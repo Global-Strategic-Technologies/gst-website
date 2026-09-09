@@ -194,7 +194,7 @@ describe('rate-limit refusals → rate_limit_decision event', () => {
   it('emits NOTHING for an allowed request comfortably below the soft limit', async () => {
     // ADR-0032: `allow` is deliberately never emitted. Were it, every
     // authenticated request would write a row and push the dataset toward
-    // sampling, which silently degrades ADR-0031's `uniq(blob8)` query.
+    // sampling, which silently degrades ADR-0031's `count(DISTINCT blob8)` query.
     check.mockResolvedValue(allowed({ minRemainingRatio: 0.9 }));
 
     await handleAuthenticated(toolCall('search_portfolio'), env(), ctx(), paidAuth);

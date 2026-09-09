@@ -265,7 +265,7 @@ describe('toDataPoint projection (pure function)', () => {
   it('projects client_ref into blob8, leaving index1 the roster-sized keyOwner', () => {
     // The whole point of BL-155's dimension: two trials are one `keyOwner` (so
     // the AE index stays roster-sized) but two distinct `client_ref`s, which is
-    // what makes `uniq(blob8)` able to tell them apart at all.
+    // what makes `count(DISTINCT blob8)` able to tell them apart at all.
     const dp = toDataPoint({
       event_type: 'tool_invocation',
       name: 'search_portfolio',
