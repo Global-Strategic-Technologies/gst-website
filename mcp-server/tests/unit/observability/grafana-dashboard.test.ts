@@ -231,8 +231,15 @@ describe('grafana-dashboard.json — series shape and supported aggregates (BL-1
     //
     // The fix is one `sumIf(_sample_interval, col = 'value') AS value` column
     // per value, which is why the next rule checks those lists are complete.
-    for (const q of queries) {
-      if (q.format !== 'time_series') continue;
+    //
+    // Floor first, for the same reason the distinct-count rule keeps one: this
+    // rule iterates a FILTERED set, so if the last time_series panel were ever
+    // removed or its `format` renamed, it would pass over nothing and report
+    // success. A rule that cannot fail is not a guard.
+    const timeSeries = queries.filter((q) => q.format === 'time_series');
+    expect(timeSeries.length, 'expected at least one time_series panel').toBeGreaterThan(0);
+
+    for (const q of timeSeries) {
       const groupByMatch = /\bGROUP BY\b([\s\S]*?)(?:\bHAVING\b|\bORDER BY\b|\bLIMIT\b|$)/i.exec(
         q.sql
       );
@@ -262,6 +269,13 @@ describe('grafana-dashboard.json — series shape and supported aggregates (BL-1
     //
     // Transcribed 2026-09-09 from
     // https://developers.cloudflare.com/analytics/analytics-engine/sql-reference/aggregate-functions/
+    //
+    // This is also why the panels above are hand-written `sumIf` columns rather
+    // than Altinity's `$columns(key, value)` macro, which exists for exactly
+    // that job: `$columns` expands to `groupArray` over a subquery, and
+    // `groupArray` is absent from the reference above — so the macro would trip
+    // this rule if it were spelled out, and it also violates the flat-SELECT
+    // rule. Choosing `sumIf` made the question moot instead of needing a probe.
     const AE_SUPPORTED_AGGREGATES = new Set(
       [
         'count',
@@ -310,6 +324,14 @@ describe('grafana-dashboard.json — series shape and supported aggregates (BL-1
     // a value the schema declares but THIS panel must not plot, because the
     // series would be permanently zero — the same "empty reads as good news"
     // failure the vacuity guard exists for, one layer down.
+    //
+    // NOT every split panel is here, despite the title. "Invocations over time,
+    // by primitive" splits `blob1` over a CURATED 3-of-13 subset of EVENT_TYPES
+    // (the request primitives), not over an enum — binding it to EVENT_TYPES
+    // would demand a column for `cron_outcome` and every dead type. Its own
+    // `WHERE blob1 IN (...)` is the list, and the event-type guard below already
+    // pins those literals to the schema. Stated so the next reader does not
+    // assume a coverage this rule does not claim.
     const cases: {
       title: string;
       column: string;
