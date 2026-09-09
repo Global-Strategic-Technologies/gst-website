@@ -34,7 +34,9 @@ Cloudflare's own guidance is the **Altinity plugin for ClickHouse** (`vertamedia
 
 The lesson stands regardless: **a query can be syntactically valid, dialect-correct, schema-bound, sample-weighted, and still answer a different question than its title claims.** Mechanical verification cannot reach that; execution can, and did, in minutes.
 
-**Run the probe before you trust a panel.** `scripts/Verify-AeEmission.ps1` and the `curl` shape in [DEPLOY.md § C.X](DEPLOY.md) both execute arbitrary SQL against the API with the same token the datasource uses — paste a panel's query in and confirm it returns rows. Doing this for all sixteen takes a few minutes and converts "should work" into "does". **Check the shape, not just the row count** — that is what BL-158 turned on: a merged split still returns rows, and looks fine until you notice the legend has one entry where it should have several.
+**Run the probe before you trust a panel.** `scripts/Probe-DashboardSql.ps1` is the one to reach for: it reads the queries out of `grafana-dashboard.json` itself, rewrites the Grafana macros, executes every one against production and reports the **column names** each returns — so it cannot drift out of step with the panels the way a hand-copied query does. It found all four BL-159 defects on its first run. `scripts/Verify-AeEmission.ps1` answers a different question (is emission working at all, over a fixed query set), and the `curl` shape in [DEPLOY.md § C.X](DEPLOY.md) is there for a single ad-hoc query.
+
+**Check the shape, not just the row count** — that is what BL-158 turned on: a merged split still returns rows, and looks fine until you notice the legend has one entry where it should have several. BL-159 added the sharper version of the same lesson: _Status codes_ returned a perfectly healthy-looking 863 rows, all of them the empty string.
 
 Then walk this list once after import:
 
@@ -66,6 +68,10 @@ Three different causes look identical in Grafana, and only the last is a defect:
 | **Nothing emits this event type** | Should be impossible — the guard test forbids panels over the four non-emitting types. If you see one, the guard was bypassed.                                                                                                        |
 | **No traffic in the window**      | Widen the time range. Trial panels are expected empty until go-live; a quiet weekend empties others.                                                                                                                                  |
 | **Broken query**                  | Grafana shows a query error, not an empty chart. Copy the SQL into the `curl` probe from [DEPLOY.md § C.X](DEPLOY.md) to see the dialect error. Most likely on first import, since the SQL ships guard-verified rather than executed. |
+
+**The one query shape to watch on this import: `HAVING`.** _Upstream I/O wait per tool_ uses it to drop tools with a zero p99, and it is the only construct in the dashboard this repo has never executed — it is in AE's documented `SELECT` grammar, but documented is not the same as tried.
+
+If it returns a dialect error, the fallback is `WHERE double1 > 0`, and **it is not equivalent — do not swap it in silently.** `HAVING` filters after aggregation, so a tool keeps every one of its calls and is judged on the p99 of all of them. `WHERE` drops the zero rows first, which for a cache-hit-heavy tool discards most of its calls and biases p50 upward — the panel would then read as "this tool is slow" when it means "this tool rarely reaches the network". If you make that swap, say so in the panel description.
 
 ## Reading the numbers correctly
 

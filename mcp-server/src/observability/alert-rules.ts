@@ -290,8 +290,10 @@ const scopeMismatch403Rate: AlertRule = {
       // blob6 = '403'`, which could never match. Nothing writes `status_code`
       // on `tool_invocation`, and the denial this rule hunts emitted no AE
       // event at all — so a PAGE-severity attack signal reported a healthy 0
-      // for its entire life. `scope_denial` is emitted at both denial paths
-      // (plain-HTTP and MCP `resources/read`); see `metrics/pipeline-events.ts`.
+      // for its entire life. `scope_denial` is emitted at both RUNTIME denial
+      // paths (plain-HTTP and MCP `resources/read`), and deliberately not at
+      // the consent-time 403, which is a client misconfiguration rather than a
+      // key being used beyond its scopes — see `metrics/_schema.ts`.
       `SELECT sum(_sample_interval) AS n FROM ${dataset} WHERE blob1 = 'scope_denial' AND timestamp >= NOW() - INTERVAL '${SCOPE_403_WINDOW_MINUTES}' MINUTE`
     );
     if (rows === null) {

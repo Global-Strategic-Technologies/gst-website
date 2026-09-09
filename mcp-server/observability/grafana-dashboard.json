@@ -319,7 +319,6 @@
       "type": "table",
       "title": "Upstream I/O wait per tool",
       "description": "NOT total handler time, and the title says so because BL-159 found this panel reporting p50/p95/p99 = 0 for search_portfolio across 279 calls — which reads as 'instant' and means 'never measured'. Cloudflare Workers freeze the clock outside I/O (Date.now() returns the time of the last I/O), so duration_ms is time BLOCKED ON I/O and a compute-only tool scores exactly 0 however much work it does. See with-metrics.ts (BL-122). The HAVING clause drops tools with a zero p99, mirroring what /status does at render — p99 and not p50, because a tool that reaches the network only on a cache miss has p50 = 0 and a real p99 and must survive. TRADE: /status keeps the unfiltered rows so it can distinguish 'no invocations at all' from 'traffic existed, none measurable'; filtering in SQL collapses those into one blank panel. If this is empty, check 'Top tools in window' beside it to tell which one you are looking at.",
-      "description": "Server-side handler latency, weighted by sample interval. Same query shape the /status page renders (status-metrics.ts), with the dataset and time window macro-swapped. Includes probe/synthetic traffic — it is real handler latency.",
       "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
       "gridPos": { "h": 9, "w": 12, "x": 0, "y": 50 },
       "targets": [

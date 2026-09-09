@@ -20,61 +20,17 @@ import {
   BLOB_SLOTS,
   DOUBLE_SLOTS,
   EVENT_TYPES,
-  FIELD_EMITTED_BY,
   NAME_VALUES,
   OUTCOME_VALUES,
 } from '../../../src/metrics/_schema';
+import { GUARDED_COLUMNS, assertFieldEventTypeAgreement } from '../../helpers/ae-sql-guards';
 
-/**
- * Column -> the `MetricEvent` field it carries, for the narrow fields
- * `FIELD_EMITTED_BY` governs. Derived from `BLOB_SLOTS` so a slot renumbering
- * cannot silently point this rule at the wrong column.
- */
-const GUARDED_COLUMNS = Object.fromEntries(
-  Object.keys(FIELD_EMITTED_BY).map((field) => {
-    const slot = BLOB_SLOTS.find((b) => b.field === field);
-    if (!slot) throw new Error(`FIELD_EMITTED_BY names "${field}", absent from BLOB_SLOTS`);
-    return [`blob${slot.slot}`, field];
-  })
-) as Record<string, string>;
+const raw = readFileSync(
+  resolve(__dirname, '../../../observability/grafana-dashboard.json'),
+  'utf-8'
+);
 
-/**
- * Shared by the dashboard and the alert-rule guards: assert that any query
- * touching a narrowly-emitted column restricts `blob1` to event types that
- * actually write it.
- *
- * This is BL-159's defect made mechanical. A query can name a real column,
- * filter on real event types, and obey every dialect rule while being
- * structurally unable to return anything — which is not hypothetical: it
- * shipped three times in two days, once in a PAGE-severity alert that reported
- * a healthy `0` for its whole life.
- */
-function assertFieldEventTypeAgreement(label: string, sql: string): void {
-  for (const [column, field] of Object.entries(GUARDED_COLUMNS)) {
-    if (!new RegExp(`\\b${column}\\b`).test(sql)) continue;
-
-    const literals = [...sql.matchAll(/blob1\s*(?:=|IN\s*\()\s*'([^']+)'/gi)].map((m) => m[1]);
-    for (const inClause of sql.matchAll(/blob1\s+IN\s*\(([^)]*)\)/gi)) {
-      for (const [, lit] of inClause[1].matchAll(/'([^']+)'/g)) literals.push(lit);
-    }
-    expect(
-      literals.length,
-      `${label} reads ${column} (${field}) without constraining blob1 — it would aggregate over event types that never write it`
-    ).toBeGreaterThan(0);
-
-    const emitters = FIELD_EMITTED_BY[field];
-    for (const type of new Set(literals)) {
-      expect(
-        emitters as readonly string[],
-        `${label} reads ${column} (${field}) for event type "${type}", which never writes it — the query is structurally incapable of returning a value (BL-159)`
-      ).toContain(type);
-    }
-  }
-}
-
-const dashboard = JSON.parse(
-  readFileSync(resolve(__dirname, '../../../observability/grafana-dashboard.json'), 'utf-8')
-) as {
+const dashboard = JSON.parse(raw) as {
   __inputs: { pluginId: string }[];
   panels: {
     id?: number;
@@ -163,6 +119,39 @@ describe('grafana-dashboard.json — structure', () => {
     for (const q of queries) {
       expect(q.sql.trim(), `${q.title} has an empty query`).not.toBe('');
     }
+  });
+
+  it('declares each key once per object, which JSON.parse cannot tell you', () => {
+    // Every other rule in this file reads `dashboard`, i.e. post-JSON.parse —
+    // and a duplicate key is invisible there, because the LAST one silently
+    // wins. BL-159 shipped exactly that: an edit added a corrected panel
+    // description ABOVE the stale one instead of replacing it, so the panel
+    // parsed fine, every guard passed, and Grafana would have rendered the old
+    // text under the new title. Found in review, not by a test.
+    //
+    // Checked on the raw bytes, since by definition the parsed object no
+    // longer holds the evidence. Object depth tracks which keys are siblings.
+    const duplicates: string[] = [];
+    const seen: Set<string>[] = [];
+    // Strip string literals first so a brace or quote INSIDE a description
+    // (these run to paragraphs) cannot desynchronise the depth counter; keys
+    // are recovered from the same pass rather than a second scan.
+    const tokens = raw.matchAll(/"(?:[^"\\]|\\.)*"\s*:|"(?:[^"\\]|\\.)*"|[{}]/g);
+    for (const [tok] of tokens) {
+      if (tok === '{') seen.push(new Set());
+      else if (tok === '}') seen.pop();
+      else if (tok.endsWith(':')) {
+        const key = tok.slice(0, tok.lastIndexOf('"') + 1);
+        const scope = seen[seen.length - 1];
+        if (!scope) continue;
+        if (scope.has(key)) duplicates.push(key);
+        else scope.add(key);
+      }
+    }
+    expect(seen.length, 'brace tracking did not balance — the scanner is broken').toBe(0);
+    expect(duplicates, 'a key is declared twice in one object; the second silently wins').toEqual(
+      []
+    );
   });
 });
 

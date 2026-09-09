@@ -77,11 +77,24 @@ export const EVENT_TYPES = [
   // "0 scope-mismatch 403s" for its whole life because it was reading a place
   // the number could never appear.
   //
-  // Emitted at BOTH denial paths for the same scope — the plain-HTTP gate in
-  // `pipeline/handle-authenticated.ts` and the MCP `resources/read` gate in
-  // `resources/radar.ts` (via `assertScope`). Covering only one would leave the
-  // alert measuring half the attack surface, which is the same defect wearing
-  // a different hat.
+  // Emitted at both RUNTIME denial paths for the same scope — the plain-HTTP
+  // gate in `pipeline/handle-authenticated.ts` and the MCP `resources/read`
+  // gate in `resources/radar.ts` (via `assertScope`). Covering only one would
+  // leave the alert measuring half the attack surface, which is the same
+  // defect wearing a different hat. Finding the second one needed a survey of
+  // the BEHAVIOUR: a grep for `hasScope` misses it, because denial there runs
+  // through the `assertScope` wrapper.
+  //
+  // DELIBERATELY EXCLUDED: the consent-time 403 at `oauth/consent.ts` (none of
+  // the requested scopes are covered by the presented key). It is also a scope
+  // refusal, but not the same population — it happens in a browser consent
+  // flow before any grant exists, so it means a client was registered asking
+  // for more than its key allows. That is a misconfiguration the operator
+  // fixes by broadening the key or narrowing the client, which is what the
+  // error page already says. Routing it here would make a PAGE-severity alert
+  // fire on setup mistakes, and mix two populations whose responses differ.
+  // Revisit if consent-time refusals ever need alerting: they want their own
+  // outcome value, not a share of this one.
   'scope_denial',
 ] as const;
 

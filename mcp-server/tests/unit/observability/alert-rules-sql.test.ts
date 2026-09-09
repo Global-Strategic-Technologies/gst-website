@@ -16,7 +16,8 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { BLOB_SLOTS, EVENT_TYPES, FIELD_EMITTED_BY } from '../../../src/metrics/_schema';
+import { EVENT_TYPES } from '../../../src/metrics/_schema';
+import { GUARDED_COLUMNS, assertFieldEventTypeAgreement } from '../../helpers/ae-sql-guards';
 
 const source = readFileSync(
   resolve(__dirname, '../../../src/observability/alert-rules.ts'),
@@ -50,14 +51,6 @@ const queries: string[] = [...source.matchAll(/queryAe\(\s*(?:\/\/[^\n]*\n\s*)*`
 // constant came to say 5.
 const EXPECTED_QUERY_SITES = 4;
 
-const GUARDED_COLUMNS = Object.fromEntries(
-  Object.keys(FIELD_EMITTED_BY).map((field) => {
-    const slot = BLOB_SLOTS.find((b) => b.field === field);
-    if (!slot) throw new Error(`FIELD_EMITTED_BY names "${field}", absent from BLOB_SLOTS`);
-    return [`blob${slot.slot}`, field];
-  })
-) as Record<string, string>;
-
 describe('alert-rules.ts — embedded AE SQL', () => {
   it('extracts every queryAe call site', () => {
     expect(queries.length, 'the queryAe extractor matched an unexpected number of sites').toBe(
@@ -78,23 +71,13 @@ describe('alert-rules.ts — embedded AE SQL', () => {
   });
 
   it('never reads a field the queried event types do not write', () => {
-    // THE BL-159 rule, and the reason this file exists.
+    // THE BL-159 rule, and the reason this file exists. Shared with the
+    // dashboard guard rather than reimplemented: this file's original copy
+    // did not parse `blob1 IN (...)`, so an alert written in that shape would
+    // have skipped the check without a word.
     expect(Object.keys(GUARDED_COLUMNS).length, 'no guarded columns resolved').toBeGreaterThan(0);
-    for (const sql of queries) {
-      for (const [column, field] of Object.entries(GUARDED_COLUMNS)) {
-        if (!new RegExp(`\\b${column}\\b`).test(sql)) continue;
-        const literals = [...sql.matchAll(/blob1\s*=\s*'([^']+)'/gi)].map((m) => m[1]);
-        expect(
-          literals.length,
-          `an alert query reads ${column} (${field}) without constraining blob1`
-        ).toBeGreaterThan(0);
-        for (const type of new Set(literals)) {
-          expect(
-            FIELD_EMITTED_BY[field] as readonly string[],
-            `an alert query reads ${column} (${field}) for event type "${type}", which never writes it — the rule could never fire (BL-159)`
-          ).toContain(type);
-        }
-      }
+    for (const [i, sql] of queries.entries()) {
+      assertFieldEventTypeAgreement(`alert query #${i + 1}`, sql);
     }
   });
 
