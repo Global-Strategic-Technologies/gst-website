@@ -27,10 +27,14 @@ vi.mock('agents/mcp/server', () => ({
   createMcpHandler: vi.fn(() => vi.fn(async () => new Response('ok'))),
 }));
 
-const check = vi.fn();
-vi.mock('../../../src/ratelimit/limiter', () => ({
-  createLimiter: vi.fn(() => ({ check })),
-}));
+// `vi.mock` is hoisted above every `const`, so the doubles it closes over must
+// be created by `vi.hoisted` rather than declared here — otherwise the factory
+// runs first and dies on a TDZ `ReferenceError`.
+const { check, limiter } = vi.hoisted(() => {
+  const check = vi.fn();
+  return { check, limiter: vi.fn((): { check: typeof check } | null => ({ check })) };
+});
+vi.mock('../../../src/ratelimit/limiter', () => ({ createLimiter: limiter }));
 
 import { handleAuthenticated } from '../../../src/pipeline/handle-authenticated';
 import type { AuthSuccess } from '../../../src/auth/bearer';
@@ -96,6 +100,8 @@ beforeEach(() => {
   aePoints.length = 0;
   metricsDataset.writeDataPoint.mockClear();
   check.mockReset();
+  limiter.mockReset();
+  limiter.mockReturnValue({ check });
 });
 
 describe('tier denial → tier_denial event', () => {
@@ -193,6 +199,19 @@ describe('rate-limit refusals → rate_limit_decision event', () => {
 
     await handleAuthenticated(toolCall('search_portfolio'), env(), ctx(), paidAuth);
 
+    expect(eventsOfType('rate_limit_decision')).toEqual([]);
+  });
+
+  it('emits nothing when the limiter is unavailable (graceful skip)', async () => {
+    // Upstash unbound → `createLimiter` returns null → the request fails OPEN.
+    // No decision was made, so recording one would be a fabrication: a
+    // dashboard showing zero refusals during an Upstash outage must mean
+    // "nothing was refused", not "nothing was measured".
+    limiter.mockReturnValueOnce(null);
+
+    await handleAuthenticated(toolCall('search_portfolio'), env(), ctx(), paidAuth);
+
+    expect(check).not.toHaveBeenCalled();
     expect(eventsOfType('rate_limit_decision')).toEqual([]);
   });
 

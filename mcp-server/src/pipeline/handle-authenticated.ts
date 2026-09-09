@@ -147,11 +147,18 @@ export async function handleAuthenticated(
       });
       return withCors(tooManyRequestsResponse(rlResult, rlPolicy), origin);
     }
-    // BL-157 — allowed, but some bucket is ≥80% spent. This is the same
-    // condition that raises the client-facing soft-limit warning at the tool
-    // wrapper, read from the one shared constant so the metric and the warning
-    // can never disagree. Report the bucket NEAREST its cliff, which is not
-    // necessarily the binding one.
+    // BL-157 — allowed, but some bucket is ≥80% spent. Same THRESHOLD as the
+    // client-facing soft-limit warning at the tool wrapper, read from the one
+    // shared constant so the two can never disagree about where the line is.
+    //
+    // Not the same POPULATION, though: the warning needs a tool call with an
+    // SSE notifier attached, while this fires for every authenticated request
+    // past the check — `/radar/snapshot`, `initialize`, `tools/list` included.
+    // So the metric is a strict superset of the warnings clients receive, and
+    // a throttle count will legitimately exceed the number of warnings sent.
+    //
+    // Report the bucket NEAREST its cliff, which is not necessarily the
+    // binding one.
     if ((rlResult.minRemainingRatio ?? 1) <= SOFT_LIMIT_RATIO) {
       emitRateLimitDecision(env, {
         keyOwner: auth.keyOwner,

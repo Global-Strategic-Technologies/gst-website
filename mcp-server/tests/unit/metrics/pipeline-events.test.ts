@@ -131,7 +131,16 @@ describe('emission policy (ADR-0032)', () => {
     // toward sampling — and `uniq(blob8)`, which ADR-0031's distinct-trials
     // query depends on, has no sample correction. The type system is the
     // guard: this must remain a compile error, not a convention.
-    // @ts-expect-error 'allow' is deliberately not an emittable outcome
-    emitRateLimitDecision(env(), { keyOwner: 'K', outcome: 'allow', responsibleTier: 'minute' });
+    //
+    // Deliberately NOT invoked. `'allow'` is a legal `OUTCOME_VALUES` entry,
+    // so calling this would pass `guardEvent` and write a real `allow` point
+    // — the test would assert the policy while violating it. `@ts-expect-error`
+    // is checked by `tsc`, which never runs the body, so a typed reference is
+    // the whole assertion.
+    const emitAllow = () =>
+      // @ts-expect-error 'allow' is deliberately not an emittable outcome
+      emitRateLimitDecision(env(), { keyOwner: 'K', outcome: 'allow', responsibleTier: 'minute' });
+    expect(typeof emitAllow).toBe('function');
+    expect(aePoints).toHaveLength(0);
   });
 });
