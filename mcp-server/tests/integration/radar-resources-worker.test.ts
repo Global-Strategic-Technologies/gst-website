@@ -26,6 +26,7 @@ import { registerRadarResources } from '../../src/resources/radar';
 import type { SnapshotReader } from '../../src/content/radar-snapshot-reader';
 import type { SnapshotItem } from '../../src/content/radar-transform';
 import { DEFAULT_SCOPES, SCOPES } from '../../src/auth/scopes';
+import { InMemorySink } from '../../src/metrics/_index';
 import { createPairedTransports, type PairedHalf } from '../helpers/paired-transport';
 
 interface ResourceReadResult {
@@ -86,14 +87,17 @@ function mockReader(): {
 
 async function setupServer(
   reader: SnapshotReader,
-  scopes: readonly string[]
+  scopes: readonly string[],
+  // BL-159 — lets a test observe what the scope gate emits. Defaults to a
+  // throwaway sink so every existing call site is unaffected.
+  sink: InMemorySink = new InMemorySink()
 ): Promise<{
   client: PairedHalf;
   rpc: (method: string, params: unknown) => Promise<JSONRPCResponse | JSONRPCErrorResponse>;
 }> {
   let nextId = 1;
   const server = new McpServer({ name: 'gst-mcp-test', version: '0.1.0' });
-  registerRadarResources(server, reader, {}, scopes);
+  registerRadarResources(server, reader, {}, scopes, { sink, keyOwner: 'ACME' });
   const pair = createPairedTransports();
   await server.connect(pair.server);
 
@@ -219,6 +223,41 @@ describe('radar Resources on Worker — scope-gate', () => {
       const combined = JSON.stringify(res.error);
       expect(combined.toLowerCase()).toMatch(/scope/);
     }
+  });
+
+  it('emits a scope_denial event on the refusal — the MCP half of the attack signal', async () => {
+    // BL-159. This path was the one BL-159's own first draft missed: a survey
+    // of `hasScope` call sites does not find `assertScope`, its wrapper, so the
+    // fix nearly shipped covering only the plain-HTTP gate and left
+    // `scope-mismatch-403-rate` (severity `page`) measuring half the surface.
+    //
+    // Emission has to happen BEFORE `assertScope` throws, because the SDK
+    // converts that throw into a JSON-RPC error and nothing downstream runs.
+    const m = mockReader();
+    const sink = new InMemorySink();
+    const reducedScopes = [SCOPES.RESOURCE_LIBRARY_READ, SCOPES.RESOURCE_REGULATIONS_READ];
+    const setup = await setupServer(m.reader, reducedScopes, sink);
+
+    await setup.rpc('resources/read', { uri: 'gst://radar/fyi/latest' });
+
+    const denials = sink.events.filter((e) => e.event_type === 'scope_denial');
+    expect(denials).toHaveLength(1);
+    expect(denials[0].name).toBe(SCOPES.RESOURCE_RADAR_READ);
+    expect(denials[0].outcome).toBe('denied');
+    expect(denials[0].status_code).toBe('403');
+  });
+
+  it('emits NO scope_denial when the scope is present', async () => {
+    // The mirror assertion. Without it, an emitter accidentally hoisted above
+    // the scope check would pass the test above while manufacturing an attack
+    // signal out of ordinary successful traffic — which pages someone at 3am.
+    const m = mockReader();
+    const sink = new InMemorySink();
+    const setup = await setupServer(m.reader, [SCOPES.RESOURCE_RADAR_READ], sink);
+
+    await setup.rpc('resources/read', { uri: 'gst://radar/fyi/latest' });
+
+    expect(sink.events.filter((e) => e.event_type === 'scope_denial')).toHaveLength(0);
   });
 
   it('accepts the read when resource:radar:read is present', async () => {

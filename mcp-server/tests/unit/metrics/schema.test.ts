@@ -42,6 +42,7 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "gate_elided",
         "trial_signup",
         "tier_denial",
+        "scope_denial",
       ]
     `);
   });
@@ -169,6 +170,9 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "success",
           "error",
         ],
+        "scope_denial": [
+          "denied",
+        ],
         "tier_denial": [
           "denied",
         ],
@@ -233,6 +237,9 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "day",
           "radar-minute",
           "radar-day",
+        ],
+        "scope_denial": [
+          "resource:radar:read",
         ],
         "trial_signup": [
           "trial-signup",

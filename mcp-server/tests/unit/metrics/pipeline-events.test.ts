@@ -11,8 +11,13 @@
  * dashboard panel. Fake shape lifted from `tests/unit/trial/signup.test.ts`.
  */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { emitRateLimitDecision, emitTierDenial } from '../../../src/metrics/pipeline-events';
-import { BLOB_SLOTS } from '../../../src/metrics/_schema';
+import {
+  emitRateLimitDecision,
+  emitScopeDenial,
+  emitTierDenial,
+} from '../../../src/metrics/pipeline-events';
+import { AnalyticsEngineSink } from '../../../src/metrics/_index';
+import { BLOB_SLOTS, NAME_VALUES } from '../../../src/metrics/_schema';
 import type { Env } from '../../../src/env';
 
 const aePoints: { blobs: (string | null)[]; doubles: number[]; indexes: string[] }[] = [];
@@ -142,5 +147,53 @@ describe('emission policy (ADR-0032)', () => {
       emitRateLimitDecision(env(), { keyOwner: 'K', outcome: 'allow', responsibleTier: 'minute' });
     expect(typeof emitAllow).toBe('function');
     expect(aePoints).toHaveLength(0);
+  });
+});
+
+describe('emitScopeDenial (BL-159)', () => {
+  // Takes a SINK, not `env`, unlike the two emitters above — the MCP
+  // `resources/read` denial path already holds a `MetricsContext`, while the
+  // plain-HTTP one builds a sink from `env`. Tested through a real
+  // `AnalyticsEngineSink` over the fake dataset so the assertion still lands on
+  // the final positional column map.
+  const sink = () => new AnalyticsEngineSink(metricsDataset as never);
+
+  it('writes one point carrying the missing scope and a real 403', () => {
+    emitScopeDenial(sink(), {
+      keyOwner: 'ACME',
+      clientRef: 'OAUTH:m2m_abc',
+      missingScope: 'resource:radar:read',
+    });
+
+    expect(aePoints).toHaveLength(1);
+    const dp = aePoints[0];
+    expect(field(dp, 'event_type')).toBe('scope_denial');
+    expect(field(dp, 'name')).toBe('resource:radar:read');
+    expect(field(dp, 'outcome')).toBe('denied');
+    // A real forbidden, where `tier_denial` records '200'. The asymmetry is the
+    // point: it is what lets the alert count scope refusals without counting
+    // tier refusals, which are a legible JSON-RPC error inside an HTTP 200.
+    expect(field(dp, 'status_code')).toBe('403');
+    expect(field(dp, 'client_ref')).toBe('OAUTH:m2m_abc');
+    expect(dp.indexes).toEqual(['ACME']);
+  });
+
+  it('falls back to the keyOwner placeholder when there is no caller identity', () => {
+    // The MCP resource handler runs on stdio with NOOP_METRICS_CONTEXT, which
+    // carries no keyOwner. AE requires a non-empty index, and `toDataPoint`
+    // substitutes the documented sentinel — pinned here because the emitter
+    // deliberately widens `keyOwner` to optional to allow this path.
+    emitScopeDenial(sink(), { missingScope: 'resource:radar:read' });
+
+    expect(aePoints).toHaveLength(1);
+    expect(aePoints[0].indexes).toEqual(['__none__']);
+    expect(field(aePoints[0], 'client_ref')).toBeNull();
+  });
+
+  it('emits a name that NAME_VALUES pins, so the guard cannot reject it', () => {
+    // The runtime guard rejects a `name` outside NAME_VALUES for pinned types.
+    // A typo here would drop the event silently and take the alert with it.
+    emitScopeDenial(sink(), { keyOwner: 'ACME', missingScope: 'resource:radar:read' });
+    expect(NAME_VALUES.scope_denial).toContain(field(aePoints[0], 'name'));
   });
 });

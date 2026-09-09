@@ -22,7 +22,7 @@
  * `allow` lacks: a `deny` requires an exhausted window, and a `throttle`
  * requires a bucket already ≥80% spent.
  */
-import { AnalyticsEngineSink, emit } from './_index';
+import { AnalyticsEngineSink, emit, type MetricSink } from './_index';
 import type { Env } from '../env';
 import type { CheckResult } from '../ratelimit/limiter';
 
@@ -100,6 +100,57 @@ export function emitTierDenial(env: Env, args: Attribution & { readonly toolName
     keyOwner: args.keyOwner,
     outcome: 'denied',
     status_code: '200',
+    ...(args.clientRef ? { client_ref: args.clientRef } : {}),
+  });
+}
+
+/**
+ * One `scope_denial` event: a caller was refused for lacking a SCOPE.
+ *
+ * BL-159. This exists because `scope-mismatch-403-rate` — a PAGE-severity
+ * attack signal — was reading `blob1 = 'tool_invocation' AND blob6 = '403'`,
+ * and was dead twice over: nothing writes `status_code` on `tool_invocation`,
+ * and the denial it hunts emitted no AE event at all. The rule therefore
+ * reported a healthy `0` for its entire life, which is the most expensive
+ * shape a monitoring defect can take.
+ *
+ * **Takes a SINK, not `env`, unlike the two emitters above.** The two denial
+ * paths reach their sink differently: the plain-HTTP gate has only `env` and
+ * builds one, while the MCP `resources/read` gate already receives a
+ * `MetricsContext`. A sink parameter is the union of the two existing idioms
+ * (`trial/signup.ts` constructs; `irl-ingestion-events.ts` is handed one)
+ * rather than a third idiom, and it keeps the no-op sink working for the
+ * default `NOOP_METRICS_CONTEXT`.
+ *
+ * `status_code` is a real '403' here, where `tier_denial` records '200'. That
+ * asymmetry is the point: a tier refusal is a legible JSON-RPC error inside an
+ * HTTP 200, a scope refusal is a genuine forbidden. Recording both honestly is
+ * what lets the alert count one without the other.
+ */
+export function emitScopeDenial(
+  sink: MetricSink,
+  // NOT `Attribution`, whose `keyOwner` is required. The two emitters above run
+  // on an authenticated request and always have one; this also fires from the
+  // MCP resource handler, which on stdio carries `NOOP_METRICS_CONTEXT` and no
+  // caller identity. `toDataPoint` already substitutes `KEYOWNER_PLACEHOLDER`
+  // for an absent value (`_schema.ts:435`), so widening here is honest rather
+  // than a hole — and loosening `Attribution` itself would weaken the guarantee
+  // the other two rely on.
+  args: {
+    readonly keyOwner?: string;
+    readonly clientRef?: string;
+    readonly missingScope: string;
+  }
+): void {
+  emit(sink, {
+    event_type: 'scope_denial',
+    // The MISSING scope, pinned in `NAME_VALUES` — one gated scope exists, so
+    // a typo here is otherwise undetectable and a second one cannot ship
+    // unobserved.
+    name: args.missingScope,
+    keyOwner: args.keyOwner,
+    outcome: 'denied',
+    status_code: '403',
     ...(args.clientRef ? { client_ref: args.clientRef } : {}),
   });
 }

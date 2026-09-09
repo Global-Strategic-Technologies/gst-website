@@ -29,7 +29,7 @@ import { safeLog } from '../auth/safe-logger';
 import { hasScope } from '../auth/scopes';
 import { createLimiter } from '../ratelimit/limiter';
 import { resolveTierLimits, SOFT_LIMIT_RATIO } from '../ratelimit/tiers';
-import { emitRateLimitDecision, emitTierDenial } from '../metrics/pipeline-events';
+import { emitRateLimitDecision, emitScopeDenial, emitTierDenial } from '../metrics/pipeline-events';
 import {
   reasonForTier,
   rateLimitPolicyHeader,
@@ -200,6 +200,18 @@ export async function handleAuthenticated(
         success: false,
         errorCode: 'missing-scope',
       });
+      // BL-159 — the attack signal. Until this, a scope 403 reached nothing but
+      // the stdout line above, so `scope-mismatch-403-rate` (severity `page`)
+      // had no data to read and reported a healthy 0 forever. The MCP
+      // `resources/read` path for this same scope emits from `resources/radar.ts`;
+      // both are needed or the rule sees half the surface.
+      if (env.METRICS) {
+        emitScopeDenial(new AnalyticsEngineSink(env.METRICS), {
+          keyOwner: auth.keyOwner,
+          clientRef: auth.rateLimitSubject,
+          missingScope: missing,
+        });
+      }
       const body = JSON.stringify({
         error: 'forbidden',
         missingScope: missing,
