@@ -12,7 +12,7 @@
     `wrangler secret put UPSTASH_MCP_REST_TOKEN`, run this script against
     the same token to verify:
 
-      Positive (must succeed) — every Redis command the Worker actually
+      Positive (must succeed) - every Redis command the Worker actually
       issues against `gst-mcp`:
         - SET / GET / DEL  (token store, status, locks)
         - INCR / INCRBY / EXPIRE / TTL  (egress counters, day counter,
@@ -20,13 +20,13 @@
         - MGET  (egress total + per-category read in /health)
         - SET NX EX  (single-flight lock, daily drift debounce)
         - ZADD / ZREMRANGEBYSCORE / ZCARD  (@upstash/ratelimit sliding-window)
-        - SCRIPT LOAD "return 1"  (audit B2 fix — raw probe so we don't
+        - SCRIPT LOAD "return 1"  (audit B2 fix - raw probe so we don't
           rely on an SDK NOSCRIPT cache hit masking the gap)
-        - Ratelimit.slidingWindow().limit() end-to-end  (audit M1 fix —
+        - Ratelimit.slidingWindow().limit() end-to-end  (audit M1 fix -
           delegated to a Node sibling so the real SDK is exercised, not
           a manual ZADD+EVAL approximation)
 
-      Negative (must return NOPERM) — substrate dangerous commands the
+      Negative (must return NOPERM) - substrate dangerous commands the
       scoped user must NOT be able to issue:
         - FLUSHDB / FLUSHALL  (would wipe the substrate)
         - CONFIG GET           (info disclosure)
@@ -35,13 +35,13 @@
         - SHUTDOWN             (substrate kill)
         - KEYS *               (full-scan info disclosure + perf risk)
 
-      Keyspace deny (must return NOPERM) — proves `~mcp:*` keypattern
+      Keyspace deny (must return NOPERM) - proves `~mcp:*` keypattern
       restriction works:
         - SET inoreader:foo "x"  (outside the allowed pattern)
 
     Audit-baked design:
       - Token is supplied via `$env:UPSTASH_TEST_TOKEN` + URL via
-        `$env:UPSTASH_TEST_URL` — never inlined into arguments / scrollback.
+        `$env:UPSTASH_TEST_URL` - never inlined into arguments / scrollback.
       - Probe keys are prefixed `mcp:test:acl:<uuid>:*` so a botched run
         leaves no permanent residue; cleanup is best-effort DEL at the end.
       - Exit code 0 only when EVERY positive succeeded AND EVERY negative
@@ -59,7 +59,7 @@
 
 .NOTES
     Mint procedure for the scoped token lives in
-    [DEPLOY.md § "Upstash ACL hardening"](../src/docs/operations/DEPLOY.md).
+    [DEPLOY.md section "Upstash ACL hardening"](../src/docs/operations/DEPLOY.md).
 #>
 [CmdletBinding()]
 param(
@@ -98,7 +98,10 @@ function Invoke-UpstashCommand {
         if ($_.ErrorDetails.Message) {
             try { $errorBody = ($_.ErrorDetails.Message | ConvertFrom-Json).error } catch {}
         }
-        return @{ Ok = $false; Result = $null; Error = ($errorBody ?? $_.Exception.Message) }
+        # Not `??`: that is PowerShell 7 only, and these scripts are run by
+        # operators on whatever ships with Windows, which is 5.1.
+        $message = if ($errorBody) { $errorBody } else { $_.Exception.Message }
+        return @{ Ok = $false; Result = $null; Error = $message }
     }
 }
 
@@ -122,7 +125,7 @@ function Assert-Noperm {
     #   - NOPERM ...                            ACL category/keyspace deny
     #   - Command is not available: '...'       Upstash strips the command at
     #                                           the platform level (DEBUG,
-    #                                           CLUSTER, SHUTDOWN) — verified
+    #                                           CLUSTER, SHUTDOWN) - verified
     #                                           via rediscompatibility docs
     if (-not $r.Ok -and (
         $r.Error -match 'NOPERM' -or
@@ -149,7 +152,7 @@ Write-Host "=== BL-041 ACL contract probe ($Url, prefix $ProbeKeyPrefix) ===" -F
 Write-Host ""
 Write-Host "-- Positive: Worker's actual command surface --" -ForegroundColor DarkCyan
 # NOTE: `${ProbeKeyPrefix}:suffix` (brace-delimited) not `$ProbeKeyPrefix:suffix`
-# — the latter is parsed by PowerShell as a scope-qualifier (like `$env:PATH`)
+# - the latter is parsed by PowerShell as a scope-qualifier (like `$env:PATH`)
 # and resolves to $null, producing keys like `:string` that match no ACL
 # pattern. This is the bug that produced 13 keyspace NOPERM failures on
 # 2026-05-30 before the brace fix.
@@ -176,7 +179,7 @@ Write-Host "-- Positive: scripting surface (audit B2 raw probe) --" -ForegroundC
 # the SDK's NOSCRIPT-fallback path (inline script body, no SCRIPT LOAD
 # required). The SCRIPT LOAD subcommand is NOT exercised here because
 # @upstash/ratelimit gracefully degrades to inline EVAL when SCRIPT LOAD
-# returns NOPERM under `-@dangerous` — the end-to-end Ratelimit SDK probe
+# returns NOPERM under `-@dangerous` - the end-to-end Ratelimit SDK probe
 # below is the source of truth for "is scripting sufficient for the
 # Worker's actual workload."
 Assert-Positive 'EVAL "return 1"' @('EVAL', 'return 1', '0')
@@ -202,7 +205,7 @@ if (-not $SkipRatelimit) {
     $node = Get-Command node -ErrorAction SilentlyContinue
     if (-not $node) {
         $fails++
-        $failures.Add('Ratelimit SDK probe SKIPPED — node not on PATH')
+        $failures.Add('Ratelimit SDK probe SKIPPED - node not on PATH')
         Write-Host "  FAIL  node not on PATH (cannot run ratelimit SDK probe)" -ForegroundColor Red
     } else {
         $scriptPath = Join-Path $PSScriptRoot 'verify-ratelimit-acl.mjs'
@@ -215,7 +218,7 @@ if (-not $SkipRatelimit) {
             Write-Host "  PASS  Ratelimit.slidingWindow().limit() end-to-end" -ForegroundColor Green
         } else {
             $fails++
-            $failures.Add("Ratelimit SDK probe FAILED (exit $LASTEXITCODE) — see node output above")
+            $failures.Add("Ratelimit SDK probe FAILED (exit $LASTEXITCODE) - see node output above")
             Write-Host "  FAIL  Ratelimit SDK probe (exit $LASTEXITCODE)" -ForegroundColor Red
         }
     }
@@ -239,6 +242,6 @@ if ($fails -eq 0) {
     Write-Host "Failures:" -ForegroundColor Red
     foreach ($f in $failures) { Write-Host "  - $f" -ForegroundColor Red }
     Write-Host ""
-    Write-Host "DO NOT bind this token — investigate the ACL string or REST-token mint." -ForegroundColor Red
+    Write-Host "DO NOT bind this token - investigate the ACL string or REST-token mint." -ForegroundColor Red
     exit 1
 }
