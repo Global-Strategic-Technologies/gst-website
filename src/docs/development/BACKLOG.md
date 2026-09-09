@@ -2205,7 +2205,7 @@ Rejected: folding it into `tool_invocation` as a 403 error (exactly what ADR-003
 
 #### Defect B — the Status codes panel could never return a status code
 
-Over 863 real invocations it returned exactly one row: `{"status_code": "", "n": "863"}`. Same root cause as Defect A — it grouped the three request primitives by `blob6`.
+Over 863 invocations it returned exactly one row: `{"status_code": "", "n": "863"}`. Same root cause as Defect A — it grouped the three request primitives by `blob6`.
 
 Repointed to the five event types that record one. Two corrections came out of review: `GROUP BY blob1, blob6` rather than `blob6` alone, or `tier_denial`'s synthetic `'200'` conflates with a real Inoreader `200`; and `blob6 != ''`, because `rate_limit_decision` sets a status only on `deny`, so `throttle` rows would otherwise reproduce the exact empty-string row that started this.
 
@@ -2237,9 +2237,17 @@ Scoped deliberately to `status_code` and `zone1`. A draft included `client_ref` 
 
 Two rules worth carrying: **read the `Tests N passed` count, never the exit code**, and **a mutation check that does not go red has not told you the guard is good — suspect the harness first.** This is the same failure as the `EXPECTED_QUERY_SITES` one, moved from the assertion to the runner, and it is the argument for [CLAUDE.md](../../../.claude/CLAUDE.md)'s capture-the-output rule doing more than preserving failure names — the count is only visible if the output survives.
 
-#### Still open — operator only
+#### Operator verification — done 2026-09-09
 
-- [ ] Re-import the dashboard and re-run `Probe-DashboardSql.ps1`. Expected: _Status codes_ returns real codes instead of one empty string; _Upstream I/O wait_ omits `search_portfolio` rather than showing it as instant; zero merge flags. **`HAVING` is documented in AE's SELECT grammar but has never been executed by this repo** — if it returns a dialect error, the fallback is `WHERE double1 > 0`, which is _not_ equivalent (it drops zero rows before aggregation and biases p50 upward for cache-hit-heavy tools) and would need saying in the panel description rather than swapping silently.
+- [x] **Re-import the dashboard and re-run `Probe-DashboardSql.ps1`.** All sixteen panels returned without error, zero merge flags, and every prediction held:
+  - _Status codes_ returns `{event_type: inoreader_call, status_code: 200, n: 187}` and friends, instead of the single empty-string row it gave over 863 events. **Defect C confirmed fixed against live data.**
+  - _Upstream I/O wait per tool_ omits `search_portfolio` and leads with `search_radar` at p50 124ms / p95 479ms / p99 2181ms over 55 calls. **Defect D confirmed fixed**, and the BL-122 clock-freeze reasoning confirmed with it: `search_portfolio` served 279 successful calls in the same window and is correctly absent, because it never touches the network.
+  - **`HAVING` executed without a dialect error — AE accepts it.** That was the one construct in the dashboard this repo had never run, and it is the second time in two days that "absent from the vendor's examples" turned out not to mean "rejected" (the first was `count(DISTINCT)` in BL-158). The non-equivalent `WHERE double1 > 0` fallback is retained in GRAFANA.md as a contingency, not as a pending decision.
+
+**Two things the run surfaced that are not defects in this stanza**, recorded so they are not rediscovered:
+
+- **All 863 `tool_invocation` events are `keyOwner: PROBE`** — 100% synthetic latency-probe traffic, no client tool calls in the window at all. This stanza originally wrote "863 real invocations", which is true in the sense that mattered (the events were emitted and the panel still could not read them) but misleads about who generated them. Corrected in all four places. It also means every latency figure on this dashboard currently describes the probe, which is the same thin-traffic reality the 2026-07-14 baseline measured.
+- **`trial_signup` shows `unavailable: 2` with `status_code: 503`, against `minted: 1`.** That is the panel doing exactly the job it was built for — the failure mode that is otherwise invisible without a live `wrangler tail`. Two of four signup attempts failed on a bound-secret or Upstash/Turnstile fault. Worth a look; it is BL-155's surface, not this stanza's.
 
 #### The lesson worth keeping
 
