@@ -133,6 +133,7 @@ describe('grafana-dashboard.json — structure', () => {
     // longer holds the evidence. Object depth tracks which keys are siblings.
     const duplicates: string[] = [];
     const seen: Set<string>[] = [];
+    let keysScanned = 0;
     // Strip string literals first so a brace or quote INSIDE a description
     // (these run to paragraphs) cannot desynchronise the depth counter; keys
     // are recovered from the same pass rather than a second scan.
@@ -144,11 +145,19 @@ describe('grafana-dashboard.json — structure', () => {
         const key = tok.slice(0, tok.lastIndexOf('"') + 1);
         const scope = seen[seen.length - 1];
         if (!scope) continue;
+        keysScanned++;
         if (scope.has(key)) duplicates.push(key);
         else scope.add(key);
       }
     }
     expect(seen.length, 'brace tracking did not balance — the scanner is broken').toBe(0);
+    // Vacuity floor. If the token regex ever broke, the brace stack would
+    // balance at 0 and `duplicates` would be empty — green while scanning
+    // nothing. A dashboard this size carries hundreds of keys; 100 is a floor
+    // no real edit crosses, not a count to maintain.
+    expect(keysScanned, 'the key scanner matched almost nothing — it is broken').toBeGreaterThan(
+      100
+    );
     expect(duplicates, 'a key is declared twice in one object; the second silently wins').toEqual(
       []
     );
