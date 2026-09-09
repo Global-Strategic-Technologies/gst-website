@@ -341,6 +341,11 @@ export async function handleAuthorizePost(
   }
 
   const grantedScopes = grantedScopesFor(authRequest.scope, identity.scopes);
+  // Deliberately emits no `scope_denial` metric, though it is a scope 403 —
+  // this refusal happens before any grant exists, so it means a client was
+  // registered asking for more than its key allows, not a key being used
+  // beyond its scopes. The `scope-mismatch-403-rate` rule is PAGE severity and
+  // assumes the latter population; see `metrics/_schema.ts` (BL-159).
   if (authRequest.scope.length > 0 && grantedScopes.length === 0) {
     return htmlResponse(
       consentErrorPage(

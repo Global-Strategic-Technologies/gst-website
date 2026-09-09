@@ -175,16 +175,23 @@ FORMAT JSON
         # a caller was refused, and a deploy that silently stopped emitting
         # them looks identical to "nobody hit a limit this window".
         #
+        # BL-159 adds scope_denial to the same section: it is the third
+        # refusal kind and the one an operator most needs to see, because it
+        # feeds `scope-mismatch-403-rate` (severity page). That rule was dead
+        # from its introduction until 2026-09-09 — it queried a status code on
+        # an event type that never records one — so ANY row here is newer than
+        # the rule's own history. blob2 is the MISSING SCOPE on scope_denial.
+        #
         # NOTE the absence of an 'allow' row is CORRECT, not a gap:
         # rate_limit_decision is emitted on refusal only (ADR-0032). blob2 is
         # the responsible bucket on rate_limit_decision, and the refused TOOL
         # on tier_denial — different meanings, which is why they are grouped
         # with blob1 rather than aggregated together.
-        Write-Host "  --- refusals: rate_limit_decision + tier_denial (blob2 = bucket / refused tool) ---" -ForegroundColor DarkCyan
+        Write-Host "  --- refusals: rate_limit_decision + tier_denial + scope_denial (blob2 = bucket / tool / scope) ---" -ForegroundColor DarkCyan
         $refusalSql = @"
 SELECT blob1 AS event_type, blob2 AS bucket_or_tool, blob4 AS outcome, blob8 AS client_ref, sum(_sample_interval) AS n
 FROM $dataset
-WHERE blob1 IN ('rate_limit_decision', 'tier_denial') AND timestamp > NOW() - INTERVAL '$WindowHours' HOUR
+WHERE blob1 IN ('rate_limit_decision', 'tier_denial', 'scope_denial') AND timestamp > NOW() - INTERVAL '$WindowHours' HOUR
 GROUP BY blob1, blob2, blob4, blob8
 ORDER BY n DESC
 FORMAT JSON
@@ -196,7 +203,7 @@ FORMAT JSON
             continue
         }
         if (-not $refusals.data -or $refusals.data.Count -eq 0) {
-            Write-Host "  (no refusals in window — nobody hit a limit or a tier gate)" -ForegroundColor Yellow
+            Write-Host "  (no refusals in window — nobody hit a limit, a tier gate or a scope gate)" -ForegroundColor Yellow
         } else {
             $refusals.data |
                 Select-Object event_type, bucket_or_tool, outcome, client_ref, @{Name='n'; Expression={[int]$_.n}} |

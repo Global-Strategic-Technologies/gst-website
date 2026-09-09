@@ -23,10 +23,14 @@ import {
   NAME_VALUES,
   OUTCOME_VALUES,
 } from '../../../src/metrics/_schema';
+import { GUARDED_COLUMNS, assertFieldEventTypeAgreement } from '../../helpers/ae-sql-guards';
 
-const dashboard = JSON.parse(
-  readFileSync(resolve(__dirname, '../../../observability/grafana-dashboard.json'), 'utf-8')
-) as {
+const raw = readFileSync(
+  resolve(__dirname, '../../../observability/grafana-dashboard.json'),
+  'utf-8'
+);
+
+const dashboard = JSON.parse(raw) as {
   __inputs: { pluginId: string }[];
   panels: {
     id?: number;
@@ -115,6 +119,48 @@ describe('grafana-dashboard.json — structure', () => {
     for (const q of queries) {
       expect(q.sql.trim(), `${q.title} has an empty query`).not.toBe('');
     }
+  });
+
+  it('declares each key once per object, which JSON.parse cannot tell you', () => {
+    // Every other rule in this file reads `dashboard`, i.e. post-JSON.parse —
+    // and a duplicate key is invisible there, because the LAST one silently
+    // wins. BL-159 shipped exactly that: an edit added a corrected panel
+    // description ABOVE the stale one instead of replacing it, so the panel
+    // parsed fine, every guard passed, and Grafana would have rendered the old
+    // text under the new title. Found in review, not by a test.
+    //
+    // Checked on the raw bytes, since by definition the parsed object no
+    // longer holds the evidence. Object depth tracks which keys are siblings.
+    const duplicates: string[] = [];
+    const seen: Set<string>[] = [];
+    let keysScanned = 0;
+    // Strip string literals first so a brace or quote INSIDE a description
+    // (these run to paragraphs) cannot desynchronise the depth counter; keys
+    // are recovered from the same pass rather than a second scan.
+    const tokens = raw.matchAll(/"(?:[^"\\]|\\.)*"\s*:|"(?:[^"\\]|\\.)*"|[{}]/g);
+    for (const [tok] of tokens) {
+      if (tok === '{') seen.push(new Set());
+      else if (tok === '}') seen.pop();
+      else if (tok.endsWith(':')) {
+        const key = tok.slice(0, tok.lastIndexOf('"') + 1);
+        const scope = seen[seen.length - 1];
+        if (!scope) continue;
+        keysScanned++;
+        if (scope.has(key)) duplicates.push(key);
+        else scope.add(key);
+      }
+    }
+    expect(seen.length, 'brace tracking did not balance — the scanner is broken').toBe(0);
+    // Vacuity floor. If the token regex ever broke, the brace stack would
+    // balance at 0 and `duplicates` would be empty — green while scanning
+    // nothing. A dashboard this size carries hundreds of keys; 100 is a floor
+    // no real edit crosses, not a count to maintain.
+    expect(keysScanned, 'the key scanner matched almost nothing — it is broken').toBeGreaterThan(
+      100
+    );
+    expect(duplicates, 'a key is declared twice in one object; the second silently wins').toEqual(
+      []
+    );
   });
 });
 
@@ -314,6 +360,16 @@ describe('grafana-dashboard.json — series shape and supported aggregates (BL-1
     }
   });
 
+  it('never reads a field the queried event types do not write', () => {
+    // BL-159. The Status codes panel grouped tool_invocation by blob6 and
+    // returned exactly one row over 863 real invocations: the empty string.
+    // Every existing guard passed it, because blob6 IS a real column and those
+    // ARE declared event types — the missing relationship is which types write
+    // which field, which `FIELD_EMITTED_BY` now carries as data.
+    expect(Object.keys(GUARDED_COLUMNS).length, 'no guarded columns resolved').toBeGreaterThan(0);
+    for (const q of queries) assertFieldEventTypeAgreement(q.title, q.sql);
+  });
+
   it('gives every enumerable split panel one sumIf column per schema value', () => {
     // Completeness for the fix above: with the split expressed as columns, a
     // value with no column is simply never plotted — silently, and forever.
@@ -472,7 +528,7 @@ describe('grafana-dashboard.json — bound to the metrics schema', () => {
     // Vacuity guard's mirror image: wiring an emitter without a panel leaves
     // the data unobserved, which is the gap this whole change exists to close.
     const allSql = queries.map((q) => q.sql).join('\n');
-    for (const type of ['rate_limit_decision', 'tier_denial']) {
+    for (const type of ['rate_limit_decision', 'tier_denial', 'scope_denial']) {
       expect(EVENT_TYPES as readonly string[], `${type} must still be declared`).toContain(type);
       expect(allSql, `${type} is emitted in production but no panel reads it`).toContain(type);
     }

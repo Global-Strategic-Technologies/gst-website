@@ -2011,6 +2011,10 @@ Found during BL-158's validation run, in a diff that changed **only comments and
 
 **3. The same shape appeared in the WEBSITE suite, which has no `unstable_dev` at all.** `npm run test:run` failed `tests/integration/spacing-lint-rule.test.ts > flags a hardcoded on-scale literal in css` at 5000ms, green 2/2 in isolation, in a diff touching no CSS or stylelint file. That test's first case pays stylelint's module load and config resolution. If this is the same phenomenon — and the signature is identical: first use of a heavyweight subsystem, default 5000ms, green in isolation, unrelated diff — then **the framing "`unstable_dev` harness flake" is too narrow**, and the invariant is `first heavyweight initialization vs. the 5000ms default`. Recorded as a strong lead rather than a conclusion: one website instance is not a pattern, and it is the first ever seen outside the mcp suite.
 
+**Second website sighting, 2026-09-09 (instance 21), same test.** `spacing-lint-rule.test.ts > flags a hardcoded on-scale literal in css`, 5000ms again, green 25/25 in isolation again, in BL-159's validation run — a diff touching no CSS and no stylelint config. The stanza asked for a second instance before widening scope formally; this is it. **Treat the invariant as `first heavyweight initialization vs. the 5000ms default`, not as an `unstable_dev` problem** — `unstable_dev` is the most common way to hit it in this repo, not the cause. Two suites, two harnesses, one signature. The same run also produced the mcp flake (`trial-signup.test.ts` again, 2 of 4 on an isolated re-run), so both suites failed the same way in one validation pass.
+
+**Reproduced on `master` itself, 2026-09-09 (instance 22) — the attribution question is now settled.** BL-159's code review ran `trial-signup.test.ts` on **`master`**, off the branch entirely, and reproduced the same two 5000ms timeouts at roughly **one run in three**. Every prior instance was recorded against a feature branch and needed the "the diff does not touch this code" argument to be believed; this one needs no argument at all. Note the interesting wrinkle: the two failures it produced are the same pair the full-suite run produced (the first `worker.fetch` and the first KV fetch), which is the subsystem rule above holding on a second machine-state. A third isolated batch on the branch minutes later went **3/3 green** — so the rate genuinely swings between batches, and the stanza's warning against quoting a single rate stands reinforced.
+
 **What this changes about the next step.** Measurement is still the next step and a timeout bump is still forbidden — but the target sharpens: instrument `unstable_dev` boot AND first-fetch-per-subsystem latency across ~50 isolated runs of `trial-signup.test.ts`, which is now known to fail often enough to yield a distribution rather than an anecdote. If first-fetch latency has a long tail crossing 5000ms, the fix is an explicit per-file timeout justified by measured p99 — which is not a "bandaid" bump, because it would be a number derived from evidence rather than raised until green. Watch the website suite for a second instance before widening the stanza's scope formally.
 
 **Instance 14 is a process failure as much as a data point.** The full-suite output was piped through `tail -12`, so the failing test names never reached disk — the same mistake as instance 2, and the one [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) warns about in terms ("redirect the suite to a file rather than piping it through `grep`"). What survives is the shape: **two** failures in one file out of 2862, green on a full re-run, in a slice whose diff touched no `unstable_dev` test. That matched instance 13 and no earlier one, which made a two-failure `trial-signup` pair the leading suspect. **Instance 15, captured properly forty minutes later on the same tree, is that same `trial-signup` test** — which corroborates the suspicion without converting it into a record. **Two of seventeen instances remain unattributable for the same avoidable reason.**
@@ -2164,11 +2168,84 @@ Both now key on the invariant rather than the spelling, and the vacuity floor wa
 
 #### Still open — operator only
 
-- [ ] **Re-import the dashboard and run each rewritten query through the probe** (`scripts/Verify-AeEmission.ps1`, or the `curl` shape in `DEPLOY.md § C.X`). **Check the shape, not just the row count**: a merged split still returns rows. This is the one box that cannot be closed from the repo — no `CF_AE_TOKEN` in the dev environment — and it is the only thing that converts the rewritten SQL from guard-verified to executed.
+- [x] **Re-import the dashboard and run each rewritten query through the probe** — done 2026-09-09. All four rewritten splits returned one column per series, and **`count(DISTINCT blob8)` executed without error** (`distinct_trials: 0`), which answers Defect 2's blocking observation: **AE accepts it**, and ADR-0031's amendment stands as written. The same run surfaced two further defects and a bug in the probe itself, all filed as [BL-159](#bl-159-a-page-severity-alert-that-could-never-fire-and-two-panels-that-could-not-answer-their-titles). Original instruction retained below because it is still how to do it:
+  - _(Original instruction, kept as a record — deliberately **not** a checkbox, so this closed stanza has no unticked box implying open work.)_ ~~Re-import the dashboard and run each rewritten query through the probe (`scripts/Verify-AeEmission.ps1`, or the `curl` shape in `DEPLOY.md § C.X`). **Check the shape, not just the row count**: a merged split still returns rows. This is the one box that cannot be closed from the repo — no `CF_AE_TOKEN` in the dev environment — and it is the only thing that converts the rewritten SQL from guard-verified to executed.~~ Superseded on the tooling half by `scripts/Probe-DashboardSql.ps1` (BL-159), which reads the queries out of the dashboard JSON instead of asking the operator to paste them.
 
 #### The lesson worth keeping
 
 The guard test pinned _dialect rules_ and _schema bindings_, and did both jobs. Neither defect was in that class. **A query can be valid, schema-bound, sample-weighted, and still answer a different question than its title claims.** Execution against real data is not interchangeable with static verification — but the response is not "always execute", it is to keep converting each executed discovery into a rule, which is what the three new guards do.
+
+### BL-159: a page-severity alert that could never fire, and two panels that could not answer their titles
+
+**Source**: the BL-158 probe's first production run, 2026-09-09 | **Effort**: Medium — one new event type at two call sites, two panel rewrites, two guards | **Status**: **Closed 2026-09-09**, one operator box open
+
+**As an** operator, **I want** an alert that cannot fire to fail a build **so that** I am not reassured by a monitor that has never once been capable of reporting the thing it is named for.
+
+Found by executing SQL against production, not by review and not by tests — the suite was green throughout. This is the third and fourth instance of one defect class in two days, which is why most of the work here is the guard rather than the two edits.
+
+#### Defect A — `scope-mismatch-403-rate` was dead twice over
+
+`alert-rules.ts`, severity **`page`**, the attack signal for a leaked or replayed key:
+
+```sql
+WHERE blob1 = 'tool_invocation' AND blob4 = 'error' AND blob6 = '403'
+```
+
+**Nothing writes `status_code` on `tool_invocation`** — the only writers are the Inoreader egress pair, `trial/signup.ts`, and `pipeline-events.ts`. **And the 403 it hunts emitted no AE event at all**, only a `safeLog` line, so even corrected to the right event type it would have queried nothing.
+
+It reported a healthy `0 scope-mismatch 403s in 15 min` on `/status` for its entire life. **That is the most dangerous shape a monitoring defect can take: a rule that cannot fire is indistinguishable from a rule with nothing to report.** Every quiet period before 2026-09-09 is unmeasured, not clean — recorded in the runbook, because that is where someone will look during an incident.
+
+**Fixed** with a `scope_denial` event type on the BL-157 `tier_denial` precedent, emitted at **both** denial paths and the alert repointed at it.
+
+**The second call site is the finding worth keeping.** The first draft of this fix emitted at one site, on the stated basis that "exactly one runtime gate exists" — a survey of `hasScope` call sites. But denial happens through `assertScope`, its _wrapper_, and `resources/radar.ts` calls that for the same scope over MCP `resources/read`. Emitting at only the HTTP gate would have left a page-severity alert measuring half its surface: **this stanza's own defect class, reintroduced by its fix, in the same session that documented it.** Caught by plan review. The lesson generalises past this repo — _survey the behaviour, not the function name_; grepping one primitive silently excludes its wrappers.
+
+Rejected: folding it into `tool_invocation` as a 403 error (exactly what ADR-0032 rejected for `tier_denial` — it corrupts the error-rate math this very alert consumes), and reusing `tier_denial` (that is the trial-paywall upgrade-intent signal; mixing scope refusals into it corrupts the one panel BL-157 built for commercial reads).
+
+**Its tests were green the whole time, and that is instructive.** All three existing tests mock `queryAe` and assert the _threshold arithmetic_; not one looks at the SQL. A rule can be perfectly tested and still ask the database a question that has no answer. There is now a test asserting the query the rule actually sends.
+
+#### Defect B — the Status codes panel could never return a status code
+
+Over 863 real invocations it returned exactly one row: `{"status_code": "", "n": "863"}`. Same root cause as Defect A — it grouped the three request primitives by `blob6`.
+
+Repointed to the five event types that record one. Two corrections came out of review: `GROUP BY blob1, blob6` rather than `blob6` alone, or `tier_denial`'s synthetic `'200'` conflates with a real Inoreader `200`; and `blob6 != ''`, because `rate_limit_decision` sets a status only on `deny`, so `throttle` rows would otherwise reproduce the exact empty-string row that started this.
+
+Deletion was seriously considered — the repointed panel largely duplicated two neighbours. What earned it its place is Defect A: `scope_denial` puts a 403 on the dashboard that no other panel shows.
+
+#### Defect C — the latency panel reported `0/0/0` as though it meant "instant"
+
+`search_portfolio`, 279 calls, `p50/p95/p99 = 0`. Not a query bug: Workers freeze the clock outside I/O (BL-122), so `duration_ms` is time _blocked on I/O_ and a compute-only tool scores 0 however much work it does.
+
+`/status` had already solved this — filter on the **measurement** (`p99 > 0`), never a tool allowlist, and p99 not p50 so a cache-miss-only tool survives. The panel now does the same via `HAVING`, retitled **Upstream I/O wait per tool**.
+
+**One honest trade, and it is not an equivalence.** `/status` filters at _render_ and keeps the unfiltered rows so it can distinguish "no invocations at all" from "traffic existed, none measurable". `HAVING` filters in the query and collapses both into one blank panel. The description points at the neighbouring panel instead of adding a companion.
+
+#### Defect D — the probe false-positived on a correct panel
+
+It flagged _Trial paywall hits_, which splits by nothing and correctly returns a single `n`. Keyed off column count instead of the defect's shape; now keyed off whether `GROUP BY` names anything but the time alias. Recorded because **a false positive on a correct panel is worse than no check** — it trains the operator to ignore the red.
+
+#### The guard, which is the actual deliverable
+
+`FIELD_EMITTED_BY` in `_schema.ts` maps each narrowly-emitted optional field to the event types that write it. Every existing guard passed all four defects, because `blob6` **is** a real column and those **are** declared event types — the missing relationship was which types populate which field. That knowledge was already in the file as prose (`zone1`'s docblock says "for `inoreader_call` events only"); this makes it data, and therefore checkable.
+
+Scoped deliberately to `status_code` and `zone1`. A draft included `client_ref` and `duration_ms` and had `client_ref` **wrong** — `withMetricsCore` emits it generically for every primitive. A wrong table encoded as the new source of truth is worse than the prose it replaces, and a near-universal field cannot express this defect anyway.
+
+**The guard covers `alert-rules.ts`, not just the dashboard JSON** — scoping it to the JSON would have missed Defect A, the most expensive of the four. Both guards are mutation-verified against the _real_ pre-fix queries, not synthetic ones.
+
+**The vacuity floor earned its keep immediately.** The alert-rule guard asserts an exact count of `queryAe(` sites. It failed on the first run at 3-of-4: the extractor missed the `scope-mismatch-403-rate` query — the one rule the file exists for — because this very change had added a comment above it containing backticks. Without the floor, that guard would have shipped green while never checking the rule it was written for.
+
+**And it happened again one level up, which is the more general lesson: a green run is not evidence until you know how many tests ran.** Code review found the new duplicate-key guard had no floor of its own — break its token regex and the brace stack still balances at zero, the duplicate list is still empty, and it reports success having scanned nothing. Adding the floor was easy; _verifying_ it produced the instructive part. The first mutation run — scanner neutered, expecting red — came back **green**, because the `vitest run <path>` filter was written relative to the repo root while vitest runs from the `mcp-server` workspace. It matched **zero test files and exited 0**. So a check written to prove a guard cannot pass over an empty set was itself passing over an empty set, one layer out, and only a glance at the output ("No test files found") caught it.
+
+Two rules worth carrying: **read the `Tests N passed` count, never the exit code**, and **a mutation check that does not go red has not told you the guard is good — suspect the harness first.** This is the same failure as the `EXPECTED_QUERY_SITES` one, moved from the assertion to the runner, and it is the argument for [CLAUDE.md](../../../.claude/CLAUDE.md)'s capture-the-output rule doing more than preserving failure names — the count is only visible if the output survives.
+
+#### Still open — operator only
+
+- [ ] Re-import the dashboard and re-run `Probe-DashboardSql.ps1`. Expected: _Status codes_ returns real codes instead of one empty string; _Upstream I/O wait_ omits `search_portfolio` rather than showing it as instant; zero merge flags. **`HAVING` is documented in AE's SELECT grammar but has never been executed by this repo** — if it returns a dialect error, the fallback is `WHERE double1 > 0`, which is _not_ equivalent (it drops zero rows before aggregation and biases p50 upward for cache-hit-heavy tools) and would need saying in the panel description rather than swapping silently.
+
+#### The lesson worth keeping
+
+BL-158's lesson was that execution finds what static verification cannot. This round sharpens it: **the guard you write after an incident must cover every surface the defect can live on, not just the one where you found it.** The panel and the alert shared a root cause and a fix; only the panel was visible. And a monitor that has never fired deserves the same suspicion as a test that has never failed.
+
+---
 
 ---
 
