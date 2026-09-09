@@ -1300,11 +1300,11 @@ See [`mcp-server/src/metrics/_schema.ts`](../../metrics/_schema.ts) — the snap
 
 **Phase 1 Step 6 dashboard SQL hints** (BL-032.75 Phase 1 closure):
 
-- Zone-1 daily spend: `SELECT count() FROM mcp_events WHERE blob1='inoreader_call' AND blob7='1' AND timestamp > NOW() - INTERVAL '1' DAY`
+- Zone-1 daily spend: `SELECT sum(_sample_interval) FROM mcp_events WHERE blob1='inoreader_call' AND blob7='1' AND timestamp > NOW() - INTERVAL '1' DAY` — **not** `count()`, which under-reports once AE samples (corrected 2026-09-09; the dashboard guard enforces this rule on panels, but nothing reads cookbook SQL)
 - Per-category breakdown: `... GROUP BY blob2` (excludes `oauth-refresh` automatically via `blob7='1'` filter)
 - Inoreader error rate: `... WHERE blob1='inoreader_call' AND blob4='error' GROUP BY blob6` (status code distribution; `'0'` rows isolate network-side failures from Inoreader-side ones)
 - Per-keyOwner attribution: `... GROUP BY index1` (authenticated traffic only — cron/oauth-refresh land in `'__none__'`)
-- Per-CLIENT attribution (BL-155): `... GROUP BY blob8` with `sum(_sample_interval)`. Use this, not `uniq`, whenever you need a volume — it is sample-correct where `uniq` is not.
+- Per-CLIENT attribution (BL-155): `... GROUP BY blob8` with `sum(_sample_interval)`. Use this, not `count(DISTINCT blob8)`, whenever you need a volume — it is sample-correct where a distinct count is not.
 
 ### Token rotation
 

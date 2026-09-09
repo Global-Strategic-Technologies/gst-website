@@ -12,8 +12,9 @@
  * **Emission policy — refusals only, never `allow`.** `rate_limit_decision`
  * would otherwise fire on every authenticated request, a volume class nothing
  * else in the schema occupies, and more rows means Cloudflare samples the
- * dataset sooner. ADR-0031 put a `uniq(blob8)` query on this same dataset and
- * `uniq` has NO sample correction — so emitting `allow` would trade a metric
+ * dataset sooner. ADR-0031 put a `count(DISTINCT blob8)` query on this same
+ * dataset, and a distinct-count has NO sample correction (the corrected
+ * `count` is the row counter, not this) — so emitting `allow` would trade a metric
  * that can be reconstructed (attempts ≈ invocations + denies) for one that
  * cannot. Full reasoning and the rejected alternatives: ADR-0032.
  *

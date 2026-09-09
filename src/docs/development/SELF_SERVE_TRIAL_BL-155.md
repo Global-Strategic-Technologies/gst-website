@@ -407,7 +407,7 @@ What changed:
 - **`trial_signup` AE events**, one outcome per branch of `handleTrialSignup` — `minted`, `reissued`, `challenge-failed`, `rate-limited`, `expired`, `in-progress`, `bad-request`, `unavailable`. The set is exhaustive in `OUTCOME_VALUES` and the guard rejects anything outside it, so a new branch cannot ship unobserved. Mint volume, failure rate and re-issue ratio now survive past a live tail; so does a signup path broken by an unbound secret, which was previously invisible.
 - **`client_ref` (`blob8`)** — the per-client dimension, canonical form `OAUTH:<clientId>` (exactly `AuthSuccess.rateLimitSubject`). Deliberately a **blob, never the index**: `keyOwner` stays the roster-sized constant the design chose, and per-client identity rides alongside it. This is what makes "how many distinct trials are active" answerable at all.
 - **Both silent branches** now emit in both channels (`safeLog` and AE).
-- The decision, its rejected alternatives, and the limitation it accepts (`uniq` has no sample correction) are recorded in [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md); the runnable queries are in [AUTH.md § Self-serve trial mint](../../../mcp-server/src/docs/operations/AUTH.md).
+- The decision, its rejected alternatives, and the limitation it accepts (a distinct count has no sample correction) are recorded in [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md); the runnable queries are in [AUTH.md § Self-serve trial mint](../../../mcp-server/src/docs/operations/AUTH.md).
 
 **Still absent, deliberately**: no alert rule and no `/status` row, so nothing _pages_ an operator when signup breaks — the queries are pull, not push. That is the natural next slice now that the events exist.
 

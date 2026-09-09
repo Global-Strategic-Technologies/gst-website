@@ -1,6 +1,6 @@
 # ADR-0032: Rate-limit decisions are emitted only on refusal, never on allow
 
-- **Status**: Accepted (2026-09-08, `@gst/mcp-server@0.63.0`)
+- **Status**: Accepted (2026-09-08, `@gst/mcp-server@0.63.0`) · re-validated 2026-09-09 (BL-158): the distinct-actives query this trade protects is now spelled `count(DISTINCT blob8)`; the trade is unchanged, because the missing sample correction is a property of distinct counting, not of the function's name.
 - **Source initiative**: BL-157 (declared-but-dead AE event types), surfaced while standing up the Grafana dashboard for BL-155's self-serve trial
 
 ## Context
@@ -10,7 +10,7 @@
 Two facts constrain the choice:
 
 1. **`allow` fires on every authenticated request.** Every other emitted event type in the schema is per tool call, per cron run, or per batch. An `allow` event is per _request_, including `initialize` and `tools/list` — a different order of magnitude, and the only one of the three that is not self-limiting.
-2. **[ADR-0031](0031-per-client-analytics-identity-is-a-blob.md) put a `uniq(blob8)` query on this same dataset.** Cloudflare Analytics Engine samples under load and publishes sample corrections for `count`, `sum`, `avg` and the quantiles — but **not for `uniq`**. A sampled `uniq` silently degrades to a lower bound, dropping the quietest talkers first. The _Distinct active trials_ panel is exactly that query.
+2. **[ADR-0031](0031-per-client-analytics-identity-is-a-blob.md) put a `count(DISTINCT blob8)` query on this same dataset.** Cloudflare Analytics Engine samples under load and publishes sample corrections for `count`, `sum`, `avg` and the quantiles — but that `count` is the plain **row counter** (`count()` → `sum(_sample_interval)`), and **`count(DISTINCT x)` is a different aggregate with no correction**: a distinct-count over dropped rows cannot be weighted back. A sampled distinct count silently degrades to a lower bound, dropping the quietest talkers first. The _Distinct active trials_ panel is exactly that query.
 
 So the volume question is not about storage cost. Emitting `allow` would raise the row rate on a dataset carrying a metric that cannot be corrected for sampling, in order to record a metric that can be reconstructed without it.
 
@@ -40,7 +40,7 @@ It lives in `tiers.ts` rather than `limiter.ts`, where the ratio is computed, be
 
 **Revisit triggers.** Re-open this decision if either holds:
 
-1. **AE sampling is observed on the production dataset** — check `_sample_interval > 1` in any query result. At that point `uniq(blob8)` is already degraded and the reason for withholding `allow` is weaker, not stronger; the response is to reconsider ADR-0031's distinct-count approach, then this.
+1. **AE sampling is observed on the production dataset** — check `_sample_interval > 1` in any query result. At that point `count(DISTINCT blob8)` is already degraded and the reason for withholding `allow` is weaker, not stronger; the response is to reconsider ADR-0031's distinct-count approach, then this.
 2. **An exact denial rate is genuinely needed** — e.g. a customer commitment on availability, or a limits change whose evaluation depends on the true denominator rather than the deny count. Sampled `allow` becomes worth its complexity at that point.
 
 ## Related

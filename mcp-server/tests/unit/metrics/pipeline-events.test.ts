@@ -76,7 +76,7 @@ describe('emitRateLimitDecision', () => {
 
   it('omits client_ref for identities that have none', () => {
     // Static bearer keys have no per-client identity; the column must be
-    // absent rather than an empty string, or `uniq(blob8)` counts a phantom.
+    // absent rather than an empty string, or the distinct-actives count counts a phantom.
     emitRateLimitDecision(env(), {
       keyOwner: 'MCP_KEY_WEBSITE_RADAR',
       outcome: 'deny',
@@ -128,7 +128,7 @@ describe('both emitters — METRICS unbound', () => {
 describe('emission policy (ADR-0032)', () => {
   it('offers no way to emit an allow', () => {
     // `allow` would fire on every authenticated request, pushing the dataset
-    // toward sampling — and `uniq(blob8)`, which ADR-0031's distinct-trials
+    // toward sampling — and `count(DISTINCT blob8)`, which ADR-0031's distinct-trials
     // query depends on, has no sample correction. The type system is the
     // guard: this must remain a compile error, not a convention.
     //

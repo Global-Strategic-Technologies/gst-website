@@ -247,13 +247,13 @@ What an operator needs to know:
 
   -- Distinct active trials. SCOPE IT (index1 + blob1) or it counts every
   -- client_ref-bearing identity, not just trials.
-  SELECT uniq(blob8) AS distinct_trials
+  SELECT count(DISTINCT blob8) AS distinct_trials
   FROM mcp_events
   WHERE index1 = 'OAUTH:M2M:TRIAL' AND blob1 = 'tool_invocation'
     AND timestamp > NOW() - INTERVAL '7' DAY
   ```
 
-  **Read `uniq` honestly.** It has no sample correction (Cloudflare corrects only `count`/`sum`/`avg`/`quantile`), so it is exact while the dataset is unsampled — which is today, at trial ceilings — and a **lower bound** once sampling engages, dropping the quietest talkers first. For an exact count of trials that exist _right now_, don't use AE at all: `GET /admin/oauth/m2m-clients` and count `tier === 'trial'`. AE is the history; KV is the present.
+  **Read the distinct count honestly.** It has no sample correction. Cloudflare corrects `count`/`sum`/`avg`/`quantile` — but that `count` is the plain row counter (`count()` → `sum(_sample_interval)`), and `count(DISTINCT x)` is a different aggregate with no correction, because a distinct-count over rows sampling dropped cannot be recovered by weighting the survivors. So it is exact while the dataset is unsampled — which is today, at trial ceilings — and a **lower bound** once sampling engages, dropping the quietest talkers first. For an exact count of trials that exist _right now_, don't use AE at all: `GET /admin/oauth/m2m-clients` and count `tier === 'trial'`. AE is the history; KV is the present.
 
   Not covered: there is **no alert rule** on signup volume or failure rate yet, so nothing pages you when signup breaks — these queries are pull, not push.
 
