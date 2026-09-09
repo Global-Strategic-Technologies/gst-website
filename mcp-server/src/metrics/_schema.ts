@@ -68,6 +68,21 @@ export const EVENT_TYPES = [
   // trial produces — a caller asking for the gated product is the upgrade
   // signal — and before this it reached nothing but `safeLog`.
   'tier_denial',
+  // BL-159 — a caller was refused for lacking a SCOPE, as distinct from
+  // `tier_denial` (refused for its tier). Added because `scope-mismatch-403-rate`
+  // — a PAGE-severity attack signal — was querying
+  // `blob1 = 'tool_invocation' AND blob6 = '403'`, and was dead twice over:
+  // nothing writes `status_code` on `tool_invocation`, AND the denial it hunts
+  // emitted no AE event at all, only `safeLog`. So the rule reported a healthy
+  // "0 scope-mismatch 403s" for its whole life because it was reading a place
+  // the number could never appear.
+  //
+  // Emitted at BOTH denial paths for the same scope — the plain-HTTP gate in
+  // `pipeline/handle-authenticated.ts` and the MCP `resources/read` gate in
+  // `resources/radar.ts` (via `assertScope`). Covering only one would leave the
+  // alert measuring half the attack surface, which is the same defect wearing
+  // a different hat.
+  'scope_denial',
 ] as const;
 
 export type EventType = (typeof EVENT_TYPES)[number];
@@ -292,6 +307,46 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   // above: the discriminator that matters is `name` (the refused tool), and
   // keeping `outcome` narrow lets dashboard SQL `GROUP BY blob2` directly.
   tier_denial: ['denied'],
+  // BL-159 — same single-value shape as `tier_denial` above: the discriminator
+  // that matters is `name` (the missing scope), so `outcome` stays narrow.
+  scope_denial: ['denied'],
+};
+
+/**
+ * Which event types actually WRITE each narrowly-emitted optional field.
+ *
+ * BL-159. This map exists because a query can name a real column, filter on
+ * real event types, obey every dialect rule — and still be structurally unable
+ * to return anything, because those types never populate that column. That is
+ * not hypothetical: it shipped three times in two days. A dashboard panel
+ * (`Status codes`) grouped `tool_invocation` by `blob6`; a PAGE-severity alert
+ * (`scope-mismatch-403-rate`) filtered `tool_invocation` on `blob6 = '403'`;
+ * both returned a permanent, healthy-looking nothing.
+ *
+ * The knowledge was always here, as prose — `zone1`'s docblock says "for
+ * `inoreader_call` events only". Encoding it as DATA is what lets a test check
+ * it, which is the whole point.
+ *
+ * Deliberately scoped to the NARROW fields. `client_ref` and `duration_ms` are
+ * excluded because `withMetricsCore` emits them generically for every primitive
+ * (plus `prompt-span.ts` and `irl-ingestion-events.ts`) — a near-universal
+ * field cannot express this defect, and an inaccurate entry here would be worse
+ * than the prose it replaces. The always-populated columns (`blob1`, `blob2`,
+ * `index1`) are excluded for the same reason.
+ */
+export const FIELD_EMITTED_BY: Readonly<Record<string, readonly EventType[]>> = {
+  // `lib/inoreader-egress.ts`, `lib/inoreader-client.ts`, `trial/signup.ts`,
+  // `metrics/pipeline-events.ts` (×3). Note `rate_limit_decision` sets it only
+  // on `deny` — a `throttle` row carries no status, which is why a panel over
+  // this column also has to exclude empty values.
+  status_code: [
+    'inoreader_call',
+    'trial_signup',
+    'rate_limit_decision',
+    'tier_denial',
+    'scope_denial',
+  ],
+  zone1: ['inoreader_call'],
 };
 
 /**
@@ -332,6 +387,11 @@ export const NAME_VALUES: Partial<Record<EventType, readonly string[]>> = {
   // the bucket that refused on `deny`, the bucket nearest its cliff on
   // `throttle` — which is documented at `metrics/pipeline-events.ts`.
   rate_limit_decision: ['minute', 'day', 'radar-minute', 'radar-day'],
+  // BL-159 — the MISSING scope. Exactly one scope gates a runtime denial today
+  // (`resource:radar:read`, enforced at two call sites), so the set is closed
+  // and the pin is free. It is also a forcing function: gating a second scope
+  // means adding it here, which is a deliberate act rather than a silent one.
+  scope_denial: ['resource:radar:read'],
 };
 
 /**

@@ -286,7 +286,13 @@ const scopeMismatch403Rate: AlertRule = {
   async evaluate({ env, queryAe }): Promise<AlertEvaluation> {
     const dataset = datasetForEnv(env.ENV_NAME as string | undefined);
     const rows = await queryAe(
-      `SELECT sum(_sample_interval) AS n FROM ${dataset} WHERE blob1 = 'tool_invocation' AND blob4 = 'error' AND blob6 = '403' AND timestamp >= NOW() - INTERVAL '${SCOPE_403_WINDOW_MINUTES}' MINUTE`
+      // BL-159 — was `blob1 = 'tool_invocation' AND blob4 = 'error' AND
+      // blob6 = '403'`, which could never match. Nothing writes `status_code`
+      // on `tool_invocation`, and the denial this rule hunts emitted no AE
+      // event at all — so a PAGE-severity attack signal reported a healthy 0
+      // for its entire life. `scope_denial` is emitted at both denial paths
+      // (plain-HTTP and MCP `resources/read`); see `metrics/pipeline-events.ts`.
+      `SELECT sum(_sample_interval) AS n FROM ${dataset} WHERE blob1 = 'scope_denial' AND timestamp >= NOW() - INTERVAL '${SCOPE_403_WINDOW_MINUTES}' MINUTE`
     );
     if (rows === null) {
       return {

@@ -31,7 +31,8 @@ import {
   type SnapshotTier,
 } from '../content/radar-transform';
 import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
-import { assertScope, SCOPES, MissingScopeError, DEFAULT_SCOPES } from '../auth/scopes';
+import { assertScope, hasScope, SCOPES, MissingScopeError, DEFAULT_SCOPES } from '../auth/scopes';
+import { emitScopeDenial } from '../metrics/pipeline-events';
 import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';
 import type { SnapshotReader } from '../content/radar-snapshot-reader';
 import type { Env } from '../env';
@@ -115,6 +116,19 @@ export function registerRadarResources(
     async (
       uri: URL
     ): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> }> => {
+      // BL-159 — emit BEFORE the throw, because `assertScope` surfaces
+      // `MissingScopeError` to the SDK and nothing downstream of it runs. This
+      // is the MCP half of the scope-403 attack signal; the plain-HTTP half is
+      // in `pipeline/handle-authenticated.ts`. Covering only one would leave
+      // `scope-mismatch-403-rate` (severity `page`) measuring half the surface,
+      // which is the defect BL-159 exists to remove.
+      if (!hasScope(scopes, SCOPES.RESOURCE_RADAR_READ)) {
+        emitScopeDenial(metrics.sink, {
+          keyOwner: metrics.keyOwner,
+          clientRef: metrics.clientRef,
+          missingScope: SCOPES.RESOURCE_RADAR_READ,
+        });
+      }
       assertScope(scopes, SCOPES.RESOURCE_RADAR_READ);
       const cached = await readThroughCache(env, uri.href, RESOURCE_TTL_SECONDS.RADAR, () =>
         readSnapshot(uri.href, fetch)

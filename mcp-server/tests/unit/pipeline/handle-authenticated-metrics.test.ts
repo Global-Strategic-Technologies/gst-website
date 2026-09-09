@@ -226,3 +226,46 @@ describe('rate-limit refusals → rate_limit_decision event', () => {
     expect(eventsOfType('rate_limit_decision').map((e) => e.outcome)).toEqual(['throttle']);
   });
 });
+
+describe('scope denial → scope_denial event (BL-159)', () => {
+  /** `GET /radar/snapshot` — the plain-HTTP half of the scope gate. */
+  const snapshotGet = () =>
+    new Request('https://mcp.test/radar/snapshot', {
+      method: 'GET',
+      headers: { Origin: 'https://globalstrategic.tech' },
+    });
+
+  it('emits a 403 scope_denial when the radar scope is missing', async () => {
+    // BL-159. Before this, the refusal reached only `safeLog`, so
+    // `scope-mismatch-403-rate` — severity `page` — had nothing to read and
+    // reported a healthy 0 for its whole life. The MCP `resources/read` half of
+    // the same gate is covered in `tests/integration/radar-resources-worker.test.ts`;
+    // covering one path only would leave the alert measuring half the surface.
+    check.mockResolvedValue(allowed());
+    const noRadar: AuthSuccess = { ...paidAuth, scopes: ['tool:*'] };
+
+    const res = await handleAuthenticated(snapshotGet(), env(), ctx(), noRadar);
+
+    expect(res.status).toBe(403);
+    expect(eventsOfType('scope_denial')).toEqual([
+      {
+        name: 'resource:radar:read',
+        outcome: 'denied',
+        status_code: '403',
+        client_ref: 'OAUTH:m2m_acme_xyz',
+        index: 'OAUTH:M2M:ACME',
+      },
+    ]);
+  });
+
+  it('emits nothing when the caller holds the scope', async () => {
+    // The mirror. An emitter hoisted above the check would manufacture an
+    // attack signal out of ordinary traffic and page someone for it.
+    check.mockResolvedValue(allowed());
+    const withRadar: AuthSuccess = { ...paidAuth, scopes: ['tool:*', 'resource:radar:read'] };
+
+    await handleAuthenticated(snapshotGet(), env(), ctx(), withRadar);
+
+    expect(eventsOfType('scope_denial')).toEqual([]);
+  });
+});
