@@ -1,10 +1,10 @@
 # Runbook — Grafana dashboard (Analytics Engine)
 
-lastReviewedAt: 2026-09-08
+lastReviewedAt: 2026-09-09
 
 The MCP server's metrics dashboard. Source of truth: [`mcp-server/observability/grafana-dashboard.json`](../../../observability/grafana-dashboard.json), guarded by `tests/unit/observability/grafana-dashboard.test.ts`.
 
-**Status**: the dashboard artifact ships in this repo. **Creating the Grafana Cloud account, configuring the datasource and importing the JSON are operator tasks** and have not been done — this runbook is how to do them. Until then the dashboard exists as a file and nothing renders.
+**Status**: LIVE. The Grafana Cloud account exists, the datasource is configured against the existing AE read token, and the dashboard was imported and serving production data on **2026-09-08**. This runbook is still how to (re)do the setup — an operator on a fresh account needs every step below — and the JSON in this repo remains the source of truth, so **a change here means a re-import**. One is outstanding: the BL-158 panel rewrite (2026-09-09) has not yet been imported.
 
 > **Why this was deferred so long.** BL-032.75 Phase 3 shipped the alert rules and `/status` in an account-free form in 2026-07 and recorded the dashboard as deferred with an explicit trigger: _until a Grafana Cloud account exists_. That trigger fired 2026-09-08.
 
@@ -40,10 +40,10 @@ Then walk this list once after import:
 
 | Panel                                     | Expect                                                                                                                                                                                                                                    |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Trial signups over time                   | **Empty until the trial goes live in production.** Not a defect.                                                                                                                                                                          |
-| Signup outcomes in window                 | Empty likewise. Once live: `minted` / `reissued` are successes, everything else a refusal or fault.                                                                                                                                       |
-| Distinct active trials                    | Empty likewise.                                                                                                                                                                                                                           |
-| Per-trial call volume                     | Empty likewise.                                                                                                                                                                                                                           |
+| Trial signups over time                   | Live since 2026-09-08. One series per outcome — if you see a single series named `n`, you are on the pre-BL-158 JSON and the split is merged.                                                                                             |
+| Signup outcomes in window                 | Live. `minted` / `reissued` are successes, everything else a refusal or fault.                                                                                                                                                            |
+| Distinct active trials                    | Live. A number, not an error — if it errors, `count(DISTINCT)` is unsupported and BL-158's Defect 2 needs reopening.                                                                                                                      |
+| Per-trial call volume                     | Live once a trial actually calls a tool; a minted-but-unused trial shows nothing here.                                                                                                                                                    |
 | Invocations over time, by primitive       | Rows for `tool_invocation`, and `resource_read` / `prompt_invocation` if either has traffic.                                                                                                                                              |
 | Top keyOwners in window                   | A **table**, one row per team key plus `__none__` for unauthenticated/cron, highest volume first. Deliberately not a timeseries: splitting one needs a column per value, and the keyOwner roster grows whenever a key is issued (BL-158). |
 | Top tools in window                       | The tools actually being called.                                                                                                                                                                                                          |
@@ -52,8 +52,8 @@ Then walk this list once after import:
 | Outcomes by tool                          | `success` dominant; a tool appearing only as `error` is worth chasing.                                                                                                                                                                    |
 | Refusals over time, by outcome            | `deny` and `throttle` only — **there is no `allow` series, by design** (ADR-0032). Empty is plausible: it means nobody hit a wall in the window.                                                                                          |
 | Refusals by client and responsible bucket | Which client hit which limit. `blob8` is empty for static bearer keys — they have no per-client identity, which is not a defect.                                                                                                          |
-| Trial paywall hits over time              | **Empty until the trial goes live in production.** Not a defect.                                                                                                                                                                          |
-| Which radar tools trials ask for          | Empty likewise. Once live, this is the upgrade-intent ranking, not a fault list.                                                                                                                                                          |
+| Trial paywall hits over time              | Live. Empty means no trial has reached for a radar tool yet — plausible, and not a defect.                                                                                                                                                |
+| Which radar tools trials ask for          | The upgrade-intent ranking, not a fault list. Empty until a trial hits the paywall.                                                                                                                                                       |
 | Zone-1 calls over time                    | Radar-refresh cadence. Cross-check against the Zone-1 spend badge on `/status`.                                                                                                                                                           |
 | Inoreader calls by category               | `oauth-refresh` appears here but not in the Zone-1 panel — that is correct, it is not Zone-1.                                                                                                                                             |
 
