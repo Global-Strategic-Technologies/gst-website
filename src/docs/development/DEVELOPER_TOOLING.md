@@ -38,7 +38,7 @@ Project-specific reference for the quality tooling installed during Phase 2 of t
 | Validate Worker bundle without deploy  | `cd mcp-server && npx wrangler deploy --dry-run --env staging`                |
 | Deploy MCP Worker to staging           | `cd mcp-server && npm run deploy:staging` (Phase 6 — staging URL: `mcp-staging.globalstrategic.tech`) |
 | Deploy MCP Worker to production        | `cd mcp-server && npm run deploy:production` (Phase 6 — production URL: `mcp.globalstrategic.tech`) |
-| Provision an MCP client credential     | `cd mcp-server && npm run provision:client -- --name "<client>" --tier free-pilot [--dry-run]` (admin key via `MCP_ADMIN_KEY` env var — never a flag; runbook: [PILOT_ONBOARDING.md](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md)) |
+| Provision an MCP client credential     | `cd mcp-server && npm run provision:client -- --name "<client>" --tier paid [--dry-run]` (admin key via `MCP_ADMIN_KEY` env var — never a flag; runbook: [PILOT_ONBOARDING.md](../../../mcp-server/src/docs/operations/PILOT_ONBOARDING.md)) |
 | Purge leaked audit seqof keys (ADR-0014) | `cd mcp-server && npm run purge:audit-seqof [-- --execute]` (dry-run by default; creds via `UPSTASH_MCP_REST_URL`/`UPSTASH_MCP_REST_TOKEN` env vars — never flags; runbook: [AUDIT_LOG.md § Deactivation](../../../mcp-server/src/docs/operations/AUDIT_LOG.md)) |
 
 **Authoritative local validation sequence** (what CI runs, in the same order):
@@ -536,10 +536,10 @@ The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-cor
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 32 routes (Chromium)
+npm run test:a11y        # Scans 33 routes (Chromium)
 ```
 
-This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all seven tool pages, the five `/hub/mcp/*` pages, `/brand` and `/hub/radar/`, plus the Spanish and Portuguese About routes (BL-153). **Routes, not pages**: `/hub/mcp/docs/` is scanned three times, so those five pages are seven entries. Count the array when you change this number rather than incrementing it; every stale value this line has carried came from adding a route and adjusting the count by memory.
+This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all seven tool pages, the six `/hub/mcp/*` pages (including the trial signup, BL-155), `/brand` and `/hub/radar/`, plus the Spanish and Portuguese About routes (BL-153). **Routes, not pages**: `/hub/mcp/docs/` is scanned three times, so those six pages are eight entries. Count the array when you change this number rather than incrementing it; every stale value this line has carried came from adding a route and adjusting the count by memory.
 
 `/hub/radar/` waits for its `server:defer` island to resolve before scanning; with no `MCP_KEY_WEBSITE_RADAR` bound it scans the shell plus the empty state — bind `npm run radar:stub` to cover the feed items too.
 

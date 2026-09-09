@@ -7,7 +7,10 @@
  * the secret name (`MCP_KEY_RP` → `RP`); OAuth paths derive it here.
  *
  * Cardinality is deliberately bounded (the traffic-spike alert evaluates
- * per-keyOwner, and AE index cardinality should stay roster-sized):
+ * per-keyOwner, and AE index cardinality should stay roster-sized). Note this
+ * bounds the INDEX, not analytics generally: per-client identity is available
+ * as the `client_ref` BLOB (`blob8`, BL-155/ADR-0031), which is how "how many
+ * distinct trials are active" is answered without touching `index1`:
  *   - Authorization-code grants → `OAUTH:<userId>` where userId is the
  *     team-key owner who consented (e.g. `OAUTH:RP`). One bucket per
  *     person, regardless of how many clients they connect.

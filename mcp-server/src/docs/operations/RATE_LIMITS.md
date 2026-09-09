@@ -23,16 +23,25 @@ The ceilings depend on the caller's **tier** (below). The table shows the **`int
 
 ### Per-client tiers (BL-033 Slice 5)
 
-An external pilot's tier is set on its M2M client record (`tier`: `free-pilot` / `paid` / `enterprise`) and carried in the access-token claim, so the limiter reads it locally with no KV round-trip (see [ADR-0010](../../../../src/docs/adr/0010-per-client-rate-limit-tiers.md)). Callers with no tier — static `MCP_KEY_*` keys, OAuth human-consent — resolve to `internal`.
+An external pilot's tier is set on its M2M client record (`tier`: `trial` / `free-pilot` / `paid` / `enterprise`) and carried in the access-token claim, so the limiter reads it locally with no KV round-trip (see [ADR-0010](../../../../src/docs/adr/0010-per-client-rate-limit-tiers.md)). Callers with no tier — static `MCP_KEY_*` keys, OAuth human-consent — resolve to `internal`.
 
 | Tier         | General /min | General /day | Radar /min | Radar /day |
 | ------------ | ------------ | ------------ | ---------- | ---------- |
+| `trial`      | 15           | 100          | 1          | 1          |
 | `free-pilot` | 30           | 300          | 3          | 20         |
 | `paid`       | 60           | 2000         | 5          | 50         |
 | `enterprise` | 120          | 10000        | 10         | 150        |
 | `internal`   | 60           | 1000         | 5          | 50         |
 
-> **These are tunable, non-contractual capability ceilings — NOT ratified SLA quotas.** They are abuse/capacity limits. `free-pilot` is deliberately tighter than `internal` (abuse containment for an unvetted pilot), not a promised allowance. No pilot rate SLA is contractually committed.
+> **`trial` is the public entry tier** (operator decision, 2026-09-08): it replaced `free-pilot` as the advertised free offering, and `/hub/mcp/` publishes its `15`/`100` in the first column of the tier table. It is minted for a stranger with no operator and no payment in the loop and lives 72h, so it is the tightest tier by construction — a unit test pins it at or below `free-pilot` on every ceiling.
+>
+> **Watching trial usage**: every trial's calls carry the trial's own `client_ref` in `blob8`, so per-trial volume is `GROUP BY blob8` + `sum(_sample_interval)` scoped to `index1 = 'OAUTH:M2M:TRIAL'`. The runnable queries — including signup volume and failure rate, and the caveat on counting distinct actives — are in [AUTH.md § Self-serve trial mint](AUTH.md). Note there is still **no alert rule** on any of it.
+>
+> **`free-pilot` is retired as a public offering** but remains assignable: existing client records carry it, and an operator may still grant it deliberately. It is simply no longer advertised anywhere on the website.
+>
+> Its **radar numbers are defense-in-depth, not the control** — and note the public table prints **"None"** rather than these `1`/`1`, which is the honest figure: radar is denied to this tier outright at the pipeline seam (`pipeline/tier-gate.ts`, `trialRadarDenial`) **before the limiter is consulted**, because radar reads the Inoreader-funded snapshot and a self-serve path must not become a bypass for it. So a trial caller gets zero radar calls, not one. The ceilings exist only so that accidentally removing that deny does not silently grant a stranger `free-pilot`-level radar. They are `1`/`1` rather than `0`/`0` because a zero sliding window is not verified to be representable in `@upstash/ratelimit`.
+
+> **These are tunable, non-contractual capability ceilings — NOT ratified SLA quotas.** They are abuse/capacity limits. `trial` and `free-pilot` are deliberately tighter than `internal` (abuse containment for an unvetted caller), not a promised allowance. No pilot rate SLA is contractually committed.
 
 **Changing a tier** takes effect on the next window evaluation — the limiter reuses the same per-`keyOwner` Redis keys, so there's no migration; the new ceiling simply applies going forward (a client mid-window keeps whatever tokens it already consumed).
 
@@ -96,6 +105,16 @@ Before the hard 429, when any bucket is ≥80% consumed the server emits an MCP 
 ```
 
 This is **best-effort**: it's delivered on the streamable-HTTP SSE response, so a client that only reads the terminal result frame won't see it. That's fine — the `RateLimit-Remaining` / `RateLimit-Policy` **headers on every response are the guaranteed signal**; the notification is a convenience for clients that consume interim frames. A failure to deliver it never affects the tool call.
+
+The 80% threshold is `SOFT_LIMIT_RATIO` in [`ratelimit/tiers.ts`](../../ratelimit/tiers.ts), read by both this warning and the `rate_limit_decision` `throttle` metric below, so the two can never disagree about what "near the limit" means.
+
+### Observing refusals (BL-157)
+
+Throttles and 429s reach Analytics Engine as `rate_limit_decision` events, and trial radar refusals as `tier_denial` — before this they existed only as `safeLog` lines, i.e. only while someone held a `wrangler tail` open. Both have Grafana panels ([GRAFANA.md](GRAFANA.md), "Rate-limit pressure and tier gates") and copy-pasteable SQL in [AUTH.md](AUTH.md).
+
+**Emitted on refusal only — never on `allow`.** So these answer _"who is hitting a wall"_, not _"what fraction of requests were allowed"_. An `allow` event would fire on every authenticated request and push the AE dataset toward sampling, which silently degrades the `uniq()`-based distinct-trials count; the reasoning, the rejected alternatives and the revisit triggers are in [ADR-0032](../../../../src/docs/adr/0032-rate-limit-decisions-emit-only-on-refusal.md). A denial _rate_ can be approximated as denies ÷ (invocations + denies), which slightly overstates it — non-tool traffic like `initialize` and `tools/list` passes the limiter without emitting an invocation.
+
+Still missing: **no alert fires on any of this.** The seven canonical rules do not cover refusal volume. Deliberate for now — a threshold has to cite a baseline in `slo-baselines.md`, and there is no baseline for a metric that has only just started being recorded. Set one from observed trial traffic after go-live.
 
 ---
 
@@ -238,6 +257,10 @@ The general tier still applies to radar calls — they count toward the general 
 
 **Upstash command budget**: each `Ratelimit.limit()` call costs 2 Redis commands. A general request consumes 4 commands (2 buckets), a radar request consumes 8 commands (4 buckets). Worst-case sizing for the Upstash free tier (10k commands/day): one operator at 1000 general + 50 radar calls/day = 4,400 commands; sized for 2 active operators (8,800/day) within free tier headroom. A third active operator pushes the math over the 10k threshold — the upgrade trigger is documented in the BL-038 design doc § Risks.
 
+### Trial signup IP limiter (BL-155 Slice 2)
+
+`POST /trial/signup` carries its own bucket, `mcp:ratelimit:trial:ip` — a single sliding window of **10 per hour**, keyed on an HMAC of the visitor's full IP (never the raw address, never a /24). It bounds Turnstile and Upstash spend from retries; the one-trial-per-identity lease is the real control. Unlike every bucket above, **a null or throwing Upstash here is a 503, not a skip** — for a credential minter, fail-open is the wrong default (`src/trial/signup.ts`).
+
 ---
 
-_Last updated: 2026-07-27 (stale gst-radar-tokens references retired; circuit-breaker reset command corrected to the REST API)_
+_Last updated: 2026-09-07 (BL-155 Slice 2 — trial signup IP limiter)_

@@ -31,6 +31,8 @@ import { m2mKeyOwner } from './key-owner';
 export { sha256Hex };
 
 export const M2M_CLIENT_KEY_PREFIX = 'mcp:oauth:m2m-client:';
+/** Every minted clientId starts with this; the consent page uses it to recognise one. */
+export const M2M_CLIENT_ID_PREFIX = 'm2m_';
 
 export interface M2mJwk {
   kty: string;
@@ -49,6 +51,27 @@ export interface M2mClientRecord {
   allowedScopes: string[];
   tier: string;
   createdAt: string;
+  /**
+   * ISO-8601 instant after which the `client_credentials` grant refuses this
+   * client (BL-155). **Optional, and absence means "never expires"** — every
+   * operator-provisioned client predating BL-155 has no `expiresAt` and must
+   * keep working, so the field cannot be made required.
+   *
+   * That default is deliberately the *loose* one, which makes an omission on a
+   * path that intends to expire a silent, permanent credential. Any caller
+   * minting a time-boxed client must set this explicitly and assert it — see
+   * `SELF_SERVE_TRIAL_BL-155.md`.
+   *
+   * Enforced at token mint (`m2m-token.ts`), **after** the auth branches, so an
+   * unauthenticated caller cannot probe client existence or expiry. The record
+   * is deliberately still readable, listable and PATCHable after this instant:
+   * conversion to a paid tier needs it, and reaping is the KV `expirationTtl`'s
+   * job, not this field's.
+   *
+   * Note the ≤1h residual inherent to self-contained tokens: a token minted
+   * just before `expiresAt` stays valid until the JWT itself lapses.
+   */
+  expiresAt?: string;
 }
 
 function b64url(bytes: Uint8Array): string {
@@ -62,6 +85,13 @@ export interface CreateM2mClientInput {
   allowedScopes: string[];
   tier?: string;
   jwks?: { keys: M2mJwk[] };
+  /**
+   * ISO-8601 expiry; omit for a client that never expires. See
+   * `M2mClientRecord.expiresAt`. Setting it also schedules the KV reap at
+   * `expiresAt + REAP_GRACE_SECONDS` — derived here, never supplied, so no
+   * caller can create a time-boxed record that is never garbage-collected.
+   */
+  expiresAt?: string;
 }
 
 /** Create + persist a record; the returned clientSecret is shown once. */
@@ -69,8 +99,8 @@ export async function createM2mClient(
   kv: KVNamespace,
   input: CreateM2mClientInput
 ): Promise<{ record: M2mClientRecord; clientSecret: string }> {
-  const clientId = `m2m_${b64url(crypto.getRandomValues(new Uint8Array(16)))}`;
-  const clientSecret = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const clientId = `${M2M_CLIENT_ID_PREFIX}${b64url(crypto.getRandomValues(new Uint8Array(16)))}`;
+  const clientSecret = newClientSecret();
   const record: M2mClientRecord = {
     clientId,
     name: input.name,
@@ -79,9 +109,134 @@ export async function createM2mClient(
     allowedScopes: input.allowedScopes,
     tier: input.tier ?? 'free-pilot',
     createdAt: new Date().toISOString(),
+    ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
   };
-  await kv.put(`${M2M_CLIENT_KEY_PREFIX}${clientId}`, JSON.stringify(record));
+  await putM2mClient(kv, record);
   return { record, clientSecret };
+}
+
+/** 32 random bytes, base64url — shared by create and rotate. */
+function newClientSecret(): string {
+  return b64url(crypto.getRandomValues(new Uint8Array(32)));
+}
+
+/**
+ * Replace a record's secret in place (BL-155 Slice 2 — the re-issue path).
+ * When a visitor who already holds a live trial signs up again, the handler
+ * rotates the secret on the EXISTING record rather than minting a second
+ * client: one identity keeps mapping to one client, the previous secret dies
+ * immediately (≤1h JWT residual aside), and nothing else on the record moves.
+ * In particular `expiresAt` is untouched, so the reap `putM2mClient` derives
+ * from it lands on the same instant — a re-issue cannot extend a trial.
+ *
+ * Returns `null` for an unknown record or one already past `expiresAt`: an
+ * expired trial is refused, never revived.
+ */
+export async function rotateM2mSecret(
+  kv: KVNamespace,
+  clientId: string,
+  now: number = Date.now()
+): Promise<{ record: M2mClientRecord; clientSecret: string } | null> {
+  const existing = await getM2mClient(kv, clientId);
+  if (!existing) return null;
+  if (existing.expiresAt && Date.parse(existing.expiresAt) <= now) return null;
+  const clientSecret = newClientSecret();
+  const record: M2mClientRecord = { ...existing, secretHash: await sha256Hex(clientSecret) };
+  await putM2mClient(kv, record);
+  return { record, clientSecret };
+}
+
+/**
+ * The single write path for a record. Every write recomputes the reap from
+ * `expiresAt` (see `reapExpirationFor`), so create and update cannot disagree
+ * on when a record disappears. A record with no `expiresAt` is written with
+ * no options — the same bare `put` every pre-BL-155 caller made.
+ */
+async function putM2mClient(kv: KVNamespace, record: M2mClientRecord): Promise<void> {
+  const expiration = reapExpirationFor(record);
+  await kv.put(
+    `${M2M_CLIENT_KEY_PREFIX}${record.clientId}`,
+    JSON.stringify(record),
+    expiration ? { expiration } : undefined
+  );
+}
+
+/**
+ * Grace after `expiresAt` before KV reaps a time-boxed record (BL-155).
+ * 30 days — long enough that a conversion or a support question still finds
+ * the record, short enough that an unauthenticated minter cannot grow the
+ * namespace without bound.
+ */
+export const REAP_GRACE_SECONDS = 30 * 24 * 60 * 60;
+
+/** KV rejects an absolute `expiration` less than 60s in the future. */
+const KV_MIN_EXPIRATION_LEAD_S = 60;
+
+/**
+ * Reap policy, derived rather than read back.
+ *
+ * BL-155's design stated two rules: a `trial`→`paid` conversion clears the reap
+ * TTL, and any other PATCH preserves the remaining one. Deriving an ABSOLUTE
+ * reap instant from `expiresAt` collapses both into one — the reap point is
+ * always `expiresAt + grace`, so recomputing it on every write is idempotent
+ * (it cannot slide), a record with no `expiresAt` simply has no reap, and
+ * clearing `expiresAt` on conversion clears the reap for free.
+ *
+ * Why derive rather than read the existing TTL: KV's point reads (`get`,
+ * `getWithMetadata`) do not expose expiration at all — only `list()` does, as an
+ * absolute timestamp and only when set. So "preserve the remaining TTL" would
+ * mean a list scan to recover a value that is already computable from a field
+ * on the record. Derivation is not a workaround for a missing API; it is
+ * strictly cheaper than the API that exists.
+ */
+function reapExpirationFor(record: M2mClientRecord): number | undefined {
+  if (!record.expiresAt) return undefined;
+  const expiresMs = Date.parse(record.expiresAt);
+  if (Number.isNaN(expiresMs)) return undefined;
+  const reapAtS = Math.floor(expiresMs / 1000) + REAP_GRACE_SECONDS;
+  const floorS = Math.floor(Date.now() / 1000) + KV_MIN_EXPIRATION_LEAD_S;
+  return Math.max(reapAtS, floorS);
+}
+
+export interface UpdateM2mClientInput {
+  tier?: string;
+  allowedScopes?: string[];
+  /**
+   * `string` sets a new expiry; **`null` clears it**, making the client
+   * permanent and — via `reapExpirationFor` — cancelling its reap. Clearing is
+   * what a trial→paid conversion does. `undefined` leaves it untouched.
+   */
+  expiresAt?: string | null;
+}
+
+/**
+ * Patch tier / scopes / expiry on an existing record **in place**, keeping the
+ * same `clientId` and `secretHash` so the client's credentials keep working.
+ * Returns `null` when the client does not exist.
+ *
+ * This exists because the admin API was GET/POST/DELETE only, so changing a
+ * tier meant delete-and-recreate — i.e. handing the client a new credential for
+ * an administrative change. Conversion at the end of a trial is exactly that
+ * case (BL-155 Slice 1).
+ */
+export async function updateM2mClient(
+  kv: KVNamespace,
+  clientId: string,
+  input: UpdateM2mClientInput
+): Promise<M2mClientRecord | null> {
+  const existing = await getM2mClient(kv, clientId);
+  if (!existing) return null;
+
+  const updated: M2mClientRecord = {
+    ...existing,
+    ...(input.tier !== undefined ? { tier: input.tier } : {}),
+    ...(input.allowedScopes !== undefined ? { allowedScopes: input.allowedScopes } : {}),
+  };
+  if (input.expiresAt === null) delete updated.expiresAt;
+  else if (input.expiresAt !== undefined) updated.expiresAt = input.expiresAt;
+
+  await putM2mClient(kv, updated);
+  return updated;
 }
 
 export async function getM2mClient(
@@ -114,6 +269,19 @@ export async function listM2mClients(kv: KVNamespace): Promise<M2mClientRecord[]
 
 export async function deleteM2mClient(kv: KVNamespace, clientId: string): Promise<void> {
   await kv.delete(`${M2M_CLIENT_KEY_PREFIX}${clientId}`);
+}
+
+/**
+ * Split a `<clientId>:<secret>` credential on the FIRST colon only — a
+ * client secret may itself contain colons (RFC 6749 §2.3.1), so a 2-arg
+ * `split` would truncate it. Shared by the `/token` HTTP Basic path and,
+ * since BL-155 Slice 2b, the consent page (one pasted string, one field).
+ * Returns `null` when there is no colon or either half is empty.
+ */
+export function splitClientCredential(value: string): { clientId: string; secret: string } | null {
+  const sep = value.indexOf(':');
+  if (sep <= 0 || sep === value.length - 1) return null;
+  return { clientId: value.slice(0, sep), secret: value.slice(sep + 1) };
 }
 
 /** Constant-time secret check against the stored hash. */

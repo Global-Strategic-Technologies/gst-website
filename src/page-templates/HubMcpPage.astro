@@ -42,7 +42,7 @@ const { t, tHtml } = useTranslations(locale, 'hub-mcp');
 const num = (enFormatted: string) => formatNumber(Number(enFormatted.replace(/,/g, '')), locale);
 
 const tierTableLabel = t('tiers.tableLabel', {
-  pilot: t('tiers.pilot.name'),
+  trial: t('tiers.trial.name'),
   paid: t('tiers.paid.name'),
   enterprise: t('tiers.enterprise.name'),
 });
@@ -92,6 +92,24 @@ function accessHref(tier?: string) {
           >{' '}{t('header.ledeAfter')}</Fragment
         >
       </HubHeader>
+
+      {
+        /* The one action above the argument. This page deliberately kept every
+           CTA below the pitch while access was operator-only — an offer above
+           the fold would have promised a self-serve path that did not exist
+           (see the note on `.mcp-block--engineers` below, which is about the
+           same restraint). BL-155 shipped that path, so the promise is now
+           keepable: a reader who already knows what MCP is can act without
+           scrolling past the catalog, and a reader who does not still meets the
+           argument first. */
+      }
+      <div class="mcp-trial-cta">
+        <a
+          href={localizedHref('/hub/mcp/trial/', locale)}
+          class="cta-button"
+          onclick="trackCTA('mcp-lede-trial', 'hub-mcp')">{t('header.trialCta')}</a
+        >
+      </div>
 
       <div class="mcp-block" id="what-it-does">
         <h2 class="brutal-heading-lg">{t('what.heading')}</h2>
@@ -400,14 +418,28 @@ function accessHref(tier?: string) {
         <div class="mcp-tiers">
           <div class="mcp-tier">
             <div class="mcp-tier__head">
-              <h3 class="mcp-tier__name">{t('tiers.pilot.name')}</h3>
+              <h3 class="mcp-tier__name">{t('tiers.trial.name')}</h3>
             </div>
-            <code class="mcp-tier__id">free-pilot</code>
-            <p class="mcp-tier__note">{t('tiers.pilot.note')}</p>
+            <code class="mcp-tier__id">trial</code>
+            <p class="mcp-tier__note">{t('tiers.trial.note')}</p>
+            {
+              /* The only tier whose CTA is not a mailto, and the only one
+              styled as a BUTTON. Both follow from the same fact: this tier
+              needs no operator, so the action is "go and get it" rather than
+              "ask for it". Set as a text link like its two neighbours it read
+              as a third request — the affordance said email-us while the href
+              said self-serve. `.brutal-btn--primary` is the design system's
+              own control (44px floor, frosted, mono caps), not a local
+              restyling of the link.
+
+              `localizedHref` keeps es/pt-BR on their own prefix rather than
+              dropping them onto the English route. */
+            }
             <a
-              href={accessHref('free-pilot')}
-              class="mcp-tier__cta"
-              onclick="trackCTA('mcp-access-free-pilot', 'hub-mcp')">{t('tiers.request')}</a
+              href={localizedHref('/hub/mcp/trial/', locale)}
+              class="brutal-btn brutal-btn--primary mcp-tier__start"
+              data-tier-cta
+              onclick="trackCTA('mcp-tier-trial', 'hub-mcp')">{t('tiers.trial.cta')}</a
             >
           </div>
 
@@ -423,6 +455,7 @@ function accessHref(tier?: string) {
             <a
               href={accessHref('paid')}
               class="mcp-tier__cta"
+              data-tier-cta
               onclick="trackCTA('mcp-access-paid', 'hub-mcp')">{t('tiers.request')}</a
             >
           </div>
@@ -436,6 +469,7 @@ function accessHref(tier?: string) {
             <a
               href={accessHref('enterprise')}
               class="mcp-tier__cta"
+              data-tier-cta
               onclick="trackCTA('mcp-access-enterprise', 'hub-mcp')">{t('tiers.request')}</a
             >
           </div>
@@ -472,25 +506,37 @@ function accessHref(tier?: string) {
           <tbody role="rowgroup">
             <tr role="row">
               <th scope="row" role="rowheader">{t('tiers.row.perMinute')}</th>
-              <td role="cell" data-tier={t('tiers.pilot.name')}>{num('30')}</td>
+              <td role="cell" data-tier={t('tiers.trial.name')}>{num('15')}</td>
               <td role="cell" data-tier={t('tiers.paid.name')}>{num('60')}</td>
               <td role="cell" data-tier={t('tiers.enterprise.name')}>{num('120')}</td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">{t('tiers.row.perDay')}</th>
-              <td role="cell" data-tier={t('tiers.pilot.name')}>{num('300')}</td>
+              <td role="cell" data-tier={t('tiers.trial.name')}>{num('100')}</td>
               <td role="cell" data-tier={t('tiers.paid.name')}>{num('2,000')}</td>
               <td role="cell" data-tier={t('tiers.enterprise.name')}>{num('10,000')}</td>
             </tr>
+            {
+              /* The trial's radar cells publish a WORD, not a number, and that
+              is the honest reading rather than a formatting choice.
+              `TIER_LIMITS.trial` does carry `radarPerMinute: 1 / radarPerDay: 1`,
+              but those are defense-in-depth: radar is refused outright for a
+              trial identity at `mcp-server/src/pipeline/tier-gate.ts`
+              (`trialRadarDenial`, JSON-RPC -32002) BEFORE the limiter is ever
+              consulted, so a trial caller gets zero radar calls, not one.
+              Printing "1" here would advertise an allowance that does not
+              exist. `mcp-marketing-parity.test.ts` binds this cell to that deny
+              rather than to `TIER_LIMITS`. */
+            }
             <tr role="row">
               <th scope="row" role="rowheader">{t('tiers.row.radarPerMinute')}</th>
-              <td role="cell" data-tier={t('tiers.pilot.name')}>{num('3')}</td>
+              <td role="cell" data-tier={t('tiers.trial.name')}>{t('tiers.row.radarNone')}</td>
               <td role="cell" data-tier={t('tiers.paid.name')}>{num('5')}</td>
               <td role="cell" data-tier={t('tiers.enterprise.name')}>{num('10')}</td>
             </tr>
             <tr role="row">
               <th scope="row" role="rowheader">{t('tiers.row.radarPerDay')}</th>
-              <td role="cell" data-tier={t('tiers.pilot.name')}>{num('20')}</td>
+              <td role="cell" data-tier={t('tiers.trial.name')}>{t('tiers.row.radarNone')}</td>
               <td role="cell" data-tier={t('tiers.paid.name')}>{num('50')}</td>
               <td role="cell" data-tier={t('tiers.enterprise.name')}>{num('150')}</td>
             </tr>
@@ -510,7 +556,9 @@ function accessHref(tier?: string) {
             <div class="brutal-label mcp-access__label">{t('access.provisioning.label')}</div>
             <ul class="mcp-facts">
               <li>
-                <DeltaIcon class="bullet-icon" /><span>{t('access.provisioning.item1')}</span>
+                <DeltaIcon class="bullet-icon" /><span
+                  set:html={tHtml('access.provisioning.item1')}
+                />
               </li>
               <li>
                 <DeltaIcon class="bullet-icon" /><span>{t('access.provisioning.item2')}</span>
@@ -702,9 +750,11 @@ function accessHref(tier?: string) {
     padding-bottom: var(--spacing-3xl);
   }
 
-  /* No `scroll-margin-top` here, deliberately. Three of these blocks are
-     deep-link targets (#what-it-does and #tiers from the announcement sash,
-     #request-access from the guides), and the reflex is to offset them for the
+  /* No `scroll-margin-top` here, deliberately. Two of these blocks are
+     deep-link targets (#what-it-does from the announcement sash, and
+     #request-access from the guides — the sash's second field pointed at
+     #tiers until the trial replaced the free pilot as the public offering and
+     it was repointed at /hub/mcp/trial/), and the reflex is to offset them for the
      sticky header — but this is a hub SUB-page, and BaseLayout renders those
      with `staticHeader` (Header.astro's .site-header--static), so the header
      scrolls away and there is nothing to clear. Measured 2026-08-29: both
@@ -714,6 +764,13 @@ function accessHref(tier?: string) {
      that offset is for, it is not the site header and it is not a precedent
      for adding one here. */
   .mcp-block {
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  /* Sits between the header and the first block, so it takes the block rhythm
+     rather than inventing one. `.cta-button` brings its own sizing and touch
+     target; only the surrounding space is declared here. */
+  .mcp-trial-cta {
     margin-bottom: var(--spacing-3xl);
   }
 
@@ -756,8 +813,12 @@ function accessHref(tier?: string) {
   }
 
   /* Closes the page for the engineer who has to configure the thing, below the
-     argument rather than above it: nothing here is usable until a client record
-     exists, so an endpoint above the fold promised self-serve. */
+     argument rather than above it. The original reason was that nothing here
+     was usable until an operator created a client record, so an endpoint above
+     the fold promised a self-serve path that did not exist. That path exists
+     now (the trial CTA under the lede is it) — but these two URLs are still
+     configuration for someone who already holds a credential, not an offer, so
+     they stay at the end. */
   .mcp-block--engineers {
     padding-top: var(--spacing-2xl);
     border-top: 2px solid light-dark(var(--border-light), var(--border-dark-default));
@@ -1225,6 +1286,17 @@ function accessHref(tier?: string) {
 
   .mcp-tier__cta:hover {
     border-bottom-color: currentColor;
+  }
+
+  /* The trial's button, bottom-aligned with the two text links beside it so all
+     three CTAs sit on one baseline despite notes of different lengths. Only
+     placement is declared — `.brutal-btn--primary` owns every visual property,
+     including the 44px touch floor. `align-self` shrink-wraps it; a flex item
+     would otherwise stretch to the column width and read as a banner. */
+  .mcp-tier__start {
+    margin-top: auto;
+    align-self: flex-start;
+    text-decoration: none;
   }
 
   /* `fixed` so the four columns divide evenly and match the header grid; the

@@ -1,6 +1,6 @@
 /**
  * Announcement under-band anchors — each under-band FIELD may carry a fragment
- * href (`/hub/mcp/#tiers`), and nothing else binds that fragment to the target
+ * href (`/hub/mcp/#what-it-does`), and nothing else binds that fragment to the target
  * page: a renamed or deleted `id` would leave the live banner deep-linking to
  * the top of the page with no error anywhere. This guard runs in the required
  * Unit & Integration check, so the drift fails CI before the slow E2E suite

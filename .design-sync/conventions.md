@@ -319,7 +319,7 @@ changed:
   <a
     className="brutal-sash"
     href="/hub/mcp/"
-    aria-label="New: GST MCP — automate analysis, free pilot tier — open the linked page"
+    aria-label="New: GST MCP — automate analysis, free trial — open the linked page"
   >
     <span className="brutal-sash__badge">New</span>
     <span className="brutal-sash__label">GST MCP</span>
@@ -337,10 +337,10 @@ changed:
     </span>
     <a
       className="brutal-sash-under__field"
-      href="/hub/mcp/#tiers"
-      aria-label="Free pilot tier — see capability tiers"
+      href="/hub/mcp/trial/"
+      aria-label="Free trial — start a free 3-day MCP trial"
     >
-      Free pilot tier
+      Free trial
     </a>
   </span>
 </div>

@@ -8,11 +8,12 @@
  * per-key rate limit → /radar/snapshot convenience endpoint → per-request
  * MCP handler → structured request log → rate-limit + CORS headers.
  *
- * The `AuthSuccess` contract ({ keyOwner, scopes }) is the seam: whatever
- * produced it, everything downstream — limiter buckets, AE metrics
- * attribution (blob3), safeLog lines, Sentry tags, scope gating — behaves
- * identically. Living in its own module (not worker.ts) breaks the
- * would-be import cycle worker.ts → oauth/* → worker.ts.
+ * The `AuthSuccess` contract ({ keyOwner, scopes, tier?, rateLimitSubject? })
+ * is the seam: whatever produced it, everything downstream — limiter
+ * buckets, AE metrics attribution (blob3), safeLog lines, Sentry tags,
+ * scope gating, the tier gate — behaves identically. Living in its own
+ * module (not worker.ts) breaks the would-be import cycle
+ * worker.ts → oauth/* → worker.ts.
  */
 
 // Narrowed from `agents/mcp` (BL-106): that barrel carries the whole Durable
@@ -27,14 +28,16 @@ import { withCors } from '../auth/cors';
 import { safeLog } from '../auth/safe-logger';
 import { hasScope } from '../auth/scopes';
 import { createLimiter } from '../ratelimit/limiter';
-import { resolveTierLimits } from '../ratelimit/tiers';
+import { resolveTierLimits, SOFT_LIMIT_RATIO } from '../ratelimit/tiers';
+import { emitRateLimitDecision, emitTierDenial } from '../metrics/pipeline-events';
 import {
   reasonForTier,
   rateLimitPolicyHeader,
   tooManyRequestsResponse,
   withRateLimitHeaders,
 } from '../ratelimit/headers';
-import { extractToolName, toolClassFor } from '../dispatch/extract-tool-name';
+import { extractToolCall, toolClassFor } from '../dispatch/extract-tool-name';
+import { trialRadarDenial } from './tier-gate';
 import { tagRequest } from '../observability/sentry';
 import { AnalyticsEngineSink } from '../metrics/_index';
 import { QueueAuditSink, newRequestId, truncateIp, type AuditContext } from '../audit/_index';
@@ -72,31 +75,97 @@ export async function handleAuthenticated(
   // Inoreader budget. Tool name is extracted at the Worker boundary via
   // a cloned-body JSON-RPC parse; non-tools/call requests + parse
   // failures fail-safe to `'general'`.
-  const toolName = await extractToolName(request);
-  const toolClass = toolClassFor(toolName);
-  // BL-033 Slice 5: the client's tier (carried on the M2M token claim;
-  // undefined for static keys + OAuth human-consent) selects the four
-  // sliding-window ceilings. `RateLimit-Policy` advertises those ceilings
-  // on every authenticated response (200 and 429) — the transport-agnostic
-  // throttle signal, guaranteed even for clients that don't parse the SSE
-  // soft-limit notification.
+  const call = await extractToolCall(request);
+  const toolClass = toolClassFor(call?.name ?? null);
+
+  // BL-155 Slice 2b — tier gate. A `trial` identity is refused the radar
+  // tools here, BEFORE the limiter (so the refusal burns no radar-window
+  // token) and before the MCP handler (so no stream starts). Scopes cannot
+  // do this — `tool:*` covers radar by prefix — and it is a commercial gate,
+  // not a cost one; the reasoning lives in `tier-gate.ts`.
+  const denied = trialRadarDenial(auth, call);
+  if (denied) {
+    safeLog({
+      event: 'tool.tier-denied',
+      keyOwner: auth.keyOwner,
+      rateLimitSubject: auth.rateLimitSubject,
+      path: url.pathname,
+      reason: 'trial-no-radar',
+      success: false,
+      errorCode: 'missing-scope',
+    });
+    // BL-157 — the upgrade-intent signal. A trial asking for the gated
+    // product is the most commercially interesting thing the trial produces,
+    // and until this it existed only as the stdout line above. `call` is
+    // non-null here by construction: `trialRadarDenial` returns null without
+    // one.
+    emitTierDenial(env, {
+      keyOwner: auth.keyOwner,
+      clientRef: auth.rateLimitSubject,
+      toolName: call?.name ?? 'unknown',
+    });
+    return withCors(denied, origin);
+  }
+
+  // BL-033 Slice 5: the client's tier (carried on the M2M token claim or,
+  // since BL-155, a KV-backed consent grant's props; undefined for static
+  // keys + roster OAuth consent) selects the four sliding-window ceilings.
+  // `RateLimit-Policy` advertises those ceilings on every authenticated
+  // response (200 and 429) — the transport-agnostic throttle signal,
+  // guaranteed even for clients that don't parse the SSE soft-limit
+  // notification.
+  //
+  // The limiter identifier is `rateLimitSubject` when set (one bucket per
+  // KV client — those sliding-window keys self-reap at 60s/1d, unlike an AE
+  // index dimension, so per-client growth here is fine) and `keyOwner`
+  // otherwise — byte-for-byte the pre-BL-155 bucket for every other identity.
   const limits = resolveTierLimits(auth.tier);
   const rlPolicy = rateLimitPolicyHeader(limits, toolClass);
   const limiter = createLimiter(env, limits);
   let rlResult = null;
   if (limiter) {
-    rlResult = await limiter.check(auth.keyOwner, toolClass);
+    rlResult = await limiter.check(auth.rateLimitSubject ?? auth.keyOwner, toolClass);
     if (!rlResult.allowed) {
+      // `rateLimitSubject` on the line is what tells a constant-owner trial
+      // throttle apart — the farming signal. Log field, not an AE index.
       safeLog({
         event: 'ratelimit.exceeded',
         keyOwner: auth.keyOwner,
+        rateLimitSubject: auth.rateLimitSubject,
         path: url.pathname,
         status: 429,
         reason: reasonForTier(rlResult.tier),
         success: false,
         errorCode: 'rate-limit',
       });
+      // BL-157 — the same fact, durably. The safeLog above is stdout-only.
+      emitRateLimitDecision(env, {
+        keyOwner: auth.keyOwner,
+        clientRef: auth.rateLimitSubject,
+        outcome: 'deny',
+        responsibleTier: rlResult.tier,
+      });
       return withCors(tooManyRequestsResponse(rlResult, rlPolicy), origin);
+    }
+    // BL-157 — allowed, but some bucket is ≥80% spent. Same THRESHOLD as the
+    // client-facing soft-limit warning at the tool wrapper, read from the one
+    // shared constant so the two can never disagree about where the line is.
+    //
+    // Not the same POPULATION, though: the warning needs a tool call with an
+    // SSE notifier attached, while this fires for every authenticated request
+    // past the check — `/radar/snapshot`, `initialize`, `tools/list` included.
+    // So the metric is a strict superset of the warnings clients receive, and
+    // a throttle count will legitimately exceed the number of warnings sent.
+    //
+    // Report the bucket NEAREST its cliff, which is not necessarily the
+    // binding one.
+    if ((rlResult.minRemainingRatio ?? 1) <= SOFT_LIMIT_RATIO) {
+      emitRateLimitDecision(env, {
+        keyOwner: auth.keyOwner,
+        clientRef: auth.rateLimitSubject,
+        outcome: 'throttle',
+        responsibleTier: rlResult.nearestLimit?.tier ?? rlResult.tier,
+      });
     }
   } else {
     safeLog({
@@ -280,6 +349,11 @@ export async function handleAuthenticated(
         radarSource: 'worker',
         metricsSink,
         keyOwner: auth.keyOwner,
+        // BL-155 — the per-client analytics dimension. `keyOwner` above is
+        // constant per tier (roster-sized AE index), so without this every
+        // trial is one indistinguishable row. Undefined for identities with no
+        // per-client subject, which is the no-regression case.
+        clientRef: auth.rateLimitSubject,
         audit,
         // BL-033 Slice 5: hand the boundary's already-computed rate-limit
         // result to the tool wrapper so it can emit the 80%-consumed soft-limit

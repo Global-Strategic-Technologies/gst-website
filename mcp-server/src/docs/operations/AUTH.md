@@ -170,17 +170,121 @@ The human then adds the connector in their client; at the consent page they auth
 
 ### Onboard an M2M client (headless client_credentials)
 
-**Normal path**: `npm run provision:client -- --name "<client>" --tier free-pilot` from `mcp-server/` — it wraps this endpoint, requires an explicit tier, validates scopes against the advertised catalog, gates radar behind `--allow-radar`, and prints the onboarding email. See [PILOT_ONBOARDING.md § 1](PILOT_ONBOARDING.md). The raw contract below stays here as the reference — and is still the way to register a JWKS, which the script does not do.
+**Normal path**: `npm run provision:client -- --name "<client>" --tier paid` from `mcp-server/` — it wraps this endpoint, requires an explicit tier, validates scopes against the advertised catalog, gates radar behind `--allow-radar`, and prints the onboarding email. See [PILOT_ONBOARDING.md § 1](PILOT_ONBOARDING.md). The raw contract below stays here as the reference — and is still the way to register a JWKS, which the script does not do.
 
 ```bash
 curl -s -X POST https://mcp.globalstrategic.tech/admin/oauth/m2m-clients \
   -H "Authorization: Bearer $MCP_ADMIN_KEY" -H "Content-Type: application/json" \
-  -d '{"name":"<client-name>","allowedScopes":["tool:*","resource:regulations:read"],"tier":"free-pilot","jwks":{"keys":[<ES256 public JWK, optional>]}}'
+  -d '{"name":"<client-name>","allowedScopes":["tool:*","resource:regulations:read"],"tier":"paid","jwks":{"keys":[<ES256 public JWK, optional>]}}'
 ```
 
 Deliver the returned `clientId` + `clientSecret` via the secure channel (or skip the secret entirely: register their ES256 public key and have them authenticate with RFC 7523 `private_key_jwt` assertions — preferred). Their pipeline then exchanges at `/token` with `grant_type=client_credentials` for a 1-hour `mcp_m2m_*` token (no refresh token — re-exchange on expiry; the official MCP SDKs' `ClientCredentialsProvider` handles this).
 
 `allowedScopes` is the hard ceiling; radar access requires explicitly granting `tool:radar:*` / `resource:radar:read` (deliberately excluded from typical pilot grants).
+
+**Optional `expiresAt`** (ISO-8601, BL-155): after that instant `/token` refuses the client with `invalid_client`. Omitted means never expires — every client provisioned before BL-155 has none. A time-boxed record is garbage-collected from KV 30 days after `expiresAt` (`REAP_GRACE_SECONDS` in `src/oauth/m2m-clients.ts`), long enough that a conversion or support question still finds it; the reap is derived from `expiresAt` on every write, never supplied.
+
+### Change an M2M client's tier, scopes or expiry (in place)
+
+```bash
+# Convert a trial to paid: tier up, expiry cleared (null) — same clientId + secret keep working
+curl -s -X PATCH https://mcp.globalstrategic.tech/admin/oauth/m2m-clients/<clientId> \
+  -H "Authorization: Bearer $MCP_ADMIN_KEY" -H "Content-Type: application/json" \
+  -d '{"tier":"paid","expiresAt":null}'
+```
+
+Any subset of `tier`, `allowedScopes`, `expiresAt` (string sets, `null` clears). `clientId` and the secret are untouched, so this is the right tool for every administrative change that is not a revocation — before BL-155 the only option was delete-and-recreate, which handed the client a new credential. `allowedScopes` is validated against the advertised catalog here (stricter than `POST`, which leaves that to the provisioning script). **The new `tier` and scopes reach the client at its next `/token` exchange** — tokens already minted carry the old claims until they lapse (≤1h), the same residual as revocation.
+
+### An M2M record at the consent page (BL-155 Slice 2b)
+
+The consent form's one field also accepts an M2M client record as **`<clientId>:<secret>`** (split on the first colon; a secret may contain colons). This is how a self-serve trial — and a pilot converted in place via PATCH — connects from Claude Desktop, Claude Code or Cursor without an `MCP_KEY_*`. Resolution order is roster first, then KV; every failure renders the same "not recognized" page, so the form is not a namespace oracle (`src/oauth/consent-identity.ts`).
+
+What the resulting grant carries, and what follows from it:
+
+- **Attribution**: `keyOwner` is `OAUTH:M2M:<NAME>` — every trial record is named `trial`, so all trials attribute as `OAUTH:M2M:TRIAL` (bounded AE cardinality); the limiter buckets **per client** (`rateLimitSubject`), so one trial cannot exhaust another's budget. A throttled trial's `ratelimit.exceeded` line carries its `rateLimitSubject`.
+- **Tier**: the record's `tier` rides in the grant props, so a `trial` grant gets trial ceilings and is **refused the radar tools** at the pipeline seam with JSON-RPC error `-32002` (`src/pipeline/tier-gate.ts`). Radar Resources / `/radar/snapshot` are governed by the record's `allowedScopes` as usual.
+- **Expiry binds to the grant, not to the record.** At consent the grant's refresh TTL and access TTL are clamped to the record's `expiresAt`, and every OAuth request re-checks that instant from the props (`src/oauth/api-handler.ts`, zero KV). So the trial ends on time even though connector grants refresh. **The corollary**: a later `PATCH` that shortens `expiresAt`, or a `DELETE`, does **not** cut an already-consented grant short — it runs to the `expiresAt` captured at consent (≤72h for a trial). The exchange callback has no KV access by construction (`src/oauth/token-exchange.ts`). Converting a trial to `paid` likewise takes effect at the person's **next consent**, not on their existing grant. In the grant's final minute a refresh may be refused as `invalid_request` rather than `invalid_grant` — cosmetic.
+
+### Self-serve trial mint — `POST /trial/signup` (BL-155 Slice 2)
+
+The one endpoint that creates a credential with no operator in the loop. The website's signup page (Slice 3) calls it with a Turnstile token; the Worker verifies the token server-side (asserting `hostname` and `action`, not just `success`), rate-limits by an HMAC of the visitor's IP, takes a one-per-identity lease, and mints an M2M record `{ name: 'trial', tier: 'trial', allowedScopes: TRIAL_SCOPES (everything except the radar Resource), expiresAt: now + 72h }`. The response carries the `<clientId>:<secret>` string the consent page accepts (§ above).
+
+What an operator needs to know:
+
+- **It fails closed.** Unbound `TURNSTILE_SECRET_KEY`, `TRIAL_IP_HMAC_SECRET`, `TURNSTILE_EXPECTED_HOSTNAMES`, `OAUTH_KV` or Upstash, a Redis error, or an unreachable/slow Turnstile all return **503 with nothing minted**. So a deploy that lands ahead of its secrets gives a 503 endpoint — set the secrets first (`wrangler secret put … --env <env>`, stdin). Production's secrets are deliberately **not set until Slice 3** ships the privacy disclosure and public copy; until then the endpoint is dark there by construction.
+- **One trial per identity per 30 days.** The identity is `mcp:trial:ident:<HMAC(secret, ip)>` in Upstash — a speed bump, not an identity control (IPs are shared and rotated); the containment is the trial tier's ceilings and the expiry. A repeat signup inside the window **rotates the secret on the existing record** (the previous credential stops working; `expiresAt` is unchanged; no second record) and returns `reissued: true` plus `issuedAt` (the original mint time, which the page names in its "previous secret has stopped working" notice). A repeat after `expiresAt` but inside the 30 days is refused with `trial-expired`, carrying `issuedAt` while the record still exists (it reaps ~3 days after the identity key lapses, so the field is usually present). **Rotating `TRIAL_IP_HMAC_SECRET` forgets every identity** — every visitor becomes eligible again.
+- **Inspect**: `GET /admin/oauth/m2m-clients` lists trials as `name: "trial"`, `tier: "trial"`; `PATCH … {"tier":"paid","expiresAt":null}` converts one (the person re-consents to pick up the new tier). `DELETE` blocks re-issue and `/token`; a consent grant already made runs to its captured `expiresAt` (§ above).
+- **Observability — what to actually run** (BL-155, [ADR-0031](../../../../src/docs/adr/0031-per-client-analytics-identity-is-a-blob.md)). Signup emits one `trial_signup` AE event per outcome, and every trial's tool call carries the trial's `client_ref` in `blob8`. Query `mcp_events` (or `mcp_events_staging`) with the AE SQL API — `src/observability/ae-query.ts` and `scripts/Verify-AeEmission.ps1` both run SQL for you.
+
+  **`GROUP BY` takes the raw column, never the `SELECT` alias** — the AE dialect rejects the alias (proven in `observability/status-metrics.ts`, and every working query in this repo follows it). Aliasing in `SELECT` and `ORDER BY` is fine.
+
+  ```sql
+  -- Mints and re-issues per week, and everything that failed instead.
+  SELECT blob4 AS outcome, sum(_sample_interval) AS n
+  FROM mcp_events
+  WHERE blob1 = 'trial_signup' AND timestamp > NOW() - INTERVAL '7' DAY
+  GROUP BY blob4
+  ORDER BY n DESC
+
+  -- Signup health: is the endpoint dead? A run of `unavailable` means a
+  -- secret is unbound or Upstash/Turnstile is failing — the failure mode that
+  -- is otherwise invisible without a live `wrangler tail`.
+  SELECT blob4 AS outcome, blob6 AS status, sum(_sample_interval) AS n
+  FROM mcp_events
+  WHERE blob1 = 'trial_signup' AND timestamp > NOW() - INTERVAL '1' DAY
+  GROUP BY blob4, blob6
+  ORDER BY n DESC
+
+  -- Per-trial call volume — the "is someone farming this" query. Sample-
+  -- correct, because sum(_sample_interval) is the corrected form of count().
+  SELECT blob8 AS client, sum(_sample_interval) AS calls
+  FROM mcp_events
+  WHERE index1 = 'OAUTH:M2M:TRIAL' AND blob1 = 'tool_invocation'
+    AND timestamp > NOW() - INTERVAL '7' DAY
+  GROUP BY blob8
+  ORDER BY calls DESC
+  LIMIT 50
+
+  -- Distinct active trials. SCOPE IT (index1 + blob1) or it counts every
+  -- client_ref-bearing identity, not just trials.
+  SELECT uniq(blob8) AS distinct_trials
+  FROM mcp_events
+  WHERE index1 = 'OAUTH:M2M:TRIAL' AND blob1 = 'tool_invocation'
+    AND timestamp > NOW() - INTERVAL '7' DAY
+  ```
+
+  **Read `uniq` honestly.** It has no sample correction (Cloudflare corrects only `count`/`sum`/`avg`/`quantile`), so it is exact while the dataset is unsampled — which is today, at trial ceilings — and a **lower bound** once sampling engages, dropping the quietest talkers first. For an exact count of trials that exist _right now_, don't use AE at all: `GET /admin/oauth/m2m-clients` and count `tier === 'trial'`. AE is the history; KV is the present.
+
+  Not covered: there is **no alert rule** on signup volume or failure rate yet, so nothing pages you when signup breaks — these queries are pull, not push.
+
+  **Refusals — did the trial hit a wall?** (BL-157). Two event types, same `GROUP BY`-the-raw-column rule:
+
+  ```sql
+  -- Rate-limit refusals. There is NO 'allow' row and that is correct:
+  -- rate_limit_decision is emitted on refusal only (ADR-0032), so this
+  -- answers "who hit a limit", not "what fraction of calls were allowed".
+  -- blob2 is the responsible bucket: minute / day / radar-minute / radar-day.
+  SELECT blob8 AS client_ref, blob2 AS bucket, blob4 AS outcome,
+         sum(_sample_interval) AS n
+  FROM mcp_events
+  WHERE blob1 = 'rate_limit_decision' AND index1 = 'OAUTH:M2M:TRIAL'
+    AND timestamp > NOW() - INTERVAL '7' DAY
+  GROUP BY blob8, blob2, blob4
+  ORDER BY n DESC
+
+  -- Trial paywall hits: which gated tool did a trial reach for? This is the
+  -- upgrade-intent signal, not a fault list. blob2 is the refused TOOL here
+  -- (different meaning from the query above — do not union them).
+  SELECT blob2 AS refused_tool, sum(_sample_interval) AS n
+  FROM mcp_events
+  WHERE blob1 = 'tier_denial' AND timestamp > NOW() - INTERVAL '30' DAY
+  GROUP BY blob2
+  ORDER BY n DESC
+  ```
+
+  A `throttle` row means the caller was **allowed** but was ≥80% through some bucket — the same threshold that raises the client-facing soft-limit warning. A `deny` row is a 429 the caller actually received.
+
+- **Staging vs production**: staging pairs the documented always-pass Turnstile **test** secret (`1x0000000000000000000000000000000AA`) with the test sitekey on the page and accepts `localhost` / preview hostnames (`TURNSTILE_EXPECTED_HOSTNAMES`, `TRIAL_EXTRA_ORIGINS` in `wrangler.toml`); production accepts only the website's own hosts. The test secret reports `hostname: "example.com"` and no `action` (observed 2026-09-07), so staging lists `example.com` and the verifier waives a missing action only for a response Cloudflare flags as a testing-key result. A scripted staging mint is `curl -X POST …/trial/signup -H 'Content-Type: application/json' -d '{"turnstileToken":"XXXX.DUMMY.TOKEN.XXXX"}'`.
 
 ### Introspect a token (support/debugging)
 
@@ -195,12 +299,12 @@ RFC 7662 semantics: every token problem (unknown, expired, revoked, malformed) i
 
 ### Revoke OAuth access
 
-| Target                     | Action                                                                                        | Effect                                                                                                                                                                                          |
-| -------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| One human's grants         | Rotate/delete their `MCP_KEY_*` (runbooks above)                                              | Existing access tokens live ≤1h; refresh continues until the grant is replaced — for immediate kill also delete the client or have them re-consent (new grants revoke old ones per user+client) |
-| One pre-registered client  | `DELETE /admin/oauth/clients/<id>`                                                            | Grants orphan; tokens die at access-token expiry (≤1h)                                                                                                                                          |
-| One M2M client             | `DELETE /admin/oauth/m2m-clients/<id>`                                                        | Re-issuance blocked immediately; minted tokens carry ≤1h residual (introspection already reports them inactive)                                                                                 |
-| ALL M2M tokens (emergency) | Rotate `OAUTH_M2M_SIGNING_KEY` (`wrangler secret put ... --env production`, new random value) | Every `mcp_m2m_*` token dies at the next isolate pickup                                                                                                                                         |
+| Target                     | Action                                                                                        | Effect                                                                                                                                                                                                                                                |
+| -------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One human's grants         | Rotate/delete their `MCP_KEY_*` (runbooks above)                                              | Existing access tokens live ≤1h; refresh continues until the grant is replaced — for immediate kill also delete the client or have them re-consent (new grants revoke old ones per user+client)                                                       |
+| One pre-registered client  | `DELETE /admin/oauth/clients/<id>`                                                            | Grants orphan; tokens die at access-token expiry (≤1h)                                                                                                                                                                                                |
+| One M2M client             | `DELETE /admin/oauth/m2m-clients/<id>`                                                        | Re-issuance blocked immediately; minted `mcp_m2m_*` tokens carry ≤1h residual (introspection already reports them inactive). A **consent-page grant** made with the record runs to its captured `expiresAt` (see § An M2M record at the consent page) |
+| ALL M2M tokens (emergency) | Rotate `OAUTH_M2M_SIGNING_KEY` (`wrangler secret put ... --env production`, new random value) | Every `mcp_m2m_*` token dies at the next isolate pickup                                                                                                                                                                                               |
 
 ### Operational notes
 
@@ -215,4 +319,4 @@ Per-key/per-client scope variation is live across all three credential paths: `M
 
 ---
 
-_Last updated: 2026-07-24 (BL-033 Slice 2 — OAuth onboarding/revocation/introspection runbooks added; dual-auth framing)_
+_Last updated: 2026-09-07 (BL-155 Slices 1, 2 + 2b — `expiresAt` on M2M clients, the in-place `PATCH` runbook, an M2M record as a consent-page credential, and the self-serve trial mint)_

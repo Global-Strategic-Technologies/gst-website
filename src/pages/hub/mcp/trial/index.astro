@@ -1,0 +1,8 @@
+---
+// English route for /hub/mcp/trial/. Body: src/page-templates/HubMcpTrialPage.astro,
+// shared with every locale via src/pages/[locale]/[...route].astro (BL-155 Slice 3).
+import HubMcpTrialPage from '../../../../page-templates/HubMcpTrialPage.astro';
+import { DEFAULT_LOCALE } from '../../../../i18n/locales';
+---
+
+<HubMcpTrialPage locale={DEFAULT_LOCALE} />

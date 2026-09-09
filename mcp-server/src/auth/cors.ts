@@ -22,9 +22,10 @@
  * forbids it, and a wildcard would let any website read MCP responses on
  * a user's behalf.
  *
- * Audit date: 2026-08-03 (BL-106 — added the `Mcp-Method` / `Mcp-Name` request
- * headers required by protocol revision 2026-07-28; origin list unchanged since
- * 2026-05-17, BL-032.8 Phase 3). Origins:
+ * Audit date: 2026-09-07 (BL-155 Slice 2 — added the STAGING-ONLY extra-origin
+ * list for the trial signup endpoint, see `corsHeadersForEnv`; production origin
+ * list unchanged since 2026-05-17, BL-032.8 Phase 3; request headers since
+ * 2026-08-03, BL-106). Origins:
  *   - https://claude.ai          — Claude.ai web UI with remote MCP connector
  *   - https://chatgpt.com        — ChatGPT web with MCP Connectors
  *   - https://cursor.sh          — Cursor (when used in browser mode; native CLI has no Origin)
@@ -40,6 +41,8 @@
  * CORS contract lives there. (This pointer previously named `AUTH.md`,
  * which has no CORS section; corrected in BL-106.)
  */
+
+import { safeLog } from './safe-logger';
 
 const ALLOWED_ORIGINS: ReadonlySet<string> = new Set([
   'https://claude.ai',
@@ -85,6 +88,83 @@ export function corsHeadersFor(origin: string | null): Record<string, string> {
   };
 }
 
+/**
+ * BL-155 Slice 2 — staging-only extra origins for the trial signup form,
+ * which is served from Vercel previews and `localhost` while Slice 3 is
+ * built. Read from `TRIAL_EXTRA_ORIGINS` (comma-separated) and honoured
+ * ONLY when `ENV_NAME === 'staging'`; production's set above is untouched.
+ *
+ * Entries are exact origins, or ONE-LABEL suffix patterns written as
+ * `*-<team>.vercel.app` (Vercel preview hosts are a single label, so the
+ * suffix must include the team slug). Residual: the match is a plain suffix,
+ * so a foreign team whose slug happens to END in `-<team>` (`x-<team>`) also
+ * passes — accepted because the list is staging-only and the endpoint is
+ * reachable without a browser anyway. A bare `*.vercel.app` — or any pattern
+ * whose suffix begins with `.` — would let every Vercel-hosted site drive the
+ * staging mint and read the credential, so it is rejected at parse and
+ * logged, never honoured. `*` alone is a wildcard and forbidden above.
+ */
+export function parseExtraOrigins(env: EnvLike): { exact: Set<string>; suffixes: string[] } {
+  const exact = new Set<string>();
+  const suffixes: string[] = [];
+  if (env.ENV_NAME !== 'staging' || typeof env.TRIAL_EXTRA_ORIGINS !== 'string') {
+    return { exact, suffixes };
+  }
+  for (const raw of env.TRIAL_EXTRA_ORIGINS.split(',')) {
+    const entry = raw.trim();
+    if (!entry) continue;
+    if (entry.includes('*')) {
+      // Must be `https://*-something.tld`-shaped: https, the `*` followed by
+      // `-` (same label), never `*.` (would match any subdomain) or a bare `*`.
+      if (!/^https:\/\/\*-[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(entry)) {
+        rejectedExtraOrigin(entry);
+        continue;
+      }
+      suffixes.push(entry.slice('https://*'.length).toLowerCase());
+    } else if (/^https?:\/\/[a-z0-9.-]+(:\d+)?$/i.test(entry)) {
+      exact.add(entry);
+    } else {
+      rejectedExtraOrigin(entry);
+    }
+  }
+  return { exact, suffixes };
+}
+
+function rejectedExtraOrigin(entry: string): void {
+  // Operator misconfiguration, surfaced in `wrangler tail`; the entry is
+  // config, not user input, so echoing (a bounded prefix of) it is safe.
+  safeLog({ event: 'cors.extra-origin-rejected', reason: entry.slice(0, 80), success: false });
+}
+
+/** The subset of `Env` this module reads; structural so tests need no full Env. */
+export interface EnvLike {
+  ENV_NAME?: string;
+  TRIAL_EXTRA_ORIGINS?: string;
+}
+
+function extraOriginAllowed(origin: string, env: EnvLike): boolean {
+  const { exact, suffixes } = parseExtraOrigins(env);
+  if (exact.has(origin)) return true;
+  if (!origin.startsWith('https://')) return false;
+  const host = origin.slice('https://'.length);
+  return suffixes.some((s) => host.endsWith(s) && host.length > s.length && !host.includes('/'));
+}
+
+/**
+ * Env-aware CORS headers: `corsHeadersFor` plus the staging extra-origin list.
+ * Used by the preflight branch and the trial signup branch ONLY — every
+ * authenticated path keeps `corsHeadersFor` / `withCors` unchanged.
+ */
+export function corsHeadersForEnv(origin: string | null, env: EnvLike): Record<string, string> {
+  if (!origin) return {};
+  if (ALLOWED_ORIGINS.has(origin)) return corsHeadersFor(origin);
+  if (extraOriginAllowed(origin, env)) {
+    // Same header set as an allowlisted origin, echoing this one.
+    return { ...corsHeadersFor([...ALLOWED_ORIGINS][0]!), 'Access-Control-Allow-Origin': origin };
+  }
+  return { Vary: 'Origin' };
+}
+
 /** True if this is a CORS preflight request. */
 export function isPreflight(request: Request): boolean {
   return (
@@ -93,12 +173,17 @@ export function isPreflight(request: Request): boolean {
 }
 
 /** Build the 204 response for a CORS preflight. */
-export function preflightResponse(request: Request): Response {
+export function preflightResponse(request: Request, env: EnvLike = {}): Response {
   const origin = request.headers.get('Origin');
   return new Response(null, {
     status: 204,
-    headers: corsHeadersFor(origin),
+    headers: corsHeadersForEnv(origin, env),
   });
+}
+
+/** `withCors` for the trial signup branch — honours the staging extra origins. */
+export function withTrialCors(response: Response, origin: string | null, env: EnvLike): Response {
+  return applyHeaders(response, corsHeadersForEnv(origin, env));
 }
 
 /**
@@ -108,7 +193,10 @@ export function preflightResponse(request: Request): Response {
  * `response.headers` in place.
  */
 export function withCors(response: Response, origin: string | null): Response {
-  const corsHeaders = corsHeadersFor(origin);
+  return applyHeaders(response, corsHeadersFor(origin));
+}
+
+function applyHeaders(response: Response, corsHeaders: Record<string, string>): Response {
   if (Object.keys(corsHeaders).length === 0) return response;
 
   const newHeaders = new Headers(response.headers);

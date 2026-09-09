@@ -58,14 +58,19 @@ export const SECURITY_HEADERS: Record<string, string> = {
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
   'Content-Security-Policy': [
     "default-src 'none'",
-    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com https://cdn.vercel-insights.com",
-    "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://www.google.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://vitals.vercel-insights.com",
+    // challenges.cloudflare.com: Cloudflare Turnstile on /hub/mcp/trial/ (BL-155) —
+    // the api.js script and the hidden iframe an INVISIBLE widget still uses.
+    // mcp[-staging].globalstrategic.tech: the trial mint POST. Staging is
+    // listed in the one production CSP deliberately: previews mint against
+    // staging, and the widening admits only GST's own host.
+    "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com https://cdn.vercel-insights.com https://challenges.cloudflare.com",
+    "connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://analytics.google.com https://www.google.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://vitals.vercel-insights.com https://mcp.globalstrategic.tech https://mcp-staging.globalstrategic.tech",
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' https: data:",
     "media-src 'self'",
     "font-src 'self'",
-    "frame-src 'self'",
+    "frame-src 'self' https://challenges.cloudflare.com",
     "frame-ancestors 'none'",
     "manifest-src 'self'",
     "form-action 'self'",

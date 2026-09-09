@@ -17,8 +17,16 @@
  */
 
 interface JsonRpcRequest {
+  readonly id?: unknown;
   readonly method?: string;
   readonly params?: { readonly name?: unknown };
+}
+
+/** A parsed `tools/call`: the tool name plus the JSON-RPC request id. */
+export interface ToolCall {
+  readonly name: string;
+  /** Echoed back on a boundary-emitted JSON-RPC error; `null` when absent. */
+  readonly id: string | number | null;
 }
 
 /**
@@ -43,6 +51,16 @@ interface JsonRpcRequest {
  * bypassable one and save a sub-millisecond clone. Left as-is deliberately.
  */
 export async function extractToolName(request: Request): Promise<string | null> {
+  return (await extractToolCall(request))?.name ?? null;
+}
+
+/**
+ * BL-155 Slice 2b — the same parse, keeping the request `id` as well, so a
+ * boundary refusal (`pipeline/tier-gate.ts`) can be framed as a JSON-RPC
+ * error that the client correlates to its call. `extractToolName` delegates
+ * here; its contract is unchanged.
+ */
+export async function extractToolCall(request: Request): Promise<ToolCall | null> {
   let bodyText: string;
   try {
     bodyText = await request.clone().text();
@@ -60,7 +78,9 @@ export async function extractToolName(request: Request): Promise<string | null> 
 
   if (parsed.method !== 'tools/call') return null;
   const name = parsed.params?.name;
-  return typeof name === 'string' ? name : null;
+  if (typeof name !== 'string') return null;
+  const id = parsed.id;
+  return { name, id: typeof id === 'string' || typeof id === 'number' ? id : null };
 }
 
 /**

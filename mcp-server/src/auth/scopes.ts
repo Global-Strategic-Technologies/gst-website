@@ -55,6 +55,33 @@ export const DEFAULT_SCOPES: readonly string[] = Object.freeze([
 ]);
 
 /**
+ * BL-155 — the scope set a self-serve trial record is minted with: every
+ * catalog scope EXCEPT the radar Resource. The radar TOOLS cannot be excluded
+ * here — `tool:*` covers them by prefix — so those are refused by the
+ * tier-scoped gate in `pipeline/tier-gate.ts`; this constant is what keeps
+ * the radar Resource (`gst://radar/*`, `/radar/snapshot`) out. Prompts stay
+ * in: a connector user's product experience is the `gst_*` prompts as much
+ * as the tools. Pinned by a test that no scope here matches `radar`.
+ */
+export const TRIAL_SCOPES: readonly string[] = Object.freeze(
+  DEFAULT_SCOPES.filter((s) => s !== SCOPES.RESOURCE_RADAR_READ)
+);
+
+/**
+ * Scope strings advertised in AS metadata + PRM (catalog + the radar
+ * narrowing wildcard), and the ceiling `PATCH /admin/oauth/m2m-clients/:id`
+ * validates `allowedScopes` against. Lives here rather than in
+ * `oauth/provider.ts` (which re-exports it) so admin code can import it
+ * without pulling the provider's `cloudflare:workers` graph into the node
+ * vitest pool. `scripts/provision-client.mjs` carries a mirror; the parity
+ * test pins this declaration as text.
+ */
+export const SCOPES_SUPPORTED: readonly string[] = Object.freeze([
+  ...DEFAULT_SCOPES,
+  'tool:radar:*',
+]);
+
+/**
  * BL-033 Slice 2 — human-readable scope descriptions for the OAuth
  * consent page. Keys are the catalog strings above plus the radar
  * tool wildcard (`tool:radar:*` is a *narrowing* string used in

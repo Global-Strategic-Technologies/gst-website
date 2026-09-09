@@ -48,6 +48,7 @@ export function emitWrongIrlDetected(
     event_type: 'wrong_irl_detected',
     name: PROMPT_NAME,
     keyOwner: ctx.keyOwner,
+    client_ref: ctx.clientRef,
     outcome: verdict,
   });
   if (event !== null) {
@@ -69,6 +70,7 @@ export function emitGateElided(ctx: MetricsContext, elidedTool: string): void {
     event_type: 'gate_elided',
     name: elidedTool,
     keyOwner: ctx.keyOwner,
+    client_ref: ctx.clientRef,
     outcome: 'elided',
   });
   if (event !== null) {
