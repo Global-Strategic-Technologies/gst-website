@@ -792,6 +792,14 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
       max-width: none;
     }
 
+    /* `margin-top: auto` above is what levels the two CTAs across a two-column
+       row. At one column there is no free space for it to absorb, so it
+       resolves to 0 and the badge sits flush against the last bullet. Restate
+       it as a real gap — the levelling it exists for cannot apply here. */
+    .brutal-gateway-grid .brutal-gateway-card__badge {
+      margin-top: var(--spacing-xl);
+    }
+
     .state-region {
       min-height: 0;
     }
