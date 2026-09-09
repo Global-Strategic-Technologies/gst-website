@@ -2093,6 +2093,60 @@ Consequences:
 - [ ] Whatever is wired: extend `Verify-AeEmission.ps1`, the AUTH.md / RATE_LIMITS.md query cookbooks, and **add a panel + remove the name from `NON_EMITTING_TYPES`** in `tests/unit/observability/grafana-dashboard.test.ts` and the dashboard's text panel
 - [ ] Whatever is deleted: remove it from `EVENT_TYPES`, `OUTCOME_VALUES`, the `schema.test.ts` snapshots, and the `blob1` lists in `ARCHITECTURE.md` / `DEPLOY.md`
 
+### BL-158: the Grafana dashboard renders, but two of its SQL assumptions are wrong
+
+**Source**: found 2026-09-08 the hour the dashboard first saw real data, when BL-155's first production mint made the trial panels non-empty | **Effort**: Small-to-Medium — five panel queries, a guard-test rule, and an ADR correction; the `uniq` half may be larger depending on one observation | **Status**: Open
+
+**As an** operator reading this dashboard, **I want** a panel titled "by outcome" to actually split by outcome **so that** I am not reading one merged line as though it were a breakdown, and **so that** a panel which cannot work fails loudly instead of looking quiet.
+
+Both defects shipped in `deb4034b` / `68b83d0f` and neither was catchable by the guard test, because both are **semantic**: the SQL is syntactically valid, obeys the two dialect rules the guard pins, and renders without error. This is the exact class of failure [`GRAFANA.md`](../../../mcp-server/src/docs/operations/GRAFANA.md) warned about when it recorded the SQL as _guard-verified, not executed_ — and executing it is what found them, within minutes.
+
+#### Defect 1 — the multi-series panels silently merge (confirmed)
+
+Five `timeseries` panels are written as:
+
+```sql
+SELECT $timeSeries AS t, blob4 AS outcome, sum(_sample_interval) AS n ... GROUP BY blob4, t
+```
+
+Altinity's documentation is explicit that this yields **multiple rows per timestamp, not multiple series**. Observed in production: _Trial signups over time, by outcome_ rendered a single legend entry `n` while the neighbouring table showed three distinct outcomes in the same window. The panel is not empty and not erroring — it is **wrong in a way that reads as right**, which is worse.
+
+Affected: _Trial signups over time_ (`blob4`), _Invocations over time, by primitive_ (`blob1`), _Invocations over time, by keyOwner_ (`index1`), _Refusals over time, by outcome_ (`blob4`), _Zone-1 calls over time, by category_ (`blob2`). **Not** affected: _Trial paywall hits over time_, which splits by nothing.
+
+**The documented fix does not apply here.** Altinity's `$columns(key, value)` macro exists for exactly this and expands to `groupArray(...)` over a subquery — and `groupArray` is **not** in Cloudflare AE's supported aggregate list. AE does support `sumIf`, so the available shape is one column per series:
+
+```sql
+SELECT $timeSeries AS t,
+       sumIf(_sample_interval, blob4 = 'minted')   AS minted,
+       sumIf(_sample_interval, blob4 = 'reissued') AS reissued
+FROM $dataset WHERE blob1 = 'trial_signup' AND $timeFilter GROUP BY t ORDER BY t
+```
+
+That stays a flat SELECT and keeps sample-weighting. It requires the split dimension to be **enumerable**, which is true for four of the five — outcomes and event types are closed sets in `metrics/_schema.ts`, and Inoreader categories are pinned in `NAME_VALUES`.
+
+**The open design question is the fifth**: _Invocations over time, by keyOwner_ splits on `index1`, a roster that grows without a schema change, so no column list can be written. Options to weigh — convert it to a table (top keyOwners in window, which is arguably the more useful instrument anyway); keep it as a single total line and retitle it honestly; or generate the column list at import time and accept that it goes stale when a key is added.
+
+- [ ] Rewrite the four enumerable panels using `sumIf`, with the column list **derived from `_schema.ts`** so a new outcome cannot silently go unplotted
+- [ ] Decide and implement the `keyOwner` panel (the question above)
+- [ ] **Guard rule**: a `timeseries` panel must not `GROUP BY` a blob/index column — that is precisely the merge bug, and it is mechanically detectable. This is the guard that would have caught it
+- [ ] Re-verify each panel against production after import, since only execution surfaces this class
+
+#### Defect 2 — `uniq()` may not exist in AE at all (needs one observation)
+
+The _Distinct active trials_ panel uses `uniq(blob8)`. It was changed **from** `count(DISTINCT blob8)` **to** `uniq()` during BL-155 on the stated basis that AE supported it — a claim re-checked 2026-09-08 against the aggregate-function reference, where **the token `uniq` does not appear**, while `count(DISTINCT column_name)` is documented. The original form was likely correct and the change was likely a regression.
+
+**Resolve empirically before touching anything**: look at that panel in production. A query error means `uniq` is rejected and the panel has never worked. A number or an empty chart means AE accepts it and only the docs are incomplete.
+
+If it is rejected, the correction reaches further than the panel: [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md) names `uniq` in its decision text, `AUTH.md`'s cookbook uses it, `GRAFANA.md` explains its sampling caveat, and the guard test asserts a `uniq` panel exists and carries that caveat. Note the **underlying limitation survives the rename** — a distinct count cannot be sample-corrected whatever it is spelled — so ADR-0031's reasoning stands even if its function name does not.
+
+- [ ] Observe the panel; record the verdict here before editing
+- [ ] If rejected: `count(DISTINCT blob8)` across the panel, `AUTH.md`, ADR-0031 (as an amendment, not a rewrite — the decision was sound, the function name was not), `GRAFANA.md`, and the guard's `uniq` assertion
+- [ ] Either way, add a guard binding panel SQL to a list of **AE-supported aggregates**, so an unsupported function is a red test rather than a red panel
+
+#### The lesson worth keeping
+
+The guard test pins _dialect rules_ and _schema bindings_, and it did both jobs. Neither defect is in that class. A query can be valid, schema-bound, sample-weighted, and still answer a different question than its title claims. **Execution against real data is not interchangeable with static verification**, and the window between shipping the dashboard and the first real row was the whole exposure. Cheapest mitigation is the one already written into `GRAFANA.md`: run each panel's SQL through the probe before trusting it.
+
 ---
 
 ## Exploration
