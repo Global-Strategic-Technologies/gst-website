@@ -51,7 +51,7 @@
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
     "@astrojs/vercel": "^11.0.10",
-    "@sentry/astro": "^10.72.0",
+    "@sentry/astro": "^10.73.0",
     "@vercel/speed-insights": "^2.0.0",
     "astro": "^7.2.9",
     "chart.js": "^4.5.1",
