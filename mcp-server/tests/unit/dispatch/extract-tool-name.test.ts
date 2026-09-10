@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   RADAR_TOOLS,
+  extractToolCall,
   extractToolName,
   toolClassFor,
 } from '../../../src/dispatch/extract-tool-name';
@@ -75,6 +76,39 @@ describe('extractToolName', () => {
     expect(extracted).toBe('search_radar');
     // The original request body must still be readable by the MCP handler.
     expect(await req.text()).toBe(body);
+  });
+});
+
+describe('extractToolCall (BL-155 — name + JSON-RPC id)', () => {
+  const call = (id: unknown, extra: Record<string, unknown> = {}) =>
+    post(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        ...(id === undefined ? {} : { id }),
+        method: 'tools/call',
+        params: { name: 'search_radar' },
+        ...extra,
+      })
+    );
+
+  it('keeps a numeric or string id', async () => {
+    expect(await extractToolCall(call(42))).toEqual({ name: 'search_radar', id: 42 });
+    expect(await extractToolCall(call('abc'))).toEqual({ name: 'search_radar', id: 'abc' });
+  });
+
+  it('normalises a missing or non-scalar id to null', async () => {
+    expect(await extractToolCall(call(undefined))).toEqual({ name: 'search_radar', id: null });
+    expect(await extractToolCall(call({ nested: true }))).toEqual({
+      name: 'search_radar',
+      id: null,
+    });
+  });
+
+  it('returns null for anything that is not a tools/call', async () => {
+    expect(
+      await extractToolCall(post(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' })))
+    ).toBeNull();
+    expect(await extractToolCall(post('nope{'))).toBeNull();
   });
 });
 

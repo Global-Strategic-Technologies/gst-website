@@ -16,8 +16,8 @@
                             to see the JSON-RPC envelope shape.
 
         Invoke-McpTool      convenience wrapper around tools/call. Issues the
-                            call and returns result.structuredContent — the
-                            tool's payload — directly. Use for T.B.* and any
+                            call and returns result.structuredContent - the
+                            tool's payload - directly. Use for T.B.* and any
                             test that calls a named tool.
 
     Env vars MCP_URL and MCP_KEY are sourced from your shell. MCP_URL defaults
@@ -31,13 +31,13 @@
       - src/docs/development/_archive/BL-032_TESTING_FINDINGS.md  (per-test stubs)
 
     The body of Invoke-McpRequest is identical to the playbook setup snippet
-    in DEPLOY.md B.3 — checked in here so soak terminals don't need to paste
+    in DEPLOY.md B.3 - checked in here so soak terminals don't need to paste
     the function definition every time.
 
 .EXAMPLE
     PS> . .\scripts\Invoke-McpRequest.ps1
     PS> Invoke-McpTool -Name "list_portfolio_facets"
-    # returns the parsed payload — { themes, engagementCategories, growthStages, years }
+    # returns the parsed payload - { themes, engagementCategories, growthStages, years }
 
 .EXAMPLE
     PS> $matches = (Invoke-McpTool -Name "search_portfolio" -Arguments @{ search = "kubernetes" }).matches
@@ -103,7 +103,7 @@ function Invoke-McpRequest {
 
     # MCP Streamable-HTTP returns SSE format ("event: message\ndata: {...}").
     # A 2xx response without a data line is a protocol-unexpected state, not
-    # a normal failure mode — fail loudly so the operator notices.
+    # a normal failure mode - fail loudly so the operator notices.
     $dataLine = $resp.Content -split "`n" | Where-Object { $_ -like 'data:*' } | Select-Object -First 1
     if (-not $dataLine) {
         $bodyExcerpt = $resp.Content.Substring(0, [Math]::Min(500, $resp.Content.Length))
@@ -120,7 +120,7 @@ function Invoke-McpTool {
 
     .DESCRIPTION
         Wraps Invoke-McpRequest -Method "tools/call" and returns the tool's payload
-        from result.structuredContent — the canonical machine channel (BL-090).
+        from result.structuredContent - the canonical machine channel (BL-090).
 
         Before BL-090 this parsed result.content[0].text as JSON, because every tool
         sent its payload twice: pretty-printed into the text block AND as the
@@ -130,12 +130,12 @@ function Invoke-McpTool {
         Since BL-108 (0.45.0) the payload is again sent twice, deliberately: success
         results carry it compactly in content[1].text for clients that read the model
         channel (Claude Desktop does; the caption-only shape left it with bare counts).
-        This helper still reads structuredContent — it is the canonical channel and is
+        This helper still reads structuredContent - it is the canonical channel and is
         present on every path including failures, whereas content[1] is success-only
         and, for generate_information_request_list_xlsx, has its base64 field replaced
         by a marker. Do not switch this to content[1].
 
-        Failures now carry structuredContent too — { error, message, ... } — so a
+        Failures now carry structuredContent too - { error, message, ... } - so a
         caller can branch on $result.error instead of substring-matching prose.
 
         The content[0].text fallback remains for robustness against a tool that
@@ -152,7 +152,7 @@ function Invoke-McpTool {
     # Preferred path: the structured channel. Present on BOTH success and failure.
     if ($null -ne $resp.result.structuredContent) {
         # A tool-level failure is a 2xx MCP envelope with isError, so it would
-        # otherwise look like success to a smoke step. Say so out loud — the
+        # otherwise look like success to a smoke step. Say so out loud - the
         # payload still returns, carrying .error and .message.
         if ($resp.result.isError) {
             Write-Warning "MCP tool '$Name' returned isError. error='$($resp.result.structuredContent.error)' message='$($resp.result.structuredContent.message)'"
@@ -161,7 +161,7 @@ function Invoke-McpTool {
     }
 
     if (-not $resp.result.content -or -not $resp.result.content[0].text) {
-        Write-Warning 'MCP response carries neither structuredContent nor a text block — returning raw envelope for inspection.'
+        Write-Warning 'MCP response carries neither structuredContent nor a text block - returning raw envelope for inspection.'
         return $resp
     }
 

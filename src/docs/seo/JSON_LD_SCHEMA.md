@@ -657,7 +657,7 @@ The hub tools are `WebApplication` because they run in the browser. The MCP serv
 
 ### What is deliberately absent
 
-No `offers` block and no `isAccessibleForFree`. Access is operator-provisioned and tiered, and the terms are not published, so neither claim would be true to state. The unit test asserts the absence.
+No `offers` block and no `isAccessibleForFree`. Access is tiered and the commercial terms are not published, so an `offers` block would have nothing true to say; and the free 3-day trial (BL-155) is bounded and one-per-network, not free access to the application, so `isAccessibleForFree` would overstate it. The unit test asserts the absence.
 
 ### Schema Template (SoftwareApplication)
 

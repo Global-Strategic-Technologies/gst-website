@@ -86,8 +86,8 @@ describe('mcpServerSchema — derived from the registry', () => {
   });
 
   it('makes no pricing or free-access claim', () => {
-    // Access is operator-provisioned and tiered, and the terms are not
-    // published. See the module header.
+    // Access is tiered with unpublished terms, and the 3-day trial is bounded
+    // rather than free access. See the module header.
     expect(schema).not.toHaveProperty('offers');
     expect(schema).not.toHaveProperty('isAccessibleForFree');
   });

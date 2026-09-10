@@ -1,15 +1,15 @@
 <#
 .SYNOPSIS
-    BL-047 — empirical test of Inoreader's refresh-token rotation policy.
+    BL-047 - empirical test of Inoreader's refresh-token rotation policy.
 
 .DESCRIPTION
     Answers two questions Inoreader's docs leave undefined:
 
-      1. **Rotation regime** — does every successful refresh return a NEW
+      1. **Rotation regime** - does every successful refresh return a NEW
          refresh_token, or does the SAME one come back? (Sparse vs. dense
          rotation.)
 
-      2. **Grace window** — after Inoreader issues a NEW refresh_token,
+      2. **Grace window** - after Inoreader issues a NEW refresh_token,
          does the OLD one still work for some seconds? Standard OAuth 2.0
          + BCP 240 says NO (reuse detection invalidates the chain);
          some real-world providers (Google, GitHub) honor a short grace.
@@ -25,7 +25,7 @@
 
 .PARAMETER Env
     Which environment's secrets to read. Defaults to `production` because
-    staging shares the same Inoreader OAuth app — running on staging
+    staging shares the same Inoreader OAuth app - running on staging
     affects the same refresh-token chain. The test is destructive in the
     sense that it WILL rotate tokens if Inoreader is in dense-rotation
     mode; the script writes back to Upstash atomically.
@@ -39,11 +39,11 @@
 
 .NOTES
     Pre-conditions:
-      - Run outside ±2 min of the production cron firing (`0 */6 * * *`
+      - Run outside +/-2 min of the production cron firing (`0 */6 * * *`
         UTC). Cron concurrent with this test would compete for the
         single-flight Upstash refresh lock and confuse results.
       - The current production refresh_token MUST be live (not already
-        dead) — otherwise step 1 fails with invalid_grant and the test
+        dead) - otherwise step 1 fails with invalid_grant and the test
         is inconclusive.
       - Run from outside the Worker (this PowerShell session). The
         Worker's single-flight refresh lock does not protect against
@@ -59,12 +59,12 @@
       - rotationsObservedInTest: integer (the original + any retries that rotated)
 
     Decision matrix:
-      - retryWithOldTokenResult=='invalid_grant' → strict reuse-detection,
+      - retryWithOldTokenResult=='invalid_grant' -> strict reuse-detection,
         in-memory grace hedge would itself trip reuse. T2 (in-browser
         recovery) is the only path. DROP the hedge proposal.
-      - retryWithOldTokenResult=='success' → grace window exists,
+      - retryWithOldTokenResult=='success' -> grace window exists,
         in-memory hedge with TTL=GraceWindowSeconds is safe to ship.
-      - retryWithOldTokenResult=='other' → degenerate; re-test or pull
+      - retryWithOldTokenResult=='other' -> degenerate; re-test or pull
         Workers Logs for the error body.
 #>
 [CmdletBinding()]
@@ -92,7 +92,7 @@ function Read-RefreshTokenFromUpstash {
     $headers = @{ Authorization = "Bearer $env:UPSTASH_MCP_REST_TOKEN" }
     $resp = Invoke-RestMethod -Uri $url -Method Get -Headers $headers
     if (-not $resp.result) {
-        throw "No refresh_token in Upstash at key '$KEY_REFRESH' — cannot proceed. Either bootstrap via scripts/inoreader-auth.mjs first, or fall back to INOREADER_REFRESH_TOKEN env var (not supported by this script)."
+        throw "No refresh_token in Upstash at key '$KEY_REFRESH' - cannot proceed. Either bootstrap via scripts/inoreader-auth.mjs first, or fall back to INOREADER_REFRESH_TOKEN env var (not supported by this script)."
     }
     return $resp.result
 }
@@ -150,7 +150,7 @@ function Invoke-InoreaderRefresh {
 }
 
 Write-Host ""
-Write-Host "BL-047 — Inoreader refresh-token grace-window probe" -ForegroundColor Cyan
+Write-Host "BL-047 - Inoreader refresh-token grace-window probe" -ForegroundColor Cyan
 Write-Host "Env: $Env  |  GraceWindow: ${GraceWindowSeconds}s" -ForegroundColor DarkGray
 Write-Host ""
 
@@ -171,7 +171,7 @@ if ($first.outcome -ne 'success') {
         notes                     = "First refresh failed; cannot probe grace window. Body: $($first.body)"
     }
     Write-Host ""
-    Write-Host "INCONCLUSIVE — first refresh failed." -ForegroundColor Red
+    Write-Host "INCONCLUSIVE - first refresh failed." -ForegroundColor Red
     $summary | ConvertTo-Json
     exit 1
 }
@@ -180,12 +180,12 @@ $rotationObserved = $first.refresh_token -ne $originalToken
 $rotationsInTest = 0
 if ($rotationObserved) {
     $rotationsInTest++
-    Write-Host "         ROTATION DETECTED — new refresh_token issued by Inoreader." -ForegroundColor Magenta
+    Write-Host "         ROTATION DETECTED - new refresh_token issued by Inoreader." -ForegroundColor Magenta
     Write-Host "[step 2a] Writing new refresh_token to Upstash so Worker sees latest..." -ForegroundColor Yellow
     Write-RefreshTokenToUpstash -Token $first.refresh_token
     Write-Host "          Updated." -ForegroundColor Green
 } else {
-    Write-Host "         No rotation — Inoreader returned same refresh_token (sparse rotation regime, or per-call no-op)." -ForegroundColor DarkGray
+    Write-Host "         No rotation - Inoreader returned same refresh_token (sparse rotation regime, or per-call no-op)." -ForegroundColor DarkGray
 }
 
 Write-Host "[step 3] Waiting ${GraceWindowSeconds}s before grace-window probe..." -ForegroundColor Yellow
@@ -197,7 +197,7 @@ Write-Host "         outcome=$($retry.outcome) latency=$($retry.latencyMs)ms" -F
 
 if ($retry.outcome -eq 'success' -and $retry.refresh_token -ne $originalToken -and $retry.refresh_token -ne $first.refresh_token) {
     $rotationsInTest++
-    Write-Host "[step 4a] Another rotation — writing newest token to Upstash..." -ForegroundColor Yellow
+    Write-Host "[step 4a] Another rotation - writing newest token to Upstash..." -ForegroundColor Yellow
     Write-RefreshTokenToUpstash -Token $retry.refresh_token
     Write-Host "          Updated." -ForegroundColor Green
 }
@@ -212,7 +212,7 @@ $summary = @{
     decision                     = switch ($retry.outcome) {
         'success'       { "GRACE WINDOW EXISTS at ${GraceWindowSeconds}s. In-memory hedge is safe to ship." }
         'invalid_grant' { "STRICT REUSE-DETECTION. The bounded in-memory hedge would itself trigger reuse. DROP the hedge proposal; T2 is the only path." }
-        default         { "DEGENERATE response on retry — see retry body for diagnostics: $($retry.body)" }
+        default         { "DEGENERATE response on retry - see retry body for diagnostics: $($retry.body)" }
     }
 }
 

@@ -50,7 +50,8 @@
  */
 
 import { authenticate, authFailureResponse, shouldCaptureAuthFailure } from './auth/bearer';
-import { isPreflight, preflightResponse, withCors } from './auth/cors';
+import { isPreflight, preflightResponse, withCors, withTrialCors } from './auth/cors';
+import { handleTrialSignup } from './trial/signup';
 import { resolveHostRoute } from './dispatch/host-route';
 import { safeLog } from './auth/safe-logger';
 import { captureMessage, sentryOptions, withSentry } from './observability/sentry';
@@ -130,6 +131,16 @@ function isOAuthSurfacePath(pathname: string): boolean {
   if (pathname.startsWith('/admin/oauth/')) return true;
   if (pathname === '/oauth/introspect') return true;
   return false;
+}
+
+/**
+ * BL-155 Slice 2 — the self-serve trial surface. Public by design (a
+ * stranger has no bearer), so it dispatches BEFORE `authenticate()` and
+ * before the routed-path 404 gate, carrying its own gate (Turnstile + an
+ * IP-keyed limiter + one-per-identity lease) inside `trial/signup.ts`.
+ */
+function isTrialSurfacePath(pathname: string): boolean {
+  return pathname === '/trial/signup';
 }
 
 // Radar-refresh cron expression — mirrored in wrangler.toml
@@ -371,7 +382,7 @@ export const handler: ExportedHandler<Env> = {
 
     // 1. CORS preflight — never authenticated; never logged (high-volume noise).
     if (isPreflight(request)) {
-      return preflightResponse(request);
+      return preflightResponse(request, env);
     }
 
     // 1.5. Host aliases — MUST stay ahead of every path-based branch below.
@@ -438,7 +449,7 @@ export const handler: ExportedHandler<Env> = {
     //      (claude.ai) must POST /token cross-origin.
     if (isOAuthSurfacePath(url.pathname)) {
       // client_credentials intercept — the library's grant model has no
-      // such grant (verified v0.8.2); oauth/m2m-token.ts issues the
+      // such grant (verified v0.8.2, still true at 0.10.3); oauth/m2m-token.ts issues the
       // self-contained `mcp_m2m_*` JWTs. Body is read from a clone so
       // other grants reach the provider with the stream intact.
       if (url.pathname === '/token' && request.method === 'POST') {
@@ -470,6 +481,23 @@ export const handler: ExportedHandler<Env> = {
         return new Response('Method Not Allowed', { status: 405, headers: { Allow: 'GET' } });
       }
       return handleReauthCallback(request, env);
+    }
+
+    // 2.7. BL-155 Slice 2 — self-serve trial mint. Public POST; its own
+    //      gate lives in the handler. Unlike the reauth pair above (same-
+    //      origin admin pages), this is called from the website's browser
+    //      context, so the response MUST be CORS-wrapped — and with the
+    //      env-aware wrapper, since the form is exercised from previews and
+    //      localhost against staging before it ships to production.
+    if (isTrialSurfacePath(url.pathname)) {
+      if (request.method === 'POST') {
+        return withTrialCors(await handleTrialSignup(request, env), origin, env);
+      }
+      return withTrialCors(
+        new Response('Method Not Allowed', { status: 405, headers: { Allow: 'POST' } }),
+        origin,
+        env
+      );
     }
 
     // 3. Known-route allowlist — anything we don't actually serve gets a

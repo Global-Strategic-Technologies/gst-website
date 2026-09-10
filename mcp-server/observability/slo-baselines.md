@@ -117,6 +117,26 @@ Once this doc is filled and signed off, Phase 3 (alerts + status surface; dashbo
 - Alerts evaluated by a scheduled Worker cron querying AE + Upstash directly and routed
   through the existing Sentry envelope infra (fingerprinted issue events → email rules);
   thresholds derived from the signed-off SLO targets above
-- Grafana Infinity datasource pointed at `POST /accounts/{id}/analytics_engine/sql` —
-  **deferred** until a Grafana Cloud account exists (recorded in the design doc as the
-  remaining Phase 3 item)
+- Grafana dashboard against `POST /accounts/{id}/analytics_engine/sql` — **artifact shipped
+  2026-09-08** as [`grafana-dashboard.json`](grafana-dashboard.json); **configured, imported and
+  probed against production on 2026-09-09** — every panel executed, see
+  [`GRAFANA.md`](../src/docs/operations/GRAFANA.md). Note the latency figures it now shows
+  (`search_radar` p50 124ms / p95 479ms / p99 2181ms) are **in-Worker upstream I/O wait over
+  100% synthetic probe traffic**, and are NOT the client-observed tool latency this document
+  defers to the latency probe below — do not read one as the other. The
+  datasource is the **Altinity ClickHouse plugin** (`vertamedia-clickhouse-datasource`), not
+  Infinity as this line previously recorded: Altinity is what Cloudflare documents, and only it
+  supplies the `$timeSeries`/`$timeFilter` macros the time-series panels use
+
+### Baseline still owed: rate-limit refusal volume (BL-157, 2026-09-08)
+
+`rate_limit_decision` and `tier_denial` began emitting on 2026-09-08 and have **no baseline here
+yet**, because until that date nothing had ever recorded a throttle or a tier refusal. That is why
+the slice shipped panels but **no eighth alert rule**: every rule's threshold must cite a baseline
+in this document (enforced by `runbook-freshness.test.ts`), and inventing a "denials per minute"
+figure for a metric with no history would be ratifying a number from nothing.
+
+**Trigger to close this**: once the self-serve trial has run in production long enough to show a
+normal refusal rate, record it below and add the rule plus its runbook. Read the numbers per
+ADR-0032 — refusals only, never `allow`, so a denial _rate_ is denies ÷ (invocations + denies) and
+is a slight overstatement.

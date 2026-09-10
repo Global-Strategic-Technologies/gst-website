@@ -69,7 +69,9 @@ export interface CheckResult {
    * BL-033 Slice 5 — the smallest `remaining / limit` ratio across ALL
    * buckets checked for this request (not just the binding one). Drives the
    * 80%-consumed soft-limit `notifications/message` warning at the tool
-   * wrapper: `minRemainingRatio <= 0.20` means some bucket is ≥80% spent.
+   * wrapper: `minRemainingRatio <= SOFT_LIMIT_RATIO` (`./tiers`) means some
+   * bucket is ≥80% spent. Also drives the `rate_limit_decision` `throttle`
+   * metric, so the two always agree on what "near the limit" means.
    *
    * Optional because callers that construct a `CheckResult` literal
    * directly (test fixtures, and any future direct use) needn't supply it —

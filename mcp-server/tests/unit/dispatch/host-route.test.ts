@@ -123,6 +123,7 @@ describe('resolveHostRoute — call-site ordering in worker.ts', () => {
     ["url.pathname === '/health'", 'the health endpoint'],
     ["url.pathname === '/status'", 'the status page'],
     ['isOAuthSurfacePath(url.pathname)', 'the OAuth surface'],
+    ['isTrialSurfacePath(url.pathname)', 'the trial signup surface (BL-155)'],
   ])('runs before %s (%s)', (marker) => {
     const branch = source.indexOf(marker);
     expect(branch).toBeGreaterThan(-1);

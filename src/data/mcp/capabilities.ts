@@ -1339,10 +1339,10 @@ export const CAPABILITIES: readonly Capability[] = [
       'A person connecting a desktop client is taken through a consent screen and never handles a token by hand.',
       'Every call carries its token; there is no anonymous surface beyond the health check.',
     ],
-    noteTitle: 'Clients are registered, not self-service',
-    note: 'There is no dynamic client registration and no user directory. Credentials are issued through a conversation with GST, which is also how scopes and a tier get set correctly the first time.',
+    noteTitle: 'Clients are registered by GST or issued by the trial',
+    note: 'There is no dynamic client registration and no user directory. A free 3-day trial issues a bounded credential in one click; anything wider is issued through a conversation with GST, which is also how scopes and a tier get set correctly the first time.',
     availability:
-      'Request access to be provisioned. See the request-access path on the MCP Server page.',
+      'Start a free 3-day trial on the MCP trial page, or request access to be provisioned. See the request-access path on the MCP Server page.',
     related: ['Rate limits', 'Status'],
   },
   {

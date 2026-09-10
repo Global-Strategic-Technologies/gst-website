@@ -125,6 +125,14 @@ export interface ServerFactoryOptions {
    * `KEYOWNER_PLACEHOLDER` in AE's `index1` column).
    */
   keyOwner?: string;
+  /**
+   * BL-155 — per-client analytics identity (`AuthSuccess.rateLimitSubject`,
+   * shaped `OAUTH:<clientId>`), forwarded to `MetricsContext.clientRef` and
+   * emitted to `blob8`. Set by the Worker for KV-backed client identities;
+   * omitted for static keys, the OAuth human path, stdio and cron, none of
+   * which have a per-client subject. See ADR-0031.
+   */
+  clientRef?: string;
 
   /**
    * BL-076 — optional `IrlBodyCache` override for tests. When provided,
@@ -405,6 +413,9 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
       : {
           sink: ctx.metricsSink,
           keyOwner: ctx.keyOwner,
+          // Sink branch only, following `keyOwner`: the branch above feeds a
+          // `NoopSink`, so an identity there would be carried and discarded.
+          clientRef: ctx.clientRef,
           counters: new InMemoryToolCallCounters(),
           irlBodyCache,
           irlBodyProvenance,

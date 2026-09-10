@@ -106,6 +106,28 @@ export interface Env {
   OAUTH_KV?: KVNamespace;
   OAUTH_M2M_SIGNING_KEY?: string;
 
+  // BL-155 Slice 2 — self-serve trial mint (`POST /trial/signup`). Every
+  // one of these is a FAIL-CLOSED dependency: the endpoint returns 503 with
+  // nothing minted when any is unbound, so both secrets must exist in an
+  // environment BEFORE its deploy is approved (see SECRETS_INVENTORY.md).
+  //   - TURNSTILE_SECRET_KEY: the widget's secret, used server-side against
+  //     Cloudflare's siteverify. Never in the page; the SITE key is the
+  //     website's (Vercel env), not this Worker's.
+  //   - TRIAL_IP_HMAC_SECRET: keys the per-visitor identity (HMAC-SHA256 of
+  //     the client IP) that enforces one trial per identity per 30 days.
+  //     Rotating it forgets every identity at once — every visitor becomes
+  //     eligible for a fresh trial — so rotate deliberately, not routinely.
+  //   - TURNSTILE_EXPECTED_HOSTNAMES: `[vars]`, comma-separated hostnames a
+  //     siteverify response must name (exact, or `.suffix`). A token minted
+  //     on any other site is refused even when Cloudflare says `success`.
+  //   - TRIAL_EXTRA_ORIGINS: `[vars]`, STAGING ONLY — extra browser origins
+  //     (localhost, the project's preview-host suffix) the trial endpoint's
+  //     CORS accepts. Ignored unless ENV_NAME is `staging`.
+  TURNSTILE_SECRET_KEY?: string;
+  TRIAL_IP_HMAC_SECRET?: string;
+  TURNSTILE_EXPECTED_HOSTNAMES?: string;
+  TRIAL_EXTRA_ORIGINS?: string;
+
   // Sentry — new project for service:mcp-server (Q6).
   SENTRY_DSN?: string;
 

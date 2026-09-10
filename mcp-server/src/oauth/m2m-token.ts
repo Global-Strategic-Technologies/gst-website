@@ -32,7 +32,13 @@
 import type { AuthSuccess } from '../auth/bearer';
 import { hasScope } from '../auth/scopes';
 import { safeLog } from '../auth/safe-logger';
-import { getM2mClient, keyOwnerFor, verifyM2mSecret, type M2mJwk } from './m2m-clients';
+import {
+  getM2mClient,
+  keyOwnerFor,
+  splitClientCredential,
+  verifyM2mSecret,
+  type M2mJwk,
+} from './m2m-clients';
 import type { Env } from '../env';
 
 export const M2M_TOKEN_PREFIX = 'mcp_m2m_';
@@ -288,13 +294,12 @@ export async function handleClientCredentialsToken(request: Request, env: Env): 
   const basic = request.headers.get('Authorization') ?? '';
   if (basic.startsWith('Basic ')) {
     try {
-      // Split on the FIRST colon only — a client secret may itself
-      // contain colons (RFC 6749 §2.3.1); a 2-arg split would truncate it.
-      const decoded = atob(basic.slice('Basic '.length));
-      const sep = decoded.indexOf(':');
-      if (sep === -1) throw new Error('no colon');
-      clientId = decodeURIComponent(decoded.slice(0, sep));
-      secret = decodeURIComponent(decoded.slice(sep + 1));
+      // First-colon split lives in `splitClientCredential` (shared with the
+      // consent page); the percent-decoding is HTTP Basic's own concern.
+      const parts = splitClientCredential(atob(basic.slice('Basic '.length)));
+      if (!parts) throw new Error('no colon');
+      clientId = decodeURIComponent(parts.clientId);
+      secret = decodeURIComponent(parts.secret);
     } catch {
       return tokenError('invalid_client', 'Malformed Basic authorization header', 401);
     }
@@ -349,6 +354,29 @@ export async function handleClientCredentialsToken(request: Request, env: Env): 
       });
       return tokenError('invalid_client', 'Client authentication failed', 401);
     }
+  }
+
+  // --- Client expiry (BL-155 time-boxed trial clients) -----------------
+  // Deliberately placed AFTER both auth branches, not beside the record fetch
+  // above: checking pre-auth would let an unauthenticated caller probe which
+  // client ids exist and when they lapse. An absent `expiresAt` means "never
+  // expires" — every client provisioned before BL-155 has none.
+  //
+  // Note this does NOT revoke tokens already minted. `mcp_m2m_*` tokens are
+  // self-contained JWTs verified without a KV read (ADR-0008 § Consequences),
+  // so a token issued just before `expiresAt` stays valid for up to its
+  // remaining hour. That residual is inherent to the token design, is the same
+  // property revocation-by-deletion already has, and is documented rather than
+  // worked around.
+  if (record.expiresAt && Date.parse(record.expiresAt) <= Date.now()) {
+    safeLog({
+      event: 'oauth.m2m.rejected',
+      keyOwner: keyOwnerFor(record),
+      reason: 'client-expired',
+      success: false,
+      errorCode: 'invalid_client',
+    });
+    return tokenError('invalid_client', 'Client credentials have expired', 401);
   }
 
   // --- RFC 8707 resource validation (when the client sends one) -------

@@ -823,12 +823,16 @@ the second `vercel.json` frame-route rule needs the same directive.
   service-level guarantee. This is client-facing commercial copy — `PILOT_ONBOARDING` § 3's "do not
   promise active audit capture in writing" applies, and **nothing guards `/terms/` or `/privacy/`**
   the way `mcp-marketing-parity` guards `/hub/mcp/`, so it needs deliberate review rather than a test.
-- `src/pages/hub/index.astro:21-24` — the FAQ already carves out the MCP server ("granted per client,
-  with a free pilot tier"); reconcile to name the paid tier. **It renders into FAQPage JSON-LD**, so
-  check `src/docs/seo/JSON_LD_SCHEMA.md`.
-- `src/data/announcements.ts:132` publishes a sash reading "Free pilot tier" deep-linked to
-  `/hub/mcp/#tiers`, republished to claude.ai/design via `.design-sync`. Give it a deliberate look
-  once `#tiers` becomes a pricing surface.
+- ~~`src/pages/hub/index.astro:21-24` — the FAQ carves out the MCP server ("granted per client, with
+  a free pilot tier"); reconcile to name the paid tier.~~ **Resolved 2026-09-08**: `free-pilot` was
+  retired as the public offering in favour of the self-serve trial, and `hub.json` `faq.a2` now reads
+  "starts with a free 3-day trial you issue yourself, and broader tiers are granted per client" in all
+  three locales. Naming the _paid_ tier here is still open and belongs to this initiative's copy pass.
+  **It renders into FAQPage JSON-LD**, so check `src/docs/seo/JSON_LD_SCHEMA.md`.
+- ~~`src/data/announcements.ts` publishes a sash reading "Free pilot tier" deep-linked to
+  `/hub/mcp/#tiers`.~~ **Resolved 2026-09-08**: the field now reads "Free trial" and points at
+  `/hub/mcp/trial/`. It is still republished to claude.ai/design via `.design-sync`, so a pricing
+  rewrite of that field still needs a re-sync.
 - **Directive 11 is blocking**: `grep -r "<old string>" tests/` for every copy string changed. Checked
   in advance — no test currently asserts the `/hub/index.astro` FAQ string or the privacy/terms copy,
   so that check is clean today, but re-run it after the rewrite.

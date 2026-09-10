@@ -1,0 +1,422 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_CLICKHOUSE",
+      "label": "Cloudflare Analytics Engine",
+      "description": "Altinity ClickHouse datasource pointed at the Cloudflare AE SQL API. Setup: mcp-server/src/docs/operations/GRAFANA.md",
+      "type": "datasource",
+      "pluginId": "vertamedia-clickhouse-datasource",
+      "pluginName": "Altinity plugin for ClickHouse"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "vertamedia-clickhouse-datasource",
+      "name": "Altinity plugin for ClickHouse",
+      "version": "3.0.0"
+    },
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" }
+  ],
+  "title": "GST MCP Server",
+  "uid": "gst-mcp-server",
+  "description": "Analytics Engine dashboard for the GST MCP server. Panels cover only event types that actually emit in production — see the 'What this dashboard deliberately does not show' panel. Every count uses sum(_sample_interval), not count(), because AE samples.",
+  "tags": ["gst", "mcp", "analytics-engine"],
+  "timezone": "utc",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-7d", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "dataset",
+        "label": "Dataset",
+        "description": "AE dataset. Production carries the traffic; staging is near-empty by design (no cron, little use).",
+        "type": "custom",
+        "query": "mcp_events,mcp_events_staging",
+        "current": { "text": "mcp_events", "value": "mcp_events" },
+        "options": [
+          { "text": "mcp_events", "value": "mcp_events", "selected": true },
+          { "text": "mcp_events_staging", "value": "mcp_events_staging", "selected": false }
+        ],
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Self-serve trials (BL-155)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Trial signups over time, by outcome",
+      "description": "Every branch of POST /trial/signup emits one event. A rising 'unavailable' line means a secret is unbound or Upstash/Turnstile is failing — the failure mode that is otherwise invisible without a live wrangler tail. Live since 2026-09-08. One sumIf column per outcome, NOT a GROUP BY blob4 (BL-158): the Altinity plugin turns extra COLUMNS into series, while an extra grouped ROW per timestamp merges into one line — this panel shipped merged and read as a single series. The column list is exhaustive over OUTCOME_VALUES.trial_signup and a guard test fails if an outcome is added without a column.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT $timeSeries AS t,\n       sumIf(_sample_interval, blob4 = 'minted')           AS minted,\n       sumIf(_sample_interval, blob4 = 'reissued')         AS reissued,\n       sumIf(_sample_interval, blob4 = 'challenge-failed') AS challenge_failed,\n       sumIf(_sample_interval, blob4 = 'rate-limited')     AS rate_limited,\n       sumIf(_sample_interval, blob4 = 'expired')          AS expired,\n       sumIf(_sample_interval, blob4 = 'in-progress')      AS in_progress,\n       sumIf(_sample_interval, blob4 = 'bad-request')      AS bad_request,\n       sumIf(_sample_interval, blob4 = 'unavailable')      AS unavailable\nFROM $dataset\nWHERE blob1 = 'trial_signup' AND $timeFilter\nGROUP BY t\nORDER BY t"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Signup outcomes in window",
+      "description": "The signup-health view. 'minted' and 'reissued' are successes; everything else is a refusal or a fault. Compare 'unavailable' against the rest to read the failure rate.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob4 AS outcome, blob6 AS status_code, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'trial_signup' AND $timeFilter\nGROUP BY blob4, blob6\nORDER BY n DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Distinct active trials",
+      "description": "count(DISTINCT blob8) over trial tool calls. SAMPLING CAVEAT: a DISTINCT count has no sample correction. Cloudflare corrects the plain row counter count() (via sum(_sample_interval)), plus sum/avg/quantile — but count(DISTINCT x) is a different aggregate and is NOT among them, because a distinct-count over rows sampling dropped cannot be recovered by weighting the survivors. So this is EXACT while the dataset is unsampled and a LOWER BOUND once it is not, dropping the quietest talkers first. It under-reports, never over-reports. For an exact count of live trials use GET /admin/oauth/m2m-clients and count tier === 'trial'. See ADR-0031.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 9 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT count(DISTINCT blob8) AS distinct_trials\nFROM $dataset\nWHERE index1 = 'OAUTH:M2M:TRIAL' AND blob1 = 'tool_invocation' AND $timeFilter"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Per-trial call volume (top talkers)",
+      "description": "The 'is someone farming this' view. Sample-correct: sum(_sample_interval) is the corrected form of count(). blob8 is the per-client dimension (OAUTH:<clientId>) — a blob, never the index, so index1 stays roster-sized (ADR-0031).",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 6, "w": 18, "x": 6, "y": 9 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob8 AS client, sum(_sample_interval) AS calls\nFROM $dataset\nWHERE index1 = 'OAUTH:M2M:TRIAL' AND blob1 = 'tool_invocation' AND $timeFilter\nGROUP BY blob8\nORDER BY calls DESC\nLIMIT 50"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "type": "row",
+      "title": "Traffic",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Invocations over time, by primitive",
+      "description": "Tools, Resources and Prompts. The event-type allowlist is explicit rather than a bare GROUP BY blob1, so this panel cannot silently plot event types the dashboard says it omits. One sumIf column per primitive, NOT a GROUP BY blob1 (BL-158) — extra columns become series, extra grouped rows merge into one line.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT $timeSeries AS t,\n       sumIf(_sample_interval, blob1 = 'tool_invocation')   AS tool_invocation,\n       sumIf(_sample_interval, blob1 = 'resource_read')     AS resource_read,\n       sumIf(_sample_interval, blob1 = 'prompt_invocation') AS prompt_invocation\nFROM $dataset\nWHERE blob1 IN ('tool_invocation', 'resource_read', 'prompt_invocation') AND $timeFilter\nGROUP BY t\nORDER BY t"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Top keyOwners in window",
+      "description": "index1 is the AE sampling key and is deliberately roster-sized: one value per team key, plus one constant per M2M tier (all trials share OAUTH:M2M:TRIAL). Unauthenticated and cron traffic lands in __none__. A TABLE, not a timeseries, on purpose (BL-158): splitting a timeseries by a column requires one sumIf column per value, and the keyOwner roster grows whenever a key is issued — so any column list here would go stale silently. A table needs no such list and answers the ranking question directly.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT index1 AS key_owner, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 IN ('tool_invocation', 'resource_read', 'prompt_invocation') AND $timeFilter\nGROUP BY index1\nORDER BY n DESC\nLIMIT 25"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Top tools in window",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob2 AS name, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'tool_invocation' AND $timeFilter\nGROUP BY blob2\nORDER BY n DESC\nLIMIT 25"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Status codes (events that record one)",
+      "description": "BL-159: this panel used to read blob1 IN (tool_invocation, resource_read, prompt_invocation) GROUP BY blob6, and could never return a status code — NONE of those three write status_code. Over 863 invocations (all synthetic probe traffic, but real emitted events) it returned exactly one row: the empty string. It now reads the five event types that DO record one (see FIELD_EMITTED_BY in metrics/_schema.ts): inoreader_call, trial_signup, rate_limit_decision (deny only), tier_denial, scope_denial. Grouped by blob1 AS WELL as blob6 on purpose — tier_denial's synthetic '200' would otherwise conflate with a real Inoreader 200, which are not the same fact. blob6 != '' drops rate_limit_decision throttle rows, which carry no status. This is the only panel showing scope 403s.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob1 AS event_type, blob6 AS status_code, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 IN ('inoreader_call', 'trial_signup', 'rate_limit_decision', 'tier_denial', 'scope_denial') AND blob6 != '' AND $timeFilter\nGROUP BY blob1, blob6\nORDER BY n DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "type": "row",
+      "title": "Rate-limit pressure and tier gates (BL-157)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Refusals over time, by outcome",
+      "description": "Only REFUSALS are emitted \u2014 'deny' (the window was exhausted, the caller got a 429) and 'throttle' (allowed, but some bucket is >=80% spent). One sumIf column per outcome, NOT a GROUP BY blob4 (BL-158) — extra columns become series, extra grouped rows merge into one line. TWO columns, not three: OUTCOME_VALUES.rate_limit_decision also lists 'allow', and there is deliberately no allow series — emitting one would write a row per authenticated request and push this dataset into sampling, which silently degrades the count(DISTINCT blob8) query on 'Distinct active trials'. See ADR-0032.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT $timeSeries AS t,\n       sumIf(_sample_interval, blob4 = 'deny')     AS deny,\n       sumIf(_sample_interval, blob4 = 'throttle') AS throttle\nFROM $dataset\nWHERE blob1 = 'rate_limit_decision' AND $timeFilter\nGROUP BY t\nORDER BY t"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Refusals by client and responsible bucket",
+      "description": "Who is hitting which wall. blob2 is the bucket the operator should act on, filled asymmetrically by design: on 'deny' it is the bucket that refused; on 'throttle' it is the bucket nearest its cliff, which is not necessarily the binding one. That is why this groups by outcome too \u2014 reading blob2 alone mixes the two meanings. blob8 is the per-client ref (ADR-0031), empty for static bearer keys, which have no per-client identity.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob8 AS client_ref, blob2 AS responsible_bucket, blob4 AS outcome, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'rate_limit_decision' AND $timeFilter\nGROUP BY blob8, blob2, blob4\nORDER BY n DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Trial paywall hits over time",
+      "description": "A trial identity was refused a radar tool by the tier gate. This is upgrade INTENT, not an error: someone wanted the gated product. Expected empty until the self-serve trial goes live in production \u2014 an empty chart here is not a broken query.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT $timeSeries AS t, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'tier_denial' AND $timeFilter\nGROUP BY t\nORDER BY t"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Which radar tools trials ask for",
+      "description": "The commercial signal in this dashboard: which gated capability trials reach for, ranked. Read it as a demand curve for the paid tier, not a fault list. Expected empty until trial go-live.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob2 AS refused_tool, blob8 AS client_ref, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'tier_denial' AND $timeFilter\nGROUP BY blob2, blob8\nORDER BY n DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "type": "row",
+      "title": "Latency and errors",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 49 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Upstream I/O wait per tool",
+      "description": "NOT total handler time, and the title says so because BL-159 found this panel reporting p50/p95/p99 = 0 for search_portfolio across 279 calls — which reads as 'instant' and means 'never measured'. Cloudflare Workers freeze the clock outside I/O (Date.now() returns the time of the last I/O), so duration_ms is time BLOCKED ON I/O and a compute-only tool scores exactly 0 however much work it does. See with-metrics.ts (BL-122). The HAVING clause drops tools with a zero p99, mirroring what /status does at render — p99 and not p50, because a tool that reaches the network only on a cache miss has p50 = 0 and a real p99 and must survive. TRADE: /status keeps the unfiltered rows so it can distinguish 'no invocations at all' from 'traffic existed, none measurable'; filtering in SQL collapses those into one blank panel. If this is empty, check 'Top tools in window' beside it to tell which one you are looking at.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 50 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob2 AS name,\n       quantileWeighted(0.5, double1, _sample_interval) AS p50_ms,\n       quantileWeighted(0.95, double1, _sample_interval) AS p95_ms,\n       quantileWeighted(0.99, double1, _sample_interval) AS p99_ms,\n       sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'tool_invocation' AND $timeFilter\nGROUP BY blob2\nHAVING quantileWeighted(0.99, double1, _sample_interval) > 0\nORDER BY n DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" }, "overrides": [] }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Outcomes by tool",
+      "description": "success vs error per tool. A tool appearing only with outcome 'error' is the shape worth chasing.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 50 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob2 AS name, blob4 AS outcome, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'tool_invocation' AND $timeFilter\nGROUP BY blob2, blob4\nORDER BY n DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "type": "row",
+      "title": "Inoreader egress (Zone-1 budget)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 59 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Zone-1 calls over time, by category",
+      "description": "blob7 = '1' isolates Zone-1 categories from the OAuth refresh path. This is the Inoreader-funded budget the radar tools draw on, and the reason radar is denied to the trial tier. One sumIf column per category, NOT a GROUP BY blob2 (BL-158) — extra columns become series, extra grouped rows merge into one line. FOUR columns, not five: NAME_VALUES.inoreader_call also lists 'oauth-refresh', which is the one category carrying zone1='0' and is therefore excluded by this panel's own blob7 = '1' filter. Giving it a column would plot a permanently-zero series, which reads as 'refreshes stopped' rather than 'never counted here'.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 60 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT $timeSeries AS t,\n       sumIf(_sample_interval, blob2 = 'cron-radar')           AS cron_radar,\n       sumIf(_sample_interval, blob2 = 'live-radar')           AS live_radar,\n       sumIf(_sample_interval, blob2 = 'http-radar-snapshot')  AS http_radar_snapshot,\n       sumIf(_sample_interval, blob2 = '401-retry')            AS retry_401\nFROM $dataset\nWHERE blob1 = 'inoreader_call' AND blob7 = '1' AND $timeFilter\nGROUP BY t\nORDER BY t"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Inoreader calls by category, outcome and status",
+      "description": "status_code '0' isolates network-side failures from Inoreader-side ones.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 60 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob2 AS category, blob4 AS outcome, blob6 AS status_code, sum(_sample_interval) AS calls\nFROM $dataset\nWHERE blob1 = 'inoreader_call' AND $timeFilter\nGROUP BY blob2, blob4, blob6\nORDER BY calls DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "type": "row",
+      "title": "What is missing, and why",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 68 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 13,
+      "type": "text",
+      "title": "What this dashboard deliberately does not show",
+      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 69 },
+      "options": {
+        "mode": "markdown",
+        "content": "Four of the fourteen event types declared in `mcp-server/src/metrics/_schema.ts` **emit nothing in production**. A panel over any of them would render an empty chart that reads as *good news* — \"no throttling\", \"all healthy\" — rather than *no data*. So they are absent on purpose, and a guard test (`mcp-server/tests/unit/observability/grafana-dashboard.test.ts`) fails if one is added back.\n\nThe last two rows are omitted for DIFFERENT reasons and are **not** guarded: `audit_batch` and `cron_outcome` both emit, so a panel over either would be honest, merely redundant. Read the guard as covering the four types that emit nothing, not the whole table.\n\n| Not shown | Why |\n| --- | --- |\n| **Health checks** (`health_check`) | Declared in the schema, never emitted. `/status` health comes from live probes (`buildHealthPayload`), not from AE. |\n| **Prompt spans** (`prompt_span`) | Emitter exists (`metrics/prompt-span.ts`); nothing calls it. |\n| **IRL counters** (`wrong_irl_detected`, `gate_elided`) | Emitters exist (`metrics/irl-ingestion-events.ts`); nothing calls them. |\n| **Audit batches** (`audit_batch`) | Emitted, but the pipeline is deactivated (ADR-0014), so counters legitimately read 0. |\n| **Cron outcomes** (`cron_outcome`) | Genuinely live — omitted because `/status` and the seven alert rules already cover cron health. Add a panel here if that stops being true. |\n\n**Why the refusal panels have no `allow` series**: `rate_limit_decision` is emitted **only on refusal**. An `allow` event would fire on every authenticated request \u2014 a volume class nothing else here occupies \u2014 and more rows means Cloudflare samples this dataset sooner. `count(DISTINCT blob8)` has no sample correction, so that would quietly degrade *Distinct active trials* in exchange for a number recoverable anyway (attempts \u2248 invocations + denies). The trade and its rejected alternatives: [ADR-0032](https://github.com/reidperyam/gst-website/blob/master/src/docs/adr/0032-rate-limit-decisions-emit-only-on-refusal.md).\n\n**Expected empty is not the same as broken.** The trial went live 2026-09-08, so its signup panels carry real data. The tier-gate and scope-denial panels can legitimately read zero — nobody hit the paywall or a scope wall in the window. What is NOT legitimate is a panel that reads zero because it queries a field its event types never write: that shipped three times (BL-158, BL-159) and is now caught by a guard binding panel SQL to `FIELD_EMITTED_BY`.\n\n**Reading the numbers**: every count is `sum(_sample_interval)`, not `count()`, because AE samples. `count(DISTINCT x)` is a different aggregate from that corrected row counter and has no such correction — see the caveat on the *Distinct active trials* panel and [ADR-0031](https://github.com/reidperyam/gst-website/blob/master/src/docs/adr/0031-per-client-analytics-identity-is-a-blob.md)."
+      }
+    }
+  ]
+}

@@ -29,6 +29,10 @@ export const TIER_A_ROUTES: readonly RouteEntry[] = [
   { id: 'hub', path: '/hub/' },
   { id: 'hub-tools', path: '/hub/tools/' },
   { id: 'hub-mcp', path: '/hub/mcp/' },
+  // BL-155: the self-serve trial signup. Localized (operator decision) even
+  // though its sibling guides under /hub/mcp/ are English-only — strangers
+  // arrive from any locale; roster pilots are onboarded by a human.
+  { id: 'hub-mcp-trial', path: '/hub/mcp/trial/' },
   { id: 'privacy', path: '/privacy/' },
   { id: 'terms', path: '/terms/' },
 ];

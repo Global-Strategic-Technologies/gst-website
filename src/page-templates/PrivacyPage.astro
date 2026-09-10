@@ -69,8 +69,15 @@ const common = useTranslations(locale, 'common');
         <ul>
           <li set:html={tHtml('thirdParty.item1')} />
           <li set:html={tHtml('thirdParty.item2')} />
+          <li set:html={tHtml('thirdParty.item3')} />
         </ul>
         <p>{t('thirdParty.note')}</p>
+        {
+          /* BL-155: the Turnstile Privacy Addendum reference is a condition of
+          service for the invisible widget, and the IP-hash sentence discloses
+          the 30-day identity key the trial signup keeps (TRIAL_IDENTITY_TTL). */
+        }
+        <p>{t('thirdParty.trial')}</p>
 
         <h2>{t('cookies.heading')}</h2>
         <p>{t('cookies.body')}</p>

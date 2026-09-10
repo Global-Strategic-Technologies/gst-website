@@ -91,6 +91,39 @@ describe('withToolMetrics', () => {
     expect(sink.events[0].keyOwner).toBeUndefined();
   });
 
+  // BL-155 — the per-client dimension. `keyOwner` is constant per tier so the
+  // AE index stays roster-sized, which means WITHOUT this field every trial in
+  // the world is one indistinguishable row.
+  it('carries clientRef through to client_ref, alongside the constant keyOwner', async () => {
+    const sink = new InMemorySink();
+    const ctx: MetricsContext = {
+      sink,
+      keyOwner: 'OAUTH:M2M:TRIAL',
+      clientRef: 'OAUTH:m2m_abc123',
+    };
+    await withToolMetrics('a', ctx, async () => ({}))();
+    expect(sink.events[0].keyOwner).toBe('OAUTH:M2M:TRIAL');
+    expect(sink.events[0].client_ref).toBe('OAUTH:m2m_abc123');
+  });
+
+  it('emits client_ref=undefined for an identity with no per-client subject', async () => {
+    // Static `MCP_KEY_*` and the OAuth human path set no `rateLimitSubject`,
+    // so they carry no client dimension — the no-regression case.
+    const { sink, ctx } = makeCtx('RP');
+    await withToolMetrics('a', ctx, async () => ({}))();
+    expect(sink.events[0].client_ref).toBeUndefined();
+  });
+
+  it('carries client_ref on the ERROR path too, not just on success', async () => {
+    const sink = new InMemorySink();
+    const ctx: MetricsContext = { sink, keyOwner: 'OAUTH:M2M:TRIAL', clientRef: 'OAUTH:m2m_x' };
+    const wrapped = withToolMetrics('a', ctx, async () => {
+      throw new Error('boom');
+    });
+    await expect(wrapped()).rejects.toThrow('boom');
+    expect(sink.events[0].client_ref).toBe('OAUTH:m2m_x');
+  });
+
   it('measures duration_ms across an awaited inner', async () => {
     const { sink, ctx } = makeCtx();
     const wrapped = withToolMetrics('a', ctx, async () => {

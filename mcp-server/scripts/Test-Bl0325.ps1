@@ -8,13 +8,13 @@
 
     Sections covered automatically:
       C  Resource cache hit / miss observability (bodies + cache transparency)
-      W  Radar Resources reachable via Worker (resources/list, resources/read × 6)
+      W  Radar Resources reachable via Worker (resources/list, resources/read x 6)
       H  /health includes radarSnapshotAgeSeconds with the right shape
 
     Sections NOT in scope of this runner (require operator action):
-      X  Worker Cron      — needs `wrangler triggers test` + tail observation
-      K  Claude workflow  — needs human-driven Claude Desktop verification
-      M  Manifest hash    — runs as part of `npm test`, not at runtime
+      X  Worker Cron      - needs `wrangler triggers test` + tail observation
+      K  Claude workflow  - needs human-driven Claude Desktop verification
+      M  Manifest hash    - runs as part of `npm test`, not at runtime
 
     `Test-Bl0325.ps1` is non-destructive: read-only against the Worker and
     Upstash. It will NEVER write to Upstash, delete keys, mutate Cron state,
@@ -32,7 +32,7 @@
 
 .PARAMETER ContinueOnFailure
     By default the runner finishes every scenario even if some fail.
-    Set this switch to make it bail on the first FAIL — useful when
+    Set this switch to make it bail on the first FAIL - useful when
     debugging interactively.
 
 .EXAMPLE
@@ -120,11 +120,11 @@ function Add-Result {
 function Invoke-Test {
     <#
     Scriptblock contract:
-      - return $null (or no value)          → PASS
-      - return 'PASS'                       → PASS (explicit)
-      - return 'SKIP'                       → SKIP
-      - return '<any other non-empty string>' → FAIL with the string as detail
-      - throw                               → ERROR with the exception message
+      - return $null (or no value)          -> PASS
+      - return 'PASS'                       -> PASS (explicit)
+      - return 'SKIP'                       -> SKIP
+      - return '<any other non-empty string>' -> FAIL with the string as detail
+      - throw                               -> ERROR with the exception message
     #>
     param(
         [Parameter(Mandatory)] [string] $Id,
@@ -141,7 +141,7 @@ function Invoke-Test {
         } elseif ($verdict -is [string] -and $verdict.Length -gt 0) {
             Add-Result -Id $Id -Section $Section -Title $Title -Status 'FAIL' -Detail $verdict
         } else {
-            # Unknown return shape — treat as PASS rather than spuriously fail.
+            # Unknown return shape - treat as PASS rather than spuriously fail.
             Add-Result -Id $Id -Section $Section -Title $Title -Status 'PASS'
         }
     } catch {
@@ -149,9 +149,9 @@ function Invoke-Test {
     }
 }
 
-# ----- Section C — Resource cache (hit/miss observability) -------------
+# ----- Section C - Resource cache (hit/miss observability) -------------
 
-Write-Host '── Section C — Resource cache ──' -ForegroundColor Cyan
+Write-Host '-- Section C - Resource cache --' -ForegroundColor Cyan
 
 Invoke-Test -Id 'T.C.3' -Section 'C' -Title 'Cached body byte-identical to fresh compute' -Body {
     # Read the same Library URI twice. Bodies must match exactly. (Cache
@@ -166,21 +166,21 @@ Invoke-Test -Id 'T.C.3' -Section 'C' -Title 'Cached body byte-identical to fresh
 
 Invoke-Test -Id 'T.C.4' -Section 'C' -Title 'Cache wrapper transparent to error paths' -Body {
     # An unknown URI should produce a JSON-RPC error envelope (HTTP 200
-    # with .error block — that's the MCP / JSON-RPC 2.0 spec; only
+    # with .error block - that's the MCP / JSON-RPC 2.0 spec; only
     # transport-layer failures surface as throws). The cache wrapper
-    # must NOT cache the error response — but that side is invisible to
+    # must NOT cache the error response - but that side is invisible to
     # the client; we just verify the protocol-shape contract here.
     $resp = Invoke-McpRequest -Method 'resources/read' -Params @{ uri = 'gst://library/__not-a-real-slug__' }
     if ($resp.result) {
         return "Expected a JSON-RPC error envelope for an unknown URI; got a success result with $($resp.result.contents.Count) contents item(s)"
     }
     if (-not $resp.error) {
-        return 'Response had neither result nor error — protocol-unexpected envelope'
+        return 'Response had neither result nor error - protocol-unexpected envelope'
     }
     # MCP SDK uses code -32602 (Invalid params) for unknown Resources.
     # We accept any negative code so future SDK changes don't churn the test.
     if ($resp.error.code -ge 0) {
-        return "Expected a negative JSON-RPC error code, got $($resp.error.code) — message: $($resp.error.message)"
+        return "Expected a negative JSON-RPC error code, got $($resp.error.code) - message: $($resp.error.message)"
     }
     if (-not ($resp.error.message -match 'library' -or $resp.error.message -match 'not.found' -or $resp.error.message -match 'unknown')) {
         return "Error message didn't name the URI or 'not found': $($resp.error.message)"
@@ -188,7 +188,7 @@ Invoke-Test -Id 'T.C.4' -Section 'C' -Title 'Cache wrapper transparent to error 
     return $null
 }
 
-# T.C.1 and T.C.2 require `wrangler tail` running in parallel — they're
+# T.C.1 and T.C.2 require `wrangler tail` running in parallel - they're
 # observation tests, not assertion tests. Mark SKIP with a hint.
 Invoke-Test -Id 'T.C.1' -Section 'C' -Title 'Cache miss on first read (observe in tail)' -Body {
     return 'SKIP'  # requires `wrangler tail` running in another terminal
@@ -197,10 +197,10 @@ Invoke-Test -Id 'T.C.2' -Section 'C' -Title 'Cache hit on second read (observe i
     return 'SKIP'
 }
 
-# ----- Section W — Radar Resources on Worker --------------------------
+# ----- Section W - Radar Resources on Worker --------------------------
 
 Write-Host ''
-Write-Host '── Section W — Radar Resources on Worker ──' -ForegroundColor Cyan
+Write-Host '-- Section W - Radar Resources on Worker --' -ForegroundColor Cyan
 
 $EXPECTED_RADAR_URIS = @(
     'gst://radar/fyi/latest',
@@ -258,7 +258,7 @@ foreach ($cat in @('pe-ma', 'enterprise-tech', 'ai-automation', 'security')) {
         $resp = Invoke-McpRequest -Method 'resources/read' -Params @{ uri = "gst://radar/wire/$cat" }
         $body = $resp.result.contents[0].text | ConvertFrom-Json
         if ($body.error) {
-            # Empty wire is unusual but not a runner failure — flag as SKIP-with-note
+            # Empty wire is unusual but not a runner failure - flag as SKIP-with-note
             return "Snapshot-missing error: $($body.error)"
         }
         # Each item's category must match the URI's category segment, OR
@@ -272,16 +272,16 @@ foreach ($cat in @('pe-ma', 'enterprise-tech', 'ai-automation', 'security')) {
 }
 
 # T.W.6 (cold-cache snapshot-missing) requires deleting an Upstash key;
-# destructive — skip from the batch runner.
+# destructive - skip from the batch runner.
 Invoke-Test -Id 'T.W.6' -Section 'W' -Title 'Cold-cache snapshot-missing error body' -Body { return 'SKIP' }
 
 # T.W.7 (stdio regression) requires a separate stdio session; skip.
 Invoke-Test -Id 'T.W.7' -Section 'W' -Title 'Stdio radar Resources still work' -Body { return 'SKIP' }
 
-# ----- Section H — /health extension ----------------------------------
+# ----- Section H - /health extension ----------------------------------
 
 Write-Host ''
-Write-Host '── Section H — /health extension ──' -ForegroundColor Cyan
+Write-Host '-- Section H - /health extension --' -ForegroundColor Cyan
 
 $script:HealthPayload = $null
 
@@ -306,20 +306,20 @@ Invoke-Test -Id 'T.H.1.b' -Section 'H' -Title '/health upstashMcp is ok; upstash
     # was retired; the field should not exist on /health. Assert its
     # absence so a regression that re-introduces a dual-DB probe surfaces.
     if ($script:HealthPayload.PSObject.Properties.Name -contains 'upstashInoreader') {
-        return "upstashInoreader field still present on /health — Phase B retirement regressed"
+        return "upstashInoreader field still present on /health - Phase B retirement regressed"
     }
     return $null
 }
 
-# T.H.2 (age tracking) is time-sensitive — can't run reliably without
+# T.H.2 (age tracking) is time-sensitive - can't run reliably without
 # also driving the Cron. Skip from batch.
 Invoke-Test -Id 'T.H.2' -Section 'H' -Title 'radarSnapshotAgeSeconds tracks cache age' -Body { return 'SKIP' }
 Invoke-Test -Id 'T.H.3' -Section 'H' -Title 'Degraded fallback to null' -Body { return 'SKIP' }
 
-# ----- Section M — Manifest hash --------------------------------------
+# ----- Section M - Manifest hash --------------------------------------
 
 Write-Host ''
-Write-Host '── Section M — Manifest hash ──' -ForegroundColor Cyan
+Write-Host '-- Section M - Manifest hash --' -ForegroundColor Cyan
 
 Invoke-Test -Id 'T.M.1' -Section 'M' -Title 'manifest-stability test in npm test suite' -Body {
     # Best-effort: run the targeted test if vitest is on PATH. Skip if not.

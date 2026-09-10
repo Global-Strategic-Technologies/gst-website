@@ -32,6 +32,7 @@ import {
 } from '../content/radar-transform';
 import { readThroughCache, RESOURCE_TTL_SECONDS } from '../cache/resource-cache';
 import { assertScope, SCOPES, MissingScopeError, DEFAULT_SCOPES } from '../auth/scopes';
+import { emitScopeDenial } from '../metrics/pipeline-events';
 import { NOOP_METRICS_CONTEXT, withResourceMetrics, type MetricsContext } from '../metrics/_index';
 import type { SnapshotReader } from '../content/radar-snapshot-reader';
 import type { Env } from '../env';
@@ -115,7 +116,30 @@ export function registerRadarResources(
     async (
       uri: URL
     ): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> }> => {
-      assertScope(scopes, SCOPES.RESOURCE_RADAR_READ);
+      // BL-159 — emit BEFORE the throw, because `assertScope` surfaces
+      // `MissingScopeError` to the SDK and nothing downstream of it runs. This
+      // is the MCP half of the scope-403 attack signal; the plain-HTTP half is
+      // in `pipeline/handle-authenticated.ts`. Covering only one would leave
+      // `scope-mismatch-403-rate` (severity `page`) measuring half the surface,
+      // which is the defect BL-159 exists to remove.
+      //
+      // Emitted from a catch rather than behind a `hasScope` pre-check on
+      // purpose: the pre-check evaluated the scope predicate a second time, so
+      // a future change to what `assertScope` refuses would silently stop
+      // being measured. Catching its throw means emission follows the real
+      // decision by construction. This branch's original defect was exactly a
+      // survey of `hasScope` missing its `assertScope` wrapper — the same
+      // mistake one level down.
+      try {
+        assertScope(scopes, SCOPES.RESOURCE_RADAR_READ);
+      } catch (err) {
+        emitScopeDenial(metrics.sink, {
+          keyOwner: metrics.keyOwner,
+          clientRef: metrics.clientRef,
+          missingScope: SCOPES.RESOURCE_RADAR_READ,
+        });
+        throw err;
+      }
       const cached = await readThroughCache(env, uri.href, RESOURCE_TTL_SECONDS.RADAR, () =>
         readSnapshot(uri.href, fetch)
       );

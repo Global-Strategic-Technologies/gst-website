@@ -1,6 +1,6 @@
 # ADR-0008: OAuth 2.1 as an embedded authorization server on the MCP Worker
 
-- **Status**: Accepted (2026-07-24)
+- **Status**: Accepted (2026-07-24); **amended 2026-09-07** (BL-155 — self-serve provisioning for a bounded trial tier; see the amendment below)
 - **Source initiative**: BL-033 Slice 2 (external-pilot auth; the BL-033 stanza in [`../development/BACKLOG.md`](../development/BACKLOG.md) remains the open initiative tracker — this slice closes its Authentication & authorization AC block)
 
 ## Context
@@ -32,3 +32,22 @@ Load-bearing choices:
 - **Accepted trade-offs**: the library's refresh rotation briefly holds two valid refresh tokens (documented upstream compromise); M2M revocation is client-record deletion (blocks re-issuance; ≤1h token residual — introspection reports revoked-inactive; emergency = rotate the signing key, killing all M2M tokens); `completeAuthorization` revokes prior grants per user+client (re-consent replaces old tokens — pinned by integration test); the consent nonce non-atomicity above; introspection of library tokens depends on the pinned library version's `unwrapToken` helper.
 - **Operational notes**: a newly onboarded `OAUTH:<user>` / `M2M:<name>` keyOwner has no trailing 7-day mean, so its first busy hour above the traffic-spike floor can fire the ticket alert once — expected onboarding behavior (AUTH.md runbook). Under `unstable_dev`, the Worker's request origin is the wrangler.toml route hostname, not the local address (matters for audience-bound tests).
 - **Code/docs that carry this decision**: `mcp-server/src/oauth/*`, `mcp-server/src/pipeline/handle-authenticated.ts`, `mcp-server/src/admin/oauth-clients.ts`, `ARCHITECTURE.md` § Auth, `operations/AUTH.md` (runbooks), `operations/REMOTE_CLIENT_SETUP.md` (native Connectors path), integration suites `tests/integration/oauth-*.test.ts`.
+
+## Amendment — 2026-09-07 (BL-155): self-serve provisioning is permitted for a bounded trial tier
+
+**What changes.** The identity premise above — _"Identity = delegation over the existing key roster"_ — is widened for exactly one bounded case. A self-serve 3-day trial (BL-155) mints an M2M client record for a visitor **with no roster human behind it**; the consent page accepts that record's `<clientId>:<secret>` in its one field as an alternative to an `MCP_KEY_*` (roster first, then KV, one failure shape for both). For this case **the registration authority is an automated bot check** (Cloudflare Turnstile, verified server-side with hostname and action asserted), an IP-keyed limiter, and a one-per-identity lease — not an operator. The "no separate user directory" half still stands: a trial record is a credential record, not a user account.
+
+**Still not DCR, and precisely why.** The caller does not self-register a client; GST's Worker creates the record on the caller's behalf, on GST's terms, with GST-chosen scopes and a hard expiry. The DCR revisit trigger recorded above is therefore engaged only on the letter that a stranger can obtain a credential, not on the mechanism — the ADR's "pre-registration + CIMD" decision for _OAuth clients_ is untouched.
+
+**The bounds that make it acceptable, each enforced in code rather than promised:**
+
+- `trial` tier only, the tightest ceilings (`ratelimit/tiers.ts`), minted only by the signup path — never assignable by hand in the operator runbooks' spirit, though the admin API accepts it for tests and conversions.
+- Hard `expiresAt` = mint + 72h, asserted at the record level; the KV reap is derived from it and cannot slide (Slice 1).
+- `TRIAL_SCOPES` = the catalog minus the radar Resource (`auth/scopes.ts`). **Radar tools are denied by the tier-scoped pipeline check** (`pipeline/tier-gate.ts`, JSON-RPC `-32002`, before the limiter) — described as that mechanism deliberately, because `tool:*` covers the radar tools by prefix and a scope exclusion cannot do this.
+- **Both doors are open to the record** (operator decision, 2026-09-06): the consent page (the connector flow BL-155 is for) and `client_credentials` at `/token` (the developer flow, BL-156). The trial is contained identically at either — expiry, ceilings and the radar gate all read the token or the grant props.
+- Attribution vs. limiting are deliberately split: every trial attributes as one constant `keyOwner` (`OAUTH:M2M:TRIAL` / `M2M:TRIAL`, all records named `trial`) so the Analytics Engine index stays roster-sized, while the limiter buckets per client (`rateLimitSubject`), so one trial cannot exhaust another's budget.
+- Fail-closed minting: the endpoint 503s with nothing minted on any unbound dependency, Redis error, or unreachable Turnstile — the inverse of this Worker's fail-open substrate, because here Upstash is the anti-farming gate, not a throttle.
+
+**Residuals, disclosed rather than worked around.** A `mcp_m2m_*` token minted just before `expiresAt` lives ≤1h (self-contained JWT, as above). A **consent grant** made with a trial record runs to the `expiresAt` captured at consent — refresh and access TTLs are clamped to it at the code exchange and the API handler refuses a token past it — so a later PATCH/DELETE of the record does not cut an existing connector grant short (the exchange callback has no KV access by construction). An IP-derived identity is a speed bump, not an identity control.
+
+**Revisit trigger.** If trials are farmed (many `trial` records per hour, or the constant-owner throttle line firing across many `rateLimitSubject`s), strengthen `trialIdentityKey` before adding friction to the page; if a real user directory becomes necessary, the Access-upstream-IdP trigger above applies unchanged.

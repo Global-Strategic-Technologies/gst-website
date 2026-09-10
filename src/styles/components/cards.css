@@ -1002,6 +1002,24 @@ Brutalist Gateway Card (Library/Tools index pages)
     font-size: 1.15rem;
   }
 
+  /* Below 768 each bullet wraps to three lines, which makes the 0.5rem gap
+     BETWEEN items a third of the 1.7em baseline step WITHIN one — so the list
+     reads as a single paragraph with stray icons in it. The invariant a list
+     depends on is that separation between items exceeds separation between
+     lines; at one column it has to be restated, because the wrapping that
+     breaks it only happens here. */
+  .brutal-gateway-card__features {
+    gap: var(--spacing-lg);
+  }
+
+  /* Mono is wide: at 1rem a ~264px column fits ~27 characters, so all three
+     bullets wrap three times. One step down returns a line on most of them,
+     which is what actually relieves the density — the gap above only separates
+     what the wrapping already made too tall. */
+  .brutal-gateway-card__features li {
+    font-size: var(--text-sm);
+  }
+
   .brutal-gateway-grid {
     grid-template-columns: 1fr;
   }
