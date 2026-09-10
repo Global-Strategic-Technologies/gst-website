@@ -23,9 +23,11 @@
  * is not a browser application. A visitor connects a client to it; nothing runs
  * on the page. `operatingSystem` is `Any` for the same reason.
  *
- * No `offers` block and no `isAccessibleForFree`: access is operator-provisioned
- * and tiered, and the terms are not published, so neither claim would be true
- * to state. The absence is deliberate, not an omission to backfill.
+ * No `offers` block and no `isAccessibleForFree`: access is tiered and the
+ * commercial terms are not published, so an `offers` block would have nothing
+ * true to say; and the free 3-day trial (BL-155) is bounded and one-per-network,
+ * not free access to the application, so `isAccessibleForFree` would overstate
+ * it. The absence is deliberate, not an omission to backfill.
  *
  * COPY RULES: strings emitted here are drawn from the registry, which
  * `tests/integration/mcp-docs-parity.test.ts` walks for the em-dash ban, the

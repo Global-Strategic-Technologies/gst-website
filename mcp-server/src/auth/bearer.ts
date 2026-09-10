@@ -49,6 +49,24 @@ export interface AuthSuccess {
    * behavior, not a gap.
    */
   readonly tier?: string;
+  /**
+   * BL-155 Slice 2b — limiter identifier when it must differ from
+   * `keyOwner`. **Left unset** for every identity except KV-backed consent
+   * grants (a trial credential pasted at the consent page), where `keyOwner`
+   * is a constant per tier to keep the AE index roster-sized
+   * (`oauth/key-owner.ts`) but the limiter needs one bucket per client —
+   * otherwise every trial worldwide shares one 100/day budget.
+   *
+   * BL-155 gave this field a second consumer: it is also forwarded to
+   * `MetricsContext.clientRef` and emitted as the `client_ref` AE blob, which
+   * is what makes distinct trials countable without enlarging the index. Its
+   * shape (`OAUTH:<clientId>`) is therefore the CANONICAL per-client analytics
+   * identity — mint-side events must match it exactly or the mint→usage join
+   * breaks. See ADR-0031. The pipeline
+   * reads `rateLimitSubject ?? keyOwner`, so omitting it is the
+   * no-regression behavior, not a gap.
+   */
+  readonly rateLimitSubject?: string;
 }
 
 /**

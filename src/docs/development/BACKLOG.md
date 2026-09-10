@@ -143,6 +143,8 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >
 > **Filed under Business Capabilities, not Infrastructure**, on that same framing — deliberately, even though its first product and most of its ACs live in the MCP server alongside BL-033/BL-093. Read as a filing decision, not a sweep error.
 
+> **UNPARKED the same day as [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) — the block below is kept for its reasoning, not as current status.** The park bar was set too high: it assumed the trial had to ride this item's Stripe rail, but the **GST-side, no-card** option below touches Stripe not at all — no price, no Payment Link, no webhook, no API key — so nothing about it waited on the staging pass, and it is independent of BL-145. It was unparked as its own initiative and **Slice 1 has since shipped**. Two things in the block below are now superseded: the GST-side option's "identity gate becomes email verification, needing BL-004" is wrong — **Turnstile is the gate**, and BL-004 is avoided entirely; and the hazard paragraph's list of "no self-serve signup" copy to revisit is now BL-155's Slice 4, not a future finder's problem. The two **Stripe-based** mechanisms below remain genuinely parked on the staging pass.
+>
 > **Parked directive — self-serve trial (operator, 2026-09-06).** The operator asked for a **self-serve 3-day trial** of MCP access, having onboarded Stripe (publishable + secret key, company bank account linked). The stated shape: the trial **expires at T+72h rather than auto-converting**, and conversion is a separate, explicit purchase. That preference is recorded here because it is the input a future session would otherwise re-derive.
 >
 > **Why it is parked rather than built.** The trial mechanism is not free to choose under this item's own recorded rail decision. [`PAYMENTS_PLATFORM_BL-133.md`](PAYMENTS_PLATFORM_BL-133.md) § Decisions taken commits to **Stripe with Managed Payments**, which deliberately removes the machinery a trial would want — Payment Links only, no Stripe API key in the Worker, one webhook endpoint. Three candidate mechanisms, none free:
@@ -213,6 +215,92 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 - **Abuse surface.** A self-serve endpoint that mints credentials invites card-testing and throwaway-account farming. Rate-limit the checkout-creation endpoint, rely on the vendor's fraud tooling, and keep the low tier's ceilings low enough that a fraudulently-obtained free/entry credential is not worth farming
 - **Hosting split is deliberate**: the Worker owns the money-and-credentials path because that is where `OAUTH_KV`, the audit log, the tier logic, and the admin API already live; the website owns presentation and the return page. Do not split provisioning logic across both
 - **Related items**: [BL-093](#bl-093-mcp-server--commercialization-phase-4) supplies the marketing page, public developer docs, and pricing-presentation ACs this checkout links into — its deferral premise ("a front door is not the bottleneck when nobody is at the gate") is what this operator directive revisits, so re-read that stanza's reasoning before deciding how much of the front door ships alongside. [BL-004](#bl-004-email-capture-system) overlaps on form UX, the email-service choice, and the privacy disclosure — a purchase-receipt sender and a marketing-email sender may or may not be the same vendor; decide once. BL-033's independent pen test remains the hard gate on public listing, and a live payment endpoint strengthens rather than weakens the case for running it. **Sequencing**: [BL-145](#bl-145-design-partner-program--set-the-price-from-evidence-not-from-a-guess) runs ahead of this item and produces the number Slice 4's purchase surface has to display. Slice 1's vendor/tax decision has real lead time and can proceed in parallel; the rest of this item is building a checkout for demand that does not exist yet, and BL-145's manual fulfillment path is what carries the first customers meanwhile
+
+---
+
+### BL-155: Self-serve 3-day MCP trial — connector flow, gated by Turnstile, no payment
+
+**Source**: operator directive 2026-09-06 — "people can get a working GST MCP key without the operator in the loop"; unparks [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)'s trial directive as its own initiative | **Effort**: all slices built | **Status**: Open — Slices 1, 2, 2b, 3 and 4 built 2026-09-06/07 on `feat/bl-155-self-serve-mcp-trial`; LIVE in production 2026-09-08 (secrets set, `mcp-production` approved, first mint verified). Remaining: no alert rule on signup or refusal volume (needs a production baseline first — see BL-157, and note the closed 503 item below rules the go-live window OUT as that baseline), and the claude.ai/design re-sync for the retired free-pilot copy; **rescoped to the connector flow 2026-09-06** | **Architecture & plan**: [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) — **controlling; read § Scope first** | **Splits off**: [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial)
+
+**As a** technical evaluator at a PE or corp-dev firm, **I want** to get a working GST MCP credential and use it from Claude without talking to anyone, **so that** I can answer "is this worth my time?" in one sitting rather than one email round-trip.
+
+> **Rescoped 2026-09-06 — read before building.** This initiative was designed to mint an **M2M `client_credentials`** pair. That credential **cannot be used from Claude Desktop, Claude Code or Cursor**: those connect through the consent page, which identifies a human by an operator-issued `MCP_KEY_*` matched against **Worker env vars** ([`auth/bearer.ts`](../../../mcp-server/src/auth/bearer.ts) `matchToken`), and a signup-page stranger has none. The trial therefore reached only someone willing to hand-write a token exchange. The operator's call: **BL-155 delivers the connector flow**; self-serve `client_credentials` becomes [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial), which **reuses this item's signup workflow and design** so a visitor meets one signup experience either way.
+>
+> **The design doc's pre-rescope passages have not all been reconciled**, and its § Scope says so. Treat text written before the rescope as suspect wherever the two auth paths differ.
+
+#### Acceptance Criteria
+
+**Slice 1 — Credential substrate** — ✅ **done** (`cd926280` + review pass `89975b2a`). `trial` tier, `expiresAt` on `M2mClientRecord` with a derived reap, `PATCH /admin/oauth/m2m-clients/:id`, and expiry enforcement on the `client_credentials` grant. Re-verified against the rescope and kept intact: typecheck clean, mcp-server 2731/2731. Serves both this item and BL-156 — the two are the same KV record presented at different doors.
+
+**Slice 2 — Public mint endpoint** — ✅ **done** (2026-09-07; plan-reviewed REVISE → APPROVE). Wire contract and settled decisions in the design doc § Slice 2 header; operator account in [AUTH.md § Self-serve trial mint](../../../mcp-server/src/docs/operations/AUTH.md).
+
+- [x] `POST /trial/signup` on the Worker ([`trial/signup.ts`](../../../mcp-server/src/trial/signup.ts)), Turnstile-verified server-side with `hostname` + `action` asserted and an explicit timeout ([`trial/turnstile.ts`](../../../mcp-server/src/trial/turnstile.ts)), CORS-wrapped with the env-aware wrapper, routed ahead of the `isRoutedPath` gate (ordering pinned in `host-route.test.ts`)
+- [x] **Fails closed everywhere** — unbound Upstash / `OAUTH_KV` / either secret / expected hostnames, a Redis throw, and a Turnstile verify that throws, 5xxs, returns non-JSON or **hangs** each return 503 with **nothing minted**; unit-pinned per guard, and the `unstable_dev` test proves it with only Upstash absent
+- [x] IP limiter (10/h on an HMAC of the full IP, `mcp:ratelimit:trial:ip`) + one-trial-per-identity via `mcp:trial:ident:<hmac>` (30-day TTL), two-phase lease branching on value; repeat signup **rotates** the existing record's secret (`rotateM2mSecret`) with `expiresAt` and the key's TTL untouched; expired → `trial-expired`
+- [x] Minted record: `trial` tier, `expiresAt` = now + 72h, `TRIAL_SCOPES` (catalog minus the radar Resource) — asserted at the **record** level in the unit test and re-asserted in the handler before the identity key is written
+- [x] Order limiter → Turnstile → lease → mint, so nothing is written before the visitor is proven human (mutation-proved by "rate-limited costs no siteverify call")
+
+**Slice 2b — Consent-page identity, tier propagation, refresh binding** — ✅ **done** (`8076a1e9` + docs `c8e45943`; plan-reviewed REVISE → APPROVE, code-reviewed). Built ahead of Slice 2 because it is verifiable with an admin-provisioned trial record, and it absorbed the tier-scoped radar deny and `rateLimitSubject` split that Slice 2's design still describes.
+
+- [x] A second identity branch ([`oauth/consent-identity.ts`](../../../mcp-server/src/oauth/consent-identity.ts)) resolving `<clientId>:<secret>` against KV, tried **after** the env roster, verify-then-expiry, one `null` for every failure — the integration test compares wrong-secret / fabricated-id / wrong-roster-key pages byte-for-byte
+- [x] **Tier and expiry in the grant props**, threaded onto `AuthSuccess` with a per-client `rateLimitSubject`; `keyOwner` stays `OAUTH:M2M:TRIAL` (all trials named `trial`). A `trial` grant is refused radar at the pipeline seam ([`pipeline/tier-gate.ts`](../../../mcp-server/src/pipeline/tier-gate.ts), JSON-RPC `-32002`, before the limiter)
+- [x] Expiry bound to the grant via `tokenExchangeCallback` ([`oauth/token-exchange.ts`](../../../mcp-server/src/oauth/token-exchange.ts)): refresh + access TTL clamped to `expiresAt` at the code exchange, and `api-handler.ts` refuses a validated token past it. **Not** revoke-on-refresh — the callback has no env/helpers and the library refuses an expired grant before it runs; see the design doc § What the rescope requires. Corollary in AUTH.md: an early PATCH/DELETE does not cut a consented grant short
+- [x] **Regression guard**: grants without `expiresAt` exit the callback untouched (unit-pinned on both grant types); `oauth-flow.test.ts` untouched and green
+- [x] **Consent form shape — decided**: one field, one `<clientId>:<secret>` string (operator, 2026-09-06)
+
+**Slice 3 / 3a — Signup page and its UX design** (Tier A: `en`, `es`, `pt-BR`) — ✅ **built 2026-09-07** (plan-reviewed REVISE → REVISE → APPROVE); page at [`/hub/mcp/trial/`](../../page-templates/HubMcpTrialPage.astro), one page serving both flows (the "From code" presentation is BL-156's UX)
+
+- [x] Claude Design hand-off received and committed as [MCP_TRIAL_SIGNUP_HANDOFF_BL-155.md](MCP_TRIAL_SIGNUP_HANDOFF_BL-155.md) per the BL-153 precedent (prototype not committed). **Checked against source, not trusted** (ADR-0026): the handoff's ceilings were `free-pilot`'s 30/300 — the page states `TIER_LIMITS.trial` (15/100) and [`mcp-trial-parity.test.ts`](../../../tests/integration/mcp-trial-parity.test.ts) pins it; the request-access anchor is `#request-access`; `token_type` is `bearer`
+- [x] Page states: idle, verifying, issued, re-issued, and each error with its own recovery path — all server-rendered from the catalog and toggled by the script, so every locale carries every state; the rate-limit countdown reads the wait from the response body (`Retry-After` is not CORS-exposed)
+- [x] Credential shown **once**, with copy **and** client-side download; `saved` flips only when the secret leaves the page, `beforeunload` guards until then; re-issue names the revoked credential's issue date (`issuedAt`, added to the Worker's 200/403 for this)
+- [x] Turnstile Invisible via explicit rendering, loaded lazily on the first click; CSP updated in **both** `vercel.json` and `src/middleware.ts` (script-src + frame-src `challenges.cloudflare.com`, connect-src both Worker hosts)
+- [x] **Privacy policy gains the Turnstile disclosure** in all three locales, linking the Turnstile Privacy Addendum, plus the 30-day IP-hash retention sentence
+- [x] E2E ([`hub-mcp-trial.test.ts`](../../../tests/e2e/hub-mcp-trial.test.ts)) stubs Turnstile and the mint endpoint and drives every state, with axe on issued and error states; `/hub/mcp/trial/` added to the a11y sweep
+
+**Slice 4 — The record** — split: the Worker-side half shipped with Slice 2 (2026-09-07); the website-side half lands with Slice 3, and **that is the production gate**, not deferred work. Slice 3 merged and the gate was met: production's trial secrets were set and the `mcp-production` deploy approved on **2026-09-08**, verified end to end by a real Turnstile-gated mint. Until then `/trial/signup` was 503 in production by construction and "no self-serve signup exists" remained literally true for the public until it did.
+
+- [x] **Amended [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md)** (2026-09-07) — the widened identity premise, the "still not DCR" argument stated precisely, every bound named as its enforcing mechanism (radar as the tier-scoped pipeline check), both doors described, the two residuals disclosed, the revisit trigger
+- [x] `TURNSTILE_SECRET_KEY` + `TRIAL_IP_HMAC_SECRET` declared (`env.ts`, both wrangler manifests, `SECRETS_INVENTORY.md` rows marked pending); `TURNSTILE_EXPECTED_HOSTNAMES` / `TRIAL_EXTRA_ORIGINS` `[vars]` committed. **Staging**: operator sets both secrets (test Turnstile secret) so the endpoint can be exercised. **Production: set both, then approve — as Slice 3's final step, not before**
+- [x] `trial` stays **undocumented** on the public tier surface (operator decision); internal tier-table mirrors (RATE_LIMITS, UAT SETUP, PILOT_ONBOARDING, ARCHITECTURE, AUTH) carry the row
+- [x] **With Slice 3** (2026-09-07): corrected [BL-093](#bl-093-mcp-server--commercialization-phase-4) § Out of scope, [`get-started/index.astro`](../../pages/hub/mcp/get-started/index.astro), [`capabilities.ts`](../../data/mcp/capabilities.ts), `hub-mcp.json` (`access.provisioning.item1`, both meta descriptions), `services.json` `faq.a5`, `public/llms.txt` and the JSON-LD rationale where they said no self-serve signup exists (no test pinned the old strings; `grep tests/` done); the website CSP and the `SECURITY_HEADERS.md` rows; the privacy disclosure
+- [x] **`free-pilot` retired from the public site** (2026-09-08, operator decision: "the free pilot was replaced with the self-serve trial. they are now one and the same"). `/hub/mcp/`'s tier table publishes `trial` (15/100, radar "None" bound to `trialRadarDenial`) as its first column with a self-serve CTA, plus a trial CTA under the lede; the hub FAQ, the announcement sash and the design-sync surfaces were reworded in all three locales; `UNPUBLISHED_TIERS` inverted to `{'free-pilot'}`. `free-pilot` remains in `TIER_LIMITS`/`ASSIGNABLE_TIERS` and assignable by hand — no Worker change. Reverses the "trial stays undocumented" decision recorded twice in [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md), amended in place there. **Pending: re-sync claude.ai/design** (sash copy is in the published bundle)
+- [x] **Trial observability** (2026-09-08, operator request "should we enable observability into when, how many 3-day trials are being created and used?"). Audit found creation had **no durable observability** (`safeLog` = one `console.log`; two branches silent) while usage was queryable only in aggregate. Added `trial_signup` AE events (one outcome per handler branch, exhaustive in `OUTCOME_VALUES`) and `client_ref`/`blob8`, the per-client dimension — a **blob, never the index**, so `index1` stays roster-sized. Queries in [AUTH.md](../../../mcp-server/src/docs/operations/AUTH.md); decision + the distinct-count-has-no-sample-correction limitation in [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md). **Not done: no alert rule / `/status` row**, so nothing pages on a dead signup endpoint — next slice
+- [x] **Production go-live (operator)** — done 2026-09-08, verified by a real mint through the widget: set `TURNSTILE_SECRET_KEY` + `TRIAL_IP_HMAC_SECRET` on the production Worker, `PUBLIC_TURNSTILE_SITE_KEY` (the real widget) on Vercel Production and `PUBLIC_TRIAL_SIGNUP_ORIGIN` on Vercel Preview, then approve the `mcp-production` deploy — see `SECRETS_INVENTORY.md`
+- [x] **The two `503`s in the go-live window are operator test traffic — not a fault.** The 2026-09-09 probe run (BL-159) read `trial_signup` as `minted: 1`, `bad_request: 1`, `unavailable: 2`, and this stanza briefly carried them as an open incident. **Operator, 2026-09-09: "these were part of integration testing and troubleshooting — not an issue."** Closed on that basis, and left on the record rather than deleted, because the misreading is the useful part: a `503` from a deliberate secret-unbound test and a `503` from a real outage are the same event, and `trial_signup` carries nothing that separates them. Two consequences:
+  - **The go-live window is not a clean baseline.** The alert rule above must not be calibrated from 2026-09-08/09 data — its non-`minted` outcomes are mostly the operator exercising failure paths. Take a window that starts after the last hand-test — **the date of which is not recorded here and the operator should be asked for it** before the rule is written, since guessing it silently reintroduces the same contamination.
+  - **Consider whether a synthetic marker is worth it** before writing that rule. The traffic-spike rule already solved the same problem by excluding `keyOwner = 'PROBE'` (`alert-rules.ts` `SYNTHETIC_KEY_OWNERS`), but signup is unauthenticated and has no caller identity to exclude on — so if operator testing is expected to continue, the honest options are a test-only marker on the request or accepting that this rule pages on hand-tests. Decide it deliberately rather than discovering it at 2am. **The obvious third option is closed**: putting a `client_ref` on the failing branches so they can be excluded by identity reverses a recorded decision — [ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md) sets `client_ref` only on `minted` / `reissued` / `expired` because "attaching one to a pre-mint failure would fabricate a trial and pollute the distinct-actives count". The absence of an identity here is load-bearing, not an oversight to close
+
+#### Technical Context
+
+- **Nothing gates the `client_credentials` grant by tier** — `m2m-token.ts` reads `record.tier` only to stamp it into the token. So the moment this ships, BL-156's flow works too. **Operator decision (2026-09-06): leave it open.** The trial is contained identically at either door (expiry, trial ceilings, tier-scoped radar deny all read the token), a gate would be code BL-156 deletes, and BL-156 becomes docs and UX rather than capability. Consequence: the ADR amendment must describe both flows, since that is what the code does
+- **Minting a short-lived `MCP_KEY_*` is mechanically impossible** for self-serve — `matchToken` scans Worker env vars, so issuing one means a deploy per signup. Recorded so it is not re-proposed as the "simple" option
+- **Related items**: [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare) (the payments rail this deliberately does not use), [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial), [BL-154](#bl-154-architecture-reference--five-layer-diagram-set-and-a-storage-store-review) Slice 1 (the KV-vs-relational question this forces), [BL-004](#bl-004-email-capture-system) (deliberately avoided — Turnstile is the identity gate, not email)
+
+---
+
+### BL-156: Self-serve M2M credentials — the developer half of the trial
+
+**Source**: split out of [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) by operator call, 2026-09-06, to cut complexity | **Effort**: Small if BL-155 has shipped — mostly docs and UX, since the capability largely exists | **Status**: Open — not started | **Design**: inherits [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md); the former Slice 3b there is retained verbatim as this item's seed
+
+**As a** developer scoping GST's tooling for a pipeline, **I want** a self-serve credential I can exchange for a token from a script, **so that** I can prototype an integration without an onboarding conversation.
+
+> **Reuse BL-155's signup workflow and design wherever possible** (operator instruction). A visitor should meet **one** signup experience regardless of which credential they end up with. Inherited unchanged: the mint endpoint's Turnstile gate, IP limiter, lease/atomicity and fail-closed posture; the signup page's states, copy patterns and one-time-secret handling; and § Lost-credential recovery. Do not design a second front door.
+
+#### Acceptance Criteria
+
+- [x] **Decided: this is documentation and UX, not capability.** The operator chose (2026-09-06) to leave `client_credentials` ungated by tier, so a trial credential works at `/token` the moment BL-155 ships — see BL-155 § Technical Context
+- [ ] **A published developer-onboarding page.** Nothing on the website documents the `client_credentials` flow — [`/hub/mcp/get-started/`](../../pages/hub/mcp/get-started/index.astro) covers only the connector flow. Seed it from [`testing/uat/SETUP.md`](../../../mcp-server/src/docs/testing/uat/SETUP.md) § 0b/§ 1b, which is **client-safe by construction**. **Never** seed from [`operations/AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md) — an operator doc carrying `$MCP_ADMIN_KEY` curls and the revocation runbook
+- [ ] Content is the two-step exchange, concretely: `POST /token` with `grant_type=client_credentials` → an `mcp_m2m_*` bearer → `Authorization: Bearer` against `/mcp`
+- [ ] **State the hourly re-exchange out loud.** The bearer lasts one hour with **no refresh token**; a developer who mistakes the first token for the credential is confused sixty minutes later and reads it as a product defect
+- [ ] **Do not describe a config-file or custom-header integration.** There are no `X-GST-Client-*` headers and the credential cannot drive Claude Desktop. An early mockup invented both — see BL-155's § Scope for why, so it is not re-derived
+- [ ] Tier A if the page is to match BL-155's signup surface — note `/hub/mcp/get-started/` is **English-only** today, so localizing this one creates a deliberate asymmetry worth recording rather than silently resolving
+- [ ] The issued state **links** to this page rather than carrying instructions inline — one place to correct when the flow changes. **Interim (2026-09-07, BL-155 Slice 3)**: the signup page's "From code" presentation carries the two-step exchange inline (token exchange, then the authenticated call, with the hourly re-exchange callout), because linking to a page that does not exist would strand a visitor holding a one-time secret. When this page ships, the issued state gains a link and the inline steps become a summary
+
+#### Technical Context
+
+- **Already landed early, do not re-implement**: BL-155 Slice 1's expiry check on the `client_credentials` grant (`m2m-token.ts`) is strictly _this_ item's enforcement point. It shipped in BL-155 before the split, is correct where it sits, and costs nothing
+- **Why this was ever the whole initiative**: BL-155 was built upward from the credential and never backward from the user, so "mint an M2M client" looked like the trial rather than half of it. The full account, and the review-process gap that let it through eight rounds, is in [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) § Scope
+- **Related items**: [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) (must ship first — this reuses its signup surface), [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)
 
 ---
 
@@ -1665,10 +1753,10 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 - **Sequencing**: docs site and marketing page parallelize; request-access ships with/before the marketing page (a front door needs a doorbell); payments runbook before the first paid conversion; registry listing stays candidate
 - **Relationship to BL-033**: Phase 3 = pilot capability + trust infrastructure (retains pen test, load test, sandbox env, design-partner recruitment, regional latency, SLA — deferred, prompt-injection hardening — deferred). Phase 4 = the commercial front door
 - **Out of scope** (each with where the decision lives + the revisit trigger):
-  - **Self-serve signup / user directory / dynamic client registration** — [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md) records the stance and its revisit triggers; identity remains delegation over pre-registered clients
+  - ~~**Self-serve signup**~~ / **user directory / dynamic client registration** — [ADR-0008](../adr/0008-mcp-oauth-embedded-authorization-server.md) records the stance and its revisit triggers. **Amended 2026-09-07**: self-serve signup shipped as the bounded 3-day trial ([BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment), ADR-0008 amendment); the no-user-directory / no-DCR half stands — the trial record is a credential, and identity outside the trial remains delegation over pre-registered clients
   - **Usage-metered billing** — tiers are capability ceilings ([ADR-0010](../adr/0010-per-client-rate-limit-tiers.md)). Trigger: a client asks for usage-based pricing, or invoice disputes require per-call metering (the per-`keyOwner` telemetry is the seam)
   - **SLA ratification** — stays deferred under BL-033 (operator directive); nothing in this stanza may ratify one by implication
-  - **Public checkout / webhook-driven tier automation** — ~~trigger: request-access volume makes operator-driven invoicing the bottleneck~~ **no longer out of scope**: the operator made a fresh go-decision on 2026-08-15 without waiting for the volume trigger, and it is now filed as [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare). The invoice-first payments ACs above stand for negotiated/enterprise deals; BL-133 owns the card-and-webhook path. Note this decision addresses only the payments bullet — self-serve _signup_/DCR, usage-metered billing, and SLA ratification all remain out of scope as recorded
+  - **Public checkout / webhook-driven tier automation** — ~~trigger: request-access volume makes operator-driven invoicing the bottleneck~~ **no longer out of scope**: the operator made a fresh go-decision on 2026-08-15 without waiting for the volume trigger, and it is now filed as [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare). The invoice-first payments ACs above stand for negotiated/enterprise deals; BL-133 owns the card-and-webhook path. Note this decision addresses only the payments bullet — DCR, usage-metered billing, and SLA ratification all remain out of scope as recorded (self-serve _signup_ has since shipped as BL-155's trial; see the amended bullet above)
 
 ---
 
@@ -1680,7 +1768,7 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 >
 > The evidence was right and the question was wrong: "no external clients" was verified, but what governs is _what protocol version the client software speaks_. This stanza's own decision to keep **stdio** on its legacy lane made exactly that argument, and it was not applied to the Worker — the team points Claude Desktop at the remote surface too. The `era` telemetry that would have shown this in one log line was an AC of this initiative that was silently dropped during implementation; it ships in 0.44.1. Full account: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) § Amendment 2026-08-04.
 
-Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because its six dated per-instance bullets are the only record of sightings 1–6 of the flake now owned by [BL-149](#bl-149-diagnose-the-unstable_dev-suite-flake--ten-instances-three-files-no-reproduction) — they hold evidence BL-149's table does not — and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury. (The reason it was ORIGINALLY kept, that the flake evidence had nowhere better to live, was retired 2026-09-02 when BL-149 became that home.)
+Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because its six dated per-instance bullets are the only record of sightings 1–6 of the flake now owned by [BL-149](#bl-149-diagnose-the-5000ms-first-use-suite-flake--twenty-instances-six-files-reproducible-in-isolation-at-37) — they hold evidence BL-149's table does not — and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury. (The reason it was ORIGINALLY kept, that the flake evidence had nowhere better to live, was retired 2026-09-02 when BL-149 became that home.)
 
 **What shipped**: migration to `@modelcontextprotocol/server@2.0.0`; `Mcp-Method` / `Mcp-Name` through the CORS preflight; `ttlMs` / `cacheScope` published on library and regulation reads; `cors.ts` promoted to sole origin authority; production `npm audit` restored to zero (it was already failing on `master`).
 
@@ -1691,7 +1779,7 @@ Retained rather than pruned — not because its findings lack a home (both are d
 1. The SDK v2 handler runs its **own** Host/Origin gate. Left at its default the accepted set is the localhost trio, so on a custom domain every request carrying `Origin: https://claude.ai` gets a **403** — the exact browser clients the allowlist exists for, and a failure mode the legacy handler did not have. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the fix.
 2. `with-metrics.ts` located its notifier by duck-typing on a field v2 renamed, and the function is contractually non-throwing — so the rate-limit warning would have died **silently**, with the soft-limit tests staying green against their own fake. Both the production view and the fake are now bound to the SDK's `ServerContext` so a rename is a compile error.
 
-**Standing caution** — **superseded by [BL-149](#bl-149-diagnose-the-unstable_dev-suite-flake--ten-instances-three-files-no-reproduction), which now owns the tally and the diagnosis.** This stanza carried the record while it had no better home; it had gone stale at six instances (the count reached nine on 2026-09-01). The finding it established still stands and is restated there: cold start is ruled out by evidence, and what is shared is the HARNESS, not the test — so a per-test fix would only move it. Do not maintain a second tally here. **The six dated bullets below are retained as instance-level detail for 1–6 only** — they hold evidence BL-149's table does not (the lockfile-stash experiment, the `npm ls` check, the 2575 full-suite pass). The canonical record, and the count, live in BL-149.
+**Standing caution** — **superseded by [BL-149](#bl-149-diagnose-the-5000ms-first-use-suite-flake--twenty-instances-six-files-reproducible-in-isolation-at-37), which now owns the tally and the diagnosis.** This stanza carried the record while it had no better home; it had gone stale at six instances (the count reached nine on 2026-09-01). The finding it established still stands and is restated there: cold start is ruled out by evidence, and what is shared is the HARNESS, not the test — so a per-test fix would only move it. Do not maintain a second tally here. **The six dated bullets below are retained as instance-level detail for 1–6 only** — they hold evidence BL-149's table does not (the lockfile-stash experiment, the `npm ls` check, the 2575 full-suite pass). The canonical record, and the count, live in BL-149.
 
 - **2026-08-04** — `1 failed | 1973 passed`; seven other full runs green.
 - **2026-08-17** — `1 failed | 2391 passed`, during the BL-136 lockfile work. Two later runs passed, **including one deliberately executed against the pre-change lockfile** (stash the lockfile, reinstall, re-run), which is what rules the dependency bump out as the cause. Not the cold-start case either: an earlier `test:mcp` the same session had already passed 2392, so the worker was warm.
@@ -1903,28 +1991,68 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 ---
 
-### BL-149: Diagnose the `unstable_dev` suite flake — ten instances, three files, no reproduction
+### BL-149: Diagnose the 5000ms first-use suite flake — twenty instances, six files, reproducible in isolation at ~37%
 
-**Source**: ten unreproduced single-test failures in the `@gst/mcp-server` suite between 2026-08-04 and 2026-09-03, recorded in [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) and carried as a standing caution on [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) until 2026-09-02 | **Effort**: Medium — the work is reproduction and instrumentation, not a fix; the fix may be small once the cause is known | **Status**: Open
+**Source**: seventeen single-test failures in the `@gst/mcp-server` suite between 2026-08-04 and 2026-09-08, recorded in [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) and carried as a standing caution on [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) until 2026-09-02 — plus instances 18–20 on 2026-09-09, one of them in the WEBSITE suite | **Effort**: Medium — the work is reproduction and instrumentation, not a fix; the fix may be small once the cause is known | **Status**: Open
 
 **As an** engineer running `npm run test:mcp` before a push, **I want** a green suite to mean the code is green **so that** I stop spending a re-run and a judgement call on every full-suite invocation, and stop having to prove a failure is the known flake rather than my own regression.
 
-**What it is.** One test in the mcp-server suite times out at ~5000ms, in a run that is otherwise entirely green. It has never reproduced in isolation — every captured instance went green on an immediate re-run of the same file alone (10/10, 7/7, 5/5 across instances). In every instance whose name survives and whose branch is on record — 5 through 9 — it landed in code the diff did not touch. For 1 and 2 the name is lost and for 3 the branch is on record (a master merge) but its diff was never checked against the failure, and for 4 not even the branch was recorded, so for 1–4 this is unestablished rather than true.
+**Instance 16 is the first isolated reproduction, and it points somewhere specific.** After the full-suite failure, `trial-signup.test.ts` was run alone 17 times: **1 failed** (5578ms, same test, same 5000ms timeout). The failure clustered — 1 of the first 5, then 0 of the next 12 — so the honest rate is ~6%, not the ~20% the first batch suggested. Two consequences:
 
-| #   | Date       | Total                     | Test                                                | Isolated re-run |
-| --- | ---------- | ------------------------- | --------------------------------------------------- | --------------- |
-| 1   | 2026-08-04 | `1 failed \| 1973 passed` | **name lost**                                       | —               |
-| 2   | 2026-08-17 | `1 failed \| 2391 passed` | **name lost to a `grep` pipe**                      | —               |
-| 3   | 2026-08-22 | `1 failed \| 2574 passed` | `protocol-era-worker` › browser-origin `tools/list` | 10/10 green     |
-| 4   | 2026-08-28 | `1 failed \| 2703 passed` | same                                                | 10/10 green     |
-| 5   | 2026-08-30 | `1 failed \| 2711 passed` | `oauth-introspection` › admin key 401               | green           |
-| 6   | 2026-08-31 | `1 failed \| 2711 passed` | `protocol-era-worker` › same case                   | 10/10 green ×2  |
-| 7   | 2026-09-01 | `1 failed \| 2711 passed` | same                                                | 10/10 green     |
-| 8   | 2026-09-01 | `1 failed \| 2712 passed` | `cors` › OPTIONS preflight 204                      | 7/7 green       |
-| 9   | 2026-09-01 | —                         | `protocol-era-worker` › same case                   | 5/5 green       |
-| 10  | 2026-09-03 | `1 failed \| 2712 passed` | `protocol-era-worker` › same case                   | 10/10 green ×3  |
+- **"Never reproduces alone" is retired.** The file does not need the full suite to fail, so full-suite _load_ is not the mechanism. That was the leading hypothesis and it is now weaker, not stronger.
+- ~~**The failing test is the FIRST `it` in its file, in every `trial-signup` instance** (11, 12, 15, 16; instance 13 hit the first _and_ the fourth).~~ **Refuted by instance 18 (2026-09-09)** — see below; the victim is the first test to touch a given SUBSYSTEM, which is usually but not always the first `it`. Retained because the reasoning that follows it is still the right reasoning. The first test in an `unstable_dev` file is the one that pays the Worker boot, and the timeout is the 5000ms default. That reframes the question from "what is flaky about this assertion" to **"how long can `unstable_dev` take to boot, and why is a boot allowed to consume a test's timeout budget"** — testable by timing `beforeAll` boot directly across many runs.
 
-Tally: **six** on `protocol-era-worker`, one on `oauth-introspection`, one on `cors`, two unnamed. All three named files use `unstable_dev`. Instance 10 landed in a full-suite validation of a dependency-override change (PR #447) that touched no Worker source; it was the fourth `test:mcp` run of that day on the same machine, so warm.
+This is the strongest lead the initiative has had, and it did not come from the full suite. **Next step is measurement, not a fix** — and specifically NOT a timeout bump, which would hide the only signal.
+
+#### Instances 18–20 (2026-09-09) — the isolated rate is ~37%, and it is not `unstable_dev`-only
+
+Found during BL-158's validation run, in a diff that changed **only comments and Markdown** (verified: `git diff` on `mcp-server/src` contained no executable line). Three things move here, and the third is the one that reframes the initiative.
+
+**1. The isolated reproduction rate is far higher than instance 16 suggested.** `tests/integration/trial-signup.test.ts` run alone, 8 times: **3 failed** (runs 1, 3 and 4; 5007ms / 5015ms / 5000ms). That is ~37%, against the ~6% instance 16 measured over 17 runs of the same file. The honest reading is that the rate is not stable between sessions — machine state matters — so **quoting a single rate is the mistake**; what is now firmly established is that the file reproduces alone, often, and cheaply. This is the reproduction handle the initiative has wanted for twenty instances: a ~40-second command that fails roughly a third of the time.
+
+**2. "The FIRST `it`" is refuted, and the better rule is visible.** Instance 18's run 1 failed the **fourth** test (`fails CLOSED with only Upstash unbound`) while the first three passed; runs 3 and 4 failed the first. The full-suite failure the same morning took the first _and_ the fourth. What those two tests share is not position: the first test issues the file's first `worker.fetch`, and the fourth issues the first `/admin/oauth/m2m-clients` fetch, which is the first to touch **KV**. So the victim is **the first test to exercise a given subsystem**, each paying that subsystem's lazy initialization against the 5000ms default. `beforeAll` gets an explicit `60_000`; the `it`s get the default — that asymmetry is the whole bug surface.
+
+**3. The same shape appeared in the WEBSITE suite, which has no `unstable_dev` at all.** `npm run test:run` failed `tests/integration/spacing-lint-rule.test.ts > flags a hardcoded on-scale literal in css` at 5000ms, green 2/2 in isolation, in a diff touching no CSS or stylelint file. That test's first case pays stylelint's module load and config resolution. If this is the same phenomenon — and the signature is identical: first use of a heavyweight subsystem, default 5000ms, green in isolation, unrelated diff — then **the framing "`unstable_dev` harness flake" is too narrow**, and the invariant is `first heavyweight initialization vs. the 5000ms default`. Recorded as a strong lead rather than a conclusion: one website instance is not a pattern, and it is the first ever seen outside the mcp suite.
+
+**Second website sighting, 2026-09-09 (instance 21), same test.** `spacing-lint-rule.test.ts > flags a hardcoded on-scale literal in css`, 5000ms again, green 25/25 in isolation again, in BL-159's validation run — a diff touching no CSS and no stylelint config. The stanza asked for a second instance before widening scope formally; this is it. **Treat the invariant as `first heavyweight initialization vs. the 5000ms default`, not as an `unstable_dev` problem** — `unstable_dev` is the most common way to hit it in this repo, not the cause. Two suites, two harnesses, one signature. The same run also produced the mcp flake (`trial-signup.test.ts` again, 2 of 4 on an isolated re-run), so both suites failed the same way in one validation pass.
+
+**Reproduced on `master` itself, 2026-09-09 (instance 22) — the attribution question is now settled.** BL-159's code review ran `trial-signup.test.ts` on **`master`**, off the branch entirely, and reproduced the same two 5000ms timeouts at roughly **one run in three**. Every prior instance was recorded against a feature branch and needed the "the diff does not touch this code" argument to be believed; this one needs no argument at all. Note the interesting wrinkle: the two failures it produced are the same pair the full-suite run produced (the first `worker.fetch` and the first KV fetch), which is the subsystem rule above holding on a second machine-state. A third isolated batch on the branch minutes later went **3/3 green** — so the rate genuinely swings between batches, and the stanza's warning against quoting a single rate stands reinforced.
+
+**What this changes about the next step.** Measurement is still the next step and a timeout bump is still forbidden — but the target sharpens: instrument `unstable_dev` boot AND first-fetch-per-subsystem latency across ~50 isolated runs of `trial-signup.test.ts`, which is now known to fail often enough to yield a distribution rather than an anecdote. If first-fetch latency has a long tail crossing 5000ms, the fix is an explicit per-file timeout justified by measured p99 — which is not a "bandaid" bump, because it would be a number derived from evidence rather than raised until green. Watch the website suite for a second instance before widening the stanza's scope formally.
+
+**Instance 14 is a process failure as much as a data point.** The full-suite output was piped through `tail -12`, so the failing test names never reached disk — the same mistake as instance 2, and the one [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) warns about in terms ("redirect the suite to a file rather than piping it through `grep`"). What survives is the shape: **two** failures in one file out of 2862, green on a full re-run, in a slice whose diff touched no `unstable_dev` test. That matched instance 13 and no earlier one, which made a two-failure `trial-signup` pair the leading suspect. **Instance 15, captured properly forty minutes later on the same tree, is that same `trial-signup` test** — which corroborates the suspicion without converting it into a record. **Two of seventeen instances remain unattributable for the same avoidable reason.**
+
+**What it is.** One test in the mcp-server suite times out at ~5000ms, in a run that is otherwise entirely green — though instances 13 and 14 each took down **two** tests in the same file, so "one test" is the usual shape rather than the rule. Until 2026-09-08 it had never reproduced in isolation — every captured instance went green on an immediate re-run of the same file alone (10/10, 7/7, 5/5 across instances). **Instance 16 broke that.** In every instance whose name survives and whose branch is on record — 5 through 9 — it landed in code the diff did not touch. For 1 and 2 the name is lost and for 3 the branch is on record (a master merge) but its diff was never checked against the failure, and for 4 not even the branch was recorded, so for 1–4 this is unestablished rather than true.
+
+| #   | Date       | Total                     | Test                                                                                            | Isolated re-run                                         |
+| --- | ---------- | ------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 1   | 2026-08-04 | `1 failed \| 1973 passed` | **name lost**                                                                                   | —                                                       |
+| 2   | 2026-08-17 | `1 failed \| 2391 passed` | **name lost to a `grep` pipe**                                                                  | —                                                       |
+| 3   | 2026-08-22 | `1 failed \| 2574 passed` | `protocol-era-worker` › browser-origin `tools/list`                                             | 10/10 green                                             |
+| 4   | 2026-08-28 | `1 failed \| 2703 passed` | same                                                                                            | 10/10 green                                             |
+| 5   | 2026-08-30 | `1 failed \| 2711 passed` | `oauth-introspection` › admin key 401                                                           | green                                                   |
+| 6   | 2026-08-31 | `1 failed \| 2711 passed` | `protocol-era-worker` › same case                                                               | 10/10 green ×2                                          |
+| 7   | 2026-09-01 | `1 failed \| 2711 passed` | same                                                                                            | 10/10 green                                             |
+| 8   | 2026-09-01 | `1 failed \| 2712 passed` | `cors` › OPTIONS preflight 204                                                                  | 7/7 green                                               |
+| 9   | 2026-09-01 | —                         | `protocol-era-worker` › same case                                                               | 5/5 green                                               |
+| 10  | 2026-09-03 | `1 failed \| 2712 passed` | `protocol-era-worker` › same case                                                               | 10/10 green ×3                                          |
+| 11  | 2026-09-07 | `1 failed \| 2816 passed` | `trial-signup` › routed ahead of the auth gate                                                  | 4/4 green                                               |
+| 12  | 2026-09-08 | `1 failed \| 2816 passed` | same                                                                                            | 4/4 green                                               |
+| 13  | 2026-09-08 | `2 failed \| 2845 passed` | `trial-signup` › routed ahead of the auth gate **and** › fails CLOSED with only Upstash unbound | **first isolated re-run ALSO failed**; second 4/4 green |
+| 14  | 2026-09-08 | `2 failed \| 2860 passed` | **names lost to a `tail -12` pipe** — same two-failure shape as 13                              | full suite green on re-run (2862/2862)                  |
+| 15  | 2026-09-08 | `1 failed \| 2861 passed` | `trial-signup` › routed ahead of the auth gate (5115ms)                                         | 4/4 green                                               |
+| 16  | 2026-09-08 | `1 failed \| 2862 passed` | `trial-signup` › routed ahead of the auth gate (5524ms)                                         | **REPRODUCED in isolation** — 1 of 17 runs (5578ms)     |
+| 17  | 2026-09-08 | `1 failed \| 2862 passed` | `trial-signup` › routed ahead of the auth gate (5017ms)                                         | not re-run in isolation (16 already established it)     |
+
+Tally: **six** on `protocol-era-worker`, **six** on `trial-signup` (11, 12, 13, 15, 16, 17), one on `oauth-introspection`, one on `cors`, two unnamed (2, 14).
+
+**"Is it the diff?" was answered by experiment for the first time (2026-09-08).** Instances 14-17 arrived during one slice, which raised the obvious suspicion that the slice's two new test files were the cause. Re-running the suite three times with exactly those two files excluded (`vitest run --exclude`) still produced the failure once — so the flake does not need them, and the slice is ruled out as the cause rather than merely assumed innocent. Earlier instances asserted "the diff did not touch this code", which is weaker: it reasons about the diff's CONTENT instead of testing its PRESENCE. Prefer the exclusion run; it costs one suite invocation.
+
+Sample sizes are small enough to be worth stating plainly: 3 of 3 full-suite runs failed with the new files present, 1 of 3 with them excluded. That difference is not significant at n=3 and must not be read as the files making it worse.
+
+**The rate rose sharply, and the timing is suggestive.** Instances 14-17 all landed on 2026-09-08 within a few hours, against thirteen instances in the preceding month. `trial-signup.test.ts` was added 2026-09-07 (`ab33454a`, BL-155 Slice 2) and accounts for six of the seventeen, all of them since. It is the newest `unstable_dev` file, so the suite now boots one more Worker than it did a month ago — consistent with the boot-cost reading above, where the cost is the SUITE's total boot load and the victim is whichever file's first test draws the short straw. Cheap check before anything else: count `unstable_dev` files over time against the instance dates. All four named files use `unstable_dev`. Instances 11 and 12 are the same test on consecutive days; 12 landed in a full-suite validation whose diff touched **no mcp-server source at all** (a website marketing-copy change plus three operator docs), which is the cleanest "the diff is not the cause" datapoint in the table — there was no Worker code under test to have broken it.
+
+**Instance 13 breaks the "green in isolation" pattern and is the most diagnostic entry yet.** It is the first to fail **two** tests in one run, and the first whose _isolated_ re-run also failed before a second attempt went green — every prior instance recovered on the first isolated retry. Its diff added a JSON artifact, a test file and docs; no Worker source. The read this supports: the flake is a function of **machine load at boot time**, not of full-suite execution per se — the failing isolated run came immediately after a full suite, while the green one came a few minutes later. That predicts the `beforeAll` `unstable_dev` boot is the contended step, and it is a testable hypothesis: instrument the boot duration and correlate against concurrent load, rather than continuing to re-run and shrug. Instance 10 landed in a full-suite validation of a dependency-override change (PR #447) that touched no Worker source; it was the fourth `test:mcp` run of that day on the same machine, so warm.
 
 **What is already ruled out, by evidence rather than assumption:**
 
@@ -1948,6 +2076,188 @@ Tally: **six** on `protocol-era-worker`, one on `oauth-introspection`, one on `c
 - [ ] If the cause proves to be upstream (`wrangler`/`workerd`/`miniflare`), either pin or file upstream — the nine instances are attributable to **wrangler 4.125.0 / vitest 4.1.11** (resolved, not the floating `^` specifiers), recorded now while they are still what ran — an unfixable cause is still a closed question, but "we think it is upstream" is not
 
 **Not a candidate for deferral-with-trigger.** The trigger already fired nine times; the reason this has not been worked is that each individual instance is cheap to shrug off, which is how a harness defect survives four weeks and nine sightings without an owner.
+
+---
+
+### BL-157: four declared AE event types emit nothing — the metrics schema advertises more coverage than exists
+
+**Source**: found 2026-09-08 while auditing trial observability for [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment); **widened the same day** from one dead type to five while building the Grafana dashboard, when the plan-reviewer caught `health_check` and a per-type emit-site count turned up three more; **`rate_limit_decision` closed the same day**, taking it to four | **Effort**: Small-to-Medium per type — the wiring is a few lines | **Status**: Open (4 of 5 remaining)
+
+**As an** operator, **I want** the event types the schema declares to actually be recorded **so that** reading `_schema.ts` tells me what is observable, and so a dashboard panel over one of them shows data rather than a convincing blank.
+
+**Closed 2026-09-08 — `rate_limit_decision`.** Emitter wired at [`metrics/pipeline-events.ts`](../../../mcp-server/src/metrics/pipeline-events.ts), invoked from the limiter branches in `pipeline/handle-authenticated.ts`, with panels, a probe-script section and cookbook SQL. The emission policy this stanza demanded be settled first is [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md): **refusals only, never `allow`** — an `allow` event fires per authenticated request and would push the dataset toward sampling, degrading the one shape (`count(DISTINCT blob8)`) that has no sample correction. The same slice added a **new** type, `tier_denial`, for trial radar refusals, which were invisible for a different reason: the tier gate returns before any tool wrapper runs, so no `tool_invocation` existed to carry them.
+
+**The evidence.** `EVENT_TYPES` in [`metrics/_schema.ts`](../../../mcp-server/src/metrics/_schema.ts) declares thirteen types. **Four emit nothing in production:**
+
+| Type                      | State                                                                                                                                  |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| ~~`rate_limit_decision`~~ | **CLOSED 2026-09-08** — emitted on refusal only (ADR-0032).                                                                            |
+| `health_check`            | Declared `:41` with outcomes at `:243`. **No emitter anywhere.** `/status` health comes from live `buildHealthPayload` probes, not AE. |
+| `prompt_span`             | `emitPromptSpan` exists (`metrics/prompt-span.ts:47`); **no call site** outside `metrics/` and its own test.                           |
+| `wrong_irl_detected`      | `emitWrongIrlDetected` exists (`metrics/irl-ingestion-events.ts:43`); no call site.                                                    |
+| `gate_elided`             | `emitGateElided` exists (`:68`); no call site.                                                                                         |
+
+Consequences:
+
+- There is **no AE record of a health check**.
+- **A declared-but-dead entry is worse than an absent one**: it makes the schema look like health is covered. This nearly shipped five empty Grafana panels reading as "no throttling, all healthy" — the dashboard's guard test forbids panels over the remaining four, and its text panel names each one, but that is containment, not a fix.
+
+**How the `rate_limit_decision` decision came out**, since the reasoning generalises to the rest. This stanza framed the trade as "emit only on refusal is cheap but loses the denominator". That turned out to be the weaker half: the denominator is largely reconstructable (attempts ≈ invocations + denies, an upper bound that undercounts non-tool traffic), whereas the thing `allow` would cost — `count(DISTINCT blob8)` degrading under sampling — is **not** recoverable, because a distinct count is the one shape Cloudflare publishes no correction for (its corrected `count` is the plain row counter). So the tie-break was not volume-vs-cost but _which metric survives sampling_. [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md) records it, including the rejected 1-in-N option and the two revisit triggers.
+
+- [x] `rate_limit_decision`: emission policy chosen and recorded — [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md)
+- [x] `rate_limit_decision`: emitter wired (`metrics/pipeline-events.ts`), panels added, `Verify-AeEmission.ps1` + AUTH.md + RATE_LIMITS.md extended, removed from `NON_EMITTING_TYPES`
+- [ ] **Alert rule on refusal volume** — deliberately NOT shipped with the emitter: `runbook-freshness.test.ts` requires every threshold to cite a baseline in `slo-baselines.md`, and there is none for a metric that had never been emitted. **Trigger**: after the self-serve trial has run in production long enough to establish a normal refusal rate, set a threshold from what is observed, add the rule + its runbook, and record the baseline. Until then the panels are pull, not push
+- [ ] `health_check`: decide whether AE should carry it at all, given `/status` reads live probes. If not, delete the declaration rather than leave it advertising coverage
+- [ ] `prompt_span` / `wrong_irl_detected` / `gate_elided`: wire the existing emitters at their intended call sites, or delete emitter + declaration together. These are cheaper decisions than the first two — the code exists, it was simply never called
+- [ ] Whatever is wired: extend `Verify-AeEmission.ps1`, the AUTH.md / RATE_LIMITS.md query cookbooks, and **add a panel + remove the name from `NON_EMITTING_TYPES`** in `tests/unit/observability/grafana-dashboard.test.ts` and the dashboard's text panel
+- [ ] Whatever is deleted: remove it from `EVENT_TYPES`, `OUTCOME_VALUES`, the `schema.test.ts` snapshots, and the `blob1` lists in `ARCHITECTURE.md` / `DEPLOY.md`
+
+### BL-158: the Grafana dashboard renders, but two of its SQL assumptions are wrong
+
+**Source**: found 2026-09-08 the hour the dashboard first saw real data, when BL-155's first production mint made the trial panels non-empty | **Effort**: Small-to-Medium (actual: one session) | **Status**: **Closed 2026-09-09** — both defects fixed, both classes now mechanically guarded, and the operator verification done the same day
+
+**As an** operator reading this dashboard, **I want** a panel titled "by outcome" to actually split by outcome **so that** I am not reading one merged line as though it were a breakdown, and **so that** a panel which cannot work fails loudly instead of looking quiet.
+
+Both defects shipped in `deb4034b` / `68b83d0f` and neither was catchable by the guard test, because both are **semantic**: the SQL is syntactically valid, obeys the two dialect rules the guard pins, and renders without error. This is the exact class of failure [`GRAFANA.md`](../../../mcp-server/src/docs/operations/GRAFANA.md) warned about when it recorded the SQL as _guard-verified, not executed_ — and executing it is what found them, within minutes.
+
+#### Defect 1 — the multi-series panels silently merge (confirmed, fixed)
+
+Five `timeseries` panels were written as `SELECT $timeSeries AS t, blob4 AS outcome, sum(_sample_interval) AS n ... GROUP BY blob4, t`. Altinity's plugin turns extra **columns** into series; an extra **grouped row** per timestamp merges into one line. Observed in production: _Trial signups over time, by outcome_ rendered a single legend entry `n` while the neighbouring table showed three distinct outcomes in the same window. Not empty, not erroring — **wrong in a way that reads as right**.
+
+**Fixed** with one `sumIf(_sample_interval, col = 'value') AS value` column per value, which stays a flat SELECT and keeps sample weighting. `$columns(key, value)` — the macro that exists for this — was **not** used: it expands to `groupArray` over a subquery, and `groupArray` is absent from Cloudflare's aggregate reference. Choosing `sumIf` made that question moot rather than requiring a probe to settle it.
+
+**Two panels needed a deliberate exclusion, not four columns of five.** This was the subtle part, and the plan review caught the second one:
+
+- _Refusals over time_ — `OUTCOME_VALUES.rate_limit_decision` lists `allow`, which [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md) never emits. Two columns, not three.
+- _Zone-1 calls over time_ — `NAME_VALUES.inoreader_call` lists `oauth-refresh`, the one category carrying `zone1='0'`, which this panel's own `blob7 = '1'` filter excludes. Four columns, not five.
+
+In both cases a naive derive-from-the-schema column list would plot a **permanently-zero series** — the same "empty reads as good news" failure one layer down, and in the `allow` case it would also have tripped the existing allow-series guard.
+
+_Invocations over time, by keyOwner_ **became a table** (_Top keyOwners in window_). Splitting it needs one column per value, and the `index1` roster grows whenever a key is issued, so no column list could stay correct. Of the three options weighed, the table is the one that cannot go stale, and it answers the ranking question more directly than the merged line ever did.
+
+#### Defect 2 — `uniq()` is undocumented; resolved without the observation this stanza demanded
+
+The stanza said to resolve this empirically: look at the panel, and if it errors, `uniq` is rejected. **That observation turned out to be unnecessary**, and two findings are worth keeping:
+
+1. **A third defect of the same class was hypothesised and disproved.** Panel 9's `quantileWeighted` is absent from the summary aggregate list — but the reference documents it as a backward-compat alias of `quantileExactWeighted`, and production `/status` renders real percentiles from exactly that query every fifteen minutes (`status-metrics.ts:81-88`). It executes. **`/status` is a live, free proof that a given AE query shape works** — worth remembering as a probe that needs no token.
+2. **Therefore absence from that page is not proof of rejection.** The honest verdict on `uniq` is _unknown_, not _broken_.
+
+Which makes the fix independent of the answer: `count(DISTINCT column_name)` **is** documented, is semantically identical here, and is the safer spelling whether or not `uniq` works. Switched on documented-beats-undocumented grounds — deliberately **not** claimed anywhere as a fix for a proven breakage, which would repeat the invented-regression error this stanza already corrected once.
+
+[ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md) carries the amendment; [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md) is re-validated unchanged, since the missing sample correction is a property of distinct counting rather than of a function name — the stanza's worst case (its core argument needing re-examination) did not materialise.
+
+**One trap in the rename, which the review caught and is worth stating.** Both ADRs _enumerate_ the corrected aggregates as `count`/`sum`/`avg`/quantiles and then say `uniq` is not among them. A straight token swap yields "Cloudflare corrects `count` … but not `count(DISTINCT)`" — self-contradictory on its face. Every rewritten site gained the distinguishing sentence: **the corrected `count` is the plain row counter; `count(DISTINCT x)` is a different aggregate that merely shares its name.**
+
+#### The guards that now exist, and the two that had to be repaired first
+
+Three new rules in [`grafana-dashboard.test.ts`](../../../mcp-server/tests/unit/observability/grafana-dashboard.test.ts), each mutation-verified in both directions:
+
+- a `format: "time_series"` target may not `GROUP BY` anything but the time alias — Defect 1 made mechanical
+- every aggregate must appear in an allowlist transcribed from Cloudflare's reference — Defect 2 made mechanical
+- each enumerable split panel needs one `sumIf` column per schema value, carrying the two exclusions above with the reason each is excluded
+
+**Two existing rules actively rejected the correct fix** and had to be repaired in the same change — the "prove the guard probes something" trap, in its most expensive form:
+
+- the sample-weighting rule forbade `count(` outright, so `count(DISTINCT blob8)` failed it
+- the caveat rule asserted `uniqPanels.length > 0`, so removing the last `uniq` turned it red
+
+Both now key on the invariant rather than the spelling, and the vacuity floor was **kept** on the combined `uniq(|count(DISTINCT` set — dropping it would have made the rule silently pass over zero panels, which is the same trap facing the other way.
+
+#### Picked up while here
+
+- `DEPLOY.md` cookbook SQL carried an unweighted `SELECT count()` — the exact rule this stanza is about, in a file no guard reads. Corrected to `sum(_sample_interval)`.
+- `GRAFANA.md` still claimed the dashboard SQL "has NOT been executed against a live AE dataset". Rewritten to say what execution found.
+- `SECRETS_INVENTORY.md` still called the Grafana datasource configuration "pending"; it has served production data since 2026-09-08.
+
+#### Still open — operator only
+
+- [x] **Re-import the dashboard and run each rewritten query through the probe** — done 2026-09-09. All four rewritten splits returned one column per series, and **`count(DISTINCT blob8)` executed without error** (`distinct_trials: 0`), which answers Defect 2's blocking observation: **AE accepts it**, and ADR-0031's amendment stands as written. The same run surfaced two further defects and a bug in the probe itself, all filed as [BL-159](#bl-159-a-page-severity-alert-that-could-never-fire-and-two-panels-that-could-not-answer-their-titles). Original instruction retained below because it is still how to do it:
+  - _(Original instruction, kept as a record — deliberately **not** a checkbox, so this closed stanza has no unticked box implying open work.)_ ~~Re-import the dashboard and run each rewritten query through the probe (`scripts/Verify-AeEmission.ps1`, or the `curl` shape in `DEPLOY.md § C.X`). **Check the shape, not just the row count**: a merged split still returns rows. This is the one box that cannot be closed from the repo — no `CF_AE_TOKEN` in the dev environment — and it is the only thing that converts the rewritten SQL from guard-verified to executed.~~ Superseded on the tooling half by `scripts/Probe-DashboardSql.ps1` (BL-159), which reads the queries out of the dashboard JSON instead of asking the operator to paste them.
+
+#### The lesson worth keeping
+
+The guard test pinned _dialect rules_ and _schema bindings_, and did both jobs. Neither defect was in that class. **A query can be valid, schema-bound, sample-weighted, and still answer a different question than its title claims.** Execution against real data is not interchangeable with static verification — but the response is not "always execute", it is to keep converting each executed discovery into a rule, which is what the three new guards do.
+
+### BL-159: a page-severity alert that could never fire, and two panels that could not answer their titles
+
+**Source**: the BL-158 probe's first production run, 2026-09-09 | **Effort**: Medium — one new event type at two call sites, two panel rewrites, two guards | **Status**: **Closed 2026-09-09**, operator verification done the same day — the two panel defects (B, C) confirmed fixed against live data; **the repointed alert (Defect A) remains unexercised** until a real scope 403 occurs, and its probe result was a legitimate zero
+
+**As an** operator, **I want** an alert that cannot fire to fail a build **so that** I am not reassured by a monitor that has never once been capable of reporting the thing it is named for.
+
+Found by executing SQL against production, not by review and not by tests — the suite was green throughout. This is the third and fourth instance of one defect class in two days, which is why most of the work here is the guard rather than the two edits.
+
+#### Defect A — `scope-mismatch-403-rate` was dead twice over
+
+`alert-rules.ts`, severity **`page`**, the attack signal for a leaked or replayed key:
+
+```sql
+WHERE blob1 = 'tool_invocation' AND blob4 = 'error' AND blob6 = '403'
+```
+
+**Nothing writes `status_code` on `tool_invocation`** — the only writers are the Inoreader egress pair, `trial/signup.ts`, and `pipeline-events.ts`. **And the 403 it hunts emitted no AE event at all**, only a `safeLog` line, so even corrected to the right event type it would have queried nothing.
+
+It reported a healthy `0 scope-mismatch 403s in 15 min` on `/status` for its entire life. **That is the most dangerous shape a monitoring defect can take: a rule that cannot fire is indistinguishable from a rule with nothing to report.** Every quiet period before 2026-09-09 is unmeasured, not clean — recorded in the runbook, because that is where someone will look during an incident.
+
+**Fixed** with a `scope_denial` event type on the BL-157 `tier_denial` precedent, emitted at **both** denial paths and the alert repointed at it.
+
+**The second call site is the finding worth keeping.** The first draft of this fix emitted at one site, on the stated basis that "exactly one runtime gate exists" — a survey of `hasScope` call sites. But denial happens through `assertScope`, its _wrapper_, and `resources/radar.ts` calls that for the same scope over MCP `resources/read`. Emitting at only the HTTP gate would have left a page-severity alert measuring half its surface: **this stanza's own defect class, reintroduced by its fix, in the same session that documented it.** Caught by plan review. The lesson generalises past this repo — _survey the behaviour, not the function name_; grepping one primitive silently excludes its wrappers.
+
+Rejected: folding it into `tool_invocation` as a 403 error (exactly what ADR-0032 rejected for `tier_denial` — it corrupts the error-rate math this very alert consumes), and reusing `tier_denial` (that is the trial-paywall upgrade-intent signal; mixing scope refusals into it corrupts the one panel BL-157 built for commercial reads).
+
+**Its tests were green the whole time, and that is instructive.** All three existing tests mock `queryAe` and assert the _threshold arithmetic_; not one looks at the SQL. A rule can be perfectly tested and still ask the database a question that has no answer. There is now a test asserting the query the rule actually sends.
+
+#### Defect B — the Status codes panel could never return a status code
+
+Over 863 invocations it returned exactly one row: `{"status_code": "", "n": "863"}`. Same root cause as Defect A — it grouped the three request primitives by `blob6`.
+
+Repointed to the five event types that record one. Two corrections came out of review: `GROUP BY blob1, blob6` rather than `blob6` alone, or `tier_denial`'s synthetic `'200'` conflates with a real Inoreader `200`; and `blob6 != ''`, because `rate_limit_decision` sets a status only on `deny`, so `throttle` rows would otherwise reproduce the exact empty-string row that started this.
+
+Deletion was seriously considered — the repointed panel largely duplicated two neighbours. What earned it its place is Defect A: `scope_denial` puts a 403 on the dashboard that no other panel shows.
+
+#### Defect C — the latency panel reported `0/0/0` as though it meant "instant"
+
+`search_portfolio`, 279 calls, `p50/p95/p99 = 0`. Not a query bug: Workers freeze the clock outside I/O (BL-122), so `duration_ms` is time _blocked on I/O_ and a compute-only tool scores 0 however much work it does.
+
+`/status` had already solved this — filter on the **measurement** (`p99 > 0`), never a tool allowlist, and p99 not p50 so a cache-miss-only tool survives. The panel now does the same via `HAVING`, retitled **Upstream I/O wait per tool**.
+
+**One honest trade, and it is not an equivalence.** `/status` filters at _render_ and keeps the unfiltered rows so it can distinguish "no invocations at all" from "traffic existed, none measurable". `HAVING` filters in the query and collapses both into one blank panel. The description points at the neighbouring panel instead of adding a companion.
+
+#### Defect D — the probe false-positived on a correct panel
+
+It flagged _Trial paywall hits_, which splits by nothing and correctly returns a single `n`. Keyed off column count instead of the defect's shape; now keyed off whether `GROUP BY` names anything but the time alias. Recorded because **a false positive on a correct panel is worse than no check** — it trains the operator to ignore the red.
+
+#### The guard, which is the actual deliverable
+
+`FIELD_EMITTED_BY` in `_schema.ts` maps each narrowly-emitted optional field to the event types that write it. Every existing guard passed all four defects, because `blob6` **is** a real column and those **are** declared event types — the missing relationship was which types populate which field. That knowledge was already in the file as prose (`zone1`'s docblock says "for `inoreader_call` events only"); this makes it data, and therefore checkable.
+
+Scoped deliberately to `status_code` and `zone1`. A draft included `client_ref` and `duration_ms` and had `client_ref` **wrong** — `withMetricsCore` emits it generically for every primitive. A wrong table encoded as the new source of truth is worse than the prose it replaces, and a near-universal field cannot express this defect anyway.
+
+**The guard covers `alert-rules.ts`, not just the dashboard JSON** — scoping it to the JSON would have missed Defect A, the most expensive of the four. Both guards are mutation-verified against the _real_ pre-fix queries, not synthetic ones.
+
+**The vacuity floor earned its keep immediately.** The alert-rule guard asserts an exact count of `queryAe(` sites. It failed on the first run at 3-of-4: the extractor missed the `scope-mismatch-403-rate` query — the one rule the file exists for — because this very change had added a comment above it containing backticks. Without the floor, that guard would have shipped green while never checking the rule it was written for.
+
+**And it happened again one level up, which is the more general lesson: a green run is not evidence until you know how many tests ran.** Code review found the new duplicate-key guard had no floor of its own — break its token regex and the brace stack still balances at zero, the duplicate list is still empty, and it reports success having scanned nothing. Adding the floor was easy; _verifying_ it produced the instructive part. The first mutation run — scanner neutered, expecting red — came back **green**, because the `vitest run <path>` filter was written relative to the repo root while vitest runs from the `mcp-server` workspace. It matched **zero test files and exited 0**. So a check written to prove a guard cannot pass over an empty set was itself passing over an empty set, one layer out, and only a glance at the output ("No test files found") caught it.
+
+Two rules worth carrying: **read the `Tests N passed` count, never the exit code**, and **a mutation check that does not go red has not told you the guard is good — suspect the harness first.** This is the same failure as the `EXPECTED_QUERY_SITES` one, moved from the assertion to the runner, and it is the argument for [CLAUDE.md](../../../.claude/CLAUDE.md)'s capture-the-output rule doing more than preserving failure names — the count is only visible if the output survives.
+
+#### Operator verification — done 2026-09-09
+
+- [x] **Re-import the dashboard and re-run `Probe-DashboardSql.ps1`.** All sixteen panels returned without error, zero merge flags, and both **panel** predictions held — the alert is a separate matter, below:
+  - _Status codes_ returns `{event_type: inoreader_call, status_code: 200, n: 187}` and friends, instead of the single empty-string row it gave over 863 events. **Defect B confirmed fixed against live data.**
+  - _Upstream I/O wait per tool_ omits `search_portfolio` and leads with `search_radar` at p50 124ms / p95 479ms / p99 2181ms over 55 calls. **Defect C confirmed fixed**, and the BL-122 clock-freeze reasoning confirmed with it: `search_portfolio` served 279 successful calls in the same window and is correctly absent, because it never touches the network.
+  - **Defect A is NOT confirmed by this run, and saying so is the whole point of the stanza.** The repointed `scope-mismatch-403-rate` query executed, and returned zero — because no scope 403 occurred in the window (refusals showed `deny 0 / throttle 0`). A zero from the fixed rule is byte-identical to the zero the broken rule produced for its entire life. Execution proves the query is _valid_; only a real 403 will prove it _fires_. The guard is what stands behind it in the meantime, which is exactly why the guard, and not the repoint, is this stanza's deliverable.
+  - **`HAVING` parsed AND filtered semantically — AE accepts it.** Not merely "returned without error": `search_portfolio` is absent from that panel while serving 279 successful calls in the same window, so the `HAVING p99 > 0` clause actually did its job rather than being tolerated and ignored. That was the one construct in the dashboard this repo had never run, and it is the second time **the same day** that "absent from the vendor's examples" turned out not to mean "rejected" (the first was `count(DISTINCT)`, settled by BL-158's probe run that morning). The non-equivalent `WHERE double1 > 0` fallback is retained in GRAFANA.md as a contingency, not as a pending decision.
+
+**Two things the run surfaced that are not defects in this stanza**, recorded so they are not rediscovered:
+
+- **All 863 `tool_invocation` events are `keyOwner: PROBE`** — 100% synthetic latency-probe traffic, no client tool calls in the window at all. This stanza originally wrote "863 real invocations", which is true in the sense that mattered (the events were emitted and the panel still could not read them) but misleads about who generated them. Corrected in all four places. It also means every latency figure on this dashboard currently describes the probe, which is the same thin-traffic reality the 2026-07-14 baseline measured.
+- **`trial_signup` shows `unavailable: 2` with `status_code: 503`, against `minted: 1` — and they are operator test traffic, not a fault.** Confirmed by the operator the same day ("part of integration testing and troubleshooting"). Recorded because reading it as an incident was the natural mistake and I made it: the panel showed exactly what it should, and **nothing in the event distinguishes a deliberately-broken dependency from a genuinely broken one**. So this is a real limitation of the signal rather than a defect in it, and it lands on the alert rule BL-155 has yet to write — see that stanza's closed item. The fourth event was a client-side `bad_request`, different again.
+
+#### The lesson worth keeping
+
+BL-158's lesson was that execution finds what static verification cannot. This round sharpens it: **the guard you write after an incident must cover every surface the defect can live on, not just the one where you found it.** The panel and the alert shared a root cause and a fix; only the panel was visible. And a monitor that has never fired deserves the same suspicion as a test that has never failed.
+
+---
 
 ---
 

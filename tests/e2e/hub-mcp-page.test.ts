@@ -13,7 +13,7 @@ const ROUTE = '/hub/mcp/';
 
 /** Tier columns, in the order they are authored: display name + config id. */
 const EXPECTED_TIERS = [
-  { id: 'free-pilot', name: 'Pilot' },
+  { id: 'trial', name: 'Trial' },
   { id: 'paid', name: 'Deal Team' },
   { id: 'enterprise', name: 'Firm' },
 ] as const;
@@ -112,18 +112,39 @@ test.describe('MCP Server page', () => {
     expect(second!.y).toBeGreaterThan(first!.y);
   });
 
-  test('every tier offers a prefilled access request', async ({ page }) => {
-    const ctas = page.locator('.mcp-tiers .mcp-tier__cta');
+  // The trial needs no operator, so its CTA goes to the signup page while the
+  // two provisioned tiers still open a prefilled intake. A single "every tier
+  // is a mailto" rule would now be wrong for the first column, and asserting
+  // the weaker "some CTA exists" would stop catching a trial column that
+  // silently reverts to an inbox.
+  test('each tier CTA leads where that tier is actually obtained', async ({ page }) => {
+    // Located by `data-tier-cta`, not by a styling class: the trial's CTA is a
+    // button and the other two are text links, so no shared class survives, and
+    // binding this to one would make a restyle look like a missing CTA.
+    const ctas = page.locator('.mcp-tiers [data-tier-cta]');
     await expect(ctas).toHaveCount(EXPECTED_TIERS.length);
 
     for (let i = 0; i < EXPECTED_TIERS.length; i++) {
-      const href = await ctas.nth(i).getAttribute('href');
+      const href = (await ctas.nth(i).getAttribute('href')) ?? '';
+
+      if (EXPECTED_TIERS[i].id === 'trial') {
+        expect(href, 'the trial is self-serve, not an email request').not.toMatch(/^mailto:/);
+        expect(href).toMatch(/\/hub\/mcp\/trial\/$/);
+        continue;
+      }
+
       expect(href).toMatch(/^mailto:/);
       expect(href).toContain('subject=');
       expect(href).toContain('body=');
       // The tier the link requests is the one whose column it sits in.
-      expect(decodeURIComponent(href ?? '')).toContain(`(${EXPECTED_TIERS[i].id})`);
+      expect(decodeURIComponent(href)).toContain(`(${EXPECTED_TIERS[i].id})`);
     }
+  });
+
+  test('the lede offers the self-serve trial above the argument', async ({ page }) => {
+    const cta = page.locator('.mcp-trial-cta a.cta-button');
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveAttribute('href', /\/hub\/mcp\/trial\/$/);
   });
 
   test('the request-access CTA prefills the operator intake', async ({ page }) => {

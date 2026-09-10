@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { guardEvent } from '../../../src/metrics/guard';
+import { OUTCOME_VALUES } from '../../../src/metrics/_schema';
 
 describe('guardEvent — rejections (return null)', () => {
   it('rejects unknown event_type', () => {
@@ -166,5 +167,35 @@ describe('guardEvent — acceptance + normalization', () => {
       const result = guardEvent({ event_type: 'cron_outcome', outcome });
       expect(result).not.toBeNull();
     }
+  });
+
+  // BL-155 — the trial-signup event type and its per-client blob.
+  it('accepts every outcome the trial signup handler can produce', () => {
+    // Driven off the schema rather than a second hand-written list: the point
+    // of the exhaustive OUTCOME_VALUES entry is that a new handler branch must
+    // be added there, and a copy here would let the two drift apart silently.
+    for (const outcome of OUTCOME_VALUES.trial_signup) {
+      const result = guardEvent({ event_type: 'trial_signup', name: 'trial-signup', outcome });
+      expect(result, `outcome "${outcome}" must be accepted`).not.toBeNull();
+    }
+  });
+
+  it('rejects a trial_signup outcome that is not in the schema', () => {
+    expect(
+      guardEvent({ event_type: 'trial_signup', name: 'trial-signup', outcome: 'ok' })
+    ).toBeNull();
+  });
+
+  it('truncates an over-long client_ref rather than breaching the blob budget', () => {
+    // 48 is the slot's maxChars; a longer subject must come back truncated to
+    // exactly that, not rejected — dropping the event would lose the signup
+    // itself over a formatting problem in one dimension.
+    const result = guardEvent({
+      event_type: 'tool_invocation',
+      outcome: 'success',
+      client_ref: `OAUTH:${'x'.repeat(80)}`,
+    });
+    expect(result).not.toBeNull();
+    expect(result?.client_ref).toHaveLength(48);
   });
 });

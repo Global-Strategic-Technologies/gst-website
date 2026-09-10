@@ -40,6 +40,9 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "audit_batch",
         "wrong_irl_detected",
         "gate_elided",
+        "trial_signup",
+        "tier_denial",
+        "scope_denial",
       ]
     `);
   });
@@ -81,6 +84,11 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "field": "zone1",
           "maxChars": 1,
           "slot": 7,
+        },
+        {
+          "field": "client_ref",
+          "maxChars": 48,
+          "slot": 8,
         },
       ]
     `);
@@ -162,9 +170,25 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "success",
           "error",
         ],
+        "scope_denial": [
+          "denied",
+        ],
+        "tier_denial": [
+          "denied",
+        ],
         "tool_invocation": [
           "success",
           "error",
+        ],
+        "trial_signup": [
+          "minted",
+          "reissued",
+          "challenge-failed",
+          "rate-limited",
+          "expired",
+          "in-progress",
+          "bad-request",
+          "unavailable",
         ],
         "wrong_irl_detected": [
           "halt",
@@ -208,6 +232,18 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "oauth-refresh",
           "401-retry",
         ],
+        "rate_limit_decision": [
+          "minute",
+          "day",
+          "radar-minute",
+          "radar-day",
+        ],
+        "scope_denial": [
+          "resource:radar:read",
+        ],
+        "trial_signup": [
+          "trial-signup",
+        ],
       }
     `);
   });
@@ -224,10 +260,30 @@ describe('toDataPoint projection (pure function)', () => {
       duration_ms: 142,
     });
     expect(dp).toEqual({
-      blobs: ['tool_invocation', 'search_radar', 'RP', 'success', null, '200', null],
+      // blob8 is `client_ref`, null here: a static `MCP_KEY_*` identity carries
+      // no per-client subject, which is the no-regression case for BL-155's
+      // per-client dimension.
+      blobs: ['tool_invocation', 'search_radar', 'RP', 'success', null, '200', null, null],
       doubles: [142, 0],
       indexes: ['RP'],
     });
+  });
+
+  it('projects client_ref into blob8, leaving index1 the roster-sized keyOwner', () => {
+    // The whole point of BL-155's dimension: two trials are one `keyOwner` (so
+    // the AE index stays roster-sized) but two distinct `client_ref`s, which is
+    // what makes `count(DISTINCT blob8)` able to tell them apart at all.
+    const dp = toDataPoint({
+      event_type: 'tool_invocation',
+      name: 'search_portfolio',
+      keyOwner: 'OAUTH:M2M:TRIAL',
+      outcome: 'success',
+      status_code: '200',
+      duration_ms: 88,
+      client_ref: 'OAUTH:m2m_abc123',
+    });
+    expect(dp.blobs[7]).toBe('OAUTH:m2m_abc123');
+    expect(dp.indexes).toEqual(['OAUTH:M2M:TRIAL']);
   });
 
   it('projects an inoreader_call event with zone1 in blob7', () => {
@@ -241,7 +297,7 @@ describe('toDataPoint projection (pure function)', () => {
       zone1: '1',
     });
     expect(dp).toEqual({
-      blobs: ['inoreader_call', 'cron-radar', 'RP', 'success', null, '200', '1'],
+      blobs: ['inoreader_call', 'cron-radar', 'RP', 'success', null, '200', '1', null],
       doubles: [230, 0],
       indexes: ['RP'],
     });

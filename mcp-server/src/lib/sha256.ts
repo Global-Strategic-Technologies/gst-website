@@ -11,5 +11,10 @@
  */
 export async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return bytesToHex(new Uint8Array(digest));
+}
+
+/** Lowercase hex of a byte array. Shared with `lib/hmac.ts` (BL-155). */
+export function bytesToHex(bytes: Uint8Array): string {
+  return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
 }

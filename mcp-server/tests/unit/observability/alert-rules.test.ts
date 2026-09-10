@@ -266,6 +266,24 @@ describe('scope-mismatch-403-rate', () => {
     const ev = await rule('scope-mismatch-403-rate').evaluate(makeCtx({ queryAe }));
     expect(ev.breached).toBe(false);
   });
+
+  it('counts scope_denial events — not a status code no primitive records', async () => {
+    // BL-159, and the reason this test exists at all. The three tests above
+    // mock `queryAe` and assert the THRESHOLD arithmetic; none of them looks at
+    // the SQL. That is exactly how this rule shipped querying
+    // `blob1 = 'tool_invocation' AND blob6 = '403'` — a combination nothing
+    // writes — and reported a healthy 0 for its entire life with a green suite.
+    //
+    // Asserting on the query the rule actually sends is the only thing that
+    // could have caught it here. The structural version of the same check, over
+    // every rule in the file, is `alert-rules-sql.test.ts`.
+    const queryAe = vi.fn().mockResolvedValue([{ n: '0' }]);
+    await rule('scope-mismatch-403-rate').evaluate(makeCtx({ queryAe }));
+    const sql = queryAe.mock.calls[0][0] as string;
+    expect(sql).toContain("blob1 = 'scope_denial'");
+    expect(sql).not.toContain('tool_invocation');
+    expect(sql).toContain('sum(_sample_interval)');
+  });
 });
 
 describe('oauth-refresh-failure-rate', () => {

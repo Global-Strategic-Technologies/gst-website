@@ -459,3 +459,42 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   session makes them fail with `MODULE_NOT_FOUND` on a path under `ds-bundle/.design-sync/`,
   which reads like a broken probe. `palette-probe` already had a header comment and an
   `existsSync` guard that exits with a clear message; `dark-probe` did not, and now does.
+
+## Sync 2026-09-09 — spacing tokenization + i18n language switcher (styling + aux, UPLOADED and confirmed)
+
+- **Clean reproduction of the whole pipeline, no fixes needed.** `10/10 previews render
+cleanly`, `validate ✓`, zero warn lines, `10 verified-by-upload / 0 changed / 0 new /
+0 removed`; chrome `19/19` with dark twins resolving dark; `font-probe` PASS on both
+  surfaces (600.00px via the token, 600.00px naming the face, 600.00px on the chrome card,
+  against the 549.81px generic control); `dark-probe` 4/7; all six palettes as expected.
+  Every figure matches the 2026-08-29/30/31 baselines exactly.
+- **Verdict shape was `styling: true` + `aux: true`, `components: []`, `bundle: false`** —
+  the same tokens-and-prose shape as 2026-09-02, and again the correct result rather than a
+  skipped upload. The driver's `styleChanged` was real this time (not the stale-cache
+  phantom): `styleSha 403753…` → `5f932cd3…` from the 217-literal spacing tokenization
+  (`dc5d6ba8`) plus the ADR-0028 ramp steps; `auxSha a29f3c25…` → `ba047069…` from the
+  README and guideline docs. `bundleSha12 920f57047564` UNCHANGED — no specimen source moved.
+- **Uploaded the full 103-file set** (sentinel → 100 text → the woff2 on its own → sentinel
+  re-arm → `_ds_sync.json` last), 0 deletes. Post-upload `list_files` shows 105 = our 103
+  plus the two app-side files. `.cache/remote-sync.json` refreshed from the shipped anchor.
+- **The i18n language switcher (`d8c01cfa`) needed no design-sync work, and it is worth
+  knowing WHY, because the reflex is to add a specimen.** Three independent reasons, each
+  checked rather than assumed: (1) it reaches the design system already — the `SiteHeader`
+  and `SiteHeaderDark` chrome cards are sliced from `dist/client/`, so the switcher's real
+  production markup is in both (4 matches in `SiteHeader.html`); (2) its own classes
+  (`.lang-band`, `.lang-band__accept/__close/__decline`, `.lang-band-host`, `.lang-menu`)
+  are Astro component-scoped, live in the `.astro` `<style>` rather than under
+  `src/styles/**`, and therefore are correctly OUTSIDE both ROOTS and the published
+  vocabulary — they are not missing from `conventions.md`, they are deliberately not in it;
+  (3) the one PUBLISHED class it consumes, `.brutal-segmented--sm`, was already documented
+  (`conventions.md:90`). This is the "a new CLASS is the worst case" rule from the
+  2026-09-02 stanza coming out clean — but only because the classes were scoped. A switcher
+  built with a new global `.brutal-*` class would have shipped undocumented and no guard
+  would have said a word.
+- **conventions.md unchanged, and re-validated against the fresh build rather than assumed.**
+  415 code spans checked against `_ds_bundle.css` + `styles.css` + `fonts/fonts.css`, the
+  `components/` dirs and the bundle text: every token and component name resolves; the only
+  two class misses are `.astro` (a file extension, not a selector — a quirk of the checker,
+  not a defect) and `.brutal-card`, the documented intentional negative. Size 27,308 chars
+  against guard 5's 28,000 ceiling — **692 chars of headroom, so the next substantive
+  addition still has to displace something.** `test:docs`' design-sync guards: 19/19 pass.

@@ -125,6 +125,7 @@ If 3a fails, or you get a 401, stop and work through [`REMOTE_CLIENT_SETUP.md` Â
 
 | Tier                   | General /min | General /day | Radar /min | Radar /day |
 | ---------------------- | ------------ | ------------ | ---------- | ---------- |
+| `trial`                | 15           | 100          | 1          | 1          |
 | `free-pilot`           | 30           | 300          | 3          | 20         |
 | `paid`                 | 60           | 2000         | 5          | 50         |
 | `enterprise`           | 120          | 10000        | 10         | 150        |

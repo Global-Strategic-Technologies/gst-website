@@ -11,7 +11,7 @@
  * `<id>.ariaLabel` and `<id>.cardBadge`. The English catalog mirrors the
  * registry and `tests/unit/announcements.test.ts` holds the two equal, so the
  * registry stays the single source for English. Hrefs go through
- * `localizedHref`, so `/hub/mcp/#tiers` becomes `/es/hub/mcp/#tiers` for a
+ * `localizedHref`, so `/hub/mcp/trial/` becomes `/es/hub/mcp/trial/` for a
  * Tier A destination and stays English for anything else. `routes` and `until`
  * are structure, not copy, and are untouched. For English the entry is
  * returned as-is.

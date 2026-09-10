@@ -12,7 +12,7 @@
     dashboards land. Read-only.
 
     Procedure for minting the read token lives in
-    [DEPLOY.md § C.X](../src/docs/operations/DEPLOY.md#cx--analytics-engine-sql-query-bl-03275-phase-3).
+    [DEPLOY.md section C.X](../src/docs/operations/DEPLOY.md#cx--analytics-engine-sql-query-bl-03275-phase-3).
 
 .PARAMETER Env
     Which env(s) to query. Defaults to both. Pass `staging` or `production`
@@ -23,7 +23,7 @@
 
 .PARAMETER Detailed
     Additionally print an `inoreader_call` breakdown grouped by
-    (name, outcome, status_code, zone1) — the blob2/blob4/blob6/blob7
+    (name, outcome, status_code, zone1) - the blob2/blob4/blob6/blob7
     columns. Use when characterizing Inoreader-egress anomalies (which
     calls, what outcomes/status codes, Zone-1 vs not); referenced from the
     `inoreader-budget-exhausted` runbook.
@@ -42,7 +42,7 @@
 
 .NOTES
     Requires `$env:CF_AE_TOKEN` (Account | Account Analytics | Read) and
-    `$env:CLOUDFLARE_ACCOUNT_ID`. The script fails loudly if either is unset —
+    `$env:CLOUDFLARE_ACCOUNT_ID`. The script fails loudly if either is unset -
     keeping the token out of script arguments avoids leaking it into
     shell history / transcripts.
 #>
@@ -55,7 +55,7 @@ param(
     [int]$WindowHours = 24,
 
     # When set, additionally print an inoreader_call breakdown grouped by
-    # (name, outcome, status_code, zone1) — useful for Phase 1 Step 6
+    # (name, outcome, status_code, zone1) - useful for Phase 1 Step 6
     # post-deploy verification of the blob6/blob7 emission.
     [switch]$Detailed
 )
@@ -65,7 +65,7 @@ $ErrorActionPreference = 'Stop'
 if (-not $env:CF_AE_TOKEN) {
     throw 'CF_AE_TOKEN not set. Mint per DEPLOY.md C.X and run: $env:CF_AE_TOKEN = ''<token>'''
 }
-# Wrangler 4.x renamed `CF_ACCOUNT_ID` → `CLOUDFLARE_ACCOUNT_ID` (the
+# Wrangler 4.x renamed `CF_ACCOUNT_ID` -> `CLOUDFLARE_ACCOUNT_ID` (the
 # legacy name still works but emits a deprecation warning on every
 # invocation). Prefer the new name; fall back to the legacy name so
 # operators with the old export don't break mid-session.
@@ -140,6 +140,73 @@ FORMAT JSON
         } else {
             $detail.data |
                 Select-Object name, outcome, status_code, zone1, @{Name='n'; Expression={[int]$_.n}} |
+                Format-Table -AutoSize
+        }
+
+        # BL-155 - trial signup outcomes and the per-client blob. Probed here
+        # rather than assumed: these are the two columns added by ADR-0031, and
+        # a deploy that silently stopped emitting them would otherwise look
+        # identical to "no trials this window".
+        Write-Host "  --- trial_signup outcomes (blob8 = client_ref) ---" -ForegroundColor DarkCyan
+        $trialSql = @"
+SELECT blob4 AS outcome, blob6 AS status_code, blob8 AS client_ref, sum(_sample_interval) AS n
+FROM $dataset
+WHERE blob1 = 'trial_signup' AND timestamp > NOW() - INTERVAL '$WindowHours' HOUR
+GROUP BY blob4, blob6, blob8
+ORDER BY n DESC
+FORMAT JSON
+"@
+        try {
+            $trial = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $trialSql
+        } catch {
+            Write-Host "  trial_signup query failed: $_" -ForegroundColor Red
+            continue
+        }
+        if (-not $trial.data -or $trial.data.Count -eq 0) {
+            Write-Host "  (no trial_signup rows in window)" -ForegroundColor Yellow
+        } else {
+            $trial.data |
+                Select-Object outcome, status_code, client_ref, @{Name='n'; Expression={[int]$_.n}} |
+                Format-Table -AutoSize
+        }
+
+        # BL-157 - the two pipeline refusals. Probed as their own section for
+        # the same reason as trial_signup above: they are the only record that
+        # a caller was refused, and a deploy that silently stopped emitting
+        # them looks identical to "nobody hit a limit this window".
+        #
+        # BL-159 adds scope_denial to the same section: it is the third
+        # refusal kind and the one an operator most needs to see, because it
+        # feeds `scope-mismatch-403-rate` (severity page). That rule was dead
+        # from its introduction until 2026-09-09 - it queried a status code on
+        # an event type that never records one - so ANY row here is newer than
+        # the rule's own history. blob2 is the MISSING SCOPE on scope_denial.
+        #
+        # NOTE the absence of an 'allow' row is CORRECT, not a gap:
+        # rate_limit_decision is emitted on refusal only (ADR-0032). blob2 is
+        # the responsible bucket on rate_limit_decision, and the refused TOOL
+        # on tier_denial - different meanings, which is why they are grouped
+        # with blob1 rather than aggregated together.
+        Write-Host "  --- refusals: rate_limit_decision + tier_denial + scope_denial (blob2 = bucket / tool / scope) ---" -ForegroundColor DarkCyan
+        $refusalSql = @"
+SELECT blob1 AS event_type, blob2 AS bucket_or_tool, blob4 AS outcome, blob8 AS client_ref, sum(_sample_interval) AS n
+FROM $dataset
+WHERE blob1 IN ('rate_limit_decision', 'tier_denial', 'scope_denial') AND timestamp > NOW() - INTERVAL '$WindowHours' HOUR
+GROUP BY blob1, blob2, blob4, blob8
+ORDER BY n DESC
+FORMAT JSON
+"@
+        try {
+            $refusals = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $refusalSql
+        } catch {
+            Write-Host "  refusal query failed: $_" -ForegroundColor Red
+            continue
+        }
+        if (-not $refusals.data -or $refusals.data.Count -eq 0) {
+            Write-Host "  (no refusals in window - nobody hit a limit, a tier gate or a scope gate)" -ForegroundColor Yellow
+        } else {
+            $refusals.data |
+                Select-Object event_type, bucket_or_tool, outcome, client_ref, @{Name='n'; Expression={[int]$_.n}} |
                 Format-Table -AutoSize
         }
     }

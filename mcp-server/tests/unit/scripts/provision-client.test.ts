@@ -25,7 +25,7 @@ import {
 } from '../../../scripts/provision-client.mjs';
 
 import { ASSIGNABLE_TIERS as SERVER_TIERS } from '../../../src/ratelimit/tiers';
-import { DEFAULT_SCOPES } from '../../../src/auth/scopes';
+import { DEFAULT_SCOPES, SCOPES_SUPPORTED } from '../../../src/auth/scopes';
 
 const repoFile = (rel: string) =>
   readFileSync(
@@ -43,16 +43,17 @@ describe('provision-client — constant parity with the server', () => {
     expect([...ASSIGNABLE_TIERS]).toEqual([...SERVER_TIERS]);
   });
 
-  it('mirrors SCOPES_SUPPORTED from src/oauth/provider.ts', () => {
-    // provider.ts cannot be imported here: its transitive graph reaches a
-    // `cloudflare:` scheme import, which the node vitest environment cannot
-    // resolve. So the value is rebuilt from the leaf module it composes...
+  it('mirrors SCOPES_SUPPORTED from src/auth/scopes.ts', () => {
+    // SCOPES_SUPPORTED moved out of provider.ts (whose transitive graph
+    // reaches a `cloudflare:` scheme import the node pool cannot resolve)
+    // into the provider-free scopes module, so it is now imported directly.
+    expect([...SUPPORTED_SCOPES]).toEqual([...SCOPES_SUPPORTED]);
     expect([...SUPPORTED_SCOPES]).toEqual([...DEFAULT_SCOPES, 'tool:radar:*']);
 
-    // ...and the composition itself is pinned by reading provider.ts as text.
+    // The composition itself is also pinned by reading the source as text.
     // Without this, appending a second narrowing wildcard there (exactly how
     // `tool:radar:*` got added) would leave this mirror stale and green.
-    const providerSrc = repoFile('src/oauth/provider.ts');
+    const providerSrc = repoFile('src/auth/scopes.ts');
     const start = providerSrc.indexOf('export const SCOPES_SUPPORTED');
     const declaration = providerSrc.slice(start, providerSrc.indexOf(');', start) + 2);
     expect(declaration).toContain('...DEFAULT_SCOPES');

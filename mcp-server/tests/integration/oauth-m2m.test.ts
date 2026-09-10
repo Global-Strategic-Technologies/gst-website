@@ -287,3 +287,172 @@ describe('revocation semantics', () => {
     expect(res.status).toBe(401);
   });
 });
+
+// BL-155 Slice 1 — time-boxed clients and in-place mutation.
+describe('client expiry and PATCH (BL-155)', () => {
+  const adminHeaders = {
+    Authorization: `Bearer ${ADMIN_KEY}`,
+    'Content-Type': 'application/json',
+  };
+
+  async function createClient(body: Record<string, unknown>) {
+    const res = await worker.fetch('/admin/oauth/m2m-clients', {
+      method: 'POST',
+      headers: adminHeaders,
+      body: JSON.stringify(body),
+    });
+    expect(res.status).toBe(201);
+    return (await res.json()) as { client: { clientId: string }; clientSecret: string };
+  }
+
+  function mintToken(clientId: string, clientSecret: string) {
+    return worker.fetch('/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+      }).toString(),
+    });
+  }
+
+  it('a client with a future expiresAt still issues tokens', async () => {
+    const future = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const { client, clientSecret } = await createClient({
+      name: 'trial-live',
+      allowedScopes: ['tool:*'],
+      tier: 'trial',
+      expiresAt: future,
+    });
+    const res = await mintToken(client.clientId, clientSecret);
+    expect(res.status).toBe(200);
+  });
+
+  it('a client past its expiresAt is refused, and says why', async () => {
+    const past = new Date(Date.now() - 1000).toISOString();
+    const { client, clientSecret } = await createClient({
+      name: 'trial-lapsed',
+      allowedScopes: ['tool:*'],
+      tier: 'trial',
+      expiresAt: past,
+    });
+    const res = await mintToken(client.clientId, clientSecret);
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error: string; error_description: string };
+    expect(body.error).toBe('invalid_client');
+    expect(body.error_description).toMatch(/expired/i);
+  });
+
+  it('expiry is checked AFTER auth — a bad secret on an expired client reports auth failure, not expiry', async () => {
+    // Placement guard: checking expiry beside the record fetch would let an
+    // unauthenticated caller probe which client ids exist and when they lapse.
+    const past = new Date(Date.now() - 1000).toISOString();
+    const { client } = await createClient({
+      name: 'trial-probe',
+      allowedScopes: ['tool:*'],
+      tier: 'trial',
+      expiresAt: past,
+    });
+    const res = await mintToken(client.clientId, 'wrong-secret');
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error_description: string };
+    expect(body.error_description).not.toMatch(/expired/i);
+  });
+
+  it('a client with no expiresAt never expires (pre-BL-155 records keep working)', async () => {
+    const { client, clientSecret } = await createClient({
+      name: 'permanent',
+      allowedScopes: ['tool:*'],
+    });
+    const res = await mintToken(client.clientId, clientSecret);
+    expect(res.status).toBe(200);
+  });
+
+  it('PATCH changes the tier in place, keeping the same credentials', async () => {
+    const { client, clientSecret } = await createClient({
+      name: 'to-convert',
+      allowedScopes: ['tool:*'],
+      tier: 'trial',
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    });
+    const patched = await worker.fetch(`/admin/oauth/m2m-clients/${client.clientId}`, {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ tier: 'paid', expiresAt: null }),
+    });
+    expect(patched.status).toBe(200);
+    const updated = (await patched.json()) as { tier: string; expiresAt?: string };
+    expect(updated.tier).toBe('paid');
+    // Conversion clears the expiry — and with it the reap, which is derived.
+    expect(updated.expiresAt).toBeUndefined();
+
+    // The whole point: the original secret still works after the change.
+    const res = await mintToken(client.clientId, clientSecret);
+    expect(res.status).toBe(200);
+  });
+
+  it('PATCH never returns the secret hash', async () => {
+    const { client } = await createClient({ name: 'no-leak', allowedScopes: ['tool:*'] });
+    const patched = await worker.fetch(`/admin/oauth/m2m-clients/${client.clientId}`, {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ tier: 'paid' }),
+    });
+    const body = (await patched.json()) as Record<string, unknown>;
+    expect(body).not.toHaveProperty('secretHash');
+  });
+
+  it('PATCH rejects an unassignable tier, an unknown scope, and an empty patch', async () => {
+    const { client } = await createClient({ name: 'validate-me', allowedScopes: ['tool:*'] });
+    const url = `/admin/oauth/m2m-clients/${client.clientId}`;
+
+    const badTier = await worker.fetch(url, {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ tier: 'platinum' }),
+    });
+    expect(badTier.status).toBe(400);
+
+    // Stricter than POST, which accepts any non-empty array.
+    const badScope = await worker.fetch(url, {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ allowedScopes: ['tool:*', 'not:a:real:scope'] }),
+    });
+    expect(badScope.status).toBe(400);
+
+    const empty = await worker.fetch(url, {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({}),
+    });
+    expect(empty.status).toBe(400);
+  });
+
+  it('PATCH on an unknown client is 404, and requires the admin key', async () => {
+    const notFound = await worker.fetch('/admin/oauth/m2m-clients/m2m_does_not_exist', {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ tier: 'paid' }),
+    });
+    expect(notFound.status).toBe(404);
+
+    const unauthed = await worker.fetch('/admin/oauth/m2m-clients/m2m_whatever', {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer nope', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier: 'paid' }),
+    });
+    expect(unauthed.status).toBe(401);
+  });
+
+  it('the item route advertises DELETE and PATCH on an unsupported method', async () => {
+    const res = await worker.fetch('/admin/oauth/m2m-clients/m2m_whatever', {
+      method: 'PUT',
+      headers: adminHeaders,
+      body: '{}',
+    });
+    expect(res.status).toBe(405);
+    expect(res.headers.get('Allow')).toBe('DELETE, PATCH');
+  });
+});

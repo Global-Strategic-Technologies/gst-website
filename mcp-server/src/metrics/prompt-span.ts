@@ -47,6 +47,7 @@ export function emitPromptSpan(ctx: MetricsContext, args: PromptSpanArgs): void 
     event_type: 'prompt_span',
     name: args.promptName,
     keyOwner: ctx.keyOwner,
+    client_ref: ctx.clientRef,
     outcome: args.outcome,
     correlation_id: args.correlationId,
     duration_ms: args.durationMs,
