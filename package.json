@@ -99,7 +99,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.69.0",
     "us-atlas": "^3.0.1",
-    "vitest": "^4.1.11",
+    "vitest": "^5.0.0",
     "world-atlas": "^2.0.2"
   },
   "overrides": {
