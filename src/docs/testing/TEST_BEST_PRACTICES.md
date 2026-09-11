@@ -665,8 +665,8 @@ If your test has any of these, it's likely a false positive:
 13. ✗ Hardcoded data assumptions like "country X has no category Y regulations" without a comment explaining why
 14. ✗ Uses `click({ force: true })` on an element that's obscured by a higher z-index layer
 15. ✗ Uses `toBeHidden()` on an element whose CSS overrides `[hidden]` with `display: block`
-16. ✗ Imports `describe`/`it`/`expect` from `'vitest'` when `globals: true` is set — tests silently don't register
-17. ✗ Top-level `beforeEach`/`afterEach` outside a `describe` block — causes runner initialization failure
+16. ✗ Imports `describe`/`it`/`expect` from `'vitest'` when `globals: true` is set — historically, tests silently didn't register (does not reproduce on current Vitest; kept as a consistency convention, see the note under Unit / Integration pitfall 9)
+17. ✗ Top-level `beforeEach`/`afterEach` outside a `describe` block — historically, a runner initialization failure (does not reproduce on current Vitest; kept as a consistency convention, see the note under Unit / Integration pitfall 10)
 18. ✗ Uses `grantPermissions(['clipboard-read', 'clipboard-write'])` — only works in Chromium, fails on Firefox/WebKit
 19. ✗ Uses `waitUntil: 'networkidle'` in `page.goto()` or `waitForLoadState()` — times out under parallel worker load
 20. ✗ Uses `page.$$()` or `page.$()` on dynamically rendered elements — snapshot query returns stale/empty results
