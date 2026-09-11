@@ -665,8 +665,8 @@ If your test has any of these, it's likely a false positive:
 13. ✗ Hardcoded data assumptions like "country X has no category Y regulations" without a comment explaining why
 14. ✗ Uses `click({ force: true })` on an element that's obscured by a higher z-index layer
 15. ✗ Uses `toBeHidden()` on an element whose CSS overrides `[hidden]` with `display: block`
-16. ✗ Imports `describe`/`it`/`expect` from `'vitest'` when `globals: true` is set — tests silently don't register
-17. ✗ Top-level `beforeEach`/`afterEach` outside a `describe` block — causes runner initialization failure
+16. ✗ Imports `describe`/`it`/`expect` from `'vitest'` when `globals: true` is set — historically, tests silently didn't register (does not reproduce on current Vitest; kept as a consistency convention, see the note under Unit / Integration pitfall 9)
+17. ✗ Top-level `beforeEach`/`afterEach` outside a `describe` block — historically, a runner initialization failure (does not reproduce on current Vitest; kept as a consistency convention, see the note under Unit / Integration pitfall 10)
 18. ✗ Uses `grantPermissions(['clipboard-read', 'clipboard-write'])` — only works in Chromium, fails on Firefox/WebKit
 19. ✗ Uses `waitUntil: 'networkidle'` in `page.goto()` or `waitForLoadState()` — times out under parallel worker load
 20. ✗ Uses `page.$$()` or `page.$()` on dynamically rendered elements — snapshot query returns stale/empty results
@@ -755,6 +755,8 @@ test('should show copied feedback on click', async ({ page }) => {
 
 When `globals: true` is set in `vitest.config.ts`, test primitives (`describe`, `it`, `expect`, `beforeEach`, `afterEach`) are injected globally. Explicitly importing them from `'vitest'` in the same file causes Vitest 4.x to silently fail — tests appear to load but never register, producing "No test suite found" or "failed to find the runner" errors with 0 tests executed.
 
+> **Does not reproduce today (probed 2026-09-11):** a minimal file importing `describe`/`it`/`expect` from `'vitest'` under `globals: true` registers and passes on **both** Vitest 4.1.11 (`mcp-server`) and 5.0.0 (website). So the failure described above is not a property of either current version. _Hypothesis, unverified:_ "failed to find the runner" is the classic sign of two Vitest copies loaded at once, so the original sightings may have been install drift (see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md#every-vitest-suite-fails-at-once-at-describe-with-zero-tests-collected)) rather than an import-style bug. Keep the good pattern below anyway, as a consistency convention.
+
 **Bad:**
 
 ```typescript
@@ -792,6 +794,8 @@ describe('my feature', () => {
 ### 10. ❌ Top-Level `beforeEach` / `afterEach` Outside a `describe` Block
 
 Vitest 4.x requires lifecycle hooks to be nested inside a `describe` block. A top-level `beforeEach` (common when a file has a single implicit test group) causes a runner initialization error.
+
+> **Does not reproduce today (probed 2026-09-11):** a minimal file with a top-level `beforeEach` runs and passes on **both** Vitest 4.1.11 (`mcp-server`) and 5.0.0 (website). The same unverified install-drift hypothesis as #9 applies. Keep the good pattern below anyway, as a consistency convention.
 
 **Bad:**
 
