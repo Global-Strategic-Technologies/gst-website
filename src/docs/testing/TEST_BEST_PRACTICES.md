@@ -753,7 +753,7 @@ test('should show copied feedback on click', async ({ page }) => {
 
 ### 9. ❌ Explicit Vitest Imports When `globals: true` Is Enabled
 
-When `globals: true` is set in `vitest.config.ts`, test primitives (`describe`, `it`, `expect`, `beforeEach`, `afterEach`) are injected globally. Explicitly importing them from `'vitest'` in the same file causes Vitest 4.x to silently fail — tests appear to load but never register, producing "No test suite found" or "failed to find the runner" errors with 0 tests executed.
+When `globals: true` is set in `vitest.config.ts`, test primitives (`describe`, `it`, `expect`, `beforeEach`, `afterEach`) are injected globally. Explicitly importing them from `'vitest'` in the same file was reported to make Vitest 4.x silently fail — tests appeared to load but never registered, producing "No test suite found" or "failed to find the runner" errors with 0 tests executed.
 
 > **Does not reproduce today (probed 2026-09-11):** a minimal file importing `describe`/`it`/`expect` from `'vitest'` under `globals: true` registers and passes on **both** Vitest 4.1.11 (`mcp-server`, at the time) and 5.0.0 (website). Both workspaces have been on Vitest 5 since BL-160. So the failure described above is not a property of either current version. _Hypothesis, unverified:_ "failed to find the runner" is the classic sign of two Vitest copies loaded at once, so the original sightings may have been install drift (see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md#every-vitest-suite-fails-at-once-at-describe-with-zero-tests-collected)) rather than an import-style bug. Keep the good pattern below anyway, as a consistency convention.
 
@@ -793,7 +793,7 @@ describe('my feature', () => {
 
 ### 10. ❌ Top-Level `beforeEach` / `afterEach` Outside a `describe` Block
 
-Vitest 4.x requires lifecycle hooks to be nested inside a `describe` block. A top-level `beforeEach` (common when a file has a single implicit test group) causes a runner initialization error.
+Vitest 4.x was reported to require lifecycle hooks to be nested inside a `describe` block. A top-level `beforeEach` (common when a file has a single implicit test group) was reported to cause a runner initialization error.
 
 > **Does not reproduce today (probed 2026-09-11):** a minimal file with a top-level `beforeEach` runs and passes on **both** Vitest 4.1.11 (`mcp-server`, at the time) and 5.0.0 (website). Both workspaces have been on Vitest 5 since BL-160. The same unverified install-drift hypothesis as #9 applies. Keep the good pattern below anyway, as a consistency convention.
 
