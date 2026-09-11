@@ -27,7 +27,7 @@
     "purge:audit-seqof": "node scripts/purge-audit-seqof.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
   },
   "dependencies": {
     "@cfworker/json-schema": "^4.1.1",
@@ -46,10 +46,10 @@
     "@modelcontextprotocol/client": "2.0.0",
     "@sentry/cli": "^3.7.0",
     "@types/node": "^26.4.1",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.0",
     "esbuild": "^0.28.2",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.11",
+    "vitest": "^5.0.0",
     "wrangler": "^4.129.0"
   }
 }
