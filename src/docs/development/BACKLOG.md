@@ -1768,7 +1768,7 @@ Benefit analysis, condensed from BL-033 § Business value (whose original bullet
 >
 > The evidence was right and the question was wrong: "no external clients" was verified, but what governs is _what protocol version the client software speaks_. This stanza's own decision to keep **stdio** on its legacy lane made exactly that argument, and it was not applied to the Worker — the team points Claude Desktop at the remote surface too. The `era` telemetry that would have shown this in one log line was an AC of this initiative that was silently dropped during implementation; it ships in 0.44.1. Full account: [ADR-0013](../adr/0013-mcp-2026-07-28-modern-only-worker.md) § Amendment 2026-08-04.
 
-Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because its six dated per-instance bullets are the only record of sightings 1–6 of the flake now owned by [BL-149](#bl-149-diagnose-the-5000ms-first-use-suite-flake--twenty-instances-six-files-reproducible-in-isolation-at-37) — they hold evidence BL-149's table does not — and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury. (The reason it was ORIGINALLY kept, that the flake evidence had nowhere better to live, was retired 2026-09-02 when BL-149 became that home.)
+Retained rather than pruned — not because its findings lack a home (both are distilled into `ARCHITECTURE.md` and the code they describe), but because its six dated per-instance bullets are the only record of sightings 1–6 of the flake now owned by [BL-149](#bl-149-diagnose-the-5000ms-first-use-suite-flake--twenty-five-instances-six-files-both-workspaces-reproducible-in-isolation-at-37) — they hold evidence BL-149's table does not — and because BL-088 and BL-091 set the precedent for a closed stanza carrying forward what a `git log` excavation would bury. (The reason it was ORIGINALLY kept, that the flake evidence had nowhere better to live, was retired 2026-09-02 when BL-149 became that home.)
 
 **What shipped**: migration to `@modelcontextprotocol/server@2.0.0`; `Mcp-Method` / `Mcp-Name` through the CORS preflight; `ttlMs` / `cacheScope` published on library and regulation reads; `cors.ts` promoted to sole origin authority; production `npm audit` restored to zero (it was already failing on `master`).
 
@@ -1779,7 +1779,7 @@ Retained rather than pruned — not because its findings lack a home (both are d
 1. The SDK v2 handler runs its **own** Host/Origin gate. Left at its default the accepted set is the localhost trio, so on a custom domain every request carrying `Origin: https://claude.ai` gets a **403** — the exact browser clients the allowlist exists for, and a failure mode the legacy handler did not have. `tests/integration/protocol-era-worker.test.ts` guards it and is verified to fail without the fix.
 2. `with-metrics.ts` located its notifier by duck-typing on a field v2 renamed, and the function is contractually non-throwing — so the rate-limit warning would have died **silently**, with the soft-limit tests staying green against their own fake. Both the production view and the fake are now bound to the SDK's `ServerContext` so a rename is a compile error.
 
-**Standing caution** — **superseded by [BL-149](#bl-149-diagnose-the-5000ms-first-use-suite-flake--twenty-instances-six-files-reproducible-in-isolation-at-37), which now owns the tally and the diagnosis.** This stanza carried the record while it had no better home; it had gone stale at six instances (the count reached nine on 2026-09-01). The finding it established still stands and is restated there: cold start is ruled out by evidence, and what is shared is the HARNESS, not the test — so a per-test fix would only move it. Do not maintain a second tally here. **The six dated bullets below are retained as instance-level detail for 1–6 only** — they hold evidence BL-149's table does not (the lockfile-stash experiment, the `npm ls` check, the 2575 full-suite pass). The canonical record, and the count, live in BL-149.
+**Standing caution** — **superseded by [BL-149](#bl-149-diagnose-the-5000ms-first-use-suite-flake--twenty-five-instances-six-files-both-workspaces-reproducible-in-isolation-at-37), which now owns the tally and the diagnosis.** This stanza carried the record while it had no better home; it had gone stale at six instances (the count reached nine on 2026-09-01). The finding it established still stands and is restated there: cold start is ruled out by evidence, and what is shared is the HARNESS, not the test — so a per-test fix would only move it. Do not maintain a second tally here. **The six dated bullets below are retained as instance-level detail for 1–6 only** — they hold evidence BL-149's table does not (the lockfile-stash experiment, the `npm ls` check, the 2575 full-suite pass). The canonical record, and the count, live in BL-149.
 
 - **2026-08-04** — `1 failed | 1973 passed`; seven other full runs green.
 - **2026-08-17** — `1 failed | 2391 passed`, during the BL-136 lockfile work. Two later runs passed, **including one deliberately executed against the pre-change lockfile** (stash the lockfile, reinstall, re-run), which is what rules the dependency bump out as the cause. Not the cold-start case either: an earlier `test:mcp` the same session had already passed 2392, so the worker was warm.
@@ -1991,9 +1991,9 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 ---
 
-### BL-149: Diagnose the 5000ms first-use suite flake — twenty instances, six files, reproducible in isolation at ~37%
+### BL-149: Diagnose the 5000ms first-use suite flake — twenty-five instances, six files, both workspaces, reproducible in isolation at ~37%
 
-**Source**: seventeen single-test failures in the `@gst/mcp-server` suite between 2026-08-04 and 2026-09-08, recorded in [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) and carried as a standing caution on [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) until 2026-09-02 — plus instances 18–20 on 2026-09-09, one of them in the WEBSITE suite | **Effort**: Medium — the work is reproduction and instrumentation, not a fix; the fix may be small once the cause is known | **Status**: Open
+**Source**: seventeen single-test failures in the `@gst/mcp-server` suite between 2026-08-04 and 2026-09-08, recorded in [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) and carried as a standing caution on [BL-106](#bl-106-mcp-server--2026-07-28-spec-alignment--closed-2026-08-04) until 2026-09-02 — plus instances 18–22 on 2026-09-09, two of them in the WEBSITE suite and one on `master` itself, and instances 23–25 on 2026-09-10/11, two of them under Vitest 5 | **Effort**: Medium — the work is reproduction and instrumentation, not a fix; the fix may be small once the cause is known | **Status**: Open
 
 **As an** engineer running `npm run test:mcp` before a push, **I want** a green suite to mean the code is green **so that** I stop spending a re-run and a judgement call on every full-suite invocation, and stop having to prove a failure is the known flake rather than my own regression.
 
@@ -2017,6 +2017,24 @@ Found during BL-158's validation run, in a diff that changed **only comments and
 **Second website sighting, 2026-09-09 (instance 21), same test.** `spacing-lint-rule.test.ts > flags a hardcoded on-scale literal in css`, 5000ms again, green 25/25 in isolation again, in BL-159's validation run — a diff touching no CSS and no stylelint config. The stanza asked for a second instance before widening scope formally; this is it. **Treat the invariant as `first heavyweight initialization vs. the 5000ms default`, not as an `unstable_dev` problem** — `unstable_dev` is the most common way to hit it in this repo, not the cause. Two suites, two harnesses, one signature. The same run also produced the mcp flake (`trial-signup.test.ts` again, 2 of 4 on an isolated re-run), so both suites failed the same way in one validation pass.
 
 **Reproduced on `master` itself, 2026-09-09 (instance 22) — the attribution question is now settled.** BL-159's code review ran `trial-signup.test.ts` on **`master`**, off the branch entirely, and reproduced the same two 5000ms timeouts at roughly **one run in three**. Every prior instance was recorded against a feature branch and needed the "the diff does not touch this code" argument to be believed; this one needs no argument at all. Note the interesting wrinkle: the two failures it produced are the same pair the full-suite run produced (the first `worker.fetch` and the first KV fetch), which is the subsystem rule above holding on a second machine-state. A third isolated batch on the branch minutes later went **3/3 green** — so the rate genuinely swings between batches, and the stanza's warning against quoting a single rate stands reinforced.
+
+#### Instances 23–25 (2026-09-10/11) — it survives a test-runner major, which rules out Vitest 4
+
+Found during the dependabot merge session, in two full-suite runs on two **different dependency trees**, neither of which touches Worker source:
+
+| #   | Branch                      | Runner           | Failure                                                                                                                                                                                                          |
+| --- | --------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 23  | `chore/vitest-5`            | **Vitest 5.0.0** | `protocol-era-worker` › browser-origin `tools/list` (7293ms) **and** `trial-signup` › fails CLOSED with only Upstash unbound (5006ms)                                                                            |
+| 24  | `fix/prod-audit-advisories` | Vitest 4.1.11    | the **same two tests**, same order (7104ms / 5017ms)                                                                                                                                                             |
+| 25  | `chore/vitest-5` (website)  | **Vitest 5.0.0** | `spacing-lint-rule` › flags a hardcoded on-scale literal in css (9786ms) — the third website sighting of this exact test, in the first run after a cold `npm ci`; green alone and `2057/2057` on the full re-run |
+
+Both runs went `2883/2883` green on an immediate full re-run. Three things worth keeping:
+
+1. **The runner is ruled out.** Instance 23 ran under Vitest 5.0.0 — a different major, with a rewritten runner (`@vitest/runner` was inlined in this release) — and produced the identical signature at the identical 5000ms default. Every prior instance was on Vitest 4. Whatever this is, it is not a Vitest 4 bug, and the eventual fix should not be expected from a runner upgrade.
+2. **`protocol-era-worker` + `trial-signup` failing together is a new pair.** Instances 13 and 14 paired two tests within `trial-signup`; this is the first pairing **across two files**, and it repeated on a second, unrelated dependency tree hours later. Consistent with the subsystem rule — these are the two heaviest `unstable_dev` boots — and with machine state being the variable rather than the diff.
+3. **Instance 24's tree had wrangler and miniflare bumped** (4.129.0 → 4.131.0, miniflare 5.20260903.0-alpha → 5.20260910.0-alpha, PR #470). The flake is unchanged across that bump, so a newer miniflare does not fix it either.
+
+Note `protocol-era-worker` passed in isolation on instance 23 while `trial-signup` failed there too — matching the ~37% isolated rate above rather than the older "always green alone" reading.
 
 **What this changes about the next step.** Measurement is still the next step and a timeout bump is still forbidden — but the target sharpens: instrument `unstable_dev` boot AND first-fetch-per-subsystem latency across ~50 isolated runs of `trial-signup.test.ts`, which is now known to fail often enough to yield a distribution rather than an anecdote. If first-fetch latency has a long tail crossing 5000ms, the fix is an explicit per-file timeout justified by measured p99 — which is not a "bandaid" bump, because it would be a number derived from evidence rather than raised until green. Watch the website suite for a second instance before widening the stanza's scope formally.
 
@@ -2482,3 +2500,29 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 - Full spec-delta analysis, including why these two were the only deltas worth deferring rather than declining outright: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)
 
 ---
+
+### BL-160: the two workspaces are on different Vitest majors
+
+**Source**: the dependabot merge session of 2026-09-10 — Dependabot opened `vitest`, `@vitest/ui` and `@vitest/coverage-v8` 5.0.0 as three separate root-only PRs (#457, #458, #461), each of which failed CI with an ERESOLVE peer conflict in isolation. They were combined and merged as one change, which moved the **root** workspace to Vitest 5 and left **`mcp-server`** on its own declared `vitest: ^4.1.11`. | **Effort**: Small — a version bump plus a validation run, but the validation is the risky part | **Status**: Open
+
+**As an** engineer maintaining both workspaces, **I want** one Vitest major across the repo **so that** a test-authoring convention, a config option, or a documented pitfall means the same thing in `tests/` and in `mcp-server/tests/`.
+
+**What the split actually costs today:**
+
+- `npm ls vitest` resolves two trees — 5.0.0 at the root, a nested 4.1.11 under `mcp-server/node_modules` — so the install carries a duplicated runner.
+- [`TEST_BEST_PRACTICES.md`](../testing/TEST_BEST_PRACTICES.md) anti-patterns 9 and 10 (explicit Vitest imports under `globals: true`; top-level `beforeEach`) are **fixed in Vitest 5 and still live in Vitest 4** — verified by probe on 2026-09-10, not inferred. Both entries now carry a version-scope note, which is a workaround for the split rather than a resolution of it.
+- Vitest 5 behaviour changes that the website now gets and `mcp-server` does not: mocks cleared by default before each test, un-awaited async assertions failing, `--reporter=basic` removed.
+
+**Why it was not simply bumped in the same change.** Two reasons, both worth stating so this is a recorded decision rather than an oversight:
+
+1. **Scope.** The three Dependabot PRs were root-only. Bumping `mcp-server` as well would have put an unrequested change into a dependency-merge branch.
+2. **Risk concentration.** `mcp-server`'s integration suite is the `unstable_dev` one — nine files that each boot a miniflare Worker, and the suite already carries the [BL-149](#bl-149-diagnose-the-5000ms-first-use-suite-flake--twenty-five-instances-six-files-both-workspaces-reproducible-in-isolation-at-37) timeout flake. Changing the test runner underneath it deserves its own validation run and its own attribution, not a shared one. **BL-149 instance 23 is directly relevant**: the flake reproduced under Vitest 5 on the root workspace, so a bump here should be expected to inherit it rather than fix it, and must not be read as "the upgrade broke the suite".
+
+An attempt to bump it in-session was reverted: `mcp-server/node_modules/vitest@4.1.11` survived a `^5.0.0` declaration, a clean `npm install`, and a full `node_modules` wipe, even with nothing in the lockfile declaring a Vitest 4 dependency. **Resolving that stale nested entry is the first task here**, before any test run is meaningful.
+
+#### Acceptance Criteria
+
+- [ ] `mcp-server/package.json` declares `vitest: ^5.0.0` and `npm ls vitest` resolves a single version across both workspaces
+- [ ] `npm run test:mcp` passes, with any failure attributed against BL-149 rather than assumed to be the upgrade — re-run before concluding
+- [ ] Vitest 5's default `clearMocks` is audited against `mcp-server/tests/` for tests relying on mock state persisting within a file (the root workspace was checked and had none)
+- [ ] The version-scope notes on anti-patterns 9 and 10 in `TEST_BEST_PRACTICES.md` are removed once both workspaces are on 5

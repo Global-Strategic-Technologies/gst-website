@@ -755,6 +755,8 @@ test('should show copied feedback on click', async ({ page }) => {
 
 When `globals: true` is set in `vitest.config.ts`, test primitives (`describe`, `it`, `expect`, `beforeEach`, `afterEach`) are injected globally. Explicitly importing them from `'vitest'` in the same file causes Vitest 4.x to silently fail — tests appear to load but never register, producing "No test suite found" or "failed to find the runner" errors with 0 tests executed.
 
+> **Version scope:** fixed in Vitest 5 — an explicit import alongside `globals: true` registers normally there (verified by probe when the website moved to 5.0.0). The website workspace is on Vitest 5; **`mcp-server` is still on Vitest 4**, so this pitfall remains live for `mcp-server/tests/`. Prefer the good pattern below in both workspaces for consistency.
+
 **Bad:**
 
 ```typescript
@@ -792,6 +794,8 @@ describe('my feature', () => {
 ### 10. ❌ Top-Level `beforeEach` / `afterEach` Outside a `describe` Block
 
 Vitest 4.x requires lifecycle hooks to be nested inside a `describe` block. A top-level `beforeEach` (common when a file has a single implicit test group) causes a runner initialization error.
+
+> **Version scope:** fixed in Vitest 5 — a top-level `beforeEach` runs normally there (verified by probe when the website moved to 5.0.0). The website workspace is on Vitest 5; **`mcp-server` is still on Vitest 4**, so this pitfall remains live for `mcp-server/tests/`. Prefer the good pattern below in both workspaces for consistency.
 
 **Bad:**
 
