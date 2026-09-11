@@ -2036,7 +2036,7 @@ Both runs went `2883/2883` green on an immediate full re-run. Three things worth
 
 Note `protocol-era-worker` passed in isolation on instance 23 while `trial-signup` failed there too — matching the ~37% isolated rate above rather than the older "always green alone" reading.
 
-**What this changes about the next step.** Measurement is still the next step and a timeout bump is still forbidden — but the target sharpens: instrument `unstable_dev` boot AND first-fetch-per-subsystem latency across ~50 isolated runs of `trial-signup.test.ts`, which is now known to fail often enough to yield a distribution rather than an anecdote. If first-fetch latency has a long tail crossing 5000ms, the fix is an explicit per-file timeout justified by measured p99 — which is not a "bandaid" bump, because it would be a number derived from evidence rather than raised until green. Watch the website suite for a second instance before widening the stanza's scope formally.
+**What this changes about the next step.** Measurement is still the next step and a timeout bump is still forbidden — but the target sharpens: instrument `unstable_dev` boot AND first-fetch-per-subsystem latency across ~50 isolated runs of `trial-signup.test.ts`, which is now known to fail often enough to yield a distribution rather than an anecdote. If first-fetch latency has a long tail crossing 5000ms, the fix is an explicit per-file timeout justified by measured p99 — which is not a "bandaid" bump, because it would be a number derived from evidence rather than raised until green. ~~Watch the website suite for a second instance before widening the stanza's scope formally.~~ **Satisfied** by instance 21, and again by 25. The heading now says "both workspaces".
 
 **Instance 14 is a process failure as much as a data point.** The full-suite output was piped through `tail -12`, so the failing test names never reached disk — the same mistake as instance 2, and the one [`CLAUDE.md` § Testing Standards](../../../.claude/CLAUDE.md) warns about in terms ("redirect the suite to a file rather than piping it through `grep`"). What survives is the shape: **two** failures in one file out of 2862, green on a full re-run, in a slice whose diff touched no `unstable_dev` test. That matched instance 13 and no earlier one, which made a two-failure `trial-signup` pair the leading suspect. **Instance 15, captured properly forty minutes later on the same tree, is that same `trial-signup` test** — which corroborates the suspicion without converting it into a record. **Two of seventeen instances remain unattributable for the same avoidable reason.**
 
@@ -2510,7 +2510,6 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 **What the split actually costs today:**
 
 - `npm ls vitest` resolves two trees — 5.0.0 at the root, a nested 4.1.11 under `mcp-server/node_modules` — so the install carries a duplicated runner.
-- [`TEST_BEST_PRACTICES.md`](../testing/TEST_BEST_PRACTICES.md) anti-patterns 9 and 10 (explicit Vitest imports under `globals: true`; top-level `beforeEach`) are **fixed in Vitest 5 and still live in Vitest 4** — verified by probe on 2026-09-10, not inferred. Both entries now carry a version-scope note, which is a workaround for the split rather than a resolution of it.
 - Vitest 5 behaviour changes that the website now gets and `mcp-server` does not: mocks cleared by default before each test, un-awaited async assertions failing, `--reporter=basic` removed.
 
 **Why it was not simply bumped in the same change.** Two reasons, both worth stating so this is a recorded decision rather than an oversight:
@@ -2525,4 +2524,3 @@ An attempt to bump it in-session was reverted: `mcp-server/node_modules/vitest@4
 - [ ] `mcp-server/package.json` declares `vitest: ^5.0.0` and `npm ls vitest` resolves a single version across both workspaces
 - [ ] `npm run test:mcp` passes, with any failure attributed against BL-149 rather than assumed to be the upgrade — re-run before concluding
 - [ ] Vitest 5's default `clearMocks` is audited against `mcp-server/tests/` for tests relying on mock state persisting within a file (the root workspace was checked and had none)
-- [ ] The version-scope notes on anti-patterns 9 and 10 in `TEST_BEST_PRACTICES.md` are removed once both workspaces are on 5

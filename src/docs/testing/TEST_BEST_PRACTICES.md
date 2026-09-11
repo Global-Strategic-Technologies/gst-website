@@ -755,7 +755,7 @@ test('should show copied feedback on click', async ({ page }) => {
 
 When `globals: true` is set in `vitest.config.ts`, test primitives (`describe`, `it`, `expect`, `beforeEach`, `afterEach`) are injected globally. Explicitly importing them from `'vitest'` in the same file causes Vitest 4.x to silently fail — tests appear to load but never register, producing "No test suite found" or "failed to find the runner" errors with 0 tests executed.
 
-> **Version scope:** fixed in Vitest 5 — an explicit import alongside `globals: true` registers normally there (verified by probe when the website moved to 5.0.0). The website workspace is on Vitest 5; **`mcp-server` is still on Vitest 4**, so this pitfall remains live for `mcp-server/tests/`. Prefer the good pattern below in both workspaces for consistency.
+> **Does not reproduce today (probed 2026-09-11):** a minimal file importing `describe`/`it`/`expect` from `'vitest'` under `globals: true` registers and passes on **both** Vitest 4.1.11 (`mcp-server`) and 5.0.0 (website). So the failure described above is not a property of either current version. _Hypothesis, unverified:_ "failed to find the runner" is the classic sign of two Vitest copies loaded at once, so the original sightings may have been install drift (see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md#every-vitest-suite-fails-at-once-at-describe-with-zero-tests-collected)) rather than an import-style bug. Keep the good pattern below anyway, as a consistency convention.
 
 **Bad:**
 
@@ -795,7 +795,7 @@ describe('my feature', () => {
 
 Vitest 4.x requires lifecycle hooks to be nested inside a `describe` block. A top-level `beforeEach` (common when a file has a single implicit test group) causes a runner initialization error.
 
-> **Version scope:** fixed in Vitest 5 — a top-level `beforeEach` runs normally there (verified by probe when the website moved to 5.0.0). The website workspace is on Vitest 5; **`mcp-server` is still on Vitest 4**, so this pitfall remains live for `mcp-server/tests/`. Prefer the good pattern below in both workspaces for consistency.
+> **Does not reproduce today (probed 2026-09-11):** a minimal file with a top-level `beforeEach` runs and passes on **both** Vitest 4.1.11 (`mcp-server`) and 5.0.0 (website). The same unverified install-drift hypothesis as #9 applies. Keep the good pattern below anyway, as a consistency convention.
 
 **Bad:**
 
