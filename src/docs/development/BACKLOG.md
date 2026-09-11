@@ -2,7 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Five cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Six cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
@@ -10,6 +10,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 > - **2026-08-22**: 1 stanza (BL-137, workers-types global shadowing) closed and pruned the same day it shipped. Last pre-prune revision: `677862fc`. Its live content — the accepted test-side residual, and the fact that a project-referenced tsconfig split was never shown to be impossible — went to [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md) rather than staying here. The BL-136 note below linked to its anchor and was retargeted at the ADR in the same commit.
 > - **2026-08-27**: 1 stanza (BL-138, CSP `media-src` + onboarding media) closed and pruned when the `/hub/mcp/get-started/` family shipped. Last pre-prune revision: `e4689e0d`. Its live content split by kind: the hosting decision, WebM do-not-re-add measurements, and 25–50 MiB revisit threshold went to [ADR-0022](../adr/0022-mcp-onboarding-media-in-git.md); the ffmpeg/GIF recipes (with the colour-stage proof and gifsicle hygiene note), per-clip page constraints, poster-as-reduced-motion rule, and the `prompts-resources` re-record trigger went to [hub/MCP_ONBOARDING.md](../hub/MCP_ONBOARDING.md). The BL-093 note below and the `.gitignore` `media-raw/` comment both linked the stanza and were retargeted in the same commit.
 > - **2026-09-02**: 1 stanza (BL-148, spacing-token lint enforcement) closed and pruned when [ADR-0029](../adr/0029-spacing-scale-enforcement.md) shipped — 217 literals swept, the guard widened repo-wide, and a lint rule added that fails the build. Last pre-prune revision: `4f664745`.
+> - **2026-09-11**: 1 stanza (BL-160, `mcp-server` on a different Vitest major) closed and pruned when `mcp-server` moved to Vitest 5. Last pre-prune revision: `f4dd4607`. The stale nested `vitest@4.1.11` that had survived reinstalls turned out to be an **orphaned peer cycle**. `vitest@4.1.11` and `@vitest/coverage-v8@4.1.11` exact-peer each other, so each held the other in the lockfile after nothing depended on either. `npm install` and `npm prune` both kept the pair. The fix was deleting those lockfile entries and letting npm re-resolve. The Vitest 5 `clearMocks` default broke one test (`worker-scheduled`, an import-time call); the live notes went to [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md) and [TEST_BEST_PRACTICES.md](../testing/TEST_BEST_PRACTICES.md).
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -2029,6 +2030,8 @@ Found during the dependabot merge session, in two full-suite runs on two **diffe
 | 25  | `chore/vitest-5` (website)              | **Vitest 5.0.0** | `spacing-lint-rule` › flags a hardcoded on-scale literal in css (9786ms) — the third website sighting of this exact test, in the first run after a cold `npm ci`; green alone and `2057/2057` on the full re-run                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | 26  | `master` **and** `chore/vitest-5` (mcp) | Vitest 4.1.11    | **seven of the eleven Worker-booting files failed together, the same seven in all three runs**, each in its first `it` (`auth`, `cors`, `oauth-introspection`, `oauth-metadata`, `protocol-era-worker`, `trial-signup`, `worker-roundtrip`; 5214–6357ms). The other four booting files (`oauth-flow`, `oauth-m2m`, `oauth-trial-consent`, `ratelimit`) passed every time, so it is not "every Worker boot fails today". The three runs were branch with `--coverage`, `master` with `--coverage`, and branch without it, all on 2026-09-11. The day before, the same machine failed 0–2 per run. The diff, the coverage flag and the branch all varied between runs, and the result did not. Why these seven and not the other four is the open, diagnostic question |
 
+**Instance 26 persists across the runner major on `mcp-server` too.** It happened again later on 2026-09-11, on `chore/bl-160-mcp-vitest-5`, the first `mcp-server` runs on **Vitest 5.0.0**. The default config and a `clearMocks: false` comparison config both failed files drawn from that same seven: six with the default and all seven with the override. The other four booting files passed in both. It is the same machine state, not the upgrade, and Linux CI is the verifier.
+
 Both runs went `2883/2883` green on an immediate full re-run. Three things worth keeping:
 
 1. **The runner is ruled out.** Instance 23 ran under Vitest 5.0.0 — a different major, with a rewritten runner (`@vitest/runner` was inlined in this release) — and produced the identical signature at the identical 5000ms default. Every prior instance was on Vitest 4. Whatever this is, it is not a Vitest 4 bug, and the eventual fix should not be expected from a runner upgrade.
@@ -2499,29 +2502,3 @@ A safe implementation requires all of: **(a)** Zone-1 spend-headroom gating befo
 - **Reversibility note carried from BL-106**: if Tasks activates, long-running Workers jobs want Durable Objects or Workflows — which is `agents`' actual competence. That is the trigger to reconsider ADR-0013 decision 4 (keeping `agents` as a thin adapter rather than dropping it)
 - **Not blocked by anything technical.** The server is on `@modelcontextprotocol/server@2.0.0` and both features are available today; the only thing missing is someone to use them
 - Full spec-delta analysis, including why these two were the only deltas worth deferring rather than declining outright: [`_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md`](_archive/MCP_SERVER_SPEC_2026_07_28_ALIGNMENT_BL-106.md)
-
----
-
-### BL-160: the two workspaces are on different Vitest majors
-
-**Source**: the dependabot merge session of 2026-09-10 — Dependabot opened `vitest`, `@vitest/ui` and `@vitest/coverage-v8` 5.0.0 as three separate root-only PRs (#457, #458, #461), each of which failed CI with an ERESOLVE peer conflict in isolation. They were combined and merged as one change, which moved the **root** workspace to Vitest 5 and left **`mcp-server`** on its own declared `vitest: ^4.1.11`. | **Effort**: Small — a version bump plus a validation run, but the validation is the risky part | **Status**: Open
-
-**As an** engineer maintaining both workspaces, **I want** one Vitest major across the repo **so that** a test-authoring convention, a config option, or a documented pitfall means the same thing in `tests/` and in `mcp-server/tests/`.
-
-**What the split actually costs today:**
-
-- `npm ls vitest` resolves two trees — 5.0.0 at the root, a nested 4.1.11 under `mcp-server/node_modules` — so the install carries a duplicated runner.
-- Vitest 5 behaviour changes that the website now gets and `mcp-server` does not: mocks cleared by default before each test, un-awaited async assertions failing, `--reporter=basic` removed.
-
-**Why it was not simply bumped in the same change.** Two reasons, both worth stating so this is a recorded decision rather than an oversight:
-
-1. **Scope.** The three Dependabot PRs were root-only. Bumping `mcp-server` as well would have put an unrequested change into a dependency-merge branch.
-2. **Risk concentration.** `mcp-server`'s integration suite is the `unstable_dev` one — eleven files that each boot a miniflare Worker, and the suite already carries the [BL-149](#bl-149-diagnose-the-5000ms-first-use-suite-flake--twenty-six-instances-eight-named-files-both-workspaces-reproducible-in-isolation-at-37) timeout flake. Changing the test runner underneath it deserves its own validation run and its own attribution, not a shared one. **BL-149 instance 23 is directly relevant**: the flake reproduced under Vitest 5 on the root workspace, so a bump here should be expected to inherit it rather than fix it, and must not be read as "the upgrade broke the suite".
-
-An attempt to bump it in-session was reverted: `mcp-server/node_modules/vitest@4.1.11` survived a `^5.0.0` declaration, a clean `npm install`, and a full `node_modules` wipe, even with nothing in the lockfile declaring a Vitest 4 dependency. **Resolving that stale nested entry is the first task here**, before any test run is meaningful.
-
-#### Acceptance Criteria
-
-- [ ] `mcp-server/package.json` declares `vitest: ^5.0.0` and `npm ls vitest` resolves a single version across both workspaces
-- [ ] `npm run test:mcp` passes, with any failure attributed against BL-149 rather than assumed to be the upgrade — re-run before concluding
-- [ ] Vitest 5's default `clearMocks` is audited against `mcp-server/tests/` for tests relying on mock state persisting within a file (the root workspace was checked and had none)
