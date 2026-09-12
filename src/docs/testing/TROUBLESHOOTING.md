@@ -172,7 +172,7 @@ Counting individual runs, that is **70–154 executed** (row two is 12 pairs = 2
 
 That candidate was drafted here on the claim that the captured failure was "the first run after the directory was deleted." It was roughly the tenth, five minutes later — a cause asserted without running the check that would prove it, when the check was cheap and the record was already on disk. It is entry 3 in the list of wrong diagnoses below.
 
-One trap while probing: `npx vitest run --force` is **not** a cold-cache substitute. `--force` is not a vitest 4 flag; it exits 1 with `CACError: Unknown option --force`, which reads exactly like a reproduction if you look only at the exit code.
+One trap while probing: `npx vitest run --force` is **not** a cold-cache substitute. `--force` is not a vitest flag (checked on 4 and on 5.0.0); it exits 1 with `CACError: Unknown option --force`, which reads exactly like a reproduction if you look only at the exit code.
 
 **On the correlation.** Of three sightings that day, **two** coincided with a subagent running vitest in the same directory and **one did not** — the process list held nothing newer than the previous day. Concurrency is present in most sightings, absent in at least one, and insufficient in every controlled attempt. Treat it as the first thing to rule out, not the cause.
 
@@ -184,7 +184,7 @@ That matters for diagnosis. Elsewhere the split is the discriminator; on this co
 
 **Sighting 2026-09-06**: `npm run test:docs` failed 6/6 with the standard signature (`Cannot read properties of undefined (reading 'config')`, `Tests no tests`, `import 0ms`, `tests 0ms`, 1.02s). **Nothing was running concurrently** — a single sequential command, no subagent vitest, no dev server. Adds to the no-concurrency counter-evidence at § On the correlation. Never reproduced afterwards across ~10 further runs including a cold-cache run and explicit lowercase/uppercase `--root`.
 
-**Sighting 2026-09-11 — a deterministic variant with a known cause: install drift across a Vitest major.** Same signature (`reading 'config'` at `describe`, `test:docs` 6/6, and the website suite also collecting only 1300 of 2057 tests), but it **reproduced on every re-run** with no other node/vitest process alive — so point 2's "contention clears" did not apply. Cause: `node_modules` no longer matched the committed lockfile after several installs across branches on different Vitest majors. (Which packages drifted was not captured. Note that root-level 4.x `@vitest/*` packages are **not** the drift: the correct lockfile hoists them there for `mcp-server`'s Vitest 4.) `git diff --quiet HEAD -- package-lock.json` was clean; a plain `npm ci` fixed it immediately and `test:docs` went 6/6 green. **If the failure survives a quiet re-run, run `npm ci` before debugging anything else** — especially after checking out a branch that changes a test-runner version.
+**Sighting 2026-09-11 — a deterministic variant with a known cause: install drift across a Vitest major.** Same signature (`reading 'config'` at `describe`, `test:docs` 6/6, and the website suite also collecting only 1300 of 2057 tests), but it **reproduced on every re-run** with no other node/vitest process alive — so point 2's "contention clears" did not apply. Cause: `node_modules` no longer matched the committed lockfile after several installs across branches on different Vitest majors. (Which packages drifted was not captured. At the time, root-level 4.x `@vitest/*` packages were **not** the drift: the lockfile hoisted them there for `mcp-server`'s Vitest 4. Since BL-160 moved `mcp-server` to Vitest 5, the correct lockfile has **no** 4.x `@vitest/*` or `vitest` entries anywhere, so any you see on disk **are** drift.) `git diff --quiet HEAD -- package-lock.json` was clean; a plain `npm ci` fixed it immediately and `test:docs` went 6/6 green. **If the failure survives a quiet re-run, run `npm ci` before debugging anything else** — especially after checking out a branch that changes a test-runner version.
 
 **Related:** ["npm run test:all hangs or times out"](#npm-run-testall-hangs-or-times-out) covers resource exhaustion _within_ one run; this entry is contention _between_ runs.
 
@@ -584,6 +584,21 @@ npx vitest --inspect --help  # Shows validation errors
 # Check config file
 cat vitest.config.ts
 ```
+
+### "I bumped vitest, but the old major is still in the lockfile"
+
+**Symptom:** `package.json` declares the new range, and `npm install` says "up to date". But `package-lock.json` still has the old version, for example a nested `mcp-server/node_modules/vitest@4.1.11` under a `^5.0.0` declaration. `npm prune` and wiping `node_modules` don't remove it either, because `npm install` rebuilds it from the lockfile.
+
+**Cause (BL-160, 2026-09-11):** `vitest` and `@vitest/coverage-v8` peer-depend on each other at the **exact** same version. Once nothing depends on the old pair any more, each one still counts as needed by the other. npm keeps the pair as a self-supporting orphan cycle in the lockfile.
+
+**Diagnose:** run `npm explain vitest@<old>`. If the only thing requiring it is its own `@vitest/*` sibling, and that sibling's only requirer is `vitest@<old>`, it's this orphan cycle.
+
+**Fix:**
+
+1. Bump `vitest` and every `@vitest/*` package in the workspace together. A `vitest` bump on its own leaves `@vitest/coverage-v8` peering the old version.
+2. If the orphan cycle is still in the lockfile, delete those `packages` entries from `package-lock.json`, including the old `@vitest/*` packages hoisted to the root.
+3. Run `npm install` so npm re-adds anything that's genuinely needed. It should add nothing.
+4. Run `npm ci`, then check that `npm ls vitest --all` shows a single version and exits 0.
 
 ### "Playwright browsers not installed"
 

@@ -108,6 +108,11 @@ import workerDefault from '../../src/worker';
 import * as cron from '../../src/cron/radar-refresh';
 import type { Env } from '../../src/worker';
 
+// withSentry runs once, when src/worker is imported above. Vitest 5 clears
+// every mock's calls before each test (clearMocks defaults to true), so the
+// import-time call must be captured here, before any test starts.
+const withSentryImportCalls = [...withSentryMock.mock.calls];
+
 const FAKE_ENV = {} as Env;
 const FAKE_CRON = '0 */6 * * *';
 // BL-032.77 dedup tests need a STABLE scheduledTime so the lock key is
@@ -146,8 +151,8 @@ describe('worker default export — withSentry wraps fetch only (BL-032.76 regre
     // outside our control; passing a handler literal with `scheduled`
     // attached re-introduces the broken cron status reporting. The
     // default export MUST pass `{ fetch }` only.
-    expect(withSentryMock).toHaveBeenCalled();
-    const [, passedHandler] = withSentryMock.mock.calls[0]!;
+    expect(withSentryImportCalls).toHaveLength(1);
+    const [, passedHandler] = withSentryImportCalls[0]!;
     expect(passedHandler).toHaveProperty('fetch');
     expect(passedHandler).not.toHaveProperty('scheduled');
   });
