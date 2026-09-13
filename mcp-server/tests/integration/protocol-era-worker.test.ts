@@ -28,6 +28,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
+import { warmWorker } from '../helpers/warm-worker';
 import { parseToolResult, type CallToolResultPayload } from '../helpers/tool-envelope';
 import { minimalArgsFor } from '../helpers/prompt-args';
 
@@ -45,6 +46,10 @@ beforeAll(async () => {
     experimental: { disableExperimentalWarning: true },
     vars: { MCP_KEY_RP: TEST_KEY },
   });
+
+  // BL-149: pay the ~7.6s first-fetch cost inside this hook's 60s budget,
+  // not in the first `it` under vitest's 5000ms default.
+  await warmWorker(worker);
 }, 60_000);
 
 afterAll(async () => {

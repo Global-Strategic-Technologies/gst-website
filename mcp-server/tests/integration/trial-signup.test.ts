@@ -13,6 +13,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
+import { warmWorker } from '../helpers/warm-worker';
 
 const ADMIN_KEY = 'test-admin-key';
 const ORIGIN = 'https://globalstrategic.tech';
@@ -33,6 +34,11 @@ beforeAll(async () => {
       TURNSTILE_EXPECTED_HOSTNAMES: 'globalstrategic.tech',
     },
   });
+
+  // BL-149: pay first-use init inside this hook's 60s budget, not in the
+  // first `it` under vitest's 5000ms default. `kv` too — this file is the
+  // instance-18 case, where the FOURTH test failed as the first KV touch.
+  await warmWorker(worker, ['module', 'kv'], { adminKey: ADMIN_KEY });
 }, 60_000);
 
 afterAll(async () => {

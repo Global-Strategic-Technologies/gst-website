@@ -20,6 +20,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
+import { warmWorker } from '../helpers/warm-worker';
 
 const ALLOWED_ORIGIN = 'https://claude.ai';
 const DISALLOWED_ORIGIN = 'https://evil.example';
@@ -33,6 +34,10 @@ beforeAll(async () => {
     local: true,
     experimental: { disableExperimentalWarning: true },
   });
+
+  // BL-149: pay the ~7.6s first-fetch cost inside this hook's 60s budget,
+  // not in the first `it` under vitest's 5000ms default.
+  await warmWorker(worker);
 }, 60_000);
 
 afterAll(async () => {
