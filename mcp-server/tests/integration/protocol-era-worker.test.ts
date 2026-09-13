@@ -49,7 +49,9 @@ beforeAll(async () => {
 
   // BL-149: pay the ~7.6s first-fetch cost inside this hook's 60s budget,
   // not in the first `it` under vitest's 5000ms default.
-  await warmWorker(worker);
+  // Every case here is a POST /mcp, and this file is the one BL-149 landed on
+  // most often, so it warms that path too rather than only the module graph.
+  await warmWorker(worker, ['module', 'mcp'], { bearer: TEST_KEY });
 }, 60_000);
 
 afterAll(async () => {

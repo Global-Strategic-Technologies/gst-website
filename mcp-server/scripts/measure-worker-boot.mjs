@@ -50,9 +50,8 @@
  * No shebang, run via `node` (house style — see extract-irl-markdown.mjs).
  */
 
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
