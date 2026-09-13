@@ -97,6 +97,12 @@ const newBg = await body.evaluate((el) => window.getComputedStyle(el).background
 expect(newBg).not.toBe(initialBgColor);
 ```
 
+**Corollary — a timeout that fires on FIRST USE is a cost-placement bug, not a budget bug.** The instinct is to raise the timeout; that is wrong twice over, because the cost is real and because raising it destroys the only signal. Ask instead which phase should pay it. Setup hooks usually carry a generous explicit budget while each test carries the framework default, so heavyweight first-use initialization belongs in the hook.
+
+The worked example is BL-149, which cost six weeks and 26 flake instances: `unstable_dev` resolves when the Worker process is spawned, but the first `worker.fetch()` paid 7451ms p50 of module-graph JIT — billed to the first `it` under a 5000ms default while `beforeAll` sat on an unused 60s budget. Moving that one fetch into `beforeAll` took every test-visible fetch to 46ms p50. Nothing got faster; the cost simply moved to the phase that budgets for it, and the default went back to meaning something. See [`mcp-server/tests/helpers/warm-worker.ts`](../../../mcp-server/tests/helpers/warm-worker.ts) and [TROUBLESHOOTING.md](./TROUBLESHOOTING.md).
+
+Two habits it also taught: measure before fixing, because an observation that aborts AT the timeout is right-censored and tells you only "at least 5s"; and suspect accumulated local state, because BL-149's second cause was a 223 MB dev-cache directory that made a KV call 16× slower and never existed in CI.
+
 ### 4. ❌ Checking CSS Classes, Not Actual CSS Properties
 
 **Bad:**

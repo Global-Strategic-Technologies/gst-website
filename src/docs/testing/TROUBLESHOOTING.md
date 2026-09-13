@@ -188,7 +188,7 @@ That matters for diagnosis. Elsewhere the split is the discriminator; on this co
 
 **Related:** ["npm run test:all hangs or times out"](#npm-run-testall-hangs-or-times-out) covers resource exhaustion _within_ one run; this entry is contention _between_ runs.
 
-**Record it even though it's benign.** [CLAUDE.md](../../../.claude/CLAUDE.md) requires capturing evidence before a re-run, because a green re-run destroys it (this is why BL-106's unreproduced flake stayed open). When collection fails there is no test name, so capture the **signature** instead: the phase, the full set of failing files, and what else was running. Observed 2026-08-06, where it was first misdiagnosed as a permanently broken local vitest install — the misdiagnosis was corrected only when the same command later passed in the same shell.
+**Record it even though it's benign.** [CLAUDE.md](../../../.claude/CLAUDE.md) requires capturing evidence before a re-run, because a green re-run destroys it (this is why BL-149's unreproduced flake stayed open for six weeks). When collection fails there is no test name, so capture the **signature** instead: the phase, the full set of failing files, and what else was running. Observed 2026-08-06, where it was first misdiagnosed as a permanently broken local vitest install — the misdiagnosis was corrected only when the same command later passed in the same shell.
 
 **Capture means redirect, not scrollback.** The 2026-08-09 sightings were lost three times over precisely because the command was run bare and then re-run. Redirect the first attempt to a file **outside the repo** — PowerShell `npm run test:docs *> $env:TEMP\td.txt; "exit=$LASTEXITCODE"; Get-Content $env:TEMP\td.txt`, or bash `npm run test:docs > /tmp/td.txt 2>&1; echo "exit=$?"; cat /tmp/td.txt`. Either costs nothing and survives the re-run. Outside the repo matters: an earlier draft of this line wrote `td.txt` to the repo root, and the next `git add -A` committed the capture artifact into the branch. Do not pipe through `tail` on the first attempt either — that is how the `Test Files N failed` line, the one that distinguishes this failure from a fast pass, got truncated away twice.
 
@@ -584,6 +584,26 @@ npx vitest --inspect --help  # Shows validation errors
 # Check config file
 cat vitest.config.ts
 ```
+
+### "A Worker integration test times out at 5000ms in its first `it`"
+
+**Symptom:** a test in one of the `unstable_dev` Worker-booting files under `mcp-server/tests/integration/` times out at exactly ~5000ms. Usually the file's first test, or the first one to touch a given subsystem. Green on some re-runs, and CI is fine.
+
+**Cause (BL-149, six weeks and 26 instances):** `unstable_dev` resolves when the workerd process is **spawned**, but the first `worker.fetch()` still pays module-graph JIT and instantiation — measured at 7451ms p50, over 5000ms in 48 of 50 runs. `beforeAll` has an explicit 60s budget; an `it` has vitest's 5000ms default. A file that does not spend that cost in `beforeAll` bills it to a test.
+
+**Fix:** warm the worker at the end of `beforeAll`:
+
+```ts
+import { warmWorker } from '../helpers/warm-worker';
+// ...at the end of beforeAll, inside its 60_000 budget:
+await warmWorker(worker);
+// touches KV? pass the credential, or the warm-up 401s and warms nothing:
+await warmWorker(worker, ['module', 'kv'], { adminKey: ADMIN_KEY });
+```
+
+All 11 booting files do this. **Do not raise the timeout and do not add a retry** — the cost is real and correctly budgeted in setup; the 5000ms default is what tells you a _warm_ fetch has regressed.
+
+**If a warmed file still times out locally:** purge `mcp-server/.wrangler`. Accumulated local dev state (223 MB here, mostly a miniflare observability trace store) took first-KV-touch from 73ms to 1216ms and a KV list to 3.7s. It regenerates on the next run. This is why the flake was always machine-dependent, worsened over weeks, and never appeared in CI, which starts clean. Full evidence: [WORKER_BOOT_LATENCY_BL-149.md](../development/_archive/WORKER_BOOT_LATENCY_BL-149.md).
 
 ### "I bumped vitest, but the old major is still in the lockfile"
 

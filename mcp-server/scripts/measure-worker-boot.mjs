@@ -46,7 +46,7 @@
  *   --json <path>  write raw per-run samples here
  *   --single       INTERNAL: run one measurement, print one JSON line
  *
- * Companion: src/docs/development/WORKER_BOOT_LATENCY_BL-149.md
+ * Companion: src/docs/development/_archive/WORKER_BOOT_LATENCY_BL-149.md
  * No shebang, run via `node` (house style — see extract-irl-markdown.mjs).
  */
 

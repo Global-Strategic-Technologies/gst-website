@@ -18,10 +18,15 @@
  * Measured on that machine (win32, wrangler 4.131.0, 50 isolated runs —
  * see `scripts/measure-worker-boot.mjs` and the findings doc):
  *
- * - `unstable_dev` resolve: ~350ms
- * - FIRST `/health` fetch: ~7.6s  ← the whole problem, 50/50 over 5000ms
- * - every later fetch: ~12ms
- * - first KV touch: ~1.0s, first `/mcp` call: ~95ms
+ * - `unstable_dev` resolve: 355ms p50 — never the problem
+ * - FIRST fetch: 7451ms p50, over 5000ms in 48 of 50 runs ← the problem
+ * - every later fetch: 15ms p50
+ * - first KV touch: 1216ms p50, first `/mcp` call: 99ms p50
+ *
+ * The cost belongs to the FIRST request, not to `/health`: probing KV
+ * first instead measured 8318ms p50 for KV and 18ms for `/health` after
+ * it. Magnitudes are state-sensitive (a purged `.wrangler` measured
+ * 6112ms p50) but the first fetch is essentially always over 5000ms.
  *
  * This is not a timeout problem and must not be fixed with a bigger
  * timeout: the cost is real, it is just placed in the wrong phase. Move
@@ -51,7 +56,7 @@ import type { Unstable_DevWorker } from 'wrangler';
 /**
  * - `module` — `GET /health`. Unauthenticated by design (`/health` is
  *   handled before the auth check), so it works in every file and is
- *   always the first thing warmed. This is the ~7.6s cost.
+ *   always the first thing warmed. This is where the seconds go.
  * - `kv` — first touch of the KV-backed m2m client registry. Needs
  *   `adminKey`. BL-149 instance 18's victim was a test that paid this.
  * - `mcp` — first `/mcp` call: MCP handler plus server registry. Needs
