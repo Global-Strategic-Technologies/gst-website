@@ -27,12 +27,14 @@ A locale is `language[-REGION]` — `en`, `es`, `pt-BR` today — and lives as o
 
 ## Content tiers
 
-| Tier | Pages                                                                                     | Localized?                                                                               |
-| ---- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| A    | `/`, `/services/`, `/about/`, `/hub/`, `/hub/tools/`, `/hub/mcp/`, `/privacy/`, `/terms/` | Yes — a locale launches with all of them or not at all (`TIER_A_ROUTES`)                 |
-| B    | Hub tool UIs (`/hub/tools/<tool>/`)                                                       | Not yet; `formatters.ts` is ready for them. Currency control is BL-153's follow-up       |
-| C    | MCP guides, portfolio, library, radar, brand                                              | English only. Linked from localized pages with the `common.notice.contentInEnglish` line |
-| —    | `/404`, `/500`                                                                            | English chrome + trilingual hint (Vercel serves one static error page)                   |
+| Tier | Pages                                                                                                                               | Localized?                                                                               |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| A    | `/`, `/services/`, `/about/`, `/hub/`, `/hub/tools/`, `/hub/mcp/`, `/hub/mcp/trial/`, `/hub/mcp/from-code/`, `/privacy/`, `/terms/` | Yes — a locale launches with all of them or not at all (`TIER_A_ROUTES`)                 |
+| B    | Hub tool UIs (`/hub/tools/<tool>/`)                                                                                                 | Not yet; `formatters.ts` is ready for them. Currency control is BL-153's follow-up       |
+| C    | MCP media guides (`get-started`, `using`, `advanced-operations`, `docs`), portfolio, library, radar, brand                          | English only. Linked from localized pages with the `common.notice.contentInEnglish` line |
+| —    | `/404`, `/500`                                                                                                                      | English chrome + trilingual hint (Vercel serves one static error page)                   |
+
+**The `/hub/mcp/` asymmetry is deliberate.** The two self-serve surfaces, the trial signup (BL-155) and the from-code guide it links to (BL-156), are Tier A because strangers arrive at them from any locale with nobody to talk to. The four guides beside them stay English-only because a roster pilot is onboarded by a human who speaks to them, and because three of the four carry recorded media that would need re-recording per locale. It reads as an oversight from either side; do not "fix" it in either direction without an operator decision.
 
 `localizedHref(path, locale)` encodes the tiers: it prefixes Tier A paths and returns everything else unchanged.
 
