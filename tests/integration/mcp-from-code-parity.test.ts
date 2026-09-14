@@ -19,6 +19,7 @@
  */
 import { extractAstroMarkup } from './helpers/astro-markup';
 import {
+  EXPECTED_REMOTE_TOOL_COUNT,
   read,
   registeredPromptNames,
   registeredToolNames,
@@ -34,6 +35,11 @@ const source = read('src/page-templates/HubMcpFromCodePage.astro');
 const template = extractAstroMarkup(source);
 const tokenSource = read('mcp-server/src/oauth/m2m-token.ts');
 const catalogText = Object.values(CATALOGS).flatMap((c) => Object.values(c));
+
+/** Same shape as the trial guard's: the page writes the count as a word. */
+const NUMBER_WORDS: Record<number, Record<keyof typeof CATALOGS, string>> = {
+  16: { en: 'sixteen', es: 'dieciséis', 'pt-BR': 'dezesseis' },
+};
 
 function catalogEntries(): Array<[string, string]> {
   return Object.entries(CATALOGS).flatMap(([code, catalog]) =>
@@ -94,6 +100,20 @@ describe('from-code guide — published facts', () => {
       expect(fact, code).toContain(`${ttl![1]} `);
       expect(fact, code).toContain(` ${m![1]} `);
       expect(fact, code).toContain(` ${m![2]} `);
+    }
+  });
+
+  it('counts the tools as the registered remote count, as a word, in every locale', () => {
+    // tools/list is not scope-filtered (radar is refused at call time), so the
+    // roster a trial sees is the full registered count.
+    const tools = registeredToolNames(SERVER_PATH);
+    expect(tools).toHaveLength(EXPECTED_REMOTE_TOOL_COUNT);
+    const words = NUMBER_WORDS[tools.length];
+    expect(words, `no words for count ${tools.length}, extend NUMBER_WORDS`).toBeDefined();
+    for (const [code, catalog] of Object.entries(CATALOGS)) {
+      expect(catalog['call.result.body'].toLowerCase(), code).toContain(
+        words![code as keyof typeof CATALOGS]
+      );
     }
   });
 
