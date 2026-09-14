@@ -142,6 +142,19 @@ describe('mcpGuideSchema — TechArticle about the server node', () => {
     expect(guide.datePublished).toBe('2026-08-27');
     expect(guide.dateModified).toBe('2026-09-02');
   });
+
+  it('defaults inLanguage to English and passes a locale code through', () => {
+    expect(guide.inLanguage).toBe('en');
+    const localized = mcpGuideSchema({
+      headline: 'x',
+      description: 'x',
+      url: 'https://globalstrategic.tech/es/hub/mcp/from-code/',
+      datePublished: '2026-09-14',
+      dateModified: '2026-09-14',
+      inLanguage: 'es',
+    });
+    expect(localized.inLanguage).toBe('es');
+  });
 });
 
 describe('copy rules over the literals the helpers add', () => {
@@ -196,6 +209,12 @@ describe('every /hub/mcp/ page renders its JSON-LD from the helpers', () => {
     [join('using', 'index.astro'), [/set:html=\{JSON\.stringify\(\s*mcpGuideSchema\(/]],
     [
       join('advanced-operations', 'index.astro'),
+      [/set:html=\{JSON\.stringify\(\s*mcpGuideSchema\(/],
+    ],
+    // The from-code guide (BL-156) is localized, so like the landing page its
+    // body is a template and the wrapper under src/pages is one line.
+    [
+      join('..', '..', '..', 'page-templates', 'HubMcpFromCodePage.astro'),
       [/set:html=\{JSON\.stringify\(\s*mcpGuideSchema\(/],
     ],
   ];

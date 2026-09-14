@@ -73,6 +73,11 @@ const PAGES: A11yPage[] = [
   // Idle state only: the issued and error states are scanned in
   // hub-mcp-trial.test.ts, which stubs Turnstile and the mint endpoint.
   { name: 'MCP Trial Signup', path: '/hub/mcp/trial/', waitFor: 'h1' },
+  // The from-code guide (BL-156) is localized like the trial, so it is scanned
+  // once in English and once in Spanish: focusable <pre> snippets, copy
+  // buttons and the English-only notice all sit in the tree at rest.
+  { name: 'MCP From Code', path: '/hub/mcp/from-code/', waitFor: 'h1' },
+  { name: 'MCP From Code (es)', path: '/es/hub/mcp/from-code/', waitFor: 'h1' },
   // The row above loads with no hash, so the pane it scans is the four-argument
   // default. This one addresses the densest contract deliberately: it is the
   // only route where the sweep sees the fourteen argument-value controls at
@@ -112,7 +117,7 @@ const PAGES: A11yPage[] = [
   // guides; 27 as of the capability reference; 28 as of its dense-contract pane;
   // 29 as of the IRL extractor; 30 as of the jobs lens with every row opened;
   // 32 as of the two localized About routes (BL-153); 33 as of the trial
-  // signup (BL-155).
+  // signup (BL-155); 35 as of the from-code guide and its Spanish route (BL-156).
   // Deliberately NOT excluded here are the
   // dev-only gateway cards on /hub/library and /hub/tools (rendered under
   // `import.meta.env.DEV`, and Playwright's webServer runs the dev server). Asserting

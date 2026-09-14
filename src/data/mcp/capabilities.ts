@@ -1342,7 +1342,7 @@ export const CAPABILITIES: readonly Capability[] = [
     noteTitle: 'Clients are registered by GST or issued by the trial',
     note: 'There is no dynamic client registration and no user directory. A free 3-day trial issues a bounded credential in one click; anything wider is issued through a conversation with GST, which is also how scopes and a tier get set correctly the first time.',
     availability:
-      'Start a free 3-day trial on the MCP trial page, or request access to be provisioned. See the request-access path on the MCP Server page.',
+      'Start a free 3-day trial on the MCP trial page, or request access to be provisioned. See the request-access path on the MCP Server page. The from-code guide shows the token exchange for a machine client.',
     related: ['Rate limits', 'Status'],
   },
   {

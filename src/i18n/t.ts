@@ -30,6 +30,7 @@ import enAnnouncements from './en/announcements.json';
 import enHome from './en/home.json';
 import enHub from './en/hub.json';
 import enHubMcp from './en/hub-mcp.json';
+import enHubMcpFromCode from './en/hub-mcp-from-code.json';
 import enHubMcpTrial from './en/hub-mcp-trial.json';
 import enHubTools from './en/hub-tools.json';
 import enPrivacy from './en/privacy.json';
@@ -47,6 +48,7 @@ export const EN = {
   'hub-tools': enHubTools,
   'hub-mcp': enHubMcp,
   'hub-mcp-trial': enHubMcpTrial,
+  'hub-mcp-from-code': enHubMcpFromCode,
   privacy: enPrivacy,
   terms: enTerms,
 } as const;

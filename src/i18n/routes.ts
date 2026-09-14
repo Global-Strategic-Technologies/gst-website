@@ -33,6 +33,11 @@ export const TIER_A_ROUTES: readonly RouteEntry[] = [
   // though its sibling guides under /hub/mcp/ are English-only — strangers
   // arrive from any locale; roster pilots are onboarded by a human.
   { id: 'hub-mcp-trial', path: '/hub/mcp/trial/' },
+  // BL-156: the developer half of the trial, the page the trial's "From code"
+  // issued state links to. Localized for the same reason, and the same
+  // asymmetry: /hub/mcp/get-started/ beside it stays English-only
+  // (LOCALIZATION.md § Content tiers records the decision).
+  { id: 'hub-mcp-from-code', path: '/hub/mcp/from-code/' },
   { id: 'privacy', path: '/privacy/' },
   { id: 'terms', path: '/terms/' },
 ];

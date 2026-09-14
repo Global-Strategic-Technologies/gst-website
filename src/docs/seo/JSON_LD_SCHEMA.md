@@ -637,19 +637,20 @@ When adding or removing tools from the landing page:
 
 ### Purpose
 
-Describes the GST MCP Server to crawlers as one product with three page kinds: the landing page and the capability reference carry a `SoftwareApplication` node, the reference additionally carries an `ItemList` of every capability, and the three onboarding guides carry a `TechArticle` whose `about` points at the application node.
+Describes the GST MCP Server to crawlers as one product with three page kinds: the landing page and the capability reference carry a `SoftwareApplication` node, the reference additionally carries an `ItemList` of every capability, and the four onboarding guides carry a `TechArticle` whose `about` points at the application node.
 
 ### Where it comes from
 
-`src/utils/mcp-schema.ts` exports `mcpServerSchema()`, `mcpCapabilityListSchema()` and `mcpGuideSchema()`. The first two are **derived from the capability registry** (`src/data/mcp/capabilities.ts`): every tool identifier, every count and every item URL is read from it, and the registry is itself bound to server source by `tests/integration/mcp-docs-parity.test.ts`. Nothing in the schema hardcodes a tool name or a number. `tests/unit/mcp-schema.test.ts` asserts the shapes, the copy rules over the few literals the helpers add, and that each of the five `/hub/mcp/` pages renders its JSON-LD from the helper.
+`src/utils/mcp-schema.ts` exports `mcpServerSchema()`, `mcpCapabilityListSchema()` and `mcpGuideSchema()`. The first two are **derived from the capability registry** (`src/data/mcp/capabilities.ts`): every tool identifier, every count and every item URL is read from it, and the registry is itself bound to server source by `tests/integration/mcp-docs-parity.test.ts`. Nothing in the schema hardcodes a tool name or a number. `tests/unit/mcp-schema.test.ts` asserts the shapes, the copy rules over the few literals the helpers add, and that each of the six `/hub/mcp/` pages renders its JSON-LD from the helper (the landing page and the from-code guide are localized, so the test scans their `src/page-templates/` bodies rather than the one-line route wrappers).
 
-| Page                            | Schema(s)                          |
-| ------------------------------- | ---------------------------------- |
-| `/hub/mcp/`                     | `SoftwareApplication`              |
-| `/hub/mcp/docs/`                | `SoftwareApplication` + `ItemList` |
-| `/hub/mcp/get-started/`         | `TechArticle`                      |
-| `/hub/mcp/using/`               | `TechArticle`                      |
-| `/hub/mcp/advanced-operations/` | `TechArticle`                      |
+| Page                            | Schema(s)                                                          |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `/hub/mcp/`                     | `SoftwareApplication`                                              |
+| `/hub/mcp/docs/`                | `SoftwareApplication` + `ItemList`                                 |
+| `/hub/mcp/get-started/`         | `TechArticle`                                                      |
+| `/hub/mcp/using/`               | `TechArticle`                                                      |
+| `/hub/mcp/advanced-operations/` | `TechArticle`                                                      |
+| `/hub/mcp/from-code/`           | `TechArticle`, `inLanguage` follows the locale (`en`, `es`, `pt-BR`) |
 
 ### Why SoftwareApplication, not WebApplication
 

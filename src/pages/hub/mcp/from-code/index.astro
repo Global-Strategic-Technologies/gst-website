@@ -1,0 +1,8 @@
+---
+// English route for /hub/mcp/from-code/. Body: src/page-templates/HubMcpFromCodePage.astro,
+// shared with every locale via src/pages/[locale]/[...route].astro (BL-156).
+import HubMcpFromCodePage from '../../../../page-templates/HubMcpFromCodePage.astro';
+import { DEFAULT_LOCALE } from '../../../../i18n/locales';
+---
+
+<HubMcpFromCodePage locale={DEFAULT_LOCALE} />

@@ -27,6 +27,7 @@ describe('mcpPageSlug', () => {
     expect(mcpPageSlug('/hub/mcp/get-started/')).toBe('get-started');
     expect(mcpPageSlug('/hub/mcp/docs/')).toBe('docs');
     expect(mcpPageSlug('/hub/mcp/trial')).toBe('trial');
+    expect(mcpPageSlug('/hub/mcp/from-code/')).toBe('from-code');
   });
 
   it('ignores a locale prefix without naming any locale', () => {

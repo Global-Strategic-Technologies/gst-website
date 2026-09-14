@@ -34,6 +34,16 @@ const GUIDES = [
     stills: 1,
   },
   {
+    // BL-156: no media, localized (Tier A), so the h1 here is the English one.
+    name: 'From code',
+    route: '/hub/mcp/from-code/',
+    h1: /Use the GST MCP Server from code/,
+    crumb: 'From code',
+    sections: ['prerequisites', 'token', 'call', 'lifecycle', 'whats-next'],
+    clips: 0,
+    stills: 0,
+  },
+  {
     name: 'Using the Server',
     route: '/hub/mcp/using/',
     h1: /Using the GST MCP Server/,
@@ -207,17 +217,17 @@ test.describe('MCP onboarding — cross-page wiring', () => {
     await expect(page.locator('#request-access')).toHaveCount(1);
   });
 
-  test('the parent page guides section links all four guides', async ({ page }) => {
+  test('the parent page guides section links every guide', async ({ page }) => {
     await page.goto('/hub/mcp/');
     const grid = page.locator('.mcp-guides');
     for (const guide of GUIDES) {
       await expect(grid.locator(`a[href="${guide.route}"]`)).toHaveCount(1);
     }
-    // The docs page is the fourth card. It is deliberately NOT a GUIDES entry:
+    // The docs page is the fifth card. It is deliberately NOT a GUIDES entry:
     // that list drives per-guide describes expecting a sticky TOC and clips,
     // neither of which the two-lens reference has.
     await expect(grid.locator('a[href="/hub/mcp/docs/"]')).toHaveCount(1);
-    await expect(grid.locator('.brutal-gateway-card')).toHaveCount(4);
+    await expect(grid.locator('.brutal-gateway-card')).toHaveCount(5);
   });
 
   test('the Northwind demo IRL downloads from the advanced-operations page link', async ({

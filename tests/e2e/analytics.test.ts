@@ -391,6 +391,39 @@ test.describe('Google Analytics E2E Tests', () => {
         target: 'endpoint',
       });
     });
+
+    test('guide view and token-endpoint copy are tracked on /hub/mcp/from-code/', async ({
+      page,
+      context,
+      browserName,
+    }) => {
+      // BL-156: the localized guide shares the get-started script, so the same
+      // two events fire; the page slug is the segment after /hub/mcp/.
+      if (browserName === 'chromium') {
+        await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+      }
+      await gotoAndSetupAnalytics(page, '/hub/mcp/from-code/');
+
+      const guideView = await page.evaluate(() =>
+        ((window as any).dataLayer as IArguments[]).some(
+          (args) => args[0] === 'event' && args[1] === 'mcp_guide_view'
+        )
+      );
+      expect(guideView).toBe(true);
+
+      await page.locator('[data-copy-kind="endpoint"]').first().click();
+      await page.waitForFunction(() =>
+        (window as any).gtagEvents?.some((e: any) => e.eventName === 'mcp_endpoint_copied')
+      );
+      const copied = (await page.evaluate(() => (window as any).gtagEvents)).find(
+        (e: any) => e.eventName === 'mcp_endpoint_copied'
+      );
+      expect(copied.eventData).toMatchObject({
+        event_category: 'tool',
+        page: 'from-code',
+        target: 'endpoint',
+      });
+    });
   });
 
   test.describe('GA Error Handling', () => {

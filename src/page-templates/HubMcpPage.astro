@@ -686,6 +686,18 @@ function accessHref(tier?: string) {
             >
           </article>
           <article class="brutal-gateway-card brutal-frosted">
+            <div class="brutal-gateway-card__header"><h3>{t('guides.fromCode.title')}</h3></div>
+            <p class="brutal-gateway-card__features mcp-guides__blurb">
+              {t('guides.fromCode.blurb')}
+            </p>
+            {/* Tier A (BL-156): localized like this page, so no hreflang. */}
+            <a
+              href={localizedHref('/hub/mcp/from-code/', locale)}
+              class="cta-button brutal-gateway-card__cta"
+              onclick="trackCTA('mcp-guide-from-code', 'hub-mcp')">{t('guides.open')}</a
+            >
+          </article>
+          <article class="brutal-gateway-card brutal-frosted">
             <div class="brutal-gateway-card__header"><h3>{t('guides.docs.title')}</h3></div>
             <p class="brutal-gateway-card__features mcp-guides__blurb">{t('guides.docs.blurb')}</p>
             <a
