@@ -13,6 +13,7 @@ import {
   isRegistryMetadataPath,
   REGISTRY_DESCRIPTION,
   REGISTRY_METADATA_PATHS,
+  REGISTRY_TITLE,
 } from '../../src/registry-metadata';
 import { FALLBACK_VERSION } from '../../src/version';
 
@@ -41,6 +42,13 @@ describe('buildServerJson', () => {
   it('is JSON-serialisable with no undefined fields', () => {
     const doc = buildServerJson();
     expect(JSON.parse(JSON.stringify(doc))).toEqual(doc);
+  });
+});
+
+describe('registry schema length caps (server.schema.json 2025-12-11)', () => {
+  it('description and title are at most 100 characters', () => {
+    expect(REGISTRY_DESCRIPTION.length).toBeLessThanOrEqual(100);
+    expect(REGISTRY_TITLE.length).toBeLessThanOrEqual(100);
   });
 });
 

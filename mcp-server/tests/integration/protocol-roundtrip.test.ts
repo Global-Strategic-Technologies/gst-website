@@ -277,7 +277,7 @@ describe('protocol roundtrip', () => {
       const resources = await rpc('resources/list', {});
       for (const r of [tools, prompts, resources]) expect(isErrorResponse(r)).toBe(false);
       const m = REGISTRY_DESCRIPTION.match(
-        /^(\d+) technology diligence, portfolio and regulatory tools, (\d+) prompts and (\d+) reference resources,/
+        /^(\d+) technology diligence tools, (\d+) prompts and (\d+) reference resources/
       );
       expect(m, 'description sentence shape').not.toBeNull();
       const [, t, p, r] = m!.map(Number);

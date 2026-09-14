@@ -401,6 +401,9 @@ export async function handleAuthorizePost(
       name: 'consent',
       keyOwner: identity.keyOwner,
       outcome: 'approved',
+      // ADR-0031: the per-client dimension lives in blob8, so the panel can
+      // tell a new client's first consent from a re-consent by the same one.
+      ...(identity.rateLimitSubject ? { client_ref: identity.rateLimitSubject } : {}),
     });
   }
 

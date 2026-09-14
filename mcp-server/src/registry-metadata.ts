@@ -32,8 +32,9 @@ export const REGISTRY_SERVER_NAME = 'tech.globalstrategic/gst-mcp';
 
 export const REGISTRY_TITLE = 'GST MCP Server';
 
+/** Registry schema caps `description` and `title` at 100 characters; the unit test enforces it. */
 export const REGISTRY_DESCRIPTION =
-  '16 technology diligence, portfolio and regulatory tools, 12 prompts and 133 reference resources, exposed to AI agents over the Model Context Protocol.';
+  '16 technology diligence tools, 12 prompts and 133 reference resources for AI agents over MCP.';
 
 export const REGISTRY_REMOTE_URL = 'https://mcp.globalstrategic.tech/mcp';
 export const REGISTRY_WEBSITE_URL = 'https://globalstrategic.tech/hub/mcp/';
