@@ -331,8 +331,11 @@ const CALL_SNIPPET = [
     margin-top: var(--spacing-xl);
   }
 
+  /* In the other guides a callout always ends its section; here one opens
+     § 04, so it needs the gap below that a section break otherwise gives. */
   .guide-callout--first {
     margin-top: 0;
+    margin-bottom: var(--spacing-xl);
   }
 
   /* A snippet and its copy button share one box so the button's ancestor walk
