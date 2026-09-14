@@ -114,6 +114,10 @@ describe('CORS — Phase 2', () => {
       ]);
       expect(typeof doc.version).toBe('string');
     }
+    // HEAD is answered too (uptime monitors, `curl -I`); a 404 there would
+    // read as the document not existing.
+    const head = await worker.fetch('/server.json', { method: 'HEAD' });
+    expect(head.status).toBe(200);
     // The OAuth documents still reach the provider.
     const as = await worker.fetch('/.well-known/oauth-authorization-server');
     expect(as.status).toBe(200);
