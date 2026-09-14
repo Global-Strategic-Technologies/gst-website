@@ -1,7 +1,9 @@
 ---
 /**
  * /hub/mcp/trial/ in every locale — the self-serve 3-day trial signup
- * (BL-155 Slice 3; the "From code" presentation serves BL-156). Rendered by
+ * (BL-155 Slice 3; the "From code" presentation serves BL-156, and since
+ * 2026-09-14 its issued state is a summary that links to /hub/mcp/from-code/,
+ * where the two-step exchange is documented in one place). Rendered by
  * src/pages/hub/mcp/trial/index.astro (English) and by
  * src/pages/[locale]/[...route].astro.
  *
@@ -81,6 +83,8 @@ const SCRIPT_STRINGS = Object.fromEntries(
 const ABOUT_HREF = localizedHref('/hub/mcp/', locale);
 const CONTACT_HREF = `${localizedHref('/hub/mcp/', locale)}#request-access`;
 const GUIDE_HREF = '/hub/mcp/get-started/#quick-start';
+// Tier A sibling (BL-156): localized, so no hreflang and no English notice.
+const FROM_CODE_HREF = localizedHref('/hub/mcp/from-code/', locale);
 const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
 ---
 
@@ -320,6 +324,9 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
               <div class="use-it" data-flow-block="m2m" hidden>
                 <p class="brutal-tool-shell__section-label">{t('connectLabel')}</p>
                 <p class="brutal-text-small use-it__intro">{t('connectIntro')}</p>
+                <div class="btn-row">
+                  <a href={FROM_CODE_HREF} class="cta-button">{t('connectGuide')}</a>
+                </div>
                 <ol class="steps">
                   <li>
                     <span class="brutal-data-sm step-num" aria-hidden="true">01</span>

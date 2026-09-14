@@ -9,7 +9,8 @@ GST publishes free browser-based diligence tools, a reference library, and an MC
 - [MCP Server overview](https://globalstrategic.tech/hub/mcp/): what the server exposes, access tiers, and how to request a credential
 - [Free 3-day trial](https://globalstrategic.tech/hub/mcp/trial/): one click issues a trial credential for Claude on the web or Claude Desktop, or a client id and secret for a script
 - [Capability reference](https://globalstrategic.tech/hub/mcp/docs/): every tool, prompt and resource family, with arguments, an example call and what comes back. Renders fully without JavaScript
-- [Get started](https://globalstrategic.tech/hub/mcp/get-started/): connect Claude Desktop or another MCP client and verify the connection
+- [Get started](https://globalstrategic.tech/hub/mcp/get-started/): connect Claude on the web or Claude Desktop through the custom connector flow and verify the connection
+- [Use the server from code](https://globalstrategic.tech/hub/mcp/from-code/): OAuth 2.1 client_credentials for a script or pipeline: exchange a client id and secret at /token for an hourly bearer token, then send JSON-RPC to /mcp
 - [Using the server](https://globalstrategic.tech/hub/mcp/using/): a first query, prompt argument forms, pinned resources, and what each failure means
 - [Advanced operations](https://globalstrategic.tech/hub/mcp/advanced-operations/): the information request list ingestion workflow
 - Endpoint: https://mcp.globalstrategic.tech/mcp (Streamable HTTP, bearer or OAuth; a credential is required)
