@@ -1,0 +1,370 @@
+---
+/**
+ * /hub/mcp/from-code/ in every locale: the developer half of the self-serve
+ * trial (BL-156). Rendered by src/pages/hub/mcp/from-code/index.astro
+ * (English) and by src/pages/[locale]/[...route].astro.
+ *
+ * Documents the OAuth 2.1 `client_credentials` exchange for code a visitor
+ * runs (a script, a pipeline, an agent framework): POST /token for an hourly
+ * `mcp_m2m_*` bearer, then `Authorization: Bearer` against /mcp. The trial's
+ * issued "From code" state links here instead of carrying the instructions
+ * inline, so the flow is corrected in one place.
+ *
+ * Seeded from mcp-server/src/docs/testing/uat/SETUP.md § 0b/§ 1b, which is
+ * client-safe by construction. Never from the operator docs (AUTH.md,
+ * PILOT_ONBOARDING.md). Published facts (endpoints, token lifetime, the
+ * expiry error string, the radar refusal code, trial ceilings) are pinned to
+ * server source by tests/integration/mcp-from-code-parity.test.ts; the same
+ * guard refuses the two integrations an early design mockup invented and
+ * that must never be described here (a custom request header, a desktop
+ * client config block), see SELF_SERVE_TRIAL_BL-155.md § Scope. The guard
+ * names them so this comment does not have to.
+ *
+ * Prose goes through the `hub-mcp-from-code` catalog; the shell snippets stay
+ * English and live here as constants, with the credential read from
+ * environment variables so no example ever shows a secret inline.
+ *
+ * Structure and classes mirror /hub/mcp/get-started/ via the shared
+ * mcp-guide.css family sheet; the scoped block below carries only the
+ * hero overrides that sheet cannot express.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HubHeader from '../components/hub/HubHeader.astro';
+import OnboardingToc from '../components/hub/mcp/OnboardingToc.astro';
+import '../styles/components/mcp-guide.css';
+import { mcpGuideSchema } from '../utils/mcp-schema';
+import { MCP_URL, TOKEN_URL } from '../utils/trial-signup-core';
+import type { Locale } from '../i18n/locales';
+import { localizedHref } from '../i18n/routes';
+import { useTranslations } from '../i18n/t';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const { t, tHtml } = useTranslations(locale, 'hub-mcp-from-code');
+const common = useTranslations(locale, 'common');
+const isEnglish = locale.code === 'en';
+
+const PAGE_URL = `https://globalstrategic.tech${localizedHref('/hub/mcp/from-code/', locale)}`;
+const TRIAL_HREF = localizedHref('/hub/mcp/trial/', locale);
+const CONTACT_HREF = `${localizedHref('/hub/mcp/', locale)}#request-access`;
+// English-only siblings (LOCALIZATION.md § Content tiers): bare paths + hreflang.
+const CONNECTOR_HREF = '/hub/mcp/get-started/';
+const DOCS_HREF = '/hub/mcp/docs/';
+
+const TOC_LINKS = [
+  { id: 'prerequisites', label: t('toc.prerequisites') },
+  { id: 'token', label: t('toc.token') },
+  { id: 'call', label: t('toc.call') },
+  { id: 'lifecycle', label: t('toc.lifecycle') },
+  { id: 'whats-next', label: t('toc.next') },
+];
+
+// The credential is read from the environment on purpose: an example that
+// shows a literal secret teaches the reader to paste one into a shell.
+const TOKEN_SNIPPET = [
+  '# Export the pair from your secret store; never paste it inline',
+  `curl -s -X POST ${TOKEN_URL} \\`,
+  '  -d grant_type=client_credentials \\',
+  '  -d client_id="$GST_CLIENT_ID" \\',
+  '  -d client_secret="$GST_CLIENT_SECRET"',
+].join('\n');
+const TOKEN_RESPONSE =
+  '{ "access_token": "mcp_m2m_...", "token_type": "bearer", "expires_in": 3600, "scope": "..." }';
+const CALL_SNIPPET = [
+  `curl -s -X POST ${MCP_URL} \\`,
+  '  -H "Authorization: Bearer $ACCESS_TOKEN" \\',
+  '  -H "Content-Type: application/json" \\',
+  '  -H "Accept: application/json, text/event-stream" \\',
+  `  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`,
+].join('\n');
+---
+
+<BaseLayout
+  title={t('meta.title')}
+  description={t('meta.description')}
+  ogTitle={t('og.title')}
+  ogDescription={t('og.description')}
+  ogImage="/og-image.png"
+  ogImageAlt={t('og.imageAlt')}
+  ogUrl={PAGE_URL}
+  ogType="article"
+>
+  <script
+    is:inline
+    type="application/ld+json"
+    set:html={JSON.stringify(
+      mcpGuideSchema({
+        headline: t('title'),
+        description: t('meta.description'),
+        url: PAGE_URL,
+        datePublished: '2026-09-14',
+        dateModified: '2026-09-14',
+        inLanguage: locale.code,
+      })
+    )}
+  />
+  <section class="mcp-guide-section">
+    <div class="container">
+      <div class="guide-hero">
+        <div class="brutal-label guide-hero__label">{t('label')}</div>
+        <HubHeader title={t('title')} locale={locale}>
+          <Fragment slot="subtitle">{t('subtitle')}</Fragment>
+        </HubHeader>
+        <ol class="guide-checkpoints">
+          <li class="checkpoint">
+            <div class="checkpoint__kicker">{t('checkpoint.kicker1')}</div>
+            <div class="checkpoint__title">{t('checkpoint.title1')}</div>
+            <p class="checkpoint__desc">{t('checkpoint.desc1')}</p>
+          </li>
+          <li class="checkpoint">
+            <div class="checkpoint__kicker">{t('checkpoint.kicker2')}</div>
+            <div class="checkpoint__title">{t('checkpoint.title2')}</div>
+            <p class="checkpoint__desc">{t('checkpoint.desc2')}</p>
+          </li>
+          <li class="checkpoint checkpoint--muted">
+            <div class="checkpoint__kicker">{t('checkpoint.kicker3')}</div>
+            <div class="checkpoint__title">{t('checkpoint.title3')}</div>
+            <p class="checkpoint__desc">{t('checkpoint.desc3')}</p>
+          </li>
+        </ol>
+      </div>
+
+      <OnboardingToc links={TOC_LINKS} />
+
+      <div class="guide-main">
+        <section id="prerequisites" data-section="prerequisites" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">{t('prereq.heading')}</h2>
+          <p class="guide-intro">{t('prereq.intro')}</p>
+          <div class="btn-row">
+            <a href={TRIAL_HREF} class="cta-button">{t('prereq.trialCta')}</a>
+            <a href={CONTACT_HREF} class="text-cta">{t('prereq.accessCta')} →</a>
+          </div>
+
+          <h3 class="guide-subheading">{t('prereq.what.title')}</h3>
+          <p class="guide-body" set:html={tHtml('prereq.what.body')} />
+
+          <h3 class="guide-subheading">{t('prereq.not.title')}</h3>
+          <p class="guide-body">{t('prereq.not.body')}</p>
+          <p class="guide-body">
+            <a href={CONNECTOR_HREF} hreflang="en" class="text-cta">{t('prereq.not.cta')} →</a>
+            {!isEnglish && <span class="fineprint"> {common.t('notice.contentInEnglish')}</span>}
+          </p>
+
+          <h3 class="guide-subheading">{t('prereq.auth.title')}</h3>
+          <p class="guide-body" set:html={tHtml('prereq.auth.body')} />
+        </section>
+
+        <section id="token" data-section="token" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">{t('token.heading')}</h2>
+          <p class="guide-intro" set:html={tHtml('token.intro')} />
+
+          <p class="fineprint">{t('token.endpointLabel')}</p>
+          <div class="endpoint-row">
+            <code class="endpoint-code">{TOKEN_URL}</code>
+            <button
+              type="button"
+              class="brutal-btn brutal-btn--secondary endpoint-copy"
+              data-copy={TOKEN_URL}
+              data-copy-kind="endpoint">{t('copy')}</button
+            >
+          </div>
+
+          <h3 class="guide-subheading">{t('token.request.title')}</h3>
+          <div class="snippet-block">
+            <pre class="snippet-pre" tabindex="0" data-snippet>{TOKEN_SNIPPET}</pre>
+            <div class="snippet-block__foot">
+              <button
+                type="button"
+                class="brutal-btn brutal-btn--secondary"
+                data-copy-prev
+                aria-label={t('token.request.copy')}>{t('copy')}</button
+              >
+            </div>
+          </div>
+
+          <h3 class="guide-subheading">{t('token.response.title')}</h3>
+          <pre class="snippet-pre snippet-pre--response" tabindex="0">{TOKEN_RESPONSE}</pre>
+          <p class="guide-body" set:html={tHtml('token.response.body')} />
+
+          <p class="brutal-callout guide-callout">
+            <span class="brutal-callout__title">{t('token.expired.title')}</span>
+            {t('token.expired.body')}
+          </p>
+        </section>
+
+        <section id="call" data-section="call" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">{t('call.heading')}</h2>
+          <p class="guide-intro" set:html={tHtml('call.intro')} />
+
+          <h3 class="guide-subheading">{t('call.request.title')}</h3>
+          <div class="snippet-block">
+            <pre class="snippet-pre" tabindex="0" data-snippet>{CALL_SNIPPET}</pre>
+            <div class="snippet-block__foot">
+              <button
+                type="button"
+                class="brutal-btn brutal-btn--secondary"
+                data-copy-prev
+                aria-label={t('call.request.copy')}>{t('copy')}</button
+              >
+            </div>
+          </div>
+          <p class="guide-body" set:html={tHtml('call.result.body')} />
+          <p class="guide-body">
+            <a href={DOCS_HREF} hreflang="en" class="text-cta">{t('call.result.cta')} →</a>
+            {!isEnglish && <span class="fineprint"> {common.t('notice.contentInEnglish')}</span>}
+          </p>
+
+          <h3 class="guide-subheading">{t('call.sdk.title')}</h3>
+          <p class="guide-body">{t('call.sdk.body')}</p>
+
+          <p class="brutal-callout guide-callout">
+            <span class="brutal-callout__title">{t('call.radar.title')}</span>
+            <Fragment set:html={tHtml('call.radar.body')} />
+          </p>
+        </section>
+
+        <section id="lifecycle" data-section="lifecycle" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">{t('lifecycle.heading')}</h2>
+
+          <p class="brutal-callout guide-callout guide-callout--first">
+            <span class="brutal-callout__title">{t('lifecycle.hourly.title')}</span>
+            {t('lifecycle.hourly.body')}
+          </p>
+
+          <h3 class="guide-subheading">{t('lifecycle.ceilings.title')}</h3>
+          <p class="guide-body">{t('lifecycle.ceilings.body')}</p>
+
+          <h3 class="guide-subheading">{t('lifecycle.after.title')}</h3>
+          <p class="guide-body">{t('lifecycle.after.body')}</p>
+        </section>
+
+        <section id="whats-next" data-section="whats-next" class="guide-section">
+          <h2 class="brutal-heading-lg guide-heading">{t('next.heading')}</h2>
+          <p class="guide-intro">{t('next.intro')}</p>
+          <div class="brutal-gateway-grid guide-next" data-guide-end>
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>{t('next.docs.title')}</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">{t('next.docs.blurb')}</p>
+              <a href={DOCS_HREF} hreflang="en" class="cta-button brutal-gateway-card__cta"
+                >{t('next.docs.cta')}</a
+              >
+            </article>
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>{t('next.connector.title')}</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                {t('next.connector.blurb')}
+              </p>
+              <a href={CONNECTOR_HREF} hreflang="en" class="cta-button brutal-gateway-card__cta"
+                >{t('next.connector.cta')}</a
+              >
+            </article>
+            <article class="brutal-gateway-card brutal-frosted guide-card">
+              <div class="brutal-gateway-card__header guide-card__header">
+                <h3>{t('next.access.title')}</h3>
+              </div>
+              <p class="brutal-gateway-card__features guide-card__blurb">
+                {t('next.access.blurb')}
+              </p>
+              <a href={CONTACT_HREF} class="cta-button brutal-gateway-card__cta"
+                >{t('next.access.cta')}</a
+              >
+            </article>
+          </div>
+          {
+            !isEnglish && (
+              <p class="brutal-text-tiny guide-english-note">
+                {common.t('notice.contentInEnglish')}
+              </p>
+            )
+          }
+        </section>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  import '../utils/mcp-onboarding';
+</script>
+
+<style>
+  /* Family styles live in src/styles/components/mcp-guide.css (imported in
+     frontmatter); this block carries only what is specific to this page. The
+     hero overrides are copied from get-started for the reason recorded there:
+     HubHeader's own scoped rules would tie a bare descendant rule in the
+     shared sheet on specificity. */
+  .guide-hero :global(.hub-header) {
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .guide-hero :global(.hub-header__title) {
+    max-width: 900px;
+  }
+
+  .guide-hero :global(.hub-header__subtitle) {
+    max-width: 760px;
+    margin-bottom: var(--spacing-2xl);
+  }
+
+  .checkpoint--muted {
+    border-left-color: light-dark(var(--border-light), var(--border-dark-default));
+  }
+
+  .btn-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .guide-callout {
+    max-width: 900px;
+    margin-top: var(--spacing-xl);
+  }
+
+  .guide-callout--first {
+    margin-top: 0;
+  }
+
+  /* A snippet and its copy button share one box so the button's ancestor walk
+     (copy-feedback.ts) lands on the right <pre>. */
+  .snippet-block {
+    max-width: 900px;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .snippet-block__foot {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--spacing-sm);
+  }
+
+  .snippet-pre--response {
+    max-width: 900px;
+    margin-bottom: var(--spacing-md);
+  }
+
+  .text-cta {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+  }
+
+  .guide-english-note {
+    margin-top: var(--spacing-lg);
+    color: var(--text-muted);
+  }
+</style>

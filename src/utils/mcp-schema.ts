@@ -121,6 +121,12 @@ export interface McpGuideSchemaInput {
   datePublished: string;
   /** Last substantive copy change, `YYYY-MM-DD`. */
   dateModified: string;
+  /**
+   * BCP 47 tag of the rendered copy. Defaults to English because the three
+   * media guides are English-only; a localized guide (BL-156's from-code page)
+   * passes its locale code so the `TechArticle` matches `<html lang>`.
+   */
+  inLanguage?: string;
 }
 
 /** Build the `TechArticle` node for one onboarding guide. */
@@ -134,7 +140,7 @@ export function mcpGuideSchema(guide: McpGuideSchemaInput) {
     mainEntityOfPage: guide.url,
     datePublished: guide.datePublished,
     dateModified: guide.dateModified,
-    inLanguage: 'en',
+    inLanguage: guide.inLanguage ?? 'en',
     about: { '@id': MCP_SERVER_ID },
     isPartOf: { '@type': 'WebSite', name: 'GST', url: `${SITE}/` },
     publisher: PUBLISHER,

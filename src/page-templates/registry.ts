@@ -12,6 +12,7 @@
  */
 import AboutPage from './AboutPage.astro';
 import HomePage from './HomePage.astro';
+import HubMcpFromCodePage from './HubMcpFromCodePage.astro';
 import HubMcpPage from './HubMcpPage.astro';
 import HubMcpTrialPage from './HubMcpTrialPage.astro';
 import HubPage from './HubPage.astro';
@@ -28,6 +29,7 @@ export const TEMPLATES = {
   'hub-tools': HubToolsPage,
   'hub-mcp': HubMcpPage,
   'hub-mcp-trial': HubMcpTrialPage,
+  'hub-mcp-from-code': HubMcpFromCodePage,
   privacy: PrivacyPage,
   terms: TermsPage,
 } as const;
