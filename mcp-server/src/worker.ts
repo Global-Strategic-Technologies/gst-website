@@ -448,7 +448,12 @@ export const handler: ExportedHandler<Env> = {
     //      404 it inside the provider. Cached briefly so a registry crawler
     //      does not re-render it per hit; the version inside comes from
     //      `env.VERSION`, which only changes on deploy.
-    if (isRegistryMetadataPath(url.pathname) && request.method === 'GET') {
+    //      HEAD too: uptime monitors and `curl -I` probe with it, and a 404
+    //      there reads as "the document does not exist".
+    if (
+      isRegistryMetadataPath(url.pathname) &&
+      (request.method === 'GET' || request.method === 'HEAD')
+    ) {
       return withCors(
         Response.json(buildServerJson(env), {
           headers: { 'Cache-Control': 'public, max-age=300' },
