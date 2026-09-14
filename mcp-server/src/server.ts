@@ -12,6 +12,7 @@
  * `mcp-server/src/docs/ARCHITECTURE.md` for the rationale.
  */
 
+import { resolveVersion } from './version';
 import { McpServer } from '@modelcontextprotocol/server';
 import { registerDiligenceTool } from './tools/diligence';
 import { registerPortfolioTools } from './tools/portfolio';
@@ -268,7 +269,8 @@ export function createServer(env: Env = {}, ctx: ServerFactoryOptions = {}): Mcp
   const server = new McpServer(
     {
       name: 'gst-mcp',
-      version: '0.1.0',
+      // Deployed: injected by deploy.mjs; otherwise the pinned fallback (`version.ts`).
+      version: resolveVersion(env),
     },
     // BL-033 Slice 5: declare the `logging` capability so a tool handler may
     // emit the 80%-consumed soft-limit `notifications/message` via

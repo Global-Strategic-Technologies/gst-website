@@ -346,6 +346,8 @@ export function registerFillIrlXlsxTool(
       inputSchema: FillIrlXlsxInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: false, // each call uses `new Date()` → new filename
       },
     },

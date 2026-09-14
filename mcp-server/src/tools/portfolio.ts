@@ -153,6 +153,8 @@ export function registerPortfolioTools(
       inputSchema: SearchPortfolioInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },
@@ -167,6 +169,8 @@ export function registerPortfolioTools(
       inputSchema: ListPortfolioFacetsInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },

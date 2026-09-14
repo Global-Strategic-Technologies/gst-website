@@ -114,6 +114,9 @@ describe('authorization-code + PKCE end-to-end', () => {
     expect(formRes.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
 
     const html = await formRes.text();
+    // BL-152: an unprovisioned visitor (a directory user with no key) is
+    // pointed at the self-serve trial rather than left at a password field.
+    expect(html).toContain('href="https://globalstrategic.tech/hub/mcp/trial/"');
     const setCookie = formRes.headers.get('set-cookie') ?? '';
     const cookieMatch = setCookie.match(/mcp_oauth_consent=([A-Fa-f0-9]+)/);
     expect(cookieMatch).toBeTruthy();

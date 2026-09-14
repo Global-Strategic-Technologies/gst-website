@@ -143,6 +143,8 @@ export function registerPrepareIrlBodyTool(
         // BL-076 audit R-2: cache write is a side effect. Idempotent stays
         // true (same body in → same cache state by construction).
         readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },

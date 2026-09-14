@@ -17,6 +17,8 @@ import {
   type JSONRPCErrorResponse,
 } from '@modelcontextprotocol/server';
 import { createServer } from '../../src/server';
+import { REGISTRY_DESCRIPTION } from '../../src/registry-metadata';
+import { FALLBACK_VERSION } from '../../src/version';
 import { registerLocalOnlyTools } from '../../src/tools/_local-only';
 import { stdioSnapshotReader } from '../../src/content/radar-snapshot-reader-stdio';
 import { minimalArgsFor } from '../helpers/prompt-args';
@@ -89,6 +91,8 @@ const validDiligencePayload = {
 describe('protocol roundtrip', () => {
   let client: PairedHalf;
   let nextId: number;
+  // BL-152: `initialize`'s serverInfo, kept so a test can read the version.
+  let initServerInfo: { name: string; version: string };
 
   async function rpc(
     method: string,
@@ -144,6 +148,7 @@ describe('protocol roundtrip', () => {
     if (isErrorResponse(init)) {
       throw new Error(`initialize failed: ${init.error.message}`);
     }
+    initServerInfo = (init.result as { serverInfo: { name: string; version: string } }).serverInfo;
     await notify('notifications/initialized', {});
   });
 
@@ -230,6 +235,70 @@ describe('protocol roundtrip', () => {
         expect(tool.inputSchema).toBeDefined();
         expect(tool.inputSchema.type).toBe('object');
       }
+    });
+
+    // BL-152 Slice 2 — the Claude connector directory's review checks that
+    // EVERY tool is annotated, and greps for `destructiveHint` specifically.
+    // Two tools registered with no block at all and none declared
+    // destructive/openWorld before this. All four hints, as booleans, on
+    // every tool the transport lists (the stdio-only radar tools included,
+    // since this lane registers them).
+    it('every tool publishes all four annotation hints as booleans — BL-152', async () => {
+      const res = await rpc('tools/list', {});
+      expect(isErrorResponse(res)).toBe(false);
+      if (isErrorResponse(res)) return;
+      const payload = res.result as unknown as ListToolsResultPayload;
+      expect(payload.tools.length).toBeGreaterThan(0);
+      const openWorld: string[] = [];
+      for (const tool of payload.tools as Array<{
+        name: string;
+        annotations?: Record<string, unknown>;
+      }>) {
+        const a = tool.annotations;
+        expect(a, `${tool.name} has no annotations block`).toBeDefined();
+        for (const hint of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint']) {
+          expect(typeof a![hint], `${tool.name}.${hint}`).toBe('boolean');
+        }
+        expect(a!.destructiveHint, `${tool.name} destroys nothing`).toBe(false);
+        if (a!.openWorldHint === true) openWorld.push(tool.name);
+      }
+      // Only the live radar tools reach an external service (Inoreader).
+      expect(openWorld.sort()).toEqual(['get_latest_insights', 'search_radar']);
+    });
+
+    // BL-152 Slice 2 — `REGISTRY_DESCRIPTION` mirrors the website's JSON-LD
+    // sentence (which owns it). The website side pins the string; this side
+    // pins its three integers to what the transport actually lists, so the
+    // sentence cannot advertise a count the server does not serve.
+    it('REGISTRY_DESCRIPTION counts match the live tools/prompts/resources lists — BL-152', async () => {
+      // Sequential on purpose: the paired transport resolves one request at a time.
+      const tools = await rpc('tools/list', {});
+      const prompts = await rpc('prompts/list', {});
+      const resources = await rpc('resources/list', {});
+      for (const r of [tools, prompts, resources]) expect(isErrorResponse(r)).toBe(false);
+      const m = REGISTRY_DESCRIPTION.match(
+        /^(\d+) technology diligence, portfolio and regulatory tools, (\d+) prompts and (\d+) reference resources,/
+      );
+      expect(m, 'description sentence shape').not.toBeNull();
+      const [, t, p, r] = m!.map(Number);
+      // The transport lists the remote set plus the stdio-only radar pair.
+      const remoteTools = (tools as unknown as { result: ListToolsResultPayload }).result.tools
+        .map((x) => x.name)
+        .filter((n) => !['search_radar_offline', 'search_radar_cache'].includes(n));
+      expect(remoteTools.length).toBe(t);
+      expect((prompts as unknown as { result: { prompts: unknown[] } }).result.prompts.length).toBe(
+        p
+      );
+      expect(
+        (resources as unknown as { result: { resources: unknown[] } }).result.resources.length
+      ).toBe(r);
+    });
+
+    // BL-152 — three copies of the version had drifted (0.1.0 / 0.58.0 /
+    // 0.63.0). `initialize` now reports the shared fallback when `VERSION`
+    // is unbound, which is the case in every test.
+    it('initialize serverInfo.version is the pinned fallback — BL-152', () => {
+      expect(initServerInfo.version).toBe(FALLBACK_VERSION);
     });
 
     // BL-045 PR B audit M8 — the architectural justification for landing

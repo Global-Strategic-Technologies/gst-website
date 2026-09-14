@@ -402,6 +402,8 @@ export function registerRadarLiveTools(
       inputSchema: SearchRadarInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
         idempotentHint: true,
       },
     },
@@ -418,6 +420,8 @@ export function registerRadarLiveTools(
       inputSchema: GetLatestInsightsInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
         idempotentHint: true,
       },
     },

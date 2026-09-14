@@ -26,6 +26,17 @@ The downstream-effect summaries are deliberately loose — 1–3 lines, no exact
 
 ---
 
+## Tool annotations (every tool, all four hints)
+
+Every `server.registerTool(...)` call carries an `annotations` block with all four MCP hints as explicit booleans: `readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`. This is a listing requirement, not a style choice: the Claude connector directory's review checks that every tool is annotated and looks for `destructiveHint` by name (BL-152 Slice 2), so an omitted hint reads as an unannotated tool. What the values mean here:
+
+- `readOnlyHint: false` only for `prepare_irl_body` (its cache write is a side effect, BL-076 R-2). Every other tool, including the two xlsx generators whose "write" is to the response body, is read-only.
+- `destructiveHint: false` everywhere. Nothing deletes or overwrites state a caller could lose.
+- `idempotentHint: false` only for the two xlsx tools (each call stamps `new Date()` into the filename).
+- `openWorldHint: true` only for `search_radar` and `get_latest_insights`, the two that reach an external service (Inoreader). Everything else is closed-world over the server's own data.
+
+Enforced by `tests/integration/protocol-roundtrip.test.ts` ("every tool publishes all four annotation hints"), which reads the live `tools/list`, so a new tool cannot register without a complete block.
+
 ## Why the contract is its own artifact
 
 - **Self-service tool invocation.** A team member composing a prompt for an analyst doesn't need to grep `src/schemas/` to know what enum values are valid; the contract lists them with descriptions and downstream-effect notes.

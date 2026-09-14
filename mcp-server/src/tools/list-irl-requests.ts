@@ -69,6 +69,8 @@ export function registerListIrlRequestsTool(
       inputSchema: {},
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },

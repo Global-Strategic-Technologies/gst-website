@@ -314,6 +314,8 @@ export function registerGenerateIrlXlsxTool(
       inputSchema: GenerateIrlXlsxInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: false, // each call uses `new Date()` → new filename
       },
     },

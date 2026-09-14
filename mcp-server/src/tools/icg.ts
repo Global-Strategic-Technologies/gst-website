@@ -119,6 +119,8 @@ export function registerIcgTool(
       inputSchema: ICGMcpInputsSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },

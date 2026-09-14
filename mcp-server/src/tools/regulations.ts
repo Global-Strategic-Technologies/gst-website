@@ -299,6 +299,8 @@ export function registerRegulationsTool(
       inputSchema: RegulationSearchInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },
@@ -341,6 +343,8 @@ export function registerRegulationsTool(
       inputSchema: RegulationFacetsInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },

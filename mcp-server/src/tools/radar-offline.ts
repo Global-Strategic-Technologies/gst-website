@@ -171,6 +171,8 @@ export function registerRadarOfflineTool(server: McpServer): void {
       inputSchema: SearchRadarOfflineInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },
@@ -206,6 +208,8 @@ export function registerSearchRadarCacheAlias(server: McpServer): void {
       inputSchema: SearchRadarOfflineInputSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },

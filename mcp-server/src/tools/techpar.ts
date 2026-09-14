@@ -125,6 +125,8 @@ export function registerTechparTool(
       inputSchema: AuditedTechParInputsSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },

@@ -37,6 +37,8 @@ in lockstep when the registry shape changes.
 
 ## 0.63.0 — 2026-08-28 — the IRL prompt family renames; `gst_irl_create` changes hands
 
+> **Addendum 2026-09-14 (BL-152, NOT a breaking change, no version bump)** — recorded here because it changes bytes a client can see. (1) `initialize` → `serverInfo.version` now reports the real version (`env.VERSION` when deployed, the `FALLBACK_VERSION` in `src/version.ts` otherwise) instead of the literal `0.1.0` it had carried since the server was scaffolded; the field is informational and no client is known to branch on it. (2) Every tool's `annotations` now carries all four hints (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`); previously two tools had no block and none declared the last two. Hints are advisory metadata under the spec. (3) Two new public GET paths, `/server.json` and `/.well-known/mcp`, serve the registry document; nothing that existed moved. The manifest hash is untouched (it covers URIs and prompt tuples only).
+
 **Two renames and one moved recommendation, shipping together.** **Prompts**: `gst_irl_create@0.2.0` → `gst_irl_populate@0.3.0`; `gst_information_request_list@0.0.9` → `gst_irl_create@0.1.0`; and `gst_irl_ingestion` `0.30.0` → `0.30.1`, which is not a rename but a consequence of one (below). All bumped, none restarted — each prompt's previous bytes were served under its former name. The populate prompt carries one version for both of its changes because `0.3.0` itself was never served, per the rebaseline rule above. **Manifest hash**: rebaselined (three tuples moved). **Body hashes**: all 16 `gst_irl_ingestion` scenarios rebaselined.
 
 > ### ⚠️ `gst_irl_create` names a different prompt after this release

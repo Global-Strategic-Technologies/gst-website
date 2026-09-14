@@ -239,6 +239,14 @@ export function registerComposeDossierEnvelopeTool(
       title: 'Compose dossier envelope (meta fence + (J) gap list + (K) provenance footer)',
       description: TOOL_DESCRIPTION,
       inputSchema: ComposeDossierEnvelopeInputSchema,
+      // BL-152: pure composition over the caller's payload plus a READ of the
+      // IrlBodyCache. Nothing is written or deleted; no external service is touched.
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
     withToolMetrics(
       'compose_dossier_envelope',
