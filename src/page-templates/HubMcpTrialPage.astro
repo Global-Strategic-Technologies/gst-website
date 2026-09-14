@@ -236,6 +236,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                         type="button"
                         class="brutal-btn brutal-btn--secondary"
                         data-copy="key"
+                        data-copy-kind="credential"
                         aria-describedby="cred-key">{t('copy')}</button
                       >
                     </div>
@@ -253,6 +254,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                         type="button"
                         class="brutal-btn brutal-btn--secondary"
                         data-copy="id"
+                        data-copy-kind="credential"
                         aria-describedby="cred-id">{t('copy')}</button
                       >
                     </div>
@@ -271,6 +273,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                         type="button"
                         class="brutal-btn brutal-btn--secondary"
                         data-copy="secret"
+                        data-copy-kind="credential"
                         aria-describedby="cred-secret">{t('copy')}</button
                       >
                     </div>
@@ -280,8 +283,11 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
 
                 <div class="cred-footer">
                   <div class="btn-row">
-                    <button type="button" class="brutal-btn brutal-btn--primary" data-copy="primary"
-                      >{t('copyKey')}</button
+                    <button
+                      type="button"
+                      class="brutal-btn brutal-btn--primary"
+                      data-copy="primary"
+                      data-copy-kind="credential">{t('copyKey')}</button
                     >
                     <button type="button" class="brutal-btn brutal-btn--secondary" data-download
                       >{t('download')}</button

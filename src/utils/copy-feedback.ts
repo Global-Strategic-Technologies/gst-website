@@ -100,7 +100,7 @@ export async function copyWithFeedback(
  * `.brutal-btn` — the family uppercases, and these literals are case
  * contractual — so they must not wear its state modifier either.
  */
-export function initCopyButtons(): void {
+export function initCopyButtons(onCopy?: (btn: HTMLElement, text: string) => void): void {
   document.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>(
       '[data-copy],[data-copy-prev]'
@@ -134,5 +134,8 @@ export function initCopyButtons(): void {
       copiedClass: quiet ? undefined : 'brutal-btn--copied',
       feedbackTarget: quiet ? document.createElement('span') : undefined,
     });
+    // Analytics hook (BL-152): the caller decides what a copy means on its
+    // page; this module stays ignorant of GA4.
+    onCopy?.(btn, text);
   });
 }

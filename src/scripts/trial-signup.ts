@@ -25,6 +25,12 @@
  */
 import { copyWithFeedback } from '../utils/copy-feedback';
 import {
+  copyTargetOf,
+  trackMcpEndpointCopied,
+  trackMcpGuideView,
+  trackMcpTrialSignup,
+} from '../utils/mcp-analytics';
+import {
   buildDownload,
   classifyMintResponse,
   copySaves,
@@ -305,6 +311,7 @@ function init(root: HTMLElement): void {
     }
     renderSaved();
     show(o.reissued ? 'reissued' : 'issued');
+    trackMcpTrialSignup(o.reissued ? 'reissued' : 'issued');
     announce(flow === 'connector' ? strings.liveIssuedC : strings.liveIssued);
     window.setTimeout(() => q('#cred-title')?.focus({ preventScroll: false }), FOCUS_DELAY_MS);
   }
@@ -359,6 +366,7 @@ function init(root: HTMLElement): void {
       // Icon buttons keep their icon: the "Copied" swap lands on a detached span.
       feedbackTarget: iconOnly ? document.createElement('span') : undefined,
     });
+    trackMcpEndpointCopied(copyTargetOf(button));
     if (copySaves(what)) {
       saved = 'copied';
       renderSaved();
@@ -458,6 +466,7 @@ function init(root: HTMLElement): void {
   });
 
   show('idle');
+  trackMcpGuideView();
 }
 
 export {};

@@ -18,6 +18,7 @@
  * the build live in `mcp-capability-search.ts`, which IS unit-tested.
  */
 import { initCopyButtons } from './copy-feedback';
+import { copyTargetOf, trackMcpEndpointCopied, trackMcpGuideView } from './mcp-analytics';
 import { searchCapabilities, type SearchableCapability } from './mcp-capability-search';
 
 /** Mirrors the inline bootstrap. Both must agree on what a hash means. */
@@ -254,7 +255,8 @@ export function initMcpDocs(): void {
   initSearch();
   initGroupJumps();
   // Every contract's Example box carries a Copy button.
-  initCopyButtons();
+  initCopyButtons((btn) => trackMcpEndpointCopied(copyTargetOf(btn)));
+  trackMcpGuideView();
 }
 
 initMcpDocs();

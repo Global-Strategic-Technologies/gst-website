@@ -16,8 +16,16 @@
  *    the shared `initScrollSpy` util.
  */
 import { initCopyButtons } from './copy-feedback';
+import {
+  copyTargetOf,
+  observeClipPlay,
+  observeGuideEnd,
+  trackMcpEndpointCopied,
+  trackMcpGuideView,
+} from './mcp-analytics';
 
 function initClip(vid: HTMLVideoElement, reduce: boolean): void {
+  observeClipPlay(vid);
   const frame = vid.parentElement;
   const toggle = frame?.querySelector<HTMLButtonElement>('[data-clip-toggle]') ?? null;
   const placeholder = frame?.querySelector<HTMLElement>('[data-clip-placeholder]') ?? null;
@@ -180,5 +188,7 @@ function initClips(): void {
   });
 }
 
-initCopyButtons();
+initCopyButtons((btn) => trackMcpEndpointCopied(copyTargetOf(btn)));
 initClips();
+trackMcpGuideView();
+observeGuideEnd();
