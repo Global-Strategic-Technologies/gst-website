@@ -79,6 +79,21 @@ const common = useTranslations(locale, 'common');
         }
         <p>{t('thirdParty.trial')}</p>
 
+        {
+          /* BL-152: the MCP server is a processing context of its own (OAuth
+          grants in KV, counters and caches in Upstash, aggregate telemetry in
+          Analytics Engine, errors in Sentry). A connector-directory listing
+          requires a public policy that says so. */
+        }
+        <h2>{t('mcp.heading')}</h2>
+        <p>{t('mcp.lead')}</p>
+        <ul>
+          <li set:html={tHtml('mcp.item1')} />
+          <li set:html={tHtml('mcp.item2')} />
+          <li set:html={tHtml('mcp.item3')} />
+          <li set:html={tHtml('mcp.item4')} />
+        </ul>
+
         <h2>{t('cookies.heading')}</h2>
         <p>{t('cookies.body')}</p>
 
