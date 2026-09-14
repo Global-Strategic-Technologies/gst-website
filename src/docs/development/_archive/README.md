@@ -20,6 +20,7 @@ Archived documents are **point-in-time records, preserved verbatim**. Their inte
 
 | File | Original initiative | Closed | Why kept |
 | --- | --- | --- | --- |
+| [WORKER_BOOT_LATENCY_BL-149.md](WORKER_BOOT_LATENCY_BL-149.md) | BL-149 5000ms first-use flake | 2026-09-13 | The measured evidence behind the fix: 50-run cold/warm/permuted latency arms, the 4-vs-7 warm correlation, and the `.wrangler` state finding that explains six weeks of machine-dependence |
 | [BL-032_TESTING_FINDINGS.md](BL-032_TESTING_FINDINGS.md) | BL-032 soak (Sections A–K) | 2026-05-13 | Full soak-week evidence record; T.A.15/T.H.4/T.H.6 findings still cited by the BL-033 stanza |
 | [MCP_SERVER_REMOTE_BL-032_TESTING.md](MCP_SERVER_REMOTE_BL-032_TESTING.md) | BL-032 soak playbook | 2026-05-13 | The Section A–K test-design record behind the findings doc |
 | [MCP_SERVER_REMOTE_BL-032_25.md](MCP_SERVER_REMOTE_BL-032_25.md) | BL-032.25 go-live triage bucket | 2026-07-14 | §-by-§ closure stanzas incl. the benchmark-audit spike record |

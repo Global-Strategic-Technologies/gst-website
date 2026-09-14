@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
+import { warmWorker } from '../helpers/warm-worker';
 
 const ADMIN_KEY = 'test-admin-key';
 const SIGNING_KEY = 'integration-test-m2m-signing-key';
@@ -25,6 +26,11 @@ beforeAll(async () => {
       OAUTH_M2M_SIGNING_KEY: SIGNING_KEY,
     },
   });
+
+  // BL-149: pay first-use init inside this hook's 60s budget, not in the
+  // first `it` under vitest's 5000ms default. `kv` too: this file's cases
+  // hit the KV-backed m2m registry, whose first touch measured ~1.0s.
+  await warmWorker(worker, ['module', 'kv'], { adminKey: ADMIN_KEY });
 }, 60_000);
 
 afterAll(async () => {

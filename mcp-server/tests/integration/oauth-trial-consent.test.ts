@@ -152,6 +152,11 @@ beforeAll(async () => {
   const payload = (await created.json()) as { client: { clientId: string; clientSecret?: string } };
   oauthClientId = payload.client.clientId;
   oauthClientSecret = payload.client.clientSecret!;
+
+  // BL-149: the fetch above doubles as this file's warm-up — it pays the
+  // first-request cost (seconds) inside this hook's 60s budget instead of
+  // in the first `it` under vitest's 5000ms default. If this setup is ever
+  // made lazy, call warmWorker(worker) here or the flake comes back.
 }, 60_000);
 
 afterAll(async () => {

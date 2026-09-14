@@ -17,6 +17,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { unstable_dev, type Unstable_DevWorker } from 'wrangler';
+import { warmWorker } from '../helpers/warm-worker';
 
 const TEST_KEY = 'test-token-rp';
 
@@ -38,14 +39,11 @@ beforeAll(async () => {
     },
   });
 
-  // Warm the worker before any test runs. `unstable_dev` resolves once the
-  // workerd process is spawned, but the FIRST `worker.fetch()` still pays a
-  // ~3s cold start (JIT-compiling + instantiating the module graph). Left
-  // unwarmed, that cost is billed to the first `it()` under vitest's 5000ms
-  // default test timeout — which intermittently times out under full-suite
-  // CPU contention. Paying it here, inside the 60s beforeAll budget, keeps
-  // every test's fetch on the warm (~10-90ms) path.
-  await worker.fetch('/health');
+  // This file has warmed the worker since it was written, and was one of
+  // only four that did — which is exactly why it never suffered BL-149.
+  // The explanation now lives with the helper; measured, the first fetch
+  // costs seconds and every later one ~15ms.
+  await warmWorker(worker);
 }, 60_000);
 
 afterAll(async () => {
