@@ -193,6 +193,10 @@ test.describe('MCP trial signup — code flow', () => {
     await expect(page.locator('[data-snippet="tok"]')).toContainText(`client_secret=${SECRET}`);
     await expect(page.locator('[data-snippet="tok"]')).toContainText('"token_type": "bearer"');
     await expect(page.locator('[data-snippet="call"]')).toContainText('tools/list');
+    // The inline steps are a summary since BL-156; the guide carries the rest.
+    await expect(
+      page.locator('[data-flow-block="m2m"] a.cta-button[href="/hub/mcp/from-code/"]')
+    ).toBeVisible();
     // Copying the client id alone does NOT save.
     await page.click('[data-copy="id"]');
     await expect(page.locator('[data-saved]')).toHaveText('Not saved yet');
@@ -319,5 +323,26 @@ test.describe('MCP trial signup — localized', () => {
     await page.click('[data-start="connector"]');
     await expect(page.locator('#cred-title')).toHaveText('Credenciales de prueba');
     await expect(page.locator('[data-expires]')).toHaveText(/^Caduca el .* UTC · 72 h$/);
+  });
+
+  test('the Spanish code flow links the localized from-code guide (BL-156)', async ({ page }) => {
+    // The m2m block stays hidden until its own start button is clicked, so the
+    // connector-flow test above cannot see this link.
+    await page.route('**/turnstile/v0/api.js*', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/javascript', body: FAKE_TURNSTILE })
+    );
+    await page.route('**/trial/signup', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify(issued().body),
+      })
+    );
+    await page.goto('/es/hub/mcp/trial/');
+    await page.click('[data-start="m2m"]');
+    await expect(
+      page.locator('[data-flow-block="m2m"] a.cta-button[href="/es/hub/mcp/from-code/"]')
+    ).toBeVisible();
   });
 });

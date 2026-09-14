@@ -16,14 +16,17 @@ describe('BREADCRUMB_NAMES', () => {
       'vdr-structure',
       'radar',
       'mcp',
-      // The four `/hub/mcp/*` sub-routes. This list had drifted behind the
+      // The six `/hub/mcp/*` sub-routes. This list had drifted behind the
       // guides (they shipped 2026-08-27 with a mapping nothing asserted), so a
       // missing entry would have rendered a title-cased fallback crumb with
-      // nothing failing. Closed while adding `docs`.
+      // nothing failing. Closed while adding `docs`; `trial` had drifted the
+      // same way and was caught while adding `from-code` (BL-156).
       'get-started',
       'using',
       'advanced-operations',
       'docs',
+      'trial',
+      'from-code',
       'techpar',
       'regulatory-map',
       'tech-debt-calculator',
