@@ -98,6 +98,27 @@ describe('CORS — Phase 2', () => {
     expect(res.headers.get('access-control-allow-origin')).toBeNull();
   });
 
+  // BL-152 — the registry document is public, pre-auth and CORS-wrapped like
+  // /health, and its alias must NOT fall into the OAuth provider's
+  // `/.well-known/` catch-all (which would 404 it).
+  it('GET /server.json and /.well-known/mcp serve the registry document — BL-152', async () => {
+    for (const path of ['/server.json', '/.well-known/mcp']) {
+      const res = await worker.fetch(path, { headers: { Origin: ALLOWED_ORIGIN } });
+      expect(res.status, path).toBe(200);
+      expect(res.headers.get('access-control-allow-origin')).toBe(ALLOWED_ORIGIN);
+      expect(res.headers.get('cache-control')).toContain('max-age=300');
+      const doc = (await res.json()) as Record<string, unknown>;
+      expect(doc.name).toBe('tech.globalstrategic/gst-mcp');
+      expect(doc.remotes).toEqual([
+        { type: 'streamable-http', url: 'https://mcp.globalstrategic.tech/mcp' },
+      ]);
+      expect(typeof doc.version).toBe('string');
+    }
+    // The OAuth documents still reach the provider.
+    const as = await worker.fetch('/.well-known/oauth-authorization-server');
+    expect(as.status).toBe(200);
+  });
+
   it('GET /health from allowed origin includes Access-Control-Allow-Origin', async () => {
     const res = await worker.fetch('/health', {
       headers: { Origin: ALLOWED_ORIGIN },

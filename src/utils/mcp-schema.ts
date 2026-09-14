@@ -61,7 +61,10 @@ export function mcpServerSchema(capabilities: readonly Capability[] = CAPABILITI
     name: 'GST MCP Server',
     alternateName: 'Global Strategic Technologies MCP Server',
     url: MCP_LANDING_URL,
-    description: `${counts.tools} technology diligence, portfolio and regulatory tools, ${counts.prompts} prompts and ${counts.resources} reference resources, exposed to AI agents over the Model Context Protocol.`,
+    // Under 100 characters WITH the counts filled in: the MCP registry's
+    // `server.json` schema caps `description` at 100, and the Worker mirrors
+    // this sentence verbatim (BL-152, ADR-0033).
+    description: `${counts.tools} technology diligence tools, ${counts.prompts} prompts and ${counts.resources} reference resources for AI agents over MCP.`,
     applicationCategory: 'BusinessApplication',
     applicationSubCategory: 'Model Context Protocol server',
     operatingSystem: 'Any',

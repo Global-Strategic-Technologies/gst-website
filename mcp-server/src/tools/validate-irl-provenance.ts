@@ -120,6 +120,13 @@ export function registerValidateIrlProvenanceTool(
       title: 'Validate IRL provenance',
       description: TOOL_DESCRIPTION,
       inputSchema: ValidateIrlProvenanceInputObject,
+      // BL-152: a pure function of its input. No state, no egress.
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
     },
     withToolMetrics('validate_irl_provenance', metrics, (payload: ValidateIrlProvenanceInput) =>
       handleValidateIrlProvenanceTool(payload, metrics)

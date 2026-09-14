@@ -198,7 +198,8 @@ const TOC_LINKS = [
                   <button
                     type="button"
                     class="brutal-btn brutal-btn--secondary endpoint-copy"
-                    data-copy="https://mcp.globalstrategic.tech/mcp">Copy</button
+                    data-copy="https://mcp.globalstrategic.tech/mcp"
+                    data-copy-kind="endpoint">Copy</button
                   >
                 </div>
                 <div class="endpoint-row endpoint-row--name">
@@ -206,7 +207,9 @@ const TOC_LINKS = [
                   <button
                     type="button"
                     class="brutal-btn brutal-btn--secondary endpoint-copy"
-                    data-copy="GST MCP">Copy<span class="sr-only"> connector name</span></button
+                    data-copy="GST MCP"
+                    data-copy-kind="connector-name"
+                    >Copy<span class="sr-only"> connector name</span></button
                   >
                 </div>
                 <ClipFigure
@@ -362,7 +365,7 @@ const TOC_LINKS = [
             Three routes on from a working connector: everyday use, the wire detail, and a wider
             grant.
           </p>
-          <div class="brutal-gateway-grid guide-next">
+          <div class="brutal-gateway-grid guide-next" data-guide-end>
             <article class="brutal-gateway-card brutal-frosted guide-card">
               <div class="brutal-gateway-card__header guide-card__header">
                 <h3>Using the GST MCP Server</h3>

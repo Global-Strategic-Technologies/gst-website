@@ -734,7 +734,7 @@ Expected (right after first deploy, before any radar traffic):
 ```json
 {
   "ok": true,
-  "version": "0.1.0",
+  "version": "0.63.0",
   "gitSha": "abc1234",
   "phase": "BL-032 Phase 5 (observability)",
   "upstashMcp": "ok",

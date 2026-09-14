@@ -350,6 +350,10 @@ await page.waitForURL('/ma-portfolio');
 
 ## Debugging GA Events
 
+### DebugView checklist for the MCP pages (BL-152)
+
+Before a campaign starts, each key event in [GOOGLE_ANALYTICS.md § Key events](./GOOGLE_ANALYTICS.md#key-events-the-conversion-set) must be seen in GA4 DebugView from a real click on the production site (enable the debugger extension or `?debug_mode=1`). Walk the `mcp_` family in this order and tick each off: `mcp_guide_view` on landing at `/hub/mcp/get-started/`; `mcp_clip_play` when the first clip renders; `mcp_endpoint_copied` (with `target: endpoint`) on the endpoint Copy button; `mcp_guide_complete` on scrolling to the gateway cards; `mcp_request_access` on the mailto at `/hub/mcp/`; `mcp_trial_signup` on a successful trial issue. An event that does not appear is not a conversion, whatever the code says.
+
 ### View Recorded Events in Tests
 
 The analytics helper automatically records events to `window.gtagEvents`:

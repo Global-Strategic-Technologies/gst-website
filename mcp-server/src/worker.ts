@@ -49,6 +49,7 @@
  * Architecture reference: mcp-server/src/docs/ARCHITECTURE.md
  */
 
+import { buildServerJson, isRegistryMetadataPath } from './registry-metadata';
 import { authenticate, authFailureResponse, shouldCaptureAuthFailure } from './auth/bearer';
 import { isPreflight, preflightResponse, withCors, withTrialCors } from './auth/cors';
 import { handleTrialSignup } from './trial/signup';
@@ -124,6 +125,11 @@ function isRoutedPath(pathname: string): boolean {
  * and /authorize + /token + /admin/oauth/* carry their own auth
  * semantics (consent-page key form, client credentials, admin bearer).
  * `/oauth/introspect` is admin-gated inside its handler.
+ *
+ * The `/.well-known/` prefix is broad on purpose (the provider owns the two
+ * OAuth documents), which is why the one non-OAuth well-known path the
+ * Worker serves (`/.well-known/mcp`, BL-152) is dispatched BEFORE this
+ * predicate is consulted in `fetch()`.
  */
 function isOAuthSurfacePath(pathname: string): boolean {
   if (pathname === '/authorize' || pathname === '/token') return true;
@@ -429,6 +435,23 @@ export const handler: ExportedHandler<Env> = {
             'Content-Type': 'text/html; charset=utf-8',
             'Cache-Control': 'public, max-age=60',
           },
+        }),
+        origin
+      );
+    }
+
+    // 2.2. BL-152 — public registry metadata (`/server.json` and its alias
+    //      `/.well-known/mcp`): the document the MCP registries and the Claude
+    //      connector directory are submitted from. Public and pre-auth like
+    //      `/health`; MUST precede the OAuth branch below, whose
+    //      `/.well-known/` prefix match would otherwise swallow the alias and
+    //      404 it inside the provider. Cached briefly so a registry crawler
+    //      does not re-render it per hit; the version inside comes from
+    //      `env.VERSION`, which only changes on deploy.
+    if (isRegistryMetadataPath(url.pathname) && request.method === 'GET') {
+      return withCors(
+        Response.json(buildServerJson(env), {
+          headers: { 'Cache-Control': 'public, max-age=300' },
         }),
         origin
       );

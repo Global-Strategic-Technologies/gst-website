@@ -401,6 +401,13 @@ describe('grafana-dashboard.json — series shape and supported aggregates (BL-1
         excluded: [],
       },
       {
+        // BL-152 — the connector directory's attribution number.
+        title: 'OAuth consents over time, by outcome',
+        column: 'blob4',
+        values: OUTCOME_VALUES.oauth_consent,
+        excluded: [],
+      },
+      {
         title: 'Refusals over time, by outcome',
         column: 'blob4',
         values: OUTCOME_VALUES.rate_limit_decision,

@@ -175,6 +175,8 @@ export function registerDiligenceTool(
       inputSchema: AuditedUserInputsSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },

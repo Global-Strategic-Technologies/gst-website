@@ -139,6 +139,37 @@ describe('Tool Analytics Naming Convention', () => {
     });
   });
 
+  describe('MCP pages events (mcp_)', () => {
+    // BL-152 Slice 0: one module carries every `/hub/mcp/*` event so the five
+    // pages and the trial share a prefix without each declaring its own.
+    const events = extractTrackEventCalls('src/utils/mcp-analytics.ts');
+
+    it('should use mcp_ prefix for all events', () => {
+      expect(events.length).toBeGreaterThanOrEqual(6);
+      for (const e of events) {
+        expect(e.event).toMatch(/^mcp_/);
+      }
+    });
+
+    it('should use tool category for all events', () => {
+      for (const e of events) {
+        expect(e.category).toBe('tool');
+      }
+    });
+
+    it('should include the funnel and the two conversions', () => {
+      const names = events.map((e) => e.event);
+      // start / complete / export milestones (GOOGLE_ANALYTICS.md § 9)
+      expect(names).toContain('mcp_guide_view');
+      expect(names).toContain('mcp_guide_complete');
+      expect(names).toContain('mcp_endpoint_copied');
+      // engagement + the two lead-producing conversions
+      expect(names).toContain('mcp_clip_play');
+      expect(names).toContain('mcp_request_access');
+      expect(names).toContain('mcp_trial_signup');
+    });
+  });
+
   describe('Cross-tool consistency', () => {
     const allFiles = [
       'src/utils/techpar-ui.ts',
@@ -148,6 +179,7 @@ describe('Tool Analytics Naming Convention', () => {
       'src/pages/hub/tools/diligence-machine/index.astro',
       'src/pages/hub/tools/tech-debt-calculator/index.astro',
       'src/pages/hub/tools/infrastructure-cost-governance/index.astro',
+      'src/utils/mcp-analytics.ts',
     ];
 
     it('all tools should use snake_case event names', () => {
@@ -176,6 +208,7 @@ describe('Tool Analytics Naming Convention', () => {
           prefix: 'icg_',
           paths: ['src/pages/hub/tools/infrastructure-cost-governance/index.astro'],
         },
+        { prefix: 'mcp_', paths: ['src/utils/mcp-analytics.ts'] },
       ];
 
       for (const { prefix, paths } of tools) {

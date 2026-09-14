@@ -613,6 +613,7 @@ function accessHref(tier?: string) {
               type="button"
               class="brutal-btn brutal-btn--secondary mcp-endpoint__copy"
               data-copy-endpoint
+              data-copy-kind="endpoint"
               data-copied-label={t('engineers.copied')}
               aria-live="polite"
               ><span data-copy-label>{t('engineers.copy')}</span><span class="sr-only">
@@ -703,6 +704,7 @@ function accessHref(tier?: string) {
         <a
           href={accessHref()}
           class="cta-button"
+          data-request-access
           onclick="trackCTA('mcp-request-access', 'hub-mcp')">{t('request.cta')}</a
         >
       </div>
@@ -713,6 +715,12 @@ function accessHref(tier?: string) {
 <script>
   import { trackCTA } from '../utils/analytics';
   import { copyWithFeedback } from '../utils/copy-feedback';
+  import {
+    copyTargetOf,
+    trackMcpEndpointCopied,
+    trackMcpGuideView,
+    trackMcpRequestAccess,
+  } from '../utils/mcp-analytics';
 
   // Each button copies the `<code>` in its own row. Read from the DOM rather
   // than repeated here: those `<code>` values are what the parity guard pins, so
@@ -732,8 +740,16 @@ function accessHref(tier?: string) {
         // "Copied", which is the confirmation a screen-reader user gets.
         feedbackTarget: btn.querySelector<HTMLElement>('[data-copy-label]') ?? btn,
       });
+      trackMcpEndpointCopied(copyTargetOf(btn));
     });
   });
+  // BL-152: the mailto is the one action on this page that produces a lead.
+  // It fires alongside the `cta_click` above (kept for the § 5 CTA stream) so
+  // the `mcp_` family can be declared as GA4 key events on its own.
+  document.querySelector('[data-request-access]')?.addEventListener('click', () => {
+    trackMcpRequestAccess('hub-mcp');
+  });
+  trackMcpGuideView();
   // TODO(phase-3): replace with proper ambient `Window` type declaration.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).trackCTA = trackCTA;

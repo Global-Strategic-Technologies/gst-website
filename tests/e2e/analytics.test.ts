@@ -355,6 +355,44 @@ test.describe('Google Analytics E2E Tests', () => {
     });
   });
 
+  test.describe('MCP pages (BL-152 Slice 0)', () => {
+    test('guide view and endpoint copy are tracked on /hub/mcp/get-started/', async ({
+      page,
+      context,
+      browserName,
+    }) => {
+      // Clipboard permission is per-test and Chromium-only (CLAUDE.md: never at
+      // project level). Elsewhere the write rejects and the copy still fires
+      // its analytics hook, which is what this test asserts.
+      if (browserName === 'chromium') {
+        await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+      }
+      await gotoAndSetupAnalytics(page, '/hub/mcp/get-started/');
+
+      // `mcp_guide_view` fires at module init, before the recorder wraps gtag,
+      // so read it from the dataLayer the inline bootstrap queues into.
+      const guideView = await page.evaluate(() =>
+        ((window as any).dataLayer as IArguments[]).some(
+          (args) => args[0] === 'event' && args[1] === 'mcp_guide_view'
+        )
+      );
+      expect(guideView).toBe(true);
+
+      await page.locator('[data-copy-kind="endpoint"]').first().click();
+      await page.waitForFunction(() =>
+        (window as any).gtagEvents?.some((e: any) => e.eventName === 'mcp_endpoint_copied')
+      );
+      const copied = (await page.evaluate(() => (window as any).gtagEvents)).find(
+        (e: any) => e.eventName === 'mcp_endpoint_copied'
+      );
+      expect(copied.eventData).toMatchObject({
+        event_category: 'tool',
+        page: 'get-started',
+        target: 'endpoint',
+      });
+    });
+  });
+
   test.describe('GA Error Handling', () => {
     test('should not break page if GA fails to load', async ({ page, context }) => {
       // Block GA requests

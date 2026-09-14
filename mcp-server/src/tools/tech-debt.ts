@@ -134,6 +134,8 @@ export function registerTechDebtTool(
       inputSchema: AuditedTechDebtInputsSchema,
       annotations: {
         readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
         idempotentHint: true,
       },
     },

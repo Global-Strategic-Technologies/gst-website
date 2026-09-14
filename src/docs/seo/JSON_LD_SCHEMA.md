@@ -668,7 +668,7 @@ No `offers` block and no `isAccessibleForFree`. Access is tiered and the commerc
   "@id": "https://globalstrategic.tech/hub/mcp/#software",
   "name": "GST MCP Server",
   "url": "https://globalstrategic.tech/hub/mcp/",
-  "description": "<tool count> technology diligence, portfolio and regulatory tools, <prompt count> prompts and <resource count> reference resources, exposed to AI agents over the Model Context Protocol.",
+  "description": "<tool count> technology diligence tools, <prompt count> prompts and <resource count> reference resources for AI agents over MCP.",
   "applicationCategory": "BusinessApplication",
   "applicationSubCategory": "Model Context Protocol server",
   "operatingSystem": "Any",

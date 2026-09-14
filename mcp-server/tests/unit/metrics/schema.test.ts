@@ -43,6 +43,7 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "trial_signup",
         "tier_denial",
         "scope_denial",
+        "oauth_consent",
       ]
     `);
   });
@@ -152,6 +153,9 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "inoreader_call": [
           "success",
           "error",
+        ],
+        "oauth_consent": [
+          "approved",
         ],
         "prompt_invocation": [
           "success",

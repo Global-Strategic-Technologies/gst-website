@@ -223,6 +223,7 @@ TypeScript utility module providing type-safe event tracking functions:
 | Diligence Machine    | `dm_`  | 8      | `dm_start`, `dm_generate`, `dm_copy`/`dm_print`                             |
 | Tech Debt Calculator | `tdc_` | 9      | `tdc_start`, `tdc_complete`, `tdc_export_pdf`/`tdc_copy_*`                  |
 | ICG                  | `icg_` | 13     | `icg_assessment_start`, `icg_assessment_complete`, `icg_export_json`        |
+| MCP pages            | `mcp_` | 6      | `mcp_guide_view`, `mcp_guide_complete`, `mcp_endpoint_copied`               |
 
 **Funnel milestones** (comparable across tools):
 
@@ -238,6 +239,34 @@ TypeScript utility module providing type-safe event tracking functions:
 4. Add funnel events: `xx_start`, `xx_complete`, `xx_export`
 5. Add the tool to `tests/unit/tool-analytics.test.ts` for convention enforcement
 6. Event names must be `snake_case` — no camelCase or kebab-case
+
+**MCP pages (`mcp_`, BL-152 Slice 0).** The five `/hub/mcp/*` pages and the trial share ONE module, `src/utils/mcp-analytics.ts`, rather than each page declaring its own prefix. Every event carries `page` (`landing`, `get-started`, `using`, `advanced-operations`, `docs`, `trial`, derived from the path after `/hub/mcp/` so locale prefixes need no handling):
+
+| Event                 | Fires when                                                            | Extra params                                                       | Funnel role |
+| --------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------- |
+| `mcp_guide_view`      | the page's script initialises                                         |                                                                    | start       |
+| `mcp_guide_complete`  | the `[data-guide-end]` gateway block enters the viewport (once)       |                                                                    | complete    |
+| `mcp_endpoint_copied` | any copy control fires (`initCopyButtons` hook or the page listener)  | `target`: `endpoint` / `connector-name` / `credential` / `snippet` | export      |
+| `mcp_clip_play`       | a `[data-clip]` video first renders frames (`playing`, once per clip) | `clip`: the encode's file stem                                     |             |
+| `mcp_request_access`  | the request-access mailto on `/hub/mcp/` is clicked                   | `location`                                                         | conversion  |
+| `mcp_trial_signup`    | the trial form succeeds                                               | `outcome`: `issued` / `reissued`                                   | conversion  |
+
+The landing page's request-access link ALSO keeps its `trackCTA('mcp-request-access', 'hub-mcp')` call, so `cta_click` (§ 5) is unbroken and `mcp_request_access` can be declared a key event on its own. Enforced by `tests/unit/tool-analytics.test.ts` (prefix, category, the six names) and `tests/unit/mcp-analytics.test.ts`; wired end-to-end in `tests/e2e/analytics.test.ts`.
+
+### 10. Campaign attribution (UTM convention)
+
+Every link GST publishes off-site carries UTM parameters so GA4 can attribute sessions and key events to a channel. Established for the MCP launch (BL-152) so the next campaign inherits it rather than inventing one:
+
+| Parameter      | Values                                                                              |
+| -------------- | ----------------------------------------------------------------------------------- |
+| `utm_source`   | `linkedin`, `google-ads`, `hn`, `devto`, `cloudflare-community`, `newsletter`       |
+| `utm_medium`   | `post`, `article`, `video`, `cpc`, `listing`, `email`                               |
+| `utm_campaign` | `mcp-launch-2026-09` (one value per campaign, `<subject>-<yyyy>-<mm>`)              |
+| `utm_content`  | optional, identifies the post or asset (`launch-clip`, `techpar-demo`, `article-1`) |
+
+Example: `https://globalstrategic.tech/hub/mcp/get-started/?utm_source=linkedin&utm_medium=post&utm_campaign=mcp-launch-2026-09&utm_content=launch-clip`
+
+Two channels cannot carry a UTM. The **Claude connector directory** passes no query string, so that channel is attributed by the Worker's own telemetry: the `oauth_consent` Analytics Engine event, read from the Grafana dashboard's "OAuth consents over time" panel (`mcp-server/observability/grafana-dashboard.json`), compared week over week against the pre-listing baseline. **MCP registries** (the official registry, MCPMarket, Cursor) likewise surface as consents, not sessions. Vercel Analytics, where enabled, is a cross-check; GA4 is the system of record.
 
 ---
 
@@ -347,11 +376,19 @@ Google Analytics Servers
    - Events: `filter_applied` → `portfolio_view_details` → `cta_click`
    - Create a funnel to see conversion rates at each stage
 
-### Create Conversion Goals
+### Key events (the conversion set)
 
-1. Navigate to Admin → Conversions → New Conversion Event
-2. Create event for "cta_click" to track booking intent
-3. Set up funnel: Portfolio Filter → Project View → CTA Click
+Declared in GA4 as key events (Admin → Events → mark as key event), and written down here so a campaign report and the property agree. Decided for the MCP launch (BL-152 Slice 0, 2026-09-14):
+
+| Key event             | What it means                                           | Where it fires          |
+| --------------------- | ------------------------------------------------------- | ----------------------- |
+| `mcp_request_access`  | a lead: the request-access mailto was clicked           | `/hub/mcp/`             |
+| `mcp_trial_signup`    | a lead: a self-serve trial credential was issued        | `/hub/mcp/trial/`       |
+| `booking_confirmed`   | a lead: a consultation was booked (advisory funnel)     | `/booking-confirmed/`   |
+| `mcp_endpoint_copied` | install intent: the endpoint URL or a credential copied | every `/hub/mcp/*` page |
+| `mcp_guide_complete`  | guide depth: a guide was read to its gateway block      | the three guides        |
+
+The rule: **if a key event cannot be seen in DebugView from a real click before a campaign starts, it is not a conversion** (ANALYTICS_TESTING.md § Debugging GA Events). The legacy `cta_click` stays an ordinary event; mark it as key only for a funnel that needs it (Portfolio Filter → Project View → CTA Click).
 
 ## Testing GA4 Integration
 
@@ -395,6 +432,8 @@ If your website serves users in the EU or other regions with privacy regulations
 2. Allow users to opt-out of analytics
 3. Update Privacy Policy to disclose GA4 usage
 4. Consider implementing [Consent Mode](https://support.google.com/analytics/answer/9976101)
+
+**Decision on record (BL-152, 2026-09-14)**: GA4 still loads unconditionally and BL-001 (consent banner + Consent Mode) stays open. For the MCP launch the operator chose to **geo-limit paid targeting to the US** and accept the organic-EU exposure rather than build consent gating into the campaign. Any campaign that deliberately targets EU visitors reopens that decision. The privacy policy names Google Analytics 4 explicitly (item 3 above is done).
 
 ### Best Practices
 

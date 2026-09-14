@@ -74,15 +74,12 @@ import {
   readRefreshHealth,
   type InoreaderRefreshTokenHealth,
 } from '../lib/inoreader-refresh-health';
+import { resolveVersion } from '../version';
 import type { Env } from '../env';
 
-// Local-dev fallback ONLY. As of BL-033 Slice 4, the real version is injected
-// at deploy time from package.json via `deploy.mjs` (`--var VERSION:<v>`) and
-// read as `env.VERSION ?? VERSION` below — mirroring the GIT_SHA pipeline — so
-// deployed `/health` no longer drifts. This literal is used only when unbound
-// (wrangler dev / tests); keep it roughly current but it is no longer
-// load-bearing for prod/staging.
-const VERSION = '0.58.0';
+// Version resolution (deployed `env.VERSION`, else the pinned fallback) lives in
+// `../version` since BL-152, so `/health`, `initialize` and `/server.json`
+// cannot disagree; see that module for why the fallback is load-bearing.
 
 /** Upstash key written by `radar-live-store.ts` (and refreshed every 6h by `cron/radar-refresh.ts`). */
 const RADAR_FYI_CACHE_KEY = 'mcp:radar:cache:fyi';
@@ -333,7 +330,7 @@ export async function buildHealthPayload(env: Env): Promise<HealthResponse> {
     // so /status can say `unknown` instead of asserting an observed `closed`.
     circuitOpen: circuitState?.open === true,
     circuitRead: circuitState !== null,
-    version: env.VERSION ?? VERSION,
+    version: resolveVersion(env),
     gitSha: env.GIT_SHA ?? 'unknown',
     phase: 'BL-032 Phase 5 (observability)',
     upstashMcp,

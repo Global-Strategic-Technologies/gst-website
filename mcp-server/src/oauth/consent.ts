@@ -48,6 +48,7 @@ import { safeLog, scrubUrlForLog } from '../auth/safe-logger';
 import { mintNonce } from '../admin/admin-auth';
 import { escapeHtml, htmlShell } from '../lib/html-shell';
 import { resolveConsentIdentity } from './consent-identity';
+import { AnalyticsEngineSink, emit } from '../metrics/_index';
 import type { Env } from '../env';
 
 /**
@@ -62,6 +63,15 @@ export function grantedScopesFor(
 ): string[] {
   return requested.length > 0 ? requested.filter((s) => hasScope(keyScopes, s)) : [...keyScopes];
 }
+
+/**
+ * BL-152: where an unprovisioned visitor goes. A connector-directory listing
+ * sends strangers straight to this page; the self-serve trial (BL-155) is the
+ * path that exists for them, so the form says so on every render (first view
+ * and the 401 re-render share this template). The English route is deliberate:
+ * this page is English-only, and the site's language switcher is one click away.
+ */
+const TRIAL_SIGNUP_URL = 'https://globalstrategic.tech/hub/mcp/trial/';
 
 const CONSENT_COOKIE = 'mcp_oauth_consent';
 const CONSENT_COOKIE_TTL_S = 300;
@@ -142,6 +152,7 @@ ${scopeBlock}
   <button type="submit" name="decision" value="deny" class="deny" formnovalidate>Deny</button>
 </form>
 <p class="scope-desc">Approving lets this client call the GST MCP server as you, limited to the scopes above (never beyond your key's own scopes). Access tokens expire after 1 hour and refresh automatically until you revoke the grant.</p>
+<p class="scope-desc">No MCP key yet? <a href="${TRIAL_SIGNUP_URL}">Start a three-day trial</a> and come back with the credential it issues.</p>
 `
   );
 }
@@ -382,6 +393,19 @@ export async function handleAuthorizePost(
     keyOwner: identity.keyOwner,
     success: true,
   });
+  // BL-152: the directory channel's attribution number (see `_schema.ts`,
+  // `oauth_consent`). Unbound METRICS (stdio, tests) simply skips it.
+  if (env.METRICS) {
+    emit(new AnalyticsEngineSink(env.METRICS), {
+      event_type: 'oauth_consent',
+      name: 'consent',
+      keyOwner: identity.keyOwner,
+      outcome: 'approved',
+      // ADR-0031: the per-client dimension lives in blob8, so the panel can
+      // tell a new client's first consent from a re-consent by the same one.
+      ...(identity.rateLimitSubject ? { client_ref: identity.rateLimitSubject } : {}),
+    });
+  }
 
   return new Response(null, {
     status: 302,

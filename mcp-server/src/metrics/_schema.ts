@@ -96,6 +96,17 @@ export const EVENT_TYPES = [
   // Revisit if consent-time refusals ever need alerting: they want their own
   // outcome value, not a share of this one.
   'scope_denial',
+  // BL-152 — a human approved an OAuth grant on the consent page
+  // (`oauth/consent.ts`, POST /authorize, approve branch). This is the
+  // attribution number for the Claude connector directory: that channel
+  // passes no query string, so "new consents per week" is the only lift
+  // signal it can produce, and before this the approval reached nothing but
+  // `safeLog`. `keyOwner` is the bounded grant owner (`OAUTH:<owner>`, or the
+  // trial constant for a KV identity), never the userId. Approve ONLY: the
+  // deny branch returns before identity resolution, so it has no owner to
+  // attribute, and a denial is not a lift signal in any case; it stays a
+  // `safeLog` line.
+  'oauth_consent',
 ] as const;
 
 export type EventType = (typeof EVENT_TYPES)[number];
@@ -323,6 +334,9 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   // BL-159 — same single-value shape as `tier_denial` above: the discriminator
   // that matters is `name` (the missing scope), so `outcome` stays narrow.
   scope_denial: ['denied'],
+  // BL-152 — single-value outcome (see the EVENT_TYPES comment): only the
+  // approve branch emits, so `approved` is the whole set.
+  oauth_consent: ['approved'],
 };
 
 /**
