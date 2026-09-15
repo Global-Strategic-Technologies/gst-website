@@ -98,9 +98,10 @@ describe('guardEvent — acceptance + normalization', () => {
   it('truncates correlation_id longer than its 64-char cap', () => {
     const longId = 'a'.repeat(80);
     const result = guardEvent({
-      event_type: 'prompt_span',
+      // blob5 has no writer since BL-157 deleted `prompt_span`; the slot and
+      // its cap remain, so the truncation contract is still worth pinning.
+      event_type: 'tool_invocation',
       correlation_id: longId,
-      seq: 0,
     });
     expect(result?.correlation_id).toHaveLength(64);
     expect(result?.correlation_id?.endsWith('…')).toBe(true);

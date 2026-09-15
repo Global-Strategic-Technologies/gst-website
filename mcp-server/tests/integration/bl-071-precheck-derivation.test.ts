@@ -35,6 +35,7 @@ import { createServer } from '../../src/server';
 import type { RunCallCounters } from '../../src/metrics/run-call-counters';
 import type { ToolCallCounterEntry, ToolCallCounterEvent } from '../../src/metrics/with-metrics';
 import type { Env } from '../../src/worker';
+import type { MetricEvent } from '../../src/metrics/_schema';
 
 const SAMPLE_IRL = `# IRL — BL-071-TestCo
 
@@ -256,6 +257,87 @@ describe('BL-071 — precheck derivation identity (stdio topology)', () => {
   });
 });
 
+// ─── BL-157 — IRL verdict events, emitted once per run ───────────────────
+//
+// ADR-0034. Exercised through `withToolMetrics` exactly as the registry wraps
+// the handler, because the once-per-run rule depends on the wrapper recording
+// this call's outcome only AFTER the handler returns.
+
+function capturingSink(): { events: MetricEvent[]; write: (e: MetricEvent) => void } {
+  const events: MetricEvent[] = [];
+  return { events, write: (e) => void events.push(e) };
+}
+
+const irlEvents = (events: MetricEvent[]) =>
+  events
+    .filter((e) => e.event_type === 'wrong_irl_detected' || e.event_type === 'gate_elided')
+    .map((e) => [e.event_type, e.outcome, e.name]);
+
+describe('BL-157 — IRL verdict events (stdio topology)', () => {
+  async function wrappedComposeWith(sink: ReturnType<typeof capturingSink>) {
+    const irlBodyCache = new InMemoryIrlBodyCache();
+    await irlBodyCache.set(computeIrlBodyHash(SAMPLE_IRL), SAMPLE_IRL);
+    const metrics: MetricsContext = {
+      sink,
+      counters: new InMemoryToolCallCounters(),
+      irlBodyCache,
+    };
+    return withToolMetrics(
+      'compose_dossier_envelope',
+      metrics,
+      (payload: ComposeDossierEnvelopeInput) => handleComposeDossierEnvelopeTool(payload, metrics)
+    );
+  }
+
+  it("emits the SERVER-derived verdict and the elided gates on a run's first compose", async () => {
+    const sink = capturingSink();
+    const compose = await wrappedComposeWith(sink);
+    // The model claims `ok`; 10 of 50 rows derives 20% → `partial`.
+    const input = baseEnvelopeInput();
+    input.fillRatio = { percent: 92, substantiveCells: 10, totalCells: 50, status: 'ok' };
+    const result = await compose(input);
+    expect(result.isError).toBeUndefined();
+    expect(irlEvents(sink.events)).toEqual([
+      ['wrong_irl_detected', 'partial', 'gst_irl_ingestion'],
+      ['gate_elided', 'elided', 'search_radar'],
+    ]);
+  });
+
+  it('emits nothing more on a re-call in the same session', async () => {
+    const sink = capturingSink();
+    const compose = await wrappedComposeWith(sink);
+    await compose(baseEnvelopeInput());
+    await compose(baseEnvelopeInput());
+    expect(irlEvents(sink.events)).toHaveLength(2);
+  });
+
+  it('skips the verdict for incoherent counts but still records gates', async () => {
+    const sink = capturingSink();
+    const compose = await wrappedComposeWith(sink);
+    const input = baseEnvelopeInput();
+    input.fillRatio = { percent: 100, substantiveCells: 60, totalCells: 50, status: 'ok' };
+    await compose(input);
+    expect(irlEvents(sink.events)).toEqual([['gate_elided', 'elided', 'search_radar']]);
+  });
+
+  it('emits nothing when compose is rejected (body-cache miss)', async () => {
+    const sink = capturingSink();
+    const metrics: MetricsContext = {
+      sink,
+      counters: new InMemoryToolCallCounters(),
+      irlBodyCache: new InMemoryIrlBodyCache(),
+    };
+    const compose = withToolMetrics(
+      'compose_dossier_envelope',
+      metrics,
+      (payload: ComposeDossierEnvelopeInput) => handleComposeDossierEnvelopeTool(payload, metrics)
+    );
+    const result = await compose(baseEnvelopeInput());
+    expect(result.isError).toBe(true);
+    expect(irlEvents(sink.events)).toEqual([]);
+  });
+});
+
 // ─── BL-121 — the WORKER topology ────────────────────────────────────────
 //
 // The suite above shares one counter map between handlers. That is stdio: one
@@ -305,12 +387,13 @@ class FakeRunCounters implements RunCallCounters {
  */
 async function openRequest(
   runCounters: RunCallCounters | undefined,
-  bodyCache: InMemoryIrlBodyCache
+  bodyCache: InMemoryIrlBodyCache,
+  metricsSink: { write: (e: MetricEvent) => void } = { write: () => undefined }
 ): Promise<Client> {
   const env: Env = {};
   const server = createServer(env, {
     // A bound metricsSink is what puts `createServer` on the Worker path.
-    metricsSink: { write: () => undefined },
+    metricsSink,
     keyOwner: 'bl-121-test',
     irlBodyCache: bodyCache,
     runCounters,
@@ -411,6 +494,24 @@ describe('BL-121 — precheck derivation identity (Worker topology)', () => {
       rejected: 0,
       errored: 0,
     });
+  });
+
+  it('BL-157 — a cross-request re-call emits the IRL verdict events only once', async () => {
+    // The durable store is what makes "once per run" hold on the Worker, where
+    // every request has a fresh in-process counter map.
+    const durable = new FakeRunCounters();
+    const bodyCache = new InMemoryIrlBodyCache();
+    await bodyCache.set(computeIrlBodyHash(SAMPLE_IRL), SAMPLE_IRL);
+    const sink = capturingSink();
+
+    for (let i = 0; i < 2; i++) {
+      const client = await openRequest(durable, bodyCache, sink);
+      await client.callTool({ name: 'compose_dossier_envelope', arguments: baseEnvelopeInput() });
+    }
+    expect(irlEvents(sink.events)).toEqual([
+      ['wrong_irl_detected', 'ok', 'gst_irl_ingestion'],
+      ['gate_elided', 'elided', 'search_radar'],
+    ]);
   });
 
   it('degrades honestly to `request` scope when no durable store is bound', async () => {

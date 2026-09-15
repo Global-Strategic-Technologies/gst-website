@@ -603,9 +603,7 @@ export function withResourceMetrics<TArgs extends readonly unknown[], TResult>(
 
 /**
  * Wrap a Prompt handler. Prompts throw on error; a returned result is
- * always success. `prompt_span` events (per-step inside a fanout) are
- * emitted separately by `prompt-span.ts` — `withPromptMetrics` only
- * emits the top-level `prompt_invocation`.
+ * always success. Emits one top-level `prompt_invocation`.
  */
 export function withPromptMetrics<TArgs extends readonly unknown[], TResult>(
   name: string,

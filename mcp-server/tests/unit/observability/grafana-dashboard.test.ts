@@ -81,25 +81,19 @@ const RAW_COLUMNS = new Set([
 const TIME_MACRO_ALIAS = 't';
 
 /**
- * Event types with no production emitter. A panel over any of these renders an
- * empty chart that reads as "nothing is wrong" rather than "nothing is
- * recorded" — the precise failure this guard exists to prevent. Widening this
- * list is fine; quietly querying one of them is not.
+ * Declared event types that deliberately have NO panel, each with its reason.
  *
- * `health_check` has no emitter at all; `prompt_span`, `wrong_irl_detected`
- * and `gate_elided` have emitter functions that nothing in `src/` calls.
- * Tracked as BL-157.
- *
- * `rate_limit_decision` LEFT this list when BL-157 wired its emitter in
- * `metrics/pipeline-events.ts` — refusals only, never `allow`, which is what
- * the separate allow-series guard below protects.
+ * BL-157 closed the last declared-but-dead types (deleting `health_check` and
+ * `prompt_span`, wiring the two IRL events), which retired the old
+ * `NON_EMITTING_TYPES` list. An empty list would have left its loops asserting
+ * over nothing, so the rule inverted: every declared type now needs a panel
+ * unless it is named here — adding an event type without a panel fails the
+ * build rather than going unobserved.
  */
-const NON_EMITTING_TYPES = [
-  'health_check',
-  'prompt_span',
-  'wrong_irl_detected',
-  'gate_elided',
-] as const;
+const DELIBERATELY_UNPANELLED: Readonly<Record<string, string>> = {
+  audit_batch: 'emitted, but the audit pipeline is deactivated (ADR-0014) — counters read 0',
+  cron_outcome: 'live, but /status and the alert rules already cover cron health',
+};
 
 describe('grafana-dashboard.json — structure', () => {
   it('declares the Altinity ClickHouse plugin by its exact id', () => {
@@ -416,6 +410,13 @@ describe('grafana-dashboard.json — series shape and supported aggregates (BL-1
         excluded: ['allow'],
       },
       {
+        // BL-157 / ADR-0034 — server-derived verdicts, once per run.
+        title: 'IRL completeness verdicts over time, by outcome',
+        column: 'blob4',
+        values: OUTCOME_VALUES.wrong_irl_detected,
+        excluded: [],
+      },
+      {
         title: 'Zone-1 calls over time, by category',
         column: 'blob2',
         values: NAME_VALUES.inoreader_call ?? [],
@@ -496,30 +497,33 @@ describe('grafana-dashboard.json — bound to the metrics schema', () => {
     }
   });
 
-  it('never builds a panel over an event type nothing emits', () => {
-    // Vacuity guard first: these must still be real declared types, or this
-    // test passes by asserting over names that no longer exist.
-    for (const type of NON_EMITTING_TYPES) {
-      expect(
-        EVENT_TYPES as readonly string[],
-        `${type} is no longer a declared event type`
-      ).toContain(type);
-    }
+  it('gives every declared event type a panel, or names why it has none', () => {
+    // BL-157. The set of types some panel reads must be exactly EVENT_TYPES
+    // minus DELIBERATELY_UNPANELLED — in BOTH directions, so a new type with
+    // no panel fails here, and so does a stale exemption for a type that has
+    // since gained one (or been deleted).
+    const read = new Set<string>();
     for (const q of queries) {
-      for (const type of NON_EMITTING_TYPES) {
-        expect(
-          q.sql,
-          `${q.title} queries "${type}", which nothing emits — the panel would render empty and read as good news (BL-157)`
-        ).not.toContain(type);
+      for (const [, lit] of q.sql.matchAll(/blob1\s*=\s*'([^']+)'/gi)) read.add(lit);
+      for (const inClause of q.sql.matchAll(/blob1\s+IN\s*\(([^)]*)\)/gi)) {
+        for (const [, lit] of inClause[1].matchAll(/'([^']+)'/g)) read.add(lit);
       }
     }
+    const exempt = Object.keys(DELIBERATELY_UNPANELLED);
+    expect(exempt.length, 'the exemption set must not be empty — see its docblock').toBeGreaterThan(
+      0
+    );
+    const unpanelled = EVENT_TYPES.filter((t) => !read.has(t));
+    expect(
+      [...unpanelled].sort(),
+      'every declared event type needs a panel, or an entry in DELIBERATELY_UNPANELLED with its reason'
+    ).toEqual([...exempt].sort());
   });
 
   it('never plots an "allow" series, which is emitted by design and always empty', () => {
     // ADR-0032: `rate_limit_decision` is emitted ONLY on refusal. An `allow`
-    // series would therefore render permanently empty — and unlike the dead
-    // event types above, the event type itself IS live, so the vacuity guard
-    // cannot catch it. The failure mode is the same and worse: a flat line at
+    // series would therefore render permanently empty — and because the event
+    // type itself IS live, the panel-coverage rule above cannot catch it. The failure mode is the same and worse: a flat line at
     // zero next to real deny data reads as "nothing is being allowed through"
     // or "we stopped counting", rather than "this was never recorded".
     for (const q of queries) {
@@ -535,15 +539,21 @@ describe('grafana-dashboard.json — bound to the metrics schema', () => {
     // Vacuity guard's mirror image: wiring an emitter without a panel leaves
     // the data unobserved, which is the gap this whole change exists to close.
     const allSql = queries.map((q) => q.sql).join('\n');
-    for (const type of ['rate_limit_decision', 'tier_denial', 'scope_denial']) {
+    for (const type of [
+      'rate_limit_decision',
+      'tier_denial',
+      'scope_denial',
+      'wrong_irl_detected',
+      'gate_elided',
+    ]) {
       expect(EVENT_TYPES as readonly string[], `${type} must still be declared`).toContain(type);
       expect(allSql, `${type} is emitted in production but no panel reads it`).toContain(type);
     }
   });
 
-  it('explains each omission in the text panel, so nobody re-adds them', () => {
+  it('explains each deliberate omission in the text panel', () => {
     const text = JSON.stringify(dashboard.panels.filter((p) => p.type === 'text'));
-    for (const type of NON_EMITTING_TYPES) {
+    for (const type of Object.keys(DELIBERATELY_UNPANELLED)) {
       expect(text, `the text panel must explain why ${type} has no panel`).toContain(type);
     }
   });

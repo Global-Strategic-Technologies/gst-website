@@ -2,7 +2,7 @@
  * BL-032.75 Phase 1 — Analytics Engine column-map schema.
  *
  * Single source of truth for every downstream consumer:
- *   - emitters in this module (`with-metrics.ts`, `prompt-span.ts`)
+ *   - emitters in this module (`with-metrics.ts`, `pipeline-events.ts`, `irl-ingestion-events.ts`)
  *   - runtime cardinality guard (`guard.ts`)
  *   - vitest fixtures + snapshot test (`schema.test.ts`)
  *   - Phase 3 Grafana dashboard SQL (queries `blob1..blob6` / `double1..double2`)
@@ -35,20 +35,23 @@ export const EVENT_TYPES = [
   'tool_invocation',
   'resource_read',
   'prompt_invocation',
-  'prompt_span',
+  // BL-157 deleted `prompt_span` and `health_check`: both were declared but
+  // never emitted, which made this list advertise coverage that did not
+  // exist. Their column slots (blob5 `correlation_id`) stay reserved — AE
+  // column maps are effectively immutable once queried.
   'rate_limit_decision',
   'inoreader_call',
-  'health_check',
   'cron_outcome',
   // BL-033 Slice 3a — audit-log queue-consumer outcome. Ops-side visibility
   // into the audit pipeline (one event per processed batch); the audit RECORDS
   // themselves live in R2, never in AE. `name` = 'audit-consumer', `seq`
   // (double2) carries the batch entry count.
   'audit_batch',
-  // BL-045 PR B — IRL-ingestion-specific events. Both are model-side outcomes
-  // that require client-side correlation (`prompt_span` precedent) to land in
-  // production. (`force_tools_used` was removed with the inert `forceTools`
-  // arg under BL-122.)
+  // BL-045 PR B, wired by BL-157 — IRL-ingestion run verdicts, emitted by
+  // `compose_dossier_envelope` once per run from the payload it already
+  // receives (server-derived fill-ratio status + `gatesElided[]`). Runs that
+  // stop before the envelope step are NOT counted. See ADR-0034.
+  // (`force_tools_used` was removed with the inert `forceTools` arg, BL-122.)
   'wrong_irl_detected',
   'gate_elided',
   // BL-155 — self-serve trial mint outcomes. The ONLY event type emitted from
@@ -139,13 +142,18 @@ export interface MetricEvent {
    * `throttle` / `deny`). See `OUTCOME_VALUES` below for the runtime guard.
    */
   outcome?: string;
-  /** Used only by `prompt_span`; null elsewhere. */
+  /**
+   * RESERVED — no writer. Its only emitter (`prompt_span`) was deleted by
+   * BL-157; the blob5 slot is kept because AE column maps are effectively
+   * immutable. `FIELD_EMITTED_BY.correlation_id` is empty so any query that
+   * reads blob5 fails the SQL guard.
+   */
   correlation_id?: string;
   /** HTTP-ish status as string (avoids type-coercion ambiguity in queries). */
   status_code?: string;
   /** Numeric wall-clock duration in milliseconds. Omit/0 for counter-only events. */
   duration_ms?: number;
-  /** Step index 0..N inside a `prompt_span` chain; 0 elsewhere. */
+  /** `audit_batch` entry count; 0 elsewhere. */
   seq?: number;
   /**
    * Zone-1 quota classification for `inoreader_call` events only. `'1'` for
@@ -287,10 +295,8 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   // narrow and forces the cache instrumentation to be a deliberate addition.
   resource_read: ['success', 'error'],
   prompt_invocation: ['success', 'error'],
-  prompt_span: ['success', 'error'],
   rate_limit_decision: ['allow', 'throttle', 'deny'],
   inoreader_call: ['success', 'error'],
-  health_check: ['ok', 'degraded', 'error'],
   cron_outcome: [
     'success',
     'partial',
@@ -320,11 +326,10 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   // BL-045 PR B counter events. The `outcome` field carries the discriminator
   // that downstream SQL aggregates over.
   //
-  // `wrong_irl_detected`: emitted by client correlation when the model's
-  //   pre-flight returned `halt` or `partial`. `outcome` carries the verdict.
-  // `gate_elided`: emitted by client correlation when an inclusion gate's
-  //   predicate failed. `outcome` is always `elided` (the tool name is
-  //   carried in `name`).
+  // `wrong_irl_detected`: the SERVER-derived fill-ratio status
+  //   (`deriveFillRatio`), not the model's claim. `outcome` carries it.
+  // `gate_elided`: one per `gatesElided[]` entry. `outcome` is always
+  //   `elided`; the tool name is carried in `name` (pinned in NAME_VALUES).
   wrong_irl_detected: ['halt', 'partial', 'ok'],
   gate_elided: ['elided'],
   // BL-157 — single-value outcome, following the `gate_elided` precedent
@@ -356,7 +361,7 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
  *
  * Deliberately scoped to the NARROW fields. `client_ref` and `duration_ms` are
  * excluded because `withMetricsCore` emits them generically for every primitive
- * (plus `prompt-span.ts` and `irl-ingestion-events.ts`) — a near-universal
+ * (plus `irl-ingestion-events.ts`) — a near-universal
  * field cannot express this defect, and an inaccurate entry here would be worse
  * than the prose it replaces. The always-populated columns (`blob1`, `blob2`,
  * `index1`) are excluded for the same reason.
@@ -374,6 +379,9 @@ export const FIELD_EMITTED_BY: Readonly<Record<string, readonly EventType[]>> = 
     'scope_denial',
   ],
   zone1: ['inoreader_call'],
+  // BL-157 — reserved slot with NO writer (see the field's docblock). Empty on
+  // purpose: the guard then rejects every query that reads blob5.
+  correlation_id: [],
 };
 
 /**
@@ -391,7 +399,7 @@ export const FIELD_EMITTED_BY: Readonly<Record<string, readonly EventType[]>> = 
  *
  * Event types where `name` is intentionally open (`tool_invocation` —
  * tool names; `resource_read` — URI prefixes; `prompt_invocation` —
- * prompt names; `prompt_span` — same; `tier_denial` — the refused tool
+ * prompt names; `tier_denial` — the refused tool
  * name) have no entry here; the guard skips them.
  *
  * `rate_limit_decision` was described here as open ("call site identifiers")
@@ -419,6 +427,23 @@ export const NAME_VALUES: Partial<Record<EventType, readonly string[]>> = {
   // and the pin is free. It is also a forcing function: gating a second scope
   // means adding it here, which is a deliberate act rather than a silent one.
   scope_denial: ['resource:radar:read'],
+  // BL-157 — the tool whose inclusion gate failed. The value comes from the
+  // MODEL (`gatesElided[].tool` is a free string), so without this pin any
+  // invented name would become a blob2 value. Literals rather than an import
+  // of `ORCHESTRATED_TOOLS`: this module imports nothing, and must not pull
+  // prompt code into every metrics consumer. A unit test pins parity with
+  // `ORCHESTRATED_TOOLS` minus `compose_dossier_envelope` (which has no gate).
+  gate_elided: [
+    'generate_diligence_agenda',
+    'list_portfolio_facets',
+    'search_portfolio',
+    'list_regulation_facets',
+    'search_regulations',
+    'compute_techpar',
+    'assess_infrastructure_cost_governance',
+    'estimate_tech_debt_cost',
+    'search_radar',
+  ],
 };
 
 /**

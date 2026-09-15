@@ -99,11 +99,12 @@ export type AuditLevel = (typeof auditLevelValues)[number];
 
 /**
  * Authoritative list of tool names this prompt may orchestrate.
- * Single source of truth — drives the `orchestrates` array (which also
- * includes the embedded Library Resource URIs) and the `gatesPassed` /
- * `gatesElided` / `forceToolsApplied` enums on the envelope tool's input
- * schema, which imports this constant rather than restating it. Adding a
- * tool here expands every one of those surfaces at build time.
+ * Drives the `orchestrates` array (which also includes the embedded Library
+ * Resource URIs) and the `gatesPassed` / `forceToolsApplied` enums on the
+ * envelope tool's input schema. NOT `gatesElided[].tool`, which is a free
+ * string — so `NAME_VALUES.gate_elided` in `metrics/_schema.ts` restates this
+ * list (minus `compose_dossier_envelope`) and a unit test pins the parity.
+ * Adding a tool here fails that test until the metrics pin is widened.
  */
 export const ORCHESTRATED_TOOLS = [
   'generate_diligence_agenda',

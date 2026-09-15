@@ -32,10 +32,8 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "tool_invocation",
         "resource_read",
         "prompt_invocation",
-        "prompt_span",
         "rate_limit_decision",
         "inoreader_call",
-        "health_check",
         "cron_outcome",
         "audit_batch",
         "wrong_irl_detected",
@@ -145,11 +143,6 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "gate_elided": [
           "elided",
         ],
-        "health_check": [
-          "ok",
-          "degraded",
-          "error",
-        ],
         "inoreader_call": [
           "success",
           "error",
@@ -158,10 +151,6 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
           "approved",
         ],
         "prompt_invocation": [
-          "success",
-          "error",
-        ],
-        "prompt_span": [
           "success",
           "error",
         ],
@@ -228,6 +217,17 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "cron_outcome": [
           "radar-refresh",
           "alert-evaluator",
+        ],
+        "gate_elided": [
+          "generate_diligence_agenda",
+          "list_portfolio_facets",
+          "search_portfolio",
+          "list_regulation_facets",
+          "search_regulations",
+          "compute_techpar",
+          "assess_infrastructure_cost_governance",
+          "estimate_tech_debt_cost",
+          "search_radar",
         ],
         "inoreader_call": [
           "cron-radar",
@@ -339,15 +339,13 @@ describe('toDataPoint projection (pure function)', () => {
     expect(dp.doubles).toEqual([0, 0]);
   });
 
-  it('preserves prompt_span seq + correlation_id', () => {
+  it('preserves audit_batch seq in double2', () => {
     const dp = toDataPoint({
-      event_type: 'prompt_span',
-      name: 'gst_target_quick_look',
-      correlation_id: 'abc-123',
+      event_type: 'audit_batch',
+      name: 'audit-consumer',
       seq: 2,
       duration_ms: 47,
     });
-    expect(dp.blobs[4]).toBe('abc-123');
     expect(dp.doubles).toEqual([47, 2]);
   });
 

@@ -7,9 +7,14 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { emitGateElided, emitWrongIrlDetected } from '../../../src/metrics/irl-ingestion-events';
+import {
+  emitGateElided,
+  emitIrlRunVerdicts,
+  emitWrongIrlDetected,
+} from '../../../src/metrics/irl-ingestion-events';
 import type { MetricsContext } from '../../../src/metrics/with-metrics';
-import type { MetricEvent } from '../../../src/metrics/_schema';
+import { NAME_VALUES, type MetricEvent } from '../../../src/metrics/_schema';
+import { ORCHESTRATED_TOOLS } from '../../../src/prompts/irl-ingestion';
 
 interface Sink {
   events: MetricEvent[];
@@ -30,11 +35,8 @@ function makeCtx(): { ctx: MetricsContext; sink: Sink } {
   return { ctx, sink };
 }
 
-// NOTE: `emitWrongIrlDetected` and `emitGateElided` have no call site in `src`
-// outside their own module — they are pre-wired for the client-correlation path
-// recorded in `_schema.ts`. This file is their ONLY exercise; do not delete it
-// alongside a removed emitter. (`emitForceToolsUsed` went with the inert
-// `forceTools` arg under BL-122.)
+// BL-157 wired these from `compose_dossier_envelope`; the handler path is
+// covered in `tests/integration/bl-071-precheck-derivation.test.ts`.
 describe('emitWrongIrlDetected', () => {
   let ctx: MetricsContext;
   let sink: Sink;
@@ -77,5 +79,53 @@ describe('emitGateElided', () => {
     emitGateElided(ctx, 'estimate_tech_debt_cost');
     expect(sink.events).toHaveLength(2);
     expect(sink.events.map((e) => e.name)).toEqual(['compute_techpar', 'estimate_tech_debt_cost']);
+  });
+
+  it('drops a model-invented tool name (NAME_VALUES pin)', () => {
+    emitGateElided(ctx, 'totally_made_up_tool');
+    expect(sink.events).toHaveLength(0);
+  });
+
+  it('pins exactly the orchestrated tools that have a gate', () => {
+    // `compose_dossier_envelope` is orchestrated but is the envelope step
+    // itself, never gated. Any other drift means the pin is stale.
+    const gated = ORCHESTRATED_TOOLS.filter((t) => t !== 'compose_dossier_envelope');
+    expect([...(NAME_VALUES.gate_elided ?? [])].sort()).toEqual([...gated].sort());
+  });
+});
+
+describe('emitIrlRunVerdicts', () => {
+  let ctx: MetricsContext;
+  let sink: Sink;
+  beforeEach(() => {
+    ({ ctx, sink } = makeCtx());
+  });
+
+  it("emits the verdict it is given and one event per elided gate on a run's first compose", () => {
+    emitIrlRunVerdicts(ctx, {
+      verdict: 'partial',
+      elidedTools: ['search_radar', 'compute_techpar'],
+      priorSucceeded: 0,
+    });
+    expect(sink.events.map((e) => [e.event_type, e.outcome, e.name])).toEqual([
+      ['wrong_irl_detected', 'partial', 'gst_irl_ingestion'],
+      ['gate_elided', 'elided', 'search_radar'],
+      ['gate_elided', 'elided', 'compute_techpar'],
+    ]);
+  });
+
+  it('skips the verdict when it is null (incoherent counts) but still emits gates', () => {
+    emitIrlRunVerdicts(ctx, { verdict: null, elidedTools: ['search_radar'], priorSucceeded: 0 });
+    expect(sink.events.map((e) => e.event_type)).toEqual(['gate_elided']);
+  });
+
+  it('emits verdict only when no gate was elided', () => {
+    emitIrlRunVerdicts(ctx, { verdict: 'ok', elidedTools: [], priorSucceeded: 0 });
+    expect(sink.events.map((e) => e.event_type)).toEqual(['wrong_irl_detected']);
+  });
+
+  it('emits nothing on a re-call (an earlier compose in the run succeeded)', () => {
+    emitIrlRunVerdicts(ctx, { verdict: 'ok', elidedTools: ['search_radar'], priorSucceeded: 1 });
+    expect(sink.events).toHaveLength(0);
   });
 });
