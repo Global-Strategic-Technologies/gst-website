@@ -136,6 +136,16 @@ when it was removed: a Total of 160 against rows summing to 152, over a `:root` 
 
 > Note: Dark theme variables use `light-dark()` in `:root` — only `color-scheme: dark` and 2 RGB triplets remain in the `html.dark-theme` block. 13 utility classes are defined across `variables.css`, `typography.css`, and `interactions.css`.
 
+**A token name that doesn't exist fails the build.** An undefined custom property does not error
+in the browser: the declaration becomes invalid at computed-value time and the property silently
+falls back to its inherited value. Thirteen `font-size` declarations shipped that way on the
+homepage and services page (`--text-small`/`--text-tiny`, never defined; the real names are
+`--text-sm`/`--text-xs`), past `astro check`, both linters and the full suite (BL-147).
+`tests/unit/undefined-css-custom-properties.test.ts` now fails on any `var(--name)` in `src` that
+nothing in `src` defines, including one hidden behind a fallback. Its header lists what counts as
+defined (`--name:` declarations, inline styles, literal `setProperty`, `define:vars` keys) and
+what it cannot see.
+
 Full variable catalog: [VARIABLES_REFERENCE.md](./VARIABLES_REFERENCE.md)
 
 ---
@@ -232,6 +242,17 @@ recorded a move whose declarations were left behind.
 3. Reach for `:global()` only for markup that has no component to own it — the `innerHTML` case
    above — or for a **positional** declaration on a shared utility a child renders, anchored to a
    scoped ancestor. See [When `:global()` Is Necessary](#when-global-is-necessary) case 3.
+
+**It is now a build failure.** `tests/unit/scoped-selector-foreign-element.test.ts` fails on any
+scoped selector whose rightmost compound carries a class the same file passes to a component
+invocation (`<DeltaIcon class="x" />`, including `class:list` literals), unless that compound is
+inside `:global()`. The rule is per usage: a native element carrying the same class elsewhere in
+the file does **not** exempt it. For a rule genuinely aimed at the native element in such a file,
+put a type selector in the rightmost compound (`svg.bullet-icon`), never an allowlist. Classes
+passed to a component that forwards its attributes (`{...Astro.props}`) are not counted, since
+that component does receive the caller's cid. Its first run found ten dead blocks (BL-150),
+including one on TechPar where the Analysis tab's native `<svg>` got a 64px muted icon and the
+Trajectory tab's `<DeltaIcon>`, sharing the same class, shipped 14px at full colour.
 
 **But first ask whether the rule should apply at all.** Dead CSS has usually been dead for a
 long time, and nobody has been missing it. BL-139's rules turned out to be the wrong design once
