@@ -25,8 +25,9 @@
    filter.css     → PortfolioHeader.astro (ma-portfolio), regulatory-map/index.astro,
                     hub/mcp/docs/index.astro, brand.astro
    portfolio.css  → PortfolioGrid.astro (ma-portfolio), brand.astro
-   map.css        → MapVisualizer.astro (regulatory-map), brand.astro
-   progress.css   → diligence-machine/index.astro, brand.astro
+   map.css        → MapVisualizer.astro (regulatory-map), HubMcpTrialPage.astro, brand.astro
+   progress.css   → diligence-machine/index.astro, infrastructure-cost-governance/index.astro,
+                    brand.astro
 
    brand.astro imports all four because it renders specimens for every one of them;
    without the imports those specimens render as unstyled markup. That is guarded by

@@ -3,6 +3,9 @@ import BaseLayout from '../../../../layouts/BaseLayout.astro';
 import HubHeader from '../../../../components/hub/HubHeader.astro';
 import { DOMAINS, TOTAL_QUESTIONS } from '../../../../data/infrastructure-cost-governance/domains';
 import { hubToolSchema } from '../../../../utils/hub-tool-schema';
+// The wizard's .brutal-progress-bar__track/__fill/__label rules are page-split
+// into progress.css; without this import the bar rendered unstyled (BL-116).
+import '../../../../styles/components/progress.css';
 
 const domainCount = DOMAINS.length;
 ---
@@ -52,12 +55,10 @@ const domainCount = DOMAINS.length;
 
       <div data-icg class="brutal-tool-shell brutal-tool-shell--narrow icg-shell">
         <!-- ── Landing view (step 0) ─────────────────────────────── -->
-        <div data-view="landing" class="icg-view">
+        <div data-view="landing">
           <div class="landing-content">
             <div class="brutal-callout landing-callout">
-              <span class="brutal-callout__title landing-callout__title"
-                >Who should complete this assessment.</span
-              >
+              <span class="brutal-callout__title">Who should complete this assessment.</span>
               This tool takes 5 to 7 minutes. Domains 3 through 6 require familiarity with cloud infrastructure.
               PE investors and executives should complete this alongside their engineering lead, or send
               them the link directly.
@@ -149,7 +150,7 @@ const domainCount = DOMAINS.length;
         </div>
 
         <!-- ── Wizard view (steps 1-6) ───────────────────────────── -->
-        <div data-view="wizard" class="icg-view is-hidden">
+        <div data-view="wizard" class="is-hidden">
           <div class="wizard-content">
             <!-- Progress bar -->
             <div class="brutal-progress-bar" style="margin-bottom: var(--spacing-xl)">
@@ -194,7 +195,7 @@ const domainCount = DOMAINS.length;
         </div>
 
         <!-- ── Results view (step 7) ─────────────────────────────── -->
-        <div data-view="results" class="icg-view is-hidden">
+        <div data-view="results" class="is-hidden">
           <div class="results-content">
             <!-- Maturity score -->
             <div class="icg-score-display" data-score-display>
@@ -210,11 +211,7 @@ const domainCount = DOMAINS.length;
               class="brutal-callout brutal-callout--warning icg-foundational-warning is-hidden"
               data-foundational-warning
             >
-              <div
-                class="brutal-callout__title icg-foundational-warning__title"
-                data-foundational-warning-title
-              >
-              </div>
+              <div class="brutal-callout__title" data-foundational-warning-title></div>
               <div
                 class="icg-foundational-warning__text brutal-text-small"
                 data-foundational-warning-text
@@ -369,10 +366,10 @@ const domainCount = DOMAINS.length;
         </div>
 
         <!-- ── Comparison view ────────────────────────────────────── -->
-        <div data-view="comparison" class="icg-view is-hidden">
+        <div data-view="comparison" class="is-hidden">
           <div class="comparison-content">
             <div class="brutal-tool-shell__section-label">Snapshot comparison</div>
-            <div data-comparison-body class="icg-comparison-body"></div>
+            <div data-comparison-body></div>
             <div class="icg-comparison-actions">
               <button
                 data-action="back-to-results"

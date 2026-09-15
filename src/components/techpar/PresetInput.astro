@@ -102,7 +102,7 @@ const suffixExtra: Record<string, boolean> = suffixAttr ? { [suffixAttr]: true }
       ))}
     </div>
   ) : (
-    <div class="preset-input" data-preset-input data-input-name={inputName} style={containerStyle}>
+    <div data-preset-input data-input-name={inputName} style={containerStyle}>
       <div class="tp-arr-quick" {...chipGroupExtra}>
         {presets.map((p) => (
           <button
