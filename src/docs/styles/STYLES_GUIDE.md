@@ -1192,10 +1192,10 @@ html.dark-theme {
 }
 ```
 
-**Micro-spacing exception**: Values below `--spacing-xs` (4px) are acceptable for badge padding, border-radius fine-tuning, and optical alignment. Use `1px` or `2px` directly since the spacing scale does not cover sub-4px values. Example: `padding: 2px var(--spacing-sm)` is acceptable for compact badges.
+**Micro-spacing exception**: `1px`, `2px` or `3px`, written in px, are acceptable for badge padding, border-radius fine-tuning, and optical alignment, since the spacing scale starts at 4px. The exception ends there: `4px` and every other on-scale px value must be the token, and both `lint:css` and `spacing-token-floor.test.ts` fail on it ([ADR-0029 § The px half](../adr/0029-spacing-scale-enforcement.md#the-px-half-bl-151-amended-2026-09-15)). Example: `padding: 2px var(--spacing-sm)` is acceptable for compact badges; `padding: 2px 8px` is not.
 
-**This is enforced, as of ADR-0029 — a rem spacing literal that has an exact token fails
-`lint:css`.** Two instruments hold it, and they have different reach:
+**This is enforced, as of ADR-0029 — a rem or px spacing literal that has an exact token fails
+`lint:css`** (px since BL-151). Two instruments hold it, and they have different reach:
 
 | | catches | misses |
 | --- | --- | --- |

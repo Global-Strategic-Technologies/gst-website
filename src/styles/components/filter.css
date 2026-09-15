@@ -379,7 +379,7 @@ Brutalist Filter Drawer
   border: 1px solid var(--border-light);
   cursor: pointer;
   color: var(--text-muted);
-  padding: 4px;
+  padding: var(--spacing-xs);
   display: flex;
   transition:
     color var(--transition-fast),

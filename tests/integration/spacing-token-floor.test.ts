@@ -1,8 +1,10 @@
 /**
  * Spacing-token floor, repo-wide.
  *
- * WHAT THIS ASSERTS. In every `.css` and `.astro` file under `src/`, a rem value
- * in a spacing property that has an exact token on the scale must BE that token.
+ * WHAT THIS ASSERTS. In every `.css` and `.astro` file under `src/`, a rem or px
+ * value in a spacing property that has an exact token on the scale must BE that
+ * token. px joined in BL-151 (ADR-0029 § The px half), with `1px`/`2px`/`3px`
+ * written in px exempt as micro-spacing.
  * ADR-0028 established the property that makes this enforceable: no sheet, theme
  * or palette shadows a `--spacing-*`, so a `var()` substitution is
  * value-identical and cannot resolve differently anywhere. ADR-0029 widened this
@@ -31,6 +33,7 @@ import {
   stripComments,
   extractAstroStyles,
   splitShorthand,
+  lengthToPx,
   parseRootTokens,
   walkStyleSources,
 } from './helpers/css-parse';
@@ -130,10 +133,72 @@ const ACCEPTED_RESIDUALS = [
     value: '0.15rem',
     files: ['src/pages/brand.astro'],
     reason:
-      'Does NOT shelter under the micro-spacing exception, which authorises "1px or ' +
-      '2px directly" — 2.4px is neither. Kept because the ramp floor is 4px, so no ' +
-      'token is below it. Partner of 0.45rem.',
+      'Does NOT shelter under the micro-spacing exception, which (BL-151) covers ' +
+      '1px, 2px or 3px written in px — 2.4px is none of them. Kept because the ramp ' +
+      'floor is 4px, so no token is below it. Partner of 0.45rem.',
   },
+
+  // --- px values (BL-151). 1px/2px/3px written in px are the micro-spacing
+  // exception and are filtered by isMicroSpacing, not listed here.
+  {
+    value: '6px',
+    files: [
+      'src/components/brand/ColorSpecimens.astro',
+      'src/components/hub/mcp/CapabilityNav.astro',
+      'src/pages/brand.astro',
+      'src/pages/hub/mcp/docs/index.astro',
+      'src/pages/hub/tools/diligence-machine/index.astro',
+      'src/pages/hub/tools/tech-debt-calculator/index.astro',
+      'src/styles/components/form.css',
+    ],
+    reason:
+      '6px, between xs (4) and sm (8) — the px spelling of the 0.375rem ' +
+      'between-steps family: chip paddings, small gaps, a tab-badge inset.',
+  },
+  {
+    value: '5px',
+    files: ['src/components/brand/SwatchControlStyles.astro'],
+    reason:
+      "5px, between xs and sm. The horizontal half of the swatch hex input's " +
+      '`3px 5px`; its 3px partner is micro-spacing.',
+  },
+  {
+    value: '14px',
+    files: ['src/pages/hub/tools/regulatory-map/index.astro'],
+    reason:
+      "14px, between md (12) and lg (16). The timeline scroller's top padding, " +
+      'inside a min-height reserved against layout shift.',
+  },
+  {
+    value: '73px',
+    files: ['src/components/portfolio/StickyControls.astro'],
+    reason:
+      'Above the ramp top (48px): a sticky offset that parks the floating search ' +
+      'under the site header. A header measurement, not a spacing step.',
+  },
+  {
+    value: '80px',
+    files: ['src/components/hub/mcp/CapabilityNav.astro'],
+    reason:
+      'Above the ramp top: the sticky nav clears the site header, matching ' +
+      "mcp-guide.css's scroll-margin-top: 80px. A header clearance, not a step.",
+  },
+  ...['108px', '140px', '168px', '220px'].map((value) => ({
+    value,
+    files: ['src/components/HeaderNavLinks.astro'],
+    reason:
+      'Above the ramp top. A DERIVED CONSTANT: the nav reserve clears the sash ' +
+      'corner box on each tier (sash.css), measured on three engines; it moves ' +
+      'with that box, never with the scale.',
+  })),
+  ...['26px', '34px', '42px', '53px', '78px', '88px'].map((value) => ({
+    value,
+    files: ['src/styles/components/sash.css'],
+    reason:
+      'A DERIVED CONSTANT of the rotated ribbon geometry: a per-tier `top` paired ' +
+      'with `left`/`width` so the band meets both corner-box edges. Snapping one ' +
+      'term cuts the ribbon.',
+  })),
 
   // --- Between steps: moving them moves pixels (ADR-0028's standing rule).
   {
@@ -260,7 +325,7 @@ const ACCEPTED_RESIDUALS = [
       "36px, between 2xl (32) and 2_5xl (40). A DERIVED CONSTANT: the search input's " +
       'padding-left, clearing a 32px icon right edge by 4px.',
   },
-] as const;
+];
 
 /** Flattened (file, value) pairs — the unit the guard actually compares. */
 const RESIDUAL_PAIRS = ACCEPTED_RESIDUALS.flatMap((r) => r.files.map((f) => `${f} ${r.value}`));
@@ -272,9 +337,10 @@ const RESIDUAL_PAIRS = ACCEPTED_RESIDUALS.flatMap((r) => r.files.map((f) => `${f
  * deleted together. Sixteen values across forty sites; two review passes
  * hand-counted this as 41 and 40 and disagreed, which is why it is measured.
  * BL-153 added two sites (the language band's chip padding, 0.0625rem and
- * 0.375rem in lang-band.css): 42, re-run rather than re-counted.
+ * 0.375rem in lang-band.css): 42, re-run rather than re-counted. BL-151 taught
+ * the guard px and added 21 px pairs: 63, again measured by running.
  */
-const RESIDUAL_PAIR_COUNT = 42;
+const RESIDUAL_PAIR_COUNT = 63;
 
 /** px -> token, built from variables.css so the guard cannot drift from the scale. */
 function spacingScale(): Map<number, string> {
@@ -290,17 +356,31 @@ function spacingScale(): Map<number, string> {
   return scale;
 }
 
-interface RemUse {
+interface SpacingUse {
   file: string;
   prop: string;
   value: string;
+  /** As written, unit included (`0.25rem`, `4px`). */
   literal: string;
+  /** Resolved against a 16px root — the unit the scale map is keyed by. */
+  px: number;
   inCalc: boolean;
 }
 
-/** Every rem value in a spacing property within one stylesheet's text. */
-export function scanSheet(sheet: string, file: string): RemUse[] {
-  const uses: RemUse[] = [];
+/**
+ * The STYLES_GUIDE micro-spacing exception, as ruled by BL-151: `1px`, `2px` or
+ * `3px` WRITTEN IN PX. Judged on the written unit, not the resolved px — the
+ * rem hairlines (`0.125rem`, `0.0625rem`, `0.15rem`) predate the ruling and keep
+ * their own residual reasons below. The exception is a spelling allowance for a
+ * hairline, not a px range.
+ */
+function isMicroSpacing(u: SpacingUse): boolean {
+  return u.literal.endsWith('px') && (u.px === 1 || u.px === 2 || u.px === 3);
+}
+
+/** Every rem or px value in a spacing property within one stylesheet's text. */
+export function scanSheet(sheet: string, file: string): SpacingUse[] {
+  const uses: SpacingUse[] = [];
   // Comments first: FooterLinks.astro carries a `font-size: 5rem` INSIDE a
   // comment inside a rule body, which a naive declaration split misreads.
   const css = stripComments(sheet);
@@ -314,19 +394,20 @@ export function scanSheet(sheet: string, file: string): RemUse[] {
       // `padding: 1.25rem calc(…)` only the second component is derived, and
       // a per-declaration flag would silently exempt the first.
       const inCalc = /calc\(/.test(part);
-      for (const lit of part.matchAll(/(?<![\w.-])([0-9]*\.?[0-9]+)rem\b/g)) {
-        uses.push({ file, prop, value, literal: `${lit[1]}rem`, inCalc });
+      for (const lit of part.matchAll(/(?<![\w.-])([0-9]*\.?[0-9]+)(rem|px)\b/g)) {
+        const literal = `${lit[1]}${lit[2]}`;
+        uses.push({ file, prop, value, literal, px: lengthToPx(literal)!, inCalc });
       }
     }
   }
   return uses;
 }
 
-/** Every rem value in a spacing property across every stylesheet under src/. */
-function collectRemUses(): { uses: RemUse[]; fileCount: number } {
+/** Every rem or px value in a spacing property across every stylesheet under src/. */
+function collectSpacingUses(): { uses: SpacingUse[]; fileCount: number } {
   const files: string[] = [];
   walkStyleSources(SRC_DIR, files);
-  const uses: RemUse[] = [];
+  const uses: SpacingUse[] = [];
   for (const abs of files) {
     // The shared walker returns absolute paths; this guard's messages and its
     // residual keys are repo-relative.
@@ -340,7 +421,7 @@ function collectRemUses(): { uses: RemUse[]; fileCount: number } {
 
 describe('spacing-token floor (ADR-0028, widened repo-wide by ADR-0029)', () => {
   const scale = spacingScale();
-  const { uses, fileCount } = collectRemUses();
+  const { uses, fileCount } = collectSpacingUses();
 
   it('the instrument found the scale and a populated corpus (it probes something)', () => {
     // Non-empty is not correctness, but empty is definitely not a pass. Both
@@ -351,15 +432,21 @@ describe('spacing-token floor (ADR-0028, widened repo-wide by ADR-0029)', () => 
     expect(uses.length).toBeGreaterThan(0);
   });
 
-  it('no rem spacing value that has an exact token is written as a literal', () => {
+  it('the micro-spacing exemption has something to exempt (BL-151)', () => {
+    // isMicroSpacing is a filter; a filter over a corpus that no longer holds
+    // 1-3px would pass vacuously while claiming a ruling.
+    for (const literal of ['1px', '2px', '3px']) {
+      expect(uses.some((u) => !u.inCalc && u.literal === literal)).toBe(true);
+    }
+    // …and it keys on the written unit: the 2px rem hairline stays a residual.
+    expect(uses.some((u) => u.literal === '0.125rem' && u.px === 2)).toBe(true);
+  });
+
+  it('no rem or px spacing value that has an exact token is written as a literal', () => {
     const violations = uses
       .filter((u) => !u.inCalc)
-      .filter((u) => scale.has(parseFloat(u.literal) * 16))
-      .map(
-        (u) =>
-          `  ${u.file}: ${u.prop}: ${u.value}  ->  ${u.literal} is ` +
-          `${scale.get(parseFloat(u.literal) * 16)}`
-      );
+      .filter((u) => scale.has(u.px))
+      .map((u) => `  ${u.file}: ${u.prop}: ${u.value}  ->  ${u.literal} is ${scale.get(u.px)}`);
 
     expect(
       violations,
@@ -372,8 +459,8 @@ describe('spacing-token floor (ADR-0028, widened repo-wide by ADR-0029)', () => 
 
   it('the off-scale residuals are exactly the set ADR-0029 accepts', () => {
     const found = uses
-      .filter((u) => !u.inCalc)
-      .filter((u) => !scale.has(parseFloat(u.literal) * 16))
+      .filter((u) => !u.inCalc && !isMicroSpacing(u))
+      .filter((u) => !scale.has(u.px))
       .map((u) => `${u.file} ${u.literal}`);
 
     // Cardinality asserted as a NUMBER as well as a set: a parser regression that
@@ -425,20 +512,36 @@ describe('spacing-token floor (ADR-0028, widened repo-wide by ADR-0029)', () => 
 
     // …and a pure-calc value stays wholly exempt, so the ruling is not weakened.
     const pure = scanSheet(`.y { margin-block: calc((0.85rem - 44px) / 2); }`, 'synthetic.css');
-    expect(pure.map((u) => [u.literal, u.inCalc])).toEqual([['0.85rem', true]]);
+    expect(pure.map((u) => [u.literal, u.inCalc])).toEqual([
+      ['0.85rem', true],
+      ['44px', true],
+    ]);
+
+    // The same per-part judgement for px (BL-151).
+    const px = scanSheet(`.z { padding: 8px calc(100% - 3px); }`, 'synthetic.css');
+    expect(px.map((u) => [u.literal, u.px, u.inCalc])).toEqual([
+      ['8px', 8, false],
+      ['3px', 3, true],
+    ]);
   });
 
   it('does not descend into calc(), by ruling', () => {
-    // Two calc expressions carry off-scale rem values that are derived constants,
-    // not chosen steps: Footer.astro's margin-block and CategoryFilter.astro's
-    // margin. Both must be invisible to the residual set above — if this stops
-    // finding them, the parser started reading calc contents and that set will
-    // start failing for the wrong reason.
+    // Calc expressions carry derived constants, not chosen steps: two rem
+    // (Footer.astro's margin-block, CategoryFilter.astro's margin) and, since
+    // the guard learned px in BL-151, six px. All must be invisible to the
+    // residual set above — if this stops finding them, the parser started
+    // reading calc contents and that set will start failing for the wrong reason.
     const calcUses = uses.filter((u) => u.inCalc);
     expect(calcUses.length).toBeGreaterThan(0);
     expect([...new Set(calcUses.map((u) => `${u.file} ${u.literal}`))].sort()).toEqual([
       'src/components/Footer.astro 0.85rem',
+      'src/components/hub/mcp/JobCard.astro 14px',
       'src/components/radar/CategoryFilter.astro 1.6rem',
+      'src/pages/hub/tools/tech-debt-calculator/index.astro 18px',
+      'src/styles/components/cards.css 10px',
+      'src/styles/components/cards.css 14px',
+      'src/styles/components/filter.css 3px',
+      'src/styles/components/lang-switch.css 6px',
     ]);
   });
 });
