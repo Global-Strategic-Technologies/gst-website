@@ -23,7 +23,11 @@ import {
   NAME_VALUES,
   OUTCOME_VALUES,
 } from '../../../src/metrics/_schema';
-import { GUARDED_COLUMNS, assertFieldEventTypeAgreement } from '../../helpers/ae-sql-guards';
+import {
+  GUARDED_COLUMNS,
+  assertFieldEventTypeAgreement,
+  blob1Literals,
+} from '../../helpers/ae-sql-guards';
 
 const raw = readFileSync(
   resolve(__dirname, '../../../observability/grafana-dashboard.json'),
@@ -480,19 +484,10 @@ describe('grafana-dashboard.json — bound to the metrics schema', () => {
     // forever and look like a quiet week.
     const declared = new Set<string>(EVENT_TYPES);
     for (const q of queries) {
-      for (const [, literal] of q.sql.matchAll(/blob1\s*(?:=|IN\s*\()\s*'([^']+)'/gi)) {
+      for (const literal of blob1Literals(q.sql)) {
         expect(declared.has(literal), `${q.title} filters on unknown event type "${literal}"`).toBe(
           true
         );
-      }
-      // The IN(...) form carries additional literals after the first.
-      for (const inClause of q.sql.matchAll(/blob1\s+IN\s*\(([^)]*)\)/gi)) {
-        for (const [, literal] of inClause[1].matchAll(/'([^']+)'/g)) {
-          expect(
-            declared.has(literal),
-            `${q.title} filters on unknown event type "${literal}"`
-          ).toBe(true);
-        }
       }
     }
   });
@@ -502,13 +497,7 @@ describe('grafana-dashboard.json — bound to the metrics schema', () => {
     // minus DELIBERATELY_UNPANELLED — in BOTH directions, so a new type with
     // no panel fails here, and so does a stale exemption for a type that has
     // since gained one (or been deleted).
-    const read = new Set<string>();
-    for (const q of queries) {
-      for (const [, lit] of q.sql.matchAll(/blob1\s*=\s*'([^']+)'/gi)) read.add(lit);
-      for (const inClause of q.sql.matchAll(/blob1\s+IN\s*\(([^)]*)\)/gi)) {
-        for (const [, lit] of inClause[1].matchAll(/'([^']+)'/g)) read.add(lit);
-      }
-    }
+    const read = new Set(queries.flatMap((q) => [...blob1Literals(q.sql)]));
     const exempt = Object.keys(DELIBERATELY_UNPANELLED);
     expect(exempt.length, 'the exemption set must not be empty — see its docblock').toBeGreaterThan(
       0

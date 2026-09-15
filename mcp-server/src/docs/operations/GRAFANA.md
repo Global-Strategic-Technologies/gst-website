@@ -82,7 +82,7 @@ The contingency is kept because it is the fallback if the dialect ever narrows: 
 
 ## What the dashboard deliberately omits
 
-Every one of the thirteen event types declared in `src/metrics/_schema.ts` has a panel except two, and the guard test fails if any other declared type lacks one:
+Every event type declared in `src/metrics/_schema.ts` has a panel except two, and the guard test fails if any other declared type lacks one:
 
 - `audit_batch` — emitted, but the pipeline is deactivated (ADR-0014), so counters legitimately read 0.
 - `cron_outcome` — genuinely live, but `/status` and the seven alert rules already cover cron health.

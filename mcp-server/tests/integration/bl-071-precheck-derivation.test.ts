@@ -320,6 +320,19 @@ describe('BL-157 — IRL verdict events (stdio topology)', () => {
     expect(irlEvents(sink.events)).toEqual([['gate_elided', 'elided', 'search_radar']]);
   });
 
+  it('emits on every compose when no counters are bound (the documented upper bound)', async () => {
+    // With no counter map there is no way to tell a re-call from a first call,
+    // so `priorSucceeded` defaults to 0. Pinned deliberately: ADR-0034 accepts
+    // over-counting over silently dropping a run's verdict.
+    const sink = capturingSink();
+    const irlBodyCache = new InMemoryIrlBodyCache();
+    await irlBodyCache.set(computeIrlBodyHash(SAMPLE_IRL), SAMPLE_IRL);
+    const metrics: MetricsContext = { sink, irlBodyCache };
+    await handleComposeDossierEnvelopeTool(baseEnvelopeInput(), metrics);
+    await handleComposeDossierEnvelopeTool(baseEnvelopeInput(), metrics);
+    expect(irlEvents(sink.events)).toHaveLength(4);
+  });
+
   it('emits nothing when compose is rejected (body-cache miss)', async () => {
     const sink = capturingSink();
     const metrics: MetricsContext = {
