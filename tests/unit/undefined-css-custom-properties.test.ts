@@ -36,6 +36,10 @@ import { stripComments, walkStyleSources } from '../integration/helpers/css-pars
  *    so it produces no false positive
  *  - a name assembled by interpolation (`var(--alt${n}-primary)`) is skipped
  *    rather than half-read
+ *  - a quoted `'--name':` key in ANY `.ts` source counts as a definition, so an
+ *    unrelated map keyed `'--flag'` could mask an undefined token of that name
+ *  - a `define:vars` const is read up to its first `}`, so a nested object value
+ *    would truncate its key list (neither current consumer nests)
  */
 
 export interface SourceFile {
@@ -183,7 +187,7 @@ describe('every var(--name) in src resolves to a defined custom property', () =>
     expect(defined.size, 'almost no definitions found — DECL is broken').toBeGreaterThan(200);
     const referenced = files
       .filter((f) => !f.path.endsWith('.ts'))
-      .reduce((n, f) => n + [...f.text.matchAll(VAR_REF)].length, 0);
+      .reduce((n, f) => n + [...stripComments(f.text).matchAll(VAR_REF)].length, 0);
     expect(referenced, 'almost no var() references found — VAR_REF is broken').toBeGreaterThan(
       1000
     );

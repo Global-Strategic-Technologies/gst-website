@@ -31,13 +31,17 @@ import { stripComments, walkStyleSources } from '../integration/helpers/css-pars
  * unambiguous. No rule in the repo relies on this today; it exists so the
  * correct fix for a future mixed file is not an allowlist.
  *
- * A component that forwards its received attributes (`{...Astro.props}` or a
- * rest spread onto markup) DOES receive the parent's cid, so a bare rule reaches
- * it. Classes passed to such a component are not counted.
+ * A component that spreads its received attributes onto a NATIVE element
+ * (`<span {...Astro.props}>`) does pass the parent's cid through, so a bare rule
+ * reaches it. Classes passed to such a component are not counted. A spread onto
+ * another component (`<Inner {...rest} />`) does not count as forwarding: that
+ * only moves the problem one level down.
  *
  * KNOWN GAPS (uncaught, not guessed at):
- *  - a class computed at runtime (`class={cls}` with a non-literal expression),
- *    or passed via a spread (`<Foo {...attrs} />`)
+ *  - a class computed at runtime (`class={cls}`), or an interpolated template
+ *    literal (`class={`bullet-icon ${x}`}`)
+ *  - a class passed via a spread at the call site (`<Foo {...attrs} />`)
+ *  - only the first `class:list` attribute on a tag is read
  *  - `is:global` style blocks, which are unscoped and cannot fall into the trap
  */
 
@@ -178,7 +182,9 @@ export const staticClasses = (attrs: string): string[] => {
 
 /** True when a component source forwards received attributes onto its markup. */
 const forwardsAttributes = (componentSource: string): boolean =>
-  /\{\s*\.\.\.\s*(Astro\.props|rest|attrs|props|others)\s*\}/.test(componentSource);
+  /<[a-z][\w-]*\b[^>]*\{\s*\.\.\.\s*(Astro\.props|rest|attrs|props|others)\s*\}/.test(
+    componentSource
+  );
 
 const importMap = (frontmatter: string, fileDir: string): Map<string, string> => {
   const map = new Map<string, string>();
@@ -264,6 +270,15 @@ describe('scoped rules do not target a class only a child component receives', (
     expect(
       scanAstro(astroFile(tpl, '.bullet-icon { margin-top: 0.35em; }')).map((f) => f.cls)
     ).toEqual(['bullet-icon']);
+  });
+
+  it('still counts classes passed to a component that only spreads onto another component', () => {
+    // A spread onto a child COMPONENT moves the class one level down, where it
+    // still lands on markup that does not carry this file's cid.
+    const src = astroFile('<Pill class="pill-x" />', '.pill-x { color: red; }');
+    expect(scanAstro(src, () => '<Inner {...Astro.props} />').map((f) => f.cls)).toEqual([
+      'pill-x',
+    ]);
   });
 
   it('does not count classes passed to a component that forwards its attributes', () => {
