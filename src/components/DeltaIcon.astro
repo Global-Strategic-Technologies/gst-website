@@ -7,8 +7,9 @@
  * component's `<style>` compiles to `.your-class[data-astro-cid-CALLER]` and
  * matches nothing, silently. Style it through a scoped ancestor instead:
  * `.your-row :global(.your-class) { … }`. See STYLES_GUIDE § "The scoped-rule /
- * foreign-element trap" and § "When `:global()` Is Necessary" case 3; BL-150
- * tracks seven selectors already lost this way.
+ * foreign-element trap" and § "When `:global()` Is Necessary" case 3.
+ * tests/unit/scoped-selector-foreign-element.test.ts fails the build on a bare
+ * rule like that — it caught ten already lost this way (BL-150).
  *
  * `filled` (BL-153) paints the same path solid in `currentColor` instead of
  * stroking it — the marker the language menu puts on the current locale. It is
