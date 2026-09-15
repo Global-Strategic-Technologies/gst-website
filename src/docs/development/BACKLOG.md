@@ -2,7 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Nine cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Ten cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
@@ -11,6 +11,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 > - **2026-08-27**: 1 stanza (BL-138, CSP `media-src` + onboarding media) closed and pruned when the `/hub/mcp/get-started/` family shipped. Last pre-prune revision: `e4689e0d`. Its live content split by kind: the hosting decision, WebM do-not-re-add measurements, and 25–50 MiB revisit threshold went to [ADR-0022](../adr/0022-mcp-onboarding-media-in-git.md); the ffmpeg/GIF recipes (with the colour-stage proof and gifsicle hygiene note), per-clip page constraints, poster-as-reduced-motion rule, and the `prompts-resources` re-record trigger went to [hub/MCP_ONBOARDING.md](../hub/MCP_ONBOARDING.md). The BL-093 note below and the `.gitignore` `media-raw/` comment both linked the stanza and were retargeted in the same commit.
 > - **2026-09-02**: 1 stanza (BL-148, spacing-token lint enforcement) closed and pruned when [ADR-0029](../adr/0029-spacing-scale-enforcement.md) shipped — 217 literals swept, the guard widened repo-wide, and a lint rule added that fails the build. Last pre-prune revision: `4f664745`.
 > - **2026-09-11**: 1 stanza (BL-160, `mcp-server` on a different Vitest major) closed and pruned when `mcp-server` moved to Vitest 5. Last pre-prune revision: `f4dd4607`. The stale nested `vitest@4.1.11` that had survived reinstalls turned out to be an **orphaned peer cycle**. `vitest@4.1.11` and `@vitest/coverage-v8@4.1.11` exact-peer each other, so each held the other in the lockfile after nothing depended on either. `npm install` and `npm prune` both kept the pair. The fix was deleting those lockfile entries and letting npm re-resolve. The Vitest 5 `clearMocks` default broke one test (`worker-scheduled`, an import-time call). That was found by a static audit and confirmed by a full-suite `clearMocks: false` comparison. The other two Vitest 5 changes were checked by grep only: there are no un-awaited `.resolves`/`.rejects`/`expect.poll` and no `basic` reporter; the live notes went to [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md) and [TEST_BEST_PRACTICES.md](../testing/TEST_BEST_PRACTICES.md).
+> - **2026-09-15**: 1 stanza (BL-136, nothing alerts on a red `npm audit` run) closed **won't-fix by operator decision**, not implemented. None of its three candidate responses ships: Dependabot security updates stay off, the audit job stays non-required, and no failure issue gets opened. Last pre-prune revision: `c682d9e1`. It is recorded here so it is not re-proposed. The detection gap it described is real and stands: a red audit on `master` blocks nothing and tells no one, and [DEVELOPER_TOOLING.md § npm audit policy](DEVELOPER_TOOLING.md) says so where its ledger cites the two occasions it happened (2026-08-17, 2026-09-04).
 > - **2026-09-15**: 2 stanzas (BL-147, undefined `--text-small`/`--text-tiny`; BL-150, scoped rules on DeltaIcon-rendered classes) closed and pruned together. Last pre-prune revision: `ec5f8452`. Both were design rulings as much as fixes, so every dead rule was rendered first: current vs. as-written vs. alternatives, at phone-to-desktop widths, in both themes, and for the homepage and services in all three locales. The operator then ruled on each one. **Rulings:**
 >   - Why Clients Trust Us, Who We Support and Engagement Flow take the rules as written (`--text-sm`, and `--text-xs` where written). That means **12px** for `.trust-card p` at ≤480 and for Engagement Flow's step detail at ≤768, **explicitly accepted**; the step detail's base rule also moves to 14px at desktop.
 >   - What We Do takes a 14px floor. That is identical in effect, since it never used `--text-tiny`.
@@ -1007,34 +1008,6 @@ Scope is **the whole GST estate** — the Astro website and the MCP integration 
 **Open decision, owed at PR2 kickoff (operator, 2026-08-25)**: the `_audit` end state on the three analysis tools — remove entirely vs keep optional-and-validated (PR1 ships optional either way). Decide on live-verification evidence: did bare calls produce any wrong numbers the old refinements would have caught?
 
 **PR2 also settles**: BL-129 (close as won't-do if `_audit` is removed; moot either way per scope decision), BL-130 (mechanism removed — close), BL-131 (both sites die with the file — close), and dispositions for BL-128 / BL-134 / BL-087.
-
-### BL-136: A production advisory sat red for three days because nothing is watching the audit job
-
-**Source**: post-merge check of PR #427, 2026-08-17 | **Effort**: Small | **Status**: Recorded — **the symptom is fixed, the detection gap is not**
-
-**What happened.** `npm audit (production dependencies only)` failed on master and on all six Dependabot branches from ~2026-08-14 to 2026-08-17 with two high advisories in production dependencies (`js-yaml`, `nanoid` — both transitive, both with an in-range patch published). The gate that [DEVELOPER_TOOLING.md § npm audit policy](DEVELOPER_TOOLING.md) calls "the enforced gate" was therefore not enforcing anything for three days, and it was found by a human glancing at a run list, not by the pipeline. The advisories themselves are cleared; **this item is about the three days, not the two packages.**
-
-**Why nothing fired.** Three independent reasons, each sufficient on its own:
-
-- The job is **not a required status check** (the ruleset requires E2E, Unit & Integration, Lint & Type Check, Verify doc links). A red run blocks no merge.
-- It notifies **no one** — no issue, no comment, no Slack. GitHub emails the actor on a failed scheduled run, which is a weak signal buried in ordinary CI mail.
-- **Dependabot could not have caught it**: neither package is a declared dependency in either workspace, so version updates never touch them, and `automated-security-fixes` — the mechanism that _does_ handle transitives — reports `{"enabled": false}` for this repo.
-
-**Three candidate responses, not equivalent.**
-
-1. **Turn on Dependabot security updates.** Closes the detection gap at the source and opens a PR per advisory. Cost: more PR churn, and it will open PRs against dev-only advisories too, which policy tolerates deliberately — worth checking whether that can be scoped before enabling.
-2. **Make the audit job a required check.** Strongest enforcement, and the honest reading of "must stay at zero". Cost that must be accepted with open eyes: a newly-published upstream CVE then blocks _every_ PR until someone patches, including unrelated work. That is a real operational tax and the reason it is not already required.
-3. **Notify on failure.** `deploy-mcp-production.yml` already carries the pattern (`issues: write`, opens an issue on failure). Cheapest, keeps merges unblocked, and converts silence into a tracked artefact — but it is a reminder, not a gate.
-
-(1) and (3) compose well and neither taxes unrelated PRs; (2) is the operator's call about how hard the policy should bite.
-
-**While here**: the same measurement found the doc's dev-tree ledger describing 3 advisories in one chain when the tree carried 9 in two (the `@lhci/cli → … → extract-zip` chain had drifted in unnoticed — dev-only advisories fail nothing, which is the same root cause one layer down). Corrected in the same commit; the wrangler chain has a free in-range fix left to the Dependabot dev-dependencies PR because it moves the deploy toolchain.
-
-**Superseded twice — do not act on that last clause.** _2026-08-21_: the wrangler chain was cleared by pinning `wrangler` at an exact `4.121.0` (its miniflare resolves `undici@7.29.0`, outside the vulnerable range), **not** by merging the Dependabot dev-dependencies PR. _2026-08-22_: BL-137 ([ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md)) then lifted that pin — wrangler floats on `^4.125.0`, the undici chain was re-measured and is still clear, and the instruction to close wrangler Dependabot PRs no longer applies. See [DEVELOPER_TOOLING.md § npm audit policy](DEVELOPER_TOOLING.md) and [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md). Through both changes, the detection gap this item is actually about remains untouched.
-
-**Trigger**: met — this already happened once.
-
----
 
 ### BL-125: The prompt states none of its own run parameters
 
