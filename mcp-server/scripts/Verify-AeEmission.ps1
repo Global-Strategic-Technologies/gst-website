@@ -209,5 +209,33 @@ FORMAT JSON
                 Select-Object event_type, bucket_or_tool, outcome, client_ref, @{Name='n'; Expression={[int]$_.n}} |
                 Format-Table -AutoSize
         }
+
+        # BL-157 / ADR-0034 - IRL-ingestion run verdicts, emitted by
+        # compose_dossier_envelope once per run. blob2 is the prompt name on
+        # wrong_irl_detected and the elided TOOL on gate_elided. Only runs
+        # that reached the envelope step appear, so an empty section on an
+        # env with no `mode: full` ingestion in the window is expected.
+        Write-Host "  --- IRL verdicts: wrong_irl_detected + gate_elided (blob2 = prompt / elided tool) ---" -ForegroundColor DarkCyan
+        $irlSql = @"
+SELECT blob1 AS event_type, blob2 AS prompt_or_tool, blob4 AS outcome, sum(_sample_interval) AS n
+FROM $dataset
+WHERE blob1 IN ('wrong_irl_detected', 'gate_elided') AND timestamp > NOW() - INTERVAL '$WindowHours' HOUR
+GROUP BY blob1, blob2, blob4
+ORDER BY n DESC
+FORMAT JSON
+"@
+        try {
+            $irl = Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $irlSql
+        } catch {
+            Write-Host "  IRL verdict query failed: $_" -ForegroundColor Red
+            continue
+        }
+        if (-not $irl.data -or $irl.data.Count -eq 0) {
+            Write-Host "  (no IRL verdict rows in window - no ingestion run reached compose_dossier_envelope)" -ForegroundColor Yellow
+        } else {
+            $irl.data |
+                Select-Object event_type, prompt_or_tool, outcome, @{Name='n'; Expression={[int]$_.n}} |
+                Format-Table -AutoSize
+        }
     }
 }

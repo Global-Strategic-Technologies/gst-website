@@ -2023,7 +2023,7 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 ### BL-157: four declared AE event types emit nothing — the metrics schema advertises more coverage than exists
 
-**Source**: found 2026-09-08 while auditing trial observability for [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment); **widened the same day** from one dead type to five while building the Grafana dashboard, when the plan-reviewer caught `health_check` and a per-type emit-site count turned up three more; **`rate_limit_decision` closed the same day**, taking it to four | **Effort**: Small-to-Medium per type — the wiring is a few lines | **Status**: Open (4 of 5 remaining)
+**Source**: found 2026-09-08 while auditing trial observability for [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment); **widened the same day** from one dead type to five while building the Grafana dashboard, when the plan-reviewer caught `health_check` and a per-type emit-site count turned up three more; **`rate_limit_decision` closed the same day**, taking it to four; **the remaining four closed 2026-09-14** | **Effort**: Small-to-Medium per type — the wiring is a few lines | **Status**: Open — **only the refusal-volume alert rule remains**, gated on its production-baseline trigger below. All five dead types are resolved.
 
 **As an** operator, **I want** the event types the schema declares to actually be recorded **so that** reading `_schema.ts` tells me what is observable, and so a dashboard panel over one of them shows data rather than a convincing blank.
 
@@ -2031,13 +2031,13 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 **The evidence.** `EVENT_TYPES` in [`metrics/_schema.ts`](../../../mcp-server/src/metrics/_schema.ts) declares thirteen types. **Four emit nothing in production:**
 
-| Type                      | State                                                                                                                                  |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| ~~`rate_limit_decision`~~ | **CLOSED 2026-09-08** — emitted on refusal only (ADR-0032).                                                                            |
-| `health_check`            | Declared `:41` with outcomes at `:243`. **No emitter anywhere.** `/status` health comes from live `buildHealthPayload` probes, not AE. |
-| `prompt_span`             | `emitPromptSpan` exists (`metrics/prompt-span.ts:47`); **no call site** outside `metrics/` and its own test.                           |
-| `wrong_irl_detected`      | `emitWrongIrlDetected` exists (`metrics/irl-ingestion-events.ts:43`); no call site.                                                    |
-| `gate_elided`             | `emitGateElided` exists (`:68`); no call site.                                                                                         |
+| Type                      | State                                                                                                                   |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| ~~`rate_limit_decision`~~ | **CLOSED 2026-09-08** — emitted on refusal only (ADR-0032).                                                             |
+| ~~`health_check`~~        | **DELETED 2026-09-14** — no emitter ever existed; `/status` health comes from live `buildHealthPayload` probes, not AE. |
+| ~~`prompt_span`~~         | **DELETED 2026-09-14** — emitter had no caller and nothing produced a `correlation_id`. blob5 kept as a reserved slot.  |
+| ~~`wrong_irl_detected`~~  | **WIRED 2026-09-14** — from `compose_dossier_envelope`, server-derived status, once per run (ADR-0034).                 |
+| ~~`gate_elided`~~         | **WIRED 2026-09-14** — same call site, tool names pinned in `NAME_VALUES` (ADR-0034).                                   |
 
 Consequences:
 
@@ -2049,10 +2049,11 @@ Consequences:
 - [x] `rate_limit_decision`: emission policy chosen and recorded — [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md)
 - [x] `rate_limit_decision`: emitter wired (`metrics/pipeline-events.ts`), panels added, `Verify-AeEmission.ps1` + AUTH.md + RATE_LIMITS.md extended, removed from `NON_EMITTING_TYPES`
 - [ ] **Alert rule on refusal volume** — deliberately NOT shipped with the emitter: `runbook-freshness.test.ts` requires every threshold to cite a baseline in `slo-baselines.md`, and there is none for a metric that had never been emitted. **Trigger**: after the self-serve trial has run in production long enough to establish a normal refusal rate, set a threshold from what is observed, add the rule + its runbook, and record the baseline. Until then the panels are pull, not push
-- [ ] `health_check`: decide whether AE should carry it at all, given `/status` reads live probes. If not, delete the declaration rather than leave it advertising coverage
-- [ ] `prompt_span` / `wrong_irl_detected` / `gate_elided`: wire the existing emitters at their intended call sites, or delete emitter + declaration together. These are cheaper decisions than the first two — the code exists, it was simply never called
-- [ ] Whatever is wired: extend `Verify-AeEmission.ps1`, the AUTH.md / RATE_LIMITS.md query cookbooks, and **add a panel + remove the name from `NON_EMITTING_TYPES`** in `tests/unit/observability/grafana-dashboard.test.ts` and the dashboard's text panel
-- [ ] Whatever is deleted: remove it from `EVENT_TYPES`, `OUTCOME_VALUES`, the `schema.test.ts` snapshots, and the `blob1` lists in `ARCHITECTURE.md` / `DEPLOY.md`
+- [x] `health_check`: AE should not carry it — deleted (2026-09-14)
+- [x] `prompt_span` deleted; `wrong_irl_detected` / `gate_elided` wired from `compose_dossier_envelope` — [ADR-0034](../adr/0034-irl-verdict-events-emit-from-compose.md). **The emitters' "server never sees the verdict" premise was wrong**: the envelope tool's input already carried both results. The wiring counts runs that reach the envelope step, once each, with gate names pinned
+- [x] Wired: `Verify-AeEmission.ps1` IRL section, an "IRL ingestion" dashboard row, `irl-pipeline/CONTRACT.md` and `GRAFANA.md`. **`NON_EMITTING_TYPES` was retired rather than emptied**: empty, its loops asserted over nothing. It is replaced by a two-way rule that every declared type has a panel or a named `DELIBERATELY_UNPANELLED` reason (mutation-checked). The AUTH.md / RATE_LIMITS.md cookbooks were not touched: neither covers IRL ingestion
+- [x] Deleted: `EVENT_TYPES`, `OUTCOME_VALUES`, `schema.test.ts` snapshots, the `blob1` lists in `ARCHITECTURE.md` / `DEPLOY.md`. blob5 (`correlation_id`) stays as a reserved slot, and `FIELD_EMITTED_BY.correlation_id: []` makes the SQL guard reject any query that reads it
+- [ ] **Operator, after the staging auto-deploy**: run one `gst_irl_ingestion` `mode: full` ingestion through compose, then `Verify-AeEmission.ps1` (needs `CF_AE_TOKEN`), and check the IRL section shows one verdict row plus the elided gates. This can't be closed from the repo. The handler path is covered by integration tests, including a mutation check of the once-per-run guard
 
 ### BL-158: the Grafana dashboard renders, but two of its SQL assumptions are wrong
 

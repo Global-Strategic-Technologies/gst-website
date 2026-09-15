@@ -231,7 +231,7 @@
       "id": 14,
       "type": "timeseries",
       "title": "Refusals over time, by outcome",
-      "description": "Only REFUSALS are emitted \u2014 'deny' (the window was exhausted, the caller got a 429) and 'throttle' (allowed, but some bucket is >=80% spent). One sumIf column per outcome, NOT a GROUP BY blob4 (BL-158) — extra columns become series, extra grouped rows merge into one line. TWO columns, not three: OUTCOME_VALUES.rate_limit_decision also lists 'allow', and there is deliberately no allow series — emitting one would write a row per authenticated request and push this dataset into sampling, which silently degrades the count(DISTINCT blob8) query on 'Distinct active trials'. See ADR-0032.",
+      "description": "Only REFUSALS are emitted — 'deny' (the window was exhausted, the caller got a 429) and 'throttle' (allowed, but some bucket is >=80% spent). One sumIf column per outcome, NOT a GROUP BY blob4 (BL-158) — extra columns become series, extra grouped rows merge into one line. TWO columns, not three: OUTCOME_VALUES.rate_limit_decision also lists 'allow', and there is deliberately no allow series — emitting one would write a row per authenticated request and push this dataset into sampling, which silently degrades the count(DISTINCT blob8) query on 'Distinct active trials'. See ADR-0032.",
       "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
       "targets": [
@@ -251,7 +251,7 @@
       "id": 15,
       "type": "table",
       "title": "Refusals by client and responsible bucket",
-      "description": "Who is hitting which wall. blob2 is the bucket the operator should act on, filled asymmetrically by design: on 'deny' it is the bucket that refused; on 'throttle' it is the bucket nearest its cliff, which is not necessarily the binding one. That is why this groups by outcome too \u2014 reading blob2 alone mixes the two meanings. blob8 is the per-client ref (ADR-0031), empty for static bearer keys, which have no per-client identity.",
+      "description": "Who is hitting which wall. blob2 is the bucket the operator should act on, filled asymmetrically by design: on 'deny' it is the bucket that refused; on 'throttle' it is the bucket nearest its cliff, which is not necessarily the binding one. That is why this groups by outcome too — reading blob2 alone mixes the two meanings. blob8 is the per-client ref (ADR-0031), empty for static bearer keys, which have no per-client identity.",
       "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
       "targets": [
@@ -271,7 +271,7 @@
       "id": 16,
       "type": "timeseries",
       "title": "Trial paywall hits over time",
-      "description": "A trial identity was refused a radar tool by the tier gate. This is upgrade INTENT, not an error: someone wanted the gated product. Expected empty until the self-serve trial goes live in production \u2014 an empty chart here is not a broken query.",
+      "description": "A trial identity was refused a radar tool by the tier gate. This is upgrade INTENT, not an error: someone wanted the gated product. Expected empty until the self-serve trial goes live in production — an empty chart here is not a broken query.",
       "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
       "targets": [
@@ -403,8 +403,55 @@
     },
     {
       "type": "row",
+      "title": "IRL ingestion (BL-157)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 69 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "IRL completeness verdicts over time, by outcome",
+      "description": "One event per IRL-ingestion run that reached compose_dossier_envelope, carrying the SERVER-derived fill-ratio status (halt <15%, partial <40%, ok). Runs that stopped before the envelope step are NOT counted, so 'halt' is an undercount and this is not a halt rate. A cross-request re-call with an unreadable run-counter store can count a run twice (upper bound). ADR-0034.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 70 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT $timeSeries AS t, sumIf(_sample_interval, blob4 = 'halt') AS halt, sumIf(_sample_interval, blob4 = 'partial') AS partial, sumIf(_sample_interval, blob4 = 'ok') AS ok\nFROM $dataset\nWHERE blob1 = 'wrong_irl_detected' AND $timeFilter\nGROUP BY t\nORDER BY t"
+        }
+      ],
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 10 } }, "overrides": [] }
+    },
+    {
+      "id": 20,
+      "type": "table",
+      "title": "Elided inclusion gates by tool",
+      "description": "Which orchestrated tools IRL-ingestion runs skipped because their inclusion gate failed, one count per run (ADR-0034). Tool names are pinned in the schema; a name the model invents is dropped rather than recorded.",
+      "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 70 },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "extrapolate": false,
+          "dateTimeType": "DATETIME",
+          "dateTimeColDataType": "timestamp",
+          "rawQuery": false,
+          "query": "SELECT blob2 AS elided_tool, sum(_sample_interval) AS n\nFROM $dataset\nWHERE blob1 = 'gate_elided' AND $timeFilter\nGROUP BY blob2\nORDER BY n DESC"
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "type": "row",
       "title": "What is missing, and why",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 68 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 77 },
       "collapsed": false,
       "panels": []
     },
@@ -414,7 +461,7 @@
       "title": "OAuth consents over time, by outcome",
       "description": "One event per approved grant on the consent page (POST /authorize, approve branch; BL-152). This is the attribution number for the Claude connector directory, which passes no UTM: read it weekly and compare against the pre-listing baseline. Denials are not emitted (no resolved identity to attribute, and not a lift signal). One sumIf column per outcome, NOT a GROUP BY blob4 (BL-158 rule); the column list is exhaustive over OUTCOME_VALUES.oauth_consent and the guard test fails if an outcome is added without a column.",
       "datasource": { "type": "vertamedia-clickhouse-datasource", "uid": "${DS_CLICKHOUSE}" },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 69 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 78 },
       "targets": [
         {
           "refId": "A",
@@ -432,10 +479,10 @@
       "id": 13,
       "type": "text",
       "title": "What this dashboard deliberately does not show",
-      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 77 },
+      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 86 },
       "options": {
         "mode": "markdown",
-        "content": "Four of the fifteen event types declared in `mcp-server/src/metrics/_schema.ts` **emit nothing in production**. A panel over any of them would render an empty chart that reads as *good news* — \"no throttling\", \"all healthy\" — rather than *no data*. So they are absent on purpose, and a guard test (`mcp-server/tests/unit/observability/grafana-dashboard.test.ts`) fails if one is added back.\n\nThe last two rows are omitted for DIFFERENT reasons and are **not** guarded: `audit_batch` and `cron_outcome` both emit, so a panel over either would be honest, merely redundant. Read the guard as covering the four types that emit nothing, not the whole table.\n\n| Not shown | Why |\n| --- | --- |\n| **Health checks** (`health_check`) | Declared in the schema, never emitted. `/status` health comes from live probes (`buildHealthPayload`), not from AE. |\n| **Prompt spans** (`prompt_span`) | Emitter exists (`metrics/prompt-span.ts`); nothing calls it. |\n| **IRL counters** (`wrong_irl_detected`, `gate_elided`) | Emitters exist (`metrics/irl-ingestion-events.ts`); nothing calls them. |\n| **Audit batches** (`audit_batch`) | Emitted, but the pipeline is deactivated (ADR-0014), so counters legitimately read 0. |\n| **Cron outcomes** (`cron_outcome`) | Genuinely live — omitted because `/status` and the seven alert rules already cover cron health. Add a panel here if that stops being true. |\n\n**Why the refusal panels have no `allow` series**: `rate_limit_decision` is emitted **only on refusal**. An `allow` event would fire on every authenticated request \u2014 a volume class nothing else here occupies \u2014 and more rows means Cloudflare samples this dataset sooner. `count(DISTINCT blob8)` has no sample correction, so that would quietly degrade *Distinct active trials* in exchange for a number recoverable anyway (attempts \u2248 invocations + denies). The trade and its rejected alternatives: [ADR-0032](https://github.com/reidperyam/gst-website/blob/master/src/docs/adr/0032-rate-limit-decisions-emit-only-on-refusal.md).\n\n**Expected empty is not the same as broken.** The trial went live 2026-09-08, so its signup panels carry real data. The tier-gate and scope-denial panels can legitimately read zero — nobody hit the paywall or a scope wall in the window. What is NOT legitimate is a panel that reads zero because it queries a field its event types never write: that shipped three times (BL-158, BL-159) and is now caught by a guard binding panel SQL to `FIELD_EMITTED_BY`.\n\n**Reading the numbers**: every count is `sum(_sample_interval)`, not `count()`, because AE samples. `count(DISTINCT x)` is a different aggregate from that corrected row counter and has no such correction — see the caveat on the *Distinct active trials* panel and [ADR-0031](https://github.com/reidperyam/gst-website/blob/master/src/docs/adr/0031-per-client-analytics-identity-is-a-blob.md)."
+        "content": "Two of the thirteen event types declared in `mcp-server/src/metrics/_schema.ts` have no panel here, on purpose. A guard test (`mcp-server/tests/unit/observability/grafana-dashboard.test.ts`) requires every other declared type to have a panel, so a new event type cannot ship unobserved.\n\n| Not shown | Why |\n| --- | --- |\n| **Audit batches** (`audit_batch`) | Emitted, but the pipeline is deactivated (ADR-0014), so counters legitimately read 0. |\n| **Cron outcomes** (`cron_outcome`) | Genuinely live — omitted because `/status` and the seven alert rules already cover cron health. Add a panel here if that stops being true. |\n\nUntil 2026-09-14 four more types were declared but never emitted (BL-157). `health_check` and `prompt_span` were deleted; `wrong_irl_detected` and `gate_elided` are now emitted by `compose_dossier_envelope` and have their own row above.\n\n**Why the refusal panels have no `allow` series**: `rate_limit_decision` is emitted **only on refusal**. An `allow` event would fire on every authenticated request — a volume class nothing else here occupies — and more rows means Cloudflare samples this dataset sooner. `count(DISTINCT blob8)` has no sample correction, so that would quietly degrade *Distinct active trials* in exchange for a number recoverable anyway (attempts ≈ invocations + denies). The trade and its rejected alternatives: [ADR-0032](https://github.com/reidperyam/gst-website/blob/master/src/docs/adr/0032-rate-limit-decisions-emit-only-on-refusal.md).\n\n**Expected empty is not the same as broken.** The trial went live 2026-09-08, so its signup panels carry real data. The tier-gate and scope-denial panels can legitimately read zero — nobody hit the paywall or a scope wall in the window. What is NOT legitimate is a panel that reads zero because it queries a field its event types never write: that shipped three times (BL-158, BL-159) and is now caught by a guard binding panel SQL to `FIELD_EMITTED_BY`.\n\n**Reading the numbers**: every count is `sum(_sample_interval)`, not `count()`, because AE samples. `count(DISTINCT x)` is a different aggregate from that corrected row counter and has no such correction — see the caveat on the *Distinct active trials* panel and [ADR-0031](https://github.com/reidperyam/gst-website/blob/master/src/docs/adr/0031-per-client-analytics-identity-is-a-blob.md)."
       }
     }
   ]
