@@ -514,5 +514,5 @@ Brutalist Slider
   display: block;
   text-align: center;
   color: var(--color-warning);
-  margin-top: 4px;
+  margin-top: var(--spacing-xs);
 }

@@ -638,8 +638,8 @@ import { palettes } from '../../data/palettes';
       align-items: center;
       justify-content: center;
       position: fixed;
-      bottom: 16px;
-      right: 16px;
+      bottom: var(--spacing-lg);
+      right: var(--spacing-lg);
       width: 56px;
       height: 56px;
       clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
@@ -647,7 +647,7 @@ import { palettes } from '../../data/palettes';
       color: var(--bg-light);
       border: none;
       z-index: var(--z-palette-panel);
-      padding-top: 12px; /* shift icon into triangle's visual center */
+      padding-top: var(--spacing-md); /* shift icon into triangle's visual center */
       cursor: pointer;
       transition:
         transform var(--transition-fast),

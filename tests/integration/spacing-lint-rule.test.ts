@@ -41,6 +41,9 @@ describe('spacing lint rule (ADR-0029)', () => {
       ['css', 'x.css', '.x { padding: 1.5rem; }'],
       ['astro <style>', 'x.astro', '<style>.x { padding: 1.5rem; }</style>'],
       ['astro inline style attribute', 'x.astro', '<div style="padding:1.5rem"></div>'],
+      ['css (px, BL-151)', 'x.css', '.x { padding: 4px; }'],
+      ['astro <style> (px)', 'x.astro', '<style>.x { padding: 4px; }</style>'],
+      ['astro inline style attribute (px)', 'x.astro', '<div style="padding:4px"></div>'],
     ])('flags a hardcoded on-scale literal in %s', async (_label, file, code) => {
       const warnings = await lint(code, file);
       expect(warnings.length, `expected ${RULE} to fire on: ${code}`).toBeGreaterThan(0);
@@ -57,8 +60,24 @@ describe('spacing lint rule (ADR-0029)', () => {
       ['2rem', '--spacing-2xl'],
       ['2.5rem', '--spacing-2_5xl'],
       ['3rem', '--spacing-3xl'],
+      ['4px', '--spacing-xs'],
+      ['8px', '--spacing-sm'],
+      ['12px', '--spacing-md'],
+      ['16px', '--spacing-lg'],
+      ['20px', '--spacing-1_25'],
+      ['24px', '--spacing-xl'],
+      ['28px', '--spacing-1_75'],
+      ['32px', '--spacing-2xl'],
+      ['40px', '--spacing-2_5xl'],
+      ['48px', '--spacing-3xl'],
     ])('flags %s, which is %s', async (literal) => {
       expect(await lint(`.x { margin: ${literal}; }`, 'x.css')).not.toEqual([]);
+    });
+
+    it('flags the on-scale half of a mixed px shorthand', async () => {
+      // BL-151 ruling: a hairline beside an on-scale value tokenizes the
+      // on-scale part (`1px var(--spacing-xs)`), so `1px 4px` must still fire.
+      expect(await lint('.x { padding: 1px 4px; }', 'x.css')).not.toEqual([]);
     });
   });
 
@@ -71,7 +90,15 @@ describe('spacing lint rule (ADR-0029)', () => {
       ['a longer number ending in an on-scale one', '.x { padding: 21rem; }'],
       ['a decimal whose tail looks on-scale', '.x { padding: 12.5rem; }'],
       ['a negative', '.x { margin-top: -0.25rem; }'],
-      ['px micro-spacing, which is a separate ruling', '.x { padding: 2px; }'],
+      ['1px micro-spacing (BL-151 exception)', '.x { padding: 1px; }'],
+      ['2px micro-spacing', '.x { padding: 2px; }'],
+      ['3px micro-spacing', '.x { padding: 3px; }'],
+      ['a mixed hairline and token', '.x { padding: 1px var(--spacing-xs); }'],
+      ['an off-scale px value', '.x { padding: 14px; }'],
+      ['a negative px value', '.x { margin-top: -4px; }'],
+      ['an on-scale px inside calc()', '.x { padding: calc(24px + 1%); }'],
+      ['a longer px number ending in an on-scale one', '.x { padding: 104px; }'],
+      ['a decimal px whose tail looks on-scale', '.x { padding: 0.4px; }'],
       ['a font-size, which belongs to BL-094', '.x { font-size: 1.5rem; }'],
     ])('leaves %s alone', async (_label, code) => {
       expect(await lint(code, 'x.css')).toEqual([]);
@@ -144,13 +171,24 @@ describe('spacing lint rule (ADR-0029)', () => {
         block,
         `${RULE} missing from ${i === 0 ? 'the base' : 'the .astro override'} block`
       ).toBeTruthy();
-      const pattern = Object.values(block[0] as Record<string, string[]>)[0][0];
+      // Exactly two patterns under the one property key: rem, then px (BL-151).
+      // A dropped or third pattern would be read by neither parse below.
+      const patterns = Object.values(block[0] as Record<string, string[]>)[0];
+      expect(patterns).toHaveLength(2);
+      const [pattern, pxPattern] = patterns;
       const alternation = /\(([^)]*?)\)rem/.exec(pattern);
       expect(alternation, `could not read the value list out of: ${pattern}`).toBeTruthy();
       const listed = new Set(
         alternation![1].split('|').map((v) => `${v.split('\\.').join('.')}rem`)
       );
       expect([...listed].sort()).toEqual([...scale].sort());
+
+      // The px list is the same scale at a 16px root.
+      const pxAlternation = /\(([0-9|]*?)\)px/.exec(pxPattern);
+      expect(pxAlternation, `could not read the px list out of: ${pxPattern}`).toBeTruthy();
+      const pxListed = pxAlternation![1].split('|').map(Number);
+      const pxScale = [...scale].map((v) => parseFloat(v) * 16);
+      expect([...pxListed].sort((a, b) => a - b)).toEqual(pxScale.sort((a, b) => a - b));
       expect(block[1]).toEqual({ severity: 'error' });
     }
   });

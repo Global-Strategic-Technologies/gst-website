@@ -1648,7 +1648,9 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
     <h4 class="brutal-label brand-subgroup-title">Timeline</h4>
     <div class="brand-component-row">
       <div class="brand-component-item brand-component-item--full">
-        <div style="display: flex; flex-direction: column; gap: 4px; max-width: 400px;">
+        <div
+          style="display: flex; flex-direction: column; gap: var(--spacing-xs); max-width: 400px;"
+        >
           <div class="brutal-timeline-year">2025</div>
           <div class="brutal-timeline-entry brutal-timeline-entry--privacy">
             <span class="brutal-timeline-dot brutal-timeline-dot--privacy"></span>
@@ -1735,7 +1737,8 @@ const DEMO_WIRE_ITEM: RadarWireItem = {
           <button
             class="brutal-map-control"
             type="button"
-            style="width: auto; padding: 0 8px; font-size: var(--text-2xs);">RST</button
+            style="width: auto; padding: 0 var(--spacing-sm); font-size: var(--text-2xs);"
+            >RST</button
           >
         </div>
         <code class="brand-code"
