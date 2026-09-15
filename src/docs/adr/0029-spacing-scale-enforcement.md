@@ -87,11 +87,11 @@ convention, for the reason it gives.
 
 ### Below the ramp — micro-spacing
 
-| Value       | px  | Sites                              | Why it stays                                                                                                                                                                                                                                                                  |
-| ----------- | --- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0.125rem`  | 2   | `cards.css`                        | **Already ruled by ADR-0028** — substantively the STYLES_GUIDE §3 badge case, in rem rather than the px the exception is written in.                                                                                                                                          |
-| `0.0625rem` | 1   | `sash.css` (`.brutal-sash__badge`) | The 1px half of the same exception, on a rotated ribbon badge whose geometry is measured across twelve palette × theme combinations. Pairs with `0.3125rem` below.                                                                                                            |
-| `0.15rem`   | 2.4 | `brand.astro`                      | **Does not shelter under §3**, and needs saying: that exception authorises "`1px` or `2px` directly", and 2.4px is neither. It is kept because the ramp's floor is 4px, so there is no token below it to snap to — not because the exception covers it. Pairs with `0.45rem`. |
+| Value       | px  | Sites                              | Why it stays                                                                                                                                                                                                                                                                                                      |
+| ----------- | --- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0.125rem`  | 2   | `cards.css`                        | **Already ruled by ADR-0028** — substantively the STYLES_GUIDE §3 badge case, in rem rather than the px the exception is written in.                                                                                                                                                                              |
+| `0.0625rem` | 1   | `sash.css` (`.brutal-sash__badge`) | The 1px half of the same exception, on a rotated ribbon badge whose geometry is measured across twelve palette × theme combinations. Pairs with `0.3125rem` below.                                                                                                                                                |
+| `0.15rem`   | 2.4 | `brand.astro`                      | **Does not shelter under §3**, and needs saying: that exception covers `1px`, `2px` or `3px` written in px (ruled in § The px half), and 2.4px is none of them. It is kept because the ramp's floor is 4px, so there is no token below it to snap to — not because the exception covers it. Pairs with `0.45rem`. |
 
 ### Between steps — moving them moves pixels
 
@@ -144,14 +144,10 @@ specimen replicas carry inline styles deliberately, because Astro's scoping cann
 - **The residual table is the standing record.** Its liveness case fails when an admitted value stops
   matching a real declaration, so a ruling cannot rot into a comment that guards nothing.
 - **`STYLES_REMEDIATION_ROADMAP.md` §3 closes.** Its "227 in the 32 files it did not touch" is
-  absorbed; what remains is this table plus the px tail, which is a separate stanza.
-- **The px tail is not closed.** **46** px literals with an exact token remain — `4px` ×22, `8px`
-  ×12, `12px` ×7, `16px` ×3, `28px` ×1, `40px` ×1 — counted positive-only, non-calc, inline
-  attributes included. They are deliberately out of scope because deciding where the documented
-  1–3px micro-spacing exception ends is its own ruling, and `4px` sits exactly on that boundary.
-  An earlier draft said "~55" by summing signed and unsigned sites; **there is no negative spacing
-  token**, so the 26 negative px values (`-8px` ×5, `-4px` ×4, …) can never be substituted and are
-  not part of this tail.
+  absorbed; what remains is this table (and, since BL-151, the px residuals below).
+- **The px tail was closed by BL-151** — see § The px half below. An earlier draft of this ADR
+  counted it as "~55" by summing signed and unsigned sites; **there is no negative spacing token**,
+  so negative px values can never be substituted and were never part of the tail.
 - **Neither instrument sees a negative value or an uppercase unit.** Both key on a `(?<![\w.-])`
   lookbehind, so `margin-top: -1.5rem` and `padding: 1.5REM` pass. `src/` has zero of either today,
   and a negative is genuinely un-substitutable — but this is a scope hole, not a ruling, and it is
@@ -166,3 +162,47 @@ specimen replicas carry inline styles deliberately, because Astro's scoping cann
   from `HeaderNavLinks.astro`, `HeaderLogo.astro` and `ThemeToggleButton.astro` reaches a slice too.
   The published CSS therefore changes. A re-sync is unnecessary because every substitution is
   value-identical and every token referenced was already published in the ADR-0028 sync.
+
+## The px half (BL-151, amended 2026-09-15)
+
+**Why an amendment rather than a new ADR.** Same scale, same two instruments, same residual
+mechanism — BL-151 widens the unit, not the decision. A second ADR would split one ruling across
+two documents that must be read together anyway.
+
+**6. The micro-spacing exception is `1px`, `2px` or `3px`, written in px — and ends there.** `4px`
+is `--spacing-xs`, the ramp's floor, and is outside the exception. The ruling was made against the
+corpus as measured at the time: **109** exempt literals (`2px` ×86, `1px` ×18, `3px` ×5, inline
+attributes and `.astro` `<script>` text included in that count, so the guard's own figure is
+lower). The exception is a **spelling allowance** judged on the written unit: the rem hairlines
+above (`0.125rem`, `0.0625rem`, `0.15rem`) keep their residual rows rather than being re-ruled.
+
+**7. Everything on-scale in px must be the token, per shorthand part.** **46** literals were swept —
+`4px` ×22, `8px` ×12, `12px` ×7, `16px` ×3, `28px` ×1, `40px` ×1; 44 in `<style>` blocks (found by the
+guard before the sweep) and 2 in `BrandUILibrary.astro` inline attributes (held by stylelint alone).
+Mixed shorthands tokenize the on-scale part — `padding: 1px 4px` → `padding: 1px var(--spacing-xs)` —
+which is decision 4's half-spelled state, accepted for the same reason. **Value identity** follows
+from ADR-0028's standing property: no sheet, theme or palette shadows a `--spacing-*`, and the
+guard's scale map is derived from `variables.css` at a 16px root, so each token resolves to exactly
+the px it replaced.
+
+**Both instruments now carry px.** stylelint gains a second pattern string,
+`(4|8|12|16|20|24|28|32|40|48)px`, in both config blocks, bound to `variables.css` by the parity test;
+the guard matches `px` beside `rem` and resolves both through `lengthToPx`. Negatives, `em` and
+`font-size` stay out, for the reasons above. As with the rem sweep, no design-sync re-run is
+needed: the swept published sheets (`interactions.css`, `filter.css`, `form.css`) change only to
+value-identical tokens that were already published.
+
+### px residuals
+
+| Value                                          | Sites                                                                                                                                   | Why it stays                                                                                                                                            |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `5px`                                          | `SwatchControlStyles.astro`                                                                                                             | Between `xs` and `sm`; the horizontal half of the hex input's `3px 5px`.                                                                                |
+| `6px`                                          | `ColorSpecimens.astro`, `CapabilityNav.astro`, `brand.astro`, `hub/mcp/docs/index.astro`, diligence machine, tech debt calc, `form.css` | Between `xs` and `sm` — the px spelling of the `0.375rem` family.                                                                                       |
+| `14px`                                         | regulatory map                                                                                                                          | Between `md` and `lg`; the timeline scroller's top padding.                                                                                             |
+| `73px`, `80px`                                 | `StickyControls.astro`, `CapabilityNav.astro`                                                                                           | Above the ramp: sticky offsets clearing the site header.                                                                                                |
+| `108px`, `140px`, `168px`, `220px`             | `HeaderNavLinks.astro`                                                                                                                  | **Derived constants**: the nav's reserve for the sash corner box on each tier, measured on three engines. They move with the box, never with the scale. |
+| `26px`, `34px`, `42px`, `53px`, `78px`, `88px` | `sash.css`                                                                                                                              | **Derived constants** of the rotated ribbon: each `top` pairs with a `left`/`width` so the band meets both corner-box edges.                            |
+
+Inside `calc()`, the guard additionally sees six px constants — `cards.css` (`10px`, `14px`),
+`filter.css` (`3px`), `lang-switch.css` (`6px`), tech debt calc (`18px`), `JobCard.astro` (`14px`) —
+exempt by the same ruling as the rem pair.

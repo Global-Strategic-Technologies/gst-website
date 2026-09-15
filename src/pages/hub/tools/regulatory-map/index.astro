@@ -1887,7 +1887,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   :global(.timeline-track::before) {
     content: '';
     position: absolute;
-    top: 28px;
+    top: var(--spacing-1_75);
     left: var(--spacing-lg);
     right: var(--spacing-lg);
     height: 2px;
@@ -2004,7 +2004,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       font-family: var(--font-family-mono);
       font-size: 8pt;
       color: var(--text-muted);
-      margin: 0 0 4px;
+      margin: 0 0 var(--spacing-xs);
       line-height: 1.4;
     }
 
