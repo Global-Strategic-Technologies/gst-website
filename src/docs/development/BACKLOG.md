@@ -1997,7 +1997,7 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 ### BL-161: the website suite has the same first-use timeout shape, in a different subsystem
 
-**Source**: split out of [BL-149](_archive/WORKER_BOOT_LATENCY_BL-149.md) on closure, 2026-09-13. BL-149 diagnosed and fixed the mcp-server half (an unwarmed first `worker.fetch()` after `unstable_dev`); two of its 26 instances were in the WEBSITE suite and are not explained by that fix. | **Effort**: Small — the mechanism is known; the work is confirming it applies and moving the cost | **Status**: Open
+**Source**: split out of [BL-149](_archive/WORKER_BOOT_LATENCY_BL-149.md) on closure, 2026-09-13. BL-149 diagnosed and fixed the mcp-server half (an unwarmed first `worker.fetch()` after `unstable_dev`); two of its 26 instances were in the WEBSITE suite and are not explained by that fix. | **Effort**: Small — the mechanism is known; the work is confirming it applies and moving the cost | **Status**: **Closed 2026-09-14 by operator decision — not worth the runs it would cost.** No code change, no doc change. See the closure note below, which carries the one thing this item did produce
 
 **As an** engineer running `npm run test:run`, **I want** the same guarantee BL-149 bought for the mcp suite **so that** a 5000ms timeout means a regression in either workspace, not "probably the known flake".
 
@@ -2018,6 +2018,27 @@ Two things cut the other way and are the reason this is worth doing rather than 
 - [ ] If it does: move the cost into `beforeAll`, and check whether sibling lint-rule tests share the pattern
 - [ ] No `testTimeout` raise and no retry — same constraint BL-149 held to
 - [ ] If the measurement shows the cost is comfortably under budget and the two sightings were contention, say so and close: a negative result is a result, but it must be a measured one
+
+#### Closure note, 2026-09-14 — what was and was not established
+
+Planned 2026-09-14 and closed the same day without implementation, on the operator's call that the expected return did not justify the test runs. The acceptance criteria above are left unticked on purpose: **none of them was met**, and the stanza should not read as investigated-and-cleared.
+
+**What IS established**, and is the reason this note exists rather than a bare "won't fix". While reviewing the plan, the plan-reviewer measured stylelint's first-use cost directly — five isolated child-process runs on `node_modules/stylelint/lib/index.mjs` against the repo `.stylelintrc.json`:
+
+| phase                                                                | samples (ms)                |
+| -------------------------------------------------------------------- | --------------------------- |
+| `import stylelint` — paid at **collection**, static top-level import | 346 / 216 / 217 / 206 / 210 |
+| first `.css` lint (cold config cascade)                              | 362 / 256 / 251 / 240 / 249 |
+| first `.astro` lint (`postcss-html` override)                        | 52 / 35 / 37 / 36 / 36      |
+| every later lint                                                     | 4                           |
+
+**So the BL-149 fix cannot be transplanted here, and nobody should try.** Cold first-use is ~700ms total, and because the import is static it is already paid before any test runs — the portion a `beforeAll` could actually relocate is **~250ms**. The two sightings were 5000ms (censored) and 9786ms. Moving 250ms cannot rescue either. The BL-149 _shape_ is present (250ms vs 4ms, a 60× first-vs-later asymmetry, in every run, flake or not) and its _magnitude_ is absent by roughly 20–30×; the shape alone is what makes the wrong fix look right. A warm-up here would be a gesture, not a fix.
+
+**What is NOT established**: a cause for the two sightings. The measurement above is isolated, and this flake does not reproduce in isolation (green 25/25 and 2/2), so the only instrument that could see it — repeated full-suite runs under load — was never run. Contention is the residual hypothesis by elimination, **not** by observation.
+
+**If it recurs**, this is where to pick it up: the shape to test is whether the first row's duration is inflated relative to its 22 near-identical siblings _in the same run_, and whether that file's process shows descheduling (wall-clock materially exceeding the sum of its own test durations). The stylelint half is already ruled out by the table above.
+
+**One unrelated observation, deliberately left unfixed**: [`mcp-generated-bundle-freshness.test.ts:65`](../../../tests/integration/mcp-generated-bundle-freshness.test.ts) spawns the codegen via `spawnSync` with no spawn-level `timeout:`, so a hung child would hang the run — its neighbours in [`await-mcp-test-run.test.ts`](../../../tests/integration/await-mcp-test-run.test.ts) carry 10s/30s bounds at :65/:181/:447. Measured at 245–266ms, ~20× under budget, so this is hang-hardening and not a flake fix. One line, unowned, and filed here rather than left in a session transcript.
 
 ---
 
