@@ -314,6 +314,14 @@ const SITE_WIDE_UNSTYLED: Record<string, string> = {
 const SITE_WIDE_STALE_CHECK_ROUTE = 'Homepage';
 
 test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
+  test('orphan-class allowlists name real routes (BL-116)', () => {
+    // A renamed PAGES entry would otherwise silently switch off the site-wide
+    // stale check, or strand a per-route allowlist that no test ever reads.
+    const names = new Set(PAGES.map((p) => p.name));
+    expect(names.has(SITE_WIDE_STALE_CHECK_ROUTE)).toBe(true);
+    expect(Object.keys(ALLOWED_UNSTYLED).filter((n) => !names.has(n))).toEqual([]);
+  });
+
   for (const pg of PAGES) {
     test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
       if (pg.waitFor) {
@@ -405,7 +413,7 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
         const siteWideCheckedHere = pg.name === SITE_WIDE_STALE_CHECK_ROUTE;
         const routeOrphans = siteWideCheckedHere
           ? orphans
-          : orphans.filter((c) => !(c in SITE_WIDE_UNSTYLED));
+          : orphans.filter((c) => !Object.hasOwn(SITE_WIDE_UNSTYLED, c));
         const { unexpected, stale } = diffAgainstAllowlist(routeOrphans, {
           ...(siteWideCheckedHere ? SITE_WIDE_UNSTYLED : {}),
           ...(ALLOWED_UNSTYLED[pg.name] ?? {}),

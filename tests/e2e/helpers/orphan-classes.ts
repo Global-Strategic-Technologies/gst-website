@@ -75,7 +75,8 @@ export function diffAgainstAllowlist(
 ): { unexpected: string[]; stale: string[] } {
   const found = new Set(orphans);
   return {
-    unexpected: orphans.filter((c) => !(c in allowlist)),
+    // hasOwn, not `in`: a class named `constructor` must not be silently excused.
+    unexpected: orphans.filter((c) => !Object.hasOwn(allowlist, c)),
     stale: Object.keys(allowlist)
       .filter((c) => !found.has(c))
       .sort(),
