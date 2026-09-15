@@ -188,7 +188,9 @@ the px it replaced.
 **Both instruments now carry px.** stylelint gains a second pattern string,
 `(4|8|12|16|20|24|28|32|40|48)px`, in both config blocks, bound to `variables.css` by the parity test;
 the guard matches `px` beside `rem` and resolves both through `lengthToPx`. Negatives, `em` and
-`font-size` stay out, for the reasons above.
+`font-size` stay out, for the reasons above. As with the rem sweep, no design-sync re-run is
+needed: the swept published sheets (`interactions.css`, `filter.css`, `form.css`) change only to
+value-identical tokens that were already published.
 
 ### px residuals
 
