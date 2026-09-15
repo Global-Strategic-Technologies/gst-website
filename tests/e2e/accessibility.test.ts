@@ -1,16 +1,18 @@
 /**
  * Accessibility E2E Tests — axe-core WCAG 2.1 AA + 2.2 AA scanning.
  *
- * Scans 33 routes for accessibility violations. Routes, not pages:
+ * Scans every route in `PAGES` for accessibility violations. Routes, not pages:
  * `/hub/mcp/docs/` is scanned three times, collapsed, expanded, and at a dense
  * contract pane.
  *
- * COUNT THE ARRAY, do not increment this number. It and the lineage comment on
- * `PAGES` had drifted to 27 and 29 against a real 30, and the two gaps are
- * different routes: three landed without this line being touched, one without
- * the lineage being touched. The same number is published in
- * DEVELOPER_TOOLING.md § Running locally, which no guard checks, so change it
- * there too.
+ * NO COUNT HERE, deliberately. This line and the lineage comment on `PAGES`
+ * carried hand-maintained numbers that drifted (27, 29, then 33 against real
+ * arrays of 30 and 35), as did DEVELOPER_TOOLING.md § Running locally. Count
+ * the array.
+ *
+ * Each route also runs the orphan-class scan (BL-116, helpers/orphan-classes.ts)
+ * in the same navigation, asserted only after axe so an orphan never hides an
+ * accessibility result.
  * Critical and serious violations must be zero; moderate/minor are
  * tracked as a ratchet count that can only decrease over time.
  *
@@ -25,6 +27,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { checkA11y, formatViolations } from './helpers/a11y';
 import { RADAR_SETTLED_SELECTOR, RADAR_SETTLE_TIMEOUT_MS } from './helpers/radar';
+import { collectOrphanClasses, diffAgainstAllowlist } from './helpers/orphan-classes';
 
 interface A11yPage {
   name: string;
@@ -280,7 +283,45 @@ const PAGES: A11yPage[] = [
  */
 const KNOWN_SERIOUS: Record<string, Record<string, number>> = {};
 
+/**
+ * Classes that are legitimately rule-less, per route (BL-116). Keyed by `name`,
+ * for the same reason as KNOWN_SERIOUS. Value = the reason, > 40 chars.
+ *
+ * This is a JS-HOOK DECLARATION, not a place to silence findings: an entry says
+ * "a script or test selects this, and no rule should". A phantom styling class
+ * gets stripped; a misnamed one gets its markup or CSS fixed. An entry that
+ * stops being an orphan on its route fails the stale check below.
+ */
+const ALLOWED_UNSTYLED: Record<string, Record<string, string>> = {
+  Brand: {
+    'swatch-slider-r': 'Read by src/scripts/palette-manager.ts to drive the swatch colour editor.',
+    'swatch-slider-g': 'Read by src/scripts/palette-manager.ts to drive the swatch colour editor.',
+    'swatch-slider-b': 'Read by src/scripts/palette-manager.ts to drive the swatch colour editor.',
+    'swatch-slider-a': 'Read by src/scripts/palette-manager.ts to drive the swatch colour editor.',
+  },
+};
+
+/**
+ * Rule-less classes rendered by the SITE CHROME, so on every route. Kept out of
+ * the per-route map because listing one per route would be thirty-odd copies of
+ * one reason. Stale-checked on the route below, where the chrome always renders.
+ */
+const SITE_WIDE_UNSTYLED: Record<string, string> = {
+  'palette-panel__popout-label':
+    'Span created by palette-manager.ts inside the site-wide PalettePanel, styled via its ' +
+    'parent .palette-panel__popout; asserted on by palette-panel-mobile.test.ts.',
+};
+const SITE_WIDE_STALE_CHECK_ROUTE = 'Homepage';
+
 test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
+  test('orphan-class allowlists name real routes (BL-116)', () => {
+    // A renamed PAGES entry would otherwise silently switch off the site-wide
+    // stale check, or strand a per-route allowlist that no test ever reads.
+    const names = new Set(PAGES.map((p) => p.name));
+    expect(names.has(SITE_WIDE_STALE_CHECK_ROUTE)).toBe(true);
+    expect(Object.keys(ALLOWED_UNSTYLED).filter((n) => !names.has(n))).toEqual([]);
+  });
+
   for (const pg of PAGES) {
     test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
       if (pg.waitFor) {
@@ -298,6 +339,9 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
       }
 
       if (pg.setup) await pg.setup(page);
+
+      // Collected here, in the exact state axe scans; ASSERTED at the end.
+      const orphans = await collectOrphanClasses(page);
 
       const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
 
@@ -362,6 +406,29 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
           `[${pg.name}] ${knownSerious.reduce((s, v) => s + v.nodes, 0)} known color-contrast nodes (ratchet baseline)`
         );
       }
+
+      await test.step('no orphan classes (BL-116)', async () => {
+        // Site-wide entries are checked for staleness once, on the chrome route;
+        // elsewhere they are only excused (a route may legitimately not render one).
+        const siteWideCheckedHere = pg.name === SITE_WIDE_STALE_CHECK_ROUTE;
+        const routeOrphans = siteWideCheckedHere
+          ? orphans
+          : orphans.filter((c) => !Object.hasOwn(SITE_WIDE_UNSTYLED, c));
+        const { unexpected, stale } = diffAgainstAllowlist(routeOrphans, {
+          ...(siteWideCheckedHere ? SITE_WIDE_UNSTYLED : {}),
+          ...(ALLOWED_UNSTYLED[pg.name] ?? {}),
+        });
+        expect(
+          unexpected,
+          `classes used on ${pg.name} (${pg.path}) with no CSS rule anywhere. Repoint the ` +
+            `markup at the real class, add the rule, or strip a phantom class. Only add to ` +
+            `ALLOWED_UNSTYLED if a script or test selects it.`
+        ).toEqual([]);
+        expect(
+          stale,
+          `ALLOWED_UNSTYLED entries for ${pg.name} are no longer orphans there — delete them.`
+        ).toEqual([]);
+      });
     });
   }
 });

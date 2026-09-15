@@ -565,10 +565,10 @@ The project uses [axe-core](https://github.com/dequelabs/axe-core) via `@axe-cor
 ### Running locally
 
 ```bash
-npm run test:a11y        # Scans 33 routes (Chromium)
+npm run test:a11y        # Scans every PAGES route: axe + orphan classes
 ```
 
-This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all seven tool pages, the six `/hub/mcp/*` pages (including the trial signup, BL-155), `/brand` and `/hub/radar/`, plus the Spanish and Portuguese About routes (BL-153). **Routes, not pages**: `/hub/mcp/docs/` is scanned three times, so those six pages are eight entries. Count the array when you change this number rather than incrementing it; every stale value this line has carried came from adding a route and adjusting the count by memory.
+This runs `tests/e2e/accessibility.test.ts`. The route list lives in that file's `PAGES` array — read it there rather than duplicating it here, because a copy in this doc rots (it did: it named 9 routes for a suite that scanned 22). It covers the marketing pages, the legal/confirmation pages, `/404`, all four `/hub/library/*`, the hub gateways and all seven tool pages, the six `/hub/mcp/*` pages (including the trial signup, BL-155), `/brand` and `/hub/radar/`, plus the Spanish and Portuguese About routes (BL-153). **Routes, not pages**: `/hub/mcp/docs/` is scanned three times, so those six pages are eight entries. No route count is published here or in the test's header any more — every stale value either carried came from adding a route and adjusting the number by memory; count the array. Each route also runs the orphan-class scan (BL-116, `tests/e2e/helpers/orphan-classes.ts`): every class in the DOM needs a CSS rule, or a per-route `ALLOWED_UNSTYLED` entry naming the script or test that selects it; a stale entry fails.
 
 `/hub/radar/` waits for its `server:defer` island to resolve before scanning; with no `MCP_KEY_WEBSITE_RADAR` bound it scans the shell plus the empty state — bind `npm run radar:stub` to cover the feed items too.
 

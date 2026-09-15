@@ -17,7 +17,7 @@ import { paintCostChips } from '../../src/utils/techpar/dom';
 
 function buildControlMarkup(inputName: string, presetValues: number[], inputValue: string): void {
   document.body.innerHTML = `
-    <div class="preset-input">
+    <div data-preset-input>
       <div class="tp-arr-quick">
         ${presetValues
           .map(
