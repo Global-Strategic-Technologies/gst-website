@@ -36,6 +36,7 @@ import {
   type MetricsContext,
   type ToolCallCounterEntry,
 } from '../metrics/_index';
+import { emitIrlRunVerdicts } from '../metrics/irl-ingestion-events';
 import { irlIngestionPrompt } from '../prompts/irl-ingestion';
 import {
   Bl063CertificationNotRegulationError,
@@ -46,6 +47,7 @@ import {
   ComposeDossierEnvelopeInputSchema,
   IrlBodyHashMismatchError,
   capIrlSource,
+  deriveFillRatio,
   runComposeDossierEnvelope,
   type ComposeDossierEnvelopeEngineInput,
   type ComposeDossierEnvelopeInput,
@@ -156,6 +158,17 @@ export async function handleComposeDossierEnvelopeTool(
     const result = serverToolCallCounts
       ? { ...baseResult, serverToolCallCounts, ...(countersScope ? { countersScope } : {}) }
       : baseResult;
+    // BL-157 / ADR-0034 — record the run's IRL verdicts, once per run. The
+    // wrapper records this call's outcome only AFTER we return, so `succeeded`
+    // here counts earlier composes only: 0 means this is the run's first.
+    if (metrics) {
+      const derivation = deriveFillRatio(payload.fillRatio);
+      emitIrlRunVerdicts(metrics, {
+        verdict: derivation.coherent ? derivation.derivedStatus : null,
+        elidedTools: payload.gatesElided.map((g) => g.tool),
+        priorSucceeded: serverToolCallCounts?.compose_dossier_envelope?.succeeded ?? 0,
+      });
+    }
     return toolOk(result, 'Dossier envelope composed.');
   } catch (error) {
     // BL-045 PR B audit BL-2 → ALT-1: surface hash-bind diagnostic

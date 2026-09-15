@@ -1,49 +1,29 @@
 /**
- * BL-045 PR B — IRL-ingestion-specific metric event emitters.
+ * BL-045 PR B, wired by BL-157 — IRL-ingestion run-verdict emitters.
  *
- * Two events introduced by `gst_irl_ingestion`. (A third,
- * `force_tools_used`, was removed with the `forceTools` arg under BL-122 —
- * the arg was inert: its value never reached the prompt body, so the counter
- * measured a switch that did nothing.)
+ * Two events, both emitted from `compose_dossier_envelope` (the final step of
+ * `gst_irl_ingestion` in `mode: full`) via {@link emitIrlRunVerdicts}. They
+ * were declared-but-dead for months on the belief that "the server never sees
+ * the verdict" and would need client-side correlation. That was wrong: the
+ * envelope tool's input already carries `fillRatio` and `gatesElided[]`.
  *
- * - `wrong_irl_detected` — **model-side**. The model evaluates the
- *   wrong-IRL pre-flight at runtime (compute fill ratio, branch into
- *   halt / partial / ok). The server never sees the verdict. Like
- *   `prompt_span`, wiring this to production requires the client to
- *   thread a verdict back via a side-channel (typically `_meta` on the
- *   next `tools/call` or `notifications/progress`). Schema + emitter
- *   defined now so step-4 doesn't have to change later.
+ * - `wrong_irl_detected` — the SERVER-derived fill-ratio status
+ *   (`deriveFillRatio`), never the model's claimed status.
+ * - `gate_elided` — one per elided tool; `name` is pinned to the orchestrated
+ *   tools in `NAME_VALUES`, so an invented name is dropped by the guard.
  *
- * - `gate_elided` — **model-side**. Same shape: the model evaluates
- *   each inclusion gate and the verdict surfaces in the dossier (meta
- *   JSON fence `gatesElided[]`). Production wiring requires client
- *   correlation; schema + emitter defined now.
- *
- * **Why land the unwired events now**: Cloudflare AE column maps are
- * effectively immutable once Grafana SQL references them — adding event
- * types after dashboards exist forces a coordinated schema migration.
- * The `prompt_span` precedent established the pattern (schema +
- * emitter + tests defined ahead of client-side wiring). See
- * `prompt-span.ts` module JSDoc.
+ * Policy and its limits (once per run, upper bound, halted runs uncounted):
+ * `src/docs/adr/0034-irl-verdict-events-emit-from-compose.md`.
  */
 import { guardEvent } from './guard';
 import type { MetricsContext } from './with-metrics';
 
 const PROMPT_NAME = 'gst_irl_ingestion';
 
-/**
- * Emit one `wrong_irl_detected` event when the model's pre-flight branch
- * is recovered via client-side correlation. `verdict` matches the
- * pre-flight directive's three branches: `halt` (<15% fillRatio),
- * `partial` (15-40%), `ok` (≥40%). The `name` field carries the prompt
- * name for grouping; the `keyOwner` carries the issued-key attribution.
- *
- * **Not wired in production yet** — see module JSDoc.
- */
-export function emitWrongIrlDetected(
-  ctx: MetricsContext,
-  verdict: 'halt' | 'partial' | 'ok'
-): void {
+export type IrlFillVerdict = 'halt' | 'partial' | 'ok';
+
+/** Emit one `wrong_irl_detected` event carrying `verdict` as its outcome. */
+export function emitWrongIrlDetected(ctx: MetricsContext, verdict: IrlFillVerdict): void {
   const event = guardEvent({
     event_type: 'wrong_irl_detected',
     name: PROMPT_NAME,
@@ -57,13 +37,9 @@ export function emitWrongIrlDetected(
 }
 
 /**
- * Emit one `gate_elided` event per tool whose inclusion gate failed and
- * was NOT in `forceTools`. The `name` field carries the elided tool name
- * (open enum — same shape as `tool_invocation.name`); `outcome` is
- * always `elided` (the discriminator narrowness lets dashboard SQL
- * `COUNT(*) GROUP BY name` directly).
- *
- * **Not wired in production yet** — see module JSDoc.
+ * Emit one `gate_elided` event for a tool whose inclusion gate failed. `name`
+ * carries the tool; `outcome` is always `elided`, so dashboard SQL can
+ * `GROUP BY blob2` directly.
  */
 export function emitGateElided(ctx: MetricsContext, elidedTool: string): void {
   const event = guardEvent({
@@ -76,4 +52,26 @@ export function emitGateElided(ctx: MetricsContext, elidedTool: string): void {
   if (event !== null) {
     ctx.sink.write(event);
   }
+}
+
+export interface IrlRunVerdicts {
+  /**
+   * The server-derived status, or `null` when the payload's counts were
+   * incoherent — then the only status available is the model's own claim,
+   * which this event must not record.
+   */
+  readonly verdict: IrlFillVerdict | null;
+  readonly elidedTools: readonly string[];
+  /**
+   * Successful `compose_dossier_envelope` calls in this run BEFORE the current
+   * one. Anything above 0 means this is a re-call, which emits nothing.
+   */
+  readonly priorSucceeded: number;
+}
+
+/** Emit a run's verdict events, once per run. See ADR-0034. */
+export function emitIrlRunVerdicts(ctx: MetricsContext, run: IrlRunVerdicts): void {
+  if (run.priorSucceeded > 0) return;
+  if (run.verdict !== null) emitWrongIrlDetected(ctx, run.verdict);
+  for (const tool of run.elidedTools) emitGateElided(ctx, tool);
 }

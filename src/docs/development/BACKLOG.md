@@ -1997,7 +1997,7 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 ### BL-161: the website suite has the same first-use timeout shape, in a different subsystem
 
-**Source**: split out of [BL-149](_archive/WORKER_BOOT_LATENCY_BL-149.md) on closure, 2026-09-13. BL-149 diagnosed and fixed the mcp-server half (an unwarmed first `worker.fetch()` after `unstable_dev`); two of its 26 instances were in the WEBSITE suite and are not explained by that fix. | **Effort**: Small — the mechanism is known; the work is confirming it applies and moving the cost | **Status**: Open
+**Source**: split out of [BL-149](_archive/WORKER_BOOT_LATENCY_BL-149.md) on closure, 2026-09-13. BL-149 diagnosed and fixed the mcp-server half (an unwarmed first `worker.fetch()` after `unstable_dev`); two of its 26 instances were in the WEBSITE suite and are not explained by that fix. | **Effort**: Small — the mechanism is known; the work is confirming it applies and moving the cost | **Status**: **Closed 2026-09-14 by operator decision — not worth the runs it would cost.** No code change, no doc change. See the closure note below, which carries the one thing this item did produce
 
 **As an** engineer running `npm run test:run`, **I want** the same guarantee BL-149 bought for the mcp suite **so that** a 5000ms timeout means a regression in either workspace, not "probably the known flake".
 
@@ -2019,11 +2019,32 @@ Two things cut the other way and are the reason this is worth doing rather than 
 - [ ] No `testTimeout` raise and no retry — same constraint BL-149 held to
 - [ ] If the measurement shows the cost is comfortably under budget and the two sightings were contention, say so and close: a negative result is a result, but it must be a measured one
 
+#### Closure note, 2026-09-14 — what was and was not established
+
+Planned 2026-09-14 and closed the same day without implementation, on the operator's call that the expected return did not justify the test runs. The acceptance criteria above are left unticked on purpose: **none of them was met**, and the stanza should not read as investigated-and-cleared.
+
+**What IS established**, and is the reason this note exists rather than a bare "won't fix". While reviewing the plan, the plan-reviewer measured stylelint's first-use cost directly — five isolated child-process runs on `node_modules/stylelint/lib/index.mjs` against the repo `.stylelintrc.json`:
+
+| phase                                                                | samples (ms)                |
+| -------------------------------------------------------------------- | --------------------------- |
+| `import stylelint` — paid at **collection**, static top-level import | 346 / 216 / 217 / 206 / 210 |
+| first `.css` lint (cold config cascade)                              | 362 / 256 / 251 / 240 / 249 |
+| first `.astro` lint (`postcss-html` override)                        | 52 / 35 / 37 / 36 / 36      |
+| every later lint                                                     | 4                           |
+
+**So the BL-149 fix cannot be transplanted here, and nobody should try.** Cold first-use is ~700ms total, and because the import is static it is already paid before any test runs — the portion a `beforeAll` could actually relocate is **~250ms**. The two sightings were 5000ms (censored) and 9786ms. Moving 250ms cannot rescue either. The BL-149 _shape_ is present (250ms vs 4ms, a 60× first-vs-later asymmetry, in every run, flake or not) and its _magnitude_ is absent by roughly 20–30×; the shape alone is what makes the wrong fix look right. A warm-up here would be a gesture, not a fix.
+
+**What is NOT established**: a cause for the two sightings. The measurement above is isolated, and this flake does not reproduce in isolation (green 25/25 and 2/2), so the only instrument that could see it — repeated full-suite runs under load — was never run. Contention is the residual hypothesis by elimination, **not** by observation.
+
+**If it recurs**, this is where to pick it up: the shape to test is whether the first row's duration is inflated relative to its 22 near-identical siblings _in the same run_, and whether that file's process shows descheduling (wall-clock materially exceeding the sum of its own test durations). The stylelint half is already ruled out by the table above.
+
+**One unrelated observation, deliberately left unfixed**: [`mcp-generated-bundle-freshness.test.ts:65`](../../../tests/integration/mcp-generated-bundle-freshness.test.ts) spawns the codegen via `spawnSync` with no spawn-level `timeout:`, so a hung child would hang the run — its neighbours in [`await-mcp-test-run.test.ts`](../../../tests/integration/await-mcp-test-run.test.ts) carry 10s/30s bounds at :65/:181/:447. Measured at 245–266ms, ~20× under budget, so this is hang-hardening and not a flake fix. One line, unowned, and filed here rather than left in a session transcript.
+
 ---
 
 ### BL-157: four declared AE event types emit nothing — the metrics schema advertises more coverage than exists
 
-**Source**: found 2026-09-08 while auditing trial observability for [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment); **widened the same day** from one dead type to five while building the Grafana dashboard, when the plan-reviewer caught `health_check` and a per-type emit-site count turned up three more; **`rate_limit_decision` closed the same day**, taking it to four | **Effort**: Small-to-Medium per type — the wiring is a few lines | **Status**: Open (4 of 5 remaining)
+**Source**: found 2026-09-08 while auditing trial observability for [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment); **widened the same day** from one dead type to five while building the Grafana dashboard, when the plan-reviewer caught `health_check` and a per-type emit-site count turned up three more; **`rate_limit_decision` closed the same day**, taking it to four; **the remaining four closed 2026-09-14** | **Effort**: Small-to-Medium per type — the wiring is a few lines | **Status**: Open — **only the refusal-volume alert rule remains**, gated on its production-baseline trigger below. All five dead types are resolved.
 
 **As an** operator, **I want** the event types the schema declares to actually be recorded **so that** reading `_schema.ts` tells me what is observable, and so a dashboard panel over one of them shows data rather than a convincing blank.
 
@@ -2031,13 +2052,13 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 **The evidence.** `EVENT_TYPES` in [`metrics/_schema.ts`](../../../mcp-server/src/metrics/_schema.ts) declares thirteen types. **Four emit nothing in production:**
 
-| Type                      | State                                                                                                                                  |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| ~~`rate_limit_decision`~~ | **CLOSED 2026-09-08** — emitted on refusal only (ADR-0032).                                                                            |
-| `health_check`            | Declared `:41` with outcomes at `:243`. **No emitter anywhere.** `/status` health comes from live `buildHealthPayload` probes, not AE. |
-| `prompt_span`             | `emitPromptSpan` exists (`metrics/prompt-span.ts:47`); **no call site** outside `metrics/` and its own test.                           |
-| `wrong_irl_detected`      | `emitWrongIrlDetected` exists (`metrics/irl-ingestion-events.ts:43`); no call site.                                                    |
-| `gate_elided`             | `emitGateElided` exists (`:68`); no call site.                                                                                         |
+| Type                      | State                                                                                                                   |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| ~~`rate_limit_decision`~~ | **CLOSED 2026-09-08** — emitted on refusal only (ADR-0032).                                                             |
+| ~~`health_check`~~        | **DELETED 2026-09-14** — no emitter ever existed; `/status` health comes from live `buildHealthPayload` probes, not AE. |
+| ~~`prompt_span`~~         | **DELETED 2026-09-14** — emitter had no caller and nothing produced a `correlation_id`. blob5 kept as a reserved slot.  |
+| ~~`wrong_irl_detected`~~  | **WIRED 2026-09-14** — from `compose_dossier_envelope`, server-derived status, once per run (ADR-0034).                 |
+| ~~`gate_elided`~~         | **WIRED 2026-09-14** — same call site, tool names pinned in `NAME_VALUES` (ADR-0034).                                   |
 
 Consequences:
 
@@ -2049,10 +2070,11 @@ Consequences:
 - [x] `rate_limit_decision`: emission policy chosen and recorded — [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md)
 - [x] `rate_limit_decision`: emitter wired (`metrics/pipeline-events.ts`), panels added, `Verify-AeEmission.ps1` + AUTH.md + RATE_LIMITS.md extended, removed from `NON_EMITTING_TYPES`
 - [ ] **Alert rule on refusal volume** — deliberately NOT shipped with the emitter: `runbook-freshness.test.ts` requires every threshold to cite a baseline in `slo-baselines.md`, and there is none for a metric that had never been emitted. **Trigger**: after the self-serve trial has run in production long enough to establish a normal refusal rate, set a threshold from what is observed, add the rule + its runbook, and record the baseline. Until then the panels are pull, not push
-- [ ] `health_check`: decide whether AE should carry it at all, given `/status` reads live probes. If not, delete the declaration rather than leave it advertising coverage
-- [ ] `prompt_span` / `wrong_irl_detected` / `gate_elided`: wire the existing emitters at their intended call sites, or delete emitter + declaration together. These are cheaper decisions than the first two — the code exists, it was simply never called
-- [ ] Whatever is wired: extend `Verify-AeEmission.ps1`, the AUTH.md / RATE_LIMITS.md query cookbooks, and **add a panel + remove the name from `NON_EMITTING_TYPES`** in `tests/unit/observability/grafana-dashboard.test.ts` and the dashboard's text panel
-- [ ] Whatever is deleted: remove it from `EVENT_TYPES`, `OUTCOME_VALUES`, the `schema.test.ts` snapshots, and the `blob1` lists in `ARCHITECTURE.md` / `DEPLOY.md`
+- [x] `health_check`: AE should not carry it — deleted (2026-09-14)
+- [x] `prompt_span` deleted; `wrong_irl_detected` / `gate_elided` wired from `compose_dossier_envelope` — [ADR-0034](../adr/0034-irl-verdict-events-emit-from-compose.md). **The emitters' "server never sees the verdict" premise was wrong**: the envelope tool's input already carried both results. The wiring counts runs that reach the envelope step, once each, with gate names pinned
+- [x] Wired: `Verify-AeEmission.ps1` IRL section, an "IRL ingestion" dashboard row, `irl-pipeline/CONTRACT.md` and `GRAFANA.md`. **`NON_EMITTING_TYPES` was retired rather than emptied**: empty, its loops asserted over nothing. It is replaced by a two-way rule that every declared type has a panel or a named `DELIBERATELY_UNPANELLED` reason (mutation-checked). The AUTH.md / RATE_LIMITS.md cookbooks were not touched: neither covers IRL ingestion
+- [x] Deleted: `EVENT_TYPES`, `OUTCOME_VALUES`, `schema.test.ts` snapshots, the `blob1` lists in `ARCHITECTURE.md` / `DEPLOY.md`. blob5 (`correlation_id`) stays as a reserved slot, and `FIELD_EMITTED_BY.correlation_id: []` makes the SQL guard reject any query that reads it
+- [ ] **Operator, after the staging auto-deploy**: run one `gst_irl_ingestion` `mode: full` ingestion through compose, then `Verify-AeEmission.ps1` (needs `CF_AE_TOKEN`), and check the IRL section shows one verdict row plus the elided gates. This can't be closed from the repo. The handler path is covered by integration tests, including a mutation check of the once-per-run guard
 
 ### BL-158: the Grafana dashboard renders, but two of its SQL assumptions are wrong
 

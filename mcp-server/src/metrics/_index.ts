@@ -22,7 +22,6 @@ export {
   type MetricEvent,
 } from './_schema';
 export { guardEvent } from './guard';
-export { emitPromptSpan } from './prompt-span';
 export {
   emit,
   InMemoryToolCallCounters,

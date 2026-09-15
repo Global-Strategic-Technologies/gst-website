@@ -17,7 +17,8 @@
  *
  * **Column map provenance**: `mcp-server/src/metrics/_schema.ts` is the
  * single source of truth — blob1=event_type, blob2=name, blob3=keyOwner,
- * blob4=outcome, blob5=correlation_id, blob6=status_code, blob7=zone1,
+ * blob4=outcome, blob5=correlation_id (reserved, no writer since BL-157),
+ * blob6=status_code, blob7=zone1,
  * double1=duration_ms. The original slo-baselines.md Query 2 predated the
  * finalized schema and read category from blob3 / status_code from blob5;
  * this script (and the corrected doc) read blob2 / blob6.

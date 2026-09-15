@@ -32,6 +32,20 @@ export const GUARDED_COLUMNS = Object.fromEntries(
 ) as Record<string, string>;
 
 /**
+ * Every event-type literal a query constrains `blob1` to, from both the
+ * `blob1 = '…'` and `blob1 IN ('…', …)` forms. Shared by every guard that
+ * reads panel or alert SQL, so the two forms are parsed in one place.
+ */
+export function blob1Literals(sql: string): Set<string> {
+  const out = new Set<string>();
+  for (const [, lit] of sql.matchAll(/blob1\s*=\s*'([^']+)'/gi)) out.add(lit);
+  for (const inClause of sql.matchAll(/blob1\s+IN\s*\(([^)]*)\)/gi)) {
+    for (const [, lit] of inClause[1].matchAll(/'([^']+)'/g)) out.add(lit);
+  }
+  return out;
+}
+
+/**
  * Assert that any query touching a narrowly-emitted column restricts `blob1`
  * to event types that actually write it.
  *
@@ -42,17 +56,14 @@ export function assertFieldEventTypeAgreement(label: string, sql: string): void 
   for (const [column, field] of Object.entries(GUARDED_COLUMNS)) {
     if (!new RegExp(`\\b${column}\\b`).test(sql)) continue;
 
-    const literals = [...sql.matchAll(/blob1\s*(?:=|IN\s*\()\s*'([^']+)'/gi)].map((m) => m[1]);
-    for (const inClause of sql.matchAll(/blob1\s+IN\s*\(([^)]*)\)/gi)) {
-      for (const [, lit] of inClause[1].matchAll(/'([^']+)'/g)) literals.push(lit);
-    }
+    const literals = blob1Literals(sql);
     expect(
-      literals.length,
+      literals.size,
       `${label} reads ${column} (${field}) without constraining blob1 — it would aggregate over event types that never write it`
     ).toBeGreaterThan(0);
 
     const emitters = FIELD_EMITTED_BY[field];
-    for (const type of new Set(literals)) {
+    for (const type of literals) {
       expect(
         emitters as readonly string[],
         `${label} reads ${column} (${field}) for event type "${type}", which never writes it — the query is structurally incapable of returning a value (BL-159)`

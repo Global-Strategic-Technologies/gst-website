@@ -82,12 +82,14 @@ The contingency is kept because it is the fallback if the dialect ever narrows: 
 
 ## What the dashboard deliberately omits
 
-Four of the fourteen event types declared in `src/metrics/_schema.ts` **emit nothing in production**. Panels over them would render empty charts that read as _good news_ — "all healthy" — so they are absent by design and the guard test fails if one is added:
+Every event type declared in `src/metrics/_schema.ts` has a panel except two, and the guard test fails if any other declared type lacks one:
 
-- `health_check` — declared, **no emitter anywhere**. `/status` health comes from live probes, not AE. Tracked as BL-157.
-- `prompt_span`, `wrong_irl_detected`, `gate_elided` — emitter functions exist, nothing calls them. Also BL-157.
+- `audit_batch` — emitted, but the pipeline is deactivated (ADR-0014), so counters legitimately read 0.
+- `cron_outcome` — genuinely live, but `/status` and the seven alert rules already cover cron health.
 
-Also omitted, for different reasons: `audit_batch` (emitted, but the pipeline is deactivated — ADR-0014), and `cron_outcome` (genuinely live, but `/status` and the seven alert rules already cover cron health).
+Until 2026-09-14 four more types were declared but never emitted, which is how empty panels came to read as "all healthy" (BL-157). `health_check` and `prompt_span` were deleted. `wrong_irl_detected` and `gate_elided` are now emitted by `compose_dossier_envelope`, once per run ([ADR-0034](../../../../src/docs/adr/0034-irl-verdict-events-emit-from-compose.md)).
+
+**Reading the IRL ingestion row.** _IRL completeness verdicts_ counts the server-derived fill-ratio status for runs that **reached** the envelope step. A run the model halts before compose is never counted, so `halt` is an undercount: this is a verdict count, **not a halt rate**. A run can also be counted twice when the durable run-counter store was unreadable across a re-call, so the counts are an upper bound. _Elided inclusion gates by tool_ lists only the nine gated orchestrated tools; any name the model invents is dropped at emit time.
 
 **`rate_limit_decision` left this list on 2026-09-08** — BL-157 wired its emitter. One thing about it is deliberately partial, and the panels will look wrong if you don't know it: it is emitted **only on refusal**, never on `allow`, so there is no allow series and no exact denial _rate_. An `allow` event would fire on every authenticated request and push this dataset toward sampling, which silently degrades the distinct-count panel above. Reasoning, rejected alternatives and revisit triggers: [ADR-0032](../../../../src/docs/adr/0032-rate-limit-decisions-emit-only-on-refusal.md). A separate guard fails the build if a panel ever filters on `'allow'`, since that series would be permanently empty and read as "nothing is getting through".
 
