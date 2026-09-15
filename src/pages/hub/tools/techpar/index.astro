@@ -1750,7 +1750,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     display: none;
   }
 
-  .tp-empty__sym {
+  /* Anchored `:global()`, not a bare class: the Analysis empty state is a native
+     <svg> but the Trajectory one is <DeltaIcon>, whose svg never carries this
+     file's cid. A bare `.tp-empty__sym` styled only the first, so Trajectory
+     shipped a 14px full-colour icon beside Analysis's 64px muted one. Found by
+     tests/unit/scoped-selector-foreign-element.test.ts (BL-150). */
+  .tp-empty :global(.tp-empty__sym) {
     width: 64px;
     height: 64px;
     color: var(--text-muted);
