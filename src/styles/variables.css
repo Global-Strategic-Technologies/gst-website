@@ -27,6 +27,17 @@
   --color-error: light-dark(#d93636, #e05050);
   --color-info: var(--color-primary);
 
+  /* Ink counterparts (ADR-0035). Brand and status colours are FILL and BORDER
+     colours; text uses these. Light halves are measured: each clears 4.75:1 on
+     #f5f5f5 and 4.5:1 on its own 12% tint. Dark halves copy the base token's dark
+     literal verbatim — LightningCSS lowers light-dark(), so a nested var() cannot
+     be used — making the swap a no-op in dark. Primary's ink is --color-tertiary. */
+  --color-secondary-ink: light-dark(#8a5a00, #ffaa33);
+  --color-warning-ink: light-dark(#8a5a00, #ffaa33);
+  --color-success-ink: light-dark(#1f6b43, #3da868);
+  --color-error-ink: light-dark(#a32323, #e05050);
+  --color-editors-pick-ink: light-dark(#8a4a12, #d4923a);
+
   /* Backgrounds */
   --bg-light: light-dark(#ffffff, #0a0a0a);
   --bg-light-alt: light-dark(#f5f5f5, #141414);
@@ -271,6 +282,10 @@
   --color-authority-rgb: 91, 122, 157;
   --color-distinguish: light-dark(#8b5cf6, #a78bfa);
   --color-subdued: light-dark(#8c7a6b, #a89888);
+  /* Ink counterparts (ADR-0035) — see the semantic block's comment. */
+  --color-authority-ink: light-dark(#41597a, #7a9dbd);
+  --color-distinguish-ink: light-dark(#6d3fc4, #a78bfa);
+  --color-subdued-ink: light-dark(#6b5c50, #a89888);
   --color-subdued-rgb: 140, 122, 107;
 
   /* Tool Color Derivations — all derive from the 9 core tokens above */

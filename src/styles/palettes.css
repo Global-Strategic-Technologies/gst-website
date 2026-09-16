@@ -77,6 +77,49 @@
   --alt5-color-authority: #1e6b45;
   --alt5-color-distinguish: #7c3aed;
   --alt5-color-subdued: #3d4f3d;
+
+  /* ── Ink counterparts, light theme (ADR-0035) ──
+     Measured: every value clears 4.75:1 on #f5f5f5 and 4.5:1 on its own 12%
+     tint. Editors-pick has no entry — no palette re-points its base, so its ink
+     is root-only too. */
+  --alt0-color-authority-ink: #41597a;
+  --alt0-color-distinguish-ink: #6d3fc4;
+  --alt0-color-subdued-ink: #6b5c50;
+  --alt1-color-secondary-ink: #a3145a;
+  --alt1-color-success-ink: #13763a;
+  --alt1-color-warning-ink: #7d5f00;
+  --alt1-color-error-ink: #b91c1c;
+  --alt1-color-authority-ink: #41597a;
+  --alt1-color-distinguish-ink: #6d3f85;
+  --alt1-color-subdued-ink: #566470;
+  --alt2-color-secondary-ink: #476f0c;
+  --alt2-color-success-ink: #0a7550;
+  --alt2-color-warning-ink: #9c4f0c;
+  --alt2-color-error-ink: #a81d1d;
+  --alt2-color-authority-ink: #1d5fc4;
+  --alt2-color-distinguish-ink: #046b7d;
+  --alt2-color-subdued-ink: #585e69;
+  --alt3-color-secondary-ink: #046b7d;
+  --alt3-color-success-ink: #13763a;
+  --alt3-color-warning-ink: #7d6000;
+  --alt3-color-error-ink: #992d22;
+  --alt3-color-authority-ink: #1d5fc4;
+  --alt3-color-distinguish-ink: #6d3fc4;
+  --alt3-color-subdued-ink: #5e4632;
+  --alt4-color-secondary-ink: #b31235;
+  --alt4-color-success-ink: #116d35;
+  --alt4-color-warning-ink: #8f4d04;
+  --alt4-color-error-ink: #9f1239;
+  --alt4-color-authority-ink: #4b4ec4;
+  --alt4-color-distinguish-ink: #9c1fb0;
+  --alt4-color-subdued-ink: #456045;
+  --alt5-color-secondary-ink: #7b2fc4;
+  --alt5-color-success-ink: #116d35;
+  --alt5-color-warning-ink: #7d5f00;
+  --alt5-color-error-ink: #991b1b;
+  --alt5-color-authority-ink: #1e6b45;
+  --alt5-color-distinguish-ink: #6d3fc4;
+  --alt5-color-subdued-ink: #3d4f3d;
 }
 
 html.dark-theme {
@@ -153,6 +196,47 @@ html.dark-theme {
   --alt5-color-authority: #34d399;
   --alt5-color-distinguish: #a78bfa;
   --alt5-color-subdued: #5a6f5a;
+
+  /* Ink counterparts in dark are the base colours themselves — the ink swap is
+     a no-op in dark for every palette (ADR-0035). */
+  --alt0-color-authority-ink: var(--alt0-color-authority);
+  --alt0-color-distinguish-ink: var(--alt0-color-distinguish);
+  --alt0-color-subdued-ink: var(--alt0-color-subdued);
+  --alt1-color-secondary-ink: var(--alt1-color-secondary);
+  --alt1-color-success-ink: var(--alt1-color-success);
+  --alt1-color-warning-ink: var(--alt1-color-warning);
+  --alt1-color-error-ink: var(--alt1-color-error);
+  --alt1-color-authority-ink: var(--alt1-color-authority);
+  --alt1-color-distinguish-ink: var(--alt1-color-distinguish);
+  --alt1-color-subdued-ink: var(--alt1-color-subdued);
+  --alt2-color-secondary-ink: var(--alt2-color-secondary);
+  --alt2-color-success-ink: var(--alt2-color-success);
+  --alt2-color-warning-ink: var(--alt2-color-warning);
+  --alt2-color-error-ink: var(--alt2-color-error);
+  --alt2-color-authority-ink: var(--alt2-color-authority);
+  --alt2-color-distinguish-ink: var(--alt2-color-distinguish);
+  --alt2-color-subdued-ink: var(--alt2-color-subdued);
+  --alt3-color-secondary-ink: var(--alt3-color-secondary);
+  --alt3-color-success-ink: var(--alt3-color-success);
+  --alt3-color-warning-ink: var(--alt3-color-warning);
+  --alt3-color-error-ink: var(--alt3-color-error);
+  --alt3-color-authority-ink: var(--alt3-color-authority);
+  --alt3-color-distinguish-ink: var(--alt3-color-distinguish);
+  --alt3-color-subdued-ink: var(--alt3-color-subdued);
+  --alt4-color-secondary-ink: var(--alt4-color-secondary);
+  --alt4-color-success-ink: var(--alt4-color-success);
+  --alt4-color-warning-ink: var(--alt4-color-warning);
+  --alt4-color-error-ink: var(--alt4-color-error);
+  --alt4-color-authority-ink: var(--alt4-color-authority);
+  --alt4-color-distinguish-ink: var(--alt4-color-distinguish);
+  --alt4-color-subdued-ink: var(--alt4-color-subdued);
+  --alt5-color-secondary-ink: var(--alt5-color-secondary);
+  --alt5-color-success-ink: var(--alt5-color-success);
+  --alt5-color-warning-ink: var(--alt5-color-warning);
+  --alt5-color-error-ink: var(--alt5-color-error);
+  --alt5-color-authority-ink: var(--alt5-color-authority);
+  --alt5-color-distinguish-ink: var(--alt5-color-distinguish);
+  --alt5-color-subdued-ink: var(--alt5-color-subdued);
 }
 
 /* ── Tool color derivation (cascades from palette overrides) ── */
@@ -191,6 +275,9 @@ html.palette-0 {
   --color-authority: var(--alt0-color-authority);
   --color-distinguish: var(--alt0-color-distinguish);
   --color-subdued: var(--alt0-color-subdued);
+  --color-authority-ink: var(--alt0-color-authority-ink);
+  --color-distinguish-ink: var(--alt0-color-distinguish-ink);
+  --color-subdued-ink: var(--alt0-color-subdued-ink);
 }
 
 html.palette-1 {
@@ -211,6 +298,13 @@ html.palette-1 {
   --color-authority: var(--alt1-color-authority);
   --color-distinguish: var(--alt1-color-distinguish);
   --color-subdued: var(--alt1-color-subdued);
+  --color-secondary-ink: var(--alt1-color-secondary-ink);
+  --color-success-ink: var(--alt1-color-success-ink);
+  --color-warning-ink: var(--alt1-color-warning-ink);
+  --color-error-ink: var(--alt1-color-error-ink);
+  --color-authority-ink: var(--alt1-color-authority-ink);
+  --color-distinguish-ink: var(--alt1-color-distinguish-ink);
+  --color-subdued-ink: var(--alt1-color-subdued-ink);
   --border-dark: rgba(30, 64, 175, 0.2);
   --accent-light-bg: rgba(30, 64, 175, 0.08);
   --accent-light-bg-hover: rgba(30, 64, 175, 0.15);
@@ -232,6 +326,13 @@ html.palette-2 {
   --color-authority: var(--alt2-color-authority);
   --color-distinguish: var(--alt2-color-distinguish);
   --color-subdued: var(--alt2-color-subdued);
+  --color-secondary-ink: var(--alt2-color-secondary-ink);
+  --color-success-ink: var(--alt2-color-success-ink);
+  --color-warning-ink: var(--alt2-color-warning-ink);
+  --color-error-ink: var(--alt2-color-error-ink);
+  --color-authority-ink: var(--alt2-color-authority-ink);
+  --color-distinguish-ink: var(--alt2-color-distinguish-ink);
+  --color-subdued-ink: var(--alt2-color-subdued-ink);
   --border-dark: rgba(124, 58, 237, 0.2);
   --accent-light-bg: rgba(124, 58, 237, 0.08);
   --accent-light-bg-hover: rgba(124, 58, 237, 0.15);
@@ -253,6 +354,13 @@ html.palette-3 {
   --color-authority: var(--alt3-color-authority);
   --color-distinguish: var(--alt3-color-distinguish);
   --color-subdued: var(--alt3-color-subdued);
+  --color-secondary-ink: var(--alt3-color-secondary-ink);
+  --color-success-ink: var(--alt3-color-success-ink);
+  --color-warning-ink: var(--alt3-color-warning-ink);
+  --color-error-ink: var(--alt3-color-error-ink);
+  --color-authority-ink: var(--alt3-color-authority-ink);
+  --color-distinguish-ink: var(--alt3-color-distinguish-ink);
+  --color-subdued-ink: var(--alt3-color-subdued-ink);
   --border-dark: rgba(180, 83, 9, 0.2);
   --accent-light-bg: rgba(180, 83, 9, 0.08);
   --accent-light-bg-hover: rgba(180, 83, 9, 0.15);
@@ -274,6 +382,13 @@ html.palette-4 {
   --color-authority: var(--alt4-color-authority);
   --color-distinguish: var(--alt4-color-distinguish);
   --color-subdued: var(--alt4-color-subdued);
+  --color-secondary-ink: var(--alt4-color-secondary-ink);
+  --color-success-ink: var(--alt4-color-success-ink);
+  --color-warning-ink: var(--alt4-color-warning-ink);
+  --color-error-ink: var(--alt4-color-error-ink);
+  --color-authority-ink: var(--alt4-color-authority-ink);
+  --color-distinguish-ink: var(--alt4-color-distinguish-ink);
+  --color-subdued-ink: var(--alt4-color-subdued-ink);
   --border-dark: rgba(5, 150, 105, 0.2);
   --accent-light-bg: rgba(5, 150, 105, 0.08);
   --accent-light-bg-hover: rgba(5, 150, 105, 0.15);
@@ -295,6 +410,13 @@ html.palette-5 {
   --color-authority: var(--alt5-color-authority);
   --color-distinguish: var(--alt5-color-distinguish);
   --color-subdued: var(--alt5-color-subdued);
+  --color-secondary-ink: var(--alt5-color-secondary-ink);
+  --color-success-ink: var(--alt5-color-success-ink);
+  --color-warning-ink: var(--alt5-color-warning-ink);
+  --color-error-ink: var(--alt5-color-error-ink);
+  --color-authority-ink: var(--alt5-color-authority-ink);
+  --color-distinguish-ink: var(--alt5-color-distinguish-ink);
+  --color-subdued-ink: var(--alt5-color-subdued-ink);
   --border-dark: rgba(22, 101, 52, 0.2);
   --accent-light-bg: rgba(22, 101, 52, 0.08);
   --accent-light-bg-hover: rgba(22, 101, 52, 0.15);

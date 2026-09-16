@@ -10,17 +10,19 @@ Complete catalog of all CSS custom properties defined in `src/styles/variables.c
 
 ## Primary Colors
 
-| Variable                     | Value                                | Usage                                                   |
-| ---------------------------- | ------------------------------------ | ------------------------------------------------------- |
-| `--color-primary`            | `#05cd99`                            | Primary accent — links, borders, buttons, active states |
-| `--color-primary-rgb`        | `5, 205, 153`                        | Base RGB triplet — used by the opacity scale below      |
-| `--color-primary-dark`       | `#04a87a`                            | Darker shade for emphasis                               |
-| `--color-secondary`          | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber)                                |
-| `--color-secondary-dark`     | `#ffaa33`                            | Secondary dark variant                                  |
-| `--color-tertiary`           | `#02724f` (light) / `#05cd99` (dark) | Tertiary accent (deep teal)                             |
-| `--color-tertiary-dark`      | `#01633f` (light) / `#04a87a` (dark) | Tertiary dark variant                                   |
-| `--color-editors-pick`       | `#b26622` (light) / `#d4923a` (dark) | Editor's Pick accent                                    |
-| `--color-editors-pick-hover` | `#d4923a` (light) / `#b26622` (dark) | Editor's Pick hover state (inverted)                    |
+| Variable                     | Value                                | Usage                                                                    |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------------------------ |
+| `--color-primary`            | `#05cd99`                            | Primary accent — links, borders, buttons, active states                  |
+| `--color-primary-rgb`        | `5, 205, 153`                        | Base RGB triplet — used by the opacity scale below                       |
+| `--color-primary-dark`       | `#04a87a`                            | Darker shade for emphasis                                                |
+| `--color-secondary`          | `#CC8800` (light) / `#FFAA33` (dark) | Secondary accent (amber)                                                 |
+| `--color-secondary-dark`     | `#ffaa33`                            | Secondary dark variant                                                   |
+| `--color-tertiary`           | `#02724f` (light) / `#05cd99` (dark) | Tertiary accent (deep teal)                                              |
+| `--color-tertiary-dark`      | `#01633f` (light) / `#04a87a` (dark) | Tertiary dark variant                                                    |
+| `--color-editors-pick`       | `#b26622` (light) / `#d4923a` (dark) | Editor's Pick accent                                                     |
+| `--color-editors-pick-hover` | `#d4923a` (light) / `#b26622` (dark) | Editor's Pick hover state (inverted)                                     |
+| `--color-editors-pick-ink`   | `#8a4a12` (light) / `#d4923a` (dark) | Editor's Pick as TEXT ink (ADR-0035); root-only, no palette re-points it |
+| `--color-secondary-ink`      | `#8a5a00` (light) / `#ffaa33` (dark) | Secondary as TEXT ink (ADR-0035); per-palette                            |
 
 ## Primary Color Opacity Scale
 
@@ -54,12 +56,15 @@ Raw opacity tokens built from `--color-primary-rgb`. Use these instead of hardco
 
 Shared status colors for cross-tool consistency. See [BRAND_GUIDELINES.md — Semantic Color System](./BRAND_GUIDELINES.md#semantic-color-system).
 
-| Variable          | Light                  | Dark                   | Usage                                    |
-| ----------------- | ---------------------- | ---------------------- | ---------------------------------------- |
-| `--color-success` | `#2e8b57`              | `#3da868`              | Positive outcomes, passing states        |
-| `--color-warning` | `#CC8800`              | `#FFAA33`              | Caution indicators, borderline states    |
-| `--color-error`   | `#d93636`              | `#e05050`              | Failures, negative KPIs, critical alerts |
-| `--color-info`    | `var(--color-primary)` | `var(--color-primary)` | Informational highlights (alias)         |
+| Variable              | Light                  | Dark                   | Usage                                       |
+| --------------------- | ---------------------- | ---------------------- | ------------------------------------------- |
+| `--color-success`     | `#2e8b57`              | `#3da868`              | Positive outcomes, passing states           |
+| `--color-warning`     | `#CC8800`              | `#FFAA33`              | Caution indicators, borderline states       |
+| `--color-error`       | `#d93636`              | `#e05050`              | Failures, negative KPIs, critical alerts    |
+| `--color-info`        | `var(--color-primary)` | `var(--color-primary)` | Informational highlights (alias)            |
+| `--color-success-ink` | `#1f6b43`              | `#3da868`              | Success as TEXT ink (ADR-0035); per-palette |
+| `--color-warning-ink` | `#8a5a00`              | `#ffaa33`              | Warning as TEXT ink (ADR-0035); per-palette |
+| `--color-error-ink`   | `#a32323`              | `#e05050`              | Error as TEXT ink (ADR-0035); per-palette   |
 
 ## Backgrounds
 
@@ -329,15 +334,18 @@ The tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Borders, hov
 
 Purpose-named base tokens that all tool-domain variables (TechPar, Diligence Machine, ICG, Regulatory Map) derive from. The `-rgb` triplets are the only tokens still overridden in `html.dark-theme` — RGB triplets are not `<color>` values, so `light-dark()` cannot express them.
 
-| Variable                | Light                       | Dark                        | Usage                                                            |
-| ----------------------- | --------------------------- | --------------------------- | ---------------------------------------------------------------- |
-| `--color-authority`     | `#5b7a9d`                   | `#7a9dbd`                   | Authority/expertise accent (institutional credibility)           |
-| `--color-authority-rgb` | `91, 122, 157`              | `122, 157, 189`             | RGB triplet for `rgba()` usage (dark value in `html.dark-theme`) |
-| `--color-authority-bg`  | `rgba(91, 122, 157, 0.1)`   | `rgba(122, 157, 189, 0.1)`  | Authority theme background                                       |
-| `--color-distinguish`   | `#8b5cf6`                   | `#a78bfa`                   | Differentiation accent                                           |
-| `--color-subdued`       | `#8c7a6b`                   | `#a89888`                   | Muted neutral accent                                             |
-| `--color-subdued-rgb`   | `140, 122, 107`             | `168, 152, 136`             | RGB triplet for `rgba()` usage (dark value in `html.dark-theme`) |
-| `--color-subdued-bg`    | `rgba(140, 122, 107, 0.04)` | `rgba(168, 152, 136, 0.06)` | Subdued theme background                                         |
+| Variable                  | Light                       | Dark                        | Usage                                                            |
+| ------------------------- | --------------------------- | --------------------------- | ---------------------------------------------------------------- |
+| `--color-authority`       | `#5b7a9d`                   | `#7a9dbd`                   | Authority/expertise accent (institutional credibility)           |
+| `--color-authority-rgb`   | `91, 122, 157`              | `122, 157, 189`             | RGB triplet for `rgba()` usage (dark value in `html.dark-theme`) |
+| `--color-authority-bg`    | `rgba(91, 122, 157, 0.1)`   | `rgba(122, 157, 189, 0.1)`  | Authority theme background                                       |
+| `--color-distinguish`     | `#8b5cf6`                   | `#a78bfa`                   | Differentiation accent                                           |
+| `--color-subdued`         | `#8c7a6b`                   | `#a89888`                   | Muted neutral accent                                             |
+| `--color-authority-ink`   | `#41597a`                   | `#7a9dbd`                   | Authority as TEXT ink (ADR-0035)                                 |
+| `--color-distinguish-ink` | `#6d3fc4`                   | `#a78bfa`                   | Distinguish as TEXT ink (ADR-0035)                               |
+| `--color-subdued-ink`     | `#6b5c50`                   | `#a89888`                   | Subdued as TEXT ink (ADR-0035)                                   |
+| `--color-subdued-rgb`     | `140, 122, 107`             | `168, 152, 136`             | RGB triplet for `rgba()` usage (dark value in `html.dark-theme`) |
+| `--color-subdued-bg`      | `rgba(140, 122, 107, 0.04)` | `rgba(168, 152, 136, 0.06)` | Subdued theme background                                         |
 
 ---
 
