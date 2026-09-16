@@ -45,6 +45,7 @@ const trackAttrs = isDemo ? {} : { onclick: "trackNavigation('/', 'Logo')" };
     height: 1em;
     display: block;
     flex-shrink: 0;
+    /* Ink stays --color-primary (ADR-0035): logotype; WCAG 1.4.3 exempts logos from contrast. */
     color: var(--color-primary);
     font-size: var(--text-3xl);
   }
@@ -66,15 +67,17 @@ const trackAttrs = isDemo ? {} : { onclick: "trackNavigation('/', 'Logo')" };
   }
 
   .logo:hover {
+    /* Ink stays --color-primary (ADR-0035): logotype; WCAG 1.4.3 exempts logos from contrast. */
     color: var(--color-primary);
   }
 
   .logo:focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-tertiary);
     outline-offset: var(--spacing-xs);
   }
 
   .logo span {
+    /* Ink stays --color-primary (ADR-0035): logotype; WCAG 1.4.3 exempts logos from contrast. */
     color: var(--color-primary);
   }
 

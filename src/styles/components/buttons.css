@@ -20,17 +20,17 @@ Distinct from .brutal-btn (compact utility button for tool UIs). */
 
 .cta-button:hover {
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   transform: translateX(4px);
 }
 
 .cta-button:focus {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: var(--spacing-xs);
 }
 
 .cta-button:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: var(--spacing-xs);
 }
 
@@ -111,7 +111,7 @@ Smaller text, uppercase, tight padding. Distinct from .cta-button
 }
 
 .brutal-btn:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: 2px;
 }
 
@@ -122,7 +122,7 @@ Smaller text, uppercase, tight padding. Distinct from .cta-button
 
 .brutal-btn--primary {
   background: light-dark(var(--color-primary-15), var(--color-primary-12));
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border: 2px solid var(--color-primary);
 }
 
@@ -138,11 +138,11 @@ Smaller text, uppercase, tight padding. Distinct from .cta-button
 
 .brutal-btn--secondary:hover {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-btn--copied {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-color: var(--color-primary);
 }
 

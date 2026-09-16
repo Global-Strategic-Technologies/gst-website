@@ -29,7 +29,7 @@
 }
 
 .nav-link:focus {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: var(--spacing-xs);
 }
 
@@ -148,7 +148,7 @@
   font-size: var(--text-xl);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   letter-spacing: -0.02em;
   line-height: 1;
 }
@@ -157,7 +157,7 @@
   font-size: var(--text-sm);
   font-weight: var(--font-weight-bold);
   font-family: var(--font-family-mono);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   letter-spacing: 0;
   line-height: 1;
 }

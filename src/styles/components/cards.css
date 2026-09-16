@@ -57,7 +57,7 @@ Brutalist Transitions
 
 .brutal-transition:hover {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   background: var(--accent-subtle-bg);
 }
 
@@ -103,7 +103,7 @@ Brutalist Option Cards
 }
 
 .brutal-option-card:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: 2px;
 }
 
@@ -132,7 +132,7 @@ Brutalist Option Cards
 }
 
 .brutal-option-card--selected .brutal-option-card__label {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-option-card--selected .brutal-option-card__description {
@@ -170,7 +170,7 @@ Brutalist Option Cards
 .brutal-option-card--selected-outline {
   border-color: var(--color-primary);
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 /* -- unsure: BL-031.95 Phase 2.C "Not sure" affordance per wizard step --
@@ -198,11 +198,11 @@ Brutalist Option Cards
 .brutal-option-card--unsure.brutal-option-card--selected-outline {
   border-style: solid;
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-option-card--unsure.brutal-option-card--selected-outline .brutal-option-card__label {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   font-style: normal;
 }
 
@@ -237,7 +237,7 @@ Brutalist Content Label
   letter-spacing: 0.05em;
   display: block;
   margin-bottom: var(--spacing-xs);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 /* ==============================
@@ -350,7 +350,7 @@ Brutalist Teaser Card
   letter-spacing: 0.06em;
   padding: 2px var(--spacing-sm);
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border: 1px solid var(--color-primary);
   display: inline-block;
   margin-top: var(--spacing-md);
@@ -451,7 +451,7 @@ Brutalist Rec Card
 }
 
 .brutal-rec-card__badge--high {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-color: var(--color-primary);
 }
 
@@ -480,7 +480,7 @@ Brutalist Rec Card
 }
 
 .brutal-rec-card__na:hover {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-color: var(--color-primary);
 }
 
@@ -639,7 +639,7 @@ Brutalist FAQ
 }
 
 .brutal-faq__question:hover {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-faq__answer {
@@ -651,7 +651,7 @@ Brutalist FAQ
 }
 
 .brutal-faq__answer :global(a) {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   text-decoration: underline;
 }
 
@@ -737,7 +737,7 @@ Brutalist FAQ
 }
 
 .project-card:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: 2px;
 }
 
@@ -860,7 +860,7 @@ Brutalist FAQ
   width: 14px;
   height: 14px;
   flex-shrink: 0;
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   margin-top: calc((1lh - 14px) / 2);
 }
 
@@ -941,7 +941,7 @@ Brutalist Gateway Card (Library/Tools index pages)
   letter-spacing: 0.05em;
   padding: var(--spacing-xs) var(--spacing-sm);
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border: 2px solid var(--color-primary);
   display: inline-block;
   margin-top: var(--spacing-md);

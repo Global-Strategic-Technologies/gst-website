@@ -206,6 +206,7 @@
   /* ── Alpha slider & display ──────────────────────────────── */
 
   :global(.swatch-slider-label--a) {
+    /* Ink stays --color-primary (ADR-0035): /brand swatch-editor tooling, not site content. */
     color: var(--color-primary);
   }
   :global(.swatch-slider-label--a .swatch-slider)::-webkit-slider-thumb {
@@ -219,6 +220,7 @@
     font-family: var(--font-family-mono);
     font-size: 9px;
     font-weight: var(--font-weight-bold);
+    /* Ink stays --color-primary (ADR-0035): /brand swatch-editor tooling, not site content. */
     color: var(--color-primary);
     white-space: nowrap;
     flex-shrink: 0;

@@ -204,6 +204,7 @@ import '../styles/components/progress.css';
 
   .brand-logo-item .brand-logo-delta,
   .brand-logo-item .brand-logo-composite {
+    /* Ink stays --color-primary (ADR-0035): a /brand specimen demonstrating the token itself. */
     color: var(--color-primary);
   }
 
@@ -507,7 +508,7 @@ import '../styles/components/progress.css';
     content: '+';
     font-size: var(--text-lg);
     font-weight: 700;
-    color: var(--color-primary);
+    color: var(--color-tertiary);
     display: inline-block;
     width: 1em;
     text-align: center;
@@ -686,12 +687,12 @@ import '../styles/components/progress.css';
   /* ── Forced state: hover ── */
   .brutal-btn--primary[data-demo-state='hover'] {
     background: transparent;
-    color: var(--color-primary);
+    color: var(--color-tertiary);
   }
 
   .brutal-btn--secondary[data-demo-state='hover'] {
     border-color: var(--color-primary);
-    color: var(--color-primary);
+    color: var(--color-tertiary);
   }
 
   .brutal-option-card[data-demo-state='hover'] {
@@ -714,7 +715,7 @@ import '../styles/components/progress.css';
 
   /* ── Forced state: focus ── */
   .brutal-btn[data-demo-state='focus'] {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-tertiary);
     outline-offset: 2px;
   }
 
@@ -724,12 +725,12 @@ import '../styles/components/progress.css';
   }
 
   .brutal-option-card[data-demo-state='focus'] {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-tertiary);
     outline-offset: 2px;
   }
 
   .brutal-choice-btn[data-demo-state='focus'] {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-tertiary);
     outline-offset: 2px;
   }
 
@@ -747,7 +748,7 @@ import '../styles/components/progress.css';
 
   /* ── Forced state: focus on link ── */
   .brutal-link-interactive[data-demo-state='focus'] {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--color-tertiary);
     outline-offset: 2px;
   }
 
@@ -1072,7 +1073,7 @@ import '../styles/components/progress.css';
   }
 
   .filter-button:hover {
-    color: var(--color-primary);
+    color: var(--color-tertiary);
   }
 
   .filter-badge {
@@ -1143,7 +1144,7 @@ import '../styles/components/progress.css';
   }
 
   .modal__close:hover {
-    color: var(--color-primary);
+    color: var(--color-tertiary);
     background: var(--accent-light-bg);
   }
 

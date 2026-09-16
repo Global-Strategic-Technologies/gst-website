@@ -8,12 +8,12 @@
 }
 
 .interactive:hover {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-color: var(--color-primary);
 }
 
 .interactive:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: 2px;
 }
 
@@ -30,12 +30,12 @@
 }
 
 .link-interactive:hover {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-bottom-color: var(--color-primary);
 }
 
 .link-interactive:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: var(--spacing-xs);
 }
 
@@ -43,7 +43,7 @@
 .control-hover {
   background: light-dark(rgba(26, 26, 26, 0.08), rgba(var(--color-primary-rgb), 0.15));
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .control-active {
@@ -63,12 +63,12 @@
 
 /* Focus Outline Utility */
 .focus-outline {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: 2px;
 }
 
 .focus-outline-sm {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: var(--spacing-xs);
 }
 
@@ -99,7 +99,7 @@
   width: 14px;
   height: 14px;
   display: inline-block;
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   transform: rotate(180deg);
   transition:
     transform var(--transition-fast),
@@ -150,7 +150,7 @@ details[open] > summary .delta-chevron {
 
 .brutal-interactive:hover {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-interactive:focus-visible {
@@ -180,14 +180,14 @@ details[open] > summary .delta-chevron {
 }
 
 .brutal-link-interactive:hover {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-bottom-color: var(--color-primary);
 }
 
 .brutal-link-interactive:focus-visible {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-bottom-color: var(--color-primary);
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: var(--spacing-xs);
 }
 
@@ -196,12 +196,12 @@ details[open] > summary .delta-chevron {
   padding: var(--spacing-md) var(--spacing-xl);
   border: 2px solid var(--color-primary);
   border-radius: 0;
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   font-family: var(--font-family-mono);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: 3px;
 }

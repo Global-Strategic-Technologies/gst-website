@@ -37,7 +37,7 @@ Brutalist Bench Table
 }
 
 .brutal-bench-table__active td:last-child {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-bench-table__label {
@@ -54,7 +54,7 @@ Brutalist Bench Table
 
 .brutal-bench-table__label--score {
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border: 1px solid var(--color-primary);
 }
 

@@ -67,7 +67,7 @@ src/scripts/lang-switch.ts against these class names.
 
 .lang-switch__trigger:focus-visible,
 .lang-switch__fallback:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: 2px;
 }
 
@@ -115,13 +115,13 @@ src/scripts/lang-switch.ts against these class names.
 }
 
 .lang-menu a:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-tertiary);
   outline-offset: -2px;
 }
 
 /* The current row's marker: DeltaIcon with `filled`, in the accent. */
 .lang-menu a[aria-current] svg {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 @media (max-width: 480px) {

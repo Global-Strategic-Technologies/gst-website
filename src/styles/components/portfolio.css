@@ -73,7 +73,7 @@ Brutalist Project Card
 }
 
 .brutal-project-card__value--arr {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-project-card__summary {
@@ -109,7 +109,7 @@ Brutalist Project Card
 }
 
 .brutal-project-card__tag--theme {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   border-color: var(--color-primary);
 }
 
@@ -133,5 +133,5 @@ Brutalist Project Card
 
 .brutal-project-card__cta:hover {
   background: transparent;
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }

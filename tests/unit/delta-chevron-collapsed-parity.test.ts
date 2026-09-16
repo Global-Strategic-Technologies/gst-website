@@ -56,10 +56,13 @@ describe('.delta-chevron collapsed-state parity', () => {
     expect(new Set(colours).size, `collapsed colours diverged: ${colours.join(' vs ')}`).toBe(1);
   });
 
-  it('the base rule is what supplies the expanded teal', () => {
+  it('the base rule is what supplies the expanded accent ink', () => {
     // `details[open]` deliberately sets no colour — it relies on `:not([open])`
-    // ceasing to match. That only works while the base rule carries the teal.
-    expect(ruleBody('.delta-chevron {')).toMatch(/color:\s*var\(--color-primary\)/);
+    // ceasing to match. That only works while the base rule carries the accent.
+    // The token is --color-tertiary, not --color-primary (ADR-0035): the chevron
+    // is the sole indicator of disclosure state, so it needs 3:1 as a non-text
+    // UI element, and --color-primary is 2.06:1 on white.
+    expect(ruleBody('.delta-chevron {')).toMatch(/color:\s*var\(--color-tertiary\)/);
     expect(ruleBody('details[open] > summary .delta-chevron')).not.toMatch(/color:/);
   });
 });

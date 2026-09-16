@@ -264,7 +264,7 @@ Brutalist Map Controls
 
 .brutal-map-control:hover {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-map-tooltip {
@@ -439,12 +439,12 @@ Brutalist Panel & Reg Card
 
 .brutal-panel__copy:hover {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-panel__copy--copied {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  color: var(--color-tertiary);
 }
 
 .brutal-reg-card {

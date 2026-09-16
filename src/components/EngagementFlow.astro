@@ -129,6 +129,7 @@ const steps = ([1, 2, 3, 4] as const).map((n) => ({
     width: 5.25rem;
     height: 5.25rem;
     flex-shrink: 0;
+    /* Ink stays --color-primary (ADR-0035): decorative icon beside a heading that carries the meaning. */
     color: var(--color-primary);
   }
 

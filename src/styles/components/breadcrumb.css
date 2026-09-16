@@ -29,7 +29,7 @@ Brutalist Breadcrumb
 }
 
 .legal-page-body a {
-  color: var(--color-primary);
+  color: var(--color-tertiary);
   text-decoration: none;
   border-bottom: 2px solid transparent;
   transition: border-color var(--transition-fast);
