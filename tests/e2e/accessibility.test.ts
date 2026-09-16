@@ -428,6 +428,8 @@ test.describe('Accessibility — theme scans measure what they claim (BL-162)', 
       add('bl162-teal', 'var(--color-primary)');
       // One channel off brand teal, same contrast: must NOT ride the exemption.
       add('bl162-near-teal', 'rgb(6, 205, 153)');
+      // Brand teal, but near-invisible (about 1.1:1): under the floor, must fail.
+      add('bl162-faint-teal', 'rgb(from var(--color-primary) r g b / 0.1)');
     });
 
     const teal = await checkA11y(page, { include: ['#bl162-teal'] });
@@ -446,6 +448,13 @@ test.describe('Accessibility — theme scans measure what they claim (BL-162)', 
     const nearTeal = await checkA11y(page, { include: ['#bl162-near-teal'] });
     expect(nearTeal.serious.find((v) => v.id === 'color-contrast')).toBeDefined();
     expect(nearTeal.brandTealExempt).toBe(0);
+
+    const faintTeal = await checkA11y(page, { include: ['#bl162-faint-teal'] });
+    expect(
+      faintTeal.serious.find((v) => v.id === 'color-contrast'),
+      'teal below the floor is not the ruled brand teal — it must still fail'
+    ).toBeDefined();
+    expect(faintTeal.brandTealExempt).toBe(0);
   });
 });
 

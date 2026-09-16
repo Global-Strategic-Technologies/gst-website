@@ -196,8 +196,17 @@ export async function checkA11y(
  * on RGB channels. Anything else, including a near-teal, still fails, and the
  * instrument test in accessibility.test.ts proves both directions.
  *
+ * FLOOR: teal is exempt only down to BRAND_TEAL_MIN_RATIO. The ruling accepts
+ * teal as the brand ships it, not teal that is effectively invisible (a 10%-alpha
+ * teal, or teal on a teal panel, reads ~1:1 and still fails). The floor is not
+ * solid teal on white (2.05:1) because shipped teal legitimately sits lower:
+ * measured 2026-09-16, `.brutal-btn--primary` teal on its tint 1.81:1 and the
+ * semi-transparent /brand swatch captions 1.71:1. 1.5 clears both with margin.
+ *
  * Returns how many nodes were exempted, so a scan can report it.
  */
+const BRAND_TEAL_MIN_RATIO = 1.5;
+
 async function exemptBrandTealText(
   page: Page,
   results: Awaited<ReturnType<AxeBuilder['analyze']>>
@@ -222,7 +231,10 @@ async function exemptBrandTealText(
   }, targets);
 
   const before = contrast.nodes.length;
-  contrast.nodes = contrast.nodes.filter((_, i) => !isTeal[i]);
+  contrast.nodes = contrast.nodes.filter((n, i) => {
+    const ratio = Number((n.any[0]?.data as { contrastRatio?: number } | undefined)?.contrastRatio);
+    return !(isTeal[i] && ratio >= BRAND_TEAL_MIN_RATIO);
+  });
   if (contrast.nodes.length === 0) {
     results.violations = results.violations.filter((v) => v !== contrast);
   }
