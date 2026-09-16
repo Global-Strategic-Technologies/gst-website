@@ -61,13 +61,13 @@
   top: 0;
 }
 
-/* Not decorative. `a:hover` below sets a `color` at (0,1,1), which out-ranks
-   `.skip-nav`'s own `color` at (0,1,0). When that hover ink was
-   --color-primary it was exactly the fill this link is painted on, so a pointer
-   landing on the revealed bypass link erased its label. Hover ink is now
-   --color-tertiary (ADR-0035), which no longer collides — but the specificity
-   hole is unchanged, and any future hover ink could reopen it, so the (0,2,0)
-   restatement stays. Guarded by tests/e2e/hover-ink-invariance.test.ts. */
+/* Not decorative. `a:hover` below sets `color: var(--color-primary)` at
+   (0,1,1), which out-ranks `.skip-nav`'s own `color` at (0,1,0) — and
+   --color-primary is exactly the fill this link is painted on, so a pointer
+   landing on the revealed bypass link erased its label. The usual interaction
+   is tab-to-reveal then click, so the hover state is on the normal path, not an
+   edge case. Restated here at (0,2,0). Guarded by
+   tests/e2e/hover-ink-invariance.test.ts. */
 .skip-nav:hover,
 .skip-nav:focus {
   color: var(--bg-dark);
@@ -151,15 +151,15 @@ body {
   }
 }
 
-/* Ink, not fill (ADR-0035): --color-secondary as text is 2.96:1 on white and
-   --color-primary 2.06:1. These two rules colour every link on the site. */
+/* Rest ink, not fill (ADR-0035): --color-secondary as text is 2.96:1 on white.
+   Hover stays brand teal by decision, though it is 2.06:1 as text. */
 a {
   color: var(--color-secondary-ink);
   transition: color 0.2s;
 }
 
 a:hover {
-  color: var(--color-tertiary);
+  color: var(--color-primary);
 }
 
 @media print {

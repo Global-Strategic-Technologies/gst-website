@@ -1,4 +1,4 @@
-# ADR-0035: Brand and status colours are fills; text uses ink tokens
+# ADR-0035: Status colours are fills; text uses ink tokens; brand teal is exempt
 
 - **Status**: Accepted (2026-09-16)
 - **Source initiative**: PR #489 (BL-116 orphan-class guard) — the contrast defects surfaced while unblocking it. No separate design doc; the plan and its three review rounds are summarised here.
@@ -27,15 +27,15 @@ One further node was a timing artefact, not a colour: muted text measured 4.17:1
 
 ## Decision
 
-**Brand and status colours are FILL and BORDER colours. Text, state-carrying non-text glyphs and focus indicators use a darker, theme-aware ink.**
+**Status and secondary colours are FILL and BORDER colours; text uses a darker, theme-aware ink. Brand teal (`--color-primary`) is exempt: its text, icons and focus rings stay teal.**
 
-1. **Primary's ink is the existing `--color-tertiary`.** No `--color-primary-ink` is added: tertiary is already per-palette, already equals primary in dark theme, and already carried the BL-096 header-link fix. It also honours `VARIABLES_REFERENCE.md`'s rule never to author a dark variant of `--color-primary`. A `--color-primary-ink` was rejected explicitly — its only advantage was keeping a substring assertion in `tech-debt-calculator.test.ts` green, which is a test dictating vocabulary.
+1. **Brand teal keeps its own colour as text, icons and focus rings.** A first cut routed all 182 primary-ink declarations and every focus ring to `--color-tertiary` (#02724f, 5.96:1). Rendered, that read as forest green replacing the brand teal on the hero, delta icons and theme toggle, and the owner rejected it as a brand regression. Teal text is therefore accepted below AA (2.06:1 on white). No `--color-primary-ink` exists; a darker teal would carry the same objection. Where a teal-on-tint control blocked CI, the fix is local: the MCP trial page's "Copy key" button uses teal as the FILL with dark text, and its test scans after hover and copied feedback settle.
 2. **Eight ink tokens are added**: `--color-{secondary,warning,success,error,authority,distinguish,subdued,editors-pick}-ink`. Secondary and warning stay separate although both are `#cc8800` by default; they diverge in every alternative palette.
 3. **Light values are measured, not derived by formula.** Each clears **≥ 4.75:1 on `#f5f5f5`** (the darker light surface, with margin) and **≥ 4.5:1 on its own 12% tint** (the chip case), in all six palettes. Three first candidates missed the margin and were re-derived rather than accepted (palette-2 lime 4.69, palette-4 success 4.60, palette-5 success 4.98).
 4. **Dark halves copy the base token's dark literal verbatim.** Per spec, `light-dark()` could nest a `var()`, but LightningCSS lowers `light-dark()` against this repo's browserslist targets into `var(--lightningcss-light, A) var(--lightningcss-dark, B)` helper pairs switched by `html.dark-theme`, so the copied literal is the reliable form. The palette dark blocks alias each `--altN-*-ink` to its base. Result: the swap is a no-op in dark theme for every palette. If the browserslist floor ever drops lowering, the literals can become `var()`s.
 5. **Wiring is four layers**: the token in `variables.css`; per-palette light values in `palettes.css :root`; seven `--color-X-ink: var(--altN-color-X-ink)` mapping lines in each `html.palette-N` block (palette-0 maps only authority/distinguish/subdued); and the dark aliases. `--color-editors-pick-ink` is **root-only**, like its base, which no palette re-points.
-6. **Focus rings use `--color-tertiary`** (`outline: 2px solid var(--color-tertiary)`).
-7. **Runtime emitters split fill from ink.** Where one value painted both text and a fill, an ink is added beside it rather than repointing it: `getMaturityLevel()` returns `ink` beside `color` (ICG gauge and bars keep `color`); TechPar gains `zoneInkVar()` beside `zoneColorVar()` (bars, chart lines and legend strokes keep the zone colour). Tech-debt's `burdenClassify` only colours text, so it changed at source.
+6. **Focus rings stay `--color-primary`.**
+7. **Runtime emitters split fill from ink.** Where one value painted both text and a fill, an ink is added beside it rather than repointing it: `getMaturityLevel()` returns `ink` beside `color` (ICG gauge and bars keep `color`); TechPar gains `zoneInkVar()` beside `zoneColorVar()` (bars, chart lines and legend strokes keep the zone colour). Tech-debt's `burdenClassify` only colours text, so it changed at source. In every emitter the teal branch stays `--color-primary`.
 
 **Rejected alternatives**
 
@@ -43,7 +43,7 @@ One further node was a timing artefact, not a colour: muted text measured 4.17:1
 - **A "≥ 3:1 against the base token" criterion**, in the original plan. Every measured candidate failed it (1.53–2.00) because an ink never sits on its base, only on a tint of it — which the tint bar already covers. Enforcing it would drive inks so dark they stop reading as their hue.
 - **A rendered site-wide contrast probe** as the before/after instrument. It was built and abandoned: class-toggled theme switches repeatedly produced mixed states (dark text over stale light surfaces) that no validation strategy made trustworthy, while every case examined showed the site itself correct. Token values are guarded without a browser instead.
 
-**Deliberate exceptions** — 14 declarations keep `--color-primary` as ink, each with an inline reason: `lang-band.css` ×2 (teal on a _static_ `--bg-dark` fill, 10.6:1; tertiary would be ~2.9:1), the header logotype ×3 (WCAG exempts logos), four decorative glyphs/icons beside meaning-carrying headings, two `/brand` swatch-editor controls, and three `/brand` specimens that demonstrate the base tokens. Three more `/brand` ColorSpecimens chips keep the base status tokens for the same reason.
+**Deliberate exceptions** — three `/brand` ColorSpecimens chips keep the base status tokens, because they demonstrate those tokens.
 
 **Deferred** — dark-theme contrast is unmeasured: every axe scan runs in light theme. Filed as [BL-162](../development/BACKLOG.md#bl-162-dark-theme-contrast-is-never-scanned). The ink tokens do not change dark theme, so this decision does not make it worse.
 
@@ -52,5 +52,5 @@ One further node was a timing artefact, not a colour: muted text measured 4.17:1
 - Cited by: `src/styles/variables.css` and `src/styles/palettes.css` (token comments), `src/styles/global.css` (link ink, `.skip-nav`), `src/utils/icg-engine.ts`, `src/utils/techpar-engine.ts`, `src/utils/techpar/chart.ts`, `src/utils/tech-debt-engine.ts`, and every kept-primary site's inline comment.
 - Guarded by `tests/integration/ink-token-contrast.test.ts`: both bars in all six palettes, resolved through each palette's own alias chain (so a forgotten mapping fails rather than silently inheriting the default); per-palette mapping completeness; editors-pick root-only; and each ink's dark literal equal to its base's. Proven by mutation.
 - `tests/e2e/helpers/a11y.ts` now waits for fonts and finite animations before scanning, filtering by `effect.getTiming().iterations` — `Animation` has no `iterations` property, and every animation running on the sampled routes was infinite.
-- **Authoring rule**: a new text colour from the brand/status family uses its `-ink` token (or `--color-tertiary` for primary). Fills, borders, chart strokes and specimen swatches keep the base token.
+- **Authoring rule**: a new text colour from the brand/status family uses its `-ink` token; brand teal text uses `--color-primary`. Fills, borders, chart strokes and specimen swatches keep the base token.
 - Revisit if: the checkerboard becomes an opaque colour (axe could then police this directly), the browserslist floor stops lowering `light-dark()`, or a palette is added (it needs all seven mappings, which the guard enforces).

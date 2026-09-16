@@ -37,7 +37,7 @@ const { title = t('theme.toggle'), ariaLabel = t('theme.toggle') } = Astro.props
   .theme-toggle {
     background: transparent;
     border: none;
-    color: var(--color-tertiary);
+    color: var(--color-primary);
     cursor: pointer;
     font-size: 5rem;
     transition: color var(--transition-fast);
@@ -56,16 +56,16 @@ const { title = t('theme.toggle'), ariaLabel = t('theme.toggle') } = Astro.props
   }
 
   .theme-toggle:hover {
-    color: var(--color-tertiary);
+    color: var(--color-primary);
   }
 
   .theme-toggle:focus {
-    outline: 2px solid var(--color-tertiary);
+    outline: 2px solid var(--color-primary);
     outline-offset: var(--spacing-xs);
   }
 
   .theme-toggle:focus-visible {
-    outline: 2px solid var(--color-tertiary);
+    outline: 2px solid var(--color-primary);
     outline-offset: var(--spacing-xs);
   }
 

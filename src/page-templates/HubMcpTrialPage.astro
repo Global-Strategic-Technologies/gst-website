@@ -672,6 +672,17 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
     color: var(--color-success-ink);
   }
 
+  /* "Copy key" is the page's one primary action. Brand teal stays, but as the
+     FILL with dark ink: teal text on its own tint is 1.83:1 (ADR-0035). */
+  .cred-footer .brutal-btn--primary {
+    background: var(--color-primary);
+    color: var(--text-light-primary);
+  }
+
+  .cred-footer .brutal-btn--primary:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+  }
+
   .btn-row {
     display: flex;
     flex-wrap: wrap;

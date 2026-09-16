@@ -85,12 +85,12 @@
 .filter-button:hover {
   background: var(--filter-button-bg-hover);
   border-color: var(--color-primary);
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   transition: all var(--transition-normal);
 }
 
 .filter-button:focus-visible {
-  outline: 2px solid var(--color-tertiary);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -112,13 +112,13 @@
 }
 
 .clear-filters-button:hover {
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   border-color: var(--color-primary);
   transition: all var(--transition-normal);
 }
 
 .clear-filters-button:focus-visible {
-  outline: 2px solid var(--color-tertiary);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -370,7 +370,7 @@ Brutalist Filter Drawer
   font-family: var(--font-family-mono);
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   margin: 0;
 }
 
@@ -387,7 +387,7 @@ Brutalist Filter Drawer
 }
 
 .brutal-filter-drawer__close:hover {
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   border-color: var(--color-primary);
 }
 
@@ -398,7 +398,7 @@ Brutalist Filter Drawer
 .brutal-filter-drawer__clear {
   background: transparent;
   border: 1px solid var(--color-primary);
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   padding: var(--spacing-xs) var(--spacing-md);
   font-size: var(--text-2xs);
   font-weight: var(--font-weight-bold);
@@ -514,7 +514,7 @@ Brutalist Search
 
 .brutal-search__clear:hover {
   border-color: var(--color-primary);
-  color: var(--color-tertiary);
+  color: var(--color-primary);
 }
 
 .brutal-search__results {
@@ -582,7 +582,7 @@ Brutalist Search
 
 .brutal-search__category--privacy {
   background: var(--accent-light-bg-hover);
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   border-color: var(--color-primary);
 }
 

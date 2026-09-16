@@ -168,9 +168,8 @@ test.describe('Tech Debt Calculator', () => {
       await setSlider(page, 'input-maint-pct', 5);
       expect(await getById(page, 'ctx-burden-label')).toContain('Well-managed');
       const lowStyle = await page.locator('[data-metric="annual-cost"]').getAttribute('style');
-      // Ink tokens, not the fill colours (ADR-0035): primary and secondary fail
-      // AA as text on light surfaces.
-      expect(lowStyle).toContain('--color-tertiary');
+      // Brand teal stays as-is; amber uses its ink token (ADR-0035).
+      expect(lowStyle).toContain('--color-primary');
 
       // High burden (≥ 35%) — amber
       await setSlider(page, 'input-maint-pct', 50);

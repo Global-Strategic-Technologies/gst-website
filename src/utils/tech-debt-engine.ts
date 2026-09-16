@@ -338,8 +338,8 @@ export interface BurdenLevel {
 
 /** Rich burden classification for UI display (label + range + color). */
 export function burdenClassify(pct: number): BurdenLevel {
-  if (pct < 10) return { text: 'Well-managed', range: '< 10%', color: 'var(--color-tertiary)' };
-  if (pct < 15) return { text: 'Acceptable', range: '10–15%', color: 'var(--color-tertiary)' };
+  if (pct < 10) return { text: 'Well-managed', range: '< 10%', color: 'var(--color-primary)' };
+  if (pct < 15) return { text: 'Acceptable', range: '10–15%', color: 'var(--color-primary)' };
   if (pct < 25)
     return { text: 'Yellow flag', range: '15–25%', color: 'var(--color-secondary-ink)' };
   if (pct < 40) return { text: 'Red flag', range: '25–40%', color: 'var(--color-error-ink)' };

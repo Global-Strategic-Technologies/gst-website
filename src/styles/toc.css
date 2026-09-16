@@ -143,23 +143,23 @@
 }
 
 .toc__list a:hover {
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   border-color: var(--color-primary);
 }
 
 .toc__list a.is-active {
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   border-color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
 }
 
 .toc__sublist a:hover {
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   border-color: var(--color-primary);
 }
 
 .toc__sublist a.is-active {
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   border-color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
 }

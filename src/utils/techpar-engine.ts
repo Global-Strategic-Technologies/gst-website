@@ -120,7 +120,7 @@ export function zoneInkVar(zone: Zone): string {
   const ink: Record<Zone, string> = {
     underinvest: '--color-warning-ink',
     ahead: '--color-success-ink',
-    healthy: '--color-tertiary',
+    healthy: '--color-primary',
     above: '--color-warning-ink',
     elevated: '--color-error-ink',
     critical: '--color-error-ink',

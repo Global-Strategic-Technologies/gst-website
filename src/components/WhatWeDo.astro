@@ -123,7 +123,6 @@ const { t } = useTranslations(locale, 'home');
      at 16px and no longer hold.) */
   .closing-text::after {
     content: '\00a0//';
-    /* Ink stays --color-primary (ADR-0035): decorative glyph; WCAG 1.4.11 does not apply. */
     color: var(--color-primary);
     font-weight: 900;
   }

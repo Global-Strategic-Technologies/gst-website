@@ -40,7 +40,7 @@
 /* Inline code reads as a value, in the accent color, per the design. */
 .mcp-guide-section code {
   font-family: var(--font-family-mono);
-  color: var(--color-tertiary);
+  color: var(--color-primary);
 }
 
 /* ── Hero ───────────────────────────────────────────────────────────── */
@@ -221,7 +221,7 @@
   font-family: var(--font-family-mono);
   font-size: var(--text-2xl);
   font-weight: var(--font-weight-bold);
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   line-height: 1;
 }
 
@@ -334,7 +334,7 @@
   font-family: var(--font-family-mono);
   font-size: var(--text-sm);
   font-weight: var(--font-weight-bold);
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   overflow-wrap: anywhere;
 }
 

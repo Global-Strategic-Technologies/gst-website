@@ -75,7 +75,6 @@ The GST delta triangle icon is the primary brand mark. It appears as:
 
 - Render in `--color-primary` (teal) for branding and decoration
 - Render in `--color-secondary` (gold) to signal attention or required user action (e.g., CTAs, interactive prompts)
-- When the icon carries **state** (a disclosure chevron, an active marker) it is a non-text UI element needing 3:1, which `--color-primary` (2.06:1 on white) fails — use `--color-tertiary` ([ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md))
 - Use `currentColor` for stroke when the parent element controls color contextually
 - Use the stroke variant for inline/decorative uses
 - Scale proportionally; do not distort aspect ratio
@@ -191,7 +190,7 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
 ## Accessibility
 
 - **Contrast**: All text/background combinations should meet WCAG 2.1 AA contrast ratios (4.5:1 for normal text, 3:1 for large text)
-- **Focus indicators**: 2px solid `--color-tertiary` outline with 2px offset (`--color-primary` is 2.06:1 on white, under the 3:1 non-text bar) via `.interactive-focus` utility or `:focus-visible` on `.brutal-*` components
+- **Focus indicators**: 2px solid `--color-primary` outline with 2px offset via `.interactive-focus` utility or `:focus-visible` on `.brutal-*` components
 - **Color alone**: Never use color as the sole indicator of state — always pair with text, icons, or patterns
 - **Touch targets**: 44x44px per WCAG 2.5.5 (Level **AAA**) on the guarded families; **AA's 24x24 (2.5.8) everywhere else**.
 
@@ -243,7 +242,7 @@ Shared status colors for use across all tools and components. Derived from battl
 | `--color-error`   | `#d93636` | `#e05050` | Failures, negative KPIs, critical alerts                            |
 | `--color-info`    | `#05cd99` | `#05cd99` | Informational highlights (aliases `--color-primary`)                |
 
-**These are fill and border colours.** As text they fail AA on light surfaces; text uses the matching ink — `--color-success-ink`, `--color-warning-ink`, `--color-error-ink` (and `--color-secondary-ink`, `--color-tertiary` for primary). See [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md).
+**These are fill and border colours.** As text they fail AA on light surfaces; text uses the matching ink — `--color-success-ink`, `--color-warning-ink`, `--color-error-ink` (and `--color-secondary-ink`). Brand teal `--color-primary` is the exception and stays teal as text. See [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md).
 
 Tool-specific status variables (e.g. `--dm-success`, `--techpar-kpi-negative`) may reference these shared values for consistency, but existing tool palettes remain valid within their own scope.
 
@@ -300,7 +299,7 @@ All text and UI element pairings must meet WCAG 2.1 AA contrast minimums:
 | Large text (≥ 18px or ≥ 14px bold)                      | 3:1                    |
 | Non-text UI elements (borders, icons, focus indicators) | 3:1                    |
 
-**Fill versus ink ([ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md))**: brand and status colours are fill and border colours. Used as text on a light surface they fail AA — `--color-primary` 2.06:1, `--color-secondary`/`--color-warning` 2.96:1 — so text uses the `-ink` tokens, and primary's ink is `--color-tertiary` (5.96:1). Inks are unchanged in dark theme. `tests/integration/ink-token-contrast.test.ts` guards every ink in all six palettes.
+**Fill versus ink ([ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md))**: brand and status colours are fill and border colours. Used as text on a light surface they fail AA — `--color-primary` 2.06:1, `--color-secondary`/`--color-warning` 2.96:1 — so text uses the `-ink` tokens. **Brand teal is exempt by decision**: `--color-primary` text, delta icons and focus rings stay teal, accepting 2.06:1 on light surfaces, because a darker substitute reads as a different brand colour. Inks are unchanged in dark theme. `tests/integration/ink-token-contrast.test.ts` guards every ink in all six palettes.
 
 **`--text-muted` usage**: Opacity is `0.65` in light theme and `0.6` in dark, yielding ~5.4:1 on `#ffffff` and ~4.7:1 on `#0a0a0a`. Both clear the 4.5:1 AA floor for normal text, but only just — so restrict `--text-muted` to large text (≥ 18px), labels, captions, placeholder text, and decorative/disabled elements. For sustained normal-sized body text, use `--text-secondary` or higher. The live per-theme ratios are rendered on `/brand` under Accessibility → Color Contrast Ratios.
 

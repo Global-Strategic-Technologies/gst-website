@@ -106,7 +106,7 @@ export function getMaturityLevel(score: number): {
     return { level: 'Aware', color: 'var(--color-warning)', ink: 'var(--color-warning-ink)' };
   if (score <= MATURITY_THRESHOLDS.optimizing)
     return { level: 'Optimizing', color: 'var(--color-success)', ink: 'var(--color-success-ink)' };
-  return { level: 'Strategic', color: 'var(--color-primary)', ink: 'var(--color-tertiary)' };
+  return { level: 'Strategic', color: 'var(--color-primary)', ink: 'var(--color-primary)' };
 }
 
 // ─── Foundational flag ──────────────────────────────────────────────────────

@@ -125,7 +125,7 @@ describe('getMaturityLevel', () => {
     });
     expect(getMaturityLevel(100)).toMatchObject({
       color: 'var(--color-primary)',
-      ink: 'var(--color-tertiary)',
+      ink: 'var(--color-primary)',
     });
   });
 });

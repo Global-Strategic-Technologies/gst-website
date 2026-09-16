@@ -117,7 +117,7 @@ Override to delta icon with .tool-methodology--delta modifier. */
 }
 
 .tool-methodology__trigger:focus-visible {
-  outline: 2px solid var(--color-tertiary);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -175,7 +175,7 @@ Override to delta icon with .tool-methodology--delta modifier. */
 }
 
 .tool-methodology__author-link {
-  color: var(--color-tertiary);
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -252,7 +252,7 @@ Tool Tab Bar — sticky frosted tab navigation
 }
 
 .tool-tab:focus-visible {
-  outline: 2px solid var(--color-tertiary);
+  outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
 

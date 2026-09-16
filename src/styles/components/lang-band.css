@@ -40,7 +40,6 @@ teal-on-near-black pair passes AA.
    floor — an accepted residual (spacing-token-floor.test.ts). */
 .lang-band__code {
   background: var(--bg-dark);
-  /* Ink stays --color-primary (ADR-0035): teal ink on a STATIC --bg-dark fill (10.6:1); tertiary would be ~2.9:1. */
   color: var(--color-primary);
   padding: 0.0625rem 0.375rem;
   margin-right: var(--spacing-sm);
@@ -57,7 +56,6 @@ teal-on-near-black pair passes AA.
 
 .lang-band__accept {
   background: var(--bg-dark);
-  /* Ink stays --color-primary (ADR-0035): teal ink on a STATIC --bg-dark fill (10.6:1); tertiary would be ~2.9:1. */
   color: var(--color-primary);
   text-decoration: none;
   min-height: 36px;

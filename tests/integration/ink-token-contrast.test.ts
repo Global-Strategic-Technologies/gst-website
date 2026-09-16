@@ -104,9 +104,8 @@ describe('ink tokens — default palette (variables.css)', () => {
     expect(inkDark).toBe(baseDark);
   });
 
-  it('primary has no -ink token — its ink is --color-tertiary', () => {
+  it('primary has no -ink token — brand teal text stays --color-primary', () => {
     expect(decl(variables, '--color-primary-ink')).toBeUndefined();
-    expect(lightDark(decl(variables, '--color-tertiary'))[0]).toBe('#02724f');
   });
 });
 

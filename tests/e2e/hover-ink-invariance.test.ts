@@ -4,16 +4,14 @@
  *
  * The cascade hole this exists for is site-wide and silent. `global.css` sets
  *
- *   a       { color: var(--color-secondary-ink) }
- *   a:hover { color: var(--color-tertiary) }
+ *   a       { color: var(--color-secondary) }
+ *   a:hover { color: var(--color-primary) }
  *
  * at specificity (0,1,1), which out-ranks any single-class rule at (0,1,0). So
  * a component that sets its own `color` on a bare class and never restates it
- * under `:hover` loses its ink the moment a pointer touches it. Until ADR-0035
- * the hover ink was `--color-primary` — also `--sash-bg` and the fill of every
- * component below — so what it lost it to was EXACTLY THE COLOUR IT IS PAINTED
- * ON. The hover ink no longer matches those fills, but the specificity hole is
- * unchanged, so the invariance is still asserted. The label does
+ * under `:hover` loses its ink the moment a pointer touches it — and because
+ * `--color-primary` is also `--sash-bg` and the fill of every component below,
+ * what it loses it to is EXACTLY THE COLOUR IT IS PAINTED ON. The label does
  * not shift hue; it disappears. `sash.css` is `@import`ed from `global.css`, so
  * source order cannot save any of them.
  *

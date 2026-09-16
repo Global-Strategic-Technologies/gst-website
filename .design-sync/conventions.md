@@ -58,7 +58,7 @@ Two rules cover almost everything:
 
 - **Brand** — `--color-primary` (teal `#05cd99`), `--color-secondary`, `--color-tertiary`, `-dark` variants; `--color-primary-rgb` (triplet for `rgba()`)
 - **Primary tints** — `--color-primary-02` … `--color-primary-65` (opacity scale)
-- **Status** — `--color-success`, `--color-warning`, `--color-error`, `--color-info` (FILLS; text uses `-ink`: `--color-success-ink`, `--color-warning-ink`, `--color-error-ink`, `--color-secondary-ink`; primary text uses `--color-tertiary`)
+- **Status** — `--color-success`, `--color-warning`, `--color-error`, `--color-info` (FILLS; text uses `-ink`: `--color-success-ink`, `--color-warning-ink`, `--color-error-ink`, `--color-secondary-ink`; brand teal text stays `--color-primary`)
 - **Semantic hub** — `--color-authority` (institutional blue-grey, + `-rgb`/`-bg`), `--color-distinguish` (violet, differentiation), `--color-subdued` (warm neutral, + `-rgb`/`-bg`), `--hub-authority-blue`, `--color-editors-pick` (+ `-hover`)
 - **Text** — `--text-primary`, `--text-secondary`, `--text-muted`
 - **Surfaces** — `--bg-light`, `--bg-light-alt`, `--surface-*-bg` (faint/subtle/muted/panel/overlay/tint/veil/sheen/neutral/input)
@@ -170,7 +170,7 @@ unconditionally.
   primary-colour edge (top or left rule); `--shadow-*` are hairline definition, never a
   blurred drop shadow. Hover/active states change border colour, text colour and
   background — never `transform: scale()`, never blur.
-- **Focus ring recipe**: `outline: 2px solid var(--color-tertiary); outline-offset: 2px`
+- **Focus ring recipe**: `outline: 2px solid var(--color-primary); outline-offset: 2px`
   on `:focus-visible` (offset `0.25rem` on links, `-2px` on tabs). Never `outline: none`
   without a replacement.
 - **Type is one pinned monospace.** `--font-family-mono` resolves to `GST Mono`
