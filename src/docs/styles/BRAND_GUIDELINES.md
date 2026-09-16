@@ -84,9 +84,10 @@ The GST delta triangle icon is the primary brand mark. It appears as:
 
 ## Design Grid
 
-- **Checkerboard pattern**: 50px grid, rendered via `body::before` with `--checkerboard-line` color
-- Light theme: `rgba(0,0,0, 0.08)` — subtle dark lines on white
-- Dark theme: `rgba(255,255,255, 0.08)` — subtle light lines on dark
+- **Checkerboard pattern**: 50px grid, painted as two `linear-gradient` background images on `body` itself (not a pseudo-element) with `--checkerboard-line`
+- Light theme: `rgba(0,0,0, 0.032)` — subtle dark lines on white
+- Dark theme: `rgba(255,255,255, 0.032)` — subtle light lines on dark
+- **Consequence for accessibility testing**: because the backdrop is an image, axe-core cannot resolve an opaque background behind most text and reports its contrast as INCOMPLETE, not as a violation. A passing axe scan is therefore not evidence of passing contrast — see [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md)
 
 ---
 
@@ -241,6 +242,8 @@ Shared status colors for use across all tools and components. Derived from battl
 | `--color-error`   | `#d93636` | `#e05050` | Failures, negative KPIs, critical alerts                            |
 | `--color-info`    | `#05cd99` | `#05cd99` | Informational highlights (aliases `--color-primary`)                |
 
+**These are fill and border colours.** As text they fail AA on light surfaces; text uses the matching ink — `--color-success-ink`, `--color-warning-ink`, `--color-error-ink` (and `--color-secondary-ink`). Brand teal `--color-primary` is the exception and stays teal as text. See [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md).
+
 Tool-specific status variables (e.g. `--dm-success`, `--techpar-kpi-negative`) may reference these shared values for consistency, but existing tool palettes remain valid within their own scope.
 
 ---
@@ -295,6 +298,8 @@ All text and UI element pairings must meet WCAG 2.1 AA contrast minimums:
 | Normal text (< 18px or < 14px bold)                     | 4.5:1                  |
 | Large text (≥ 18px or ≥ 14px bold)                      | 3:1                    |
 | Non-text UI elements (borders, icons, focus indicators) | 3:1                    |
+
+**Fill versus ink ([ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md))**: brand and status colours are fill and border colours. Used as text on a light surface they fail AA — `--color-primary` 2.06:1, `--color-secondary`/`--color-warning` 2.96:1 — so text uses the `-ink` tokens. **Brand teal is exempt by decision**: `--color-primary` text, delta icons and focus rings stay teal, accepting 2.06:1 on light surfaces, because a darker substitute reads as a different brand colour. Inks are unchanged in dark theme. `tests/integration/ink-token-contrast.test.ts` guards every ink in all six palettes.
 
 **`--text-muted` usage**: Opacity is `0.65` in light theme and `0.6` in dark, yielding ~5.4:1 on `#ffffff` and ~4.7:1 on `#0a0a0a`. Both clear the 4.5:1 AA floor for normal text, but only just — so restrict `--text-muted` to large text (≥ 18px), labels, captions, placeholder text, and decorative/disabled elements. For sustained normal-sized body text, use `--text-secondary` or higher. The live per-theme ratios are rendered on `/brand` under Accessibility → Color Contrast Ratios.
 

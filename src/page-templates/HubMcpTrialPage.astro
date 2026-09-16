@@ -28,6 +28,10 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import DeltaIcon from '../components/DeltaIcon.astro';
+// The credential panel is a .brutal-panel (handoff § panel); its rules are
+// page-split into map.css and were never loaded here, so the panel rendered
+// unstyled until the site-wide orphan-class scan found it (BL-116).
+import '../styles/components/map.css';
 import { PUBLIC_TRIAL_SIGNUP_ORIGIN, PUBLIC_TURNSTILE_SITE_KEY } from 'astro:env/client';
 import type { Locale } from '../i18n/locales';
 import { localizedHref } from '../i18n/routes';
@@ -218,7 +222,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                 <span data-flow-block="m2m" hidden>{t('onceBodyIssued')}</span>
               </div>
 
-              <section class="brutal-panel cred-panel" aria-labelledby="cred-title">
+              <section class="brutal-panel" aria-labelledby="cred-title">
                 <div class="brutal-panel__header">
                   <h2 id="cred-title" class="brutal-panel__title cred-title" tabindex="-1">
                     {t('credTitle')}
@@ -308,7 +312,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                 </div>
               </section>
 
-              <div class="use-it" data-flow-block="connector">
+              <div data-flow-block="connector">
                 <p class="brutal-tool-shell__section-label">{t('cLabel')}</p>
                 <p class="brutal-text-small use-it__intro">{t('cIntro')}</p>
                 <div class="btn-row">
@@ -321,7 +325,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
                 <p class="brutal-text-tiny use-it__after">{t('cAfterExpiry')}</p>
               </div>
 
-              <div class="use-it" data-flow-block="m2m" hidden>
+              <div data-flow-block="m2m" hidden>
                 <p class="brutal-tool-shell__section-label">{t('connectLabel')}</p>
                 <p class="brutal-text-small use-it__intro">{t('connectIntro')}</p>
                 <div class="btn-row">
@@ -589,7 +593,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
   }
 
   .callout--once .brutal-callout__title {
-    color: var(--color-warning);
+    color: var(--color-warning-ink);
   }
 
   .callout--revoked {
@@ -597,7 +601,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
   }
 
   .callout--revoked .brutal-callout__title {
-    color: var(--color-error);
+    color: var(--color-error-ink);
   }
 
   .cred-title {
@@ -657,7 +661,7 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
 
   .cred-saved {
     margin: 0;
-    color: var(--color-warning);
+    color: var(--color-warning-ink);
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -665,7 +669,18 @@ const STATUS_HREF = 'https://status.mcp.globalstrategic.tech/';
 
   .cred-saved[data-saved-state='copied'],
   .cred-saved[data-saved-state='downloaded'] {
-    color: var(--color-success);
+    color: var(--color-success-ink);
+  }
+
+  /* "Copy key" is the page's one primary action. Brand teal stays, but as the
+     FILL with dark ink: teal text on its own tint is 1.83:1 (ADR-0035). */
+  .cred-footer .brutal-btn--primary {
+    background: var(--color-primary);
+    color: var(--text-light-primary);
+  }
+
+  .cred-footer .brutal-btn--primary:hover:not(:disabled) {
+    background: var(--color-primary-dark);
   }
 
   .btn-row {

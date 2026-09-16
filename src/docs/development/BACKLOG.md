@@ -543,6 +543,26 @@ Verified 2026-09-04 against Anthropic's own docs: remote MCP servers are submitt
 
 ## CSS and Design System
 
+### BL-162: Dark-theme contrast is never scanned
+
+**Source**: [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md), 2026-09-16 — found while fixing light-theme ink | **Effort**: Medium — the scan is small; triaging what it finds is the unknown | **Status**: Open
+
+**As a** reader using the site in dark theme, **I want** text contrast checked there too **so that** a dark-only failure cannot ship unseen.
+
+**What is known.** `tests/e2e/accessibility.test.ts` scans every route in LIGHT theme only; nothing in the E2E suite runs axe with `html.dark-theme` applied. ADR-0035's ink tokens are a no-op in dark (each dark half equals its base), so that change did not make dark worse — but dark contrast is simply unmeasured.
+
+**A trap already found.** A rendered probe built for ADR-0035 toggled `html.dark-theme` and scanned, and repeatedly read MIXED states — dark-theme text over light-theme surfaces (e.g. `.project-card` at `#ffffff` under `rgba(245,245,245,0.95)` text, 1.01:1) — while standalone checks of the same page showed the correct dark card (`#1a1a1a`) and axe reported nothing. Several explanations were disproven (palette class, media emulation, readiness, a root-level sentinel). Any dark scan must be validated against a known-correct element before its numbers are trusted; a real dark load via `localStorage.theme = 'dark'` plus navigation is the safer switch than a class toggle.
+
+**Also blind in light theme.** The body checkerboard is a background image, so axe reports most text contrast INCOMPLETE rather than failing it. Scanning dark theme inherits the same blindness.
+
+#### Acceptance Criteria
+
+- [ ] Dark-theme axe scans run on the `PAGES` routes, with the theme applied as a real page load, validated against one element whose dark colours are known
+- [ ] Findings are fixed or recorded with reasons; none are baselined without a reason
+- [ ] A decision on the checkerboard's INCOMPLETE blindness: accept it and rely on token guards, or make the scan able to see through it
+
+---
+
 ### BL-102: Regulatory map — how is the map exposed to assistive tech?
 
 **Source**: surfaced 2026-08-03 the moment `/hub/tools/regulatory-map/` joined the axe sweep (BL-096 AC3) | **Effort**: Small to change, gated on one design call | **Status**: Open — needs the ruling first
@@ -689,38 +709,13 @@ The stanza's ACs were written on the assumption that the mobile treatment would 
 - [x] The 10 remaining bare `primary` / `secondary` tokens are stripped (or deliberately defined — see below). Counted rather than estimated, as of 2026-08-08: `Hero.astro` (2), the three `hub/library/*` article pages, `hub/radar/`, three tool pages' back-links, and the IRL generator's submit button (`information-request-list-generator/index.astro:272`) — the one that is not a back-link. **Done 2026-08-09**: the inventory was exact — all 10 found where predicted, stripped, none defined.
   - **An 11th was found and fixed, outside the count**: [STYLES_REMEDIATION_ROADMAP.md § 7](../styles/STYLES_REMEDIATION_ROADMAP.md) carried `class="cta-button secondary"` inside a **prescriptive** template for future tool pages. The stanza only ever counted rendered markup, but a doc that tells the next author to write the phantom variant is the same defect one step upstream — and it would have regrown the count.
   - **Verified inert before deleting, not assumed**: no rule in `src/styles/**` or any Astro scoped `<style>` selects `.primary` / `.secondary`, and nothing in `tests/` selects them (the one hit is prose in a `brand-page.test.ts` docblock describing this exact debt). So the strip is provably a no-op on rendered appearance.
-  - **Not built**: a repo-wide every-class-has-a-rule guard — filed as [BL-116](#bl-116-site-wide-orphan-class-guard) rather than left in this stanza, which is on a prune path.
+  - **Not built here**: a repo-wide every-class-has-a-rule guard — filed as BL-116 and since built (2026-09-15): see [STYLES_GUIDE § The scoped-rule / foreign-element trap](../styles/STYLES_GUIDE.md#the-scoped-rule--foreign-element-trap) for where the orphan-class scan lives.
   - **A caption on `/brand` had to move with the markup.** `BrandComponents.astro`'s `.cta-button` code label read "the `primary` / `secondary` words **seen in page markup** are inert" — true when written, false the moment the last occurrence went. `/brand` is the in-repo control surface, so a caption keeping the phantom names alive in the present tense is the same defect the roadmap fix addressed, one step upstream. Reworded to the past tense.
 
 #### Technical Context
 
 - `buttons.css` defines exactly one CTA appearance (`.cta-button`); the bare `primary` / `secondary` tokens seen in `class="cta-button primary"` match no rule in the repo. The `/brand` specimens shed theirs 2026-07-29, and the 9 on the two hub gateway indexes went 2026-08-03.
 - **Stripping is mechanical and behaviour-free; _defining_ them is not** — `.cta-button.secondary` would restyle every "Back to …" link at once and needs a design decision first. Bare unnamespaced globals are also a collision hazard: prefer `.brutal-btn--primary` / `--secondary` when a real two-variant pair is wanted.
-
----
-
-### BL-116: Site-wide orphan-class guard
-
-**Source**: split out of [BL-114](#bl-114-strip-the-10-inert-primary--secondary-class-tokens) on its closure 2026-08-09 — the observation was written inside a stanza already marked CLOSED, where the next prune wave would have deleted it | **Effort**: Small-Medium — the guard is a port; the per-route JS-hook allowlist is the work | **Status**: Open
-
-**As a** developer reading page markup anywhere on the site, **I want** a class with no rule behind it to fail CI **so that** phantom variants are caught when written rather than by a live DOM audit three months later.
-
-**Why it is filed rather than done.** The same defect has now been found and hand-fixed **three times**: 28 orphan classes on `/brand` (2026-07-29, which also surfaced a live TechPar defect from the identical cause), the 9 on the two hub gateway indexes (BL-105, 2026-08-03), and BL-114's 10 across 8 page files plus a prescriptive doc template (2026-08-09). A defect class that recurs on that cadence is a guard's job, not an audit's.
-
-**Prior art to port, not re-derive**: `tests/e2e/brand-page.test.ts`'s "No orphan classes" check already does this for `/brand`, with an `ALLOWED_UNSTYLED` list for classes that are genuinely JS hooks. Adding to that list is deliberately an explicit act.
-
-#### Acceptance Criteria
-
-- [ ] Every class in the rendered DOM of each scanned route has a CSS rule behind it, or sits in a per-route allowlist with a stated reason
-- [ ] The allowlist follows `ALLOWED_UNSTYLED`'s posture — a JS-hook declaration, not a place to silence findings — and a stale entry fails the suite, per the `FLOOR_EXCEPTIONS` precedent from BL-096
-- [ ] Route coverage is stated, and whatever is excluded says why
-
-#### Technical Context
-
-- **Carry forward the existing guard's documented precision limit**: it counts a class as defined if the name appears in any selector anywhere, including as a descendant qualifier. A site-wide version inherits that, so it will not catch a class defined only under a parent it never actually sits inside.
-- **The inverse case recurs too, and this guard's shape will not see it** (recorded from BL-139's closure, 2026-08-18). A rule whose target element is rendered by a _different_ component is dead — Astro scopes by attribute, so a parent's rule compiles to its own `data-astro-cid-*` while the element carries the child's. An orphan-**class** scan passes it cleanly: the class exists and has rules, they just carry a cid the element will never have. BL-139 was two such piles across two components, one of them 230 lines. Worth deciding whether this guard covers rules-without-elements as well as classes-without-rules, or whether that is a separate check — the trap is now documented in [STYLES_GUIDE § Scoped vs. Global Styles](../styles/STYLES_GUIDE.md), but documentation is not a guard.
-- Scope question to settle first: reuse the axe route list from BL-096, or scan a narrower set. Those routes are already paid for as a Playwright fixture. Read the count from `PAGES` in `tests/e2e/accessibility.test.ts` rather than from here: it was 22 at BL-096 and 30 as of the Jobs lens.
-- **Count files, then count routes — they diverge.** BL-114's 10 tokens sat in 8 files, but one was `Hero.astro`, a shared component rendering on five routes (`index`, `about`, `services`, `404`, `500`). A file-count reading of that recurrence understates the reach, and this guard is scoped by route, not by file.
 
 ---
 
@@ -780,7 +775,7 @@ Verification: guard green across all new names (its first run on the extended Ca
 - Astro-scoped CSS ships as `[data-astro-cid-*]`-qualified rules with hashed attributes; the slice must carry the attribute-bearing markup and the matching rules together, or the card renders unstyled. Extract from the built page, not from `.astro` source.
 - `dark-probe.mjs` is the pattern for the palette probe (~10 lines of change); run it from the repo root after a full `package-build`.
 - The 32,000-char header limit is documented in the skill's `lib/emit.mjs` (`emitReadme`), not in this repo — cite it in NOTES.md so the next person doesn't rediscover it.
-- Related: [BL-116](#bl-116-site-wide-orphan-class-guard) (orphan classes on the site — the mirror-image guard: this item catches names the _docs_ use that CSS lacks; BL-116 catches names the _DOM_ uses that CSS lacks); [BL-020](#bl-020-design-system-package-extraction) (a packaged DS would make Slice 3 unnecessary — deferred, and this item does not wait on it).
+- Related: BL-116's orphan-class scan, built 2026-09-15 ([STYLES_GUIDE § The scoped-rule / foreign-element trap](../styles/STYLES_GUIDE.md#the-scoped-rule--foreign-element-trap)) — the mirror-image guard: this item catches names the _docs_ use that CSS lacks; that scan catches names the _DOM_ uses that CSS lacks; [BL-020](#bl-020-design-system-package-extraction) (a packaged DS would make Slice 3 unnecessary — deferred, and this item does not wait on it).
 
 ---
 

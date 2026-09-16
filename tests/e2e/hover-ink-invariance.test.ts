@@ -4,7 +4,7 @@
  *
  * The cascade hole this exists for is site-wide and silent. `global.css` sets
  *
- *   a       { color: var(--color-secondary) }
+ *   a       { color: var(--color-secondary-ink) }
  *   a:hover { color: var(--color-primary) }
  *
  * at specificity (0,1,1), which out-ranks any single-class rule at (0,1,0). So

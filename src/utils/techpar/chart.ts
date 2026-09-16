@@ -6,6 +6,7 @@ import {
   buildTrajectory,
   buildHistoricalTrajectory,
   zoneColorVar,
+  zoneInkVar,
   zoneBgVar,
   zoneLabel,
   kpiClass,
@@ -57,6 +58,8 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
       lastReportedZone = r.zone;
     }
     const zoneCol = getStyle(zoneColorVar(r.zone));
+    // Text ink for labels and figures; zoneCol stays the fill/stroke (ADR-0035).
+    const zoneInk = getStyle(zoneInkVar(r.zone));
     const zoneBg = getStyle(zoneBgVar(r.zone));
     const s = r.stageConfig;
     const gaapEl = document.querySelector('[data-input="gaapChk"]') as HTMLInputElement;
@@ -75,20 +78,20 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
         }
       }
       heroNum.innerHTML = heroText;
-      heroNum.style.color = zoneCol;
+      heroNum.style.color = zoneInk;
     }
 
     // Basis label
     const heroBasis = g('hero-basis');
     if (heroBasis) {
       heroBasis.textContent = isGAAP ? 'GAAP basis: R&D CapEx excluded' : 'Cash basis';
-      heroBasis.style.color = isGAAP ? getStyle('--color-warning') : '';
+      heroBasis.style.color = isGAAP ? getStyle('--color-warning-ink') : '';
     }
 
     // Zone pill
     const pillContainer = g('hero-zone-pill');
     if (pillContainer) {
-      pillContainer.innerHTML = `<div class="tp-zone-pill" style="border-color:${zoneCol};background:${zoneBg};color:${zoneCol}"><span class="tp-zone-dot" style="background:${zoneCol}"></span>${zoneLabel(r.zone)}</div>`;
+      pillContainer.innerHTML = `<div class="tp-zone-pill" style="border-color:${zoneCol};background:${zoneBg};color:${zoneInk}"><span class="tp-zone-dot" style="background:${zoneCol}"></span>${zoneLabel(r.zone)}</div>`;
     }
 
     // Benchmark bar
@@ -156,18 +159,18 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     const sigZone = g('sig-zone');
     if (sigZone) {
       sigZone.textContent = zoneLabel(r.zone);
-      sigZone.style.color = zoneCol;
+      sigZone.style.color = zoneInk;
     }
     const sigHead = g('sig-head');
     if (sigHead) {
       sigHead.textContent = copy?.headline || '';
-      sigHead.style.color = zoneCol;
+      sigHead.style.color = zoneInk;
     }
     const sigBody = g('sig-body');
     if (sigBody) sigBody.textContent = copy?.body || '';
     const sigMets = g('sig-mets');
     const sigDiv = g('sig-div');
-    const metricsHtml = buildMetrics(r, zoneCol, s);
+    const metricsHtml = buildMetrics(r, zoneInk, s);
     if (sigMets) sigMets.innerHTML = metricsHtml;
     if (sigDiv) sigDiv.style.display = metricsHtml ? '' : 'none';
 

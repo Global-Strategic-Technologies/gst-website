@@ -227,6 +227,14 @@ This is not the `/brand` replica drift documented above, and `:global()` is not 
 also **not** caught by an orphan-class scan, because the class does exist and does have rules —
 they just carry a cid the element will never have.
 
+The orphan-class scan itself (BL-116) runs on every route in `tests/e2e/accessibility.test.ts`
+via `tests/e2e/helpers/orphan-classes.ts`: a class in the rendered DOM with no selector naming it
+in any loaded stylesheet fails, unless a per-route `ALLOWED_UNSTYLED` entry names the script or
+test that selects it. It also catches the **unloaded-sheet** case — a `.brutal-*` block whose
+rules live in a page-split sheet (`map.css`, `progress.css`, …) the page never imports. Its first
+run found two of those (the MCP trial panel, the ICG progress bar) and 26 phantom BEM names.
+The foreign-element trap above remains guarded only by the unit test below.
+
 **Worked example (BL-139).** `.portfolio-filter-drawer`'s entire mobile treatment — roughly 270
 lines across `PortfolioHeader.astro` and `StickyControls.astro` — targeted an element rendered by
 `FilterDrawer.astro`. None of it had ever applied: at 375px the drawer computed
@@ -605,7 +613,7 @@ Use this pattern only for `::before`/`::after` pseudo-elements where an Astro co
 **Guidelines:**
 
 - Always prefer `DeltaIcon.astro` over `<img>` tags — `<img>` cannot inherit CSS colors
-- `.bullet-icon` and `.delta-icon` classes include `color: var(--color-primary)` for palette awareness
+- `.bullet-icon` and `.delta-icon` classes include `color: var(--color-primary)` for palette awareness — brand teal stays teal as ink by decision ([ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md))
 - The static SVG file (`public/images/logo/gst-delta-icon-teal-stroke-thick.svg`) has hardcoded teal — keep it for favicon, RSS, and external contexts only
 
 ---

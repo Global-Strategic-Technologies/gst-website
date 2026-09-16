@@ -566,7 +566,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
           <!-- CapEx toggle -->
           <label class="tp-capex-row" data-capex-row>
             <input type="checkbox" data-input="gaapChk" />
-            <span class="tp-capex-row__label brutal-text-small"
+            <span class="brutal-text-small"
               >GAAP view: remove R&D CapEx from total (as capitalized on income statement)</span
             >
           </label>
@@ -1256,7 +1256,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   .tp-toolbar__reset--confirming {
-    color: var(--color-error);
+    color: var(--color-error-ink);
     border-left-color: var(--color-error);
     background: color-mix(in srgb, var(--color-error) 8%, transparent);
     animation: tp-confirm-pulse 0.3s ease-out;
@@ -1430,7 +1430,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   .tp-baseline-bar__clear:hover {
-    color: var(--color-warning);
+    color: var(--color-warning-ink);
   }
 
   .tp-delta {
@@ -1445,7 +1445,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   .tp-delta--worsen {
-    color: var(--color-warning);
+    color: var(--color-warning-ink);
   }
 
   .tp-cross-link {
@@ -2005,10 +2005,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     color: var(--color-primary);
   }
   .tp-kpi-grid :global(.tp-kpi-val--warn) {
-    color: var(--color-warning);
+    color: var(--color-warning-ink);
   }
   .tp-kpi-grid :global(.tp-kpi-val--bad) {
-    color: var(--color-error);
+    color: var(--color-error-ink);
   }
 
   .tp-kpi-grid :global(.tp-kpi-sub) {
@@ -2232,7 +2232,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   }
 
   .tp-historical__body :global(.tp-hist-remove:hover) {
-    color: var(--color-error);
+    color: var(--color-error-ink);
     border-color: var(--color-error);
   }
 

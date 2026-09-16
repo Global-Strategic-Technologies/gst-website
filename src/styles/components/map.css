@@ -65,7 +65,7 @@ Brutalist Map CTA
 }
 
 .brutal-map-cta__icon {
-  color: var(--color-secondary);
+  color: var(--color-secondary-ink);
   flex-shrink: 0;
 }
 

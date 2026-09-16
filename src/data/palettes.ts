@@ -73,6 +73,18 @@ export const TOKEN_TIPS: Record<string, string> = {
     'Institutional credibility \u2014 hub authority line, DM results, TechPar personnel',
   '--color-distinguish': 'Differentiation accent \u2014 RegMap industry, TechPar R&D OpEx',
   '--color-subdued': 'Muted neutral \u2014 DM methodology, process/background contexts',
+  '--color-secondary-ink':
+    'Secondary as TEXT \u2014 link ink; base secondary is 2.96:1 on white (ADR-0035)',
+  '--color-warning-ink':
+    'Warning as TEXT \u2014 status labels; base warning fails AA as text (ADR-0035)',
+  '--color-success-ink': 'Success as TEXT \u2014 positive labels and figures (ADR-0035)',
+  '--color-error-ink':
+    'Error as TEXT \u2014 error labels; base error is 4.25:1 on #f5f5f5 (ADR-0035)',
+  '--color-authority-ink': 'Authority as TEXT (ADR-0035)',
+  '--color-distinguish-ink': 'Distinguish as TEXT (ADR-0035)',
+  '--color-subdued-ink': 'Subdued as TEXT (ADR-0035)',
+  '--color-editors-pick-ink':
+    "Editor's Pick as TEXT; root-only, no palette re-points it (ADR-0035)",
   '--techpar-zone-healthy': 'TechPar: within benchmark range. Derives from --color-primary',
   '--techpar-zone-ahead': 'TechPar: spending below benchmark. Derives from --color-success',
   '--techpar-zone-underinvest': 'TechPar: potential underinvestment. Derives from --color-warning',

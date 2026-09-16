@@ -58,7 +58,7 @@ Two rules cover almost everything:
 
 - **Brand** — `--color-primary` (teal `#05cd99`), `--color-secondary`, `--color-tertiary`, `-dark` variants; `--color-primary-rgb` (triplet for `rgba()`)
 - **Primary tints** — `--color-primary-02` … `--color-primary-65` (opacity scale)
-- **Status** — `--color-success`, `--color-warning`, `--color-error`, `--color-info`
+- **Status** — `--color-success`, `--color-warning`, `--color-error`, `--color-info` (FILLS; text uses `-ink`: `--color-success-ink`, `--color-warning-ink`, `--color-error-ink`, `--color-secondary-ink`; brand teal text stays `--color-primary`)
 - **Semantic hub** — `--color-authority` (institutional blue-grey, + `-rgb`/`-bg`), `--color-distinguish` (violet, differentiation), `--color-subdued` (warm neutral, + `-rgb`/`-bg`), `--hub-authority-blue`, `--color-editors-pick` (+ `-hover`)
 - **Text** — `--text-primary`, `--text-secondary`, `--text-muted`
 - **Surfaces** — `--bg-light`, `--bg-light-alt`, `--surface-*-bg` (faint/subtle/muted/panel/overlay/tint/veil/sheen/neutral/input)

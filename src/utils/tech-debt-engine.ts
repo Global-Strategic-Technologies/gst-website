@@ -340,8 +340,9 @@ export interface BurdenLevel {
 export function burdenClassify(pct: number): BurdenLevel {
   if (pct < 10) return { text: 'Well-managed', range: '< 10%', color: 'var(--color-primary)' };
   if (pct < 15) return { text: 'Acceptable', range: '10–15%', color: 'var(--color-primary)' };
-  if (pct < 25) return { text: 'Yellow flag', range: '15–25%', color: 'var(--color-secondary)' };
-  if (pct < 40) return { text: 'Red flag', range: '25–40%', color: '#d93636' };
+  if (pct < 25)
+    return { text: 'Yellow flag', range: '15–25%', color: 'var(--color-secondary-ink)' };
+  if (pct < 40) return { text: 'Red flag', range: '25–40%', color: 'var(--color-error-ink)' };
   return { text: 'Deal risk', range: '40%+', color: '#b82e2e' };
 }
 

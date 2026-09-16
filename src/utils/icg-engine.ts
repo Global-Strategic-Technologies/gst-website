@@ -54,6 +54,9 @@ export interface ICGResult {
   overallScore: number;
   maturityLevel: 'Reactive' | 'Aware' | 'Optimizing' | 'Strategic';
   maturityColor: string;
+  /** Text ink for the maturity level (ADR-0035). `maturityColor` stays the FILL
+   *  (gauge arc, domain bars); status colours fail AA as text on light surfaces. */
+  maturityInk: string;
   domainScores: DomainScore[];
   showFoundationalFlag: boolean;
   recommendations: EnrichedRecommendation[];
@@ -92,14 +95,18 @@ export const FOUNDATIONAL_THRESHOLD = 33;
 
 export function getMaturityLevel(score: number): {
   level: ICGResult['maturityLevel'];
+  /** FILL colour — gauge arc and domain bars. */
   color: string;
+  /** TEXT ink — the base colours fail AA as text on light surfaces (ADR-0035). */
+  ink: string;
 } {
   if (score <= MATURITY_THRESHOLDS.reactive)
-    return { level: 'Reactive', color: 'var(--color-error)' };
-  if (score <= MATURITY_THRESHOLDS.aware) return { level: 'Aware', color: 'var(--color-warning)' };
+    return { level: 'Reactive', color: 'var(--color-error)', ink: 'var(--color-error-ink)' };
+  if (score <= MATURITY_THRESHOLDS.aware)
+    return { level: 'Aware', color: 'var(--color-warning)', ink: 'var(--color-warning-ink)' };
   if (score <= MATURITY_THRESHOLDS.optimizing)
-    return { level: 'Optimizing', color: 'var(--color-success)' };
-  return { level: 'Strategic', color: 'var(--color-primary)' };
+    return { level: 'Optimizing', color: 'var(--color-success)', ink: 'var(--color-success-ink)' };
+  return { level: 'Strategic', color: 'var(--color-primary)', ink: 'var(--color-primary)' };
 }
 
 // ─── Foundational flag ──────────────────────────────────────────────────────
@@ -189,13 +196,18 @@ export function calculateResults(state: ICGState, domains: readonly Domain[]): I
   }, 0);
   const overallScore = Math.round(weightedSum / totalWeight);
 
-  const { level: maturityLevel, color: maturityColor } = getMaturityLevel(overallScore);
+  const {
+    level: maturityLevel,
+    color: maturityColor,
+    ink: maturityInk,
+  } = getMaturityLevel(overallScore);
   const showFoundationalFlag = checkFoundationalFlag(domainScores);
 
   return {
     overallScore,
     maturityLevel,
     maturityColor,
+    maturityInk,
     domainScores,
     showFoundationalFlag,
     recommendations: [], // populated separately via getRecommendations

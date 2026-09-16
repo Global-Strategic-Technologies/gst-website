@@ -60,7 +60,7 @@ Brutalist Bench Table
 
 .brutal-bench-table__label--stage {
   background: transparent;
-  color: var(--color-authority);
+  color: var(--color-authority-ink);
   border: 1px solid var(--color-authority);
 }
 

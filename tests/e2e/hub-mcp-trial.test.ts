@@ -207,6 +207,10 @@ test.describe('MCP trial signup — code flow', () => {
     expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
 
+    // Hover and the transient "Copied" feedback both ink the buttons brand teal,
+    // accepted below AA as text (ADR-0035). Scan the resting state.
+    await page.mouse.move(0, 0);
+    await expect(page.locator('.brutal-btn--copied')).toHaveCount(0);
     const violations = await checkA11y(page);
     expect(violations.critical, formatViolations(violations.critical)).toHaveLength(0);
     expect(violations.serious, formatViolations(violations.serious)).toHaveLength(0);

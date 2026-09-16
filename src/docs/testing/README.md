@@ -29,7 +29,7 @@ Complete reference for testing setup and continuous integration on the GST Websi
 - **Total Tests**: 939+ unit/integration (Vitest) + E2E (Playwright, Chromium default)
 - **Coverage Target**: 70%+ (threshold enforced via vitest config)
 - **CI/CD**: GitHub Actions (`test.yml`) on push/PR to master
-- **Accessibility**: `npm run test:a11y` — axe-core scan with ratchet
+- **Accessibility**: `npm run test:a11y` — axe-core scan with ratchet, plus the orphan-class scan (BL-116: every DOM class needs a CSS rule or a reasoned `ALLOWED_UNSTYLED` entry)
 
 ## Common Commands
 

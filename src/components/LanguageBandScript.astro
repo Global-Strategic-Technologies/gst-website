@@ -1,7 +1,7 @@
 ---
 /**
  * The first-visit band's inline script, in its own file so LanguageBand.astro
- * can render it conditionally: prettier's Astro parser rejects a `<script>`
+ * can render it conditionally: prettier's Astro parser rejects a script tag
  * inside a `{cond && (…)}` expression, and a top-level script would ship on
  * every page — including production, where no band renders at all.
  *

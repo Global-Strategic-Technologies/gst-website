@@ -111,6 +111,23 @@ export function zoneColorVar(zone: Zone): string {
   return `--techpar-zone-${zone}`;
 }
 
+/**
+ * TEXT ink for a zone (ADR-0035). `zoneColorVar` is a FILL/STROKE colour — the
+ * benchmark bar, chart lines, legend swatches — and the base status colours fail
+ * AA as text on light surfaces, so labels and figures use this instead.
+ */
+export function zoneInkVar(zone: Zone): string {
+  const ink: Record<Zone, string> = {
+    underinvest: '--color-warning-ink',
+    ahead: '--color-success-ink',
+    healthy: '--color-primary',
+    above: '--color-warning-ink',
+    elevated: '--color-error-ink',
+    critical: '--color-error-ink',
+  };
+  return ink[zone];
+}
+
 export function zoneBgVar(zone: Zone): string {
   return `--techpar-zone-${zone}-bg`;
 }
