@@ -65,6 +65,9 @@ describe('mcp-server generated bundles', () => {
     const result = spawnSync(process.execPath, [CODEGEN, '--check'], {
       cwd: REPO_ROOT,
       encoding: 'utf-8',
+      // A hung child would otherwise block the worker indefinitely: spawnSync
+      // is synchronous, so vitest's own test timeout can never fire.
+      timeout: 30_000,
     });
 
     // stdout AND stderr. Drift is printed to stderr by --check, but the
