@@ -612,6 +612,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     const transform = zoomIdentity.translate(view.x, view.y).scale(view.k);
     svg.transition().duration(500).call(zoomBehavior.transform, transform);
 
+    // A reset is not a region zoom; counting it would inflate rm_region_zoom.
+    if (region === 'world') return;
     trackEvent({
       event: 'rm_region_zoom',
       category: 'tool',
