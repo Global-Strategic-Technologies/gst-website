@@ -370,7 +370,7 @@ Brutalist Field
 }
 
 .brutal-field__hint--warn {
-  color: var(--color-warning);
+  color: var(--color-warning-ink);
 }
 
 /* ==============================
@@ -513,6 +513,6 @@ Brutalist Slider
 .brutal-slider__clamp-msg {
   display: block;
   text-align: center;
-  color: var(--color-warning);
+  color: var(--color-warning-ink);
   margin-top: var(--spacing-xs);
 }

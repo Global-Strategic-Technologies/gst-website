@@ -106,6 +106,28 @@ describe('getMaturityLevel', () => {
   it('uses var(--color-primary) for Strategic', () => {
     expect(getMaturityLevel(100).color).toBe('var(--color-primary)');
   });
+
+  it('pairs every fill colour with a text ink (ADR-0035)', () => {
+    // `color` paints the gauge arc and domain bars; `ink` is what the level label
+    // and scores are written in. Base status colours fail AA as text on light
+    // surfaces, so the two must never be the same token.
+    expect(getMaturityLevel(10)).toMatchObject({
+      color: 'var(--color-error)',
+      ink: 'var(--color-error-ink)',
+    });
+    expect(getMaturityLevel(40)).toMatchObject({
+      color: 'var(--color-warning)',
+      ink: 'var(--color-warning-ink)',
+    });
+    expect(getMaturityLevel(60)).toMatchObject({
+      color: 'var(--color-success)',
+      ink: 'var(--color-success-ink)',
+    });
+    expect(getMaturityLevel(100)).toMatchObject({
+      color: 'var(--color-primary)',
+      ink: 'var(--color-tertiary)',
+    });
+  });
 });
 
 // ─── checkFoundationalFlag ───────────────────────────────────────────────────

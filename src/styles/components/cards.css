@@ -218,7 +218,7 @@ Brutalist Editor's Pick Tag
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-editors-pick);
+  color: var(--color-editors-pick-ink);
   border: 2px solid var(--color-editors-pick);
   padding: 0.125rem var(--spacing-sm);
 }
@@ -456,7 +456,7 @@ Brutalist Rec Card
 }
 
 .brutal-rec-card__badge--effort {
-  color: var(--color-authority);
+  color: var(--color-authority-ink);
   border-color: var(--color-authority);
 }
 

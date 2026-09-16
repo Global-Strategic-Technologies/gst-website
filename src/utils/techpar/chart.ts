@@ -6,6 +6,7 @@ import {
   buildTrajectory,
   buildHistoricalTrajectory,
   zoneColorVar,
+  zoneInkVar,
   zoneBgVar,
   zoneLabel,
   kpiClass,
@@ -57,6 +58,8 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
       lastReportedZone = r.zone;
     }
     const zoneCol = getStyle(zoneColorVar(r.zone));
+    // Text ink for labels and figures; zoneCol stays the fill/stroke (ADR-0035).
+    const zoneInk = getStyle(zoneInkVar(r.zone));
     const zoneBg = getStyle(zoneBgVar(r.zone));
     const s = r.stageConfig;
     const gaapEl = document.querySelector('[data-input="gaapChk"]') as HTMLInputElement;
@@ -75,20 +78,20 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
         }
       }
       heroNum.innerHTML = heroText;
-      heroNum.style.color = zoneCol;
+      heroNum.style.color = zoneInk;
     }
 
     // Basis label
     const heroBasis = g('hero-basis');
     if (heroBasis) {
       heroBasis.textContent = isGAAP ? 'GAAP basis: R&D CapEx excluded' : 'Cash basis';
-      heroBasis.style.color = isGAAP ? getStyle('--color-warning') : '';
+      heroBasis.style.color = isGAAP ? getStyle('--color-warning-ink') : '';
     }
 
     // Zone pill
     const pillContainer = g('hero-zone-pill');
     if (pillContainer) {
-      pillContainer.innerHTML = `<div class="tp-zone-pill" style="border-color:${zoneCol};background:${zoneBg};color:${zoneCol}"><span class="tp-zone-dot" style="background:${zoneCol}"></span>${zoneLabel(r.zone)}</div>`;
+      pillContainer.innerHTML = `<div class="tp-zone-pill" style="border-color:${zoneCol};background:${zoneBg};color:${zoneInk}"><span class="tp-zone-dot" style="background:${zoneCol}"></span>${zoneLabel(r.zone)}</div>`;
     }
 
     // Benchmark bar
@@ -156,18 +159,18 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
     const sigZone = g('sig-zone');
     if (sigZone) {
       sigZone.textContent = zoneLabel(r.zone);
-      sigZone.style.color = zoneCol;
+      sigZone.style.color = zoneInk;
     }
     const sigHead = g('sig-head');
     if (sigHead) {
       sigHead.textContent = copy?.headline || '';
-      sigHead.style.color = zoneCol;
+      sigHead.style.color = zoneInk;
     }
     const sigBody = g('sig-body');
     if (sigBody) sigBody.textContent = copy?.body || '';
     const sigMets = g('sig-mets');
     const sigDiv = g('sig-div');
-    const metricsHtml = buildMetrics(r, zoneCol, s);
+    const metricsHtml = buildMetrics(r, zoneInk, s);
     if (sigMets) sigMets.innerHTML = metricsHtml;
     if (sigDiv) sigDiv.style.display = metricsHtml ? '' : 'none';
 
@@ -367,7 +370,7 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
         const excessPct = (r.totalTechPct - s.zones.hi).toFixed(1);
         const annualDrag = (buildInputs()!.arr * (r.totalTechPct - s.zones.hi)) / 100;
         const exitDrag = annualDrag * exitMult;
-        ctxBlock.innerHTML = `You are <strong style="color:var(--text-light-primary)">${excessPct}%</strong> above the ${s.zones.hi}% ceiling — <strong style="color:var(--color-primary)">${fmtD(annualDrag)}</strong> in annual excess spend. At a ${exitMult}&times; revenue multiple that represents <strong style="color:var(--color-primary)">${fmtD(exitDrag)}</strong> in recoverable exit value. Identify the highest-cost categories above and prioritise optimisation there first.`;
+        ctxBlock.innerHTML = `You are <strong style="color:var(--text-light-primary)">${excessPct}%</strong> above the ${s.zones.hi}% ceiling — <strong style="color:var(--color-tertiary)">${fmtD(annualDrag)}</strong> in annual excess spend. At a ${exitMult}&times; revenue multiple that represents <strong style="color:var(--color-tertiary)">${fmtD(exitDrag)}</strong> in recoverable exit value. Identify the highest-cost categories above and prioritise optimisation there first.`;
       } else if (isUnder) {
         const floorPct = s.zones.lo;
         const annualGap = (buildInputs()!.arr * (floorPct - r.totalTechPct)) / 100;
@@ -399,7 +402,7 @@ export function buildMetrics(r: TechParResult, col: string, s: StageConfig): str
     if (s.frame === 'dollars') {
       const exitMult = getInput('exitMult') || 12;
       h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm)"><div class="tp-sig-mlbl">Hold-period exit impact at ${exitMult}&times;</div>
-                <div class="tp-sig-mval" style="color:var(--color-primary)">${fmtD(r.gap.exitValue)}</div>
+                <div class="tp-sig-mval" style="color:var(--color-tertiary)">${fmtD(r.gap.exitValue)}</div>
                 <div class="tp-sig-msub">cumulative drag over 36-month hold</div></div>`;
     } else {
       h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm);padding-top:var(--spacing-sm);border-top:1px solid var(--border-light)">

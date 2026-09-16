@@ -1500,7 +1500,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
     el('ctx-engs-lost').textContent = engsLost + ' FTEs';
     el('ctx-engs-lost').style.color =
-      state.maintPct >= 35 ? 'var(--color-secondary)' : 'var(--color-primary)';
+      state.maintPct >= 35 ? 'var(--color-secondary-ink)' : 'var(--color-tertiary)';
     el('ctx-burden-label').textContent = burden.text;
     el('ctx-burden-label').style.color = burden.color;
     el('ctx-burden-range').textContent = burden.range;
@@ -1508,7 +1508,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     el('ctx-note').textContent = contextNote(state.maintPct, fmtShortC(result.annualCost));
 
     getMetric('annual-cost').style.color =
-      state.maintPct >= 35 ? 'var(--color-secondary)' : 'var(--color-primary)';
+      state.maintPct >= 35 ? 'var(--color-secondary-ink)' : 'var(--color-tertiary)';
   }
 
   function renderAdvancedPanel(state: CalcState, result: CalcResult): void {
@@ -1533,10 +1533,10 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       getMetric('debt-pct-arr').textContent = result.debtPctArr.toFixed(1) + '%';
 
       getMetric('velocity').style.color =
-        result.V <= 1.0 ? 'var(--color-primary)' : 'var(--color-secondary)';
+        result.V <= 1.0 ? 'var(--color-tertiary)' : 'var(--color-secondary-ink)';
       getMetric('debt-pct-arr').style.color =
-        result.debtPctArr < 5 ? 'var(--color-primary)' : 'var(--color-secondary)';
-      getMetric('incident-labor').style.color = 'var(--color-secondary)';
+        result.debtPctArr < 5 ? 'var(--color-tertiary)' : 'var(--color-secondary-ink)';
+      getMetric('incident-labor').style.color = 'var(--color-secondary-ink)';
       getMetric('direct-labor').style.color = '';
 
       const ctxSwitchStat = document.getElementById('ctx-switch-stat');
@@ -1545,12 +1545,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       }
       getMetric('context-switch').textContent = fmtShortC(result.contextSwitchMonthly) + '/mo';
       getMetric('context-switch').style.color = state.contextSwitchOn
-        ? 'var(--color-secondary)'
+        ? 'var(--color-secondary-ink)'
         : '';
 
       el('payback-breakeven').textContent = fmtPayback(result.paybackMonths);
       el('payback-breakeven').style.color =
-        result.paybackMonths < 24 ? 'var(--color-primary)' : 'var(--color-secondary)';
+        result.paybackMonths < 24 ? 'var(--color-tertiary)' : 'var(--color-secondary-ink)';
       el('payback-savings').textContent = fmtShortC(result.monthlySavings);
       el('payback-disclaimer').textContent =
         `Remediation efficiency: ${state.remediationPct}% · Budget: ${fmtC(state.remediationBudget)}`;
@@ -1569,11 +1569,11 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     if (state.deployIdx >= 6) {
       doraEl.textContent =
         'DORA Low tier: constrained velocity signals debt is likely the rate-limiting factor';
-      doraEl.style.color = 'var(--color-secondary)';
+      doraEl.style.color = 'var(--color-secondary-ink)';
     } else if (state.deployIdx >= 4) {
       doraEl.textContent =
         'DORA Medium tier: deployment lag suggests debt friction is dampening throughput';
-      doraEl.style.color = 'var(--color-secondary)';
+      doraEl.style.color = 'var(--color-secondary-ink)';
     } else {
       doraEl.textContent = '';
       doraEl.style.color = '';

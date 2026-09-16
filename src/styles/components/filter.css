@@ -305,17 +305,17 @@ Brutalist Filter Chips
 
 .brutal-filter-chip--ai:hover {
   border-color: var(--color-secondary);
-  color: var(--color-secondary);
+  color: var(--color-secondary-ink);
 }
 
 .brutal-filter-chip--industry:hover {
   border-color: var(--color-distinguish);
-  color: var(--color-distinguish);
+  color: var(--color-distinguish-ink);
 }
 
 .brutal-filter-chip--cyber:hover {
   border-color: var(--color-error);
-  color: var(--color-error);
+  color: var(--color-error-ink);
 }
 
 .brutal-filter-chip--all.brutal-filter-chip--active,
@@ -327,19 +327,19 @@ Brutalist Filter Chips
 
 .brutal-filter-chip--ai.brutal-filter-chip--active {
   background: transparent;
-  color: var(--color-secondary);
+  color: var(--color-secondary-ink);
   border-color: var(--color-secondary);
 }
 
 .brutal-filter-chip--industry.brutal-filter-chip--active {
   background: transparent;
-  color: var(--color-distinguish);
+  color: var(--color-distinguish-ink);
   border-color: var(--color-distinguish);
 }
 
 .brutal-filter-chip--cyber.brutal-filter-chip--active {
   background: transparent;
-  color: var(--color-error);
+  color: var(--color-error-ink);
   border-color: var(--color-error);
 }
 
@@ -588,19 +588,19 @@ Brutalist Search
 
 .brutal-search__category--ai {
   background: var(--accent-light-bg);
-  color: var(--color-secondary);
+  color: var(--color-secondary-ink);
   border-color: var(--color-secondary);
 }
 
 .brutal-search__category--industry {
   background: transparent;
-  color: var(--color-distinguish);
+  color: var(--color-distinguish-ink);
   border-color: var(--color-distinguish);
 }
 
 .brutal-search__category--cyber {
   background: transparent;
-  color: var(--color-error);
+  color: var(--color-error-ink);
   border-color: var(--color-error);
 }
 

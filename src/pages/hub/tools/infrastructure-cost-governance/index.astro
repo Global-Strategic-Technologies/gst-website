@@ -806,7 +806,7 @@ const domainCount = DOMAINS.length;
   }
 
   .icg-foundational-warning__text {
-    color: var(--color-secondary);
+    color: var(--color-secondary-ink);
     line-height: 1.55;
   }
 
@@ -899,7 +899,7 @@ const domainCount = DOMAINS.length;
   }
 
   :global(.icg-snapshot-row__delete:hover) {
-    color: var(--color-error);
+    color: var(--color-error-ink);
   }
 
   .icg-snapshot-clear {
@@ -947,7 +947,7 @@ const domainCount = DOMAINS.length;
   }
 
   :global(.icg-delta--negative) {
-    color: var(--color-error);
+    color: var(--color-error-ink);
   }
 
   :global(.icg-delta--neutral) {
@@ -1642,7 +1642,7 @@ const domainCount = DOMAINS.length;
     // Level and description
     const levelEl = qs<HTMLElement>('[data-score-level]');
     levelEl.textContent = result.maturityLevel;
-    levelEl.style.color = result.maturityColor;
+    levelEl.style.color = result.maturityInk;
     qs<HTMLElement>('[data-score-desc]').textContent = maturityDescription(result.overallScore);
 
     // Stage context
@@ -1688,7 +1688,7 @@ const domainCount = DOMAINS.length;
     const barsContainer = qs<HTMLElement>('[data-domain-bars]');
     barsContainer.innerHTML = result.domainScores
       .map((ds) => {
-        const { color } = getMaturityLevel(ds.score);
+        const { color, ink } = getMaturityLevel(ds.score);
         const { level } = getMaturityLevel(ds.score);
         const recCount = recCountByDomain[ds.domainId] || 0;
         const recBadge =
@@ -1704,7 +1704,7 @@ const domainCount = DOMAINS.length;
       <div class="icg-domain-bar"${hasLink ? ` data-domain-link="${ds.domainId}"` : ''}>
         <div class="icg-domain-bar__header">
           <span class="icg-domain-bar__name">${ds.name}</span>
-          <span class="icg-domain-bar__score" style="color:${color}">${ds.score} <span class="icg-domain-bar__maturity">${level}</span>${recBadge}${skippedBadge}</span>
+          <span class="icg-domain-bar__score" style="color:${ink}">${ds.score} <span class="icg-domain-bar__maturity">${level}</span>${recBadge}${skippedBadge}</span>
         </div>
         <div class="icg-domain-bar__track">
           <div class="icg-domain-bar__fill" style="width:${ds.score}%;background:${color}"></div>

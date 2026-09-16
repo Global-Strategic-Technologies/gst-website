@@ -168,12 +168,14 @@ test.describe('Tech Debt Calculator', () => {
       await setSlider(page, 'input-maint-pct', 5);
       expect(await getById(page, 'ctx-burden-label')).toContain('Well-managed');
       const lowStyle = await page.locator('[data-metric="annual-cost"]').getAttribute('style');
-      expect(lowStyle).toContain('--color-primary');
+      // Ink tokens, not the fill colours (ADR-0035): primary and secondary fail
+      // AA as text on light surfaces.
+      expect(lowStyle).toContain('--color-tertiary');
 
       // High burden (≥ 35%) — amber
       await setSlider(page, 'input-maint-pct', 50);
       const highStyle = await page.locator('[data-metric="annual-cost"]').getAttribute('style');
-      expect(highStyle).toContain('--color-secondary');
+      expect(highStyle).toContain('--color-secondary-ink');
 
       // Deal risk (40%+)
       await setSlider(page, 'input-maint-pct', 80);

@@ -1069,7 +1069,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
                             <svg class="delta-chevron" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 12 L52 52 L12 52 Z" fill="none" stroke="currentColor" stroke-width="6" stroke-linejoin="miter"/></svg>
                         </div>
                         <div class="doc-attention-divider"></div>
-                        <p class="doc-attention-desc">${escapeHtml(area.description)}${area.id === 'attention-tech-debt' ? ' <a href="/hub/tools/tech-debt-calculator/" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary);text-decoration:underline;">Quantify it with the Tech Debt Cost Calculator →</a>' : ''}${['attention-high-scale-architecture', 'attention-multi-infra-cost'].includes(area.id) ? ' <a href="/hub/tools/infrastructure-cost-governance/" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary);text-decoration:underline;">Assess cost governance maturity with ICG →</a>' : ''}</p>
+                        <p class="doc-attention-desc">${escapeHtml(area.description)}${area.id === 'attention-tech-debt' ? ' <a href="/hub/tools/tech-debt-calculator/" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary-ink);text-decoration:underline;">Quantify it with the Tech Debt Cost Calculator →</a>' : ''}${['attention-high-scale-architecture', 'attention-multi-infra-cost'].includes(area.id) ? ' <a href="/hub/tools/infrastructure-cost-governance/" target="_blank" rel="noopener noreferrer" style="color:var(--color-secondary-ink);text-decoration:underline;">Assess cost governance maturity with ICG →</a>' : ''}</p>
                     </div>
                 `
         )
@@ -2085,7 +2085,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     font-weight: var(--font-weight-bold);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: var(--color-secondary);
+    color: var(--color-secondary-ink);
     margin: 0 0 var(--spacing-lg) 0;
   }
 
@@ -2429,7 +2429,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     font-family: var(--font-family-mono);
     font-size: var(--text-xl);
     font-weight: var(--font-weight-bold);
-    color: var(--color-secondary);
+    color: var(--color-secondary-ink);
     margin: 0 0 var(--spacing-xs) 0;
   }
 
@@ -2508,12 +2508,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   .doc-topics :global(.priority-high .doc-q-priority) {
     background: var(--color-authority-bg);
-    color: var(--color-authority);
+    color: var(--color-authority-ink);
   }
 
   .doc-topics :global(.priority-medium .doc-q-priority) {
     background: var(--color-subdued-bg);
-    color: var(--color-subdued);
+    color: var(--color-subdued-ink);
   }
 
   .doc-topics :global(.priority-standard .doc-q-priority) {
@@ -2580,22 +2580,22 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
   .doc-topics :global(.exit-impact-multiple-expander) {
     background: color-mix(in srgb, var(--color-success) 12%, transparent);
-    color: var(--color-success);
+    color: var(--color-success-ink);
   }
 
   .doc-topics :global(.exit-impact-valuation-drag) {
     background: color-mix(in srgb, var(--color-warning) 12%, transparent);
-    color: var(--color-warning);
+    color: var(--color-warning-ink);
   }
 
   .doc-topics :global(.exit-impact-operational-risk) {
     background: color-mix(in srgb, var(--color-error) 12%, transparent);
-    color: var(--color-error);
+    color: var(--color-error-ink);
   }
 
   .doc-topics :global(.doc-q-red-flag) {
     font-size: var(--text-sm);
-    color: var(--color-error);
+    color: var(--color-error-ink);
     line-height: 1.6;
     margin: 0 0 var(--spacing-sm) 0;
     padding: var(--spacing-xs) var(--spacing-sm);
@@ -3119,7 +3119,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       font-size: 16px;
       font-weight: var(--font-weight-bold);
       margin: 0 0 2px;
-      color: var(--color-secondary);
+      color: var(--color-secondary-ink);
       page-break-after: avoid;
     }
 
@@ -3274,17 +3274,17 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
     .doc-topics :global(.exit-impact-multiple-expander) {
       background: rgba(46, 139, 87, 0.15);
-      color: var(--color-success);
+      color: var(--color-success-ink);
     }
 
     .doc-topics :global(.exit-impact-valuation-drag) {
       background: rgba(178, 102, 34, 0.15);
-      color: var(--color-editors-pick);
+      color: var(--color-editors-pick-ink);
     }
 
     .doc-topics :global(.exit-impact-operational-risk) {
       background: rgba(178, 34, 34, 0.15);
-      color: var(--color-error);
+      color: var(--color-error-ink);
     }
 
     /* v2: Red flag signals */
@@ -3293,7 +3293,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
       line-height: 1.3;
       margin: 0 0 2px;
       padding: 2px 6px;
-      color: var(--color-error);
+      color: var(--color-error-ink);
       background: rgba(178, 34, 34, 0.05);
       border-left: 2px solid rgba(178, 34, 34, 0.3);
       page-break-after: avoid;
