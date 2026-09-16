@@ -42,11 +42,15 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   - **Fixes:** every non-teal finding was fixed at source: opacity-faded text, the dark portfolio metric labels, colour-only links, and disabled-state buttons.
 >   - **Brand-teal ruling, final:** below-AA teal text (`--color-primary`) is WORKING AS INTENDED ([ADR-0035 § 1](../adr/0035-ink-tokens-for-text-on-light-surfaces.md)). `checkA11y` exempts it by computed colour, never by selector or node count, so a new teal element can never fail the suite. An instrument test proves a near-teal still fails. **Do not re-open this as a contrast finding.**
 >   - **Live content:** [TEST_STRATEGY § Accessibility scans](../testing/TEST_STRATEGY.md#accessibility-scans-axe), [TEST_BEST_PRACTICES #29](../testing/TEST_BEST_PRACTICES.md#29--toggling-htmldark-theme-to-measure-dark-colours), ADR-0035.
-> - **2026-09-16**: 17 stanzas closed between 2026-08-09 and 09-14 but never pruned (BL-114, 120, 121, 122, 123, 124, 125, 126, 128, 130, 131, 135, 139, 156, 158, 159, 161). Last pre-prune revision: `7c4e51f7`. Four of them said they were "recorded rather than pruned", which contradicted the retained list below. Each stanza was read for live content first:
+> - **2026-09-16**: 17 stanzas closed between 2026-08-09 and 09-14 but never pruned, plus BL-101 and BL-104, closed and pruned the same day (BL-114, 120, 121, 122, 123, 124, 125, 126, 128, 130, 131, 135, 139, 156, 158, 159, 161). Last pre-prune revision: `7c4e51f7`. Four of them said they were "recorded rather than pruned", which contradicted the retained list below. Each stanza was read for live content first:
 >   - **Still open:** BL-126's three `compute_techpar` residuals became **[BL-163](#bl-163-compute_techpar-audit-residuals-left-open-by-bl-126)**, along with its `engCost` won't-fix ruling.
 >   - **Retired by BL-143's removal PR:** the residuals of BL-123, 125, 128 and 130 are listed under [BL-143](#bl-143-trust-the-operator-irl-ingestion-rebuild-gst_irl_sweep). All four concern `gst_irl_ingestion` and `compose_dossier_envelope`, which that PR deletes.
 >   - **Moved to maintained docs:** BL-135's ruling that scoped chrome is extracted, not promoted → [CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md). BL-161's stylelint first-use measurements → [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md). BL-139's design-brief note → the `filter.css` drawer comment. BL-159's "the repaired alert has never fired" → the `scope-mismatch-403-rate` runbook. BL-158's tip that `/status` is a free AE probe → GRAFANA.md.
 >   - **Leftovers fixed rather than refiled:** BL-139's unused `--filter-drawer-bg` token was deleted. BL-161's timeout-less `spawnSync` in `mcp-generated-bundle-freshness.test.ts` got a 30s bound.
+>   - **BL-101 and BL-104 (regulatory map keyboard and pointer gaps)** were closed the same day on the same branch:
+>     - **BL-104:** timeline entries are native `<button>`s with `aria-pressed` and a full-name `aria-label`.
+>     - **BL-101:** a WORLD quick-zoom preset gives a single-pointer way back out on mobile.
+>     - **Found while building them:** opening a state-only regulation (FCPA) before the US state shapes loaded never highlighted it. The highlight is now re-applied when those shapes arrive, and a held-request E2E test proves it.
 >   - **BL-139 was filed as BL-137.** The eleven commits dated 2026-08-18 that say "BL-137" (`4c2f675d` among them) mean the filter-drawer item. The BL-137 commits dated 2026-08-21/22 mean workers-types (ADR-0020). The date tells them apart.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
@@ -550,46 +554,6 @@ Verified 2026-09-04 against Anthropic's own docs: remote MCP servers are submitt
 - [ ] A ruling on which model the map presents, recorded here
 - [ ] `aria-prohibited-attr` and `nested-interactive` are zero on the route with `#mapSvg` back in scope
 - [ ] The `#mapSvg` exclusion is removed from `accessibility.test.ts`, not merely lowered
-
----
-
-### BL-104: Regulatory map — timeline entries are not keyboard-operable
-
-**Source**: the scope limit of BL-096's `#timelineScroll` fix, 2026-08-03 | **Effort**: Small | **Status**: Open
-
-**As a** keyboard user, **I want** to open a regulation from the timeline **so that** the timeline is a control rather than a picture.
-
-**What it is.** BL-096 made `#timelineScroll` focusable so the region can be _scrolled_ by keyboard (WCAG 2.1.1, Level A). The entries inside it are still plain `<div>`s carrying `data-reg-id`, opened by a delegated click handler (`regulatory-map/index.astro` ~:1477) — **no `tabindex`, no role, no key handler**. So a keyboard user can scroll the timeline and still cannot open anything in it. That is the more serious half of the same 2.1.1 failure.
-
-**Why it will not surface on its own**: axe cannot flag a `<div>` with a delegated listener — there is nothing in the markup that says it is interactive. It will never reach the ratchet, which is exactly why it is filed rather than left to be rediscovered.
-
-**Remedy**: make each entry a `<button>`, or give it `tabindex="0"`, a role and Enter/Space handling. Prefer the former — it gets focus, semantics and keys for free.
-
-#### Acceptance Criteria
-
-- [ ] Every timeline entry is reachable by Tab and openable by Enter/Space
-- [ ] Focus is visible against the timeline's own background, per the repo's 2px `--color-primary` convention
-- [ ] The delegated click handler still works, or is replaced deliberately
-
----
-
-### BL-101: Regulatory map — no single-pointer way back to the world view
-
-**Source**: surfaced 2026-08-03 by BL-096's dead-rule deletion, which had been masking it | **Effort**: Small — one button | **Status**: Open
-
-**As a** mobile visitor to the regulatory map, **I want** a single-pointer way to zoom back out **so that** I am not stranded in a region view unless I can perform a pinch gesture.
-
-**What it is.** Below 1023px `.map-controls` (`#zoomIn` / `#zoomOut` / `#zoomReset`) is `display: none`, and the only zoom affordance is `.brutal-quick-zoom` — four **region presets** (AMR / EUR / APAC / MEA), not incremental controls. So once you are zoomed into a region, the only way back to the world view is **pinch**, which is multipoint.
-
-**Why the framing matters.** "No incremental zoom on mobile" names the wrong defect and invites a `+`/`−` design that is not what is missing — the presets _are_ single-pointer zoom. The gap is specifically the **zoom-out / reset** direction. That makes it a candidate **WCAG 2.5.1 Pointer Gestures (AA)** failure rather than a UX nicety: 2.5.1 exempts user-agent gestures, but this is a d3 zoom behaviour on an SVG, i.e. author-implemented, so the exemption likely does not reach it.
-
-**Remedy**: one more `.brutal-quick-zoom` with `data-region="world"` in the same `#mapQuickZoom` div, wired to the existing `REGION_VIEWS` lookup. Do **not** un-hide `.map-controls` — `regulatory-map-mobile.test.ts:89-95` pins its `display: none` and that is a feature change.
-
-#### Acceptance Criteria
-
-- [ ] A single-pointer control returns the map to the world view at mobile widths
-- [ ] `regulatory-map-mobile.test.ts:77-87` (which asserts exactly 4 quick-zoom buttons) is updated deliberately, not incidentally
-- [ ] The conformance question is settled either way in the commit body — defect closed, or exemption argued
 
 ---
 
