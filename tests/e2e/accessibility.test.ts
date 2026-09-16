@@ -313,6 +313,103 @@ const SITE_WIDE_UNSTYLED: Record<string, string> = {
 };
 const SITE_WIDE_STALE_CHECK_ROUTE = 'Homepage';
 
+/**
+ * Every route is scanned in both themes (BL-162). Before it, every scan ran in
+ * light, and light only because a fresh context has no `localStorage.theme`.
+ */
+const THEMES = ['light', 'dark'] as const;
+type Theme = (typeof THEMES)[number];
+
+/**
+ * Apply the theme as a REAL LOAD: BaseLayout's head script reads
+ * `localStorage.theme` before first paint. Never toggle `html.dark-theme` after
+ * load to measure colours — a probe built that way for ADR-0035 repeatedly read
+ * dark text over stale light surfaces (TEST_BEST_PRACTICES #29). Light is set
+ * explicitly too, rather than relied on as a default (#21).
+ */
+async function applyTheme(page: Page, theme: Theme): Promise<void> {
+  await page.addInitScript((t) => {
+    try {
+      localStorage.setItem('theme', t);
+    } catch {
+      // Storage blocked: the sentinel below fails loudly instead.
+    }
+  }, theme);
+}
+
+/** body background = --bg-light's half for the theme (variables.css). */
+const BODY_BG: Record<Theme, string> = {
+  light: 'rgb(255, 255, 255)',
+  dark: 'rgb(10, 10, 10)',
+};
+
+/** Sentinel: a mixed or wrong theme fails here instead of producing numbers. */
+async function expectThemeLoaded(page: Page, theme: Theme): Promise<void> {
+  const html = page.locator('html');
+  if (theme === 'dark') await expect(html).toHaveClass(/(^|\s)dark-theme(\s|$)/);
+  else await expect(html).not.toHaveClass(/(^|\s)dark-theme(\s|$)/);
+  await expect
+    .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+    .toBe(BODY_BG[theme]);
+}
+
+test.describe('Accessibility — theme scans measure what they claim (BL-162)', () => {
+  for (const theme of THEMES) {
+    test(`${theme}: a real load renders the known ${theme} card surface`, async ({ page }) => {
+      // Known-correct element: .project-card is light-dark(--bg-light, --bg-dark-secondary)
+      // in cards.css — #ffffff / #1a1a1a. The ADR-0035 probe read #ffffff here in dark.
+      await applyTheme(page, theme);
+      await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
+      const card = page.locator('.project-card').first();
+      await card.waitFor({ state: 'attached' });
+      await expectThemeLoaded(page, theme);
+      await expect
+        .poll(() => card.evaluate((el) => getComputedStyle(el).backgroundColor))
+        .toBe(theme === 'dark' ? 'rgb(26, 26, 26)' : 'rgb(255, 255, 255)');
+    });
+
+    test(`${theme}: the scan fails low contrast that the checkerboard used to hide`, async ({
+      page,
+    }) => {
+      await applyTheme(page, theme);
+      await page.goto('/', { waitUntil: 'load' });
+      await expectThemeLoaded(page, theme);
+      // Grey on the body background, clearly under 4.5:1 in either theme:
+      // #999 on #ffffff = 2.85:1; #444 on #0a0a0a = 2.08:1.
+      await page.evaluate(
+        (ink) => {
+          const p = document.createElement('p');
+          p.id = 'bl162-contrast-probe';
+          p.textContent = 'Contrast probe text for the BL-162 instrument check.';
+          p.style.cssText = `color:${ink};background:transparent;font-size:16px;margin:0;`;
+          document.querySelector('main')!.prepend(p);
+        },
+        theme === 'dark' ? '#444444' : '#999999'
+      );
+
+      // Scoped to the probe, so another node on the page cannot satisfy the assertions.
+      const probeOnly = { include: ['#bl162-contrast-probe'] };
+      const hidden = await checkA11y(page, probeOnly);
+      expect(
+        hidden.serious.find((v) => v.id === 'color-contrast'),
+        'with the checkerboard hidden, axe must FAIL the probe'
+      ).toBeDefined();
+
+      const visible = await checkA11y(page, { ...probeOnly, hideDecorativeBackground: false });
+      expect(
+        visible.incomplete.find((v) => v.id === 'color-contrast'),
+        'with the checkerboard visible, axe cannot judge the probe — the blindness this fixes'
+      ).toBeDefined();
+      expect(visible.serious.find((v) => v.id === 'color-contrast')).toBeUndefined();
+
+      // The injected style is gone after the scan: later assertions see the real page.
+      await expect
+        .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundImage))
+        .not.toBe('none');
+    });
+  }
+});
+
 test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
   test('orphan-class allowlists name real routes (BL-116)', () => {
     // A renamed PAGES entry would otherwise silently switch off the site-wide
@@ -322,113 +419,122 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
     expect(Object.keys(ALLOWED_UNSTYLED).filter((n) => !names.has(n))).toEqual([]);
   });
 
-  for (const pg of PAGES) {
-    test(`${pg.name} (${pg.path}) has zero critical violations`, async ({ page }) => {
-      if (pg.waitFor) {
-        // Not `load`: it waits on the island's own subresource request, which
-        // under worker contention times out the navigation itself (see the
-        // `gotoRadar` docblock in helpers/radar.ts). Wait on the resulting DOM
-        // instead of the lifecycle — that is the signal we actually need.
-        await page.goto(pg.path, { waitUntil: 'domcontentloaded' });
-        await page
-          .locator(pg.waitFor)
-          .first()
-          .waitFor({ state: 'attached', timeout: RADAR_SETTLE_TIMEOUT_MS });
-      } else {
-        await page.goto(pg.path, { waitUntil: 'load' });
-      }
+  for (const theme of THEMES) {
+    for (const pg of PAGES) {
+      const scanName = theme === 'light' ? pg.name : `${pg.name} (dark)`;
+      test(`${scanName} (${pg.path}) has zero critical violations`, async ({ page }) => {
+        await applyTheme(page, theme);
+        if (pg.waitFor) {
+          // Not `load`: it waits on the island's own subresource request, which
+          // under worker contention times out the navigation itself (see the
+          // `gotoRadar` docblock in helpers/radar.ts). Wait on the resulting DOM
+          // instead of the lifecycle — that is the signal we actually need.
+          await page.goto(pg.path, { waitUntil: 'domcontentloaded' });
+          await page
+            .locator(pg.waitFor)
+            .first()
+            .waitFor({ state: 'attached', timeout: RADAR_SETTLE_TIMEOUT_MS });
+        } else {
+          await page.goto(pg.path, { waitUntil: 'load' });
+        }
 
-      if (pg.setup) await pg.setup(page);
+        await expectThemeLoaded(page, theme);
 
-      // Collected here, in the exact state axe scans; ASSERTED at the end.
-      const orphans = await collectOrphanClasses(page);
+        if (pg.setup) await pg.setup(page);
 
-      const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
+        // Collected here, in the exact state axe scans; ASSERTED at the end.
+        // Light only: which classes have rules does not depend on theme.
+        const orphans = theme === 'light' ? await collectOrphanClasses(page) : [];
 
-      // Critical MUST always be zero
-      if (results.critical.length > 0) {
-        console.log('CRITICAL violations:\n' + formatViolations(results.critical));
-      }
-      expect(
-        results.critical,
-        `Critical a11y violations on ${pg.name}:\n${formatViolations(results.critical)}`
-      ).toHaveLength(0);
+        const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
 
-      // Serious: filter out known pre-existing violations (ratchet)
-      const knownForPage = KNOWN_SERIOUS[pg.name] ?? {};
-      const unknownSerious = results.serious.filter((v) => !(v.id in knownForPage));
-      const ratchetBreaches = results.serious.filter(
-        (v) => v.id in knownForPage && v.nodes > knownForPage[v.id]
-      );
+        // Critical MUST always be zero
+        if (results.critical.length > 0) {
+          console.log('CRITICAL violations:\n' + formatViolations(results.critical));
+        }
+        expect(
+          results.critical,
+          `Critical a11y violations on ${scanName}:\n${formatViolations(results.critical)}`
+        ).toHaveLength(0);
 
-      if (unknownSerious.length > 0) {
-        console.log('NEW serious violations:\n' + formatViolations(unknownSerious));
-      }
-      if (ratchetBreaches.length > 0) {
-        console.log(
-          'RATCHET breached (more nodes than baseline):\n' + formatViolations(ratchetBreaches)
+        // Serious: filter out known pre-existing violations (ratchet)
+        const knownForPage = KNOWN_SERIOUS[scanName] ?? {};
+        const unknownSerious = results.serious.filter((v) => !(v.id in knownForPage));
+        const ratchetBreaches = results.serious.filter(
+          (v) => v.id in knownForPage && v.nodes > knownForPage[v.id]
         );
-      }
 
-      expect(
-        unknownSerious,
-        `New serious a11y violations on ${pg.name}:\n${formatViolations(unknownSerious)}`
-      ).toHaveLength(0);
-      expect(
-        ratchetBreaches,
-        `Ratchet breached on ${pg.name}:\n${formatViolations(ratchetBreaches)}`
-      ).toHaveLength(0);
+        if (unknownSerious.length > 0) {
+          console.log('NEW serious violations:\n' + formatViolations(unknownSerious));
+        }
+        if (ratchetBreaches.length > 0) {
+          console.log(
+            'RATCHET breached (more nodes than baseline):\n' + formatViolations(ratchetBreaches)
+          );
+        }
 
-      // Stale-baseline guard. The ratchet only ever failed on EXCEEDING a baseline, so a
-      // too-generous one passed forever — and three of seven had rotted into slack by
-      // 2026-08-03 ('Tech Debt Calculator' carried 14 against a real 1). This is the same
-      // mechanism FLOOR_EXCEPTIONS uses for its allowlist, applied to the other one:
-      // fixing a violation now FAILS until the number comes down with it.
-      const slack = Object.entries(knownForPage)
-        .map(([id, max]) => {
-          const actual = results.serious.find((v) => v.id === id)?.nodes ?? 0;
-          return { id, max, actual };
-        })
-        .filter(({ max, actual }) => actual < max);
+        expect(
+          unknownSerious,
+          `New serious a11y violations on ${scanName}:\n${formatViolations(unknownSerious)}`
+        ).toHaveLength(0);
+        expect(
+          ratchetBreaches,
+          `Ratchet breached on ${scanName}:\n${formatViolations(ratchetBreaches)}`
+        ).toHaveLength(0);
 
-      expect(
-        slack,
-        `Baseline is now slack on ${pg.name} — the violation was fixed but KNOWN_SERIOUS ` +
-          `was not ratcheted down. Lower it to the measured count (or delete the entry ` +
-          `entirely when it reaches 0, so a future one fails as UNKNOWN):\n  ` +
-          slack.map((e) => `${e.id}: baseline ${e.max}, actual ${e.actual}`).join('\n  ')
-      ).toEqual([]);
+        // Stale-baseline guard. The ratchet only ever failed on EXCEEDING a baseline, so a
+        // too-generous one passed forever — and three of seven had rotted into slack by
+        // 2026-08-03 ('Tech Debt Calculator' carried 14 against a real 1). This is the same
+        // mechanism FLOOR_EXCEPTIONS uses for its allowlist, applied to the other one:
+        // fixing a violation now FAILS until the number comes down with it.
+        const slack = Object.entries(knownForPage)
+          .map(([id, max]) => {
+            const actual = results.serious.find((v) => v.id === id)?.nodes ?? 0;
+            return { id, max, actual };
+          })
+          .filter(({ max, actual }) => actual < max);
 
-      // Log known serious for visibility
-      const knownSerious = results.serious.filter((v) => v.id in knownForPage);
-      if (knownSerious.length > 0) {
-        console.log(
-          `[${pg.name}] ${knownSerious.reduce((s, v) => s + v.nodes, 0)} known color-contrast nodes (ratchet baseline)`
-        );
-      }
+        expect(
+          slack,
+          `Baseline is now slack on ${scanName} — the violation was fixed but KNOWN_SERIOUS ` +
+            `was not ratcheted down. Lower it to the measured count (or delete the entry ` +
+            `entirely when it reaches 0, so a future one fails as UNKNOWN):\n  ` +
+            slack.map((e) => `${e.id}: baseline ${e.max}, actual ${e.actual}`).join('\n  ')
+        ).toEqual([]);
 
-      await test.step('no orphan classes (BL-116)', async () => {
-        // Site-wide entries are checked for staleness once, on the chrome route;
-        // elsewhere they are only excused (a route may legitimately not render one).
-        const siteWideCheckedHere = pg.name === SITE_WIDE_STALE_CHECK_ROUTE;
-        const routeOrphans = siteWideCheckedHere
-          ? orphans
-          : orphans.filter((c) => !Object.hasOwn(SITE_WIDE_UNSTYLED, c));
-        const { unexpected, stale } = diffAgainstAllowlist(routeOrphans, {
-          ...(siteWideCheckedHere ? SITE_WIDE_UNSTYLED : {}),
-          ...(ALLOWED_UNSTYLED[pg.name] ?? {}),
+        // Log known serious for visibility
+        const knownSerious = results.serious.filter((v) => v.id in knownForPage);
+        if (knownSerious.length > 0) {
+          console.log(
+            `[${scanName}] ${knownSerious.reduce((s, v) => s + v.nodes, 0)} known color-contrast nodes (ratchet baseline)`
+          );
+        }
+
+        if (theme === 'dark') return;
+
+        await test.step('no orphan classes (BL-116)', async () => {
+          // Site-wide entries are checked for staleness once, on the chrome route;
+          // elsewhere they are only excused (a route may legitimately not render one).
+          const siteWideCheckedHere = pg.name === SITE_WIDE_STALE_CHECK_ROUTE;
+          const routeOrphans = siteWideCheckedHere
+            ? orphans
+            : orphans.filter((c) => !Object.hasOwn(SITE_WIDE_UNSTYLED, c));
+          const { unexpected, stale } = diffAgainstAllowlist(routeOrphans, {
+            ...(siteWideCheckedHere ? SITE_WIDE_UNSTYLED : {}),
+            ...(ALLOWED_UNSTYLED[pg.name] ?? {}),
+          });
+          expect(
+            unexpected,
+            `classes used on ${pg.name} (${pg.path}) with no CSS rule anywhere. Repoint the ` +
+              `markup at the real class, add the rule, or strip a phantom class. Only add to ` +
+              `ALLOWED_UNSTYLED if a script or test selects it.`
+          ).toEqual([]);
+          expect(
+            stale,
+            `ALLOWED_UNSTYLED entries for ${pg.name} are no longer orphans there — delete them.`
+          ).toEqual([]);
         });
-        expect(
-          unexpected,
-          `classes used on ${pg.name} (${pg.path}) with no CSS rule anywhere. Repoint the ` +
-            `markup at the real class, add the rule, or strip a phantom class. Only add to ` +
-            `ALLOWED_UNSTYLED if a script or test selects it.`
-        ).toEqual([]);
-        expect(
-          stale,
-          `ALLOWED_UNSTYLED entries for ${pg.name} are no longer orphans there — delete them.`
-        ).toEqual([]);
       });
-    });
+    }
   }
 });

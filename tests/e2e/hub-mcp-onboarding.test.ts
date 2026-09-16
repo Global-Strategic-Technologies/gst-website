@@ -193,9 +193,17 @@ for (const guide of GUIDES) {
     });
 
     test('dark theme renders with a dark background', async ({ page }) => {
-      await page.evaluate(() => {
-        document.documentElement.classList.add('dark-theme');
+      // A real dark LOAD, not a class toggle on the page beforeEach already loaded:
+      // toggling after load can read stale light surfaces (TEST_BEST_PRACTICES #29).
+      await page.addInitScript(() => {
+        try {
+          localStorage.setItem('theme', 'dark');
+        } catch {
+          // Storage blocked: the class assertion below fails loudly instead.
+        }
       });
+      await page.goto(guide.route);
+      await expect(page.locator('html')).toHaveClass(/(^|\s)dark-theme(\s|$)/);
       const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
       // Not a pixel pin — just proof the page participates in the theme system
       // (its background is token-driven, not hardcoded light).

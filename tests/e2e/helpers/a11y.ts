@@ -21,6 +21,11 @@ export interface A11yResult {
   minor: AxeViolation[];
   /** Total violation count across all severities */
   totalCount: number;
+  /**
+   * Rules axe could not decide, all severities. Not asserted by callers; read by
+   * the instrument proof in accessibility.test.ts and by triage (BL-162).
+   */
+  incomplete: AxeViolation[];
 }
 
 export interface AxeViolation {
@@ -30,6 +35,15 @@ export interface AxeViolation {
   helpUrl: string;
   nodes: number;
 }
+
+/**
+ * Purely decorative background images hidden during a scan. Each entry needs a
+ * reason: only backgrounds that carry no information and sit under text belong.
+ */
+export const DECORATIVE_BACKGROUNDS = [
+  // Site-wide checkerboard, global.css. 3.2%-alpha lines under every route's text.
+  'body',
+];
 
 /**
  * Run an axe-core accessibility scan on the current page.
@@ -43,8 +57,15 @@ export async function checkA11y(
   options?: {
     tags?: string[];
     exclude?: string[];
+    /** Limit the scan to these selectors. Default: the whole page. */
+    include?: string[];
     /** Wait for fonts and finite animations before scanning. Default true. */
     settle?: boolean;
+    /**
+     * Hide decorative background images for the duration of the scan so axe can
+     * judge text contrast. Default true. See DECORATIVE_BACKGROUNDS.
+     */
+    hideDecorativeBackground?: boolean;
   }
 ): Promise<A11yResult> {
   // `wcag22aa` added 2026-08-03 (BL-096 § Still owed). In axe-core **4.12.1** it
@@ -60,6 +81,12 @@ export async function checkA11y(
   let builder = new AxeBuilder({ page }).withTags(
     options?.tags ?? ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
   );
+
+  if (options?.include) {
+    for (const selector of options.include) {
+      builder = builder.include(selector);
+    }
+  }
 
   if (options?.exclude) {
     for (const selector of options.exclude) {
@@ -98,7 +125,26 @@ export async function checkA11y(
     });
   }
 
-  const results = await builder.analyze();
+  // HIDE THE CHECKERBOARD WHILE MEASURING (BL-162, ADR-0035). axe cannot compute
+  // contrast over a background IMAGE, so it reports such text INCOMPLETE rather
+  // than failing it — and the site-wide body checkerboard is two gradients, which
+  // left most text on every route unjudged in both themes. Its lines are 3.2%
+  // alpha (--checkerboard-line), too faint to move a contrast ratio materially, so
+  // scanning without them measures what a reader actually sees. The tag is
+  // removed afterwards: assertions after a scan must see the real page.
+  const hideTag =
+    options?.hideDecorativeBackground === false
+      ? null
+      : await page.addStyleTag({
+          content: `${DECORATIVE_BACKGROUNDS.join(', ')} { background-image: none !important; }`,
+        });
+
+  let results: Awaited<ReturnType<AxeBuilder['analyze']>>;
+  try {
+    results = await builder.analyze();
+  } finally {
+    await hideTag?.evaluate((el) => (el as Element).remove());
+  }
 
   const mapViolations = (v: (typeof results.violations)[0]): AxeViolation => ({
     id: v.id,
@@ -119,6 +165,7 @@ export async function checkA11y(
     moderate,
     minor,
     totalCount: critical.length + serious.length + moderate.length + minor.length,
+    incomplete: results.incomplete.map(mapViolations),
   };
 }
 
