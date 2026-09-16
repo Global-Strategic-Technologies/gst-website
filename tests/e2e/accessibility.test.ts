@@ -359,9 +359,10 @@ test.describe('Accessibility — theme scans measure what they claim (BL-162)', 
       // Known-correct element: .project-card is light-dark(--bg-light, --bg-dark-secondary)
       // in cards.css — #ffffff / #1a1a1a. The ADR-0035 probe read #ffffff here in dark.
       await applyTheme(page, theme);
-      await page.goto('/ma-portfolio/', { waitUntil: 'domcontentloaded' });
+      // Same navigation as the 'M&A Portfolio' PAGES scan: the cards are server-
+      // rendered, so `load` is the proven readiness signal on all three engines.
+      await page.goto('/ma-portfolio/', { waitUntil: 'load' });
       const card = page.locator('.project-card').first();
-      await card.waitFor({ state: 'attached' });
       await expectThemeLoaded(page, theme);
       await expect
         .poll(() => card.evaluate((el) => getComputedStyle(el).backgroundColor))
@@ -408,6 +409,44 @@ test.describe('Accessibility — theme scans measure what they claim (BL-162)', 
         .not.toBe('none');
     });
   }
+
+  test('brand-teal text is exempt by ruling, and nothing else is (ADR-0035 § 1)', async ({
+    page,
+  }) => {
+    // Light theme: the only one where teal text fails (2.06:1 on white).
+    await applyTheme(page, 'light');
+    await page.goto('/', { waitUntil: 'load' });
+    await expectThemeLoaded(page, 'light');
+    await page.evaluate(() => {
+      const add = (id: string, color: string) => {
+        const p = document.createElement('p');
+        p.id = id;
+        p.textContent = 'Brand teal exemption probe text.';
+        p.style.cssText = `color:${color};background:transparent;font-size:16px;margin:0;`;
+        document.querySelector('main')!.prepend(p);
+      };
+      add('bl162-teal', 'var(--color-primary)');
+      // One channel off brand teal, same contrast: must NOT ride the exemption.
+      add('bl162-near-teal', 'rgb(6, 205, 153)');
+    });
+
+    const teal = await checkA11y(page, { include: ['#bl162-teal'] });
+    expect(teal.serious.find((v) => v.id === 'color-contrast')).toBeUndefined();
+    expect(teal.brandTealExempt).toBe(1);
+
+    const tealUnexempted = await checkA11y(page, {
+      include: ['#bl162-teal'],
+      exemptBrandTealText: false,
+    });
+    expect(
+      tealUnexempted.serious.find((v) => v.id === 'color-contrast'),
+      'without the exemption the probe must fail, or this test proves nothing'
+    ).toBeDefined();
+
+    const nearTeal = await checkA11y(page, { include: ['#bl162-near-teal'] });
+    expect(nearTeal.serious.find((v) => v.id === 'color-contrast')).toBeDefined();
+    expect(nearTeal.brandTealExempt).toBe(0);
+  });
 });
 
 test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
