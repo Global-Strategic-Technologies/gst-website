@@ -213,7 +213,7 @@ Privacy and Terms pages use "we," "us," "our" per legal convention.
   **Fix with `min-height`, not `min-width`**, unless the control is a fixed-size icon button — radar pills must still wrap and scroll, and `.brutal-segmented` is `max-width: 320px; overflow: hidden`.
 
   **Documented exceptions** live in `FLOOR_EXCEPTIONS` in that test file, each with a reason, and a stale entry fails the suite — so an exception cannot outlive the control it excuses:
-  - `.brutal-quick-zoom` (32px) — four region presets overlaying the map itself; 44px targets would overlap or consume ~176px of vertical map on mobile. Still clears 2.5.8 AA.
+  - `.brutal-quick-zoom` (32px) — a world reset plus four region presets overlaying the map itself; 44px targets would overlap or consume ~220px (5 × 44) of vertical map on mobile. Still clears 2.5.8 AA.
   - `.brutal-map-control` (32px) — desktop-only zoom cluster. A **documented deviation, not a WCAG exception**: 2.5.5 governs pointer inputs including the mouse, and scroll/drag are gestures rather than the equivalent _control_ the Equivalent exception requires.
 
   **Not exempt**, contrary to a common reading: header nav, footer and TOC links. 2.5.5's Inline exception is "the target is in a sentence or block of text" — the line-height clause belongs to 2.5.8. A list of links is not a sentence.

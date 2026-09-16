@@ -174,10 +174,17 @@ deliberately omits, and inlines root-absolute `url()` assets as data URIs.
   `components/chrome/*` cards and renders the dark twins. `_ds_manifest.json` is compiled
   product-side and cannot be checked from the repo — open the project after a sync and
   look for the "chrome" group.
-- **What the published system does not cover** — see [BL-135](BACKLOG.md#bl-135-claude-design-sync--correct-it-guard-it-and-publish-the-design-system-rather-than-its-content-level-subset)
-  for the record; as of Slice 3 (2026-08-16) the reusable class vocabulary, the tokens, and
-  the site chrome are all published. Still outside: page-specific tool layouts and
-  regulatory-map one-offs (listed in the header as deliberately skipped).
+- **What the published system does not cover** — as of BL-135 Slice 3 (2026-08-16) the
+  reusable class vocabulary, the tokens, and the site chrome are all published. Still outside:
+  page-specific tool layouts and regulatory-map one-offs (listed in the header as deliberately
+  skipped).
+- **Ruling: scoped chrome is extracted, not promoted** (BL-135, 2026-08-16). The agent gets
+  the real Header/Hero/Footer markup and scoped CSS as production ships them, so nothing moves
+  into global classes. That includes the Hero headline recipe, the `.site-header` rules, and the
+  `.trust-card`/`.brutal-trust-card` and `.breadcrumb__*`/`.brutal-breadcrumb` duplications.
+  Promotion is a design-system change with its own regression surface and no consumer.
+  **Revisit if** agent output reproduces chrome incorrectly despite the cards, or a second
+  consumer of the design system can't carry cid-scoped CSS.
 - **`/brand` remains the human-browsable surface** for the design system; the Design
   project exists to steer the agent, not to replace [`/brand`](../../pages/brand.astro).
 

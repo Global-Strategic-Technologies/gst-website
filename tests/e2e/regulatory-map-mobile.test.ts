@@ -74,12 +74,13 @@ test.describe('Regulatory Map — Mobile Layout', () => {
     expect(display).not.toBe('none');
   });
 
-  test('should have all four region buttons', async ({ page }) => {
+  test('should have the world reset plus four region buttons', async ({ page }) => {
     const buttons = page.locator('.brutal-quick-zoom');
     const count = await buttons.count();
-    expect(count).toBe(4);
+    expect(count).toBe(5);
 
     const texts = await buttons.allTextContents();
+    expect(texts[0]).toBe('WORLD');
     expect(texts).toContain('AMR');
     expect(texts).toContain('EUR');
     expect(texts).toContain('APAC');
@@ -103,6 +104,17 @@ test.describe('Regulatory Map — Mobile Layout', () => {
     expect(box).not.toBeNull();
     expect(box!.width).toBeGreaterThanOrEqual(32);
     expect(box!.height).toBeGreaterThanOrEqual(32);
+  });
+
+  test('should keep the quick-zoom row inside the map at 320px', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 640 });
+    const row = await page.locator('#mapQuickZoom').boundingBox();
+    const map = await page.locator('.brutal-map-container').boundingBox();
+
+    expect(row).not.toBeNull();
+    expect(map).not.toBeNull();
+    expect(row!.x).toBeGreaterThanOrEqual(map!.x);
+    expect(row!.x + row!.width).toBeLessThanOrEqual(map!.x + map!.width);
   });
 
   test('should render legend inline (not overlapping map) on mobile', async ({ page }) => {
@@ -208,6 +220,30 @@ test.describe('Regulatory Map — Mobile Interactions', () => {
 
       const transformAfter = await mapGroup.getAttribute('transform');
       expect(transformAfter).not.toBe(transformBefore);
+    });
+
+    // BL-101: without this, pinch (a multipoint gesture) was the only way back out.
+    test('should return to the world view when clicking WORLD after a region zoom', async ({
+      page,
+    }) => {
+      await page.evaluate(() => {
+        (
+          document.querySelector('.brutal-quick-zoom[data-region="europe"]') as HTMLElement
+        )?.click();
+      });
+      await page.waitForFunction(() => {
+        const t = document.querySelector('#mapSvg g')?.getAttribute('transform') ?? '';
+        return t.includes('scale(3.5)');
+      });
+
+      await page.evaluate(() => {
+        (document.querySelector('.brutal-quick-zoom[data-region="world"]') as HTMLElement)?.click();
+      });
+      await page.waitForFunction(
+        () =>
+          document.querySelector('#mapSvg g')?.getAttribute('transform') ===
+          'translate(0,0) scale(1)'
+      );
     });
   });
 

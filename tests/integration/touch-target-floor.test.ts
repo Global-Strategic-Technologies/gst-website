@@ -139,8 +139,8 @@ const FLOOR_EXCEPTIONS: FloorException[] = [
     selector: '.brutal-quick-zoom',
     px: 32,
     reason:
-      'Four region presets overlaying the map itself. 44px targets would either overlap ' +
-      'each other or consume ~176px of vertical map on mobile. Still clears 2.5.8 AA (24px).',
+      'A world reset plus four region presets overlaying the map itself. 44px targets would either overlap ' +
+      'each other or consume ~220px (5 × 44) of vertical map on mobile. Still clears 2.5.8 AA (24px).',
   },
   {
     file: 'src/styles/components/map.css',

@@ -57,14 +57,29 @@ import '../../../../styles/components/map.css';
   </div>
   <div class="brutal-map-tooltip" id="mapTooltip" role="tooltip" aria-hidden="true"></div>
   <div class="map-quick-zoom" id="mapQuickZoom">
-    <button class="brutal-quick-zoom" data-region="americas" aria-label="Zoom to Americas"
-      >AMR</button
-    >
-    <button class="brutal-quick-zoom" data-region="europe" aria-label="Zoom to Europe">EUR</button>
-    <button class="brutal-quick-zoom" data-region="asia-pacific" aria-label="Zoom to Asia-Pacific"
-      >APAC</button
+    <button
+      type="button"
+      class="brutal-quick-zoom"
+      data-region="world"
+      aria-label="Zoom out to world view">WORLD</button
     >
     <button
+      type="button"
+      class="brutal-quick-zoom"
+      data-region="americas"
+      aria-label="Zoom to Americas">AMR</button
+    >
+    <button type="button" class="brutal-quick-zoom" data-region="europe" aria-label="Zoom to Europe"
+      >EUR</button
+    >
+    <button
+      type="button"
+      class="brutal-quick-zoom"
+      data-region="asia-pacific"
+      aria-label="Zoom to Asia-Pacific">APAC</button
+    >
+    <button
+      type="button"
       class="brutal-quick-zoom"
       data-region="africa-mideast"
       aria-label="Zoom to Africa & Middle East">MEA</button
@@ -253,6 +268,9 @@ import '../../../../styles/components/map.css';
   @media (max-width: 1023px) {
     .map-quick-zoom {
       display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: calc(100% - 2 * var(--spacing-sm));
       gap: var(--spacing-xs);
       position: absolute;
       bottom: var(--spacing-sm);

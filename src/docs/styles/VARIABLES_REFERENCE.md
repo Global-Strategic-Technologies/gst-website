@@ -263,13 +263,12 @@ These variables exist for page sections and UI components that need distinct lig
 
 ### Section Backgrounds
 
-| Variable             | Light             | Dark                       |
-| -------------------- | ----------------- | -------------------------- |
-| `--services-bg`      | `#eeeeee`         | `var(--bg-dark-tertiary)`  |
-| `--footer-bg`        | `#eeeeee`         | `var(--bg-dark-tertiary)`  |
-| `--cta-box-bg`       | `var(--bg-light)` | `var(--bg-dark-secondary)` |
-| `--service-card-bg`  | `var(--bg-dark)`  | `var(--bg-dark-secondary)` |
-| `--filter-drawer-bg` | `var(--bg-light)` | `var(--bg-dark-secondary)` |
+| Variable            | Light             | Dark                       |
+| ------------------- | ----------------- | -------------------------- |
+| `--services-bg`     | `#eeeeee`         | `var(--bg-dark-tertiary)`  |
+| `--footer-bg`       | `#eeeeee`         | `var(--bg-dark-tertiary)`  |
+| `--cta-box-bg`      | `var(--bg-light)` | `var(--bg-dark-secondary)` |
+| `--service-card-bg` | `var(--bg-dark)`  | `var(--bg-dark-secondary)` |
 
 ### Filter UI
 

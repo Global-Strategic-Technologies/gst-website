@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForMapReady as waitForMapPaths } from './helpers/regulatory-map';
+import { clickSvgPath, waitForMapReady as waitForMapPaths } from './helpers/regulatory-map';
 
 /** Click an element via JS. Scrolls into view first, then uses dispatchEvent
  *  to bypass Playwright's coordinate-based click which can fail on WebKit
@@ -213,6 +213,60 @@ test.describe('Regulatory Map — Timeline', () => {
     });
   });
 
+  // BL-104: entries are native buttons, so these use real key presses, never jsClick.
+  test.describe('2b. Timeline Keyboard Operation', () => {
+    test('should render entries as buttons', async ({ page }) => {
+      const tag = await page
+        .locator('.brutal-timeline-entry')
+        .first()
+        .evaluate((el) => el.tagName);
+      expect(tag).toBe('BUTTON');
+    });
+
+    test('should open a regulation with Enter and close it with Space', async ({ page }) => {
+      const first = page.locator('.brutal-timeline-entry').first();
+      await first.focus();
+
+      await page.keyboard.press('Enter');
+      await expect(page.locator('[data-testid="compliance-panel"]')).toBeVisible();
+      await expect(first).toHaveClass(/brutal-timeline-entry--active/);
+      await expect(first).toHaveAttribute('aria-pressed', 'true');
+
+      await page.keyboard.press('Space');
+      await expect(first).not.toHaveClass(/brutal-timeline-entry--active/);
+      await expect(first).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    test('should still open by keyboard after a drag released outside the timeline', async ({
+      page,
+    }) => {
+      const scroller = await page.locator('#timelineScroll').boundingBox();
+      expect(scroller).not.toBeNull();
+      await page.mouse.move(scroller!.x + scroller!.width / 2, scroller!.y + scroller!.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(scroller!.x + scroller!.width / 2 - 60, scroller!.y - 200, {
+        steps: 5,
+      });
+      await page.mouse.up();
+
+      const first = page.locator('.brutal-timeline-entry').first();
+      await first.focus();
+      await page.keyboard.press('Enter');
+      await expect(first).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    test('should reset aria-pressed when a country is selected', async ({ page }) => {
+      const first = page.locator('.brutal-timeline-entry').first();
+      await first.focus();
+      await page.keyboard.press('Enter');
+      await expect(first).toHaveAttribute('aria-pressed', 'true');
+
+      await clickSvgPath(page, '[data-alpha3="BRA"].country-path--active');
+      await expect(first).toHaveAttribute('aria-pressed', 'false');
+      await expect(first).not.toHaveClass(/brutal-timeline-entry--active/);
+    });
+  });
+
   test.describe('3. Timeline + Filter Integration', () => {
     test('should update timeline entries when filter changes', async ({ page }) => {
       // Get entry count with "All" filter
@@ -262,5 +316,37 @@ test.describe('Regulatory Map — Timeline', () => {
       const restoredCount = await page.locator('.brutal-timeline-entry').count();
       expect(restoredCount).toBe(allCount);
     });
+  });
+});
+
+// Own describe: the state-shape request must be held BEFORE navigation, so the
+// shared beforeEach (which navigates) cannot be used.
+test.describe('Regulatory Map — Timeline before state shapes load', () => {
+  test('should highlight a state-only regulation once the state shapes arrive', async ({
+    page,
+  }) => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await page.route('**/data/us-states-10m.json', async (route) => {
+      await held;
+      await route.continue();
+    });
+
+    await page.goto('/hub/tools/regulatory-map/', { waitUntil: 'domcontentloaded' });
+    await waitForMapAndTimelineReady(page);
+
+    // FCPA (1977, the first entry) lists only US-* state codes.
+    const fcpa = page.locator('.brutal-timeline-entry[data-reg-id="us-fcpa"]');
+    await fcpa.focus();
+    await page.keyboard.press('Enter');
+    await expect(fcpa).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.locator('.state-path').count()).toBe(0);
+
+    release();
+    await page.waitForFunction(
+      () =>
+        document.getElementById('mapContainer')?.getAttribute('data-subnational-ready') === 'true'
+    );
+    await expect(page.locator('.state-path--highlighted').first()).toBeAttached();
   });
 });
