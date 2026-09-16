@@ -2,7 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Eleven cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Twelve cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
@@ -42,6 +42,12 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   - **Fixes:** every non-teal finding was fixed at source: opacity-faded text, the dark portfolio metric labels, colour-only links, and disabled-state buttons.
 >   - **Brand-teal ruling, final:** below-AA teal text (`--color-primary`) is WORKING AS INTENDED ([ADR-0035 § 1](../adr/0035-ink-tokens-for-text-on-light-surfaces.md)). `checkA11y` exempts it by computed colour, never by selector or node count, so a new teal element can never fail the suite. An instrument test proves a near-teal still fails. **Do not re-open this as a contrast finding.**
 >   - **Live content:** [TEST_STRATEGY § Accessibility scans](../testing/TEST_STRATEGY.md#accessibility-scans-axe), [TEST_BEST_PRACTICES #29](../testing/TEST_BEST_PRACTICES.md#29--toggling-htmldark-theme-to-measure-dark-colours), ADR-0035.
+> - **2026-09-16**: 17 stanzas closed between 2026-08-09 and 09-14 but never pruned (BL-114, 120, 121, 122, 123, 124, 125, 126, 128, 130, 131, 135, 139, 156, 158, 159, 161). Last pre-prune revision: `7c4e51f7`. Four of them said they were "recorded rather than pruned", which contradicted the retained list below. Each stanza was read for live content first:
+>   - **Still open:** BL-126's three `compute_techpar` residuals became **[BL-163](#bl-163-compute_techpar-audit-residuals-left-open-by-bl-126)**, along with its `engCost` won't-fix ruling.
+>   - **Retired by BL-143's removal PR:** the residuals of BL-123, 125, 128 and 130 are listed under [BL-143](#bl-143-trust-the-operator-irl-ingestion-rebuild-gst_irl_sweep). All four concern `gst_irl_ingestion` and `compose_dossier_envelope`, which that PR deletes.
+>   - **Moved to maintained docs:** BL-135's ruling that scoped chrome is extracted, not promoted → [CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md). BL-161's stylelint first-use measurements → [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md). BL-139's design-brief note → the `filter.css` drawer comment. BL-159's "the repaired alert has never fired" → the `scope-mismatch-403-rate` runbook. BL-158's tip that `/status` is a free AE probe → GRAFANA.md.
+>   - **Leftovers fixed rather than refiled:** BL-139's unused `--filter-drawer-bg` token was deleted. BL-161's timeout-less `spawnSync` in `mcp-generated-bundle-freshness.test.ts` got a 30s bound.
+>   - **BL-139 was filed as BL-137.** The eleven commits dated 2026-08-18 that say "BL-137" (`4c2f675d` among them) mean the filter-drawer item. The BL-137 commits dated 2026-08-21/22 mean workers-types (ADR-0020). The date tells them apart.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -252,11 +258,11 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 ### BL-155: Self-serve 3-day MCP trial — connector flow, gated by Turnstile, no payment
 
-**Source**: operator directive 2026-09-06 — "people can get a working GST MCP key without the operator in the loop"; unparks [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)'s trial directive as its own initiative | **Effort**: all slices built | **Status**: Open — Slices 1, 2, 2b, 3 and 4 built 2026-09-06/07 on `feat/bl-155-self-serve-mcp-trial`; LIVE in production 2026-09-08 (secrets set, `mcp-production` approved, first mint verified). Remaining: no alert rule on signup or refusal volume (needs a production baseline first — see BL-157, and note the closed 503 item below rules the go-live window OUT as that baseline), and the claude.ai/design re-sync for the retired free-pilot copy; **rescoped to the connector flow 2026-09-06** | **Architecture & plan**: [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) — **controlling; read § Scope first** | **Splits off**: [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial)
+**Source**: operator directive 2026-09-06 — "people can get a working GST MCP key without the operator in the loop"; unparks [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)'s trial directive as its own initiative | **Effort**: all slices built | **Status**: Open — Slices 1, 2, 2b, 3 and 4 built 2026-09-06/07 on `feat/bl-155-self-serve-mcp-trial`; LIVE in production 2026-09-08 (secrets set, `mcp-production` approved, first mint verified). Remaining: no alert rule on signup or refusal volume (needs a production baseline first — see BL-157, and note the closed 503 item below rules the go-live window OUT as that baseline), and the claude.ai/design re-sync for the retired free-pilot copy; **rescoped to the connector flow 2026-09-06** | **Architecture & plan**: [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) — **controlling; read § Scope first** | **Splits off**: BL-156 (closed 2026-09-14; now [`/hub/mcp/from-code/`](../../page-templates/HubMcpFromCodePage.astro))
 
 **As a** technical evaluator at a PE or corp-dev firm, **I want** to get a working GST MCP credential and use it from Claude without talking to anyone, **so that** I can answer "is this worth my time?" in one sitting rather than one email round-trip.
 
-> **Rescoped 2026-09-06 — read before building.** This initiative was designed to mint an **M2M `client_credentials`** pair. That credential **cannot be used from Claude Desktop, Claude Code or Cursor**: those connect through the consent page, which identifies a human by an operator-issued `MCP_KEY_*` matched against **Worker env vars** ([`auth/bearer.ts`](../../../mcp-server/src/auth/bearer.ts) `matchToken`), and a signup-page stranger has none. The trial therefore reached only someone willing to hand-write a token exchange. The operator's call: **BL-155 delivers the connector flow**; self-serve `client_credentials` becomes [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial), which **reuses this item's signup workflow and design** so a visitor meets one signup experience either way.
+> **Rescoped 2026-09-06 — read before building.** This initiative was designed to mint an **M2M `client_credentials`** pair. That credential **cannot be used from Claude Desktop, Claude Code or Cursor**: those connect through the consent page, which identifies a human by an operator-issued `MCP_KEY_*` matched against **Worker env vars** ([`auth/bearer.ts`](../../../mcp-server/src/auth/bearer.ts) `matchToken`), and a signup-page stranger has none. The trial therefore reached only someone willing to hand-write a token exchange. The operator's call: **BL-155 delivers the connector flow**; self-serve `client_credentials` becomes BL-156 (closed 2026-09-14; now [`/hub/mcp/from-code/`](../../page-templates/HubMcpFromCodePage.astro)), which **reuses this item's signup workflow and design** so a visitor meets one signup experience either way.
 >
 > **The design doc's pre-rescope passages have not all been reconciled**, and its § Scope says so. Treat text written before the rescope as suspect wherever the two auth paths differ.
 
@@ -306,33 +312,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 
 - **Nothing gates the `client_credentials` grant by tier** — `m2m-token.ts` reads `record.tier` only to stamp it into the token. So the moment this ships, BL-156's flow works too. **Operator decision (2026-09-06): leave it open.** The trial is contained identically at either door (expiry, trial ceilings, tier-scoped radar deny all read the token), a gate would be code BL-156 deletes, and BL-156 becomes docs and UX rather than capability. Consequence: the ADR amendment must describe both flows, since that is what the code does
 - **Minting a short-lived `MCP_KEY_*` is mechanically impossible** for self-serve — `matchToken` scans Worker env vars, so issuing one means a deploy per signup. Recorded so it is not re-proposed as the "simple" option
-- **Related items**: [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare) (the payments rail this deliberately does not use), [BL-156](#bl-156-self-serve-m2m-credentials--the-developer-half-of-the-trial), [BL-154](#bl-154-architecture-reference--five-layer-diagram-set-and-a-storage-store-review) Slice 1 (the KV-vs-relational question this forces), [BL-004](#bl-004-email-capture-system) (deliberately avoided — Turnstile is the identity gate, not email)
-
----
-
-### BL-156: Self-serve M2M credentials — the developer half of the trial
-
-**Source**: split out of [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) by operator call, 2026-09-06, to cut complexity | **Effort**: Small if BL-155 has shipped — mostly docs and UX, since the capability largely exists | **Status**: **Closed 2026-09-14** — the page is [`/hub/mcp/from-code/`](../../page-templates/HubMcpFromCodePage.astro) (Tier A: `en`, `es`, `pt-BR`; route id and catalog `hub-mcp-from-code`), the trial's "From code" issued state is now a summary plus a link to it, the connector guide's headless callout and the `/hub/mcp/` guides grid point at it, and `tests/integration/mcp-from-code-parity.test.ts` pins its facts to server source. The tier asymmetry with the English-only guides is recorded in [LOCALIZATION.md § Content tiers](LOCALIZATION.md). No ADR (ADR-0008's 2026-09-07 amendment already describes both doors) and nothing to archive (the BL-155 design doc closes with BL-155). The `Authentication` capability's availability line gained one clause pointing at the guide; `mcp-docs-parity` pins availability framing only for the Tools group, so that was safe | **Design**: inherits [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md); the former Slice 3b there is retained verbatim as this item's seed
-
-**As a** developer scoping GST's tooling for a pipeline, **I want** a self-serve credential I can exchange for a token from a script, **so that** I can prototype an integration without an onboarding conversation.
-
-> **Reuse BL-155's signup workflow and design wherever possible** (operator instruction). A visitor should meet **one** signup experience regardless of which credential they end up with. Inherited unchanged: the mint endpoint's Turnstile gate, IP limiter, lease/atomicity and fail-closed posture; the signup page's states, copy patterns and one-time-secret handling; and § Lost-credential recovery. Do not design a second front door.
-
-#### Acceptance Criteria
-
-- [x] **Decided: this is documentation and UX, not capability.** The operator chose (2026-09-06) to leave `client_credentials` ungated by tier, so a trial credential works at `/token` the moment BL-155 ships — see BL-155 § Technical Context
-- [x] **A published developer-onboarding page** — `/hub/mcp/from-code/`, seeded from [`testing/uat/SETUP.md`](../../../mcp-server/src/docs/testing/uat/SETUP.md) § 0b/§ 1b (client-safe by construction), never from [`operations/AUTH.md`](../../../mcp-server/src/docs/operations/AUTH.md); the template header records the rule
-- [x] Content is the two-step exchange, concretely: `POST /token` with `grant_type=client_credentials` → an `mcp_m2m_*` bearer → `Authorization: Bearer` against `/mcp`, with the credential read from environment variables in every snippet so no example shows a secret inline
-- [x] **State the hourly re-exchange out loud.** Said three times on the page (response block, the § 04 callout, the SDK paragraph naming `ClientCredentialsProvider`); the parity guard pins `expires_in` to `M2M_TOKEN_TTL_S` and requires "one hour" and "no refresh token" in the copy
-- [x] **Do not describe a config-file or custom-header integration.** The parity guard fails on either invented string in the template or any catalog, and the page says in prose that the credential does not drive Claude, Cursor or ChatGPT
-- [x] Tier A (operator decision 2026-09-14), with the asymmetry against the English-only `/hub/mcp/get-started/` recorded in [LOCALIZATION.md § Content tiers](LOCALIZATION.md) rather than resolved
-- [x] The issued state **links** to this page. The 2026-09-07 interim (the two-step exchange inline in the "From code" presentation) ended 2026-09-14: the prefilled snippets stay, because the visitor holds a one-time secret and the commands are ready to run, but the intro and the hourly callout are now a summary and a `cta-button` to the guide (localized via `localizedHref`; asserted in `hub-mcp-trial.test.ts` for English and Spanish)
-
-#### Technical Context
-
-- **Already landed early, do not re-implement**: BL-155 Slice 1's expiry check on the `client_credentials` grant (`m2m-token.ts`) is strictly _this_ item's enforcement point. It shipped in BL-155 before the split, is correct where it sits, and costs nothing
-- **Why this was ever the whole initiative**: BL-155 was built upward from the credential and never backward from the user, so "mint an M2M client" looked like the trial rather than half of it. The full account, and the review-process gap that let it through eight rounds, is in [SELF_SERVE_TRIAL_BL-155.md](SELF_SERVE_TRIAL_BL-155.md) § Scope
-- **Related items**: [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) (must ship first — this reuses its signup surface), [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare)
+- **Related items**: [BL-133](#bl-133-payments-platform--automated-mcp-access-checkout-on-cloudflare) (the payments rail this deliberately does not use), BL-156 (closed 2026-09-14; now [`/hub/mcp/from-code/`](../../page-templates/HubMcpFromCodePage.astro)), [BL-154](#bl-154-architecture-reference--five-layer-diagram-set-and-a-storage-store-review) Slice 1 (the KV-vs-relational question this forces), [BL-004](#bl-004-email-capture-system) (deliberately avoided — Turnstile is the identity gate, not email)
 
 ---
 
@@ -613,159 +593,6 @@ Verified 2026-09-04 against Anthropic's own docs: remote MCP servers are submitt
 
 ---
 
-### BL-139: The filter drawer's entire mobile treatment is dead CSS
-
-> **Renumbered from BL-137 on 2026-08-22.** This item was filed as BL-137 on `feat/mcp-website-marketing` on 2026-08-18. Independently, and three days later, master filed a different BL-137 (workers-types global shadowing) — which then shipped, closed, and became [ADR-0020](../adr/0020-workers-types-global-shadowing-immunity.md). Merging master into this branch put two BL-137s in one file, so the unmerged one moved. **The eleven commits dated 2026-08-18 that say "BL-137" mean this stanza** — all of them land on that one day, `4c2f675d docs(backlog): close BL-137` among them. Commit messages are immutable, so the mismatch is permanent and this note is the only thing that will ever explain it. **The converse also holds and is easier to trip over**: after the merge, `git log` on this branch also surfaces BL-137 commits dated 2026-08-21 and 2026-08-22, which came from master and mean workers-types. The date is what tells them apart, with one self-describing exception class: this renumber's own commits also carry that date and mention BL-137, because renaming an ID means naming it. Their subjects name BL-139 or this note, so a reader who lands on one is already reading the explanation. Stated as a class deliberately — an enumerated list of SHAs would be made wrong by the very commit that extended it. The wave-list entry in the header referring to "BL-137, workers-types global shadowing" is the other one, correctly.
-
-**Source**: found 2026-08-18 while chasing a WebKit overflow to the wrong cause — the overflow turned out to be a StatsBar grid and a legend row (both fixed in the same session), and this is what the investigation actually turned up | **Effort**: Small — move two rule blocks; the risk is in what they will change once live | **Status**: **CLOSED 2026-08-18**
-
-**Closed by deleting the dead CSS, not by adopting it.** The stanza assumed the dead rules were a designed mobile treatment worth restoring. They were rendered for the first time during this work, reviewed, and rejected — the 350px side panel that has always shipped is the better interaction at every width. See "The ruling" below.
-
-**Three things this stanza got wrong, all found by doing the work:**
-
-1. **It undercounted by a factor of four.** `StickyControls.astro:167-448` carried a **second, larger** dead copy — base positioning, `.drawer-header`, `.drawer-title`, `.drawer-close`, `.drawer-content`, `.filter-section`, `.filter-label`, `.filter-chips`, `.filter-chip`, `.clear-filters-btn`, `.portfolio-filter-overlay`, an `[id='filter-drawer'] { position: fixed !important }` stanza and its own 768/480 blocks. That component renders only the sticky search bar. Also dead there: `.filter-toggle`, a class that exists nowhere in the repo. 230 lines deleted, proven a no-op by the build emitting no `portfolio-filter-drawer[data-astro-cid-*]` rule at all afterwards.
-2. **"Both routes" was wrong** — `/hub/tools/regulatory-map/` renders no drawer; it imports `filter.css` only for `.brutal-filter-chip*`. The drawer renders on `/ma-portfolio/` alone, plus a static specimen on `/brand`.
-3. **The premise was wrong.** "Move two rule blocks" assumed the destination was worth reaching.
-
-**The ruling (operator, 2026-08-18): master's UX is correct; the mobile treatment is not restored.**
-
-The dead rules were made live on a branch and captured side by side against `master` at 375/400/600/1280 in both themes. What they produce:
-
-- **Full-bleed, the drawer covers the page it is filtering** — its own FILTERS title lands on the page title, its chips on the body copy, and it hides the search box and the very Filters button that opened it.
-- **The frosted utility it is built on is `transparent` in light theme.** `.brutal-frosted--blur-only`'s `--surface-sheen-bg` is a sheen, chosen deliberately so the 350px panel adds no contrast over the green stats band. At full width there is nothing behind it to sheen, so both layers are illegible. Making it readable meant swapping in `--surface-overlay-bg` — i.e. the treatment only works once you stop it being the thing it was designed as.
-- **`top: auto` silently spends the clearance the drawer needs.** See the inset note below.
-
-Each of those was fixable, and each fix was a step further from a design anyone had chosen. The rules were deleted. `filter.css` carries a "do not restore them" note at the point where someone would reintroduce them, and `tests/e2e/filter-drawer-layering.test.ts` asserts the drawer stays narrower than the viewport at 375px, so a revival trips a test rather than a review.
-
-**What survives from the attempt, because it is right regardless:**
-
-- **`--drawer-top-inset` replaces the bare `133px`.** Two **fixed** bars sit above the drawer — the site header (outside `main`, so it outranks everything inside it) and the sticky search/filter bar (`z-index: 9999` inside `main`, against the drawer's `1001`) — and `main { position: relative; z-index: 1 }` makes `main` a stacking context, so **no z-index the drawer can carry will lift it over either.** Geometry is the only lever. The bottom-sheet attempt set `top: auto`, lost that clearance without noticing, and put the close button under the site header: `elementFromPoint` returned `HEADER.site-header`, so the only in-sheet way to dismiss the drawer was **not tappable**. The number is now named and the constraint is written next to it.
-- **A hittability test.** Three of the attempt's own tests asserted geometry — `top >= 12`, header rect inside the viewport — and all three passed while the button was completely buried. **Rect assertions cannot see stacking.** The suite now checks `elementFromPoint`, which fails on that CSS.
-- **The scoping trap is documented** in [STYLES_GUIDE § Scoped vs. Global Styles](../styles/STYLES_GUIDE.md), with the added rule that a dead rule is a product decision wearing a bug's clothing: render it before assuming the original author was right.
-
-**Reverted with the ruling**, so the shipped drawer renders identically to master at every width: the `<=768` and `<=480` blocks, the `--surface-overlay-bg` override, the `--drawer-footer-clearance` custom property (its only consumer was the phone cap, so the listener writes `style.bottom` again), and `FilterDrawer`'s `.drawer-content` cap.
-
-**Verified against master** at 375/400/600/1280: `width: 350px`, `top: 133px`, `border-left: 2px`, no top border, close button tappable — and at 400x700 scrolled to the footer the drawer measures 445px, matching the pre-change measurement taken before any edit (clearance 122px).
-
-**Verification**: `astro check` 0 errors, `lint` clean, `lint:css` 0 errors (filter.css warning count unchanged at 9), 1579 unit/integration, `test:docs` 35, and 447 E2E passed across chromium/firefox/webkit at CI concurrency.
-
-**As a** phone user filtering the portfolio or the regulatory map, **I want** the drawer to use its designed mobile treatment **so that** a panel that was written to be a full-width sheet stops rendering as a desktop side-panel.
-
-**The defect is the Astro scoping trap this repo already has a rule about** ([CLAUDE.md § CSS Styling Standards](../../../.claude/CLAUDE.md)): `.portfolio-filter-drawer`'s mobile rules live in [`PortfolioHeader.astro`](../../components/portfolio/PortfolioHeader.astro)'s scoped `<style>` (the `768px` block at ~line 259 and the `480px` block at ~line 345), but the element they target is rendered by the CHILD component [`FilterDrawer.astro`](../../components/portfolio/FilterDrawer.astro), so it carries that child's `data-astro-cid-*` attribute and the parent's rules never match. Two comments in the file — "Drawer styles moved to FilterDrawer.astro" — say the move was intended; the declarations were left behind.
-
-**Measured, not inferred.** At 375px the drawer computes `right: -400px; width: 350px; border-left: 2px; max-height: none` — the desktop base rule from [`filter.css:143`](../../styles/components/filter.css). Every one of these is silently lost on both routes:
-
-| Intended (dead)                                             | Actual                      |
-| ----------------------------------------------------------- | --------------------------- |
-| `width: 100%` full-width sheet                              | `350px` side panel          |
-| `right: -100%` / `.open { right: 0 }`                       | `right: -400px`             |
-| `border-left: none` + `border-top: 2px solid`               | `border-left: 2px`          |
-| ≤480: `bottom: 0; top: auto; max-height: 85vh` bottom sheet | `top: 133px`, no max-height |
-
-`FilterDrawer.astro` has its own `@media (max-width: 480px)` block, which is why this was not obvious — but it only sets `.drawer-header` / `.drawer-content` / `.filter-chips` padding. It contains no `right`, `width`, `top` or `border` declaration at all, so nothing there substitutes for the dead rules.
-
-**Not a scroll-width defect.** An earlier version of this stanza blamed the closed drawer for 13px of horizontal overflow at 320px in WebKit. That was wrong and is disproven: removing the drawer from the DOM leaves the overflow unchanged, because it is `position: fixed` and does not contribute to `scrollWidth`. The real causes were a `.stats-grid` whose `1fr` tracks are floored at min-content and a nowrap `.timeline-legend`, both fixed 2026-08-18, and both routes are now in [`narrow-viewport-chrome.test.ts`](../../../tests/e2e/narrow-viewport-chrome.test.ts).
-
-#### Acceptance Criteria
-
-The stanza's ACs were written on the assumption that the mobile treatment would be restored. Three are met as written; the first is met by the opposite of what it asked for, which is the point of the closure above.
-
-- [x] **Not restored — deleted.** The AC asked that the mobile declarations "live where the drawer is rendered" and that a rendered measurement prove they apply. The rendered measurement is what killed them: made live, the sheet covers the page it filters, hides the control that opened it, and needs its own frosted utility replaced to be legible at all. Operator ruling 2026-08-18: master's side panel is the correct UX. What ships renders identically to master at every width, with the dead rules gone from both components and a "do not restore them" note where they would be reintroduced.
-- [x] The comments describe what is true — both stale "Drawer styles moved to FilterDrawer.astro" comments replaced with one naming the mechanism (a parent's scoped rule compiles to its own cid; the element carries the child's), and a third added to `StickyControls.astro` where its dead block was.
-- [x] `filter-drawer-layering.test.ts`, `portfolio-filtering.test.ts`, `regulatory-map-mobile.test.ts` and `narrow-viewport-chrome.test.ts` pass on all three engines — plus `portfolio-drawer-scroll`, `mobile-navigation`, `brand-page`, `accessibility` and `analytics`.
-- [x] The open/closed detection still describes the property the drawer animates. No code change was needed: open is still `right: 0`, closed still `-400px`. Its docblock now records that, and that a switch to `transform` would silently break the check — the fact the AC was protecting, written down rather than rediscovered.
-
-#### Technical Context
-
-- **No visible change ships on any route.** `/ma-portfolio/` renders the same drawer it always has. The diff is dead CSS removed, one magic number named, one a11y fix, and docs.
-- **A closed drawer is no longer in the tab order.** `visibility: hidden` with `visibility` in the transition, which does not disturb the `right`-based open/closed signal — its step-function interpolation reveals the drawer the instant `.open` lands and holds it visible through the slide-out. Asserted by focus reachability rather than a CSS proxy. This is the one behavioural change, and it is invisible.
-- **`--drawer-top-inset` is load-bearing, not cosmetic.** It is the only lever that clears the two fixed bars above the drawer, because `main`'s stacking context puts them permanently out of z-index reach. Anything that changes `top` has to answer for the close button, which the hittability test now guards.
-- **One thing left behind for whoever needs it**: `--filter-drawer-bg` (`variables.css:203`) is defined and documented but referenced by nothing.
-- **If a mobile treatment is ever actually wanted**, it is a design brief, not a bug fix: the panel would need a surface that works full-bleed, a way to not obscure the controls that opened it, and a decision about whether covering the filtered content is acceptable on a phone. None of that was in the dead CSS.
-
----
-
-### BL-114: Strip the 10 inert `.primary` / `.secondary` class tokens
-
-**Source**: relocated from BL-095's technical context when that initiative closed (2026-08-08) — the record predates the closeout and remains a real obligation | **Effort**: Small (the strip); the _define_ path needs a design decision first | **Status**: **CLOSED 2026-08-09** — stripped, not defined
-
-**As a** developer reading page markup, **I want** every class on an element to do something **so that** markup doesn't teach phantom variants.
-
-#### Acceptance Criteria
-
-- [x] The 10 remaining bare `primary` / `secondary` tokens are stripped (or deliberately defined — see below). Counted rather than estimated, as of 2026-08-08: `Hero.astro` (2), the three `hub/library/*` article pages, `hub/radar/`, three tool pages' back-links, and the IRL generator's submit button (`information-request-list-generator/index.astro:272`) — the one that is not a back-link. **Done 2026-08-09**: the inventory was exact — all 10 found where predicted, stripped, none defined.
-  - **An 11th was found and fixed, outside the count**: [STYLES_REMEDIATION_ROADMAP.md § 7](../styles/STYLES_REMEDIATION_ROADMAP.md) carried `class="cta-button secondary"` inside a **prescriptive** template for future tool pages. The stanza only ever counted rendered markup, but a doc that tells the next author to write the phantom variant is the same defect one step upstream — and it would have regrown the count.
-  - **Verified inert before deleting, not assumed**: no rule in `src/styles/**` or any Astro scoped `<style>` selects `.primary` / `.secondary`, and nothing in `tests/` selects them (the one hit is prose in a `brand-page.test.ts` docblock describing this exact debt). So the strip is provably a no-op on rendered appearance.
-  - **Not built here**: a repo-wide every-class-has-a-rule guard — filed as BL-116 and since built (2026-09-15): see [STYLES_GUIDE § The scoped-rule / foreign-element trap](../styles/STYLES_GUIDE.md#the-scoped-rule--foreign-element-trap) for where the orphan-class scan lives.
-  - **A caption on `/brand` had to move with the markup.** `BrandComponents.astro`'s `.cta-button` code label read "the `primary` / `secondary` words **seen in page markup** are inert" — true when written, false the moment the last occurrence went. `/brand` is the in-repo control surface, so a caption keeping the phantom names alive in the present tense is the same defect the roadmap fix addressed, one step upstream. Reworded to the past tense.
-
-#### Technical Context
-
-- `buttons.css` defines exactly one CTA appearance (`.cta-button`); the bare `primary` / `secondary` tokens seen in `class="cta-button primary"` match no rule in the repo. The `/brand` specimens shed theirs 2026-07-29, and the 9 on the two hub gateway indexes went 2026-08-03.
-- **Stripping is mechanical and behaviour-free; _defining_ them is not** — `.cta-button.secondary` would restyle every "Back to …" link at once and needs a design decision first. Bare unnamespaced globals are also a collision hazard: prefer `.brutal-btn--primary` / `--secondary` when a real two-variant pair is wanted.
-
----
-
-### BL-135: Claude Design sync — correct it, guard it, and publish the design system rather than its content-level subset
-
-**Source**: audit of the initial sync (`5ca4012f`, 2026-08-16) the same day it landed — three parallel checks (name accuracy, coverage, specimen fidelity + tooling), plus a read-only listing of the live project confirming remote = local `ds-bundle/` | **Effort**: Slices 1–2 Small (a session); Slice 3 Medium — it is a build-extraction script plus a card-authoring path the converter does not take today; Slice 4 Small | **Status**: **Slices 1–3 shipped 2026-08-16** — open only for the one human confirmation Slice 3 names (the pane indexing the chrome group)
-
-**As a** user of the Claude Design project ([CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md)), **I want** the published system to be correct where it speaks, to fail CI when it goes stale, and to cover the surfaces that make a page look like GST **so that** the design agent produces on-brand output for whole pages rather than on-token cards inside chrome it invented.
-
-**What the audit found.** The sync is well-built for what it chose to be — production-faithful flattened CSS (lightningcss + browserslist, `-webkit-backdrop-filter` intact), dark mode verified by probe, honest docs, and the "never hand-write React copies of `.astro` components" rule is the right call. Its ceiling is structural: it publishes a **content-level class vocabulary**, not the design system. Measured against the repo the day it shipped:
-
-- **Six defects in the published artifact.** (D1) the "Idiomatic example" in [`.design-sync/conventions.md`](../../../.design-sync/conventions.md) — the single most-copyable snippet, inlined into the agent's system prompt — builds a `.brutal-stat-tile` from `.brutal-data` + `.brutal-label-small`, contradicting its own BEM table 60 lines above and every real consumer (`tiles.css` `__value`/`__label`; ICG page; `/brand`) — both classes exist, so it renders a teal, side-by-side tile instead of the stacked one DataSpecimen shows. (D2) `FormSpecimen` (+ its doc) puts `.brutal-input` inside `.brutal-field`; production and `/brand` always use `.brutal-field__input` (dashed 2px, transparent, mono — visually different), and `__input`, `__input-wrap`, `__prefix/__suffix`, `__hint`, `__req` are absent from the BEM table. (D3) `ToolShellSpecimen.md` wraps in `<section className="tool-section">` — no such class exists in `src/styles`. (D4) `--overlay (12px)` in conventions.md and FrostedSpecimen.md — actual is `blur(6px)` (`global.css`); inherited from `STYLES_GUIDE.md`, so a pre-existing doc drift now exported. (D5) the header says "`window.GST` is an **empty object** … no importable components" — false as shipped: eight `*Specimen` galleries are on `window.GST` (that is how the converter's `[BUNDLE_EXPORT]` gate is satisfied), and the boilerplate tail then says "All 8 components are the real upstream code" and shows `const { ButtonSpecimen } = window.GST` — the header should state what is true (exports exist, are galleries, must not be rendered). (D6) `CardSpecimen.tsx` puts `maxWidth` inline **on the card**, while CardSpecimen.md's last line says cards must never do that. Minor: a "Legacy CTA" row label (`.cta-button` is current); the gateway `BulletDelta` omits the `aria-hidden` / `flex-shrink:0` `DeltaIcon.astro` always emits; NOTES says React lives only in `.ds-sync/node_modules` but `react@19.2.8` is transitively in root `node_modules` (undeclared, untyped). Everything else checked out: every token named in the header exists with the exact name, every BEM modifier resolves to its block, tool-shell widths verified.
-- **Coverage.** conventions.md names 101 of 356 classes defined in `src/styles` (28%); ~215 are named nowhere. The reusable ones the agent will hand-roll: the **hub-tool chrome, 39/39 untaught** (`.tool-action-bar` + `--center/--end/--bordered/--frosted/--stack`, `.tool-wizard-progress/-step/-dot`, `.tool-tab-bar/.tool-tab`, `.tool-methodology__*`, `.tool-bench-note`); blocks named **without their required children** — the exact "block alone renders unstyled" failure the header warns about (`.brutal-option-card`, `.brutal-project-card` ×12, `.brutal-search` ×13, `.brutal-breadcrumb`, `.brutal-bench-table`, `.brutal-panel`); whole families absent (`.brutal-tab/-tab-bar`, `.brutal-slider`, `.brutal-teaser-card`, `.brutal-faq`, `.brutal-shadow`, `.brutal-filter-drawer`, the entire `toc.css` root, `.brutal-stat__*`/`.brutal-cta__*`, `.brutal-btn--copied`, `.no-print`, `.skip-nav`). Tokens: ~60 of 286 named; missing families are the semantic hub colors (`--color-authority/-distinguish/-subdued`, `--hub-authority-blue`, `--color-editors-pick`), **every dataviz scale** (`--techpar-*` ×28, `--icg-*` ×6, `--dm-*` ×9, `--regmap-*`) — any chart goes off-brand without them — the dark-side literals used inside `light-dark()`, `--z-raised/-negative`, `--accent-subtle/-wash/-faint-bg`, `--color-primary-rgb`. Rules that exist only implicitly, with no token to discover them by: `border-radius: 0` everywhere (53×, never stated); the focus-ring recipe (`outline: 2px solid var(--color-primary); outline-offset: 2px`, 16 rules); the letter-spacing scale (0.04–0.12em, hardcoded ~180×); `.container` = 1600px / 3rem; the 1024px tablet tier used in 25 scoped media queries; and **no `prefers-reduced-motion` handling anywhere in `src/styles`** (only `ThemeToggleButton`). Fine to omit: regulatory-map one-offs (~50), `.legal-page-*`.
-- **The structural blind spot.** 73 `.astro` files, 54 with `<style>`: **13,802 lines scoped vs 5,301 in `src/styles` — ~72% of the site's CSS is invisible to the agent**, and the site's identity lives there: `Header.astro` (sticky, 2px teal rule, nav ink in `--color-tertiary`), `Hero.astro` (the 6rem / 900 / uppercase / −0.04em / line-height 0.95 headline and gradient band — `.brutal-hero__*` in `global.css` covers only the title/description/trustline text), `Footer`, `StatsBar`, `EngagementFlow`, `WhatWeDo`, `WhoWeSupport`, `WhyClientsTrustUs` (scoped `.trust-card` beside a global `.brutal-trust-card`), `Breadcrumb.astro` (scoped `.breadcrumb__*` beside a global `.brutal-breadcrumb`), and every hub tool page layout. STYLES_GUIDE mechanism 3 legitimises specimens only for component-less classes, so **hand-ported specimens can never cover the chrome**, and hand-ported JSX is exactly the drift surface STYLES_GUIDE calls "worse than no specimen" — with no parity test possible (D2 and D6 are day-one drift).
-- **Guards — every staleness risk the sync's own docs list is unguarded in-repo.** The name check NOTES/CLAUDE_DESIGN_SYNC say is "re-run each sync" lives only in the gitignored `.ds-sync/` skill; `test:docs` scans `src/docs` only. The hand-maintained `ROOTS` list in [`build-css.mjs`](../../../.design-sync/build-css.mjs) is 19/19 complete today, and a new page-imported sheet (as `toc.css` is) would ship nowhere silently. `.design-sync/**/*.tsx` pass ESLint but **`tsc`/`astro check` never see them** — TypeScript's `**/*` skips dot-directories — so the commit's "deliberately still linted" is true for lint only. Fresh-clone friction, not data loss: `.cache/review/*.grade.json` (the "8 carried forward" human verdicts) and `remote-sync.json` are gitignored, so a re-sync from a new machine is a full re-upload + re-grade; `dark-probe.mjs` hard-codes a `ds-bundle/` path and fails before a full build. The **six palettes remain asserted, not verified**.
-
-#### Acceptance Criteria
-
-**Slice 1 — correct and guard — ✅ shipped 2026-08-16**
-
-- [x] D1–D6 fixed at the source (`conventions.md`, `FormSpecimen.tsx` + `.md`, `ToolShellSpecimen.md`, `CardSpecimen.tsx`), and D4 fixed in `STYLES_GUIDE.md` too, since that is where it came from; the minor items with them
-- [x] A vitest under `test:docs` (beside `docs-variables-sync.test.ts`, reusing its CSS-parsing approach) asserts every `` `.class` `` / `className="…"` / `__sub` / `--modifier` / `` `--token` `` named in `conventions.md`, `specimen-docs/*.md` and `specimens/*.tsx` exists in `src/styles/**/*.css` — with an explicit allowlist for the two intentional negatives (`.brutal-card`, `.brutal-hero`) that fails when an entry becomes stale, per the `FLOOR_EXCEPTIONS` posture. It must find D3 on this branch before the fix (prove the guard probes something) — it did: the first run reported exactly `.tool-section` and nothing else; a four-way mutation (phantom class, phantom token, phantom modifier, phantom sub-element) was caught before the fixes landed. Lives in `tests/integration/design-sync-guards.test.ts`
-- [x] A vitest asserts `ROOTS` in `build-css.mjs` reaches every sheet under `src/styles/**/*.css` via transitive `@import` — set equality, not subset
-- [x] `.design-sync/**/*.tsx` are either type-checked (an explicit `tsconfig` include + `@types/react` as a devDependency, or a `.design-sync`-local tsconfig run from `test:docs`) or the docs stop implying they are; the eslint.config.mjs comment says which — type-checked: `.design-sync/tsconfig.json` + `@types/react` devDependency, run by the guards test (`tsc -p .design-sync`), proven to catch a `className={42}`
-- [x] Palettes verified: the dark-probe pattern extended to toggle `html.palette-0…5` on a real card and print which tokens re-point; the "unverified" caveats in CLAUDE_DESIGN_SYNC.md and NOTES.md replaced by the result — `palette-probe.mjs`: palette-0 holds `#05cd99`, 1–5 re-point the token AND the painted fill
-- [x] Fresh-clone path documented in NOTES.md — what a re-sync from a new machine costs (re-upload, re-grade), and that `dark-probe.mjs` needs a full `package-build` first
-- [x] Re-synced; the remote project's `README.md` and `components/specimens/*` reflect the fixes (`list_files` + a `get_file` on README suffices) — 53 files written; the remote README confirmed carrying D1/D4/D5 and the `.brutal-field` row
-
-One correction made mid-slice, recorded because it is the class of error this repo tracks: the first draft of the D2 fix described `.brutal-input` as "solid-border" — it is dashed like `.brutal-field__input`; the real differences are width, size and colour. Asserted from memory, caught by looking at the rendered card. Fixed before upload.
-
-**Slice 2 — extend the vocabulary — ✅ shipped 2026-08-16**
-
-- [x] conventions.md teaches the hub-tool chrome (`.tool-action-bar` family, wizard stepper, tabs, methodology, bench-note) — shown in place by a new **ToolChromeSpecimen** rather than crammed into ToolShellSpecimen (the shell card was already clipping); each row is ported from its production consumer (ICG, techpar, diligence-machine) and the source is named in the specimen's header comment
-- [x] Every block named in the class table lists its required BEM children — `option-card`, `project-card`, `search`, `breadcrumb`, `bench-table`, `panel`, `field` (full set) join the table, plus `teaser-card`, `faq`, `slider`, `filter-drawer`, `brutal-tab-bar`, `tool-tab-bar`, `tool-wizard-progress`, `tool-methodology`; a new **NavigationSpecimen** shows breadcrumb, the `brutal-tab` strip, search-with-results and the detail panel
-- [x] The absent reusable families are added (`brutal-tab`, `brutal-slider`, `brutal-teaser-card`, `brutal-faq`, `brutal-filter-drawer`, `toc`, `brutal-stat`/`brutal-cta`, `--copied`, `.no-print`, `.skip-nav`, `.editors-pick-tag`, the `is-*` state classes), each with a specimen row or a copyable snippet; regulatory-map one-offs excluded with a sentence saying so — and `brutal-shadow`/`brutal-transition`/`brutal-interactive`/`brutal-link-interactive`/`brutal-focus-outline` deliberately listed **with** them as `/brand`-only demo boxes rather than taught (they exist to document a rule; the rule is now written down instead)
-- [x] Token table gains the semantic hub colors, every dataviz scale (techpar/icg/dm/regmap — with an explicit "never invent chart colours"), the dark-side literals and the omitted z/accent tokens; the implicit rules are written down under "Rules the CSS assumes but never states" — radius 0 (skeleton exception), elevation-by-border, the focus-ring recipe, the letter-spacing scale per class, line-heights, `.container` 1600/3rem→1.5→1, the 1024px tier as page-level only, and the reduced-motion posture: **no global rule ships; if you add motion, wrap it yourself** — that is a statement of fact, not a new ruling, and stays open for a ruling
-- [x] The header stays under the 32,000-char ceiling with headroom — **it did not at first**: the extended tables prettier-padded to 31.8 KB (one 400-char dataviz cell padded every row of the token table). Converted the three big enumerations to bullet lists: same content, 16.3 KB. NOTES.md records why they must stay lists
-
-Verification: guard green across all new names (its first run on the extended CardSpecimen.md caught nine unqualified project-card sub-elements — the doc now names the block); `tsc -p .design-sync` green; resync `validate ✓`, render check 10/10, both new cards captured and graded; 63 files uploaded, remote lists 10 specimen directories.
-
-**Slice 3 — publish the chrome by extraction, not by hand — ✅ shipped 2026-08-16 (plan-reviewed, four rounds)**
-
-- [x] A build step slices the production build and emits each slice as a static `@dsCard` HTML card carrying the rendered production markup plus the scoped CSS it needs — mechanism 1 by construction: nothing hand-written, nothing to drift. **As designed the AC named `/brand` (`dist/brand/index.html`); the reviewer showed that was wrong on both counts** — the path is `dist/client/…`, and several `/brand` `lib-*` groups are deliberate replicas (STYLES_GUIDE § "How a specimen relates to what ships": mechanism 2/3, inline-styled, "do NOT converge"), so slicing them would have published replicas as production markup. `.design-sync/extract-chrome.mjs` slices **production routes only** — `index.html` (header, hero, three sections, CTA, footer), `about` (breadcrumb), `ma-portfolio` (stats bar), `services` (engagement flow), `hub/tools` (tools landing section), `hub/library/vdr-structure` (TOC) — with jsdom, and filters the page CSS (linked sheets ∪ inline `<style>` — Hero and CTA rules live only inline) to the slice's `data-astro-cid-*` rules with a lightningcss visitor (browserslist targets, so media queries are not rewritten). 12 slices, 19 cards
-- [x] Header / Hero / Footer / StatsBar / CTA section / Breadcrumb / the section families / hub landing / TOC are browsable under `components/chrome/` and named in conventions.md § "Site chrome — rendered production markup" as read-the-prompt-and-copy patterns (markup **and** CSS, keep the cid attributes)
-- [x] **Dark-mode cards exist**: the seven home-page slices ship `…Dark` twins with `html.dark-theme` on the card's own root — both documented reasons the converter's cards cannot be dark are answered (our scaffold, root-level class). `--check` asserts `--bg-light` resolves to `#0a0a0a` on every twin
-- [x] Wired and loud: runs **after** `resync.mjs` (package-build wipes `ds-bundle/`; validate must not re-run afterwards — count mismatch, documented), exits 1 on a missing build, a selector matching ≠ 1 element, an empty slice, or a cid-bearing slice with zero matched rules; `--check` renders every card with the validator's floors **plus zero pageerror / console error / failed request** (added after the reviewer found a dead `<script src="/_astro/…">` in the footer slice that 19/19 green had not caught — slices now drop `<script>`/`<link>`/`<style>` and inline `on*` handlers). Guard 4 in `design-sync-guards.test.ts` asserts every `SLICES` entry resolves to a route + exact tag/class-token (or id/attribute) in `.astro` source, per-entry, with a fixture proof that suffix renames and lookalike attributes do **not** satisfy it (the first version was `\b`-bounded and did — also a reviewer catch). CLAUDE_DESIGN_SYNC.md and NOTES.md describe the second card path, the ordering, and the manual upload step (chrome cards are outside `_ds_sync.json`, so the resync verdict cannot list them and nothing tracks their staleness — recorded under re-sync risks)
-- [x] **Decision recorded — promotion declined for now.** Extraction covers the need without a website refactor: the agent gets the real Header/Hero/Footer markup and scoped CSS as production ships them. Promoting scoped chrome into global classes (Hero headline recipe, `.site-header` rules, the `.trust-card`/`.brutal-trust-card` and `.breadcrumb__*`/`.brutal-breadcrumb` duplications) is a design-system change with its own regression surface and no current consumer asking for it; the two duplications are real debt but belong to a website tidy-up, not to the sync. Revisit trigger: agent output that reproduces chrome incorrectly **despite** the cards, or a second consumer of the design system that cannot carry cid-scoped CSS
-
-**Needs a human once**: the claude.ai/design pane compiles `_ds_manifest.json` product-side, so whether it indexes `components/chrome/*` and renders the dark twins cannot be confirmed from the repo — open the project and look for the "chrome" group. Everything else in this slice is verified: extractor `--check` 19/19 with zero page errors; guards 14/14 (mutation-proven twice); 38 chrome files uploaded and one prompt.md read back.
-
-**Process note**: the Slice 3 implementation was written alongside the plan-review rounds rather than after approval — this session is non-interactive and the working code was used as review evidence. The reviewer flagged it (round 3, major 3); it is stated here rather than left for the diff. Two real defects were found by the reviewer _running_ that code, which is the argument for the gate's ordering.
-
-#### Technical Context
-
-- **Do not** relax the two non-negotiables in CLAUDE_DESIGN_SYNC.md to get coverage — the extraction path in Slice 3 exists precisely so the chrome can ship without a hand-written React copy of anything.
-- The converter's `register_assets` / hand-authored `@dsCard` path (see the `DesignSync` tool description: "the Design System pane now builds its card index from each preview HTML's first-line `<!-- @dsCard group="…" -->` comment") is the delivery mechanism for Slice 3 cards; the React-specimen path stays for the class galleries.
-- Astro-scoped CSS ships as `[data-astro-cid-*]`-qualified rules with hashed attributes; the slice must carry the attribute-bearing markup and the matching rules together, or the card renders unstyled. Extract from the built page, not from `.astro` source.
-- `dark-probe.mjs` is the pattern for the palette probe (~10 lines of change); run it from the repo root after a full `package-build`.
-- The 32,000-char header limit is documented in the skill's `lib/emit.mjs` (`emitReadme`), not in this repo — cite it in NOTES.md so the next person doesn't rediscover it.
-- Related: BL-116's orphan-class scan, built 2026-09-15 ([STYLES_GUIDE § The scoped-rule / foreign-element trap](../styles/STYLES_GUIDE.md#the-scoped-rule--foreign-element-trap)) — the mirror-image guard: this item catches names the _docs_ use that CSS lacks; that scan catches names the _DOM_ uses that CSS lacks; [BL-020](#bl-020-design-system-package-extraction) (a packaged DS would make Slice 3 unnecessary — deferred, and this item does not wait on it).
-
----
-
 ### BL-094: Off-scale font-size literals — type-scale ruling + sweep (deferred)
 
 **Source**: split out of the design-token lint enforcement initiative (2026-07-28) — see [STYLES_REMEDIATION_ROADMAP.md § 14](../styles/STYLES_REMEDIATION_ROADMAP.md) for the full analysis, which is the authoritative record | **Effort**: Medium-Large — 150 judgement calls across ~31 files + per-page visual review | **Status**: **Deferred** — visible as lint warnings in every run; do NOT bulk-snap (see why below)
@@ -941,7 +768,7 @@ Scope is **the whole GST estate** — the Astro website and the MCP integration 
 
 ### BL-143: Trust-the-operator IRL ingestion rebuild (`gst_irl_sweep`)
 
-**Source**: operator mandate, 2026-08-25 — a genuinely-invoked Kestrel run was refused by the old prompt's own provenance reasoning (the transport artifact broke the model-side evidence chain while the `-prepop` grade was cryptographically true); the operator's verdict was that the guards reject real IRLs faster than they catch fabrications | **Effort**: Large | **Status**: **In progress** — PR1 (additive) built on `feat/irl-sweep`; controlling plan `goofy-prancing-wirth` (9 review rounds, approved)
+**Source**: operator mandate, 2026-08-25 — a genuinely-invoked Kestrel run was refused by the old prompt's own provenance reasoning (the transport artifact broke the model-side evidence chain while the `-prepop` grade was cryptographically true); the operator's verdict was that the guards reject real IRLs faster than they catch fabrications | **Effort**: Large | **Status**: **In progress** — PR1 (additive) merged in #437 (server `0.62.0`; `gst_irl_create` handoff followed at `0.63.0`); the removal PR (PR2) is not started; controlling plan `goofy-prancing-wirth` (9 review rounds, approved)
 
 **As a** GST operator with a populated IRL in hand, **I want** the sweep to treat it as ipso facto trusted input and just run, **so that** the ingestion surface stops being perpetually refactored and never useful.
 
@@ -949,91 +776,37 @@ Scope is **the whole GST estate** — the Astro website and the MCP integration 
 
 **Open decision, owed at PR2 kickoff (operator, 2026-08-25)**: the `_audit` end state on the three analysis tools — remove entirely vs keep optional-and-validated (PR1 ships optional either way). Decide on live-verification evidence: did bare calls produce any wrong numbers the old refinements would have caught?
 
-**PR2 also settles**: BL-129 (close as won't-do if `_audit` is removed; moot either way per scope decision), BL-130 (mechanism removed — close), BL-131 (both sites die with the file — close), and dispositions for BL-128 / BL-134 / BL-087.
+**PR2 also settles**: BL-129 (close as won't-do if `_audit` is removed; moot either way per scope decision) and dispositions for BL-134 / BL-087. Carry [BL-163](#bl-163-compute_techpar-audit-residuals-left-open-by-bl-126) item 2 out of `irl-ingestion.ts` **before** deleting it; that file holds the only copy of the hosting-annualization rule.
 
-### BL-125: The prompt states none of its own run parameters
+**Residuals of closed `gst_irl_ingestion` items that PR2 retires** (stanzas pruned 2026-09-16; full text at `git show 7c4e51f7:src/docs/development/BACKLOG.md`). None needs work if PR2 ships. If PR2 is abandoned, each one comes back:
 
-**Source**: post-deploy production testing of BL-124, 2026-08-14, plus seven rounds of design review | **Effort**: Medium | **Status**: **Implemented 2026-08-14** (prompt `0.26.0` / `0.0.9`, server `0.53.0`, [ADR-0017 amendment](../adr/0017-audit-levels-enforced-in-the-tool-response.md)) — open pending the post-deploy production confirmation, which is the only criterion a test cannot close
-
-**As an** operator invoking `gst_irl_ingestion`, **I want** the arguments I set to actually reach the run **so that** `debug` produces a debug artifact and `requireVerbatimBody` enforces the refusal it promises.
-
-**What it is.** The rendered body never states its own resolved `mode`, `auditLevel` or `transactionContext` — no interpolation of those values exists anywhere in the prompt. The model has to infer them from which sections appeared, and in three production runs out of three it inferred `enhanced`, including one the operator ran at `debug`. It then passed `enhanced` to `compose_dossier_envelope`, the tool withheld `metaFenceMarkdown` exactly as contracted, and `promptVersion` came back `null`. **`auditLevel: debug` is unreachable through the model even when the server renders it.**
-
-`requireVerbatimBody` is worse: fourteen occurrences in `mcp-server/src`, **zero render-time readers**, not even a telemetry counter. The server's refusal reads the value from the tool input the model supplies, and the model has never been shown the operator's. This is the `forceTools` failure ADR-0017 line 14 records — _"the model was told to honour an override it was never shown"_ — but deletion was the right answer there and is the wrong one here, because this flag gates a refusal.
-
-Design review of the fix surfaced two more: `build()` dispatches on body-absence before checking `mode`, so `{mode:'extract-only'}` with no body silently renders the interactive builder; and interactive discards every argument except `auditLevel`, so five supplied values are dropped and the model re-asks for what it was given.
-
-Seven further defects — an untrimmed enum lookup that fails prompt attachment, an anti-balk clause present on 1 of 5 rendered bodies, unframed embedded resources, dangling RUN-AUDIT back-references, `enhanced` being a no-op in interactive mode, an unpopulatable `filledIrl` block in extract-only, and a schema description contradicting the BL-063 partition rule — round out the set. All were invisible while BL-123's halt blocked the paths that expose them.
-
-#### Acceptance Criteria
-
-- [x] Every builder states its own resolved run parameters, selected by the rule **"does this surface have a consumer for the value"** — so `auditLevel` appears in extract-only (its meta fence is model-authored, ADR-0017 line 48) while `requireVerbatimBody` does not (no envelope call, not a fence key, not a RUN-AUDIT field)
-- [x] The two prose sites that consume `requireVerbatimBody` point at the stated value rather than asking the model to know an unknowable condition
-- [x] Interactive receives the full argument set, and Step 1's tailoring ask is composed from the arguments genuinely absent — stating a value and then asking for it is the defect, not half of it
-- [x] Interactive discloses that a supplied `mode: extract-only` was not honored
-- [x] `enumFromWire` trims before lookup, matching `booleanFromWire`; the repo-wide guard is extended so no optional enum field on any prompt rejects a whitespace-padded canonical value
-- [x] The anti-balk clause covers all five rendered bodies, in a form whose evidence is structural rather than hash-based — the existing clause argues from a directive three of the five never render
-- [x] `enhanced` yields the same verification discipline on the interactive path as on the paste path; a (K) footer is never emitted without the blocking self-check that backs it
-- [x] The body-hash suite is governed by a stated **coverage rule** — pin builder × level, plus one args-variant per builder at `standard` only — rather than a tally renegotiated per change
-- [ ] **Post-deploy production confirmation**: a `debug` sweep returns a meta fence with a non-null `promptVersion`
+- **BL-123** (body integrity, 2026-08-13): its "halt fires on a pasted multi-line body" confirmation can never be met, because BL-124 withdrew the halt. The `irlSource` cap stands and is production-verified. Three payload cuts were rejected on evidence: the ADR-0015 column contract, and BL-086's Steps 1b/4a/6a at about 7.5 KB, not 20.2 KB. Don't re-propose them.
+- **BL-125** (run parameters stated in the body, 2026-08-14): one criterion was never ticked: a production `debug` sweep returning a non-null `promptVersion`.
+- **BL-128** (RUN-AUDIT contract duplicated, won't-fix 2026-08-15): below `debug` the counter fields ship unexplained, and moving the explanation into `emitInstructions` is still the available remedy. Models will keep misreporting `countersScope: run` as a defect. Any rework should reword the RUN-AUDIT fields, never delete them, because operators assert their presence.
+- **BL-130** (`fillRatio` derived rather than asserted, 2026-08-15): the recount against the re-hydrated body (its check 3) was never built, and extract-only is uncovered.
+- BL-130 and BL-131 are already closed, so they no longer need a PR2 disposition.
 
 ---
 
-### BL-126: `compute_techpar` is mode-conditional and the prompt never named a mode
+### BL-163: `compute_techpar` audit residuals left open by BL-126
 
-**Source**: two production sweeps over the same target, 2026-08-14 | **Effort**: Medium | **Status**: **Implemented 2026-08-15** (prompt `0.27.0`, server `0.54.0`) — open pending the post-deploy determinism confirmation
+**Source**: carried out of BL-126 (closed; mode fix shipped at prompt `0.27.0` / server `0.54.0`, determinism confirmed 2026-08-15) when it was pruned 2026-09-16. Full evidence for all three items is in that stanza: `git show 7c4e51f7:src/docs/development/BACKLOG.md` | **Effort**: Small–Medium | **Status**: Recorded
 
-**As a** partner shipping a dossier to a client, **I want** two runs over the same IRL to agree on the headline verdicts **so that** the artifact is defensible.
+**As a** partner shipping a dossier, **I want** two runs over the same IRL to agree on TechPar inputs **so that** a residual variance I can't see doesn't move the numbers.
 
-**What it was.** Two sweeps over identical IRL bytes produced `rdOpEx` of **$4,391,000 and $8,320,000** — and with it TechPar **32.6% "healthy"** against **47.5% "above the PE ceiling"**, an inverted partner-facing verdict.
+BL-126 pinned `mode: deepdive` and made the zone verdict stable: two sweeps landed 3.6% apart on `rdOpEx`, down from 89%. These three residuals remain:
 
-Neither run misbehaved. `compute_techpar` computes `rdOpEx` as `engCost + prodCost + toolingCost` in `deepdive` and reads the input directly in `quick`; `mode` is a required enum with no default; and the prompt named no mode at all. Step 4 enumerated the Section-02 components — which are `deepdive` inputs — so a model that obeyed it and picked `quick` held three figures the engine discards and whose `_audit` entries the schema rejects, plus a required `rdOpEx` with no documented source. Folding the components in was the only move left. A model that picked `deepdive` found `rdOpEx` ignored and supplied it anyway, from Section 04.
+1. **No absence value for the audit.** Every `_audit.annualizationSource` value asserts that a derivation happened; none means "the IRL does not supply this". `rdOpEx` and `_audit.rdOpEx` are required in both modes, even though `deepdive` discards the value, so prompts use `irl-annualized-stated` with a `Section --` citation as a forced placeholder. Fix: a TechPar absence source, nullable money fields and an `extractionOnly` marker, mirroring `tech-debt-audit.ts`. **Trigger**: met; schedule with the next `compute_techpar` schema change.
+2. **`infraHostingAnnual` has no binding selection rule.** Two valid derivations ($850K YTD ÷ 3 × 12 = $3.40M vs $292K/mo × 12 = $3.50M) both pass the handler's cross-check, and a cross-check cannot choose between two valid derivations. The "annualize the 3-month average" rule exists once, inline in `irl-ingestion.ts` Step 4, and is not in `extraction-rules.ts`, so `gst_irl_sweep` receives no rule at all. The cheap fix is BL-126's own precedent: hoist it into `extraction-rules.ts` next to `TECHPAR_MODE_RULE`. Do this before BL-143's removal PR deletes the only copy.
+3. **The `rdOpEx` synthesis is duplicated** in [`techpar-engine.ts`](../../utils/techpar-engine.ts) (`computeTechPar` ~:246 and `buildTrajectory` ~:390), so a rule change has two sites.
 
-**Established, and each verified against the artifact that decides:**
-
-- `deepdive` is the only mode the canonical IRL supports: Section 02 asks for the product-personnel and tooling components directly, and supplies the FTE breakdown `engCost` derives from. **No bullet in any section asks for a total R&D OpEx figure**.
-- The SOP that owns which-bullet-feeds-which-input had **zero rows** for `rdOpEx`, `rdCapEx`, `engCost` and `exitMultiple`. `engCost` carries an entire prompt rule and still had none, so the asymmetry predated the field that surfaced it.
-- **An input with no row does not stay empty.** Both divergences were misroutes of bullets the SOP had _already mapped_ elsewhere — run A pulled the Section-02 `prodCost`/`toolingCost` rows into `rdOpEx`; run C pulled Section 04's `remediationBudget` row across tools entirely. Hence the anti-mappings, not just the rows.
-
-**Not established, and deliberately not acted on**: the ICG 15-vs-3 gap (the two runs used different bodies — confounded), and that `-1` is penalised harder than `0` (it is clamped at `Math.max(0, …)`, so an all-`-1` domain scores as an all-`0` one; that claim came from a tool-description string rather than the engine).
-
-**Withdrawn diagnoses**, recorded because the sequence is the substance: (1) _the annualization audit has an escape hatch_ — run A's `_audit` was never in hand and both candidate derivations reconcile under the proposed check; (2) _the runs cited different sections, so model variance_ — they ran under **different prompt bodies**; (3) _`rdOpEx` has no documented source_ — true but incomplete, checked against the SOP and prompt but not the engine; (4) _Section 04's R&D line is the quick-mode source_ — there is no R&D-total bullet in Section 04.
-
-**The transferable lesson**, which is not a fact about `rdOpEx`: every withdrawal came from checking the artifact that _describes_ an input rather than the one that _decides_. The SOP, the prompt, the tool description and the schema each said something the engine did not.
+**Operator ruling, not open**: the `engCost` `estimated-from-headcount` disclosure gap (no declared headcount, rate or fully-loaded basis) is **won't-fix** (2026-08-15, "No one will notice it"). The residual is about 4% on `rdOpEx` with a stable verdict. Do not re-propose it from the same evidence.
 
 #### Acceptance Criteria
 
-- [x] `gst_irl_ingestion` names its TechPar mode in **all three** bodies — the first cut reached two, and the interactive builder calls the tool at its own Step 2d. `ENG_COST_DEDUP_RULE` is now shared with extract-only too, since the mode fix makes `engCost` load-bearing there
-- [x] The SOP carries mode-conditional rows for all four previously unmapped inputs, plus explicit **anti-mappings** for the two bullet sets that were misrouted
-- [x] A blank Section-02 component is surfaced in (J) rather than given invented provenance. Placement moved during review: the instruction is self-contained in `TECHPAR_MODE_RULE`, which renders in all three bodies, rather than in `GAP_LIST_DIRECTIVE`, which the interactive body never receives
-- [x] The detection signal (`engPctOfRD: 100` with `prodPctOfRD: null`) is named in the SOP — **as sufficient, not exhaustive**: it fires only when both `prodCost` and `toolingCost` are zero, and a blank `toolingCost` alone leaves no KPI tell at all
-- [x] **Post-deploy determinism confirmation** — two `debug` sweeps over identical Kestrel bytes, 2026-08-15. **The inversion is gone; an attributed residual remains.** Both runs chose `mode: "deepdive"` and both passed `rdOpEx: 0` with the sanctioned `Section --` placeholder, so the mode is no longer a free variable and neither run repeated the Section 04 misroute. Synthesized `rdOpEx` came to **$4,678,000 and $4,845,000 — 3.6% apart, against 89% before** ($4,391,000 vs $8,320,000; both percentages quoted against the lower run); `totalTechPct` **33.62 vs 34.32**, 0.70pp apart against 14.9pp; **zone `healthy` both times**, against `healthy` vs `above the PE ceiling`. The partner-facing verdict is stable, which is what the item existed to secure. Exact agreement was not reached and is not achievable **by the mode fix** — every remaining delta sits in a model-derived input, and all of them belong to the `annualizationSource` item below rather than to the mode. Three moved, not one: the `rdOpEx` components together (+$167,000), `infraHostingAnnual` (+$104,000) and `infraPersonnel` (−$80,000, 1,080,000 → 1,000,000). **The headline 0.70pp flatters the result** — the two infra deltas ran opposite and largely cancelled; aligned they would total ~$351,000, about 1.29pp. Verdict stability survives either way, but the gap is wider than the summary figure suggests. `infraPersonnel` is the same **class** of undeclared model derivation — run 2 declared it `estimated-from-headcount`, the same branch as `engCost` — and is not separately worked below. Its factoring is where it gets interesting: 1,080,000 is 9 × 120,000 against the IRL's 9-person infra headcount, while **1,000,000 does not resolve to nine of any round rate** — so the branch run 2 declared says headcount, and the value it supplied does not look derived that way. Either the declaration does not describe the derivation, or the rate is unround; nothing in the payload distinguishes the two. That is the defect of this whole section in miniature, on the one field where the arithmetic happens to expose it. The two-arm fallback (N `full` + N `extract-only`) is **not needed**: it existed to discover where the divergence lived, and these sweeps answer that
-
-**Candidate with a trigger — a consequence this change creates.** Fixing the mode to `deepdive` makes the component audits mandatory, and every `_audit.annualizationSource` value asserts that a derivation happened: **there is no value meaning "the IRL does not supply this"**, and the citation regex demands a 20-character excerpt. **This is reached on every deepdive call, not on the first partly-filled Section 02.** `rdOpEx` and `_audit.rdOpEx` are required in both modes while `deepdive` discards the value, so each call must declare an annualization source for a field with none; the prompt uses `irl-annualized-stated` with a `Section --` citation saying so in words, which is a placeholder the enum forces rather than a claim. A partly-filled Section 02 makes it worse by extending the same problem to figures the engine actually uses. The fix is a TechPar absence source plus nullable money fields and an `extractionOnly` marker, mirroring `tech-debt-audit.ts` — which already solved this one tool over. **Trigger**: met on the first deepdive call after deploy; schedule with the next `compute_techpar` schema change.
-
-**Also recorded, not fixed** — **fixed 2026-08-20, and the note's premise is superseded**: `gst_target_quick_look` is a fourth `compute_techpar` caller and also stated no mode, mentioning quick-mode audit handling only in a parenthetical. This note said its shape differs (form inputs, no IRL) so it needs its own call rather than this rule. That was right when written and is no longer: under [ADR-0019](../adr/0019-irl-extract-record-subject-indexing.md) the prompt carries `irlEvidencePrecedence()`, so there _is_ IRL-shaped evidence available to it, and the mode is now branch-conditional — `quick` with no evidence (nothing supplies the Section 02 components, so `deepdive` would sum three zeros), `deepdive` with a record present, where `TECHPAR_MODE_RULE` is imported rather than paraphrased, with an explicit adaptation note mapping its "(J)" and dossier directives onto quick-look's own disclosure output. The same pass added the `_audit` sibling `estimate_tech_debt_cost` requires — that call had been **failing validation as written** — and its `irl-absent` + null / `extractionOnly` branch. Both defects are proven by execution in `mcp-server/tests/integration/irl-extract-record-consumers.test.ts` rather than by reading, which is this stanza's own transferable lesson applied. (The BL-126 plan's claim that `gst_irl_ingestion` was the only caller leaving the mode unstated was wrong, and remains recorded as such.) And the `rdOpEx` synthesis branch is duplicated at `src/utils/techpar-engine.ts:229` and `:374-376`, so a future change to the synthesis rule has two sites. Website-workspace engine code, outside this item's surface.
-
-**Still open, separately**: `_audit.annualizationSource`'s `estimated-from-anchor` and `estimated-from-headcount` branches require only a citation — no multiplier, no anchor, nothing the handler can check. A real hole, and **not** this divergence's cause. **Trigger**: an undeclared multiplier observed in the wild, or a new caller of those branches.
-
-**That trigger is now met, and the two post-fix sweeps of 2026-08-15 isolate it to a single number.** Both runs took `estimated-from-headcount` for `engCost` and both applied `ENG_COST_DEDUP_RULE` correctly — 42 total engineering less the 9-person Infra/DevOps/DBA group. Both results factor cleanly — **$3,630,000 = 33 × $110,000** and **$3,795,000 = 33 × $115,000** — though the factors are inferred, not declared, which is the finding: **the branch has nowhere to declare either term.** `estimated-from-headcount` requires `annualizationSource` and a citation and nothing else, while the module JSDoc documents it as _"derived from team × salary"_ and asks for neither factor.
-
-**A required headcount and rate would not be sufficient on their own.** IRL Section 07 states base-salary bands and says in terms _"base salary only (not fully-loaded)"_, and the audit cannot distinguish a base figure passed straight through from a base figure marked up — that indistinguishability is the defect. And the basis is stated everywhere except where it would bind. The Hub form tells the human user outright — _"Annual fully-loaded"_ on the engineering-cost input (`src/pages/hub/tools/techpar/index.astro:752-754`) — and the canonical IRL asks bullet 7-03 for _"Average fully-loaded engineering salary"_, which is the very bullet the target answered with base bands. But **`fully-loaded` appears in no schema in either workspace**: `src/schemas/techpar.ts:175` describes `engCost` in full as _"Annual engineering personnel cost (dollars). Used only in `deepdive` mode."_ — a mode note and no basis. The basis is asked for and displayed, and never reaches the wire contract, so nothing the audit sees carries it — which is why a fix needs the **basis** declared alongside the two factors. Note that the SOP is not a substitute cite: it routes _"Average fully-loaded engineering salary"_ to Tech Debt Calculator `salary`, not TechPar `engCost` (`src/data/library/irl-tool-input-mapping/article.md:117`, and its byte-identical twin), consistent with this stanza's own finding of zero `engCost` rows.
-
-_(Two corrections in this paragraph, both the failure mode BL-126 is about. It first asserted the schema field **was** fully-loaded — reading a semantic off the artifact that describes rather than the one that decides. The correction then claimed `irl-ingestion.ts:951` was the **only** statement of the basis on the surface; the string occurs in fourteen files across `src/` and `mcp-server/src/`, twenty tracked repo-wide. An unchecked absence claim is the same error in negative form — and a count asserted inside a note about unchecked claims needs its scope stated, which the first draft of this parenthetical also omitted.)_
-
-**DROPPED 2026-08-15 — won't-fix by operator decision, and this paragraph scopes ONLY the `engCost` disclosure gap above; the `infraHostingAnnual` finding that follows stays open.** _"No one will notice it."_ The residual is ~4% on `rdOpEx` with the zone verdict stable, and the disclosure work it would take is not worth that. Recorded so a met trigger stops reading like scheduled work — **including the "the shape of the fix is already in the file" line further down this stanza**, which describes a fix that will not be built. (Everything below about `engCost` is evidence, not a plan.)
-
-**A second, cleaner instance on `infraHostingAnnual`, where the divergence is the method itself.** Run 1 took `ytd-annualized-with-period` (`ytdMonths: 3`, `ytdMathCheck` anchoring $292,000/mo against $850,000 YTD) and derived $850,000 ÷ 3 × 12 = **$3,400,000**. Run 2 took `monthly-x12` on the same monthly anchor: $292,000 × 12 = **$3,504,000**. Both are arithmetically exact and both cite real IRL anchors (bullet 3-02 carries the $292K/mo and the $850K YTD figures).
-
-**A selection rule already exists, and run 2 ignored it.** Step 4 directs _"monthly hosting + infra spend (Section 03 — annualize the 3-month average)"_ — run 1 is exactly that; run 2 took the Apr-26 point figure × 12 instead. Both runs rendered the full body, so both received it — run 1's `debug` meta fence records `"mode": "full"` directly, and run 2 is established structurally rather than assumed: `build()` dispatched to the interactive builder only when `filledIrl` was absent (the dispatch rule as it stood on 2026-08-15; it consults `mode` on both branches since [ADR-0019](../adr/0019-irl-extract-record-subject-indexing.md), which does not change this inference — both runs supplied a body), both runs supplied it, and `extract-only` invokes no analysis tools while both runs returned a real `compute_techpar` `outputSummary`. `full` is the only remaining branch. So the defect is not a missing rule: it is a rule that **renders in one body only** — the string occurs exactly once in `irl-ingestion.ts`, so the extract-only and interactive builders never see it — and that **failed to bind even where it did render**. `TECHPAR_MODE_RULE` took the opposite route in BL-126: hoisted into the shared `extraction-rules` module, interpolated into all three bodies, and it bound in both runs. That contrast is the cheap fix, and a cheaper one than the schema work above.
-
-**On audit strength**, which the pairing settles: run 1 used the strongest branch in the schema and passed its handler-verified cross-check (292,000 × 3 = 876,000 against 850,000 reported, 3.1% — inside the 10% tolerance at `techpar-audit.ts:288`). The check confirmed the arithmetic and was structurally unable to say the method was the wrong one to pick. **A cross-check validates a derivation; it cannot adjudicate between two valid derivations** — so validation is the wrong instrument here regardless of how much of it is added.
-
-**A third instance was considered and withdrawn**, recorded because the withdrawal is the useful part. Run 2's `_audit.rdCapEx` declared `irl-annualized-stated` on a zero value under `capexView: "gaap"`, where the engine excludes the field from `total` (`src/utils/techpar-engine.ts:233-235`), and this read as the model generalizing the sanctioned `rdOpEx` placeholder to a second field. Two facts refute it outright: `_audit.rdCapEx` is `monetaryFieldAuditSchema` and **required in both modes** (`techpar-audit.ts:186`), so it was compelled rather than volunteered; and `TECHPAR_MODE_RULE` scopes its exception to _"the rule below"_, which governs `engCost` / `prodCost` / `toolingCost` — `rdCapEx` was never inside the rule allegedly generalized. A third consideration is weaker and is recorded as such: IRL bullet 3-08 (_"hosting/infrastructure is consumed as cloud opex … not capitalized"_) shows a defensible basis was **available**, but it concerns infrastructure capex while `rdCapEx` is capitalized R&D, so it does not establish which basis was actually used. The claim also rested on a pasted excerpt read as complete when `citation` is required on that schema, which is the same overclaim corrected two paragraphs up.
-
-The same payload carries its own control: `infraHostingAnnual` used `ytd-annualized-with-period` and was therefore forced to declare `ytdMonths: 3` **and** a `ytdMathCheck` naming both the monthly anchor and the YTD reported amount — arithmetic a handler can verify. Two fields, one call, opposite audit strength. `estimated-from-headcount` is documented in the module JSDoc as _"derived from team × salary"_ and requires neither term.
-
-This is also the residual variance source the mode fix could not reach: with `mode` pinned, `rdOpEx` is synthesized from three components, and `engCost` — the largest — remains a model derivation with two free parameters and no declaration. **The shape of the fix is already in the file**: mirror the `ytdMonths` / `ytdMathCheck` precedent with a required headcount and rate on this branch.
+- [ ] The hosting-annualization selection rule lives in `extraction-rules.ts` and renders in every body that calls `compute_techpar`, including `gst_irl_sweep`
+- [ ] The `rdOpEx` synthesis has one implementation in `techpar-engine.ts`
+- [ ] Absence source + nullable fields + `extractionOnly` land with the next `compute_techpar` schema change (contract + prompt parity per CLAUDE.md § Extending an MCP Tool)
 
 ---
 
@@ -1054,59 +827,7 @@ This is also the residual variance source the mode fix could not reach: with `mo
 
 **The opening question is a design question, not a schema one**: what are the legitimate provenance modes for a seeded answer — direct citation, named adjacency inference, partner-supplied form input, genuine silence?
 
-**Trigger**: after BL-126's post-deploy confirmation, since the same instrument measures both.
-
----
-
-### BL-130: `fillRatio` is model-asserted and nothing checks it — not even against itself
-
-**Source**: BL-126 post-deploy run, 2026-08-15 | **Effort**: Small | **Status**: **Implemented 2026-08-15** (prompt `0.28.0`, server `0.55.0`, [ADR-0018 scope amendment](../adr/0018-body-integrity-and-capped-provenance.md)) — **derived, not validated**, and narrower than "the number is now checked"
-
-**Closed by derivation rather than the check this stanza proposed.** `percent` and `status` are pure functions of the other two fields, so `compose_dossier_envelope` recomputes them and the derived values govern the meta fence; a disagreement appends a `provenance-gap:` entry naming both figures and directing a section (A) restatement. Rejection was designed first and discarded: the pre-flight rounds before applying the thresholds, so a run at 39.6% correctly reports `40 / ok`, and a raw-ratio check would have refused that compliant run on a partner-facing path.
-
-**Check (2) as written here is superseded.** This stanza specifies "`status` against `percent`"; the implementation anchors status to the rounded `substantiveCells / totalCells` instead, because checking a model-asserted status against a model-asserted percent lets a true 39.1% ship as `40 / ok` with both arms passing.
-
-**Two limits, both narrower than the stanza's framing.** `metaFenceMarkdown` renders at `auditLevel: debug` only, so below that the gap entry is the entire disclosure and extract-only is uncovered (it never calls the tool). And the model took its halt/partial branch before this tool was called — derivation makes the artifact correct, it does not change the branch the run took. **Check (3) — recounting against the re-hydrated body — stays open** and is the one that would.
-
-**One implementation note worth keeping.** The incoherent-counts guard (`substantiveCells > totalCells`, which the schema permits and which would derive >100) is carried primarily by returning `NaN`, not by the exclusive branch: a mutation removing the `else` alone leaves the suite green, because `NaN > 1` is false. Removing both is what turns it red. The code comment says so rather than claiming coverage the test lacks.
-
-**What it is.** The meta fence's `fixtureFillRatio` is whatever the model passed in. `compose_dossier_envelope` renders `input.fillRatio.percent / 100` (`mcp-server/src/schemas/compose-dossier-envelope.ts:599`) and measures nothing.
-
-Three checks are absent, in increasing order of cost:
-
-1. **`percent` against `substantiveCells / totalCells`** — arithmetic on three numbers the model already supplies. The schema range-checks each field (`:129-155`) and there is **no `.refine()` or `.superRefine()` anywhere in the file**.
-2. **`status` against `percent`** — the enum's own `.describe()` states the thresholds (`halt` <15, `partial` 15–40, `ok` otherwise) and nothing enforces them, so a halt-ratio run can self-report `ok` and proceed past the wrong-IRL guard.
-3. **`substantiveCells` / `totalCells` against the body** — the handler already re-hydrates `filledIrl` from the cache on the BL-076 path for provenance verification, so the body is in hand at the moment the number is rendered.
-
-**Observed.** The run reported `0.84`; counting the pasted body directly gives **115 substantive of 134 request bullets = 0.858**. The delta is judgment about `[PARTIAL]` rows rather than miscounting, and it changed no behavior (`status: ok`, `gatesElided: []`, all nine gates passed). That is precisely why it is worth recording: the field is load-bearing for the halt and partial-IRL branches and for the first sentence of (A) that the partner reads, and it currently carries no more authority than the model's word. The operator also observed it lower than a prior run over identical bytes; that prior value was not captured, so the **established** finding is the divergence from ground truth, not a run-to-run delta of known size.
-
-Same class as BL-126: a number the model derives over bytes the server holds, with nothing positioned to catch it. Unlike `rdOpEx` the first two fixes are pure arithmetic on inputs already present.
-
-**Trigger**: met. Checks (1) and (2) need no design pass. Check (3) does — what counts as a substantive answer span is prose judgment, per the `substantiveCells` `.describe()`, so a server-side count must reproduce the composed Response + Comments span rule or it will disagree with the model for legitimate reasons.
-
----
-
-### BL-131: The prompt mandates citing article numbers the regulation data does not contain
-
-**Source**: BL-126 post-deploy run, 2026-08-15 | **Effort**: Small | **Status**: **Implemented 2026-08-15** (prompt `0.28.0`)
-
-**Closed by removing the instruction.** Step 3 and section (F) now direct quoting `keyRequirements` bullets verbatim and identifying each framework by name + `effectiveDate`; the do-not-invent clause — the load-bearing half, and the one the production model actually obeyed — is kept. The corpus fact is now stated inline in the prompt so a future run does not re-derive it.
-
-**The "decide which before writing either" question below was already answered, in [BL-110](#bl-110-mcp-server--jurisdiction-filter-granularity-candidate).** `BACKLOG.md` BL-110 records both that `Article`/`Art.` appears 0 times across all 123 records — with an explicit _"do not re-derive it as a defect"_ — and why authoring citations into those records is not the durable fix: _"a model-generated article number is worse than a blank one: a blank invites verification, a wrong citation suppresses it."_ This item is a genuinely different finding (the **prompt instructing** citation, versus BL-110's **probe criterion demanding** it), so it is not a re-derivation — but **BL-110 carries an open operator action, "amend the probe's citation criterion", which fixing the prompt does NOT close.**
-
-**What it is.** `mcp-server/src/prompts/irl-ingestion.ts:949` (Step 3) closes with _"Cite article numbers verbatim when summarizing obligations; do NOT invent citations beyond what the framework bodies return"_, and `:999` (section (F)) repeats _"citing verbatim article numbers"_.
-
-The regulation records carry `id`, `name`, `summary`, `category`, `regions`, `effectiveDate`, `keyRequirements`, `penalties`. **No article numbers.** Zero of the 123 files under `src/data/regulatory-map/` contain a reference in any form — `Article N`, `Art. N`, or `§ N`.
-
-So the instruction is satisfiable only by invention, sitting inside the prompt whose entire audit architecture exists to prevent invention. The two halves of the same sentence contradict each other: cite article numbers verbatim, but do not invent beyond what the bodies return — and the bodies return none.
-
-**Observed**: the production model declined, summarised from `keyRequirements` instead, and reported the instruction as unsatisfiable. That is the correct refusal, reached unaided — but nothing makes it the likely resolution, and a run that resolves the contradiction the other way produces fabricated legal citations in a partner-facing dossier.
-
-**Scope**: two sites, both in `irl-ingestion.ts`. `regulatory-exposure-brief.ts` does not carry the instruction, and no doc claims the dataset has article numbers.
-
-**Two fixes, not equivalent.** Drop the instruction and cite `keyRequirements` text — cheap and honest, loses precision. Or add article numbers to the dataset — 123 files, real research, and a provenance story of its own. Decide which before writing either.
-
-**Trigger**: met.
+**Trigger**: after BL-126's post-deploy confirmation, since the same instrument measures both. **Met 2026-08-15**, when that confirmation ran.
 
 ---
 
@@ -1159,156 +880,6 @@ BL-063 exists because the distinction is load-bearing: a conditionally-triggered
 **Why this is not simply "add a stricter check."** The server cannot tell mis-routing from a legitimately-absent trigger by inspecting the two arrays — that is the information the arrays do not carry. It _could_ evaluate the trigger predicates itself: the body is already cached and re-hydrated in this handler for provenance verification, and both predicates are anchored to named IRL sections — `EU_AI_ACT` is _"Section 05 names any production ML/AI capability AND Section 00 geographies include the EU"_, `NIS2` is _"Section 00 geographies include the EU AND Section 01 **product description** names a regulated sector covered by NIS2 Annex I or II"_ (`mcp-server/src/prompts/extraction-rules.ts:117`, `:128`). Anchored is not the same as mechanical: deciding whether a product description "names a regulated sector" is judgment over free prose, so a server-side evaluator would be reproducing an inference, not reading a field. That would make the trigger set server-derived rather than model-asserted, which is the same move BL-071 made for `precheck.iterations` and the one BL-130 proposes for `fillRatio`. **The opening question is whether the predicates are cheaply evaluable server-side, or whether the fix is a narrower assertion** — e.g. requiring the model to state, per default-fired framework, that no conditional predicate applied to it.
 
 **Trigger**: met.
-
----
-
-### BL-128: The RUN-AUDIT reporting contract exists twice, and the trigger to dedupe it has fired
-
-**Source**: BL-125 implementation + code review, 2026-08-14 | **Effort**: Medium | **Status**: **CLOSED WON'T-FIX 2026-08-15** — trigger met, cost lands on maintenance rather than on any client
-
-**Closed by decision.** The operator's call: _"costs my time, not yours."_ The duplication is real and the trigger did fire; what it buys is not worth the change. Recorded rather than pruned because three things stay true after closing, and a future session should find them stated rather than rediscover them:
-
-- **Production models will keep reporting the self-count shape and `countersScope: run` as defects.** Each report costs a re-derivation. Three separate runs have now done it.
-- **The strongest finding here is untouched, and a merge would not have fixed it.** Both copies are `debug`-gated while the numbers ship at every level, so below `debug` the coverage gap stands: `mode: full` names the counter fields without explaining them, and interactive mentions them nowhere. The remedy this stanza itself identifies — moving the explanation into `emitInstructions` — is not a prompt change and remains available. BL-130 has since edited that exact surface, which lowers the cost of doing it.
-- ~~**Instance 2 stands**: extract-only carries copy-verbatim-from-`compose_dossier_envelope` wording in a mode that never calls it. `RUN_AUDIT_DIRECTIVE`'s null-run bullet partially covers it, so it is salience rather than contradiction.~~ **Closed 2026-08-20** by the IRL extract record change (prompt `0.29.0`, [ADR-0019](../adr/0019-irl-extract-record-subject-indexing.md)), which is the "next substantive `gst_irl_ingestion` body change" this stanza scheduled it with. Reworded, never deleted, exactly as the framing note below requires: `RUN_AUDIT_DIRECTIVE` gains ONE bullet stating the extract-only value of every envelope-sourced field (`firstEnvelopeCall: null`, `countersScope: null`, `toolCallCounts: {}`, `toolErrors: []`, the precheck block zeroed, `promptVersion` from the Run parameters block, `filledIrl` still measured), plus scope qualifiers on the two inline `copy VERBATIM` comments. Thirteen conditional rewrites were rejected in favour of stating the values once. Every field is still emitted and the five BL-121 assertions still hold. **Instance 1 — the interactive body's inline Step 5 copy — is untouched and this stanza stays CLOSED WON'T-FIX for it**; so does the coverage gap below `debug`, whose remedy is `emitInstructions`, not a prompt edit.
-
-**One framing to not carry forward.** The triage that opened this described the fix as _deleting_ the dead references. That is wrong and this stanza never said it: extract-only **emits** a RUN-AUDIT block at every level, the directive states `DO NOT omit any field. Operators parse this verbatim with field-presence assertions`, and five BL-121 assertions pin exactly that. The fields are load-bearing; only the copy-from-tool wording is wrong. A future attempt should reword, never delete.
-
-**What it is.** `RUN_AUDIT_DIRECTIVE` and the interactive body's inline Step 5 are two renderings of one reporting contract. `irl-ingestion.ts` argues against exactly this in its own comments ("two copies of one reporting contract only drift"), and BL-125 scoped the dedupe out with the trigger _"the next edit that would have to be made twice."_
-
-**That trigger fired inside BL-125 itself**: the null-run `filledIrl` rule was written once in the shared directive and once in the interactive copy, in the same commit that named the trigger. Recording it rather than leaving it silently unfired is the point — an unfired trigger on a met condition is how deferred work becomes invisible.
-
-**A second instance to fix at the same time.** The extract-only body carries 13 `compose_dossier_envelope` references inside the shared RUN-AUDIT and meta-fence directives — including an instruction to copy `toolCallCounts` verbatim from that tool's output, in a mode that never calls it. That is the same defect class BL-125 closed for the run-parameter bullets (`copiesToEnvelopeCall`), left standing in the directives those bullets sit beside. Deduping the contract is what makes it fixable in one place instead of thirteen.
-
-**A third instance — and it inverts on inspection, which is the finding.** Production models keep reporting two `serverToolCallCounts` behaviours as defects: that the envelope's own entry shows fewer successes than attempts, and that the counts reach past the current conversation. Both are correct behaviour, and **the contract already says so, in three places**:
-
-- `mcp-server/src/prompts/irl-ingestion.ts:699` — _"Note the envelope tool itself shows `attempted: N, succeeded: N-1` in its own snapshot (in-flight while computing)"_, present since BL-071 and repeated in the interactive copy at `:1338`.
-- `:698` and `:1338` — `run` is _"every call against this IRL body covered, across requests, for a 4-hour window; **keyed by the body, not by your invocation**"_.
-- `mcp-server/src/docs/tools/irl-pipeline/CONTRACT.md:217`, `:219`, `:229` — both again, naming the key (`mcp:irl-run-counts:<irlBodyHash>`), the 4h TTL, and the merge semantics that produce the N−1 shape.
-
-**But where those notes render does not match where the numbers go, and that mismatch is the actual defect.** Both live inside `RUN_AUDIT_DIRECTIVE` (`:625`), which has exactly **two** render sites: the full body at `:1024`, gated on `showRunAudit` (= `auditLevel === 'debug'`, `:847`), and extract-only at `:1135`, unconditional — the one mode that never calls the tool, which is the second instance above. Interactive does not render the const at all; it carries its own inline Step 5 copy under the same `debug` gate (`:1171`, `:1283`), which is this stanza's first instance.
-
-The numbers ship at **every** level regardless: `serverToolCallCounts` and `countersScope` are attached with no audit-level condition (`mcp-server/src/tools/compose-dossier-envelope.ts:155-157`).
-
-**So it is two problems stacked, not one.** At `debug`, the notes sit in the same list as the transcription instruction, so a model that misreads them was not short of proximity — a salience problem, and the harder of the two. Below `debug` it is a plain coverage gap, and it deepens by body:
-
-- **`mode: full`** names both fields at every level via `buildEnvelopeCompositionDirective` (`:595-601`), with only the transcription rules `debug`-scoped — so the model knows the fields exist but gets neither note explaining them.
-- **Interactive** is worse and is the strongest instance: `buildEnvelopeCompositionDirective` is used **only** by the full body (`:1022`), so an interactive run below `debug` receives the counters with the fields mentioned **nowhere in its body at all**.
-
-**Three options.** The strongest is not _only_ a prompt edit: put the explanation where the numbers are, in `emitInstructions` (`mcp-server/src/schemas/compose-dossier-envelope.ts:1370`, assigned unconditionally; builder at `:687`), which reaches every audit level and every client **on every run that calls the tool** — precisely the set of runs that has counters to misread. Note it is not free: `emitInstructions` has **zero** references anywhere in `mcp-server/src/prompts/`, so nothing currently tells the model the field exists, and landing this plausibly costs one prompt clause pointing at it. Second, rename the wire label the misread turns on — `run` reads as "session" where `irl-body` would encode the derivation; it is a client-visible enum, so it costs a migration. Third and explicitly rejected: changing the self-count semantic, which `CONTRACT.md:217` argues against directly ("consumers must not correct this value"). A cheap `debug`-scoped stopgap also exists: in the RUN-AUDIT YAML template, `:650` (`countersScope`) and `:651` (`toolCallCounts`) both already carry inline `# BL-121:` / `# BL-071:` comments, and the row that would host the N−1 note — `compose_dossier_envelope` at `:653` — is the only one of the three without one. It reaches only the level that already has the notes, so it is a stopgap and not an option. Deduping is what lets any of these land once instead of twice.
-
-_One caveat on the evidence: "models report them as bugs anyway" holds only for `debug` runs, since below that the notes are absent and there is nothing to have misread. The runs behind this stanza had no `auditLevel` recorded, and `mcp-server/src/docs/prompts/irl-ingestion.md` notes it was inferred wrong in three production runs of three — so capture the level with the next report before leaning on that inference._
-
-> _Correction, 2026-08-15._ This paragraph previously claimed the contract "never says" these things and that the self-count shape was **always** `{attempted: 1, succeeded: 0}`. Both were wrong, and the diagnosis first offered for the second one — that it generalised from the only run then observed — was wrong too. `CONTRACT.md:229` already documented the re-call shape, and `tests/integration/bl-071-precheck-derivation.test.ts:381` has asserted `{attempted: 2, succeeded: 1}` since BL-121. The error was not over-generalising an observation; it was **asserting a repo fact without running the search**, which is the class this stanza's neighbours document. Recorded rather than quietly rewritten, because a note filed against unchecked claims that contains three of them is evidence about how easily the habit survives being named. **A fourth and a fifth followed.** The fourth claimed the notes and the transcription instruction were the same list, so a model with counts to report had necessarily just read them — checking two render sites and not the condition on either. The fifth is worse in kind: the repair for the fourth placed `RUN_AUDIT_DIRECTIVE` in the interactive body on a reviewer's say-so, when the grep already run in that same session returned exactly two sites and neither was interactive. **A claim adopted from a review is still a claim**, and this one contradicted evidence already in hand. The same repair also quoted the `:606-609` comment ("ships at every audit level") as describing `RUN_AUDIT_DIRECTIVE`; its antecedent is the envelope-composition directive, so the quote asserted the exact inverse of the gating being documented — a wrong-antecedent error, the same class as `12a31c6a` earlier in this series.
-
-**Trigger**: met, and **discharged for instance 2 on 2026-08-20** — the IRL extract record change was that next substantive body change, and it carried the version bump and the hash rebaseline as predicted. The stanza stays CLOSED WON'T-FIX for instance 1 and for the below-`debug` coverage gap; neither acquired a new trigger.
-
----
-
-### BL-124: The flattened-body refusal blocked every working path
-
-**Source**: production runs 2026-08-14, immediately after BL-123 deployed | **Effort**: Medium | **Status**: **Implemented 2026-08-14** (prompt `0.25.0` / server `0.52.0`, [ADR-0018 § Re-validation](../adr/0018-body-integrity-and-capped-provenance.md)) — open pending the post-deploy production confirmation
-
-**As an** operator running the IRL sweep from Claude Desktop, **I want** the prompt to accept the inputs my client actually sends **so that** I have a working path to a dossier at any IRL size.
-
-**What it was.** BL-123 refused a body whose line breaks the client had collapsed. Within a day of deploy it emerged that the harm had been asserted, never demonstrated — `normalizeForMatching` collapses whitespace before matching, so flattening cannot change a verification verdict; nothing else reads line structure; and the hash-bind exists to catch model _paraphrase_, which flattening is not. Meanwhile the refusal fired at every realistic IRL size (smallest repo fixture 4,256 B against a 2,000 B floor), and its own remediation could not carry a large body. **Operators went from one working path to none.**
-
-Forcing operators onto the interactive path then exposed two pre-existing defects nobody had hit while paste worked: blank form fields (`""`) failed schema validation and broke prompt attachment entirely, and a large body cannot reach `prepare_irl_body` in one turn. A third surfaced in the run logs — a client-approval failure had no sanctioned `errorClass`, so a model invented one.
-
-**The `irlSource` cap from BL-123 is untouched** — it fixes a real hole (the model grading its own run) and its pass-through arm is production-verified.
-
-#### Acceptance Criteria
-
-- [x] A flattened body is processed normally at every entry point, keeping full `partner-paste-verbatim-prepop` grade
-- [x] The refusal is not reinstated behind `requireVerbatimBody` — that flag's guarantee is "not a model reconstruction", which a flattened body satisfies
-- [x] The newline count survives as an operator diagnostic (`serverCachedBodyNewlines` / `filledIrl.newlines`), explaining a hash that will not match a source file
-- [x] Blank form fields no longer break prompt attachment, on this prompt and the one sibling with the same defect
-- [x] A repo-wide guard asserts that **no optional argument on any registered prompt** either rejects or retains an empty string — the invariant, not nine one-off cases. It probes each FIELD schema rather than the whole object, so prompts carrying a required argument are covered too, and it exempts fields with a `.default(...)`, which resolve to a value by design. Zero offenders across all nine prompts; the next prompt to ship this defect fails in CI rather than in an operator's client
-- [x] `stringFromWire` does not trim — a trimmed body would change the binding hash and break the very comparison the diagnostic exists to support
-- [x] The interactive body sanctions splitting a large `prepare_irl_body` call into its own turn
-- [x] An undelivered client call is excluded from `toolErrors` and included in `precheck.errorsEncountered`, preserving both arithmetic identities
-- [x] ADR-0018 carries the reversal in its title, status and index row — not only in an appended note
-- [x] **Post-deploy production confirmation**: a Desktop paste completes end-to-end and the RUN-AUDIT block shows `newlines: 0` — **confirmed 2026-08-14**. A 51,787-byte flattened paste (141 newlines collapsed, trailing one dropped) bound `740d907b75139083`, ran the full sweep at `irlSource: partner-paste-verbatim-prepop` uncapped, `hashBindResult: pass-bound`, 58/58 claims verified, 0 auto-appended provenance gaps. The same sweep surfaced the defects now tracked as [BL-125](#bl-125-the-prompt-states-none-of-its-own-run-parameters)
-
----
-
-### BL-123: `gst_irl_ingestion` takes its inputs and its own provenance claims on trust
-
-**Source**: production run 2026-08-13 (Kestrel IRL) — hash mismatch investigation | **Effort**: Medium | **Status**: **Implemented 2026-08-13; the refusal half REVERTED 2026-08-14 by [BL-124](#bl-124-the-flattened-body-refusal-blocked-every-working-path). The `irlSource` cap stands and is production-verified.** (prompt `0.24.0` / server `0.51.0`, [ADR-0018](../adr/0018-body-integrity-and-capped-provenance.md)) — open pending the post-deploy production confirmation, which is the only criterion a test cannot close
-
-**As an** operator running the IRL sweep from a real client, **I want** the server to refuse a body the client destroyed on the way in and to compute the provenance grade itself **so that** a dossier cannot look clean while resting on mangled input or on a claim nobody checked.
-
-**What it is.** Four findings in one surface, sharing one theme: the prompt trusts claims about its own inputs — from the client, and from the model.
-
-1. **Claude Desktop flattens `filledIrl` and nothing notices.** Every prompt-argument field renders as a single-line `<input>`, so a pasted multi-line markdown IRL loses every newline. Reproduced against the production artifact: 141 newlines → 0, byte length −1, content differing at **140 positions**. The server hashes what it received and reports it honestly; the markdown structure the dossier depends on is simply gone. Same reader-collapse shape as the six status-page defects [BL-122](#bl-122-mcp-server--misc-ux-pass-audit-levels-prompt-doc-status-page--closed-2026-08-13) closed — a degraded input converted into a plausible success before anything downstream can see it. Repair is impossible: `\n → " "` is lossy.
-2. **The provenance grade is model-asserted, and its evidence is a copyable string.** `irlSource: partner-paste-verbatim-prepop` rests on the _presence_ of the `**Body-binding hash:**` directive, which survives export — so a replayed payload asserts the strong form. Narrower than first framed: outside the 4-hour TTL a replay fails loudly, and inside it the bytes really are partner-supplied. What is forgeable is the claim that _this run_ was freshly invoked — and the fact that the grade is self-reported at all. BL-121 already did this conversion for `toolCallCounts`; `irlSource` never got it.
-3. **The VDR article is embedded whole on every render** — 16.3 KB for a 9-row folder-label table.
-4. **Argument descriptions bury the default past the form's truncation point.** Six of eight fields; an operator reading `requireVerbatimBody` never learns it defaults to false.
-
-**Scope correction worth keeping.** Three further payload cuts were investigated and rejected on evidence: the workbook column contract is mandated in every body by [ADR-0015](../adr/0015-irl-canonical-body-reads-full-workbook.md) and the wrong-IRL pre-flight depends on its vocabulary; Steps 1b/4a/6a were deliberately retained by BL-086 as fabrication guards and total ~7.5 KB, not the 20.2 KB an early measurement suggested. Recorded so they are not re-proposed.
-
-#### Acceptance Criteria
-
-- [~] ~~A structurally destroyed body is refused at every entry point~~ — **superseded by BL-124.** It was, and it was verified in production; then the refusal was withdrawn because the harm was never demonstrated and it blocked every working path.
-- [~] ~~The refusal test is narrow and certain~~ — **superseded by BL-124.** The narrowness was right; refusing at all was not.
-- [x] `irlSource` is **capped** by server-held provenance metadata rather than derived from it — an asserted `-prepop` is downgraded when the metadata says otherwise, reconstruction claims pass through untouched, and nothing is ever promoted
-- [x] The `requireVerbatimBody` gate still rejects a reconstruction run (the inversion an early design would have shipped)
-- [x] The provenance grade stops being a claim nobody checks — an over-strong `-prepop` is caught when the server's own record contradicts it, and an unverifiable one is disclosed rather than accepted silently. **Deliberately not claimed**: a payload replayed inside the 4-hour TTL against a render-minted entry still reads `-prepop`, because the record says the render wrote those bytes and that remains true. `mintedAt` is recorded and surfaced but never compared for freshness. Closing that would need a per-render nonce, which is a separate decision — see [ADR-0018](../adr/0018-body-integrity-and-capped-provenance.md) § Context for why the replay severity is narrower than it first reads
-- [x] The provenance store degrades quietly when unavailable and never falls back to in-memory on the Worker
-- [x] Every argument description leads with its valid values and its default, ahead of the prose
-- [x] The VDR taxonomy is inlined with a drift guard against the canonical Library article
-- [x] The operator-facing newline hazard is documented in both IRL runbooks
-- [x] Payload reduction measured and reported as actuals, not the estimate — **153.8 KB → 139.5 KB** on the production artifact; a refused body renders 1.8 KB in one message
-- [ ] **Post-deploy production confirmation**: a fresh Desktop invocation showing the halt fires on a pasted multi-line body and the capped grade appears
-
----
-
-### ~~BL-121: The server-authoritative tool-call counter could not survive the Worker~~ — CLOSED 2026-08-12
-
-**Status**: **Closed in the session that opened it** (prompt `0.22.4` / server `0.49.3`, [ADR-0016](../adr/0016-run-scoped-durable-tool-call-counters.md)). Recorded rather than pruned because the failure mode is a repeat and the fix carries an accepted residual.
-
-**What it was.** BL-071 made the server authoritative for tool-call counts so the `BL-045-VERIFY` block would stop depending on the model's memory of its own behaviour, and pinned the operator check `precheck.iterations === serverToolCallCounts.validate_irl_provenance.succeeded`. That identity holds on stdio. **On the remote Worker it cannot**: `createServer` runs per HTTP request, so a fresh `InMemoryToolCallCounters` is built for every call and the envelope's snapshot can only ever contain the request it is inside.
-
-Surfaced by a production run (Kestrel IRL, 2026-08-12): the envelope reported `validate_irl_provenance` as all-`null` while the model honestly reported `precheck.iterations: 2`. The model was right to refuse to invent the numbers — which left the field as a model assertion, the exact thing BL-071 existed to eliminate, on the transport the team actually uses.
-
-**Three compounding failures, one class — a stdio-shaped claim written as universal.** The prompt asserted the identity holds, with a reason (registered exactly once, so nothing double-counts) that is true and irrelevant to why it fails. It told operators to fail runs on drift against a check that could not pass. And `bl-071-precheck-derivation.test.ts` claimed to prove it while **sharing one counter map across handlers** — a correct stdio test read as universal. The stand-in reproduced the assumption instead of the topology, which is why production found this and the suite did not. The same file had already learned the lesson for BL-076, whose body cache moved to Upstash _because_ isolates rotate between requests; the counters were left behind.
-
-**What shipped.** Durable per-run counters in Upstash (`mcp:irl-run-counts:<irlBodyHash>`, 4 h TTL, `HINCRBY` at wrapper exit, `retry: false`, fail-quiet), a `countersScope` field on the envelope output (`session` / `run` / `request`) so every regime that cannot support the identity says so, and a prompt (`0.22.4`) that states each identity conditionally, pins the transport-classed `errorsEncountered` labels to a closed subset, and enumerates the three causes of a short count. The Worker-topology tests drive **two `createServer` calls sharing one durable store** — hand-building two metrics contexts would have re-encoded the blind spot that hid the bug.
-
-**Two accepted residuals, both named rather than fixed.** A write lost mid-run in an _earlier_ request under-reports while scope still reads `run` — a **false red** an operator investigates and traces to a brownout. And a repeat ingestion of **identical bytes** inside the 4h window accumulates onto the same row, so the count reads long of that invocation; making it per-invocation would need an invocation id, which is the speculative half this change declined, and would dissolve the cross-request continuity that is the point. Both are documented in the prompt, the ADR, `CONTRACT.md` and UAT-07, and the second is executed in the integration suite. The first draft enumerated three causes of a count _short_ of memory and none for a count _long_ of it — asymmetric coverage of a symmetric failure, caught in review, and the same over-claiming this ticket exists to correct.
-
-**Verified live against production 2026-08-13** (`0.49.3` / `gitSha 4c6ec58`, prompt `0.22.4`), over the remote Worker via four separate MCP requests — `prepare_irl_body`, two `validate_irl_provenance` calls, then `compose_dossier_envelope`. This mattered because every automated test runs against a fake Redis and a _simulated_ per-request topology, and a simulation standing in for the real transport is what hid the defect in the first place.
-
-A run against the same endpoint ~15 minutes earlier, before the production approval gate was released, captured the defect itself: `serverToolCallCounts` held only `compose_dossier_envelope: {attempted: 1, succeeded: 0}`, `validate_irl_provenance` was absent despite two verified calls moments before, and no `countersScope` field existed. After the deploy:
-
-```json
-"serverToolCallCounts": {
-  "prepare_irl_body":         { "attempted": 1, "succeeded": 1 },
-  "validate_irl_provenance":  { "attempted": 2, "succeeded": 2 },
-  "compose_dossier_envelope": { "attempted": 1, "succeeded": 0 }
-},
-"countersScope": "run"
-```
-
-The BL-071 identity holds across requests, the canary row is present, and the envelope correctly reports itself in-flight. A re-call then returned `compose_dossier_envelope: {attempted: 2, succeeded: 1}` with `validate_irl_provenance` unchanged at `{2, 2}` — the merge rule adding durable counts to the in-flight attempt without double-counting, which `CONTRACT.md` and UAT-07 document and which had until then only been executed against a fake.
-
----
-
-### ~~BL-120: The canonical IRL body discarded 45% of the workbook~~ — CLOSED 2026-08-12
-
-**Status**: **Closed in the session that opened it** (prompt `0.22.3` / server `0.49.2`). Recorded rather than pruned because the failure mode generalizes and the fix carries two accepted residuals.
-
-**What it was.** `npm run irl:extract` — the operator path the runbook recommends for client-facing and regulatory deliverables — read four of the workbook's seven columns (A/B/C/G) and discarded **D File Location**, **E Comments** and **F Notes** as "partner-supplied side channels". Measured against a real filled workbook: **26,221 of 57,992 authored characters (45.2%) dropped**; 73 of 134 rows carried Comments, 60 carried File Location, 58 carried Notes; **18 rows had a Status claiming an answer with an empty Response, and in 17 the answer was sitting in a discarded column**. One `[CLOSED]` row's Comments read "B2B SaaS (retail workforce management + retail execution platform)" — the answer. The dossier told the recipient they had never answered it.
-
-The cause was a workflow the tooling never learned: GST pre-populates research into Comments, sources into File Location and caveats into Notes; the recipient confirms by setting Status. Nothing — extractor, prompt, or the workbook's own Instructions sheet — described that.
-
-**Second defect, found while fixing the first.** `irl-ingestion.ts` carried **no xlsx-reading guidance at all**, so the model-reconstruction path and the extractor agreed only by coincidence. The extractor's comment claiming its omission matched "the shape the model uses in reconstruction" was never verified and was false.
-
-**What shipped.** The canonical bullet became `- <ref> <request> [<STATUS>] — <answer> (Source: <D>) (Note: <F>)`, where `<answer>` is Response and Comments joined into one contiguous **unlabelled** span; Source/Note stay outside the answer slot so a filename can never make a row read as answered. The prompt gained a workbook column contract in every served body (interactive included), the fill-ratio counting order, substantive-answer wording on inclusion gates 2/4/6, and a citation-hygiene rule. `generate-xlsx.ts` now tells recipients D/E/F are published and routes non-answers to Notes. Rationale, rejected alternatives and both residuals: [ADR-0015](../adr/0015-irl-canonical-body-reads-full-workbook.md).
-
-**The generalizable lesson.** Both defects, and the BL-119 alias defect before them, were **a docstring asserting a fact nobody had executed**. "The same shape the model uses in reconstruction" and "aliases are consumed by `findMatchedHubFramework`" were each written in good faith, each wrong, and each load-bearing for a later decision that trusted them. A comment that claims what another system does is a claim, not documentation.
-
-**What is NOT closed.** Two residuals are accepted and documented rather than fixed — a citation matching only inside a `(Source: …)` span verifies and raises no gap; and workbooks filled before this change legitimately mix research with caveats in Comments (recoverable from the xlsx, and the extractor enumerates the affected refs). Reopen only on the triggers listed in ADR-0015.
 
 ---
 
@@ -1778,7 +1349,7 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 **What it is.** [CLAUDE.md](../../../.claude/CLAUDE.md) § Extending an MCP Tool step 2 requires self-documenting id/enum args in `.describe()` "so a cold LLM call can discover valid values". That is a convention with a review gate and **no measurement**. Every existing suite checks a shape we control: `contract-parity.test.ts` binds docs to Zod, `mcp-uat-parity.test.ts` binds registered capabilities to UAT rows, `mcp-docs-parity.test.ts` binds the public registry to server source, and the unit/integration suites exercise the engines. None of them puts a model in front of the surface and observes what it does with it.
 
-The defect class is not hypothetical — it is already on this backlog three times, and **every instance was found by a production sweep rather than by a test**: [BL-125](#bl-125-the-prompt-states-none-of-its-own-run-parameters) (arguments the model was never shown, making `auditLevel: debug` unreachable through the model), [BL-126](#bl-126-compute_techpar-is-mode-conditional-and-the-prompt-never-named-a-mode) (a required enum with no default and no documented mode — two sweeps over identical bytes inverted a partner-facing verdict, 32.6% "healthy" against 47.5% "above the PE ceiling"), and [BL-132](#bl-132-search_portfolios-deeplink-description-promises-fidelity-the-encoder-deliberately-withholds). [BL-119](#bl-119-mcp-server--user-acceptance-test-suite) is the closest existing surface and is a different instrument: it is human-executed, runs against the live Worker, and proves the server **works**. This item is automated, never executes the server, and probes whether the surface is **legible**.
+The defect class is not hypothetical — this backlog has recorded it three times, and **every instance was found by a production sweep rather than by a test**: BL-125 (closed; arguments the model was never shown, making `auditLevel: debug` unreachable through the model), BL-126 (closed, residuals in [BL-163](#bl-163-compute_techpar-audit-residuals-left-open-by-bl-126); a required enum with no default and no documented mode — two sweeps over identical bytes inverted a partner-facing verdict, 32.6% "healthy" against 47.5% "above the PE ceiling"), and [BL-132](#bl-132-search_portfolios-deeplink-description-promises-fidelity-the-encoder-deliberately-withholds). [BL-119](#bl-119-mcp-server--user-acceptance-test-suite) is the closest existing surface and is a different instrument: it is human-executed, runs against the live Worker, and proves the server **works**. This item is automated, never executes the server, and probes whether the surface is **legible**.
 
 **The method**, from the paper: a tool specification — names, descriptions, typed parameter schemas — already carries enough for an LLM to synthesize evaluation scenarios with no live tool access and no hand-authored cases. Each generated case is a natural-language request paired with the tool calls it should produce; mock outputs stand in for real responses. The paper reports mean tool-calling 0.911 across seven public MCP specs, with two findings that bear directly on us:
 
@@ -1836,53 +1407,6 @@ Two things cut the other way and are the reason this is worth doing rather than 
 
 ---
 
-### BL-161: the website suite has the same first-use timeout shape, in a different subsystem
-
-**Source**: split out of [BL-149](_archive/WORKER_BOOT_LATENCY_BL-149.md) on closure, 2026-09-13. BL-149 diagnosed and fixed the mcp-server half (an unwarmed first `worker.fetch()` after `unstable_dev`); two of its 26 instances were in the WEBSITE suite and are not explained by that fix. | **Effort**: Small — the mechanism is known; the work is confirming it applies and moving the cost | **Status**: **Closed 2026-09-14 by operator decision — not worth the runs it would cost.** No code change, no doc change. See the closure note below, which carries the one thing this item did produce
-
-**As an** engineer running `npm run test:run`, **I want** the same guarantee BL-149 bought for the mcp suite **so that** a 5000ms timeout means a regression in either workspace, not "probably the known flake".
-
-**The two instances** (BL-149's 21 and 25, both 2026-09-09 and 2026-09-11): `tests/integration/spacing-lint-rule.test.ts > flags a hardcoded on-scale literal in css`, 5000ms and 9786ms, green 25/25 and 2/2 in isolation, in diffs touching no CSS and no stylelint config.
-
-**Why BL-149's fix does not cover it.** There is no `unstable_dev` and no Worker anywhere in the website suite. What that test's first case pays is stylelint's module load plus config resolution — a different heavyweight subsystem, same invariant: **first heavyweight initialization billed to an `it` under the 5000ms default, while `beforeAll` has a budget nobody is using.**
-
-**What BL-149 established that applies here** — the generalised lesson, which is the reason this is filed rather than dropped:
-
-- A timeout that fires on FIRST USE is a cost-placement bug, not a budget bug. Do not raise the timeout and do not add a retry.
-- The fix shape is to pay the initialization inside a budgeted `beforeAll` (see [`mcp-server/tests/helpers/warm-worker.ts`](../../../mcp-server/tests/helpers/warm-worker.ts) for the mcp-side precedent).
-- Measure before fixing: every in-`it` observation is right-censored at 5000ms, so the true cost is unknown until measured outside that budget. [`mcp-server/scripts/measure-worker-boot.mjs`](../../../mcp-server/scripts/measure-worker-boot.mjs) is the pattern.
-- Check accumulated local state too — BL-149's second cause was a 223 MB `.wrangler` directory. The website equivalent worth ruling out is `node_modules/.vite`.
-
-#### Acceptance Criteria
-
-- [ ] Measure stylelint's first-use cost in that test outside the 5000ms budget, and record whether it crosses 5000ms on a normal machine
-- [ ] If it does: move the cost into `beforeAll`, and check whether sibling lint-rule tests share the pattern
-- [ ] No `testTimeout` raise and no retry — same constraint BL-149 held to
-- [ ] If the measurement shows the cost is comfortably under budget and the two sightings were contention, say so and close: a negative result is a result, but it must be a measured one
-
-#### Closure note, 2026-09-14 — what was and was not established
-
-Planned 2026-09-14 and closed the same day without implementation, on the operator's call that the expected return did not justify the test runs. The acceptance criteria above are left unticked on purpose: **none of them was met**, and the stanza should not read as investigated-and-cleared.
-
-**What IS established**, and is the reason this note exists rather than a bare "won't fix". While reviewing the plan, the plan-reviewer measured stylelint's first-use cost directly — five isolated child-process runs on `node_modules/stylelint/lib/index.mjs` against the repo `.stylelintrc.json`:
-
-| phase                                                                | samples (ms)                |
-| -------------------------------------------------------------------- | --------------------------- |
-| `import stylelint` — paid at **collection**, static top-level import | 346 / 216 / 217 / 206 / 210 |
-| first `.css` lint (cold config cascade)                              | 362 / 256 / 251 / 240 / 249 |
-| first `.astro` lint (`postcss-html` override)                        | 52 / 35 / 37 / 36 / 36      |
-| every later lint                                                     | 4                           |
-
-**So the BL-149 fix cannot be transplanted here, and nobody should try.** Cold first-use is ~700ms total, and because the import is static it is already paid before any test runs — the portion a `beforeAll` could actually relocate is **~250ms**. The two sightings were 5000ms (censored) and 9786ms. Moving 250ms cannot rescue either. The BL-149 _shape_ is present (250ms vs 4ms, a 60× first-vs-later asymmetry, in every run, flake or not) and its _magnitude_ is absent by roughly 20–30×; the shape alone is what makes the wrong fix look right. A warm-up here would be a gesture, not a fix.
-
-**What is NOT established**: a cause for the two sightings. The measurement above is isolated, and this flake does not reproduce in isolation (green 25/25 and 2/2), so the only instrument that could see it — repeated full-suite runs under load — was never run. Contention is the residual hypothesis by elimination, **not** by observation.
-
-**If it recurs**, this is where to pick it up: the shape to test is whether the first row's duration is inflated relative to its 22 near-identical siblings _in the same run_, and whether that file's process shows descheduling (wall-clock materially exceeding the sum of its own test durations). The stylelint half is already ruled out by the table above.
-
-**One unrelated observation, deliberately left unfixed**: [`mcp-generated-bundle-freshness.test.ts:65`](../../../tests/integration/mcp-generated-bundle-freshness.test.ts) spawns the codegen via `spawnSync` with no spawn-level `timeout:`, so a hung child would hang the run — its neighbours in [`await-mcp-test-run.test.ts`](../../../tests/integration/await-mcp-test-run.test.ts) carry 10s/30s bounds at :65/:181/:447. Measured at 245–266ms, ~20× under budget, so this is hang-hardening and not a flake fix. One line, unowned, and filed here rather than left in a session transcript.
-
----
-
 ### BL-157: four declared AE event types emit nothing — the metrics schema advertises more coverage than exists
 
 **Source**: found 2026-09-08 while auditing trial observability for [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment); **widened the same day** from one dead type to five while building the Grafana dashboard, when the plan-reviewer caught `health_check` and a per-type emit-site count turned up three more; **`rate_limit_decision` closed the same day**, taking it to four; **the remaining four closed 2026-09-14** | **Effort**: Small-to-Medium per type — the wiring is a few lines | **Status**: Open — **only the refusal-volume alert rule remains**, gated on its production-baseline trigger below. All five dead types are resolved.
@@ -1916,153 +1440,6 @@ Consequences:
 - [x] Wired: `Verify-AeEmission.ps1` IRL section, an "IRL ingestion" dashboard row, `irl-pipeline/CONTRACT.md` and `GRAFANA.md`. **`NON_EMITTING_TYPES` was retired rather than emptied**: empty, its loops asserted over nothing. It is replaced by a two-way rule that every declared type has a panel or a named `DELIBERATELY_UNPANELLED` reason (mutation-checked). The AUTH.md / RATE_LIMITS.md cookbooks were not touched: neither covers IRL ingestion
 - [x] Deleted: `EVENT_TYPES`, `OUTCOME_VALUES`, `schema.test.ts` snapshots, the `blob1` lists in `ARCHITECTURE.md` / `DEPLOY.md`. blob5 (`correlation_id`) stays as a reserved slot, and `FIELD_EMITTED_BY.correlation_id: []` makes the SQL guard reject any query that reads it
 - [x] **Operator, after the staging auto-deploy**: run one `gst_irl_ingestion` `mode: full` ingestion through compose, then `Verify-AeEmission.ps1` (needs `CF_AE_TOKEN`), and check the IRL section shows one verdict row, plus a `gate_elided` row for each gate the run actually elided. _(Criterion reworded 2026-09-15: it originally read "plus the elided gates", which assumed a run always elides one.)_ **Done 2026-09-15** on staging (`-Env staging -WindowHours 6`): exactly one `wrong_irl_detected · gst_irl_ingestion · ok · 1`, and **zero `gate_elided` rows — correctly**, because every orchestrated tool (techpar, ICG, tech debt, agenda, regulations, portfolio, radar) appears as a `tool_invocation` in the same window, so no gate was elided. **That leaves `gate_elided` emission production-unexercised**: a zero here is byte-identical to a broken emitter, the same shape as BL-159 Defect A. Until a real run elides a gate, it is covered only by the integration tests, including the mutation check of the once-per-run guard
-
-### BL-158: the Grafana dashboard renders, but two of its SQL assumptions are wrong
-
-**Source**: found 2026-09-08 the hour the dashboard first saw real data, when BL-155's first production mint made the trial panels non-empty | **Effort**: Small-to-Medium (actual: one session) | **Status**: **Closed 2026-09-09** — both defects fixed, both classes now mechanically guarded, and the operator verification done the same day
-
-**As an** operator reading this dashboard, **I want** a panel titled "by outcome" to actually split by outcome **so that** I am not reading one merged line as though it were a breakdown, and **so that** a panel which cannot work fails loudly instead of looking quiet.
-
-Both defects shipped in `deb4034b` / `68b83d0f` and neither was catchable by the guard test, because both are **semantic**: the SQL is syntactically valid, obeys the two dialect rules the guard pins, and renders without error. This is the exact class of failure [`GRAFANA.md`](../../../mcp-server/src/docs/operations/GRAFANA.md) warned about when it recorded the SQL as _guard-verified, not executed_ — and executing it is what found them, within minutes.
-
-#### Defect 1 — the multi-series panels silently merge (confirmed, fixed)
-
-Five `timeseries` panels were written as `SELECT $timeSeries AS t, blob4 AS outcome, sum(_sample_interval) AS n ... GROUP BY blob4, t`. Altinity's plugin turns extra **columns** into series; an extra **grouped row** per timestamp merges into one line. Observed in production: _Trial signups over time, by outcome_ rendered a single legend entry `n` while the neighbouring table showed three distinct outcomes in the same window. Not empty, not erroring — **wrong in a way that reads as right**.
-
-**Fixed** with one `sumIf(_sample_interval, col = 'value') AS value` column per value, which stays a flat SELECT and keeps sample weighting. `$columns(key, value)` — the macro that exists for this — was **not** used: it expands to `groupArray` over a subquery, and `groupArray` is absent from Cloudflare's aggregate reference. Choosing `sumIf` made that question moot rather than requiring a probe to settle it.
-
-**Two panels needed a deliberate exclusion, not four columns of five.** This was the subtle part, and the plan review caught the second one:
-
-- _Refusals over time_ — `OUTCOME_VALUES.rate_limit_decision` lists `allow`, which [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md) never emits. Two columns, not three.
-- _Zone-1 calls over time_ — `NAME_VALUES.inoreader_call` lists `oauth-refresh`, the one category carrying `zone1='0'`, which this panel's own `blob7 = '1'` filter excludes. Four columns, not five.
-
-In both cases a naive derive-from-the-schema column list would plot a **permanently-zero series** — the same "empty reads as good news" failure one layer down, and in the `allow` case it would also have tripped the existing allow-series guard.
-
-_Invocations over time, by keyOwner_ **became a table** (_Top keyOwners in window_). Splitting it needs one column per value, and the `index1` roster grows whenever a key is issued, so no column list could stay correct. Of the three options weighed, the table is the one that cannot go stale, and it answers the ranking question more directly than the merged line ever did.
-
-#### Defect 2 — `uniq()` is undocumented; resolved without the observation this stanza demanded
-
-The stanza said to resolve this empirically: look at the panel, and if it errors, `uniq` is rejected. **That observation turned out to be unnecessary**, and two findings are worth keeping:
-
-1. **A third defect of the same class was hypothesised and disproved.** Panel 9's `quantileWeighted` is absent from the summary aggregate list — but the reference documents it as a backward-compat alias of `quantileExactWeighted`, and production `/status` renders real percentiles from exactly that query every fifteen minutes (`status-metrics.ts:81-88`). It executes. **`/status` is a live, free proof that a given AE query shape works** — worth remembering as a probe that needs no token.
-2. **Therefore absence from that page is not proof of rejection.** The honest verdict on `uniq` is _unknown_, not _broken_.
-
-Which makes the fix independent of the answer: `count(DISTINCT column_name)` **is** documented, is semantically identical here, and is the safer spelling whether or not `uniq` works. Switched on documented-beats-undocumented grounds — deliberately **not** claimed anywhere as a fix for a proven breakage, which would repeat the invented-regression error this stanza already corrected once.
-
-[ADR-0031](../adr/0031-per-client-analytics-identity-is-a-blob.md) carries the amendment; [ADR-0032](../adr/0032-rate-limit-decisions-emit-only-on-refusal.md) is re-validated unchanged, since the missing sample correction is a property of distinct counting rather than of a function name — the stanza's worst case (its core argument needing re-examination) did not materialise.
-
-**One trap in the rename, which the review caught and is worth stating.** Both ADRs _enumerate_ the corrected aggregates as `count`/`sum`/`avg`/quantiles and then say `uniq` is not among them. A straight token swap yields "Cloudflare corrects `count` … but not `count(DISTINCT)`" — self-contradictory on its face. Every rewritten site gained the distinguishing sentence: **the corrected `count` is the plain row counter; `count(DISTINCT x)` is a different aggregate that merely shares its name.**
-
-#### The guards that now exist, and the two that had to be repaired first
-
-Three new rules in [`grafana-dashboard.test.ts`](../../../mcp-server/tests/unit/observability/grafana-dashboard.test.ts), each mutation-verified in both directions:
-
-- a `format: "time_series"` target may not `GROUP BY` anything but the time alias — Defect 1 made mechanical
-- every aggregate must appear in an allowlist transcribed from Cloudflare's reference — Defect 2 made mechanical
-- each enumerable split panel needs one `sumIf` column per schema value, carrying the two exclusions above with the reason each is excluded
-
-**Two existing rules actively rejected the correct fix** and had to be repaired in the same change — the "prove the guard probes something" trap, in its most expensive form:
-
-- the sample-weighting rule forbade `count(` outright, so `count(DISTINCT blob8)` failed it
-- the caveat rule asserted `uniqPanels.length > 0`, so removing the last `uniq` turned it red
-
-Both now key on the invariant rather than the spelling, and the vacuity floor was **kept** on the combined `uniq(|count(DISTINCT` set — dropping it would have made the rule silently pass over zero panels, which is the same trap facing the other way.
-
-#### Picked up while here
-
-- `DEPLOY.md` cookbook SQL carried an unweighted `SELECT count()` — the exact rule this stanza is about, in a file no guard reads. Corrected to `sum(_sample_interval)`.
-- `GRAFANA.md` still claimed the dashboard SQL "has NOT been executed against a live AE dataset". Rewritten to say what execution found.
-- `SECRETS_INVENTORY.md` still called the Grafana datasource configuration "pending"; it has served production data since 2026-09-08.
-
-#### Still open — operator only
-
-- [x] **Re-import the dashboard and run each rewritten query through the probe** — done 2026-09-09. All four rewritten splits returned one column per series, and **`count(DISTINCT blob8)` executed without error** (`distinct_trials: 0`), which answers Defect 2's blocking observation: **AE accepts it**, and ADR-0031's amendment stands as written. The same run surfaced two further defects and a bug in the probe itself, all filed as [BL-159](#bl-159-a-page-severity-alert-that-could-never-fire-and-two-panels-that-could-not-answer-their-titles). Original instruction retained below because it is still how to do it:
-  - _(Original instruction, kept as a record — deliberately **not** a checkbox, so this closed stanza has no unticked box implying open work.)_ ~~Re-import the dashboard and run each rewritten query through the probe (`scripts/Verify-AeEmission.ps1`, or the `curl` shape in `DEPLOY.md § C.X`). **Check the shape, not just the row count**: a merged split still returns rows. This is the one box that cannot be closed from the repo — no `CF_AE_TOKEN` in the dev environment — and it is the only thing that converts the rewritten SQL from guard-verified to executed.~~ Superseded on the tooling half by `scripts/Probe-DashboardSql.ps1` (BL-159), which reads the queries out of the dashboard JSON instead of asking the operator to paste them.
-
-#### The lesson worth keeping
-
-The guard test pinned _dialect rules_ and _schema bindings_, and did both jobs. Neither defect was in that class. **A query can be valid, schema-bound, sample-weighted, and still answer a different question than its title claims.** Execution against real data is not interchangeable with static verification — but the response is not "always execute", it is to keep converting each executed discovery into a rule, which is what the three new guards do.
-
-### BL-159: a page-severity alert that could never fire, and two panels that could not answer their titles
-
-**Source**: the BL-158 probe's first production run, 2026-09-09 | **Effort**: Medium — one new event type at two call sites, two panel rewrites, two guards | **Status**: **Closed 2026-09-09**, operator verification done the same day — the two panel defects (B, C) confirmed fixed against live data; **the repointed alert (Defect A) remains unexercised** until a real scope 403 occurs, and its probe result was a legitimate zero
-
-**As an** operator, **I want** an alert that cannot fire to fail a build **so that** I am not reassured by a monitor that has never once been capable of reporting the thing it is named for.
-
-Found by executing SQL against production, not by review and not by tests — the suite was green throughout. This is the third and fourth instance of one defect class in two days, which is why most of the work here is the guard rather than the two edits.
-
-#### Defect A — `scope-mismatch-403-rate` was dead twice over
-
-`alert-rules.ts`, severity **`page`**, the attack signal for a leaked or replayed key:
-
-```sql
-WHERE blob1 = 'tool_invocation' AND blob4 = 'error' AND blob6 = '403'
-```
-
-**Nothing writes `status_code` on `tool_invocation`** — the only writers are the Inoreader egress pair, `trial/signup.ts`, and `pipeline-events.ts`. **And the 403 it hunts emitted no AE event at all**, only a `safeLog` line, so even corrected to the right event type it would have queried nothing.
-
-It reported a healthy `0 scope-mismatch 403s in 15 min` on `/status` for its entire life. **That is the most dangerous shape a monitoring defect can take: a rule that cannot fire is indistinguishable from a rule with nothing to report.** Every quiet period before 2026-09-09 is unmeasured, not clean — recorded in the runbook, because that is where someone will look during an incident.
-
-**Fixed** with a `scope_denial` event type on the BL-157 `tier_denial` precedent, emitted at **both** denial paths and the alert repointed at it.
-
-**The second call site is the finding worth keeping.** The first draft of this fix emitted at one site, on the stated basis that "exactly one runtime gate exists" — a survey of `hasScope` call sites. But denial happens through `assertScope`, its _wrapper_, and `resources/radar.ts` calls that for the same scope over MCP `resources/read`. Emitting at only the HTTP gate would have left a page-severity alert measuring half its surface: **this stanza's own defect class, reintroduced by its fix, in the same session that documented it.** Caught by plan review. The lesson generalises past this repo — _survey the behaviour, not the function name_; grepping one primitive silently excludes its wrappers.
-
-Rejected: folding it into `tool_invocation` as a 403 error (exactly what ADR-0032 rejected for `tier_denial` — it corrupts the error-rate math this very alert consumes), and reusing `tier_denial` (that is the trial-paywall upgrade-intent signal; mixing scope refusals into it corrupts the one panel BL-157 built for commercial reads).
-
-**Its tests were green the whole time, and that is instructive.** All three existing tests mock `queryAe` and assert the _threshold arithmetic_; not one looks at the SQL. A rule can be perfectly tested and still ask the database a question that has no answer. There is now a test asserting the query the rule actually sends.
-
-#### Defect B — the Status codes panel could never return a status code
-
-Over 863 invocations it returned exactly one row: `{"status_code": "", "n": "863"}`. Same root cause as Defect A — it grouped the three request primitives by `blob6`.
-
-Repointed to the five event types that record one. Two corrections came out of review: `GROUP BY blob1, blob6` rather than `blob6` alone, or `tier_denial`'s synthetic `'200'` conflates with a real Inoreader `200`; and `blob6 != ''`, because `rate_limit_decision` sets a status only on `deny`, so `throttle` rows would otherwise reproduce the exact empty-string row that started this.
-
-Deletion was seriously considered — the repointed panel largely duplicated two neighbours. What earned it its place is Defect A: `scope_denial` puts a 403 on the dashboard that no other panel shows.
-
-#### Defect C — the latency panel reported `0/0/0` as though it meant "instant"
-
-`search_portfolio`, 279 calls, `p50/p95/p99 = 0`. Not a query bug: Workers freeze the clock outside I/O (BL-122), so `duration_ms` is time _blocked on I/O_ and a compute-only tool scores 0 however much work it does.
-
-`/status` had already solved this — filter on the **measurement** (`p99 > 0`), never a tool allowlist, and p99 not p50 so a cache-miss-only tool survives. The panel now does the same via `HAVING`, retitled **Upstream I/O wait per tool**.
-
-**One honest trade, and it is not an equivalence.** `/status` filters at _render_ and keeps the unfiltered rows so it can distinguish "no invocations at all" from "traffic existed, none measurable". `HAVING` filters in the query and collapses both into one blank panel. The description points at the neighbouring panel instead of adding a companion.
-
-#### Defect D — the probe false-positived on a correct panel
-
-It flagged _Trial paywall hits_, which splits by nothing and correctly returns a single `n`. Keyed off column count instead of the defect's shape; now keyed off whether `GROUP BY` names anything but the time alias. Recorded because **a false positive on a correct panel is worse than no check** — it trains the operator to ignore the red.
-
-#### The guard, which is the actual deliverable
-
-`FIELD_EMITTED_BY` in `_schema.ts` maps each narrowly-emitted optional field to the event types that write it. Every existing guard passed all four defects, because `blob6` **is** a real column and those **are** declared event types — the missing relationship was which types populate which field. That knowledge was already in the file as prose (`zone1`'s docblock says "for `inoreader_call` events only"); this makes it data, and therefore checkable.
-
-Scoped deliberately to `status_code` and `zone1`. A draft included `client_ref` and `duration_ms` and had `client_ref` **wrong** — `withMetricsCore` emits it generically for every primitive. A wrong table encoded as the new source of truth is worse than the prose it replaces, and a near-universal field cannot express this defect anyway.
-
-**The guard covers `alert-rules.ts`, not just the dashboard JSON** — scoping it to the JSON would have missed Defect A, the most expensive of the four. Both guards are mutation-verified against the _real_ pre-fix queries, not synthetic ones.
-
-**The vacuity floor earned its keep immediately.** The alert-rule guard asserts an exact count of `queryAe(` sites. It failed on the first run at 3-of-4: the extractor missed the `scope-mismatch-403-rate` query — the one rule the file exists for — because this very change had added a comment above it containing backticks. Without the floor, that guard would have shipped green while never checking the rule it was written for.
-
-**And it happened again one level up, which is the more general lesson: a green run is not evidence until you know how many tests ran.** Code review found the new duplicate-key guard had no floor of its own — break its token regex and the brace stack still balances at zero, the duplicate list is still empty, and it reports success having scanned nothing. Adding the floor was easy; _verifying_ it produced the instructive part. The first mutation run — scanner neutered, expecting red — came back **green**, because the `vitest run <path>` filter was written relative to the repo root while vitest runs from the `mcp-server` workspace. It matched **zero test files and exited 0**. So a check written to prove a guard cannot pass over an empty set was itself passing over an empty set, one layer out, and only a glance at the output ("No test files found") caught it.
-
-Two rules worth carrying: **read the `Tests N passed` count, never the exit code**, and **a mutation check that does not go red has not told you the guard is good — suspect the harness first.** This is the same failure as the `EXPECTED_QUERY_SITES` one, moved from the assertion to the runner, and it is the argument for [CLAUDE.md](../../../.claude/CLAUDE.md)'s capture-the-output rule doing more than preserving failure names — the count is only visible if the output survives.
-
-#### Operator verification — done 2026-09-09
-
-- [x] **Re-import the dashboard and re-run `Probe-DashboardSql.ps1`.** All sixteen panels returned without error, zero merge flags, and both **panel** predictions held — the alert is a separate matter, below:
-  - _Status codes_ returns `{event_type: inoreader_call, status_code: 200, n: 187}` and friends, instead of the single empty-string row it gave over 863 events. **Defect B confirmed fixed against live data.**
-  - _Upstream I/O wait per tool_ omits `search_portfolio` and leads with `search_radar` at p50 124ms / p95 479ms / p99 2181ms over 55 calls. **Defect C confirmed fixed**, and the BL-122 clock-freeze reasoning confirmed with it: `search_portfolio` served 279 successful calls in the same window and is correctly absent, because it never touches the network.
-  - **Defect A is NOT confirmed by this run, and saying so is the whole point of the stanza.** The repointed `scope-mismatch-403-rate` query executed, and returned zero — because no scope 403 occurred in the window (refusals showed `deny 0 / throttle 0`). A zero from the fixed rule is byte-identical to the zero the broken rule produced for its entire life. Execution proves the query is _valid_; only a real 403 will prove it _fires_. The guard is what stands behind it in the meantime, which is exactly why the guard, and not the repoint, is this stanza's deliverable.
-  - **`HAVING` parsed AND filtered semantically — AE accepts it.** Not merely "returned without error": `search_portfolio` is absent from that panel while serving 279 successful calls in the same window, so the `HAVING p99 > 0` clause actually did its job rather than being tolerated and ignored. That was the one construct in the dashboard this repo had never run, and it is the second time **the same day** that "absent from the vendor's examples" turned out not to mean "rejected" (the first was `count(DISTINCT)`, settled by BL-158's probe run that morning). The non-equivalent `WHERE double1 > 0` fallback is retained in GRAFANA.md as a contingency, not as a pending decision.
-
-**Two things the run surfaced that are not defects in this stanza**, recorded so they are not rediscovered:
-
-- **All 863 `tool_invocation` events are `keyOwner: PROBE`** — 100% synthetic latency-probe traffic, no client tool calls in the window at all. This stanza originally wrote "863 real invocations", which is true in the sense that mattered (the events were emitted and the panel still could not read them) but misleads about who generated them. Corrected in all four places. It also means every latency figure on this dashboard currently describes the probe, which is the same thin-traffic reality the 2026-07-14 baseline measured.
-- **`trial_signup` shows `unavailable: 2` with `status_code: 503`, against `minted: 1` — and they are operator test traffic, not a fault.** Confirmed by the operator the same day ("part of integration testing and troubleshooting"). Recorded because reading it as an incident was the natural mistake and I made it: the panel showed exactly what it should, and **nothing in the event distinguishes a deliberately-broken dependency from a genuinely broken one**. So this is a real limitation of the signal rather than a defect in it, and it lands on the alert rule BL-155 has yet to write — see that stanza's closed item. The fourth event was a client-side `bad_request`, different again.
-
-#### The lesson worth keeping
-
-BL-158's lesson was that execution finds what static verification cannot. This round sharpens it: **the guard you write after an incident must cover every surface the defect can live on, not just the one where you found it.** The panel and the alert shared a root cause and a fix; only the panel was visible. And a monitor that has never fired deserves the same suspicion as a test that has never failed.
-
----
 
 ---
 
@@ -2124,39 +1501,6 @@ BL-158's lesson was that execution finds what static verification cannot. This r
 #### Why "deprioritized + indefinite defer" and not "won't do"
 
 Per CLAUDE.md Directive 6 "No Deferred Tech Debt" (numbered § 4a when this stanza was written): deferral is acceptable when there is a written trigger condition for revisit and the deferred work is NOT verification of code currently in scope. Phase D meets both criteria — it's net-new automation with explicit trigger thresholds above, not unfinished verification. The deprioritization stays honest by naming the conditions under which it gets re-evaluated.
-
----
-
-### BL-122: MCP Server — misc UX pass (audit levels, prompt doc, status page) — CLOSED 2026-08-13
-
-**Source**: operator review of `gst_irl_ingestion` and `status.mcp.globalstrategic.tech` | **Effort**: ~1 day | **Status**: Closed — shipped at prompt 0.23.0 / server 0.50.0 | **Architecture**: [ADR-0017](../adr/0017-audit-levels-enforced-in-the-tool-response.md)
-
-**As a** partner running an IRL ingestion, **I want** the dossier to read as a client deliverable by default and the status page to publish only numbers that mean what they say, **so that** I am not hand-stripping audit apparatus out of partner-facing output, or reading a latency panel that cannot measure latency.
-
-**Retained rather than pruned** because three of its findings are the kind that get re-derived expensively:
-
-1. **`verbosity: compact` was broken in the opposite direction from how it read.** It elided the _correctness_ pipeline (hash bind, provenance precheck, envelope composition) while keeping the operator artifacts on — so it disabled the provenance chain and then demanded an audit report on it. Making it the default, which is what the request originally asked for, would have shipped dossiers with provenance verification silently off. The generalisable lesson: when one switch controls three concerns, check which of them it is actually wired to before flipping its default.
-2. **`forceTools` had never worked.** Its value was read once for a telemetry counter and never interpolated into the prompt body, so the model was told to honour an override it was never shown. An argument can be fully plumbed at the schema layer, fully documented, and still be inert.
-3. **The status page's zeros were not missing data.** Cloudflare Workers freeze the clock outside I/O, so `Date.now() - startedAt` measures I/O wait and reports exactly `0` for any handler that performs no I/O. Ten of fifteen tools read 0 with healthy sample counts. The number is unfixable — there is no unfrozen timer in a Worker — so the panel was relabelled to what it measures and rows with no measurable wait are omitted.
-
-#### Acceptance Criteria
-
-- [x] `auditLevel: 'standard' | 'enhanced' | 'debug'` replaces `verbosity`, defaulting to a clean partner-facing dossier
-- [x] The envelope chain runs at every audit level — no argument value can switch provenance verification off
-- [x] Suppression is enforced by what `compose_dossier_envelope` returns, not by prompt prose (the mechanism this codebase already established does not work)
-- [x] `extract-only` is exempt from the gate; the rule is stated on the builder axis, since `build()` dispatches on `filledIrl` absence before any mode check
-- [x] `forceTools` and `embedToolWorkedExamples` removed; `forceToolsApplied` retained on the envelope input for callers that genuinely override a gate
-- [x] Argument surface 10 → 8, `filledIrl` at index 0, every description leading with its valid values and naming no backlog ids
-- [x] `prompts/irl-ingestion.md` rewritten so no bare backlog id carries meaning; ids confined to a closing archaeology ledger
-- [x] Status page: latency panel relabelled, filtered on `p99 > 0` at render, with the two empty states distinguishable; audit panel hidden while `AUDIT_QUEUE` is unbound
-- [x] Alert table gained a fourth state: a rule that could not reach its data source renders `unknown` (slate) rather than a green `ok`, so an unverified check stops looking like a passing one. Two arms that hid it behind a fabricated default were found in review — `radar-snapshot-stale` (null age) and `inoreader-budget-exhausted` (unread counters reported as `0/100`)
-- [x] Operator runbooks migrated — signoff runs invoke `auditLevel: debug`
-
-#### Technical Context
-
-- The filter is on the **measurement**, not a tool-name allowlist: the query is `GROUP BY blob2` with no tool list in the code, so an allowlist would drift the first time a tool gained or lost an I/O path. `p99` not `p50`, so a cache-miss-only network path survives.
-- It is applied at **render**, never in `computeToolLatency`: `toolLatency === []` has to keep meaning "no events in the window", or the page asserts zero invocations in a window that had hundreds.
-- `BL-045-VERIFY` → `RUN-AUDIT` in live code and docs. Historical ledgers keep the old label deliberately — renaming a dated record falsifies it.
 
 ---
 

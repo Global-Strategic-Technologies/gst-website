@@ -233,7 +233,10 @@ Rendering those for the first time showed why nobody had missed them: full-bleed
 the drawer covers the page header and the controls that opened it, and the
 frosted sheen it is designed around is transparent in light theme. The 350px side
 panel that has always shipped is the better interaction at every width, so the
-dead rules were deleted rather than relocated. Do not "restore" them.
+dead rules were deleted rather than relocated. Do not "restore" them. If a phone
+treatment is ever wanted, treat it as a design brief, not a bug fix: it needs a
+surface that works full-bleed, must not obscure the controls that opened it, and
+needs a decision on whether covering the filtered content is acceptable.
 
 The one other `.portfolio-filter-drawer` rule in the repo is the print-hide in
 pages/ma-portfolio.astro, which is live and unaffected. */

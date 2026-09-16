@@ -605,6 +605,19 @@ All 11 booting files do this. **Do not raise the timeout and do not add a retry*
 
 **If a warmed file still times out locally:** purge `mcp-server/.wrangler`. Accumulated local dev state (223 MB here, mostly a miniflare observability trace store) took first-KV-touch from 73ms to 1216ms and a KV list to 3.7s. It regenerates on the next run. This is why the flake was always machine-dependent, worsened over weeks, and never appeared in CI, which starts clean. Full evidence: [WORKER_BOOT_LATENCY_BL-149.md](../development/_archive/WORKER_BOOT_LATENCY_BL-149.md).
 
+#### The website-suite lookalike: `spacing-lint-rule.test.ts` (BL-161, closed unfixed)
+
+The same symptom has been seen twice in the website suite: `tests/integration/spacing-lint-rule.test.ts > flags a hardcoded on-scale literal in css`, at 5000ms and 9786ms (2026-09-09 and 2026-09-11). Both times it passed in isolation, and neither diff touched CSS. **Do not transplant the warm-up fix.** Stylelint's first-use cost was measured in isolation (five child-process runs against the repo `.stylelintrc.json`):
+
+| phase                                                      | samples (ms)                |
+| ---------------------------------------------------------- | --------------------------- |
+| `import stylelint`, paid at **collection** (static import) | 346 / 216 / 217 / 206 / 210 |
+| first `.css` lint (cold config cascade)                    | 362 / 256 / 251 / 240 / 249 |
+| first `.astro` lint (`postcss-html` override)              | 52 / 35 / 37 / 36 / 36      |
+| every later lint                                           | 4                           |
+
+A `beforeAll` could relocate only about 250ms, which is 20–30× too small to explain either sighting. The first-vs-later asymmetry is real but harmless, and it makes the wrong fix look right. The item was closed by operator decision (2026-09-14) without full-suite runs under load, so **no cause is established**; contention is the leading hypothesis only because the alternatives were ruled out. **If it recurs:** check whether that first case's duration is inflated relative to its near-identical siblings _in the same run_, and whether the file's wall-clock materially exceeds the sum of its own test durations (descheduling).
+
 ### "I bumped vitest, but the old major is still in the lockfile"
 
 **Symptom:** `package.json` declares the new range, and `npm install` says "up to date". But `package-lock.json` still has the old version, for example a nested `mcp-server/node_modules/vitest@4.1.11` under a `^5.0.0` declaration. `npm prune` and wiping `node_modules` don't remove it either, because `npm install` rebuilds it from the lockfile.
