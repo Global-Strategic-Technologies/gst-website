@@ -223,11 +223,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
              Keyboard, Level A). The role+label give the focus stop an announceable
              identity rather than a bare unnamed group.
 
-             SCOPE LIMIT, so this is not mistaken for full keyboard support: this makes
-             the region SCROLLABLE by keyboard. The timeline entries themselves are
-             plain <div>s with a delegated click handler and no tabindex, role or key
-             handler, so a keyboard user still cannot OPEN a regulation from here. axe
-             cannot see that, so it will never reach the ratchet — tracked as BL-104. -->
+             The entries inside are native <button>s (BL-104), so Tab reaches each one and
+             Enter/Space opens it through the same delegated click handler. The region's
+             own focus stop stays: when a filter leaves no entries it is the only one. -->
         <div
           class="timeline-scroll"
           id="timelineScroll"
@@ -420,6 +418,12 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   let currentRegionId: string | null = null;
   let activeTimelineEntry: HTMLElement | null = null;
 
+  /** The --active class and aria-pressed are one state; change them together. */
+  function setTimelineEntryActive(entry: HTMLElement, active: boolean): void {
+    entry.classList.toggle('brutal-timeline-entry--active', active);
+    entry.setAttribute('aria-pressed', String(active));
+  }
+
   // --- URL bookmarking helpers ---
   // Shared encoder/decoder lives at src/utils/regulatory-map-url.ts so the MCP
   // tool emits byte-compatible deep-links.
@@ -593,6 +597,8 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     europe: { x: -1340, y: -148, k: 3.5 },
     'asia-pacific': { x: -1488, y: -283, k: 2.5 },
     'africa-mideast': { x: -1088, y: -432, k: 2.8 },
+    // Identity: the view #zoomReset applies, reachable without pinch on mobile (BL-101)
+    world: { x: 0, y: 0, k: 1 },
   };
 
   document.getElementById('mapQuickZoom')?.addEventListener('click', async (e) => {
@@ -746,6 +752,13 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     // Apply active state to subnational paths with regulations
     applySubnationalHighlighting();
 
+    // A timeline entry opened before these paths existed highlighted only its
+    // countries; a state-only regulation (e.g. FCPA) showed nothing on the map.
+    const activeRegId = activeTimelineEntry?.dataset.regId;
+    if (activeRegId && regById[activeRegId]) {
+      highlightRegulationRegions(regById[activeRegId]);
+    }
+
     // Restore URL-bookmarked subnational region if present
     const { region } = getUrlParams();
     if (region && region.includes('-')) {
@@ -836,7 +849,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
     // Clear any timeline-driven highlights
     clearRegionHighlights();
     if (activeTimelineEntry) {
-      activeTimelineEntry.classList.remove('brutal-timeline-entry--active');
+      setTimelineEntryActive(activeTimelineEntry, false);
       activeTimelineEntry = null;
     }
 
@@ -1484,13 +1497,15 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
         const shortDate = `${monthNames[parseInt(m, 10) - 1]} ${y}`;
         const truncName = reg.name.length > 35 ? reg.name.slice(0, 33) + '\u2026' : reg.name;
         html += `
-                    <div class="brutal-timeline-entry brutal-timeline-entry--${catClass}${isUpcoming ? ' brutal-timeline-entry--upcoming' : ''}"
+                    <button type="button" class="brutal-timeline-entry brutal-timeline-entry--${catClass}${isUpcoming ? ' brutal-timeline-entry--upcoming' : ''}"
                          data-reg-id="${escapeHtml(reg.id)}"
+                         aria-pressed="false"
+                         aria-label="${escapeHtml(reg.name)}, ${shortDate}"
                          title="${escapeHtml(reg.name)} \u2014 ${shortDate}">
                         <span class="brutal-timeline-dot brutal-timeline-dot--${catClass}${isUpcoming ? ' brutal-timeline-dot--upcoming' : ''}"></span>
                         <span class="brutal-timeline-entry__name">${escapeHtml(truncName)}</span>
                         <span class="brutal-timeline-entry__date">${shortDate}</span>
-                    </div>`;
+                    </button>`;
       }
       html += `</div></div>`;
     }
@@ -1526,7 +1541,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
 
     // Toggle active state on timeline entry
     if (activeTimelineEntry) {
-      activeTimelineEntry.classList.remove('brutal-timeline-entry--active');
+      setTimelineEntryActive(activeTimelineEntry, false);
     }
 
     if (activeTimelineEntry === entry) {
@@ -1538,7 +1553,7 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
         renderPanel(currentRegionId);
       }
     } else {
-      entry.classList.add('brutal-timeline-entry--active');
+      setTimelineEntryActive(entry, true);
       activeTimelineEntry = entry;
 
       // Highlight regions on map
@@ -1608,7 +1623,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
   timelineScroll.addEventListener(
     'click',
     (e) => {
-      if (hasDragged) {
+      // Pointer clicks only: a keyboard-generated click has detail 0, and a drag
+      // released outside the scroller leaves hasDragged set until the next mousedown.
+      if (hasDragged && e.detail !== 0) {
         e.stopPropagation();
         hasDragged = false;
       }

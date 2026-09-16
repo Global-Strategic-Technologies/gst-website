@@ -114,6 +114,13 @@ Brutalist Timeline
 }
 
 .brutal-timeline-entry {
+  /* The map renders entries as <button>s (BL-104). Reset the UA button chrome
+     first: `font` is a shorthand, so it must precede font-family below, and
+     `border: 0` must precede the border-left. Inert on /brand's <div> specimen. */
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -130,6 +137,12 @@ Brutalist Timeline
 
 .brutal-timeline-entry:hover {
   background: light-dark(var(--color-primary-02), rgba(255, 255, 255, 0.05));
+}
+
+/* Inset offset: the entries sit in an overflow scroller that would clip an outer ring. */
+.brutal-timeline-entry:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 .brutal-timeline-entry--active {

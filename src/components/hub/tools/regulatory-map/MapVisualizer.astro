@@ -57,6 +57,12 @@ import '../../../../styles/components/map.css';
   </div>
   <div class="brutal-map-tooltip" id="mapTooltip" role="tooltip" aria-hidden="true"></div>
   <div class="map-quick-zoom" id="mapQuickZoom">
+    <button
+      type="button"
+      class="brutal-quick-zoom"
+      data-region="world"
+      aria-label="Zoom out to world view">WORLD</button
+    >
     <button class="brutal-quick-zoom" data-region="americas" aria-label="Zoom to Americas"
       >AMR</button
     >
@@ -253,6 +259,9 @@ import '../../../../styles/components/map.css';
   @media (max-width: 1023px) {
     .map-quick-zoom {
       display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      max-width: calc(100% - 2 * var(--spacing-sm));
       gap: var(--spacing-xs);
       position: absolute;
       bottom: var(--spacing-sm);
