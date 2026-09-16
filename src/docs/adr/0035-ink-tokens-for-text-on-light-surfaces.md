@@ -45,7 +45,7 @@ One further node was a timing artefact, not a colour: muted text measured 4.17:1
 
 **Deliberate exceptions** — three `/brand` ColorSpecimens chips keep the base status tokens, because they demonstrate those tokens.
 
-**Follow-up: BL-162.** Dark-theme contrast was unmeasured when this was decided: every axe scan ran in light theme, with the checkerboard hiding most text. BL-162 now scans every route in both themes, loaded for real rather than class-toggled, with decorative backgrounds hidden during the scan. See [TEST_STRATEGY § Accessibility scans](../testing/TEST_STRATEGY.md#accessibility-scans-axe).
+**Follow-up: BL-162.** Dark-theme contrast was unmeasured when this was decided: every axe scan ran in light theme, with the checkerboard hiding most text. BL-162 now scans every route in both themes, loaded for real rather than class-toggled, with decorative backgrounds hidden during the scan. The scan exempts brand-teal text by computed colour (`exemptBrandTealText` in `tests/e2e/helpers/a11y.ts`), which makes decision 1 mechanically permanent: below-AA teal text can never fail CI, and nothing else rides the exemption. See [TEST_STRATEGY § Accessibility scans](../testing/TEST_STRATEGY.md#accessibility-scans-axe).
 
 ## Consequences
 

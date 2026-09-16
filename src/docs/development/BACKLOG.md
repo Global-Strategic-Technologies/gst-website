@@ -2,7 +2,7 @@
 
 Consolidated backlog of open development initiatives for the GST website. Each item is a self-contained user story with enough context to design and implement a solution. Items are grouped by theme, not priority — triage happens separately.
 
-> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Ten cleanup waves so far:
+> **Completed and closed items** are removed from this file once done — recover any stanza's full acceptance criteria and technical context via `git log -- src/docs/development/BACKLOG.md`, or consult the per-initiative design docs in [`_archive/`](_archive/README.md) (they are no longer kept in this directory — see the [initiative-doc lifecycle](README.md)). Eleven cleanup waves so far:
 >
 > - **April 2026**: 30 items (BL-002, 003, 008–019, 021–026, 027–030, and the _original_ BL-036–041 — those six IDs were later reused for new MCP-server initiatives, themselves now shipped and removed).
 > - **2026-07-15**: 55 stanzas completed May–July 2026 (BL-005; BL-031 + the BL-031.x series; BL-032 + the BL-032.x series; the reused BL-036–045; BL-047; BL-049; and the BL-051–086 range as filed — not every ID in that range was used). Last pre-prune revision: `996b6b4c`.
@@ -35,6 +35,13 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   **Design sync (BL-147's last criterion):** the local [CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md) steps passed, with 19/19 chrome cards rendering and the styling bundle regenerated. The upload to claude.ai/design needs the operator's authenticated session and is **handed to the operator**, not done from the repo; until it runs, the published design system still shows the old inert type sizes.
 >
 > - **2026-09-13**: 1 stanza (BL-149, the 5000ms first-use flake) closed and pruned after six weeks and 26 instances. Last pre-prune revision: `f77357fd`. Diagnosed as TWO causes: (1) `unstable_dev` resolves when workerd is spawned, but the first `worker.fetch()` pays module-graph JIT — 7451ms p50, over 5000ms in 48 of 50 runs — which a file bills to its first `it` (5000ms default) unless it spends it in `beforeAll` (60s budget); exactly the 4 of 11 booting files that already warmed were the 4 that passed on a machine where the other 7 failed deterministically, and `ratelimit.test.ts` had described the mechanism in a comment all along. (2) Accumulated local `.wrangler` state, 223 MB here, took first-KV-touch from 73ms to 1216ms — which is why the flake was machine-dependent, worsened over weeks, and never appeared in CI. Evidence: [WORKER_BOOT_LATENCY_BL-149.md](_archive/WORKER_BOOT_LATENCY_BL-149.md). Distilled into [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md), [TEST_BEST_PRACTICES.md](../testing/TEST_BEST_PRACTICES.md), `.claude/CLAUDE.md` § Testing Standards, and the `warm-worker.ts` helper header. The website-suite half became **BL-161**.
+>
+> - **2026-09-16**: 1 stanza (BL-162, dark-theme contrast never scanned) closed and pruned the day it was filed. Last pre-prune revision: `be2baf12`.
+>   - **Coverage:** every `PAGES` route now runs axe in light AND dark, with the theme applied as a real load and asserted before scanning; the known `.project-card` surface is checked in each theme.
+>   - **Checkerboard ruling:** the operator ruled to hide it during scans in both themes (`DECORATIVE_BACKGROUNDS`), which surfaced about 970 failing or undecided nodes.
+>   - **Fixes:** every non-teal finding was fixed at source: opacity-faded text, the dark portfolio metric labels, colour-only links, and disabled-state buttons.
+>   - **Brand-teal ruling, final:** below-AA teal text (`--color-primary`) is WORKING AS INTENDED ([ADR-0035 § 1](../adr/0035-ink-tokens-for-text-on-light-surfaces.md)). `checkA11y` exempts it by computed colour, never by selector or node count, so a new teal element can never fail the suite. An instrument test proves a near-teal still fails. **Do not re-open this as a contrast finding.**
+>   - **Live content:** [TEST_STRATEGY § Accessibility scans](../testing/TEST_STRATEGY.md#accessibility-scans-axe), [TEST_BEST_PRACTICES #29](../testing/TEST_BEST_PRACTICES.md#29--toggling-htmldark-theme-to-measure-dark-colours), ADR-0035.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -542,32 +549,6 @@ Verified 2026-09-04 against Anthropic's own docs: remote MCP servers are submitt
 ---
 
 ## CSS and Design System
-
-### BL-162: Dark-theme contrast is never scanned
-
-**Source**: [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md), 2026-09-16 — found while fixing light-theme ink | **Effort**: Medium — the scan is small; triaging what it finds is the unknown | **Status**: Open
-
-**As a** reader using the site in dark theme, **I want** text contrast checked there too **so that** a dark-only failure cannot ship unseen.
-
-**What is known.** `tests/e2e/accessibility.test.ts` scans every route in LIGHT theme only; nothing in the E2E suite runs axe with `html.dark-theme` applied. ADR-0035's ink tokens are a no-op in dark (each dark half equals its base), so that change did not make dark worse — but dark contrast is simply unmeasured.
-
-**A trap already found.** A rendered probe built for ADR-0035 toggled `html.dark-theme` and scanned, and repeatedly read MIXED states — dark-theme text over light-theme surfaces (e.g. `.project-card` at `#ffffff` under `rgba(245,245,245,0.95)` text, 1.01:1) — while standalone checks of the same page showed the correct dark card (`#1a1a1a`) and axe reported nothing. Several explanations were disproven (palette class, media emulation, readiness, a root-level sentinel). Any dark scan must be validated against a known-correct element before its numbers are trusted; a real dark load via `localStorage.theme = 'dark'` plus navigation is the safer switch than a class toggle.
-
-**Also blind in light theme.** The body checkerboard is a background image, so axe reports most text contrast INCOMPLETE rather than failing it. Scanning dark theme inherits the same blindness.
-
-**Progress (2026-09-16, branch `fix/bl-162-dark-theme-a11y`).**
-
-- Scans now run in both themes and hide decorative backgrounds.
-- Every dark scan passes, after fixes to the portfolio metric labels (dark half) and to dimming on wizard steps, IRL Extractor diagnostics, the Tech Debt Calculator hints and burden range, and upcoming timeline entries. Links on `/hub/mcp/`, the legal pages and Library IRL are now underlined, the IRL Extractor action buttons are `disabled` from first paint, and the `/brand` maturity specimen text uses ink tokens.
-- **Still open:** light-theme scans fail only on brand-teal text: `--color-primary` `#05cd99` at about 2:1, and its semi-transparent `/brand` swatch-label variant. The operator ruled teal text is not substitutable. How the scan treats it (exclude with a reason, or baseline in `KNOWN_SERIOUS`) is awaiting an operator decision.
-
-#### Acceptance Criteria
-
-- [x] Dark-theme axe scans run on the `PAGES` routes, with the theme applied as a real page load, validated against one element whose dark colours are known
-- [ ] Findings are fixed or recorded with reasons; none are baselined without a reason. Everything except brand-teal text is fixed; see Progress.
-- [x] A decision on the checkerboard's INCOMPLETE blindness: the operator ruled to hide it during scans, in both themes
-
----
 
 ### BL-102: Regulatory map — how is the map exposed to assistive tech?
 
