@@ -144,7 +144,9 @@ const tocItems = getHeadings()
 
   .irl-content :global(a) {
     color: var(--color-primary);
-    text-decoration: none;
+    /* Underlined at rest: colour alone did not set links apart (BL-162). */
+    text-decoration: underline;
+    text-underline-offset: 3px;
     transition: color var(--transition-fast);
   }
 

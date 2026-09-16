@@ -385,7 +385,7 @@ Legal Page Layout (Privacy, Terms)
 }
 
 .legal-page-body a:hover {
-  border-bottom-color: var(--color-primary);
+  text-decoration-thickness: 2px;
 }
 
 .legal-contact-section {

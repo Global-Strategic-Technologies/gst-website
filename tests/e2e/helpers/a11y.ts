@@ -21,6 +21,13 @@ export interface A11yResult {
   minor: AxeViolation[];
   /** Total violation count across all severities */
   totalCount: number;
+  /**
+   * Rules axe could not decide, all severities. Not asserted by callers; read by
+   * the instrument proof in accessibility.test.ts and by triage (BL-162).
+   */
+  incomplete: AxeViolation[];
+  /** color-contrast nodes removed because their text is brand teal (ADR-0035 § 1). */
+  brandTealExempt: number;
 }
 
 export interface AxeViolation {
@@ -30,6 +37,15 @@ export interface AxeViolation {
   helpUrl: string;
   nodes: number;
 }
+
+/**
+ * Purely decorative background images hidden during a scan. Each entry needs a
+ * reason: only backgrounds that carry no information and sit under text belong.
+ */
+export const DECORATIVE_BACKGROUNDS = [
+  // Site-wide checkerboard, global.css. 3.2%-alpha lines under every route's text.
+  'body',
+] as const;
 
 /**
  * Run an axe-core accessibility scan on the current page.
@@ -43,8 +59,20 @@ export async function checkA11y(
   options?: {
     tags?: string[];
     exclude?: string[];
+    /** Limit the scan to these selectors. Default: the whole page. */
+    include?: string[];
     /** Wait for fonts and finite animations before scanning. Default true. */
     settle?: boolean;
+    /**
+     * Hide decorative background images for the duration of the scan so axe can
+     * judge text contrast. Default true. See DECORATIVE_BACKGROUNDS.
+     */
+    hideDecorativeBackground?: boolean;
+    /**
+     * Treat below-AA brand-teal text as intended (ADR-0035 § 1). Default true.
+     * See exemptBrandTealText.
+     */
+    exemptBrandTealText?: boolean;
   }
 ): Promise<A11yResult> {
   // `wcag22aa` added 2026-08-03 (BL-096 § Still owed). In axe-core **4.12.1** it
@@ -60,6 +88,12 @@ export async function checkA11y(
   let builder = new AxeBuilder({ page }).withTags(
     options?.tags ?? ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
   );
+
+  if (options?.include) {
+    for (const selector of options.include) {
+      builder = builder.include(selector);
+    }
+  }
 
   if (options?.exclude) {
     for (const selector of options.exclude) {
@@ -98,7 +132,30 @@ export async function checkA11y(
     });
   }
 
-  const results = await builder.analyze();
+  // HIDE THE CHECKERBOARD WHILE MEASURING (BL-162, ADR-0035). axe cannot compute
+  // contrast over a background IMAGE, so it reports such text INCOMPLETE rather
+  // than failing it — and the site-wide body checkerboard is two gradients, which
+  // left most text on every route unjudged in both themes. Its lines are 3.2%
+  // alpha (--checkerboard-line), too faint to move a contrast ratio materially, so
+  // scanning without them measures what a reader actually sees. The tag is
+  // removed afterwards: assertions after a scan must see the real page.
+  const hideTag =
+    options?.hideDecorativeBackground === false
+      ? null
+      : await page.addStyleTag({
+          content: `${DECORATIVE_BACKGROUNDS.join(', ')} { background-image: none !important; }`,
+        });
+
+  let results: Awaited<ReturnType<AxeBuilder['analyze']>>;
+  let brandTealExempt = 0;
+  try {
+    results = await builder.analyze();
+    if (options?.exemptBrandTealText !== false) {
+      brandTealExempt = await exemptBrandTealText(page, results);
+    }
+  } finally {
+    await hideTag?.evaluate((el) => (el as Element).remove());
+  }
 
   const mapViolations = (v: (typeof results.violations)[0]): AxeViolation => ({
     id: v.id,
@@ -119,7 +176,69 @@ export async function checkA11y(
     moderate,
     minor,
     totalCount: critical.length + serious.length + moderate.length + minor.length,
+    incomplete: results.incomplete.map(mapViolations),
+    brandTealExempt,
   };
+}
+
+/**
+ * BRAND TEAL TEXT IS BELOW AA BY OPERATOR RULING, NOT BY ACCIDENT (ADR-0035 § 1).
+ * `--color-primary` stays teal as text, icons and focus rings; a darker teal or
+ * a forest-green substitute was rendered, rejected as a brand regression, and
+ * must not be re-proposed. So a `color-contrast` failure whose text colour IS
+ * brand teal is working as intended and is removed from the results here.
+ *
+ * Matched by COMPUTED COLOUR, never by selector or node count: a selector list or
+ * a KNOWN_SERIOUS count would fail again every time a new teal element ships,
+ * which is exactly the fight this exists to end. The reference is resolved from
+ * the live page (`var(--color-primary)` on a probe), so it follows the theme and
+ * any palette. Semi-transparent teal (e.g. the /brand swatch captions) matches
+ * on RGB channels. Anything else, including a near-teal, still fails, and the
+ * instrument test in accessibility.test.ts proves both directions.
+ *
+ * FLOOR: teal is exempt only down to BRAND_TEAL_MIN_RATIO. The ruling accepts
+ * teal as the brand ships it, not teal that is effectively invisible (a 10%-alpha
+ * teal, or teal on a teal panel, reads ~1:1 and still fails). The floor is not
+ * solid teal on white (2.05:1) because shipped teal legitimately sits lower:
+ * measured 2026-09-16, `.brutal-btn--primary` teal on its tint 1.81:1 and the
+ * semi-transparent /brand swatch captions 1.71:1. 1.5 clears both with margin.
+ *
+ * Returns how many nodes were exempted, so a scan can report it.
+ */
+const BRAND_TEAL_MIN_RATIO = 1.5;
+
+async function exemptBrandTealText(
+  page: Page,
+  results: Awaited<ReturnType<AxeBuilder['analyze']>>
+): Promise<number> {
+  const contrast = results.violations.find((v) => v.id === 'color-contrast');
+  if (!contrast) return 0;
+
+  const targets = contrast.nodes.map((n) => n.target.map(String));
+  const isTeal = await page.evaluate((targetList) => {
+    const channels = (c: string) => (c.match(/[\d.]+/g) ?? []).slice(0, 3).join(',');
+    const probe = document.createElement('span');
+    probe.style.color = 'var(--color-primary)';
+    document.body.appendChild(probe);
+    const teal = channels(getComputedStyle(probe).color);
+    probe.remove();
+    return targetList.map((t) => {
+      // A single selector means the node is in the top document; deeper
+      // (iframe/shadow) paths are left to fail rather than guessed at.
+      const el = t.length === 1 ? document.querySelector(t[0]) : null;
+      return el !== null && channels(getComputedStyle(el).color) === teal;
+    });
+  }, targets);
+
+  const before = contrast.nodes.length;
+  contrast.nodes = contrast.nodes.filter((n, i) => {
+    const ratio = Number((n.any[0]?.data as { contrastRatio?: number } | undefined)?.contrastRatio);
+    return !(isTeal[i] && ratio >= BRAND_TEAL_MIN_RATIO);
+  });
+  if (contrast.nodes.length === 0) {
+    results.violations = results.violations.filter((v) => v !== contrast);
+  }
+  return before - contrast.nodes.length;
 }
 
 /**

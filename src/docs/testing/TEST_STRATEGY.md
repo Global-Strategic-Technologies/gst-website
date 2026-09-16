@@ -395,6 +395,15 @@ test('should work on mobile viewport', async ({ page }) => {
 
 **Coverage Target:** All critical journeys
 
+#### Accessibility scans (axe)
+
+`tests/e2e/accessibility.test.ts` scans every `PAGES` route with `checkA11y` (`tests/e2e/helpers/a11y.ts`):
+
+- **Both themes (BL-162).** Each route runs once in light and once in dark, and the dark test is named `<name> (dark)`. The theme is applied as a real load and asserted before scanning; see [TEST_BEST_PRACTICES #29](./TEST_BEST_PRACTICES.md#29--toggling-htmldark-theme-to-measure-dark-colours). The orphan-class check runs in light only, because it does not depend on theme.
+- **Decorative backgrounds are hidden during the scan.** Axe cannot judge contrast over a background image, so the body checkerboard left most text INCOMPLETE rather than failing it. The helper hides every selector in `DECORATIVE_BACKGROUNDS` for the scan only, then removes the style tag. Instrument tests prove it: injected low-contrast text fails with the checkerboard hidden and is INCOMPLETE with it visible. Pass `hideDecorativeBackground: false` to opt out.
+- **Brand-teal text is exempt, by ruling.** `--color-primary` text sits below AA in light theme on purpose ([ADR-0035 § 1](../adr/0035-ink-tokens-for-text-on-light-surfaces.md)). `checkA11y` drops `color-contrast` nodes whose computed text colour is the page's resolved brand teal. It matches by colour, not selector or count, so new teal elements never need an entry, and it applies only down to 1.5:1 (shipped teal measures as low as 1.71:1), so near-invisible teal still fails. The instrument test proves teal passes, a one-channel-off teal fails, and faint teal fails. Do not "fix" teal text or baseline it.
+- **`KNOWN_SERIOUS` is a ratchet keyed by test name.** An entry is an exact node count, enforced from both sides, and needs a reason comment. Fix at the token level first (ADR-0035 ink tokens).
+
 ---
 
 ### 3.4 Visual Regression Tests (Optional Future)

@@ -152,7 +152,9 @@ const { projects } = Astro.props;
   .metric-label {
     font-family: var(--font-family-mono);
     font-size: var(--text-2xs);
-    color: light-dark(var(--text-muted), var(--text-dark-muted));
+    /* Dark half is --text-dark-secondary, not -muted: muted read 4.37:1 on the
+       dark card surface (BL-162). */
+    color: light-dark(var(--text-muted), var(--text-dark-secondary));
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: 0.35rem;

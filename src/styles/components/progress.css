@@ -56,13 +56,19 @@ Tool Wizard Progress — segmented step indicator
   flex: 1;
   max-width: 100px;
   min-width: 40px;
+}
+
+/* An unreached step dims its icon and number only. Dimming the whole step took
+   its label to 1.7:1 in both themes (BL-162); the label's own --text-muted vs.
+   the active step's --text-primary already carries the state. */
+.tool-wizard-step > :not(.tool-wizard-step__label) {
   opacity: 0.4;
   transition: opacity var(--transition-normal);
 }
 
-.tool-wizard-step--active,
-.tool-wizard-step--completed,
-.tool-wizard-step--reachable {
+.tool-wizard-step--active > :not(.tool-wizard-step__label),
+.tool-wizard-step--completed > :not(.tool-wizard-step__label),
+.tool-wizard-step--reachable > :not(.tool-wizard-step__label) {
   opacity: 1;
 }
 

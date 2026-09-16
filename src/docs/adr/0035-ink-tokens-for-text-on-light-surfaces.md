@@ -45,7 +45,7 @@ One further node was a timing artefact, not a colour: muted text measured 4.17:1
 
 **Deliberate exceptions** — three `/brand` ColorSpecimens chips keep the base status tokens, because they demonstrate those tokens.
 
-**Deferred** — dark-theme contrast is unmeasured: every axe scan runs in light theme. Filed as [BL-162](../development/BACKLOG.md#bl-162-dark-theme-contrast-is-never-scanned). The ink tokens do not change dark theme, so this decision does not make it worse.
+**Follow-up: BL-162.** Dark-theme contrast was unmeasured when this was decided: every axe scan ran in light theme, with the checkerboard hiding most text. BL-162 now scans every route in both themes, loaded for real rather than class-toggled, with decorative backgrounds hidden during the scan. The scan exempts brand-teal text by computed colour (`exemptBrandTealText` in `tests/e2e/helpers/a11y.ts`), which makes decision 1 mechanically permanent: below-AA teal text can never fail CI. Only brand teal is exempt, and only down to 1.5:1, so near-invisible teal (faded, or on a teal panel) still fails. See [TEST_STRATEGY § Accessibility scans](../testing/TEST_STRATEGY.md#accessibility-scans-axe).
 
 ## Consequences
 
@@ -53,4 +53,4 @@ One further node was a timing artefact, not a colour: muted text measured 4.17:1
 - Guarded by `tests/integration/ink-token-contrast.test.ts`: both bars in all six palettes, resolved through each palette's own alias chain (so a forgotten mapping fails rather than silently inheriting the default); per-palette mapping completeness; editors-pick root-only; and each ink's dark literal equal to its base's. Proven by mutation.
 - `tests/e2e/helpers/a11y.ts` now waits for fonts and finite animations before scanning, filtering by `effect.getTiming().iterations` — `Animation` has no `iterations` property, and every animation running on the sampled routes was infinite.
 - **Authoring rule**: a new text colour from the brand/status family uses its `-ink` token; brand teal text uses `--color-primary`. Fills, borders, chart strokes and specimen swatches keep the base token.
-- Revisit if: the checkerboard becomes an opaque colour (axe could then police this directly), the browserslist floor stops lowering `light-dark()`, or a palette is added (it needs all seven mappings, which the guard enforces).
+- Revisit if: the browserslist floor stops lowering `light-dark()`, or a palette is added (it needs all seven mappings, which the guard enforces).
