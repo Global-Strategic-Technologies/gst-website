@@ -153,9 +153,8 @@ Brutalist Timeline
   border-left-color: var(--color-error);
 }
 
-.brutal-timeline-entry--upcoming {
-  opacity: 0.7;
-}
+/* No whole-entry opacity: over --text-muted it took the date to 2.9:1 (BL-162).
+   The italic name and the dimmed --upcoming dot carry "upcoming". */
 
 .brutal-timeline-entry__name {
   font-family: var(--font-family-mono);

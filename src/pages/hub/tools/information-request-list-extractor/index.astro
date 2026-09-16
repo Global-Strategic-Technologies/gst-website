@@ -119,11 +119,17 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
               >
             </div>
             <div class="irl-ext__actions" id="irl-ext-actions" data-enabled="false">
-              <button type="button" class="brutal-btn brutal-btn--secondary" id="irl-ext-copy"
-                >Copy markdown</button
+              <button
+                type="button"
+                class="brutal-btn brutal-btn--secondary"
+                id="irl-ext-copy"
+                disabled>Copy markdown</button
               >
-              <button type="button" class="brutal-btn brutal-btn--secondary" id="irl-ext-download"
-                >Download .md</button
+              <button
+                type="button"
+                class="brutal-btn brutal-btn--secondary"
+                id="irl-ext-download"
+                disabled>Download .md</button
               >
             </div>
           </div>
@@ -738,7 +744,9 @@ import { hubToolSchema } from '../../../../utils/hub-tool-schema';
      so FILLING them in never shifts the panel. The advisory paragraph is the
      one thing that grows it — see the shared floor on `.irl-ext__panel--out,
      .irl-ext__panel--pick`, which both panels take. */
-  .irl-ext__diag[data-empty='true'] {
+  .irl-ext__diag[data-empty='true'] dd {
+    /* Only the placeholder values dim. Dimming the whole block took the labels
+       to 1.8:1 (BL-162); they are real text a reader needs before converting. */
     opacity: 0.4;
   }
 

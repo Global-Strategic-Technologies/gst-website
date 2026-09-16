@@ -1210,15 +1210,19 @@ function accessHref(tier?: string) {
      one, which is what stylelint's `no-descending-specificity` asks for. */
   .mcp-primitive__def a {
     color: light-dark(var(--color-tertiary-dark), var(--color-primary));
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition: border-bottom var(--transition-fast);
+    /* Underlined at rest: colour alone did not set these apart from the
+       definition text (axe link-in-text-block, BL-162). */
+    text-decoration: underline;
+    text-underline-offset: 3px;
     /* Spec links read as identifiers and should not break across lines. */
     font-family: var(--font-family-mono);
     white-space: nowrap;
   }
 
-  .mcp-primitive__def a:hover,
+  .mcp-primitive__def a:hover {
+    text-decoration-thickness: 2px;
+  }
+
   .mcp-catalog__try:hover {
     border-bottom-color: currentColor;
   }
