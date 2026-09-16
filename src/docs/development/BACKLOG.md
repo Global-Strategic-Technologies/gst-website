@@ -555,11 +555,17 @@ Verified 2026-09-04 against Anthropic's own docs: remote MCP servers are submitt
 
 **Also blind in light theme.** The body checkerboard is a background image, so axe reports most text contrast INCOMPLETE rather than failing it. Scanning dark theme inherits the same blindness.
 
+**Progress (2026-09-16, branch `fix/bl-162-dark-theme-a11y`).**
+
+- Scans now run in both themes and hide decorative backgrounds.
+- Every dark scan passes, after fixes to the portfolio metric labels (dark half) and to dimming on wizard steps, IRL Extractor diagnostics, the Tech Debt Calculator hints and burden range, and upcoming timeline entries. Links on `/hub/mcp/`, the legal pages and Library IRL are now underlined, the IRL Extractor action buttons are `disabled` from first paint, and the `/brand` maturity specimen text uses ink tokens.
+- **Still open:** light-theme scans fail only on brand-teal text: `--color-primary` `#05cd99` at about 2:1, and its semi-transparent `/brand` swatch-label variant. The operator ruled teal text is not substitutable. How the scan treats it (exclude with a reason, or baseline in `KNOWN_SERIOUS`) is awaiting an operator decision.
+
 #### Acceptance Criteria
 
-- [ ] Dark-theme axe scans run on the `PAGES` routes, with the theme applied as a real page load, validated against one element whose dark colours are known
-- [ ] Findings are fixed or recorded with reasons; none are baselined without a reason
-- [ ] A decision on the checkerboard's INCOMPLETE blindness: accept it and rely on token guards, or make the scan able to see through it
+- [x] Dark-theme axe scans run on the `PAGES` routes, with the theme applied as a real page load, validated against one element whose dark colours are known
+- [ ] Findings are fixed or recorded with reasons; none are baselined without a reason. Everything except brand-teal text is fixed; see Progress.
+- [x] A decision on the checkerboard's INCOMPLETE blindness: the operator ruled to hide it during scans, in both themes
 
 ---
 

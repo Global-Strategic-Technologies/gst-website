@@ -685,6 +685,7 @@ If your test has any of these, it's likely a false positive:
 27. ✗ Waits for a CSS class change but asserts on a computed style property (`display`, `visibility`) that lags behind in the rendering pipeline — passes in Chromium, fails in Firefox
 28. ✗ Source emits a `data-*-ready` / `__*Initialized` signal before all `addEventListener` / D3 `.on()` calls have run — passes in isolation, fails under parallel worker load
 29. ✗ Gates on a readiness signal that was never observed false — a never-navigated iframe's `about:blank` already reports `readyState === 'complete'`, so the gate admits every frame and the assertion beneath it cannot fail
+30. ✗ Adds `html.dark-theme` to a loaded page and then measures colours or runs axe — reads mixed light/dark states; set `localStorage.theme` via `addInitScript` before `goto` and assert the theme loaded (anti-pattern 29)
 
 ## E2E Cross-Browser Pitfalls
 
@@ -1535,6 +1536,31 @@ Counter-example worth knowing, because it looks like it belongs above and does n
 **Key principle:** a gate that has never been observed false is indistinguishable from `true`. Prove it can be false before you trust what it protects — the same red-then-green discipline you apply to the assertion itself.
 
 **Related:** anti-pattern 25 is the adjacent failure — a gate whose _scope_ doesn't cover what the test depends on. 25 is "gating on the wrong thing"; this is "gating on something that was never false."
+
+---
+
+### 29. ❌ Toggling `html.dark-theme` to Measure Dark Colours
+
+Adding the class after load is fine for checking that something _shows up_ in dark theme. It is not a safe way to **measure** dark colours: contrast, computed backgrounds, or axe scans.
+
+**The trap** (ADR-0035, BL-162): a site-wide contrast probe added `html.dark-theme` to loaded pages and repeatedly read mixed states. One example was dark text `rgba(245,245,245,0.95)` over a `.project-card` still reading `#ffffff`, at 1.01:1. A standalone check of the same page showed the correct dark card, `#1a1a1a`. Changing the palette class, media emulation, readiness waits and a root-level sentinel did not make the numbers trustworthy.
+
+**Fix:** set the theme the way a returning reader has it. Put it in storage before the page loads, so BaseLayout's head script applies it before first paint. Then check the result before measuring anything:
+
+```ts
+await page.addInitScript((t) => {
+  try {
+    localStorage.setItem('theme', t);
+  } catch {}
+}, 'dark');
+await page.goto(path);
+await expect(page.locator('html')).toHaveClass(/(^|\s)dark-theme(\s|$)/);
+await expect
+  .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+  .toBe('rgb(10, 10, 10)'); // --bg-light's dark half
+```
+
+`tests/e2e/accessibility.test.ts` (`applyTheme` / `expectThemeLoaded`) is the reference. It also checks one known element per theme, `.project-card` on `/ma-portfolio/`, so a regression in the switch fails loudly instead of producing numbers. Set light explicitly too, rather than trusting the default (#25).
 
 ---
 
