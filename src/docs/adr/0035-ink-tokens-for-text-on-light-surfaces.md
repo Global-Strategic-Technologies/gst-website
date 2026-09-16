@@ -49,7 +49,7 @@ One further node was a timing artefact, not a colour: muted text measured 4.17:1
 
 ## Consequences
 
-- Cited by: `src/styles/variables.css` and `src/styles/palettes.css` (token comments), `src/styles/global.css` (link ink, `.skip-nav`), `src/utils/icg-engine.ts`, `src/utils/techpar-engine.ts`, `src/utils/techpar/chart.ts`, `src/utils/tech-debt-engine.ts`, and every kept-primary site's inline comment.
+- Cited by: `src/styles/variables.css` and `src/styles/palettes.css` (token comments), `src/styles/global.css` (link ink, `.skip-nav`), `src/utils/icg-engine.ts`, `src/utils/techpar-engine.ts`, `src/utils/techpar/chart.ts`, `src/utils/tech-debt-engine.ts`.
 - Guarded by `tests/integration/ink-token-contrast.test.ts`: both bars in all six palettes, resolved through each palette's own alias chain (so a forgotten mapping fails rather than silently inheriting the default); per-palette mapping completeness; editors-pick root-only; and each ink's dark literal equal to its base's. Proven by mutation.
 - `tests/e2e/helpers/a11y.ts` now waits for fonts and finite animations before scanning, filtering by `effect.getTiming().iterations` — `Animation` has no `iterations` property, and every animation running on the sampled routes was infinite.
 - **Authoring rule**: a new text colour from the brand/status family uses its `-ink` token; brand teal text uses `--color-primary`. Fills, borders, chart strokes and specimen swatches keep the base token.

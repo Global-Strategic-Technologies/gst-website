@@ -370,7 +370,7 @@ export function renderAnalysis(r: TechParResult, updateAll: () => void) {
         const excessPct = (r.totalTechPct - s.zones.hi).toFixed(1);
         const annualDrag = (buildInputs()!.arr * (r.totalTechPct - s.zones.hi)) / 100;
         const exitDrag = annualDrag * exitMult;
-        ctxBlock.innerHTML = `You are <strong style="color:var(--text-light-primary)">${excessPct}%</strong> above the ${s.zones.hi}% ceiling — <strong style="color:var(--color-tertiary)">${fmtD(annualDrag)}</strong> in annual excess spend. At a ${exitMult}&times; revenue multiple that represents <strong style="color:var(--color-tertiary)">${fmtD(exitDrag)}</strong> in recoverable exit value. Identify the highest-cost categories above and prioritise optimisation there first.`;
+        ctxBlock.innerHTML = `You are <strong style="color:var(--text-light-primary)">${excessPct}%</strong> above the ${s.zones.hi}% ceiling — <strong style="color:var(--color-primary)">${fmtD(annualDrag)}</strong> in annual excess spend. At a ${exitMult}&times; revenue multiple that represents <strong style="color:var(--color-primary)">${fmtD(exitDrag)}</strong> in recoverable exit value. Identify the highest-cost categories above and prioritise optimisation there first.`;
       } else if (isUnder) {
         const floorPct = s.zones.lo;
         const annualGap = (buildInputs()!.arr * (floorPct - r.totalTechPct)) / 100;
@@ -402,7 +402,7 @@ export function buildMetrics(r: TechParResult, col: string, s: StageConfig): str
     if (s.frame === 'dollars') {
       const exitMult = getInput('exitMult') || 12;
       h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm)"><div class="tp-sig-mlbl">Hold-period exit impact at ${exitMult}&times;</div>
-                <div class="tp-sig-mval" style="color:var(--color-tertiary)">${fmtD(r.gap.exitValue)}</div>
+                <div class="tp-sig-mval" style="color:var(--color-primary)">${fmtD(r.gap.exitValue)}</div>
                 <div class="tp-sig-msub">cumulative drag over 36-month hold</div></div>`;
     } else {
       h += `<div class="tp-sig-met" style="margin-top:var(--spacing-sm);padding-top:var(--spacing-sm);border-top:1px solid var(--border-light)">
