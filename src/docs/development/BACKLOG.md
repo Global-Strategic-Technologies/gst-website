@@ -543,6 +543,26 @@ Verified 2026-09-04 against Anthropic's own docs: remote MCP servers are submitt
 
 ## CSS and Design System
 
+### BL-162: Dark-theme contrast is never scanned
+
+**Source**: [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md), 2026-09-16 — found while fixing light-theme ink | **Effort**: Medium — the scan is small; triaging what it finds is the unknown | **Status**: Open
+
+**As a** reader using the site in dark theme, **I want** text contrast checked there too **so that** a dark-only failure cannot ship unseen.
+
+**What is known.** `tests/e2e/accessibility.test.ts` scans every route in LIGHT theme only; nothing in the E2E suite runs axe with `html.dark-theme` applied. ADR-0035's ink tokens are a no-op in dark (each dark half equals its base), so that change did not make dark worse — but dark contrast is simply unmeasured.
+
+**A trap already found.** A rendered probe built for ADR-0035 toggled `html.dark-theme` and scanned, and repeatedly read MIXED states — dark-theme text over light-theme surfaces (e.g. `.project-card` at `#ffffff` under `rgba(245,245,245,0.95)` text, 1.01:1) — while standalone checks of the same page showed the correct dark card (`#1a1a1a`) and axe reported nothing. Several explanations were disproven (palette class, media emulation, readiness, a root-level sentinel). Any dark scan must be validated against a known-correct element before its numbers are trusted; a real dark load via `localStorage.theme = 'dark'` plus navigation is the safer switch than a class toggle.
+
+**Also blind in light theme.** The body checkerboard is a background image, so axe reports most text contrast INCOMPLETE rather than failing it. Scanning dark theme inherits the same blindness.
+
+#### Acceptance Criteria
+
+- [ ] Dark-theme axe scans run on the `PAGES` routes, with the theme applied as a real page load, validated against one element whose dark colours are known
+- [ ] Findings are fixed or recorded with reasons; none are baselined without a reason
+- [ ] A decision on the checkerboard's INCOMPLETE blindness: accept it and rely on token guards, or make the scan able to see through it
+
+---
+
 ### BL-102: Regulatory map — how is the map exposed to assistive tech?
 
 **Source**: surfaced 2026-08-03 the moment `/hub/tools/regulatory-map/` joined the axe sweep (BL-096 AC3) | **Effort**: Small to change, gated on one design call | **Status**: Open — needs the ruling first

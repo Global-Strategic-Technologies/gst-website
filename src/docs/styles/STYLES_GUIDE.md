@@ -613,7 +613,7 @@ Use this pattern only for `::before`/`::after` pseudo-elements where an Astro co
 **Guidelines:**
 
 - Always prefer `DeltaIcon.astro` over `<img>` tags — `<img>` cannot inherit CSS colors
-- `.bullet-icon` and `.delta-icon` classes include `color: var(--color-primary)` for palette awareness
+- `.bullet-icon` uses `color: var(--color-tertiary)` (it marks list structure, so it needs 3:1, which `--color-primary` fails at 2.06:1); decorative delta icons may stay on `--color-primary` — see [ADR-0035](../adr/0035-ink-tokens-for-text-on-light-surfaces.md)
 - The static SVG file (`public/images/logo/gst-delta-icon-teal-stroke-thick.svg`) has hardcoded teal — keep it for favicon, RSS, and external contexts only
 
 ---
