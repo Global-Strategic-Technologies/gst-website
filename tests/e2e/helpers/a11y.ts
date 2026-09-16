@@ -43,7 +43,7 @@ export interface AxeViolation {
 export const DECORATIVE_BACKGROUNDS = [
   // Site-wide checkerboard, global.css. 3.2%-alpha lines under every route's text.
   'body',
-];
+] as const;
 
 /**
  * Run an axe-core accessibility scan on the current page.

@@ -1560,7 +1560,7 @@ await expect
   .toBe('rgb(10, 10, 10)'); // --bg-light's dark half
 ```
 
-`tests/e2e/accessibility.test.ts` (`applyTheme` / `expectThemeLoaded`) is the reference. It also checks one known element per theme, `.project-card` on `/ma-portfolio/`, so a regression in the switch fails loudly instead of producing numbers. Set light explicitly too, rather than trusting the default (#25).
+`tests/e2e/accessibility.test.ts` (`applyTheme` / `expectThemeLoaded`) is the reference. It also checks one known element per theme, `.project-card` on `/ma-portfolio/`, so a regression in the switch fails loudly instead of producing numbers. Set light explicitly too, rather than trusting the default (#21).
 
 ---
 
