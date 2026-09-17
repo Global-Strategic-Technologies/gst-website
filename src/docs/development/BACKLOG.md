@@ -43,7 +43,7 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   - **Brand-teal ruling, final:** below-AA teal text (`--color-primary`) is WORKING AS INTENDED ([ADR-0035 § 1](../adr/0035-ink-tokens-for-text-on-light-surfaces.md)). `checkA11y` exempts it by computed colour, never by selector or node count, so a new teal element can never fail the suite. An instrument test proves a near-teal still fails. **Do not re-open this as a contrast finding.**
 >   - **Live content:** [TEST_STRATEGY § Accessibility scans](../testing/TEST_STRATEGY.md#accessibility-scans-axe), [TEST_BEST_PRACTICES #29](../testing/TEST_BEST_PRACTICES.md#29--toggling-htmldark-theme-to-measure-dark-colours), ADR-0035.
 > - **2026-09-16**: 17 stanzas closed between 2026-08-09 and 09-14 but never pruned, plus BL-101 and BL-104, closed and pruned the same day (BL-114, 120, 121, 122, 123, 124, 125, 126, 128, 130, 131, 135, 139, 156, 158, 159, 161). Last pre-prune revision: `7c4e51f7`. Four of them said they were "recorded rather than pruned", which contradicted the retained list below. Each stanza was read for live content first:
->   - **Still open:** BL-126's three `compute_techpar` residuals became **[BL-163](#bl-163-compute_techpar-audit-residuals-left-open-by-bl-126)**, along with its `engCost` won't-fix ruling.
+>   - **Still open:** BL-126's three `compute_techpar` residuals became BL-163, along with its `engCost` won't-fix ruling. **BL-163 closed 2026-09-17** (server `0.64.0` + `0.65.0`: hosting-annualization rule hoisted, one `rdOpEx` synthesis, and an `irl-absent` source with nullable money fields + `extractionOnly`); the `engCost` headcount-disclosure gap stays won't-fix.
 >   - **Retired by BL-143's removal PR:** the residuals of BL-123, 125, 128 and 130 are listed under [BL-143](#bl-143-trust-the-operator-irl-ingestion-rebuild-gst_irl_sweep). All four concern `gst_irl_ingestion` and `compose_dossier_envelope`, which that PR deletes.
 >   - **Moved to maintained docs:** BL-135's ruling that scoped chrome is extracted, not promoted → [CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md). BL-161's stylelint first-use measurements → [TROUBLESHOOTING.md](../testing/TROUBLESHOOTING.md). BL-139's design-brief note → the `filter.css` drawer comment. BL-159's "the repaired alert has never fired" → the `scope-mismatch-403-rate` runbook. BL-158's tip that `/status` is a free AE probe → GRAFANA.md.
 >   - **Leftovers fixed rather than refiled:** BL-139's unused `--filter-drawer-bg` token was deleted. BL-161's timeout-less `spawnSync` in `mcp-generated-bundle-freshness.test.ts` got a 30s bound.
@@ -752,31 +752,9 @@ Scope is **the whole GST estate** — the Astro website and the MCP integration 
 
 ---
 
-### BL-163: `compute_techpar` audit residuals left open by BL-126
-
-**Source**: carried out of BL-126 (closed; mode fix shipped at prompt `0.27.0` / server `0.54.0`, determinism confirmed 2026-08-15) when it was pruned 2026-09-16. Full evidence for all three items is in that stanza: `git show 7c4e51f7:src/docs/development/BACKLOG.md` | **Effort**: Small–Medium | **Status**: Recorded — items 2 and 3 **done** 2026-09-17 (server `0.64.0`); item 1 remains and is **unblocked** — the operator kept `_audit` optional-and-validated (2026-09-17, recorded in BL-143), so an honest absence value is needed rather than moot
-
-**As a** partner shipping a dossier, **I want** two runs over the same IRL to agree on TechPar inputs **so that** a residual variance I can't see doesn't move the numbers.
-
-BL-126 pinned `mode: deepdive` and made the zone verdict stable: two sweeps landed 3.6% apart on `rdOpEx`, down from 89%. These three residuals remain:
-
-1. **No absence value for the audit.** Every `_audit.annualizationSource` value asserts that a derivation happened; none means "the IRL does not supply this". `rdOpEx` and `_audit.rdOpEx` are required in both modes, even though `deepdive` discards the value, so prompts use `irl-annualized-stated` with a `Section --` citation as a forced placeholder. Fix: a TechPar absence source, nullable money fields and an `extractionOnly` marker, mirroring `tech-debt-audit.ts`. **Trigger**: met; schedule with the next `compute_techpar` schema change.
-2. **`infraHostingAnnual` has no binding selection rule.** Two valid derivations ($850K YTD ÷ 3 × 12 = $3.40M vs $292K/mo × 12 = $3.50M) both pass the handler's cross-check, and a cross-check cannot choose between two valid derivations. The "annualize the 3-month average" rule exists once, inline in `irl-ingestion.ts` Step 4, and is not in `extraction-rules.ts`, so `gst_irl_sweep` receives no rule at all. The cheap fix is BL-126's own precedent: hoist it into `extraction-rules.ts` next to `TECHPAR_MODE_RULE`. Do this before BL-143's removal PR deletes the only copy.
-3. **The `rdOpEx` synthesis is duplicated** in [`techpar-engine.ts`](../../utils/techpar-engine.ts) (`computeTechPar` ~:246 and `buildTrajectory` ~:390), so a rule change has two sites.
-
-**Operator ruling, not open**: the `engCost` `estimated-from-headcount` disclosure gap (no declared headcount, rate or fully-loaded basis) is **won't-fix** (2026-08-15, "No one will notice it"). The residual is about 4% on `rdOpEx` with a stable verdict. Do not re-propose it from the same evidence.
-
-#### Acceptance Criteria
-
-- [x] The hosting-annualization selection rule lives in `extraction-rules.ts` and renders in every body that calls `compute_techpar`, including `gst_irl_sweep`
-- [x] The `rdOpEx` synthesis has one implementation in `techpar-engine.ts`
-- [ ] Absence source + nullable fields + `extractionOnly` land with the next `compute_techpar` schema change (contract + prompt parity per CLAUDE.md § Extending an MCP Tool)
-
----
-
 ### BL-129: `assess_infrastructure_cost_governance` is the only IRL-fed scoring tool with no `_audit`
 
-**Source**: BL-126 design review, 2026-08-15 | **Effort**: Medium | **Status**: Recorded — needs a design pass, not a schema edit
+**Source**: BL-126 design review, 2026-08-15 | **Effort**: Medium | **Status**: Recorded — **deferred (operator, 2026-09-17)**, with a trigger below. Not closed by BL-143 PR2: `_audit` stays optional-and-validated, so the gap stands on its own merits
 
 **What it is.** `generate_diligence_agenda`, `compute_techpar` and `estimate_tech_debt_cost` each carry an `_audit` sibling. ICG takes `answers` and `companyStage` and nothing else — twenty score-bearing inputs with zero provenance. This is structural and does not depend on the confounded 15-vs-3 observation.
 
@@ -787,11 +765,13 @@ BL-126 pinned `mode: deepdive` and made the zone verdict stable: two sweeps land
   **Premise shifted 2026-08-20 ([ADR-0019](../adr/0019-irl-extract-record-subject-indexing.md)), the same way BL-126's `:620` note shifted.** "No IRL" is no longer the only state that prompt runs in: it now carries `irlEvidencePrecedence()`, so an IRL extract record can be present in its context and its TechPar and tech-debt calls are already branch-conditional on that. The blocker is **not dissolved** — the no-evidence branch still exists and a citation-or-silence rule is still unsatisfiable there — but the design question narrows: it is now "what does an ICG answer cite when evidence IS present", with the no-evidence branch keeping the `Section --` escape it already has. The adjacency blocker below is untouched and remains the harder one; ICG's Step 1a is deliberately the one quick-look step the record change left alone, for exactly that reason.
 
 - **The dominant seeding mode is adjacency inference.** All five `ICG_SEEDING_RULES` mappings score something no bullet states, so a citation requirement is satisfiable only by citing a bullet that does not support the assertion — corrupting the signal the audit exists to create.
-- **Key omission is free.** An absent key scores 0 while `-1` scores −1, so an audit on present keys makes deletion strictly dominant.
+- **Key omission is free.** An absent key scores 0 while `-1` scores −1, so an audit on present keys makes deletion strictly dominant. (Qualified 2026-09-17: each domain score floors at 0, so this holds only in a domain with positive answers — an all-`-1` domain scores the same as an all-`0` one.)
 
 **The opening question is a design question, not a schema one**: what are the legitimate provenance modes for a seeded answer — direct citation, named adjacency inference, partner-supplied form input, genuine silence?
 
-**Trigger**: after BL-126's post-deploy confirmation, since the same instrument measures both. **Met 2026-08-15**, when that confirmation ran.
+**Why deferred (operator ruling 2026-09-17, after a value/risk review).** Nothing would consume it: `gst_irl_sweep` sends no `_audit` to any tool by the trust-the-operator ruling (BL-143), and the only prompt that sends audits, `gst_target_quick_look`, mostly runs without an IRL, where every answer would read "partner-supplied" or "not sure". Twenty per-question checks are the kind of rejection surface BL-143 exists to remove, and a wrong ICG answer moves a maturity score, not a dossier dollar figure. **What the review did fix:** `ICG_SEEDING_RULES`, the ICG tool description, `buildSummaryText` and the ICG CONTRACT all claimed `-1` is penalized more harshly than `0` (the CONTRACT even said "treated as 0"). Both were wrong against `icg-engine.ts`: `-1` subtracts a point until its domain floors at 0. Corrected in server `0.65.0`.
+
+**Trigger**: a partner or client asks how much of an ICG score was evidenced rather than inferred, or a consumer that reads per-answer provenance is built. (The original trigger — BL-126's post-deploy confirmation — was met 2026-08-15 and is superseded by this ruling.)
 
 ---
 
@@ -1297,7 +1277,7 @@ So the ceiling is now bounded below at **~80,000 B — derived, not measured** �
 
 **What it is.** [CLAUDE.md](../../../.claude/CLAUDE.md) § Extending an MCP Tool step 2 requires self-documenting id/enum args in `.describe()` "so a cold LLM call can discover valid values". That is a convention with a review gate and **no measurement**. Every existing suite checks a shape we control: `contract-parity.test.ts` binds docs to Zod, `mcp-uat-parity.test.ts` binds registered capabilities to UAT rows, `mcp-docs-parity.test.ts` binds the public registry to server source, and the unit/integration suites exercise the engines. None of them puts a model in front of the surface and observes what it does with it.
 
-The defect class is not hypothetical — this backlog has recorded it three times, and **every instance was found by a production sweep rather than by a test**: BL-125 (closed; arguments the model was never shown, making `auditLevel: debug` unreachable through the model), BL-126 (closed, residuals in [BL-163](#bl-163-compute_techpar-audit-residuals-left-open-by-bl-126); a required enum with no default and no documented mode — two sweeps over identical bytes inverted a partner-facing verdict, 32.6% "healthy" against 47.5% "above the PE ceiling"), and BL-132 (closed 2026-09-17, server `0.64.0`; `search_portfolio`'s deeplink description promised a filter state the encoder collapsed — batched filters are now omitted from the link). [BL-119](#bl-119-mcp-server--user-acceptance-test-suite) is the closest existing surface and is a different instrument: it is human-executed, runs against the live Worker, and proves the server **works**. This item is automated, never executes the server, and probes whether the surface is **legible**.
+The defect class is not hypothetical — this backlog has recorded it three times, and **every instance was found by a production sweep rather than by a test**: BL-125 (closed; arguments the model was never shown, making `auditLevel: debug` unreachable through the model), BL-126 (closed, residuals closed as BL-163; a required enum with no default and no documented mode — two sweeps over identical bytes inverted a partner-facing verdict, 32.6% "healthy" against 47.5% "above the PE ceiling"), and BL-132 (closed 2026-09-17, server `0.64.0`; `search_portfolio`'s deeplink description promised a filter state the encoder collapsed — batched filters are now omitted from the link). [BL-119](#bl-119-mcp-server--user-acceptance-test-suite) is the closest existing surface and is a different instrument: it is human-executed, runs against the live Worker, and proves the server **works**. This item is automated, never executes the server, and probes whether the surface is **legible**.
 
 **The method**, from the paper: a tool specification — names, descriptions, typed parameter schemas — already carries enough for an LLM to synthesize evaluation scenarios with no live tool access and no hand-authored cases. Each generated case is a natural-language request paired with the tool calls it should produce; mock outputs stand in for real responses. The paper reports mean tool-calling 0.911 across seven public MCP specs, with two findings that bear directly on us:
 
