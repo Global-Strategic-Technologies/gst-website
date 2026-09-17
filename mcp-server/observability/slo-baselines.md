@@ -242,8 +242,8 @@ page, read off `mcp_trial_signup` in GA4 DebugView — returned:
 is what part 1 inferred from a residual and could not measure. It is also consistent with the pre-handler
 bound: `mint_ms` 1746 ms against a handler p50 of 826 ms and max of 875 ms leaves roughly 0.9 s
 outside the handler, which sits **near the bottom of** the 0.85–1.8 s first-request bound the probe
-runs produced. Read that as _consistent with_, not as an independent confirmation — **those handler
-figures are the two EARLIER mints, not this one.** This signup wrote a third `trial_signup` row, so
+runs produced — but not as an independent confirmation: **those handler figures are the two EARLIER
+mints, not this one.** This signup wrote a third `trial_signup` row, so
 its own `double1` is pullable with the commands below; doing that would make the subtraction exact
 instead of imputed.
 
@@ -253,8 +253,9 @@ networks and is precisely why a threshold is not set from one reading.
 
 What it does establish, directionally: **both observed signups ran far past `LONG_VERIFY_MS`'s
 2500 ms** — this one instrumented at 8121 ms, the founding one an eyeballed browser wall clock of
-~15 s. (That is why the instrumented sample here is n=1 and not n=2.), so the "this is taking longer than usual" copy is firing on the _normal_ successful path
-rather than on a slow one. That is the exact failure mode BL-164 named for this constant. Two
+~15 s — so the "this is taking longer than usual" copy is firing on the _normal_ successful path
+rather than on a slow one. That is the exact failure mode BL-164 named for this constant. (The
+eyeballed one is also why the instrumented sample here is n=1 and not n=2.) Two
 readings are not a p50 — but the next re-measure should expect to move this constant, not keep it.
 
 `MINT_TIMEOUT_MS` moves the other way: 1746 ms against a 15 s bound is ~8.6× of headroom, a second
