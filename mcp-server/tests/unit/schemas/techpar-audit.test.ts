@@ -262,3 +262,71 @@ describe('buildPartnerSuppliedTechParAudit', () => {
     expect(audit.toolingCost).toBeUndefined();
   });
 });
+
+describe('runTechParAuditRefinements — absence discipline (BL-163)', () => {
+  const ABSENT = {
+    annualizationSource: 'irl-absent' as const,
+    citation: 'Section 02 — annual build/tooling cost bullet left blank by the target',
+  };
+
+  it('accepts deepdive with rdOpEx null and no _audit.rdOpEx — the refinements run without throwing', () => {
+    const p = { ...baselineDeepdive(), rdOpEx: null } as unknown as AuditedTechParInputs;
+    expect(p._audit.rdOpEx).toBeUndefined();
+    expect(runTechParAuditRefinements(p)).toEqual([]);
+  });
+
+  it('accepts a null component declared irl-absent', () => {
+    const p = baselineDeepdive();
+    const q = { ...p, toolingCost: null, _audit: { ...p._audit, toolingCost: ABSENT } };
+    expect(runTechParAuditRefinements(q as unknown as AuditedTechParInputs)).toEqual([]);
+  });
+
+  it('flags irl-absent paired with a non-null value (no 0 stand-in)', () => {
+    const p = baselineDeepdive();
+    const q = { ...p, toolingCost: 0, _audit: { ...p._audit, toolingCost: ABSENT } };
+    expect(ruleIds(q)).toContain('BL-163-TECHPAR-NULL-REQUIRED-FOR-ABSENT-SOURCE');
+  });
+
+  it('flags a null value whose audit claims a derivation', () => {
+    const q = { ...baselineDeepdive(), toolingCost: null } as unknown as AuditedTechParInputs;
+    expect(ruleIds(q)).toContain('BL-163-TECHPAR-ABSENT-SOURCE-REQUIRED-FOR-NULL');
+  });
+
+  it('flags irl-absent on arr, which the engine cannot compute without', () => {
+    const p = baselineQuick();
+    const q = { ...p, _audit: { ...p._audit, arr: ABSENT } };
+    const issues = runTechParAuditRefinements(q);
+    expect(issues.map((i) => i.ruleId)).toContain('BL-163-TECHPAR-NULL-REQUIRED-FOR-ABSENT-SOURCE');
+    expect(issues.find((i) => i.path[0] === 'arr')?.message).toMatch(/cannot be null/);
+  });
+
+  it('flags quick mode without _audit.rdOpEx', () => {
+    const p = baselineQuick();
+    const { rdOpEx: _dropped, ...rest } = p._audit;
+    expect(ruleIds({ ...p, _audit: rest })).toContain('BL-163-TECHPAR-QUICK-RDOPEX-AUDIT-REQUIRED');
+  });
+
+  it('still cross-checks a YTD-sourced field alongside an irl-absent one', () => {
+    const p = baselineDeepdive();
+    const q = {
+      ...p,
+      toolingCost: null,
+      _audit: {
+        ...p._audit,
+        toolingCost: ABSENT,
+        infraPersonnel: {
+          annualizationSource: 'ytd-annualized-with-period' as const,
+          ytdMonths: 4,
+          ytdMathCheck: {
+            monthlyAnchorAmount: 55_000,
+            monthlyAnchorCitation: 'Section 03 — infra personnel run-rate $55K per month',
+            ytdActualReportedAmount: 165_000,
+            ytdActualReportedCitation: 'Section 03 — infra personnel YTD actual $165K (3 months)',
+          },
+          citation: 'Section 03 — infra personnel YTD actual $165K (3 months)',
+        },
+      },
+    } as unknown as AuditedTechParInputs;
+    expect(ruleIds(q)).toEqual(['BL-045-TECHPAR-YTD-ARITHMETIC-INCONSISTENT']);
+  });
+});

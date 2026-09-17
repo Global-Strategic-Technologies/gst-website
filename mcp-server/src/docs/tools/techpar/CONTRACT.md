@@ -1,18 +1,22 @@
 ---
 tool: compute_techpar
 version: v1
-lastAuthored: 2026-04-28
+lastAuthored: 2026-09-17
 schema: src/schemas/techpar.ts
 enumParity:
   - tableHeading: '`mode`'
     schemaExport: src/schemas/techpar.ts#MODE_VALUES
   - tableHeading: '`capexView`'
     schemaExport: src/schemas/techpar.ts#CAPEX_VIEW_VALUES
+  - tableHeading: '`_audit.<field>.annualizationSource`'
+    schemaExport: mcp-server/src/schemas/techpar-audit.ts#ANNUALIZATION_SOURCE_VALUES
 ---
 
 # Input Contract: `compute_techpar`
 
 > **Since server 0.60.0**: the MCP layer's `_audit` sibling block (currency basis + annualization provenance, `mcp-server/src/schemas/techpar-audit.ts`) is **optional** — supplied blocks are still validated; absent blocks skip the calibration checks, and the `monetaryBasis` response key is omitted.
+
+> **Since server 0.65.0 (BL-163)**: at the MCP boundary, every money field except `arr` and `infraHostingAnnual` accepts **`null`** when the source material does not supply it. Nulls are computed as 0, and the ones the chosen mode uses are listed in the always-present `extractionOnly` response key. The website engine and wizard never see null. See [§ Absent figures](#absent-figures-mcp-boundary).
 
 > **Tool**: `compute_techpar` — computes the TechPar benchmark for a target company's technology cost ratio. Wraps the website's pure `compute` engine.
 >
@@ -32,24 +36,24 @@ enumParity:
 
 ## Field overview
 
-14 inputs. All required and validated by Zod; the engine returns `null` when `arr` or `infraHostingAnnual` is zero — the MCP wrapper surfaces this as an `isError` response carrying `error: 'invalid-input'` in `structuredContent` and the message `TechPar requires both 'arr' and 'infraHostingAnnual' to be greater than zero.` verbatim in `content[0].text`.
+14 inputs. All required (present) and validated by Zod — six money fields may be `null` at the MCP boundary (see [§ Absent figures](#absent-figures-mcp-boundary)); the engine returns `null` when `arr` or `infraHostingAnnual` is zero — the MCP wrapper surfaces this as an `isError` response carrying `error: 'invalid-input'` in `structuredContent` and the message `TechPar requires both 'arr' and 'infraHostingAnnual' to be greater than zero.` verbatim in `content[0].text`.
 
-| Field                | Type       | Notes                                                                                  |
-| -------------------- | ---------- | -------------------------------------------------------------------------------------- |
-| `arr`                | number ≥ 0 | Annual recurring revenue, in dollars                                                   |
-| `stage`              | enum       | One of 5 growth stages                                                                 |
-| `mode`               | enum       | `quick` (use `rdOpEx` directly) or `deepdive` (sum `engCost + prodCost + toolingCost`) |
-| `capexView`          | enum       | `cash` (include CapEx in totals) or `gaap` (exclude CapEx)                             |
-| `growthRate`         | number     | Annual revenue growth rate (%); drives 36-month projection                             |
-| `exitMultiple`       | number ≥ 0 | Exit multiple used to translate cumulative gap → exit value                            |
-| `infraHostingAnnual` | number ≥ 0 | Annual infrastructure / cloud hosting cost (dollars)                                   |
-| `infraPersonnel`     | number ≥ 0 | Annual infra personnel cost (dollars)                                                  |
-| `rdOpEx`             | number ≥ 0 | R&D OpEx — used in `quick` mode                                                        |
-| `rdCapEx`            | number ≥ 0 | R&D CapEx (capitalized R&D)                                                            |
-| `engFTE`             | number ≥ 0 | Engineering full-time-equivalent count                                                 |
-| `engCost`            | number ≥ 0 | Annual engineering personnel cost — `deepdive` only                                    |
-| `prodCost`           | number ≥ 0 | Annual product personnel cost — `deepdive` only                                        |
-| `toolingCost`        | number ≥ 0 | Annual tooling cost — `deepdive` only                                                  |
+| Field                | Type               | Notes                                                                                  |
+| -------------------- | ------------------ | -------------------------------------------------------------------------------------- |
+| `arr`                | number ≥ 0         | Annual recurring revenue, in dollars                                                   |
+| `stage`              | enum               | One of 5 growth stages                                                                 |
+| `mode`               | enum               | `quick` (use `rdOpEx` directly) or `deepdive` (sum `engCost + prodCost + toolingCost`) |
+| `capexView`          | enum               | `cash` (include CapEx in totals) or `gaap` (exclude CapEx)                             |
+| `growthRate`         | number             | Annual revenue growth rate (%); drives 36-month projection                             |
+| `exitMultiple`       | number ≥ 0         | Exit multiple used to translate cumulative gap → exit value                            |
+| `infraHostingAnnual` | number ≥ 0         | Annual infrastructure / cloud hosting cost (dollars)                                   |
+| `infraPersonnel`     | number ≥ 0 \| null | Annual infra personnel cost (dollars)                                                  |
+| `rdOpEx`             | number ≥ 0 \| null | R&D OpEx — used in `quick` mode                                                        |
+| `rdCapEx`            | number ≥ 0 \| null | R&D CapEx (capitalized R&D)                                                            |
+| `engFTE`             | number ≥ 0         | Engineering full-time-equivalent count                                                 |
+| `engCost`            | number ≥ 0 \| null | Annual engineering personnel cost — `deepdive` only                                    |
+| `prodCost`           | number ≥ 0 \| null | Annual product personnel cost — `deepdive` only                                        |
+| `toolingCost`        | number ≥ 0 \| null | Annual tooling cost — `deepdive` only                                                  |
 
 ---
 
@@ -87,6 +91,28 @@ enumParity:
 
 - **`infraHostingAnnual`, `infraPersonnel`, `rdOpEx`, `rdCapEx`, `engCost`, `prodCost`, `toolingCost`** are all **annual** dollars (BL-031.95 normalized this; pre-BL-031.95 callers passed `infraHosting` as monthly with × 12 inside the engine).
 - **`engFTE`** is a headcount integer used to compute `revenuePerEngineer = arr / engFTE`.
+
+### Absent figures (MCP boundary)
+
+`infraPersonnel`, `rdOpEx`, `rdCapEx`, `engCost`, `prodCost` and `toolingCost` accept `null` when the source material does not supply the figure. Pass null, never 0 as a stand-in: a 0 is indistinguishable from a real zero and understates total technology cost.
+
+- The handler computes each null as 0 (the deeplink is identical to the zero-valued call).
+- **`extractionOnly`** (always present, `string[]`) lists the null fields **the chosen mode uses**: `infraPersonnel`, `rdCapEx` and the three components under `deepdive`; `infraPersonnel`, `rdCapEx` and `rdOpEx` under `quick`. A null in a field the mode discards (`rdOpEx` under `deepdive`, the components under `quick`) is not a gap and is not listed.
+- `quick` with `rdOpEx: null` is rejected (`invalid-input`) — `quick` reads it directly.
+- `arr` and `infraHostingAnnual` are never nullable: the engine cannot compute without them.
+
+### `_audit.<field>.annualizationSource`
+
+When `_audit` is supplied, each audited money field declares how its annual figure was derived. `irl-absent` pairs with a null input; every other source asserts a derivation and pairs with a number. The handler rejects either mismatch (`BL-163-TECHPAR-NULL-REQUIRED-FOR-ABSENT-SOURCE`, `BL-163-TECHPAR-ABSENT-SOURCE-REQUIRED-FOR-NULL`). `_audit.rdOpEx` is required under `quick` and optional under `deepdive`, which discards `rdOpEx`.
+
+| ID                           | Meaning                                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------------------- |
+| `irl-annualized-stated`      | The source states an annual figure                                                      |
+| `monthly-x12`                | A single monthly figure × 12                                                            |
+| `ytd-annualized-with-period` | Year-to-date actual annualized; requires `ytdMonths` + `ytdMathCheck` (10% cross-check) |
+| `estimated-from-headcount`   | Estimated from a headcount and a rate                                                   |
+| `estimated-from-anchor`      | Estimated from another stated anchor figure                                             |
+| `irl-absent`                 | The source material does not supply the figure — the input must be `null` (BL-163)      |
 
 ---
 
@@ -127,7 +153,7 @@ Per-category zones use the same logic against the per-category benchmarks in `st
 
 - **`compute` returns `null`** if `arr === 0` or `infraHostingAnnual === 0`. The MCP wrapper converts this to a structured error, never a stack trace. The website wizard handles the null state by showing a "fill in revenue / infra hosting" placeholder.
 - **R&D CapEx benchmark derivation**: the per-category R&D CapEx benchmark is computed at runtime as `(rdOpEx + rdCapEx) × stageConfig.benchmarks.rdCapExOfRD / 100 / arr × 100`. The "of R&D" semantics aren't user-facing in the input — the consumer just sees the resulting % range — but they explain why the R&D CapEx benchmark depends on actual R&D spend rather than ARR alone.
-- **Mode switching does not zero unused fields** — sending all of `rdOpEx`, `engCost`, `prodCost`, `toolingCost` is fine. The engine ignores `rdOpEx` in `deepdive` and ignores `engCost/prodCost/toolingCost` in `quick`. Submitting both is harmless.
+- **Mode switching does not zero unused fields** — sending all of `rdOpEx`, `engCost`, `prodCost`, `toolingCost` is fine (at the MCP boundary, prefer `null` for the ones the mode discards). The engine ignores `rdOpEx` in `deepdive` and ignores `engCost/prodCost/toolingCost` in `quick`. Submitting both is harmless.
 
 ---
 

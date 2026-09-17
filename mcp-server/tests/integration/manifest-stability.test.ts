@@ -257,7 +257,13 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // The infraHostingAnnual selection rule joined IRL_EXTRACTION_RULES_SECTION and
 // target-quick-look's evidence branch: gst_irl_sweep 0.2.0 → 0.3.0,
 // gst_irl_extract 0.1.0 → 0.2.0, gst_target_quick_look 0.1.0 → 0.2.0. No URI moved.
-const EXPECTED_MANIFEST_HASH = '63cb2afab5c8b6f0f47de3aa7527e2ec5a897029247f95908cf39164a8528bb3';
+//
+// BL-163 item 1 (server 0.65.0, 2026-09-17): FOUR version bumps, no rename.
+// The TechPar mode rules replaced the rdOpEx placeholder with null + irl-absent:
+// gst_irl_sweep 0.3.0 → 0.4.0, gst_irl_extract 0.2.0 → 0.3.0,
+// gst_target_quick_look 0.2.0 → 0.3.0, gst_irl_ingestion 0.30.1 → 0.30.2.
+// No URI moved.
+const EXPECTED_MANIFEST_HASH = '795298c3bb8404b6f77bed42fb5710ffd3d547f06fa94f1113ab559396c56f4e';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();

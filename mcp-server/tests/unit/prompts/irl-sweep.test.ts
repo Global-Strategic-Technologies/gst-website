@@ -8,6 +8,7 @@
  * surface named, every engine-math rule present, the inference and gap-list
  * instructions carried — while letting wording breathe.
  *
+ * v0.4.0: rdOpEx null under deepdive, blank components null (BL-163).
  * v0.3.0: carries the infraHostingAnnual selection rule (BL-163).
  * v0.2.0: the sweep has ONE argument and ONE behavior (full sweep). The
  * former `mode: extract-only` is its own prompt, `gst_irl_extract`, with
@@ -44,7 +45,7 @@ const FULL_ONESHOT = bodyOf({ filledIrl: FILLED });
 describe('gst_irl_sweep — registry contract', () => {
   it('declares the expected identity', () => {
     expect(irlSweepPrompt.name).toBe('gst_irl_sweep');
-    expect(irlSweepPrompt.version).toBe('0.3.0');
+    expect(irlSweepPrompt.version).toBe('0.4.0');
     expect(irlSweepPrompt.consumesTargetEvidence).toBeUndefined();
   });
 
@@ -185,7 +186,7 @@ describe('gst_irl_sweep — retained engine-math structure', () => {
 
   it('carries the v2 rule constants (deepdive TechPar, MTTR P1, eng-cost dedup, ICG seeding)', () => {
     expect(FULL).toContain('mode: "deepdive"');
-    expect(FULL).toContain('rdOpEx: 0');
+    expect(FULL).toContain('rdOpEx: null');
     expect(FULL).toMatch(/use P1/i);
     expect(FULL).toContain('engCost');
     expect(FULL).toContain('Seeding philosophy');

@@ -182,7 +182,7 @@ const PROMPT_NAME = 'gst_irl_ingestion';
  * RUN-AUDIT block — the body has to state it, and a hand-copied literal beside
  * the registry field is exactly the drift this repo keeps finding in prose pins.
  */
-const PROMPT_VERSION = '0.30.1';
+const PROMPT_VERSION = '0.30.2';
 
 // Per BL-045 design doc § Decisions row "Scenario reframing", each of the
 // four `transactionContext` values gets a meaningful, distinct posture.

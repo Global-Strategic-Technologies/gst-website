@@ -619,9 +619,9 @@ describe('BL-126 — every body that calls compute_techpar names its mode', () =
   });
 
   it.each(CALLERS)(
-    '%s states the wire shape for the ignored-but-required rdOpEx',
+    '%s states the wire shape for the discarded rdOpEx (null, BL-163)',
     (_label, build) => {
-      expect(build()).toContain('pass `rdOpEx: 0`');
+      expect(build()).toContain('pass `rdOpEx: null`');
     }
   );
 

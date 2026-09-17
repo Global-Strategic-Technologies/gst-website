@@ -173,9 +173,9 @@ describe('gst_target_quick_look', () => {
       const text = body();
       expect(text).toContain('`mode: "quick"`');
       expect(text).toContain('`mode: "deepdive"`');
-      // The reasons, not just the tokens: `deepdive` over three zeros is the
+      // The reasons, not just the tokens: `deepdive` over absent components is the
       // failure mode the no-evidence branch avoids.
-      expect(text).toMatch(/summing three zeros|sum(ming)? three zeros/i);
+      expect(text).toMatch(/synthesize R&D OpEx from nothing/i);
       expect(text).toMatch(/Section 02 component/i);
     });
 

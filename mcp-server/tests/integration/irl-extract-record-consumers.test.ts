@@ -484,7 +484,7 @@ describe('the IRL extract record, end to end', () => {
     it('a `request` string cannot encode a NEGATIVE — so the rule constants carry the anti-mappings', () => {
       // Misroute 1: the Section-02 component rows pulled into `rdOpEx`.
       expect(TECHPAR_MODE_RULE).toMatch(/no IRL bullet anywhere asks for a total R&D OpEx figure/i);
-      expect(TECHPAR_MODE_RULE).toContain('pass `rdOpEx: 0`');
+      expect(TECHPAR_MODE_RULE).toContain('pass `rdOpEx: null`');
       // Misroute 2: Section 04's `remediationBudget` pulled across tools.
       expect(TECHPAR_MODE_RULE).toMatch(
         /do NOT source it from the Section 04 technical-debt remediation figure/i
