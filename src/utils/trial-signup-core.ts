@@ -199,11 +199,17 @@ export interface SignupTimings {
   mint_ms?: number;
 }
 
-/** A span in whole ms, or `undefined` when either mark is missing/nonsensical. */
+/**
+ * A span in whole ms, or `undefined` when either mark is missing or the pair
+ * is nonsensical (non-finite, or out of order). A **measured** zero is still
+ * returned: sub-millisecond is a real reading, and only an unmeasured span is
+ * dropped.
+ */
 function span(from: number | undefined, to: number | undefined): number | undefined {
+  if (from === undefined || to === undefined) return undefined;
   if (!Number.isFinite(from) || !Number.isFinite(to)) return undefined;
-  const ms = (to as number) - (from as number);
-  return Number.isFinite(ms) && ms >= 0 ? Math.round(ms) : undefined;
+  const ms = to - from;
+  return ms >= 0 ? Math.round(ms) : undefined;
 }
 
 export function signupTimings(marks: {

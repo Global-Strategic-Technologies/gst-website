@@ -190,6 +190,14 @@ describe('signupTimings (BL-164)', () => {
     expect(signupTimings({ startedAt: NaN, settledAt: 10 })).toEqual({});
     expect(signupTimings({ startedAt: Infinity, settledAt: Infinity })).toEqual({});
   });
+  it('keeps a MEASURED zero — sub-millisecond is a reading, not a missing mark', () => {
+    expect(
+      signupTimings({ startedAt: 10, mintStartedAt: 20, mintEndedAt: 20, settledAt: 10 })
+    ).toEqual({
+      duration_ms: 0,
+      mint_ms: 0,
+    });
+  });
   it('omits a negative span (marks out of order) rather than emitting a bogus number', () => {
     expect(signupTimings({ startedAt: 500, settledAt: 100 })).toEqual({});
   });

@@ -309,7 +309,11 @@ function init(root: HTMLElement): void {
 
   async function mint(token: string): Promise<void> {
     let outcome: MintOutcome;
-    marks.mintStartedAt = performance.now();
+    // Bound to THIS attempt's marks object. `startVerifying()` reassigns
+    // `marks`, so reading the `let` here would let a stale in-flight mint
+    // stamp its end onto a freshly reset attempt.
+    const m = marks;
+    m.mintStartedAt = performance.now();
     try {
       const res = await fetch(mintUrl, {
         method: 'POST',
@@ -325,10 +329,10 @@ function init(root: HTMLElement): void {
       }
       // After the parse, not after the headers: the AbortSignal stays live
       // through `res.json()`, so this is the span MINT_TIMEOUT_MS bounds.
-      marks.mintEndedAt = performance.now();
+      m.mintEndedAt = performance.now();
       outcome = classifyMintResponse(res.status, body);
     } catch {
-      marks.mintEndedAt = performance.now();
+      m.mintEndedAt = performance.now();
       outcome = { kind: 'err-unavail' };
     }
     if (state !== 'verifying') return;
