@@ -86,7 +86,7 @@ What multilingual SEO requires of Google is mostly patience; the signals it read
 3. **URL Inspection** on `/es/` and `/pt/` once deployed: confirm Google has crawled them and that the canonical it chose is the page's own URL. A Google-selected English canonical on a translated page is the failure to chase.
 4. **Expect a lag** of days to weeks before the URLs appear in Performance; then filter by page (`/es/`, `/pt/`) and by country. The International Targeting report no longer exists (removed 2022); `hreflang` correctness is proven by `tests/e2e/localization.test.ts` and URL Inspection.
 5. **Translation quality is the SEO lever.** Google treats unreviewed machine translation offered to users as low-value; complete the native-speaker review in the checklist above.
-6. **GA4**: register the `locale` event parameter as a custom dimension once, or engagement cannot be segmented by language.
+6. **GA4**: the `locale` event parameter is **already registered** as an event-scope custom dimension ("Locale", created 2026-09-06, verified in the property 2026-09-17), which is what makes engagement segmentable by language. Do not create a second definition on the same parameter — it only burns the property's quota.
 7. **Do not**: add a language subdomain or domain, auto-redirect by browser language or IP, or translate URL slugs.
 
 ## Translation workflow
