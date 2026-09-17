@@ -50,7 +50,7 @@ const TOOL_DESCRIPTION = `Assess a target company's Infrastructure Cost Governan
 
 ---
 
-Given an \`answers\` map keyed by ICG question ID (values: 0-3 for the four maturity levels, or -1 for "Not sure" which is penalised) and an optional \`companyStage\`, returns:
+Given an \`answers\` map keyed by ICG question ID (values: 0-3 for the four maturity levels, or -1 for "Not sure", which subtracts a point until its domain's score reaches the 0 floor) and an optional \`companyStage\`, returns:
 
 - \`overallScore\` (0-100) and \`maturityLevel\` ('Reactive' | 'Aware' | 'Optimizing' | 'Strategic')
 - Per-domain scores with foundational-flag status — each entry's \`name\` field is the canonical domain name (use these names verbatim; do not paraphrase or substitute)

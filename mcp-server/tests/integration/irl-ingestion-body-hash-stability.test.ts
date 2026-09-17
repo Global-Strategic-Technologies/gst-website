@@ -408,9 +408,9 @@ function hashPromptOutput(args: Parameters<typeof irlIngestionPrompt.build>[0]):
 const EXPECTED_HASH_INTERACTIVE =
   'adaacf00c96d2211f46860381e225247c86fe8ffd0367ecfc7cd06e4908aeaee';
 const EXPECTED_HASH_ONESHOT_MINIMAL =
-  '2634deb20a4f357d6bc74ccbd4523cdcbac9a8d2c252eca590b22a89bdb9263d';
+  '1878996b99711638ef62f24511d6d06c37739637e885ebc3c3c4cf54ddf07475';
 const EXPECTED_HASH_ONESHOT_FULL =
-  '9e311ab222e08a70bfe6245686efd598b8f32a982e3d58a333fd249da46ac75e';
+  'ebc181f3acf322ebcd7663f3fa741da7456c3fd4dd0888b1bf529aaf74c22653';
 const EXPECTED_HASH_EXTRACT_ONLY_MINIMAL =
   'f4a44edc97bf352faf9ab11114f4601d0e68992b8f86fca43b770ff2a40f1657';
 const EXPECTED_HASH_EXTRACT_ONLY_FULL =
@@ -426,9 +426,9 @@ const EXPECTED_HASH_EXTRACT_ONLY_FULL =
 // BL-120: both compact bodies drift too — the column contract sits outside the
 // `isVerbose` gate by design.
 const EXPECTED_HASH_ONESHOT_FULL_ENHANCED =
-  '2418e8443c5fb193c5b4e0dd8fda4a08b3bb39924ca93c4fd019792be836891c';
+  '212641718e525b47169f3c2652aae462d0a25c2cec8bec42dc5384c7d0dcff23';
 const EXPECTED_HASH_ONESHOT_FULL_DEBUG =
-  'd61817f2df779fceeed8f1c89e07950cdbfc6a8be009af74dcbc44bb72856557';
+  '9966b62d4ba5e56f75a436f73142d5c590510f7d471e0f8b701a62ff71d8e913';
 const EXPECTED_HASH_INTERACTIVE_DEBUG =
   'a65bcdbe121b6507fe43e4b7cf4fc061c865c61d25c6410721c8553d05589153';
 // BL-125: extract-only is exempt from the audit-level GATE, but it now STATES
@@ -540,6 +540,10 @@ const EXPECTED_HASH_INTERACTIVE_WITH_ARGS =
 // builders. Verified before rebaselining, not inferred: substituting the
 // previous rule text (and version) back into the new interactive body
 // reproduces its previous hash exactly, so the rule is the only drift.
+// BL-129 text fix (same unserved 0.30.2, rebaselined in place per BL-120):
+// FOUR one-shot bodies. `ICG_SEEDING_RULES` no longer claims the engine
+// penalizes -1 more harshly than 0 (each domain floors at 0); only the
+// one-shot full-body builder renders Step 5's seeding rules.
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY =
   'b2516b983c7211f939bd215e74d0f592ff923ec39136acb3e74cdbd1b6763769';
 const EXPECTED_HASH_DEFERRED_EXTRACT_ONLY_ENHANCED =

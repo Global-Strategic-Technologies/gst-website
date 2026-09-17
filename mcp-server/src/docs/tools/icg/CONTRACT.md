@@ -53,13 +53,13 @@ The tool accepts a 2-field input. The first (`answers`) is a map keyed by questi
 
 **Valid values**: integers in `-1..3`.
 
-| Value | Label        | Maturity    | Engine effect                                                                                       |
-| ----- | ------------ | ----------- | --------------------------------------------------------------------------------------------------- |
-| `0`   | Not in place | Reactive    | Counts toward raw score (sum); contributes 0 points                                                 |
-| `1`   | Ad hoc       | Aware       | Counts toward raw score; contributes 1 point                                                        |
-| `2`   | Established  | Optimizing  | Counts toward raw score; contributes 2 points                                                       |
-| `3`   | Optimized    | Strategic   | Counts toward raw score; contributes 3 points                                                       |
-| `-1`  | Not sure     | (penalised) | Treated as 0 for raw arithmetic AND counted in the `skippedCount` field (visible in summary output) |
+| Value | Label        | Maturity   | Engine effect                                                                                                                                                                                                                                             |
+| ----- | ------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`   | Not in place | Reactive   | Counts toward raw score (sum); contributes 0 points                                                                                                                                                                                                       |
+| `1`   | Ad hoc       | Aware      | Counts toward raw score; contributes 1 point                                                                                                                                                                                                              |
+| `2`   | Established  | Optimizing | Counts toward raw score; contributes 2 points                                                                                                                                                                                                             |
+| `3`   | Optimized    | Strategic  | Counts toward raw score; contributes 3 points                                                                                                                                                                                                             |
+| `-1`  | Not sure     | —          | Contributes -1 to the raw score AND counted in `skippedCount`. The domain score floors at 0, so a `-1` costs more than `0` only until the floor; an all-`-1` domain scores the same as an all-`0` one. `rawScore` itself is unclamped and can be negative |
 
 **Downstream effect**: The answers map gates **everything**. Per-domain scores are computed as a percentage of the maximum possible (`questions.length × 3`), then weighted by `domain.weight` to produce the `overallScore` (0–100). The overall score determines the `maturityLevel` via `MATURITY_THRESHOLDS` (Reactive ≤ 25, Aware ≤ 50, Optimizing ≤ 75, Strategic > 75). Below-threshold answers also drive the `recommendations[]` list — each `Recommendation` has a `triggerQuestionId` and `triggerThreshold`, surfacing when `answers[triggerQuestionId] <= triggerThreshold`. Recommendations are sorted by impact (high / medium / low), then effort (quick-win / project / initiative), then domain order.
 

@@ -587,10 +587,12 @@ describe('gst_irl_ingestion', () => {
     it('Step 5 includes the seeding-signal mapping table (q1_1, q1_2, q1_3, q2_1, q3_1, q5_2)', () => {
       // v0.0.3 was directionally clean but produced 2/100 Reactive
       // where ~26-30 Aware was defensible (over-conservatism worse than
-      // calibrated seeding because the -1 penalty is harsher than 0).
+      // calibrated seeding). The -1 framing was corrected by BL-129: the
+      // engine floors each domain at 0, so -1 is not uniformly harsher.
       const text = bodyText(irlIngestionPrompt, { filledIrl: SAMPLE_FILLED_IRL });
       // The seeding-philosophy framing:
-      expect(text).toMatch(/penalizes.+`?-1`?.+more harshly/i);
+      expect(text).toMatch(/every domain's score floors at 0/);
+      expect(text).not.toMatch(/more harshly/i);
       // The mapping table must enumerate the foundational q-IDs:
       const tableQuestions = ['q1_1', 'q1_2', 'q1_3', 'q2_1', 'q3_1', 'q5_2', 'q5_3'];
       for (const qid of tableQuestions) {

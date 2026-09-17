@@ -27,7 +27,7 @@ Argument, attachment, and chat paste all proceed identically — arrival channel
 
 - The **workbook column contract** (shared from `extraction-rules.ts`) for xlsx reconstruction.
 - The **inclusion gates** — they encode engine null-returns (TechPar needs ARR + a cost signal; Tech Debt needs a substantive §04 row).
-- The **engine-math rule constants** (v2 forms): deepdive-always TechPar with `rdOpEx: null` (and blank components as `null`, reported in `extractionOnly`), MTTR P1 selection + null-when-OPEN, eng-cost dedup, ICG seeding (`-1` penalized harder than `0`), currency normalization, headcount scope.
+- The **engine-math rule constants** (v2 forms): deepdive-always TechPar with `rdOpEx: null` (and blank components as `null`, reported in `extractionOnly`), MTTR P1 selection + null-when-OPEN, eng-cost dedup, ICG seeding (calibrated seeding over defensive `-1`; each domain floors at 0), currency normalization, headcount scope.
 - The **conditional regulatory triggers** (EU AI Act, NIS2) gap-filling a thin §09.
 - The **deeplink discipline** and the inlined **VDR folder taxonomy** for (I) follow-ups.
 
