@@ -39,6 +39,7 @@ import {
   fill,
   formatUtc,
   mcpCallSnippet,
+  signupTimings,
   tokenExchangeSnippet,
   type Flow,
   type MintOutcome,
@@ -148,6 +149,21 @@ function init(root: HTMLElement): void {
   let retryTimer: number | undefined;
   let widgetId: string | null = null;
   let turnstileLoad: Promise<TurnstileApi> | null = null;
+  /**
+   * `performance.now()` marks for the CURRENT attempt (BL-164). Reset by
+   * `startVerifying()`, so a retry measures itself rather than the run before
+   * it. Read once at the settle point through `signupTimings`, which drops any
+   * span whose marks are missing — an attempt that never reached the fetch
+   * reports `duration_ms` alone.
+   */
+  let marks: {
+    startedAt?: number;
+    mintStartedAt?: number;
+    mintEndedAt?: number;
+  } = {};
+
+  /** The timing params for the attempt settling right now. */
+  const settleTimings = () => signupTimings({ ...marks, settledAt: performance.now() });
 
   // --- live region ------------------------------------------------------
   // Cleared then re-set from a macrotask so a repeated message is still a
@@ -181,6 +197,10 @@ function init(root: HTMLElement): void {
   // --- verifying ---------------------------------------------------------
   function startVerifying(): void {
     reset();
+    // Same instant the LONG_VERIFY_MS timer below is armed, and deliberately
+    // so: `duration_ms` must measure exactly the span that constant governs,
+    // which begins before Turnstile has been fetched.
+    marks = { startedAt: performance.now() };
     const title = q('[data-verify-title]')!;
     const body = q('[data-verify-body]')!;
     title.textContent = strings.verifyTitle;
@@ -263,6 +283,7 @@ function init(root: HTMLElement): void {
 
   async function mint(token: string): Promise<void> {
     let outcome: MintOutcome;
+    marks.mintStartedAt = performance.now();
     try {
       const res = await fetch(mintUrl, {
         method: 'POST',
@@ -276,8 +297,12 @@ function init(root: HTMLElement): void {
       } catch {
         body = null;
       }
+      // After the parse, not after the headers: the AbortSignal stays live
+      // through `res.json()`, so this is the span MINT_TIMEOUT_MS bounds.
+      marks.mintEndedAt = performance.now();
       outcome = classifyMintResponse(res.status, body);
     } catch {
+      marks.mintEndedAt = performance.now();
       outcome = { kind: 'err-unavail' };
     }
     if (state !== 'verifying') return;
@@ -312,7 +337,7 @@ function init(root: HTMLElement): void {
     }
     renderSaved();
     show(o.reissued ? 'reissued' : 'issued');
-    trackMcpTrialSignup(o.reissued ? 'reissued' : 'issued');
+    trackMcpTrialSignup(o.reissued ? 'reissued' : 'issued', undefined, settleTimings());
     announce(flow === 'connector' ? strings.liveIssuedC : strings.liveIssued);
     window.setTimeout(() => q('#cred-title')?.focus({ preventScroll: false }), FOCUS_DELAY_MS);
   }
@@ -425,7 +450,7 @@ function init(root: HTMLElement): void {
     retryBtn.textContent = strings.retry;
     show(kind);
     announce(fill(strings.liveError, { title }));
-    trackMcpTrialRefused(callout.dataset.errKind);
+    trackMcpTrialRefused(callout.dataset.errKind, undefined, settleTimings());
 
     if (kind === 'err-rate') {
       let s = o.retryAfterSeconds;

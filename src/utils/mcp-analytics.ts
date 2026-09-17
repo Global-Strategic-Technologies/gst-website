@@ -12,8 +12,15 @@
  * the complete milestone, `mcp_endpoint_copied` the export milestone. The two
  * conversions (`mcp_request_access`, `mcp_trial_signup`) are the actions that
  * produce a lead; they are declared as GA4 key events by the operator.
+ *
+ * The two trial events additionally carry the BL-164 timing params
+ * (`duration_ms`, `mint_ms`) built by `signupTimings` — spread FLAT into the
+ * `trackEvent` argument, never as a nested object, because the convention
+ * scanner in `tests/unit/tool-analytics.test.ts` matches with a `[^}]*`
+ * regex that a nested brace would terminate early.
  */
 import { trackEvent } from './analytics';
+import type { SignupTimings } from './trial-signup-core';
 
 /** `/hub/mcp/` marker inside a pathname, locale prefix or not. */
 const FAMILY_SEGMENT = '/hub/mcp/';
@@ -66,8 +73,12 @@ export function trackMcpRequestAccess(location: string, page: string = mcpPageSl
   trackEvent({ event: 'mcp_request_access', category: 'tool', page, location });
 }
 
-export function trackMcpTrialSignup(outcome: string, page: string = mcpPageSlug()): void {
-  trackEvent({ event: 'mcp_trial_signup', category: 'tool', page, outcome });
+export function trackMcpTrialSignup(
+  outcome: string,
+  page: string = mcpPageSlug(),
+  timings: SignupTimings = {}
+): void {
+  trackEvent({ event: 'mcp_trial_signup', category: 'tool', page, outcome, ...timings });
 }
 
 /**
@@ -76,8 +87,12 @@ export function trackMcpTrialSignup(outcome: string, page: string = mcpPageSlug(
  * match on the event name, so a refusal carried there would count as a lead.
  * Deliberately NOT a key event — it measures demand turned away.
  */
-export function trackMcpTrialRefused(reason: string, page: string = mcpPageSlug()): void {
-  trackEvent({ event: 'mcp_trial_refused', category: 'tool', page, reason });
+export function trackMcpTrialRefused(
+  reason: string,
+  page: string = mcpPageSlug(),
+  timings: SignupTimings = {}
+): void {
+  trackEvent({ event: 'mcp_trial_refused', category: 'tool', page, reason, ...timings });
 }
 
 /**
