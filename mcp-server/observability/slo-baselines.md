@@ -141,7 +141,7 @@ normal refusal rate, record it below and add the rule plus its runbook. Read the
 ADR-0032 — refusals only, never `allow`, so a denial _rate_ is denies ÷ (invocations + denies) and
 is a slight overstatement.
 
-### Trial signup latency (BL-164) — part 1 of 2: the client-side path
+### Trial signup latency (BL-164, measured 2026-09-17)
 
 Filed against BL-164, which asks whether `LONG_VERIFY_MS = 2500` and `MINT_TIMEOUT_MS = 15_000`
 (`src/scripts/trial-signup.ts`) are justified by anything measured. They were not. A production
@@ -179,8 +179,8 @@ isolate, and these samples cannot separate them — a production isolate cannot 
 **Artifact retention is 90 days** (`latency-probe.yml`, `retention-days: 90`), which is why the run
 ids and dates are recorded above rather than only the numbers.
 
-**The residual, and who closes it.** ~15 s observed − ≲1.8 s first-request − the handler time (part
-2, pending) leaves a large unexplained remainder, and the region is wrong for this evidence anyway:
+**The residual, and who closes it.** ~15 s observed − ≲1.8 s first-request − 0.875 s handler (the
+distribution below) leaves ~12 s unexplained, and the region is wrong for this evidence anyway:
 these samples are `github-us` and the observation was Bogotá, where the probe has historically
 measured far worse (LATENCY_PROBE.md records GRU p95 ~930 ms against a Worker completing in tens of
 ms). The remaining candidate is the **Turnstile load + interactive solve**, which no probe run from
@@ -190,7 +190,53 @@ inferring it: `mcp_trial_signup` / `mcp_trial_refused` now carry `duration_ms` (
 `duration_ms - mint_ms` measures the Turnstile cost **at the real visitor in their real region**.
 See GOOGLE_ANALYTICS.md § MCP pages; both need registering as GA4 custom metrics before they report.
 
-**Part 2 — the AE `trial_signup` distribution (p50/p95/p99/max by outcome, with n) — is not yet
-filled in.** It needs `CF_AE_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`, which were not available in the
-session that wrote part 1. Until it lands, **both constants stay as they are**; neither is re-tuned
-from the single 2026-09-17 observation, which is the specific mistake BL-164 exists to avoid.
+#### The server-side distribution
+
+Pulled 2026-09-17 from `mcp_events` over the **full 90-day AE retention window** — the longest
+window that can contain a signup, since the endpoint shipped inside it. Quantiles from
+`npm run ae:baseline`, min/max from a scoped `max(double1)` query.
+
+| outcome       | n   | p50 ms | p95 ms | p99 ms | min ms | max ms |
+| ------------- | --- | ------ | ------ | ------ | ------ | ------ |
+| `minted`      | 2   | 826    | 875    | 875    | 826    | 875    |
+| `unavailable` | 2   | 0      | 0      | 0      | 0      | 0      |
+| `expired`     | 1   | 760    | 760    | 760    | 760    | 760    |
+| `bad-request` | 1   | 0      | 0      | 0      | 0      | 0      |
+
+**The sample is n=2 mints, and that governs the outcome.** `MIN_EVENTS_FOR_SLO = 10`
+(`scripts/invoke-ae-baseline.mjs`) is this repo's own floor for treating quantiles as signal, so
+these are not a distribution — they are two observations. The honest result is therefore **both
+constants kept, neither re-tuned**, which is exactly the outcome BL-164 named in advance to prevent
+a re-tune from a single run. A "p95" over n=2 is the larger of two numbers.
+
+The two `unavailable` rows at 0 ms are a fail-fast refusal, not a slow failure. Per the 2026-09
+telemetry-attribution rule these are **not** filed as an incident: a window overlapping the
+operator's own go-live testing needs "were these you?" before anything reaches a checklist.
+
+#### What the decomposition now says
+
+The stanza's motivating worry was that the ~15 s signup had finished "within about a second of a
+hard `err-unavail`". **That premise is refuted.** `MINT_TIMEOUT_MS` bounds only the `fetch` through
+`res.json()`, and the handler served that mint in **826-875 ms**. Adding the first-request bound
+above (≤1.8 s) puts the worst realistic mint near **2.7 s against a 15 s abort — roughly 5× of
+headroom.** The request was never close to being aborted.
+
+Which relocates the whole problem: of ~15 s of wall clock, under a second was the handler and at
+most ~1.8 s the connection. **The remaining ~12 s was spent before the fetch was even issued**, and
+the only thing there is the Turnstile script load and its interactive solve. That is now measured
+rather than inferred — `duration_ms - mint_ms` on every future signup — and it is also why
+`LONG_VERIFY_MS` could not be decided here: the server data does not observe the span it governs.
+
+#### Re-measure trigger
+
+**At n ≥ 10 `minted` events, or as soon as GA4 reports a `duration_ms` sample of comparable size,
+re-run both queries and decide `LONG_VERIFY_MS` from `duration_ms` p50.** Registering
+`duration_ms` / `mint_ms` as GA4 custom metrics is the prerequisite (GOOGLE_ANALYTICS.md § MCP
+pages); until that is done the params are collected but not reportable. Re-running the pull is two
+commands and needs only the `gst-mcp-ae-read` operator token:
+
+```powershell
+$env:CF_AE_TOKEN = '<token>'   # SECRETS_INVENTORY.md — reuse, do not mint a second
+$env:CLOUDFLARE_ACCOUNT_ID = (npx wrangler whoami 2>&1 | Select-String -Pattern '[0-9a-f]{32}' | Select-Object -First 1).Matches[0].Value
+npm -w @gst/mcp-server run ae:baseline -- --env production --window-days 90
+```

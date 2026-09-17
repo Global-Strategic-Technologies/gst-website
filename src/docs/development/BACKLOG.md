@@ -1371,40 +1371,6 @@ Consequences:
 
 ---
 
-### BL-164: The trial signup's two latency constants were set before anyone timed a real mint
-
-**Source**: observed 2026-09-17 during the [BL-152](#bl-152-marketing-blitz--promote-the-released-gst-mcp-across-online-channels) Slice 0 DebugView walkthrough — an operator-driven production signup took **~15s** from click to credentials, spending most of it under the "this is taking longer than usual" notice | **Effort**: Small — the change is two constants; the work is the measurement that justifies them | **Status**: Recorded — **measure first, then decide**
-
-**As a** stranger deciding whether the GST MCP is worth my time, **I want** the one button that gives me a credential to either answer quickly or tell me honestly how long it will take, **so that** I don't close the tab believing it is broken.
-
-**What was seen.** One production signup (the trial page's connector flow, Bogotá, 2026-09-17 15:23) sat on the verifying state for roughly 15 seconds before rendering credentials. It succeeded. But the client aborts the mint at `MINT_TIMEOUT_MS = 15_000` (`src/scripts/trial-signup.ts`), so that run finished within about a second of a hard `err-unavail` — on the one endpoint whose whole purpose is that a stranger gets a credential without talking to anyone.
-
-**The two constants, and why neither is evidence-based:**
-
-- **`LONG_VERIFY_MS = 2500`** — when the copy switches to "this is taking longer than usual". If a typical mint is slower than this, the reassurance fires on the normal path and reads as a fault rather than a reassurance.
-- **`MINT_TIMEOUT_MS = 15_000`** — when the request is aborted. If the p95 sits near it, a share of real signups fail for no reason other than the bound.
-
-  Both predate any measurement of a production mint. Neither is wrong on this evidence; both are **unvalidated**.
-
-**Measure before touching either — the data already exists.** `POST /trial/signup` emits one `trial_signup` AE event per outcome carrying `duration_ms` ([BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment); cookbook in [AUTH.md § Self-serve trial mint](../../../mcp-server/src/docs/operations/AUTH.md)). So the distribution is on record and needs a query, not a stopwatch. Note what it does and does not cover: the AE duration is **server-side handler time**, while the 15s the operator experienced also includes the Turnstile widget solving in the browser, the request flight, and any Worker cold start ahead of the handler. A p50 that looks healthy server-side would therefore **not** refute the observation — it would locate the cost outside the handler, which is itself the finding.
-
-#### Acceptance Criteria
-
-- [ ] **The distribution is written down, not estimated**: p50 / p95 / max of `trial_signup` `duration_ms` over the longest window with real signups, split by `outcome` (a `minted` and a `challenge-failed` have different shapes and averaging them hides both)
-- [ ] **The client-side remainder is accounted for** — if server p95 is far below the observed wall-clock, say where the rest goes (Turnstile solve, cold start, flight) rather than leaving the gap unexplained. A cold start is the likely candidate and is measurable against [WORKER_BOOT_LATENCY_BL-149.md](_archive/WORKER_BOOT_LATENCY_BL-149.md)'s method
-- [ ] **Each constant is then either re-set from the data or explicitly kept**, with the number that justifies it recorded in a comment beside it. "Kept, because p95 is 3.1s and the bound is 15s" is a complete outcome for this item
-- [ ] **If `MINT_TIMEOUT_MS` moves**, the page's own copy stays honest about the wait, and the `err-unavail` path keeps its retry affordance
-- [ ] **How many real signups the sample contains is stated.** At current volume this may be a handful, in which case the honest outcome is "insufficient data, re-run at N signups" — **not** a re-tune from one observation, which is the mistake this item exists to avoid
-
-#### Technical Context
-
-- **Do not tune from the single 2026-09-17 data point.** One operator run on one network is exactly the evidence that motivates measuring, and exactly the evidence that cannot size a timeout
-- **A slow mint is not only a UX cost**: an abandoned signup is indistinguishable in the funnel from a visitor who never clicked, so [BL-152](#bl-152-marketing-blitz--promote-the-released-gst-mcp-across-online-channels)'s `mcp_trial_signup` conversion count silently understates demand by however many people gave up. Since 2026-09-17 a refusal is visible (`mcp_trial_refused`), but an abandonment still is not
-- **Adjacent, deliberately not bundled**: [BL-157](#bl-157-four-declared-ae-event-types-emit-nothing--the-metrics-schema-advertises-more-coverage-than-exists)'s remaining alert rule on refusal volume waits on the same kind of production baseline. If both are done at once, the same query serves both — but this item does not depend on that rule shipping
-- **Related**: [BL-155](#bl-155-self-serve-3-day-mcp-trial--connector-flow-gated-by-turnstile-no-payment) owns the signup path and its fail-closed design (the timeout is part of that design, not an accident)
-
----
-
 ## Exploration
 
 ### BL-035: Dynamic Visual Effects Prototype
