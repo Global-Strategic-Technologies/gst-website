@@ -167,6 +167,8 @@ describe('Tool Analytics Naming Convention', () => {
       expect(names).toContain('mcp_clip_play');
       expect(names).toContain('mcp_request_access');
       expect(names).toContain('mcp_trial_signup');
+      // demand turned away — never a key event
+      expect(names).toContain('mcp_trial_refused');
     });
   });
 

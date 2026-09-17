@@ -158,11 +158,11 @@ TypeScript utility module providing type-safe event tracking functions:
 
 **Event Name:** `booking_confirmed`
 **Category:** `engagement`
-**Parameters:** none
+**Parameters:** `locale` only (added by `trackEvent`)
 
-**Triggered By:** Page load on `/booking-confirmed` — CalendarBridge redirects here after a successful booking
+**Triggered By:** Page load on `/booking-confirmed` — CalendarBridge redirects here after a successful booking. Any load fires it, including a direct visit or a test
 
-**Implementation:** `src/pages/booking-confirmed.astro` fires the event via `gtag()` on page load. Unlike the previous Calendly integration (which used postMessage), CalendarBridge uses a redirect-based confirmation flow, so the page load itself is the confirmation signal.
+**Implementation:** `src/pages/booking-confirmed.astro` fires the event via `trackEvent()` on page load (before 2026-09-17 it called `gtag()` directly and so carried no `locale`). Unlike the previous Calendly integration (which used postMessage), CalendarBridge uses a redirect-based confirmation flow, so the page load itself is the confirmation signal.
 
 **Use Cases:**
 
@@ -244,14 +244,17 @@ TypeScript utility module providing type-safe event tracking functions:
 
 | Event                 | Fires when                                                            | Extra params                                                       | Funnel role |
 | --------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------- |
-| `mcp_guide_view`      | the page's script initialises                                         |                                                                    | start       |
+| `mcp_guide_view`      | the page's script initialises (every page, incl. `landing`/`trial`)   |                                                                    | start       |
 | `mcp_guide_complete`  | the `[data-guide-end]` gateway block enters the viewport (once)       |                                                                    | complete    |
 | `mcp_endpoint_copied` | any copy control fires (`initCopyButtons` hook or the page listener)  | `target`: `endpoint` / `connector-name` / `credential` / `snippet` | export      |
 | `mcp_clip_play`       | a `[data-clip]` video first renders frames (`playing`, once per clip) | `clip`: the encode's file stem                                     |             |
 | `mcp_request_access`  | the request-access mailto on `/hub/mcp/` is clicked                   | `location`                                                         | conversion  |
 | `mcp_trial_signup`    | the trial form succeeds                                               | `outcome`: `issued` / `reissued`                                   | conversion  |
+| `mcp_trial_refused`   | the Worker refuses a signup                                           | `reason`: `bot` / `rate` / `expired` / `unavail`                   |             |
 
-The landing page's request-access link ALSO keeps its `trackCTA('mcp-request-access', 'hub-mcp')` call, so `cta_click` (§ 5) is unbroken and `mcp_request_access` can be declared a key event on its own. Enforced by `tests/unit/tool-analytics.test.ts` (prefix, category, the six names) and `tests/unit/mcp-analytics.test.ts`; wired end-to-end in `tests/e2e/analytics.test.ts`.
+`mcp_guide_view` is a page view for the whole family despite its name — filter `page` to the guides (`get-started`, `using`, `advanced-operations`) when counting guide reads. `mcp_trial_refused` is its own event, never an `outcome` on `mcp_trial_signup`, because GA4 key events match on the event name: a refusal carried there would count as a lead. It is not a key event; it measures demand turned away (a network that already used its trial reports `expired`). It counts refused **attempts**, not visitors — each manual retry after a `bot` or `unavail` refusal sends another.
+
+The landing page's request-access link ALSO keeps its `trackCTA('mcp-request-access', 'hub-mcp')` call, so `cta_click` (§ 5) is unbroken and `mcp_request_access` can be declared a key event on its own. Enforced by `tests/unit/tool-analytics.test.ts` (prefix, category, the seven names) and `tests/unit/mcp-analytics.test.ts`; wired end-to-end in `tests/e2e/analytics.test.ts`.
 
 ### 10. Campaign attribution (UTM convention)
 
@@ -388,7 +391,7 @@ Declared in GA4 as key events (Admin → Events → mark as key event), and writ
 | `mcp_endpoint_copied` | install intent: the endpoint URL or a credential copied | every `/hub/mcp/*` page |
 | `mcp_guide_complete`  | guide depth: a guide was read to its gateway block      | the three guides        |
 
-The rule: **if a key event cannot be seen in DebugView from a real click before a campaign starts, it is not a conversion** (ANALYTICS_TESTING.md § Debugging GA Events). The legacy `cta_click` stays an ordinary event; mark it as key only for a funnel that needs it (Portfolio Filter → Project View → CTA Click).
+The rule: **if a key event cannot be seen in DebugView from a real click before a campaign starts, it is not a conversion** (ANALYTICS_TESTING.md § Debugging GA Events). **Nothing else is a key event.** `cta_click`, `scroll` and `dm_generate` were found marked in the property (2026-09-17) and are unmarked by operator ruling: engagement counted as conversions inflates what Google Ads imports and optimises for. `booking_confirmed` fires on any load of `/booking-confirmed/` — a direct visit counts — so exclude known test visits from reports.
 
 ## Testing GA4 Integration
 

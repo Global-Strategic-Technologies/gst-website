@@ -166,12 +166,11 @@ import DeltaIcon from '../components/DeltaIcon.astro';
 </style>
 
 <script>
+  import { trackEvent } from '../utils/analytics';
+
   // Fire GA4 booking_confirmed event on page load.
   // CalendarBridge redirects here after a successful booking,
   // so reaching this page is the confirmation signal.
-  if (typeof window.gtag === 'function') {
-    window.gtag('event', 'booking_confirmed', {
-      event_category: 'engagement',
-    });
-  }
+  // Through trackEvent so it carries `locale` like every other event.
+  trackEvent({ event: 'booking_confirmed', category: 'engagement' });
 </script>

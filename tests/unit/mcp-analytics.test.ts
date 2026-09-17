@@ -15,6 +15,7 @@ import {
   trackMcpGuideComplete,
   trackMcpGuideView,
   trackMcpRequestAccess,
+  trackMcpTrialRefused,
   trackMcpTrialSignup,
 } from '@/utils/mcp-analytics';
 
@@ -118,5 +119,15 @@ describe('mcp_ trackers', () => {
       'mcp_trial_signup',
       expect.objectContaining({ outcome: 'issued' })
     );
+  });
+
+  it('mcp_trial_refused carries the reason and is not a signup', () => {
+    trackMcpTrialRefused('expired', 'trial');
+    expect(gtagMock).toHaveBeenCalledWith(
+      'event',
+      'mcp_trial_refused',
+      expect.objectContaining({ reason: 'expired', page: 'trial' })
+    );
+    expect(gtagMock).not.toHaveBeenCalledWith('event', 'mcp_trial_signup', expect.anything());
   });
 });

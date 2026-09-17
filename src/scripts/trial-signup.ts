@@ -28,6 +28,7 @@ import {
   copyTargetOf,
   trackMcpEndpointCopied,
   trackMcpGuideView,
+  trackMcpTrialRefused,
   trackMcpTrialSignup,
 } from '../utils/mcp-analytics';
 import {
@@ -424,6 +425,7 @@ function init(root: HTMLElement): void {
     retryBtn.textContent = strings.retry;
     show(kind);
     announce(fill(strings.liveError, { title }));
+    trackMcpTrialRefused(callout.dataset.errKind);
 
     if (kind === 'err-rate') {
       let s = o.retryAfterSeconds;

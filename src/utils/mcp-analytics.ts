@@ -71,6 +71,16 @@ export function trackMcpTrialSignup(outcome: string, page: string = mcpPageSlug(
 }
 
 /**
+ * A signup the Worker refused (`bot` / `rate` / `expired` / `unavail`). Its
+ * own event rather than an `outcome` on `mcp_trial_signup`: GA4 key events
+ * match on the event name, so a refusal carried there would count as a lead.
+ * Deliberately NOT a key event — it measures demand turned away.
+ */
+export function trackMcpTrialRefused(reason: string, page: string = mcpPageSlug()): void {
+  trackEvent({ event: 'mcp_trial_refused', category: 'tool', page, reason });
+}
+
+/**
  * Fires `mcp_guide_complete` once when the element marked `[data-guide-end]`
  * (the gateway-CTA block at the foot of a guide) enters the viewport. Pages
  * without the marker never fire it; browsers without IntersectionObserver
