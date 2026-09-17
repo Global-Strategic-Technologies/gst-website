@@ -213,7 +213,19 @@ What an operator needs to know:
 
 - **It fails closed.** Unbound `TURNSTILE_SECRET_KEY`, `TRIAL_IP_HMAC_SECRET`, `TURNSTILE_EXPECTED_HOSTNAMES`, `OAUTH_KV` or Upstash, a Redis error, or an unreachable/slow Turnstile all return **503 with nothing minted**. So a deploy that lands ahead of its secrets gives a 503 endpoint — set the secrets first (`wrangler secret put … --env <env>`, stdin). Production's secrets were deliberately **withheld until Slice 3** shipped the privacy disclosure and public copy, which kept the endpoint dark there by construction. That gate was met and **the secrets were set 2026-09-08**, verified end to end by a real Turnstile-gated mint.
 - **One trial per identity per 30 days.** The identity is `mcp:trial:ident:<HMAC(secret, ip)>` in Upstash — a speed bump, not an identity control (IPs are shared and rotated); the containment is the trial tier's ceilings and the expiry. A repeat signup inside the window **rotates the secret on the existing record** (the previous credential stops working; `expiresAt` is unchanged; no second record) and returns `reissued: true` plus `issuedAt` (the original mint time, which the page names in its "previous secret has stopped working" notice). A repeat after `expiresAt` but inside the 30 days is refused with `trial-expired`, carrying `issuedAt` while the record still exists (it reaps ~3 days after the identity key lapses, so the field is usually present). **Rotating `TRIAL_IP_HMAC_SECRET` forgets every identity** — every visitor becomes eligible again.
-- **Inspect**: `GET /admin/oauth/m2m-clients` lists trials as `name: "trial"`, `tier: "trial"`; `PATCH … {"tier":"paid","expiresAt":null}` converts one (the person re-consents to pick up the new tier). `DELETE` blocks re-issue and `/token`; a consent grant already made runs to its captured `expiresAt` (§ above).
+- **Inspect**: `GET /admin/oauth/m2m-clients` lists trials as `name: "trial"`, `tier: "trial"`, with `createdAt` and `expiresAt`; `PATCH … {"tier":"paid","expiresAt":null}` converts one (the person re-consents to pick up the new tier). `DELETE` blocks re-issue and `/token`; a consent grant already made runs to its captured `expiresAt` (§ above).
+- **Reset a network's trial** (BL-152 follow-up) — revoke the record AND free the identity lease, so that visitor can sign up again. This is the path for re-testing signup from the office, and for a person whose trial was consumed by a mistake:
+
+  ```bash
+  npm run trial:reset -- --list                      # find the clientId
+  npm run trial:reset -- --client <clientId>         # preview: name, tier, created, expires — no writes
+  npm run trial:reset -- --client <clientId> --yes   # revoke + free
+  ```
+
+  It wraps `DELETE /admin/oauth/m2m-clients/<clientId>?releaseIdentity=true`. **The flag is opt-in and trial-only**: a plain `DELETE` is unchanged, because revoking an abusive trial must not hand its network a fresh one, and a non-`trial` record holds no lease (400). The response carries `identityReleased` — **`0` is a normal answer**, meaning the 30-day identity key had already lapsed and the network was eligible anyway. The release runs BEFORE the record is deleted, so an unreachable Upstash is a 503 with the record intact rather than a deleted record whose network stays blocked. Each release emits a `trial_identity_release` AE event (`outcome`: `released` / `already-free`) — before this, freeing an identity was a hand-run Upstash `DEL` that left no trace.
+
+  **Why the endpoint scans**: the identity key is an HMAC of the IP, so there is no way back from a `clientId` except matching the `minted:<clientId>` VALUE. A `clientId → key` pointer written at mint time would put a second write on the one endpoint here that mints for strangers and fails closed everywhere; the scan is bounded by live trials (30-day TTL). Revisit only if that key space grows enough to matter — the endpoint's contract would not change.
+
 - **Observability — what to actually run** (BL-155, [ADR-0031](../../../../src/docs/adr/0031-per-client-analytics-identity-is-a-blob.md)). Signup emits one `trial_signup` AE event per outcome, and every trial's tool call carries the trial's `client_ref` in `blob8`. Query `mcp_events` (or `mcp_events_staging`) with the AE SQL API — `src/observability/ae-query.ts` and `scripts/Verify-AeEmission.ps1` both run SQL for you.
 
   **`GROUP BY` takes the raw column, never the `SELECT` alias** — the AE dialect rejects the alias (proven in `observability/status-metrics.ts`, and every working query in this repo follows it). Aliasing in `SELECT` and `ORDER BY` is fine.
@@ -319,4 +331,4 @@ Per-key/per-client scope variation is live across all three credential paths: `M
 
 ---
 
-_Last updated: 2026-09-07 (BL-155 Slices 1, 2 + 2b — `expiresAt` on M2M clients, the in-place `PATCH` runbook, an M2M record as a consent-page credential, and the self-serve trial mint)_
+_Last updated: 2026-09-17 (BL-152 follow-up — `?releaseIdentity=true` and `npm run trial:reset`; `expiresAt` now listed by `GET /admin/oauth/m2m-clients`)_

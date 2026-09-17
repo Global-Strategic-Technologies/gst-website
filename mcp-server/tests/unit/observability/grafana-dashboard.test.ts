@@ -97,6 +97,8 @@ const TIME_MACRO_ALIAS = 't';
 const DELIBERATELY_UNPANELLED: Readonly<Record<string, string>> = {
   audit_batch: 'emitted, but the audit pipeline is deactivated (ADR-0014) — counters read 0',
   cron_outcome: 'live, but /status and the alert rules already cover cron health',
+  trial_identity_release:
+    'a rare operator action (npm run trial:reset), not a trend — the AE row is the audit trail a hand-run Upstash DEL never left, and a panel would plot a near-flat zero',
 };
 
 describe('grafana-dashboard.json — structure', () => {
