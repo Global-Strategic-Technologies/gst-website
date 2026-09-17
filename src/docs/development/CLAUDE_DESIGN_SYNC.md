@@ -124,7 +124,7 @@ and regenerated — never commit them.
 | `.design-sync/dark-probe.mjs`      | Verifies dark mode still switches tokens                                                                                                                                                           |
 | `.design-sync/palette-probe.mjs`   | Verifies the six palettes still re-point `--color-primary` and a painted element                                                                                                                   |
 | `.design-sync/tsconfig.json`       | Type-check config for the specimens (`tsc -p .design-sync`, run by the guards test — the root tsconfig never sees dot-directories)                                                                 |
-| `.design-sync/NOTES.md`            | Operational gotchas, hard-won findings, re-sync risks — **read before re-syncing**                                                                                                                 |
+| `.design-sync/NOTES.md`            | Operational gotchas, hard-won findings, re-sync risks — **read before re-syncing**; standing rules only, no per-run logs                                                                           |
 
 ### Why the CSS is flattened
 
