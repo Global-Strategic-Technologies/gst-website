@@ -738,9 +738,9 @@ Scope is **the whole GST estate** — the Astro website and the MCP integration 
 
 **Shape.** `gst_irl_sweep@0.3.0` (ONE arg: `filledIrl?`; target + context inferred from the IRL itself; always the full sweep) plus its sibling `gst_irl_extract@0.2.0` (the portable record, zero tool calls — split out 2026-08-25 by operator ruling for modularity and a one-field slash form) coexist with `gst_irl_ingestion` until live verification (UAT-09.11/.12) clears; then the removal PR deletes the old prompt, the three provenance tools (`prepare_irl_body`, `validate_irl_provenance`, `compose_dossier_envelope` — operator confirmation of no external callers on record at BREAKING_CHANGES.md), the IRL body cache / provenance store / durable run-counters, and extract-record v1. Retained: inclusion gates, engine-math rule constants, workbook column contract, conditional triggers, deeplink discipline, VDR taxonomy — they encode engine behavior, not distrust. ADR-0022 lands with the removal PR and supersedes 0002/0003/0016/0017/0018.
 
-**Open decision, owed at PR2 kickoff (operator, 2026-08-25)**: the `_audit` end state on the three analysis tools — remove entirely vs keep optional-and-validated (PR1 ships optional either way). Decide on live-verification evidence: did bare calls produce any wrong numbers the old refinements would have caught?
+**Decided (operator, 2026-09-17)**: `_audit` **stays optional-and-validated** on the three analysis tools — the end state PR1 already shipped. PR2 therefore **skips** the controlling plan's Commit B (schema deletion, response-key removal, consumer-prompt `_audit` stripping, audit-suite deletions); the audit schemas, their refinements, and the `monetaryBasis` / `mttrSource` / `incidentsSource` response keys are **retained**, and PR2's stanza and ADR-0022 must list them under Retained, not Removed.
 
-**PR2 also settles**: BL-129 (close as won't-do if `_audit` is removed; moot either way per scope decision) and dispositions for BL-134 / BL-087.
+**PR2 also settles**: dispositions for BL-134 / BL-087. BL-129 is **not** closed by PR2 — with `_audit` retained its gap (ICG is the only IRL-fed scoring tool without one) stands on its own merits.
 
 **Residuals of closed `gst_irl_ingestion` items that PR2 retires** (stanzas pruned 2026-09-16; full text at `git show 7c4e51f7:src/docs/development/BACKLOG.md`). None needs work if PR2 ships. If PR2 is abandoned, each one comes back:
 
@@ -754,7 +754,7 @@ Scope is **the whole GST estate** — the Astro website and the MCP integration 
 
 ### BL-163: `compute_techpar` audit residuals left open by BL-126
 
-**Source**: carried out of BL-126 (closed; mode fix shipped at prompt `0.27.0` / server `0.54.0`, determinism confirmed 2026-08-15) when it was pruned 2026-09-16. Full evidence for all three items is in that stanza: `git show 7c4e51f7:src/docs/development/BACKLOG.md` | **Effort**: Small–Medium | **Status**: Recorded — items 2 and 3 **done** 2026-09-17 (server `0.64.0`); item 1 remains, and its shape depends on BL-143 PR2's `_audit` end-state decision (an audit absence value is moot if `_audit` is removed)
+**Source**: carried out of BL-126 (closed; mode fix shipped at prompt `0.27.0` / server `0.54.0`, determinism confirmed 2026-08-15) when it was pruned 2026-09-16. Full evidence for all three items is in that stanza: `git show 7c4e51f7:src/docs/development/BACKLOG.md` | **Effort**: Small–Medium | **Status**: Recorded — items 2 and 3 **done** 2026-09-17 (server `0.64.0`); item 1 remains and is **unblocked** — the operator kept `_audit` optional-and-validated (2026-09-17, recorded in BL-143), so an honest absence value is needed rather than moot
 
 **As a** partner shipping a dossier, **I want** two runs over the same IRL to agree on TechPar inputs **so that** a residual variance I can't see doesn't move the numbers.
 
