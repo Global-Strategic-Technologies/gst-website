@@ -22,6 +22,7 @@
   "toc.lifecycle": "04 Keep it running",
   "toc.next": "05 Where to go next",
   "copy": "Copy",
+  "copied": "Copied",
   "prereq.heading": "01 Before you start",
   "prereq.intro": "You need a client ID and a client secret. The free 3-day trial issues a pair in one click; anything wider is provisioned by GST. There is no dynamic client registration.",
   "prereq.trialCta": "Start a free trial",

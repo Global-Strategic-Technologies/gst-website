@@ -22,6 +22,7 @@
   "toc.lifecycle": "04 Manter em funcionamento",
   "toc.next": "05 Próximos passos",
   "copy": "Copiar",
+  "copied": "Copiado",
   "prereq.heading": "01 Antes de começar",
   "prereq.intro": "Você precisa de um ID de cliente e de um segredo de cliente. O teste gratuito de 3 dias emite um par com um clique; qualquer acesso mais amplo é provisionado pela GST. Não há registro dinâmico de clientes.",
   "prereq.trialCta": "Iniciar um teste gratuito",
