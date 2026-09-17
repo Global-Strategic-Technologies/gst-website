@@ -227,10 +227,42 @@ the only thing there is the Turnstile script load and its interactive solve. Tha
 rather than inferred — `duration_ms - mint_ms` on every future signup — and it is also why
 `LONG_VERIFY_MS` could not be decided here: the server data does not observe the span it governs.
 
+#### First client-side measurement (n=1, 2026-09-17 23:12 UTC)
+
+The instrumentation shipped the same day and its first real signup — a fresh mint on the production
+page, read off `mcp_trial_signup` in GA4 DebugView — returned:
+
+| span          | ms       | what it is                                                                     |
+| ------------- | -------- | ------------------------------------------------------------------------------ |
+| `duration_ms` | 8121     | verifying state opens → credentials render (the span `LONG_VERIFY_MS` governs) |
+| `mint_ms`     | 1746     | `POST /trial/signup` through body parse (the span `MINT_TIMEOUT_MS` bounds)    |
+| difference    | **6375** | Turnstile script load + interactive solve                                      |
+
+**This confirms the decomposition's shape.** The Turnstile solve is **~78% of the wall clock**, which
+is what part 1 inferred from a residual and could not measure. It also corroborates the pre-handler
+bound independently: `mint_ms` 1746 ms against a handler p50 of 826 ms and max of 875 ms (the prior
+mints, above) leaves roughly 0.9 s outside the handler — comfortably inside the 0.85–1.8 s
+first-request bound the probe runs produced, from a different network on a different day.
+
+**It does not decide anything, and is not used to.** n=1. Note also that this run is 8.1 s where the
+founding observation was ~15 s, which is the ordinary spread of an interactive challenge across
+networks and is precisely why a threshold is not set from one reading.
+
+What it does establish, directionally: **both observed signups ran far past `LONG_VERIFY_MS`'s
+2500 ms**, so the "this is taking longer than usual" copy is firing on the _normal_ successful path
+rather than on a slow one. That is the exact failure mode BL-164 named for this constant. Two
+readings are not a p50 — but the next re-measure should expect to move this constant, not keep it.
+
+`MINT_TIMEOUT_MS` moves the other way: 1746 ms against a 15 s bound is ~8.6× of headroom, a second
+independent confirmation of the keep decision.
+
 #### Re-measure trigger
 
 **At n ≥ 10 `minted` events, or as soon as GA4 reports a `duration_ms` sample of comparable size,
-re-run both queries and decide `LONG_VERIFY_MS` from `duration_ms` p50.** Registering
+re-run both queries and decide `LONG_VERIFY_MS` from `duration_ms` p50.** The custom metrics were
+registered 2026-09-17 and registration is not retroactive, so the reportable sample starts from the
+_next_ signup — the n=1 reading above was collected minutes before registration and will not appear
+in a report built on them. Registering
 `duration_ms` / `mint_ms` as GA4 custom metrics is the prerequisite (GOOGLE_ANALYTICS.md § MCP
 pages); until that is done the params are collected but not reportable. Re-running the pull is two
 commands and needs only the `gst-mcp-ae-read` operator token:
