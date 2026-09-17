@@ -433,5 +433,7 @@ Everything authored is committed; everything machine-owned is gitignored. On a n
   `--border-light` and `--color-primary` are deliberately theme-invariant, and `_bodyBg` is
   pinned by the converter's card scaffold. **Run the probes from the repo root**; they resolve
   `ds-bundle/...` against `process.cwd()`.
-- **`conventions.md` is about 200 characters under guard 5's 28,000 ceiling** (27,794 on
-  2026-09-16). Any substantive addition has to displace something.
+- **`conventions.md` is about 530 characters under guard 5's 28,000 ceiling** (27,467 on
+  2026-09-16). Measure it the way the guard does, as the JS string length
+  (`readFileSync(…, 'utf-8').length`), not with `wc -c`: bytes over-count and made earlier
+  notes report about 200. Any substantive addition has to displace something.
