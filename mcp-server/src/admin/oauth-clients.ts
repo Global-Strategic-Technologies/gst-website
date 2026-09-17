@@ -268,7 +268,18 @@ export async function handleAdminM2mClients(request: Request, env: Env): Promise
       // abusive trial must NOT hand its network a fresh one. Restricted to
       // records named `trial` — a pilot or paid client holds no identity key,
       // so the flag there is a request that cannot be honoured, not a no-op.
-      const wantsRelease = url.searchParams.get('releaseIdentity') === 'true';
+      // Present-but-not-`true` is REFUSED, not ignored. A hand-run
+      // `?releaseIdentity=1` during an incident would otherwise get a 200 for
+      // an intent that was silently dropped — and by then the record is gone,
+      // which no other admin call can undo.
+      const releaseParam = url.searchParams.get('releaseIdentity');
+      if (releaseParam !== null && releaseParam !== 'true') {
+        return json(
+          { error: 'bad-request', message: 'releaseIdentity accepts only the value "true"' },
+          400
+        );
+      }
+      const wantsRelease = releaseParam === 'true';
       if (wantsRelease && existing.name !== TRIAL_CLIENT_NAME) {
         return json(
           {

@@ -118,9 +118,14 @@ describe('DELETE m2m client — ?releaseIdentity', () => {
     expect(await getM2mClient(kv, record.clientId)).not.toBeNull();
   });
 
-  it('ignores a non-`true` flag value rather than guessing', async () => {
+  it('refuses a non-`true` flag value rather than dropping the intent', async () => {
+    // Silently ignoring it would answer 200 to a hand-run `?releaseIdentity=1`
+    // while deleting the record — an unrecoverable state, since no admin call
+    // can free an identity whose clientId no longer exists.
     const { record } = await makeClient('trial');
-    await del(record.clientId, '?releaseIdentity=1');
+    const res = await del(record.clientId, '?releaseIdentity=1');
+    expect(res.status).toBe(400);
     expect(mockRelease).not.toHaveBeenCalled();
+    expect(await getM2mClient(kv, record.clientId)).not.toBeNull();
   });
 });

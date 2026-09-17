@@ -11,62 +11,73 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { KVNamespace } from '@cloudflare/workers-types';
 
-const { store, redisSet, redisGet, redisDel, redisEval, MockRedis, mockSafeLog } = vi.hoisted(
-  () => {
-    const store = new Map<string, { value: string; expiresAt: number }>();
-    const live = (key: string) => {
-      const e = store.get(key);
-      if (!e) return null;
-      if (e.expiresAt <= Date.now()) {
-        store.delete(key);
-        return null;
-      }
-      return e;
-    };
-    const redisSet = vi.fn(
-      async (key: string, value: string, opts?: { nx?: boolean; ex?: number }) => {
-        if (opts?.nx && live(key)) return null;
-        store.set(key, { value, expiresAt: Date.now() + (opts?.ex ?? 3600) * 1000 });
-        return 'OK';
-      }
-    );
-    const redisGet = vi.fn(async (key: string) => live(key)?.value ?? null);
-    const redisDel = vi.fn(async (key: string) => (store.delete(key) ? 1 : 0));
-    // @upstash/ratelimit's sliding window runs a Lua script via `eval`;
-    // scripted per test to allow or deny.
-    const redisEval = vi.fn();
-    // Paged like the real SCAN (cursor '0' terminates), so the release
-    // helper's do/while is exercised rather than assumed away by a
-    // single-page stub — the loop is where an off-by-one would hide.
-    const redisScan = vi.fn(async (cursor: string, opts: { match: string; count: number }) => {
-      const prefix = opts.match.replace(/\*$/, '');
-      const keys = [...store.keys()].filter((k) => k.startsWith(prefix));
-      const start = Number(cursor);
-      const page = keys.slice(start, start + 1);
-      const next = start + 1 >= keys.length ? 0 : start + 1;
-      return [String(next), page] as [string, string[]];
-    });
-    class MockRedis {
-      set = redisSet;
-      get = redisGet;
-      scan = redisScan;
-      del = redisDel;
-      eval = redisEval;
-      evalsha = redisEval;
-      scriptLoad = vi.fn(async () => 'sha');
+const {
+  store,
+  redisSet,
+  redisGet,
+  redisDel,
+  redisEval,
+  redisScan,
+  redisMget,
+  MockRedis,
+  mockSafeLog,
+} = vi.hoisted(() => {
+  const store = new Map<string, { value: string; expiresAt: number }>();
+  const live = (key: string) => {
+    const e = store.get(key);
+    if (!e) return null;
+    if (e.expiresAt <= Date.now()) {
+      store.delete(key);
+      return null;
     }
-    return {
-      store,
-      redisSet,
-      redisGet,
-      redisDel,
-      redisEval,
-      redisScan,
-      MockRedis,
-      mockSafeLog: vi.fn(),
-    };
+    return e;
+  };
+  const redisSet = vi.fn(
+    async (key: string, value: string, opts?: { nx?: boolean; ex?: number }) => {
+      if (opts?.nx && live(key)) return null;
+      store.set(key, { value, expiresAt: Date.now() + (opts?.ex ?? 3600) * 1000 });
+      return 'OK';
+    }
+  );
+  const redisGet = vi.fn(async (key: string) => live(key)?.value ?? null);
+  const redisDel = vi.fn(async (key: string) => (store.delete(key) ? 1 : 0));
+  const redisMget = vi.fn(async (...keys: string[]) => keys.map((k) => live(k)?.value ?? null));
+  // @upstash/ratelimit's sliding window runs a Lua script via `eval`;
+  // scripted per test to allow or deny.
+  const redisEval = vi.fn();
+  // Paged like the real SCAN (cursor '0' terminates), so the release
+  // helper's do/while is exercised rather than assumed away by a
+  // single-page stub — the loop is where an off-by-one would hide.
+  const redisScan = vi.fn(async (cursor: string, opts: { match: string; count: number }) => {
+    const prefix = opts.match.replace(/\*$/, '');
+    const keys = [...store.keys()].filter((k) => k.startsWith(prefix));
+    const start = Number(cursor);
+    const page = keys.slice(start, start + 1);
+    const next = start + 1 >= keys.length ? 0 : start + 1;
+    return [String(next), page] as [string, string[]];
+  });
+  class MockRedis {
+    set = redisSet;
+    get = redisGet;
+    scan = redisScan;
+    mget = redisMget;
+    del = redisDel;
+    eval = redisEval;
+    evalsha = redisEval;
+    scriptLoad = vi.fn(async () => 'sha');
   }
-);
+  return {
+    store,
+    redisSet,
+    redisGet,
+    redisDel,
+    redisEval,
+    redisScan,
+    redisMget,
+    MockRedis,
+    mockSafeLog: vi.fn(),
+  };
+});
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
 vi.mock('../../../src/auth/safe-logger', () => ({ safeLog: mockSafeLog }));
@@ -695,6 +706,45 @@ describe('releaseTrialIdentity', () => {
     expect(releaseEvents()).toEqual([
       { name: 'trial-identity-release', outcome: 'released', client_ref: 'OAUTH:c-1' },
     ]);
+  });
+
+  it('batches each page through ONE mget, and stops as soon as it has the key', async () => {
+    // Every Upstash call is a Worker subrequest against the 1000-per-request
+    // ceiling. Per-key GETs would break this endpoint at roughly 950 live
+    // trials — when signups are succeeding. The mock pages one key at a time,
+    // so `mine` first (page 1) proves the early exit too: nothing after it is
+    // scanned.
+    await redisSet(`${TRIAL_IDENTITY_KEY_PREFIX}aaa`, 'minted:mine', { ex: 100 });
+    for (const suffix of ['bbb', 'ccc', 'ddd']) {
+      await redisSet(`${TRIAL_IDENTITY_KEY_PREFIX}${suffix}`, 'minted:other', { ex: 100 });
+    }
+    redisGet.mockClear();
+    redisMget.mockClear();
+    redisScan.mockClear();
+
+    expect(await releaseTrialIdentity(env(), 'mine')).toBe(1);
+    expect(redisGet, 'no per-key GET — that is the subrequest blowup').not.toHaveBeenCalled();
+    expect(redisMget).toHaveBeenCalledTimes(1);
+    expect(redisScan, 'stops once the single possible match is deleted').toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up in-contract rather than spinning if the cursor never returns to 0', async () => {
+    // The pathological case would otherwise run until the Worker's CPU limit
+    // killed the request, PAST the caller's catch — losing the deliberate
+    // 503-with-record-intact outcome. A throw lands in that catch instead.
+    await redisSet(`${TRIAL_IDENTITY_KEY_PREFIX}zzz`, 'minted:someone-else', { ex: 100 });
+    // Restored in `finally`: `clearMocks` (the Vitest 5 default) clears CALLS
+    // but not implementations, so a leaked stub would fail the next test with
+    // this test's error — which is exactly what it did before the finally.
+    const paged = redisScan.getMockImplementation()!;
+    redisScan.mockImplementation(async () => ['1', [`${TRIAL_IDENTITY_KEY_PREFIX}zzz`]]);
+    try {
+      await expect(releaseTrialIdentity(env(), 'never-there')).rejects.toThrow(
+        'identity-scan-unbounded'
+      );
+    } finally {
+      redisScan.mockImplementation(paged);
+    }
   });
 
   it('throws rather than reporting success when Upstash is unbound', async () => {
