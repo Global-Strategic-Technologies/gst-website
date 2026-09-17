@@ -159,7 +159,9 @@ export function calculateResults(state: ICGState, domains: readonly Domain[]): I
     const maxScore = d.questions.length * 3;
     const skippedCount = d.questions.filter((q) => state.answers[q.id] === -1).length;
     // -1 ("Not sure") scores as -1 — ignorance is worse than known absence (0)
-    // Unanswered questions default to 0; "Not sure" actively penalizes
+    // Unanswered questions default to 0. The score below floors at 0, so a -1
+    // costs a point only until the domain reaches that floor: an all--1 domain
+    // scores the same as an all-0 one. `rawScore` itself stays unclamped.
     const rawScore = d.questions.reduce((sum, q) => {
       const a = state.answers[q.id];
       return sum + (a === undefined ? 0 : a);
@@ -310,13 +312,15 @@ export function buildSummaryText(
   ];
 
   if (result.skippedCount > 0) {
-    // "Not sure" answers are stored as -1 and contribute -1 to rawScore —
-    // they penalize MORE than "Not in place" (0). See the engine comment
-    // above the rawScore reducer and tests/unit/icg-engine.test.ts:700-718
-    // for the contract. Earlier copy here ("scored as zero") was misleading
-    // — surfaced during BL-032 soak T.B.4.c on 2026-05-10.
+    // "Not sure" answers are stored as -1 and contribute -1 to rawScore, but
+    // the domain score floors at 0, so they cost more than "Not in place" (0)
+    // only in a domain with positive answers (BL-129 corrected the earlier
+    // "penalised below" wording). See the engine comment above the rawScore
+    // reducer and the "Not sure (-1) answers" tests for the contract.
+    // Earlier copy here ("scored as zero") was misleading — surfaced during
+    // BL-032 soak T.B.4.c on 2026-05-10.
     lines.push(
-      `"Not sure" responses: ${result.skippedCount} (scored as -1, penalised below "Not in place")`
+      `"Not sure" responses: ${result.skippedCount} (scored as -1 until the domain reaches its 0 floor)`
     );
   }
 

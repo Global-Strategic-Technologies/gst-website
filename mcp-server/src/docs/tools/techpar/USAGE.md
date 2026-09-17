@@ -122,6 +122,23 @@ Each pivot is a single tool call. Compare to the website-wizard equivalent: re-o
 
 ---
 
+## When a figure is missing
+
+Diligence material is often incomplete. Suppose the target left the "annual build and tooling cost" bullet blank. Don't guess, and don't send 0 — a 0 reads as "this company spends nothing on tooling" and flatters the zone verdict. Send `null`:
+
+```json
+{
+  "mode": "deepdive",
+  "rdOpEx": null,
+  "engCost": 5080000,
+  "prodCost": 750000,
+  "toolingCost": null,
+  "...": "..."
+}
+```
+
+The tool computes the benchmark with tooling at 0 and returns `"extractionOnly": ["toolingCost"]`, so the memo can say the ratio is a floor, not a finding. `rdOpEx` is also null here, but it isn't listed: `deepdive` discards it. With an `_audit` block, give the blank field `"annualizationSource": "irl-absent"` and a citation naming the empty bullet. Full rules: [CONTRACT.md § Absent figures](./CONTRACT.md#absent-figures-mcp-boundary).
+
 ## Reshape the same output without re-running the engine
 
 Once you have the benchmark, Claude can reshape it without invoking the engine again. The structured result is now in conversation context:

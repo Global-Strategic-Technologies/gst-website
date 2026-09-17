@@ -133,3 +133,64 @@ describe('handleTechparTool — BL-031.95 Phase 1 integration (renamed field + c
     expect(payload.total).toBe(6_060_000);
   });
 });
+
+describe('handleTechparTool — absent money fields (BL-163)', () => {
+  const deepdive = {
+    ...validInputs,
+    mode: 'deepdive' as const,
+    rdOpEx: null,
+    engCost: 3_000_000,
+    prodCost: 800_000,
+    toolingCost: null,
+  };
+
+  it('computes nulls as 0 and lists only the fields this mode uses in extractionOnly', async () => {
+    const response = await handleTechparTool(TechParMcpInputsSchema.parse(deepdive));
+    expect(response.isError).toBeUndefined();
+    const payload = response.structuredContent as Record<string, unknown>;
+    // rdOpEx is null too, but deepdive discards it — not a gap.
+    expect(payload.extractionOnly).toEqual(['toolingCost']);
+
+    const zeroed = await handleTechparTool(
+      TechParMcpInputsSchema.parse({ ...deepdive, rdOpEx: 0, toolingCost: 0 })
+    );
+    const zeroPayload = zeroed.structuredContent as Record<string, unknown>;
+    expect(payload.total).toBe(zeroPayload.total);
+    expect(payload.totalTechPct).toBe(zeroPayload.totalTechPct);
+    expect(payload.deeplink).toBe(zeroPayload.deeplink);
+    expect(zeroPayload.extractionOnly).toEqual([]);
+  });
+
+  it('quick mode does not list null components it discards', async () => {
+    const response = await handleTechparTool(
+      TechParMcpInputsSchema.parse({
+        ...validInputs,
+        engCost: null,
+        prodCost: null,
+        toolingCost: null,
+      })
+    );
+    expect(response.isError).toBeUndefined();
+    expect((response.structuredContent as Record<string, unknown>).extractionOnly).toEqual([]);
+  });
+
+  it('always emits extractionOnly, empty when nothing is missing', async () => {
+    const response = await handleTechparTool(TechParMcpInputsSchema.parse(validInputs));
+    expect((response.structuredContent as Record<string, unknown>).extractionOnly).toEqual([]);
+  });
+
+  it('rejects quick mode with a null rdOpEx (bare call — the engine reads it directly)', async () => {
+    const bare = await handleTechparTool(
+      TechParMcpInputsSchema.parse({ ...validInputs, rdOpEx: null })
+    );
+    expect(bare.isError).toBe(true);
+    expect(JSON.stringify(bare.content)).toMatch(/rdOpEx.*null.*quick/);
+  });
+
+  it('keeps arr and infraHostingAnnual non-nullable', () => {
+    expect(TechParMcpInputsSchema.safeParse({ ...validInputs, arr: null }).success).toBe(false);
+    expect(
+      TechParMcpInputsSchema.safeParse({ ...validInputs, infraHostingAnnual: null }).success
+    ).toBe(false);
+  });
+});

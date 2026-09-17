@@ -318,7 +318,8 @@ describe('the IRL extract record, end to end', () => {
         infraHostingAnnual: 2_400_000,
         infraPersonnel: 5 * 185_000,
         engFTE: 64,
-        rdOpEx: 0,
+        // BL-163: deepdive discards rdOpEx, so it is null with no audit entry.
+        rdOpEx: null,
         rdCapEx: 0,
         engCost: (64 - 5) * 185_000,
         prodCost: 900_000,
@@ -331,9 +332,6 @@ describe('the IRL extract record, end to end', () => {
           arr: field(citation),
           infraHostingAnnual: field(citation),
           infraPersonnel: field(engCitation),
-          rdOpEx: field(
-            'Section -- — not sourced; deepdive synthesizes R&D OpEx from engCost + prodCost + toolingCost'
-          ),
           rdCapEx: field(citation),
           engCost: field(engCitation),
           prodCost: field(engCitation),
@@ -484,7 +482,7 @@ describe('the IRL extract record, end to end', () => {
     it('a `request` string cannot encode a NEGATIVE — so the rule constants carry the anti-mappings', () => {
       // Misroute 1: the Section-02 component rows pulled into `rdOpEx`.
       expect(TECHPAR_MODE_RULE).toMatch(/no IRL bullet anywhere asks for a total R&D OpEx figure/i);
-      expect(TECHPAR_MODE_RULE).toContain('pass `rdOpEx: 0`');
+      expect(TECHPAR_MODE_RULE).toContain('pass `rdOpEx: null`');
       // Misroute 2: Section 04's `remediationBudget` pulled across tools.
       expect(TECHPAR_MODE_RULE).toMatch(
         /do NOT source it from the Section 04 technical-debt remediation figure/i

@@ -70,7 +70,7 @@ export type ICGRecommendation = z.infer<typeof ICGRecommendationSchema>;
 // Used by the `assess_infrastructure_cost_governance` MCP tool. Mirrors the
 // engine's `ICGState` minus wizard-only fields (`currentStep`, `dismissed`,
 // `expanded`). Answer values are 0–3 for the four maturity levels, or -1
-// for "Not sure" (penalised).
+// for "Not sure" (scored as -1, but each domain score floors at 0).
 
 export const COMPANY_STAGE_VALUES = [
   'pre-series-b',

@@ -618,6 +618,8 @@ The same symptom has been seen twice in the website suite: `tests/integration/sp
 
 A `beforeAll` could relocate only about 250ms, which is 20–30× too small to explain either sighting. The first-vs-later asymmetry is real but harmless, and it makes the wrong fix look right. The item was closed by operator decision (2026-09-14) without full-suite runs under load, so **no cause is established**; contention is the leading hypothesis only because the alternatives were ruled out. **If it recurs:** check whether that first case's duration is inflated relative to its near-identical siblings _in the same run_, and whether the file's wall-clock materially exceeds the sum of its own test durations (descheduling).
 
+**Third sighting (2026-09-17, `feat/audit-provenance`, a diff with no CSS):** the same case, 5000ms, in a `test:run` started right after a full `test:mcp` run (127s) on the same machine. The file took 6797ms for 47 tests, so the other 46 shared about 1.8s — the time went to that one case, with no sign of whole-file descheduling. It passed 47/47 on three isolated re-runs.
+
 ### "I bumped vitest, but the old major is still in the lockfile"
 
 **Symptom:** `package.json` declares the new range, and `npm install` says "up to date". But `package-lock.json` still has the old version, for example a nested `mcp-server/node_modules/vitest@4.1.11` under a `^5.0.0` declaration. `npm prune` and wiping `node_modules` don't remove it either, because `npm install` rebuilds it from the lockfile.

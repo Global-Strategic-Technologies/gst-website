@@ -74,10 +74,10 @@ Scores a target's cloud cost-governance maturity across six domains and returns 
 
 **Input**
 
-| Field          | Required | Value for this case | Constraint a tester must respect                                                                       |
-| -------------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
-| `answers`      | yes      | all 20 question IDs | Values are integers **−1 to 3**. `-1` means "Not sure" and is penalised, not skipped                   |
-| `companyStage` | no       | `"series-b"`        | Canonical (`seed`…`enterprise`) or ICG-native (`pre-series-b`, `series-bc`, `pe-backed`, `enterprise`) |
+| Field          | Required | Value for this case | Constraint a tester must respect                                                                            |
+| -------------- | -------- | ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `answers`      | yes      | all 20 question IDs | Values are integers **−1 to 3**. `-1` means "Not sure": scored as -1 (floored at 0 per domain), not skipped |
+| `companyStage` | no       | `"series-b"`        | Canonical (`seed`…`enterprise`) or ICG-native (`pre-series-b`, `series-bc`, `pe-backed`, `enterprise`)      |
 
 Question IDs follow `q<domain>_<n>`: `q1_1`–`q1_3`, `q2_1`–`q2_4`, `q3_1`–`q3_3`, `q4_1`–`q4_3`, `q5_1`–`q5_3`, `q6_1`–`q6_4`.
 

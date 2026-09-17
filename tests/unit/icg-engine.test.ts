@@ -720,7 +720,7 @@ describe('buildSummaryText', () => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('Not sure (-1) answers', () => {
-  it('scores -1 worse than "Not in place" (0)', () => {
+  it('scores -1 below "Not in place" (0) only until the domain hits its 0 floor', () => {
     // D1 has 3 questions. All at 0 = 0/9 = 0%. All at -1 = -3/9 = clamped to 0%.
     // But mix shows the penalty: two 2s + one -1 vs two 2s + one 0
     const withZero = { ...domainAnswers('d1', 2), q1_3: 0 };
@@ -737,6 +737,16 @@ describe('Not sure (-1) answers', () => {
     // Two 2s + one -1 = 3/9 = 33%
     expect(d1NotSure.score).toBe(33);
     expect(d1NotSure.score).toBeLessThan(d1Zero.score);
+
+    // The floor: an all--1 domain scores the same as an all-0 one (BL-129),
+    // while rawScore stays unclamped.
+    const allNotSure = calculateResults(makeState({ answers: domainAnswers('d1', -1) }), DOMAINS);
+    const allZero = calculateResults(makeState({ answers: domainAnswers('d1', 0) }), DOMAINS);
+    const d1AllNotSure = allNotSure.domainScores.find((d) => d.domainId === 'd1')!;
+    const d1AllZero = allZero.domainScores.find((d) => d.domainId === 'd1')!;
+    expect(d1AllNotSure.score).toBe(d1AllZero.score);
+    expect(d1AllNotSure.score).toBe(0);
+    expect(d1AllNotSure.rawScore).toBe(-3);
   });
 
   it('clamps domain score at 0% (never negative)', () => {

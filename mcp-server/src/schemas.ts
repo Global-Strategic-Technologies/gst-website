@@ -239,5 +239,53 @@ export type ICGMcpInputs = z.infer<typeof ICGMcpInputsSchema>;
  */
 export const TechParMcpInputsSchema = TechParInputsSchema.extend({
   stage: z.union([CanonicalStageSchema, TechParStageSchema]).describe(TECHPAR_STAGE_DESCRIPTION),
+  // BL-163: money fields the source material may not supply are nullable at
+  // the MCP boundary only — the website engine and Hub page never see null
+  // (the handler substitutes 0 and reports the gap in `extractionOnly`).
+  // `.extend` replaces the whole field, so each one restates its base shape.
+  // `arr` and `infraHostingAnnual` stay non-null: the engine cannot compute
+  // without them.
+  infraPersonnel: z
+    .number()
+    .nonnegative()
+    .nullable()
+    .describe(
+      'Annual infra personnel cost (dollars). Pass null when the source material does not supply it (e.g. a blank IRL Section 03 bullet) — never 0 as a stand-in; the tool computes it as 0 and lists it in `extractionOnly`.'
+    ),
+  rdOpEx: z
+    .number()
+    .nonnegative()
+    .nullable()
+    .describe(
+      'Annual R&D OpEx (dollars). Used in `quick` mode; ignored in `deepdive` (which sums `engCost + prodCost + toolingCost`). Under `deepdive` pass null — there is no figure to supply. Under `quick` it is the only R&D input and must be a number.'
+    ),
+  rdCapEx: z
+    .number()
+    .nonnegative()
+    .nullable()
+    .describe(
+      'Annual R&D CapEx (capitalized R&D, dollars). Included in `total` only when `capexView` is `cash`. Pass null when the source material does not supply it; the tool computes it as 0 and lists it in `extractionOnly`.'
+    ),
+  engCost: z
+    .number()
+    .nonnegative()
+    .nullable()
+    .describe(
+      'Annual engineering personnel cost (dollars). Used only in `deepdive` mode. Pass null when the source material does not supply it — never 0 as a stand-in; the tool computes it as 0 and lists it in `extractionOnly`.'
+    ),
+  prodCost: z
+    .number()
+    .nonnegative()
+    .nullable()
+    .describe(
+      'Annual product personnel cost (dollars). Used only in `deepdive` mode. Pass null when the source material does not supply it; the tool computes it as 0 and lists it in `extractionOnly`.'
+    ),
+  toolingCost: z
+    .number()
+    .nonnegative()
+    .nullable()
+    .describe(
+      'Annual tooling cost (dollars). Used only in `deepdive` mode. Pass null when the source material does not supply it; the tool computes it as 0 and lists it in `extractionOnly`.'
+    ),
 });
 export type TechParMcpInputs = z.infer<typeof TechParMcpInputsSchema>;

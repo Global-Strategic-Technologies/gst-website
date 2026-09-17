@@ -71,13 +71,27 @@ const nativeCurrencyEnum = z.enum([
   'OTHER',
 ]);
 
-const annualizationSourceEnum = z.enum([
+/**
+ * How an annual money figure was derived. Every value but `irl-absent`
+ * asserts that a derivation happened; `irl-absent` (BL-163) says the source
+ * material does not supply the figure, and requires the input to be null.
+ * Exported for the CONTRACT.md enum-parity guard.
+ */
+export const ANNUALIZATION_SOURCE_VALUES = [
   'irl-annualized-stated',
   'monthly-x12',
   'ytd-annualized-with-period',
   'estimated-from-headcount',
   'estimated-from-anchor',
-]);
+  'irl-absent',
+] as const;
+
+const annualizationSourceEnum = z.enum(ANNUALIZATION_SOURCE_VALUES);
+
+/** Sources under which the audited input must be null (tech-debt naming). */
+export const NULL_REQUIRING_SOURCES: readonly (typeof ANNUALIZATION_SOURCE_VALUES)[number][] = [
+  'irl-absent',
+];
 
 // ─── Citation shape (same as diligence-audit) ──────────────────────────
 
@@ -135,7 +149,7 @@ export type YtdMathCheck = z.infer<typeof ytdMathCheckSchema>;
 
 const monetaryFieldAuditSchema = z.object({
   annualizationSource: annualizationSourceEnum.describe(
-    'How was this annual figure derived? Per the fabrication guard, ad-hoc annualization is not allowed; the source must be one of the named patterns.'
+    'How was this annual figure derived? Per the fabrication guard, ad-hoc annualization is not allowed; the source must be one of the named patterns. Use `irl-absent` when the source material does not supply the figure — the input must then be null, never a 0 stand-in.'
   ),
   ytdMonths: z
     .number()
@@ -152,7 +166,7 @@ const monetaryFieldAuditSchema = z.object({
       'Phase 2A arithmetic consistency check. Required when annualizationSource = "ytd-annualized-with-period". Supply the IRL\'s monthly anchor + reported YTD; the handler verifies monthlyAnchor × ytdMonths matches the reported YTD within 10%, catching wrong-period declarations before they cascade into a partner-misleading dossier number.'
     ),
   citation: citationSchema.describe(
-    'IRL provenance citation. Form: "Section NN — <excerpt>". For partner-supplied form input, use "Section -- — partner-supplied form input — <field>".'
+    'IRL provenance citation. Form: "Section NN — <excerpt>". For partner-supplied form input, use "Section -- — partner-supplied form input — <field>". For `irl-absent`, name the blank bullet ("Section 02 — tooling cost bullet left blank by the target") or "Section -- — <why no figure exists>".'
   ),
 });
 
@@ -182,11 +196,15 @@ export const TechParAuditMetadataSchema = z
     arr: monetaryFieldAuditSchema,
     infraHostingAnnual: monetaryFieldAuditSchema,
     infraPersonnel: monetaryFieldAuditSchema,
-    rdOpEx: monetaryFieldAuditSchema,
+    rdOpEx: monetaryFieldAuditSchema
+      .optional()
+      .describe(
+        'Audit provenance for `_audit.rdOpEx`. Required when mode = "quick" (rdOpEx is its only R&D input). Optional when mode = "deepdive", which discards rdOpEx — omit it rather than inventing a source.'
+      ),
     rdCapEx: monetaryFieldAuditSchema,
-    // These three describe strings state the OPPOSITE requiredness of the
-    // top-level `engCost`/`prodCost`/`toolingCost` inputs, which are plain
-    // required numbers (see `src/schemas/techpar.ts`). That is correct and
+    // These three describe strings state a different requiredness from the
+    // top-level `engCost`/`prodCost`/`toolingCost` inputs, which are present
+    // in both modes (nullable at the MCP boundary since BL-163). That is correct and
     // deliberate — but read out of context it looks like a contradiction, and
     // in BL-119 cycle 4 a tester read these strings as applying to the
     // top-level fields and filed the mismatch as a documentation defect. Each
@@ -194,17 +212,17 @@ export const TechParAuditMetadataSchema = z
     engCost: monetaryFieldAuditSchema
       .optional()
       .describe(
-        'Audit provenance for `_audit.engCost` — NOT the top-level `engCost` input, which is required in both modes. Required when mode = "deepdive". Omit for "quick" mode, which rejects it.'
+        'Audit provenance for `_audit.engCost` — NOT the top-level `engCost` input (a nullable number present in both modes). Required when mode = "deepdive". Omit for "quick" mode, which rejects it.'
       ),
     prodCost: monetaryFieldAuditSchema
       .optional()
       .describe(
-        'Audit provenance for `_audit.prodCost` — NOT the top-level `prodCost` input, which is required in both modes. Required when mode = "deepdive". Omit for "quick" mode, which rejects it.'
+        'Audit provenance for `_audit.prodCost` — NOT the top-level `prodCost` input (a nullable number present in both modes). Required when mode = "deepdive". Omit for "quick" mode, which rejects it.'
       ),
     toolingCost: monetaryFieldAuditSchema
       .optional()
       .describe(
-        'Audit provenance for `_audit.toolingCost` — NOT the top-level `toolingCost` input, which is required in both modes. Required when mode = "deepdive". Omit for "quick" mode, which rejects it.'
+        'Audit provenance for `_audit.toolingCost` — NOT the top-level `toolingCost` input (a nullable number present in both modes). Required when mode = "deepdive". Omit for "quick" mode, which rejects it.'
       ),
   })
   .describe(
@@ -269,6 +287,8 @@ export function runTechParAuditRefinements(
   ] as const;
 
   for (const [fieldName, fieldAudit] of monetaryFields) {
+    // `_audit.rdOpEx` is optional under deepdive (BL-163) — nothing to check.
+    if (!fieldAudit) continue;
     if (
       fieldAudit.annualizationSource === 'ytd-annualized-with-period' &&
       fieldAudit.ytdMonths === undefined
@@ -316,6 +336,47 @@ export function runTechParAuditRefinements(
           });
         }
       }
+    }
+  }
+
+  // ─── 2b. Absence discipline (BL-163) ─────────────────────────────
+  // `irl-absent` requires a null input, and a null input requires
+  // `irl-absent`: a null that claims a derivation is self-contradictory.
+  // Written against NULL_REQUIRING_SOURCES so a future enum value is not
+  // silently treated as a derivation.
+  const auditedValues = [
+    ['arr', payload.arr, audit.arr],
+    ['infraHostingAnnual', payload.infraHostingAnnual, audit.infraHostingAnnual],
+    ['infraPersonnel', payload.infraPersonnel, audit.infraPersonnel],
+    ['rdOpEx', payload.rdOpEx, audit.rdOpEx],
+    ['rdCapEx', payload.rdCapEx, audit.rdCapEx],
+    ['engCost', payload.engCost, audit.engCost],
+    ['prodCost', payload.prodCost, audit.prodCost],
+    ['toolingCost', payload.toolingCost, audit.toolingCost],
+  ] as const;
+  for (const [fieldName, value, fieldAudit] of auditedValues) {
+    if (!fieldAudit) continue;
+    const absent = NULL_REQUIRING_SOURCES.includes(fieldAudit.annualizationSource);
+    if (absent && value !== null) {
+      issues.push({
+        path: [fieldName],
+        ruleId: 'BL-163-TECHPAR-NULL-REQUIRED-FOR-ABSENT-SOURCE',
+        message:
+          `_audit.${fieldName}.annualizationSource = "irl-absent" but ${fieldName} = ${String(value)}. ` +
+          `An absent figure must be passed as null — a 0 stand-in is indistinguishable from a real zero and understates total technology cost.` +
+          (fieldName === 'arr' || fieldName === 'infraHostingAnnual'
+            ? ` ${fieldName} cannot be null: the engine cannot compute without it, so TechPar cannot run on this source material.`
+            : ''),
+      });
+    }
+    if (!absent && value === null) {
+      issues.push({
+        path: ['_audit', fieldName, 'annualizationSource'],
+        ruleId: 'BL-163-TECHPAR-ABSENT-SOURCE-REQUIRED-FOR-NULL',
+        message:
+          `${fieldName} is null but _audit.${fieldName}.annualizationSource = "${fieldAudit.annualizationSource}", which asserts the figure was derived. ` +
+          `Either supply the derived figure, or declare annualizationSource = "irl-absent".`,
+      });
     }
   }
 
@@ -389,6 +450,13 @@ export function runTechParAuditRefinements(
       }
     }
   } else {
+    if (!audit.rdOpEx) {
+      issues.push({
+        path: ['_audit', 'rdOpEx'],
+        ruleId: 'BL-163-TECHPAR-QUICK-RDOPEX-AUDIT-REQUIRED',
+        message: `mode = "quick" requires _audit.rdOpEx — rdOpEx is quick mode's only R&D input, so it needs its annualization provenance.`,
+      });
+    }
     // quick mode — sub-fields should NOT be supplied (the engine ignores
     // them; supplying audit metadata for ignored fields would mislead the
     // reviewer).
@@ -446,10 +514,12 @@ export function buildPartnerSuppliedTechParAudit(mode: 'quick' | 'deepdive'): Te
     arr: baseField,
     infraHostingAnnual: baseField,
     infraPersonnel: baseField,
-    rdOpEx: baseField,
     rdCapEx: baseField,
   };
-  if (mode === 'deepdive') {
+  if (mode === 'quick') {
+    base.rdOpEx = baseField;
+  } else {
+    // deepdive discards rdOpEx, so it carries no provenance entry (BL-163).
     base.engCost = baseField;
     base.prodCost = baseField;
     base.toolingCost = baseField;

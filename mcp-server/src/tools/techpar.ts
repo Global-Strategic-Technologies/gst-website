@@ -55,7 +55,7 @@ Given a 14-field input (ARR, funding stage, mode, capex view, growth rate, exit 
 
 \`stage\` accepts either canonical values (seed | series-a | series-b | series-c | pe | enterprise — preferred) or TechPar-native values (seed | series_a | series_bc | pe | enterprise). TechPar collapses canonical series-b + series-c into series_bc; the canonical layer documents this honestly.
 
-\`infraHostingAnnual\` and \`arr\` must both be > 0 (the engine returns null otherwise — surfaced here as an error). All six money fields (\`infraHostingAnnual\`, \`infraPersonnel\`, \`rdOpEx\`, \`rdCapEx\`, \`engCost\`, \`prodCost\`, \`toolingCost\`) are annual dollars. Same engine as https://globalstrategic.tech/hub/tools/techpar.`;
+\`infraHostingAnnual\` and \`arr\` must both be > 0 (the engine returns null otherwise — surfaced here as an error). All seven money fields (\`infraHostingAnnual\`, \`infraPersonnel\`, \`rdOpEx\`, \`rdCapEx\`, \`engCost\`, \`prodCost\`, \`toolingCost\`) are annual dollars. Every one except \`infraHostingAnnual\` accepts null when the source material does not supply it — pass null, never 0 as a stand-in. Nulls are computed as 0 and the ones the chosen mode uses are listed in \`extractionOnly\` (always present; empty when nothing was missing), so the result can be marked incomplete. \`rdOpEx\` is discarded under \`deepdive\` — pass null there; under \`quick\` it must be a number. Same engine as https://globalstrategic.tech/hub/tools/techpar.`;
 
 /**
  * Handler for the compute_techpar MCP tool.
@@ -65,6 +65,9 @@ Given a 14-field input (ARR, funding stage, mode, capex view, growth rate, exit 
  * isError shape) without going through the MCP transport. The MCP
  * registration below wraps this same handler.
  */
+type TechParNullableField =
+  'infraPersonnel' | 'rdOpEx' | 'rdCapEx' | 'engCost' | 'prodCost' | 'toolingCost';
+
 export async function handleTechparTool(payload: AuditedTechParInputs) {
   // BL-045 PR B Phase 2 — TechPar calibration audit (currency basis +
   // per-monetary-field annualization provenance). Refinements run here in
@@ -85,8 +88,34 @@ export async function handleTechparTool(payload: AuditedTechParInputs) {
     // back to the caller in the response payload (alongside the deeplink)
     // so the dossier rendering step can show partner-readable provenance.
     const { _audit, ...mcpInputs } = payload;
+    // BL-163: `quick` reads rdOpEx directly, so a null there has no
+    // computable meaning — reject before substituting 0.
+    if (mcpInputs.mode === 'quick' && mcpInputs.rdOpEx === null) {
+      return toolFail(
+        'invalid-input',
+        '`rdOpEx` is null in `quick` mode, which reads it directly. Supply the R&D OpEx figure, or run `mode: "deepdive"` with the engCost / prodCost / toolingCost components.'
+      );
+    }
+    // Substitute 0 for null money fields (the engine adds them linearly) and
+    // report the ones this mode actually uses in `extractionOnly`, so a
+    // caller can mark the figure as incomplete. A null the mode discards
+    // (rdOpEx under deepdive, components under quick) is not a gap.
+    const usedNullable: readonly TechParNullableField[] =
+      mcpInputs.mode === 'deepdive'
+        ? ['infraPersonnel', 'rdCapEx', 'engCost', 'prodCost', 'toolingCost']
+        : ['infraPersonnel', 'rdCapEx', 'rdOpEx'];
+    const extractionOnly = usedNullable.filter((field) => mcpInputs[field] === null);
     const nativeStage = resolveTechparStageInput(mcpInputs.stage);
-    const inputs: TechParInputs = { ...mcpInputs, stage: nativeStage };
+    const inputs: TechParInputs = {
+      ...mcpInputs,
+      stage: nativeStage,
+      infraPersonnel: mcpInputs.infraPersonnel ?? 0,
+      rdOpEx: mcpInputs.rdOpEx ?? 0,
+      rdCapEx: mcpInputs.rdCapEx ?? 0,
+      engCost: mcpInputs.engCost ?? 0,
+      prodCost: mcpInputs.prodCost ?? 0,
+      toolingCost: mcpInputs.toolingCost ?? 0,
+    };
     const result = compute(inputs);
     if (result === null) {
       return toolFail(
@@ -103,10 +132,14 @@ export async function handleTechparTool(payload: AuditedTechParInputs) {
       ...result,
       stageContext,
       deeplink,
+      extractionOnly,
       // Omit the key entirely when no _audit was supplied — don't emit undefined.
       ...(_audit ? { monetaryBasis: _audit.monetaryBasis } : {}),
     };
-    return toolOk(responsePayload, `TechPar computed for stage ${nativeStage}.`);
+    return toolOk(
+      responsePayload,
+      `TechPar computed for stage ${nativeStage}${extractionOnly.length > 0 ? ` (${extractionOnly.length} field(s) extraction-only)` : ''}.`
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return toolFail('internal-error', `Failed to compute TechPar: ${message}`);
