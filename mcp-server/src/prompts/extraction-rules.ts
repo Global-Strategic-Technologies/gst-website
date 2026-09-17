@@ -388,6 +388,20 @@ export const IRL_INCLUSION_GATES = [
   `- ${NIS2_CONDITIONAL_TRIGGER}`,
 ].join('\n');
 
+/**
+ * `infraHostingAnnual` selection rule (BL-163 item 2).
+ *
+ * BL-126's two debug sweeps over one IRL derived this field two valid ways —
+ * $850K YTD ÷ 3 × 12 = $3.40M and $292K/mo × 12 = $3.50M — and both passed the
+ * handler's ±10% cross-check, which cannot choose between two valid
+ * derivations. Only a stated selection rule can. It previously lived once,
+ * inline in `gst_irl_ingestion` Step 4 ("annualize the 3-month average"), so
+ * `gst_irl_sweep` received no rule at all. Worded without `_audit` enum names
+ * because the sweep and extract prompts send bare payloads.
+ */
+export const INFRA_HOSTING_ANNUALIZATION_RULE =
+  '**`infraHostingAnnual` — annualize the multi-month average, never a single month.** When IRL Section 03 supplies hosting/infra spend over several months (a YTD or trailing-period actual) as well as a single monthly figure, derive the annual figure from the multi-month actual: period total ÷ months in the period × 12. Do NOT multiply one month by 12, even when that month is the most recent — a single month carries its own seasonality and one-off spend. Worked example: "$850K YTD (3 months); last month $292K" → `infraHostingAnnual: 3400000` ($850K ÷ 3 × 12), not $3,504,000 ($292K × 12). Both derivations look plausible, which is why the rule exists: two runs over the same IRL must pick the same one. Use the single monthly figure × 12 only when no multi-month actual is given, and state that basis where the figure is used.';
+
 /** The engine-math rules, composed under one heading — v2 forms. */
 export const IRL_EXTRACTION_RULES_SECTION = [
   '## Extraction rules (engine math — these prevent wrong numbers, read them)',
@@ -395,6 +409,8 @@ export const IRL_EXTRACTION_RULES_SECTION = [
   UNKNOWN_PROPAGATION_RULE_V2,
   '',
   TECHPAR_MODE_RULE_V2,
+  '',
+  INFRA_HOSTING_ANNUALIZATION_RULE,
   '',
   ENG_COST_DEDUP_RULE,
   '',

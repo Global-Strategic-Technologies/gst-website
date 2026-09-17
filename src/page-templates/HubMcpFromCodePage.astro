@@ -168,6 +168,7 @@ const CALL_SNIPPET = [
               type="button"
               class="brutal-btn brutal-btn--secondary endpoint-copy"
               data-copy={TOKEN_URL}
+              data-copied-label={t('copied')}
               data-copy-kind="endpoint">{t('copy')}</button
             >
           </div>
@@ -180,6 +181,7 @@ const CALL_SNIPPET = [
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
                 data-copy-prev
+                data-copied-label={t('copied')}
                 aria-label={t('token.request.copy')}>{t('copy')}</button
               >
             </div>
@@ -207,6 +209,7 @@ const CALL_SNIPPET = [
                 type="button"
                 class="brutal-btn brutal-btn--secondary"
                 data-copy-prev
+                data-copied-label={t('copied')}
                 aria-label={t('call.request.copy')}>{t('copy')}</button
               >
             </div>

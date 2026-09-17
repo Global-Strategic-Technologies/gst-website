@@ -54,7 +54,7 @@ import {
 const PROMPT_NAME = 'gst_irl_sweep';
 
 /** Hoisted so the registry field and the run-parameters line cannot drift. */
-const PROMPT_VERSION = '0.2.0';
+const PROMPT_VERSION = '0.3.0';
 
 /**
  * The nine tools this prompt orchestrates. The old prompt's list minus

@@ -118,3 +118,25 @@ describe('initCopyButtons — quiet controls', () => {
     expect(region()!.textContent).toBe('');
   });
 });
+
+describe('initCopyButtons — localized confirmation (BL-153)', () => {
+  it('uses the data-copied-label attribute', async () => {
+    mount(
+      '<button type="button" class="brutal-btn" data-copy="x" data-copied-label="Copiado">Copiar</button>'
+    );
+    const b = document.querySelector<HTMLElement>('[data-copy]')!;
+    b.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(b.textContent).toBe('Copiado');
+  });
+
+  it('falls back to English when the attribute is empty', async () => {
+    mount(
+      '<button type="button" class="brutal-btn" data-copy="x" data-copied-label="">Copy</button>'
+    );
+    const b = document.querySelector<HTMLElement>('[data-copy]')!;
+    b.click();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(b.textContent).toBe('Copied');
+  });
+});

@@ -23,7 +23,11 @@ import { buildPartnerSuppliedTechParAudit } from '../schemas/techpar-audit';
 import type { GstPrompt } from './types';
 import { enumFromWire, numberFromWire } from './wire-shape';
 import { authorialIntentLine, irlEvidencePrecedence } from './embed';
-import { TECHPAR_MODE_RULE, MTTR_P1_RULE } from './extraction-rules';
+import {
+  TECHPAR_MODE_RULE,
+  INFRA_HOSTING_ANNUALIZATION_RULE,
+  MTTR_P1_RULE,
+} from './extraction-rules';
 
 const argsSchema = z.object({
   targetName: z.string().min(1),
@@ -43,8 +47,8 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
   name: PROMPT_NAME,
   description:
     'First-look brief for an unfamiliar target. Combines ICG, TechPar, Tech Debt, and regulatory exposure into one digestible page.',
-  version: '0.1.0',
-  lastReviewedAt: '2026-08-20',
+  version: '0.2.0',
+  lastReviewedAt: '2026-09-17',
   orchestrates: [
     'assess_infrastructure_cost_governance',
     'compute_techpar',
@@ -97,7 +101,7 @@ export const targetQuickLookPrompt: GstPrompt<typeof argsSchema> = {
             '',
             '  The `Section --` sentinel is what makes this honest: under the derived-tier discipline it grades as `partner-supplied` rather than as a verified IRL citation. If you choose a non-USD currency for any reason, supply `_audit.monetaryBasis.conversionRate` (USD rate) so the response payload carries it.',
             '',
-            `  **2b — Evidence in context → \`mode: "deepdive"\`.** The Section 02 components exist in the record, so the rule that governs every other TechPar caller applies here too: ${TECHPAR_MODE_RULE}`,
+            `  **2b — Evidence in context → \`mode: "deepdive"\`.** The Section 02 components exist in the record, so the rule that governs every other TechPar caller applies here too: ${TECHPAR_MODE_RULE} ${INFRA_HOSTING_ANNUALIZATION_RULE}`,
             '',
             '  **Adaptation note for 2b (this prompt is not the ingestion sweep).** The rule above is written in IRL-sweep terms and directs surfacing blanks "in (J)" and marking a dossier section — this prompt emits neither a (J) gap list nor a dossier. Map both directives onto this prompt\'s own output: a zeroed or absent component goes under the brief\'s "Assumptions / unknowns" heading, named with the Section 02 reference that would have answered it and the consequence (a zeroed component understates total technology cost and moves the zone verdict in the flattering direction). The Section-02 / reference language in the rule is meaningful here precisely because the record carries those references. Build each `_audit` entry from the covering fact — `Section NN — <the fact\'s excerpt>` — rather than from the `Section --` sentinel; a real figure and a norm-derived guess must not arrive at the same provenance grade.',
             '',

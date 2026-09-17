@@ -1,7 +1,7 @@
 ---
 tool: search_portfolio
 version: v1
-lastAuthored: 2026-05-03
+lastAuthored: 2026-09-17
 schema: mcp-server/src/schemas.ts
 enumParity:
   - tableHeading: '`engagement`'
@@ -103,7 +103,7 @@ Zero arguments. The MCP tool returns the four facet dimensions present in the bu
 }
 ```
 
-**`deeplink`**: a URL that opens `/ma-portfolio` with the same three filters pre-applied. The website page (`PortfolioHeader.astro`) imports the same encoder via `src/utils/portfolio-url.ts` and hydrates from the URL on init; round-trip parity is verified by the integration test ([`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../../tests/integration/portfolio-handler.test.ts)).
+**`deeplink`**: a URL that opens `/ma-portfolio` with the same three filters pre-applied. **Multi-value exception (BL-132)**: when `theme` or `engagement` holds more than one element, that filter is omitted from the link — the website's chips are single-select, and a link filtered to one of the requested values would misrepresent the query. Same rule as `search_regulations`' `filterDeeplink`. The website page (`PortfolioHeader.astro`) imports the same encoder via `src/utils/portfolio-url.ts` and hydrates from the URL on init; round-trip parity is verified by the integration test ([`mcp-server/tests/integration/portfolio-handler.test.ts`](../../../../tests/integration/portfolio-handler.test.ts)).
 
 **Empty-result path**: `matches: []`, `totalMatched: 0`, `returned: 0` — same shape as a populated result. The deeplink is still emitted (a copied URL with no matches still lands on the correct filtered view; the website renders a "no projects match your filters" message in the same DOM state).
 

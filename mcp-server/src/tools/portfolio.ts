@@ -38,6 +38,7 @@ import {
   type SearchPortfolioInput,
 } from '../schemas';
 import { HUB_BASE } from '../config';
+import { pickSingle } from '../lib/pick-single';
 import projectsRaw from '../../../src/data/ma-portfolio/projects.json';
 import { toolOk } from './_result';
 
@@ -53,7 +54,7 @@ Search the GST M&A portfolio (${PROJECTS.length} anonymized engagements) — str
 
 Filters by free-text \`search\` (matches code-name, industry, summary, technologies), \`theme\` (the \`theme\` argument description lists every valid value; pass "all" to skip), and \`engagement\` (engagement category — "Buy-Side", "Sell-Side", or "all"). The schema is the strict mirror of the website's three filter controls; there is no \`limit\` field because the website renders every project always.
 
-Returns every match plus a \`deeplink\` URL that opens /ma-portfolio pre-filtered to the same filter state. Companion \`list_portfolio_facets\` exposes the available theme / engagementCategory values.`;
+Returns every match plus a \`deeplink\` URL that opens /ma-portfolio pre-filtered to the same filter state for single-value filters. When \`theme\` or \`engagement\` contains more than one element, the \`deeplink\` omits that filter (the website uses single-select chips and cannot represent multi-select); use single-value filters when you need a deeplink that mirrors the query exactly. Companion \`list_portfolio_facets\` exposes the available theme / engagementCategory values.`;
 
 const FACETS_DESCRIPTION = `List the distinct facet values present in the portfolio dataset.
 
@@ -65,19 +66,19 @@ Returns the deduplicated themes, engagement categories, growth stages, and years
  * single source of truth for portfolio URL state — same code path the
  * website page (`PortfolioHeader.astro`) uses for hydration + sync.
  *
- * BL-064: `theme` and `engagement` are now arrays at the MCP boundary.
- * The deeplink emits the FIRST element of each — the URL contract on the
- * website is single-value, and multi-value batching is a server-side
- * optimization for the agent, not a deeplink primitive. Widening the URL
- * encoding to multi-value would require coordinated changes to
- * `src/utils/portfolio-url.ts` parser + the website's hydration logic —
- * out of scope for BL-064.
+ * BL-064: `theme` and `engagement` are arrays at the MCP boundary, but the
+ * website's URL contract is single-value. BL-132: a multi-element filter is
+ * OMITTED from the link (same rule as `search_regulations`), not collapsed
+ * to its first element — a link filtered to one of four requested themes
+ * misleads more than a link filtered to none. Widening the URL encoding to
+ * multi-value would need coordinated changes to the parser + the website's
+ * hydration logic.
  */
 function buildPortfolioDeeplink(input: SearchPortfolioInput): string {
   const params = serializePortfolioUrl({
     search: input.search,
-    theme: input.theme[0],
-    engagement: input.engagement[0],
+    theme: pickSingle(input.theme),
+    engagement: pickSingle(input.engagement),
   });
   const queryString = params.toString();
   return queryString ? `${HUB_BASE}/ma-portfolio?${queryString}` : `${HUB_BASE}/ma-portfolio`;

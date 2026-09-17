@@ -13,6 +13,7 @@ import {
   compute,
   getZone,
   buildTrajectory,
+  synthesizeRdOpEx,
   formatDollars,
   formatPercent,
   DEFAULT_INPUTS,
@@ -209,6 +210,34 @@ describe('getZone() boundary tests', () => {
       });
     });
   }
+});
+
+// ─── synthesizeRdOpEx() (BL-163 item 3) ──────────────────────────────────────
+
+describe('synthesizeRdOpEx()', () => {
+  const components = {
+    engCost: 1_000_000,
+    prodCost: 400_000,
+    toolingCost: 100_000,
+    rdOpEx: 9_999_999,
+  };
+
+  it('deepdive sums the three components and ignores rdOpEx', () => {
+    expect(synthesizeRdOpEx({ ...components, mode: 'deepdive' })).toBe(1_500_000);
+  });
+
+  it('quick reads rdOpEx directly and ignores the components', () => {
+    expect(synthesizeRdOpEx({ ...components, mode: 'quick' })).toBe(9_999_999);
+  });
+
+  it('compute() and buildTrajectory() agree on current spend in deepdive', () => {
+    const inputs = makeInputs({ ...STANDARD_INPUTS, ...components, mode: 'deepdive' });
+    const result = compute(inputs);
+    expect(result).not.toBeNull();
+    const traj = buildTrajectory(inputs, STAGES[inputs.stage] as StageConfig);
+    // Month 0 spend is the annual total at current revenue, per month.
+    expect(traj.spend[0]).toBe(Math.round(result!.total / 12));
+  });
 });
 
 // ─── buildTrajectory() ───────────────────────────────────────────────────────

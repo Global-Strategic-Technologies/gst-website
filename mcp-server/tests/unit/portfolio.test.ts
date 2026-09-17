@@ -206,6 +206,13 @@ describe('search_portfolio theme description — derived vocabulary (BL-108)', (
     expect(advertised.sort()).toEqual([...realThemes].sort());
   });
 
+  it('discloses that a batched call omits the filter from the deeplink (BL-132)', () => {
+    expect(description).toMatch(/multi-theme call's `deeplink` omits the theme filter/);
+    expect(SearchPortfolioInputSchema.shape.engagement.description ?? '').toMatch(
+      /both-sides call's `deeplink` omits the engagement filter/
+    );
+  });
+
   it('names no theme that the facets tool would not return', () => {
     // The parity claim the description makes out loud.
     for (const invented of ['Healthcare Tech', 'Financial Services', 'Life Sciences']) {

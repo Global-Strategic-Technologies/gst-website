@@ -129,7 +129,9 @@ export function initCopyButtons(onCopy?: (btn: HTMLElement, text: string) => voi
     }
 
     void copyWithFeedback(text, btn, {
-      label: 'Copied',
+      // Localized pages pass their catalog's word; `||` so an empty attribute
+      // cannot blank the confirmation (same fallback as HubMcpPage).
+      label: btn.dataset.copiedLabel || 'Copied',
       duration: 1600,
       copiedClass: quiet ? undefined : 'brutal-btn--copied',
       feedbackTarget: quiet ? document.createElement('span') : undefined,
