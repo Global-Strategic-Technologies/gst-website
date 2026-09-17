@@ -11,47 +11,80 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { KVNamespace } from '@cloudflare/workers-types';
 
-const { store, redisSet, redisGet, redisDel, redisEval, MockRedis, mockSafeLog } = vi.hoisted(
-  () => {
-    const store = new Map<string, { value: string; expiresAt: number }>();
-    const live = (key: string) => {
-      const e = store.get(key);
-      if (!e) return null;
-      if (e.expiresAt <= Date.now()) {
-        store.delete(key);
-        return null;
-      }
-      return e;
-    };
-    const redisSet = vi.fn(
-      async (key: string, value: string, opts?: { nx?: boolean; ex?: number }) => {
-        if (opts?.nx && live(key)) return null;
-        store.set(key, { value, expiresAt: Date.now() + (opts?.ex ?? 3600) * 1000 });
-        return 'OK';
-      }
-    );
-    const redisGet = vi.fn(async (key: string) => live(key)?.value ?? null);
-    const redisDel = vi.fn(async (key: string) => (store.delete(key) ? 1 : 0));
-    // @upstash/ratelimit's sliding window runs a Lua script via `eval`;
-    // scripted per test to allow or deny.
-    const redisEval = vi.fn();
-    class MockRedis {
-      set = redisSet;
-      get = redisGet;
-      del = redisDel;
-      eval = redisEval;
-      evalsha = redisEval;
-      scriptLoad = vi.fn(async () => 'sha');
+const {
+  store,
+  redisSet,
+  redisGet,
+  redisDel,
+  redisEval,
+  redisScan,
+  redisMget,
+  MockRedis,
+  mockSafeLog,
+} = vi.hoisted(() => {
+  const store = new Map<string, { value: string; expiresAt: number }>();
+  const live = (key: string) => {
+    const e = store.get(key);
+    if (!e) return null;
+    if (e.expiresAt <= Date.now()) {
+      store.delete(key);
+      return null;
     }
-    return { store, redisSet, redisGet, redisDel, redisEval, MockRedis, mockSafeLog: vi.fn() };
+    return e;
+  };
+  const redisSet = vi.fn(
+    async (key: string, value: string, opts?: { nx?: boolean; ex?: number }) => {
+      if (opts?.nx && live(key)) return null;
+      store.set(key, { value, expiresAt: Date.now() + (opts?.ex ?? 3600) * 1000 });
+      return 'OK';
+    }
+  );
+  const redisGet = vi.fn(async (key: string) => live(key)?.value ?? null);
+  const redisDel = vi.fn(async (key: string) => (store.delete(key) ? 1 : 0));
+  const redisMget = vi.fn(async (...keys: string[]) => keys.map((k) => live(k)?.value ?? null));
+  // @upstash/ratelimit's sliding window runs a Lua script via `eval`;
+  // scripted per test to allow or deny.
+  const redisEval = vi.fn();
+  // Paged like the real SCAN (cursor '0' terminates), so the release
+  // helper's do/while is exercised rather than assumed away by a
+  // single-page stub — the loop is where an off-by-one would hide.
+  const redisScan = vi.fn(async (cursor: string, opts: { match: string; count: number }) => {
+    const prefix = opts.match.replace(/\*$/, '');
+    const keys = [...store.keys()].filter((k) => k.startsWith(prefix));
+    const start = Number(cursor);
+    const page = keys.slice(start, start + 1);
+    const next = start + 1 >= keys.length ? 0 : start + 1;
+    return [String(next), page] as [string, string[]];
+  });
+  class MockRedis {
+    set = redisSet;
+    get = redisGet;
+    scan = redisScan;
+    mget = redisMget;
+    del = redisDel;
+    eval = redisEval;
+    evalsha = redisEval;
+    scriptLoad = vi.fn(async () => 'sha');
   }
-);
+  return {
+    store,
+    redisSet,
+    redisGet,
+    redisDel,
+    redisEval,
+    redisScan,
+    redisMget,
+    MockRedis,
+    mockSafeLog: vi.fn(),
+  };
+});
 
 vi.mock('@upstash/redis', () => ({ Redis: MockRedis }));
 vi.mock('../../../src/auth/safe-logger', () => ({ safeLog: mockSafeLog }));
 
 import {
   handleTrialSignup,
+  releaseTrialIdentity,
   TRIAL_IDENTITY_KEY_PREFIX,
   TRIAL_KEY_OWNER,
 } from '../../../src/trial/signup';
@@ -629,5 +662,106 @@ describe('handleTrialSignup — AE signup events', () => {
     expect(identity!.keyOwner).toBe(TRIAL_KEY_OWNER);
     // And the per-client dimension agrees end to end, which is the join.
     expect(identity!.rateLimitSubject).toBe(`OAUTH:${body.clientId}`);
+  });
+});
+
+/**
+ * BL-152 follow-up — releasing a trial's identity lease so its network can
+ * sign up again. The identity key is an HMAC of the IP and irreversible, so
+ * the only route from a clientId is matching the `minted:<clientId>` VALUE;
+ * these tests pin that it matches on value (never on position) and that a
+ * lapsed lease is reported rather than treated as failure.
+ */
+describe('releaseTrialIdentity', () => {
+  const releaseEvents = () =>
+    aePoints
+      .filter((dp) => dp.blobs[0] === 'trial_identity_release')
+      .map((dp) => ({ name: dp.blobs[1], outcome: dp.blobs[3], client_ref: dp.blobs[7] }));
+
+  it('deletes only the key holding this client, across scan pages', async () => {
+    const mine = `${TRIAL_IDENTITY_KEY_PREFIX}aaa`;
+    const stranger = `${TRIAL_IDENTITY_KEY_PREFIX}bbb`;
+    const leased = `${TRIAL_IDENTITY_KEY_PREFIX}ccc`;
+    await redisSet(stranger, 'minted:other-client', { ex: 100 });
+    await redisSet(leased, 'lease', { ex: 100 });
+    // Third, so a single-page scan or a first-match short-circuit misses it.
+    await redisSet(mine, 'minted:mine', { ex: 100 });
+
+    expect(await releaseTrialIdentity(env(), 'mine')).toBe(1);
+    expect(await redisGet(mine)).toBeNull();
+    expect(await redisGet(stranger), 'a stranger lease must survive').toBe('minted:other-client');
+    expect(await redisGet(leased)).toBe('lease');
+  });
+
+  it('reports 0 — not an error — when the identity has already lapsed', async () => {
+    expect(await releaseTrialIdentity(env(), 'ghost')).toBe(0);
+    expect(releaseEvents()).toEqual([
+      { name: 'trial-identity-release', outcome: 'already-free', client_ref: 'OAUTH:ghost' },
+    ]);
+  });
+
+  it('emits `released` with the client as its per-client dimension', async () => {
+    await redisSet(`${TRIAL_IDENTITY_KEY_PREFIX}aaa`, 'minted:c-1', { ex: 100 });
+    await releaseTrialIdentity(env(), 'c-1');
+    expect(releaseEvents()).toEqual([
+      { name: 'trial-identity-release', outcome: 'released', client_ref: 'OAUTH:c-1' },
+    ]);
+  });
+
+  it('batches each page through ONE mget, and stops as soon as it has the key', async () => {
+    // Every Upstash call is a Worker subrequest against the 1000-per-request
+    // ceiling. Per-key GETs would break this endpoint at roughly 950 live
+    // trials — when signups are succeeding. The mock pages one key at a time,
+    // so `mine` first (page 1) proves the early exit too: nothing after it is
+    // scanned.
+    await redisSet(`${TRIAL_IDENTITY_KEY_PREFIX}aaa`, 'minted:mine', { ex: 100 });
+    for (const suffix of ['bbb', 'ccc', 'ddd']) {
+      await redisSet(`${TRIAL_IDENTITY_KEY_PREFIX}${suffix}`, 'minted:other', { ex: 100 });
+    }
+    redisGet.mockClear();
+    redisMget.mockClear();
+    redisScan.mockClear();
+
+    expect(await releaseTrialIdentity(env(), 'mine')).toBe(1);
+    expect(redisGet, 'no per-key GET — that is the subrequest blowup').not.toHaveBeenCalled();
+    expect(redisMget).toHaveBeenCalledTimes(1);
+    expect(redisScan, 'stops once the single possible match is deleted').toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up in-contract rather than spinning if the cursor never returns to 0', async () => {
+    // The pathological case would otherwise run until the Worker's CPU limit
+    // killed the request, PAST the caller's catch — losing the deliberate
+    // 503-with-record-intact outcome. A throw lands in that catch instead.
+    await redisSet(`${TRIAL_IDENTITY_KEY_PREFIX}zzz`, 'minted:someone-else', { ex: 100 });
+    // Restored in `finally`: `clearMocks` (the Vitest 5 default) clears CALLS
+    // but not implementations, so a leaked stub would fail the next test with
+    // this test's error — which is exactly what it did before the finally.
+    const paged = redisScan.getMockImplementation()!;
+    redisScan.mockImplementation(async () => ['1', [`${TRIAL_IDENTITY_KEY_PREFIX}zzz`]]);
+    try {
+      await expect(releaseTrialIdentity(env(), 'never-there')).rejects.toThrow(
+        'identity-scan-unbounded'
+      );
+      // Names the cap, so breaking it reads as a failed assertion rather than
+      // a bare Vitest timeout — this repo has enough history of ambiguous
+      // timeout signals that one more would be read as noise.
+      expect(redisScan.mock.calls.length).toBeLessThanOrEqual(200);
+    } finally {
+      redisScan.mockImplementation(paged);
+    }
+  });
+
+  it('throws rather than reporting success when Upstash is unbound', async () => {
+    const unbound = { ...env(), UPSTASH_MCP_REST_URL: undefined } as unknown as Env;
+    await expect(releaseTrialIdentity(unbound, 'c-1')).rejects.toThrow('upstash-unbound');
+  });
+
+  it('every emitted outcome is a declared one', async () => {
+    await redisSet(`${TRIAL_IDENTITY_KEY_PREFIX}aaa`, 'minted:c-1', { ex: 100 });
+    await releaseTrialIdentity(env(), 'c-1');
+    await releaseTrialIdentity(env(), 'c-1');
+    const declared = OUTCOME_VALUES.trial_identity_release as readonly string[];
+    expect(releaseEvents().map((e) => e.outcome)).toHaveLength(2);
+    for (const e of releaseEvents()) expect(declared).toContain(e.outcome!);
   });
 });

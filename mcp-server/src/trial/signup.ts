@@ -122,6 +122,10 @@ const LEASE_TTL_SECONDS = 300;
 const LEASE_VALUE = 'lease';
 const MINTED_PREFIX = 'minted:';
 const IP_LIMIT_PER_HOUR = 10;
+/** SCAN page size for `releaseTrialIdentity` — one round trip per page. */
+const SCAN_PAGE = 100;
+/** Bound on `releaseTrialIdentity`'s SCAN loop — 20k keys at `SCAN_PAGE`. */
+const MAX_SCAN_PAGES = 200;
 
 /**
  * The identity derivation, named so it can be strengthened (e.g. fold in a
@@ -392,4 +396,73 @@ async function reissue(
     // "your previous secret has stopped working" notice.
     issuedAt: rotated.record.createdAt,
   });
+}
+
+/**
+ * Release the identity lease a trial holds, so that network can sign up again
+ * (admin-only; the operator path is `npm run trial:reset`).
+ *
+ * The identity key is named by an HMAC of the visitor's IP, which is
+ * irreversible by design — so the only way back from a `clientId` is to read
+ * the VALUES: each minted key holds `minted:<clientId>`. Hence a SCAN rather
+ * than a reverse index. Deliberate, and the trade is documented: writing a
+ * `clientId → identityKey` pointer at mint time would put a second write on
+ * the one endpoint in this Worker that mints for strangers and fails closed
+ * everywhere, to spare an occasional admin call a scan over a key space
+ * bounded by live trials (30-day identity TTL). If that space ever grows
+ * enough to matter, add the pointer then — this function's contract does not
+ * change.
+ *
+ * Returns the number of keys deleted: 0 means the identity had already
+ * lapsed (or was never this client's), which is a legitimate outcome and
+ * NOT an error — the caller reports the count rather than inferring success.
+ */
+export async function releaseTrialIdentity(env: Env, clientId: string): Promise<number> {
+  const deleted = await scanAndDeleteIdentity(env, clientId);
+  if (env.METRICS) {
+    emit(new AnalyticsEngineSink(env.METRICS), {
+      event_type: 'trial_identity_release',
+      name: 'trial-identity-release',
+      keyOwner: TRIAL_KEY_OWNER,
+      outcome: deleted > 0 ? 'released' : 'already-free',
+      client_ref: clientRefFor(clientId),
+    });
+  }
+  return deleted;
+}
+
+async function scanAndDeleteIdentity(env: Env, clientId: string): Promise<number> {
+  const redis = createMcpClient(env, { retry: false });
+  if (!redis) throw new Error('upstash-unbound');
+  const wanted = `${MINTED_PREFIX}${clientId}`;
+  let cursor = '0';
+  let deleted = 0;
+  let pages = 0;
+  do {
+    // A cursor that never returns to '0' would otherwise spin until the
+    // Worker's CPU limit killed the request — past the caller's catch, so the
+    // operator would lose the deliberate 503-with-record-intact outcome the
+    // rest of this function is built around. Upstash does guarantee
+    // termination; this is the cheap way to keep the bad case in-contract.
+    if (++pages > MAX_SCAN_PAGES) throw new Error('identity-scan-unbounded');
+    const [next, keys] = await redis.scan(cursor, {
+      match: `${TRIAL_IDENTITY_KEY_PREFIX}*`,
+      count: SCAN_PAGE,
+    });
+    cursor = String(next);
+    // One MGET per page, not one GET per key: every Upstash call is a Worker
+    // subrequest against the 1000-per-request ceiling, so the per-key form
+    // would stop working at roughly 950 live trials — i.e. exactly when
+    // signups are succeeding. Same batching idiom as `audit/consumer.ts`.
+    if (keys.length === 0) continue;
+    const values = await redis.mget<(string | null)[]>(...keys);
+    for (const [i, key] of keys.entries()) {
+      if (values[i] === wanted) deleted += await redis.del(key);
+    }
+    // At most one key can hold `minted:<clientId>`: a repeat signup from the
+    // same network rotates the secret on the SAME record and leaves the same
+    // identity key, so there is no second one to find.
+    if (deleted > 0) break;
+  } while (cursor !== '0');
+  return deleted;
 }

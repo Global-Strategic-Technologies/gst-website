@@ -40,6 +40,7 @@ import {
   type UpdateM2mClientInput,
 } from '../oauth/m2m-clients';
 import { SCOPES_SUPPORTED } from '../auth/scopes';
+import { releaseTrialIdentity, TRIAL_CLIENT_NAME } from '../trial/signup';
 import { ASSIGNABLE_TIERS, isAssignableTier } from '../ratelimit/tiers';
 import type { Env } from '../env';
 
@@ -175,6 +176,10 @@ export async function handleAdminM2mClients(request: Request, env: Env): Promise
         tier: r.tier,
         hasJwks: Boolean(r.jwks),
         createdAt: r.createdAt,
+        // Listed since BL-152's trial reset: without it, deciding WHICH trial
+        // to revoke meant a per-client GET, and a trial's whole life is its
+        // expiry. `null`/absent means never expires.
+        expiresAt: r.expiresAt ?? null,
       }));
       return json({ clients });
     }
@@ -258,14 +263,66 @@ export async function handleAdminM2mClients(request: Request, env: Env): Promise
     if (request.method === 'DELETE') {
       const existing = await getM2mClient(env.OAUTH_KV, clientId);
       if (!existing) return json({ error: 'not-found', message: 'Unknown clientId' }, 404);
+      // `?releaseIdentity=true` also frees the one-per-network trial lease, so
+      // that network can sign up again. Opt-in, never the default: revoking an
+      // abusive trial must NOT hand its network a fresh one. Restricted to
+      // records named `trial` — a pilot or paid client holds no identity key,
+      // so the flag there is a request that cannot be honoured, not a no-op.
+      // Present-but-not-`true` is REFUSED, not ignored. A hand-run
+      // `?releaseIdentity=1` during an incident would otherwise get a 200 for
+      // an intent that was silently dropped — and by then the record is gone,
+      // which no other admin call can undo.
+      const releaseParam = url.searchParams.get('releaseIdentity');
+      if (releaseParam !== null && releaseParam !== 'true') {
+        return json(
+          { error: 'bad-request', message: 'releaseIdentity accepts only the value "true"' },
+          400
+        );
+      }
+      const wantsRelease = releaseParam === 'true';
+      if (wantsRelease && existing.name !== TRIAL_CLIENT_NAME) {
+        return json(
+          {
+            error: 'bad-request',
+            message: `releaseIdentity applies only to records named "${TRIAL_CLIENT_NAME}"`,
+          },
+          400
+        );
+      }
+      let identityReleased: number | undefined;
+      if (wantsRelease) {
+        // BEFORE the record is deleted: the scan matches on `minted:<clientId>`
+        // but the 400 above reads `existing.name`, so the order is what keeps
+        // the guard meaningful. A throw here leaves the record intact.
+        try {
+          identityReleased = await releaseTrialIdentity(env, clientId);
+        } catch (e) {
+          safeLog({
+            event: 'admin.oauth.m2m-identity-release-failed',
+            keyOwner: 'ADMIN',
+            reason: `client=${clientId} ${(e as Error).message}`,
+            success: false,
+            errorCode: 'unavailable',
+          });
+          return json(
+            {
+              error: 'unavailable',
+              message: 'Could not reach the identity store; nothing deleted',
+            },
+            503
+          );
+        }
+      }
       await deleteM2mClient(env.OAUTH_KV, clientId);
       safeLog({
         event: 'admin.oauth.m2m-client-deleted',
         keyOwner: 'ADMIN',
-        reason: `client=${clientId}`,
+        reason: `client=${clientId}${wantsRelease ? ` identityReleased=${identityReleased}` : ''}`,
         success: true,
       });
-      return json({ deleted: clientId });
+      // The count is reported, never inferred: 0 means the identity had already
+      // lapsed, which is a legitimate outcome and reads differently from 1.
+      return json({ deleted: clientId, ...(wantsRelease ? { identityReleased } : {}) });
     }
     if (request.method === 'PATCH') {
       // BL-155 Slice 1. Exists so a tier change is not delete-and-recreate,

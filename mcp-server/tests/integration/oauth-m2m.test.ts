@@ -374,6 +374,29 @@ describe('client expiry and PATCH (BL-155)', () => {
     expect(res.status).toBe(200);
   });
 
+  it('the list route carries expiresAt, as null when there is none', async () => {
+    // BL-152 follow-up: `npm run trial:reset` prints this field so the
+    // operator can tell their own test trial from a stranger's before
+    // revoking one. Nothing else asserts the list entry's shape, so without
+    // this the field could be dropped and the CLI would silently print
+    // "never" for every trial. `null` specifically — the CLI's `?? 'never'`
+    // treats `undefined` the same way, which would hide the regression.
+    const expiresAt = new Date(Date.now() + 3600_000).toISOString();
+    const timed = await createClient({ name: 'trial', allowedScopes: ['tool:*'], expiresAt });
+    const permanent = await createClient({ name: 'forever', allowedScopes: ['tool:*'] });
+
+    const res = await worker.fetch('/admin/oauth/m2m-clients', { headers: adminHeaders });
+    expect(res.status).toBe(200);
+    const { clients } = (await res.json()) as {
+      clients: Array<{ clientId: string; expiresAt: string | null }>;
+    };
+    const find = (id: string) => clients.find((c) => c.clientId === id);
+    expect(find(timed.client.clientId)?.expiresAt).toBe(expiresAt);
+    const listed = find(permanent.client.clientId)!;
+    expect(listed.expiresAt).toBeNull();
+    expect(Object.keys(listed)).toContain('expiresAt');
+  });
+
   it('PATCH changes the tier in place, keeping the same credentials', async () => {
     const { client, clientSecret } = await createClient({
       name: 'to-convert',

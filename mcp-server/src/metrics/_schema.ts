@@ -62,6 +62,15 @@ export const EVENT_TYPES = [
   // only via `safeLog` — i.e. only while someone held a `wrangler tail` open —
   // so "how many trials were minted last week" had no answer at all.
   'trial_signup',
+  // BL-152 follow-up — an operator released a trial's one-per-network identity
+  // lease via `DELETE /admin/oauth/m2m-clients/<id>?releaseIdentity=true`. A
+  // separate type, not a `trial_signup` outcome: it is an ADMIN action on the
+  // authenticated side, and folding it into signup would inflate the very
+  // counts ("how many trials were minted") that type exists to answer. Before
+  // this, releasing an identity was a hand-run Upstash DEL that left no trace
+  // anywhere. `outcome` distinguishes a lease actually deleted from one that
+  // had already lapsed.
+  'trial_identity_release',
   // BL-157 — a trial identity refused a radar tool by the tier gate
   // (`pipeline/tier-gate.ts`). A SEPARATE type rather than a `tool_invocation`
   // outcome for two reasons: the refusal returns before any tool wrapper runs,
@@ -323,6 +332,10 @@ export const OUTCOME_VALUES: Readonly<Record<EventType, readonly string[]>> = {
   // does `OUTCOME_VALUES[event_type].includes(outcome)`, so a missing key
   // would throw `undefined.includes` for any emitted audit_batch event.
   audit_batch: ['success', 'error', 'deduplicated'],
+  // `released` = a lease was deleted; `already-free` = the scan found none,
+  // which is a legitimate outcome (the 30-day identity TTL had lapsed) and is
+  // why the handler reports a COUNT rather than asserting success.
+  trial_identity_release: ['released', 'already-free'],
   // BL-045 PR B counter events. The `outcome` field carries the discriminator
   // that downstream SQL aggregates over.
   //

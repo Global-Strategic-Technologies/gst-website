@@ -39,6 +39,7 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "wrong_irl_detected",
         "gate_elided",
         "trial_signup",
+        "trial_identity_release",
         "tier_denial",
         "scope_denial",
         "oauth_consent",
@@ -172,6 +173,10 @@ describe('AE column-map schema (BL-032.75 Phase 1 source of truth)', () => {
         "tool_invocation": [
           "success",
           "error",
+        ],
+        "trial_identity_release": [
+          "released",
+          "already-free",
         ],
         "trial_signup": [
           "minted",
