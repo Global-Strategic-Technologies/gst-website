@@ -742,6 +742,10 @@ describe('releaseTrialIdentity', () => {
       await expect(releaseTrialIdentity(env(), 'never-there')).rejects.toThrow(
         'identity-scan-unbounded'
       );
+      // Names the cap, so breaking it reads as a failed assertion rather than
+      // a bare Vitest timeout — this repo has enough history of ambiguous
+      // timeout signals that one more would be read as noise.
+      expect(redisScan.mock.calls.length).toBeLessThanOrEqual(200);
     } finally {
       redisScan.mockImplementation(paged);
     }
