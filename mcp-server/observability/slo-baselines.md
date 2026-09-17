@@ -140,3 +140,103 @@ figure for a metric with no history would be ratifying a number from nothing.
 normal refusal rate, record it below and add the rule plus its runbook. Read the numbers per
 ADR-0032 — refusals only, never `allow`, so a denial _rate_ is denies ÷ (invocations + denies) and
 is a slight overstatement.
+
+### Trial signup latency (BL-164, measured 2026-09-17)
+
+Filed against BL-164, which asks whether `LONG_VERIFY_MS = 2500` and `MINT_TIMEOUT_MS = 15_000`
+(`src/scripts/trial-signup.ts`) are justified by anything measured. They were not. A production
+signup on 2026-09-17 (operator, Bogotá) took ~15s wall clock and finished within about a second of
+the client's own abort.
+
+**What the AE `duration_ms` can and cannot answer.** It is `Date.now() - startedAt` inside
+`handleTrialSignup`, so it excludes the Turnstile solve, the request flight and any first-request
+cost. `LONG_VERIFY_MS`'s timer, by contrast, is armed in `startVerifying()` **before Turnstile is
+fetched**. A healthy server p50 therefore cannot refute the 15s observation; it can only locate the
+cost outside the handler.
+
+**First-request cost against the trial's own origin** (`https://mcp.globalstrategic.tech`, the
+default of `PUBLIC_TRIAL_SIGNUP_ORIGIN` and the same origin the trial mints against). Read from the
+`latency-probe.yml` `/health` samples — **not** a new probe. Each run issues 10 sequential
+unauthenticated GETs; the table is the first sample against the median of the other nine:
+
+| Run id      | Generated (UTC)  | Region    | 1st sample | Median of the rest | Ratio |
+| ----------- | ---------------- | --------- | ---------- | ------------------ | ----- |
+| 35152577362 | 2026-09-16 21:28 | github-us | 1186.6 ms  | 225.8 ms           | 5.3×  |
+| 35184190317 | 2026-09-17 05:02 | github-us | 1081.8 ms  | 231.0 ms           | 4.7×  |
+| 35218150627 | 2026-09-17 11:54 | github-us | 877.0 ms   | 44.7 ms            | 19.6× |
+| 35251056080 | 2026-09-17 17:10 | github-us | 1817.6 ms  | 172.6 ms           | 10.5× |
+| 35277225106 | 2026-09-17 21:32 | github-us | 852.4 ms   | 215.5 ms           | 4.0×  |
+
+**In all five runs the surface's `max` IS its first sample.** That is the useful finding, and it is
+falsifiable in a way "I waited for a cold isolate" is not: a penalty that lands on sample 1 of 10 in
+five consecutive runs is structural, not chance.
+
+**What the penalty is, stated honestly.** It conflates TLS + connection setup with a possible cold
+isolate, and these samples cannot separate them — a production isolate cannot be forced cold, so
+**nothing here measures a cold start; it bounds the whole pre-handler cost.** That bound is
+**0.85–1.8 s from a US datacenter**, against a warm path of 45–230 ms.
+
+**Artifact retention is 90 days** (`latency-probe.yml`, `retention-days: 90`), which is why the run
+ids and dates are recorded above rather than only the numbers.
+
+**The residual, and who closes it.** ~15 s observed − ≲1.8 s first-request − 0.875 s handler (the
+distribution below) leaves ~12 s unexplained, and the region is wrong for this evidence anyway:
+these samples are `github-us` and the observation was Bogotá, where the probe has historically
+measured far worse (LATENCY_PROBE.md records GRU p95 ~930 ms against a Worker completing in tens of
+ms). The remaining candidate is the **Turnstile load + interactive solve**, which no probe run from
+CI or a developer machine can sample. BL-164 therefore ships client instrumentation instead of
+inferring it: `mcp_trial_signup` / `mcp_trial_refused` now carry `duration_ms` (the span
+`LONG_VERIFY_MS` governs) and `mint_ms` (the span `MINT_TIMEOUT_MS` bounds), so
+`duration_ms - mint_ms` measures the Turnstile cost **at the real visitor in their real region**.
+See GOOGLE_ANALYTICS.md § MCP pages; both need registering as GA4 custom metrics before they report.
+
+#### The server-side distribution
+
+Pulled 2026-09-17 from `mcp_events` over the **full 90-day AE retention window** — the longest
+window that can contain a signup, since the endpoint shipped inside it. Quantiles from
+`npm run ae:baseline`, min/max from a scoped `max(double1)` query.
+
+| outcome       | n   | p50 ms | p95 ms | p99 ms | min ms | max ms |
+| ------------- | --- | ------ | ------ | ------ | ------ | ------ |
+| `minted`      | 2   | 826    | 875    | 875    | 826    | 875    |
+| `unavailable` | 2   | 0      | 0      | 0      | 0      | 0      |
+| `expired`     | 1   | 760    | 760    | 760    | 760    | 760    |
+| `bad-request` | 1   | 0      | 0      | 0      | 0      | 0      |
+
+**The sample is n=2 mints, and that governs the outcome.** `MIN_EVENTS_FOR_SLO = 10`
+(`scripts/invoke-ae-baseline.mjs`) is this repo's own floor for treating quantiles as signal, so
+these are not a distribution — they are two observations. The honest result is therefore **both
+constants kept, neither re-tuned**, which is exactly the outcome BL-164 named in advance to prevent
+a re-tune from a single run. A "p95" over n=2 is the larger of two numbers.
+
+The two `unavailable` rows at 0 ms are a fail-fast refusal, not a slow failure. Per the 2026-09
+telemetry-attribution rule these are **not** filed as an incident: a window overlapping the
+operator's own go-live testing needs "were these you?" before anything reaches a checklist.
+
+#### What the decomposition now says
+
+The stanza's motivating worry was that the ~15 s signup had finished "within about a second of a
+hard `err-unavail`". **That premise is refuted.** `MINT_TIMEOUT_MS` bounds only the `fetch` through
+`res.json()`, and the handler served that mint in **826-875 ms**. Adding the first-request bound
+above (≤1.8 s) puts the worst realistic mint near **2.7 s against a 15 s abort — roughly 5× of
+headroom.** The request was never close to being aborted.
+
+Which relocates the whole problem: of ~15 s of wall clock, under a second was the handler and at
+most ~1.8 s the connection. **The remaining ~12 s was spent before the fetch was even issued**, and
+the only thing there is the Turnstile script load and its interactive solve. That is now measured
+rather than inferred — `duration_ms - mint_ms` on every future signup — and it is also why
+`LONG_VERIFY_MS` could not be decided here: the server data does not observe the span it governs.
+
+#### Re-measure trigger
+
+**At n ≥ 10 `minted` events, or as soon as GA4 reports a `duration_ms` sample of comparable size,
+re-run both queries and decide `LONG_VERIFY_MS` from `duration_ms` p50.** Registering
+`duration_ms` / `mint_ms` as GA4 custom metrics is the prerequisite (GOOGLE_ANALYTICS.md § MCP
+pages); until that is done the params are collected but not reportable. Re-running the pull is two
+commands and needs only the `gst-mcp-ae-read` operator token:
+
+```powershell
+$env:CF_AE_TOKEN = '<token>'   # SECRETS_INVENTORY.md — reuse, do not mint a second
+$env:CLOUDFLARE_ACCOUNT_ID = (npx wrangler whoami 2>&1 | Select-String -Pattern '[0-9a-f]{32}' | Select-Object -First 1).Matches[0].Value
+npm -w @gst/mcp-server run ae:baseline -- --env production --window-days 90
+```

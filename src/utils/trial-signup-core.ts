@@ -169,3 +169,59 @@ export function mcpCallSnippet(): string {
     `  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`,
   ].join('\n');
 }
+
+/**
+ * The GA4 timing params for one signup attempt (BL-164).
+ *
+ * Two spans, each matching the constant it exists to justify:
+ *
+ *   `duration_ms` — `startVerifying()` to settle. The wall clock the visitor
+ *                   feels, and the span `LONG_VERIFY_MS` governs: its timer is
+ *                   armed BEFORE Turnstile is even fetched, so it covers the
+ *                   script load, the challenge solve, the flight, any Worker
+ *                   cold start and the handler.
+ *   `mint_ms`     — the `fetch` through `res.json()`, which is what
+ *                   `MINT_TIMEOUT_MS`'s `AbortSignal` actually bounds (the
+ *                   signal stays live through body parse).
+ *
+ * `duration_ms - mint_ms` is therefore the Turnstile load + solve — the part
+ * the Worker's own AE `duration_ms` cannot see, because that one times only
+ * the handler. Measured at the real visitor in their real region, which no
+ * probe run from a developer machine or from CI can be.
+ *
+ * Marks come from `performance.now()`, so a span is `undefined` whenever its
+ * end mark was never taken (a failure before the fetch leaves `mint_ms`
+ * unset) or the arithmetic is not finite. An absent param is better than a
+ * zero: zero is a number GA4 would average.
+ */
+export interface SignupTimings {
+  duration_ms?: number;
+  mint_ms?: number;
+}
+
+/**
+ * A span in whole ms, or `undefined` when either mark is missing or the pair
+ * is nonsensical (non-finite, or out of order). A **measured** zero is still
+ * returned: sub-millisecond is a real reading, and only an unmeasured span is
+ * dropped.
+ */
+function span(from: number | undefined, to: number | undefined): number | undefined {
+  if (from === undefined || to === undefined) return undefined;
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return undefined;
+  const ms = to - from;
+  return ms >= 0 ? Math.round(ms) : undefined;
+}
+
+export function signupTimings(marks: {
+  startedAt?: number;
+  mintStartedAt?: number;
+  mintEndedAt?: number;
+  settledAt?: number;
+}): SignupTimings {
+  const duration_ms = span(marks.startedAt, marks.settledAt);
+  const mint_ms = span(marks.mintStartedAt, marks.mintEndedAt);
+  return {
+    ...(duration_ms === undefined ? {} : { duration_ms }),
+    ...(mint_ms === undefined ? {} : { mint_ms }),
+  };
+}

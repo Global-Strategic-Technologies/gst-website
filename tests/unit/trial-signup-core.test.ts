@@ -11,6 +11,7 @@ import {
   fill,
   formatUtc,
   mcpCallSnippet,
+  signupTimings,
   splitCredential,
   tokenExchangeSnippet,
 } from '@/utils/trial-signup-core';
@@ -167,5 +168,48 @@ describe('formatting and snippets', () => {
     expect(s).toContain('https://mcp.globalstrategic.tech/mcp');
     expect(s).toContain('Accept: application/json, text/event-stream');
     expect(s).toContain('"method":"tools/list"');
+  });
+});
+
+describe('signupTimings (BL-164)', () => {
+  it('reports both spans in whole ms', () => {
+    expect(
+      signupTimings({
+        startedAt: 100.4,
+        mintStartedAt: 900.6,
+        mintEndedAt: 1400.2,
+        settledAt: 1500.9,
+      })
+    ).toEqual({ duration_ms: 1401, mint_ms: 500 });
+  });
+  it('omits mint_ms when the attempt failed before the fetch (Turnstile refused)', () => {
+    expect(signupTimings({ startedAt: 10, settledAt: 2510 })).toEqual({ duration_ms: 2500 });
+  });
+  it('omits a span whose marks are missing or non-finite rather than reporting zero', () => {
+    expect(signupTimings({})).toEqual({});
+    expect(signupTimings({ startedAt: NaN, settledAt: 10 })).toEqual({});
+    expect(signupTimings({ startedAt: Infinity, settledAt: Infinity })).toEqual({});
+  });
+  it('keeps a MEASURED zero — sub-millisecond is a reading, not a missing mark', () => {
+    // A physically coherent attempt that took no measurable time: the mint
+    // nests inside the total, and every mark lands on the same tick.
+    expect(
+      signupTimings({ startedAt: 10, mintStartedAt: 10, mintEndedAt: 10, settledAt: 10 })
+    ).toEqual({
+      duration_ms: 0,
+      mint_ms: 0,
+    });
+  });
+  it('omits a negative span (marks out of order) rather than emitting a bogus number', () => {
+    expect(signupTimings({ startedAt: 500, settledAt: 100 })).toEqual({});
+  });
+  it('keeps duration_ms >= mint_ms: the total contains the mint', () => {
+    const t = signupTimings({
+      startedAt: 0,
+      mintStartedAt: 3000,
+      mintEndedAt: 3800,
+      settledAt: 3810,
+    });
+    expect(t.duration_ms).toBeGreaterThanOrEqual(t.mint_ms!);
   });
 });

@@ -101,8 +101,9 @@ describe('trial page — published facts', () => {
 });
 
 describe('trial page — cited names exist on the server', () => {
-  // OAuth wire vocabulary and the `gst_` / `mcp_m2m_` prefixes are not
-  // registrations; everything else snake_case must be a real tool or prompt.
+  // OAuth wire vocabulary, the `gst_` / `mcp_m2m_` prefixes, and the GA4
+  // params the page emits are not registrations; everything else snake_case
+  // must be a real tool or prompt.
   const NOT_SERVER_NAMES = new Set([
     'client_credentials',
     'access_token',
@@ -116,6 +117,10 @@ describe('trial page — cited names exist on the server', () => {
     'mcp_url',
     'token_url',
     'guide_url',
+    // BL-164 client timing params (`signupTimings`) — GA4 event parameters
+    // measured in the browser, named in GA4's namespace, not the server's.
+    'duration_ms',
+    'mint_ms',
   ]);
   const registered = new Set([...registeredPromptNames(), ...registeredToolNames(SERVER_PATH)]);
   const text = [...Object.values(CATALOGS).flatMap((c) => Object.values(c)), core].join(' ');

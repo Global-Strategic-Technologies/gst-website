@@ -39,6 +39,7 @@ import {
   fill,
   formatUtc,
   mcpCallSnippet,
+  signupTimings,
   tokenExchangeSnippet,
   type Flow,
   type MintOutcome,
@@ -114,9 +115,35 @@ declare global {
 
 const TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
 const TURNSTILE_ACTION = 'trial-signup'; // asserted server-side (trial/turnstile.ts)
+/**
+ * When the verifying copy switches to "this is taking longer than usual".
+ *
+ * KEPT at 2500 (BL-164, measured 2026-09-17) — and deliberately not re-set,
+ * because the server-side data cannot decide this one. This timer is armed
+ * before Turnstile is fetched, so it governs the FULL wall clock, while the
+ * only measurement that existed (AE `duration_ms`, n=2 mints in 90 days:
+ * p50 826 ms, max 875 ms) times the handler alone. A production signup that
+ * felt like ~15 s spent under a second of it in the handler, so this constant
+ * is decided by `duration_ms` from `signupTimings` — the client span shipped
+ * with BL-164 — once real signups have accumulated. See
+ * mcp-server/observability/slo-baselines.md § Trial signup latency.
+ */
 const LONG_VERIFY_MS = 2500;
 const FOCUS_DELAY_MS = 50;
 const COPIED_MS = 2000;
+/**
+ * When the mint request is aborted.
+ *
+ * KEPT at 15_000 (BL-164, measured 2026-09-17). The premise that motivated
+ * re-examining it — that a real signup had finished "within a second of" this
+ * abort — turned out to be wrong: this bounds only the `fetch` (through
+ * `res.json()`), and the handler's own p95 over the 90-day production window
+ * is 875 ms (n=2 `minted`), against a first-request cost bounded at 0.85-1.8 s.
+ * So the worst realistic mint is ~2.7 s and the bound sits ~5x above it; the
+ * ~15 s of wall clock the operator experienced was spent almost entirely
+ * BEFORE this fetch, in the Turnstile solve. Re-examine when the sample
+ * reaches n >= 10 mints (the trigger is recorded in slo-baselines.md).
+ */
 const MINT_TIMEOUT_MS = 15_000;
 
 const root = document.getElementById('gst-trial');
@@ -148,6 +175,21 @@ function init(root: HTMLElement): void {
   let retryTimer: number | undefined;
   let widgetId: string | null = null;
   let turnstileLoad: Promise<TurnstileApi> | null = null;
+  /**
+   * `performance.now()` marks for the CURRENT attempt (BL-164). Reset by
+   * `startVerifying()`, so a retry measures itself rather than the run before
+   * it. Read once at the settle point through `signupTimings`, which drops any
+   * span whose marks are missing — an attempt that never reached the fetch
+   * reports `duration_ms` alone.
+   */
+  let marks: {
+    startedAt?: number;
+    mintStartedAt?: number;
+    mintEndedAt?: number;
+  } = {};
+
+  /** The timing params for the attempt settling right now. */
+  const settleTimings = () => signupTimings({ ...marks, settledAt: performance.now() });
 
   // --- live region ------------------------------------------------------
   // Cleared then re-set from a macrotask so a repeated message is still a
@@ -181,6 +223,10 @@ function init(root: HTMLElement): void {
   // --- verifying ---------------------------------------------------------
   function startVerifying(): void {
     reset();
+    // Same instant the LONG_VERIFY_MS timer below is armed, and deliberately
+    // so: `duration_ms` must measure exactly the span that constant governs,
+    // which begins before Turnstile has been fetched.
+    marks = { startedAt: performance.now() };
     const title = q('[data-verify-title]')!;
     const body = q('[data-verify-body]')!;
     title.textContent = strings.verifyTitle;
@@ -263,6 +309,11 @@ function init(root: HTMLElement): void {
 
   async function mint(token: string): Promise<void> {
     let outcome: MintOutcome;
+    // Bound to THIS attempt's marks object. `startVerifying()` reassigns
+    // `marks`, so reading the `let` here would let a stale in-flight mint
+    // stamp its end onto a freshly reset attempt.
+    const m = marks;
+    m.mintStartedAt = performance.now();
     try {
       const res = await fetch(mintUrl, {
         method: 'POST',
@@ -276,8 +327,12 @@ function init(root: HTMLElement): void {
       } catch {
         body = null;
       }
+      // After the parse, not after the headers: the AbortSignal stays live
+      // through `res.json()`, so this is the span MINT_TIMEOUT_MS bounds.
+      m.mintEndedAt = performance.now();
       outcome = classifyMintResponse(res.status, body);
     } catch {
+      m.mintEndedAt = performance.now();
       outcome = { kind: 'err-unavail' };
     }
     if (state !== 'verifying') return;
@@ -312,7 +367,7 @@ function init(root: HTMLElement): void {
     }
     renderSaved();
     show(o.reissued ? 'reissued' : 'issued');
-    trackMcpTrialSignup(o.reissued ? 'reissued' : 'issued');
+    trackMcpTrialSignup(o.reissued ? 'reissued' : 'issued', undefined, settleTimings());
     announce(flow === 'connector' ? strings.liveIssuedC : strings.liveIssued);
     window.setTimeout(() => q('#cred-title')?.focus({ preventScroll: false }), FOCUS_DELAY_MS);
   }
@@ -425,7 +480,7 @@ function init(root: HTMLElement): void {
     retryBtn.textContent = strings.retry;
     show(kind);
     announce(fill(strings.liveError, { title }));
-    trackMcpTrialRefused(callout.dataset.errKind);
+    trackMcpTrialRefused(callout.dataset.errKind, undefined, settleTimings());
 
     if (kind === 'err-rate') {
       let s = o.retryAfterSeconds;

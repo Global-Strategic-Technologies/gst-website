@@ -121,6 +121,29 @@ describe('mcp_ trackers', () => {
     );
   });
 
+  it('mcp_trial_signup carries the BL-164 timing params when supplied', () => {
+    trackMcpTrialSignup('issued', 'trial', { duration_ms: 4210, mint_ms: 900 });
+    expect(gtagMock).toHaveBeenCalledWith(
+      'event',
+      'mcp_trial_signup',
+      expect.objectContaining({ outcome: 'issued', duration_ms: 4210, mint_ms: 900 })
+    );
+  });
+
+  it('omits the timing params entirely when they were not measured', () => {
+    trackMcpTrialSignup('issued', 'trial');
+    const params = gtagMock.mock.calls.at(-1)![2] as Record<string, unknown>;
+    expect(params).not.toHaveProperty('duration_ms');
+    expect(params).not.toHaveProperty('mint_ms');
+  });
+
+  it('mcp_trial_refused carries duration_ms even when the mint never ran', () => {
+    trackMcpTrialRefused('bot', 'trial', { duration_ms: 1800 });
+    const params = gtagMock.mock.calls.at(-1)![2] as Record<string, unknown>;
+    expect(params).toMatchObject({ reason: 'bot', duration_ms: 1800 });
+    expect(params).not.toHaveProperty('mint_ms');
+  });
+
   it('mcp_trial_refused carries the reason and is not a signup', () => {
     trackMcpTrialRefused('expired', 'trial');
     expect(gtagMock).toHaveBeenCalledWith(
