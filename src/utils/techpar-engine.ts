@@ -232,7 +232,6 @@ export function compute(inputs: TechParInputs): TechParResult | null {
     engFTE,
     engCost,
     prodCost,
-    toolingCost,
     capexView,
     growthRate,
     exitMultiple,
@@ -242,8 +241,7 @@ export function compute(inputs: TechParInputs): TechParResult | null {
 
   const stageConfig = STAGES[inputs.stage] as StageConfig;
 
-  // Compute rdOpEx based on mode
-  const rdOpEx = inputs.mode === 'deepdive' ? engCost + prodCost + toolingCost : inputs.rdOpEx;
+  const rdOpEx = synthesizeRdOpEx(inputs);
 
   // BL-031.95: schema now provides annual hosting directly; no × 12 needed.
   const infraAnnual = infraHostingAnnual;
@@ -383,14 +381,25 @@ export interface TrajectoryData {
   frame: Frame;
 }
 
+/**
+ * R&D OpEx as the engine uses it: `deepdive` synthesizes it from its three
+ * components, `quick` takes `rdOpEx` directly. The single implementation both
+ * `computeTechPar` and `buildTrajectory` read, so a rule change has one site
+ * (BL-163 item 3).
+ */
+export function synthesizeRdOpEx(
+  inputs: Pick<TechParInputs, 'mode' | 'engCost' | 'prodCost' | 'toolingCost' | 'rdOpEx'>
+): number {
+  return inputs.mode === 'deepdive'
+    ? inputs.engCost + inputs.prodCost + inputs.toolingCost
+    : inputs.rdOpEx;
+}
+
 export function buildTrajectory(inputs: TechParInputs, config: StageConfig): TrajectoryData {
   const mg = monthlyGrowthFactor(inputs.growthRate);
   const mon = inputs.arr / 12;
 
-  const rdOpEx =
-    inputs.mode === 'deepdive'
-      ? inputs.engCost + inputs.prodCost + inputs.toolingCost
-      : inputs.rdOpEx;
+  const rdOpEx = synthesizeRdOpEx(inputs);
 
   // BL-031.95: schema now provides annual hosting directly; no × 12 needed.
   const infraAnnual = inputs.infraHostingAnnual;
