@@ -44,7 +44,7 @@ import { IRL_EXTRACT_RECORD_DIRECTIVE_V2 } from '../schemas/irl-extract-record';
 const PROMPT_NAME = 'gst_irl_extract';
 
 /** Hoisted so the registry field and the run-parameters line cannot drift. */
-const PROMPT_VERSION = '0.1.0';
+const PROMPT_VERSION = '0.2.0';
 
 /**
  * The tools whose input payloads the record projects. This prompt CALLS

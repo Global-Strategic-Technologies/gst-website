@@ -8,6 +8,7 @@
  * surface named, every engine-math rule present, the inference and gap-list
  * instructions carried — while letting wording breathe.
  *
+ * v0.3.0: carries the infraHostingAnnual selection rule (BL-163).
  * v0.2.0: the sweep has ONE argument and ONE behavior (full sweep). The
  * former `mode: extract-only` is its own prompt, `gst_irl_extract`, with
  * its own suite.
@@ -15,6 +16,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { irlSweepPrompt, SWEEP_ORCHESTRATED_TOOLS } from '../../../src/prompts/irl-sweep';
+import { INFRA_HOSTING_ANNUALIZATION_RULE } from '../../../src/prompts/extraction-rules';
 
 const FILLED = [
   '# Information Request List — TestCo (filled)',
@@ -42,7 +44,7 @@ const FULL_ONESHOT = bodyOf({ filledIrl: FILLED });
 describe('gst_irl_sweep — registry contract', () => {
   it('declares the expected identity', () => {
     expect(irlSweepPrompt.name).toBe('gst_irl_sweep');
-    expect(irlSweepPrompt.version).toBe('0.2.0');
+    expect(irlSweepPrompt.version).toBe('0.3.0');
     expect(irlSweepPrompt.consumesTargetEvidence).toBeUndefined();
   });
 
@@ -187,6 +189,10 @@ describe('gst_irl_sweep — retained engine-math structure', () => {
     expect(FULL).toMatch(/use P1/i);
     expect(FULL).toContain('engCost');
     expect(FULL).toContain('Seeding philosophy');
+  });
+
+  it('carries the infraHostingAnnual selection rule (BL-163 item 2)', () => {
+    expect(FULL).toContain(INFRA_HOSTING_ANNUALIZATION_RULE);
   });
 
   it('carries the ICG empty-first call and the regulations response-size ceiling', () => {

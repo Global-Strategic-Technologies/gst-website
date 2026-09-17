@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { targetQuickLookPrompt } from '../../../src/prompts/target-quick-look';
+import { INFRA_HOSTING_ANNUALIZATION_RULE } from '../../../src/prompts/extraction-rules';
 
 const VALID_ARGS = {
   targetName: 'Acme Corp',
@@ -183,6 +184,10 @@ describe('gst_target_quick_look', () => {
       // Section 04 remediation figure") that a paraphrase would drop — and a
       // request-text match structurally cannot encode a negative.
       expect(body()).toContain('Section 04 technical-debt remediation figure');
+    });
+
+    it('carries the infraHostingAnnual selection rule in the evidence branch (BL-163 item 2)', () => {
+      expect(body()).toContain(INFRA_HOSTING_ANNUALIZATION_RULE);
     });
 
     it('carries the adaptation note for both imported rules — this prompt has no (J) and no dossier', () => {

@@ -8,6 +8,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { irlExtractPrompt, EXTRACT_PROJECTED_TOOLS } from '../../../src/prompts/irl-extract';
+import { INFRA_HOSTING_ANNUALIZATION_RULE } from '../../../src/prompts/extraction-rules';
 
 function bodyOf(args: Record<string, unknown>): string {
   const parsed = irlExtractPrompt.argsSchema.parse(args);
@@ -25,7 +26,7 @@ const BODY_ONESHOT = bodyOf({
 describe('gst_irl_extract — registry contract', () => {
   it('declares the expected identity', () => {
     expect(irlExtractPrompt.name).toBe('gst_irl_extract');
-    expect(irlExtractPrompt.version).toBe('0.1.0');
+    expect(irlExtractPrompt.version).toBe('0.2.0');
     expect(irlExtractPrompt.consumesTargetEvidence).toBeUndefined();
   });
 
@@ -60,6 +61,10 @@ describe('gst_irl_extract — trust surface and structure', () => {
     expect(BODY).toContain('Use it as given');
     expect(BODY).toContain('A submission with no accompanying chat message is a normal invocation');
     expect(BODY).not.toMatch(/[Dd]o not ask for confirmation/);
+  });
+
+  it('carries the infraHostingAnnual selection rule (BL-163 item 2)', () => {
+    expect(BODY).toContain(INFRA_HOSTING_ANNUALIZATION_RULE);
   });
 
   it('carries the shared completeness check, gates, and engine-math rules', () => {

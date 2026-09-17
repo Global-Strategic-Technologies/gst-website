@@ -252,7 +252,12 @@ import { ALL_PROMPTS } from '../../src/prompts/_registry';
 // silently reaches a different prompt. That is the one client-visible hazard in
 // this release and BREAKING_CHANGES.md 0.63.0 states it under Client impact.
 // No URI moved; nothing else in the manifest changed.
-const EXPECTED_MANIFEST_HASH = 'a934f40f3be3bfce94a744266a97fd09f6b618bcbb6d89e55bb09ecf2f4be839';
+//
+// BL-163 item 2 (server 0.64.0, 2026-09-17): THREE version bumps, no rename.
+// The infraHostingAnnual selection rule joined IRL_EXTRACTION_RULES_SECTION and
+// target-quick-look's evidence branch: gst_irl_sweep 0.2.0 → 0.3.0,
+// gst_irl_extract 0.1.0 → 0.2.0, gst_target_quick_look 0.1.0 → 0.2.0. No URI moved.
+const EXPECTED_MANIFEST_HASH = '63cb2afab5c8b6f0f47de3aa7527e2ec5a897029247f95908cf39164a8528bb3';
 
 function computeManifestHash(): string {
   const libraryUris = LIBRARY_ENTRIES.map((e) => e.uri).sort();
