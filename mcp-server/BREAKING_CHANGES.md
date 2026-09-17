@@ -35,6 +35,18 @@ in lockstep when the registry shape changes.
 
 ---
 
+## 0.64.0 — 2026-09-17 — `search_portfolio` omits batched filters from its deeplink
+
+**One output change, graded minor** (precedent: 0.49.0's `search_regulations` change). **Manifest hash**: untouched by this change (tool output and descriptions are not hash inputs).
+
+**What changed**
+
+- **`search_portfolio` → `deeplink`** (BL-132): when `theme` or `engagement` holds more than one element, that filter is now **omitted** from the link. It previously collapsed to the array's first element, so a batched call — including `gst_irl_sweep`'s mandated both-sides engagement call — produced a link filtered to part of its own query while the description promised "the same filter state". This matches `search_regulations`' `filterDeeplink`, and both now share one helper (`src/lib/pick-single.ts`). The tool description, the `theme`/`engagement` argument descriptions, and `CONTRACT.md`/`USAGE.md` state the rule.
+
+**Client impact**: a batched call's deeplink opens a broader view than before (unfiltered on the batched facet) instead of a narrower, misleading one. Single-value calls are unchanged.
+
+---
+
 ## 0.63.0 — 2026-08-28 — the IRL prompt family renames; `gst_irl_create` changes hands
 
 > **Addendum 2026-09-14 (BL-152, NOT a breaking change, no version bump)** — recorded here because it changes bytes a client can see. (1) `initialize` → `serverInfo.version` now reports the real version (`env.VERSION` when deployed, the `FALLBACK_VERSION` in `src/version.ts` otherwise) instead of the literal `0.1.0` it had carried since the server was scaffolded; the field is informational and no client is known to branch on it. (2) Every tool's `annotations` now carries all four hints (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`); previously two tools had no block and none declared the last two. Hints are advisory metadata under the spec. (3) Two new public GET paths, `/server.json` and `/.well-known/mcp`, serve the registry document; nothing that existed moved. The manifest hash is untouched (it covers URIs and prompt tuples only).

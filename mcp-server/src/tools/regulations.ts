@@ -25,6 +25,7 @@ import {
 import { normalizeFrameworkName, HUB_MATCH_MIN_LENGTH } from '../schemas/compose-dossier-envelope';
 import { encodeFilters } from '../../../src/utils/regulatory-map-url';
 import { HUB_BASE } from '../config';
+import { pickSingle } from '../lib/pick-single';
 import { toolOk } from './_result';
 
 const REGULATORY_MAP_PATH = '/hub/tools/regulatory-map/';
@@ -142,20 +143,6 @@ function scoreQuery(entry: RegulationEntry, query: string): number {
   if (summary.includes(q)) score += 5; // summary mention is a weak signal
 
   return score;
-}
-
-/**
- * Pick the sole element of a one-element array, or `undefined` for
- * arrays of any other length (including `undefined` input). Used by the
- * filterDeeplink construction: the website's regulatory map page UI
- * is single-select, so a multi-element MCP filter cannot be represented
- * in the deeplink — we drop the param rather than emit a misleading URL.
- *
- * Exported for testability — the deeplink-omit-when-multi policy is a
- * documented capability-mirror constraint (see CONTRACT.md v2).
- */
-export function pickSingle<T>(v: readonly T[] | undefined): T | undefined {
-  return v?.length === 1 ? v[0] : undefined;
 }
 
 export function applyFilters(input: RegulationSearchInput): RegulationEntry[] {

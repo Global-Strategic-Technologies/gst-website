@@ -14,9 +14,9 @@ import {
   applyFilters,
   buildRegulatoryMapDeeplink,
   jurisdictionToRegion,
-  pickSingle,
   toSearchResult,
 } from '../../src/tools/regulations';
+import { pickSingle } from '../../src/lib/pick-single';
 import { HUB_BASE } from '../../src/config';
 
 describe('regulation-loader URI taxonomy', () => {

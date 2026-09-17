@@ -239,13 +239,39 @@ describe('handleSearchPortfolioTool — BL-031.95 Phase 4.B integration', () => 
       expect(categories.has('Sell-Side')).toBe(true);
     });
 
-    it('deeplink emits first theme element only when multiple themes supplied (documented limitation)', async () => {
+    it('deeplink omits theme when multiple themes supplied (BL-132)', async () => {
       const responseMulti = await handleSearchPortfolioTool(
-        SearchPortfolioInputSchema.parse({ theme: ['Healthcare', 'Logistics'] })
+        SearchPortfolioInputSchema.parse({
+          theme: ['Healthcare', 'Logistics'],
+          engagement: 'Buy-Side',
+        })
       );
       const url = new URL((responseMulti.structuredContent as { deeplink: string }).deeplink);
-      // First element wins in the URL (no widening of portfolio-url encoding).
+      // The website chips are single-select; a link filtered to one of the
+      // requested themes would misrepresent the query, so the filter is dropped.
+      expect(url.searchParams.has('theme')).toBe(false);
+      expect(url.searchParams.get('eng')).toBe('Buy-Side');
+    });
+
+    it('deeplink omits engagement when both sides supplied (BL-132)', async () => {
+      const response = await handleSearchPortfolioTool(
+        SearchPortfolioInputSchema.parse({
+          theme: 'Healthcare',
+          engagement: ['Buy-Side', 'Sell-Side'],
+        })
+      );
+      const url = new URL((response.structuredContent as { deeplink: string }).deeplink);
+      expect(url.searchParams.has('eng')).toBe(false);
       expect(url.searchParams.get('theme')).toBe('Healthcare');
+    });
+
+    it('deeplink keeps single-element array filters (BL-132)', async () => {
+      const response = await handleSearchPortfolioTool(
+        SearchPortfolioInputSchema.parse({ theme: ['Healthcare'], engagement: ['Sell-Side'] })
+      );
+      const url = new URL((response.structuredContent as { deeplink: string }).deeplink);
+      expect(url.searchParams.get('theme')).toBe('Healthcare');
+      expect(url.searchParams.get('eng')).toBe('Sell-Side');
     });
   });
 

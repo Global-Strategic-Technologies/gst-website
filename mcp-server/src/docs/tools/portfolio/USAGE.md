@@ -117,13 +117,13 @@ Returns matched annotated radar items in the same conversation, letting the anal
 
 ## Why this matters (the value summary for stakeholders)
 
-| Concern                                       | Pre-MCP workflow                                           | MCP workflow                                                                                          |
-| --------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Time to a comparable-engagements memo         | 20–30 min (browse, click each card, copy text, synthesize) | < 60 seconds (single prose prompt)                                                                    |
-| Time to re-shape the memo for a new audience  | Same as initial draft                                      | Sub-second (already in context)                                                                       |
-| Cross-referencing with current radar coverage | Manual recall + open second tab                            | Inline tool call in the same thread (`search_radar_offline` composes with `search_portfolio` results) |
-| Sharing the filtered view                     | Copy URL; recipient sees the unfiltered grid               | `deeplink` URL opens the same filter-active view byte-for-byte (BL-031.95 Phase 4.B contract)         |
-| Engine drift risk                             | Two surfaces (web + MCP) → divergence possible             | Both surfaces share the same encoder + filter logic — by construction, capability-mirror invariant    |
+| Concern                                       | Pre-MCP workflow                                           | MCP workflow                                                                                                         |
+| --------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Time to a comparable-engagements memo         | 20–30 min (browse, click each card, copy text, synthesize) | < 60 seconds (single prose prompt)                                                                                   |
+| Time to re-shape the memo for a new audience  | Same as initial draft                                      | Sub-second (already in context)                                                                                      |
+| Cross-referencing with current radar coverage | Manual recall + open second tab                            | Inline tool call in the same thread (`search_radar_offline` composes with `search_portfolio` results)                |
+| Sharing the filtered view                     | Copy URL; recipient sees the unfiltered grid               | `deeplink` URL opens the same filter-active view for single-value filters (multi-value filters are omitted — BL-132) |
+| Engine drift risk                             | Two surfaces (web + MCP) → divergence possible             | Both surfaces share the same encoder + filter logic — by construction, capability-mirror invariant                   |
 
 The dataset is not new. The filter chips are not new. **What is new is putting both inside the conversation that's writing the meeting prep deck, the deal memo, the analyst briefing** — without any context-switch to a browser tab.
 
