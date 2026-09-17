@@ -270,4 +270,4 @@ The BL-044 generator lets a partner **filter sections**, **remove individual que
 
 ---
 
-_Last updated: 2026-08-20 (the IRL extract record — quick-look's TechPar `mode` and tech-debt `_audit` rows; the "one source, three surfaces" lineage note corrected, since the prompt embeds the generator source rather than the library article). Prior: 2026-08-15 (BL-126 — mode-conditional TechPar rows for the four inputs this document never mapped, plus anti-mappings for the two bullet sets that were misrouted into `rdOpEx`)._
+_Last updated: 2026-09-17 (BL-163 — `rdOpEx` is `null` under `deepdive` with no `_audit.rdOpEx`, and a blank Section-02 component is `null` + `irl-absent`, replacing the `rdOpEx: 0` placeholder). Prior: 2026-08-20 (the IRL extract record — quick-look's TechPar `mode` and tech-debt `_audit` rows; the "one source, three surfaces" lineage note corrected, since the prompt embeds the generator source rather than the library article). Prior: 2026-08-15 (BL-126 — mode-conditional TechPar rows for the four inputs this document never mapped, plus anti-mappings for the two bullet sets that were misrouted into `rdOpEx`)._

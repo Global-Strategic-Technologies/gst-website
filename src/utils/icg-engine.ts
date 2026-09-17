@@ -316,8 +316,9 @@ export function buildSummaryText(
     // the domain score floors at 0, so they cost more than "Not in place" (0)
     // only in a domain with positive answers (BL-129 corrected the earlier
     // "penalised below" wording). See the engine comment above the rawScore
-    // reducer and the "Not sure (-1) answers" tests for the contract. Earlier copy here ("scored as zero") was misleading
-    // — surfaced during BL-032 soak T.B.4.c on 2026-05-10.
+    // reducer and the "Not sure (-1) answers" tests for the contract.
+    // Earlier copy here ("scored as zero") was misleading — surfaced during
+    // BL-032 soak T.B.4.c on 2026-05-10.
     lines.push(
       `"Not sure" responses: ${result.skippedCount} (scored as -1 until the domain reaches its 0 floor)`
     );

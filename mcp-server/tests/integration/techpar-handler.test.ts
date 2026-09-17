@@ -161,6 +161,19 @@ describe('handleTechparTool — absent money fields (BL-163)', () => {
     expect(zeroPayload.extractionOnly).toEqual([]);
   });
 
+  it('quick mode does not list null components it discards', async () => {
+    const response = await handleTechparTool(
+      TechParMcpInputsSchema.parse({
+        ...validInputs,
+        engCost: null,
+        prodCost: null,
+        toolingCost: null,
+      })
+    );
+    expect(response.isError).toBeUndefined();
+    expect((response.structuredContent as Record<string, unknown>).extractionOnly).toEqual([]);
+  });
+
   it('always emits extractionOnly, empty when nothing is missing', async () => {
     const response = await handleTechparTool(TechParMcpInputsSchema.parse(validInputs));
     expect((response.structuredContent as Record<string, unknown>).extractionOnly).toEqual([]);

@@ -318,7 +318,8 @@ describe('the IRL extract record, end to end', () => {
         infraHostingAnnual: 2_400_000,
         infraPersonnel: 5 * 185_000,
         engFTE: 64,
-        rdOpEx: 0,
+        // BL-163: deepdive discards rdOpEx, so it is null with no audit entry.
+        rdOpEx: null,
         rdCapEx: 0,
         engCost: (64 - 5) * 185_000,
         prodCost: 900_000,
@@ -331,9 +332,6 @@ describe('the IRL extract record, end to end', () => {
           arr: field(citation),
           infraHostingAnnual: field(citation),
           infraPersonnel: field(engCitation),
-          rdOpEx: field(
-            'Section -- — not sourced; deepdive synthesizes R&D OpEx from engCost + prodCost + toolingCost'
-          ),
           rdCapEx: field(citation),
           engCost: field(engCitation),
           prodCost: field(engCitation),
