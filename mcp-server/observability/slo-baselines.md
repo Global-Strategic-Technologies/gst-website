@@ -282,8 +282,11 @@ for this purpose even though it is not a new trial.
 
 #### Re-measure trigger
 
-**At n ≥ 10 `minted` events, or as soon as GA4 reports a `duration_ms` sample of comparable size,
-re-run both queries and decide `LONG_VERIFY_MS` from `duration_ms` p50.** The custom metrics were
+**At n ≥ 10 signups that reached the handler — `minted` _and_ `reissued`, since a re-issue does the
+same Turnstile work and is a valid client-latency sample — or as soon as GA4 reports a `duration_ms`
+sample of that size, re-run both queries and decide `LONG_VERIFY_MS` from `duration_ms` p50.**
+(`minted`-only would exclude the second reading recorded above, which is a latency observation even
+though it is not a new trial.) The custom metrics were
 registered 2026-09-17 and registration is not retroactive, so the reportable sample starts from the
 _next_ signup — the n=1 reading above was collected minutes before registration and will not appear
 in a report built on the metrics. Re-running the AE pull is two
