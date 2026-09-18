@@ -131,8 +131,8 @@ describe('mcpGuideSchema — TechArticle about the server node', () => {
   });
 
   it('carries an image, defaulting to the 1200x630 site OG image', () => {
-    // Google's Article guidance wants >=1200px wide; the guides' own clip
-    // posters measure 960-1000px, so the OG image is the default on purpose.
+    // Google's Article guidance wants >=1200px wide; most of the guides' clip
+    // posters are under it, so the OG image is the default on purpose.
     expect(guide.image).toBe('https://globalstrategic.tech/og-image.png');
   });
 
@@ -198,12 +198,14 @@ describe('copy rules over the literals the helpers add', () => {
     expect(strings.filter((s) => s.includes('—'))).toEqual([]);
   });
 
+  // ASSET urls are excluded from the trailing-slash guard, not exempted:
+  // `image` points at og-image.png, and a file must not gain a trailing
+  // slash. Declared ONCE at describe scope so the mutation check below pins
+  // this predicate rather than a copy of it — two literals would let an edit
+  // here sail past a green test there.
+  const isAsset = (u: string) => /\.[a-z0-9]{2,5}$/i.test(new URL(u).pathname);
+
   it('emits only trailing-slash page URLs (vercel.json canonicalization)', () => {
-    // ASSET urls are excluded, not exempted: `image` points at og-image.png,
-    // and a file must not gain a trailing slash. The discriminator is an
-    // extension on the last segment, so a PAGE that lost its slash still
-    // fails here — which is what this guard is for.
-    const isAsset = (u: string) => /\.[a-z0-9]{2,5}$/i.test(new URL(u).pathname);
     const pageUrls = strings.filter(
       (s) => s.startsWith('https://globalstrategic.tech/') && !s.includes('#') && !isAsset(s)
     );
@@ -212,9 +214,8 @@ describe('copy rules over the literals the helpers add', () => {
   });
 
   it('the asset exclusion above does not swallow a slash-less page URL', () => {
-    // Mutation check on the discriminator: without it, the guard would be
-    // vacuous the moment someone emitted `/hub/mcp/docs` with no extension.
-    const isAsset = (u: string) => /\.[a-z0-9]{2,5}$/i.test(new URL(u).pathname);
+    // Mutation check on the discriminator ABOVE: without it, the guard would
+    // be vacuous the moment someone emitted `/hub/mcp/docs` with no extension.
     expect(isAsset('https://globalstrategic.tech/og-image.png')).toBe(true);
     expect(isAsset('https://globalstrategic.tech/hub/mcp/docs')).toBe(false);
     expect(isAsset('https://globalstrategic.tech/hub/mcp/docs/')).toBe(false);

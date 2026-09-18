@@ -659,19 +659,26 @@ The hub tools are `WebApplication` because they run in the browser. The MCP serv
 ### The guides' `image`, and why it is the site OG image
 
 Every `TechArticle` carries `image`, defaulting to `https://globalstrategic.tech/og-image.png`
-(1200×630). Google's Article guidance wants a representative image **at least 1200px wide**, and the
-guides' own clip posters do not clear that bar: `add-connector-claudeai` is 960×880, `oauth-consent`
-800×1000, `prompts-resources` 1000×780, `connector-enabled` 1000×952 — only `regulations-query`
-(1384×730) and `connector-enabled-claudeai` (1200×760) qualify, and `/hub/mcp/advanced-operations/`
-has no poster at all. Per-guide posters would therefore trade a missing-field warning for a
-too-small-image one on most pages, while the OG image also keeps the `image` node in agreement with
-the page's own `og:image` (`SEO.astro`). **`mcpGuideSchema()` takes an `image` override** — pass one
-the day a guide gains a ≥1200px image of its own.
+(1200×630), which also keeps the node in agreement with the page's own `og:image` (`SEO.astro`) —
+all four TechArticle pages pass `ogImage="/og-image.png"`, so the two never disagree.
+
+Why a default rather than each guide's own clip poster. Google's Article guidance wants a
+representative image **at least 1200px wide**, and four of the six posters are under it:
+`add-connector-claudeai` 960×880, `oauth-consent` 800×1000, `prompts-resources` 1000×780,
+`connector-enabled` 1000×952. Two do qualify — `regulations-query` 1384×730 and
+`connector-enabled-claudeai` 1200×760 — but they do not cover the pages: `/hub/mcp/get-started/`
+carries five posters (so which is "representative" is an editorial call), `/hub/mcp/using/` carries
+exactly one (`regulations-query`, which qualifies), and `/hub/mcp/advanced-operations/` carries
+none. No per-guide rule covers all three, so the default is site-wide.
+
+**`mcpGuideSchema()` takes an `image` override.** `/hub/mcp/using/` could pass its single poster
+today, and `get-started` its one qualifying poster — a content decision, not a blocked one.
 
 Measured 2026-09-18; re-measure rather than trusting these figures if the posters are re-encoded.
 
-**This is a recommended-field warning, not an error.** `TechArticle` is not eligible for an image
-rich result, so nothing was broken before and nothing renders differently now.
+**This is a recommended-field warning, not an error.** No rich result is expected for these pages
+either way, so nothing was broken before and nothing renders differently now — the field is filled
+for completeness.
 
 ### What is deliberately absent
 
