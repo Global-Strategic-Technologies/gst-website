@@ -656,6 +656,30 @@ Describes the GST MCP Server to crawlers as one product with three page kinds: t
 
 The hub tools are `WebApplication` because they run in the browser. The MCP server is a remote service a visitor connects a client to; nothing runs on the page. `operatingSystem` is `Any` for the same reason. The application node carries a stable `@id` (`https://globalstrategic.tech/hub/mcp/#software`) so the guides' `about` resolves to it across pages.
 
+### The guides' `image`, and why it is the site OG image
+
+Every `TechArticle` carries `image`, defaulting to `https://globalstrategic.tech/og-image.png`
+(1200×630), which also keeps the node in agreement with the page's own `og:image` (`SEO.astro`) —
+all four TechArticle pages pass `ogImage="/og-image.png"`, so the two never disagree.
+
+Why a default rather than each guide's own clip poster. Google's Article guidance wants a
+representative image **at least 1200px wide**, and four of the six posters are under it:
+`add-connector-claudeai` 960×880, `oauth-consent` 800×1000, `prompts-resources` 1000×780,
+`connector-enabled` 1000×952. Two do qualify — `regulations-query` 1384×730 and
+`connector-enabled-claudeai` 1200×760 — but they do not cover the pages: `/hub/mcp/get-started/`
+carries five posters (so which is "representative" is an editorial call), `/hub/mcp/using/` carries
+exactly one (`regulations-query`, which qualifies), and `/hub/mcp/advanced-operations/` carries
+none. No per-guide rule covers all three, so the default is site-wide.
+
+**`mcpGuideSchema()` takes an `image` override.** `/hub/mcp/using/` could pass its single poster
+today, and `get-started` its one qualifying poster — a content decision, not a blocked one.
+
+Measured 2026-09-18; re-measure rather than trusting these figures if the posters are re-encoded.
+
+**This is a recommended-field warning, not an error.** No rich result is expected for these pages
+either way, so nothing was broken before and nothing renders differently now — the field is filled
+for completeness.
+
 ### What is deliberately absent
 
 No `offers` block and no `isAccessibleForFree`. Access is tiered and the commercial terms are not published, so an `offers` block would have nothing true to say; and the free 3-day trial (BL-155) is bounded and one-per-network, not free access to the application, so `isAccessibleForFree` would overstate it. The unit test asserts the absence.

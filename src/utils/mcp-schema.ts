@@ -17,7 +17,8 @@
  *                              can point their `about` at the same node.
  *   - `mcpCapabilityListSchema()`  ItemList over every capability, each item
  *                              deep-linked to its contract pane on the reference.
- *   - `mcpGuideSchema()`       TechArticle for the three onboarding guides.
+ *   - `mcpGuideSchema()`       TechArticle for the four onboarding guides
+ *                              (three English media guides + localized from-code).
  *
  * `SoftwareApplication` rather than the hub tools' `WebApplication`: the server
  * is not a browser application. A visitor connects a client to it; nothing runs
@@ -127,6 +128,17 @@ export interface McpGuideSchemaInput {
    * passes its locale code so the `TechArticle` matches `<html lang>`.
    */
   inLanguage?: string;
+  /**
+   * Representative image, absolute URL. Defaults to `og-image.png` (1200×630),
+   * which is also what every TechArticle page passes as its `og:image`, so the
+   * two nodes agree.
+   *
+   * The default is site-wide because no per-guide rule covers every page — the
+   * poster inventory and the measurements behind that are in
+   * JSON_LD_SCHEMA.md § The guides' `image`, kept in ONE place so the two
+   * cannot drift. Pass an explicit image to override.
+   */
+  image?: string;
 }
 
 /** Build the `TechArticle` node for one onboarding guide. */
@@ -141,6 +153,7 @@ export function mcpGuideSchema(guide: McpGuideSchemaInput) {
     datePublished: guide.datePublished,
     dateModified: guide.dateModified,
     inLanguage: guide.inLanguage ?? 'en',
+    image: guide.image ?? `${SITE}/og-image.png`,
     about: { '@id': MCP_SERVER_ID },
     isPartOf: { '@type': 'WebSite', name: 'GST', url: `${SITE}/` },
     publisher: PUBLISHER,
