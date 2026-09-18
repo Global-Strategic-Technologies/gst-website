@@ -252,7 +252,7 @@ TypeScript utility module providing type-safe event tracking functions:
 | `mcp_trial_signup`    | the trial form succeeds                                               | `outcome`: `issued` / `reissued`; `duration_ms`, `mint_ms`                 | conversion  |
 | `mcp_trial_refused`   | the Worker refuses a signup                                           | `reason`: `bot` / `rate` / `expired` / `unavail`; `duration_ms`, `mint_ms` |             |
 
-`mcp_guide_view` is a page view for the whole family despite its name — filter `page` to the guides (`get-started`, `using`, `advanced-operations`) when counting guide reads. `mcp_trial_refused` is its own event, never an `outcome` on `mcp_trial_signup`, because GA4 key events match on the event name: a refusal carried there would count as a lead. It is not a key event; it measures demand turned away (a network that already used its trial reports `expired`). It counts refused **attempts**, not visitors — each manual retry after a `bot` or `unavail` refusal sends another.
+`mcp_guide_view` is a page view for the whole family despite its name — filter `page` to the guides (`get-started`, `using`, `advanced-operations`) when counting guide reads. `mcp_trial_refused` is its own event, never an `outcome` on `mcp_trial_signup`, because GA4 key events match on the event name: a refusal carried there would count as a lead. It is not a key event; it measures demand turned away. **`expired` only fires once a network's trial has actually ENDED** — a repeat signup while the trial is still live is re-issued, not refused (see § Key events), so `mcp_trial_refused` cannot be produced on demand and has no observed production evidence yet. It counts refused **attempts**, not visitors — each manual retry after a `bot` or `unavail` refusal sends another.
 
 **The two trial timing params (BL-164)** are built by `signupTimings` in `src/utils/trial-signup-core.ts` and measure the spans the page's own constants govern: `duration_ms` runs from the moment the verifying state opens — before Turnstile is even fetched, which is where `LONG_VERIFY_MS`'s timer starts — to the moment credentials or an error render; `mint_ms` covers the `POST /trial/signup` through its body parse, which is what `MINT_TIMEOUT_MS`'s `AbortSignal` bounds. **`duration_ms - mint_ms` is the Turnstile load + solve**, the part the Worker's own AE `duration_ms` cannot see because that one times only the handler. A span whose marks are missing is omitted rather than sent as `0` — a refusal before the fetch carries `duration_ms` alone — so **report these as averages over events where the param is present, not over all signups.**
 
@@ -387,13 +387,17 @@ Google Analytics Servers
 
 Declared in GA4 as key events (Admin → Events → mark as key event), and written down here so a campaign report and the property agree. Decided for the MCP launch (BL-152 Slice 0, 2026-09-14):
 
-| Key event             | What it means                                           | Where it fires          |
-| --------------------- | ------------------------------------------------------- | ----------------------- |
-| `mcp_request_access`  | a lead: the request-access mailto was clicked           | `/hub/mcp/`             |
-| `mcp_trial_signup`    | a lead: a self-serve trial credential was issued        | `/hub/mcp/trial/`       |
-| `booking_confirmed`   | a lead: a consultation was booked (advisory funnel)     | `/booking-confirmed/`   |
-| `mcp_endpoint_copied` | install intent: the endpoint URL or a credential copied | every `/hub/mcp/*` page |
-| `mcp_guide_complete`  | guide depth: a guide was read to its gateway block      | the three guides        |
+| Key event             | What it means                                                                          | Where it fires          |
+| --------------------- | -------------------------------------------------------------------------------------- | ----------------------- |
+| `mcp_request_access`  | a lead: the request-access mailto was clicked                                          | `/hub/mcp/`             |
+| `mcp_trial_signup`    | a lead: a self-serve trial credential was issued — **counts re-issues too, see below** | `/hub/mcp/trial/`       |
+| `booking_confirmed`   | a lead: a consultation was booked (advisory funnel) — **not yet markable, see below**  | `/booking-confirmed/`   |
+| `mcp_endpoint_copied` | install intent: the endpoint URL or a credential copied                                | every `/hub/mcp/*` page |
+| `mcp_guide_complete`  | guide depth: a guide was read to its gateway block                                     | the three guides        |
+
+**`mcp_trial_signup` overstates distinct leads, and by design.** A visitor whose trial is still live and who signs up again does not get refused — the handler rotates the secret on their existing client and returns `outcome: reissued` (the previous credential is revoked at that moment). The event fires either way, so as a key event it counts a returning visitor a second time. **Segment by `outcome` whenever you read it as a lead count**: `issued` is a new trial, `reissued` is the same network coming back. The raw key-event number is an upper bound on trials and a lower bound on demand — it double-counts returns while missing everyone who abandoned mid-verification (BL-152 Slice 0).
+
+**Marked in the property 2026-09-17** (verified by walking the family in DebugView): `mcp_request_access`, `mcp_endpoint_copied`, `mcp_trial_signup`, `mcp_guide_complete`. **`booking_confirmed` is not yet markable** — it has fired once ever, so GA4 has not processed it into Admin → Events; star it once it appears, which needs no code change. Three GA4 default key events (`close_convert_lead`, `purchase`, `qualify_lead`) are also marked and were left alone: the site never sends them, all three report "No stream data detected", and at zero they cannot affect what Ads optimises for. `cta_click`, `scroll` and `dm_generate` were confirmed **unmarked**.
 
 The rule: **if a key event cannot be seen in DebugView from a real click before a campaign starts, it is not a conversion** (ANALYTICS_TESTING.md § Debugging GA Events). **Nothing else is a key event.** `cta_click`, `scroll` and `dm_generate` were found marked in the property (2026-09-17) and are unmarked by operator ruling: engagement counted as conversions inflates what Google Ads imports and optimises for. `booking_confirmed` fires on any load of `/booking-confirmed/` — a direct visit counts — so exclude known test visits from reports.
 
