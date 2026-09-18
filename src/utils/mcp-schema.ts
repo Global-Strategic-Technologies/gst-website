@@ -127,6 +127,19 @@ export interface McpGuideSchemaInput {
    * passes its locale code so the `TechArticle` matches `<html lang>`.
    */
   inLanguage?: string;
+  /**
+   * Representative image, absolute URL. Defaults to the site OG image, which
+   * is the **deliberate** choice rather than each guide's own clip poster:
+   * Google's Article guidance wants ≥1200px wide, and the posters measure
+   * 960×880 (get-started), 1000×780 and 800×1000 (using) — only two of the six
+   * clear the bar, and `advanced-operations` has no poster at all. A per-guide
+   * image would therefore trade a missing-field warning for a too-small-image
+   * one on most pages. `og-image.png` is 1200×630, and using it keeps the
+   * `image` node and the page's own `og:image` (SEO.astro) in agreement.
+   *
+   * Pass one explicitly when a guide gains a ≥1200px image of its own.
+   */
+  image?: string;
 }
 
 /** Build the `TechArticle` node for one onboarding guide. */
@@ -141,6 +154,7 @@ export function mcpGuideSchema(guide: McpGuideSchemaInput) {
     datePublished: guide.datePublished,
     dateModified: guide.dateModified,
     inLanguage: guide.inLanguage ?? 'en',
+    image: guide.image ?? `${SITE}/og-image.png`,
     about: { '@id': MCP_SERVER_ID },
     isPartOf: { '@type': 'WebSite', name: 'GST', url: `${SITE}/` },
     publisher: PUBLISHER,

@@ -656,6 +656,23 @@ Describes the GST MCP Server to crawlers as one product with three page kinds: t
 
 The hub tools are `WebApplication` because they run in the browser. The MCP server is a remote service a visitor connects a client to; nothing runs on the page. `operatingSystem` is `Any` for the same reason. The application node carries a stable `@id` (`https://globalstrategic.tech/hub/mcp/#software`) so the guides' `about` resolves to it across pages.
 
+### The guides' `image`, and why it is the site OG image
+
+Every `TechArticle` carries `image`, defaulting to `https://globalstrategic.tech/og-image.png`
+(1200×630). Google's Article guidance wants a representative image **at least 1200px wide**, and the
+guides' own clip posters do not clear that bar: `add-connector-claudeai` is 960×880, `oauth-consent`
+800×1000, `prompts-resources` 1000×780, `connector-enabled` 1000×952 — only `regulations-query`
+(1384×730) and `connector-enabled-claudeai` (1200×760) qualify, and `/hub/mcp/advanced-operations/`
+has no poster at all. Per-guide posters would therefore trade a missing-field warning for a
+too-small-image one on most pages, while the OG image also keeps the `image` node in agreement with
+the page's own `og:image` (`SEO.astro`). **`mcpGuideSchema()` takes an `image` override** — pass one
+the day a guide gains a ≥1200px image of its own.
+
+Measured 2026-09-18; re-measure rather than trusting these figures if the posters are re-encoded.
+
+**This is a recommended-field warning, not an error.** `TechArticle` is not eligible for an image
+rich result, so nothing was broken before and nothing renders differently now.
+
 ### What is deliberately absent
 
 No `offers` block and no `isAccessibleForFree`. Access is tiered and the commercial terms are not published, so an `offers` block would have nothing true to say; and the free 3-day trial (BL-155) is bounded and one-per-network, not free access to the application, so `isAccessibleForFree` would overstate it. The unit test asserts the absence.

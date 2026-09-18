@@ -130,6 +130,24 @@ describe('mcpGuideSchema — TechArticle about the server node', () => {
     dateModified: '2026-09-02',
   });
 
+  it('carries an image, defaulting to the 1200x630 site OG image', () => {
+    // Google's Article guidance wants >=1200px wide; the guides' own clip
+    // posters measure 960-1000px, so the OG image is the default on purpose.
+    expect(guide.image).toBe('https://globalstrategic.tech/og-image.png');
+  });
+
+  it('takes an explicit image over the default', () => {
+    const withImage = mcpGuideSchema({
+      headline: 'Test guide',
+      description: 'A guide for testing',
+      url: 'https://globalstrategic.tech/hub/mcp/test/',
+      datePublished: '2026-08-27',
+      dateModified: '2026-09-02',
+      image: 'https://globalstrategic.tech/images/hub/mcp/wide-enough.webp',
+    });
+    expect(withImage.image).toBe('https://globalstrategic.tech/images/hub/mcp/wide-enough.webp');
+  });
+
   it('points its about at the SoftwareApplication @id', () => {
     expect(guide['@type']).toBe('TechArticle');
     expect(guide.about).toEqual({ '@id': MCP_SERVER_ID });
@@ -181,11 +199,25 @@ describe('copy rules over the literals the helpers add', () => {
   });
 
   it('emits only trailing-slash page URLs (vercel.json canonicalization)', () => {
+    // ASSET urls are excluded, not exempted: `image` points at og-image.png,
+    // and a file must not gain a trailing slash. The discriminator is an
+    // extension on the last segment, so a PAGE that lost its slash still
+    // fails here — which is what this guard is for.
+    const isAsset = (u: string) => /\.[a-z0-9]{2,5}$/i.test(new URL(u).pathname);
     const pageUrls = strings.filter(
-      (s) => s.startsWith('https://globalstrategic.tech/') && !s.includes('#')
+      (s) => s.startsWith('https://globalstrategic.tech/') && !s.includes('#') && !isAsset(s)
     );
     expect(pageUrls.length).toBeGreaterThan(0);
     expect(pageUrls.filter((u) => !u.endsWith('/'))).toEqual([]);
+  });
+
+  it('the asset exclusion above does not swallow a slash-less page URL', () => {
+    // Mutation check on the discriminator: without it, the guard would be
+    // vacuous the moment someone emitted `/hub/mcp/docs` with no extension.
+    const isAsset = (u: string) => /\.[a-z0-9]{2,5}$/i.test(new URL(u).pathname);
+    expect(isAsset('https://globalstrategic.tech/og-image.png')).toBe(true);
+    expect(isAsset('https://globalstrategic.tech/hub/mcp/docs')).toBe(false);
+    expect(isAsset('https://globalstrategic.tech/hub/mcp/docs/')).toBe(false);
   });
 });
 
