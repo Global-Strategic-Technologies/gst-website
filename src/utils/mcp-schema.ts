@@ -17,7 +17,8 @@
  *                              can point their `about` at the same node.
  *   - `mcpCapabilityListSchema()`  ItemList over every capability, each item
  *                              deep-linked to its contract pane on the reference.
- *   - `mcpGuideSchema()`       TechArticle for the three onboarding guides.
+ *   - `mcpGuideSchema()`       TechArticle for the four onboarding guides
+ *                              (three English media guides + localized from-code).
  *
  * `SoftwareApplication` rather than the hub tools' `WebApplication`: the server
  * is not a browser application. A visitor connects a client to it; nothing runs
@@ -128,16 +129,14 @@ export interface McpGuideSchemaInput {
    */
   inLanguage?: string;
   /**
-   * Representative image, absolute URL. Defaults to the site OG image, which
-   * is the **deliberate** choice rather than each guide's own clip poster:
-   * Google's Article guidance wants ≥1200px wide, and the posters measure
-   * 960×880 (get-started), 1000×780 and 800×1000 (using) — only two of the six
-   * clear the bar, and `advanced-operations` has no poster at all. A per-guide
-   * image would therefore trade a missing-field warning for a too-small-image
-   * one on most pages. `og-image.png` is 1200×630, and using it keeps the
-   * `image` node and the page's own `og:image` (SEO.astro) in agreement.
+   * Representative image, absolute URL. Defaults to `og-image.png` (1200×630),
+   * which is also what every TechArticle page passes as its `og:image`, so the
+   * two nodes agree.
    *
-   * Pass one explicitly when a guide gains a ≥1200px image of its own.
+   * The default is site-wide because no per-guide rule covers every page — the
+   * poster inventory and the measurements behind that are in
+   * JSON_LD_SCHEMA.md § The guides' `image`, kept in ONE place so the two
+   * cannot drift. Pass an explicit image to override.
    */
   image?: string;
 }
