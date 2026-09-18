@@ -261,6 +261,25 @@ readings are not a p50 — but the next re-measure should expect to move this co
 `MINT_TIMEOUT_MS` moves the other way: 1746 ms against a 15 s bound is ~8.6× of headroom, a second
 independent confirmation of the keep decision.
 
+#### Second reading (2026-09-17 ~19:38 property time, `outcome: reissued`)
+
+A repeat signup from the same network an hour later — a **re-issue**, i.e. a secret rotation on the
+existing client rather than a fresh mint:
+
+| span                   | ms       |
+| ---------------------- | -------- |
+| `duration_ms`          | 9166     |
+| `mint_ms`              | 1610     |
+| difference (Turnstile) | **7556** |
+
+Two instrumented readings now: Turnstile at 6375 ms and 7556 ms, `mint_ms` at 1746 ms and 1610 ms.
+**The shape is stable across both** — Turnstile is 78% and 82% of the wall clock, and the mint sits
+near 1.6–1.7 s including flight. Still n=2, so still no tuning; but the two agree with each other far
+more closely than either agrees with `LONG_VERIFY_MS`'s 2500 ms, which both exceed by more than 3×.
+
+Note the outcome: a re-issue does the same Turnstile work as a mint, so it is a valid latency sample
+for this purpose even though it is not a new trial.
+
 #### Re-measure trigger
 
 **At n ≥ 10 `minted` events, or as soon as GA4 reports a `duration_ms` sample of comparable size,

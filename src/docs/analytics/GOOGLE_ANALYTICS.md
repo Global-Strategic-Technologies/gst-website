@@ -387,13 +387,17 @@ Google Analytics Servers
 
 Declared in GA4 as key events (Admin → Events → mark as key event), and written down here so a campaign report and the property agree. Decided for the MCP launch (BL-152 Slice 0, 2026-09-14):
 
-| Key event             | What it means                                           | Where it fires          |
-| --------------------- | ------------------------------------------------------- | ----------------------- |
-| `mcp_request_access`  | a lead: the request-access mailto was clicked           | `/hub/mcp/`             |
-| `mcp_trial_signup`    | a lead: a self-serve trial credential was issued        | `/hub/mcp/trial/`       |
-| `booking_confirmed`   | a lead: a consultation was booked (advisory funnel)     | `/booking-confirmed/`   |
-| `mcp_endpoint_copied` | install intent: the endpoint URL or a credential copied | every `/hub/mcp/*` page |
-| `mcp_guide_complete`  | guide depth: a guide was read to its gateway block      | the three guides        |
+| Key event             | What it means                                                                          | Where it fires          |
+| --------------------- | -------------------------------------------------------------------------------------- | ----------------------- |
+| `mcp_request_access`  | a lead: the request-access mailto was clicked                                          | `/hub/mcp/`             |
+| `mcp_trial_signup`    | a lead: a self-serve trial credential was issued — **counts re-issues too, see below** | `/hub/mcp/trial/`       |
+| `booking_confirmed`   | a lead: a consultation was booked (advisory funnel)                                    | `/booking-confirmed/`   |
+| `mcp_endpoint_copied` | install intent: the endpoint URL or a credential copied                                | every `/hub/mcp/*` page |
+| `mcp_guide_complete`  | guide depth: a guide was read to its gateway block                                     | the three guides        |
+
+**`mcp_trial_signup` overstates distinct leads, and by design.** A visitor whose trial is still live and who signs up again does not get refused — the handler rotates the secret on their existing client and returns `outcome: reissued` (the previous credential is revoked at that moment). The event fires either way, so as a key event it counts a returning visitor a second time. **Segment by `outcome` whenever you read it as a lead count**: `issued` is a new trial, `reissued` is the same network coming back. The raw key-event number is an upper bound on trials and a lower bound on demand — it double-counts returns while missing everyone who abandoned mid-verification (BL-152 Slice 0).
+
+**Marked in the property 2026-09-17** (verified by walking the family in DebugView): `mcp_request_access`, `mcp_endpoint_copied`, `mcp_trial_signup`, `mcp_guide_complete`. **`booking_confirmed` is not yet markable** — it has fired once ever, so GA4 has not processed it into Admin → Events; star it once it appears, which needs no code change. Three GA4 default key events (`close_convert_lead`, `purchase`, `qualify_lead`) are also marked and were left alone: the site never sends them, all three report "No stream data detected", and at zero they cannot affect what Ads optimises for. `cta_click`, `scroll` and `dm_generate` were confirmed **unmarked**.
 
 The rule: **if a key event cannot be seen in DebugView from a real click before a campaign starts, it is not a conversion** (ANALYTICS_TESTING.md § Debugging GA Events). **Nothing else is a key event.** `cta_click`, `scroll` and `dm_generate` were found marked in the property (2026-09-17) and are unmarked by operator ruling: engagement counted as conversions inflates what Google Ads imports and optimises for. `booking_confirmed` fires on any load of `/booking-confirmed/` — a direct visit counts — so exclude known test visits from reports.
 
