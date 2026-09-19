@@ -14,6 +14,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { KVNamespace } from '@cloudflare/workers-types';
 import {
   createM2mClient,
+  listM2mClients,
   rotateM2mSecret,
   splitClientCredential,
   updateM2mClient,
@@ -21,6 +22,23 @@ import {
   M2M_CLIENT_KEY_PREFIX,
   REAP_GRACE_SECONDS,
 } from '../../../src/oauth/m2m-clients';
+
+describe('listM2mClients (BL-154 — follows list() pagination)', () => {
+  it('merges every page: KV may end a page early at any size, so one list() call truncates', async () => {
+    const { kv, store } = mockKv({ pageSize: 2 });
+    for (const name of ['a', 'b', 'c', 'd', 'e']) {
+      await createM2mClient(kv, { name, allowedScopes: ['tool:*'] });
+    }
+    store.set('mcp:oauth:other:ignored', '{}'); // outside the prefix
+    const names = (await listM2mClients(kv)).map((r) => r.name).sort();
+    expect(names).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(kv.list).toHaveBeenCalledTimes(3); // 2 + 2 + 1
+    expect((kv.list as ReturnType<typeof vi.fn>).mock.calls[1]![0]).toMatchObject({
+      prefix: M2M_CLIENT_KEY_PREFIX,
+      cursor: expect.any(String),
+    });
+  });
+});
 
 describe('rotateM2mSecret (BL-155 Slice 2 — re-issue on the same record)', () => {
   const NOW_R = Date.parse('2026-09-06T12:00:00.000Z');
@@ -82,13 +100,29 @@ describe('splitClientCredential (BL-155 Slice 2b — shared first-colon split)',
 
 type PutOptions = { expiration?: number; expirationTtl?: number } | undefined;
 
-function mockKv() {
+/**
+ * In-memory KV. `list()` pages `pageSize` keys at a time with an opaque
+ * cursor, the shape Workers KV documents (`list_complete` + `cursor`).
+ */
+function mockKv({ pageSize = 1000 }: { pageSize?: number } = {}) {
   const store = new Map<string, string>();
   const puts: Array<{ key: string; options: PutOptions }> = [];
   const kv = {
     get: vi.fn(async (key: string, type?: string) => {
       const v = store.get(key) ?? null;
       return type === 'json' && v !== null ? JSON.parse(v) : v;
+    }),
+    list: vi.fn(async ({ prefix = '', cursor }: { prefix?: string; cursor?: string }) => {
+      const all = [...store.keys()].filter((k) => k.startsWith(prefix)).sort();
+      const start = cursor ? Number(cursor) : 0;
+      const page = all.slice(start, start + pageSize);
+      const next = start + pageSize;
+      const list_complete = next >= all.length;
+      return {
+        keys: page.map((name) => ({ name })),
+        list_complete,
+        ...(list_complete ? {} : { cursor: String(next) }),
+      };
     }),
     put: vi.fn(async (key: string, value: string, options?: PutOptions) => {
       store.set(key, value);

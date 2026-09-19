@@ -7,10 +7,16 @@
 
 export interface ProbeSurface {
   readonly name: string;
-  readonly kind: 'http-get' | 'tool';
+  readonly kind: 'http-get' | 'http-post-form' | 'tool';
   readonly path?: string;
   readonly args?: Record<string, unknown>;
+  /** `http-post-form` only: the urlencoded body, built per call. */
+  readonly body?: () => string;
+  /** Statuses that count as an `ok` sample for this surface (e.g. an expected 401). */
+  readonly okStatuses?: readonly number[];
   readonly sla: boolean;
+  /** Never part of the scheduled set; reachable only via `--surfaces`. */
+  readonly adhoc?: boolean;
   readonly fixedSamples?: number;
 }
 
@@ -28,7 +34,23 @@ export interface ProbeSurfaceResult {
   readonly stats: ProbeStats;
 }
 
+export interface TimedCallResult {
+  readonly outcome: string;
+  readonly latencyMs: number | null;
+  readonly detail?: string;
+}
+
 export declare const PROBE_SURFACES: readonly ProbeSurface[];
+export declare function selectSurfaces(
+  names: readonly string[] | null | undefined,
+  surfaces?: readonly ProbeSurface[]
+): ProbeSurface[];
+export declare function surfaceNeedsAuth(surface: ProbeSurface): boolean;
+export declare function timedCall(
+  surface: ProbeSurface,
+  ctx: { mcpUrl: string; mcpKey?: string; id: number },
+  fetchImpl?: typeof fetch
+): Promise<TimedCallResult>;
 export declare function buildToolCallBody(
   name: string,
   args: Record<string, unknown>,

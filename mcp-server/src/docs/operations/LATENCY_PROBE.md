@@ -41,13 +41,30 @@ node mcp-server/scripts/probe-latency.mjs --region-label gru --samples 10 --out 
 
 `--region-label` stamps the output so runs from different geographies are comparable. **This is how the BL-033 AC's per-pilot-region measurement gets made**: when a pilot client's region is known, run the script from a machine there (or a runner in that region) and compare against the CI's `github-us` baseline. The remediation decision (move Upstash / add a KV layer / region-aware SLA — BACKLOG.md BL-033 § Pilot operations) is made from that data.
 
+## Ad-hoc surfaces (never scheduled)
+
+Surfaces flagged `adhoc: true` in `PROBE_SURFACES` are excluded from every run that does not name them, so the CI schedule never touches them; they are reached only with `--surfaces <a,b>`. They are **unauthenticated** — no `MCP_KEY` is needed when only ad-hoc surfaces are selected — so a run costs **no tier budget at all**, which is why a 600-request run is fine where the scheduled shape is capped. They carry their own `fixedSamples` (200) rather than widening the `--samples` cap, and a run samples the selected surfaces **round-robin** so a differential pair shares network conditions sample for sample.
+
+| Surface                     | What it exercises                                                                                                                                 | Expected status  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `token-unknown-client-cold` | `POST /token` (`grant_type=client_credentials`) with a fresh unknown `client_id` per call — exactly one `OAUTH_KV.get`, an origin miss every time | 401 (counted ok) |
+| `token-unknown-client-warm` | Same, one unknown id for the whole run — reads after the first hit KV's edge cache, the path a real mint takes                                    | 401 (counted ok) |
+| `server-json`               | `GET /server.json` — pure compute, the comparator                                                                                                 | 200              |
+
+The p50 gap between a token surface and `server-json` is the client-observed cost of the KV read on the M2M mint path. Added for [ADR-0036](../../../../src/docs/adr/0036-client-records-stay-in-kv.md), which records the 2026-09-19 numbers (warm ≈ +10 ms, cold ≈ +98 ms):
+
+```bash
+export MCP_URL=https://mcp-staging.globalstrategic.tech
+node mcp-server/scripts/probe-latency.mjs --surfaces token-unknown-client-cold,token-unknown-client-warm,server-json --region-label <where-you-are> --out probe.json
+```
+
 ## CI schedule & region caveat
 
 `latency-probe.yml` runs at `30 */6 * * *` — 30 minutes after the Worker's radar-refresh cron, so radar samples hit a warm cache (steady-state numbers; no Inoreader Zone-1 burn from cache misses). GitHub-hosted runners are **US-region**: the scheduled run is a continuous US-client baseline and regression tripwire, not a substitute for per-region measurement. The workflow is deliberately not a required status check.
 
 ## Budget math (change the cadence consciously)
 
-At the default cadence (4 runs/day × ~32 authenticated tool calls): ~130 general-tier calls/day (13% of the 1000/day per-key cap; 42/min burst is under the 60/min cap), ~8 radar calls/day (16% of 50/day), and roughly 600 Upstash rate-limiter commands/day against the shared 10k/day free-tier ceiling — the probe is effectively one more light operator. A max manual dispatch (`--samples 30` → ~92 sequential authenticated calls) can brush the 60/min sliding window on a fast connection; expect some `rate-limited` outcomes in that shape — they're shed from percentiles by design, not a defect. Full tier reference: [`RATE_LIMITS.md`](./RATE_LIMITS.md).
+At the default cadence (4 runs/day × ~32 authenticated tool calls): ~130 general-tier calls/day (13% of the 1000/day per-key cap; 42/min burst is under the 60/min cap), ~8 radar calls/day (16% of 50/day), and roughly 600 Upstash rate-limiter commands/day against the shared 10k/day free-tier ceiling — the probe is effectively one more light operator. A max manual dispatch (`--samples 30` → ~92 sequential authenticated calls) can brush the 60/min sliding window on a fast connection; expect some `rate-limited` outcomes in that shape — they're shed from percentiles by design, not a defect. Full tier reference: [`RATE_LIMITS.md`](./RATE_LIMITS.md). Ad-hoc surfaces are outside this math entirely: they authenticate as nobody and hit no limiter, so their 200-sample counts spend nothing.
 
 ## Operational notes
 
