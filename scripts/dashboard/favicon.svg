@@ -4,7 +4,7 @@
   <!-- Delta Triangle -->
   <path d="M32 12 L52 52 L12 52 Z"
         fill="none"
-        stroke="#00D9B5"
+        stroke="#05cd99"
         stroke-width="6"
         stroke-linejoin="miter"/>
 </svg>

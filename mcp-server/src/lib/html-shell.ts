@@ -33,7 +33,7 @@
  * The GST delta favicon as an inline `data:` URI `<link>` tag — the same
  * mark as the website's `public/favicon.svg` (teal delta, stroke 6).
  */
-export const FAVICON_LINK = `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 12 L52 52 L12 52 Z' fill='none' stroke='%2300D9B5' stroke-width='6' stroke-linejoin='miter'/%3E%3C/svg%3E">`;
+export const FAVICON_LINK = `<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 12 L52 52 L12 52 Z' fill='none' stroke='%2305cd99' stroke-width='6' stroke-linejoin='miter'/%3E%3C/svg%3E">`;
 
 /**
  * The website's metric-matched mono fallbacks (BL-144), inlined.
