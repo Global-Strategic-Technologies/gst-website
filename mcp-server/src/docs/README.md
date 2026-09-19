@@ -8,9 +8,10 @@ The docs are organized by **what** they describe — the system architecture, th
 
 ## Architecture
 
-| Area             | Doc                                  | What's there                                                                                                                                                                                          |
-| ---------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Architecture** | [`ARCHITECTURE.md`](ARCHITECTURE.md) | The maintained system reference: system shape, remote transport & request flow, auth/CORS/deploy topology, rate limiting & Inoreader budget, Resources/Prompts wiring, radar pipeline, observability. |
+| Area             | Doc                                                                  | What's there                                                                                                                                                                                          |
+| ---------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Architecture** | [`ARCHITECTURE.md`](ARCHITECTURE.md)                                 | The maintained system reference: system shape, remote transport & request flow, auth/CORS/deploy topology, rate limiting & Inoreader budget, Resources/Prompts wiring, radar pipeline, observability. |
+| **Estate map**   | [`src/docs/architecture/`](../../../src/docs/architecture/README.md) | The whole estate — this server and the website together — in five layers with cross-platform diagrams. Links this reference rather than redrawing it.                                                 |
 
 ## Capability surfaces
 
