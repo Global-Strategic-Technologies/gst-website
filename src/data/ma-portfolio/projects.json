@@ -35,7 +35,7 @@
       "DocuSign"
     ],
     "engagementType": "Technical Diligence",
-    "challenge": "A buy-side diligence on a fast-growing, HIPAA-regulated clinical logistics business whose thesis assumed the platform could absorb 3-5x case volume: the question was whether a configured Microsoft estate, an outsourced delivery model of roughly 1.1 vendor FTEs behind a single internal IT employee, and a heavily manual case lifecycle could carry that growth without disproportionate investment - and what the paused custom application was actually worth.",
+    "challenge": "A buy-side diligence on a fast-growing, HIPAA-regulated clinical logistics business whose thesis assumed the platform could absorb 3-5x case volume: the question was whether a configured Microsoft estate, an outsourced delivery model of roughly 1.1 vendor FTEs behind a single internal IT employee, and a heavily manual case lifecycle could carry that growth without disproportionate investment, and what the paused custom application was actually worth.",
     "solution": "The technology platform can carry the growth case; the operating model cannot. Core steps in the case lifecycle remain manual, so volume growth continues to add headcount rather than margin, and the funded roadmap covers only part of the automation required. Delivery capacity is thin and almost entirely outsourced. The custom client application is unlaunched and unfunded, and should not carry value in the price. Security and compliance controls are documented but not independently tested, leaving items to resolve before close.",
     "engagementCategory": "Buy-Side"
   },
