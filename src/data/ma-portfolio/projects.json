@@ -1,10 +1,87 @@
 [
   {
+    "id": "procure",
+    "codeName": "ProCure",
+    "industry": "Healthcare Logistics Services",
+    "theme": "Healthcare",
+    "summary": "Organ recovery and transplant logistics operator serving procurement organizations and transplant centers nationwide, running case management, ERP, and analytics on a configured all-Microsoft cloud estate alongside a paused custom client application.",
+    "arr": "$66M",
+    "arrNumeric": 66300000,
+    "currency": "USD",
+    "growthStage": "Scaling Growth",
+    "year": 2026,
+    "technologies": [
+      "Microsoft Dynamics 365 CRM",
+      "Dynamics 365 Business Central",
+      "Microsoft Dataverse",
+      "Power Automate",
+      "Power Platform / Power Portals",
+      "Microsoft Fabric",
+      "Azure Synapse",
+      "Azure Data Lake Storage",
+      "Power BI",
+      "C# / .NET (Azure App Service)",
+      "Angular + TypeScript",
+      "Azure Cosmos DB",
+      "Azure Blob Storage",
+      "Redis Cache",
+      "Azure AD B2C / Microsoft Entra ID",
+      "Azure Key Vault",
+      "Azure Monitor",
+      "Microsoft Intune",
+      "Microsoft Defender for Business",
+      "Google Maps API",
+      "RingCentral",
+      "DocuSign"
+    ],
+    "engagementType": "Technical Diligence",
+    "challenge": "A buy-side diligence on a fast-growing, HIPAA-regulated clinical logistics business whose thesis assumed the platform could absorb 3-5x case volume: the question was whether a configured Microsoft estate, an outsourced delivery model of roughly 1.1 vendor FTEs behind a single internal IT employee, and a heavily manual case lifecycle could carry that growth without disproportionate investment, and what the paused custom application was actually worth.",
+    "solution": "The technology platform can carry the growth case; the operating model cannot. Core steps in the case lifecycle remain manual, so volume growth continues to add headcount rather than margin, and the funded roadmap covers only part of the automation required. Delivery capacity is thin and almost entirely outsourced. The custom client application is unlaunched and unfunded, and should not carry value in the price. Security and compliance controls are documented but not independently tested, leaving items to resolve before close.",
+    "engagementCategory": "Buy-Side"
+  },
+  {
+    "id": "project-whistler",
+    "codeName": "Project Whistler",
+    "industry": "Healthcare IT / EMR Software",
+    "theme": "Healthcare",
+    "summary": "Canadian clinical and administrative electronic medical record platform serving roughly 25,000 providers across six provinces, delivered from a hybrid cloud and owned-data-centre footprint and migrating a Citrix-virtualized Java desktop client to browser-native streaming.",
+    "arr": "$67M",
+    "arrNumeric": 66600000,
+    "currency": "USD",
+    "growthStage": "Legacy System",
+    "year": 2026,
+    "technologies": [
+      "Java desktop client",
+      "Citrix Workspace",
+      "Webswing",
+      "Microsoft SQL Server",
+      "Microsoft Azure (Canada Central/East)",
+      "Azure Kubernetes Service",
+      "Azure Service Bus",
+      "Azure API Management",
+      "SmileCDR (FHIR)",
+      "Qvera Interface Engine (HL7)",
+      "Okta",
+      "Microsoft Entra ID",
+      "Azure AD B2C",
+      "Terraform + Terragrunt",
+      "Flux + ArgoCD",
+      "GitHub Actions / Azure DevOps / Jenkins",
+      "VMware",
+      "CrowdStrike Falcon",
+      "VMware Carbon Black"
+    ],
+    "engagementType": "Technical Diligence",
+    "challenge": "A first-impressions diligence on a carve-out EMR business whose cost thesis rested on three unvalidated claims: that a ~234-FTE product and technology organization was oversized, that retiring Citrix for an in-house browser-streaming stack would yield a C$4M annual saving from 2028, and that a hybrid Azure/data-centre estate held material optimization headroom, all assessed from a data room and a single one-hour management demo.",
+    "solution": "The cost thesis is not yet supported by the evidence. The projected savings from retiring the legacy desktop delivery model omit the replacement infrastructure and licensing that offset them, so the net benefit is unproven. The engineering organization is plausibly oversized, but most of its capacity is absorbed by maintenance and manual quality work, and the disclosed data cannot size a sustainable reduction. Remaining exposure sits in legacy deprecation, fragmented identity, deferred resilience testing, open security remediation, and carve-out costs currently borne by the parent, framed as five priorities for post-LOI diligence.",
+    "engagementCategory": "Buy-Side"
+  },
+  {
     "id": "sanfran",
     "codeName": "SanFran",
     "industry": "Retail Operations SaaS",
     "theme": "Retail",
-    "summary": "Retail operating-intelligence platform spanning workforce management, task and retail-ops execution, and employee engagement, emerging from a two-product platform unification and pivoting from workflow software toward an agentic AI decision layer for store performance — labor deployment, task prioritization, manager coaching, and store intervention.",
+    "summary": "Retail operating-intelligence platform spanning workforce management, task and retail-ops execution, and employee engagement, emerging from a two-product platform unification and pivoting from workflow software toward an agentic AI decision layer for store performance: labor deployment, task prioritization, manager coaching, and store intervention.",
     "arr": "$25M",
     "arrNumeric": 25000000,
     "currency": "USD",
@@ -25,8 +102,8 @@
       "MCP"
     ],
     "engagementType": "Value Creation",
-    "challenge": "A PE-backed retail SaaS platform exiting a consuming two-product unification with a strong directional AI thesis but pre-execution reality: analytics running live against transactional SQL Server with no warehouse, star schema, semantic layer, or data engineers; ~500 runtime KPI functions and a custom C# reporting engine blocking cloud-database migration; SDLC velocity unmeasured with QA as a downstream gate; and product judgment concentrated in a single strategist. The mandate: chart the company-level AI and data strategy that converts fifteen years of operating data into a defensible decision layer — and present investors one funded execution story rather than a backlog.",
-    "solution": "Delivered a standalone AI and data strategy assessment and path forward: a current-state diagnosis across four postures (AI strategy coherent but pre-execution, data architecture directional, engineering transitional, org at-risk); an evidence-based competitive benchmark of seven workforce-management vendors built on eight expert interviews, showing the highest-value capability gaps — KPI-to-recommendation, conversational task creation, data explainability — still open market-wide and precisely the ones an agentic layer can own; four guiding policies (own the closed loop, build the evidence base, shift the SDLC left, unify the operating model); a six-layer agentic platform architecture with a proprietary operating-memory intelligence layer as the moat; and seventeen shovel-ready initiatives across quick wins and foundational bets, each mapped to five value-creation levers with a committed six-initiative core, quantified against a $2.8M/yr technical-debt drag absorbing ~12.6 engineering FTEs. Included go-forward org design, data-warehouse and agentic-vendor landscape evaluation, a risk register, and a three-horizon roadmap sequenced against the platform-unification milestone.",
+    "challenge": "A PE-backed retail SaaS platform exiting a consuming two-product unification with a strong directional AI thesis but pre-execution reality: analytics running live against transactional SQL Server with no warehouse, star schema, semantic layer, or data engineers; ~500 runtime KPI functions and a custom C# reporting engine blocking cloud-database migration; SDLC velocity unmeasured with QA as a downstream gate; and product judgment concentrated in a single strategist. The mandate: chart the company-level AI and data strategy that converts fifteen years of operating data into a defensible decision layer, and present investors one funded execution story rather than a backlog.",
+    "solution": "Delivered a standalone AI and data strategy assessment and path forward: a current-state diagnosis across four postures (AI strategy coherent but pre-execution, data architecture directional, engineering transitional, org at-risk); an evidence-based competitive benchmark of seven workforce-management vendors built on eight expert interviews, showing the highest-value capability gaps (KPI-to-recommendation, conversational task creation, data explainability) still open market-wide and precisely the ones an agentic layer can own; four guiding policies (own the closed loop, build the evidence base, shift the SDLC left, unify the operating model); a six-layer agentic platform architecture with a proprietary operating-memory intelligence layer as the moat; and seventeen shovel-ready initiatives across quick wins and foundational bets, each mapped to five value-creation levers with a committed six-initiative core, quantified against a $2.8M/yr technical-debt drag absorbing ~12.6 engineering FTEs. Included go-forward org design, data-warehouse and agentic-vendor landscape evaluation, a risk register, and a three-horizon roadmap sequenced against the platform-unification milestone.",
     "engagementCategory": "Sell-Side"
   },
   {
@@ -54,7 +131,7 @@
     ],
     "engagementType": "Technical Diligence",
     "challenge": "Pre-LOI first-impressions diligence: identifying material risks in the target's security posture, infrastructure, and end-to-end customer data journey, and validating the AI strategy, its development methodology, and the measurable business outcomes attributed to it.",
-    "solution": "Found a genuinely AI-native platform — a mature, fully codified cloud estate whose parallelized ML processing runs at fixed cost per job, with per-job compute costs already reduced severalfold through software optimization and a contractually sound data flywheel granting training rights over all captured field data. Flagged that growth is constrained by human review capacity rather than compute, and that the material cost sits in the carve-out: parent-provided cloud accounts, identity, and security tooling exit at close and must be rebuilt as a standalone program, resilience beyond the primary deployment remains untested, and model-reliability claims were management-asserted pending independent third-party verification.",
+    "solution": "Found a genuinely AI-native platform: a mature, fully codified cloud estate whose parallelized ML processing runs at fixed cost per job, with per-job compute costs already reduced severalfold through software optimization and a contractually sound data flywheel granting training rights over all captured field data. Flagged that growth is constrained by human review capacity rather than compute, and that the material cost sits in the carve-out: parent-provided cloud accounts, identity, and security tooling exit at close and must be rebuilt as a standalone program, resilience beyond the primary deployment remains untested, and model-reliability claims were management-asserted pending independent third-party verification.",
     "engagementCategory": "Buy-Side"
   },
   {
@@ -62,7 +139,7 @@
     "codeName": "Granite",
     "industry": "Fund Administration Services",
     "theme": "Finance",
-    "summary": "Luxembourg-regulated fund administration and AIFM services provider running a fully outsourced, buy-not-build technology estate — commercial platforms consolidating onto SimCorp Domos, hosted in a CSSF-supervised dual Tier IV private cloud with no internal engineering function.",
+    "summary": "Luxembourg-regulated fund administration and AIFM services provider running a fully outsourced, buy-not-build technology estate: commercial platforms consolidating onto SimCorp Domos, hosted in a CSSF-supervised dual Tier IV private cloud with no internal engineering function.",
     "arr": "$15M",
     "arrNumeric": 15000000,
     "currency": "USD",
@@ -97,7 +174,7 @@
     "arrNumeric": 12000000,
     "currency": "USD",
     "growthStage": "Scaling Growth",
-    "year": 2025,
+    "year": 2024,
     "technologies": [
       "PHP 7.4",
       "Yii Framework",
@@ -627,7 +704,7 @@
     ],
     "engagementType": "Technical Diligence",
     "challenge": "Assessing whether a small-team, informal-SDLC SaaS platform built on a single multi-tenant SQL Server database and mixed legacy .NET versions can support the acquirer's expected revenue growth and enterprise-scale customers without disproportionate investment.",
-    "solution": "Confirmed that the cohesive Microsoft stack (C#/.NET/SQL Server/Azure Government Cloud) and stateless OAuth/OIDC identity layer provide a sound basis for scaling; identified targeted, low-complexity investments — managed-services migration, multi-tenant schema audit, read-replicas plus caching, .NET 8 consolidation, MVC pagination, full-scope third-party pen test, engineering-leader hire, and product management maturation — all absorbable by the acquirer's existing resources.",
+    "solution": "Confirmed that the cohesive Microsoft stack (C#/.NET/SQL Server/Azure Government Cloud) and stateless OAuth/OIDC identity layer provide a sound basis for scaling; identified targeted, low-complexity investments: managed-services migration, multi-tenant schema audit, read-replicas plus caching, .NET 8 consolidation, MVC pagination, full-scope third-party pen test, engineering-leader hire, and product management maturation, all absorbable by the acquirer's existing resources.",
     "engagementCategory": "Buy-Side"
   },
   {
@@ -1657,7 +1734,7 @@
     ],
     "engagementType": "Technical Diligence",
     "challenge": "Buy-side assessment of whether a lean mobile threat defense startup's hybrid-cloud architecture, SDLC, and organization can scale into an MTD suite for high-value C-Suite and government customers, despite immature DevOps, a single-region AWS footprint, and R&D running at 158% of revenue.",
-    "solution": "Validated the proprietary mobile forensic IP — Docker/Java/Python with PostgreSQL, Elasticsearch, and FastText ML models — as defensible and low-risk; flagged single-node Docker Compose, hard-coded HTTP endpoints, no HA/autoscaling, single European AWS region, manual releases, missing OSS/security scanning, and key-person risk across VP Engineering and VP Customer Success; priced remediation (Kubernetes refactor, SOC 2, annual pen testing, 4–8 FTE build-out) at $271k–$810k one-time plus $2M–$4M over five years.",
+    "solution": "Validated the proprietary mobile forensic IP (Docker/Java/Python with PostgreSQL, Elasticsearch, and FastText ML models) as defensible and low-risk; flagged single-node Docker Compose, hard-coded HTTP endpoints, no HA/autoscaling, single European AWS region, manual releases, missing OSS/security scanning, and key-person risk across VP Engineering and VP Customer Success; priced remediation (Kubernetes refactor, SOC 2, annual pen testing, 4–8 FTE build-out) at $271k–$810k one-time plus $2M–$4M over five years.",
     "engagementCategory": "Buy-Side"
   },
   {
@@ -1831,8 +1908,8 @@
       "Azure Functions"
     ],
     "engagementType": "Technical Assessment",
-    "challenge": "Pre-bid light-touch assessment of whether a single-tenant Azure data-integration SaaS is modern and scalable enough to back, how exposed it is to AI risk, and which organizational roles are missing — giving the investor conviction to lean in or pause on the bid.",
-    "solution": "Stack is not modern but serviceable and cost-efficient (infra 5.2% of revenue); single-tenant design is defensible for varied customer ontologies. Flagged missing IaC/CI/CD, automated QA, observability, and incident response; an emerging product and data strategy with no articulated AI roadmap; and key organizational gaps — DevOps leader, Cloud Data Architect, and interim CTO — to address before pursuing 5–10× scale.",
+    "challenge": "Pre-bid light-touch assessment of whether a single-tenant Azure data-integration SaaS is modern and scalable enough to back, how exposed it is to AI risk, and which organizational roles are missing, giving the investor conviction to lean in or pause on the bid.",
+    "solution": "Stack is not modern but serviceable and cost-efficient (infra 5.2% of revenue); single-tenant design is defensible for varied customer ontologies. Flagged missing IaC/CI/CD, automated QA, observability, and incident response; an emerging product and data strategy with no articulated AI roadmap; and key organizational gaps (DevOps leader, Cloud Data Architect, and interim CTO) to address before pursuing 5–10× scale.",
     "engagementCategory": "Buy-Side"
   }
 ]
