@@ -45,7 +45,7 @@ Named so the gap is visible, not to plan it:
 - Code ownership per workspace (website vs. server) and per surface (auth, IRL pipeline, design system).
 - An on-call rotation behind the SLO alert evaluator and the Sentry rules, which today page one person.
 - A change-advisory step for the payments rail once it takes money.
-- Documented handover: the `handover` skill and the archived initiative docs are the current substitute.
+- Documented handover: the archived initiative docs and the backlog's prune notes are the current substitute.
 
 ## Where this layer is bound
 

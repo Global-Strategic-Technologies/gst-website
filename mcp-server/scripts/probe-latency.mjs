@@ -117,6 +117,8 @@ const WARM_PROBE_CLIENT_ID = `m2m_probewarm${randomSuffix()}`;
  */
 export function selectSurfaces(names, surfaces = PROBE_SURFACES) {
   if (!names) return surfaces.filter((s) => !s.adhoc);
+  if (names.length === 0) throw new Error('--surfaces given but empty');
+  if (new Set(names).size !== names.length) throw new Error('--surfaces repeats a name');
   return names.map((name) => {
     const found = surfaces.find((s) => s.name === name);
     if (!found) throw new Error(`Unknown surface: ${name}`);

@@ -51,7 +51,7 @@ Surfaces flagged `adhoc: true` in `PROBE_SURFACES` are excluded from every run t
 | `token-unknown-client-warm` | Same, one unknown id for the whole run — reads after the first hit KV's edge cache, the path a real mint takes                                    | 401 (counted ok) |
 | `server-json`               | `GET /server.json` — pure compute, the comparator                                                                                                 | 200              |
 
-The p50 gap between a token surface and `server-json` is the client-observed cost of the KV read on the M2M mint path. Added for [ADR-0036](../../../../src/docs/adr/0036-client-records-stay-in-kv.md), which records the 2026-09-19 numbers (warm ≈ +10 ms, cold ≈ +98 ms):
+The p50 gap between a token surface and `server-json` is the client-observed cost of the KV read on the M2M mint path. In the `--out` JSON, `samplesPerSurface` is keyed by surface name, since ad-hoc surfaces carry their own count rather than `--samples`. Added for [ADR-0036](../../../../src/docs/adr/0036-client-records-stay-in-kv.md), which records the 2026-09-19 numbers (warm ≈ +10 ms, cold ≈ +98 ms):
 
 ```bash
 export MCP_URL=https://mcp-staging.globalstrategic.tech

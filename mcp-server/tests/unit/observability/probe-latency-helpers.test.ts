@@ -220,8 +220,10 @@ describe('selectSurfaces / surfaceNeedsAuth', () => {
     expect(picked.map((s) => s.name)).toEqual(['server-json', 'health']);
   });
 
-  it('an unknown surface name throws rather than probing nothing', () => {
+  it('an unknown, empty or repeated selection throws rather than probing nothing', () => {
     expect(() => selectSurfaces(['nope'])).toThrow(/Unknown surface: nope/);
+    expect(() => selectSurfaces([])).toThrow(/empty/);
+    expect(() => selectSurfaces(['health', 'health'])).toThrow(/repeats/);
   });
 
   it('only tools/call surfaces need the bearer', () => {
