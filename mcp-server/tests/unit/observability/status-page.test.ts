@@ -62,7 +62,7 @@ describe('buildStatusHtml', () => {
     expect(html).toContain('<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,');
     // The mark itself: the delta path from public/favicon.svg, minified.
     expect(html).toContain("d='M32 12 L52 52 L12 52 Z'");
-    expect(html).toContain('%2300D9B5');
+    expect(html).toContain('%2305cd99');
   });
 
   it('renders DEGRADED and STALE states', async () => {
