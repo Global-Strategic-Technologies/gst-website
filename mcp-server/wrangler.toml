@@ -67,7 +67,8 @@ dataset = "mcp_events_dev"
 # one-shot consent/jti nonces. Distinct from the Upstash MCP DB — the
 # library requires KV, and splitting auth state across two stores would
 # be worse than the single-substrate deviation (recorded at BL-033
-# AC:244 + ADR-0008).
+# AC:244 + ADR-0008). Reviewed under BL-154 → ADR-0036: the M2M client
+# record stays here; the indexes it lacks live in Upstash beside it.
 #
 # Top-level binding (staging namespace id) exists for `wrangler dev` runs;
 # local dev/miniflare simulates KV and never touches the remote namespace.
