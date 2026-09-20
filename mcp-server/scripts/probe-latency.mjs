@@ -341,6 +341,12 @@ async function probeSurfaces(surfaces, samples, ctx) {
       }
     }
   }
+  // Round-robin means no surface "finishes" until the last round, so the
+  // old per-surface progress line moved here: a 600-sample ad-hoc run is
+  // otherwise silent between the header and the summary table.
+  for (const a of acc) {
+    console.error(`[probe] ${a.surface.name} done — ${a.okLatencies.length}/${a.n} ok`);
+  }
   return acc.map((a) => ({
     name: a.surface.name,
     sla: a.surface.sla,
@@ -397,5 +403,12 @@ async function main() {
 // probe (same pattern as .claude/hooks/push-review-gate.mjs isMain guard).
 const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
 if (isMain) {
-  await main();
+  // selectSurfaces() throws on an unknown --surfaces name; without this an
+  // operator typo prints an unhandled-rejection stack instead of the message.
+  try {
+    await main();
+  } catch (err) {
+    console.error(`[probe] ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
 }
