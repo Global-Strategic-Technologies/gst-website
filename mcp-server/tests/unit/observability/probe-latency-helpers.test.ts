@@ -8,7 +8,7 @@
  * by the staging smoke in the PR verification, not by this suite.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   PROBE_SURFACES,
   buildToolCallBody,
@@ -18,6 +18,9 @@ import {
   percentile,
   readFirstSseEvent,
   renderSummaryTable,
+  selectSurfaces,
+  surfaceNeedsAuth,
+  timedCall,
 } from '../../../scripts/probe-latency.mjs';
 
 describe('buildToolCallBody', () => {
@@ -167,6 +170,103 @@ describe('PROBE_SURFACES contract', () => {
     for (const s of PROBE_SURFACES.filter((s) => s.sla)) {
       expect(s.name).not.toContain('radar');
     }
+  });
+
+  it('ad-hoc surfaces (BL-154) are non-SLA, unauthenticated, and absent from the scheduled set', () => {
+    const adhoc = PROBE_SURFACES.filter((s) => s.adhoc);
+    expect(adhoc.map((s) => s.name).sort()).toEqual([
+      'server-json',
+      'token-unknown-client-cold',
+      'token-unknown-client-warm',
+    ]);
+    for (const s of adhoc) {
+      expect(s.sla).toBe(false);
+      expect(surfaceNeedsAuth(s)).toBe(false);
+      expect(s.fixedSamples).toBe(200);
+    }
+    // The scheduled run (no --surfaces) never reaches them — CI invokes this
+    // script 4×/day, so the exclusion is a contract, not a convention.
+    const scheduled = selectSurfaces(null);
+    expect(scheduled.some((s) => s.adhoc)).toBe(false);
+    expect(scheduled.length).toBe(PROBE_SURFACES.length - adhoc.length);
+  });
+
+  it('the cold token surface posts a client_credentials body with a fresh unknown client id per call', () => {
+    const token = PROBE_SURFACES.find((s) => s.name === 'token-unknown-client-cold')!;
+    const a = new URLSearchParams(token.body!());
+    const b = new URLSearchParams(token.body!());
+    // grant_type is load-bearing: without it worker.ts delegates /token to
+    // the OAuth library and no OAUTH_KV read happens.
+    expect(a.get('grant_type')).toBe('client_credentials');
+    expect(a.get('client_id')).toMatch(/^m2m_probe/);
+    expect(a.get('client_id')).not.toBe(b.get('client_id'));
+    expect(token.okStatuses).toEqual([401]);
+  });
+
+  it('the warm token surface reuses one unknown client id for the whole run', () => {
+    const token = PROBE_SURFACES.find((s) => s.name === 'token-unknown-client-warm')!;
+    const a = new URLSearchParams(token.body!());
+    const b = new URLSearchParams(token.body!());
+    expect(a.get('grant_type')).toBe('client_credentials');
+    expect(a.get('client_id')).toMatch(/^m2m_probewarm/);
+    expect(a.get('client_id')).toBe(b.get('client_id'));
+    expect(token.okStatuses).toEqual([401]);
+  });
+});
+
+describe('selectSurfaces / surfaceNeedsAuth', () => {
+  it('--surfaces selects exactly the named surfaces, in the given order', () => {
+    const picked = selectSurfaces(['server-json', 'health']);
+    expect(picked.map((s) => s.name)).toEqual(['server-json', 'health']);
+  });
+
+  it('an unknown, empty or repeated selection throws rather than probing nothing', () => {
+    expect(() => selectSurfaces(['nope'])).toThrow(/Unknown surface: nope/);
+    expect(() => selectSurfaces([])).toThrow(/empty/);
+    expect(() => selectSurfaces(['health', 'health'])).toThrow(/repeats/);
+  });
+
+  it('only tools/call surfaces need the bearer', () => {
+    expect(surfaceNeedsAuth({ name: 'x', kind: 'tool', sla: true })).toBe(true);
+    expect(surfaceNeedsAuth({ name: 'x', kind: 'http-get', sla: true })).toBe(false);
+    expect(surfaceNeedsAuth({ name: 'x', kind: 'http-post-form', sla: false })).toBe(false);
+  });
+});
+
+describe('timedCall (raw HTTP kinds)', () => {
+  const ctx = { mcpUrl: 'https://example.test', id: 1 };
+
+  it('http-post-form sends a urlencoded POST and treats an expected 401 as ok', async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response('{"error":"invalid_client"}', { status: 401 })
+    );
+    const surface = PROBE_SURFACES.find((s) => s.name === 'token-unknown-client-cold')!;
+    const result = await timedCall(surface, ctx, fetchImpl as unknown as typeof fetch);
+    expect(result.outcome).toBe('ok');
+    expect(result.latencyMs).not.toBeNull();
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://example.test/token');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe(
+      'application/x-www-form-urlencoded'
+    );
+    expect(new URLSearchParams(String(init.body)).get('grant_type')).toBe('client_credentials');
+  });
+
+  it('a status outside okStatuses is still classified normally', async () => {
+    const fetchImpl = vi.fn(async () => new Response('', { status: 503 }));
+    const surface = PROBE_SURFACES.find((s) => s.name === 'token-unknown-client-cold')!;
+    const result = await timedCall(surface, ctx, fetchImpl as unknown as typeof fetch);
+    expect(result.outcome).toBe('circuit-open');
+  });
+
+  it('http-get without okStatuses classifies a 2xx as ok', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 200 }));
+    const surface = PROBE_SURFACES.find((s) => s.name === 'server-json')!;
+    const result = await timedCall(surface, ctx, fetchImpl as unknown as typeof fetch);
+    expect(result.outcome).toBe('ok');
+    const [url] = fetchImpl.mock.calls[0] as unknown as [string];
+    expect(url).toBe('https://example.test/server.json');
   });
 });
 

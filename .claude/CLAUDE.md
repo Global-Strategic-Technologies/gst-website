@@ -176,8 +176,8 @@ gst-website/
 │   ├── styles/                 # variables.css → typography → interactions → palettes →
 │   │   └── components/         #   global.css + extracted component modules
 │   ├── layouts/BaseLayout.astro
-│   ├── docs/                   # WEBSITE doc tree (adr/ analytics/ development/ hub/
-│   │                           #   operations/ security/ seo/ styles/ testing/)
+│   ├── docs/                   # WEBSITE doc tree (adr/ analytics/ architecture/ development/
+│   │                           #   hub/ operations/ security/ seo/ styles/ testing/)
 │   └── utils/                  # Engine modules for Hub tools (TechPar, ICG, Tech Debt)
 ├── mcp-server/                 # MCP SERVER workspace (@gst/mcp-server)
 │   ├── src/tools/ prompts/ resources/ schemas/ lib/ observability/ auth/ cache/
@@ -220,6 +220,7 @@ The `@gst/mcp-server` workspace has its **own** maintained doc tree — the webs
 
 - **MCP server docs home**: [mcp-server/src/docs/README.md](mcp-server/src/docs/README.md) — navigator for the server's internal doc surface (tools, resources, prompts, operations, testing)
 - **System architecture (maintained reference)**: [mcp-server/src/docs/ARCHITECTURE.md](mcp-server/src/docs/ARCHITECTURE.md) — system shape, remote transport & request flow, auth/CORS/deploy topology, rate limiting, radar pipeline, observability. Code comments cite its anchors — treat them as load-bearing
+- **Whole-estate architecture map**: [src/docs/architecture/README.md](src/docs/architecture/README.md) — website + MCP server in the five layers of the Business Architectures article (mermaid, that directory only — ADR-0037). A map, not a second territory: it links the maintained references above rather than redrawing them
 - **Architecture Decision Records**: [src/docs/adr/README.md](src/docs/adr/README.md) — load-bearing design decisions distilled from closed initiatives. **Making a new architectural decision? Write an ADR for it in the same PR** (see [adr/TEMPLATE.md](src/docs/adr/TEMPLATE.md))
 
 ### Developer Tooling (Lint, Format, Hooks, CI)

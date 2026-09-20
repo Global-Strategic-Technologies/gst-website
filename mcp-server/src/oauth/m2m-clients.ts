@@ -252,18 +252,29 @@ export async function getM2mClient(
   }
 }
 
+/**
+ * Full roster scan: one `list()` per page plus one `get()` per key. KV has
+ * no secondary index, so this is the only way to enumerate clients — the
+ * N+1 shape ADR-0036 records as the cost of keeping the record in KV.
+ * Pages are followed until `list_complete`; KV may end a page early at any
+ * size, so a single `list()` call silently truncated the roster (BL-154).
+ */
 export async function listM2mClients(kv: KVNamespace): Promise<M2mClientRecord[]> {
-  const listed = await kv.list({ prefix: M2M_CLIENT_KEY_PREFIX });
   const records: M2mClientRecord[] = [];
-  for (const key of listed.keys) {
-    const raw = await kv.get(key.name);
-    if (!raw) continue;
-    try {
-      records.push(JSON.parse(raw) as M2mClientRecord);
-    } catch {
-      /* skip corrupt record; admin list should not 500 on one bad row */
+  let cursor: string | undefined;
+  do {
+    const listed = await kv.list({ prefix: M2M_CLIENT_KEY_PREFIX, cursor });
+    for (const key of listed.keys) {
+      const raw = await kv.get(key.name);
+      if (!raw) continue;
+      try {
+        records.push(JSON.parse(raw) as M2mClientRecord);
+      } catch {
+        /* skip corrupt record; admin list should not 500 on one bad row */
+      }
     }
-  }
+    cursor = listed.list_complete ? undefined : listed.cursor;
+  } while (cursor);
   return records;
 }
 
