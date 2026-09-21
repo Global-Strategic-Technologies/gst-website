@@ -284,7 +284,7 @@ Repo skills in `.claude/skills/` (single `SKILL.md` with YAML frontmatter; keep 
 - **`master` is the trunk** — production-ready; every PR targets it directly
 - **Feature branches** cut from `master`, named with a CI-covered family prefix: `feat/`, `fix/`, `feature/`, `docs/`, `chore/` (these families are wired into the CI push-trigger lists — a new prefix family must be added there too, see DEVELOPER_TOOLING.md)
 - **`dev` is retired** (dormant since 2026-05-31) — do not branch from or merge to it
-- **Merge commits, never squash** — PR merges use "Create a merge commit"
+- **Merge commits, never squash** — PR merges use "Create a merge commit". **Enforced at the repo level since 2026-09-21** (squash and rebase merging are disabled in the repository settings). A squash rewrites SHAs, which strands any branch still holding the originals and produces conflicts with no real disagreement in them — see [DEVELOPER_TOOLING.md](src/docs/development/DEVELOPER_TOOLING.md) for the PR #503/#504 case
 - **Never `git push` without explicit user authorization** — an approved plan authorizes only the pushes it states; pushes are additionally gated by Directive 7
 
 ### PR Requirements
