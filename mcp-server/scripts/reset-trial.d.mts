@@ -20,9 +20,7 @@ export interface ResetTrialArgs {
 export declare function parseArgs(argv: string[]): ResetTrialArgs;
 
 /** Render the trial-only roster for `--list`. */
-export declare function renderTrialList(
-  clients: Array<Record<string, unknown>>
-): string;
+export declare function renderTrialList(clients: Array<Record<string, unknown>>): string;
 
 /** Render the confirm-me preview `--client` prints without `--yes`. */
 export declare function renderPreview(client: Record<string, unknown>, env: string): string;
