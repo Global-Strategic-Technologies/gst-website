@@ -376,11 +376,9 @@ function resetAllOverrides() {
 
 // ── Theme Observer ─────────────────────────────────────────
 
-/** Palette + theme: the only class changes that invalidate a colour edit. */
+/** The palette: the only class change that invalidates a colour edit. */
 function lookKey(): string {
-  const html = document.documentElement;
-  const palette = /\bpalette-(\d)\b/.exec(html.className)?.[1] ?? '0';
-  return `${palette}:${readState(html)}`;
+  return /\bpalette-(\d)\b/.exec(document.documentElement.className)?.[1] ?? '0';
 }
 let lastLookKey = lookKey();
 
@@ -389,9 +387,9 @@ new MutationObserver(() => {
   // frames and the panel alike — so the panel's theme buttons always show the
   // real state, not their own click history.
   syncThemeButtons();
-  // Colour edits persist across pages until the reader picks a different
-  // palette (or theme — an edit is a colour for one palette in one theme).
-  // Unrelated class changes, e.g. the popout toggle, must not wipe them.
+  // Colour edits persist across pages AND theme changes (operator decision,
+  // 2026-09-22) until the reader picks a different palette. Unrelated class
+  // changes, e.g. the popout or theme toggles, must not wipe them.
   const key = lookKey();
   if (key === lastLookKey) return;
   lastLookKey = key;
@@ -505,7 +503,6 @@ document.addEventListener('DOMContentLoaded', () => {
         level: 'warning',
       });
     }
-    resetAllOverrides();
   }
 
   // ── Shared action: toggle popout ────────────────────────

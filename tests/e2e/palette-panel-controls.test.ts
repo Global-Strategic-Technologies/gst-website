@@ -618,45 +618,31 @@ test.describe('Palette Panel Controls', () => {
       });
     }
 
-    test('should reset color overrides when theme is toggled', async ({ page }) => {
+    // Operator decision 2026-09-22: edits survive theme changes (panel and
+    // footer alike) and reset only on a palette change.
+    test('keeps color overrides when the theme is toggled', async ({ page }) => {
       await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
-      // Apply a color override
-      await page.evaluate(() => {
+      const varName = await page.evaluate(() => {
         const swatch = document.querySelector('.brand-swatch') as HTMLElement;
-        const picker = swatch.querySelector<HTMLInputElement>('.swatch-picker');
-        if (picker) {
-          picker.value = '#ff0000';
-          picker.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+        const picker = swatch.querySelector<HTMLInputElement>('.swatch-picker')!;
+        picker.value = '#ff0000';
+        picker.dispatchEvent(new Event('input', { bubbles: true }));
+        return swatch.dataset.var!;
       });
+      const inline = () =>
+        page.evaluate((n) => document.documentElement.style.getPropertyValue(n).trim(), varName);
+      await expect.poll(inline).toBe('#ff0000');
 
-      // Verify override is in place
-      await page.waitForFunction(
-        () => {
-          const swatch = document.querySelector<HTMLElement>('.brand-swatch');
-          return swatch?.dataset.userOverride === 'true';
-        },
-        { timeout: 10000 }
-      );
-
-      // Toggle theme
       await clickPanelButton(page, 'panel-theme-toggle');
-
-      // Wait for overrides to be cleared (resetAllOverrides is called by theme toggle)
-      await page.waitForFunction(
-        () => {
-          const swatch = document.querySelector<HTMLElement>('.brand-swatch');
-          const varName = swatch?.dataset.var;
-          if (!varName) return false;
-          return (
-            document.documentElement.style.getPropertyValue(varName) === '' &&
-            swatch?.dataset.userOverride !== 'true'
-          );
-        },
-        { timeout: 10000 }
+      await page.getByTestId('theme-toggle').click();
+      // Yield a task so the class MutationObserver has run before reading.
+      await page.evaluate(() => new Promise((r) => setTimeout(r)));
+      expect(await inline()).toBe('#ff0000');
+      expect(await page.evaluate(() => localStorage.getItem('palette-overrides'))).toContain(
+        '#ff0000'
       );
     });
   });
