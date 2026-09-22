@@ -547,6 +547,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ── Shared action: jump to Ambient Motion (BL-035) ──────
+  // The section sits below the tall swatch grids; this opens the panel if it
+  // is closed, scrolls the body to the section, and puts focus on its first
+  // toggle. It never closes the panel — the delta toggle does that.
+  function handleMotionJump(): void {
+    if (!panel || !panelBody) return;
+    if (!panel.classList.contains('is-open')) openPanel();
+    requestAnimationFrame(() => {
+      const section = document.getElementById('panel-motion-section');
+      if (!section) return;
+      // #panel-body is not positioned, so offsetTop would measure from the panel.
+      const top =
+        section.getBoundingClientRect().top -
+        panelBody.getBoundingClientRect().top +
+        panelBody.scrollTop;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      panelBody.scrollTo({ top, behavior: reduce ? 'auto' : 'smooth' });
+      section.querySelector<HTMLElement>('[data-ambient-effect]')?.focus({ preventScroll: true });
+    });
+  }
+
   // ── Wire desktop controls ───────────────────────────────
 
   // Panel toggle (edge strip delta button)
@@ -575,6 +596,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     popoutBtn.addEventListener('click', handlePopoutToggle);
   }
+
+  // Ambient Motion jump
+  document.getElementById('panel-motion-toggle')?.addEventListener('click', handleMotionJump);
 
   // Reset all button
   document.getElementById('reset-all')?.addEventListener('click', resetAllOverrides);
@@ -608,6 +632,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const nowPopped = document.documentElement.classList.contains('palette-popped-out');
         popoutLabel.textContent = nowPopped ? 'All Pages' : 'Brand Only';
       });
+    }
+
+    // Clone the Ambient Motion jump (middle position). Its "Motion" label is
+    // already in the markup (hidden on the desktop rail), so the clone keeps
+    // PalettePanel's scope attribute and its styles. The test id goes too, so
+    // getByTestId still names only the desktop button.
+    const motionClone = document.getElementById('panel-motion-toggle')?.cloneNode(true) as
+      HTMLElement | undefined;
+    if (motionClone) {
+      motionClone.removeAttribute('id');
+      motionClone.removeAttribute('data-testid');
+      mobileHeader.appendChild(motionClone);
+      motionClone.addEventListener('click', handleMotionJump);
     }
 
     // Clone theme toggle (right position)

@@ -181,10 +181,89 @@ test.describe('Ambient motion — homepage hero', () => {
     await expect(page.locator('.hero .ambient')).toHaveCount(0);
   });
 
-  test('the popped-out panel off /brand has no motion section', async ({ page }) => {
+  test('the popped-out panel on / carries the section, and it drives the real hero live', async ({
+    page,
+  }) => {
     await page.addInitScript(() => localStorage.setItem('palette-popped-out', 'true'));
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByTestId('palette-panel')).toBeAttached();
-    await expect(page.locator('#ambient-controls')).toHaveCount(0);
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await page.locator('#panel-motion-toggle').click();
+    await expect(page.locator('#palette-panel.is-open')).toBeAttached();
+    await page.getByTestId('ambient-chip-scan').click();
+    await expect(page.locator('.hero .ambient__layer--scan')).toBeVisible();
+    await expect(page.getByTestId('ambient-chip-scan')).toHaveClass(/brutal-choice-btn--selected/);
+  });
+
+  test('has no axe violations with the panel open on /', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('palette-popped-out', 'true'));
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await page.locator('#panel-motion-toggle').click();
+    await page.getByTestId('ambient-chip-glow').click();
+    const result = await checkA11y(page, { include: ['#palette-panel'] });
+    const blocking = [...result.critical, ...result.serious];
+    expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
+  });
+});
+
+test.describe('Ambient motion — the rail Motion button', () => {
+  /** True once the section's top edge lies inside the panel body's visible area. */
+  const sectionInView = (page: Page) =>
+    page.evaluate(() => {
+      const body = document.getElementById('panel-body')!.getBoundingClientRect();
+      const top = document.getElementById('panel-motion-section')!.getBoundingClientRect().top;
+      return top >= body.top - 1 && top < body.bottom;
+    });
+
+  test('opens the panel, scrolls to the section and focuses its first toggle', async ({ page }) => {
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    expect(await page.locator('#palette-panel').getAttribute('class')).not.toContain('is-open');
+    // On the desktop rail the button is icon-only.
+    await expect(page.locator('#panel-motion-toggle .palette-panel__motion-label')).toBeHidden();
+
+    await page.getByTestId('palette-motion-toggle').click();
+    await expect(page.locator('#palette-panel.is-open')).toBeAttached();
+    await expect.poll(() => sectionInView(page)).toBe(true);
+    await expect(page.getByTestId('ambient-chip-grid')).toBeFocused();
+  });
+
+  test('is lit only while an effect is on', async ({ page }) => {
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    const color = () =>
+      page.evaluate(() => getComputedStyle(document.getElementById('panel-motion-toggle')!).color);
+    const off = await color();
+    await page.getByTestId('palette-motion-toggle').click();
+    await page.getByTestId('ambient-chip-glow').click();
+    await expect.poll(color).not.toBe(off);
+    await page.getByTestId('ambient-chip-glow').click();
+    await expect.poll(color).toBe(off);
+  });
+
+  test('on a phone it sits in the open sheet, labelled, and jumps to the section', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await page.evaluate(() =>
+      document
+        .getElementById('panel-fab')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    );
+    await expect(page.locator('#palette-panel.is-open')).toBeAttached();
+
+    const clone = page.locator('#panel-mobile-header .palette-panel__motion');
+    await expect(clone).toHaveCount(1);
+    await expect(clone.locator('.palette-panel__motion-label')).toBeVisible();
+    await expect(clone.locator('.palette-panel__motion-label')).toHaveText('Motion');
+    const columns = await page.evaluate(
+      () => getComputedStyle(document.getElementById('panel-mobile-header')!).gridTemplateColumns
+    );
+    expect(columns.split(/\s+/).filter(Boolean)).toHaveLength(6);
+
+    await clone.click();
+    await expect.poll(() => sectionInView(page)).toBe(true);
   });
 });

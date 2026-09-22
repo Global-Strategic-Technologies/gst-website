@@ -3,27 +3,27 @@
  * The palette panel's Ambient Motion section body (BL-035, ADR-0039).
  *
  * Rendered by PalettePanel.astro inside its own `.palette-panel__section`
- * wrapper, on /brand only. Toggles and tunes the hero effect layer
+ * wrapper, wherever the panel appears (/brand, or any page once popped out);
+ * the rail's Motion button jumps here. Toggles and tunes the hero effect layer
  * (AmbientEffect.astro) through src/scripts/ambient-motion.ts; what is chosen
  * is saved for this browser under localStorage['ambient-motion'], separate
  * from colour edits, so neither Reset clears the other.
  *
- * The chips are `.brutal-filter-chip`, which lives in filter.css — a sheet
- * split out of global.css and imported by brand.astro, the only page that
- * renders this section. Moving the section to another page means importing
- * filter.css there too.
+ * Every class here must load site-wide, because so does the panel: the toggles
+ * are `.brutal-choice-btn` and the sliders `.brutal-slider*`, both form.css.
+ * Not `.brutal-filter-chip` — filter.css is code-split to four pages.
  */
 import DeltaIcon from '../DeltaIcon.astro';
 import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient-motion';
 ---
 
 <div id="ambient-controls" data-testid="ambient-controls">
-  <div class="brutal-filter-chips" role="group" aria-labelledby="ambient-controls-title">
+  <div class="ambient-controls__chips" role="group" aria-labelledby="ambient-controls-title">
     {
       EFFECTS.map((e) => (
         <button
           type="button"
-          class="brutal-filter-chip"
+          class="brutal-choice-btn"
           aria-pressed="false"
           data-ambient-effect={e.id}
           data-testid={`ambient-chip-${e.id}`}
@@ -106,6 +106,12 @@ import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient
 </div>
 
 <style>
+  .ambient-controls__chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: var(--spacing-sm);
+  }
+
   .ambient-controls__rows {
     margin-top: var(--spacing-md);
     padding-top: var(--spacing-sm);
@@ -261,7 +267,7 @@ import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient
       chips.forEach((chip) => {
         const on = settings.on.includes(chip.dataset.ambientEffect as EffectId);
         chip.setAttribute('aria-pressed', String(on));
-        chip.classList.toggle('brutal-filter-chip--active', on);
+        chip.classList.toggle('brutal-choice-btn--selected', on);
       });
       strengths.forEach((input) => {
         const id = input.dataset.ambientStrength as EffectId;

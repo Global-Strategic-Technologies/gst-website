@@ -4,7 +4,7 @@
  *
  * Renders all five effect layers, each `display: none` until <html> names it
  * in `data-ambient` (set before first paint by BaseLayout's init script, and
- * live by the /brand palette panel — src/scripts/ambient-motion.ts). A layer
+ * live by the palette panel — src/scripts/ambient-motion.ts). A layer
  * that is off is never rendered, so it costs nothing. No JS animates anything:
  * transform/opacity keyframes only, so every frame stays on the compositor.
  *

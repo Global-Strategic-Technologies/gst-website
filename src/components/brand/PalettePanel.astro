@@ -2,14 +2,6 @@
 import SwatchControlStyles from './SwatchControlStyles.astro';
 import AmbientMotionControls from './AmbientMotionControls.astro';
 import { palettes } from '../../data/palettes';
-
-interface Props {
-  /** Render the Ambient Motion section (BL-035). Only /brand passes it — there
-   *  the panel is a design tool; the popped-out panel elsewhere stays colour-only. */
-  motionControls?: boolean;
-}
-
-const { motionControls = false } = Astro.props;
 ---
 
 <SwatchControlStyles />
@@ -63,6 +55,33 @@ const { motionControls = false } = Astro.props;
           stroke-width="6"
           stroke-linejoin="miter"></path></svg
       >
+    </button>
+    {
+      /* Jumps to the Ambient Motion section (BL-035), which sits below the tall
+         swatch grids. Lit while any effect is on (html[data-ambient]). The
+         label shows only in the mobile-header clone; it is in the markup, not
+         added by script, so the clone keeps this file's scope attribute. */
+    }
+    <button
+      class="palette-panel__motion"
+      id="panel-motion-toggle"
+      type="button"
+      title="Ambient motion settings"
+      aria-label="Ambient motion settings"
+      aria-controls="panel-body"
+      data-testid="palette-motion-toggle"
+    >
+      <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon"
+        ><path
+          d="M38 12 L58 52 L18 52 Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="6"
+          stroke-linejoin="miter"></path><path
+          d="M2 30 H20 M6 42 H16"
+          stroke="currentColor"
+          stroke-width="6"></path></svg
+      ><span class="palette-panel__motion-label">Motion</span>
     </button>
     <button
       class="palette-panel__theme-toggle"
@@ -179,21 +198,18 @@ const { motionControls = false } = Astro.props;
     </div>
 
     {
-      /* The wrapper and heading live HERE, not in the child, so this file's
-         scoped .palette-panel__section rules reach them (STYLES_GUIDE § the
+      /* Ambient Motion (BL-035), on every page the panel appears. The wrapper
+         and heading live HERE, not in the child, so this file's scoped
+         .palette-panel__section rules reach them (STYLES_GUIDE § the
          scoped-rule / foreign-element trap). The child renders the body. */
-      motionControls && (
-        <div class="palette-panel__section palette-panel__section--motion">
-          <div class="palette-panel__section-head">
-            <span class="brutal-label-small" id="ambient-controls-title">
-              Ambient Motion
-            </span>
-            <span class="palette-panel__section-hint">Homepage hero</span>
-          </div>
-          <AmbientMotionControls />
-        </div>
-      )
     }
+    <div class="palette-panel__section palette-panel__section--motion" id="panel-motion-section">
+      <div class="palette-panel__section-head">
+        <span class="brutal-label-small" id="ambient-controls-title">Ambient Motion</span>
+        <span class="palette-panel__section-hint">Homepage hero</span>
+      </div>
+      <AmbientMotionControls />
+    </div>
   </div>
 </div>
 
@@ -284,7 +300,8 @@ const { motionControls = false } = Astro.props;
     transition: transform var(--transition-fast);
   }
 
-  .palette-panel__popout {
+  .palette-panel__popout,
+  .palette-panel__motion {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -297,8 +314,20 @@ const { motionControls = false } = Astro.props;
     transition: color var(--transition-fast);
   }
 
-  .palette-panel__popout:hover {
+  .palette-panel__popout:hover,
+  .palette-panel__motion:hover {
     color: var(--color-primary);
+  }
+
+  /* Motion is lit by what is chosen, not by what is showing: it stays lit under
+     reduced motion, where the hero layer is hidden. */
+  :global(html[data-ambient]) .palette-panel__motion {
+    color: var(--color-primary);
+  }
+
+  /* Only the mobile-header clone shows its label. */
+  .palette-panel__motion-label {
+    display: none;
   }
 
   .palette-panel__popout .palette-panel__icon {
@@ -577,7 +606,8 @@ const { motionControls = false } = Astro.props;
 
     .palette-panel__mobile-header .palette-panel__tab,
     .palette-panel__mobile-header .palette-panel__theme-toggle,
-    .palette-panel__mobile-header .palette-panel__popout {
+    .palette-panel__mobile-header .palette-panel__popout,
+    .palette-panel__mobile-header .palette-panel__motion {
       min-height: 40px;
       border: 1px solid var(--border-light);
       border-radius: 4px;
@@ -592,10 +622,24 @@ const { motionControls = false } = Astro.props;
       border-bottom-width: 2px;
     }
 
-    /* Delta buttons span half the row each */
+    /* Delta buttons share row 2 — popout, motion, theme — a third each */
     .palette-panel__mobile-header .palette-panel__theme-toggle,
-    .palette-panel__mobile-header .palette-panel__popout {
-      grid-column: span 3;
+    .palette-panel__mobile-header .palette-panel__popout,
+    .palette-panel__mobile-header .palette-panel__motion {
+      grid-column: span 2;
+    }
+
+    .palette-panel__mobile-header .palette-panel__motion {
+      gap: var(--spacing-xs);
+    }
+
+    .palette-panel__mobile-header .palette-panel__motion-label {
+      display: inline;
+      font-family: var(--font-family-mono);
+      font-size: var(--text-2xs);
+      font-weight: var(--font-weight-bold);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     /* Popout icon: down triangle = off, upright = on */

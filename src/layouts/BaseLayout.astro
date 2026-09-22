@@ -231,7 +231,7 @@ const isHomepage = routePath === '/' || routePath === '';
       <slot />
     </main>
     <Footer locale={locale} />
-    <PalettePanel motionControls={showPalettePanel} />
+    <PalettePanel />
     {isProduction && <SpeedInsights />}
   </body>
 </html>

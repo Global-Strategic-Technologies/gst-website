@@ -1,7 +1,7 @@
 /**
  * Hero ambient motion settings (BL-035, ADR-0039).
  *
- * A per-browser design-tool setting, chosen in the /brand palette panel and
+ * A per-browser design-tool setting, chosen in the palette panel and
  * applied to <html> the same way the palette is:
  *
  *   data-ambient="glow rails"   which effect layers render (space-separated)
@@ -53,7 +53,7 @@ export interface AmbientSettings {
   pace: number;
 }
 
-/** The visitor default: nothing moves until someone opts in from /brand. */
+/** The visitor default: nothing moves until someone opts in from the palette panel. */
 export const DEFAULT_SETTINGS: Readonly<AmbientSettings> = {
   on: [],
   strength: { ...DEFAULT_STRENGTH },
