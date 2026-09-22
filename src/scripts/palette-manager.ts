@@ -323,7 +323,12 @@ const OVERRIDES_KEY = 'palette-overrides';
 function readStoredOverrides(): Record<string, string> {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(OVERRIDES_KEY) ?? '{}');
-    return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    // Same filter as BaseLayout's head script: custom properties with string
+    // values only, so a malformed entry is dropped rather than written back.
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([k, v]) => k.startsWith('--') && typeof v === 'string')
+    ) as Record<string, string>;
   } catch {
     return {};
   }

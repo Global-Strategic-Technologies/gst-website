@@ -138,7 +138,8 @@ const { group } = Astro.params as { group: ResponsiveDemoGroup };
       window.addEventListener('message', (e) => {
         if (e.origin !== window.location.origin) return;
         if (e.data?.type === 'theme-sync') {
-          applyState(document.documentElement, e.data.state);
+          const s = e.data.state;
+          if (Number.isInteger(s) && s >= 0 && s <= 3) applyState(document.documentElement, s);
         }
       });
       // Initial theme from parent (if in iframe)
