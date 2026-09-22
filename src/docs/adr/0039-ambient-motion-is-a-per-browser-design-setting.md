@@ -15,7 +15,7 @@ BL-035 asked for subtle ambient motion in the homepage hero. The limits were:
 - Lighthouse mobile drops by no more than 2 points
 - a stakeholder review before anything reaches production
 
-Five candidate effects were drawn: Grid Pulse, Glow Shift, Scan Sweep, Data Rails and Delta Drift. The operator ruled that they are **independent toggles**: any number can be on at once, and there is no "Off" choice. They are configured from a new section of the palette panel, **on /brand only**, where the panel is already a design tool.
+Five candidate effects were drawn: Grid Pulse, Glow Shift, Scan Sweep, Data Rails and Delta Drift. The operator ruled that they are **independent toggles**: any number can be on at once, and there is no "Off" choice. They are configured from a new section of the palette panel, a design tool that is always visible on /brand and on any other page once popped out. The section appears wherever the panel does, and a **Motion** button on the panel's edge rail jumps to it. Without that button it started 1,364px down a panel showing 716px at 1440×900, below the colour swatches, where the operator could not find it.
 
 Two things stood in the way.
 
@@ -41,7 +41,7 @@ Two things stood in the way.
 
 **The key is separate from `palette-overrides`**, so a palette change never resets motion, and the two Reset buttons never clear each other.
 
-**Visitors see nothing.** `DEFAULT_SETTINGS.on` and the inline script's fallback are both `[]`, and a unit test pins them equal. Only a browser that opted in from /brand shows motion, on its homepage (`/`, `/es/`, `/pt/`) and on the live /brand preview. This is what keeps BL-035's stakeholder-review gate honest while the effects are fully built. Shipping a public default is a change to those two literals.
+**Visitors see nothing.** `DEFAULT_SETTINGS.on` and the inline script's fallback are both `[]`, and a unit test pins them equal. Only a browser that opted in from the palette panel shows motion, on its homepage (`/`, `/es/`, `/pt/`) and on the live /brand preview. This is what keeps BL-035's stakeholder-review gate honest while the effects are fully built. Shipping a public default is a change to those two literals.
 
 **The budget is kept by thinning, not by limiting how many effects can be selected.**
 
@@ -58,7 +58,8 @@ Two things stood in the way.
 - **Capping the selection at one or two effects.** The operator asked for free multi-select. Thinning keeps the budget without taking any choice away.
 - **Storing motion inside `palette-overrides`.** A palette change would silently switch motion off.
 - **A JS-driven layer that renders only the selected effects.** A static layer that CSS reveals needs no script on the homepage and cannot flash.
-- **Showing the section in the popped-out panel on every page.** Out of scope by operator decision. The /brand preview makes the effect visible without leaving the design tool.
+- **Moving the section to the top of the panel** instead of adding a rail button. It would be easy to find, but it pushes the colour editor down for every palette task.
+- **Limiting the section to /brand.** The first cut did, and that left the controls missing on the homepage, the one page whose hero moves.
 - **Pausing, rather than hiding, under reduced motion.** A frozen mid-cycle frame is an arbitrary image, and hiding the layer satisfies "disables all motion entirely" unambiguously.
 
 ## Consequences
@@ -70,10 +71,11 @@ Two things stood in the way.
 
   FCP, LCP and TBT are unchanged, and CLS is 0. With all five on, a 3-second CDP sample shows no main-thread layout and no more style recalcs than a still page, so the effects stay on the compositor.
 
-- **Code that cites this ADR:** `src/scripts/ambient-motion.ts`, `src/data/ambient-effects.ts`, `src/components/AmbientEffect.astro`, `src/components/brand/AmbientMotionControls.astro`, the inline block in `src/layouts/BaseLayout.astro`, `src/components/brand/PalettePanel.astro` (the section wrapper), `src/page-templates/HomePage.astro`.
+- **Code that cites this ADR:** `src/scripts/ambient-motion.ts`, `src/data/ambient-effects.ts`, `src/components/AmbientEffect.astro`, `src/components/brand/AmbientMotionControls.astro`, the inline block in `src/layouts/BaseLayout.astro`, `src/components/brand/PalettePanel.astro` (the section wrapper and the rail button), `src/scripts/palette-manager.ts` (the jump), `src/page-templates/HomePage.astro`.
 - **Docs:** [BRAND_GUIDELINES.md § Ambient Motion](../styles/BRAND_GUIDELINES.md#ambient-motion-hero).
 - **Design sync:** `.design-sync/extract-chrome.mjs` strips `.ambient` from the published Hero card, and `.design-sync/NOTES.md` records why.
-- **The chips are `.brutal-filter-chip`** from `filter.css`, which only `brand.astro` imports. Rendering the section anywhere else needs that import too.
+- **Every class in the section must load site-wide**, because the panel appears on every page. The toggles are `.brutal-choice-btn` and the sliders `.brutal-slider*` (both `form.css`), not `.brutal-filter-chip`, whose `filter.css` is split out to four pages.
+- **The Motion button** (a delta with two speed strokes) lives on the panel's edge rail. It is lit by `html[data-ambient]` with no script, so it reports the selection even under reduced motion, where the layer itself is hidden. On a phone it sits in the open sheet's header, so it jumps past the swatches but does not help anyone open the sheet.
 - **Revisit when:**
   - A public default is wanted: flip the two pinned literals, then re-measure Lighthouse on `/`.
   - An effect is added: extend `EFFECT_IDS`, both default maps, and the tables, and keep the budget test green.

@@ -285,7 +285,7 @@ The homepage hero can carry a quiet, CSS-only motion layer behind its content ([
 | Data Rails  | Faint rails in four directions; each fires one mark, then stays dark |
 | Delta Drift | Brand deltas (the `DeltaIcon` geometry) float and turn a few degrees |
 
-**How to use it.** Open the PalettePanel on `/brand` and find the **Ambient Motion** section, the last section of the panel. It appears only on `/brand`, not in the popped-out panel elsewhere.
+**How to use it.** Wherever the PalettePanel appears (always on `/brand`, and on any page once it is popped out), click the **Motion** button on the panel's right-edge rail. It is a delta with two speed strokes, and it is lit while any effect is on. It opens the panel and jumps to the **Ambient Motion** section, the last section, below the colour swatches. On a phone, open the sheet first; the Motion button is in its header row.
 
 - Toggle any number of effects; there is no "off" choice, since nothing selected means a still hero.
 - Set each effect's strength. 50 reproduces the approved prototype.

@@ -1338,13 +1338,13 @@ Consequences:
 
 ### BL-035: Dynamic Visual Effects Prototype
 
-**Source**: design prototypes in [`prototypes/bl-035-hero-ambient-motion/`](../../../prototypes/bl-035-hero-ambient-motion/README.md) (six hero artboards + the palette-panel section, drawn 2026-09-22); decisions in [ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md). The original `DYNAMIC_VISUAL_EFFECTS.md` source never existed in the repo | **Effort**: built 2026-09-22 | **Status**: 🟨 **Built — awaiting stakeholder review.** No visitor sees motion until a browser opts in from /brand
+**Source**: design prototypes in [`prototypes/bl-035-hero-ambient-motion/`](../../../prototypes/bl-035-hero-ambient-motion/README.md) (six hero artboards + the palette-panel section, drawn 2026-09-22); decisions in [ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md). The original `DYNAMIC_VISUAL_EFFECTS.md` source never existed in the repo | **Effort**: built 2026-09-22 | **Status**: 🟨 **Built — awaiting stakeholder review.** No visitor sees motion until a browser opts in from the palette panel
 
 **As a** site visitor, **I want** subtle ambient motion in the homepage hero section **so that** the page feels alive and signals an active, technology-forward brand.
 
 #### Acceptance Criteria
 
-- [x] `src/components/AmbientEffect.astro` created. It ships **all five** candidates (Grid Pulse, Glow Shift, Scan Sweep, Data Rails, Delta Drift), not only the top two, as independent toggles in a new Ambient Motion section of the palette panel on /brand (operator decision)
+- [x] `src/components/AmbientEffect.astro` created. It ships **all five** candidates (Grid Pulse, Glow Shift, Scan Sweep, Data Rails, Delta Drift), not only the top two, as independent toggles in a new Ambient Motion section of the palette panel (operator decision). The section appears wherever the panel does, and a Motion button on the panel's edge rail jumps to it
 - [x] Rendered in the homepage hero only (`/`, `/es/`, `/pt/`, via Hero's `backdrop` slot), behind all content, plus a live preview on /brand
 - [x] `prefers-reduced-motion: reduce` disables all motion entirely (the layer is `display: none`)
 - [x] Mobile (≤768px): reduced to each effect's thinned set, with no layout shift (CLS 0 measured at 1280, 768 and 480px)

@@ -7,21 +7,21 @@ canvas they were drawn on.
 
 Canvas: `Hero Ambient Motion` (Artifact, private to the repo owner).
 
-**The real implementation** is [`src/components/AmbientEffect.astro`](../../src/components/AmbientEffect.astro), configured from the /brand palette panel ([ADR-0039](../../src/docs/adr/0039-ambient-motion-is-a-per-browser-design-setting.md)). It keeps these designs but uses relative units, and it draws at twice the intensity, so the panel's strength 50 matches an artboard at 100. The panel's chips are the house `.brutal-filter-chip` rather than the artboard's 44px checkbox chips.
+**The real implementation** is [`src/components/AmbientEffect.astro`](../../src/components/AmbientEffect.astro), configured from the palette panel (its rail's Motion button jumps to the section) ([ADR-0039](../../src/docs/adr/0039-ambient-motion-is-a-per-browser-design-setting.md)). It keeps these designs but uses relative units, and it draws at twice the intensity, so the panel's strength 50 matches an artboard at 100. The panel's toggles are the house `.brutal-choice-btn`, which is also 44px tall, rather than the artboard's checkbox chips.
 
 ## What is here
 
 `project/` holds one artboard per candidate, plus the canvas index:
 
-| File                   | Candidate                                                     |
-| ---------------------- | ------------------------------------------------------------- |
-| `Main.dc.html`         | 01 Grid Pulse — checkerboard cells pulsing in the accent      |
-| `GlowShift.dc.html`    | 02 Ambient Glow Shift — two slow radial gradients             |
-| `ScanSweep.dc.html`    | 03 Scan Sweep — a band that decelerates and fades as it falls |
-| `DataRails.dc.html`    | 04 Data Rails — 14 rails, four directions, marks that die out |
-| `DeltaDrift.dc.html`   | 05 Delta Drift — brand deltas drifting (DeltaIcon geometry)   |
-| `Combined.dc.html`     | 06 Combined — a thinned superset of all five                  |
-| `PanelEffects.dc.html` | The proposed fourth `.palette-panel__section`, /brand only    |
+| File                   | Candidate                                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `Main.dc.html`         | 01 Grid Pulse — checkerboard cells pulsing in the accent                                                   |
+| `GlowShift.dc.html`    | 02 Ambient Glow Shift — two slow radial gradients                                                          |
+| `ScanSweep.dc.html`    | 03 Scan Sweep — a band that decelerates and fades as it falls                                              |
+| `DataRails.dc.html`    | 04 Data Rails — 14 rails, four directions, marks that die out                                              |
+| `DeltaDrift.dc.html`   | 05 Delta Drift — brand deltas drifting (DeltaIcon geometry)                                                |
+| `Combined.dc.html`     | 06 Combined — a thinned superset of all five                                                               |
+| `PanelEffects.dc.html` | The proposed fourth `.palette-panel__section` (drawn /brand-only; it shipped on every page with the panel) |
 
 `generate.cjs` regenerates the six hero artboards (`node generate.cjs`); `PanelEffects.dc.html`
 is hand-written. The `.dc.html` format belongs to the design canvas and needs its runtime — these
