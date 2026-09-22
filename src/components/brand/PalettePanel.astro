@@ -1,6 +1,15 @@
 ---
 import SwatchControlStyles from './SwatchControlStyles.astro';
+import AmbientMotionControls from './AmbientMotionControls.astro';
 import { palettes } from '../../data/palettes';
+
+interface Props {
+  /** Render the Ambient Motion section (BL-035). Only /brand passes it — there
+   *  the panel is a design tool; the popped-out panel elsewhere stays colour-only. */
+  motionControls?: boolean;
+}
+
+const { motionControls = false } = Astro.props;
 ---
 
 <SwatchControlStyles />
@@ -168,6 +177,23 @@ import { palettes } from '../../data/palettes';
         </div>
       </div>
     </div>
+
+    {
+      /* The wrapper and heading live HERE, not in the child, so this file's
+         scoped .palette-panel__section rules reach them (STYLES_GUIDE § the
+         scoped-rule / foreign-element trap). The child renders the body. */
+      motionControls && (
+        <div class="palette-panel__section palette-panel__section--motion">
+          <div class="palette-panel__section-head">
+            <span class="brutal-label-small" id="ambient-controls-title">
+              Ambient Motion
+            </span>
+            <span class="palette-panel__section-hint">Homepage hero</span>
+          </div>
+          <AmbientMotionControls />
+        </div>
+      )
+    }
   </div>
 </div>
 
@@ -422,6 +448,30 @@ import { palettes } from '../../data/palettes';
   .palette-panel__section .brutal-label-small {
     display: block;
     margin-bottom: var(--spacing-xs);
+  }
+
+  /* Ambient Motion (BL-035): set apart from the colour sections above it. */
+  .palette-panel__section--motion {
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-light);
+  }
+
+  .palette-panel__section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .palette-panel__section-head .brutal-label-small {
+    margin-bottom: 0;
+  }
+
+  .palette-panel__section-hint {
+    font-family: var(--font-family-mono);
+    font-size: var(--text-2xs);
+    color: var(--text-muted);
   }
 
   .palette-panel__swatch-grid {

@@ -382,6 +382,37 @@ import '../styles/components/progress.css';
     width: 100%;
   }
 
+  /* ── Hero ambient motion specimen (BL-035) ──
+     A hero-sized band for AmbientEffect, which fills its nearest positioned
+     ancestor. The title needs its own stacking or the layer paints over it. */
+  .brand-ambient-stage {
+    position: relative;
+    width: 100%;
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-2xl);
+    background: var(--bg-light-alt);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+  }
+
+  /* The hero title at preview scale: Hero.astro's weight and tracking, the
+     largest type token for size. */
+  .brand-ambient-stage__title {
+    position: relative;
+    z-index: 1;
+    font-size: var(--text-3xl);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+
+  .brand-ambient-stage__accent {
+    color: var(--color-primary);
+  }
+
   /* ── Announcement sash specimens ──
      The sash positions itself against the nearest positioned ancestor and is
      clipped by its own corner box, so a specimen needs a relative frame. 190px
