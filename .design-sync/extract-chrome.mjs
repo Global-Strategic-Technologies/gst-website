@@ -265,6 +265,11 @@ function neutralise(el) {
   // design environment and contradict "hydrated behaviour is not included".
   // Same for stray <link>/<style> — the card supplies its own.
   for (const node of el.querySelectorAll('script, link, style')) node.remove();
+  // The hero's ambient-motion layer (BL-035, AmbientEffect.astro) is a
+  // per-browser design-tool decoration, off for every visitor — not part of
+  // the Hero's markup contract, and ~40 empty spans a design would copy.
+  // Stripped before cidsIn(), so its scoped rules leave the card too.
+  for (const node of el.querySelectorAll('.ambient')) node.remove();
 }
 
 function card({ dark, title, cssText, markup }) {

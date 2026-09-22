@@ -157,6 +157,46 @@ const isHomepage = routePath === '/' || routePath === '';
       } catch {
         // Missing or malformed — no edits to restore
       }
+      // Hero ambient motion (BL-035, ADR-0039) — mirrors applySettings() in
+      // src/scripts/ambient-motion.ts, which this script cannot import;
+      // tests/unit/ambient-motion.test.ts pins the key, ids, ranges and the
+      // default list. Numbers are clamped here too: an invalid custom property
+      // would make `opacity` fall back to 1, i.e. full strength.
+      try {
+        const ids = ['grid', 'glow', 'scan', 'rails', 'deltas'];
+        const strengthDefaults = { grid: 45, glow: 35, scan: 40, rails: 50, deltas: 30 };
+        const defaultOn = [];
+        let saved = null;
+        try {
+          saved = JSON.parse(localStorage.getItem('ambient-motion') || 'null');
+        } catch {
+          saved = null;
+        }
+        if (!saved || typeof saved !== 'object' || Array.isArray(saved)) saved = {};
+        const wanted = Array.isArray(saved.on) ? saved.on : defaultOn;
+        const on = ids.filter((id) => wanted.includes(id));
+        if (on.length) {
+          const clamp = (v, min, max, step, fallback) =>
+            typeof v === 'number' && isFinite(v)
+              ? Math.min(max, Math.max(min, Math.round(v / step) * step))
+              : fallback;
+          const strength =
+            saved.strength && typeof saved.strength === 'object' ? saved.strength : {};
+          const root = document.documentElement;
+          root.setAttribute('data-ambient', on.join(' '));
+          if (on.length > 1) root.setAttribute('data-ambient-layered', '');
+          for (const id of ids) {
+            const pct = clamp(strength[id], 0, 100, 5, strengthDefaults[id]);
+            root.style.setProperty('--ambient-' + id, String(pct / 100));
+          }
+          root.style.setProperty(
+            '--ambient-pace',
+            String(clamp(saved.pace, 50, 150, 10, 100) / 100)
+          );
+        }
+      } catch {
+        // Ambient motion is decoration — never let it block the page
+      }
     </script>
 
     <GoogleAnalytics />

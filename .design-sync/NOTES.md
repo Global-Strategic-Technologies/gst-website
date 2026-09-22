@@ -94,6 +94,13 @@ Playwright render using the validator's floors — height ≥ 8px, png ≥ 5000 
 
 ## Hard-won findings (don't rediscover these)
 
+- **The Hero card deliberately omits the ambient-motion layer.** Since BL-035 (2026-09-22),
+  the homepage `section.hero` carries `AmbientEffect.astro`: about 40 empty `<span>`s, all
+  `display: none` unless a browser has opted in from the /brand palette panel. It is a
+  design-tool decoration, not part of the Hero's markup contract, so `neutralise()` removes
+  `.ambient` before `cidsIn()` runs, and its scoped rules drop out of the card with it. If the
+  Hero card ever shows those spans again, that strip has been lost.
+
 - **The pinned face cannot ship through `cssEntry` — it must go through `cfg.extraFonts`.**
   Found 2026-08-29, the first sync after BL-144 pinned `--font-family-mono` to a self-hosted
   `GST Mono`. `cfg.cssEntry` becomes `_ds_bundle.css`, and the converter REWRITES that file's
