@@ -174,7 +174,7 @@ html.dark-theme {
   --alt0-color-distinguish: #a78bfa;
   --alt0-color-subdued: #a89888;
   --alt1-color-authority: #bfbfbf;
-  --alt1-color-distinguish: #8c8c8c;
+  --alt1-color-distinguish: #959595;
   --alt1-color-subdued: #8f8f8f;
   --alt2-color-authority: #e0e0e0;
   --alt2-color-distinguish: #ff8080;
@@ -432,3 +432,58 @@ html.dark-theme.palette-5 {
 /* palette-1 and palette-4 additionally re-point --sash-badge-bg — declared inside
    their main blocks above (a second html.palette-N block here trips
    no-duplicate-selectors). */
+
+/* ── Dim-light inks (ADR-0038) ──
+   A gray dim-light page drops every ink below its ADR-0035 floors (4.5:1 on
+   the page AND on the ink's own 12% tint, measured against #e6e6e6 — margin under the #ebebeb page — and
+   #dcdcdc), so dim light re-points each failing ink to a darker, measured
+   value. Scoped :not(.dark-theme) so dim dark keeps the dark-half inks. The
+   alt-N inks feed the palette blocks above; palette 0's own inks are re-pointed
+   only when no other palette is active — a NEW palette must be added to that
+   :not() list, or it inherits palette 0's dim values. */
+html.theme-dim:not(.dark-theme) {
+  --alt0-color-authority-ink: #3f5676;
+  --alt0-color-distinguish-ink: #6339b3;
+  --alt0-color-subdued-ink: #5f5147;
+  --alt1-color-secondary-ink: #545454;
+  --alt1-color-warning-ink: #535353;
+  --alt1-color-distinguish-ink: #545454;
+  --alt1-color-subdued-ink: #555555;
+  --alt2-color-secondary-ink: #645200;
+  --alt2-color-success-ink: #a50000;
+  --alt2-color-warning-ink: #645200;
+  --alt2-color-subdued-ink: #6b4d4d;
+  --alt3-color-secondary-ink: #7b4800;
+  --alt3-color-warning-ink: #7b4800;
+  --alt3-color-error-ink: #005c6c;
+  --alt3-color-distinguish-ink: #005c6c;
+  --alt3-color-subdued-ink: #4b536d;
+  --alt4-color-secondary-ink: #1a47c5;
+  --alt4-color-success-ink: #903900;
+  --alt4-color-warning-ink: #1a47c5;
+  --alt4-color-error-ink: #9e0051;
+  --alt4-color-distinguish-ink: #9e0051;
+  --alt5-color-secondary-ink: #385d07;
+  --alt5-color-success-ink: #6c0ed1;
+  --alt5-color-warning-ink: #385d07;
+  --alt5-color-error-ink: #9e104c;
+  --alt5-color-distinguish-ink: #9e104c;
+}
+
+html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5) {
+  --color-secondary-ink: #734b00;
+  --color-warning-ink: #734b00;
+  --color-success-ink: #1b5f3b;
+  --color-error-ink: #9e2222;
+  --color-authority-ink: #3f5676;
+  --color-distinguish-ink: #6339b3;
+  --color-subdued-ink: #5f5147;
+  /* Deep-teal accent text (the "accessible" teal) on its own tint over gray. */
+  --color-tertiary: #026949;
+}
+
+/* Dim dark: palette 0's dark error ink (#e05050) is under 4.5:1 on the charcoal
+   surfaces; palettes 1-5 carry their own. Same :not() list as above. */
+html.theme-dim.dark-theme:not(.palette-1, .palette-2, .palette-3, .palette-4, .palette-5) {
+  --color-error-ink: #e56a6a;
+}

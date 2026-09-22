@@ -641,6 +641,10 @@ html.dark-theme {
 }
 ```
 
+
+### Dim states (four-state theme)
+
+Two intermediate states sit between light and dark: **dim light** (`html.theme-dim`) and **dim dark** (`html.dark-theme.theme-dim`). The palette panel's theme button cycles all four, and the footer toggle stays light ↔ dark. `theme-dim` re-declares only the surface tokens (`--bg-*`, `--surface-*-bg`, section backgrounds), each as `light-dark(dim light, dim dark)`, so **the same rule as above applies: use tokens and dim works automatically.** A hardcoded `#ffffff` or `#0a0a0a` will not dim. Mapping and rationale: [ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md); state logic: `src/scripts/theme-state.ts`.
 ### Preferred: `light-dark()` (for all color properties)
 
 Use `light-dark(light-value, dark-value)` directly in base rules. Works for `color`, `background`, `border-color`, `fill`, `stroke`, `box-shadow` (color parts), and any property accepting a `<color>` value.

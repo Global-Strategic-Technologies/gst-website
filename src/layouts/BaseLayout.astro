@@ -122,9 +122,14 @@ const isHomepage = routePath === '/' || routePath === '';
     <!-- Initialize theme synchronously to prevent FOUC and race conditions in E2E tests -->
     <script is:inline>
       try {
+        // Mirrors src/scripts/theme-state.ts (ADR-0038) — this inline script
+        // cannot import it; tests/unit/theme-state.test.ts pins the literals.
         const theme = localStorage.getItem('theme');
-        if (theme === 'dark') {
+        if (theme === 'dark' || theme === 'dim-dark') {
           document.documentElement.classList.add('dark-theme');
+        }
+        if (theme === 'dim-light' || theme === 'dim-dark') {
+          document.documentElement.classList.add('theme-dim');
         }
       } catch {
         // localStorage not available (e.g., private browsing)

@@ -21,6 +21,7 @@ const { locale = DEFAULT_LOCALE } = Astro.props;
 <script>
   import { trackThemeToggle } from '../utils/analytics';
   import * as Sentry from '@sentry/browser';
+  import { applyState, readState, storageValue, toggleBinary } from '../scripts/theme-state';
 
   const themeToggle = document.getElementById('themeToggle');
 
@@ -50,11 +51,14 @@ const { locale = DEFAULT_LOCALE } = Astro.props;
       }
     }
 
+    // Binary on purpose (ADR-0038): the footer flips light ↔ dark and ignores
+    // the panel's dim states — dim light goes to dark, dim dark to light.
     function toggleTheme(): void {
-      document.documentElement.classList.toggle('dark-theme');
-      const isDark = document.documentElement.classList.contains('dark-theme');
+      const state = toggleBinary(readState(document.documentElement));
+      applyState(document.documentElement, state);
+      const isDark = state === 3;
       try {
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        localStorage.setItem('theme', storageValue(state));
       } catch {
         Sentry.addBreadcrumb({
           category: 'theme-toggle',

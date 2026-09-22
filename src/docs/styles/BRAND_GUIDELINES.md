@@ -261,6 +261,8 @@ Six color palettes are defined in `src/styles/palettes.css`, enabling stakeholde
 | 4   | **Blaze**                | Orange `#ff6a00` | Blue `#1d4ed8`   | Safety orange against electric blue      |
 | 5   | **Ultraviolet**          | Purple `#b566ff` | Lime `#a3e635`   | Vivacious violet, nightclub energy       |
 
+**Adding a palette:** also add it to the `:not(.palette-1, …, .palette-5)` lists in `palettes.css` § Dim-light inks, or it inherits palette 0's dim ink values ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)).
+
 In palettes 1–5 the status colours are drawn from the palette itself rather than generic green/yellow/red: success follows the primary, warning the secondary, and error the palette's accent (grayscale in Monolith). Tell statuses apart by label, not by hue alone, in those palettes.
 
 Each palette overrides the 9 core tokens (`--color-primary`, `--color-primary-dark`, `--color-secondary`, `--color-success`, `--color-warning`, `--color-error`, `--color-authority`, `--color-distinguish`, `--color-subdued`) plus derived accent/border/opacity scales. All tool-domain colors cascade automatically.

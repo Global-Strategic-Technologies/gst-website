@@ -535,35 +535,88 @@ test.describe('Palette Panel Controls', () => {
   });
 
   test.describe('Theme Toggle', () => {
-    test('should apply dark-theme class on html and persist to localStorage', async ({ page }) => {
+    // Four-state theme (ADR-0038): light → dim light → dim dark → dark → light.
+    const CYCLE = [
+      { stored: 'dim-light', dark: false, dim: true },
+      { stored: 'dim-dark', dark: true, dim: true },
+      { stored: 'dark', dark: true, dim: false },
+      { stored: 'light', dark: false, dim: false },
+    ];
+    const themeButton = (page: import('@playwright/test').Page) =>
+      page.locator('#panel-theme-toggle');
+    const htmlTheme = (page: import('@playwright/test').Page) =>
+      page.evaluate(() => ({
+        dark: document.documentElement.classList.contains('dark-theme'),
+        dim: document.documentElement.classList.contains('theme-dim'),
+        stored: localStorage.getItem('theme'),
+      }));
+
+    test('cycles four states, persists each, and turns counter-clockwise every click', async ({
+      page,
+    }) => {
+      await page.addInitScript(() => {
+        try {
+          // Top frame only: /brand's same-origin responsive-demo iframes run init
+          // scripts too, and would re-seed the shared storage after the click.
+          if (window.top === window) localStorage.setItem('theme', 'light');
+        } catch {
+          // storage unavailable — the init script then defaults to light
+        }
+      });
       await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      await expect(themeButton(page)).toHaveAttribute('data-theme-state', '0');
 
-      // Ensure we start in light mode
-      await page.evaluate(() => {
-        document.documentElement.classList.remove('dark-theme');
-        localStorage.removeItem('theme');
-      });
-
-      // Click theme toggle
-      await clickPanelButton(page, 'panel-theme-toggle');
-
-      // Wait for dark-theme class to appear
-      await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'), {
-        timeout: 10000,
-      });
-
-      // Verify localStorage persistence
-      const storedTheme = await page.evaluate(() => localStorage.getItem('theme'));
-      expect(storedTheme).toBe('dark');
-
-      // Reload and verify persistence
-      await page.reload({ waitUntil: 'domcontentloaded' });
-
-      const hasDarkTheme = await page.evaluate(() =>
-        document.documentElement.classList.contains('dark-theme')
-      );
-      expect(hasDarkTheme).toBe(true);
+      for (const [i, step] of CYCLE.entries()) {
+        await clickPanelButton(page, 'panel-theme-toggle');
+        await expect(themeButton(page)).toHaveAttribute('data-theme-state', String((i + 1) % 4));
+        expect(await htmlTheme(page)).toEqual(step);
+        // Asserted on the counter, not the computed transform: a matrix reads
+        // −360° and 0° identically, so the fourth quarter turn would vanish.
+        await expect(themeButton(page)).toHaveAttribute('data-theme-turns', String(i + 1));
+      }
     });
+
+    test('a reload restores a dim state before first paint', async ({ page }) => {
+      await page.addInitScript(() => {
+        try {
+          if (window.top === window && !sessionStorage.getItem('seeded')) {
+            localStorage.setItem('theme', 'dim-dark');
+            sessionStorage.setItem('seeded', '1');
+          }
+        } catch {
+          // storage unavailable — the init script then defaults to light
+        }
+      });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      expect(await htmlTheme(page)).toEqual({ stored: 'dim-dark', dark: true, dim: true });
+      await expect(themeButton(page)).toHaveAttribute('data-theme-state', '2');
+      await expect(themeButton(page)).toHaveAttribute('aria-label', /Dim dark/);
+    });
+
+    for (const [start, expected] of [
+      ['dim-light', { stored: 'dark', dark: true, dim: false }],
+      ['dim-dark', { stored: 'light', dark: false, dim: false }],
+    ] as const) {
+      test(`the footer toggle stays binary: ${start} → ${expected.stored}, and the panel follows`, async ({
+        page,
+      }) => {
+        await page.addInitScript((t) => {
+          try {
+            if (window.top === window) localStorage.setItem('theme', t);
+          } catch {
+            // storage unavailable — the init script then defaults to light
+          }
+        }, start);
+        await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+        await page.getByTestId('theme-toggle').click();
+        await expect.poll(() => htmlTheme(page)).toEqual(expected);
+        await expect(themeButton(page)).toHaveAttribute(
+          'data-theme-state',
+          expected.dark ? '3' : '0'
+        );
+      });
+    }
 
     test('should reset color overrides when theme is toggled', async ({ page }) => {
       await page.goto('/brand/', { waitUntil: 'domcontentloaded' });

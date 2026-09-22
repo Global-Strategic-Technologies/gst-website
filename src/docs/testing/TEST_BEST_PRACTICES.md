@@ -1562,6 +1562,8 @@ await expect
 
 `tests/e2e/accessibility.test.ts` (`applyTheme` / `expectThemeLoaded`) is the reference. It also checks one known element per theme, `.project-card` on `/ma-portfolio/`, so a regression in the switch fails loudly instead of producing numbers. Set light explicitly too, rather than trusting the default (#21).
 
+The dim states of the four-state theme ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)) follow the same rule. Store `'dim-light'` or `'dim-dark'`, then assert `theme-dim` (and `dark-theme` for dim dark) before measuring. Never add `theme-dim` after load.
+
 ---
 
 ## Running Tests

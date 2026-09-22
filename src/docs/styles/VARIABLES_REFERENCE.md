@@ -76,6 +76,8 @@ Shared status colors for cross-tool consistency. See [BRAND_GUIDELINES.md — Se
 | `--bg-dark-secondary` | `#1a1a1a` | `#1a1a1a` | Secondary dark background              |
 | `--bg-dark-tertiary`  | `#141414` | `#141414` | Tertiary dark background               |
 
+**Dim states** ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)): `html.theme-dim` re-declares these five as `light-dark(dim light, dim dark)`. The values are `--bg-light` `#ebebeb` / `#1c1c1c`, `--bg-light-alt` `#dcdcdc` / `#202020`, `--bg-dark` `#0a0a0a` / `#1c1c1c`, `--bg-dark-secondary` `#1a1a1a` / `#262626` and `--bg-dark-tertiary` `#141414` / `#202020`. It also covers the `--surface-veil/panel/overlay-bg` washes, the section backgrounds (`--services-bg`, `--footer-bg`, `--cta-box-bg`, `--service-card-bg`, `--search-input-focus-bg`), the service-card and about-image borders, and raises four text alphas (`--text-muted`, `--text-dark-muted`, `--footer-text`, `--clear-filters-text`). The dim-light inks are in `palettes.css` § Dim-light inks. The dark constants lift so that panels painted with them stay lighter than a dim-dark page.
+
 ## Text Colors
 
 ### Theme-Agnostic Aliases (preferred)

@@ -142,6 +142,54 @@ describe('ink tokens — palette-0 (expanded tokens only)', () => {
   });
 });
 
+/* Dim light (ADR-0038): the page turns gray, so each ink is re-measured against
+ * BOTH dim-light surfaces and against its 12% tint composited over each — the
+ * chip case on a gray page. An ink with no dim override must pass on its own. */
+describe('ink tokens — dim light', () => {
+  const DIM_SURFACES = ['#ebebeb', '#e6e6e6', '#dcdcdc']; // page, the measured floor, alt
+  const dimAlt = block(palettes, 'html.theme-dim:not(.dark-theme)');
+  const dimP0 = block(
+    palettes,
+    'html.theme-dim:not(.dark-theme, .palette-1, .palette-2, .palette-3, .palette-4, .palette-5)'
+  );
+  const dimVars = block(variables, 'html.theme-dim');
+
+  function assertDim(label: string, ink: string) {
+    const i = hexToRgb(ink);
+    for (const s of DIM_SURFACES) {
+      const bg = hexToRgb(s);
+      expect(contrast(i, bg), `${label}: ${ink} on ${s}`).toBeGreaterThanOrEqual(4.5);
+      const chip = i.map((v, k) => v * 0.12 + bg[k] * 0.88);
+      expect(
+        contrast(i, chip),
+        `${label}: ${ink} on its 12% tint over ${s}`
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  }
+
+  it.each([1, 2, 3, 4, 5])('palette-%i inks clear the dim-light bars', (n) => {
+    for (const x of PALETTE_SCOPED) {
+      const ink =
+        decl(dimAlt, `--alt${n}-color-${x}-ink`) ?? decl(rootBlock, `--alt${n}-color-${x}-ink`);
+      assertDim(`dim palette-${n} ${x}`, ink!);
+    }
+  });
+
+  it('palette-0 inks clear the dim-light bars', () => {
+    for (const x of PALETTE_SCOPED) {
+      const own =
+        decl(dimP0, `--color-${x}-ink`) ?? lightDark(decl(variables, `--color-${x}-ink`))[0];
+      assertDim(`dim palette-0 ${x}`, own);
+    }
+    for (const x of EXPANDED) {
+      const alt0 =
+        decl(dimAlt, `--alt0-color-${x}-ink`) ?? decl(rootBlock, `--alt0-color-${x}-ink`);
+      assertDim(`dim palette-0 expanded ${x}`, alt0!);
+    }
+    assertDim('dim editors-pick', lightDark(decl(dimVars, '--color-editors-pick-ink'))[0]);
+  });
+});
+
 describe('ink tokens — editors-pick is root-only', () => {
   it('no palette re-points --color-editors-pick or its ink', () => {
     // Mirrors the base: giving the ink a palette dependency its fill lacks would

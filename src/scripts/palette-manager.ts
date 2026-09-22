@@ -6,6 +6,15 @@
 import { PALETTE_NAMES, PALETTE_CONCEPTS, TOKEN_TIPS } from '../data/palettes';
 import { rgbToHex, hexToRgb, parseAlpha } from '../utils/palette-utils';
 import * as Sentry from '@sentry/browser';
+import {
+  applyState,
+  nextState,
+  quarterTurns,
+  readState,
+  storageValue,
+  STATE_LABELS,
+  type ThemeState,
+} from './theme-state';
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -333,9 +342,36 @@ function resetAllOverrides() {
 let themeObserverPaused = false;
 
 new MutationObserver(() => {
+  // Runs for EVERY class change — the footer toggle, the /brand responsive
+  // frames and the panel alike — so the panel's theme buttons always show the
+  // real state, not their own click history.
+  syncThemeButtons();
   if (themeObserverPaused) return;
   resetAllOverrides();
 }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+// ── Theme button state (ADR-0038) ──────────────────────────
+// The delta turns 90° counter-clockwise per state. `themeTurns` only ever
+// grows, so 3 → 0 keeps turning the same way instead of spinning back, and an
+// outside jump (e.g. the footer's light → dark) advances by the quarter turns
+// between the two states.
+
+let lastThemeState: ThemeState = readState(document.documentElement);
+let themeTurns: number = lastThemeState;
+
+function syncThemeButtons(): void {
+  const state = readState(document.documentElement);
+  themeTurns += quarterTurns(lastThemeState, state);
+  lastThemeState = state;
+  const label = `Theme: ${STATE_LABELS[state]}. Switch to ${STATE_LABELS[nextState(state)].toLowerCase()}`;
+  document.querySelectorAll<HTMLElement>('.palette-panel__theme-toggle').forEach((btn) => {
+    btn.dataset.themeState = String(state);
+    btn.dataset.themeTurns = String(themeTurns);
+    btn.style.setProperty('--theme-rotation', `${themeTurns * -90}deg`);
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+  });
+}
 
 // ── DOM Ready ──────────────────────────────────────────────
 
@@ -413,10 +449,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Shared action: toggle theme ─────────────────────────
   function handleThemeToggle(): void {
     themeObserverPaused = true;
-    document.documentElement.classList.toggle('dark-theme');
-    const isDark = document.documentElement.classList.contains('dark-theme');
+    const state = nextState(readState(document.documentElement));
+    applyState(document.documentElement, state);
     try {
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      localStorage.setItem('theme', storageValue(state));
     } catch {
       Sentry.addBreadcrumb({
         category: 'palette-manager',
@@ -539,6 +575,10 @@ document.addEventListener('DOMContentLoaded', () => {
       themeClone.addEventListener('click', handleThemeToggle);
     }
   }
+
+  // Label and orient both theme buttons (desktop + the mobile clone) for the
+  // state the init script restored.
+  syncThemeButtons();
 
   // FAB and backdrop
   fab?.addEventListener('click', openPanel);

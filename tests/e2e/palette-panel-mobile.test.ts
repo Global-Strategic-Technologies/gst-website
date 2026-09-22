@@ -194,10 +194,17 @@ test.describe('Mobile Header Controls', () => {
   });
 
   test('theme toggle in mobile header works', async ({ page }) => {
+    // Four-state theme (ADR-0038): the first step from light is dim light.
     await clickMobileThemeToggle(page);
-    await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'), {
+    await page.waitForFunction(() => document.documentElement.classList.contains('theme-dim'), {
       timeout: 10000,
     });
+    // Both buttons (the clone and the desktop original) follow the real state.
+    await expect(page.locator('#panel-mobile-header .palette-panel__theme-toggle')).toHaveAttribute(
+      'data-theme-state',
+      '1'
+    );
+    await expect(page.locator('#panel-theme-toggle')).toHaveAttribute('data-theme-state', '1');
   });
 });
 

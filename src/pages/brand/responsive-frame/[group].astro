@@ -129,20 +129,21 @@ const { group } = Astro.params as { group: ResponsiveDemoGroup };
     }
 
     <script>
-      // Sync theme with parent frame. The origin check is required, not defensive
+      import { applyState, readState } from '../../../scripts/theme-state';
+
+      // Sync theme with parent frame (all four states, ADR-0038). The origin check is required, not defensive
       // hygiene: this page is now framable same-origin (see SECURITY_HEADERS.md §
       // Route Exceptions), and any cross-origin window that opens it could
       // otherwise post to it.
       window.addEventListener('message', (e) => {
         if (e.origin !== window.location.origin) return;
         if (e.data?.type === 'theme-sync') {
-          document.documentElement.classList.toggle('dark-theme', e.data.dark);
+          applyState(document.documentElement, e.data.state);
         }
       });
       // Initial theme from parent (if in iframe)
       if (window.parent !== window) {
-        const parentDark = window.parent.document.documentElement.classList.contains('dark-theme');
-        document.documentElement.classList.toggle('dark-theme', parentDark);
+        applyState(document.documentElement, readState(window.parent.document.documentElement));
       }
     </script>
   </body>

@@ -40,6 +40,8 @@ Theme and palette are classes on the **`<html>` element, never `<body>`**:
   or `light-dark()` inline). A `--border-light` border on a dark surface is
   invisible.
 
+- `html.theme-dim` — gray surfaces for the active scheme (dim light / dim dark). Root-only too.
+
 - `html.palette-0` … `html.palette-5` — six alternative brand palettes that
   re-point `--color-primary` and friends. Any UI built from tokens follows them
   for free; any hardcoded color does not.
