@@ -252,14 +252,16 @@ Tool-specific status variables (e.g. `--dm-success`, `--techpar-kpi-negative`) m
 
 Six color palettes are defined in `src/styles/palettes.css`, enabling stakeholders to preview the entire site in alternative brand directions. The active palette is applied as a class on `<html>` (e.g., `html.palette-1`), mirroring the dark-theme pattern, and persisted via `localStorage('palette')`.
 
-| ID  | Name                     | Primary           | Secondary         | Character                               |
-| --- | ------------------------ | ----------------- | ----------------- | --------------------------------------- |
-| 0   | **Current** (production) | Teal `#05cd99`    | Amber `#CC8800`   | The baseline                            |
-| 1   | **Steel Authority**      | Cobalt `#1e40af`  | Magenta `#db2777` | PE gravitas with an unexpected edge     |
-| 2   | **Indigo Signal**        | Violet `#7c3aed`  | Lime `#84cc16`    | Breaks every finance-blue convention    |
-| 3   | **Copper Forge**         | Rust `#b45309`    | Cyan `#0891b2`    | Industrial heat meets cold precision    |
-| 4   | **Jade Edge**            | Emerald `#059669` | Rose `#f43f5e`    | Current teal pushed to its boldest form |
-| 5   | **Shadow Garden**        | Forest `#166534`  | Violet `#a855f7`  | Terminal in an old-growth forest        |
+| ID  | Name                     | Primary          | Secondary        | Character                                |
+| --- | ------------------------ | ---------------- | ---------------- | ---------------------------------------- |
+| 0   | **Current** (production) | Teal `#05cd99`   | Amber `#CC8800`  | The baseline                             |
+| 1   | **Monolith**             | Gray `#8e8e8e`   | Gray `#595959`   | Black and white, grayscale everything    |
+| 2   | **Redline**              | Red `#ff2424`    | Yellow `#ffd400` | Eye-bleeding signal red, loud on purpose |
+| 3   | **Admiralty**            | Blue `#5a8af2`   | Amber `#ff9f1c`  | Navy depth, signal blue, cold cyan edge  |
+| 4   | **Blaze**                | Orange `#ff6a00` | Blue `#1d4ed8`   | Safety orange against electric blue      |
+| 5   | **Ultraviolet**          | Purple `#b566ff` | Lime `#a3e635`   | Vivacious violet, nightclub energy       |
+
+In palettes 1–5 the status colours are drawn from the palette itself rather than generic green/yellow/red: success follows the primary, warning the secondary, and error the palette's accent (grayscale in Monolith). Tell statuses apart by label, not by hue alone, in those palettes.
 
 Each palette overrides the 9 core tokens (`--color-primary`, `--color-primary-dark`, `--color-secondary`, `--color-success`, `--color-warning`, `--color-error`, `--color-authority`, `--color-distinguish`, `--color-subdued`) plus derived accent/border/opacity scales. All tool-domain colors cascade automatically.
 

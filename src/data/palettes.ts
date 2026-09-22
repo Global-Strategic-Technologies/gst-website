@@ -17,41 +17,40 @@ export const palettes: Palette[] = [
   },
   {
     id: 1,
-    name: 'Steel Authority',
+    name: 'Monolith',
     concept:
-      'Deep cobalt blue anchored by hot magenta secondary. PE gravitas with an unexpected edge.',
+      'Pure black and white with grayscale secondaries. Even the status colours are gray \u2014 maximum contrast, zero hue.',
   },
   {
     id: 2,
-    name: 'Indigo Signal',
+    name: 'Redline',
     concept:
-      'Vivid violet primary paired with electric lime. Breaks every finance-blue convention.',
+      'Eye-bleeding signal red on stark black and white, with a hazard-yellow secondary. Loud on purpose.',
   },
   {
     id: 3,
-    name: 'Copper Forge',
-    concept: 'Dark rust and electric cyan \u2014 industrial heat meets cold precision.',
+    name: 'Admiralty',
+    concept: 'Navy depth with a signal-blue primary, lit by amber and a cold cyan edge.',
   },
   {
     id: 4,
-    name: 'Jade Edge',
-    concept: 'Vivid emerald with hot rose contrast. The current teal pushed to its boldest form.',
+    name: 'Blaze',
+    concept: 'Safety-orange heat against electric blue, with a hot-magenta spark.',
   },
   {
     id: 5,
-    name: 'Shadow Garden',
-    concept:
-      'Deep forest green rooted in near-black, lit by electric violet. Terminal in an old-growth forest.',
+    name: 'Ultraviolet',
+    concept: 'Vivacious violet with acid-lime and hot-pink contrast. Nightclub energy.',
   },
 ];
 
 export const PALETTE_NAMES: Record<number, string> = {
   0: '0. Current',
-  1: '1. Steel Authority',
-  2: '2. Indigo Signal',
-  3: '3. Copper Forge',
-  4: '4. Jade Edge',
-  5: '5. Shadow Garden',
+  1: '1. Monolith',
+  2: '2. Redline',
+  3: '3. Admiralty',
+  4: '4. Blaze',
+  5: '5. Ultraviolet',
 };
 
 export const PALETTE_CONCEPTS: Record<number, string> = Object.fromEntries(

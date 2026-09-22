@@ -4,79 +4,75 @@
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  /* 1: Steel Authority — deep cobalt + hot magenta */
-  --alt1-color-primary: #1e40af;
-  --alt1-color-primary-dark: #1a3590;
-  --alt1-color-secondary: #db2777;
-  --alt1-color-success: #16a34a;
-  --alt1-color-warning: #ca8a04;
-  --alt1-color-error: #b91c1c;
-  --alt1-color-tertiary: #1e3a8a;
-  --alt1-color-tertiary-dark: #172554;
+  /* 1: Monolith — pure black and white, grayscale everything */
+  --alt1-color-primary: #8e8e8e;
+  --alt1-color-primary-dark: #838383;
+  --alt1-color-secondary: #595959;
+  --alt1-color-success: #8e8e8e;
+  --alt1-color-warning: #666666;
+  --alt1-color-error: #333333;
+  --alt1-color-tertiary: #1a1a1a;
+  --alt1-color-tertiary-dark: #000000;
 
-  /* 2: Indigo Signal — vivid violet + electric lime */
-  --alt2-color-primary: #7c3aed;
-  --alt2-color-primary-dark: #6d28d9;
-  --alt2-color-secondary: #84cc16;
-  --alt2-color-success: #10b981;
-  --alt2-color-warning: #e67e22;
-  --alt2-color-error: #dc2626;
-  --alt2-color-tertiary: #5b21b6;
-  --alt2-color-tertiary-dark: #4c1d95;
+  /* 2: Redline — eye-bleeding signal red + hazard yellow */
+  --alt2-color-primary: #ff2424;
+  --alt2-color-primary-dark: #ff4040;
+  --alt2-color-secondary: #ffd400;
+  --alt2-color-success: #ff2424;
+  --alt2-color-warning: #ffd400;
+  --alt2-color-error: #8a0000;
+  --alt2-color-tertiary: #8a0000;
+  --alt2-color-tertiary-dark: #5c0000;
 
-  /* 3: Copper Forge — dark rust + electric cyan */
-  --alt3-color-primary: #b45309;
-  --alt3-color-primary-dark: #92400e;
-  --alt3-color-secondary: #0891b2;
-  --alt3-color-success: #16a34a;
-  --alt3-color-warning: #eab308;
-  --alt3-color-error: #c0392b;
-  --alt3-color-tertiary: #78350f;
-  --alt3-color-tertiary-dark: #5c2809;
+  /* 3: Admiralty — deep navy + signal amber + cold cyan */
+  --alt3-color-primary: #5a8af2;
+  --alt3-color-primary-dark: #4c80f0;
+  --alt3-color-secondary: #ff9f1c;
+  --alt3-color-success: #5a8af2;
+  --alt3-color-warning: #ff9f1c;
+  --alt3-color-error: #00a3b8;
+  --alt3-color-tertiary: #051640;
+  --alt3-color-tertiary-dark: #030d26;
 
-  /* 4: Jade Edge — vivid emerald + hot rose */
-  --alt4-color-primary: #059669;
-  --alt4-color-primary-dark: #047857;
-  --alt4-color-secondary: #f43f5e;
-  --alt4-color-success: #15803d;
-  --alt4-color-warning: #d97706;
-  --alt4-color-error: #9f1239;
-  --alt4-color-tertiary: #065f46;
-  --alt4-color-tertiary-dark: #064e3b;
+  /* 4: Blaze — safety orange + electric blue + hot magenta */
+  --alt4-color-primary: #ff6a00;
+  --alt4-color-primary-dark: #e05500;
+  --alt4-color-secondary: #1d4ed8;
+  --alt4-color-success: #ff6a00;
+  --alt4-color-warning: #1d4ed8;
+  --alt4-color-error: #d6006e;
+  --alt4-color-tertiary: #b84a00;
+  --alt4-color-tertiary-dark: #8a3700;
 
-  /* 5: Shadow Garden — deep forest + electric violet */
-  --alt5-color-primary: #166534;
-  --alt5-color-primary-dark: #14532d;
-  --alt5-color-secondary: #a855f7;
-  --alt5-color-success: #22c55e;
-  --alt5-color-warning: #ca8a04;
-  --alt5-color-error: #991b1b;
-  --alt5-color-tertiary: #14532d;
-  --alt5-color-tertiary-dark: #0e3d22;
-  --alt5-black: #060606;
-  --alt5-black-soft: #101010;
-  --alt5-purple-muted: rgba(168, 85, 247, 0.3);
-  --alt5-forest-light: rgba(22, 101, 52, 0.18);
+  /* 5: Ultraviolet — vivacious violet + acid lime + hot pink */
+  --alt5-color-primary: #b566ff;
+  --alt5-color-primary-dark: #ae57ff;
+  --alt5-color-secondary: #a3e635;
+  --alt5-color-success: #b566ff;
+  --alt5-color-warning: #a3e635;
+  --alt5-color-error: #e11d74;
+  --alt5-color-tertiary: #5a00b3;
+  --alt5-color-tertiary-dark: #3d007a;
 
   /* ── Expanded tokens: authority / distinguish / subdued ── */
   --alt0-color-authority: #5b7a9d;
   --alt0-color-distinguish: #8b5cf6;
   --alt0-color-subdued: #8c7a6b;
-  --alt1-color-authority: #4a6fa5;
-  --alt1-color-distinguish: #9b59b6;
-  --alt1-color-subdued: #7a8a9a;
-  --alt2-color-authority: #3b82f6;
-  --alt2-color-distinguish: #06b6d4;
-  --alt2-color-subdued: #6b7280;
-  --alt3-color-authority: #2563eb;
-  --alt3-color-distinguish: #7c3aed;
-  --alt3-color-subdued: #78593f;
-  --alt4-color-authority: #6366f1;
-  --alt4-color-distinguish: #d946ef;
-  --alt4-color-subdued: #5a7a5a;
-  --alt5-color-authority: #1e6b45;
-  --alt5-color-distinguish: #7c3aed;
-  --alt5-color-subdued: #3d4f3d;
+  --alt1-color-authority: #404040;
+  --alt1-color-distinguish: #737373;
+  --alt1-color-subdued: #8a8a8a;
+  --alt2-color-authority: #2b2b2b;
+  --alt2-color-distinguish: #ff6b6b;
+  --alt2-color-subdued: #7a5c5c;
+  --alt3-color-authority: #1e4fd8;
+  --alt3-color-distinguish: #00a3b8;
+  --alt3-color-subdued: #5a6480;
+  --alt4-color-authority: #3730a3;
+  --alt4-color-distinguish: #d6006e;
+  --alt4-color-subdued: #7a6352;
+  --alt5-color-authority: #4f46e5;
+  --alt5-color-distinguish: #e11d74;
+  --alt5-color-subdued: #6e5c85;
 
   /* ── Ink counterparts, light theme (ADR-0035) ──
      Measured: every value clears 4.75:1 on #f5f5f5 and 4.5:1 on its own 12%
@@ -85,117 +81,113 @@
   --alt0-color-authority-ink: #41597a;
   --alt0-color-distinguish-ink: #6d3fc4;
   --alt0-color-subdued-ink: #6b5c50;
-  --alt1-color-secondary-ink: #a3145a;
-  --alt1-color-success-ink: #13763a;
-  --alt1-color-warning-ink: #7d5f00;
-  --alt1-color-error-ink: #b91c1c;
-  --alt1-color-authority-ink: #41597a;
-  --alt1-color-distinguish-ink: #6d3f85;
-  --alt1-color-subdued-ink: #566470;
-  --alt2-color-secondary-ink: #476f0c;
-  --alt2-color-success-ink: #0a7550;
-  --alt2-color-warning-ink: #9c4f0c;
-  --alt2-color-error-ink: #a81d1d;
-  --alt2-color-authority-ink: #1d5fc4;
-  --alt2-color-distinguish-ink: #046b7d;
-  --alt2-color-subdued-ink: #585e69;
-  --alt3-color-secondary-ink: #046b7d;
-  --alt3-color-success-ink: #13763a;
-  --alt3-color-warning-ink: #7d6000;
-  --alt3-color-error-ink: #992d22;
-  --alt3-color-authority-ink: #1d5fc4;
-  --alt3-color-distinguish-ink: #6d3fc4;
-  --alt3-color-subdued-ink: #5e4632;
-  --alt4-color-secondary-ink: #b31235;
-  --alt4-color-success-ink: #116d35;
-  --alt4-color-warning-ink: #8f4d04;
-  --alt4-color-error-ink: #9f1239;
-  --alt4-color-authority-ink: #4b4ec4;
-  --alt4-color-distinguish-ink: #9c1fb0;
-  --alt4-color-subdued-ink: #456045;
-  --alt5-color-secondary-ink: #7b2fc4;
-  --alt5-color-success-ink: #116d35;
-  --alt5-color-warning-ink: #7d5f00;
-  --alt5-color-error-ink: #991b1b;
-  --alt5-color-authority-ink: #1e6b45;
-  --alt5-color-distinguish-ink: #6d3fc4;
-  --alt5-color-subdued-ink: #3d4f3d;
+  --alt1-color-secondary-ink: #595959;
+  --alt1-color-success-ink: #000000;
+  --alt1-color-warning-ink: #5e5e5e;
+  --alt1-color-error-ink: #333333;
+  --alt1-color-authority-ink: #404040;
+  --alt1-color-distinguish-ink: #5c5c5c;
+  --alt1-color-subdued-ink: #636363;
+  --alt2-color-secondary-ink: #6e5a00;
+  --alt2-color-success-ink: #c00000;
+  --alt2-color-warning-ink: #6e5a00;
+  --alt2-color-error-ink: #6b0000;
+  --alt2-color-authority-ink: #2b2b2b;
+  --alt2-color-distinguish-ink: #a30f0f;
+  --alt2-color-subdued-ink: #6e4f4f;
+  --alt3-color-secondary-ink: #8f5400;
+  --alt3-color-success-ink: #0a2a6b;
+  --alt3-color-warning-ink: #8f5400;
+  --alt3-color-error-ink: #00687a;
+  --alt3-color-authority-ink: #1a45c0;
+  --alt3-color-distinguish-ink: #00687a;
+  --alt3-color-subdued-ink: #4d5670;
+  --alt4-color-secondary-ink: #1d4ed8;
+  --alt4-color-success-ink: #9e3f00;
+  --alt4-color-warning-ink: #1d4ed8;
+  --alt4-color-error-ink: #b3005c;
+  --alt4-color-authority-ink: #3730a3;
+  --alt4-color-distinguish-ink: #b3005c;
+  --alt4-color-subdued-ink: #66503f;
+  --alt5-color-secondary-ink: #3f6908;
+  --alt5-color-success-ink: #7a10ec;
+  --alt5-color-warning-ink: #3f6908;
+  --alt5-color-error-ink: #ad1253;
+  --alt5-color-authority-ink: #4338ca;
+  --alt5-color-distinguish-ink: #ad1253;
+  --alt5-color-subdued-ink: #5c4c72;
 }
 
 html.dark-theme {
-  /* 1: Steel Authority */
-  --alt1-color-primary: #3b82f6;
-  --alt1-color-primary-dark: #2563eb;
-  --alt1-color-secondary: #f472b6;
-  --alt1-color-success: #4ade80;
-  --alt1-color-warning: #facc15;
-  --alt1-color-error: #ef4444;
+  /* 1: Monolith */
+  --alt1-color-primary: #ffffff;
+  --alt1-color-primary-dark: #d4d4d4;
+  --alt1-color-secondary: #a6a6a6;
+  --alt1-color-success: #ffffff;
+  --alt1-color-warning: #999999;
+  --alt1-color-error: #cccccc;
   --alt1-color-tertiary: var(--alt1-color-primary);
   --alt1-color-tertiary-dark: var(--alt1-color-primary-dark);
 
-  /* 2: Indigo Signal */
-  --alt2-color-primary: #a78bfa;
-  --alt2-color-primary-dark: #8b5cf6;
-  --alt2-color-secondary: #a3e635;
-  --alt2-color-success: #34d399;
-  --alt2-color-warning: #f59e0b;
-  --alt2-color-error: #f87171;
+  /* 2: Redline */
+  --alt2-color-primary: #ff2d2d;
+  --alt2-color-primary-dark: #ff5252;
+  --alt2-color-secondary: #ffe14d;
+  --alt2-color-success: #ff4d4d;
+  --alt2-color-warning: #ffe14d;
+  --alt2-color-error: #ff9a9a;
   --alt2-color-tertiary: var(--alt2-color-primary);
   --alt2-color-tertiary-dark: var(--alt2-color-primary-dark);
 
-  /* 3: Copper Forge */
-  --alt3-color-primary: #d97706;
-  --alt3-color-primary-dark: #b45309;
-  --alt3-color-secondary: #22d3ee;
-  --alt3-color-success: #4ade80;
-  --alt3-color-warning: #fbbf24;
-  --alt3-color-error: #ef4444;
+  /* 3: Admiralty */
+  --alt3-color-primary: #5b8cff;
+  --alt3-color-primary-dark: #4f82ff;
+  --alt3-color-secondary: #ffb547;
+  --alt3-color-success: #7aa2ff;
+  --alt3-color-warning: #ffb547;
+  --alt3-color-error: #2fe0f0;
   --alt3-color-tertiary: var(--alt3-color-primary);
   --alt3-color-tertiary-dark: var(--alt3-color-primary-dark);
 
-  /* 4: Jade Edge */
-  --alt4-color-primary: #10b981;
-  --alt4-color-primary-dark: #059669;
-  --alt4-color-secondary: #fb7185;
-  --alt4-color-success: #4ade80;
-  --alt4-color-warning: #f59e0b;
-  --alt4-color-error: #e11d48;
+  /* 4: Blaze */
+  --alt4-color-primary: #ff7a1a;
+  --alt4-color-primary-dark: #ff6a00;
+  --alt4-color-secondary: #60a5fa;
+  --alt4-color-success: #ff8c3a;
+  --alt4-color-warning: #60a5fa;
+  --alt4-color-error: #ff4fa3;
   --alt4-color-tertiary: var(--alt4-color-primary);
   --alt4-color-tertiary-dark: var(--alt4-color-primary-dark);
 
-  /* 5: Shadow Garden */
-  --alt5-color-primary: #22c55e;
-  --alt5-color-primary-dark: #16a34a;
-  --alt5-color-secondary: #c084fc;
-  --alt5-color-success: #4ade80;
-  --alt5-color-warning: #eab308;
-  --alt5-color-error: #ef4444;
+  /* 5: Ultraviolet */
+  --alt5-color-primary: #b36bff;
+  --alt5-color-primary-dark: #ab5cff;
+  --alt5-color-secondary: #bef264;
+  --alt5-color-success: #c28aff;
+  --alt5-color-warning: #bef264;
+  --alt5-color-error: #ff5fa8;
   --alt5-color-tertiary: var(--alt5-color-primary);
   --alt5-color-tertiary-dark: var(--alt5-color-primary-dark);
-  --alt5-black: #040404;
-  --alt5-black-soft: #0a0a0a;
-  --alt5-purple-muted: rgba(192, 132, 252, 0.25);
-  --alt5-forest-light: rgba(34, 197, 94, 0.1);
 
   /* ── Expanded tokens (dark theme) ── */
   --alt0-color-authority: #7a9dbd;
   --alt0-color-distinguish: #a78bfa;
   --alt0-color-subdued: #a89888;
-  --alt1-color-authority: #60a5fa;
-  --alt1-color-distinguish: #c084fc;
-  --alt1-color-subdued: #94a3b8;
-  --alt2-color-authority: #60a5fa;
-  --alt2-color-distinguish: #22d3ee;
-  --alt2-color-subdued: #9ca3af;
-  --alt3-color-authority: #60a5fa;
-  --alt3-color-distinguish: #a78bfa;
-  --alt3-color-subdued: #a08060;
-  --alt4-color-authority: #818cf8;
-  --alt4-color-distinguish: #e879f9;
-  --alt4-color-subdued: #7a9a7a;
-  --alt5-color-authority: #34d399;
-  --alt5-color-distinguish: #a78bfa;
-  --alt5-color-subdued: #5a6f5a;
+  --alt1-color-authority: #bfbfbf;
+  --alt1-color-distinguish: #8c8c8c;
+  --alt1-color-subdued: #8f8f8f;
+  --alt2-color-authority: #e0e0e0;
+  --alt2-color-distinguish: #ff8080;
+  --alt2-color-subdued: #a88888;
+  --alt3-color-authority: #8fb0ff;
+  --alt3-color-distinguish: #2fe0f0;
+  --alt3-color-subdued: #8d97b3;
+  --alt4-color-authority: #a5b4fc;
+  --alt4-color-distinguish: #ff4fa3;
+  --alt4-color-subdued: #a89080;
+  --alt5-color-authority: #a5b4fc;
+  --alt5-color-distinguish: #ff5fa8;
+  --alt5-color-subdued: #9d8cb5;
 
   /* Ink counterparts in dark are the base colours themselves — the ink swap is
      a no-op in dark for every palette (ADR-0035). */
@@ -283,13 +275,12 @@ html.palette-0 {
 html.palette-1 {
   --color-primary: var(--alt1-color-primary);
   --color-primary-dark: var(--alt1-color-primary-dark);
-  --color-primary-rgb: 30, 64, 175;
+  --color-primary-rgb: 142, 142, 142;
   --color-secondary: var(--alt1-color-secondary);
   /* Badge chip fill (see --sash-badge-bg in variables.css): this palette's
-     light-theme secondary (#db2777) is 4.31:1 under the chip's dark ink — the
-     only failing combo of the twelve measured 2026-08-28 — so its dark-theme
-     secondary is promoted to both themes (7.48:1 both). */
-  --sash-badge-bg: #f472b6;
+     light-theme secondary (#595959) is under 4.5:1 beneath the chip's dark
+     ink, so its dark-theme secondary (#a6a6a6) is promoted to both themes. */
+  --sash-badge-bg: #a6a6a6;
   --color-success: var(--alt1-color-success);
   --color-warning: var(--alt1-color-warning);
   --color-error: var(--alt1-color-error);
@@ -305,18 +296,13 @@ html.palette-1 {
   --color-authority-ink: var(--alt1-color-authority-ink);
   --color-distinguish-ink: var(--alt1-color-distinguish-ink);
   --color-subdued-ink: var(--alt1-color-subdued-ink);
-  --border-dark: rgba(30, 64, 175, 0.2);
-  --accent-light-bg: rgba(30, 64, 175, 0.08);
-  --accent-light-bg-hover: rgba(30, 64, 175, 0.15);
-  --accent-border-light: rgba(30, 64, 175, 0.25);
-  --accent-border-medium: rgba(30, 64, 175, 0.3);
   --stat-item-border: var(--alt1-color-primary);
 }
 
 html.palette-2 {
   --color-primary: var(--alt2-color-primary);
   --color-primary-dark: var(--alt2-color-primary-dark);
-  --color-primary-rgb: 124, 58, 237;
+  --color-primary-rgb: 255, 36, 36;
   --color-secondary: var(--alt2-color-secondary);
   --color-success: var(--alt2-color-success);
   --color-warning: var(--alt2-color-warning);
@@ -333,18 +319,13 @@ html.palette-2 {
   --color-authority-ink: var(--alt2-color-authority-ink);
   --color-distinguish-ink: var(--alt2-color-distinguish-ink);
   --color-subdued-ink: var(--alt2-color-subdued-ink);
-  --border-dark: rgba(124, 58, 237, 0.2);
-  --accent-light-bg: rgba(124, 58, 237, 0.08);
-  --accent-light-bg-hover: rgba(124, 58, 237, 0.15);
-  --accent-border-light: rgba(124, 58, 237, 0.25);
-  --accent-border-medium: rgba(124, 58, 237, 0.3);
   --stat-item-border: var(--alt2-color-primary);
 }
 
 html.palette-3 {
   --color-primary: var(--alt3-color-primary);
   --color-primary-dark: var(--alt3-color-primary-dark);
-  --color-primary-rgb: 180, 83, 9;
+  --color-primary-rgb: 90, 138, 242;
   --color-secondary: var(--alt3-color-secondary);
   --color-success: var(--alt3-color-success);
   --color-warning: var(--alt3-color-warning);
@@ -361,19 +342,18 @@ html.palette-3 {
   --color-authority-ink: var(--alt3-color-authority-ink);
   --color-distinguish-ink: var(--alt3-color-distinguish-ink);
   --color-subdued-ink: var(--alt3-color-subdued-ink);
-  --border-dark: rgba(180, 83, 9, 0.2);
-  --accent-light-bg: rgba(180, 83, 9, 0.08);
-  --accent-light-bg-hover: rgba(180, 83, 9, 0.15);
-  --accent-border-light: rgba(180, 83, 9, 0.25);
-  --accent-border-medium: rgba(180, 83, 9, 0.3);
   --stat-item-border: var(--alt3-color-primary);
 }
 
 html.palette-4 {
   --color-primary: var(--alt4-color-primary);
   --color-primary-dark: var(--alt4-color-primary-dark);
-  --color-primary-rgb: 5, 150, 105;
+  --color-primary-rgb: 255, 106, 0;
   --color-secondary: var(--alt4-color-secondary);
+  /* Badge chip fill: the light-theme secondary (#1d4ed8) is too dark under the
+     chip's dark ink; #60a5fa is the dark-theme secondary, so this only changes
+     light theme. */
+  --sash-badge-bg: #60a5fa;
   --color-success: var(--alt4-color-success);
   --color-warning: var(--alt4-color-warning);
   --color-error: var(--alt4-color-error);
@@ -389,18 +369,13 @@ html.palette-4 {
   --color-authority-ink: var(--alt4-color-authority-ink);
   --color-distinguish-ink: var(--alt4-color-distinguish-ink);
   --color-subdued-ink: var(--alt4-color-subdued-ink);
-  --border-dark: rgba(5, 150, 105, 0.2);
-  --accent-light-bg: rgba(5, 150, 105, 0.08);
-  --accent-light-bg-hover: rgba(5, 150, 105, 0.15);
-  --accent-border-light: rgba(5, 150, 105, 0.25);
-  --accent-border-medium: rgba(5, 150, 105, 0.3);
   --stat-item-border: var(--alt4-color-primary);
 }
 
 html.palette-5 {
   --color-primary: var(--alt5-color-primary);
   --color-primary-dark: var(--alt5-color-primary-dark);
-  --color-primary-rgb: 22, 101, 52;
+  --color-primary-rgb: 181, 102, 255;
   --color-secondary: var(--alt5-color-secondary);
   --color-success: var(--alt5-color-success);
   --color-warning: var(--alt5-color-warning);
@@ -417,29 +392,43 @@ html.palette-5 {
   --color-authority-ink: var(--alt5-color-authority-ink);
   --color-distinguish-ink: var(--alt5-color-distinguish-ink);
   --color-subdued-ink: var(--alt5-color-subdued-ink);
-  --border-dark: rgba(22, 101, 52, 0.2);
-  --accent-light-bg: rgba(22, 101, 52, 0.08);
-  --accent-light-bg-hover: rgba(22, 101, 52, 0.15);
-  --accent-border-light: rgba(22, 101, 52, 0.25);
-  --accent-border-medium: rgba(22, 101, 52, 0.3);
   --stat-item-border: var(--alt5-color-primary);
 }
 
-/* ── Announcement sash ink (see --sash-bg / --sash-ink in variables.css) ──
-   These four palettes re-point --color-primary to a DARK saturated hue in LIGHT
-   theme only (#1e40af, #7c3aed, #b45309, #166534), so the :root dark ink drops
-   under 4.5:1 there; their dark-theme primaries are light tints, which keep it.
-   --text-dark-primary is the LIGHT ink (rgba(245, 245, 245, 0.95)) — "text FOR
-   dark surfaces". The token names read backwards: --text-light-primary here
-   would put #1a1a1a on #1e40af (~1.4:1). Do not swap them.
-   palette-0 and palette-4 inherit the :root value deliberately — their primaries
-   stay light enough for dark ink in both themes. */
-html.palette-1,
-html.palette-2,
-html.palette-3,
-html.palette-5 {
-  --sash-ink: light-dark(var(--text-dark-primary), var(--bg-dark));
+/* ── Dark-theme primary triplets ──
+   --color-primary-rgb feeds every primary tint, border and accent background
+   (variables.css). One triplet per palette would paint dark-theme tints in the
+   LIGHT primary — black on black for palette-1 — so each palette re-points it
+   to its dark-theme primary here. */
+html.dark-theme.palette-1 {
+  --color-primary-rgb: 255, 255, 255;
 }
 
-/* palette-1 additionally re-points --sash-badge-bg — declared inside its main
-   block above (a second html.palette-1 block here trips no-duplicate-selectors). */
+html.dark-theme.palette-2 {
+  --color-primary-rgb: 255, 45, 45;
+}
+
+html.dark-theme.palette-3 {
+  --color-primary-rgb: 91, 140, 255;
+}
+
+html.dark-theme.palette-4 {
+  --color-primary-rgb: 255, 122, 26;
+}
+
+html.dark-theme.palette-5 {
+  --color-primary-rgb: 179, 107, 255;
+}
+
+/* ── Announcement sash ink (see --sash-bg / --sash-ink in variables.css) ──
+   No palette re-points --sash-ink: every palette's primary is light enough for
+   the :root dark ink in both themes. BL-165 (2026-09-22) lightened the
+   light-theme fills of palettes 1, 3 and 5 so dark text reads on every
+   primary fill, not just the sash. A future palette with a DARK light-theme
+   primary must add, in its own block:
+     --sash-ink: light-dark(var(--text-dark-primary), var(--bg-dark));
+   --text-dark-primary is the LIGHT ink — the token names read backwards. */
+
+/* palette-1 and palette-4 additionally re-point --sash-badge-bg — declared inside
+   their main blocks above (a second html.palette-N block here trips
+   no-duplicate-selectors). */

@@ -56,6 +56,12 @@ Consolidated backlog of open development initiatives for the GST website. Each i
 >   - **Slice 1** became [ADR-0036](../adr/0036-client-records-stay-in-kv.md): the M2M client record stays in KV, the indexes it lacks live in Upstash beside it, four revisit triggers. The stanza's "no expiry primitive exists" was stale — BL-155 had added `expiresAt`, enforced at mint and reaped at +30d — and the ADR opens by answering the BL-133 question that raised it. The mint-path read was **measured against staging**, not reasoned: three new ad-hoc probe surfaces (`--surfaces`, never scheduled, unauthenticated) put an edge-cached KV read at ~10 ms and an origin miss at ~98 ms client-observed; D1 could not be measured without a binding and the ADR says so as a finding. The local shape check found that `listM2mClients` ignored `list_complete`/`cursor` and would have silently truncated a roster past one page — fixed with a paged-KV test.
 >   - **Slice 2** became [`src/docs/architecture/`](../architecture/README.md) — README + five layer files, 13 mermaid diagrams, each rendered with a pinned build before commit because nothing in CI renders mermaid; the medium is a directory-scoped convention by [ADR-0037](../adr/0037-architecture-reference-diagrams-are-mermaid.md). Layer 4 is stated thin (one operator) rather than manufactured; Layer 5 is the richer one. The README carries the per-section table proving each maintained reference is linked rather than redrawn, and the rule that no tool/prompt/resource count appears in the directory.
 >   - Two index drifts fixed on the way: `src/docs/README.md` published `adr/` as 30 docs when 35 existed (now 37); the BL-155 stanza's link to this item was retargeted at the ADR.
+> - **2026-09-22**: 1 stanza (BL-165, alternative palettes 1–5 reworked) closed and pruned the day it was filed. Last pre-prune revision: `805924b1`.
+>   - **Palettes:** 1 Monolith (black/white/grayscale), 2 Redline (red), 3 Admiralty (navy), 4 Blaze (orange), 5 Ultraviolet (purple). Palette 0 kept every token value. The operator approved the direction on a design canvas first.
+>   - **Operator decisions that superseded the stanza's text:** status colours are derived from each palette (success = primary, warning = secondary, error = accent; grayscale in Monolith), not green/yellow/red; no per-palette contrast guard (the axe sweep still covers palette 0 only).
+>   - **Measured, not guarded:** every light ink clears ADR-0035's 4.75:1 on `#f5f5f5` and 4.5:1 on its 12% tint; every dark base clears 4.5:1 on `#0a0a0a`/`#1a1a1a`; the sash band and badge chip clear 4.5:1 in both themes.
+>   - **Readable fills:** screenshots showed dark text on the dark light-theme fills of 1, 3 and 5 (a pre-existing pattern — ~20 sites hardcode `--bg-dark` ink on `--color-primary`). The operator chose to lighten those three fills (gray `#8e8e8e`, blue `#5a8af2`, violet `#b566ff`) over adding an on-primary token; every primary and primary-dark now clears 4.5:1 under dark text in both themes, so the `--sash-ink` re-point is retired.
+>   - **Latent bug fixed on the way:** `--color-primary-rgb` had one value per palette, so dark-theme tints/borders used the LIGHT primary. Each palette now sets a dark-theme triplet, and the hand-copied rgba border/accent lines were deleted in favour of the `variables.css` derivations.
 >
 > **Three closed stanzas are deliberately retained, and no other closed stanza should survive a sweep** — the list is exhaustive on purpose, so an omission reads as a decision rather than an oversight:
 >
@@ -539,40 +545,6 @@ Verified 2026-09-04 against Anthropic's own docs: remote MCP servers are submitt
 ---
 
 ## CSS and Design System
-
-### BL-165: Alternative palettes 1–5 — rework them to be higher-contrast, bolder and livelier
-
-**Source**: operator directive 2026-09-22, raised while viewing the PalettePanel swatch editor on `/brand` | **Effort**: Medium — five palettes × light + dark token sets, and a visual review per palette | **Status**: Open
-
-**User story**: As the operator showing prospects the site's alternative palettes, I want palettes 1–5 to look clearly different from each other and from the brand, with strong contrast and a confident character, so that switching palettes shows off the design system instead of looking like five dull variants of it.
-
-**Scope**
-
-- **Palette 0 (`Current`, the production brand) must not change.** Leave its `palettes.css` block, its `palettes.ts` entry and every base token in `variables.css` exactly as they are. Only the `--alt1-*` … `--alt5-*` variables and their `html.palette-1` … `html.palette-5` override blocks are in scope.
-- **Every palette 1–5** should end up more contrasted, bolder and livelier than what is there today. Each gets its full semantic token set (primary, primary-dark, secondary, accent, success, warning, error, surfaces, text) defined in both light and dark.
-- **Palette 1**: black and white, with grayscale secondary colors. The semantic status colors (success, warning, error) keep their hues so they stay recognisable, but each is tuned to sit well on a monochrome palette.
-- **Palette 2**: main color **bright, eye-bleeding red**. Choose supporting colors accordingly.
-- **Palette 3**: main color **navy blue**. Choose secondary and accent colors that complement it.
-- **Palette 4**: main color **bright orange**. Choose supporting colors accordingly.
-- **Palette 5**: main color **vivacious purple**. Choose supporting colors accordingly.
-- Rename and re-describe each palette in `src/data/palettes.ts` (`name`, `concept`) wherever its character changes. Today's names (`Steel Authority`, `Indigo Signal`, `Copper Forge`, `Jade Edge`, `Shadow Garden`) will no longer describe palettes 1–5.
-
-**Contrast guards**: the existing guards do not check palettes 1–5. `tests/e2e/accessibility.test.ts` runs axe `color-contrast` on the **default palette only**, and the palette unit tests check structure, not contrast ratios. The operator has accepted this (2026-09-22), so this item does not add a per-palette contrast guard. The existing sweep must still pass, which confirms palette 0 and the shared chrome are unaffected.
-
-**Acceptance criteria**
-
-- [ ] Palette 0 is unchanged. `git diff` shows no change to the palette-0 block of `palettes.css`, to its `palettes.ts` entry, or to `variables.css`
-- [ ] Palettes 1–5 are redefined in `src/styles/palettes.css` (light + dark) and `src/data/palettes.ts` as scoped above: 1 = black/white/grayscale, 3 = navy, 4 = bright orange, 5 = vivacious purple, 2 = bright red
-- [ ] `npm run test:run` and the existing accessibility sweep pass unchanged
-- [ ] Every palette is visually reviewed on `/brand` and at least one Hub page, in light and dark, at desktop, 768px and 480px
-- [ ] Brand teal is never swapped in or out of palette 0 for contrast. The operator has ruled that the brand teal stays and accepted sub-AA teal there. Contrast work applies to palettes 1–5 only
-- [ ] `STYLES_GUIDE.md` / `BRAND_GUIDELINES.md § Alternative Palette System` and `VARIABLES_REFERENCE.md` are updated wherever they describe palettes 1–5, and `npm run test:docs` passes (it checks VARIABLES_REFERENCE ↔ variables.css parity)
-- [ ] Tests are searched for every old palette name and concept string (Directive 11) and updated where they appear
-- [ ] claude.ai/design is re-synced if any `--altN-*` token or palette name it mirrors changes ([CLAUDE_DESIGN_SYNC.md](CLAUDE_DESIGN_SYNC.md))
-
-**Files**: `src/styles/palettes.css`, `src/data/palettes.ts`, `tests/unit/palettes-data.test.ts` (names), and the style docs named above.
-
----
 
 ### BL-102: Regulatory map — how is the map exposed to assistive tech?
 

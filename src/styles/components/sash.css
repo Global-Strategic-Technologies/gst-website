@@ -97,11 +97,11 @@ each other too, but their rotated AABBs barely meet — each keeps far more than
 No ≤768/≤540 variants exist: the under-band hides 512–768px alongside
 __detail, and below 512 it is the strip's second line.
 
-Colour comes from three tokens: --sash-bg and --sash-ink (variables.css, with
-the per-palette ink in palettes.css) draw the bands, borders and hover — the
+Colour comes from three tokens: --sash-bg and --sash-ink (variables.css; no
+palette re-points the ink today — see palettes.css) draw the bands, borders and hover — the
 derivations use color-mix, so they follow all six palettes and both themes
 with no extra CSS — and --sash-badge-bg (the secondary accent, re-pointed for
-palette-1) fills the badge chip under constant --bg-dark ink, measured at
+palette-1 and palette-4) fills the badge chip under constant --bg-dark ink, measured at
 every palette × theme when the chip left the two-token pair (2026-08-28).
 The under-band inverts the bg/ink pair — the chip's original move, whose
 per-palette ink was chosen to keep that inversion above AA — and that
@@ -162,9 +162,10 @@ moves.)
 
 /* The chip left the two-token family 2026-08-28 (operator direction: an
    alternate colour): --sash-badge-bg (the secondary accent, re-pointed for
-   palette-1 in palettes.css) under CONSTANT dark ink — --bg-dark, not
-   --sash-ink, which goes light in some palettes. Measured at every
-   palette × theme when it changed — worst surviving combo 5.0:1; re-measure
+   palette-1 and palette-4 in palettes.css) under CONSTANT dark ink — --bg-dark, not
+   --sash-ink, which a future palette may re-point light. Measured at every
+   palette × theme when it changed, and again for BL-165 (2026-09-22) — worst
+   combo now 6.7:1 (palette-0 light); re-measure
    all twelve before re-pointing either side. */
 .brutal-sash__badge {
   padding: 0.0625rem 0.3125rem;

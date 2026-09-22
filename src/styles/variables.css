@@ -255,17 +255,17 @@
   --stat-item-border: light-dark(var(--color-primary), var(--color-primary-20));
 
   /* Announcement sash (.brutal-sash) — the band and its ink. The band is always
-     --color-primary; the ink is dark by default and is re-pointed per palette in
-     palettes.css for the palettes whose LIGHT-theme primary is a dark saturated
-     hue. Defined here (not in palettes.css) for the same reason
+     --color-primary; the ink is dark, and no palette currently re-points it
+     (every primary is light enough for it — see palettes.css § Announcement
+     sash ink for when a palette would need to). Defined here (not in palettes.css) for the same reason
      --stat-item-border is: variables.css owns the base value, palettes.css owns
      the per-palette override. */
   --sash-bg: var(--color-primary);
   --sash-ink: var(--bg-dark);
   /* The badge chip's fill (2026-08-28, operator direction): the secondary
-     accent, under constant --bg-dark ink. Re-pointed for palette-1 in
-     palettes.css — its light-theme secondary is the one of twelve
-     palette × theme combos measuring under 4.5:1 against the dark ink. */
+     accent, under constant --bg-dark ink. Re-pointed per palette in
+     palettes.css wherever a secondary measures under 4.5:1 against the dark
+     ink — see the comments there. */
   --sash-badge-bg: var(--color-secondary);
 
   /* Misc */
