@@ -153,14 +153,9 @@ function applyColor(swatch: HTMLElement, hex: string, alpha?: number) {
 
   const varName = swatch.dataset.var;
   if (varName) {
-    if (hasAlpha && rgb) {
-      document.documentElement.style.setProperty(
-        varName,
-        `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`
-      );
-    } else {
-      document.documentElement.style.setProperty(varName, hex);
-    }
+    const value = hasAlpha && rgb ? `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})` : hex;
+    document.documentElement.style.setProperty(varName, value);
+    storeOverride(varName, value);
   }
 }
 
@@ -260,7 +255,10 @@ function injectControls() {
           colorEl.style.background = `var(${varName})`;
         }
       }
-      if (varName) document.documentElement.style.removeProperty(varName);
+      if (varName) {
+        document.documentElement.style.removeProperty(varName);
+        storeOverride(varName, null);
+      }
       delete el.dataset.userOverride;
       requestAnimationFrame(() => {
         const fresh = getComputedStyle(colorEl!).backgroundColor;
@@ -316,9 +314,48 @@ function switchPalette(id: number) {
   requestAnimationFrame(() => readAndPopulate());
 }
 
+// ── Persisted colour edits ─────────────────────────────────
+// Saved as { "--var": "value" } under OVERRIDES_KEY and re-applied by
+// BaseLayout's head script before first paint, so an edit survives navigation.
+
+const OVERRIDES_KEY = 'palette-overrides';
+
+function readStoredOverrides(): Record<string, string> {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(OVERRIDES_KEY) ?? '{}');
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredOverrides(map: Record<string, string>): void {
+  try {
+    if (Object.keys(map).length === 0) localStorage.removeItem(OVERRIDES_KEY);
+    else localStorage.setItem(OVERRIDES_KEY, JSON.stringify(map));
+  } catch {
+    Sentry.addBreadcrumb({
+      category: 'palette-manager',
+      message: 'localStorage write failed',
+      level: 'warning',
+    });
+  }
+}
+
+function storeOverride(varName: string, value: string | null): void {
+  const map = readStoredOverrides();
+  if (value === null) delete map[varName];
+  else map[varName] = value;
+  writeStoredOverrides(map);
+}
+
 function resetAllOverrides() {
-  // Clear inline style overrides from <html>
+  // Clear inline style overrides from <html> — every stored one, including
+  // variables with no swatch on this page (edits are made on /brand but
+  // applied site-wide).
   const html = document.documentElement;
+  for (const varName of Object.keys(readStoredOverrides())) html.style.removeProperty(varName);
+  writeStoredOverrides({});
   // Only remove color-related inline styles, preserve other attributes
   document.querySelectorAll<HTMLElement>('.brand-swatch').forEach((el) => {
     const varName = el.dataset.var;
@@ -339,14 +376,25 @@ function resetAllOverrides() {
 
 // ── Theme Observer ─────────────────────────────────────────
 
-let themeObserverPaused = false;
+/** Palette + theme: the only class changes that invalidate a colour edit. */
+function lookKey(): string {
+  const html = document.documentElement;
+  const palette = /\bpalette-(\d)\b/.exec(html.className)?.[1] ?? '0';
+  return `${palette}:${readState(html)}`;
+}
+let lastLookKey = lookKey();
 
 new MutationObserver(() => {
   // Runs for EVERY class change — the footer toggle, the /brand responsive
   // frames and the panel alike — so the panel's theme buttons always show the
   // real state, not their own click history.
   syncThemeButtons();
-  if (themeObserverPaused) return;
+  // Colour edits persist across pages until the reader picks a different
+  // palette (or theme — an edit is a colour for one palette in one theme).
+  // Unrelated class changes, e.g. the popout toggle, must not wipe them.
+  const key = lookKey();
+  if (key === lastLookKey) return;
+  lastLookKey = key;
   resetAllOverrides();
 }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
@@ -441,14 +489,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Shared action: select palette ───────────────────────
   function handlePaletteSelect(id: number): void {
-    themeObserverPaused = true;
     switchPalette(id);
-    themeObserverPaused = false;
   }
 
   // ── Shared action: toggle theme ─────────────────────────
   function handleThemeToggle(): void {
-    themeObserverPaused = true;
     const state = nextState(readState(document.documentElement));
     applyState(document.documentElement, state);
     try {
@@ -460,7 +505,6 @@ document.addEventListener('DOMContentLoaded', () => {
         level: 'warning',
       });
     }
-    themeObserverPaused = false;
     resetAllOverrides();
   }
 
@@ -470,9 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function handlePopoutToggle(): void {
     const html = document.documentElement;
     const wasPopped = html.classList.contains('palette-popped-out');
-    themeObserverPaused = true;
     html.classList.toggle('palette-popped-out');
-    themeObserverPaused = false;
 
     // Sync is-active on ALL popout buttons (desktop + mobile clones)
     document

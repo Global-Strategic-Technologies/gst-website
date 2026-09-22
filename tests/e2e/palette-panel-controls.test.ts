@@ -661,6 +661,62 @@ test.describe('Palette Panel Controls', () => {
     });
   });
 
+  // Colour edits persist site-wide until a different palette is chosen.
+  test.describe('Persisted Colour Edits', () => {
+    const EDITED = '#ff0000';
+    const inlineVar = (page: import('@playwright/test').Page, name: string) =>
+      page.evaluate((n) => document.documentElement.style.getPropertyValue(n).trim(), name);
+
+    /** Edit the first swatch on /brand; returns the custom property it edits. */
+    async function editFirstSwatch(page: import('@playwright/test').Page): Promise<string> {
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      await openPanel(page);
+      await waitForSwatchControls(page);
+      const varName = await page.evaluate((color) => {
+        const swatch = document.querySelector('.brand-swatch') as HTMLElement;
+        const picker = swatch.querySelector<HTMLInputElement>('.swatch-picker')!;
+        picker.value = color;
+        picker.dispatchEvent(new Event('input', { bubbles: true }));
+        return swatch.dataset.var!;
+      }, EDITED);
+      await expect.poll(() => inlineVar(page, varName)).toBe(EDITED);
+      return varName;
+    }
+
+    test('an edit survives navigating to another page, restored before first paint', async ({
+      page,
+    }) => {
+      const varName = await editFirstSwatch(page);
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      expect(await inlineVar(page, varName)).toBe(EDITED);
+    });
+
+    test('an unrelated class change (the popout toggle) keeps the edit', async ({ page }) => {
+      const varName = await editFirstSwatch(page);
+      await clickPanelButton(page, 'panel-popout-toggle');
+      // Yield a task so the class MutationObserver has run before reading.
+      await page.evaluate(() => new Promise((r) => setTimeout(r)));
+      expect(await inlineVar(page, varName)).toBe(EDITED);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      expect(await inlineVar(page, varName)).toBe(EDITED);
+    });
+
+    test('choosing a different palette reverts every edit, on this page and the next', async ({
+      page,
+    }) => {
+      const varName = await editFirstSwatch(page);
+      await page.evaluate(() =>
+        document
+          .querySelector('#palette-tabs [data-palette="2"]')
+          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      );
+      await expect.poll(() => inlineVar(page, varName)).toBe('');
+      expect(await page.evaluate(() => localStorage.getItem('palette-overrides'))).toBeNull();
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      expect(await inlineVar(page, varName)).toBe('');
+    });
+  });
+
   test.describe('Popout Icon Rotation', () => {
     test('should show correct rotation without animation when popout state is pre-set', async ({
       page,
