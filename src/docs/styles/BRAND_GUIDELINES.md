@@ -259,7 +259,7 @@ Six color palettes are defined in `src/styles/palettes.css`, enabling stakeholde
 | 2   | **Redline**              | Red `#ff2424`    | Yellow `#ffd400` | Eye-bleeding signal red, loud on purpose |
 | 3   | **Admiralty**            | Blue `#5a8af2`   | Amber `#ff9f1c`  | Navy depth, signal blue, cold cyan edge  |
 | 4   | **Blaze**                | Orange `#ff6a00` | Blue `#1d4ed8`   | Safety orange against electric blue      |
-| 5   | **Ultraviolet**          | Purple `#b566ff` | Lime `#a3e635`   | Vivacious violet, nightclub energy       |
+| 5   | **Ultraviolet**          | Purple `#c145ff` | Lime `#a3e635`   | Vivacious violet, nightclub energy       |
 
 **Adding a palette:** also add it to the `:not(.palette-1, …, .palette-5)` lists in `palettes.css` § Dim-light inks, or it inherits palette 0's dim ink values ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)).
 

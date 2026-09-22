@@ -45,10 +45,10 @@
   --alt4-color-tertiary-dark: #8a3700;
 
   /* 5: Ultraviolet — vivacious violet + acid lime + hot pink */
-  --alt5-color-primary: #b566ff;
-  --alt5-color-primary-dark: #ae57ff;
+  --alt5-color-primary: #c145ff;
+  --alt5-color-primary-dark: #c24dff;
   --alt5-color-secondary: #a3e635;
-  --alt5-color-success: #b566ff;
+  --alt5-color-success: #c145ff;
   --alt5-color-warning: #a3e635;
   --alt5-color-error: #e11d74;
   --alt5-color-tertiary: #5a00b3;
@@ -160,8 +160,8 @@ html.dark-theme {
   --alt4-color-tertiary-dark: var(--alt4-color-primary-dark);
 
   /* 5: Ultraviolet */
-  --alt5-color-primary: #b36bff;
-  --alt5-color-primary-dark: #ab5cff;
+  --alt5-color-primary: #c95cff;
+  --alt5-color-primary-dark: #c655ff;
   --alt5-color-secondary: #bef264;
   --alt5-color-success: #c28aff;
   --alt5-color-warning: #bef264;
@@ -375,7 +375,7 @@ html.palette-4 {
 html.palette-5 {
   --color-primary: var(--alt5-color-primary);
   --color-primary-dark: var(--alt5-color-primary-dark);
-  --color-primary-rgb: 181, 102, 255;
+  --color-primary-rgb: 193, 69, 255;
   --color-secondary: var(--alt5-color-secondary);
   --color-success: var(--alt5-color-success);
   --color-warning: var(--alt5-color-warning);
@@ -417,7 +417,7 @@ html.dark-theme.palette-4 {
 }
 
 html.dark-theme.palette-5 {
-  --color-primary-rgb: 179, 107, 255;
+  --color-primary-rgb: 201, 92, 255;
 }
 
 /* ── Announcement sash ink (see --sash-bg / --sash-ink in variables.css) ──
