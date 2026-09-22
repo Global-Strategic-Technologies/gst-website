@@ -273,6 +273,36 @@ Each palette overrides the 9 core tokens (`--color-primary`, `--color-primary-da
 
 ---
 
+## Ambient Motion (hero)
+
+The homepage hero can carry a quiet, CSS-only motion layer behind its content ([ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md), BL-035). Like the alternative palettes, **it is a review tool: no visitor sees it** until they switch it on in their own browser.
+
+| Effect      | What moves                                                           |
+| ----------- | -------------------------------------------------------------------- |
+| Grid Pulse  | Accent cells breathe in and out on the 50px lattice                  |
+| Glow Shift  | Two slow radial washes drift across the hero                         |
+| Scan Sweep  | A band falls down the hero, slowing and fading as it goes            |
+| Data Rails  | Faint rails in four directions; each fires one mark, then stays dark |
+| Delta Drift | Brand deltas (the `DeltaIcon` geometry) float and turn a few degrees |
+
+**How to use it.** Open the PalettePanel on `/brand` and find the **Ambient Motion** section, the last section of the panel. It appears only on `/brand`, not in the popped-out panel elsewhere.
+
+- Toggle any number of effects; there is no "off" choice, since nothing selected means a still hero.
+- Set each effect's strength. 50 reproduces the approved prototype.
+- **Pace** speeds up or slows down all of them together.
+- The live preview is under UI Component Library → Marketing Components → Hero Ambient Motion. The same settings apply to the homepage hero (`/`, `/es/`, `/pt/`).
+
+**Rules the layer keeps.**
+
+- Colour is only `--color-primary`, so it follows every palette, theme, dim state and colour edit.
+- It is `aria-hidden` and `pointer-events: none`.
+- It never animates more than 15 elements. With two or more effects on, or at ≤768px, each effect thins to its share.
+- `prefers-reduced-motion: reduce` hides the layer entirely, whatever is chosen.
+
+**Where the choice is stored.** It is saved in `localStorage['ambient-motion']`, separate from colour edits: picking another palette resets colour edits, never motion. The two Reset buttons are independent. At runtime it appears on `<html>` as `data-ambient`, `data-ambient-layered`, `--ambient-<effect>` and `--ambient-pace`. These are set by the page, not design tokens, so they are not in `variables.css`.
+
+---
+
 ## Color Usage Hierarchy
 
 When choosing a color, follow this priority order:

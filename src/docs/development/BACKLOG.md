@@ -1338,28 +1338,37 @@ Consequences:
 
 ### BL-035: Dynamic Visual Effects Prototype
 
-**Source**: DYNAMIC_VISUAL_EFFECTS.md | **Effort**: 2-4h prototype, 4-8h polish if approved | **Status**: Open
+**Source**: design prototypes in [`prototypes/bl-035-hero-ambient-motion/`](../../../prototypes/bl-035-hero-ambient-motion/README.md) (six hero artboards + the palette-panel section, drawn 2026-09-22); decisions in [ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md). The original `DYNAMIC_VISUAL_EFFECTS.md` source never existed in the repo | **Effort**: built 2026-09-22 | **Status**: 🟨 **Built — awaiting stakeholder review.** No visitor sees motion until a browser opts in from /brand
 
 **As a** site visitor, **I want** subtle ambient motion in the homepage hero section **so that** the page feels alive and signals an active, technology-forward brand.
 
 #### Acceptance Criteria
 
-- [ ] `src/components/AmbientEffect.astro` created with top 2 candidate effects (Grid Pulse and Ambient Glow Shift)
-- [ ] Rendered in Hero section only, behind all content
-- [ ] `prefers-reduced-motion: reduce` disables all motion entirely
-- [ ] Mobile (<768px): reduced or disabled without layout shift
-- [ ] Works with both light/dark themes and all 6 palettes (uses `--color-primary`, not hardcoded)
-- [ ] Lighthouse performance score does not drop more than 2 points on mobile
-- [ ] Stakeholder review before proceeding to production polish
+- [x] `src/components/AmbientEffect.astro` created. It ships **all five** candidates (Grid Pulse, Glow Shift, Scan Sweep, Data Rails, Delta Drift), not only the top two, as independent toggles in a new Ambient Motion section of the palette panel on /brand (operator decision)
+- [x] Rendered in the homepage hero only (`/`, `/es/`, `/pt/`, via Hero's `backdrop` slot), behind all content, plus a live preview on /brand
+- [x] `prefers-reduced-motion: reduce` disables all motion entirely (the layer is `display: none`)
+- [x] Mobile (≤768px): reduced to each effect's thinned set, with no layout shift (CLS 0 measured at 1280, 768 and 480px)
+- [x] Works with both themes, both dim states and all 6 palettes. Colour is `--color-primary` only
+- [x] Lighthouse mobile does not drop more than 2 points. Measured 2026-09-22, performance only, median of 3, on static builds served identically:
+  - master: 93
+  - this change, visitor default: 93
+  - all five on: 93
+
+  FCP, LCP and TBT are unchanged. With all five on, a CDP sample shows no main-thread layout, so the animation stays on the compositor
+
+- [ ] Stakeholder review before proceeding to production polish. **Owner: operator.** Shipping a public default means flipping two literals that a test pins together (ADR-0039)
 
 #### Technical Context
 
-- Brand alignment concern: brutalism rejects ornament; direct port of bubble/particle effects would NOT align. Must be geometrically structured, monochrome, very restrained — closer to "data field" than "bubbles"
-- Top candidates: (1) Grid Pulse — brightness pulses across existing checkerboard grid, (2) Ambient Glow Shift — slow-cycling radial gradients in hero background
-- Technical constraints: max 15 animated elements, CSS animations or GPU-composited `transform`/`opacity` only, no JS animation loops, no external dependencies, `pointer-events: none`, `aria-hidden="true"`
-- Evaluation criteria: brand test (technology advisory, not consumer), subtlety test (subconscious after a few seconds), performance test, theme test, reduced-motion test, mobile test
-- Decision framework: Go (passes all 6 criteria) / No-go (archive, document findings) / Kill (requires external dependencies or exceeds 8h)
-- This is exploratory — no commitment to ship
+- **Brand alignment:** brutalism rejects ornament, so the effects are geometric, monochrome and restrained ("data field", not "bubbles").
+- **Budget:** at most 15 animated elements, whatever is selected. One effect alone shows its full table (≤14). With two or more on, each thins to the prototype's Combined subset (14 in total). `tests/unit/ambient-effect-budget.test.ts` counts the tables.
+- **Technical constraints (met):**
+  - CSS keyframes on `transform`/`opacity` only
+  - no JS animation loop
+  - no external dependency
+  - `pointer-events: none` and `aria-hidden="true"`
+- **Settings:** stored in `localStorage['ambient-motion']`, separate from `palette-overrides`, so a palette change never resets motion. They are applied before first paint by BaseLayout's inline script, which `tests/unit/ambient-motion.test.ts` executes against the module.
+- **Decision framework:** Go (passes all 6 criteria) / No-go (archive, document findings) / Kill (requires external dependencies or exceeds 8h). The five measurable criteria pass; the stakeholder review decides Go.
 
 ---
 

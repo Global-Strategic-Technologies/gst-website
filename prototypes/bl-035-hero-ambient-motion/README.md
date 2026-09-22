@@ -7,6 +7,8 @@ canvas they were drawn on.
 
 Canvas: `Hero Ambient Motion` (Artifact, private to the repo owner).
 
+**The real implementation** is [`src/components/AmbientEffect.astro`](../../src/components/AmbientEffect.astro), configured from the /brand palette panel ([ADR-0039](../../src/docs/adr/0039-ambient-motion-is-a-per-browser-design-setting.md)). It keeps these designs but uses relative units, and it draws at twice the intensity, so the panel's strength 50 matches an artboard at 100. The panel's chips are the house `.brutal-filter-chip` rather than the artboard's 44px checkbox chips.
+
 ## What is here
 
 `project/` holds one artboard per candidate, plus the canvas index:
@@ -32,8 +34,9 @@ files do not render as plain HTML in a browser.
 - Effect layer is `aria-hidden` and `pointer-events: none`
 - Colour comes from the accent token, so every palette and both themes follow
 
-## Not yet proven
+## What the artboards could not prove
 
-Lighthouse impact, mobile behaviour, and the real `prefers-reduced-motion` path. The artboards
-carry a motion tweak that stands in for the media query; the shipped component must use the query
-itself.
+The artboards could not show Lighthouse impact, mobile behaviour, or the real
+`prefers-reduced-motion` path; they carry a motion tweak that stands in for the media query. The
+shipped component was measured on all three (2026-09-22). The results are in the BL-035 stanza
+and ADR-0039.
