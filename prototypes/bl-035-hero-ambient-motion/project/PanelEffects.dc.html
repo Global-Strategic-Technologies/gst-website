@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Palette panel — Ambient Motion section</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/gst/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.wrap{position:relative;box-sizing:border-box;width:1040px;height:1180px;padding:40px;
+  --bg:var(--bg-light,#ffffff);--panel:#ffffff;--ink:var(--text-primary,#1a1a1a);--ink-2:var(--text-secondary,#1a1a1ab3);--ink-3:var(--text-muted,#1a1a1aa6);--edge:rgba(0,0,0,.12);--rail:#f5f5f5;
+  font-family:var(--font-family-mono,ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace);
+  background:var(--bg);color:var(--ink)}
+.wrap.dark{--bg:var(--bg-dark,#0a0a0a);--panel:var(--bg-dark-secondary,#1a1a1a);--ink:var(--text-dark-primary,#f5f5f5f2);--ink-2:var(--text-dark-secondary,#c8c8c8cc);--ink-3:var(--text-dark-muted,#c8c8c899);--edge:rgba(255,255,255,.16);--rail:#141414}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:20px}
+.caption{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.caption b{display:block;margin-top:6px;font-size:15px;letter-spacing:0;text-transform:none;color:var(--ink)}
+.theme-toggle{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 18px;border:2px solid var(--fx);
+  background:color-mix(in srgb,var(--fx) 8%,transparent);backdrop-filter:blur(2px);color:var(--ink);
+  font-family:inherit;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
+.theme-toggle:hover{background:color-mix(in srgb,var(--fx) 20%,transparent)}
+
+/* the whole panel: body + the vertical edge rail, as it sits on /brand */
+.panel{display:flex;align-items:flex-start;width:576px;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.body{width:520px;box-sizing:border-box;border:2px solid var(--edge);border-right:0;background:var(--panel)}
+.edge{width:56px;box-sizing:border-box;border:2px solid var(--edge);background:var(--rail);
+  display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 0;min-height:700px}
+.edge-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:0;background:none;
+  color:var(--ink-3);cursor:pointer}
+.edge-btn.on{color:var(--fx)}
+.edge-sep{flex:1 1 auto}
+
+.p-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--edge)}
+.p-name{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.p-reset{min-height:32px;padding:0 14px;border:2px solid var(--edge);background:transparent;color:var(--ink-2);
+  font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.section{padding:18px 20px;border-bottom:1px solid var(--edge)}
+.section:last-child{border-bottom:0}
+.s-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.s-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.s-hint{font-size:11px;color:var(--ink-3)}
+
+.ghost{opacity:.4}
+.sw-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.sw{border:1px solid var(--edge);padding:8px}
+.sw-chip{height:24px;margin-bottom:6px}
+.sw-label{font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+
+/* multi-select effect chips */
+.chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.chip{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border:2px solid var(--edge);
+  background:transparent;color:var(--ink-2);font-family:inherit;font-size:12px;font-weight:700;
+  letter-spacing:.04em;text-align:left;cursor:pointer}
+.chip:hover{border-color:color-mix(in srgb,var(--fx) 60%,var(--edge))}
+.chip.on{border-color:var(--fx);color:var(--ink);background:color-mix(in srgb,var(--fx) 10%,transparent)}
+.box{width:14px;height:14px;flex:0 0 auto;border:2px solid currentColor;display:flex;align-items:center;justify-content:center}
+.chip.on .box{background:var(--fx);border-color:var(--fx);color:var(--panel)}
+.tick{opacity:0}
+.chip.on .tick{opacity:1}
+
+/* per-effect strength rows */
+.rows{margin-top:18px;border-top:1px solid var(--edge);padding-top:14px}
+.row{display:grid;grid-template-columns:104px 1fr 42px;align-items:center;gap:12px;min-height:44px}
+.row.off{opacity:.32}
+.row-name{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
+.row-val{font-size:11px;font-weight:700;text-align:right}
+input[type=range]{width:100%;height:24px;accent-color:var(--fx);cursor:pointer}
+.ctl{margin-top:16px;padding-top:14px;border-top:1px solid var(--edge)}
+.ctl.off{opacity:.32}
+.ctl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.ctl-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.scale{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);margin-top:2px}
+.empty{margin-top:12px;font-size:11px;line-height:1.5;color:var(--ink-3)}
+
+.note{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding:12px;border-left:3px solid var(--fx);
+  background:color-mix(in srgb,var(--fx) 7%,transparent);font-size:11px;line-height:1.5;color:var(--ink-2)}
+.note strong{color:var(--ink)}
+.foot{margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.link{background:none;border:0;padding:0;font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--fx);cursor:pointer;text-decoration:underline;text-underline-offset:3px;min-height:44px}
+.state{font-size:11px;color:var(--ink-3)}
+.aside{margin-top:22px;max-width:576px;font-size:12px;line-height:1.6;color:var(--ink-2)}
+.aside b{color:var(--ink)}
+</style>
+</helmet>
+<div class="wrap {{themeCls}}" style="--fx: {{accent}};">
+
+<div class="top">
+<span class="caption">Palette panel · /brand only
+<b>A fourth section, under the existing colour sections</b></span>
+<button type="button" class="theme-toggle" onClick="{{toggleTheme}}" aria-pressed="{{isDark}}">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+{{themeLabel}}
+</button>
+</div>
+
+<div class="panel">
+<div class="body">
+
+<div class="p-header">
+<span class="p-name">Palette 1 · Signal</span>
+<button type="button" class="p-reset">Reset</button>
+</div>
+
+<div class="section ghost" aria-hidden="true">
+<div class="s-head"><span class="s-title">Core</span></div>
+<div class="sw-grid">
+<div class="sw"><div class="sw-chip" style="background: var(--fx);"></div><div class="sw-label">Primary</div></div>
+<div class="sw"><div class="sw-chip" style="background: #fa3;"></div><div class="sw-label">Secondary</div></div>
+<div class="sw"><div class="sw-chip" style="background: #4b6a88;"></div><div class="sw-label">Tertiary</div></div>
+</div>
+</div>
+
+<div class="section ghost" aria-hidden="true">
+<div class="s-head"><span class="s-title">Expanded</span></div>
+<div class="sw-grid">
+<div class="sw"><div class="sw-chip" style="background: #6f5cff;"></div><div class="sw-label">Distinguish</div></div>
+<div class="sw"><div class="sw-chip" style="background: #8d8378;"></div><div class="sw-label">Subdued</div></div>
+<div class="sw"><div class="sw-chip" style="background: #3f5d75;"></div><div class="sw-label">Authority</div></div>
+</div>
+</div>
+
+<div class="section">
+<div class="s-head">
+<span class="s-title">Ambient Motion</span>
+<span class="s-hint">Hero background</span>
+</div>
+
+<div class="chips">
+<button type="button" class="chip {{c0}}" aria-pressed="{{p0}}" onClick="{{pick0}}"><span class="box"><svg class="tick" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" aria-hidden="true"><path d="M4 13l5 5L20 7"></path></svg></span>Grid Pulse</button>
+<button type="button" class="chip {{c1}}" aria-pressed="{{p1}}" onClick="{{pick1}}"><span class="box"><svg class="tick" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" aria-hidden="true"><path d="M4 13l5 5L20 7"></path></svg></span>Glow Shift</button>
+<button type="button" class="chip {{c2}}" aria-pressed="{{p2}}" onClick="{{pick2}}"><span class="box"><svg class="tick" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" aria-hidden="true"><path d="M4 13l5 5L20 7"></path></svg></span>Scan Sweep</button>
+<button type="button" class="chip {{c3}}" aria-pressed="{{p3}}" onClick="{{pick3}}"><span class="box"><svg class="tick" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" aria-hidden="true"><path d="M4 13l5 5L20 7"></path></svg></span>Data Rails</button>
+<button type="button" class="chip {{c4}}" aria-pressed="{{p4}}" onClick="{{pick4}}"><span class="box"><svg class="tick" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" aria-hidden="true"><path d="M4 13l5 5L20 7"></path></svg></span>Delta Drift</button>
+</div>
+
+<div class="rows">
+<div class="row {{r0}}"><label class="row-name" for="s0">Grid Pulse</label><input id="s0" type="range" min="0" max="100" step="5" value="{{v0}}" onInput="{{set0}}" onChange="{{set0}}" disabled="{{d0}}"><span class="row-val">{{l0}}</span></div>
+<div class="row {{r1}}"><label class="row-name" for="s1">Glow Shift</label><input id="s1" type="range" min="0" max="100" step="5" value="{{v1}}" onInput="{{set1}}" onChange="{{set1}}" disabled="{{d1}}"><span class="row-val">{{l1}}</span></div>
+<div class="row {{r2}}"><label class="row-name" for="s2">Scan Sweep</label><input id="s2" type="range" min="0" max="100" step="5" value="{{v2}}" onInput="{{set2}}" onChange="{{set2}}" disabled="{{d2}}"><span class="row-val">{{l2}}</span></div>
+<div class="row {{r3}}"><label class="row-name" for="s3">Data Rails</label><input id="s3" type="range" min="0" max="100" step="5" value="{{v3}}" onInput="{{set3}}" onChange="{{set3}}" disabled="{{d3}}"><span class="row-val">{{l3}}</span></div>
+<div class="row {{r4}}"><label class="row-name" for="s4">Delta Drift</label><input id="s4" type="range" min="0" max="100" step="5" value="{{v4}}" onInput="{{set4}}" onChange="{{set4}}" disabled="{{d4}}"><span class="row-val">{{l4}}</span></div>
+<p class="empty">{{emptyLine}}</p>
+</div>
+
+<div class="ctl {{paceCls}}">
+<div class="ctl-head"><label class="ctl-label" for="pace">Pace · all effects</label><span class="row-val">{{speedLabel}}</span></div>
+<input id="pace" type="range" min="50" max="150" step="10" value="{{speed}}" onInput="{{setSpeed}}" onChange="{{setSpeed}}" disabled="{{noneOn}}">
+<div class="scale"><span>Slower</span><span>Faster</span></div>
+</div>
+
+<div class="note">
+<svg width="14" height="14" viewBox="0 0 64 64" fill="none" stroke="var(--fx)" stroke-width="6" stroke-linejoin="miter" style="flex:0 0 auto;margin-top:1px;" aria-hidden="true"><path d="M32 12 L52 52 L12 52 Z"></path></svg>
+<span><strong>Reduced motion wins.</strong> A system set to reduce motion pauses every effect, whatever is chosen here. Colour always follows the palette.</span>
+</div>
+
+<div class="foot">
+<span class="state">{{stateLine}}</span>
+<button type="button" class="link" onClick="{{resetFx}}">Reset motion</button>
+</div>
+</div>
+</div>
+
+<div class="edge" aria-label="Panel rail">
+<button type="button" class="edge-btn" aria-label="Close panel"><svg width="14" height="14" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M52 12 L52 52 L12 32 Z"></path></svg></button>
+<button type="button" class="edge-btn on" aria-label="Palette 1"><svg width="12" height="12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 12 L52 52 L12 52 Z"></path></svg></button>
+<button type="button" class="edge-btn" aria-label="Palette 2"><svg width="12" height="12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 12 L52 52 L12 52 Z"></path></svg></button>
+<button type="button" class="edge-btn" aria-label="Palette 3"><svg width="12" height="12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 12 L52 52 L12 52 Z"></path></svg></button>
+<button type="button" class="edge-btn" aria-label="Palette 4"><svg width="12" height="12" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true"><path d="M32 12 L52 52 L12 52 Z"></path></svg></button>
+<button type="button" class="edge-btn" aria-label="Show on all pages"><svg width="12" height="12" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="6" aria-hidden="true"><path d="M32 12 L52 52 L12 52 Z"></path></svg></button>
+<span class="edge-sep"></span>
+<button type="button" class="edge-btn" aria-label="Theme"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg></button>
+</div>
+</div>
+
+<p class="aside"><b>Why it sits here:</b> the section is the fourth <code>.palette-panel__section</code>, so it inherits the panel's scrolling, its mobile sheet and its resize bar with no new chrome. It is rendered only where <code>data-palette-always</code> is set — <b>/brand</b> — so the pop-out on other pages stays colour-only.</p>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#05cd99","options":["#05cd99","#fa3","#6f5cff","#1a1a1a"]},"dark":{"editor":"boolean","default":false},"$preview":{"width":1040,"height":1180}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = {
+dark: null,
+on: [false, true, false, true, false],
+strength: [45, 35, 40, 50, 30],
+speed: 100
+};
+}
+renderVals() {
+var self = this;
+var isDark = this.state.dark === null ? !!this.props.dark : this.state.dark;
+var names = ['Grid Pulse', 'Glow Shift', 'Scan Sweep', 'Data Rails', 'Delta Drift'];
+var on = this.state.on;
+var live = names.filter(function (n, i) { return on[i]; });
+var vals = {
+accent: this.props.accent ?? '#05cd99',
+themeCls: isDark ? 'dark' : 'light',
+isDark: isDark,
+themeLabel: isDark ? 'Dark' : 'Light',
+toggleTheme: function () { self.setState({ dark: !isDark }); },
+speed: this.state.speed,
+speedLabel: this.state.speed + '%',
+setSpeed: function (e) { self.setState({ speed: Number(e.target.value) }); },
+noneOn: live.length === 0,
+paceCls: live.length === 0 ? 'off' : '',
+emptyLine: live.length === 0 ? 'Nothing selected — the hero stays still.' : 'Layered in the order above, behind the hero text.',
+stateLine: live.length === 0 ? 'No effects · saved for this browser' : live.length + ' of 5 on · saved for this browser',
+resetFx: function () { self.setState({ on: [false, true, false, true, false], strength: [45, 35, 40, 50, 30], speed: 100 }); }
+};
+for (var i = 0; i < 5; i++) {
+(function (n) {
+vals['c' + n] = on[n] ? 'on' : '';
+vals['p' + n] = on[n];
+vals['r' + n] = on[n] ? '' : 'off';
+vals['d' + n] = !on[n];
+vals['v' + n] = self.state.strength[n];
+vals['l' + n] = self.state.strength[n] + '%';
+vals['pick' + n] = function () {
+var next = self.state.on.slice();
+next[n] = !next[n];
+self.setState({ on: next });
+};
+vals['set' + n] = function (e) {
+var next = self.state.strength.slice();
+next[n] = Number(e.target.value);
+self.setState({ strength: next });
+};
+})(i);
+}
+return vals;
+}
+}
+</script>
+</body>
+</html>
