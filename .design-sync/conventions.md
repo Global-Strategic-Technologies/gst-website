@@ -40,6 +40,8 @@ Theme and palette are classes on the **`<html>` element, never `<body>`**:
   or `light-dark()` inline). A `--border-light` border on a dark surface is
   invisible.
 
+- `html.theme-dim` — gray surfaces for the active scheme (dim light / dim dark). Root-only too.
+
 - `html.palette-0` … `html.palette-5` — six alternative brand palettes that
   re-point `--color-primary` and friends. Any UI built from tokens follows them
   for free; any hardcoded color does not.
@@ -71,7 +73,7 @@ Two rules cover almost everything:
 - **Elevation** — `--shadow-sm/-md/-lg`, `--frost-highlight`, `--frost-edge`, `--scrim-15` … `--scrim-60`
 - **Layering** — `--z-negative`, `--z-base`, `--z-raised`, `--z-sticky`, `--z-dropdown`, `--z-overlay`, `--z-modal`, `--z-modal-overlay`, `--z-skip-nav`
 - **Touch** — `--touch-target-min` (44px, AAA), `--touch-target-min-aa` (24px floor)
-- **Announcement sash** — `--sash-bg` (always `--color-primary`), `--sash-ink` (re-pointed per palette in `palettes.css` for the four whose light-theme primary is a dark hue), `--sash-badge-bg` (the badge chip's fill — the secondary accent, re-pointed for palette-1; the chip's ink is constant `--bg-dark`). The borders and the hover mix `--sash-bg` toward `--bg-dark` (68% / 82%) with `color-mix()`, and the under-band swaps bg/ink; every value is a token, so the family follows every palette and both themes with no extra CSS
+- **Announcement sash** — `--sash-bg` (always `--color-primary`), `--sash-ink` (constant dark ink — every palette's primary is light enough for it), `--sash-badge-bg` (the badge chip's fill — the secondary accent, re-pointed for palette-1 and palette-4; the chip's ink is constant `--bg-dark`). The borders and the hover mix `--sash-bg` toward `--bg-dark` (68% / 82%) with `color-mix()`, and the under-band swaps bg/ink; every value is a token, so the family follows every palette and both themes with no extra CSS
 - **Dataviz scales** — **Use these for any chart, gauge or scoring band — never invent chart colours.** TechPar: `--techpar-zone-*` (healthy/elevated/critical/underinvest/ahead/above, each + `-bg`), `--techpar-category-*` (infra/personnel/rd-opex/rd-capex), `--techpar-kpi-positive/-negative/-warn`, `--techpar-chart-*` (band/ahead/above/under `-fill`/`-border`, `revenue-line`). ICG: `--icg-maturity-reactive/-aware/-strategic/-optimizing`, `--icg-radar-grid/-label`. Diligence Machine: `--dm-positive/-negative/-success/-warning`, `--dm-results-blue/-tan`, `--dm-methodology-brown`. Regulatory map: `--regmap-category-industry/-cyber`
 
 Need a tint with no token? Use `color-mix(in srgb, var(--color-success) 12%, transparent)` —

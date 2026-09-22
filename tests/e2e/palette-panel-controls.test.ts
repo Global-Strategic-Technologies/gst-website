@@ -535,76 +535,171 @@ test.describe('Palette Panel Controls', () => {
   });
 
   test.describe('Theme Toggle', () => {
-    test('should apply dark-theme class on html and persist to localStorage', async ({ page }) => {
+    // Four-state theme (ADR-0038): light → dim light → dim dark → dark → light.
+    const CYCLE = [
+      { stored: 'dim-light', dark: false, dim: true },
+      { stored: 'dim-dark', dark: true, dim: true },
+      { stored: 'dark', dark: true, dim: false },
+      { stored: 'light', dark: false, dim: false },
+    ];
+    const themeButton = (page: import('@playwright/test').Page) =>
+      page.locator('#panel-theme-toggle');
+    const htmlTheme = (page: import('@playwright/test').Page) =>
+      page.evaluate(() => ({
+        dark: document.documentElement.classList.contains('dark-theme'),
+        dim: document.documentElement.classList.contains('theme-dim'),
+        stored: localStorage.getItem('theme'),
+      }));
+
+    test('cycles four states, persists each, and turns counter-clockwise every click', async ({
+      page,
+    }) => {
+      await page.addInitScript(() => {
+        try {
+          // Top frame only: /brand's same-origin responsive-demo iframes run init
+          // scripts too, and would re-seed the shared storage after the click.
+          if (window.top === window) localStorage.setItem('theme', 'light');
+        } catch {
+          // storage unavailable — the init script then defaults to light
+        }
+      });
       await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      await expect(themeButton(page)).toHaveAttribute('data-theme-state', '0');
 
-      // Ensure we start in light mode
-      await page.evaluate(() => {
-        document.documentElement.classList.remove('dark-theme');
-        localStorage.removeItem('theme');
-      });
-
-      // Click theme toggle
-      await clickPanelButton(page, 'panel-theme-toggle');
-
-      // Wait for dark-theme class to appear
-      await page.waitForFunction(() => document.documentElement.classList.contains('dark-theme'), {
-        timeout: 10000,
-      });
-
-      // Verify localStorage persistence
-      const storedTheme = await page.evaluate(() => localStorage.getItem('theme'));
-      expect(storedTheme).toBe('dark');
-
-      // Reload and verify persistence
-      await page.reload({ waitUntil: 'domcontentloaded' });
-
-      const hasDarkTheme = await page.evaluate(() =>
-        document.documentElement.classList.contains('dark-theme')
-      );
-      expect(hasDarkTheme).toBe(true);
+      for (const [i, step] of CYCLE.entries()) {
+        await clickPanelButton(page, 'panel-theme-toggle');
+        await expect(themeButton(page)).toHaveAttribute('data-theme-state', String((i + 1) % 4));
+        expect(await htmlTheme(page)).toEqual(step);
+        // Asserted on the counter, not the computed transform: a matrix reads
+        // −360° and 0° identically, so the fourth quarter turn would vanish.
+        await expect(themeButton(page)).toHaveAttribute('data-theme-turns', String(i + 1));
+      }
     });
 
-    test('should reset color overrides when theme is toggled', async ({ page }) => {
+    test('a reload restores a dim state before first paint', async ({ page }) => {
+      await page.addInitScript(() => {
+        try {
+          if (window.top === window && !sessionStorage.getItem('seeded')) {
+            localStorage.setItem('theme', 'dim-dark');
+            sessionStorage.setItem('seeded', '1');
+          }
+        } catch {
+          // storage unavailable — the init script then defaults to light
+        }
+      });
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      expect(await htmlTheme(page)).toEqual({ stored: 'dim-dark', dark: true, dim: true });
+      await expect(themeButton(page)).toHaveAttribute('data-theme-state', '2');
+      await expect(themeButton(page)).toHaveAttribute('aria-label', /Dim dark/);
+    });
+
+    for (const [start, expected] of [
+      ['dim-light', { stored: 'dark', dark: true, dim: false }],
+      ['dim-dark', { stored: 'light', dark: false, dim: false }],
+    ] as const) {
+      test(`the footer toggle stays binary: ${start} → ${expected.stored}, and the panel follows`, async ({
+        page,
+      }) => {
+        await page.addInitScript((t) => {
+          try {
+            if (window.top === window) localStorage.setItem('theme', t);
+          } catch {
+            // storage unavailable — the init script then defaults to light
+          }
+        }, start);
+        await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+        await page.getByTestId('theme-toggle').click();
+        await expect.poll(() => htmlTheme(page)).toEqual(expected);
+        await expect(themeButton(page)).toHaveAttribute(
+          'data-theme-state',
+          expected.dark ? '3' : '0'
+        );
+      });
+    }
+
+    // Operator decision 2026-09-22: edits survive theme changes (panel and
+    // footer alike) and reset only on a palette change.
+    test('keeps color overrides when the theme is toggled', async ({ page }) => {
       await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
       await openPanel(page);
       await waitForSwatchControls(page);
 
-      // Apply a color override
-      await page.evaluate(() => {
+      const varName = await page.evaluate(() => {
         const swatch = document.querySelector('.brand-swatch') as HTMLElement;
-        const picker = swatch.querySelector<HTMLInputElement>('.swatch-picker');
-        if (picker) {
-          picker.value = '#ff0000';
-          picker.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+        const picker = swatch.querySelector<HTMLInputElement>('.swatch-picker')!;
+        picker.value = '#ff0000';
+        picker.dispatchEvent(new Event('input', { bubbles: true }));
+        return swatch.dataset.var!;
       });
+      const inline = () =>
+        page.evaluate((n) => document.documentElement.style.getPropertyValue(n).trim(), varName);
+      await expect.poll(inline).toBe('#ff0000');
 
-      // Verify override is in place
-      await page.waitForFunction(
-        () => {
-          const swatch = document.querySelector<HTMLElement>('.brand-swatch');
-          return swatch?.dataset.userOverride === 'true';
-        },
-        { timeout: 10000 }
-      );
-
-      // Toggle theme
       await clickPanelButton(page, 'panel-theme-toggle');
-
-      // Wait for overrides to be cleared (resetAllOverrides is called by theme toggle)
-      await page.waitForFunction(
-        () => {
-          const swatch = document.querySelector<HTMLElement>('.brand-swatch');
-          const varName = swatch?.dataset.var;
-          if (!varName) return false;
-          return (
-            document.documentElement.style.getPropertyValue(varName) === '' &&
-            swatch?.dataset.userOverride !== 'true'
-          );
-        },
-        { timeout: 10000 }
+      await page.getByTestId('theme-toggle').click();
+      // Yield a task so the class MutationObserver has run before reading.
+      await page.evaluate(() => new Promise((r) => setTimeout(r)));
+      expect(await inline()).toBe('#ff0000');
+      expect(await page.evaluate(() => localStorage.getItem('palette-overrides'))).toContain(
+        '#ff0000'
       );
+    });
+  });
+
+  // Colour edits persist site-wide until a different palette is chosen.
+  test.describe('Persisted Colour Edits', () => {
+    const EDITED = '#ff0000';
+    const inlineVar = (page: import('@playwright/test').Page, name: string) =>
+      page.evaluate((n) => document.documentElement.style.getPropertyValue(n).trim(), name);
+
+    /** Edit the first swatch on /brand; returns the custom property it edits. */
+    async function editFirstSwatch(page: import('@playwright/test').Page): Promise<string> {
+      await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      await openPanel(page);
+      await waitForSwatchControls(page);
+      const varName = await page.evaluate((color) => {
+        const swatch = document.querySelector('.brand-swatch') as HTMLElement;
+        const picker = swatch.querySelector<HTMLInputElement>('.swatch-picker')!;
+        picker.value = color;
+        picker.dispatchEvent(new Event('input', { bubbles: true }));
+        return swatch.dataset.var!;
+      }, EDITED);
+      await expect.poll(() => inlineVar(page, varName)).toBe(EDITED);
+      return varName;
+    }
+
+    test('an edit survives navigating to another page, restored before first paint', async ({
+      page,
+    }) => {
+      const varName = await editFirstSwatch(page);
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      expect(await inlineVar(page, varName)).toBe(EDITED);
+    });
+
+    test('an unrelated class change (the popout toggle) keeps the edit', async ({ page }) => {
+      const varName = await editFirstSwatch(page);
+      await clickPanelButton(page, 'panel-popout-toggle');
+      // Yield a task so the class MutationObserver has run before reading.
+      await page.evaluate(() => new Promise((r) => setTimeout(r)));
+      expect(await inlineVar(page, varName)).toBe(EDITED);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      expect(await inlineVar(page, varName)).toBe(EDITED);
+    });
+
+    test('choosing a different palette reverts every edit, on this page and the next', async ({
+      page,
+    }) => {
+      const varName = await editFirstSwatch(page);
+      await page.evaluate(() =>
+        document
+          .querySelector('#palette-tabs [data-palette="2"]')
+          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      );
+      await expect.poll(() => inlineVar(page, varName)).toBe('');
+      expect(await page.evaluate(() => localStorage.getItem('palette-overrides'))).toBeNull();
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      expect(await inlineVar(page, varName)).toBe('');
     });
   });
 

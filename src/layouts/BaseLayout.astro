@@ -122,9 +122,14 @@ const isHomepage = routePath === '/' || routePath === '';
     <!-- Initialize theme synchronously to prevent FOUC and race conditions in E2E tests -->
     <script is:inline>
       try {
+        // Mirrors src/scripts/theme-state.ts (ADR-0038) — this inline script
+        // cannot import it; tests/unit/theme-state.test.ts pins the literals.
         const theme = localStorage.getItem('theme');
-        if (theme === 'dark') {
+        if (theme === 'dark' || theme === 'dim-dark') {
           document.documentElement.classList.add('dark-theme');
+        }
+        if (theme === 'dim-light' || theme === 'dim-dark') {
+          document.documentElement.classList.add('theme-dim');
         }
       } catch {
         // localStorage not available (e.g., private browsing)
@@ -138,6 +143,19 @@ const isHomepage = routePath === '/' || routePath === '';
           document.documentElement.classList.add('palette-popped-out');
       } catch {
         // localStorage not available — palette init silently skipped
+      }
+      // Re-apply palette-editor colour edits (palette-manager.ts § Persisted
+      // colour edits) before first paint, so they survive navigation. Only
+      // custom properties are applied; they are cleared on a palette change.
+      try {
+        const edits = JSON.parse(localStorage.getItem('palette-overrides') || '{}');
+        for (const name in edits) {
+          if (name.startsWith('--') && typeof edits[name] === 'string') {
+            document.documentElement.style.setProperty(name, edits[name]);
+          }
+        }
+      } catch {
+        // Missing or malformed — no edits to restore
       }
     </script>
 

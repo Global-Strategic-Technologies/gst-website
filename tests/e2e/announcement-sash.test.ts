@@ -745,9 +745,9 @@ test.describe('Announcement sash', () => {
       '.brutal-sash',
       ...(LIVE_LINKED_FIELDS.length ? ['.brutal-sash-under__field'] : []),
     ];
-    // palette-1 re-points --sash-ink (palettes.css) while --sash-bg is never
-    // re-pointed — so a re-pointed palette exercises the side the leak
-    // overwrote, and the default exercises the shipped case.
+    // palette-1 re-points --color-primary (and so --sash-bg) to a different
+    // hue, so it exercises the leak against a non-default fill; the default
+    // exercises the shipped case. No palette re-points --sash-ink since BL-165.
     for (const palette of ['', 'palette-1']) {
       await page.evaluate((cls) => {
         document.documentElement.className = cls;

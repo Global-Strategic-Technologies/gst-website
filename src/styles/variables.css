@@ -255,17 +255,17 @@
   --stat-item-border: light-dark(var(--color-primary), var(--color-primary-20));
 
   /* Announcement sash (.brutal-sash) — the band and its ink. The band is always
-     --color-primary; the ink is dark by default and is re-pointed per palette in
-     palettes.css for the palettes whose LIGHT-theme primary is a dark saturated
-     hue. Defined here (not in palettes.css) for the same reason
+     --color-primary; the ink is dark, and no palette currently re-points it
+     (every primary is light enough for it — see palettes.css § Announcement
+     sash ink for when a palette would need to). Defined here (not in palettes.css) for the same reason
      --stat-item-border is: variables.css owns the base value, palettes.css owns
      the per-palette override. */
   --sash-bg: var(--color-primary);
   --sash-ink: var(--bg-dark);
   /* The badge chip's fill (2026-08-28, operator direction): the secondary
-     accent, under constant --bg-dark ink. Re-pointed for palette-1 in
-     palettes.css — its light-theme secondary is the one of twelve
-     palette × theme combos measuring under 4.5:1 against the dark ink. */
+     accent, under constant --bg-dark ink. Re-pointed per palette in
+     palettes.css wherever a secondary measures under 4.5:1 against the dark
+     ink — see the comments there. */
   --sash-badge-bg: var(--color-secondary);
 
   /* Misc */
@@ -371,6 +371,49 @@ html.dark-theme {
   /* RGB triplets for rgba() usage — not <color> values, cannot use light-dark() */
   --color-authority-rgb: 122, 157, 189;
   --color-subdued-rgb: 168, 152, 136;
+}
+
+/* Dim themes (ADR-0038) — the two intermediate states of the four-state theme.
+ * `theme-dim` is orthogonal to `dark-theme`: alone it is DIM LIGHT (light
+ * color-scheme, gray surfaces), with `dark-theme` it is DIM DARK (dark
+ * color-scheme, charcoal surfaces). Each value is still light-dark(dim light,
+ * dim dark), so one block serves both and every light-dark() pair elsewhere keeps
+ * working untouched. Surfaces only — the alpha-based washes and borders follow
+ * them automatically. Values are measured, not derived: dim-dark surfaces stop at
+ * #262626 (the palette dark inks' ceiling), and the dim-light inks that a gray
+ * page would fail are re-pointed in palettes.css § Dim-light inks. */
+html.theme-dim {
+  --bg-light: light-dark(#ebebeb, #1c1c1c);
+  --bg-light-alt: light-dark(#dcdcdc, #202020);
+
+  /* The fixed dark constants lift too, or components that paint panels with
+     them would sit DARKER than a dim-dark page. Dim light keeps the originals. */
+  --bg-dark: light-dark(#0a0a0a, #1c1c1c);
+  --bg-dark-secondary: light-dark(#1a1a1a, #262626);
+  --bg-dark-tertiary: light-dark(#141414, #202020);
+
+  --surface-veil-bg: light-dark(rgba(235, 235, 235, 0.75), rgba(34, 34, 34, 0.6));
+  --surface-panel-bg: light-dark(rgba(235, 235, 235, 0.85), rgba(28, 28, 28, 0.85));
+  --surface-overlay-bg: light-dark(rgba(220, 220, 220, 0.92), rgba(34, 34, 34, 0.92));
+
+  --services-bg: light-dark(#dcdcdc, #202020);
+  --footer-bg: light-dark(#dcdcdc, #202020);
+  --cta-box-bg: light-dark(#ebebeb, #262626);
+  --service-card-bg: light-dark(#0a0a0a, #262626);
+  --search-input-focus-bg: light-dark(#ebebeb, #262626);
+  --service-card-border: light-dark(#1a1a1a, #333333);
+  --about-image-bg: light-dark(#141414, #262626);
+  --about-image-border: light-dark(#1a1a1a, #333333);
+
+  /* Root-only ink (no palette re-points it, see palettes.css § Dim-light inks
+     for the rest): darkened for the gray dim-light page, dark half unchanged. */
+  --color-editors-pick-ink: light-dark(#7e4410, #d4923a);
+
+  /* Text alphas raised where a charcoal surface drops them under AA. */
+  --text-muted: light-dark(rgba(26, 26, 26, 0.65), rgba(200, 200, 200, 0.64));
+  --text-dark-muted: rgba(200, 200, 200, 0.64);
+  --footer-text: light-dark(rgba(26, 26, 26, 0.85), rgba(153, 153, 153, 0.91));
+  --clear-filters-text: light-dark(rgba(26, 26, 26, 0.65), rgba(200, 200, 200, 0.64));
 }
 
 /* Utility Classes for Common Patterns */

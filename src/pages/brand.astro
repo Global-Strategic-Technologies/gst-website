@@ -1361,6 +1361,8 @@ import '../styles/components/progress.css';
 </style>
 
 <script>
+  import { readState } from '../scripts/theme-state';
+
   document.addEventListener('DOMContentLoaded', () => {
     // Delta chevron toggle demo
     const toggle = document.getElementById('chevron-toggle');
@@ -1476,11 +1478,11 @@ import '../styles/components/progress.css';
 
     // Responsive demo: sync theme to iframes
     const syncThemeToFrames = () => {
-      const isDark = document.documentElement.classList.contains('dark-theme');
+      const state = readState(document.documentElement);
       document.querySelectorAll<HTMLIFrameElement>('.responsive-demo-frame iframe').forEach((f) => {
         // Same-origin target: the receiver validates e.origin, so the sender
         // pins targetOrigin rather than broadcasting to whatever holds the frame.
-        f.contentWindow?.postMessage({ type: 'theme-sync', dark: isDark }, window.location.origin);
+        f.contentWindow?.postMessage({ type: 'theme-sync', state }, window.location.origin);
       });
     };
     // Observe theme class changes on <html>

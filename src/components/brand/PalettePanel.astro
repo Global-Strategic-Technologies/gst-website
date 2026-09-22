@@ -59,8 +59,8 @@ import { palettes } from '../../data/palettes';
       class="palette-panel__theme-toggle"
       id="panel-theme-toggle"
       type="button"
-      title="Toggle dark theme"
-      aria-label="Toggle dark theme"
+      title="Cycle theme"
+      aria-label="Cycle theme"
       data-testid="palette-theme-toggle"
     >
       <svg viewBox="0 0 64 64" fill="none" class="palette-panel__icon"
@@ -289,6 +289,19 @@ import { palettes } from '../../data/palettes';
 
   .palette-panel__popout.is-active {
     color: var(--color-primary);
+  }
+
+  /* The theme delta turns 90° counter-clockwise per state of the four-state
+     theme; --theme-rotation is set by palette-manager.ts (ADR-0038). Scoped to
+     the theme button so the popout's own rotations above are untouched. */
+  .palette-panel__theme-toggle .palette-panel__icon {
+    transform: rotate(var(--theme-rotation, 0deg));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .palette-panel__theme-toggle .palette-panel__icon {
+      transition: none;
+    }
   }
 
   .palette-panel__theme-toggle {

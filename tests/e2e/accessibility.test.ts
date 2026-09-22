@@ -467,6 +467,45 @@ test.describe('Accessibility — WCAG 2.1 AA + 2.2 AA', () => {
     expect(Object.keys(ALLOWED_UNSTYLED).filter((n) => !names.has(n))).toEqual([]);
   });
 
+  // Dim states (ADR-0038): scanned on two routes, not the full matrix. The dim
+  // block swaps surfaces only, so the question is whether text still clears AA
+  // on the gray/charcoal grounds — / and /brand exercise every token family.
+  // Held to the SAME known-serious baseline as the base theme of each scheme.
+  for (const [stored, base] of [
+    ['dim-light', 'light'],
+    ['dim-dark', 'dark'],
+  ] as const) {
+    for (const pg of PAGES.filter((p) => p.path === '/' || p.path === '/brand/')) {
+      const baseName = base === 'light' ? pg.name : `${pg.name} (dark)`;
+      test(`${pg.name} (${stored}) has no new critical or serious violations`, async ({ page }) => {
+        await page.addInitScript((t) => {
+          try {
+            localStorage.setItem('theme', t);
+          } catch {
+            // Storage blocked: the class assertion below fails loudly instead.
+          }
+        }, stored);
+        await page.goto(pg.path, { waitUntil: 'load' });
+        await expect(page.locator('html')).toHaveClass(/(^|\s)theme-dim(\s|$)/);
+        if (base === 'dark')
+          await expect(page.locator('html')).toHaveClass(/(^|\s)dark-theme(\s|$)/);
+        await expect
+          .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+          .toBe(base === 'dark' ? 'rgb(28, 28, 28)' : 'rgb(235, 235, 235)');
+        if (pg.setup) await pg.setup(page);
+
+        const results = await checkA11y(page, pg.exclude ? { exclude: pg.exclude } : undefined);
+        expect(results.critical, formatViolations(results.critical)).toHaveLength(0);
+        const known = KNOWN_SERIOUS[baseName] ?? {};
+        const breaches = results.serious.filter((v) => !(v.id in known) || v.nodes > known[v.id]);
+        expect(
+          breaches,
+          `Serious a11y violations on ${pg.name} (${stored}):\n${formatViolations(breaches)}`
+        ).toHaveLength(0);
+      });
+    }
+  }
+
   for (const theme of THEMES) {
     for (const pg of PAGES) {
       const scanName = theme === 'light' ? pg.name : `${pg.name} (dark)`;

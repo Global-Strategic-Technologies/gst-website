@@ -76,6 +76,8 @@ Shared status colors for cross-tool consistency. See [BRAND_GUIDELINES.md — Se
 | `--bg-dark-secondary` | `#1a1a1a` | `#1a1a1a` | Secondary dark background              |
 | `--bg-dark-tertiary`  | `#141414` | `#141414` | Tertiary dark background               |
 
+**Dim states** ([ADR-0038](../adr/0038-four-state-theme-dim-light-dim-dark.md)): `html.theme-dim` re-declares these five as `light-dark(dim light, dim dark)`. The values are `--bg-light` `#ebebeb` / `#1c1c1c`, `--bg-light-alt` `#dcdcdc` / `#202020`, `--bg-dark` `#0a0a0a` / `#1c1c1c`, `--bg-dark-secondary` `#1a1a1a` / `#262626` and `--bg-dark-tertiary` `#141414` / `#202020`. It also covers the `--surface-veil/panel/overlay-bg` washes, the section backgrounds (`--services-bg`, `--footer-bg`, `--cta-box-bg`, `--service-card-bg`, `--search-input-focus-bg`), the service-card and about-image borders, and raises four text alphas (`--text-muted`, `--text-dark-muted`, `--footer-text`, `--clear-filters-text`). The dim-light inks are in `palettes.css` § Dim-light inks. The dark constants lift so that panels painted with them stay lighter than a dim-dark page.
+
 ## Text Colors
 
 ### Theme-Agnostic Aliases (preferred)
@@ -318,7 +320,7 @@ The tokens `.brutal-sash` reads (`src/styles/components/sash.css`). Borders, hov
 | `--sash-ink`      | `var(--bg-dark)`         | The label, and the under-band's background      |
 | `--sash-badge-bg` | `var(--color-secondary)` | The badge chip's fill, under `--bg-dark` ink    |
 
-`--sash-ink` is re-pointed in `palettes.css` for `palette-1`, `-2`, `-3` and `-5`, whose light-theme primary is a dark saturated hue: those get `light-dark(var(--text-dark-primary), var(--bg-dark))`. Note the token names read backwards — `--text-dark-primary` is the LIGHT ink, i.e. text _for_ dark surfaces. `palette-0` and `palette-4` inherit the `:root` value deliberately. `--sash-badge-bg` is re-pointed for `palette-1` only (`#f472b6`, its dark-theme secondary promoted to both themes): the light-theme `#db2777` was the one combo of twelve measuring under 4.5:1 against the chip's dark ink.
+No palette re-points `--sash-ink`: since BL-165 every palette's primary is light enough for the dark ink in both themes (palettes 1, 3 and 5 had their light-theme fills lightened for exactly this). A future palette whose light-theme primary is dark would add `--sash-ink: light-dark(var(--text-dark-primary), var(--bg-dark))` — note the token names read backwards, `--text-dark-primary` is the LIGHT ink, i.e. text _for_ dark surfaces. `--sash-badge-bg` is re-pointed for two palettes whose light-theme secondary measures under 4.5:1 against the chip's dark ink: `palette-1` (`#a6a6a6`, its dark-theme secondary promoted to both themes, replacing `#595959`) and `palette-4` (`#60a5fa`, replacing `#1d4ed8` — light theme only in effect, since that is already its dark-theme secondary).
 
 ### Miscellaneous
 
