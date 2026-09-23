@@ -277,13 +277,14 @@ Each palette overrides the 9 core tokens (`--color-primary`, `--color-primary-da
 
 The homepage hero, and optionally the whole homepage or every page, can carry a quiet, CSS-only motion layer behind its content ([ADR-0039](../adr/0039-ambient-motion-is-a-per-browser-design-setting.md), BL-035). Like the alternative palettes, **it is a review tool: no visitor sees it** until they switch it on in their own browser.
 
-| Effect      | What moves                                                           |
-| ----------- | -------------------------------------------------------------------- |
-| Grid Pulse  | Accent cells breathe in and out on the 50px lattice                  |
-| Glow Shift  | Two slow radial washes drift across the hero                         |
-| Scan Sweep  | A band falls down the hero, slowing and fading as it goes            |
-| Data Rails  | Faint rails in four directions; each fires one mark, then stays dark |
-| Delta Drift | Brand deltas (the `DeltaIcon` geometry) float and turn a few degrees |
+| Effect       | What moves                                                                       |
+| ------------ | -------------------------------------------------------------------------------- |
+| Grid Pulse   | Accent cells breathe in and out on the 50px lattice                              |
+| Glow Shift   | Two slow radial washes drift across the hero                                     |
+| Scan Sweep   | A band falls down the hero, slowing and fading as it goes                        |
+| Data Rails   | Faint rails in four directions; each fires one mark, then stays dark             |
+| Delta Drift  | Brand deltas (the `DeltaIcon` geometry) float and turn a few degrees             |
+| Delta Arrows | Clusters of solid deltas shoot from bottom-left to top-right, pulsing in and out |
 
 **How to use it.** Wherever the PalettePanel appears (always on `/brand`, and on any page once it is popped out), click the **Motion** button on the panel's right-edge rail. It is a delta with two speed strokes, and it is lit while any effect is on. It opens the panel and jumps to the **Ambient Motion** section, the last section, below the colour swatches. On a phone, open the sheet first; the Motion button is in its header row.
 
@@ -303,8 +304,8 @@ The homepage hero, and optionally the whole homepage or every page, can carry a 
 
 - Colour is only `--color-primary`, so it follows every palette, theme, dim state and colour edit.
 - It is `aria-hidden` and `pointer-events: none`.
-- In the hero it never animates more than 15 elements. With two or more effects on, or at ≤768px, each effect thins to its share.
-- In the Homepage and Every page scopes, about 14 elements are in view per screen. Only on-screen tiles run, at most 28 where two meet, and any layer that has scrolled away stops.
+- In the hero it never animates more than 16 elements; a Delta Arrows cluster moves as one. With two or more effects on, or at ≤768px, each effect thins to its share.
+- In the Homepage and Every page scopes, at most 16 elements are in view per screen. Only on-screen tiles run, at most 32 where two meet, and any layer that has scrolled away stops.
 - `prefers-reduced-motion: reduce` hides the layer entirely, whatever is chosen.
 
 **Where the choice is stored.** It is saved in `localStorage['ambient-motion']`, separate from colour edits: picking another palette resets colour edits, never motion. The two Reset buttons are independent. At runtime it appears on `<html>` as `data-ambient`, `data-ambient-layered`, `data-ambient-scope`, `--ambient-<effect>` and `--ambient-pace`. These are set by the page, not design tokens, so they are not in `variables.css`.

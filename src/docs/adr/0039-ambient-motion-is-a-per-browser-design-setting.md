@@ -17,9 +17,11 @@ BL-035 asked for subtle ambient motion in the homepage hero. The limits were:
 
 Five candidate effects were drawn: Grid Pulse, Glow Shift, Scan Sweep, Data Rails and Delta Drift. The operator ruled that they are **independent toggles**: any number can be on at once, and there is no "Off" choice. They are configured from a new section of the palette panel, a design tool that is always visible on /brand and on any other page once popped out. The section appears wherever the panel does, and a **Motion** button on the panel's edge rail jumps to it. Without that button it started 1,364px down a panel showing 716px at 1440×900, below the colour swatches, where the operator could not find it.
 
+A sixth, **Delta Arrows**, was added on 2026-09-23 at the operator's request, with no prototype artboard: clusters of solid deltas that shoot from the bottom-left corner to the top-right, pulsing in and out as they go.
+
 Two things stood in the way.
 
-- **The budget.** At full strength the five effects together are 37 elements.
+- **The budget.** At full strength the six effects together are 43 animated elements.
 - **Reach.** The operator then asked for a **scope**: the hero only, the whole homepage, or every page, with the wider two scrolling with the page and repeating every screen so a long page is as lively as a short one.
 - **Persistence.** The panel's existing persisted state had the wrong lifetime. `palette-overrides` is wiped whenever the palette changes (`palette-manager.ts` § Theme Observer).
 
@@ -48,8 +50,12 @@ Two things stood in the way.
 **The budget is kept by thinning, not by limiting how many effects can be selected.**
 
 - One effect alone shows its full table (at most 14 elements).
-- With two or more on, or at ≤768px, each effect keeps only its non-`solo` elements. Together they make the prototype's Combined subset: 2 + 4 + 1 + 4 + 3 = 14.
+- With two or more on, or at ≤768px, each effect keeps only its non-`solo` elements. The first five make the prototype's Combined subset, 2 + 4 + 1 + 4 + 3 = 14; Delta Arrows adds 2, for **16**.
+- **The ceiling is 16, not BL-035's 15.** The operator raised it on 2026-09-23, choosing two layered volleys (16, and ≤32 running in the wider scopes) over staying at 14 by trading a Grid Pulse cell for one volley, or allowing one extra volley (15 / 30).
+- **A Delta Arrows volley is one animated element.** It carries 2–4 deltas, but a single animation moves and pulses the whole cluster, so the browser runs one animation, not one per arrow.
 - The tables live in [`src/data/ambient-effects.ts`](../../data/ambient-effects.ts), and `tests/unit/ambient-effect-budget.test.ts` counts them.
+
+**Delta Arrows fly the layer's own diagonal, with no script.** The arrows layer is a size container (`container-type: size`; it is `absolute; inset: 0`, so its size never depends on its contents). Each volley's keyframes translate it in `cqw`/`cqh`, which keeps every flight line parallel to that layer's bottom-left → top-right diagonal in the hero, the /brand preview stage and each page-background tile alike. An inner element turns the up-pointing delta onto that line with `rotate: calc(90deg - atan2(100cqh, 100cqw))`. It is a separate element because the individual `rotate` property composes with `transform`, so on the moving element it would turn the travel too. The deltas are narrowed across their own axis (`scale: 0.6 1`): the brand delta is as wide as it is tall, and turned onto a shallow diagonal one edge lies flat, so it reads as pointing down. A browser without both container units and `atan2()` shows no arrows rather than frozen or mis-aimed ones.
 
 **Reduced motion hides the layer** (`display: none`), whatever is stored. It is not merely paused.
 
@@ -60,7 +66,7 @@ Two things stood in the way.
 - **Placement.** BaseLayout renders it as the first child of `<main>`. `main` is already a stacking context (`position: relative; z-index: 1`), so the layer's `z-index: -1` paints above the body's checkerboard and below every section, with no new stacking rules. The header and footer sit outside `main`, and opaque sections (hero bands, CTA boxes, portfolio cards) hide it, as a background should. It is visible over 64–100% of most pages; the portfolio, whose cards fill it, is the exception at 25%.
 - **It starts below the page's `.hero`.** The homepage hero already has its own layer, and other heroes' opaque bands would hide a background anyway, so nothing runs under a hero.
 - **It scrolls with the page, one tile per screen.** The layer is a stack of empty `100lvh` spacers. An IntersectionObserver (`rootMargin: -1px`) puts a clone of AmbientEffect (its `tile` mode: the thinned set, glows kept inside the tile) into a spacer while it is on screen and removes it when it leaves. An off-screen tile contains nothing, so a 41-screen page costs what a 3-screen one does.
-- **Budget: ≤14 in view, ≤28 running.** At most two `lvh` spacers can meet the viewport, so where two tiles meet on screen both run. This relaxes BL-035's cap from per-page to per-screen. The operator chose it after being offered a strict ≤15-running alternative at half the density. At the top of the homepage the hero layer is the second region: tiles start below the hero, so the hero and at most one tile share the screen. Layers that scroll away stop (see Consequences). The one exception is /brand in _Every page_ scope, where the 320px preview stage adds its 14 while it is on screen. It is a design-tool page, and the exception is accepted.
+- **Budget: ≤16 in view, ≤32 running.** At most two `lvh` spacers can meet the viewport, so where two tiles meet on screen both run. This relaxes BL-035's cap from per-page to per-screen. The operator chose it after being offered a strict ≤15-running alternative at half the density; it was ≤14 / ≤28 until Delta Arrows raised the layered set to 16. At the top of the homepage the hero layer is the second region: tiles start below the hero, so the hero and at most one tile share the screen. Layers that scroll away stop (see Consequences). The one exception is /brand in _Every page_ scope, where the 320px preview stage adds its 16 while it is on screen. It is a design-tool page, and the exception is accepted.
 - The AmbientEffect stylesheet now loads on every page, because the page background can appear on any of them.
 
 **Rejected:**
@@ -78,16 +84,17 @@ Two things stood in the way.
 
 ## Consequences
 
-- **Measured** 2026-09-23 (re-run with the scopes): Lighthouse mobile, performance only, median of 3, on static builds served identically.
+- **Measured** 2026-09-23 (re-run with Delta Arrows): Lighthouse mobile, performance only, median of 3, on static builds served identically. Master was measured earlier the same day and not re-run.
 
-  |          | master | visitor default | Every page, all five on |
-  | -------- | ------ | --------------- | ----------------------- |
-  | `/`      | 93     | 92              | 92                      |
-  | `/about` | 89     | 89              | 89                      |
+  |          | master | visitor default | Every page, all six on |
+  | -------- | ------ | --------------- | ---------------------- |
+  | `/`      | 93     | 91–92           | 91                     |
+  | `/about` | 89     | 89              | 89                     |
   - CLS is 0 throughout. The page layer is `visibility: hidden` until the script has placed it below the hero; before that fix, its jump measured CLS 0.62, and an E2E test now holds CLS at 0.
-  - A CDP sample at a tile boundary on /brand shows no main-thread layout and an idle main thread.
-  - Scrolling whole pages at 412 and 1280px, the most ambient animations running at once was 28.
-  - The cost to visitors who never opt in is about 7.1–7.3 KB gzipped per page against master (the panel section, the tile template, and the layer's CSS and scripts), and first paint about 150ms later in Lighthouse's throttled mobile run.
+  - The visitor default on `/` scored 91, 91, 91, 92, 92, 92 over six runs; the same build without Delta Arrows scored 92 three times with the same LCP (2.86s), so the arrows cost at most about a point, inside run-to-run noise.
+  - A CDP sample at a tile boundary on /brand, all six on (32 running), shows no main-thread layout, no style recalculation and an idle main thread: the container-unit transforms stay on the compositor.
+  - Scrolling whole pages at 412 and 1280px, the most ambient animations running at once was 32 (/, /about, /services and /brand, the preview stage aside).
+  - The cost to visitors who never opt in is about 8 KB gzipped per page against master: 7.1–7.3 KB before Delta Arrows, which adds 0.8–0.9 KB (1.3 KB on /brand, which also carries the preview) (the panel section, the tile template, and the layer's CSS and scripts), and first paint about 150ms later in Lighthouse's throttled mobile run.
 
 - **The page's own layers stop off screen while the background is active.** The homepage hero's layer and /brand's preview stage get `data-offscreen` from AmbientPage when they scroll away. Without that, either one kept running out of sight and the total reached 42.
 - **Code that cites this ADR:** `src/scripts/ambient-motion.ts`, `src/data/ambient-effects.ts`, `src/components/AmbientEffect.astro`, `src/components/AmbientPage.astro`, `src/components/brand/AmbientMotionControls.astro`, the inline block in `src/layouts/BaseLayout.astro`, `src/components/brand/PalettePanel.astro` (the section wrapper and the rail button), `src/scripts/palette-manager.ts` (the jump), `src/page-templates/HomePage.astro`.

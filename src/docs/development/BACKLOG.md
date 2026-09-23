@@ -1344,20 +1344,21 @@ Consequences:
 
 #### Acceptance Criteria
 
-- [x] `src/components/AmbientEffect.astro` created. It ships **all five** candidates (Grid Pulse, Glow Shift, Scan Sweep, Data Rails, Delta Drift), not only the top two, as independent toggles in a new Ambient Motion section of the palette panel (operator decision). The section appears wherever the panel does, and a Motion button on the panel's edge rail jumps to it
+- [x] `src/components/AmbientEffect.astro` created. It ships **all five** drawn candidates (Grid Pulse, Glow Shift, Scan Sweep, Data Rails, Delta Drift), not only the top two, plus a sixth, **Delta Arrows**, added 2026-09-23 at the operator's request, as independent toggles in a new Ambient Motion section of the palette panel (operator decision). The section appears wherever the panel does, and a Motion button on the panel's edge rail jumps to it
 - [x] Rendered behind all content: in the homepage hero by default (`/`, `/es/`, `/pt/`, via Hero's `backdrop` slot), plus a live preview on /brand. Two opt-in scopes (operator decision): **Homepage** adds a background behind the rest of the homepage, and **Every page** adds it site-wide. It scrolls with the page and repeats every screen
 - [x] `prefers-reduced-motion: reduce` disables all motion entirely (the layer is `display: none`)
 - [x] Mobile (≤768px): reduced to each effect's thinned set, with no layout shift (CLS 0 measured at 1280, 768 and 480px)
 - [x] Works with both themes, both dim states and all 6 palettes. Colour is `--color-primary` only
-- [x] Lighthouse mobile does not drop more than 2 points. Re-measured 2026-09-23 with the scopes, performance only, median of 3, on static builds served identically:
+- [x] Lighthouse mobile does not drop more than 2 points. Re-measured 2026-09-23 with the scopes and Delta Arrows, performance only, median of 3, on static builds served identically (master from the earlier run that day):
 
-  |          | master | visitor default | Every page, all five on |
-  | -------- | ------ | --------------- | ----------------------- |
-  | `/`      | 93     | 92              | 92                      |
-  | `/about` | 89     | 89              | 89                      |
+  |          | master | visitor default | Every page, all six on |
+  | -------- | ------ | --------------- | ---------------------- |
+  | `/`      | 93     | 91–92           | 91                     |
+  | `/about` | 89     | 89              | 89                     |
   - CLS is 0 in every case. The first build of the page background measured CLS 0.62, from the layer jumping below the hero; it is now hidden until placed, and an E2E test holds CLS at 0.
+  - `/` at the visitor default is 91–92 (six runs split evenly); the build without Delta Arrows measured 92 with the same LCP, so the arrows cost at most about a point, inside noise. It sits at the 2-point limit against master's 93.
   - With everything on, a CDP sample at a tile boundary shows no main-thread layout, so the animation stays on the compositor.
-  - Cost to every visitor, against master: about 7.1–7.3 KB gzipped per page (panel section, tile template, and the layer's CSS and scripts)
+  - Cost to every visitor, against master: about 8 KB gzipped per page (panel section, tile template, and the layer's CSS and scripts); Delta Arrows is 0.8–0.9 KB of it
 
 - [ ] Stakeholder review before proceeding to production polish. **Owner: operator.** Shipping a public default means flipping two literals that a test pins together (ADR-0039)
 
@@ -1365,8 +1366,8 @@ Consequences:
 
 - **Brand alignment:** brutalism rejects ornament, so the effects are geometric, monochrome and restrained ("data field", not "bubbles").
 - **Budget:**
-  - Hero: at most 15 animated elements, whatever is selected. One effect alone shows its full table (≤14); with two or more on, each thins to the prototype's Combined subset (14 in total). `tests/unit/ambient-effect-budget.test.ts` counts the tables.
-  - Homepage and Every page scopes: ≤14 in view, ≤28 running. Only on-screen tiles hold the effect, and any layer that has scrolled away stops. This relaxes the cap from per-page to per-screen, by operator decision (ADR-0039), and the E2E suite asserts it.
+  - Hero: at most 16 animated elements, whatever is selected (15 until the operator raised it for Delta Arrows on 2026-09-23). One effect alone shows its full table (≤14); with two or more on, each thins to its share: the prototype's Combined subset (14) plus two Delta Arrows volleys, 16 in total. A volley of 2–4 deltas is one animated element. `tests/unit/ambient-effect-budget.test.ts` counts the tables.
+  - Homepage and Every page scopes: ≤16 in view, ≤32 running. Only on-screen tiles hold the effect, and any layer that has scrolled away stops. This relaxes the cap from per-page to per-screen, by operator decision (ADR-0039), and the E2E suite asserts it.
 - **Technical constraints (met):**
   - CSS keyframes on `transform`/`opacity` only
   - no JS animation loop
