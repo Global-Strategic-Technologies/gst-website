@@ -279,6 +279,33 @@ test.describe('Ambient motion — homepage hero', () => {
       expect(Math.abs(deg(dx, dy) - deg(a.w, -a.h))).toBeLessThan(3);
     });
 
+    test('each arrow is the unaltered brand delta: outline, stroke, square', async ({ page }) => {
+      // Operator ruling (2026-09-23): never filled, never stretched.
+      const arrows = await page.evaluate(() =>
+        [...document.querySelectorAll('[data-testid="brand-ambient-stage"] .ambient__arrow')].map(
+          (el) => {
+            const path = el.querySelector('svg path')!;
+            return {
+              scale: getComputedStyle(el).scale,
+              fill: path.getAttribute('fill'),
+              stroke: path.getAttribute('stroke'),
+              strokeWidth: path.getAttribute('stroke-width'),
+              ratio: el.clientWidth / el.clientHeight,
+            };
+          }
+        )
+      );
+      expect(arrows.length).toBeGreaterThan(0);
+      for (const a of arrows)
+        expect(a).toEqual({
+          scale: 'none',
+          fill: 'none',
+          stroke: 'currentColor',
+          strokeWidth: '6',
+          ratio: 1,
+        });
+    });
+
     test('each arrowhead points where it flies', async ({ page }) => {
       const a = await frame(page, 0.2);
       const b = await frame(page, 0.4);

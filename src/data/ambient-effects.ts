@@ -265,7 +265,7 @@ export const DELTAS: readonly Delta[] = [
   { x: 59.38, y: 77.78, size: 56, duration: 25, offset: 4, solo: false },
 ];
 
-/** One solid delta in a volley, placed relative to the volley's lead. */
+/** One brand delta (DeltaIcon, unaltered) in a volley, placed relative to the volley's lead. */
 export interface VolleyArrow {
   /** Sideways from the flight line, px (+ = right of travel). */
   ax: number;
