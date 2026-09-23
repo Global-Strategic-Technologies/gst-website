@@ -1345,23 +1345,28 @@ Consequences:
 #### Acceptance Criteria
 
 - [x] `src/components/AmbientEffect.astro` created. It ships **all five** candidates (Grid Pulse, Glow Shift, Scan Sweep, Data Rails, Delta Drift), not only the top two, as independent toggles in a new Ambient Motion section of the palette panel (operator decision). The section appears wherever the panel does, and a Motion button on the panel's edge rail jumps to it
-- [x] Rendered in the homepage hero only (`/`, `/es/`, `/pt/`, via Hero's `backdrop` slot), behind all content, plus a live preview on /brand
+- [x] Rendered behind all content: in the homepage hero by default (`/`, `/es/`, `/pt/`, via Hero's `backdrop` slot), plus a live preview on /brand. Two opt-in scopes (operator decision): **Homepage** adds a background behind the rest of the homepage, and **Every page** adds it site-wide. It scrolls with the page and repeats every screen
 - [x] `prefers-reduced-motion: reduce` disables all motion entirely (the layer is `display: none`)
 - [x] Mobile (≤768px): reduced to each effect's thinned set, with no layout shift (CLS 0 measured at 1280, 768 and 480px)
 - [x] Works with both themes, both dim states and all 6 palettes. Colour is `--color-primary` only
-- [x] Lighthouse mobile does not drop more than 2 points. Measured 2026-09-22, performance only, median of 3, on static builds served identically:
-  - master: 93
-  - this change, visitor default: 93
-  - all five on: 93
+- [x] Lighthouse mobile does not drop more than 2 points. Re-measured 2026-09-23 with the scopes, performance only, median of 3, on static builds served identically:
 
-  FCP, LCP and TBT are unchanged. With all five on, a CDP sample shows no main-thread layout, so the animation stays on the compositor
+  |          | master | visitor default | Every page, all five on |
+  | -------- | ------ | --------------- | ----------------------- |
+  | `/`      | 93     | 92              | 92                      |
+  | `/about` | 89     | 89              | 89                      |
+  - CLS is 0 in every case. The first build of the page background measured CLS 0.62, from the layer jumping below the hero; it is now hidden until placed, and an E2E test holds CLS at 0.
+  - With everything on, a CDP sample at a tile boundary shows no main-thread layout, so the animation stays on the compositor.
+  - Cost to every visitor, against master: about 7.1–7.3 KB gzipped per page (panel section, tile template, and the layer's CSS and scripts)
 
 - [ ] Stakeholder review before proceeding to production polish. **Owner: operator.** Shipping a public default means flipping two literals that a test pins together (ADR-0039)
 
 #### Technical Context
 
 - **Brand alignment:** brutalism rejects ornament, so the effects are geometric, monochrome and restrained ("data field", not "bubbles").
-- **Budget:** at most 15 animated elements, whatever is selected. One effect alone shows its full table (≤14). With two or more on, each thins to the prototype's Combined subset (14 in total). `tests/unit/ambient-effect-budget.test.ts` counts the tables.
+- **Budget:**
+  - Hero: at most 15 animated elements, whatever is selected. One effect alone shows its full table (≤14); with two or more on, each thins to the prototype's Combined subset (14 in total). `tests/unit/ambient-effect-budget.test.ts` counts the tables.
+  - Homepage and Every page scopes: ≤14 in view, ≤28 running. Only on-screen tiles hold the effect, and any layer that has scrolled away stops. This relaxes the cap from per-page to per-screen, by operator decision (ADR-0039), and the E2E suite asserts it.
 - **Technical constraints (met):**
   - CSS keyframes on `transform`/`opacity` only
   - no JS animation loop

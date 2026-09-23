@@ -1,4 +1,4 @@
-# ADR-0039: Hero ambient motion is a per-browser design setting, off for visitors
+# ADR-0039: Ambient motion is a per-browser design setting, off for visitors
 
 - **Status**: Accepted (2026-09-22)
 - **Source initiative**: BL-035 (Dynamic Visual Effects). The design prototypes are kept in [`prototypes/bl-035-hero-ambient-motion/`](../../../prototypes/bl-035-hero-ambient-motion/README.md) (six hero artboards plus the palette-panel section, from the design canvas).
@@ -20,16 +20,18 @@ Five candidate effects were drawn: Grid Pulse, Glow Shift, Scan Sweep, Data Rail
 Two things stood in the way.
 
 - **The budget.** At full strength the five effects together are 37 elements.
+- **Reach.** The operator then asked for a **scope**: the hero only, the whole homepage, or every page, with the wider two scrolling with the page and repeating every screen so a long page is as lively as a short one.
 - **Persistence.** The panel's existing persisted state had the wrong lifetime. `palette-overrides` is wiped whenever the palette changes (`palette-manager.ts` § Theme Observer).
 
 ## Decision
 
 **Settings live on `<html>`, applied before first paint, in the same way as the palette.**
 
-- `localStorage['ambient-motion']` holds `{on, strength, pace}`.
+- `localStorage['ambient-motion']` holds `{on, strength, pace, scope}`.
 - BaseLayout's inline head script writes the settings onto `<html>`:
   - `data-ambient="glow rails"` names the layers that render
   - `data-ambient-layered` is set when two or more are on
+  - `data-ambient-scope` is `hero`, `page` or `site`
   - `--ambient-<id>` (0–1) and `--ambient-pace` are inline custom properties
 - From there, `AmbientEffect.astro` is driven entirely by CSS:
   - A layer not named in `data-ambient` is `display: none`, so it costs nothing.
@@ -51,7 +53,15 @@ Two things stood in the way.
 
 **Reduced motion hides the layer** (`display: none`), whatever is stored. It is not merely paused.
 
-**The homepage fills a `backdrop` slot on `Hero`**, rather than `Hero` taking a prop. Only the page that uses the layer imports it, so its stylesheet is not loaded on About, Services, Hub or the error pages. With a prop, `Hero` itself would have imported it, and every Hero page would have linked the CSS.
+**The homepage fills a `backdrop` slot on `Hero`** for the hero layer. That layer is the homepage's alone, so no other Hero page renders its markup.
+
+**Scope is cumulative.** In every scope the homepage hero keeps its own layer. _Homepage_ (`page`) and _Every page_ (`site`) add a background behind everything else, from [`src/components/AmbientPage.astro`](../../components/AmbientPage.astro):
+
+- **Placement.** BaseLayout renders it as the first child of `<main>`. `main` is already a stacking context (`position: relative; z-index: 1`), so the layer's `z-index: -1` paints above the body's checkerboard and below every section, with no new stacking rules. The header and footer sit outside `main`, and opaque sections (hero bands, CTA boxes, portfolio cards) hide it, as a background should. It is visible over 64–100% of most pages; the portfolio, whose cards fill it, is the exception at 25%.
+- **It starts below the page's `.hero`.** The homepage hero already has its own layer, and other heroes' opaque bands would hide a background anyway, so nothing runs under a hero.
+- **It scrolls with the page, one tile per screen.** The layer is a stack of empty `100lvh` spacers. An IntersectionObserver (`rootMargin: -1px`) puts a clone of AmbientEffect (its `tile` mode: the thinned set, glows kept inside the tile) into a spacer while it is on screen and removes it when it leaves. An off-screen tile contains nothing, so a 41-screen page costs what a 3-screen one does.
+- **Budget: ≤14 in view, ≤28 running.** At most two `lvh` spacers can meet the viewport, so where two tiles meet on screen both run. This relaxes BL-035's cap from per-page to per-screen. The operator chose it after being offered a strict ≤15-running alternative at half the density. At the top of the homepage the hero layer is the second region: tiles start below the hero, so the hero and at most one tile share the screen. Layers that scroll away stop (see Consequences). The one exception is /brand in _Every page_ scope, where the 320px preview stage adds its 14 while it is on screen. It is a design-tool page, and the exception is accepted.
+- The AmbientEffect stylesheet now loads on every page, because the page background can appear on any of them.
 
 **Rejected:**
 
@@ -60,19 +70,28 @@ Two things stood in the way.
 - **A JS-driven layer that renders only the selected effects.** A static layer that CSS reveals needs no script on the homepage and cannot flash.
 - **Moving the section to the top of the panel** instead of adding a rail button. It would be easy to find, but it pushes the colour editor down for every palette task.
 - **Limiting the section to /brand.** The first cut did, and that left the controls missing on the homepage, the one page whose hero moves.
+- **A background fixed to the screen.** Cheaper and constant, but the operator chose one that scrolls with the page.
+- **One set spread down the whole page.** Strictly 15 elements, but sparse: about 5 per screen on the homepage, and nearly empty on /brand, which is 41 screens tall.
+- **Tiles pre-rendered on the server.** Every page would carry every tile's markup, about 90 KB of HTML.
+- **Hiding off-screen tiles with CSS.** A rule in AmbientPage cannot reach AmbientEffect's elements through Astro's scoping, and `content-visibility` does not guarantee that animations stop. Adding and removing the clone does both.
 - **Pausing, rather than hiding, under reduced motion.** A frozen mid-cycle frame is an arbitrary image, and hiding the layer satisfies "disables all motion entirely" unambiguously.
 
 ## Consequences
 
-- **Measured** on 2026-09-22 with Lighthouse mobile, performance only, median of 3, against static builds served identically:
-  - master: 93
-  - this change, visitor default: 93
-  - all five on (scratch build): 93
+- **Measured** 2026-09-23 (re-run with the scopes): Lighthouse mobile, performance only, median of 3, on static builds served identically.
 
-  FCP, LCP and TBT are unchanged, and CLS is 0. With all five on, a 3-second CDP sample shows no main-thread layout and no more style recalcs than a still page, so the effects stay on the compositor.
+  |          | master | visitor default | Every page, all five on |
+  | -------- | ------ | --------------- | ----------------------- |
+  | `/`      | 93     | 92              | 92                      |
+  | `/about` | 89     | 89              | 89                      |
+  - CLS is 0 throughout. The page layer is `visibility: hidden` until the script has placed it below the hero; before that fix, its jump measured CLS 0.62, and an E2E test now holds CLS at 0.
+  - A CDP sample at a tile boundary on /brand shows no main-thread layout and an idle main thread.
+  - Scrolling whole pages at 412 and 1280px, the most ambient animations running at once was 28.
+  - The cost to visitors who never opt in is about 7.1–7.3 KB gzipped per page against master (the panel section, the tile template, and the layer's CSS and scripts), and first paint about 150ms later in Lighthouse's throttled mobile run.
 
-- **Code that cites this ADR:** `src/scripts/ambient-motion.ts`, `src/data/ambient-effects.ts`, `src/components/AmbientEffect.astro`, `src/components/brand/AmbientMotionControls.astro`, the inline block in `src/layouts/BaseLayout.astro`, `src/components/brand/PalettePanel.astro` (the section wrapper and the rail button), `src/scripts/palette-manager.ts` (the jump), `src/page-templates/HomePage.astro`.
-- **Docs:** [BRAND_GUIDELINES.md § Ambient Motion](../styles/BRAND_GUIDELINES.md#ambient-motion-hero).
+- **The page's own layers stop off screen while the background is active.** The homepage hero's layer and /brand's preview stage get `data-offscreen` from AmbientPage when they scroll away. Without that, either one kept running out of sight and the total reached 42.
+- **Code that cites this ADR:** `src/scripts/ambient-motion.ts`, `src/data/ambient-effects.ts`, `src/components/AmbientEffect.astro`, `src/components/AmbientPage.astro`, `src/components/brand/AmbientMotionControls.astro`, the inline block in `src/layouts/BaseLayout.astro`, `src/components/brand/PalettePanel.astro` (the section wrapper and the rail button), `src/scripts/palette-manager.ts` (the jump), `src/page-templates/HomePage.astro`.
+- **Docs:** [BRAND_GUIDELINES.md § Ambient Motion](../styles/BRAND_GUIDELINES.md#ambient-motion).
 - **Design sync:** `.design-sync/extract-chrome.mjs` strips `.ambient` from the published Hero card, and `.design-sync/NOTES.md` records why.
 - **Every class in the section must load site-wide**, because the panel appears on every page. The toggles are `.brutal-choice-btn` and the sliders `.brutal-slider*` (both `form.css`), not `.brutal-filter-chip`, whose `filter.css` is split out to four pages.
 - **The Motion button** (a delta with two speed strokes) lives on the panel's edge rail. It is lit by `html[data-ambient]` with no script, so it reports the selection even under reduced motion, where the layer itself is hidden. On a phone it sits in the open sheet's header, so it jumps past the swatches but does not help anyone open the sheet.
