@@ -175,6 +175,55 @@ test.describe('Ambient motion — homepage hero', () => {
     await expect(page.locator('.hero .ambient')).toBeHidden();
   });
 
+  test('Glow Shift fades out with the hero band instead of stopping at its edge', async ({
+    page,
+  }) => {
+    // The layer clips at the hero's box; unmasked, glow b ends in a flat line
+    // across the hero's foot. Measure what a visitor sees: the mean brightness
+    // step between the two pixel rows either side of that edge (≈3.5 unmasked,
+    // 0 masked; the page's own grid lines step ≈0.8 anywhere).
+    await page.setViewportSize({ width: 1218, height: 900 });
+    await page.addInitScript(() => localStorage.setItem('theme', 'dark'));
+    await seed(page, { on: ['glow'] });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const bottom = await page.evaluate(() => {
+      for (const a of document.getAnimations()) {
+        const target = (a.effect as KeyframeEffect | null)?.target;
+        if (!target?.closest('.hero .ambient__layer--glow')) continue;
+        a.pause();
+        // The end of the drift's leg: glow b sits lowest in the hero there.
+        a.currentTime = Number(a.effect!.getComputedTiming().duration);
+      }
+      const hero = document.querySelector('.hero')!;
+      hero.scrollIntoView({ block: 'end' });
+      window.scrollBy(0, 300);
+      return Math.round(hero.getBoundingClientRect().bottom);
+    });
+    const shot = await page.screenshot({ clip: { x: 0, y: bottom - 40, width: 1218, height: 80 } });
+    const step = await page.evaluate(async (b64) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      const d = ctx.getImageData(0, 0, img.width, img.height).data;
+      const lum = (y: number, x: number): number => {
+        const i = (img.width * y + x) * 4;
+        return 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+      };
+      const rowStep = (y: number): number => {
+        let sum = 0;
+        for (let x = 0; x < img.width; x++) sum += Math.abs(lum(y, x) - lum(y - 1, x));
+        return sum / img.width;
+      };
+      return Math.max(rowStep(40), rowStep(41));
+    }, shot.toString('base64'));
+    expect(step).toBeLessThan(1.5);
+  });
+
   test('in Hero scope, other Hero pages carry no hero layer', async ({ page }) => {
     await page.goto('/about/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.hero')).toBeAttached();

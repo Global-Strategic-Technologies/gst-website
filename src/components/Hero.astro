@@ -117,6 +117,14 @@ const { t } = useTranslations(locale, 'common');
     position: relative;
   }
 
+  /* The backdrop layer clips at the hero's box, but the band above fades out
+     over its first and last 15%. Fade the layer the same way, or a glow that
+     drifts to the edge stops in a hard line (BL-035). A mask reads alpha only;
+     #000 is never painted. */
+  .hero > :global(.ambient) {
+    mask-image: linear-gradient(transparent, #000 15%, #000 85%, transparent);
+  }
+
   .hero::after {
     content: '';
     position: absolute;
