@@ -5,8 +5,12 @@ import { checkA11y } from './helpers/a11y';
  * Hero ambient motion (BL-035, ADR-0039): the /brand palette-panel section
  * toggles the homepage hero's effect layer, saved per browser.
  *
- * Readiness: the section sets data-ready="true" only after every handler is
- * bound (TEST_BEST_PRACTICES #25/#26). Visibility is asserted with web-first
+ * Readiness (TEST_BEST_PRACTICES #25/#26/#28): palette-manager.ts publishes
+ * the ambient loader's decision as <html data-ambient-loader>; the Motion
+ * controls are built on the panel's first open and set data-ready="true" once
+ * wired; a stored choice builds the effect only after `load` + idle, and the
+ * loader then reads "loaded". `off` and `skipped` are final, so an absence
+ * gated on them proves something. Visibility is asserted with web-first
  * assertions, which poll (#23).
  */
 
@@ -25,17 +29,34 @@ async function seed(page: Page, value: object): Promise<void> {
   );
 }
 
-/** Open /brand's panel with the Ambient Motion section wired. */
-async function openBrandPanel(page: Page): Promise<void> {
-  await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+/** palette-manager.ts has run: it publishes the ambient loader's state. */
+async function scriptsReady(page: Page): Promise<void> {
+  await expect(page.locator('html[data-ambient-loader]')).toBeAttached();
+}
+
+/** Open the panel; its first open builds the Motion controls. */
+async function openPanel(page: Page): Promise<void> {
+  await scriptsReady(page);
   await page.evaluate(() =>
     document
       .getElementById('panel-toggle')
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   );
   await expect(page.locator('#palette-panel.is-open')).toBeAttached();
+  await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+}
+
+/** Open /brand's panel with the Ambient Motion section wired. */
+async function openBrandPanel(page: Page): Promise<void> {
+  await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+  await openPanel(page);
   await expect(page.getByTestId('ambient-controls')).toBeVisible();
+}
+
+/** A stored choice is built only after `load` + idle; wait for the runtime. */
+async function effectReady(page: Page): Promise<void> {
+  await page.waitForLoadState('load');
+  await expect(page.locator('html[data-ambient-loader="loaded"]')).toBeAttached();
 }
 
 const htmlAttr = (page: Page, name: string) =>
@@ -56,8 +77,9 @@ test.describe('Ambient motion — /brand panel section', () => {
     }
     await expect(page.getByTestId('ambient-pace')).toBeDisabled();
     expect(await htmlAttr(page, 'data-ambient')).toBeNull();
+    expect(await htmlAttr(page, 'data-ambient-loader')).toBe('off');
     const stage = page.getByTestId('brand-ambient-stage');
-    await expect(stage.locator('.ambient__layer--glow')).toBeHidden();
+    await expect(stage.locator('.ambient__layer')).toHaveCount(0);
   });
 
   test('multi-select toggles, layers, tunes, persists, and survives a palette change', async ({
@@ -106,12 +128,13 @@ test.describe('Ambient motion — /brand panel section', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     expect(await htmlAttr(page, 'data-ambient')).toBe('glow rails');
     expect(await htmlVar(page, '--ambient-glow')).toBe('0.7');
-    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await openPanel(page);
     await expect(page.getByTestId('ambient-chip-glow')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('ambient-strength-glow')).toHaveValue('70');
 
     // …and it reaches the homepage hero.
     await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await effectReady(page);
     await expect(page.locator('.hero .ambient__layer--glow')).toBeVisible();
     await expect(page.locator('.hero .ambient__layer--rails')).toBeVisible();
     await expect(page.locator('.hero .ambient__layer--grid')).toBeHidden();
@@ -150,17 +173,75 @@ test.describe('Ambient motion — /brand panel section', () => {
 test.describe('Ambient motion — homepage hero', () => {
   test('a visitor with nothing stored sees a still hero', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await scriptsReady(page);
     expect(await htmlAttr(page, 'data-ambient')).toBeNull();
+    expect(await htmlAttr(page, 'data-ambient-loader')).toBe('off');
+    // The placeholder is there; the layer is never built.
     await expect(page.locator('.hero .ambient')).toBeAttached();
-    for (const id of ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows']) {
-      await expect(page.locator(`.hero .ambient__layer--${id}`)).toBeHidden();
+    await expect(page.locator('.hero .ambient__layer')).toHaveCount(0);
+  });
+
+  // A visitor who never opted in downloads none of it (the lazy-loading
+  // change): not the effect, not its CSS, not the panel's Motion controls.
+  // Gated on the loader's final `off` state, so the absence means something.
+  // URLs are the dev server's module paths, which is what E2E runs against.
+  test('a visitor who never opted in fetches none of ambient motion', async ({ page }) => {
+    const fetched: string[] = [];
+    page.on('request', (r) => {
+      if (/\/scripts\/ambient\/(runtime|controls)|ambient\.css|controls\.css/.test(r.url()))
+        fetched.push(r.url());
+    });
+    for (const path of ['/', '/about/', '/brand/']) {
+      await page.goto(path, { waitUntil: 'load' });
+      await expect(page.locator('html[data-ambient-loader="off"]'), path).toBeAttached();
+      await page.waitForLoadState('networkidle');
+      await expect(page.locator('.ambient__layer'), path).toHaveCount(0);
+      await expect(page.locator('#ambient-css'), path).toHaveCount(0);
+      await expect(page.locator('#ambient-controls'), path).toHaveCount(0);
     }
+    expect(fetched).toEqual([]);
+  });
+
+  test('a stored choice loads the effect only after the page has loaded, and fades it in', async ({
+    page,
+  }) => {
+    await seed(page, { on: ['glow'] });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await effectReady(page);
+    await expect(page.locator('.hero .ambient[data-ambient-ready]')).toBeAttached();
+    // Ordered by the browser's own clock, not by catching a state mid-flight.
+    const { runtime, loadStart } = await page.evaluate(() => {
+      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      const entry = performance
+        .getEntriesByType('resource')
+        .find((e) => e.name.includes('/scripts/ambient/runtime'));
+      return { runtime: entry?.startTime ?? -1, loadStart: nav.loadEventStart };
+    });
+    expect(runtime).toBeGreaterThanOrEqual(loadStart);
+    await expect
+      .poll(() =>
+        page.evaluate(() => getComputedStyle(document.querySelector('.hero .ambient')!).opacity)
+      )
+      .toBe('1');
+  });
+
+  test('Hero scope on a page with no hero layer loads nothing', async ({ page }) => {
+    await seed(page, { on: ['glow'], scope: 'hero' });
+    const fetched: string[] = [];
+    page.on('request', (r) => {
+      if (r.url().includes('/scripts/ambient/runtime')) fetched.push(r.url());
+    });
+    await page.goto('/about/', { waitUntil: 'load' });
+    await expect(page.locator('html[data-ambient-loader="skipped"]')).toBeAttached();
+    await page.waitForLoadState('networkidle');
+    expect(fetched).toEqual([]);
   });
 
   test('a stored choice shows on / and the localized homepage', async ({ page }) => {
     await seed(page, { on: ['scan', 'deltas'], strength: { scan: 60 } });
     for (const path of ['/', '/es/']) {
       await page.goto(path, { waitUntil: 'domcontentloaded' });
+      await effectReady(page);
       await expect(page.locator('.hero .ambient__layer--scan'), path).toBeVisible();
       await expect(page.locator('.hero .ambient__layer--deltas'), path).toBeVisible();
     }
@@ -172,7 +253,10 @@ test.describe('Ambient motion — homepage hero', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     expect(await htmlAttr(page, 'data-ambient')).toBe('glow');
+    // Nothing is fetched or built, and the placeholder itself is hidden.
+    await expect(page.locator('html[data-ambient-loader="skipped"]')).toBeAttached();
     await expect(page.locator('.hero .ambient')).toBeHidden();
+    await expect(page.locator('.hero .ambient__layer')).toHaveCount(0);
   });
 
   test('Glow Shift fades out with the hero band instead of stopping at its edge', async ({
@@ -186,6 +270,13 @@ test.describe('Ambient motion — homepage hero', () => {
     await page.addInitScript(() => localStorage.setItem('theme', 'dark'));
     await seed(page, { on: ['glow'] });
     await page.goto('/', { waitUntil: 'networkidle' });
+    await effectReady(page);
+    // Measured once the fade-in has finished.
+    await expect
+      .poll(() =>
+        page.evaluate(() => getComputedStyle(document.querySelector('.hero .ambient')!).opacity)
+      )
+      .toBe('1');
     const bottom = await page.evaluate(() => {
       for (const a of document.getAnimations()) {
         const target = (a.effect as KeyframeEffect | null)?.target;
@@ -234,6 +325,7 @@ test.describe('Ambient motion — homepage hero', () => {
       await page.setViewportSize({ width: 1218, height: 900 });
       await seed(page, { on: ['arrows'] });
       await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+      await effectReady(page);
       const stage = page.getByTestId('brand-ambient-stage');
       await stage.scrollIntoViewIfNeeded();
       await expect(stage.locator('.ambient__layer--arrows')).toBeVisible();
@@ -326,8 +418,9 @@ test.describe('Ambient motion — homepage hero', () => {
   }) => {
     await page.addInitScript(() => localStorage.setItem('palette-popped-out', 'true'));
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await scriptsReady(page);
     await page.locator('#panel-motion-toggle').click();
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
     await expect(page.locator('#palette-panel.is-open')).toBeAttached();
     await page.getByTestId('ambient-chip-scan').click();
     await expect(page.locator('.hero .ambient__layer--scan')).toBeVisible();
@@ -337,8 +430,9 @@ test.describe('Ambient motion — homepage hero', () => {
   test('has no axe violations with the panel open on /', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('palette-popped-out', 'true'));
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await scriptsReady(page);
     await page.locator('#panel-motion-toggle').click();
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
     await page.getByTestId('ambient-chip-glow').click();
     const result = await checkA11y(page, { include: ['#palette-panel'] });
     const blocking = [...result.critical, ...result.serious];
@@ -349,23 +443,23 @@ test.describe('Ambient motion — homepage hero', () => {
 test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
   const ALL = ['grid', 'glow', 'scan', 'rails', 'deltas', 'arrows'];
 
-  /** Real signal, not a class: animations whose target is inside the page layer. */
+  /** Real signal, not a class: animations whose target is inside the page layer.
+   *  CSS animations only, so the layers' fade-in (a transition) never counts. */
   const pageLayer = (page: Page) =>
     page.evaluate(() => {
       const layer = document.getElementById('ambient-page')!;
-      const running = document
-        .getAnimations()
-        .filter((a) => layer.contains((a.effect as KeyframeEffect | null)?.target ?? null)).length;
+      const animations = document.getAnimations().filter((a) => a instanceof CSSAnimation);
+      const running = animations.filter((a) =>
+        layer.contains((a.effect as KeyframeEffect | null)?.target ?? null)
+      ).length;
       const main = document.querySelector('main')!.getBoundingClientRect();
       const last = layer.lastElementChild?.getBoundingClientRect();
       const hero = document.querySelector('.hero')?.getBoundingClientRect();
       // Everything ambient on the page — the hero layer and the background —
       // since the budget is for both together.
-      const total = document
-        .getAnimations()
-        .filter((a) =>
-          ((a.effect as KeyframeEffect | null)?.target as Element | null)?.closest('.ambient')
-        ).length;
+      const total = animations.filter((a) =>
+        ((a.effect as KeyframeEffect | null)?.target as Element | null)?.closest('.ambient')
+      ).length;
       return {
         display: getComputedStyle(layer).display,
         running,
@@ -378,8 +472,9 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
 
   test('the Scope control defaults to Hero and sets the scope live', async ({ page }) => {
     await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await scriptsReady(page);
     await page.getByTestId('palette-motion-toggle').click();
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
     await expect(page.getByTestId('ambient-scope-hero')).toBeDisabled();
     await page.getByTestId('ambient-chip-glow').click();
     await expect(page.getByTestId('ambient-scope-hero')).toHaveAttribute('aria-pressed', 'true');
@@ -394,6 +489,7 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
   test('Hero scope draws no page background on /', async ({ page }) => {
     await seed(page, { on: ALL, scope: 'hero' });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await effectReady(page);
     await expect(page.locator('.hero .ambient__layer--glow')).toBeVisible();
     await expect.poll(async () => (await pageLayer(page)).display).toBe('none');
     expect((await pageLayer(page)).running).toBe(0);
@@ -402,6 +498,7 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
   test('Homepage scope fills / below the hero, within budget, top to bottom', async ({ page }) => {
     await seed(page, { on: ALL, scope: 'page' });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await effectReady(page);
     await expect.poll(async () => (await pageLayer(page)).running).toBeGreaterThan(0);
     const top = await pageLayer(page);
     expect(top.running).toBeLessThanOrEqual(32);
@@ -433,7 +530,9 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
   test('Homepage scope leaves other pages alone', async ({ page }) => {
     await seed(page, { on: ALL, scope: 'page' });
     await page.goto('/about/', { waitUntil: 'domcontentloaded' });
-    await expect.poll(async () => (await pageLayer(page)).display).toBe('none');
+    // Nothing here that Homepage scope would draw, so nothing is loaded.
+    await expect(page.locator('html[data-ambient-loader="skipped"]')).toBeAttached();
+    expect((await pageLayer(page)).display).toBe('none');
     expect((await pageLayer(page)).running).toBe(0);
   });
 
@@ -441,6 +540,7 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
     await seed(page, { on: ALL, scope: 'site' });
     for (const path of ['/about/', '/es/']) {
       await page.goto(path, { waitUntil: 'domcontentloaded' });
+      await effectReady(page);
       // The background starts below the hero, which on a short viewport (and
       // /es/, with its language band) can end below the fold — scroll past it.
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
@@ -456,6 +556,7 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
   }) => {
     await seed(page, { on: ALL, scope: 'site' });
     await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+    await effectReady(page);
     await expect.poll(async () => (await pageLayer(page)).spacers).toBeGreaterThan(8);
     // A tile boundary well away from the preview stage: two tiles live.
     await page.evaluate(() => {
@@ -471,6 +572,7 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
     // until placed, or its jump below the hero counts as CLS (0.62 measured).
     await seed(page, { on: ALL, scope: 'site' });
     await page.goto('/', { waitUntil: 'load' });
+    await effectReady(page);
     await expect.poll(async () => (await pageLayer(page)).running).toBeGreaterThan(0);
     const cls = await page.evaluate(
       () =>
@@ -489,7 +591,8 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
     await seed(page, { on: ['glow'], scope: 'site' });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/about/', { waitUntil: 'domcontentloaded' });
-    await expect.poll(async () => (await pageLayer(page)).display).toBe('block');
+    // The runtime is never fetched, so nothing can be built.
+    await expect(page.locator('html[data-ambient-loader="skipped"]')).toBeAttached();
     const r = await pageLayer(page);
     expect(r.spacers).toBe(0);
     expect(r.running).toBe(0);
@@ -500,8 +603,9 @@ test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
   }) => {
     await page.addInitScript(() => localStorage.setItem('palette-popped-out', 'true'));
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await scriptsReady(page);
     await page.getByTestId('palette-motion-toggle').click();
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
     await page.getByTestId('ambient-chip-rails').click();
     await page.getByTestId('ambient-scope-page').click();
     await expect.poll(async () => (await pageLayer(page)).running).toBeGreaterThan(0);
@@ -521,12 +625,13 @@ test.describe('Ambient motion — the rail Motion button', () => {
 
   test('opens the panel, scrolls to the section and focuses its first toggle', async ({ page }) => {
     await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await scriptsReady(page);
     expect(await page.locator('#palette-panel').getAttribute('class')).not.toContain('is-open');
     // On the desktop rail the button is icon-only.
     await expect(page.locator('#panel-motion-toggle .palette-panel__motion-label')).toBeHidden();
 
     await page.getByTestId('palette-motion-toggle').click();
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
     await expect(page.locator('#palette-panel.is-open')).toBeAttached();
     await expect.poll(() => sectionInView(page)).toBe(true);
     await expect(page.getByTestId('ambient-chip-grid')).toBeFocused();
@@ -534,11 +639,12 @@ test.describe('Ambient motion — the rail Motion button', () => {
 
   test('is lit only while an effect is on', async ({ page }) => {
     await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await scriptsReady(page);
     const color = () =>
       page.evaluate(() => getComputedStyle(document.getElementById('panel-motion-toggle')!).color);
     const off = await color();
     await page.getByTestId('palette-motion-toggle').click();
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
     await page.getByTestId('ambient-chip-glow').click();
     await expect.poll(color).not.toBe(off);
     await page.getByTestId('ambient-chip-glow').click();
@@ -550,7 +656,7 @@ test.describe('Ambient motion — the rail Motion button', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await scriptsReady(page);
     await page.evaluate(() =>
       document
         .getElementById('panel-fab')

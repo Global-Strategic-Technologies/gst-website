@@ -9,9 +9,9 @@
  *
  * `solo: true` marks elements shown only when their effect runs alone on a
  * wide screen. With two or more effects on, at ≤768px, or in a page-wide tile
- * (AmbientPage.astro), they hide, and what remains is the prototype's
- * Combined subset. AmbientEffect.astro renders
- * these tables and tests/unit/ambient-effect-budget.test.ts counts them
+ * (the page background), they hide, and what remains is the prototype's
+ * Combined subset. src/scripts/ambient/build.ts renders these tables in the
+ * browser, and tests/unit/ambient-effect-budget.test.ts counts them
  * against the 16-animated-element ceiling (BL-035's 15, raised by the operator
  * for Delta Arrows on 2026-09-23).
  *

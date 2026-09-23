@@ -1,6 +1,5 @@
 ---
 import SwatchControlStyles from './SwatchControlStyles.astro';
-import AmbientMotionControls from './AmbientMotionControls.astro';
 import { palettes } from '../../data/palettes';
 ---
 
@@ -201,14 +200,16 @@ import { palettes } from '../../data/palettes';
       /* Ambient Motion (BL-035), on every page the panel appears. The wrapper
          and heading live HERE, not in the child, so this file's scoped
          .palette-panel__section rules reach them (STYLES_GUIDE § the
-         scoped-rule / foreign-element trap). The child renders the body. */
+         scoped-rule / foreign-element trap). The body is built on the panel's
+         first open (src/scripts/ambient/controls.ts, via palette-manager.ts),
+         so no page carries it for a visitor who never opens the panel. */
     }
     <div class="palette-panel__section palette-panel__section--motion" id="panel-motion-section">
       <div class="palette-panel__section-head">
         <span class="brutal-label-small" id="ambient-controls-title">Ambient Motion</span>
         <span class="palette-panel__section-hint" id="ambient-scope-hint">Homepage hero</span>
       </div>
-      <AmbientMotionControls />
+      <div id="ambient-controls-mount"></div>
     </div>
   </div>
 </div>

@@ -15,6 +15,7 @@ import {
   STATE_LABELS,
   type ThemeState,
 } from './theme-state';
+import { initAmbientLoader } from './ambient/loader';
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -439,6 +440,24 @@ function ensureControlsInjected(): void {
   controlsInjected = true;
 }
 
+// Ambient motion (BL-035, ADR-0039). The loader decides, on every page,
+// whether this browser loads the effect at all; the panel's Motion controls
+// are built only when the panel first opens. Both keep ambient motion's code
+// off the page for every visitor who never switched it on.
+initAmbientLoader();
+
+let motionControls: Promise<void> | null = null;
+
+function loadMotionControls(): Promise<void> {
+  motionControls ??= import('./ambient/controls')
+    .then(({ mountAmbientControls }) => mountAmbientControls())
+    .catch((error: unknown) => {
+      motionControls = null; // let the next open try again
+      Sentry.captureException(error, { tags: { feature: 'ambient-motion' } });
+    });
+  return motionControls;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Defer swatch injection: on brand page, run at idle; on other pages, skip
   // entirely until the panel is opened.
@@ -465,6 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function openPanel(): void {
     if (!panel) return;
     ensureControlsInjected();
+    void loadMotionControls();
     panel.classList.add('is-open');
     if (isMobile()) {
       document.body.style.overflow = 'hidden';
@@ -550,10 +570,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── Shared action: jump to Ambient Motion (BL-035) ──────
   // The section sits below the tall swatch grids; this opens the panel if it
   // is closed, scrolls the body to the section, and puts focus on its first
-  // toggle. It never closes the panel — the delta toggle does that.
-  function handleMotionJump(): void {
+  // toggle. It never closes the panel — the delta toggle does that. The
+  // controls are built on first open, so it waits for them before focusing.
+  async function handleMotionJump(): Promise<void> {
     if (!panel || !panelBody) return;
     if (!panel.classList.contains('is-open')) openPanel();
+    await loadMotionControls();
     requestAnimationFrame(() => {
       const section = document.getElementById('panel-motion-section');
       if (!section) return;
@@ -598,7 +620,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Ambient Motion jump
-  document.getElementById('panel-motion-toggle')?.addEventListener('click', handleMotionJump);
+  document
+    .getElementById('panel-motion-toggle')
+    ?.addEventListener('click', () => void handleMotionJump());
 
   // Reset all button
   document.getElementById('reset-all')?.addEventListener('click', resetAllOverrides);
@@ -644,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
       motionClone.removeAttribute('id');
       motionClone.removeAttribute('data-testid');
       mobileHeader.appendChild(motionClone);
-      motionClone.addEventListener('click', handleMotionJump);
+      motionClone.addEventListener('click', () => void handleMotionJump());
     }
 
     // Clone theme toggle (right position)

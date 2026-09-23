@@ -13,7 +13,7 @@ import { EFFECT_IDS } from '../../src/scripts/ambient-motion';
 /**
  * The ceiling: at most 16 animated elements on screen. BL-035 set 15; the
  * operator raised it to 16 on 2026-09-23 so Delta Arrows keeps two volleys
- * when layered. AmbientEffect.astro renders these tables, so counting them
+ * when layered. src/scripts/ambient/build.ts renders these tables, so counting them
  * counts what animates — one effect alone shows everything, and with two or
  * more on (or at ≤768px) only the non-`solo` elements. A Delta Arrows volley
  * is one animated element however many deltas it carries.
@@ -40,13 +40,11 @@ describe('ambient-motion element budget (BL-035)', () => {
   });
 
   it('a page-background tile always carries only the thinned set', () => {
-    // AmbientPage clones AmbientEffect with `tile`, which hides every `solo`
-    // element — so a tile is the layered total, whatever is selected.
-    const src = readFileSync(
-      resolve(__dirname, '../../src/components/AmbientEffect.astro'),
-      'utf8'
-    );
-    expect(src).toMatch(/\.ambient--tile \.ambient__el--solo/);
+    // runtime.ts clones buildTile() (`ambient--tile`) into the page
+    // background, and ambient.css hides every `solo` element in a tile — so a
+    // tile is the layered total, whatever is selected.
+    const css = readFileSync(resolve(__dirname, '../../src/scripts/ambient/ambient.css'), 'utf8');
+    expect(css).toMatch(/\.ambient--tile \.ambient__el--solo/);
     const tile = EFFECT_IDS.reduce((n, id) => n + counts[id].thinned, 0);
     expect(tile).toBeLessThanOrEqual(BUDGET);
   });
@@ -57,17 +55,8 @@ describe('ambient-motion element budget (BL-035)', () => {
     expect(dirs(RAILS.filter((r) => !r.solo))).toEqual(new Set(['up', 'down', 'left', 'right']));
   });
 
-  it('AmbientEffect renders these tables, and one element per glow and scan count', () => {
-    const src = readFileSync(
-      resolve(__dirname, '../../src/components/AmbientEffect.astro'),
-      'utf8'
-    );
-    expect(src).toMatch(/from '\.\.\/data\/ambient-effects'/);
-    for (const name of ['GRID_CELLS.map', 'RAILS.map', 'DELTAS.map', 'ARROW_VOLLEYS.map'])
-      expect(src).toContain(name);
-    expect(src.match(/class="ambient__glow /g)?.length).toBe(counts.glow.all);
-    expect(src.match(/class="ambient__scan"/g)?.length).toBe(counts.scan.all);
-  });
+  // What the builder renders is counted against these tables in
+  // tests/unit/ambient-build.test.ts, in a real DOM.
 
   it('Delta Arrows: clusters of 2–4, two of them kept when layered', () => {
     for (const v of ARROW_VOLLEYS) {
