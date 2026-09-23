@@ -299,6 +299,7 @@ The homepage hero, and optionally the whole homepage or every page, can carry a 
   The background scrolls with the page and repeats every screen, so a long page is as lively as a short one. Opaque sections (hero bands, CTA boxes, portfolio cards) cover it, as a background should, and it starts below the hero on any page that has one.
 
 - The live preview is under UI Component Library → Marketing Components → Hero Ambient Motion. The same settings apply to the homepage (`/`, `/es/`, `/pt/`).
+- Motion starts just after the page has loaded and fades in, so it never slows the page's first paint. A browser that never switched it on downloads none of it, and the panel's Motion controls load when the panel first opens.
 
 **Rules the layer keeps.**
 

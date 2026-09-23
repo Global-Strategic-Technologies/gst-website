@@ -462,6 +462,19 @@ import '../../styles/my-component.css';
 ---
 ```
 
+### Lazily loaded stylesheets (built-in-the-browser features)
+
+A feature whose markup is built by a lazily imported module (only some browsers ever load it, e.g. ambient motion, BL-035) keeps its stylesheet **beside that module, outside `src/styles/`, imported with `?inline`** and inserted as a `<style>` when the module runs:
+
+```ts
+import css from './my-feature.css?inline';
+```
+
+- **Not a plain `import './my-feature.css'`.** Astro attaches a CSS module to every page that owns the importing script, walking dynamic importers too, so a plain import ships the sheet to every visitor. E2E runs on the dev server, where Vite injects the CSS only when the module runs, so no browser test can see the mistake; `tests/unit/ambient-lazy-css-guard.test.ts` enforces `?inline` for the ambient modules.
+- **Not under `src/styles/`.** Every file there belongs to the design-sync `@import` closure (Guard 2) and is published to claude.ai/design, which deliberately leaves ambient markup out (`.design-sync/NOTES.md`).
+- **The rules are unscoped**, since JS-built DOM carries no `data-astro-cid`. Anchor them on the feature's root class so they never depend on load order against `form.css` and friends.
+- Server-rendered placeholders keep the few rules that must hold before the module runs (layout, reduced motion) in their own scoped `<style>`, so the orphan-class scan stays satisfied.
+
 ### Card grids: the grid owns the columns, the card owns itself
 
 A card must **not** set `max-width` / `margin: 0 auto` on itself. That is page positioning

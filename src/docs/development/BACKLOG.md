@@ -1344,21 +1344,21 @@ Consequences:
 
 #### Acceptance Criteria
 
-- [x] `src/components/AmbientEffect.astro` created. It ships **all five** drawn candidates (Grid Pulse, Glow Shift, Scan Sweep, Data Rails, Delta Drift), not only the top two, plus a sixth, **Delta Arrows**, added 2026-09-23 at the operator's request, as independent toggles in a new Ambient Motion section of the palette panel (operator decision). The section appears wherever the panel does, and a Motion button on the panel's edge rail jumps to it
+- [x] The effect layer (`src/scripts/ambient/`, placed through `src/components/AmbientEffect.astro`) is built. It ships **all five** drawn candidates (Grid Pulse, Glow Shift, Scan Sweep, Data Rails, Delta Drift), not only the top two, plus a sixth, **Delta Arrows**, added 2026-09-23 at the operator's request, as independent toggles in a new Ambient Motion section of the palette panel (operator decision). The section appears wherever the panel does, and a Motion button on the panel's edge rail jumps to it
 - [x] Rendered behind all content: in the homepage hero by default (`/`, `/es/`, `/pt/`, via Hero's `backdrop` slot), plus a live preview on /brand. Two opt-in scopes (operator decision): **Homepage** adds a background behind the rest of the homepage, and **Every page** adds it site-wide. It scrolls with the page and repeats every screen
 - [x] `prefers-reduced-motion: reduce` disables all motion entirely (the layer is `display: none`)
 - [x] Mobile (≤768px): reduced to each effect's thinned set, with no layout shift (CLS 0 measured at 1280, 768 and 480px)
 - [x] Works with both themes, both dim states and all 6 palettes. Colour is `--color-primary` only
-- [x] Lighthouse mobile does not drop more than 2 points. Re-measured 2026-09-23 with the scopes and Delta Arrows, performance only, median of 3, on static builds served identically (master from the earlier run that day):
+- [x] Lighthouse mobile does not drop more than 2 points. Re-measured 2026-09-23 after the lazy-loading change (only a browser that opted in loads the effect, after `load`; the panel's controls load on first open), performance only, median of 3, on static builds served identically (master from the earlier run that day):
 
   |          | master | visitor default | Every page, all six on |
   | -------- | ------ | --------------- | ---------------------- |
-  | `/`      | 93     | 91–92           | 91                     |
+  | `/`      | 93     | 93              | 93                     |
   | `/about` | 89     | 89              | 89                     |
   - CLS is 0 in every case. The first build of the page background measured CLS 0.62, from the layer jumping below the hero; it is now hidden until placed, and an E2E test holds CLS at 0.
-  - `/` at the visitor default is 91–92 (six runs split evenly); the build without Delta Arrows measured 92 with the same LCP, so the arrows cost at most about a point, inside noise. It sits at the 2-point limit against master's 93.
+  - Before that change `/` was 91–92 at the visitor default, at the 2-point limit; the lazy loading brought it back to master's 93, with first paint about 0.1–0.2s and LCP about 0.15s earlier.
   - With everything on, a CDP sample at a tile boundary shows no main-thread layout, so the animation stays on the compositor.
-  - Cost to every visitor, against master: about 8 KB gzipped per page (panel section, tile template, and the layer's CSS and scripts); Delta Arrows is 0.8–0.9 KB of it
+  - Cost to every visitor: about 8 KB gzipped per page before the lazy-loading change, 6.2–6.3 KB less after it (7.5 KB less on /brand). An opted-in browser fetches 4.4 KB after `load`, and the controls' 3.0 KB on the panel's first open
 
 - [ ] Stakeholder review before proceeding to production polish. **Owner: operator.** Shipping a public default means flipping two literals that a test pins together (ADR-0039)
 
