@@ -1,0 +1,182 @@
+---
+/**
+ * The page-wide / site-wide ambient-motion background (BL-035, ADR-0039).
+ *
+ * BaseLayout renders this as the first child of <main>. `main` is already a
+ * stacking context (position: relative; z-index: 1), so z-index: -1 puts the
+ * layer above the body's checkerboard and below every section. The header and
+ * footer sit outside `main`. The layer starts below the page's `.hero`, if it
+ * has one: the homepage hero keeps its own layer in every scope, and the other
+ * heroes' opaque bands would hide a background anyway.
+ *
+ * It shows only in the chosen scope (html[data-ambient-scope]), and scrolls
+ * with the page. The layer is a stack of empty one-screen spacers, and a
+ * spacer holds a clone of AmbientEffect (the thinned `tile` set) only while it
+ * is on screen: an IntersectionObserver adds the clone and removes it again.
+ * So an off-screen tile contains nothing, not even hidden elements. At most
+ * two spacers can be on screen at once (they are 100lvh), which is the
+ * "≤14 in view, ≤28 running" budget recorded in ADR-0039.
+ *
+ * No animation loop: the script only adds and removes DOM. Visitors who never
+ * opt in pay for one MutationObserver and one style read at start-up.
+ */
+import AmbientEffect from './AmbientEffect.astro';
+
+interface Props {
+  /** This is the homepage (any locale): the Homepage scope shows here too. */
+  home?: boolean;
+}
+const { home = false } = Astro.props;
+---
+
+<div class="ambient-page" id="ambient-page" aria-hidden="true" data-home={home || undefined}></div>
+<template id="ambient-tile"><AmbientEffect tile /></template>
+
+<style>
+  .ambient-page {
+    --ambient-page-top: 0px;
+
+    position: absolute;
+    inset: var(--ambient-page-top) 0 0;
+    z-index: -1;
+    display: none;
+    overflow: hidden;
+    pointer-events: none;
+
+    /* Hidden until the script has placed it below the hero: a laid-out box
+       that jumps from main's top to the hero's foot is a layout shift
+       (Lighthouse measured CLS 0.62 before this), even an empty one. */
+    visibility: hidden;
+  }
+
+  .ambient-page[data-placed] {
+    visibility: visible;
+  }
+
+  :global(html[data-ambient][data-ambient-scope='site']) .ambient-page,
+  :global(html[data-ambient][data-ambient-scope='page']) .ambient-page[data-home] {
+    display: block;
+  }
+
+  /* Spacers are created by the script, so they carry no scope attribute;
+     reach them through this component's own element. */
+  .ambient-page :global(.ambient-page__tile) {
+    position: relative;
+    height: 100lvh;
+  }
+</style>
+
+<script>
+  function init(layer: HTMLElement, tpl: HTMLTemplateElement): void {
+    const main = layer.parentElement;
+    if (!main) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let armed = false;
+    let frame = 0;
+
+    // Only an on-screen spacer holds the effect. -1px: a spacer that merely
+    // touches the viewport edge does not count, so at most two are ever live.
+    const live = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const spacer = entry.target as HTMLElement;
+          if (entry.isIntersecting) {
+            if (!spacer.firstChild) spacer.append(tpl.content.cloneNode(true));
+          } else {
+            spacer.replaceChildren();
+          }
+        }
+      },
+      { rootMargin: '-1px' }
+    );
+
+    // The page's own layers — the homepage hero's, /brand's preview stage —
+    // keep running in every scope. While this background is active, each stops
+    // when it scrolls away, so everything together still holds "≤28 running".
+    // (Tiles are cloned into spacers later, so they are never in this list.)
+    const ownLayers = [...main.querySelectorAll<HTMLElement>('.ambient')];
+    const ownLive = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries)
+          entry.target.toggleAttribute('data-offscreen', !entry.isIntersecting);
+      },
+      { rootMargin: '-1px' }
+    );
+
+    const schedule = (): void => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        sync();
+      });
+    };
+
+    // main: content reflow. The first spacer: a height-only window resize
+    // changes 100lvh without changing main, which would leave the foot bare.
+    const resize = new ResizeObserver(schedule);
+
+    function arm(on: boolean): void {
+      if (on === armed) return;
+      armed = on;
+      if (on) {
+        resize.observe(main!);
+        reduce.addEventListener('change', schedule);
+        for (const el of ownLayers) ownLive.observe(el);
+      } else {
+        resize.disconnect();
+        reduce.removeEventListener('change', schedule);
+        ownLive.disconnect();
+        for (const el of ownLayers) el.removeAttribute('data-offscreen');
+      }
+    }
+
+    function spacer(): HTMLElement {
+      const el = document.createElement('div');
+      el.className = 'ambient-page__tile';
+      live.observe(el);
+      return el;
+    }
+
+    function sync(): void {
+      const shown = getComputedStyle(layer).display !== 'none';
+      arm(shown);
+      if (!shown || reduce.matches) {
+        live.disconnect();
+        layer.replaceChildren();
+        layer.removeAttribute('data-placed');
+        return;
+      }
+
+      const hero = main!.querySelector('.hero');
+      const top = hero
+        ? hero.getBoundingClientRect().bottom - main!.getBoundingClientRect().top
+        : 0;
+      layer.style.setProperty('--ambient-page-top', `${Math.max(0, Math.round(top))}px`);
+      layer.setAttribute('data-placed', '');
+
+      // First pass: one spacer has to exist before its height can be measured.
+      if (!layer.firstElementChild) layer.append(spacer());
+      const first = layer.firstElementChild as HTMLElement;
+      resize.observe(first);
+
+      const need = Math.max(1, Math.ceil(layer.clientHeight / first.offsetHeight));
+      while (layer.children.length < need) layer.append(spacer());
+      while (layer.children.length > need) {
+        const last = layer.lastElementChild as HTMLElement;
+        live.unobserve(last);
+        last.remove();
+      }
+    }
+
+    new MutationObserver(schedule).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-ambient', 'data-ambient-scope'],
+    });
+    // The head script set these before this module ran, so no mutation fires.
+    sync();
+  }
+
+  const layer = document.getElementById('ambient-page');
+  const tpl = document.getElementById('ambient-tile');
+  if (layer && tpl instanceof HTMLTemplateElement) init(layer, tpl);
+</script>

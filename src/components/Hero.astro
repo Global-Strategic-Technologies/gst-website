@@ -37,8 +37,8 @@ const { t } = useTranslations(locale, 'common');
 <section class="hero" aria-label={t('hero.ariaLabel')}>
   {
     /* Decorative layer behind the content — the homepage fills it with
-       AmbientEffect (BL-035). A slot, not a prop, so only the page that uses
-       it imports it: the layer's CSS stays off every other Hero page. */
+       AmbientEffect (BL-035). A slot, not a prop: the hero layer is the
+       homepage's alone, so no other Hero page renders its markup. */
   }
   <slot name="backdrop" />
   <div class="container">

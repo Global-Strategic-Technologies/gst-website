@@ -5,6 +5,8 @@
  * applied to <html> the same way the palette is:
  *
  *   data-ambient="glow rails"   which effect layers render (space-separated)
+ *   data-ambient-scope="page"   where it draws: hero | page (the whole
+ *                               homepage) | site (every page) — cumulative
  *   data-ambient-layered        present when two or more are on — thins each
  *                               layer to its share of the 15-element budget
  *   --ambient-<id>              layer opacity, 0–1
@@ -34,6 +36,17 @@ export const EFFECTS: ReadonlyArray<{ id: EffectId; label: string }> = [
 export const STORAGE_KEY = 'ambient-motion';
 export const ATTR_ON = 'data-ambient';
 export const ATTR_LAYERED = 'data-ambient-layered';
+export const ATTR_SCOPE = 'data-ambient-scope';
+
+/** Where motion draws. Cumulative: the homepage hero keeps its own layer in
+ *  every scope; page and site add a background below it (AmbientPage.astro). */
+export const SCOPES = ['hero', 'page', 'site'] as const;
+export type Scope = (typeof SCOPES)[number];
+export const SCOPE_LABELS: Readonly<Record<Scope, string>> = {
+  hero: 'Hero',
+  page: 'Homepage',
+  site: 'Every page',
+};
 
 export const STRENGTH = { min: 0, max: 100, step: 5 } as const;
 export const PACE = { min: 50, max: 150, step: 10, default: 100 } as const;
@@ -51,6 +64,7 @@ export interface AmbientSettings {
   on: EffectId[];
   strength: Record<EffectId, number>;
   pace: number;
+  scope: Scope;
 }
 
 /** The visitor default: nothing moves until someone opts in from the palette panel. */
@@ -58,10 +72,16 @@ export const DEFAULT_SETTINGS: Readonly<AmbientSettings> = {
   on: [],
   strength: { ...DEFAULT_STRENGTH },
   pace: PACE.default,
+  scope: 'hero',
 };
 
 export function defaultSettings(): AmbientSettings {
-  return { on: [...DEFAULT_SETTINGS.on], strength: { ...DEFAULT_STRENGTH }, pace: PACE.default };
+  return {
+    on: [...DEFAULT_SETTINGS.on],
+    strength: { ...DEFAULT_STRENGTH },
+    pace: PACE.default,
+    scope: DEFAULT_SETTINGS.scope,
+  };
 }
 
 function isEffectId(v: unknown): v is EffectId {
@@ -104,17 +124,20 @@ export function parseSettings(raw: string | null): AmbientSettings {
       out.strength[id] = clampStep(s[id], STRENGTH, DEFAULT_STRENGTH[id]);
   }
   out.pace = clampStep(obj.pace, PACE, PACE.default);
+  if ((SCOPES as readonly unknown[]).includes(obj.scope)) out.scope = obj.scope as Scope;
   return out;
 }
 
 export function serializeSettings(s: AmbientSettings): string {
-  return JSON.stringify({ on: s.on, strength: s.strength, pace: s.pace });
+  return JSON.stringify({ on: s.on, strength: s.strength, pace: s.pace, scope: s.scope });
 }
 
 export function applySettings(el: HTMLElement, s: AmbientSettings): void {
   if (s.on.length) el.setAttribute(ATTR_ON, s.on.join(' '));
   else el.removeAttribute(ATTR_ON);
   el.toggleAttribute(ATTR_LAYERED, s.on.length > 1);
+  if (s.on.length) el.setAttribute(ATTR_SCOPE, s.scope);
+  else el.removeAttribute(ATTR_SCOPE);
   for (const id of EFFECT_IDS)
     el.style.setProperty(`--ambient-${id}`, String(s.strength[id] / 100));
   el.style.setProperty('--ambient-pace', String(s.pace / 100));

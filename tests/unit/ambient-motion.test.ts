@@ -6,18 +6,20 @@ import {
   applySettings,
   ATTR_LAYERED,
   ATTR_ON,
+  ATTR_SCOPE,
   DEFAULT_SETTINGS,
   DEFAULT_STRENGTH,
   EFFECT_IDS,
   EFFECTS,
   PACE,
   parseSettings,
+  SCOPES,
   serializeSettings,
   STORAGE_KEY,
   STRENGTH,
 } from '../../src/scripts/ambient-motion';
 
-const ALL_OFF = { on: [], strength: DEFAULT_STRENGTH, pace: PACE.default };
+const ALL_OFF = { on: [], strength: DEFAULT_STRENGTH, pace: PACE.default, scope: 'hero' };
 
 describe('ambient-motion settings (BL-035)', () => {
   it('declares one labelled effect per id, in id order', () => {
@@ -63,9 +65,27 @@ describe('ambient-motion settings (BL-035)', () => {
 
   it('round-trips through serialize', () => {
     const s = parseSettings(
-      JSON.stringify({ on: ['scan', 'deltas'], strength: { scan: 70 }, pace: 120 })
+      JSON.stringify({ on: ['scan', 'deltas'], strength: { scan: 70 }, pace: 120, scope: 'site' })
     );
     expect(parseSettings(serializeSettings(s))).toEqual(s);
+    expect(s.scope).toBe('site');
+  });
+
+  it('reads the scope, and anything unknown as the hero', () => {
+    expect(SCOPES).toEqual(['hero', 'page', 'site']);
+    expect(DEFAULT_SETTINGS.scope).toBe('hero');
+    for (const scope of SCOPES)
+      expect(parseSettings(JSON.stringify({ on: ['glow'], scope })).scope).toBe(scope);
+    for (const junk of ['everywhere', 3, null])
+      expect(parseSettings(JSON.stringify({ on: ['glow'], scope: junk })).scope).toBe('hero');
+  });
+
+  it('applySettings writes the scope only while something is on', () => {
+    const el = document.createElement('div');
+    applySettings(el, parseSettings(JSON.stringify({ on: ['scan'], scope: 'site' })));
+    expect(el.getAttribute(ATTR_SCOPE)).toBe('site');
+    applySettings(el, parseSettings(JSON.stringify({ on: [], scope: 'site' })));
+    expect(el.hasAttribute(ATTR_SCOPE)).toBe(false);
   });
 
   it('applySettings writes the attributes and variables, and clears them when off', () => {
@@ -107,6 +127,7 @@ describe("BaseLayout's inline ambient-motion block matches the module", () => {
     localStorage.clear();
     html.removeAttribute(ATTR_ON);
     html.removeAttribute(ATTR_LAYERED);
+    html.removeAttribute(ATTR_SCOPE);
     html.removeAttribute('style');
   };
   beforeEach(reset);
@@ -130,6 +151,10 @@ describe("BaseLayout's inline ambient-motion block matches the module", () => {
       JSON.stringify({ on: ['glow'], strength: { glow: 'loud', grid: 999, scan: 33 }, pace: -4 }),
     ],
     ['unknown ids only', JSON.stringify({ on: ['bubbles'] })],
+    ['page scope', JSON.stringify({ on: ['rails'], scope: 'page' })],
+    ['site scope, layered', JSON.stringify({ on: ['grid', 'deltas'], scope: 'site' })],
+    ['junk scope', JSON.stringify({ on: ['glow'], scope: 'everywhere' })],
+    ['a scope with nothing on', JSON.stringify({ on: [], scope: 'site' })],
     ['malformed JSON', '{on:'],
     ['an array', '["glow"]'],
   ];
@@ -141,6 +166,7 @@ describe("BaseLayout's inline ambient-motion block matches the module", () => {
       const inline = {
         on: html.getAttribute(ATTR_ON),
         layered: html.hasAttribute(ATTR_LAYERED),
+        scope: html.getAttribute(ATTR_SCOPE),
         vars: [...EFFECT_IDS, 'pace'].map((k) => html.style.getPropertyValue(`--ambient-${k}`)),
       };
 
@@ -150,6 +176,7 @@ describe("BaseLayout's inline ambient-motion block matches the module", () => {
 
       expect(inline.on).toBe(ref.getAttribute(ATTR_ON));
       expect(inline.layered).toBe(ref.hasAttribute(ATTR_LAYERED));
+      expect(inline.scope).toBe(ref.getAttribute(ATTR_SCOPE));
       if (expected.on.length) {
         // Every variable is set, so no layer falls back to opacity 0 (or, via
         // an invalid value, to 1).
@@ -163,6 +190,15 @@ describe("BaseLayout's inline ambient-motion block matches the module", () => {
       }
     });
   }
+
+  it('its scope list is SCOPES, and its fallback is the default scope', () => {
+    const m = /const scopes = \[([^\]]*)\]/.exec(block);
+    expect(m, 'scopes located').not.toBeNull();
+    const list = [...m![1].matchAll(/'([a-z]+)'/g)].map((x) => x[1]);
+    expect(list).toEqual([...SCOPES]);
+    expect(block).toContain(': scopes[0]');
+    expect(list[0]).toBe(DEFAULT_SETTINGS.scope);
+  });
 
   it('its fallback default list is DEFAULT_SETTINGS.on', () => {
     const m = /const defaultOn = \[([^\]]*)\]/.exec(block);

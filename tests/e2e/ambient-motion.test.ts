@@ -175,7 +175,7 @@ test.describe('Ambient motion — homepage hero', () => {
     await expect(page.locator('.hero .ambient')).toBeHidden();
   });
 
-  test('other Hero pages carry no layer', async ({ page }) => {
+  test('in Hero scope, other Hero pages carry no hero layer', async ({ page }) => {
     await page.goto('/about/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.hero')).toBeAttached();
     await expect(page.locator('.hero .ambient')).toHaveCount(0);
@@ -203,6 +203,170 @@ test.describe('Ambient motion — homepage hero', () => {
     const result = await checkA11y(page, { include: ['#palette-panel'] });
     const blocking = [...result.critical, ...result.serious];
     expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
+  });
+});
+
+test.describe('Ambient motion — scope (Hero / Homepage / Every page)', () => {
+  const ALL = ['grid', 'glow', 'scan', 'rails', 'deltas'];
+
+  /** Real signal, not a class: animations whose target is inside the page layer. */
+  const pageLayer = (page: Page) =>
+    page.evaluate(() => {
+      const layer = document.getElementById('ambient-page')!;
+      const running = document
+        .getAnimations()
+        .filter((a) => layer.contains((a.effect as KeyframeEffect | null)?.target ?? null)).length;
+      const main = document.querySelector('main')!.getBoundingClientRect();
+      const last = layer.lastElementChild?.getBoundingClientRect();
+      const hero = document.querySelector('.hero')?.getBoundingClientRect();
+      // Everything ambient on the page — the hero layer and the background —
+      // since the budget is for both together.
+      const total = document
+        .getAnimations()
+        .filter((a) =>
+          ((a.effect as KeyframeEffect | null)?.target as Element | null)?.closest('.ambient')
+        ).length;
+      return {
+        display: getComputedStyle(layer).display,
+        running,
+        total,
+        spacers: layer.children.length,
+        covered: last ? last.bottom >= main.bottom - 1 : false,
+        belowHero: hero ? layer.getBoundingClientRect().top >= hero.bottom - 1 : true,
+      };
+    });
+
+  test('the Scope control defaults to Hero and sets the scope live', async ({ page }) => {
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await page.getByTestId('palette-motion-toggle').click();
+    await expect(page.getByTestId('ambient-scope-hero')).toBeDisabled();
+    await page.getByTestId('ambient-chip-glow').click();
+    await expect(page.getByTestId('ambient-scope-hero')).toHaveAttribute('aria-pressed', 'true');
+    expect(await htmlAttr(page, 'data-ambient-scope')).toBe('hero');
+    await page.getByTestId('ambient-scope-page').click();
+    await expect(page.getByTestId('ambient-scope-page')).toHaveAttribute('aria-pressed', 'true');
+    expect(await htmlAttr(page, 'data-ambient-scope')).toBe('page');
+    await expect(page.locator('#ambient-scope-hint')).toHaveText('Whole homepage');
+    await expect(page.locator('#ambient-state')).toHaveText(/homepage/);
+  });
+
+  test('Hero scope draws no page background on /', async ({ page }) => {
+    await seed(page, { on: ALL, scope: 'hero' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.hero .ambient__layer--glow')).toBeVisible();
+    await expect.poll(async () => (await pageLayer(page)).display).toBe('none');
+    expect((await pageLayer(page)).running).toBe(0);
+  });
+
+  test('Homepage scope fills / below the hero, within budget, top to bottom', async ({ page }) => {
+    await seed(page, { on: ALL, scope: 'page' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect.poll(async () => (await pageLayer(page)).running).toBeGreaterThan(0);
+    const top = await pageLayer(page);
+    expect(top.running).toBeLessThanOrEqual(28);
+    expect(top.covered).toBe(true);
+    expect(top.belowHero).toBe(true);
+
+    expect(top.total).toBeLessThanOrEqual(28);
+
+    // The worst case: a tile boundary mid-screen (two tiles live) with the hero
+    // scrolled away. Its layer must stop, or the total would be 14 + 28.
+    await page.evaluate(() => {
+      const second = document.getElementById('ambient-page')!.children[1] as HTMLElement;
+      window.scrollTo(0, second.getBoundingClientRect().top + window.scrollY - innerHeight / 2);
+    });
+    await expect.poll(async () => (await pageLayer(page)).running).toBe(28);
+    // The hero has scrolled away, so its layer stops: still ≤28 all told.
+    await expect.poll(async () => (await pageLayer(page)).total).toBeLessThanOrEqual(28);
+
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await expect.poll(async () => (await pageLayer(page)).running).toBeGreaterThan(0);
+    // The clone moved: the first spacer is empty once it has scrolled away.
+    await expect
+      .poll(() =>
+        page.evaluate(() => !document.getElementById('ambient-page')!.firstElementChild!.firstChild)
+      )
+      .toBe(true);
+  });
+
+  test('Homepage scope leaves other pages alone', async ({ page }) => {
+    await seed(page, { on: ALL, scope: 'page' });
+    await page.goto('/about/', { waitUntil: 'domcontentloaded' });
+    await expect.poll(async () => (await pageLayer(page)).display).toBe('none');
+    expect((await pageLayer(page)).running).toBe(0);
+  });
+
+  test('Every-page scope reaches other pages and locales', async ({ page }) => {
+    await seed(page, { on: ALL, scope: 'site' });
+    for (const path of ['/about/', '/es/']) {
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+      // The background starts below the hero, which on a short viewport (and
+      // /es/, with its language band) can end below the fold — scroll past it.
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
+      await expect
+        .poll(async () => (await pageLayer(page)).running, { message: path })
+        .toBeGreaterThan(0);
+      expect((await pageLayer(page)).running).toBeLessThanOrEqual(28);
+    }
+  });
+
+  test("/brand's own preview stops off screen, so the total stays within budget", async ({
+    page,
+  }) => {
+    await seed(page, { on: ALL, scope: 'site' });
+    await page.goto('/brand/', { waitUntil: 'domcontentloaded' });
+    await expect.poll(async () => (await pageLayer(page)).spacers).toBeGreaterThan(8);
+    // A tile boundary well away from the preview stage: two tiles live.
+    await page.evaluate(() => {
+      const s = document.getElementById('ambient-page')!.children[6] as HTMLElement;
+      window.scrollTo(0, s.getBoundingClientRect().top + window.scrollY - innerHeight / 2);
+    });
+    await expect.poll(async () => (await pageLayer(page)).running).toBe(28);
+    await expect.poll(async () => (await pageLayer(page)).total).toBe(28);
+  });
+
+  test('placing the background causes no layout shift', async ({ page }) => {
+    // The layer is positioned by script after first paint; it stays hidden
+    // until placed, or its jump below the hero counts as CLS (0.62 measured).
+    await seed(page, { on: ALL, scope: 'site' });
+    await page.goto('/', { waitUntil: 'load' });
+    await expect.poll(async () => (await pageLayer(page)).running).toBeGreaterThan(0);
+    const cls = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          let total = 0;
+          new PerformanceObserver((list) => {
+            for (const e of list.getEntries()) total += (e as unknown as { value: number }).value;
+          }).observe({ type: 'layout-shift', buffered: true });
+          setTimeout(() => resolve(total), 300);
+        })
+    );
+    expect(cls).toBe(0);
+  });
+
+  test('reduced motion builds no page background', async ({ page }) => {
+    await seed(page, { on: ['glow'], scope: 'site' });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/about/', { waitUntil: 'domcontentloaded' });
+    await expect.poll(async () => (await pageLayer(page)).display).toBe('block');
+    const r = await pageLayer(page);
+    expect(r.spacers).toBe(0);
+    expect(r.running).toBe(0);
+  });
+
+  test('switching scope from the panel on / adds and removes the background live', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => localStorage.setItem('palette-popped-out', 'true'));
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#ambient-controls[data-ready="true"]')).toBeAttached();
+    await page.getByTestId('palette-motion-toggle').click();
+    await page.getByTestId('ambient-chip-rails').click();
+    await page.getByTestId('ambient-scope-page').click();
+    await expect.poll(async () => (await pageLayer(page)).running).toBeGreaterThan(0);
+    await page.getByTestId('ambient-scope-hero').click();
+    await expect.poll(async () => (await pageLayer(page)).running).toBe(0);
   });
 });
 

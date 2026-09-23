@@ -14,7 +14,14 @@
  * Not `.brutal-filter-chip` — filter.css is code-split to four pages.
  */
 import DeltaIcon from '../DeltaIcon.astro';
-import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient-motion';
+import {
+  DEFAULT_STRENGTH,
+  EFFECTS,
+  PACE,
+  SCOPE_LABELS,
+  SCOPES,
+  STRENGTH,
+} from '../../scripts/ambient-motion';
 ---
 
 <div id="ambient-controls" data-testid="ambient-controls">
@@ -32,6 +39,30 @@ import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient
         </button>
       ))
     }
+  </div>
+
+  <div class="ambient-controls__scope">
+    <span class="brutal-slider__label" id="ambient-scope-label">Scope</span>
+    <div
+      class="brutal-segmented brutal-segmented--wide"
+      role="group"
+      aria-labelledby="ambient-scope-label"
+    >
+      {
+        SCOPES.map((scope, i) => (
+          <button
+            type="button"
+            class:list={['brutal-segmented__btn', { 'brutal-segmented__btn--active': i === 0 }]}
+            aria-pressed={i === 0 ? 'true' : 'false'}
+            disabled
+            data-ambient-scope-option={scope}
+            data-testid={`ambient-scope-${scope}`}
+          >
+            {SCOPE_LABELS[scope]}
+          </button>
+        ))
+      }
+    </div>
   </div>
 
   <div class="ambient-controls__rows">
@@ -110,6 +141,23 @@ import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
     gap: var(--spacing-sm);
+  }
+
+  .ambient-controls__scope {
+    display: grid;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-md);
+  }
+
+  /* Neither .brutal-segmented nor its buttons have a disabled style: only the
+     buttons dim (as the slider tracks do), and they stop reading as clickable. */
+  .ambient-controls__scope .brutal-segmented__btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .ambient-controls__scope .brutal-segmented__btn:disabled:hover {
+    color: var(--text-secondary);
   }
 
   .ambient-controls__rows {
@@ -225,10 +273,18 @@ import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient
     EFFECT_IDS,
     parseSettings,
     serializeSettings,
+    SCOPE_LABELS,
     STORAGE_KEY,
     type AmbientSettings,
     type EffectId,
+    type Scope,
   } from '../../scripts/ambient-motion';
+
+  const SCOPE_HINTS: Record<Scope, string> = {
+    hero: 'Homepage hero',
+    page: 'Whole homepage',
+    site: 'Every page',
+  };
 
   function readSettings(): AmbientSettings {
     try {
@@ -261,6 +317,9 @@ import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient
     const pace = section.querySelector<HTMLInputElement>('#ambient-pace');
     const paceValue = section.querySelector<HTMLElement>('#ambient-pace-value');
     const state = section.querySelector<HTMLElement>('#ambient-state');
+    const scopes = section.querySelectorAll<HTMLButtonElement>('[data-ambient-scope-option]');
+    // The hint lives in PalettePanel's section heading, outside this component.
+    const hint = document.getElementById('ambient-scope-hint');
     const reset = section.querySelector<HTMLButtonElement>('#ambient-reset');
 
     function render(): void {
@@ -281,9 +340,16 @@ import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient
         pace.disabled = settings.on.length === 0;
       }
       if (paceValue) paceValue.textContent = `${settings.pace}%`;
+      scopes.forEach((btn) => {
+        const active = btn.dataset.ambientScopeOption === settings.scope;
+        btn.classList.toggle('brutal-segmented__btn--active', active);
+        btn.setAttribute('aria-pressed', String(active));
+        btn.disabled = settings.on.length === 0;
+      });
+      if (hint) hint.textContent = SCOPE_HINTS[settings.scope];
       if (state) {
         state.textContent = settings.on.length
-          ? `${settings.on.length} of ${EFFECT_IDS.length} on · saved for this browser`
+          ? `${settings.on.length} of ${EFFECT_IDS.length} on · ${SCOPE_LABELS[settings.scope].toLowerCase()} · saved for this browser`
           : 'Nothing on — the hero stays still';
       }
     }
@@ -308,6 +374,13 @@ import { DEFAULT_STRENGTH, EFFECTS, PACE, STRENGTH } from '../../scripts/ambient
     strengths.forEach((input) => {
       input.addEventListener('input', () => {
         settings.strength[input.dataset.ambientStrength as EffectId] = Number(input.value);
+        commit();
+      });
+    });
+
+    scopes.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        settings.scope = btn.dataset.ambientScopeOption as Scope;
         commit();
       });
     });

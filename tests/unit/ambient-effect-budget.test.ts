@@ -30,6 +30,18 @@ describe('ambient-motion element budget (BL-035)', () => {
     expect(total).toBeLessThanOrEqual(BUDGET);
   });
 
+  it('a page-background tile always carries only the thinned set', () => {
+    // AmbientPage clones AmbientEffect with `tile`, which hides every `solo`
+    // element — so a tile is the layered total, whatever is selected.
+    const src = readFileSync(
+      resolve(__dirname, '../../src/components/AmbientEffect.astro'),
+      'utf8'
+    );
+    expect(src).toMatch(/\.ambient--tile \.ambient__el--solo/);
+    const tile = EFFECT_IDS.reduce((n, id) => n + counts[id].thinned, 0);
+    expect(tile).toBeLessThanOrEqual(BUDGET);
+  });
+
   it('rails run in all four directions, even thinned', () => {
     const dirs = (xs: typeof RAILS) => new Set(xs.map((r) => r.dir));
     expect(dirs(RAILS)).toEqual(new Set(['up', 'down', 'left', 'right']));

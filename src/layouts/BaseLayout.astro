@@ -6,6 +6,7 @@ import GoogleAnalytics from '../components/GoogleAnalytics.astro';
 import SEO from '../components/SEO.astro';
 import SpeedInsights from '@vercel/speed-insights/astro';
 import PalettePanel from '../components/brand/PalettePanel.astro';
+import AmbientPage from '../components/AmbientPage.astro';
 import LanguageBand from '../components/LanguageBand.astro';
 import { localeFromPath, resolveLocale } from '../i18n/locales';
 import { useTranslations } from '../i18n/t';
@@ -166,6 +167,7 @@ const isHomepage = routePath === '/' || routePath === '';
         const ids = ['grid', 'glow', 'scan', 'rails', 'deltas'];
         const strengthDefaults = { grid: 45, glow: 35, scan: 40, rails: 50, deltas: 30 };
         const defaultOn = [];
+        const scopes = ['hero', 'page', 'site'];
         let saved = null;
         try {
           saved = JSON.parse(localStorage.getItem('ambient-motion') || 'null');
@@ -185,6 +187,10 @@ const isHomepage = routePath === '/' || routePath === '';
           const root = document.documentElement;
           root.setAttribute('data-ambient', on.join(' '));
           if (on.length > 1) root.setAttribute('data-ambient-layered', '');
+          root.setAttribute(
+            'data-ambient-scope',
+            scopes.includes(saved.scope) ? saved.scope : scopes[0]
+          );
           for (const id of ids) {
             const pct = clamp(strength[id], 0, 100, 5, strengthDefaults[id]);
             root.style.setProperty('--ambient-' + id, String(pct / 100));
@@ -221,6 +227,11 @@ const isHomepage = routePath === '/' || routePath === '';
     }
     <LanguageBand locale={locale} currentPath={currentPath} />
     <main id="main-content" role="main">
+      {
+        /* Page-wide / site-wide ambient motion (BL-035) — behind every section,
+           shown only in those scopes. First child so it spans all of <main>. */
+      }
+      <AmbientPage home={isHomepage} />
       {
         !isHomepage && (
           <div class="container">

@@ -8,8 +8,9 @@
  * grid cells, rail and mark thickness, deltas — stay in px.
  *
  * `solo: true` marks elements shown only when their effect runs alone on a
- * wide screen. With two or more effects on, or at ≤768px, they hide, and what
- * remains is the prototype's Combined subset. AmbientEffect.astro renders
+ * wide screen. With two or more effects on, at ≤768px, or in a page-wide tile
+ * (AmbientPage.astro), they hide, and what remains is the prototype's
+ * Combined subset. AmbientEffect.astro renders
  * these tables and tests/unit/ambient-effect-budget.test.ts counts them
  * against BL-035's 15-animated-element ceiling.
  *

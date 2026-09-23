@@ -15,15 +15,25 @@
  *
  * The parent must be `position: relative`; content that should sit above the
  * layer needs its own stacking (the global `.container` rule already has it).
+ *
+ * `tile` is the page-wide / site-wide use (AmbientPage.astro clones it once
+ * per screen): always the thinned set, and glows kept inside the tile so the
+ * tile's own clipping never cuts one at a screen boundary.
  */
 import DeltaIcon from './DeltaIcon.astro';
 import { DELTAS, GRID_CELLS, GRID_DURATION, RAILS } from '../data/ambient-effects';
+
+interface Props {
+  /** A per-screen tile of the page background (AmbientPage.astro). */
+  tile?: boolean;
+}
+const { tile = false } = Astro.props;
 
 const solo = (isSolo: boolean) => (isSolo ? ' ambient__el--solo' : '');
 const vertical = (dir: string) => dir === 'up' || dir === 'down';
 ---
 
-<div class="ambient" aria-hidden="true">
+<div class:list={['ambient', { 'ambient--tile': tile }]} aria-hidden="true">
   <div class="ambient__layer ambient__layer--grid">
     {
       GRID_CELLS.map((c) => (
@@ -127,6 +137,10 @@ const vertical = (dir: string) => dir === 'up' || dir === 'down';
 
   /* Budget: with several effects layered, or on a phone, each keeps only its
      share (the prototype's Combined subset). */
+  .ambient--tile .ambient__el--solo {
+    display: none;
+  }
+
   :global(html[data-ambient-layered]) .ambient__el--solo {
     display: none;
   }
@@ -219,6 +233,24 @@ const vertical = (dir: string) => dir === 'up' || dir === 'down';
     to {
       transform: translate(-54%, -17%) scale(0.95);
     }
+  }
+
+  /* A tile is one screen tall and clips at its own edges, so its glows sit
+     inside it, drift and scale included, sized against the shorter side so a
+     wide screen cannot push a wash past the tile's height. */
+  .ambient--tile .ambient__glow--a,
+  .ambient--tile .ambient__glow--b {
+    width: min(40%, 60lvh);
+  }
+
+  .ambient--tile .ambient__glow--a {
+    left: 4%;
+    top: 4%;
+  }
+
+  .ambient--tile .ambient__glow--b {
+    right: 4%;
+    bottom: 6%;
   }
 
   /* 03 Scan Sweep — a band that falls, decelerating and fading as it slows.
@@ -483,6 +515,13 @@ const vertical = (dir: string) => dir === 'up' || dir === 'down';
     .ambient__el--solo {
       display: none;
     }
+  }
+
+  /* Set by AmbientPage while a page background is active and this layer has
+     scrolled off screen, so no layer keeps running out of sight alongside the
+     background's tiles (ADR-0039's "≤28 running"). */
+  .ambient[data-offscreen] .ambient__layer {
+    display: none;
   }
 
   /* Reduced motion wins over any stored choice: the layer is not drawn at all. */
